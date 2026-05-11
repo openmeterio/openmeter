@@ -83,36 +83,26 @@ func TestCreateEventsTable(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Engine: EventsTableEngine{
-					Type:    EventsTableEngineMergeTree,
-					Cluster: "weird`name",
+					Type:          EventsTableEngineReplicatedMergeTree,
+					ZooKeeperPath: "/clickhouse/tables/{shard}/{database}/{table}",
+					ReplicaName:   "{replica}",
+					Cluster:       "weird`name",
 				},
 			},
-			want: "CREATE TABLE IF NOT EXISTS openmeter.om_events ON CLUSTER `weird``name` (namespace String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String, ingested_at DateTime, stored_at DateTime, INDEX om_events_stored_at stored_at TYPE minmax GRANULARITY 4, store_row_id String) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (namespace, type, subject, toStartOfHour(time))",
+			want: "CREATE TABLE IF NOT EXISTS openmeter.om_events ON CLUSTER `weird``name` (namespace String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String, ingested_at DateTime, stored_at DateTime, INDEX om_events_stored_at stored_at TYPE minmax GRANULARITY 4, store_row_id String) ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/{database}/{table}', '{replica}') PARTITION BY toYYYYMM(time) ORDER BY (namespace, type, subject, toStartOfHour(time))",
 		},
 		{
-			name: "ReplicatedMergeTree escapes single quotes in zk path and replica name",
+			name: "ReplicatedMergeTree escapes single quotes and backslashes in zk path and replica name",
 			data: createEventsTable{
 				Database:        "openmeter",
 				EventsTableName: "om_events",
 				Engine: EventsTableEngine{
 					Type:          EventsTableEngineReplicatedMergeTree,
-					ZooKeeperPath: "/path/with'quote",
+					ZooKeeperPath: `/path/with'quote\and-backslash`,
 					ReplicaName:   "rep'lica",
 				},
 			},
-			want: "CREATE TABLE IF NOT EXISTS openmeter.om_events (namespace String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String, ingested_at DateTime, stored_at DateTime, INDEX om_events_stored_at stored_at TYPE minmax GRANULARITY 4, store_row_id String) ENGINE = ReplicatedMergeTree('/path/with''quote', 'rep''lica') PARTITION BY toYYYYMM(time) ORDER BY (namespace, type, subject, toStartOfHour(time))",
-		},
-		{
-			name: "MergeTree honors ON CLUSTER",
-			data: createEventsTable{
-				Database:        "openmeter",
-				EventsTableName: "om_events",
-				Engine: EventsTableEngine{
-					Type:    EventsTableEngineMergeTree,
-					Cluster: "openmeter_cluster",
-				},
-			},
-			want: "CREATE TABLE IF NOT EXISTS openmeter.om_events ON CLUSTER `openmeter_cluster` (namespace String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String, ingested_at DateTime, stored_at DateTime, INDEX om_events_stored_at stored_at TYPE minmax GRANULARITY 4, store_row_id String) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (namespace, type, subject, toStartOfHour(time))",
+			want: `CREATE TABLE IF NOT EXISTS openmeter.om_events (namespace String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String, ingested_at DateTime, stored_at DateTime, INDEX om_events_stored_at stored_at TYPE minmax GRANULARITY 4, store_row_id String) ENGINE = ReplicatedMergeTree('/path/with\'quote\\and-backslash', 'rep\'lica') PARTITION BY toYYYYMM(time) ORDER BY (namespace, type, subject, toStartOfHour(time))`,
 		},
 	}
 
@@ -142,11 +132,12 @@ func TestEventsTableEngineValidate(t *testing.T) {
 			},
 		},
 		{
-			name: "MergeTree with cluster is valid",
+			name: "MergeTree with cluster is rejected (non-replicated ON CLUSTER produces independent tables)",
 			engine: EventsTableEngine{
 				Type:    EventsTableEngineMergeTree,
 				Cluster: "c1",
 			},
+			wantErr: "cluster requires ReplicatedMergeTree",
 		},
 		{
 			name: "ReplicatedMergeTree requires zk path",
@@ -182,25 +173,37 @@ func TestEventsTableEngineValidate(t *testing.T) {
 		{
 			name: "cluster name with hyphen is valid (ClickHouse permits hyphens; we backtick-quote)",
 			engine: EventsTableEngine{
-				Cluster: "prod-cluster-1",
+				Type:          EventsTableEngineReplicatedMergeTree,
+				ZooKeeperPath: "/p",
+				ReplicaName:   "r",
+				Cluster:       "prod-cluster-1",
 			},
 		},
 		{
 			name: "cluster name with leading digit is valid",
 			engine: EventsTableEngine{
-				Cluster: "1cluster",
+				Type:          EventsTableEngineReplicatedMergeTree,
+				ZooKeeperPath: "/p",
+				ReplicaName:   "r",
+				Cluster:       "1cluster",
 			},
 		},
 		{
 			name: "cluster name with embedded backtick is valid (escaped at render time)",
 			engine: EventsTableEngine{
-				Cluster: "weird`name",
+				Type:          EventsTableEngineReplicatedMergeTree,
+				ZooKeeperPath: "/p",
+				ReplicaName:   "r",
+				Cluster:       "weird`name",
 			},
 		},
 		{
 			name: "cluster name with whitespace-only is rejected (likely typo)",
 			engine: EventsTableEngine{
-				Cluster: "   ",
+				Type:          EventsTableEngineReplicatedMergeTree,
+				ZooKeeperPath: "/p",
+				ReplicaName:   "r",
+				Cluster:       "   ",
 			},
 			wantErr: "must not be whitespace-only",
 		},

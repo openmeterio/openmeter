@@ -48,6 +48,9 @@ func (e EventsTableEngine) Validate() error {
 
 	switch e.resolvedType() {
 	case EventsTableEngineMergeTree:
+		if e.Cluster != "" {
+			return fmt.Errorf("cluster requires %s engine; MergeTree with ON CLUSTER produces independent (non-replicated) tables per node", EventsTableEngineReplicatedMergeTree)
+		}
 		return nil
 	case EventsTableEngineReplicatedMergeTree:
 		if strings.TrimSpace(e.ZooKeeperPath) == "" {
@@ -68,18 +71,20 @@ func (e EventsTableEngine) engineClause() string {
 	case EventsTableEngineReplicatedMergeTree:
 		return fmt.Sprintf(
 			"ENGINE = ReplicatedMergeTree('%s', '%s')",
-			escapeSingleQuotes(e.ZooKeeperPath),
-			escapeSingleQuotes(e.ReplicaName),
+			escapeStringLiteral(e.ZooKeeperPath),
+			escapeStringLiteral(e.ReplicaName),
 		)
 	default:
 		return "ENGINE = MergeTree"
 	}
 }
 
-// escapeSingleQuotes doubles single quotes so the value can be embedded in a
-// single-quoted SQL string literal without breaking out.
-func escapeSingleQuotes(s string) string {
-	return strings.ReplaceAll(s, "'", "''")
+// Matches clickhouse-go's stringQuoteReplacer and the CH string-literal spec:
+// https://clickhouse.com/docs/sql-reference/syntax#string
+var stringLiteralEscaper = strings.NewReplacer(`\`, `\\`, `'`, `\'`)
+
+func escapeStringLiteral(s string) string {
+	return stringLiteralEscaper.Replace(s)
 }
 
 // quoteClusterIdentifier wraps a cluster name in backticks, doubling any
