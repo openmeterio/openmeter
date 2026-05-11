@@ -2,9 +2,11 @@ import "../../shared/index.tsp";
 import "../../currencies/index.tsp";
 
 /**
- * A credit adjustment can be used to make manual adjustments to a customer's credit balance.
+ * A credit adjustment can be used to make manual adjustments to a customer's
+ * credit balance.
  *
  * Supported use-cases:
+ *
  * - Usage correction
  */
 @friendlyName("BillingCreditAdjustment")

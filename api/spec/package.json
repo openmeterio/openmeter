@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "generate": "pnpm --filter @openmeter/api-spec-legacy run generate && pnpm --filter @openmeter/api-spec-aip run generate",
-    "format": "prettier --list-different --find-config-path --write .",
+    "format": "prettier --list-different --find-config-path --write . && pnpm --filter @openmeter/api-spec-aip run format",
     "lint": "prettier --check . && pnpm --filter @openmeter/api-spec-legacy run lint && pnpm --filter @openmeter/api-spec-aip run lint",
     "lint:fix": "prettier --write ."
   },

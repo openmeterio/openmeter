@@ -10,7 +10,9 @@ namespace ProductCatalog;
  * Settlement mode for billing.
  *
  * Values:
- * - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced.
+ *
+ * - `credit_then_invoice`: Credits are applied first, then any remainder is
+ *   invoiced.
  * - `credit_only`: Usage is settled exclusively against credits.
  */
 @friendlyName("BillingSettlementMode")
@@ -38,8 +40,8 @@ model RateCard {
   feature?: Shared.ResourceReference<Features.Feature>;
 
   /**
-   * The billing cadence of the rate card.
-   * When null, the charge is one-time (non-recurring). Only valid for flat prices.
+   * The billing cadence of the rate card. When null, the charge is one-time
+   * (non-recurring). Only valid for flat prices.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Billing cadence")
@@ -53,16 +55,16 @@ model RateCard {
   price: Price;
 
   /**
-   * The payment term of the rate card.
-   * In advance payment term can only be used for flat prices.
+   * The payment term of the rate card. In advance payment term can only be used for
+   * flat prices.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Payment term")
   payment_term?: PricePaymentTerm = PricePaymentTerm.InArrears;
 
   /**
-   * Spend commitments for this rate card.
-   * Only applicable to usage-based prices (unit, graduated, volume).
+   * Spend commitments for this rate card. Only applicable to usage-based prices
+   * (unit, graduated, volume).
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Commitments")
@@ -108,9 +110,9 @@ model Discounts {
   percentage?: float;
 
   /**
-   * Number of usage units granted free before billing starts.
-   * Only applies to usage-based lines (not flat fees). Usage is treated as zero
-   * until this amount is exhausted.
+   * Number of usage units granted free before billing starts. Only applies to
+   * usage-based lines (not flat fees). Usage is treated as zero until this amount is
+   * exhausted.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   usage?: Shared.Numeric;
@@ -133,8 +135,10 @@ model ProrationConfiguration {
  * The proration mode of the rate card.
  *
  * Values:
+ *
  * - `no_proration`: No proration.
- * - `prorate_prices`: Prorate the price based on the time remaining in the billing period.
+ * - `prorate_prices`: Prorate the price based on the time remaining in the billing
+ *   period.
  */
 @friendlyName("BillingRateCardProrationMode")
 enum ProrationMode {

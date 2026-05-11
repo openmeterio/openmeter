@@ -6,7 +6,7 @@
     "generate": "tsp compile --config tspconfig.yaml ./src && node ./scripts/flatten-allof.mjs ./output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml && node ./scripts/seal-object-schemas.mjs ./output/definitions/metering-and-billing/v3/*.yaml",
     "bundle": "openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml",
     "watch": "tsp compile --watch --config tspconfig.yaml ./src",
-    "format": "prettier --ignore-path ../../.prettierignore --list-different --find-config-path --write .",
+    "format": "node ./scripts/apply-doc-fixes.mjs && prettier --ignore-path ../../.prettierignore --list-different --find-config-path --write .",
     "lint": "prettier --ignore-path ../../.prettierignore --check .",
     "lint:fix": "prettier --ignore-path ../../.prettierignore --write ."
   },
@@ -26,6 +26,7 @@
     "@typespec/openapi3": "1.11.0",
     "@typespec/prettier-plugin-typespec": "1.11.0",
     "@typespec/rest": "0.81.0",
+    "prettier": "3.8.3",
     "yaml": "2.8.3"
   },
   "private": true,

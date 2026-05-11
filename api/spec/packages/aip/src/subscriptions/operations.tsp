@@ -31,8 +31,9 @@ model SubscriptionChange {
   ...OmitProperties<SubscriptionCreate, "customer_id" | "customer_key">;
 
   /**
-   * Timing configuration for the change, when the change should take effect.
-   * For changing a subscription, the accepted values depend on the subscription configuration.
+   * Timing configuration for the change, when the change should take effect. For
+   * changing a subscription, the accepted values depend on the subscription
+   * configuration.
    */
   timing: SubscriptionEditTiming;
 }
@@ -87,8 +88,8 @@ interface SubscriptionsOperations {
     ...Common.PagePaginationQuery,
 
     /**
-     * Sort subscriptions returned in the response.
-     * Supported sort attributes are:
+     * Sort subscriptions returned in the response. Supported sort attributes are:
+     *
      * - `id`
      * - `active_from` (default)
      * - `active_to`
@@ -111,8 +112,8 @@ interface SubscriptionsOperations {
   ): Shared.GetResponse<Subscription> | Common.NotFound | Common.ErrorResponses;
 
   /**
-   * Cancels the subscription.
-   * Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancelation time.
+   * Cancels the subscription. Will result in a scheduling conflict if there are
+   * other subscriptions scheduled to start after the cancelation time.
    */
   @post
   @operationId("cancel-subscription")
@@ -138,8 +139,8 @@ interface SubscriptionsOperations {
     | Common.ErrorResponses;
 
   /**
-   * Closes a running subscription and starts a new one according to the specification.
-   * Can be used for upgrades, downgrades, and plan changes.
+   * Closes a running subscription and starts a new one according to the
+   * specification. Can be used for upgrades, downgrades, and plan changes.
    */
   @post
   @operationId("change-subscription")

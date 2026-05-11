@@ -33,8 +33,8 @@ model ListCreditGrantsParamsFilter {
 
 interface CustomerCreditGrantsOperations {
   /**
-   * Create a new credit grant.
-   * A credit grant represents an allocation of prepaid credits to a customer.
+   * Create a new credit grant. A credit grant represents an allocation of prepaid
+   * credits to a customer.
    */
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -99,7 +99,8 @@ interface CustomerCreditGrantsOperations {
 // }
 
 /**
- * Request body for updating the external payment settlement status of a credit grant.
+ * Request body for updating the external payment settlement status of a credit
+ * grant.
  */
 @friendlyName("UpdateCreditGrantExternalSettlementRequest")
 model UpdateCreditGrantExternalSettlementRequest {
@@ -113,8 +114,8 @@ interface CustomerCreditGrantExternalSettlementOperations {
   /**
    * Update the payment settlement status of an externally funded credit grant.
    *
-   * Use this endpoint to synchronize the payment state of an external payment
-   * with the system so that revenue recognition and credit availability work as expected.
+   * Use this endpoint to synchronize the payment state of an external payment with
+   * the system so that revenue recognition and credit availability work as expected.
    */
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -178,9 +179,9 @@ interface CustomerCreditTransactionOperations {
   /**
    * List credit transactions for a customer.
    *
-   * Returns an immutable, chronological record of credit movements:
-   * funded credits and consumed credits.
-   * Transactions are returned in reverse chronological order by default.
+   * Returns an immutable, chronological record of credit movements: funded credits
+   * and consumed credits. Transactions are returned in reverse chronological order
+   * by default.
    */
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -201,9 +202,11 @@ interface CustomerCreditTransactionOperations {
 
 interface CustomerCreditAdjustmentsOperations {
   /**
-   * A credit adjustment can be used to make manual adjustments to a customer's credit balance.
+   * A credit adjustment can be used to make manual adjustments to a customer's
+   * credit balance.
    *
    * Supported use-cases:
+   *
    * - Usage correction
    */
   @extension(Shared.UnstableExtension, true)

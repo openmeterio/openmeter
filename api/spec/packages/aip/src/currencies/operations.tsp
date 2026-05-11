@@ -47,8 +47,8 @@ interface CurrenciesOperations {
 
 interface CurrenciesCustomOperations {
   /**
-   * Create a custom currency.
-   * This operation allows defining your own custom currency for billing purposes.
+   * Create a custom currency. This operation allows defining your own custom
+   * currency for billing purposes.
    */
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)

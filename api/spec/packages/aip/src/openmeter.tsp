@@ -19,8 +19,8 @@ using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
 /**
- * OpenMeter is a cloud native usage metering and billing service.
- * The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
+ * OpenMeter is a cloud native usage metering and billing service. The OpenMeter
+ * API allows you to ingest events, query meter usage, and manage resources.
  */
 @service(#{ title: "OpenMeter API" })
 @info(#{

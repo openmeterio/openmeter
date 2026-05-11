@@ -60,7 +60,8 @@ enum CreditTransactionType {
 // }
 
 /**
- * A credit transaction represents a single credit movement on the customer's balance.
+ * A credit transaction represents a single credit movement on the customer's
+ * balance.
  *
  * Credit transactions are immutable.
  */
@@ -96,8 +97,8 @@ model CreditTransaction {
   currency: Currencies.CurrencyCode;
 
   /**
-   * Signed amount of the credit movement.
-   * Positive values add balance, negative values reduce balance.
+   * Signed amount of the credit movement. Positive values add balance, negative
+   * values reduce balance.
    */
   @visibility(Lifecycle.Read)
   amount: Shared.Numeric;

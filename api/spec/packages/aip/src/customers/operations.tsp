@@ -56,14 +56,14 @@ interface CustomersOperations {
     ...Common.PagePaginationQuery,
 
     /**
-     * Sort customers returned in the response.
-     * Supported sort attributes are:
+     * Sort customers returned in the response. Supported sort attributes are:
+     *
      * - `id`
      * - `name` (default)
      * - `created_at`
      *
-     * The `asc` suffix is optional as the default sort order is ascending.
-     * The `desc` suffix is used to specify a descending order.
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
      */
     @query(#{ name: "sort" })
     sort?: Common.SortQuery,
@@ -133,15 +133,17 @@ interface CustomerBillingOperations {
     | Common.ErrorResponses;
 
   /**
-   * Create a [Stripe Checkout Session](https://docs.stripe.com/payments/checkout) for the customer.
+   * Create a [Stripe Checkout Session](https://docs.stripe.com/payments/checkout)
+   * for the customer.
    *
-   * Creates a Checkout Session for collecting payment method information from customers.
-   * The session operates in "setup" mode, which collects payment details without charging
-   * the customer immediately. The collected payment method can be used for future
-   * subscription billing.
+   * Creates a Checkout Session for collecting payment method information from
+   * customers. The session operates in "setup" mode, which collects payment details
+   * without charging the customer immediately. The collected payment method can be
+   * used for future subscription billing.
    *
-   * For hosted checkout sessions, redirect customers to the returned URL. For embedded
-   * sessions, use the client_secret to initialize Stripe.js in your application.
+   * For hosted checkout sessions, redirect customers to the returned URL. For
+   * embedded sessions, use the client_secret to initialize Stripe.js in your
+   * application.
    */
   @post
   @route("/stripe/checkout-sessions")
@@ -159,9 +161,10 @@ interface CustomerBillingOperations {
   /**
    * Create Stripe Customer Portal Session.
    *
-   * Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods,
-   * change their billing address and access their invoice history.
-   * Only returns URL if the customer billing profile is linked to a stripe app and customer.
+   * Useful to redirect the customer to the Stripe Customer Portal to manage their
+   * payment methods, change their billing address and access their invoice history.
+   * Only returns URL if the customer billing profile is linked to a stripe app and
+   * customer.
    */
   @post
   @route("/stripe/portal-sessions")
@@ -181,15 +184,16 @@ interface CustomerBillingOperations {
  * Request to create a Stripe Checkout Session for the customer.
  *
  * Checkout Sessions are used to collect payment method information from customers
- * in a secure, Stripe-hosted interface. This integration uses setup mode to collect
- * payment methods that can be charged later for subscription billing.
+ * in a secure, Stripe-hosted interface. This integration uses setup mode to
+ * collect payment methods that can be charged later for subscription billing.
  */
 @friendlyName("BillingCustomerStripeCreateCheckoutSessionRequest")
 model CustomerBillingStripeCreateCheckoutSessionRequest {
   /**
    * Options for configuring the Stripe Checkout Session.
    *
-   * These options are passed directly to Stripe's [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
+   * These options are passed directly to Stripe's
+   * [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
    */
   stripe_options: Apps.CreateStripeCheckoutSessionRequestOptions;
 }
@@ -197,9 +201,10 @@ model CustomerBillingStripeCreateCheckoutSessionRequest {
 /**
  * Request to create a Stripe Customer Portal Session for the customer.
  *
- * Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods,
- * change their billing address and access their invoice history.
- * Only returns URL if the customer billing profile is linked to a stripe app and customer.
+ * Useful to redirect the customer to the Stripe Customer Portal to manage their
+ * payment methods, change their billing address and access their invoice history.
+ * Only returns URL if the customer billing profile is linked to a stripe app and
+ * customer.
  */
 @friendlyName("BillingCustomerStripeCreateCustomerPortalSessionRequest")
 model CustomerBillingStripeCreateCustomerPortalSessionRequest {

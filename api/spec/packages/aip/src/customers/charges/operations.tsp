@@ -21,6 +21,7 @@ model ListCustomerChargesParamsFilter {
    * Filter charges by status.
    *
    * Supported statuses are:
+   *
    * - `created`
    * - `active`
    * - `final`
@@ -35,7 +36,8 @@ interface CustomerChargesOperations {
   /**
    * List customer charges.
    *
-   * Returns the customer's charges that are represented as either flat fee or usage-based charges.
+   * Returns the customer's charges that are represented as either flat fee or
+   * usage-based charges.
    */
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -50,6 +52,7 @@ interface CustomerChargesOperations {
      * Sort charges returned in the response.
      *
      * Supported sort attributes are:
+     *
      * - `id`
      * - `created_at`
      * - `service_period.from`
@@ -61,7 +64,8 @@ interface CustomerChargesOperations {
     /**
      * Filter charges.
      *
-     * To filter charges by status add the following query param: `filter[status][oeq]=created,active`
+     * To filter charges by status add the following query param:
+     * `filter[status][oeq]=created,active`
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListCustomerChargesParamsFilter,
@@ -70,6 +74,7 @@ interface CustomerChargesOperations {
      * Expand full objects for referenced entities.
      *
      * Supported values are:
+     *
      * - `real_time_usage`: Expand the charge's real-time usage.
      */
     @query(#{ name: "expand", explode: true })

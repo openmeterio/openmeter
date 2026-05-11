@@ -7,8 +7,8 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: https://openmeter.cloud/terms-of-service
   description: |-
-    OpenMeter is a cloud native usage metering and billing service.
-    The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
+    OpenMeter is a cloud native usage metering and billing service. The OpenMeter
+    API allows you to ingest events, query meter usage, and manage resources.
 servers:
   - url: http://localhost:{port}/api/v3
     description: Local
@@ -55,16 +55,16 @@ paths:
           in: query
           required: false
           description: |-
-            Sort add-ons returned in the response.
-            Supported sort attributes are:
+            Sort add-ons returned in the response. Supported sort attributes are:
+
             - `id`
             - `key`
             - `name`
             - `created_at` (default)
             - `updated_at`
 
-            The `asc` suffix is optional as the default sort order is ascending.
-            The `desc` suffix is used to specify a descending order.
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
           schema:
             $ref: '#/components/schemas/SortQuery'
           explode: false
@@ -363,8 +363,8 @@ paths:
       operationId: create-custom-currency
       summary: Create custom currency
       description: |-
-        Create a custom currency.
-        This operation allows defining your own custom currency for billing purposes.
+        Create a custom currency. This operation allows defining your own custom
+        currency for billing purposes.
       responses:
         '201':
           description: CurrencyCustom created response.
@@ -393,8 +393,8 @@ paths:
       operationId: list-cost-bases
       summary: List cost bases
       description: |-
-        List cost bases for a currency.
-        For custom currencies, there can be multiple cost bases with different `effective_from` dates.
+        List cost bases for a currency. For custom currencies, there can be multiple
+        cost bases with different `effective_from` dates.
       parameters:
         - name: currencyId
           in: path
@@ -407,7 +407,8 @@ paths:
           description: |-
             Filter cost bases returned in the response.
 
-            To filter cost bases by fiat currency code add the following query param: filter[fiat_code]=USD
+            To filter cost bases by fiat currency code add the following query param:
+            filter[fiat_code]=USD
           schema:
             $ref: '#/components/schemas/ListCostBasesParamsFilter'
           style: deepObject
@@ -498,14 +499,14 @@ paths:
           in: query
           required: false
           description: |-
-            Sort customers returned in the response.
-            Supported sort attributes are:
+            Sort customers returned in the response. Supported sort attributes are:
+
             - `id`
             - `name` (default)
             - `created_at`
 
-            The `asc` suffix is optional as the default sort order is ascending.
-            The `desc` suffix is used to specify a descending order.
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
           schema:
             $ref: '#/components/schemas/SortQuery'
           explode: false
@@ -719,15 +720,17 @@ paths:
       operationId: create-customer-stripe-checkout-session
       summary: Create Stripe Checkout Session
       description: |-
-        Create a [Stripe Checkout Session](https://docs.stripe.com/payments/checkout) for the customer.
+        Create a [Stripe Checkout Session](https://docs.stripe.com/payments/checkout)
+        for the customer.
 
-        Creates a Checkout Session for collecting payment method information from customers.
-        The session operates in "setup" mode, which collects payment details without charging
-        the customer immediately. The collected payment method can be used for future
-        subscription billing.
+        Creates a Checkout Session for collecting payment method information from
+        customers. The session operates in "setup" mode, which collects payment details
+        without charging the customer immediately. The collected payment method can be
+        used for future subscription billing.
 
-        For hosted checkout sessions, redirect customers to the returned URL. For embedded
-        sessions, use the client_secret to initialize Stripe.js in your application.
+        For hosted checkout sessions, redirect customers to the returned URL. For
+        embedded sessions, use the client_secret to initialize Stripe.js in your
+        application.
       parameters:
         - name: customerId
           in: path
@@ -766,9 +769,10 @@ paths:
       description: |-
         Create Stripe Customer Portal Session.
 
-        Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods,
-        change their billing address and access their invoice history.
-        Only returns URL if the customer billing profile is linked to a stripe app and customer.
+        Useful to redirect the customer to the Stripe Customer Portal to manage their
+        payment methods, change their billing address and access their invoice history.
+        Only returns URL if the customer billing profile is linked to a stripe app and
+        customer.
       parameters:
         - name: customerId
           in: path
@@ -807,7 +811,8 @@ paths:
       description: |-
         List customer charges.
 
-        Returns the customer's charges that are represented as either flat fee or usage-based charges.
+        Returns the customer's charges that are represented as either flat fee or
+        usage-based charges.
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
         - name: customerId
@@ -822,6 +827,7 @@ paths:
             Sort charges returned in the response.
 
             Supported sort attributes are:
+
             - `id`
             - `created_at`
             - `service_period.from`
@@ -836,7 +842,8 @@ paths:
           description: |-
             Filter charges.
 
-            To filter charges by status add the following query param: `filter[status][oeq]=created,active`
+            To filter charges by status add the following query param:
+            `filter[status][oeq]=created,active`
           schema:
             $ref: '#/components/schemas/ListChargesParamsFilter'
           style: deepObject
@@ -847,6 +854,7 @@ paths:
             Expand full objects for referenced entities.
 
             Supported values are:
+
             - `real_time_usage`: Expand the charge's real-time usage.
           schema:
             type: array
@@ -877,9 +885,11 @@ paths:
       operationId: create-credit-adjustment
       summary: Create a credit adjustment
       description: |-
-        A credit adjustment can be used to make manual adjustments to a customer's credit balance.
+        A credit adjustment can be used to make manual adjustments to a customer's
+        credit balance.
 
         Supported use-cases:
+
         - Usage correction
       parameters:
         - name: customerId
@@ -953,8 +963,8 @@ paths:
       operationId: create-credit-grant
       summary: Create a new credit grant
       description: |-
-        Create a new credit grant.
-        A credit grant represents an allocation of prepaid credits to a customer.
+        Create a new credit grant. A credit grant represents an allocation of prepaid
+        credits to a customer.
       parameters:
         - name: customerId
           in: path
@@ -1065,8 +1075,8 @@ paths:
       description: |-
         Update the payment settlement status of an externally funded credit grant.
 
-        Use this endpoint to synchronize the payment state of an external payment
-        with the system so that revenue recognition and credit availability work as expected.
+        Use this endpoint to synchronize the payment state of an external payment with
+        the system so that revenue recognition and credit availability work as expected.
       parameters:
         - name: customerId
           in: path
@@ -1110,9 +1120,9 @@ paths:
       description: |-
         List credit transactions for a customer.
 
-        Returns an immutable, chronological record of credit movements:
-        funded credits and consumed credits.
-        Transactions are returned in reverse chronological order by default.
+        Returns an immutable, chronological record of credit movements: funded credits
+        and consumed credits. Transactions are returned in reverse chronological order
+        by default.
       parameters:
         - name: customerId
           in: path
@@ -1237,7 +1247,8 @@ paths:
           description: |-
             Filter events returned in the response.
 
-            To filter events by subject add the following query param: filter[subject][eq]=customer-1
+            To filter events by subject add the following query param:
+            filter[subject][eq]=customer-1
           schema:
             $ref: '#/components/schemas/ListEventsParamsFilter'
           style: deepObject
@@ -1245,15 +1256,15 @@ paths:
           in: query
           required: false
           description: |-
-            Sort events returned in the response.
-            Supported sort attributes are:
+            Sort events returned in the response. Supported sort attributes are:
+
             - `time` (default)
             - `ingested_at`
             - `stored_at`
 
-            When omitted, events are sorted by `time desc` (most recent first).
-            When a sort field is provided without a suffix, it sorts descending.
-            Append the `asc` suffix to sort ascending, or the `desc` suffix to sort descending.
+            When omitted, events are sorted by `time desc` (most recent first). When a sort
+            field is provided without a suffix, it sorts descending. Append the `asc` suffix
+            to sort ascending, or the `desc` suffix to sort descending.
           schema:
             $ref: '#/components/schemas/SortQuery'
           explode: false
@@ -1319,15 +1330,15 @@ paths:
           in: query
           required: false
           description: |-
-            Sort features returned in the response.
-            Supported sort attributes are:
+            Sort features returned in the response. Supported sort attributes are:
+
             - `key`
             - `name`
             - `created_at` (default)
             - `updated_at`
 
-            The `asc` suffix is optional as the default sort order is ascending.
-            The `desc` suffix is used to specify a descending order.
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
           schema:
             $ref: '#/components/schemas/SortQuery'
           explode: false
@@ -1338,7 +1349,8 @@ paths:
           description: |-
             Filter features returned in the response.
 
-            To filter features by meter_id add the following query param: filter[meter_id][oeq]=<id>
+            To filter features by meter_id add the following query param:
+            filter[meter_id][oeq]=<id>
           schema:
             $ref: '#/components/schemas/ListFeatureParamsFilter'
           style: deepObject
@@ -1421,9 +1433,7 @@ paths:
     patch:
       operationId: update-feature
       summary: Update feature
-      description: |-
-        Update a feature by id.
-        Currently only the unit_cost field can be updated.
+      description: Update a feature by id. Currently only the unit_cost field can be updated.
       parameters:
         - name: featureId
           in: path
@@ -1603,9 +1613,7 @@ paths:
     get:
       operationId: list-llm-cost-prices
       summary: List LLM cost prices
-      description: |-
-        List global LLM cost prices.
-        Returns prices with overrides applied if any.
+      description: List global LLM cost prices. Returns prices with overrides applied if any.
       parameters:
         - name: filter
           in: query
@@ -1618,16 +1626,16 @@ paths:
           in: query
           required: false
           description: |-
-            Sort prices returned in the response.
-            Supported sort attributes are:
+            Sort prices returned in the response. Supported sort attributes are:
+
             - `id`
             - `provider.id`
             - `model.id` (default)
             - `effective_from`
             - `effective_to`
 
-            The `asc` suffix is optional as the default sort order is ascending.
-            The `desc` suffix is used to specify a descending order.
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
           schema:
             $ref: '#/components/schemas/SortQuery'
           explode: false
@@ -1655,8 +1663,8 @@ paths:
       operationId: get-llm-cost-price
       summary: Get LLM cost price
       description: |-
-        Get a specific LLM cost price by ID.
-        Returns the price with overrides applied if any.
+        Get a specific LLM cost price by ID. Returns the price with overrides applied if
+        any.
       parameters:
         - name: priceId
           in: path
@@ -1718,16 +1726,16 @@ paths:
           in: query
           required: false
           description: |-
-            Sort meters returned in the response.
-            Supported sort attributes are:
+            Sort meters returned in the response. Supported sort attributes are:
+
             - `key`
             - `name`
             - `aggregation`
             - `createdAt` (default)
             - `updatedAt`
 
-            The `asc` suffix is optional as the default sort order is ascending.
-            The `desc` suffix is used to specify a descending order.
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
           schema:
             $ref: '#/components/schemas/SortQuery'
           explode: false
@@ -1862,9 +1870,8 @@ paths:
         `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, value`
 
         The `subject` column is emitted only when `subject` is in the query's
-        `group_by_dimensions`.
-        The three `customer_*` columns are emitted together only when `customer_id`
-        is in the query's `group_by_dimensions`.
+        `group_by_dimensions`. The three `customer_*` columns are emitted together only
+        when `customer_id` is in the query's `group_by_dimensions`.
       summary: Query meter
       responses:
         '200':
@@ -1920,8 +1927,8 @@ paths:
           in: query
           required: false
           description: |-
-            Sort plans returned in the response.
-            Supported sort attributes are:
+            Sort plans returned in the response. Supported sort attributes are:
+
             - `id`
             - `key`
             - `version`
@@ -2335,9 +2342,10 @@ paths:
       description: |-
         Create a new billing profile.
 
-        Billing profiles contain the settings for billing and controls invoice generation.
-        An organization can have multiple billing profiles defined.
-        A billing profile is linked to a specific app. This association is established during the billing profile's creation and remains immutable.
+        Billing profiles contain the settings for billing and controls invoice
+        generation. An organization can have multiple billing profiles defined. A
+        billing profile is linked to a specific app. This association is established
+        during the billing profile's creation and remains immutable.
       responses:
         '201':
           description: BillingProfile created response.
@@ -2427,6 +2435,7 @@ paths:
         Delete a billing profile.
 
         Only such billing profiles can be deleted that are:
+
         - not the default profile
         - not pinned to any customer using customer overrides
         - only have finalized invoices
@@ -2487,8 +2496,8 @@ paths:
           in: query
           required: false
           description: |-
-            Sort subscriptions returned in the response.
-            Supported sort attributes are:
+            Sort subscriptions returned in the response. Supported sort attributes are:
+
             - `id`
             - `active_from` (default)
             - `active_to`
@@ -2552,8 +2561,8 @@ paths:
       operationId: cancel-subscription
       summary: Cancel subscription
       description: |-
-        Cancels the subscription.
-        Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancelation time.
+        Cancels the subscription. Will result in a scheduling conflict if there are
+        other subscriptions scheduled to start after the cancelation time.
       parameters:
         - name: subscriptionId
           in: path
@@ -2590,8 +2599,8 @@ paths:
       operationId: change-subscription
       summary: Change subscription
       description: |-
-        Closes a running subscription and starts a new one according to the specification.
-        Can be used for upgrades, downgrades, and plan changes.
+        Closes a running subscription and starts a new one according to the
+        specification. Can be used for upgrades, downgrades, and plan changes.
       parameters:
         - name: subscriptionId
           in: path
@@ -2891,8 +2900,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/ResourceKey'
           description: |-
-            A key is a semi-unique string that is used to identify the add-on.
-            It is used to reference the latest `active` version of the add-on and is unique with the version number.
+            A key is a semi-unique string that is used to identify the add-on. It is used to
+            reference the latest `active` version of the add-on and is unique with the
+            version number.
           title: Key
         version:
           type: integer
@@ -2914,24 +2924,29 @@ components:
         effective_from:
           allOf:
             - $ref: '#/components/schemas/DateTime'
-          description: The date and time when the add-on becomes effective. When not specified, the add-on is a draft.
+          description: |-
+            The date and time when the add-on becomes effective. When not specified, the
+            add-on is a draft.
           title: Effective start date
           readOnly: true
         effective_to:
           allOf:
             - $ref: '#/components/schemas/DateTime'
-          description: The date and time when the add-on is no longer effective. When not specified, the add-on is effective indefinitely.
+          description: |-
+            The date and time when the add-on is no longer effective. When not specified,
+            the add-on is effective indefinitely.
           title: Effective end date
           readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/AddonStatus'
           description: |-
-            The status of the add-on.
-            Computed based on the effective start and end dates:
-            - draft = no effectiveFrom
-            - active = effectiveFrom <= now < effectiveTo
-            - archived  = effectiveTo <= now
+            The status of the add-on. Computed based on the effective start and end dates:
+
+            - `draft`: `effective_from` is not set.
+            - `active`: `effective_from <= now` and (`effective_to` is not set or
+            `now < effective_to`).
+            - `archived`: `effective_to <= now`.
           title: Status
           readOnly: true
         rate_cards:
@@ -2948,7 +2963,9 @@ components:
           title: Validation errors
           readOnly: true
       additionalProperties: false
-      description: Add-on allows extending subscriptions with compatible plans with additional ratecards.
+      description: |-
+        Add-on allows extending subscriptions with compatible plans with additional
+        ratecards.
     AddonInstanceType:
       type: string
       enum:
@@ -2956,6 +2973,7 @@ components:
         - multiple
       description: |-
         The instanceType of the add-on.
+
         - `single`: Can be added to a subscription only once.
         - `multiple`: Can be added to a subscription more than once.
     AddonPagePaginatedResponse:
@@ -2997,7 +3015,9 @@ components:
         - active
         - archived
       description: |-
-        The status of the add-on defined by the effectiveFrom and effectiveTo properties.
+        The status of the add-on defined by the `effective_from` and `effective_to`
+        properties.
+
         - `draft`: The add-on has not yet been published and can be edited.
         - `active`: The add-on is published and available for use.
         - `archived`: The add-on is no longer available for use.
@@ -3007,7 +3027,9 @@ components:
         country:
           allOf:
             - $ref: '#/components/schemas/CountryCode'
-          description: Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.
+          description: |-
+            Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)
+            alpha-2 format.
           title: Country
         postal_code:
           type: string
@@ -3055,7 +3077,9 @@ components:
         country:
           allOf:
             - $ref: '#/components/schemas/CountryCode'
-          description: Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.
+          description: |-
+            Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)
+            alpha-2 format.
           title: Country
         postal_code:
           type: string
@@ -3119,7 +3143,9 @@ components:
       additionalProperties: false
       description: |-
         Available apps for billing integrations to connect with third-party services.
-        Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc.
+        Apps can have various capabilities like syncing data from or to external
+        systems, integrating with third-party services for tax calculation, delivery of
+        invoices, collection of payments, etc.
       example:
         type: stripe
         name: Stripe
@@ -3239,9 +3265,10 @@ components:
           description: |-
             Enable draft synchronization hook.
 
-            When enabled, invoices will pause at the draft state and wait for the integration
-            to call the draft synchronized endpoint before progressing to the issuing state.
-            This allows the external system to validate and prepare the invoice data.
+            When enabled, invoices will pause at the draft state and wait for the
+            integration to call the draft synchronized endpoint before progressing to the
+            issuing state. This allows the external system to validate and prepare the
+            invoice data.
 
             When disabled, invoices automatically progress through the draft state based on
             the configured workflow timing.
@@ -3250,28 +3277,32 @@ components:
           description: |-
             Enable issuing synchronization hook.
 
-            When enabled, invoices will pause at the issuing state and wait for the integration
-            to call the issuing synchronized endpoint before progressing to the issued state.
-            This ensures the external invoicing system has successfully created and finalized
-            the invoice before it is marked as issued.
+            When enabled, invoices will pause at the issuing state and wait for the
+            integration to call the issuing synchronized endpoint before progressing to the
+            issued state. This ensures the external invoicing system has successfully
+            created and finalized the invoice before it is marked as issued.
 
             When disabled, invoices automatically progress through the issuing state and are
             immediately marked as issued.
       additionalProperties: false
       description: |-
-        External Invoicing app enables integration with third-party invoicing or payment system.
+        External Invoicing app enables integration with third-party invoicing or payment
+        system.
 
-        The app supports a bi-directional synchronization pattern where OpenMeter Billing manages
-        the invoice lifecycle while the external system handles invoice presentation and payment collection.
+        The app supports a bi-directional synchronization pattern where OpenMeter
+        Billing manages the invoice lifecycle while the external system handles invoice
+        presentation and payment collection.
 
         Integration workflow:
-        1. The billing system creates invoices and transitions them through lifecycle states (draft → issuing → issued)
+
+        1. The billing system creates invoices and transitions them through lifecycle
+        states (draft → issuing → issued)
         2. The integration receives webhook notifications about invoice state changes
         3. The integration calls back to provide external system IDs and metadata
         4. The integration reports payment events back via the payment status API
 
-        State synchronization is controlled by hooks that pause invoice progression until the
-        external system confirms synchronization via API callbacks.
+        State synchronization is controlled by hooks that pause invoice progression
+        until the external system confirms synchronization via API callbacks.
     BillingAppReference:
       type: object
       required:
@@ -3508,8 +3539,8 @@ components:
           description: |-
             Enables collection of promotional communication consent.
 
-            Only available to US merchants. When set to "auto", Checkout determines
-            whether to show the option based on the customer's locale.
+            Only available to US merchants. When set to "auto", Checkout determines whether
+            to show the option based on the customer's locale.
         terms_of_service:
           allOf:
             - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService'
@@ -3597,7 +3628,8 @@ components:
           description: |-
             Whether to collect the customer's billing address.
 
-            Defaults to auto, which only collects the address when necessary for tax calculation.
+            Defaults to auto, which only collects the address when necessary for tax
+            calculation.
           default: auto
         cancel_url:
           type: string
@@ -3656,22 +3688,23 @@ components:
           description: |-
             Return URL for embedded checkout sessions after payment authentication.
 
-            Required if ui_mode is "embedded" and redirect-based payment methods are enabled.
+            Required if ui_mode is "embedded" and redirect-based payment methods are
+            enabled.
         success_url:
           type: string
           description: |-
             Success URL to redirect customers after completing payment or setup.
 
-            Not allowed when ui_mode is "embedded".
-            See: https://docs.stripe.com/payments/checkout/custom-success-page
+            Not allowed when ui_mode is "embedded". See:
+            https://docs.stripe.com/payments/checkout/custom-success-page
         ui_mode:
           allOf:
             - $ref: '#/components/schemas/BillingAppStripeCheckoutSessionUIMode'
           description: |-
             The UI mode for the checkout session.
 
-            "hosted" displays a Stripe-hosted page. "embedded" integrates directly into your app.
-            Defaults to "hosted".
+            "hosted" displays a Stripe-hosted page. "embedded" integrates directly into your
+            app. Defaults to "hosted".
           default: hosted
         payment_method_types:
           type: array
@@ -3687,8 +3720,8 @@ components:
           description: |-
             Redirect behavior for embedded checkout sessions.
 
-            Controls when to redirect users after completion.
-            See: https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
+            Controls when to redirect users after completion. See:
+            https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
         tax_id_collection:
           allOf:
             - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionTaxIdCollection'
@@ -3697,7 +3730,8 @@ components:
       description: |-
         Configuration options for creating a Stripe Checkout Session.
 
-        Based on Stripe's [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create).
+        Based on Stripe's
+        [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create).
     BillingAppStripeCreateCheckoutSessionResult:
       type: object
       required:
@@ -3726,8 +3760,8 @@ components:
           description: |-
             Client secret for initializing Stripe.js on the client side.
 
-            Required for embedded checkout sessions.
-            See: https://docs.stripe.com/payments/checkout/custom-success-page
+            Required for embedded checkout sessions. See:
+            https://docs.stripe.com/payments/checkout/custom-success-page
         client_reference_id:
           type: string
           description: |-
@@ -3759,7 +3793,8 @@ components:
           description: |-
             The status of the checkout session.
 
-            See: https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
+            See:
+            https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
         url:
           type: string
           description: URL to redirect customers to the checkout page (for hosted mode).
@@ -3783,8 +3818,8 @@ components:
       description: |-
         Result of creating a Stripe Checkout Session.
 
-        Contains all the information needed to redirect customers to the checkout
-        or initialize an embedded checkout flow.
+        Contains all the information needed to redirect customers to the checkout or
+        initialize an embedded checkout flow.
     BillingAppStripeCreateCheckoutSessionTaxIdCollection:
       type: object
       properties:
@@ -3817,19 +3852,23 @@ components:
         configuration_id:
           type: string
           description: |-
-            The ID of an existing [Stripe configuration](https://docs.stripe.com/api/customer_portal/configurations) to use for this session,
-            describing its functionality and features.
-            If not specified, the session uses the default configuration.
+            The ID of an existing
+            [Stripe configuration](https://docs.stripe.com/api/customer_portal/configurations)
+            to use for this session, describing its functionality and features. If not
+            specified, the session uses the default configuration.
         locale:
           type: string
           description: |-
-            The IETF [language tag](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-locale) of the locale customer portal is displayed in.
-            If blank or `auto`, the customer's preferred_locales or browser's locale is used.
+            The IETF
+            [language tag](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-locale)
+            of the locale customer portal is displayed in. If blank or `auto`, the
+            customer's preferred_locales or browser's locale is used.
         return_url:
           type: string
           description: |-
-            The [URL to redirect](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-return_url) the customer to after they have completed
-            their requested actions.
+            The
+            [URL to redirect](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-return_url)
+            the customer to after they have completed their requested actions.
       additionalProperties: false
       description: Request to create a Stripe Customer Portal Session.
     BillingAppStripeCreateCustomerPortalSessionResult:
@@ -3849,7 +3888,8 @@ components:
           description: |-
             The ID of the customer portal session.
 
-            See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id
+            See:
+            https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id
         stripe_customer_id:
           type: string
           description: The ID of the stripe customer.
@@ -3858,42 +3898,49 @@ components:
           description: |-
             Configuration used to customize the customer portal.
 
-            See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration
+            See:
+            https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration
         livemode:
           type: boolean
           description: |-
             Livemode.
 
-            See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode
+            See:
+            https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode
         created_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
             Created at.
 
-            See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created
+            See:
+            https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created
         return_url:
           type: string
           description: |-
             Return URL.
 
-            See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-return_url
+            See:
+            https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-return_url
         locale:
           type: string
           description: |-
             The IETF language tag of the locale customer portal is displayed in.
 
-            See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale
+            See:
+            https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale
         url:
           type: string
           description: |-
-            The URL to redirect the customer to after they have completed
-            their requested actions.
+            The URL to redirect the customer to after they have completed their requested
+            actions.
       additionalProperties: false
       description: |-
-        Result of creating a [Stripe Customer Portal Session](https://docs.stripe.com/api/customer_portal/sessions/object).
+        Result of creating a
+        [Stripe Customer Portal Session](https://docs.stripe.com/api/customer_portal/sessions/object).
 
-        Contains all the information needed to redirect the customer to the Stripe Customer Portal.
+        Contains all the information needed to redirect the customer to the Stripe
+        Customer Portal.
     BillingAppType:
       type: string
       enum:
@@ -3924,6 +3971,7 @@ components:
         Lifecycle status of a charge.
 
         Values:
+
         - `created`: The charge has been created but is not active yet.
         - `active`: The charge is active.
         - `final`: The charge is fully finalized and no further changes are expected.
@@ -3962,6 +4010,7 @@ components:
         Expands for customer charges.
 
         Values:
+
         - `real_time_usage`: The charge's real-time usage.
       title: Customer charge expands
     BillingCostBasis:
@@ -3988,8 +4037,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
-            An ISO-8601 timestamp representation of the date from which the cost basis is effective.
-            If not provided, it will be effective immediately and will set to `now` by the system.
+            An ISO-8601 timestamp representation of the date from which the cost basis is
+            effective. If not provided, it will be effective immediately and will be set to
+            `now` by the system.
         created_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -4021,9 +4071,11 @@ components:
           $ref: '#/components/schemas/Labels'
       additionalProperties: false
       description: |-
-        A credit adjustment can be used to make manual adjustments to a customer's credit balance.
+        A credit adjustment can be used to make manual adjustments to a customer's
+        credit balance.
 
         Supported use-cases:
+
         - Usage correction
       title: Credit adjustment
     BillingCreditAvailabilityPolicy:
@@ -4068,7 +4120,8 @@ components:
 
         - `none`: No funding workflow applies, for example promotional grants
         - `invoice`: The grant is funded by an in-system invoice flow
-        - `external`: The grant is funded outside the system (e.g., wire transfer, external invoice, or manual reconciliation)
+        - `external`: The grant is funded outside the system (e.g., wire transfer,
+        external invoice, or manual reconciliation)
       title: Credit funding method
     BillingCreditGrant:
       type: object
@@ -4143,9 +4196,8 @@ components:
               description: |-
                 Cost basis per credit unit used to calculate the purchase amount.
 
-                If `per_unit_cost_basis` is 0.50 and credit amount is $100.00,
-                the total charge is $50.00.
-                The value must be greater than 0. If the cost basis is 0, use
+                If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
+                is $50.00. The value must be greater than 0. If the cost basis is 0, use
                 `funding_method=none` instead.
 
                 Defaults to 1.0.
@@ -4153,9 +4205,7 @@ components:
             amount:
               allOf:
                 - $ref: '#/components/schemas/Numeric'
-              description: |-
-                The purchase amount.
-                Calculated from `per_unit_cost_basis` and credit `amount`.
+              description: The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`.
               readOnly: true
             availability_policy:
               allOf:
@@ -4175,16 +4225,18 @@ components:
             - amount
           additionalProperties: false
           description: |-
-            Purchase and payment terms of the grant.
-            Present when a funding workflow applies (funding_method is not `none`).
+            Purchase and payment terms of the grant. Present when a funding workflow applies
+            (funding_method is not `none`).
         tax_config:
           allOf:
             - $ref: '#/components/schemas/BillingCreditGrantTaxConfig'
           description: |-
             Tax configuration for the grant.
 
-            For `invoice` and `external` funding methods, tax configuration should be provided to ensure correct revenue recognition.
-            When not provided, the default credit grant tax code is applied, if that's not set the global default taxcode is used.
+            For `invoice` and `external` funding methods, tax configuration should be
+            provided to ensure correct revenue recognition. When not provided, the default
+            credit grant tax code is applied, if that's not set the global default taxcode
+            is used.
         invoice:
           type: object
           properties:
@@ -4204,9 +4256,7 @@ components:
               description: Identifier of the invoice line associated with the grant.
               readOnly: true
           additionalProperties: false
-          description: |-
-            Invoice references for the grant.
-            Available when `funding_method` is `invoice`.
+          description: Invoice references for the grant. Available when `funding_method` is `invoice`.
           readOnly: true
         filters:
           type: object
@@ -4216,8 +4266,8 @@ components:
               items:
                 $ref: '#/components/schemas/ResourceKey'
               description: |-
-                Limit the credit grant to specific features.
-                If no features are specified, the credit grant can be used for any feature.
+                Limit the credit grant to specific features. If no features are specified, the
+                credit grant can be used for any feature.
               example:
                 - input_tokens
                 - output_tokens
@@ -4228,9 +4278,7 @@ components:
           format: int16
           minimum: 1
           maximum: 1000
-          description: |-
-            Draw-down priority of the grant.
-            Lower values have higher priority.
+          description: Draw-down priority of the grant. Lower values have higher priority.
           default: 10
         voided_at:
           allOf:
@@ -4246,8 +4294,8 @@ components:
       description: |-
         A credit grant allocates credits to a customer.
 
-        Credits are drawn down against charges according to the
-        settlement mode configured on the rate card.
+        Credits are drawn down against charges according to the settlement mode
+        configured on the rate card.
       title: Credit grant
     BillingCreditGrantStatus:
       type: string
@@ -4259,9 +4307,13 @@ components:
       description: |-
         Credit grant lifecycle status.
 
-        - `pending`: The credit block has been created but is not yet valid. (`effective_at` is in the future or availability_policy is not met)
-        - `active`: The credit block is currently valid and eligible for consumption. (`effective_at` is in the past, `expires_at` is in the future and availability_policy is met)
-        - `expired`: The credit block expired with remaining unused balance, `expires_at` time has passed.
+        - `pending`: The credit block has been created but is not yet valid.
+        (`effective_at` is in the future or availability_policy is not met)
+        - `active`: The credit block is currently valid and eligible for consumption.
+        (`effective_at` is in the past, `expires_at` is in the future and
+        availability_policy is met)
+        - `expired`: The credit block expired with remaining unused balance,
+        `expires_at` time has passed.
         - `voided`: The credit block was voided. Remaining balance is forfeited.
       title: Credit grant lifecycle status
     BillingCreditGrantTaxConfig:
@@ -4352,8 +4404,8 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            Signed amount of the credit movement.
-            Positive values add balance, negative values reduce balance.
+            Signed amount of the credit movement. Positive values add balance, negative
+            values reduce balance.
           readOnly: true
         available_balance:
           type: object
@@ -4370,7 +4422,8 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        A credit transaction represents a single credit movement on the customer's balance.
+        A credit transaction represents a single credit movement on the customer's
+        balance.
 
         Credit transactions are immutable.
       title: Credit transaction
@@ -4406,8 +4459,8 @@ components:
       minLength: 3
       maxLength: 24
       description: |-
-        Custom currency code.
-        It should be a unique code but not conflicting with any existing fiat currency codes.
+        Custom currency code. It should be a unique code but not conflicting with any
+        existing fiat currency codes.
     BillingCurrencyCustom:
       type: object
       required:
@@ -4431,7 +4484,9 @@ components:
           type: string
           minLength: 1
           maxLength: 256
-          description: The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".
+          description: |-
+            The name of the currency. It should be a human-readable string that represents
+            the name of the currency, such as "US Dollar" or "Euro".
         description:
           type: string
           minLength: 1
@@ -4440,7 +4495,9 @@ components:
         symbol:
           type: string
           minLength: 1
-          description: The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.
+          description: |-
+            The symbol of the currency. It should be a string that represents the symbol of
+            the currency, such as "$" for US Dollar or "€" for Euro.
         code:
           $ref: '#/components/schemas/BillingCurrencyCodeCustom'
         created_at:
@@ -4472,7 +4529,9 @@ components:
           type: string
           minLength: 1
           maxLength: 256
-          description: The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".
+          description: |-
+            The name of the currency. It should be a human-readable string that represents
+            the name of the currency, such as "US Dollar" or "Euro".
         description:
           type: string
           minLength: 1
@@ -4481,7 +4540,9 @@ components:
         symbol:
           type: string
           minLength: 1
-          description: The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.
+          description: |-
+            The symbol of the currency. It should be a string that represents the symbol of
+            the currency, such as "$" for US Dollar or "€" for Euro.
         code:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
@@ -4494,8 +4555,8 @@ components:
         - fiat
         - custom
       description: |-
-        Currency type for custom currencies.
-        It should be a unique code but not conflicting with any existing standard currency codes.
+        Currency type for custom currencies. It should be a unique code but not
+        conflicting with any existing standard currency codes.
     BillingCustomer:
       type: object
       required:
@@ -4555,19 +4616,17 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
-          description: |-
-            Currency of the customer.
-            Used for billing, tax and invoicing.
+          description: Currency of the customer. Used for billing, tax and invoicing.
           title: Currency
         billing_address:
           allOf:
             - $ref: '#/components/schemas/BillingAddress'
-          description: |-
-            The billing address of the customer.
-            Used for tax and invoicing.
+          description: The billing address of the customer. Used for tax and invoicing.
           title: Billing Address
       additionalProperties: false
-      description: Customers can be individuals or organizations that can subscribe to plans and have access to features.
+      description: |-
+        Customers can be individuals or organizations that can subscribe to plans and
+        have access to features.
     BillingCustomerData:
       type: object
       properties:
@@ -4608,14 +4667,15 @@ components:
           description: |-
             Options for configuring the Stripe Checkout Session.
 
-            These options are passed directly to Stripe's [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
+            These options are passed directly to Stripe's
+            [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
       additionalProperties: false
       description: |-
         Request to create a Stripe Checkout Session for the customer.
 
         Checkout Sessions are used to collect payment method information from customers
-        in a secure, Stripe-hosted interface. This integration uses setup mode to collect
-        payment methods that can be charged later for subscription billing.
+        in a secure, Stripe-hosted interface. This integration uses setup mode to
+        collect payment methods that can be charged later for subscription billing.
     BillingCustomerStripeCreateCustomerPortalSessionRequest:
       type: object
       required:
@@ -4629,9 +4689,10 @@ components:
       description: |-
         Request to create a Stripe Customer Portal Session for the customer.
 
-        Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods,
-        change their billing address and access their invoice history.
-        Only returns URL if the customer billing profile is linked to a stripe app and customer.
+        Useful to redirect the customer to the Stripe Customer Portal to manage their
+        payment methods, change their billing address and access their invoice history.
+        Only returns URL if the customer billing profile is linked to a stripe app and
+        customer.
     BillingCustomerUsageAttribution:
       type: object
       required:
@@ -4643,14 +4704,13 @@ components:
             $ref: '#/components/schemas/UsageAttributionSubjectKey'
           minItems: 0
           description: |-
-            The subjects that are attributed to the customer.
-            Can be empty when no usage event subjects are associated with the customer.
+            The subjects that are attributed to the customer. Can be empty when no usage
+            event subjects are associated with the customer.
           title: Subject Keys
       additionalProperties: false
       description: |-
-        Mapping to attribute metered usage to the customer.
-        One customer can have zero or more subjects,
-        but one subject can only belong to one customer.
+        Mapping to attribute metered usage to the customer. One customer can have zero
+        or more subjects, but one subject can only belong to one customer.
     BillingEntitlementAccessResult:
       type: object
       required:
@@ -4673,17 +4733,15 @@ components:
         has_access:
           type: boolean
           description: |-
-            Whether the customer has access to the feature.
-            Always true for `boolean` and `static` entitlements.
-            Depends on balance for `metered` entitlements.
+            Whether the customer has access to the feature. Always true for `boolean` and
+            `static` entitlements. Depends on balance for `metered` entitlements.
           example: true
           readOnly: true
         config:
           type: string
           description: |-
-            Only available for static entitlements.
-            Config is the JSON parsable configuration of the entitlement.
-            Useful to describe per customer configuration.
+            Only available for static entitlements. Config is the JSON parsable
+            configuration of the entitlement. Useful to describe per customer configuration.
           example: '{ "availableModels": ["gpt-5", "gpt-4o"] }'
           readOnly: true
       additionalProperties: false
@@ -4719,61 +4777,55 @@ components:
         provider_property:
           type: string
           description: |-
-            Meter group-by property that holds the LLM provider.
-            Use this when the meter has a group-by dimension for provider.
-            Mutually exclusive with `provider`.
+            Meter group-by property that holds the LLM provider. Use this when the meter has
+            a group-by dimension for provider. Mutually exclusive with `provider`.
           title: Provider property
         provider:
           type: string
           description: |-
-            Static LLM provider value (e.g., "openai", "anthropic").
-            Use this when the feature tracks a single provider.
-            Mutually exclusive with `provider_property`.
+            Static LLM provider value (e.g., "openai", "anthropic"). Use this when the
+            feature tracks a single provider. Mutually exclusive with `provider_property`.
           title: Provider
         model_property:
           type: string
           description: |-
-            Meter group-by property that holds the model ID.
-            Use this when the meter has a group-by dimension for model.
-            Mutually exclusive with `model`.
+            Meter group-by property that holds the model ID. Use this when the meter has a
+            group-by dimension for model. Mutually exclusive with `model`.
           title: Model property
         model:
           type: string
           description: |-
-            Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet").
-            Use this when the feature tracks a single model.
-            Mutually exclusive with `model_property`.
+            Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet"). Use this when the
+            feature tracks a single model. Mutually exclusive with `model_property`.
           title: Model
         token_type_property:
           type: string
           description: |-
-            Meter group-by property that holds the token type.
-            Use this when the meter has a group-by dimension for token type.
-            Mutually exclusive with `token_type`.
+            Meter group-by property that holds the token type. Use this when the meter has a
+            group-by dimension for token type. Mutually exclusive with `token_type`.
           title: Token type property
         token_type:
           allOf:
             - $ref: '#/components/schemas/BillingFeatureLLMTokenType'
           description: |-
-            Static token type value.
-            Use this when the feature tracks a single token type (e.g., only input tokens).
-            `request` is an alias for `input`, `response` is an alias for `output`.
-            Mutually exclusive with `token_type_property`.
+            Static token type value. Use this when the feature tracks a single token type
+            (e.g., only input tokens). `request` is an alias for `input`, `response` is an
+            alias for `output`. Mutually exclusive with `token_type_property`.
           title: Token type
         pricing:
           allOf:
             - $ref: '#/components/schemas/BillingFeatureLLMUnitCostPricing'
           description: |-
-            Resolved per-token pricing from the LLM cost database.
-            Populated in responses when the provider and model can be determined,
-            either from static values or from meter group-by filters with exact matches.
+            Resolved per-token pricing from the LLM cost database. Populated in responses
+            when the provider and model can be determined, either from static values or from
+            meter group-by filters with exact matches.
           title: Resolved pricing
           readOnly: true
       additionalProperties: false
       description: |-
-        LLM cost lookup configuration.
-        Each dimension (provider, model, token type) can be specified as either
-        a static value or a meter group-by property name (mutually exclusive).
+        LLM cost lookup configuration. Each dimension (provider, model, token type) can
+        be specified as either a static value or a meter group-by property name
+        (mutually exclusive).
     BillingFeatureLLMUnitCostPricing:
       type: object
       required:
@@ -4835,8 +4887,8 @@ components:
           manual: '#/components/schemas/BillingFeatureManualUnitCost'
           llm: '#/components/schemas/BillingFeatureLLMUnitCost'
       description: |-
-        Per-unit cost configuration for a feature.
-        Either a fixed manual amount or a dynamic LLM cost lookup.
+        Per-unit cost configuration for a feature. Either a fixed manual amount or a
+        dynamic LLM cost lookup.
     BillingFlatFeeCharge:
       type: object
       required:
@@ -4917,7 +4969,9 @@ components:
         subscription:
           allOf:
             - $ref: '#/components/schemas/BillingSubscriptionReference'
-          description: The subscription that originated the charge, when the charge was created from a subscription item.
+          description: |-
+            The subscription that originated the charge, when the charge was created from a
+            subscription item.
           title: Subscription
           readOnly: true
         currency:
@@ -4959,7 +5013,9 @@ components:
         advance_after:
           allOf:
             - $ref: '#/components/schemas/DateTime'
-          description: The earliest time when the charge should be advanced again by background processing.
+          description: |-
+            The earliest time when the charge should be advanced again by background
+            processing.
           title: Advance after
           readOnly: true
         price:
@@ -5025,7 +5081,8 @@ components:
       description: |-
         Discounts applicable to flat fee charges.
 
-        This is the same as `ProductCatalog.Discounts` but without the `usage` field, which is not applicable to flat fee charges.
+        This is the same as `ProductCatalog.Discounts` but without the `usage` field,
+        which is not applicable to flat fee charges.
       title: Flat fee charge discounts
     BillingParty:
       type: object
@@ -5045,8 +5102,8 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingPartyTaxIdentity'
           description: |-
-            The entity's legal identification used for tax purposes. They may have
-            other numbers, but we're only interested in those valid for tax purposes.
+            The entity's legal identification used for tax purposes. They may have other
+            numbers, but we're only interested in those valid for tax purposes.
         addresses:
           allOf:
             - $ref: '#/components/schemas/BillingPartyAddresses'
@@ -5072,7 +5129,9 @@ components:
             - $ref: '#/components/schemas/BillingTaxIdentificationCode'
           description: Normalized tax identification code shown on the original identity document.
       additionalProperties: false
-      description: Identity stores the details required to identify an entity for tax purposes in a specific country.
+      description: |-
+        Identity stores the details required to identify an entity for tax purposes in a
+        specific country.
     BillingPlan:
       type: object
       required:
@@ -5127,13 +5186,16 @@ components:
           allOf:
             - $ref: '#/components/schemas/ResourceKey'
           description: |-
-            A key is a semi-unique string that is used to identify the plan.
-            It is used to reference the latest `active` version of the plan and is unique with the version number.
+            A key is a semi-unique string that is used to identify the plan. It is used to
+            reference the latest `active` version of the plan and is unique with the version
+            number.
           title: Key
         version:
           type: integer
           minimum: 1
-          description: Plans are versioned to allow you to make changes without affecting running subscriptions.
+          description: |-
+            Plans are versioned to allow you to make changes without affecting running
+            subscriptions.
           title: Version
           default: 1
           readOnly: true
@@ -5156,28 +5218,29 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
-            The date and time when the plan becomes `active`.
-            When not specified, the plan is in `draft` status.
+            The date and time when the plan becomes `active`. When not specified, the plan
+            is in `draft` status.
           title: Effective start date
           readOnly: true
         effective_to:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
-            A scheduled date and time when the plan becomes `archived`.
-            When not specified, the plan is in `active` status indefinitely.
+            A scheduled date and time when the plan becomes `archived`. When not specified,
+            the plan is in `active` status indefinitely.
           title: Effective end date
           readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/BillingPlanStatus'
           description: |-
-            The status of the plan.
-            Computed based on the effective start and end dates:
-            - draft = no effectiveFrom
-            - active = effectiveFrom <= now < effectiveTo
-            - archived / inactive = effectiveTo <= now
-            - scheduled = now < effectiveFrom < effectiveTo
+            The status of the plan. Computed based on the effective start and end dates:
+
+            - `draft`: `effective_from` is not set.
+            - `scheduled`: `now < effective_from`.
+            - `active`: `effective_from <= now` and (`effective_to` is not set or
+            `now < effective_to`).
+            - `archived`: `effective_to <= now`.
           title: Status
           readOnly: true
         phases:
@@ -5186,15 +5249,16 @@ components:
             $ref: '#/components/schemas/BillingPlanPhase'
           minItems: 1
           description: |-
-            The plan phases define the pricing ramp for a subscription.
-            A phase switch occurs only at the end of a billing period.
-            At least one phase is required.
+            The plan phases define the pricing ramp for a subscription. A phase switch
+            occurs only at the end of a billing period. At least one phase is required.
           title: Plan phases
         validation_errors:
           type: array
           items:
             $ref: '#/components/schemas/ProductCatalogValidationError'
-          description: List of validation errors in `draft` state that prevent the plan from being published.
+          description: |-
+            List of validation errors in `draft` state that prevent the plan from being
+            published.
           title: Validation errors
           readOnly: true
       additionalProperties: false
@@ -5229,8 +5293,8 @@ components:
           allOf:
             - $ref: '#/components/schemas/ISO8601Duration'
           description: |-
-            The duration of the phase.
-            When not specified, the phase runs indefinitely. Only the last phase may omit the duration.
+            The duration of the phase. When not specified, the phase runs indefinitely. Only
+            the last phase may omit the duration.
           title: Duration
         rate_cards:
           type: array
@@ -5239,7 +5303,9 @@ components:
           description: The rate cards of the plan.
           title: Rate cards
       additionalProperties: false
-      description: The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+      description: |-
+        The plan phase or pricing ramp allows changing a plan's rate cards over time as
+        a subscription progresses.
     BillingPlanStatus:
       type: string
       enum:
@@ -5249,6 +5315,7 @@ components:
         - scheduled
       description: |-
         The status of a plan.
+
         - `draft`: The plan has not yet been published and can be edited.
         - `active`: The plan is published and can be used in subscriptions.
         - `archived`: The plan is no longer available for use.
@@ -5319,19 +5386,17 @@ components:
           items:
             $ref: '#/components/schemas/BillingPriceTier'
           minItems: 1
-          description: |-
-            The tiers of the graduated price.
-            At least one tier is required.
+          description: The tiers of the graduated price. At least one tier is required.
           title: Tiers
       additionalProperties: false
       description: |-
         Graduated tiered price.
 
-        Each tier's rate applies only to the usage within that tier.
-        Pricing can change as cumulative usage crosses tier boundaries.
+        Each tier's rate applies only to the usage within that tier. Pricing can change
+        as cumulative usage crosses tier boundaries.
 
-        When UnitConfig is present on the rate card, tier boundaries (up_to_amount)
-        are expressed in converted billing units.
+        When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
+        expressed in converted billing units.
     BillingPricePaymentTerm:
       type: string
       enum:
@@ -5345,30 +5410,26 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            Up to and including this quantity will be contained in the tier.
-            If undefined, the tier is open-ended (the last tier).
+            Up to and including this quantity will be contained in the tier. If undefined,
+            the tier is open-ended (the last tier).
           title: Up to quantity
         flat_price:
           allOf:
             - $ref: '#/components/schemas/BillingPriceFlat'
-          description: |-
-            The flat price component of the tier.
-            Charged once when the tier is entered.
+          description: The flat price component of the tier. Charged once when the tier is entered.
           title: Flat price component
         unit_price:
           allOf:
             - $ref: '#/components/schemas/BillingPriceUnit'
-          description: |-
-            The unit price component of the tier.
-            Charged per billing unit within the tier.
+          description: The unit price component of the tier. Charged per billing unit within the tier.
           title: Unit price component
       additionalProperties: false
       description: |-
         A price tier used in graduated and volume pricing.
 
-        At least one price component (flat_price or unit_price) must be set.
-        When UnitConfig is present on the rate card, up_to_amount is expressed
-        in converted billing units.
+        At least one price component (flat_price or unit_price) must be set. When
+        UnitConfig is present on the rate card, up_to_amount is expressed in converted
+        billing units.
     BillingPriceUnit:
       type: object
       required:
@@ -5390,9 +5451,8 @@ components:
       description: |-
         Unit price.
 
-        Charges a fixed rate per billing unit.
-        When UnitConfig is present on the rate card, billing units are the
-        converted quantities (e.g. GB instead of bytes).
+        Charges a fixed rate per billing unit. When UnitConfig is present on the rate
+        card, billing units are the converted quantities (e.g. GB instead of bytes).
     BillingPriceVolume:
       type: object
       required:
@@ -5410,19 +5470,17 @@ components:
           items:
             $ref: '#/components/schemas/BillingPriceTier'
           minItems: 1
-          description: |-
-            The tiers of the volume price.
-            At least one tier is required.
+          description: The tiers of the volume price. At least one tier is required.
           title: Tiers
       additionalProperties: false
       description: |-
         Volume tiered price.
 
-        The maximum quantity within a period determines the per-unit price for
-        all units in that period.
+        The maximum quantity within a period determines the per-unit price for all units
+        in that period.
 
-        When UnitConfig is present on the rate card, tier boundaries (up_to_amount)
-        are expressed in converted billing units.
+        When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
+        expressed in converted billing units.
     BillingProfile:
       type: object
       required:
@@ -5474,7 +5532,9 @@ components:
         supplier:
           allOf:
             - $ref: '#/components/schemas/BillingParty'
-          description: The name and contact information for the supplier this billing profile represents
+          description: |-
+            The name and contact information for the supplier this billing profile
+            represents
         workflow:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflow'
@@ -5487,7 +5547,9 @@ components:
           type: boolean
           description: Whether this is the default profile.
       additionalProperties: false
-      description: Billing profiles contain the settings for billing and controls invoice generation.
+      description: |-
+        Billing profiles contain the settings for billing and controls invoice
+        generation.
     BillingProfileAppReferences:
       type: object
       required:
@@ -5569,8 +5631,8 @@ components:
           allOf:
             - $ref: '#/components/schemas/ISO8601Duration'
           description: |-
-            The billing cadence of the rate card.
-            When null, the charge is one-time (non-recurring). Only valid for flat prices.
+            The billing cadence of the rate card. When null, the charge is one-time
+            (non-recurring). Only valid for flat prices.
           title: Billing cadence
         price:
           allOf:
@@ -5581,16 +5643,16 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingPricePaymentTerm'
           description: |-
-            The payment term of the rate card.
-            In advance payment term can only be used for flat prices.
+            The payment term of the rate card. In advance payment term can only be used for
+            flat prices.
           title: Payment term
           default: in_arrears
         commitments:
           allOf:
             - $ref: '#/components/schemas/BillingSpendCommitments'
           description: |-
-            Spend commitments for this rate card.
-            Only applicable to usage-based prices (unit, graduated, volume).
+            Spend commitments for this rate card. Only applicable to usage-based prices
+            (unit, graduated, volume).
           title: Commitments
         discounts:
           allOf:
@@ -5616,9 +5678,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            Number of usage units granted free before billing starts.
-            Only applies to usage-based lines (not flat fees). Usage is treated as zero
-            until this amount is exhausted.
+            Number of usage units granted free before billing starts. Only applies to
+            usage-based lines (not flat fees). Usage is treated as zero until this amount is
+            exhausted.
       additionalProperties: false
       description: Discount configuration for a rate card.
     BillingRateCardProrationConfiguration:
@@ -5642,8 +5704,10 @@ components:
         The proration mode of the rate card.
 
         Values:
+
         - `no_proration`: No proration.
-        - `prorate_prices`: Prorate the price based on the time remaining in the billing period.
+        - `prorate_prices`: Prorate the price based on the time remaining in the billing
+        period.
     BillingRateCardTaxConfig:
       type: object
       required:
@@ -5664,7 +5728,9 @@ components:
         Settlement mode for billing.
 
         Values:
-        - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced.
+
+        - `credit_then_invoice`: Credits are applied first, then any remainder is
+        invoiced.
         - `credit_only`: Usage is settled exclusively against credits.
       title: Settlement mode
     BillingSpendCommitments:
@@ -5682,8 +5748,8 @@ components:
           title: Maximum amount
       additionalProperties: false
       description: |-
-        Spend commitments for a rate card.
-        The customer is committed to spend at least the minimum amount and at most the maximum amount.
+        Spend commitments for a rate card. The customer is committed to spend at least
+        the minimum amount and at most the maximum amount.
     BillingSubscription:
       type: object
       required:
@@ -5724,18 +5790,17 @@ components:
         plan_id:
           allOf:
             - $ref: '#/components/schemas/ULID'
-          description: |-
-            The plan ID of the subscription.
-            Set if subscription is created from a plan.
+          description: The plan ID of the subscription. Set if subscription is created from a plan.
           title: Plan ID
           readOnly: true
         billing_anchor:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
-            A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle.
-            It affects when charges occur and how prorations are calculated.
-            Common anchors:
+            A billing anchor is the fixed point in time that determines the subscription's
+            recurring billing cycle. It affects when charges occur and how prorations are
+            calculated. Common anchors:
+
             - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
             - Subscription anniversary (day customer signed up)
             - Custom date (customer-specified day)
@@ -5777,8 +5842,8 @@ components:
               description: |-
                 The ID of the customer to create the subscription for.
 
-                Either customer ID or customer key must be provided.
-                If both are provided, the ID will be used.
+                Either customer ID or customer key must be provided. If both are provided, the
+                ID will be used.
               title: Customer ID
             key:
               allOf:
@@ -5786,8 +5851,8 @@ components:
               description: |-
                 The key of the customer to create the subscription for.
 
-                Either customer ID or customer key must be provided.
-                If both are provided, the ID will be used.
+                Either customer ID or customer key must be provided. If both are provided, the
+                ID will be used.
               title: Customer Key
           additionalProperties: false
           description: The customer to create the subscription for.
@@ -5798,27 +5863,26 @@ components:
               allOf:
                 - $ref: '#/components/schemas/ULID'
               description: |-
-                The plan ID of the subscription.
-                Set if subscription is created from a plan.
+                The plan ID of the subscription. Set if subscription is created from a plan.
 
-                ID or Key of the plan is required if creating a subscription from a plan.
-                If both are provided, the ID will be used.
+                ID or Key of the plan is required if creating a subscription from a plan. If
+                both are provided, the ID will be used.
               title: Plan ID
             key:
               allOf:
                 - $ref: '#/components/schemas/ResourceKey'
               description: |-
-                The plan Key of the subscription, if any.
-                Set if subscription is created from a plan.
+                The plan Key of the subscription, if any. Set if subscription is created from a
+                plan.
 
-                ID or Key of the plan is required if creating a subscription from a plan.
-                If both are provided, the ID will be used.
+                ID or Key of the plan is required if creating a subscription from a plan. If
+                both are provided, the ID will be used.
               title: Plan Key
             version:
               type: integer
               description: |-
-                The plan version of the subscription, if any.
-                If not provided, the latest version of the plan will be used.
+                The plan version of the subscription, if any. If not provided, the latest
+                version of the plan will be used.
               title: Plan Version
           additionalProperties: false
           description: The plan reference of the subscription.
@@ -5826,21 +5890,24 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
-            A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle.
-            It affects when charges occur and how prorations are calculated.
-            Common anchors:
+            A billing anchor is the fixed point in time that determines the subscription's
+            recurring billing cycle. It affects when charges occur and how prorations are
+            calculated. Common anchors:
+
             - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
             - Subscription anniversary (day customer signed up)
             - Custom date (customer-specified day)
 
-            If not provided, the subscription will be created with the subscription's creation time as the billing anchor.
+            If not provided, the subscription will be created with the subscription's
+            creation time as the billing anchor.
           title: Billing anchor
         timing:
           allOf:
             - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
           description: |-
-            Timing configuration for the change, when the change should take effect.
-            For changing a subscription, the accepted values depend on the subscription configuration.
+            Timing configuration for the change, when the change should take effect. For
+            changing a subscription, the accepted values depend on the subscription
+            configuration.
       additionalProperties: false
       description: Request for changing a subscription.
     BillingSubscriptionChangeResponse:
@@ -5876,8 +5943,8 @@ components:
               description: |-
                 The ID of the customer to create the subscription for.
 
-                Either customer ID or customer key must be provided.
-                If both are provided, the ID will be used.
+                Either customer ID or customer key must be provided. If both are provided, the
+                ID will be used.
               title: Customer ID
             key:
               allOf:
@@ -5885,8 +5952,8 @@ components:
               description: |-
                 The key of the customer to create the subscription for.
 
-                Either customer ID or customer key must be provided.
-                If both are provided, the ID will be used.
+                Either customer ID or customer key must be provided. If both are provided, the
+                ID will be used.
               title: Customer Key
           additionalProperties: false
           description: The customer to create the subscription for.
@@ -5897,27 +5964,26 @@ components:
               allOf:
                 - $ref: '#/components/schemas/ULID'
               description: |-
-                The plan ID of the subscription.
-                Set if subscription is created from a plan.
+                The plan ID of the subscription. Set if subscription is created from a plan.
 
-                ID or Key of the plan is required if creating a subscription from a plan.
-                If both are provided, the ID will be used.
+                ID or Key of the plan is required if creating a subscription from a plan. If
+                both are provided, the ID will be used.
               title: Plan ID
             key:
               allOf:
                 - $ref: '#/components/schemas/ResourceKey'
               description: |-
-                The plan Key of the subscription, if any.
-                Set if subscription is created from a plan.
+                The plan Key of the subscription, if any. Set if subscription is created from a
+                plan.
 
-                ID or Key of the plan is required if creating a subscription from a plan.
-                If both are provided, the ID will be used.
+                ID or Key of the plan is required if creating a subscription from a plan. If
+                both are provided, the ID will be used.
               title: Plan Key
             version:
               type: integer
               description: |-
-                The plan version of the subscription, if any.
-                If not provided, the latest version of the plan will be used.
+                The plan version of the subscription, if any. If not provided, the latest
+                version of the plan will be used.
               title: Plan Version
           additionalProperties: false
           description: The plan reference of the subscription.
@@ -5925,14 +5991,16 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
-            A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle.
-            It affects when charges occur and how prorations are calculated.
-            Common anchors:
+            A billing anchor is the fixed point in time that determines the subscription's
+            recurring billing cycle. It affects when charges occur and how prorations are
+            calculated. Common anchors:
+
             - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
             - Subscription anniversary (day customer signed up)
             - Custom date (customer-specified day)
 
-            If not provided, the subscription will be created with the subscription's creation time as the billing anchor.
+            If not provided, the subscription will be created with the subscription's
+            creation time as the billing anchor.
           title: Billing anchor
       additionalProperties: false
       description: Subscription create request.
@@ -5941,8 +6009,9 @@ components:
         - $ref: '#/components/schemas/BillingSubscriptionEditTimingEnum'
         - $ref: '#/components/schemas/DateTime'
       description: |-
-        Subscription edit timing defined when the changes should take effect.
-        If the provided configuration is not supported by the subscription, an error will be returned.
+        Subscription edit timing defined when the changes should take effect. If the
+        provided configuration is not supported by the subscription, an error will be
+        returned.
       example: immediate
     BillingSubscriptionEditTimingEnum:
       type: string
@@ -5950,9 +6019,9 @@ components:
         - immediate
         - next_billing_cycle
       description: |-
-        Subscription edit timing.
-        When immediate, the requested changes take effect immediately.
-        When next_billing_cycle, the requested changes take effect at the next billing cycle.
+        Subscription edit timing. When immediate, the requested changes take effect
+        immediately. When next_billing_cycle, the requested changes take effect at the
+        next billing cycle.
     BillingSubscriptionReference:
       type: object
       required:
@@ -5998,8 +6067,8 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        Subscription reference represents a reference to the specific subscription item this
-        entity represents.
+        Subscription reference represents a reference to the specific subscription item
+        this entity represents.
     BillingSubscriptionStatus:
       type: string
       enum:
@@ -6016,7 +6085,8 @@ components:
       description: |-
         Tax behavior.
 
-        This enum is used to specify whether tax is included in the price or excluded from the price.
+        This enum is used to specify whether tax is included in the price or excluded
+        from the price.
     BillingTaxCode:
       type: object
       required:
@@ -6107,8 +6177,8 @@ components:
           description: |-
             Tax behavior.
 
-            If not specified the billing profile is used to determine the tax behavior.
-            If not specified in the billing profile, the provider's default behavior is used.
+            If not specified the billing profile is used to determine the tax behavior. If
+            not specified in the billing profile, the provider's default behavior is used.
           title: Tax behavior
         stripe:
           allOf:
@@ -6134,8 +6204,9 @@ components:
           description: |-
             Tax code reference.
 
-            When both `tax_code` and `tax_code_id` are provided, `tax_code` takes precedence.
-            When `stripe.code` is also provided, `tax_code` still wins and `stripe.code` is ignored.
+            When both `tax_code` and `tax_code_id` are provided, `tax_code` takes
+            precedence. When `stripe.code` is also provided, `tax_code` still wins and
+            `stripe.code` is ignored.
           title: Tax code
       additionalProperties: false
       description: Set of provider specific tax configs.
@@ -6168,7 +6239,9 @@ components:
       type: string
       minLength: 1
       maxLength: 32
-      description: Tax identifier code is a normalized tax code shown on the original identity document.
+      description: |-
+        Tax identifier code is a normalized tax code shown on the original identity
+        document.
     BillingTotals:
       type: object
       required:
@@ -6310,7 +6383,9 @@ components:
         subscription:
           allOf:
             - $ref: '#/components/schemas/BillingSubscriptionReference'
-          description: The subscription that originated the charge, when the charge was created from a subscription item.
+          description: |-
+            The subscription that originated the charge, when the charge was created from a
+            subscription item.
           title: Subscription
           readOnly: true
         currency:
@@ -6352,7 +6427,9 @@ components:
         advance_after:
           allOf:
             - $ref: '#/components/schemas/DateTime'
-          description: The earliest time when the charge should be advanced again by background processing.
+          description: |-
+            The earliest time when the charge should be advanced again by background
+            processing.
           title: Advance after
           readOnly: true
         price:
@@ -6430,8 +6507,9 @@ components:
       description: |-
         The alignment for collecting the pending line items into an invoice.
 
-        Defaults to subscription, which means that we are to create a new invoice every time the
-        a subscription period starts (for in advance items) or ends (for in arrears items).
+        Defaults to subscription, which means that we are to create a new invoice every
+        time the a subscription period starts (for in advance items) or ends (for in
+        arrears items).
     BillingWorkflowCollectionAlignmentAnchored:
       type: object
       required:
@@ -6449,8 +6527,8 @@ components:
           description: The recurring period for the alignment.
       additionalProperties: false
       description: |-
-        BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items
-        into an invoice.
+        BillingWorkflowCollectionAlignmentAnchored specifies the alignment for
+        collecting the pending line items into an invoice.
     BillingWorkflowCollectionAlignmentSubscription:
       type: object
       required:
@@ -6463,8 +6541,8 @@ components:
           description: The type of alignment.
       additionalProperties: false
       description: |-
-        BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items
-        into an invoice.
+        BillingWorkflowCollectionAlignmentSubscription specifies the alignment for
+        collecting the pending line items into an invoice.
     BillingWorkflowCollectionSettings:
       type: object
       properties:
@@ -6478,14 +6556,17 @@ components:
           type: string
           format: ISO8601
           description: |-
-            This grace period can be used to delay the collection of the pending line items specified in
-            alignment.
+            This grace period can be used to delay the collection of the pending line items
+            specified in alignment.
 
-            This is useful, in case of multiple subscriptions having slightly different billing periods.
+            This is useful, in case of multiple subscriptions having slightly different
+            billing periods.
           example: P1D
           default: PT1H
       additionalProperties: false
-      description: Workflow collection specifies how to collect the pending line items for an invoice.
+      description: |-
+        Workflow collection specifies how to collect the pending line items for an
+        invoice.
       title: Workflow collection settings
     BillingWorkflowInvoicingSettings:
       type: object
@@ -6518,7 +6599,9 @@ components:
             - charge_automatically
           description: The collection method for the invoice.
       additionalProperties: false
-      description: Payment settings for a billing workflow when the collection method is charge automatically.
+      description: |-
+        Payment settings for a billing workflow when the collection method is charge
+        automatically.
     BillingWorkflowPaymentSendInvoiceSettings:
       type: object
       required:
@@ -6533,12 +6616,14 @@ components:
           type: string
           format: ISO8601
           description: |-
-            The period after which the invoice is due.
-            With some payment solutions it's only applicable for manual collection method.
+            The period after which the invoice is due. With some payment solutions it's only
+            applicable for manual collection method.
           example: P30D
           default: P30D
       additionalProperties: false
-      description: Payment settings for a billing workflow when the collection method is send invoice.
+      description: |-
+        Payment settings for a billing workflow when the collection method is send
+        invoice.
     BillingWorkflowPaymentSettings:
       type: object
       oneOf:
@@ -6556,16 +6641,16 @@ components:
         enabled:
           type: boolean
           description: |-
-            Enable automatic tax calculation when tax is supported by the app.
-            For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
+            Enable automatic tax calculation when tax is supported by the app. For example,
+            with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
           default: true
         enforced:
           type: boolean
           description: |-
-            Enforce tax calculation when tax is supported by the app.
-            When enabled, the billing system will not allow to create an invoice without tax calculation.
-            Enforcement is different per apps, for example, Stripe app requires customer
-            to have a tax location when starting a paid subscription.
+            Enforce tax calculation when tax is supported by the app. When enabled, the
+            billing system will not allow to create an invoice without tax calculation.
+            Enforcement is different per apps, for example, Stripe app requires customer to
+            have a tax location when starting a paid subscription.
           default: false
         default_tax_config:
           allOf:
@@ -6637,8 +6722,8 @@ components:
       maxLength: 2
       pattern: ^[A-Z]{2}$
       description: |-
-        [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
-        Custom two-letter country codes are also supported for convenience.
+        [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country
+        code. Custom two-letter country codes are also supported for convenience.
       example: US
     CreateAddonRequest:
       type: object
@@ -6670,8 +6755,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/ResourceKey'
           description: |-
-            A key is a semi-unique string that is used to identify the add-on.
-            It is used to reference the latest `active` version of the add-on and is unique with the version number.
+            A key is a semi-unique string that is used to identify the add-on. It is used to
+            reference the latest `active` version of the add-on and is unique with the
+            version number.
           title: Key
         instance_type:
           allOf:
@@ -6720,7 +6806,9 @@ components:
         supplier:
           allOf:
             - $ref: '#/components/schemas/BillingParty'
-          description: The name and contact information for the supplier this billing profile represents
+          description: |-
+            The name and contact information for the supplier this billing profile
+            represents
         workflow:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflow'
@@ -6752,8 +6840,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
-            An ISO-8601 timestamp representation of the date from which the cost basis is effective.
-            If not provided, it will be effective immediately and will set to `now` by the system.
+            An ISO-8601 timestamp representation of the date from which the cost basis is
+            effective. If not provided, it will be effective immediately and will be set to
+            `now` by the system.
       additionalProperties: false
       description: CostBasis create request.
     CreateCreditAdjustmentRequest:
@@ -6840,9 +6929,8 @@ components:
               description: |-
                 Cost basis per credit unit used to calculate the purchase amount.
 
-                If `per_unit_cost_basis` is 0.50 and credit amount is $100.00,
-                the total charge is $50.00.
-                The value must be greater than 0. If the cost basis is 0, use
+                If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
+                is $50.00. The value must be greater than 0. If the cost basis is 0, use
                 `funding_method=none` instead.
 
                 Defaults to 1.0.
@@ -6859,16 +6947,18 @@ components:
             - currency
           additionalProperties: false
           description: |-
-            Purchase and payment terms of the grant.
-            Present when a funding workflow applies (funding_method is not `none`).
+            Purchase and payment terms of the grant. Present when a funding workflow applies
+            (funding_method is not `none`).
         tax_config:
           allOf:
             - $ref: '#/components/schemas/BillingCreditGrantTaxConfig'
           description: |-
             Tax configuration for the grant.
 
-            For `invoice` and `external` funding methods, tax configuration should be provided to ensure correct revenue recognition.
-            When not provided, the default credit grant tax code is applied, if that's not set the global default taxcode is used.
+            For `invoice` and `external` funding methods, tax configuration should be
+            provided to ensure correct revenue recognition. When not provided, the default
+            credit grant tax code is applied, if that's not set the global default taxcode
+            is used.
         filters:
           type: object
           properties:
@@ -6877,8 +6967,8 @@ components:
               items:
                 $ref: '#/components/schemas/ResourceKey'
               description: |-
-                Limit the credit grant to specific features.
-                If no features are specified, the credit grant can be used for any feature.
+                Limit the credit grant to specific features. If no features are specified, the
+                credit grant can be used for any feature.
               example:
                 - input_tokens
                 - output_tokens
@@ -6889,9 +6979,7 @@ components:
           format: int16
           minimum: 1
           maximum: 1000
-          description: |-
-            Draw-down priority of the grant.
-            Lower values have higher priority.
+          description: Draw-down priority of the grant. Lower values have higher priority.
           default: 10
       additionalProperties: false
       description: CreditGrant create request.
@@ -6905,7 +6993,9 @@ components:
           type: string
           minLength: 1
           maxLength: 256
-          description: The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".
+          description: |-
+            The name of the currency. It should be a human-readable string that represents
+            the name of the currency, such as "US Dollar" or "Euro".
         description:
           type: string
           minLength: 1
@@ -6914,7 +7004,9 @@ components:
         symbol:
           type: string
           minLength: 1
-          description: The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.
+          description: |-
+            The symbol of the currency. It should be a string that represents the symbol of
+            the currency, such as "$" for US Dollar or "€" for Euro.
         code:
           $ref: '#/components/schemas/BillingCurrencyCodeCustom'
       additionalProperties: false
@@ -6956,16 +7048,12 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
-          description: |-
-            Currency of the customer.
-            Used for billing, tax and invoicing.
+          description: Currency of the customer. Used for billing, tax and invoicing.
           title: Currency
         billing_address:
           allOf:
             - $ref: '#/components/schemas/BillingAddress'
-          description: |-
-            The billing address of the customer.
-            Used for tax and invoicing.
+          description: The billing address of the customer. Used for tax and invoicing.
           title: Billing Address
       additionalProperties: false
       description: Customer create request.
@@ -6998,16 +7086,16 @@ components:
           allOf:
             - $ref: '#/components/schemas/FeatureMeterReference'
           description: |-
-            The meter that the feature is associated with and and based on which usage is calculated.
-            If not specified, the feature is static.
+            The meter that the feature is associated with and based on which usage is
+            calculated. If not specified, the feature is static.
           title: Meter reference
         unit_cost:
           allOf:
             - $ref: '#/components/schemas/BillingFeatureUnitCost'
           description: |-
-            Optional per-unit cost configuration.
-            Use "manual" for a fixed per-unit cost, or "llm" to look up cost
-            from the LLM cost database based on meter group-by properties.
+            Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
+            "llm" to look up cost from the LLM cost database based on meter group-by
+            properties.
           title: Unit cost
       additionalProperties: false
       description: Feature create request.
@@ -7051,18 +7139,20 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
-            The date since the meter should include events.
-            Useful to skip old events.
-            If not specified, all historical events are included.
+            The date since the meter should include events. Useful to skip old events. If
+            not specified, all historical events are included.
         value_property:
           type: string
           minLength: 1
           description: |-
-            JSONPath expression to extract the value from the ingested event's data property.
+            JSONPath expression to extract the value from the ingested event's data
+            property.
 
-            The ingested value for sum, avg, min, and max aggregations is a number or a string that can be parsed to a number.
+            The ingested value for sum, avg, min, and max aggregations is a number or a
+            string that can be parsed to a number.
 
-            For unique_count aggregation, the ingested value must be a string. For count aggregation the value_property is ignored.
+            For unique_count aggregation, the ingested value must be a string. For count
+            aggregation the value_property is ignored.
           example: $.tokens
         dimensions:
           type: object
@@ -7114,9 +7204,9 @@ components:
           type: integer
           minimum: 1
           description: |-
-            The maximum number of times the add-on can be purchased for the plan.
-            For single-instance add-ons this field must be omitted.
-            For multi-instance add-ons when omitted, unlimited quantity can be purchased.
+            The maximum number of times the add-on can be purchased for the plan. For
+            single-instance add-ons this field must be omitted. For multi-instance add-ons
+            when omitted, unlimited quantity can be purchased.
           title: Max quantity
       additionalProperties: false
       description: PlanAddon create request.
@@ -7150,8 +7240,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/ResourceKey'
           description: |-
-            A key is a semi-unique string that is used to identify the plan.
-            It is used to reference the latest `active` version of the plan and is unique with the version number.
+            A key is a semi-unique string that is used to identify the plan. It is used to
+            reference the latest `active` version of the plan and is unique with the version
+            number.
           title: Key
         currency:
           allOf:
@@ -7174,9 +7265,8 @@ components:
             $ref: '#/components/schemas/BillingPlanPhase'
           minItems: 1
           description: |-
-            The plan phases define the pricing ramp for a subscription.
-            A phase switch occurs only at the end of a billing period.
-            At least one phase is required.
+            The plan phases define the pricing ramp for a subscription. A phase switch
+            occurs only at the end of a billing period. At least one phase is required.
           title: Plan phases
       additionalProperties: false
       description: Plan create request.
@@ -7229,16 +7319,16 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            Credits that have been granted but cannot yet be consumed.
-            Includes grants awaiting payment clearance or with a future effective date.
+            Credits that have been granted but cannot yet be consumed. Includes grants
+            awaiting payment clearance or with a future effective date.
           example: '200.00'
           readOnly: true
         available:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            Credits that can be consumed right now.
-            Derived from cleared grants after applying eligibility and restriction rules.
+            Credits that can be consumed right now. Derived from cleared grants after
+            applying eligibility and restriction rules.
           example: '150.00'
           readOnly: true
       additionalProperties: false
@@ -7290,8 +7380,9 @@ components:
       maxLength: 3
       pattern: ^[A-Z]{3}$
       description: |-
-        Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
-        Custom three-letter currency codes are also supported for convenience.
+        Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)
+        currency code. Custom three-letter currency codes are also supported for
+        convenience.
       example: USD
     CurrencyPagePaginatedResponse:
       type: object
@@ -7333,7 +7424,9 @@ components:
     DateTime:
       type: string
       format: date-time
-      description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+      description: |-
+        [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in
+        UTC.
       title: RFC3339 Date-Time
       example: '2023-01-01T01:01:01.001Z'
     DateTimeFieldFilter:
@@ -7363,8 +7456,8 @@ components:
               description: Value is greater than or equal to the given RFC-3339 formatted timestamp in UTC.
           additionalProperties: false
       description: |-
-        Filters on the given datetime (RFC-3339) field value.
-        All properties are optional; provide exactly one to specify the comparison.
+        Filters on the given datetime (RFC-3339) field value. All properties are
+        optional; provide exactly one to specify the comparison.
       title: DateTime Field Filter
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
@@ -7373,7 +7466,9 @@ components:
       type: string
       minLength: 1
       maxLength: 256
-      description: ExternalResourceKey is a unique string that is used to identify a resource in an external system.
+      description: |-
+        ExternalResourceKey is a unique string that is used to identify a resource in an
+        external system.
       title: External Resource Key
       example: 019ae40f-4258-7f15-9491-842f42a7d6ac
     Feature:
@@ -7427,16 +7522,16 @@ components:
           allOf:
             - $ref: '#/components/schemas/FeatureMeterReference'
           description: |-
-            The meter that the feature is associated with and and based on which usage is calculated.
-            If not specified, the feature is static.
+            The meter that the feature is associated with and based on which usage is
+            calculated. If not specified, the feature is static.
           title: Meter reference
         unit_cost:
           allOf:
             - $ref: '#/components/schemas/BillingFeatureUnitCost'
           description: |-
-            Optional per-unit cost configuration.
-            Use "manual" for a fixed per-unit cost, or "llm" to look up cost
-            from the LLM cost database based on meter group-by properties.
+            Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
+            "llm" to look up cost from the LLM cost database based on meter group-by
+            properties.
           title: Unit cost
       additionalProperties: false
       description: A capability or billable dimension offered by a provider.
@@ -7480,15 +7575,17 @@ components:
             - $ref: '#/components/schemas/Numeric'
           nullable: true
           description: |-
-            The computed cost amount (usage × unit cost).
-            Null when pricing is not available for the given combination of dimensions.
+            The computed cost amount (usage × unit cost). Null when pricing is not available
+            for the given combination of dimensions.
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
           description: The currency code of the cost amount.
         detail:
           type: string
-          description: Detail message when cost amount is null, explaining why the cost could not be resolved.
+          description: |-
+            Detail message when cost amount is null, explaining why the cost could not be
+            resolved.
         from:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -7502,8 +7599,8 @@ components:
           additionalProperties:
             type: string
           description: |-
-            The dimensions the value is aggregated over.
-            `subject` and `customer_id` are reserved dimensions.
+            The dimensions the value is aggregated over. `subject` and `customer_id` are
+            reserved dimensions.
       additionalProperties: false
       description: A row in the result of a feature cost query.
     FeatureMeterReference:
@@ -7559,7 +7656,9 @@ components:
     ISO8601Duration:
       type: string
       pattern: ^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$
-      description: '[ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm) string.'
+      description: |-
+        [ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm)
+        string.
       title: ISO 8601 Duration
       example: P1Y
       format: ISO8601
@@ -7655,10 +7754,9 @@ components:
           description: When this override expires.
       additionalProperties: false
       description: |-
-        Input for creating a per-namespace price override.
-        Unique per provider, model and currency.
-        If an override already exists for the given provider, model and currency, it will be updated.
-        If an override does not exist, it will be created.
+        Input for creating a per-namespace price override. Unique per provider, model
+        and currency. If an override already exists for the given provider, model and
+        currency, it will be updated. If an override does not exist, it will be created.
     LLMCostPrice:
       type: object
       required:
@@ -7710,7 +7808,7 @@ components:
         effective_to:
           allOf:
             - $ref: '#/components/schemas/DateTime'
-          description: When this price expires (null = current).
+          description: When this price expires. Omitted when the price is currently effective.
           readOnly: true
         created_at:
           allOf:
@@ -7724,8 +7822,8 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        An LLM cost price record, representing the cost per token
-        for a specific model from a specific provider.
+        An LLM cost price record, representing the cost per token for a specific model
+        from a specific provider.
     LLMCostPriceSource:
       type: string
       enum:
@@ -7771,6 +7869,7 @@ components:
             Filter charges by status.
 
             Supported statuses are:
+
             - `created`
             - `active`
             - `final`
@@ -8029,18 +8128,20 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
-            The date since the meter should include events.
-            Useful to skip old events.
-            If not specified, all historical events are included.
+            The date since the meter should include events. Useful to skip old events. If
+            not specified, all historical events are included.
         value_property:
           type: string
           minLength: 1
           description: |-
-            JSONPath expression to extract the value from the ingested event's data property.
+            JSONPath expression to extract the value from the ingested event's data
+            property.
 
-            The ingested value for sum, avg, min, and max aggregations is a number or a string that can be parsed to a number.
+            The ingested value for sum, avg, min, and max aggregations is a number or a
+            string that can be parsed to a number.
 
-            For unique_count aggregation, the ingested value must be a string. For count aggregation the value_property is ignored.
+            For unique_count aggregation, the ingested value must be a string. For count
+            aggregation the value_property is ignored.
           example: $.tokens
         dimensions:
           type: object
@@ -8101,8 +8202,8 @@ components:
             $ref: '#/components/schemas/QueryFilterStringMapItem'
           maxProperties: 10
           description: |-
-            Filters to apply to the dimensions of the query.
-            For `subject` and `customer_id` only equals ("eq", "in") comparisons are supported.
+            Filters to apply to the dimensions of the query. For `subject` and `customer_id`
+            only equals ("eq", "in") comparisons are supported.
       additionalProperties: false
       description: Filters to apply to a meter query.
     MeterQueryGranularity:
@@ -8113,8 +8214,8 @@ components:
         - P1D
         - P1M
       description: |-
-        The granularity of the time grouping.
-        Time durations are specified in ISO 8601 format.
+        The granularity of the time grouping. Time durations are specified in ISO 8601
+        format.
     MeterQueryRequest:
       type: object
       properties:
@@ -8130,14 +8231,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/MeterQueryGranularity'
           description: |-
-            The size of the time buckets to group the usage into.
-            If not specified, the usage is aggregated over the entire period.
+            The size of the time buckets to group the usage into. If not specified, the
+            usage is aggregated over the entire period.
         time_zone:
           type: string
           description: |-
-            The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
-            The time zone is used to determine the start and end of the time buckets.
-            If not specified, the UTC timezone will be used.
+            The value is the name of the time zone as defined in the IANA Time Zone Database
+            (http://www.iana.org/time-zones). The time zone is used to determine the start
+            and end of the time buckets. If not specified, the UTC timezone will be used.
           default: UTC
         group_by_dimensions:
           type: array
@@ -8176,9 +8277,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MeterQueryRow'
-          description: |-
-            The usage data.
-            If no data is available, an empty array is returned.
+          description: The usage data. If no data is available, an empty array is returned.
       additionalProperties: false
       description: Meter query result.
       example:
@@ -8217,8 +8316,8 @@ components:
           additionalProperties:
             type: string
           description: |-
-            The dimensions the value is aggregated over.
-            `subject` and `customer_id` are reserved dimensions.
+            The dimensions the value is aggregated over. `subject` and `customer_id` are
+            reserved dimensions.
       additionalProperties: false
       description: A row in the result of a meter query.
       example:
@@ -8258,14 +8357,18 @@ components:
         type:
           type: string
           minLength: 1
-          description: Contains a value describing the type of event related to the originating occurrence.
+          description: |-
+            Contains a value describing the type of event related to the originating
+            occurrence.
           example: com.example.someevent
         datacontenttype:
           type: string
           enum:
             - application/json
           nullable: true
-          description: Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.
+          description: |-
+            Content type of the CloudEvents data value. Only the value "application/json" is
+            allowed over HTTP.
           example: application/json
         dataschema:
           type: string
@@ -8276,7 +8379,9 @@ components:
         subject:
           type: string
           minLength: 1
-          description: Describes the subject of the event in the context of the event producer (identified by source).
+          description: |-
+            Describes the subject of the event in the context of the event producer
+            (identified by source).
           example: customer-id
         time:
           type: string
@@ -8289,9 +8394,7 @@ components:
           type: object
           additionalProperties: {}
           nullable: true
-          description: |-
-            The event payload.
-            Optional, if present it must be a JSON object.
+          description: The event payload. Optional, if present it must be a JSON object.
       additionalProperties: false
       description: Metering event following the CloudEvents specification.
       title: Metering Event
@@ -8472,9 +8575,9 @@ components:
           type: integer
           minimum: 1
           description: |-
-            The maximum number of times the add-on can be purchased for the plan.
-            For single-instance add-ons this field must be omitted.
-            For multi-instance add-ons when omitted, unlimited quantity can be purchased.
+            The maximum number of times the add-on can be purchased for the plan. For
+            single-instance add-ons this field must be omitted. For multi-instance add-ons
+            when omitted, unlimited quantity can be purchased.
           title: Max quantity
         validation_errors:
           type: array
@@ -8485,8 +8588,8 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        PlanAddon represents an association between a plan and an add-on,
-        controlling which add-ons are available for purchase within a plan.
+        PlanAddon represents an association between a plan and an add-on, controlling
+        which add-ons are available for purchase within a plan.
     PlanAddonPagePaginatedResponse:
       type: object
       required:
@@ -8607,8 +8710,8 @@ components:
             $ref: '#/components/schemas/QueryFilterString'
       additionalProperties: false
       description: |-
-        A query filter for a string attribute.
-        Operators are mutually exclusive, only one operator is allowed at a time.
+        A query filter for a string attribute. Operators are mutually exclusive, only
+        one operator is allowed at a time.
       title: Query String Filter
     QueryFilterStringMapItem:
       type: object
@@ -8658,8 +8761,8 @@ components:
           description: Combines the provided filters with a logical OR.
       additionalProperties: false
       description: |-
-        A query filter for an item in a string map attribute.
-        Operators are mutually exclusive, only one operator is allowed at a time.
+        A query filter for an item in a string map attribute. Operators are mutually
+        exclusive, only one operator is allowed at a time.
       title: Query String Map Item Filter
     RecurringPeriod:
       type: object
@@ -8699,6 +8802,7 @@ components:
         Identifies which system manages a resource.
 
         Values:
+
         - `manual`: The resource is managed manually (overridden by our API users).
         - `system`: The resource is managed by the system.
         - `subscription`: The resource is managed by the subscription.
@@ -8722,19 +8826,25 @@ components:
               items:
                 type: string
               format: ArrayEncoding.commaDelimited
-              description: Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string.
+              description: |-
+                Returns entities that fuzzy-match any of the comma-delimited phrases in the
+                filter string.
             oeq:
               type: string
               items:
                 type: string
               format: ArrayEncoding.commaDelimited
-              description: Returns entities that exact match any of the comma-delimited phrases in the filter string.
+              description: |-
+                Returns entities that exact match any of the comma-delimited phrases in the
+                filter string.
             gt:
               type: string
               description: Value is greater than the given string value (lexicographic compare).
             gte:
               type: string
-              description: Value is greater than or equal to the given string value (lexicographic compare).
+              description: |-
+                Value is greater than or equal to the given string value (lexicographic
+                compare).
             lt:
               type: string
               description: Value is less than the given string value (lexicographic compare).
@@ -8743,11 +8853,13 @@ components:
               description: Value is less than or equal to the given string value (lexicographic compare).
             exists:
               type: boolean
-              description: When true, the field must be present (non-null); when false, the field must be absent (null).
+              description: |-
+                When true, the field must be present (non-null); when false, the field must be
+                absent (null).
           additionalProperties: false
       description: |-
-        Filters on the given string field value by either exact or fuzzy match.
-        All properties are optional; provide exactly one to specify the comparison.
+        Filters on the given string field value by either exact or fuzzy match. All
+        properties are optional; provide exactly one to specify the comparison.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
       x-go-type: filters.FilterString
@@ -8764,14 +8876,16 @@ components:
               items:
                 type: string
               format: ArrayEncoding.commaDelimited
-              description: Returns entities that exact match any of the comma-delimited phrases in the filter string.
+              description: |-
+                Returns entities that exact match any of the comma-delimited phrases in the
+                filter string.
             neq:
               type: string
               description: Value does not equal the given string value.
           additionalProperties: false
       description: |-
-        Filters on the given string field value by exact match.
-        All properties are optional; provide exactly one to specify the comparison.
+        Filters on the given string field value by exact match. All properties are
+        optional; provide exactly one to specify the comparison.
       title: String Field Filter Exact
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
@@ -8840,15 +8954,17 @@ components:
               items:
                 $ref: '#/components/schemas/ULID'
               format: ArrayEncoding.commaDelimited
-              description: Returns entities that exact match any of the comma-delimited ULIDs in the filter string.
+              description: |-
+                Returns entities that exact match any of the comma-delimited ULIDs in the filter
+                string.
             neq:
               allOf:
                 - $ref: '#/components/schemas/ULID'
               description: Value does not equal the given ULID value.
           additionalProperties: false
       description: |-
-        Filters on the given ULID field value by exact match.
-        All properties are optional; provide exactly one to specify the comparison.
+        Filters on the given ULID field value by exact match. All properties are
+        optional; provide exactly one to specify the comparison.
       title: ULID Field Filter
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
@@ -8863,7 +8979,9 @@ components:
             - $ref: '#/components/schemas/BillingCreditPurchasePaymentSettlementStatus'
           description: The new payment settlement status.
       additionalProperties: false
-      description: Request body for updating the external payment settlement status of a credit grant.
+      description: |-
+        Request body for updating the external payment settlement status of a credit
+        grant.
     UpdateFeatureRequest:
       type: object
       properties:
@@ -8872,14 +8990,15 @@ components:
             - $ref: '#/components/schemas/BillingFeatureUnitCost'
           nullable: true
           description: |-
-            Optional per-unit cost configuration.
-            Use "manual" for a fixed per-unit cost, or "llm" to look up cost
-            from the LLM cost database based on meter group-by properties.
+            Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
+            "llm" to look up cost from the LLM cost database based on meter group-by
+            properties. Set to `null` to clear the existing unit cost; omit to leave it
+            unchanged.
           title: Unit cost
       additionalProperties: false
       description: |-
-        Request body for updating a feature.
-        Currently only the unit_cost field can be updated.
+        Request body for updating a feature. Currently only the unit_cost field can be
+        updated.
     UpdateMeterRequest:
       type: object
       properties:
@@ -9007,7 +9126,9 @@ components:
         supplier:
           allOf:
             - $ref: '#/components/schemas/BillingParty'
-          description: The name and contact information for the supplier this billing profile represents
+          description: |-
+            The name and contact information for the supplier this billing profile
+            represents
         workflow:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflow'
@@ -9069,16 +9190,12 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
-          description: |-
-            Currency of the customer.
-            Used for billing, tax and invoicing.
+          description: Currency of the customer. Used for billing, tax and invoicing.
           title: Currency
         billing_address:
           allOf:
             - $ref: '#/components/schemas/BillingAddress'
-          description: |-
-            The billing address of the customer.
-            Used for tax and invoicing.
+          description: The billing address of the customer. Used for tax and invoicing.
           title: Billing Address
       additionalProperties: false
       description: Customer upsert request.
@@ -9114,9 +9231,9 @@ components:
           type: integer
           minimum: 1
           description: |-
-            The maximum number of times the add-on can be purchased for the plan.
-            For single-instance add-ons this field must be omitted.
-            For multi-instance add-ons when omitted, unlimited quantity can be purchased.
+            The maximum number of times the add-on can be purchased for the plan. For
+            single-instance add-ons this field must be omitted. For multi-instance add-ons
+            when omitted, unlimited quantity can be purchased.
           title: Max quantity
       additionalProperties: false
       description: PlanAddon upsert request.
@@ -9154,9 +9271,8 @@ components:
             $ref: '#/components/schemas/BillingPlanPhase'
           minItems: 1
           description: |-
-            The plan phases define the pricing ramp for a subscription.
-            A phase switch occurs only at the end of a billing period.
-            At least one phase is required.
+            The plan phases define the pricing ramp for a subscription. A phase switch
+            occurs only at the end of a billing period. At least one phase is required.
           title: Plan phases
       additionalProperties: false
       description: Plan upsert request.

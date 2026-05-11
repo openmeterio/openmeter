@@ -18,19 +18,29 @@ namespace LLMCost;
 #suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "model_id and model_name should not be grouped"
 @friendlyName("ListLLMCostPricesParamsFilter")
 model ListPricesParamsFilter {
-  /** Filter by provider. e.g. ?filter[provider][eq]=openai */
+  /**
+   * Filter by provider. e.g. ?filter[provider][eq]=openai
+   */
   provider?: Common.StringFieldFilter;
 
-  /** Filter by model ID. e.g. ?filter[model_id][eq]=gpt-4 */
+  /**
+   * Filter by model ID. e.g. ?filter[model_id][eq]=gpt-4
+   */
   model_id?: Common.StringFieldFilter;
 
-  /** Filter by model name. e.g. ?filter[model_name][contains]=gpt */
+  /**
+   * Filter by model name. e.g. ?filter[model_name][contains]=gpt
+   */
   model_name?: Common.StringFieldFilter;
 
-  /** Filter by currency code. e.g. ?filter[currency][eq]=USD */
+  /**
+   * Filter by currency code. e.g. ?filter[currency][eq]=USD
+   */
   currency?: Common.StringFieldFilter;
 
-  /** Filter by source. e.g. ?filter[source][eq]=system */
+  /**
+   * Filter by source. e.g. ?filter[source][eq]=system
+   */
   source?: Common.StringFieldFilter;
 }
 
@@ -39,8 +49,7 @@ model ListPricesParamsFilter {
  */
 interface LLMCostPricesOperations {
   /**
-   * List global LLM cost prices.
-   * Returns prices with overrides applied if any.
+   * List global LLM cost prices. Returns prices with overrides applied if any.
    */
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -55,16 +64,16 @@ interface LLMCostPricesOperations {
     filter?: ListPricesParamsFilter,
 
     /**
-     * Sort prices returned in the response.
-     * Supported sort attributes are:
+     * Sort prices returned in the response. Supported sort attributes are:
+     *
      * - `id`
      * - `provider.id`
      * - `model.id` (default)
      * - `effective_from`
      * - `effective_to`
      *
-     * The `asc` suffix is optional as the default sort order is ascending.
-     * The `desc` suffix is used to specify a descending order.
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
      */
     @query(#{ name: "sort" })
     sort?: Common.SortQuery,
@@ -73,8 +82,8 @@ interface LLMCostPricesOperations {
   ): Shared.PagePaginatedResponse<Price> | Common.ErrorResponses;
 
   /**
-   * Get a specific LLM cost price by ID.
-   * Returns the price with overrides applied if any.
+   * Get a specific LLM cost price by ID. Returns the price with overrides applied if
+   * any.
    */
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
