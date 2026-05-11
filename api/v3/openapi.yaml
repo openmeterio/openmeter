@@ -6988,22 +6988,8 @@ components:
         key:
           $ref: '#/components/schemas/ResourceKey'
         meter:
-          type: object
-          properties:
-            id:
-              allOf:
-                - $ref: '#/components/schemas/ULID'
-              description: The ID of the meter to associate with this feature.
-            filters:
-              type: object
-              additionalProperties:
-                $ref: '#/components/schemas/QueryFilterStringMapItem'
-              maxProperties: 10
-              description: Filters to apply to the dimensions of the meter.
-              title: Meter dimensions filters
-          required:
-            - id
-          additionalProperties: false
+          allOf:
+            - $ref: '#/components/schemas/FeatureMeterReference'
           description: |-
             The meter that the feature is associated with and and based on which usage is calculated.
             If not specified, the feature is static.
@@ -7431,22 +7417,8 @@ components:
         key:
           $ref: '#/components/schemas/ResourceKey'
         meter:
-          type: object
-          properties:
-            id:
-              allOf:
-                - $ref: '#/components/schemas/ULID'
-              description: The ID of the meter to associate with this feature.
-            filters:
-              type: object
-              additionalProperties:
-                $ref: '#/components/schemas/QueryFilterStringMapItem'
-              maxProperties: 10
-              description: Filters to apply to the dimensions of the meter.
-              title: Meter dimensions filters
-          required:
-            - id
-          additionalProperties: false
+          allOf:
+            - $ref: '#/components/schemas/FeatureMeterReference'
           description: |-
             The meter that the feature is associated with and and based on which usage is calculated.
             If not specified, the feature is static.
@@ -7527,6 +7499,24 @@ components:
             `subject` and `customer_id` are reserved dimensions.
       additionalProperties: false
       description: A row in the result of a feature cost query.
+    FeatureMeterReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The ID of the meter to associate with this feature.
+          title: Meter ID
+        filters:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/QueryFilterStringMapItem'
+          maxProperties: 10
+          description: Filters to apply to the dimensions of the meter.
+          title: Meter dimensions filters
+      additionalProperties: false
     FeaturePagePaginatedResponse:
       type: object
       required:
