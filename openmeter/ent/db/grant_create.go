@@ -225,7 +225,9 @@ func (_c *GrantCreate) Mutation() *GrantMutation {
 
 // Save creates the Grant in the database.
 func (_c *GrantCreate) Save(ctx context.Context) (*Grant, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -252,12 +254,18 @@ func (_c *GrantCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *GrantCreate) defaults() {
+func (_c *GrantCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if dbgrant.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized dbgrant.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := dbgrant.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if dbgrant.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized dbgrant.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := dbgrant.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
@@ -266,9 +274,13 @@ func (_c *GrantCreate) defaults() {
 		_c.mutation.SetPriority(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if dbgrant.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized dbgrant.DefaultID (forgotten import db/runtime?)")
+		}
 		v := dbgrant.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

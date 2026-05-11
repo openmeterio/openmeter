@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entmixinaccessor"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entpaginate"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entsetorclear"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entsoftdelete"
 	"github.com/openmeterio/openmeter/tools/migrate/viewgen"
 )
 
@@ -24,6 +25,7 @@ func main() {
 				gen.FeatureLock,
 				gen.FeatureUpsert,
 				gen.FeatureExecQuery,
+				gen.FeatureIntercept,
 			},
 			Target:  "./db",
 			Schema:  "./schema",
@@ -35,6 +37,7 @@ func main() {
 			entmixinaccessor.New(),
 			entpaginate.New(),
 			entsetorclear.New(),
+			entsoftdelete.New(),
 		),
 	)
 	if err != nil {

@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/softdelete"
 )
 
 // Customer stores information about a customer
@@ -94,6 +95,7 @@ type CustomerSubjects struct {
 func (CustomerSubjects) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.NamespaceMixin{},
+		softdelete.SoftDeleteMixin{},
 	}
 }
 
