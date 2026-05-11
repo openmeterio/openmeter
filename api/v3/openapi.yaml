@@ -2556,6 +2556,42 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
+  /openmeter/subscriptions/{subscriptionId}/addons:
+    get:
+      operationId: list-subscription-addons
+      summary: List subscription addons
+      description: List the addons of a subscription.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionAddonPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Subscriptions
   /openmeter/subscriptions/{subscriptionId}/cancel:
     post:
       operationId: cancel-subscription
@@ -8890,6 +8926,97 @@ components:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
       x-go-type: filters.FilterStringExact
+    SubscriptionAddon:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - addon
+        - quantity
+        - quantity_at
+        - active_from
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        addon:
+          allOf:
+            - $ref: '#/components/schemas/AddonReferenceItem'
+          description: The add-on associated with the subscription.
+          title: Add-on
+        quantity:
+          type: integer
+          minimum: 1
+          description: The quantity of the add-on. Always 1 for single instance add-ons.
+          title: Quantity
+        quantity_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            An ISO-8601 timestamp representation of which point in time the quantity was
+            resolved to.
+          readOnly: true
+        active_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of the cadence start of the resource.
+          readOnly: true
+        active_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of the cadence end of the resource.
+          readOnly: true
+      additionalProperties: false
+      description: SubscriptionAddon represents an addon associated with a subscription.
+    SubscriptionAddonPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionAddon'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
     SubscriptionPagePaginatedResponse:
       type: object
       required:

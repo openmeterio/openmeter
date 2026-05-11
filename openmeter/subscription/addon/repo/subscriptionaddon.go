@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type subscriptionAddonRepo struct {
@@ -85,6 +86,22 @@ func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filt
 				dbsubscriptionaddon.Namespace(namespace),
 				dbsubscriptionaddon.SubscriptionID(filter.SubscriptionID),
 			)
+
+		order := entutils.GetOrdering(sortx.OrderAsc)
+		if !filter.Order.IsDefaultValue() {
+			order = entutils.GetOrdering(filter.Order)
+		}
+
+		switch filter.OrderBy {
+		case subscriptionaddon.OrderByID:
+			query = query.Order(dbsubscriptionaddon.ByID(order...))
+		case subscriptionaddon.OrderByUpdatedAt:
+			query = query.Order(dbsubscriptionaddon.ByUpdatedAt(order...))
+		case subscriptionaddon.OrderByCreatedAt:
+			fallthrough
+		default:
+			query = query.Order(dbsubscriptionaddon.ByCreatedAt(order...))
+		}
 
 		// Let's return everything if no pagination is requested
 		if filter.Page.IsZero() {

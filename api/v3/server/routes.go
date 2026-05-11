@@ -8,6 +8,7 @@ import (
 	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
+	subscriptionaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions/subscriptionaddons"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 )
 
@@ -106,6 +107,13 @@ func (s *Server) UnscheduleCancelation(w http.ResponseWriter, r *http.Request, s
 
 func (s *Server) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
 	s.subscriptionsHandler.ChangeSubscription().With(subscriptionId).ServeHTTP(w, r)
+}
+
+func (s *Server) ListSubscriptionAddons(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID, params api.ListSubscriptionAddonsParams) {
+	s.subscriptionAddonsHandler.ListSubscriptionAddons().With(subscriptionaddonshandler.ListSubscriptionAddonsParams{
+		SubscriptionID: subscriptionId,
+		Params:         params,
+	}).ServeHTTP(w, r)
 }
 
 // Apps
