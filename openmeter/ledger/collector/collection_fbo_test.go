@@ -2,6 +2,7 @@ package collector
 
 import (
 	"testing"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
@@ -18,7 +19,7 @@ func TestCollectCustomerFBOUsesPriorityOrder(t *testing.T) {
 	priorityTwo := fundPriority(t, env, 2, 50)
 	priorityOne := fundPriority(t, env, 1, 30)
 
-	sources, err := collector.collectCustomerFBO(t.Context(), env.CustomerID, env.Currency, alpacadecimal.NewFromInt(60))
+	sources, err := collector.collectCustomerFBO(t.Context(), env.CustomerID, env.Currency, alpacadecimal.NewFromInt(60), env.Now())
 	require.NoError(t, err)
 	require.Len(t, sources, 2)
 
@@ -38,7 +39,7 @@ func TestCollectCustomerFBOUsesSubAccountIDTieBreaker(t *testing.T) {
 	first := fundPriorityWithCostBasis(t, env, 1, 10, &costBasisOne)
 	second := fundPriorityWithCostBasis(t, env, 1, 10, &costBasisTwo)
 
-	sources, err := collector.collectCustomerFBO(t.Context(), env.CustomerID, env.Currency, alpacadecimal.NewFromInt(20))
+	sources, err := collector.collectCustomerFBO(t.Context(), env.CustomerID, env.Currency, alpacadecimal.NewFromInt(20), env.Now())
 	require.NoError(t, err)
 	require.Len(t, sources, 2)
 
@@ -49,6 +50,27 @@ func TestCollectCustomerFBOUsesSubAccountIDTieBreaker(t *testing.T) {
 
 	require.Equal(t, expected[0].Address().SubAccountID(), sources[0].Address.SubAccountID())
 	require.Equal(t, expected[1].Address().SubAccountID(), sources[1].Address.SubAccountID())
+}
+
+func TestCollectCustomerFBOUsesAsOfBalance(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector")
+	collector := newTestAccrualCollector(env)
+
+	source := fundPriority(t, env, 1, 50)
+	bookFutureFBOCollection(t, env, 1, 30, env.Now().AddDate(0, 0, 1))
+
+	currentSources, err := collector.collectCustomerFBO(t.Context(), env.CustomerID, env.Currency, alpacadecimal.NewFromInt(50), env.Now())
+	require.NoError(t, err)
+	require.Len(t, currentSources, 1)
+	require.Equal(t, source.Address().SubAccountID(), currentSources[0].Address.SubAccountID())
+	require.True(t, alpacadecimal.NewFromInt(50).Equal(currentSources[0].Amount), "current amount: %s", currentSources[0].Amount)
+
+	futureAsOf := env.Now().AddDate(0, 0, 1)
+	futureSources, err := collector.collectCustomerFBO(t.Context(), env.CustomerID, env.Currency, alpacadecimal.NewFromInt(50), futureAsOf)
+	require.NoError(t, err)
+	require.Len(t, futureSources, 1)
+	require.Equal(t, source.Address().SubAccountID(), futureSources[0].Address.SubAccountID())
+	require.True(t, alpacadecimal.NewFromInt(20).Equal(futureSources[0].Amount), "future amount: %s", futureSources[0].Amount)
 }
 
 func newTestAccrualCollector(env *ledgertestutils.IntegrationEnv) *accrualCollector {
@@ -121,4 +143,31 @@ func fundPriorityWithCostBasis(
 	require.NoError(t, err)
 
 	return subAccount
+}
+
+func bookFutureFBOCollection(t *testing.T, env *ledgertestutils.IntegrationEnv, priority int, amount int64, at time.Time) {
+	t.Helper()
+
+	inputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		transactions.ResolverDependencies{
+			AccountService: env.Deps.ResolversService,
+			AccountCatalog: env.Deps.AccountService,
+			BalanceQuerier: env.Deps.HistoricalLedger,
+		},
+		transactions.ResolutionScope{
+			CustomerID: env.CustomerID,
+			Namespace:  env.Namespace,
+		},
+		transactions.CoverCustomerReceivableTemplate{
+			At:             at,
+			Amount:         alpacadecimal.NewFromInt(amount),
+			Currency:       env.Currency,
+			CreditPriority: &priority,
+		},
+	)
+	require.NoError(t, err)
+
+	_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
+	require.NoError(t, err)
 }

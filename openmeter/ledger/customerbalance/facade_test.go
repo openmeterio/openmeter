@@ -140,3 +140,36 @@ func TestFacadeGetBalanceAfterTransactionCursor(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, currentBalance.Equal(alpacadecimal.NewFromInt(120)))
 }
+
+func TestFacadeGetBalanceAsOf(t *testing.T) {
+	env := newTestEnv(t)
+	facade, err := NewFacade(env.Service)
+	require.NoError(t, err)
+
+	firstBookedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
+	secondBookedAt := firstBookedAt.Add(time.Minute)
+
+	clock.SetTime(firstBookedAt)
+	defer clock.ResetTime()
+	env.bookFBOBalance(t, alpacadecimal.NewFromInt(100))
+	env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
+
+	clock.SetTime(secondBookedAt)
+	env.bookFBOBalance(t, alpacadecimal.NewFromInt(20))
+	env.fundOpenReceivable(t, alpacadecimal.NewFromInt(20))
+
+	balanceAtFirstBooking, err := facade.GetBalance(t.Context(), GetBalanceInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+		AsOf:       &firstBookedAt,
+	})
+	require.NoError(t, err)
+	require.True(t, balanceAtFirstBooking.Equal(alpacadecimal.NewFromInt(100)), "balance as of first booking: %s", balanceAtFirstBooking)
+
+	currentBalance, err := facade.GetBalance(t.Context(), GetBalanceInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+	})
+	require.NoError(t, err)
+	require.True(t, currentBalance.Equal(alpacadecimal.NewFromInt(120)))
+}

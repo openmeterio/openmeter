@@ -87,11 +87,11 @@ func (Ledger) ListTransactions(context.Context, ledger.ListTransactionsInput) (l
 	return ledger.ListTransactionsResult{}, nil
 }
 
-func (Ledger) GetAccountBalance(context.Context, ledger.Account, ledger.RouteFilter, *ledger.TransactionCursor) (ledger.Balance, error) {
+func (Ledger) GetAccountBalance(context.Context, ledger.Account, ledger.RouteFilter, ledger.BalanceQuery) (ledger.Balance, error) {
 	return balance{}, nil
 }
 
-func (Ledger) GetSubAccountBalance(context.Context, ledger.SubAccount, *ledger.TransactionCursor) (ledger.Balance, error) {
+func (Ledger) GetSubAccountBalance(context.Context, ledger.SubAccount, ledger.BalanceQuery) (ledger.Balance, error) {
 	return balance{}, nil
 }
 

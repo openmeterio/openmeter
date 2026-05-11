@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -34,8 +35,9 @@ func (c *accrualCollector) collectCustomerFBO(
 	customerID customer.CustomerID,
 	currency currencyx.Code,
 	target alpacadecimal.Decimal,
+	asOf time.Time,
 ) ([]transactions.PostingAmount, error) {
-	sources, err := c.listCustomerFBOSources(ctx, customerID, currency)
+	sources, err := c.listCustomerFBOSources(ctx, customerID, currency, asOf)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +59,7 @@ func (c *accrualCollector) listCustomerFBOSources(
 	ctx context.Context,
 	customerID customer.CustomerID,
 	currency currencyx.Code,
+	asOf time.Time,
 ) ([]fboCollectionSource, error) {
 	if c.deps.AccountCatalog == nil {
 		return nil, fmt.Errorf("account catalog is required")
@@ -91,7 +94,7 @@ func (c *accrualCollector) listCustomerFBOSources(
 			continue
 		}
 
-		balance, err := c.settledSubAccountBalance(ctx, subAccount)
+		balance, err := c.settledSubAccountBalance(ctx, subAccount, asOf)
 		if err != nil {
 			return nil, err
 		}
@@ -115,8 +118,10 @@ func customerFBOPriority(route ledger.Route) int {
 	return *route.CreditPriority
 }
 
-func (c *accrualCollector) settledSubAccountBalance(ctx context.Context, subAccount ledger.SubAccount) (alpacadecimal.Decimal, error) {
-	balance, err := c.deps.BalanceQuerier.GetSubAccountBalance(ctx, subAccount, nil)
+func (c *accrualCollector) settledSubAccountBalance(ctx context.Context, subAccount ledger.SubAccount, asOf time.Time) (alpacadecimal.Decimal, error) {
+	balance, err := c.deps.BalanceQuerier.GetSubAccountBalance(ctx, subAccount, ledger.BalanceQuery{
+		AsOf: &asOf,
+	})
 	if err != nil {
 		return alpacadecimal.Decimal{}, fmt.Errorf("get balance for sub-account %s: %w", subAccount.Address().SubAccountID(), err)
 	}

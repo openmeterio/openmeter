@@ -20,7 +20,7 @@ import (
 )
 
 type Service interface {
-	GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, after *ledger.TransactionCursor) (ledger.Balance, error)
+	GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, query ledger.BalanceQuery) (ledger.Balance, error)
 	ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error)
 	GetFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error)
 }
@@ -130,7 +130,9 @@ func New(config Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, after *ledger.TransactionCursor) (ledger.Balance, error) {
+func (s *service) GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, query ledger.BalanceQuery) (ledger.Balance, error) {
+	query = currentBalanceQuery(query)
+
 	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
@@ -138,7 +140,7 @@ func (s *service) GetBalance(ctx context.Context, customerID customer.CustomerID
 
 	bookedBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.FBOAccount, ledger.RouteFilter{
 		Currency: currency,
-	}, after)
+	}, query)
 	if err != nil {
 		return nil, fmt.Errorf("get booked balance: %w", err)
 	}
@@ -146,13 +148,13 @@ func (s *service) GetBalance(ctx context.Context, customerID customer.CustomerID
 	advanceBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.ReceivableAccount, ledger.RouteFilter{
 		Currency:  currency,
 		CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
-	}, after)
+	}, query)
 	if err != nil {
 		return nil, fmt.Errorf("get advance balance: %w", err)
 	}
 
 	// Pending balance remains a current projection from open charges.
-	// Historical cursoring only affects the booked/settled side for now.
+	// Historical cursor/as-of filtering only affects the booked/settled side for now.
 	impacts, err := s.getChargePendingBalanceImpacts(ctx, customerID, currency)
 	if err != nil {
 		return nil, fmt.Errorf("get charge pending balance impacts: %w", err)
@@ -164,6 +166,16 @@ func (s *service) GetBalance(ctx context.Context, customerID customer.CustomerID
 		settled: settled,
 		pending: s.balanceCalculator.CalculatePendingBalance(settled, impacts),
 	}, nil
+}
+
+func currentBalanceQuery(query ledger.BalanceQuery) ledger.BalanceQuery {
+	if query.After != nil || query.AsOf != nil {
+		return query
+	}
+
+	asOf := clock.Now()
+	query.AsOf = &asOf
+	return query
 }
 
 func (s *service) GetFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error) {

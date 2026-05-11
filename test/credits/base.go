@@ -243,7 +243,7 @@ func (s *BaseSuite) MustCustomerFBOBalanceWithPriority(customerID customer.Custo
 		Currency:       code,
 		CostBasis:      costBasis,
 		CreditPriority: lo.ToPtr(priority),
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -262,7 +262,7 @@ func (s *BaseSuite) MustCustomerReceivableBalance(customerID customer.CustomerID
 		Currency:                       code,
 		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -280,7 +280,7 @@ func (s *BaseSuite) MustCustomerAccruedBalance(customerID customer.CustomerID, c
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.AccruedAccount, ledger.RouteFilter{
 		Currency:  code,
 		CostBasis: costBasis,
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -298,7 +298,7 @@ func (s *BaseSuite) MustWashBalance(namespace string, code currencyx.Code, costB
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.WashAccount, ledger.RouteFilter{
 		Currency:  code,
 		CostBasis: costBasis,
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -320,7 +320,7 @@ func (s *BaseSuite) MustEarningsBalanceForCostBasis(namespace string, code curre
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.EarningsAccount, ledger.RouteFilter{
 		Currency:  code,
 		CostBasis: costBasis,
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()

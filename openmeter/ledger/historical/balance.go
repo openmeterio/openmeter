@@ -27,7 +27,7 @@ func (b *Balance) Pending() alpacadecimal.Decimal {
 
 var _ ledger.BalanceQuerier = (*Ledger)(nil)
 
-func (l *Ledger) GetAccountBalance(ctx context.Context, account ledger.Account, query ledger.RouteFilter, after *ledger.TransactionCursor) (ledger.Balance, error) {
+func (l *Ledger) GetAccountBalance(ctx context.Context, account ledger.Account, route ledger.RouteFilter, query ledger.BalanceQuery) (ledger.Balance, error) {
 	if account == nil {
 		return nil, fmt.Errorf("account is required")
 	}
@@ -35,9 +35,10 @@ func (l *Ledger) GetAccountBalance(ctx context.Context, account ledger.Account, 
 	res, err := l.sumEntries(ctx, ledger.Query{
 		Namespace: account.ID().Namespace,
 		Filters: ledger.Filters{
-			After:     after,
+			After:     query.After,
+			AsOf:      query.AsOf,
 			AccountID: lo.ToPtr(account.ID().ID),
-			Route:     query,
+			Route:     route,
 		},
 	})
 	if err != nil {
@@ -50,7 +51,7 @@ func (l *Ledger) GetAccountBalance(ctx context.Context, account ledger.Account, 
 	}, nil
 }
 
-func (l *Ledger) GetSubAccountBalance(ctx context.Context, subAccount ledger.SubAccount, after *ledger.TransactionCursor) (ledger.Balance, error) {
+func (l *Ledger) GetSubAccountBalance(ctx context.Context, subAccount ledger.SubAccount, query ledger.BalanceQuery) (ledger.Balance, error) {
 	if subAccount == nil {
 		return nil, fmt.Errorf("sub-account is required")
 	}
@@ -60,7 +61,7 @@ func (l *Ledger) GetSubAccountBalance(ctx context.Context, subAccount ledger.Sub
 		return nil, fmt.Errorf("failed to get parent account for sub-account %s: %w", subAccount.Address().SubAccountID(), err)
 	}
 
-	return l.GetAccountBalance(ctx, account, subAccount.Route().Filter(), after)
+	return l.GetAccountBalance(ctx, account, subAccount.Route().Filter(), query)
 }
 
 func (l *Ledger) sumEntries(ctx context.Context, query ledger.Query) (ledger.QuerySummedResult, error) {

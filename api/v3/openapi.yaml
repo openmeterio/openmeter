@@ -7746,6 +7746,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           description: Filter credit balance by currency.
+        as_of:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Return the credit balance as of this timestamp. Defaults to the current time.
       additionalProperties: false
       description: Filter options for getting a credit balance.
     GovernanceFeatureAccess:

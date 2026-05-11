@@ -138,6 +138,11 @@ model GetCreditBalanceParamsFilter {
    * Filter credit balance by currency.
    */
   currency?: Currencies.CurrencyCode;
+
+  /**
+   * Return the credit balance as of this timestamp. Defaults to the current time.
+   */
+  as_of?: Shared.DateTime;
 }
 
 interface CustomerCreditBalancesOperations {

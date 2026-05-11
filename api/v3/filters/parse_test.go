@@ -26,6 +26,7 @@ type testFilter struct {
 	CreatedAt *FilterDateTime    `json:"created_at,omitempty"`
 	Enabled   *FilterBoolean     `json:"enabled,omitempty"`
 	Currency  *string            `json:"currency,omitempty"`
+	AsOf      *time.Time         `json:"as_of,omitempty"`
 	TxType    *testStringType    `json:"tx_type,omitempty"`
 }
 
@@ -315,6 +316,28 @@ func TestParse_StringPtr(t *testing.T) {
 		var f testFilter
 		require.NoError(t, Parse(url.Values{"filter[currency]": {"USD"}}, &f))
 		assert.Equal(t, lo.ToPtr("USD"), f.Currency)
+	})
+}
+
+func TestParse_TimePtr(t *testing.T) {
+	t.Run("simple datetime value", func(t *testing.T) {
+		var f testFilter
+		require.NoError(t, Parse(url.Values{"filter[as_of]": {"2026-05-11T10:30:00Z"}}, &f))
+		require.NotNil(t, f.AsOf)
+		assert.Equal(t, time.Date(2026, 5, 11, 10, 30, 0, 0, time.UTC), *f.AsOf)
+	})
+
+	t.Run("operator-style key rejected", func(t *testing.T) {
+		var f testFilter
+		err := Parse(url.Values{"filter[as_of][eq]": {"2026-05-11T10:30:00Z"}}, &f)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operator-style keys are not supported")
+	})
+
+	t.Run("invalid datetime rejected", func(t *testing.T) {
+		var f testFilter
+		err := Parse(url.Values{"filter[as_of]": {"not-a-date"}}, &f)
+		assert.ErrorIs(t, err, ErrInvalidDateTime)
 	})
 }
 
