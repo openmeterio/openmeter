@@ -287,6 +287,9 @@ var (
 				Name:    "appcustominvoicingcustomer_namespace_app_id_customer_id",
 				Unique:  true,
 				Columns: []*schema.Column{AppCustomInvoicingCustomersColumns[1], AppCustomInvoicingCustomersColumns[6], AppCustomInvoicingCustomersColumns[7]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
 			},
 		},
 	}
