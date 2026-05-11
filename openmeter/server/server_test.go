@@ -1833,6 +1833,10 @@ func (n NoopBillingService) OnMutableStandardLinesDeleted(ctx context.Context, i
 	return nil
 }
 
+func (n NoopBillingService) OnUnsupportedCreditNote(ctx context.Context, input billing.OnUnsupportedCreditNoteInput) error {
+	return nil
+}
+
 func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
 	return []billing.LineOrHierarchy{}, nil
 }

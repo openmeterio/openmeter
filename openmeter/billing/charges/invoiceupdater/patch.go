@@ -38,6 +38,7 @@ type PatchDeleteGatheringLineByChargeID struct {
 type PatchUpdateGatheringLineByChargeID struct {
 	ChargeID        string
 	ServicePeriodTo time.Time
+	InvoiceAt       time.Time
 }
 
 type Patch struct {
@@ -113,12 +114,13 @@ func NewDeleteGatheringLineByChargeIDPatch(chargeID string) Patch {
 	}
 }
 
-func NewUpdateGatheringLineByChargeIDPatch(chargeID string, servicePeriodTo time.Time) Patch {
+func NewUpdateGatheringLineByChargeIDPatch(chargeID string, servicePeriodTo time.Time, invoiceAt time.Time) Patch {
 	return Patch{
 		op: PatchOpUpdateGatheringLineByChargeID,
 		updateGatheringLineByChargeIDPatch: PatchUpdateGatheringLineByChargeID{
 			ChargeID:        chargeID,
 			ServicePeriodTo: servicePeriodTo,
+			InvoiceAt:       invoiceAt,
 		},
 	}
 }
@@ -152,7 +154,7 @@ func (p Patch) Log(logger *slog.Logger) {
 	case PatchOpDeleteGatheringLineByChargeID:
 		logger.Info("delete gathering line by charge id patch", "charge_id", p.deleteGatheringLineByChargeIDPatch.ChargeID)
 	case PatchOpUpdateGatheringLineByChargeID:
-		logger.Info("update gathering line by charge id patch", "charge_id", p.updateGatheringLineByChargeIDPatch.ChargeID, "new_service_period_to", p.updateGatheringLineByChargeIDPatch.ServicePeriodTo)
+		logger.Info("update gathering line by charge id patch", "charge_id", p.updateGatheringLineByChargeIDPatch.ChargeID, "new_service_period_to", p.updateGatheringLineByChargeIDPatch.ServicePeriodTo, "new_invoice_at", p.updateGatheringLineByChargeIDPatch.InvoiceAt)
 	default:
 		logger.Info("unknown patch operation", "operation", p.op)
 	}

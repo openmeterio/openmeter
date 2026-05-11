@@ -55,6 +55,8 @@ type ChargeUsageBasedRuns struct {
 	FeatureID string `json:"feature_id,omitempty"`
 	// Type holds the value of the "type" field.
 	Type usagebased.RealizationRunType `json:"type,omitempty"`
+	// InitialType holds the value of the "initial_type" field.
+	InitialType usagebased.RealizationRunType `json:"initial_type,omitempty"`
 	// StoredAtLt holds the value of the "stored_at_lt" field.
 	StoredAtLt time.Time `json:"stored_at_lt,omitempty"`
 	// ServicePeriodTo holds the value of the "service_period_to" field.
@@ -202,7 +204,7 @@ func (*ChargeUsageBasedRuns) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeusagebasedruns.FieldDetailedLinesPresent, chargeusagebasedruns.FieldNoFiatTransactionRequired:
 			values[i] = new(sql.NullBool)
-		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldFeatureID, chargeusagebasedruns.FieldType, chargeusagebasedruns.FieldLineID, chargeusagebasedruns.FieldInvoiceID:
+		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldFeatureID, chargeusagebasedruns.FieldType, chargeusagebasedruns.FieldInitialType, chargeusagebasedruns.FieldLineID, chargeusagebasedruns.FieldInvoiceID:
 			values[i] = new(sql.NullString)
 		case chargeusagebasedruns.FieldCreatedAt, chargeusagebasedruns.FieldUpdatedAt, chargeusagebasedruns.FieldDeletedAt, chargeusagebasedruns.FieldStoredAtLt, chargeusagebasedruns.FieldServicePeriodTo:
 			values[i] = new(sql.NullTime)
@@ -317,6 +319,12 @@ func (_m *ChargeUsageBasedRuns) assignValues(columns []string, values []any) err
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
 				_m.Type = usagebased.RealizationRunType(value.String)
+			}
+		case chargeusagebasedruns.FieldInitialType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field initial_type", values[i])
+			} else if value.Valid {
+				_m.InitialType = usagebased.RealizationRunType(value.String)
 			}
 		case chargeusagebasedruns.FieldStoredAtLt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -489,6 +497,9 @@ func (_m *ChargeUsageBasedRuns) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Type))
+	builder.WriteString(", ")
+	builder.WriteString("initial_type=")
+	builder.WriteString(fmt.Sprintf("%v", _m.InitialType))
 	builder.WriteString(", ")
 	builder.WriteString("stored_at_lt=")
 	builder.WriteString(_m.StoredAtLt.Format(time.ANSIC))

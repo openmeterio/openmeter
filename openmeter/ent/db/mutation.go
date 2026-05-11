@@ -62154,6 +62154,7 @@ type ChargeUsageBasedRunsMutation struct {
 	credits_total                   *alpacadecimal.Decimal
 	total                           *alpacadecimal.Decimal
 	_type                           *usagebased.RealizationRunType
+	initial_type                    *usagebased.RealizationRunType
 	stored_at_lt                    *time.Time
 	service_period_to               *time.Time
 	detailed_lines_present          *bool
@@ -62841,6 +62842,42 @@ func (m *ChargeUsageBasedRunsMutation) OldType(ctx context.Context) (v usagebase
 // ResetType resets all changes to the "type" field.
 func (m *ChargeUsageBasedRunsMutation) ResetType() {
 	m._type = nil
+}
+
+// SetInitialType sets the "initial_type" field.
+func (m *ChargeUsageBasedRunsMutation) SetInitialType(urt usagebased.RealizationRunType) {
+	m.initial_type = &urt
+}
+
+// InitialType returns the value of the "initial_type" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) InitialType() (r usagebased.RealizationRunType, exists bool) {
+	v := m.initial_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInitialType returns the old "initial_type" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldInitialType(ctx context.Context) (v usagebased.RealizationRunType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInitialType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInitialType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInitialType: %w", err)
+	}
+	return oldValue.InitialType, nil
+}
+
+// ResetInitialType resets all changes to the "initial_type" field.
+func (m *ChargeUsageBasedRunsMutation) ResetInitialType() {
+	m.initial_type = nil
 }
 
 // SetStoredAtLt sets the "stored_at_lt" field.
@@ -63542,7 +63579,7 @@ func (m *ChargeUsageBasedRunsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunsMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 23)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruns.FieldNamespace)
 	}
@@ -63587,6 +63624,9 @@ func (m *ChargeUsageBasedRunsMutation) Fields() []string {
 	}
 	if m._type != nil {
 		fields = append(fields, chargeusagebasedruns.FieldType)
+	}
+	if m.initial_type != nil {
+		fields = append(fields, chargeusagebasedruns.FieldInitialType)
 	}
 	if m.stored_at_lt != nil {
 		fields = append(fields, chargeusagebasedruns.FieldStoredAtLt)
@@ -63647,6 +63687,8 @@ func (m *ChargeUsageBasedRunsMutation) Field(name string) (ent.Value, bool) {
 		return m.FeatureID()
 	case chargeusagebasedruns.FieldType:
 		return m.GetType()
+	case chargeusagebasedruns.FieldInitialType:
+		return m.InitialType()
 	case chargeusagebasedruns.FieldStoredAtLt:
 		return m.StoredAtLt()
 	case chargeusagebasedruns.FieldServicePeriodTo:
@@ -63700,6 +63742,8 @@ func (m *ChargeUsageBasedRunsMutation) OldField(ctx context.Context, name string
 		return m.OldFeatureID(ctx)
 	case chargeusagebasedruns.FieldType:
 		return m.OldType(ctx)
+	case chargeusagebasedruns.FieldInitialType:
+		return m.OldInitialType(ctx)
 	case chargeusagebasedruns.FieldStoredAtLt:
 		return m.OldStoredAtLt(ctx)
 	case chargeusagebasedruns.FieldServicePeriodTo:
@@ -63827,6 +63871,13 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetType(v)
+		return nil
+	case chargeusagebasedruns.FieldInitialType:
+		v, ok := value.(usagebased.RealizationRunType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInitialType(v)
 		return nil
 	case chargeusagebasedruns.FieldStoredAtLt:
 		v, ok := value.(time.Time)
@@ -63991,6 +64042,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 		return nil
 	case chargeusagebasedruns.FieldType:
 		m.ResetType()
+		return nil
+	case chargeusagebasedruns.FieldInitialType:
+		m.ResetInitialType()
 		return nil
 	case chargeusagebasedruns.FieldStoredAtLt:
 		m.ResetStoredAtLt()

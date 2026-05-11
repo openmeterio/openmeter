@@ -27,6 +27,7 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 			SetChargeID(chargeID.ID).
 			SetFeatureID(input.FeatureID).
 			SetType(input.Type).
+			SetInitialType(input.Type).
 			SetStoredAtLt(meta.NormalizeTimestamp(input.StoredAtLT)).
 			SetServicePeriodTo(meta.NormalizeTimestamp(input.ServicePeriodTo)).
 			SetDetailedLinesPresent(false).

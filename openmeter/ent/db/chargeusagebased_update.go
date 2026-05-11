@@ -293,6 +293,20 @@ func (_u *ChargeUsageBasedUpdate) ClearDescription() *ChargeUsageBasedUpdate {
 	return _u
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (_u *ChargeUsageBasedUpdate) SetInvoiceAt(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetInvoiceAt(v)
+	return _u
+}
+
+// SetNillableInvoiceAt sets the "invoice_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableInvoiceAt(v *time.Time) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetInvoiceAt(*v)
+	}
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *ChargeUsageBasedUpdate) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpdate {
 	_u.mutation.SetDiscounts(v)
@@ -653,6 +667,9 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargeusagebased.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.InvoiceAt(); ok {
+		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)
@@ -1123,6 +1140,20 @@ func (_u *ChargeUsageBasedUpdateOne) ClearDescription() *ChargeUsageBasedUpdateO
 	return _u
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (_u *ChargeUsageBasedUpdateOne) SetInvoiceAt(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetInvoiceAt(v)
+	return _u
+}
+
+// SetNillableInvoiceAt sets the "invoice_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableInvoiceAt(v *time.Time) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetInvoiceAt(*v)
+	}
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *ChargeUsageBasedUpdateOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetDiscounts(v)
@@ -1513,6 +1544,9 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargeusagebased.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.InvoiceAt(); ok {
+		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)

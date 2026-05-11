@@ -33,8 +33,7 @@ func (ChargeUsageBased) Mixin() []ent.Mixin {
 
 func (ChargeUsageBased) Fields() []ent.Field {
 	return []ent.Field{
-		field.Time("invoice_at").
-			Immutable(),
+		field.Time("invoice_at"),
 
 		field.Enum("settlement_mode").
 			GoType(productcatalog.SettlementMode("")).
@@ -173,6 +172,10 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 
 		field.Enum("type").
 			GoType(usagebased.RealizationRunType("")),
+
+		field.Enum("initial_type").
+			GoType(usagebased.RealizationRunType("")).
+			Immutable(),
 
 		field.Time("stored_at_lt"),
 

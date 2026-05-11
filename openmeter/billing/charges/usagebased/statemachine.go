@@ -44,6 +44,23 @@ func IsMutableFinalRealizationStatus(status Status) bool {
 	return slices.Contains(mutableFinalRealizationStatuses, status)
 }
 
+// mutableInvoiceBackedRealizationStatuses are states where billing still owns a
+// mutable invoice line for the current realization run, so period changes can
+// ask billing to delete and rebuild that line instead of touching immutable
+// invoice or ledger records.
+var mutableInvoiceBackedRealizationStatuses = []Status{
+	StatusActivePartialInvoiceStarted,
+	StatusActivePartialInvoiceWaitingForCollection,
+	StatusActivePartialInvoiceProcessing,
+	StatusActiveFinalRealizationStarted,
+	StatusActiveFinalRealizationWaitingForCollection,
+	StatusActiveFinalRealizationProcessing,
+}
+
+func IsMutableInvoiceBackedRealizationStatus(status Status) bool {
+	return slices.Contains(mutableInvoiceBackedRealizationStatuses, status)
+}
+
 func (Status) Values() []string {
 	return []string{
 		string(StatusCreated),

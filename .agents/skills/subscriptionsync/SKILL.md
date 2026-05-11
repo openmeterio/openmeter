@@ -144,8 +144,8 @@ The `filterInScopeLines` function gates which target items enter reconciliation.
 
 Charge-backed mutation notes:
 - charge collections support create/delete and period-shape changes
-- shrink and most extend operations are emitted as an emulated replacement: delete the existing charge and create a replacement charge from the target state
-- usage-based `credit_then_invoice` extend is emitted as a native charge patch so the usage-based state machine can preserve existing immutable invoice/ledger state and keep the invoice train unblocked
+- most shrink and extend operations are emitted as an emulated replacement: delete the existing charge and create a replacement charge from the target state
+- usage-based `credit_then_invoice` shrink and extend are emitted as native charge patches, including the target invoice-at, so the usage-based state machine can preserve existing immutable invoice/ledger state and keep the invoice train unblocked
 - charge-backed explicit prorate still returns unsupported; charge domains own their own proration/materialization behavior
 
 ## Invoice vs Charge Semantics
@@ -161,8 +161,8 @@ Keep these separate:
   - provisions charge intents directly
   - does not go through invoice-line rendering
   - supports create/delete and period-shape changes
-  - emits shrink and most extend operations as delete+create replacements
-  - emits usage-based `credit_then_invoice` extend as a native charge patch
+  - emits most shrink and extend operations as delete+create replacements
+  - emits usage-based `credit_then_invoice` shrink and extend as native charge patches
   - keeps explicit prorate unsupported because charges own their own proration logic
 
 Do not force charge behavior through invoice abstractions.

@@ -265,6 +265,28 @@ func TestGetDetailedRatingForUsageLoadsPriorDetailedLines(t *testing.T) {
 	require.Equal(t, 1, called)
 }
 
+func TestGetDetailedRatingForUsageIgnoresInvalidUnsupportedCreditNotePriorRuns(t *testing.T) {
+	t.Parallel()
+
+	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
+	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.ServicePeriod.From.Add(24*time.Hour), 0)
+	priorRun.Type = usagebased.RealizationRunTypeInvalidDueToUnsupportedCreditNote
+	fixture.input.Charge.Realizations = usagebased.RealizationRuns{priorRun}
+
+	var called int
+	fixture.config.DetailedLinesFetcher = detailedLinesFetcherFunc(func(_ context.Context, charge usagebased.Charge) (usagebased.Charge, error) {
+		called++
+		return charge, nil
+	})
+
+	svc, err := New(fixture.config)
+	require.NoError(t, err)
+
+	_, err = svc.GetDetailedRatingForUsage(t.Context(), fixture.input)
+	require.NoError(t, err)
+	require.Zero(t, called)
+}
+
 func TestGetDetailedRatingForUsageDoesNotLoadCurrentRunDetailedLines(t *testing.T) {
 	t.Parallel()
 
@@ -443,6 +465,7 @@ func newDetailedRatingTestRun(id string, servicePeriodTo time.Time, meteredQuant
 			ManagedModel:    models.ManagedModel{CreatedAt: now, UpdatedAt: now},
 			FeatureID:       "feature-1",
 			Type:            usagebased.RealizationRunTypeFinalRealization,
+			InitialType:     usagebased.RealizationRunTypeFinalRealization,
 			StoredAtLT:      time.Date(2025, 2, 2, 0, 0, 0, 0, time.UTC),
 			ServicePeriodTo: servicePeriodTo,
 			MeteredQuantity: alpacadecimal.NewFromInt(meteredQuantity),
