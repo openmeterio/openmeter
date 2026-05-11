@@ -72,8 +72,8 @@ model UnitConfig {
   /**
    * The factor used in the conversion operation.
    *
-   * For divide: converted = raw / conversionFactor For multiply: converted = raw ×
-   * conversionFactor
+   * - For `divide`: `converted = raw / conversionFactor`.
+   * - For `multiply`: `converted = raw × conversionFactor`.
    *
    * Must be a positive non-zero value.
    */

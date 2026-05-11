@@ -87,10 +87,11 @@ model Plan {
   /**
    * The status of the plan. Computed based on the effective start and end dates:
    *
-   * - draft = no effectiveFrom
-   * - active = effectiveFrom <= now < effectiveTo
-   * - archived / inactive = effectiveTo <= now
-   * - scheduled = now < effectiveFrom < effectiveTo
+   * - `draft`: `effective_from` is not set.
+   * - `scheduled`: `now < effective_from`.
+   * - `active`: `effective_from <= now` and (`effective_to` is not set or
+   *   `now < effective_to`).
+   * - `archived`: `effective_to <= now`.
    */
   @visibility(Lifecycle.Read)
   @summary("Status")

@@ -2943,9 +2943,10 @@ components:
           description: |-
             The status of the add-on. Computed based on the effective start and end dates:
 
-            - draft = no effectiveFrom
-            - active = effectiveFrom <= now < effectiveTo
-            - archived = effectiveTo <= now
+            - `draft`: `effective_from` is not set.
+            - `active`: `effective_from <= now` and (`effective_to` is not set or
+            `now < effective_to`).
+            - `archived`: `effective_to <= now`.
           title: Status
           readOnly: true
         rate_cards:
@@ -3014,7 +3015,7 @@ components:
         - active
         - archived
       description: |-
-        The status of the add-on defined by the effectiveFrom and effectiveTo
+        The status of the add-on defined by the `effective_from` and `effective_to`
         properties.
 
         - `draft`: The add-on has not yet been published and can be edited.
@@ -4037,7 +4038,7 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: |-
             An ISO-8601 timestamp representation of the date from which the cost basis is
-            effective. If not provided, it will be effective immediately and will set to
+            effective. If not provided, it will be effective immediately and will be set to
             `now` by the system.
         created_at:
           allOf:
@@ -5235,10 +5236,11 @@ components:
           description: |-
             The status of the plan. Computed based on the effective start and end dates:
 
-            - draft = no effectiveFrom
-            - active = effectiveFrom <= now < effectiveTo
-            - archived / inactive = effectiveTo <= now
-            - scheduled = now < effectiveFrom < effectiveTo
+            - `draft`: `effective_from` is not set.
+            - `scheduled`: `now < effective_from`.
+            - `active`: `effective_from <= now` and (`effective_to` is not set or
+            `now < effective_to`).
+            - `archived`: `effective_to <= now`.
           title: Status
           readOnly: true
         phases:
@@ -6839,7 +6841,7 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: |-
             An ISO-8601 timestamp representation of the date from which the cost basis is
-            effective. If not provided, it will be effective immediately and will set to
+            effective. If not provided, it will be effective immediately and will be set to
             `now` by the system.
       additionalProperties: false
       description: CostBasis create request.
@@ -7084,7 +7086,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/FeatureMeterReference'
           description: |-
-            The meter that the feature is associated with and and based on which usage is
+            The meter that the feature is associated with and based on which usage is
             calculated. If not specified, the feature is static.
           title: Meter reference
         unit_cost:
@@ -7520,7 +7522,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/FeatureMeterReference'
           description: |-
-            The meter that the feature is associated with and and based on which usage is
+            The meter that the feature is associated with and based on which usage is
             calculated. If not specified, the feature is static.
           title: Meter reference
         unit_cost:
@@ -7806,7 +7808,7 @@ components:
         effective_to:
           allOf:
             - $ref: '#/components/schemas/DateTime'
-          description: When this price expires (null = current).
+          description: When this price expires. Omitted when the price is currently effective.
           readOnly: true
         created_at:
           allOf:
@@ -8990,7 +8992,8 @@ components:
           description: |-
             Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
             "llm" to look up cost from the LLM cost database based on meter group-by
-            properties.
+            properties. Set to `null` to clear the existing unit cost; omit to leave it
+            unchanged.
           title: Unit cost
       additionalProperties: false
       description: |-

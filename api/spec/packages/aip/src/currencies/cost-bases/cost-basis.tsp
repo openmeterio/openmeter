@@ -25,7 +25,7 @@ model CostBasis {
 
   /**
    * An ISO-8601 timestamp representation of the date from which the cost basis is
-   * effective. If not provided, it will be effective immediately and will set to
+   * effective. If not provided, it will be effective immediately and will be set to
    * `now` by the system.
    */
   @visibility(Lifecycle.Create, Lifecycle.Read)

@@ -5,7 +5,7 @@ import "./plan.tsp";
 namespace ProductCatalog;
 
 /**
- * The status of the add-on defined by the effectiveFrom and effectiveTo
+ * The status of the add-on defined by the `effective_from` and `effective_to`
  * properties.
  *
  * - `draft`: The add-on has not yet been published and can be edited.
@@ -91,9 +91,10 @@ model Addon {
   /**
    * The status of the add-on. Computed based on the effective start and end dates:
    *
-   * - draft = no effectiveFrom
-   * - active = effectiveFrom <= now < effectiveTo
-   * - archived = effectiveTo <= now
+   * - `draft`: `effective_from` is not set.
+   * - `active`: `effective_from <= now` and (`effective_to` is not set or
+   *   `now < effective_to`).
+   * - `archived`: `effective_to <= now`.
    */
   @summary("Status")
   @visibility(Lifecycle.Read)

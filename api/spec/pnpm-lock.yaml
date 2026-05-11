@@ -36,10 +36,6 @@ importers:
         version: 3.8.3
 
   packages/aip:
-    dependencies:
-      prettier:
-        specifier: 3.8.3
-        version: 3.8.3
     devDependencies:
       '@redocly/cli':
         specifier: 2.29.0
@@ -68,6 +64,9 @@ importers:
       '@typespec/rest':
         specifier: 0.81.0
         version: 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))))
+      prettier:
+        specifier: 3.8.3
+        version: 3.8.3
       yaml:
         specifier: 2.8.3
         version: 2.8.3

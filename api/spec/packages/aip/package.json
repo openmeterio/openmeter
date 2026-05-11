@@ -16,9 +16,6 @@
       "typespec": "./src/main.tsp"
     }
   },
-  "dependencies": {
-    "prettier": "3.8.3"
-  },
   "devDependencies": {
     "@redocly/cli": "2.29.0",
     "@types/node": "25.6.0",
@@ -29,6 +26,7 @@
     "@typespec/openapi3": "1.11.0",
     "@typespec/prettier-plugin-typespec": "1.11.0",
     "@typespec/rest": "0.81.0",
+    "prettier": "3.8.3",
     "yaml": "2.8.3"
   },
   "private": true,

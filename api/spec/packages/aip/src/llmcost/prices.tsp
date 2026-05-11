@@ -96,7 +96,7 @@ model Price {
   effective_from: Shared.DateTime;
 
   /**
-   * When this price expires (null = current).
+   * When this price expires. Omitted when the price is currently effective.
    */
   @visibility(Lifecycle.Read)
   effective_to?: Shared.DateTime;

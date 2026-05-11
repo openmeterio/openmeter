@@ -32,7 +32,7 @@ model Feature {
   ...Shared.ResourceWithKey;
 
   /**
-   * The meter that the feature is associated with and and based on which usage is
+   * The meter that the feature is associated with and based on which usage is
    * calculated. If not specified, the feature is static.
    */
   @summary("Meter reference")
@@ -58,7 +58,8 @@ model FeatureUpdateRequest {
   /**
    * Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
    * "llm" to look up cost from the LLM cost database based on meter group-by
-   * properties.
+   * properties. Set to `null` to clear the existing unit cost; omit to leave it
+   * unchanged.
    */
   @summary("Unit cost")
   unit_cost?: FeatureUnitCost | null;
