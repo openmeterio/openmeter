@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -108,6 +107,10 @@ type Config struct {
 
 func (c *Config) Validate() error {
 	var errs []error
+
+	if err := c.ResponseValidation.Mode.Validate(); err != nil {
+		errs = append(errs, err)
+	}
 
 	if c.BaseURL == "" {
 		errs = append(errs, errors.New("base URL is required"))
@@ -401,7 +404,18 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 			middlewares = append(middlewares, oasmiddleware.ValidateResponse(validationRouter, oasmiddleware.ValidateResponseOption{
 				RouteFilterHook: buildResponseValidationRouteFilter(s.ResponseValidation),
 				ResponseValidationErrorHook: func(err error, r *http.Request) {
-					slog.WarnContext(r.Context(), "response validation failed", slog.String("method", r.Method), slog.String("path", r.URL.Path), slog.Any("error", err))
+					// Raw err can echo offending response field values (customer PII, billing identifiers).
+					// Keep that detail behind DEBUG; emit a sanitized summary at WARN.
+					slog.WarnContext(r.Context(), "response validation failed",
+						slog.String("method", r.Method),
+						slog.String("path", r.URL.Path),
+						slog.String("error_type", fmt.Sprintf("%T", err)),
+					)
+					slog.DebugContext(r.Context(), "response validation details",
+						slog.String("method", r.Method),
+						slog.String("path", r.URL.Path),
+						slog.Any("error", err),
+					)
 				},
 			}))
 		}
@@ -433,18 +447,9 @@ func buildResponseValidationRouteFilter(cfg config.ResponseValidationConfig) fun
 		if route.Operation == nil {
 			return false
 		}
-		extVal, ok := route.Operation.Extensions["x-unstable"]
-		if !ok {
-			return false
-		}
-		switch v := extVal.(type) {
-		case json.RawMessage:
-			var b bool
-			return json.Unmarshal(v, &b) == nil && b
-		case bool:
-			return v
-		default:
-			return false
-		}
+		// kin-openapi unmarshals JSON booleans directly into map[string]any,
+		// so the extension value is a plain bool here.
+		v, _ := route.Operation.Extensions["x-unstable"].(bool)
+		return v
 	}
 }
