@@ -306,7 +306,7 @@ func ProRatingValidator(pr flatfee.ProRatingModeAdapterEnum) error {
 // StatusDetailedValidator is a validator for the "status_detailed" field enum values. It is called by the builders before save.
 func StatusDetailedValidator(sd flatfee.Status) error {
 	switch sd {
-	case "created", "active", "final", "deleted":
+	case "created", "active", "active.realization.started", "active.realization.waiting_for_collection", "active.realization.processing", "active.realization.issuing", "active.realization.completed", "active.awaiting_payment_settlement", "final", "deleted":
 		return nil
 	default:
 		return fmt.Errorf("chargeflatfee: invalid enum value for status_detailed field: %q", sd)

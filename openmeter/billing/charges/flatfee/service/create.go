@@ -3,11 +3,13 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -29,14 +31,17 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 		intentsWithStatus, err := slicesx.MapWithErr(input.Intents, func(intent flatfee.Intent) (flatfee.IntentWithInitialStatus, error) {
 			intent = intent.Normalized()
 
-			initialStatus := flatfee.StatusActive
-			if intent.SettlementMode == productcatalog.CreditOnlySettlementMode {
-				initialStatus = flatfee.StatusCreated
-			}
-
 			amountAfterProration, err := intent.CalculateAmountAfterProration()
 			if err != nil {
 				return flatfee.IntentWithInitialStatus{}, fmt.Errorf("calculating amount after proration: %w", err)
+			}
+
+			initialStatus := flatfee.StatusActive
+			var initialAdvanceAfter *time.Time
+			switch intent.SettlementMode {
+			case productcatalog.CreditOnlySettlementMode, productcatalog.CreditThenInvoiceSettlementMode:
+				initialStatus = flatfee.StatusCreated
+				initialAdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(intent.ServicePeriod.From))
 			}
 
 			var featureID *string
@@ -52,6 +57,7 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 				Intent:                    intent,
 				FeatureID:                 featureID,
 				InitialStatus:             initialStatus,
+				InitialAdvanceAfter:       initialAdvanceAfter,
 				AmountAfterProration:      amountAfterProration,
 				NoFiatTransactionRequired: intent.SettlementMode == productcatalog.CreditOnlySettlementMode || amountAfterProration.IsZero(),
 			}, nil

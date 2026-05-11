@@ -745,6 +745,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
 		accruedUsage := updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage
 		s.NotNil(accruedUsage)
+		s.Equal(flatfee.StatusAwaitingPaymentSettlement, updatedFlatFeeCharge.Status)
 		s.Equal(servicePeriod, accruedUsage.ServicePeriod, "service period should be the same as the input")
 		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.LineID, "run line ID should be set")
 		s.Equal(stdLineID.ID, *updatedFlatFeeCharge.Realizations.CurrentRun.LineID, "run line ID should be the same as the standard line")
@@ -774,7 +775,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		charge := s.MustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(flatfee.StatusActive, updatedFlatFeeCharge.Status)
+		s.Equal(flatfee.StatusAwaitingPaymentSettlement, updatedFlatFeeCharge.Status)
 		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
 		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment)
 		s.Equal(payment.StatusAuthorized, updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Status)
