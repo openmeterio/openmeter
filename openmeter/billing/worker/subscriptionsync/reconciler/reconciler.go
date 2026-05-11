@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -102,8 +103,8 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 
 	for {
 		subscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-			Namespaces:  in.Namespaces,
-			CustomerIDs: in.Customers,
+			Namespaces: in.Namespaces,
+			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{In: &in.Customers}},
 			ActiveInPeriod: &timeutil.StartBoundedPeriod{
 				From: clock.Now().Add(-in.Lookback),
 				To:   lo.ToPtr(clock.Now()),

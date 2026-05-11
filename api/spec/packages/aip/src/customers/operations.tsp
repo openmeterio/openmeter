@@ -19,20 +19,18 @@ namespace Customers;
  */
 @friendlyName("ListCustomersParamsFilter")
 model ListCustomersParamsFilter {
-  /**
-   * Filter customers by key.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   key?: Common.StringFieldFilter;
-
-  /**
-   * Filter customers by name.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   name?: Common.StringFieldFilter;
-
-  /**
-   * Filter customers by primary email.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   primary_email?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  usage_attribution_subject_key?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  plan_key?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  billing_profile_id?: Common.ULIDFieldFilter;
 }
 
 interface CustomersOperations {
