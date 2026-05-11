@@ -59,14 +59,14 @@ func TestFlatFeeChargeCollectionPeriodChangesEmitEmulatedReplacement(t *testing.
 	}
 }
 
-func TestUsageBasedChargeCollectionShrinkEmitsEmulatedReplacement(t *testing.T) {
+func TestUsageBasedCreditOnlyChargeCollectionShrinkEmitsEmulatedReplacement(t *testing.T) {
 	collection := newUsageBasedChargeCollection(1)
-	target := newChargePatchTestTarget(t, productcatalog.CreditThenInvoiceSettlementMode, newChargePatchTestUsageRateCard())
+	target := newChargePatchTestTarget(t, productcatalog.CreditOnlySettlementMode, newChargePatchTestUsageRateCard())
 	existingFullServicePeriod := timeutil.ClosedPeriod{
 		From: target.FullServicePeriod.From,
 		To:   target.FullServicePeriod.To.AddDate(0, 1, 0),
 	}
-	existing := newChargePatchTestUsageBasedItemWithFullServicePeriod(t, target, "usage-based-charge", productcatalog.CreditThenInvoiceSettlementMode, existingFullServicePeriod)
+	existing := newChargePatchTestUsageBasedItemWithFullServicePeriod(t, target, "usage-based-charge", productcatalog.CreditOnlySettlementMode, existingFullServicePeriod)
 
 	require.NoError(t, collection.AddShrink(target.UniqueID, existing, target))
 
@@ -77,8 +77,34 @@ func TestUsageBasedChargeCollectionShrinkEmitsEmulatedReplacement(t *testing.T) 
 		require.Equal(t, target.FullServicePeriod, usageBasedIntent.FullServicePeriod)
 		require.Equal(t, target.BillingPeriod, usageBasedIntent.BillingPeriod)
 		require.Equal(t, target.GetInvoiceAt(), usageBasedIntent.InvoiceAt)
-		require.Equal(t, productcatalog.CreditThenInvoiceSettlementMode, usageBasedIntent.SettlementMode)
+		require.Equal(t, productcatalog.CreditOnlySettlementMode, usageBasedIntent.SettlementMode)
 	})
+}
+
+func TestUsageBasedCreditThenInvoiceChargeCollectionShrinkEmitsNativePatch(t *testing.T) {
+	collection := newUsageBasedChargeCollection(1)
+	target := newChargePatchTestTarget(t, productcatalog.CreditThenInvoiceSettlementMode, newChargePatchTestUsageRateCard())
+	existingServicePeriod := timeutil.ClosedPeriod{
+		From: target.GetServicePeriod().From,
+		To:   target.GetServicePeriod().To.AddDate(0, 1, 0),
+	}
+	existing := newChargePatchTestUsageBasedItemWithServicePeriod(t, target, "usage-based-charge", productcatalog.CreditThenInvoiceSettlementMode, existingServicePeriod)
+
+	require.NoError(t, collection.AddShrink(target.UniqueID, existing, target))
+
+	patches := collection.Patches()
+	require.Empty(t, patches.Creates)
+	require.Len(t, patches.PatchesByChargeID, 1)
+
+	patch, ok := patches.PatchesByChargeID["usage-based-charge"]
+	require.True(t, ok)
+
+	shrinkPatch, ok := patch.(chargesmeta.PatchShrink)
+	require.True(t, ok, "expected native shrink patch, got %T", patch)
+	require.Equal(t, target.GetServicePeriod().To, shrinkPatch.GetNewServicePeriodTo())
+	require.Equal(t, target.FullServicePeriod.To, shrinkPatch.GetNewFullServicePeriodTo())
+	require.Equal(t, target.BillingPeriod.To, shrinkPatch.GetNewBillingPeriodTo())
+	require.Equal(t, target.GetInvoiceAt(), shrinkPatch.GetNewInvoiceAt())
 }
 
 func TestUsageBasedCreditOnlyChargeCollectionExtendEmitsEmulatedReplacement(t *testing.T) {
@@ -117,6 +143,7 @@ func TestUsageBasedCreditThenInvoiceChargeCollectionExtendEmitsNativePatch(t *te
 	require.Equal(t, target.GetServicePeriod().To, extendPatch.GetNewServicePeriodTo())
 	require.Equal(t, target.FullServicePeriod.To, extendPatch.GetNewFullServicePeriodTo())
 	require.Equal(t, target.BillingPeriod.To, extendPatch.GetNewBillingPeriodTo())
+	require.Equal(t, target.GetInvoiceAt(), extendPatch.GetNewInvoiceAt())
 }
 
 func assertEmulatedReplacement(t *testing.T, patches charges.ApplyPatchesInput, chargeID string, assertCreate func(charges.ChargeIntent)) {
@@ -172,6 +199,21 @@ func newChargePatchTestUsageBasedItemWithFullServicePeriod(t *testing.T, target 
 
 	intent := newChargePatchTestExistingIntent(target)
 	intent.FullServicePeriod = fullServicePeriod
+
+	return newChargePatchTestUsageBasedItemWithIntent(t, target, id, settlementMode, intent)
+}
+
+func newChargePatchTestUsageBasedItemWithServicePeriod(t *testing.T, target targetstate.StateItem, id string, settlementMode productcatalog.SettlementMode, servicePeriod timeutil.ClosedPeriod) persistedstate.Item {
+	t.Helper()
+
+	intent := newChargePatchTestExistingIntent(target)
+	intent.ServicePeriod = servicePeriod
+
+	return newChargePatchTestUsageBasedItemWithIntent(t, target, id, settlementMode, intent)
+}
+
+func newChargePatchTestUsageBasedItemWithIntent(t *testing.T, target targetstate.StateItem, id string, settlementMode productcatalog.SettlementMode, intent chargesmeta.Intent) persistedstate.Item {
+	t.Helper()
 
 	charge := chargesusagebased.Charge{
 		ChargeBase: chargesusagebased.ChargeBase{

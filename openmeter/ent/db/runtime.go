@@ -1445,11 +1445,11 @@ func init() {
 	// chargeusagebasedruns.FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
 	chargeusagebasedruns.FeatureIDValidator = chargeusagebasedrunsDescFeatureID.Validators[0].(func(string) error)
 	// chargeusagebasedrunsDescLineID is the schema descriptor for line_id field.
-	chargeusagebasedrunsDescLineID := chargeusagebasedrunsFields[6].Descriptor()
+	chargeusagebasedrunsDescLineID := chargeusagebasedrunsFields[7].Descriptor()
 	// chargeusagebasedruns.LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
 	chargeusagebasedruns.LineIDValidator = chargeusagebasedrunsDescLineID.Validators[0].(func(string) error)
 	// chargeusagebasedrunsDescInvoiceID is the schema descriptor for invoice_id field.
-	chargeusagebasedrunsDescInvoiceID := chargeusagebasedrunsFields[7].Descriptor()
+	chargeusagebasedrunsDescInvoiceID := chargeusagebasedrunsFields[8].Descriptor()
 	// chargeusagebasedruns.InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
 	chargeusagebasedruns.InvoiceIDValidator = chargeusagebasedrunsDescInvoiceID.Validators[0].(func(string) error)
 	// chargeusagebasedrunsDescID is the schema descriptor for id field.

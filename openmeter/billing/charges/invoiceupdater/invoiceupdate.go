@@ -35,17 +35,17 @@ func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.Customer
 		return fmt.Errorf("parsing patches: %w", err)
 	}
 
-	err = u.provisionUpcomingLines(ctx, customerID, patchesParsed.newLines)
-	if err != nil {
-		return fmt.Errorf("provisioning upcoming lines: %w", err)
-	}
-
 	if err := u.resolveGatheringLineDeletesByChargeID(ctx, customerID, &patchesParsed); err != nil {
 		return fmt.Errorf("resolving gathering line deletes by charge ID: %w", err)
 	}
 
 	if err := u.resolveGatheringLineUpdatesByChargeID(ctx, customerID, &patchesParsed); err != nil {
 		return fmt.Errorf("resolving gathering line updates by charge ID: %w", err)
+	}
+
+	err = u.provisionUpcomingLines(ctx, customerID, patchesParsed.newLines)
+	if err != nil {
+		return fmt.Errorf("provisioning upcoming lines: %w", err)
 	}
 
 	invoicesByID, err := u.listInvoicesByID(ctx, customerID.Namespace, lo.Keys(patchesParsed.updatedLinesByInvoiceID))
@@ -361,7 +361,7 @@ func (u *Updater) resolveGatheringLineUpdatesByChargeID(ctx context.Context, cus
 			}
 
 			line.ServicePeriod.To = updatePatch.ServicePeriodTo
-			line.InvoiceAt = updatePatch.ServicePeriodTo
+			line.InvoiceAt = updatePatch.InvoiceAt
 			if line.Subscription != nil {
 				line.Subscription.BillingPeriod.To = updatePatch.ServicePeriodTo
 			}
@@ -496,11 +496,17 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 	}
 
 	validationIssues := []billing.ValidationIssue{}
+	unsupportedCreditNoteLines := billing.StandardLines{}
 
-	for _, line := range linePatches.deletedLines {
+	for _, lineID := range linePatches.deletedLines {
+		line := invoice.Lines.GetByID(lineID.ID)
 		validationIssues = append(validationIssues,
-			newValidationIssueOnLine(invoice.Lines.GetByID(line.ID), "line should be deleted, but the invoice is immutable"),
+			newValidationIssueOnLine(line, "line should be deleted, but the invoice is immutable"),
 		)
+
+		if line != nil {
+			unsupportedCreditNoteLines = append(unsupportedCreditNoteLines, line)
+		}
 	}
 
 	for _, targetState := range linePatches.updatedLines {
@@ -559,6 +565,15 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 						targetStateWithUpdatedQty.UsageBased.Quantity.String()),
 				)
 			}
+		}
+	}
+
+	if len(unsupportedCreditNoteLines) > 0 {
+		if err := u.billingService.OnUnsupportedCreditNote(ctx, billing.OnUnsupportedCreditNoteInput{
+			Invoice: invoice,
+			Lines:   unsupportedCreditNoteLines,
+		}); err != nil {
+			return fmt.Errorf("handling unsupported credit note for invoice[%s]: %w", invoice.ID, err)
 		}
 	}
 

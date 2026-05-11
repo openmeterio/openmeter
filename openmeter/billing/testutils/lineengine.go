@@ -60,6 +60,10 @@ func (NoopLineEngine) OnMutableStandardLinesDeleted(context.Context, billing.OnM
 	return nil
 }
 
+func (NoopLineEngine) OnUnsupportedCreditNote(context.Context, billing.OnUnsupportedCreditNoteInput) error {
+	return nil
+}
+
 func (NoopLineEngine) OnInvoiceIssued(context.Context, billing.OnInvoiceIssuedInput) error {
 	return nil
 }

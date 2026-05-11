@@ -65,6 +65,10 @@ type LineEngineService interface {
 	DeregisterLineEngine(engineType LineEngineType) error
 	GetRegisteredLineEngines() []LineEngineType
 	OnMutableStandardLinesDeleted(ctx context.Context, input OnMutableStandardLinesDeletedInput) error
+	// OnUnsupportedCreditNote is invoked when a line deletion targets an immutable invoice but credit-note support is not available yet.
+	// This is a temporary placeholder instead of the credit-note implementation that allows us to externally
+	// invoke the right line engine for the line deletion.
+	OnUnsupportedCreditNote(ctx context.Context, input OnUnsupportedCreditNoteInput) error
 }
 
 type SplitLineGroupService interface {

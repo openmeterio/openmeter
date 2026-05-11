@@ -34,12 +34,33 @@ func (c *usageBasedChargeCollection) AddCreate(target targetstate.StateItem) err
 }
 
 func (c *usageBasedChargeCollection) AddShrink(_ string, existing persistedstate.Item, target targetstate.StateItem) error {
-	intent, err := newUsageBasedChargeIntent(target)
+	existingCharge, ok := existing.(persistedstate.UsageBasedChargeGetter)
+	if !ok {
+		return fmt.Errorf("existing item is not a usage based charge [item_type=%s,id=%s]", existing.Type(), existing.ID())
+	}
+
+	if existingCharge.GetUsageBasedCharge().Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+		intent, err := newUsageBasedChargeIntent(target)
+		if err != nil {
+			return err
+		}
+
+		return c.addEmulatedReplacement(existing, intent)
+	}
+
+	targetServicePeriod := target.GetServicePeriod()
+
+	patch, err := chargesmeta.NewPatchShrink(chargesmeta.NewPatchShrinkInput{
+		NewServicePeriodTo:     targetServicePeriod.To,
+		NewFullServicePeriodTo: target.FullServicePeriod.To,
+		NewBillingPeriodTo:     target.BillingPeriod.To,
+		NewInvoiceAt:           target.GetInvoiceAt(),
+	})
 	if err != nil {
 		return err
 	}
 
-	return c.addEmulatedReplacement(existing, intent)
+	return c.addPatch(existing.ID().ID, patch)
 }
 
 func (c *usageBasedChargeCollection) AddExtend(existing persistedstate.Item, target targetstate.StateItem) error {
@@ -63,6 +84,7 @@ func (c *usageBasedChargeCollection) AddExtend(existing persistedstate.Item, tar
 		NewServicePeriodTo:     targetServicePeriod.To,
 		NewFullServicePeriodTo: target.FullServicePeriod.To,
 		NewBillingPeriodTo:     target.BillingPeriod.To,
+		NewInvoiceAt:           target.GetInvoiceAt(),
 	})
 	if err != nil {
 		return err

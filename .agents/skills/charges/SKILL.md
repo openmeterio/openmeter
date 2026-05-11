@@ -115,6 +115,7 @@ Detailed-line expansion rules:
 - `meta.ExpandDetailedLines` is not standalone for charge reads; it requires `meta.ExpandRealizations`
 - usage-based deleted realization runs are hidden from `meta.ExpandRealizations` by default because their invoice/ledger effect has been cleaned up; request `meta.ExpandDeletedRealizations` together with `meta.ExpandRealizations` only when a caller must inspect cleanup state, such as frontend audit views or deletion tests
 - production code that sums or interprets realization history must explicitly skip runs with `DeletedAt != nil`, documenting the business reason at the guard, because deleted realizations are no longer effective billable history
+- usage-based `invalid_due_to_unsupported_credit_note` realization runs are audit history for immutable invoice lines that should have been removed by prorating/credit-note support. They must not count as billing history for rating, pre-line quantities, or balance-style aggregate checks. Prefer the domain helper (`RealizationRun.IsVoidedBillingHistory()` / `RealizationRuns.WithoutVoidedBillingHistory()`) over ad hoc checks for deleted or unsupported-credit-note runs.
 - usage-based detailed lines live under `RealizationRun.DetailedLines`
 - flat-fee detailed lines also live under `Charge.Realizations.DetailedLines`, not on the root charge
 - `mo.None()` means detailed lines were not expanded; present options mean expanded data, even when the underlying slice is nil/empty
@@ -153,7 +154,7 @@ Important rules:
 
 Usage-based credit-then-invoice extension rules:
 
-- `PatchExtend` must represent a real extension: the new service period end must be after the persisted intent end; full service period and billing period ends may stay unchanged but must not move backwards.
+- `PatchExtend` must represent a real extension: the new service period end must be after the persisted intent end; full service period and billing period ends may stay unchanged but must not move backwards. Carry the new invoice-at on the patch separately from the service-period end.
 - Do not stretch an in-progress final realization run to cover the extension. There can only be one active run, and stretching the old final run would keep the run open across the extension and delay the standard invoice lifecycle.
 - If the current final realization run is still backed by a mutable invoice line, the extend flow should update the charge intent, emit an invoice-line delete patch for that mutable standard line, and let the billing invoice updater/line engine delete the invoice line and mark the run deleted. The charge should move back to `active` with `AdvanceAfter` set to the new service-period end so the extended tail can realize later.
 - While a mutable final invoice run is before invoice issuing (`active.final_realization.started`, `active.final_realization.waiting_for_collection`, or `active.final_realization.processing`), billing remains the owner of the ongoing invoice lifecycle. Extension may delete the mutable line, mark the current run deleted, and recreate a gathering line; a direct `AdvanceCharges(...)` before the new service-period end must be a no-op, and the replacement final run should be created by billing when the replacement gathering line is invoiced at the extended end.
@@ -162,6 +163,16 @@ Usage-based credit-then-invoice extension rules:
 - If the old final realization has already passed into immutable invoice territory, keep the invoice and ledger untouched. Reclassify the old final run as a partial invoice run and move the charge back to `active`; the extended tail will produce a new final run later. Immutable invoice cleanup should be surfaced as validation warnings by billing rather than reversing ledger bookings.
 - Pending gathering lines for the charge should be extended in place by charge ID. Existing standard invoice lines should only be deleted in the mutable-current-final case above.
 - These rules are intentionally about not blocking the invoice train: extension should not hold a standard invoice lifecycle open while waiting for newly extended usage windows to finish.
+
+Usage-based credit-then-invoice shrink rules:
+
+- `PatchShrink` must represent a real shrink: the new service period end must be before the persisted intent end and after the persisted service period start. Full service period and billing period ends may stay unchanged or move earlier, but must not move later. Carry the new invoice-at on the patch separately from the service-period end.
+- Shrink is native for usage-based `credit_then_invoice` charges so immutable invoice and ledger history can be preserved. Usage-based `credit_only` shrink remains an emulated delete/create replacement unless that mode explicitly gains native support.
+- Pending gathering lines should be shrunk in place by charge ID. This updates the line service-period end, invoice-at, and subscription billing-period end through the invoice updater.
+- If the current invoice-backed realization run is still backed by a mutable invoice line (`active.partial_invoice.started`, `active.partial_invoice.waiting_for_collection`, `active.partial_invoice.processing`, `active.final_realization.started`, `active.final_realization.waiting_for_collection`, or `active.final_realization.processing`) and extends past the new service-period end, shrink should delete that mutable standard line and create a replacement gathering line for the shrunk period. Billing's mutable-line deletion hook owns credit correction, run deletion, and moving the charge back to `active`.
+- In `active.awaiting_payment_settlement` and `final`, shrink is allowed even though the existing final invoice is immutable. Emit the line-delete patch anyway so billing records the immutable-invoice/prorating warning, leave existing invoice and ledger history untouched, move the charge back to `active`, and create a replacement gathering line for the shrunk period using the patch invoice-at.
+- Shrink must reject if a non-deleted run beyond the new service-period end is not invoice-backed. Do not prorate, rewrite immutable invoices, or reverse immutable ledger bookings from the charge state machine.
+- Shrink is explicitly unsupported in issuing/completed invoice states and `deleted`. Subscription sync can retry after billing advances when the invoice lifecycle owns the current state.
 
 Operational consequence:
 

@@ -16,19 +16,22 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type RealizationRunType string
 
 const (
-	RealizationRunTypeFinalRealization RealizationRunType = "final_realization"
-	RealizationRunTypePartialInvoice   RealizationRunType = "partial_invoice"
+	RealizationRunTypeFinalRealization                  RealizationRunType = "final_realization"
+	RealizationRunTypePartialInvoice                    RealizationRunType = "partial_invoice"
+	RealizationRunTypeInvalidDueToUnsupportedCreditNote RealizationRunType = "invalid_due_to_unsupported_credit_note"
 )
 
 func (t RealizationRunType) Values() []string {
 	return []string{
 		string(RealizationRunTypeFinalRealization),
 		string(RealizationRunTypePartialInvoice),
+		string(RealizationRunTypeInvalidDueToUnsupportedCreditNote),
 	}
 }
 
@@ -37,6 +40,12 @@ func (t RealizationRunType) Validate() error {
 		return models.NewGenericValidationError(fmt.Errorf("invalid realization run type: %s", t))
 	}
 	return nil
+}
+
+// IsVoidedBillingHistory reports whether this run type is audit-only billing
+// history that should not participate in future billing calculations.
+func (t RealizationRunType) IsVoidedBillingHistory() bool {
+	return t == RealizationRunTypeInvalidDueToUnsupportedCreditNote
 }
 
 type RealizationRunID models.NamespacedID
@@ -83,6 +92,10 @@ func (r CreateRealizationRunInput) Validate() error {
 
 	if err := r.Type.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("type: %w", err))
+	}
+
+	if r.Type == RealizationRunTypeInvalidDueToUnsupportedCreditNote {
+		errs = append(errs, fmt.Errorf("type cannot be %s when creating a realization run", RealizationRunTypeInvalidDueToUnsupportedCreditNote))
 	}
 
 	if r.FeatureID == "" {
@@ -189,8 +202,9 @@ type RealizationRunBase struct {
 	LineID    *string `json:"lineId,omitempty"`
 	InvoiceID *string `json:"invoiceId,omitempty"`
 
-	Type       RealizationRunType `json:"type"`
-	StoredAtLT time.Time          `json:"storedAtLT"`
+	Type        RealizationRunType `json:"type"`
+	InitialType RealizationRunType `json:"initialType"`
+	StoredAtLT  time.Time          `json:"storedAtLT"`
 	// ServicePeriodTo is the end of the service period for the realization run.
 	ServicePeriodTo time.Time `json:"servicePeriodTo"`
 	// MeteredQuantity is the metered quantity for time IN [intent.servicePeriod.from, servicePeriodTo) capped by stored_at < StoredAtLT.
@@ -231,6 +245,14 @@ func (r RealizationRunBase) Validate() error {
 
 	if err := r.Type.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("type: %w", err))
+	}
+
+	if err := r.InitialType.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("initial type: %w", err))
+	}
+
+	if r.InitialType == RealizationRunTypeInvalidDueToUnsupportedCreditNote {
+		errs = append(errs, fmt.Errorf("initial type cannot be %s", RealizationRunTypeInvalidDueToUnsupportedCreditNote))
 	}
 
 	if r.StoredAtLT.IsZero() {
@@ -294,20 +316,72 @@ func (r RealizationRun) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+// IsVoidedBillingHistory reports whether this run must be ignored as billing
+// history. Deleted runs were already cleaned up through billing; unsupported
+// credit-note runs are retained for audit even though the invoice line should
+// have been removed once prorating/credit-note support exists.
+func (r RealizationRun) IsVoidedBillingHistory() bool {
+	// Unsupported-credit-note runs are kept for audit because the invoice line
+	// could not be deleted without prorating/credit-note support, but future
+	// rating and balance calculations must not count them as billing history.
+	if r.Type.IsVoidedBillingHistory() {
+		return true
+	}
+
+	// Deleted realizations were already cleaned up through billing and no
+	// longer represent invoice or ledger history.
+	return r.DeletedAt != nil
+}
+
 type RealizationRuns []RealizationRun
+
+// BisectByTimestamp splits non-voided realization runs by their
+// derived service period relative to at.
+//
+// The returned before slice contains every non-voided run whose derived
+// service period ends at or before at. The returned containingOrAfter slice
+// contains every non-voided run whose derived service period contains at, or
+// whose derived service period starts after at. Each run's service-period start
+// is derived from the previous non-voided run's ServicePeriodTo, with the first
+// run starting at chargeIntentServicePeriod.From. Both returned slices are
+// sorted by ServicePeriodTo and then CreatedAt.
+func (r RealizationRuns) BisectByTimestamp(chargeIntentServicePeriod timeutil.ClosedPeriod, at time.Time) (before RealizationRuns, containingOrAfter RealizationRuns) {
+	previousServicePeriodTo := meta.NormalizeTimestamp(chargeIntentServicePeriod.From)
+	at = meta.NormalizeTimestamp(at)
+
+	nonVoidedRuns := r.WithoutVoidedBillingHistory()
+
+	slices.SortStableFunc(nonVoidedRuns, func(a RealizationRun, b RealizationRun) int {
+		if c := meta.NormalizeTimestamp(a.ServicePeriodTo).Compare(meta.NormalizeTimestamp(b.ServicePeriodTo)); c != 0 {
+			return c
+		}
+
+		return a.CreatedAt.Compare(b.CreatedAt)
+	})
+
+	for _, run := range nonVoidedRuns {
+		runPeriodTo := meta.NormalizeTimestamp(run.ServicePeriodTo)
+
+		containsAt := !at.Before(previousServicePeriodTo) && at.Before(runPeriodTo)
+		startsAfterAt := previousServicePeriodTo.After(at)
+		if containsAt || startsAfterAt {
+			containingOrAfter = append(containingOrAfter, run)
+		} else {
+			before = append(before, run)
+		}
+
+		previousServicePeriodTo = runPeriodTo
+	}
+
+	return before, containingOrAfter
+}
 
 func (r RealizationRuns) MapToBillingMeteredQuantity(currentRun RealizationRun) (BillingMeteredQuantity, error) {
 	preLinePeriod := alpacadecimal.Zero
 	var latestPriorRun *RealizationRun
 
 	for idx := range r {
-		// Deleted realizations no longer represent an effective invoice line, so
-		// they must not contribute previously billed quantity to later lines.
-		if r[idx].DeletedAt != nil {
-			continue
-		}
-
-		if r[idx].Type != RealizationRunTypeFinalRealization && r[idx].Type != RealizationRunTypePartialInvoice {
+		if r[idx].IsVoidedBillingHistory() {
 			continue
 		}
 
@@ -345,6 +419,14 @@ func (r RealizationRuns) MapToBillingMeteredQuantity(currentRun RealizationRun) 
 	}, nil
 }
 
+// WithoutVoidedBillingHistory returns runs that still represent effective
+// invoice or ledger history.
+func (r RealizationRuns) WithoutVoidedBillingHistory() RealizationRuns {
+	return lo.Filter(r, func(run RealizationRun, _ int) bool {
+		return !run.IsVoidedBillingHistory()
+	})
+}
+
 func (r RealizationRuns) Validate() error {
 	var errs []error
 	for idx, realizationRun := range r {
@@ -355,9 +437,9 @@ func (r RealizationRuns) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// Sum returns the aggregate totals across all realization runs.
+// Sum returns the aggregate totals across non-voided billing history.
 func (r RealizationRuns) Sum() totals.Totals {
-	return totals.Sum(lo.Map(r, func(run RealizationRun, _ int) totals.Totals {
+	return totals.Sum(lo.Map(r.WithoutVoidedBillingHistory(), func(run RealizationRun, _ int) totals.Totals {
 		return run.Totals
 	})...)
 }

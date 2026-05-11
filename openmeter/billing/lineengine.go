@@ -132,6 +132,7 @@ type (
 	OnStandardInvoiceCreatedInput      = StandardLineEventInput
 	OnCollectionCompletedInput         = StandardLineEventInput
 	OnMutableStandardLinesDeletedInput = StandardLineEventInput
+	OnUnsupportedCreditNoteInput       = StandardLineEventInput
 	OnInvoiceIssuedInput               = StandardLineEventInput
 	OnPaymentAuthorizedInput           = StandardLineEventInput
 	OnPaymentSettledInput              = StandardLineEventInput
@@ -220,6 +221,8 @@ type LineEngine interface {
 	OnCollectionCompleted(ctx context.Context, input OnCollectionCompletedInput) (StandardLines, error)
 	// OnMutableStandardLinesDeleted is invoked after mutable standard invoice lines are marked deleted.
 	OnMutableStandardLinesDeleted(ctx context.Context, input OnMutableStandardLinesDeletedInput) error
+	// OnUnsupportedCreditNote is invoked when a line deletion targets an immutable invoice but credit-note support is not available yet.
+	OnUnsupportedCreditNote(ctx context.Context, input OnUnsupportedCreditNoteInput) error
 	// OnInvoiceIssued is invoked when a standard invoice reaches the issued state.
 	OnInvoiceIssued(ctx context.Context, input OnInvoiceIssuedInput) error
 	// OnPaymentAuthorized is invoked when a standard invoice reaches the payment authorized state.

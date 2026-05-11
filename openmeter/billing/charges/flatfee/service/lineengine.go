@@ -122,6 +122,10 @@ func (e *LineEngine) OnMutableStandardLinesDeleted(_ context.Context, _ billing.
 	return nil
 }
 
+func (e *LineEngine) OnUnsupportedCreditNote(_ context.Context, _ billing.OnUnsupportedCreditNoteInput) error {
+	return nil
+}
+
 func (e *LineEngine) OnInvoiceIssued(_ context.Context, _ billing.OnInvoiceIssuedInput) error {
 	return nil
 }

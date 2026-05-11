@@ -147,6 +147,12 @@ func (_c *ChargeUsageBasedRunsCreate) SetType(v usagebased.RealizationRunType) *
 	return _c
 }
 
+// SetInitialType sets the "initial_type" field.
+func (_c *ChargeUsageBasedRunsCreate) SetInitialType(v usagebased.RealizationRunType) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetInitialType(v)
+	return _c
+}
+
 // SetStoredAtLt sets the "stored_at_lt" field.
 func (_c *ChargeUsageBasedRunsCreate) SetStoredAtLt(v time.Time) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetStoredAtLt(v)
@@ -464,6 +470,14 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.type": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.InitialType(); !ok {
+		return &ValidationError{Name: "initial_type", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.initial_type"`)}
+	}
+	if v, ok := _c.mutation.InitialType(); ok {
+		if err := chargeusagebasedruns.InitialTypeValidator(v); err != nil {
+			return &ValidationError{Name: "initial_type", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.initial_type": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.StoredAtLt(); !ok {
 		return &ValidationError{Name: "stored_at_lt", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.stored_at_lt"`)}
 	}
@@ -582,6 +596,10 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldType, field.TypeEnum, value)
 		_node.Type = value
+	}
+	if value, ok := _c.mutation.InitialType(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldInitialType, field.TypeEnum, value)
+		_node.InitialType = value
 	}
 	if value, ok := _c.mutation.StoredAtLt(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldStoredAtLt, field.TypeTime, value)
@@ -1035,6 +1053,9 @@ func (u *ChargeUsageBasedRunsUpsertOne) UpdateNewValues() *ChargeUsageBasedRunsU
 		}
 		if _, exists := u.create.mutation.FeatureID(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldFeatureID)
+		}
+		if _, exists := u.create.mutation.InitialType(); exists {
+			s.SetIgnore(chargeusagebasedruns.FieldInitialType)
 		}
 		if _, exists := u.create.mutation.ServicePeriodTo(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldServicePeriodTo)
@@ -1505,6 +1526,9 @@ func (u *ChargeUsageBasedRunsUpsertBulk) UpdateNewValues() *ChargeUsageBasedRuns
 			}
 			if _, exists := b.mutation.FeatureID(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldFeatureID)
+			}
+			if _, exists := b.mutation.InitialType(); exists {
+				s.SetIgnore(chargeusagebasedruns.FieldInitialType)
 			}
 			if _, exists := b.mutation.ServicePeriodTo(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldServicePeriodTo)

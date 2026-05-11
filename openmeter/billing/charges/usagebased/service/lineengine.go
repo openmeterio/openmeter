@@ -236,7 +236,10 @@ func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input bi
 		return fmt.Errorf("validating input: %w", err)
 	}
 
-	chargesByID, err := e.getChargesForMutableStandardLineDelete(ctx, input)
+	chargesByID, err := e.getChargesForStandardLineEvent(ctx, input, meta.Expands{
+		meta.ExpandRealizations,
+		meta.ExpandDetailedLines,
+	}, "deleted standard lines")
 	if err != nil {
 		return err
 	}
@@ -295,6 +298,53 @@ func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input bi
 	return nil
 }
 
+func (e *LineEngine) OnUnsupportedCreditNote(ctx context.Context, input billing.OnUnsupportedCreditNoteInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	chargesByID, err := e.getChargesForStandardLineEvent(ctx, input, meta.Expands{
+		meta.ExpandRealizations,
+	}, "unsupported credit note")
+	if err != nil {
+		return err
+	}
+
+	for _, stdLine := range input.Lines {
+		charge, ok := chargesByID[*stdLine.ChargeID]
+		if !ok {
+			return fmt.Errorf("usage based charge[%s] not found for unsupported credit note line[%s]", *stdLine.ChargeID, stdLine.ID)
+		}
+
+		run, err := charge.Realizations.GetByLineID(stdLine.ID)
+		if err != nil {
+			return err
+		}
+
+		if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
+			return fmt.Errorf("usage based standard line[%s] cannot be marked unsupported credit note because realization run[%s] is not associated with invoice[%s]", stdLine.ID, run.ID.ID, input.Invoice.ID)
+		}
+
+		if run.DeletedAt != nil {
+			return fmt.Errorf("usage based standard line[%s] cannot be marked unsupported credit note because realization run[%s] is already deleted", stdLine.ID, run.ID.ID)
+		}
+
+		if run.Type == usagebased.RealizationRunTypeInvalidDueToUnsupportedCreditNote {
+			continue
+		}
+
+		// We need to mark the run as invalid to prevent it from being considered in further realization runs.
+		if _, err := e.service.adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
+			ID:   run.ID,
+			Type: mo.Some(usagebased.RealizationRunTypeInvalidDueToUnsupportedCreditNote),
+		}); err != nil {
+			return fmt.Errorf("marking realization run[%s] invalid due to unsupported credit note for usage based standard line[%s]: %w", run.ID.ID, stdLine.ID, err)
+		}
+	}
+
+	return nil
+}
+
 func (e *LineEngine) markMutableStandardLineRunDeleted(
 	ctx context.Context,
 	charge usagebased.Charge,
@@ -329,7 +379,7 @@ func (e *LineEngine) markMutableStandardLineRunDeleted(
 	return charge, nil
 }
 
-func (e *LineEngine) getChargesForMutableStandardLineDelete(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) (map[string]usagebased.Charge, error) {
+func (e *LineEngine) getChargesForStandardLineEvent(ctx context.Context, input billing.StandardLineEventInput, expands meta.Expands, operation string) (map[string]usagebased.Charge, error) {
 	chargeIDs := make([]string, 0, len(input.Lines))
 	seenChargeIDs := make(map[string]struct{}, len(input.Lines))
 
@@ -353,13 +403,10 @@ func (e *LineEngine) getChargesForMutableStandardLineDelete(ctx context.Context,
 	charges, err := e.service.GetByIDs(ctx, usagebased.GetByIDsInput{
 		Namespace: input.Invoice.Namespace,
 		IDs:       chargeIDs,
-		Expands: meta.Expands{
-			meta.ExpandRealizations,
-			meta.ExpandDetailedLines,
-		},
+		Expands:   expands,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("getting usage based charges for deleted standard lines: %w", err)
+		return nil, fmt.Errorf("getting usage based charges for %s: %w", operation, err)
 	}
 
 	return lo.KeyBy(charges, func(charge usagebased.Charge) string {
