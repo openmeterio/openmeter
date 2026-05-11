@@ -128,6 +128,8 @@ For usage-based billing lifecycle tests, prefer driving behavior through `charge
 
 For OpenMeter Go tests that touch the database, explicitly set `POSTGRES_HOST=127.0.0.1`. Without it, many suites will skip during setup even if PostgreSQL is running and the repo environment is otherwise loaded correctly.
 
+When touching ledger, customer credit balance, ledger credit flows, or related API behavior, do not stop at the directly changed package tests. Also run the new credit package tests and the relevant e2e coverage the user calls out, because ledger-only/package-only runs can miss regressions in the older credit stack. At minimum for credit-impacting changes, include `go test -tags=dynamic ./test/credits`.
+
 Use the repo's Nix CI dev shell when `go`, `gofmt`, or other toolchain binaries are missing from the ambient shell. The CI and local-compatible invocation pattern is:
 
 ```bash
