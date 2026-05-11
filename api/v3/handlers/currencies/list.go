@@ -9,11 +9,13 @@ import (
 
 	v3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type (
@@ -49,16 +51,43 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 				})
 			}
 
+			var orderBy string
+			var order sortx.Order
+			if params.Sort != nil {
+				sort, err := request.ParseSortBy(*params.Sort)
+				if err != nil {
+					return ListCurrenciesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				orderBy = sort.Field
+				order = sort.Order.ToSortxOrder()
+			}
+
 			var filterType *currencies.CurrencyType
-			if params.Filter != nil && params.Filter.Type != nil {
-				ft := FromAPIBillingCurrencyType(*params.Filter.Type)
-				filterType = &ft
+			var filterCodes []string
+			if params.Filter != nil {
+				if params.Filter.Type != nil {
+					ft := FromAPIBillingCurrencyType(*params.Filter.Type)
+					filterType = &ft
+				}
+
+				codes, err := FromAPICurrencyCodeFilter(params.Filter.Code)
+				if err != nil {
+					return ListCurrenciesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[code]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				filterCodes = codes
 			}
 
 			return ListCurrenciesRequest{
-				Page:       page,
-				Namespace:  ns,
-				FilterType: filterType,
+				Page:        page,
+				Namespace:   ns,
+				FilterType:  filterType,
+				FilterCodes: filterCodes,
+				OrderBy:     currencies.OrderBy(orderBy),
+				Order:       order,
 			}, nil
 		},
 		func(ctx context.Context, request ListCurrenciesRequest) (ListCurrenciesResponse, error) {

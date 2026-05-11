@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/invopop/gobl/currency"
@@ -12,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 var _ currencies.CurrencyService = (*Service)(nil)
@@ -59,13 +62,30 @@ func (s *Service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 				// NOTE: this filters out non-iso currencies such as crypto
 				return def.ISONumeric != ""
 			}) {
+				code := def.ISOCode.String()
+				if len(params.FilterCodes) > 0 && !slices.Contains(params.FilterCodes, code) {
+					continue
+				}
 				items = append(items, currencies.Currency{
-					Code:   def.ISOCode.String(),
+					Code:   code,
 					Name:   def.Name,
 					Symbol: def.Symbol,
 				})
 			}
 		}
+
+		slices.SortFunc(items, func(a, b currencies.Currency) int {
+			result := 0
+			if params.OrderBy == currencies.OrderByName {
+				result = strings.Compare(a.Name, b.Name)
+			} else {
+				result = strings.Compare(a.Code, b.Code)
+			}
+			if params.Order == sortx.OrderDesc {
+				return -result
+			}
+			return result
+		})
 
 		total := len(items)
 

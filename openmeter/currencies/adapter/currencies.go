@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 var _ currencies.Adapter = (*adapter)(nil)
@@ -44,8 +45,22 @@ func mapCostBasisFromDB(c *entdb.CurrencyCostBasis) currencies.CostBasis {
 func (a *adapter) ListCustomCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[currencies.Currency], error) {
 		q := a.db.CustomCurrency.Query().
-			Where(customcurrency.Namespace(params.Namespace)).
-			Order(entdb.Asc(customcurrency.FieldCode))
+			Where(customcurrency.Namespace(params.Namespace))
+
+		if len(params.FilterCodes) > 0 {
+			q = q.Where(customcurrency.CodeIn(params.FilterCodes...))
+		}
+
+		order := entutils.GetOrdering(sortx.OrderDefault)
+		if !params.Order.IsDefaultValue() {
+			order = entutils.GetOrdering(params.Order)
+		}
+		switch params.OrderBy {
+		case currencies.OrderByName:
+			q = q.Order(customcurrency.ByName(order...))
+		default:
+			q = q.Order(customcurrency.ByCode(order...))
+		}
 
 		total, err := q.Count(ctx)
 		if err != nil {

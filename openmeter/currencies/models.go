@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type Currency struct {
@@ -17,6 +18,22 @@ type Currency struct {
 	Code   string `json:"code"`
 	Name   string `json:"name"`
 	Symbol string `json:"symbol"`
+}
+
+// OrderBy specifies the field to sort currencies by.
+type OrderBy string
+
+const (
+	OrderByCode OrderBy = "code"
+	OrderByName OrderBy = "name"
+)
+
+func (o OrderBy) Validate() error {
+	switch o {
+	case OrderByCode, OrderByName, "":
+		return nil
+	}
+	return fmt.Errorf("invalid order by: %s", o)
 }
 
 var _ models.Validator = (*ListCurrenciesInput)(nil)
@@ -28,6 +45,11 @@ type ListCurrenciesInput struct {
 
 	// FilterType filters currencies by type: "custom" or "fiat". Nil means no filter.
 	FilterType *CurrencyType `json:"filter_type,omitempty"`
+	// FilterCodes filters currencies by code. Empty means no filter; non-empty matches any of the listed codes.
+	FilterCodes []string `json:"filter_codes,omitempty"`
+
+	OrderBy OrderBy
+	Order   sortx.Order
 }
 
 func (i ListCurrenciesInput) Validate() error {
@@ -41,6 +63,10 @@ func (i ListCurrenciesInput) Validate() error {
 		if err := i.FilterType.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("filter_type: %w", err))
 		}
+	}
+
+	if err := i.OrderBy.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	return errors.Join(errs...)

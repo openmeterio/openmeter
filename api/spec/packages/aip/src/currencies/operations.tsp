@@ -17,10 +17,10 @@ namespace Currencies;
  */
 @friendlyName("ListCurrenciesParamsFilter")
 model ListCurrenciesParamsFilter {
-  /**
-   * Filter currencies by type.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   type?: CurrencyType;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  code?: Common.StringFieldFilterExact;
 }
 
 interface CurrenciesOperations {
@@ -34,6 +34,18 @@ interface CurrenciesOperations {
   @summary("List currencies")
   list(
     ...Common.PagePaginationQuery,
+
+    /**
+     * Sort currencies returned in the response. Supported sort attributes are:
+     *
+     * - `code` (default)
+     * - `name`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
 
     /**
      * Filter currencies returned in the response.
