@@ -7,6 +7,9 @@ using TypeSpec.JsonSchema;
 
 namespace Features;
 
+/**
+ * Reference to a meter associated with a feature.
+ */
 @friendlyName("FeatureMeterReference")
 model FeatureMeterReference {
   /**

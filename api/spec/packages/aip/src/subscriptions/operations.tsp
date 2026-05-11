@@ -58,6 +58,7 @@ model SubscriptionChangeResponse {
 /**
  * Filter options for listing subscriptions.
  */
+#suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "plan_id and plan_key should not be grouped"
 @friendlyName("ListSubscriptionsParamsFilter")
 model ListSubscriptionsParamsFilter {
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"

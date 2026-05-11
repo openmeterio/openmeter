@@ -7657,6 +7657,7 @@ components:
           description: Filters to apply to the dimensions of the meter.
           title: Meter dimensions filters
       additionalProperties: false
+      description: Reference to a meter associated with a feature.
     FeaturePagePaginatedResponse:
       type: object
       required:
