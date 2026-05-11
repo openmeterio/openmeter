@@ -11,6 +11,7 @@ type (
 	guard               bool // private type guard
 	TransactionTemplate interface {
 		typeGuard() guard
+		code() TransactionTemplateCode
 		Validate() error
 	}
 )

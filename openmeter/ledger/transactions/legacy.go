@@ -56,6 +56,10 @@ func (t legacyFundCustomerReceivableTemplate) typeGuard() guard {
 	return true
 }
 
+func (t legacyFundCustomerReceivableTemplate) code() TransactionTemplateCode {
+	return ""
+}
+
 func (t legacyFundCustomerReceivableTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
@@ -136,6 +140,10 @@ func (t legacySettleCustomerReceivablePaymentTemplate) Validate() error {
 
 func (t legacySettleCustomerReceivablePaymentTemplate) typeGuard() guard {
 	return true
+}
+
+func (t legacySettleCustomerReceivablePaymentTemplate) code() TransactionTemplateCode {
+	return ""
 }
 
 var _ CustomerTransactionTemplate = (legacySettleCustomerReceivablePaymentTemplate{})

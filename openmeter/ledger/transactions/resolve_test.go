@@ -24,6 +24,10 @@ func (*spyCustomerTemplate) typeGuard() guard {
 	return true
 }
 
+func (*spyCustomerTemplate) code() TransactionTemplateCode {
+	return "test.spy"
+}
+
 func (*spyCustomerTemplate) resolve(context.Context, customer.CustomerID, ResolverDependencies) (ledger.TransactionInput, error) {
 	return nil, nil
 }

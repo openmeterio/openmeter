@@ -38,33 +38,61 @@ const (
 	legacyTemplateNameConvertCurrency                             = "ConvertCurrencyTemplate"
 )
 
+var transactionTemplatesByLegacyName = map[string]TransactionTemplate{
+	legacyTemplateNameIssueCustomerReceivable:                     IssueCustomerReceivableTemplate{},
+	legacyTemplateNameFundCustomerReceivable:                      legacyFundCustomerReceivableTemplate{},
+	legacyTemplateNameSettleCustomerReceivablePayment:             legacySettleCustomerReceivablePaymentTemplate{},
+	legacyTemplateNameAuthorizeCustomerReceivablePayment:          AuthorizeCustomerReceivablePaymentTemplate{},
+	legacyTemplateNameSettleCustomerReceivableFromPayment:         SettleCustomerReceivableFromPaymentTemplate{},
+	legacyTemplateNameAttributeCustomerAdvanceReceivableCostBasis: AttributeCustomerAdvanceReceivableCostBasisTemplate{},
+	legacyTemplateNameCoverCustomerReceivable:                     CoverCustomerReceivableTemplate{},
+	legacyTemplateNameTransferCustomerFBOToAccrued:                TransferCustomerFBOToAccruedTemplate{},
+	legacyTemplateNameTransferCustomerFBOAdvanceToAccrued:         TransferCustomerFBOAdvanceToAccruedTemplate{},
+	legacyTemplateNameTransferCustomerReceivableToAccrued:         TransferCustomerReceivableToAccruedTemplate{},
+	legacyTemplateNameTranslateCustomerAccruedCostBasis:           TranslateCustomerAccruedCostBasisTemplate{},
+	legacyTemplateNameRecognizeEarningsFromAttributableAccrued:    RecognizeEarningsFromAttributableAccruedTemplate{},
+	legacyTemplateNameConvertCurrency:                             ConvertCurrencyTemplate{},
+}
+
+var transactionTemplatesByCode = map[TransactionTemplateCode]TransactionTemplate{
+	IssueCustomerReceivableTemplate{}.code():                     IssueCustomerReceivableTemplate{},
+	AuthorizeCustomerReceivablePaymentTemplate{}.code():          AuthorizeCustomerReceivablePaymentTemplate{},
+	SettleCustomerReceivableFromPaymentTemplate{}.code():         SettleCustomerReceivableFromPaymentTemplate{},
+	AttributeCustomerAdvanceReceivableCostBasisTemplate{}.code(): AttributeCustomerAdvanceReceivableCostBasisTemplate{},
+	CoverCustomerReceivableTemplate{}.code():                     CoverCustomerReceivableTemplate{},
+	TransferCustomerFBOToAccruedTemplate{}.code():                TransferCustomerFBOToAccruedTemplate{},
+	TransferCustomerFBOAdvanceToAccruedTemplate{}.code():         TransferCustomerFBOAdvanceToAccruedTemplate{},
+	TransferCustomerReceivableToAccruedTemplate{}.code():         TransferCustomerReceivableToAccruedTemplate{},
+	TranslateCustomerAccruedCostBasisTemplate{}.code():           TranslateCustomerAccruedCostBasisTemplate{},
+	RecognizeEarningsFromAttributableAccruedTemplate{}.code():    RecognizeEarningsFromAttributableAccruedTemplate{},
+	ConvertCurrencyTemplate{}.code():                             ConvertCurrencyTemplate{},
+}
+
 func templateCode(template TransactionTemplate) (TransactionTemplateCode, error) {
-	switch any(template).(type) {
-	case IssueCustomerReceivableTemplate, *IssueCustomerReceivableTemplate:
-		return TemplateCodeIssueCustomerReceivable, nil
-	case AuthorizeCustomerReceivablePaymentTemplate, *AuthorizeCustomerReceivablePaymentTemplate:
-		return TemplateCodeAuthorizeCustomerReceivablePayment, nil
-	case SettleCustomerReceivableFromPaymentTemplate, *SettleCustomerReceivableFromPaymentTemplate:
-		return TemplateCodeSettleCustomerReceivableFromPayment, nil
-	case AttributeCustomerAdvanceReceivableCostBasisTemplate, *AttributeCustomerAdvanceReceivableCostBasisTemplate:
-		return TemplateCodeAttributeCustomerAdvanceReceivableCostBasis, nil
-	case CoverCustomerReceivableTemplate, *CoverCustomerReceivableTemplate:
-		return TemplateCodeCoverCustomerReceivable, nil
-	case TransferCustomerFBOToAccruedTemplate, *TransferCustomerFBOToAccruedTemplate:
-		return TemplateCodeTransferCustomerFBOToAccrued, nil
-	case TransferCustomerFBOAdvanceToAccruedTemplate, *TransferCustomerFBOAdvanceToAccruedTemplate:
-		return TemplateCodeTransferCustomerFBOAdvanceToAccrued, nil
-	case TransferCustomerReceivableToAccruedTemplate, *TransferCustomerReceivableToAccruedTemplate:
-		return TemplateCodeTransferCustomerReceivableToAccrued, nil
-	case TranslateCustomerAccruedCostBasisTemplate, *TranslateCustomerAccruedCostBasisTemplate:
-		return TemplateCodeTranslateCustomerAccruedCostBasis, nil
-	case RecognizeEarningsFromAttributableAccruedTemplate, *RecognizeEarningsFromAttributableAccruedTemplate:
-		return TemplateCodeRecognizeEarningsFromAttributableAccrued, nil
-	case ConvertCurrencyTemplate, *ConvertCurrencyTemplate:
-		return TemplateCodeConvertCurrency, nil
-	default:
+	code := template.code()
+	if code == "" {
 		return "", fmt.Errorf("unknown transaction template code for %T", template)
 	}
+
+	return code, nil
+}
+
+func transactionTemplateByCode(code string) (TransactionTemplate, error) {
+	template, ok := transactionTemplatesByCode[TransactionTemplateCode(code)]
+	if !ok {
+		return nil, fmt.Errorf("unknown correction template code %q", code)
+	}
+
+	return template, nil
+}
+
+func transactionTemplateByLegacyName(name string) (TransactionTemplate, error) {
+	template, ok := transactionTemplatesByLegacyName[name]
+	if !ok {
+		return nil, fmt.Errorf("unknown correction template name %q", name)
+	}
+
+	return template, nil
 }
 
 func TemplateCode(template TransactionTemplate) string {

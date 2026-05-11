@@ -63,6 +63,10 @@ func (t ConvertCurrencyTemplate) typeGuard() guard {
 	return true
 }
 
+func (t ConvertCurrencyTemplate) code() TransactionTemplateCode {
+	return TemplateCodeConvertCurrency
+}
+
 func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	priority := resolveCustomerFBOCreditPriority(t.CreditPriority)
 	if t.CostBasis.IsNegative() {

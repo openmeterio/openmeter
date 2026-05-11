@@ -112,68 +112,6 @@ func transactionTemplateNameFromAnnotations(annotations models.Annotations) (str
 	return templateName, nil
 }
 
-func transactionTemplateByCode(code string) (TransactionTemplate, error) {
-	switch code {
-	case string(TemplateCodeIssueCustomerReceivable):
-		return IssueCustomerReceivableTemplate{}, nil
-	case string(TemplateCodeAuthorizeCustomerReceivablePayment):
-		return AuthorizeCustomerReceivablePaymentTemplate{}, nil
-	case string(TemplateCodeSettleCustomerReceivableFromPayment):
-		return SettleCustomerReceivableFromPaymentTemplate{}, nil
-	case string(TemplateCodeAttributeCustomerAdvanceReceivableCostBasis):
-		return AttributeCustomerAdvanceReceivableCostBasisTemplate{}, nil
-	case string(TemplateCodeCoverCustomerReceivable):
-		return CoverCustomerReceivableTemplate{}, nil
-	case string(TemplateCodeTransferCustomerFBOToAccrued):
-		return TransferCustomerFBOToAccruedTemplate{}, nil
-	case string(TemplateCodeTransferCustomerFBOAdvanceToAccrued):
-		return TransferCustomerFBOAdvanceToAccruedTemplate{}, nil
-	case string(TemplateCodeTransferCustomerReceivableToAccrued):
-		return TransferCustomerReceivableToAccruedTemplate{}, nil
-	case string(TemplateCodeTranslateCustomerAccruedCostBasis):
-		return TranslateCustomerAccruedCostBasisTemplate{}, nil
-	case string(TemplateCodeRecognizeEarningsFromAttributableAccrued):
-		return RecognizeEarningsFromAttributableAccruedTemplate{}, nil
-	case string(TemplateCodeConvertCurrency):
-		return ConvertCurrencyTemplate{}, nil
-	default:
-		return nil, fmt.Errorf("unknown correction template code %q", code)
-	}
-}
-
-func transactionTemplateByLegacyName(name string) (TransactionTemplate, error) {
-	switch name {
-	case legacyTemplateNameIssueCustomerReceivable:
-		return IssueCustomerReceivableTemplate{}, nil
-	case legacyTemplateNameFundCustomerReceivable:
-		return legacyFundCustomerReceivableTemplate{}, nil
-	case legacyTemplateNameSettleCustomerReceivablePayment:
-		return legacySettleCustomerReceivablePaymentTemplate{}, nil
-	case legacyTemplateNameAuthorizeCustomerReceivablePayment:
-		return AuthorizeCustomerReceivablePaymentTemplate{}, nil
-	case legacyTemplateNameSettleCustomerReceivableFromPayment:
-		return SettleCustomerReceivableFromPaymentTemplate{}, nil
-	case legacyTemplateNameAttributeCustomerAdvanceReceivableCostBasis:
-		return AttributeCustomerAdvanceReceivableCostBasisTemplate{}, nil
-	case legacyTemplateNameCoverCustomerReceivable:
-		return CoverCustomerReceivableTemplate{}, nil
-	case legacyTemplateNameTransferCustomerFBOToAccrued:
-		return TransferCustomerFBOToAccruedTemplate{}, nil
-	case legacyTemplateNameTransferCustomerFBOAdvanceToAccrued:
-		return TransferCustomerFBOAdvanceToAccruedTemplate{}, nil
-	case legacyTemplateNameTransferCustomerReceivableToAccrued:
-		return TransferCustomerReceivableToAccruedTemplate{}, nil
-	case legacyTemplateNameTranslateCustomerAccruedCostBasis:
-		return TranslateCustomerAccruedCostBasisTemplate{}, nil
-	case legacyTemplateNameRecognizeEarningsFromAttributableAccrued:
-		return RecognizeEarningsFromAttributableAccruedTemplate{}, nil
-	case legacyTemplateNameConvertCurrency:
-		return ConvertCurrencyTemplate{}, nil
-	default:
-		return nil, fmt.Errorf("unknown correction template name %q", name)
-	}
-}
-
 func correctTemplate(scope CorrectionScope, template TransactionTemplate) ([]ledger.TransactionInput, error) {
 	switch typ := any(template).(type) {
 	case CustomerTransactionTemplate:

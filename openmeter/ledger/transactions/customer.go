@@ -58,6 +58,10 @@ func (t IssueCustomerReceivableTemplate) typeGuard() guard {
 	return true
 }
 
+func (t IssueCustomerReceivableTemplate) code() TransactionTemplateCode {
+	return TemplateCodeIssueCustomerReceivable
+}
+
 var _ CustomerTransactionTemplate = (IssueCustomerReceivableTemplate{})
 
 func (t IssueCustomerReceivableTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
@@ -184,6 +188,10 @@ func (t SettleCustomerReceivableFromPaymentTemplate) typeGuard() guard {
 	return true
 }
 
+func (t SettleCustomerReceivableFromPaymentTemplate) code() TransactionTemplateCode {
+	return TemplateCodeSettleCustomerReceivableFromPayment
+}
+
 func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
@@ -260,6 +268,10 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) Validate() error {
 
 func (t AuthorizeCustomerReceivablePaymentTemplate) typeGuard() guard {
 	return true
+}
+
+func (t AuthorizeCustomerReceivablePaymentTemplate) code() TransactionTemplateCode {
+	return TemplateCodeAuthorizeCustomerReceivablePayment
 }
 
 var _ CustomerTransactionTemplate = (AuthorizeCustomerReceivablePaymentTemplate{})
@@ -342,6 +354,10 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) Validate() error {
 
 func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) typeGuard() guard {
 	return true
+}
+
+func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) code() TransactionTemplateCode {
+	return TemplateCodeAttributeCustomerAdvanceReceivableCostBasis
 }
 
 var _ CustomerTransactionTemplate = (AttributeCustomerAdvanceReceivableCostBasisTemplate{})
@@ -469,6 +485,10 @@ func (t CoverCustomerReceivableTemplate) Validate() error {
 
 func (t CoverCustomerReceivableTemplate) typeGuard() guard {
 	return true
+}
+
+func (t CoverCustomerReceivableTemplate) code() TransactionTemplateCode {
+	return TemplateCodeCoverCustomerReceivable
 }
 
 var _ CustomerTransactionTemplate = (CoverCustomerReceivableTemplate{})

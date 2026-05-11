@@ -56,6 +56,10 @@ func (t TransferCustomerFBOToAccruedTemplate) typeGuard() guard {
 	return true
 }
 
+func (t TransferCustomerFBOToAccruedTemplate) code() TransactionTemplateCode {
+	return TemplateCodeTransferCustomerFBOToAccrued
+}
+
 var _ CustomerTransactionTemplate = (TransferCustomerFBOToAccruedTemplate{})
 
 func (t TransferCustomerFBOToAccruedTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
@@ -251,6 +255,10 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) typeGuard() guard {
 	return true
 }
 
+func (t TransferCustomerFBOAdvanceToAccruedTemplate) code() TransactionTemplateCode {
+	return TemplateCodeTransferCustomerFBOAdvanceToAccrued
+}
+
 var _ CustomerTransactionTemplate = (TransferCustomerFBOAdvanceToAccruedTemplate{})
 
 func (t TransferCustomerFBOAdvanceToAccruedTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
@@ -372,6 +380,10 @@ func (t TransferCustomerReceivableToAccruedTemplate) typeGuard() guard {
 	return true
 }
 
+func (t TransferCustomerReceivableToAccruedTemplate) code() TransactionTemplateCode {
+	return TemplateCodeTransferCustomerReceivableToAccrued
+}
+
 var _ CustomerTransactionTemplate = (TransferCustomerReceivableToAccruedTemplate{})
 
 func (t TransferCustomerReceivableToAccruedTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
@@ -462,6 +474,10 @@ func (t TranslateCustomerAccruedCostBasisTemplate) Validate() error {
 
 func (t TranslateCustomerAccruedCostBasisTemplate) typeGuard() guard {
 	return true
+}
+
+func (t TranslateCustomerAccruedCostBasisTemplate) code() TransactionTemplateCode {
+	return TemplateCodeTranslateCustomerAccruedCostBasis
 }
 
 var _ CustomerTransactionTemplate = (TranslateCustomerAccruedCostBasisTemplate{})
