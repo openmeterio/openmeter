@@ -123,10 +123,18 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 				}
 			}
 
+			var orderBy subscription.OrderBy
+			switch lo.FromPtrOr(params.Params.OrderBy, api.CustomerSubscriptionOrderByActiveFrom) {
+			case api.CustomerSubscriptionOrderByActiveTo:
+				orderBy = subscription.OrderByActiveTo
+			default:
+				orderBy = subscription.OrderByActiveFrom
+			}
+
 			return ListCustomerSubscriptionsRequest{
 				CustomerID: cus.GetID(),
 				Page:       page,
-				OrderBy:    subscription.OrderBy(lo.FromPtrOr(params.Params.OrderBy, api.CustomerSubscriptionOrderByActiveFrom)),
+				OrderBy:    orderBy,
 				Order:      sortx.Order(lo.FromPtrOr(params.Params.Order, api.SortOrderDESC)),
 				Status: func() []subscription.SubscriptionStatus {
 					apiStatusFilter := lo.FromPtrOr(params.Params.Status, []api.SubscriptionStatus{})
