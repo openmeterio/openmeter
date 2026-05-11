@@ -444,9 +444,9 @@ func (s *Server) ListCustomerCharges(w http.ResponseWriter, r *http.Request, cus
 // Organization Default Tax Codes
 
 func (s *Server) GetOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {
-	unimplemented.GetOrganizationDefaultTaxCodes(w, r)
+	s.taxcodesHandler.GetOrganizationDefaultTaxCodes().ServeHTTP(w, r)
 }
 
 func (s *Server) UpdateOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {
-	unimplemented.UpdateOrganizationDefaultTaxCodes(w, r)
+	s.taxcodesHandler.UpsertOrganizationDefaultTaxCodes().ServeHTTP(w, r)
 }

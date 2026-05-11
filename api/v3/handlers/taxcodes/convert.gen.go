@@ -25,6 +25,21 @@ func init() {
 		taxcodeCreateTaxCodeInput.Metadata = modelsMetadata
 		return taxcodeCreateTaxCodeInput, nil
 	}
+	FromAPIUpdateOrganizationDefaultTaxCodesRequest = func(context string, source v3.UpdateOrganizationDefaultTaxCodesRequest) (taxcode.UpsertOrganizationDefaultTaxCodesInput, error) {
+		var taxcodeUpsertOrganizationDefaultTaxCodesInput taxcode.UpsertOrganizationDefaultTaxCodesInput
+		taxcodeUpsertOrganizationDefaultTaxCodesInput.Namespace = NamespaceFromContext(context)
+		xstring, err := InvoicingTaxCodeReferenceToIDString(source.InvoicingTaxCode)
+		if err != nil {
+			return taxcodeUpsertOrganizationDefaultTaxCodesInput, err
+		}
+		taxcodeUpsertOrganizationDefaultTaxCodesInput.InvoicingTaxCodeID = xstring
+		xstring2, err := CreditGrantTaxCodeReferenceToIDString(source.CreditGrantTaxCode)
+		if err != nil {
+			return taxcodeUpsertOrganizationDefaultTaxCodesInput, err
+		}
+		taxcodeUpsertOrganizationDefaultTaxCodesInput.CreditGrantTaxCodeID = xstring2
+		return taxcodeUpsertOrganizationDefaultTaxCodesInput, nil
+	}
 	FromAPIUpsertTaxCodeRequest = func(context models.NamespacedID, source v3.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error) {
 		var taxcodeUpdateTaxCodeInput taxcode.UpdateTaxCodeInput
 		taxcodeUpdateTaxCodeInput.NamespacedID = ResolveNamespacedIDFromContext(context)
@@ -50,6 +65,14 @@ func init() {
 		v3BillingTaxCode.Name = source.Name
 		v3BillingTaxCode.UpdatedAt = timeTimeToTimeTime(source.ManagedModel.UpdatedAt)
 		return v3BillingTaxCode, nil
+	}
+	ToAPIOrganizationDefaultTaxCodes = func(source taxcode.OrganizationDefaultTaxCodes) (v3.OrganizationDefaultTaxCodes, error) {
+		var v3OrganizationDefaultTaxCodes v3.OrganizationDefaultTaxCodes
+		v3OrganizationDefaultTaxCodes.CreatedAt = timeTimeToTimeTime(source.ManagedModel.CreatedAt)
+		v3OrganizationDefaultTaxCodes.CreditGrantTaxCode = IDStringToTaxCodeReference(source.CreditGrantTaxCodeID)
+		v3OrganizationDefaultTaxCodes.InvoicingTaxCode = IDStringToTaxCodeReference(source.InvoicingTaxCodeID)
+		v3OrganizationDefaultTaxCodes.UpdatedAt = timeTimeToTimeTime(source.ManagedModel.UpdatedAt)
+		return v3OrganizationDefaultTaxCodes, nil
 	}
 }
 func timeTimeToTimeTime(source time.Time) time.Time {
