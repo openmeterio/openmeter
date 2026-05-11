@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -132,11 +133,62 @@ func TestV3Addon(t *testing.T) {
 func TestV3AddonMixedRateCardRoundTrip(t *testing.T) {
 	c := newV3Client(t)
 
+	eventTypes := []string{
+		uniqueKey("sanity_event"),
+		uniqueKey("sanity_event"),
+	}
+
+	meterKeys := []string{
+		uniqueKey("sanity_meter"),
+		uniqueKey("sanity_meter"),
+	}
+
+	meters := make([]apiv3.Meter, 0, len(meterKeys))
+
+	for i := range meterKeys {
+		valueProperty := "$.value"
+
+		status, m, problem := c.CreateMeter(apiv3.CreateMeterRequest{
+			Key:           meterKeys[i],
+			Name:          "Test Meter " + meterKeys[i],
+			Aggregation:   apiv3.MeterAggregationSum,
+			EventType:     eventTypes[i],
+			ValueProperty: &valueProperty,
+		})
+		require.Equalf(t, http.StatusCreated, status, "problem: %+v", problem)
+		require.NotNil(t, m)
+		require.NotEmpty(t, m.Id)
+
+		meters = append(meters, *m)
+	}
+
+	featureKeys := []string{
+		uniqueKey("mix_unit"),
+		uniqueKey("mix_graduated"),
+	}
+
+	features := make([]apiv3.Feature, 0, len(featureKeys))
+
+	for i := range featureKeys {
+		status, f, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
+			Key:  featureKeys[i],
+			Name: "Test Feature " + featureKeys[i],
+			Meter: &apiv3.FeatureMeterReference{
+				Id: meters[i].Id,
+			},
+		})
+		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		require.NotNil(t, f)
+		require.NotEmpty(t, f.Id)
+
+		features = append(features, *f)
+	}
+
 	flat := validFlatRateCard("mix_flat")
-	unit := validUnitRateCard("mix_unit")
+	unit := validUnitRateCard(features[0])
 	percent := float32(10)
 	unit.Discounts = &apiv3.BillingRateCardDiscounts{Percentage: &percent}
-	graduated := validGraduatedRateCard("mix_graduated")
+	graduated := validGraduatedRateCard(features[1])
 
 	body := validAddonRequest("mixed_rc")
 	body.RateCards = []apiv3.BillingRateCard{flat, unit, graduated}
@@ -283,6 +335,34 @@ func TestV3AddonPaymentTermPriceCompatibility(t *testing.T) {
 // Only the "happy" rows are exercised — they confirm flat and unit prices are
 // accepted in their respective valid combinations.
 func TestV3AddonInstanceTypePriceCompatibility(t *testing.T) {
+	c := newV3Client(t)
+
+	meterKey := uniqueKey("single_unit")
+
+	status, m, problem := c.CreateMeter(apiv3.CreateMeterRequest{
+		Key:           meterKey,
+		Name:          "Test Meter " + meterKey,
+		Aggregation:   apiv3.MeterAggregationSum,
+		EventType:     uniqueKey("sanity_event"),
+		ValueProperty: lo.ToPtr("$.value"),
+	})
+	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	require.NotNil(t, m)
+	require.NotEmpty(t, m.Id)
+
+	featureKey := uniqueKey("single_unit")
+
+	status, f, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
+		Key:  featureKey,
+		Name: "Test Feature " + featureKey,
+		Meter: &apiv3.FeatureMeterReference{
+			Id: m.Id,
+		},
+	})
+	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	require.NotNil(t, f)
+	require.NotEmpty(t, f.Id)
+
 	cases := []struct {
 		name           string
 		instanceType   apiv3.AddonInstanceType
@@ -298,15 +378,13 @@ func TestV3AddonInstanceTypePriceCompatibility(t *testing.T) {
 		{
 			name:           "single + unit rate card → 201",
 			instanceType:   apiv3.AddonInstanceTypeSingle,
-			rateCard:       validUnitRateCard("single_unit"),
+			rateCard:       validUnitRateCard(*f),
 			expectedStatus: http.StatusCreated,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			c := newV3Client(t)
-
 			body := validAddonRequest("instance_type_price")
 			body.InstanceType = tc.instanceType
 			body.RateCards = []apiv3.BillingRateCard{tc.rateCard}
