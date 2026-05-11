@@ -304,8 +304,9 @@ func TestEdit(t *testing.T) {
 				sub, err := deps.Service.Create(ctx, deps.Customer.Namespace, spec)
 				require.Nil(t, err)
 
-				_, err = deps.Service.GetView(ctx, sub.NamespacedID)
+				v1, err := deps.Service.GetView(ctx, sub.NamespacedID)
 				require.Nil(t, err)
+				require.NotEmpty(t, v1.Subscription.ID)
 
 				// Let's validate we have an item with an entitlement template
 				require.Equal(t, 3, len(spec.Phases))
@@ -334,8 +335,9 @@ func TestEdit(t *testing.T) {
 					item,
 				}
 
-				_, err = deps.Service.Update(ctx, sub.NamespacedID, spec)
+				u, err := deps.Service.Update(ctx, sub.NamespacedID, spec)
 				require.Nil(t, err)
+				require.NotEmpty(t, u.ID)
 
 				v2, err := deps.Service.GetView(ctx, sub.NamespacedID)
 				require.Nil(t, err)
