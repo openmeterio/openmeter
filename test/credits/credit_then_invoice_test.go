@@ -2080,6 +2080,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkExtend
 		secondRun, err := charge.Realizations.GetByID(secondRunID.ID)
 		s.NoError(err)
 		s.Nil(secondRun.DeletedAt)
+		s.Equal(usagebased.RealizationRunTypeInvalidDueToUnsupportedCreditNote, secondRun.Type)
+		s.Equal(usagebased.RealizationRunTypeFinalRealization, secondRun.InitialType)
+		s.True(secondRun.IsVoidedBillingHistory())
 		s.Equal(extendedServicePeriodTo, secondRun.ServicePeriodTo)
 		s.RequireAllRunsNonDeleted(charge.Realizations)
 

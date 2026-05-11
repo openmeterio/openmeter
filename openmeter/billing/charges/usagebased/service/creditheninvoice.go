@@ -240,9 +240,9 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 	}
 
 	for _, run := range s.Charge.Realizations {
-		// Deleted realizations were already cleaned up through billing, so the
+		// Voided realizations were already cleaned up through billing, so the
 		// charge delete patch must not emit another invoice deletion for them.
-		if run.DeletedAt != nil {
+		if run.IsVoidedBillingHistory() {
 			continue
 		}
 
@@ -737,11 +737,6 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, 
 
 func getRunForLine(charge usagebased.Charge, lineID string) (usagebased.RealizationRun, error) {
 	for _, run := range charge.Realizations {
-		// Deleted realizations are no longer valid targets for invoice lifecycle callbacks.
-		if run.DeletedAt != nil {
-			continue
-		}
-
 		if run.LineID != nil && *run.LineID == lineID {
 			return run, nil
 		}
