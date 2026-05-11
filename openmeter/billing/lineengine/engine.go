@@ -96,6 +96,10 @@ func (e *Engine) OnMutableStandardLinesDeleted(_ context.Context, _ billing.OnMu
 	return nil
 }
 
+func (e *Engine) OnUnsupportedCreditNote(_ context.Context, _ billing.OnUnsupportedCreditNoteInput) error {
+	return nil
+}
+
 func (e *Engine) OnStandardInvoiceCreated(_ context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
 	return input.Lines, nil
 }

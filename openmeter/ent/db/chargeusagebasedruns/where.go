@@ -847,6 +847,36 @@ func TypeNotIn(vs ...usagebased.RealizationRunType) predicate.ChargeUsageBasedRu
 	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldType, v...))
 }
 
+// InitialTypeEQ applies the EQ predicate on the "initial_type" field.
+func InitialTypeEQ(v usagebased.RealizationRunType) predicate.ChargeUsageBasedRuns {
+	vc := v
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldInitialType, vc))
+}
+
+// InitialTypeNEQ applies the NEQ predicate on the "initial_type" field.
+func InitialTypeNEQ(v usagebased.RealizationRunType) predicate.ChargeUsageBasedRuns {
+	vc := v
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldInitialType, vc))
+}
+
+// InitialTypeIn applies the In predicate on the "initial_type" field.
+func InitialTypeIn(vs ...usagebased.RealizationRunType) predicate.ChargeUsageBasedRuns {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldInitialType, v...))
+}
+
+// InitialTypeNotIn applies the NotIn predicate on the "initial_type" field.
+func InitialTypeNotIn(vs ...usagebased.RealizationRunType) predicate.ChargeUsageBasedRuns {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldInitialType, v...))
+}
+
 // StoredAtLtEQ applies the EQ predicate on the "stored_at_lt" field.
 func StoredAtLtEQ(v time.Time) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldStoredAtLt, v))

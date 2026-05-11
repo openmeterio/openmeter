@@ -1255,6 +1255,18 @@ func (u *ChargeUsageBasedUpsert) ClearDescription() *ChargeUsageBasedUpsert {
 	return u
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (u *ChargeUsageBasedUpsert) SetInvoiceAt(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldInvoiceAt, v)
+	return u
+}
+
+// UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateInvoiceAt() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldInvoiceAt)
+	return u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (u *ChargeUsageBasedUpsert) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldDiscounts, v)
@@ -1367,9 +1379,6 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(chargeusagebased.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.InvoiceAt(); exists {
-			s.SetIgnore(chargeusagebased.FieldInvoiceAt)
 		}
 		if _, exists := u.create.mutation.SettlementMode(); exists {
 			s.SetIgnore(chargeusagebased.FieldSettlementMode)
@@ -1698,6 +1707,20 @@ func (u *ChargeUsageBasedUpsertOne) ClearDescription() *ChargeUsageBasedUpsertOn
 	})
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (u *ChargeUsageBasedUpsertOne) SetInvoiceAt(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetInvoiceAt(v)
+	})
+}
+
+// UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateInvoiceAt() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateInvoiceAt()
+	})
+}
+
 // SetDiscounts sets the "discounts" field.
 func (u *ChargeUsageBasedUpsertOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
@@ -1991,9 +2014,6 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(chargeusagebased.FieldCreatedAt)
-			}
-			if _, exists := b.mutation.InvoiceAt(); exists {
-				s.SetIgnore(chargeusagebased.FieldInvoiceAt)
 			}
 			if _, exists := b.mutation.SettlementMode(); exists {
 				s.SetIgnore(chargeusagebased.FieldSettlementMode)
@@ -2320,6 +2340,20 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateDescription() *ChargeUsageBasedUpsert
 func (u *ChargeUsageBasedUpsertBulk) ClearDescription() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetInvoiceAt sets the "invoice_at" field.
+func (u *ChargeUsageBasedUpsertBulk) SetInvoiceAt(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetInvoiceAt(v)
+	})
+}
+
+// UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateInvoiceAt() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateInvoiceAt()
 	})
 }
 

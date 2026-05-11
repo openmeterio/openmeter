@@ -52,6 +52,7 @@ func TestUnsupportedExtendOperationIsConfiguredForFinalRealizationBoundary(t *te
 				NewServicePeriodTo:     time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC),
 				NewFullServicePeriodTo: time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC),
 				NewBillingPeriodTo:     time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC),
+				NewInvoiceAt:           time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC),
 			})
 			require.NoError(t, err)
 
@@ -63,6 +64,68 @@ func TestUnsupportedExtendOperationIsConfiguredForFinalRealizationBoundary(t *te
 			require.Error(t, err)
 			require.True(t, models.IsGenericPreConditionFailedError(err))
 			require.ErrorContains(t, err, "cannot extend usage-based charge in status "+string(status))
+			require.Empty(t, machine.InvoicePatches())
+			require.Equal(t, status, machine.GetCharge().Status)
+		})
+	}
+}
+
+func TestUnsupportedShrinkOperation(t *testing.T) {
+	for _, status := range []usagebased.Status{
+		usagebased.StatusActivePartialInvoiceIssuing,
+		usagebased.StatusActivePartialInvoiceCompleted,
+		usagebased.StatusActiveFinalRealizationIssuing,
+		usagebased.StatusActiveFinalRealizationCompleted,
+		usagebased.StatusDeleted,
+	} {
+		t.Run(string(status), func(t *testing.T) {
+			machine := CreditThenInvoiceStateMachine{
+				stateMachine: &stateMachine{
+					Machine: &chargestatemachine.Machine[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{
+						Charge: usagebased.Charge{
+							ChargeBase: usagebased.ChargeBase{
+								Status: status,
+							},
+						},
+					},
+				},
+			}
+
+			err := machine.UnsupportedShrinkOperation(t.Context(), meta.PatchShrink{})
+			require.Error(t, err)
+			require.True(t, models.IsGenericPreConditionFailedError(err))
+			require.ErrorContains(t, err, "cannot shrink usage-based charge in status "+string(status))
+			require.Empty(t, machine.InvoicePatches())
+		})
+	}
+}
+
+func TestUnsupportedShrinkOperationIsConfiguredForImmutableBoundaries(t *testing.T) {
+	for _, status := range []usagebased.Status{
+		usagebased.StatusActivePartialInvoiceIssuing,
+		usagebased.StatusActivePartialInvoiceCompleted,
+		usagebased.StatusActiveFinalRealizationIssuing,
+		usagebased.StatusActiveFinalRealizationCompleted,
+		usagebased.StatusDeleted,
+	} {
+		t.Run(string(status), func(t *testing.T) {
+			machine := newCreditThenInvoiceStateMachineForTest(t, status)
+			patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+				NewServicePeriodTo:     time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
+				NewFullServicePeriodTo: time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
+				NewBillingPeriodTo:     time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
+				NewInvoiceAt:           time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
+			})
+			require.NoError(t, err)
+
+			canFire, err := machine.CanFire(t.Context(), meta.TriggerShrink)
+			require.NoError(t, err)
+			require.True(t, canFire)
+
+			err = machine.FireAndActivate(t.Context(), patch.Trigger(), patch.TriggerParams())
+			require.Error(t, err)
+			require.True(t, models.IsGenericPreConditionFailedError(err))
+			require.ErrorContains(t, err, "cannot shrink usage-based charge in status "+string(status))
 			require.Empty(t, machine.InvoicePatches())
 			require.Equal(t, status, machine.GetCharge().Status)
 		})

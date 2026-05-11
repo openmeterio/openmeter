@@ -195,3 +195,31 @@ func (s *Service) OnMutableStandardLinesDeleted(ctx context.Context, input billi
 
 	return nil
 }
+
+func (s *Service) OnUnsupportedCreditNote(ctx context.Context, input billing.OnUnsupportedCreditNoteInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating unsupported credit note input: %w", err)
+	}
+
+	groupedLines, err := s.lineEngines.groupStandardLinesByEngine(input.Lines)
+	if err != nil {
+		return fmt.Errorf("grouping standard lines by engine: %w", err)
+	}
+
+	for _, grouped := range groupedLines {
+		groupedInput := billing.OnUnsupportedCreditNoteInput{
+			Invoice: input.Invoice,
+			Lines:   grouped.Lines,
+		}
+
+		if err := groupedInput.Validate(); err != nil {
+			return fmt.Errorf("validating unsupported credit note input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if err := grouped.Engine.OnUnsupportedCreditNote(ctx, groupedInput); err != nil {
+			return billing.NewLineEngineValidationError(grouped.Engine, err)
+		}
+	}
+
+	return nil
+}

@@ -46,6 +46,8 @@ const (
 	FieldFeatureID = "feature_id"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
+	// FieldInitialType holds the string denoting the initial_type field in the database.
+	FieldInitialType = "initial_type"
 	// FieldStoredAtLt holds the string denoting the stored_at_lt field in the database.
 	FieldStoredAtLt = "stored_at_lt"
 	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
@@ -163,6 +165,7 @@ var Columns = []string{
 	FieldChargeID,
 	FieldFeatureID,
 	FieldType,
+	FieldInitialType,
 	FieldStoredAtLt,
 	FieldServicePeriodTo,
 	FieldDetailedLinesPresent,
@@ -204,10 +207,20 @@ var (
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
 func TypeValidator(_type usagebased.RealizationRunType) error {
 	switch _type {
-	case "final_realization", "partial_invoice":
+	case "final_realization", "partial_invoice", "invalid_due_to_unsupported_credit_note":
 		return nil
 	default:
 		return fmt.Errorf("chargeusagebasedruns: invalid enum value for type field: %q", _type)
+	}
+}
+
+// InitialTypeValidator is a validator for the "initial_type" field enum values. It is called by the builders before save.
+func InitialTypeValidator(it usagebased.RealizationRunType) error {
+	switch it {
+	case "final_realization", "partial_invoice", "invalid_due_to_unsupported_credit_note":
+		return nil
+	default:
+		return fmt.Errorf("chargeusagebasedruns: invalid enum value for initial_type field: %q", it)
 	}
 }
 
@@ -292,6 +305,11 @@ func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
 // ByType orders the results by the type field.
 func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
+}
+
+// ByInitialType orders the results by the initial_type field.
+func ByInitialType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInitialType, opts...).ToFunc()
 }
 
 // ByStoredAtLt orders the results by the stored_at_lt field.
