@@ -9002,7 +9002,7 @@ components:
           description: An ISO-8601 timestamp representation of the cadence end of the resource.
           readOnly: true
       additionalProperties: false
-      description: SubscriptionAddon represents an addon associated with a subscription.
+      description: Addon purchased with a subscription.
     SubscriptionAddonPagePaginatedResponse:
       type: object
       required:
