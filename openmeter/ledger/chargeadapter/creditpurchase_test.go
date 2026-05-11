@@ -49,12 +49,12 @@ func TestOnPromotionalCreditPurchase_BacksAdvanceBeforeTopUp(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
 	require.ElementsMatch(t, []string{
-		transactions.TemplateName(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}),
-		transactions.TemplateName(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
-		transactions.TemplateName(transactions.IssueCustomerReceivableTemplate{}),
-		transactions.TemplateName(transactions.AuthorizeCustomerReceivablePaymentTemplate{}),
-		transactions.TemplateName(transactions.SettleCustomerReceivableFromPaymentTemplate{}),
-	}, env.transactionTemplateNames(t, ref.TransactionGroupID))
+		transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+		transactions.TemplateCode(transactions.AuthorizeCustomerReceivablePaymentTemplate{}),
+		transactions.TemplateCode(transactions.SettleCustomerReceivableFromPaymentTemplate{}),
+	}, env.transactionTemplateCodes(t, ref.TransactionGroupID))
 
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.Zero))
 	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.Zero))
@@ -74,8 +74,8 @@ func TestOnCreditPurchaseInitiated(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
 	require.ElementsMatch(t, []string{
-		transactions.TemplateName(transactions.IssueCustomerReceivableTemplate{}),
-	}, env.transactionTemplateNames(t, ref.TransactionGroupID))
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+	}, env.transactionTemplateCodes(t, ref.TransactionGroupID))
 
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
@@ -126,10 +126,10 @@ func TestOnCreditPurchaseInitiated_OnlyIssuesExcessBeyondAdvance(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
 	require.ElementsMatch(t, []string{
-		transactions.TemplateName(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}),
-		transactions.TemplateName(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
-		transactions.TemplateName(transactions.IssueCustomerReceivableTemplate{}),
-	}, env.transactionTemplateNames(t, ref.TransactionGroupID))
+		transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+	}, env.transactionTemplateCodes(t, ref.TransactionGroupID))
 
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(60)))
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
@@ -165,8 +165,8 @@ func TestOnCreditPurchasePaymentSettled(t *testing.T) {
 	initRef, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
 	require.NoError(t, err)
 	require.ElementsMatch(t, []string{
-		transactions.TemplateName(transactions.IssueCustomerReceivableTemplate{}),
-	}, env.transactionTemplateNames(t, initRef.TransactionGroupID))
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+	}, env.transactionTemplateCodes(t, initRef.TransactionGroupID))
 
 	_, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), charge)
 	require.NoError(t, err)
@@ -191,10 +191,10 @@ func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
 	initRef, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
 	require.NoError(t, err)
 	require.ElementsMatch(t, []string{
-		transactions.TemplateName(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}),
-		transactions.TemplateName(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
-		transactions.TemplateName(transactions.IssueCustomerReceivableTemplate{}),
-	}, env.transactionTemplateNames(t, initRef.TransactionGroupID))
+		transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+	}, env.transactionTemplateCodes(t, initRef.TransactionGroupID))
 
 	_, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), charge)
 	require.NoError(t, err)
@@ -470,15 +470,15 @@ func (e *creditPurchaseHandlerTestEnv) transactionAnnotations(t *testing.T, grou
 	return out
 }
 
-func (e *creditPurchaseHandlerTestEnv) transactionTemplateNames(t *testing.T, groupID string) []string {
+func (e *creditPurchaseHandlerTestEnv) transactionTemplateCodes(t *testing.T, groupID string) []string {
 	t.Helper()
 
 	annotations := e.transactionAnnotations(t, groupID)
 	out := make([]string, 0, len(annotations))
 	for _, annotation := range annotations {
-		name, err := ledger.TransactionTemplateNameFromAnnotations(annotation)
+		code, err := ledger.TransactionTemplateCodeFromAnnotations(annotation)
 		require.NoError(t, err)
-		out = append(out, name)
+		out = append(out, code)
 	}
 
 	return out

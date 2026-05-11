@@ -375,7 +375,7 @@ func (t TransferCustomerReceivableToAccruedTemplate) typeGuard() guard {
 var _ CustomerTransactionTemplate = (TransferCustomerReceivableToAccruedTemplate{})
 
 func (t TransferCustomerReceivableToAccruedTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+	return nil, templateCorrectionNotImplemented(TemplateCode(t))
 }
 
 func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {

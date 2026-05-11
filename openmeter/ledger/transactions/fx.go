@@ -56,7 +56,7 @@ func (t ConvertCurrencyTemplate) Validate() error {
 var _ CustomerTransactionTemplate = (ConvertCurrencyTemplate{})
 
 func (t ConvertCurrencyTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+	return nil, templateCorrectionNotImplemented(TemplateCode(t))
 }
 
 func (t ConvertCurrencyTemplate) typeGuard() guard {

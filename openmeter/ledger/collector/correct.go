@@ -212,7 +212,7 @@ func (c *accrualCorrector) planRecognizedEarningsSegment(ctx context.Context, in
 		return nil, fmt.Errorf("get recognition transaction group %s: %w", *segment.BackingTransactionGroupID, err)
 	}
 
-	recognitionTx, err := c.forwardTransactionByTemplate(recognitionGroup, transactions.TemplateName(transactions.RecognizeEarningsFromAttributableAccruedTemplate{}))
+	recognitionTx, err := c.forwardTransactionByTemplate(recognitionGroup, transactions.TemplateCode(transactions.RecognizeEarningsFromAttributableAccruedTemplate{}))
 	if err != nil {
 		return nil, fmt.Errorf("find recognition transaction in group %s: %w", recognitionGroup.ID().ID, err)
 	}
@@ -256,7 +256,7 @@ func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, inp
 	}
 
 	actions := make([]plannedAction, 0, 4)
-	if translateTx, err := c.forwardTransactionByTemplate(backingGroup, transactions.TemplateName(transactions.TranslateCustomerAccruedCostBasisTemplate{})); err == nil {
+	if translateTx, err := c.forwardTransactionByTemplate(backingGroup, transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{})); err == nil {
 		actions = append(actions, plannedTransactionCorrection{
 			transaction: translateTx,
 			group:       backingGroup,
@@ -264,7 +264,7 @@ func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, inp
 		})
 	}
 
-	attributeTx, err := c.forwardTransactionByTemplate(backingGroup, transactions.TemplateName(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}))
+	attributeTx, err := c.forwardTransactionByTemplate(backingGroup, transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}))
 	if err != nil {
 		return nil, fmt.Errorf("find backing advance receivable attribution transaction in group %s: %w", backingGroup.ID().ID, err)
 	}
@@ -322,7 +322,7 @@ func (c *accrualCorrector) reissueBackfilledCredit(ctx context.Context, input Co
 	out := make([]ledger.TransactionInput, 0, len(resolved))
 	for _, txInput := range resolved {
 		out = append(out, transactions.WithAnnotations(txInput, ledger.TransactionAnnotations(
-			transactions.TemplateName(transactions.IssueCustomerReceivableTemplate{}),
+			transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
 			ledger.TransactionDirectionCorrection,
 		)))
 	}
@@ -415,9 +415,9 @@ func (c *accrualCorrector) collectedSourceBySortHint(group ledger.TransactionGro
 func (c *accrualCorrector) collectedSourcesForGroup(group ledger.TransactionGroup) ([]collectedSource, error) {
 	out := make([]collectedSource, 0)
 	for _, transaction := range group.Transactions() {
-		templateName, err := ledger.TransactionTemplateNameFromAnnotations(transaction.Annotations())
+		templateCode, err := ledger.TransactionTemplateCodeFromAnnotations(transaction.Annotations())
 		if err != nil {
-			return nil, fmt.Errorf("transaction %s template name: %w", transaction.ID().ID, err)
+			return nil, fmt.Errorf("transaction %s template code: %w", transaction.ID().ID, err)
 		}
 
 		direction, err := ledger.TransactionDirectionFromAnnotations(transaction.Annotations())
@@ -429,8 +429,8 @@ func (c *accrualCorrector) collectedSourcesForGroup(group ledger.TransactionGrou
 		}
 		// Advance-backed collection comes with a receivable issue in the same group.
 		var advanceReceivableIssueTransaction ledger.Transaction
-		if templateName == transactions.TemplateName(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}) {
-			advanceReceivableIssueTransaction, err = c.forwardTransactionByTemplate(group, transactions.TemplateName(transactions.IssueCustomerReceivableTemplate{}))
+		if templateCode == transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}) {
+			advanceReceivableIssueTransaction, err = c.forwardTransactionByTemplate(group, transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}))
 			if err != nil {
 				return nil, fmt.Errorf("find issue receivable companion in group %s: %w", group.ID().ID, err)
 			}
@@ -450,11 +450,11 @@ func (c *accrualCorrector) collectedSourcesForGroup(group ledger.TransactionGrou
 	return out, nil
 }
 
-func (c *accrualCorrector) forwardTransactionByTemplate(group ledger.TransactionGroup, templateName string) (ledger.Transaction, error) {
+func (c *accrualCorrector) forwardTransactionByTemplate(group ledger.TransactionGroup, templateCode string) (ledger.Transaction, error) {
 	for _, transaction := range group.Transactions() {
-		currentTemplateName, err := ledger.TransactionTemplateNameFromAnnotations(transaction.Annotations())
+		currentTemplateCode, err := ledger.TransactionTemplateCodeFromAnnotations(transaction.Annotations())
 		if err != nil {
-			return nil, fmt.Errorf("transaction %s template name: %w", transaction.ID().ID, err)
+			return nil, fmt.Errorf("transaction %s template code: %w", transaction.ID().ID, err)
 		}
 
 		direction, err := ledger.TransactionDirectionFromAnnotations(transaction.Annotations())
@@ -462,12 +462,12 @@ func (c *accrualCorrector) forwardTransactionByTemplate(group ledger.Transaction
 			return nil, fmt.Errorf("transaction %s direction: %w", transaction.ID().ID, err)
 		}
 
-		if currentTemplateName == templateName && direction == ledger.TransactionDirectionForward {
+		if currentTemplateCode == templateCode && direction == ledger.TransactionDirectionForward {
 			return transaction, nil
 		}
 	}
 
-	return nil, fmt.Errorf("transaction with template %s not found", templateName)
+	return nil, fmt.Errorf("transaction with template code %s not found", templateCode)
 }
 
 func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.TransactionGroup) (currencyx.Code, *alpacadecimal.Decimal, *int, error) {

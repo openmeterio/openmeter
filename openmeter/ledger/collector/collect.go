@@ -193,16 +193,16 @@ func (i collectedInputs) collectedFBOAmount() alpacadecimal.Decimal {
 }
 
 func creditRealizationAnnotationsForCollectedInput(input ledger.TransactionInput) models.Annotations {
-	templateName, err := ledger.TransactionTemplateNameFromAnnotations(input.Annotations())
+	templateCode, err := ledger.TransactionTemplateCodeFromAnnotations(input.Annotations())
 	if err != nil {
 		return input.Annotations()
 	}
 
 	var originKind creditrealization.LineageOriginKind
-	switch templateName {
-	case transactions.TemplateName(transactions.TransferCustomerFBOToAccruedTemplate{}):
+	switch templateCode {
+	case transactions.TemplateCode(transactions.TransferCustomerFBOToAccruedTemplate{}):
 		originKind = creditrealization.LineageOriginKindRealCredit
-	case transactions.TemplateName(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}):
+	case transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}):
 		originKind = creditrealization.LineageOriginKindAdvance
 	default:
 		return input.Annotations()

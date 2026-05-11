@@ -177,7 +177,7 @@ func (t SettleCustomerReceivableFromPaymentTemplate) Validate() error {
 var _ CustomerTransactionTemplate = (SettleCustomerReceivableFromPaymentTemplate{})
 
 func (t SettleCustomerReceivableFromPaymentTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+	return nil, templateCorrectionNotImplemented(TemplateCode(t))
 }
 
 func (t SettleCustomerReceivableFromPaymentTemplate) typeGuard() guard {
@@ -265,7 +265,7 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) typeGuard() guard {
 var _ CustomerTransactionTemplate = (AuthorizeCustomerReceivablePaymentTemplate{})
 
 func (t AuthorizeCustomerReceivablePaymentTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+	return nil, templateCorrectionNotImplemented(TemplateCode(t))
 }
 
 func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
@@ -474,7 +474,7 @@ func (t CoverCustomerReceivableTemplate) typeGuard() guard {
 var _ CustomerTransactionTemplate = (CoverCustomerReceivableTemplate{})
 
 func (t CoverCustomerReceivableTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+	return nil, templateCorrectionNotImplemented(TemplateCode(t))
 }
 
 func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
