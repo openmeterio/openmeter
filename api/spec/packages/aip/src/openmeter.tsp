@@ -128,6 +128,11 @@ interface CustomerChargesEndpoints
 interface SubscriptionsEndpoints
   extends Subscriptions.SubscriptionsOperations {}
 
+@route("/openmeter/subscriptions/{subscriptionId}/addons")
+@tag(Shared.SubscriptionsTag)
+interface SubscriptionAddonEndpoints
+  extends Subscriptions.SubscriptionAddonOperations {}
+
 @route("/openmeter/apps")
 @tag(Shared.AppsTag)
 interface AppsEndpoints extends Apps.AppsOperations {}

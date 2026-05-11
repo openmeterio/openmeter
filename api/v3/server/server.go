@@ -31,6 +31,7 @@ import (
 	planshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
 	subscriptionshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
+	subscriptionaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions/subscriptionaddons"
 	taxcodeshandler "github.com/openmeterio/openmeter/api/v3/handlers/taxcodes"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/api/v3/render"
@@ -59,6 +60,7 @@ import (
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -74,30 +76,31 @@ type Config struct {
 	Credits             config.CreditsConfiguration
 
 	// services
-	AddonService            addon.Service
-	AppService              app.Service
-	BillingService          billing.Service
-	LLMCostService          llmcost.Service
-	MeterService            meter.ManageService
-	StreamingConnector      streaming.Connector
-	IngestService           ingest.Service
-	MeterEventService       meterevent.Service
-	CustomerService         customer.Service
-	CreditGrantService      creditgrant.Service
-	Ledger                  ledger.Ledger
-	AccountResolver         ledger.AccountResolver
-	CustomerBalanceFacade   *customerbalance.Facade
-	EntitlementService      entitlement.Service
-	PlanService             plan.Service
-	PlanAddonService        planaddon.Service
-	PlanSubscriptionService plansubscription.PlanSubscriptionService
-	StripeService           appstripe.Service
-	SubscriptionService     subscription.Service
-	TaxCodeService          taxcode.Service
-	CurrencyService         currencies.CurrencyService
-	ChargeService           billingcharges.ChargeService
-	CostService             cost.Service
-	FeatureConnector        feature.FeatureConnector
+	AddonService             addon.Service
+	AppService               app.Service
+	BillingService           billing.Service
+	LLMCostService           llmcost.Service
+	MeterService             meter.ManageService
+	StreamingConnector       streaming.Connector
+	IngestService            ingest.Service
+	MeterEventService        meterevent.Service
+	CustomerService          customer.Service
+	CreditGrantService       creditgrant.Service
+	Ledger                   ledger.Ledger
+	AccountResolver          ledger.AccountResolver
+	CustomerBalanceFacade    *customerbalance.Facade
+	EntitlementService       entitlement.Service
+	PlanService              plan.Service
+	PlanAddonService         planaddon.Service
+	PlanSubscriptionService  plansubscription.PlanSubscriptionService
+	StripeService            appstripe.Service
+	SubscriptionService      subscription.Service
+	SubscriptionAddonService subscriptionaddon.Service
+	TaxCodeService           taxcode.Service
+	CurrencyService          currencies.CurrencyService
+	ChargeService            billingcharges.ChargeService
+	CostService              cost.Service
+	FeatureConnector         feature.FeatureConnector
 }
 
 func (c *Config) Validate() error {
@@ -167,6 +170,10 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("subscription service is required"))
 	}
 
+	if c.SubscriptionAddonService == nil {
+		errs = append(errs, errors.New("subscription addon service is required"))
+	}
+
 	if c.TaxCodeService == nil {
 		errs = append(errs, errors.New("tax code service is required"))
 	}
@@ -220,6 +227,7 @@ type Server struct {
 	customersEntitlementHandler customersentitlementhandler.Handler
 	metersHandler               metershandler.Handler
 	subscriptionsHandler        subscriptionshandler.Handler
+	subscriptionAddonsHandler   subscriptionaddonshandler.Handler
 	billingProfilesHandler      billingprofileshandler.Handler
 	plansHandler                planshandler.Handler
 	planAddonsHandler           planaddonshandler.Handler
@@ -284,6 +292,7 @@ func NewServer(config *Config) (*Server, error) {
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, config.StreamingConnector, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, httptransport.WithErrorHandler(config.ErrorHandler))
+	subscriptionAddonsHandler := subscriptionaddonshandler.New(resolveNamespace, config.SubscriptionAddonService, httptransport.WithErrorHandler(config.ErrorHandler))
 	billingProfilesHandler := billingprofileshandler.New(resolveNamespace, config.BillingService, httptransport.WithErrorHandler(config.ErrorHandler))
 	plansHandler := planshandler.New(resolveNamespace, config.PlanService, httptransport.WithErrorHandler(config.ErrorHandler))
 	planAddonsHandler := planaddonshandler.New(resolveNamespace, config.PlanService, config.PlanAddonService, httptransport.WithErrorHandler(config.ErrorHandler))
@@ -320,6 +329,7 @@ func NewServer(config *Config) (*Server, error) {
 		customersEntitlementHandler: customersEntitlementHandler,
 		metersHandler:               metersHandler,
 		subscriptionsHandler:        subscriptionsHandler,
+		subscriptionAddonsHandler:   subscriptionAddonsHandler,
 		billingProfilesHandler:      billingProfilesHandler,
 		plansHandler:                plansHandler,
 		planAddonsHandler:           planAddonsHandler,

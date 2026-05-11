@@ -6,6 +6,7 @@ import "../common/error.tsp";
 import "../common/pagination.tsp";
 import "../common/parameters.tsp";
 import "./subscription.tsp";
+import "./subscriptionaddon.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -57,6 +58,7 @@ model SubscriptionChangeResponse {
 /**
  * Filter options for listing subscriptions.
  */
+#suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "plan_id and plan_key should not be grouped"
 @friendlyName("ListSubscriptionsParamsFilter")
 model ListSubscriptionsParamsFilter {
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
@@ -156,4 +158,20 @@ interface SubscriptionsOperations {
     | Common.NotFound
     | Common.Conflict
     | Common.ErrorResponses;
+}
+
+interface SubscriptionAddonOperations {
+  /**
+   * List the addons of a subscription.
+   */
+  @get
+  @operationId("list-subscription-addons")
+  @summary("List subscription addons")
+  list(
+    @path subscriptionId: Shared.ULID,
+    ...Common.PagePaginationQuery,
+
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+  ): Shared.PagePaginatedResponse<SubscriptionAddon> | Common.NotFound | Common.ErrorResponses;
 }
