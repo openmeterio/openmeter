@@ -742,6 +742,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		// Invoice usage accrued callback should have been invoked
 		accruedUsage := updatedFlatFeeCharge.Realizations.AccruedUsage
 		s.NotNil(accruedUsage)
+		s.Equal(flatfee.StatusAwaitingPaymentSettlement, updatedFlatFeeCharge.Status)
 		s.Equal(servicePeriod, accruedUsage.ServicePeriod, "service period should be the same as the input")
 		s.False(accruedUsage.Mutable, "accrued usage should not be mutable")
 		s.NotNil(accruedUsage.LineID, "line ID should be set")
@@ -772,7 +773,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		charge := s.MustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(flatfee.StatusActive, updatedFlatFeeCharge.Status)
+		s.Equal(flatfee.StatusAwaitingPaymentSettlement, updatedFlatFeeCharge.Status)
 		s.NotNil(updatedFlatFeeCharge.Realizations.Payment)
 		s.Equal(payment.StatusAuthorized, updatedFlatFeeCharge.Realizations.Payment.Status)
 		s.NotNil(updatedFlatFeeCharge.Realizations.Payment.Authorized)

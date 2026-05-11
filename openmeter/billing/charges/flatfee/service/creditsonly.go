@@ -42,22 +42,27 @@ func NewCreditsOnlyStateMachine(config StateMachineConfig) (*CreditsOnlyStateMac
 
 func (s *CreditsOnlyStateMachine) configureStates() {
 	s.Configure(flatfee.StatusCreated).
-		Permit(meta.TriggerNext, flatfee.StatusActive, statelessx.BoolFn(s.IsAfterInvoiceAt)).
+		Permit(meta.TriggerNext, flatfee.StatusActive, statelessx.BoolFn(s.IsInsideServicePeriod)).
 		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
 		OnActive(
-			s.SetAdvanceAfterInvoiceAt,
+			s.AdvanceAfterServicePeriodFrom,
 		)
 
 	s.Configure(flatfee.StatusActive).
-		Permit(meta.TriggerNext, flatfee.StatusFinal).
+		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.IsAfterInvoiceAt)).
 		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
 		OnActive(
-			s.AllocateCredits,
+			s.AdvanceAfterInvoiceAt,
 		)
 
 	s.Configure(flatfee.StatusFinal).
 		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
-		OnActive(s.ClearAdvanceAfter)
+		OnActive(
+			statelessx.AllOf(
+				s.AllocateCredits,
+				s.ClearAdvanceAfter,
+			),
+		)
 
 	s.Configure(flatfee.StatusDeleted).
 		OnEntry(statelessx.WithParameters(s.DeleteCharge))
@@ -67,13 +72,8 @@ func (s *CreditsOnlyStateMachine) IsAfterInvoiceAt() bool {
 	return !clock.Now().Before(s.Charge.Intent.InvoiceAt)
 }
 
-func (s *CreditsOnlyStateMachine) SetAdvanceAfterInvoiceAt(ctx context.Context) error {
+func (s *CreditsOnlyStateMachine) AdvanceAfterInvoiceAt(ctx context.Context) error {
 	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.InvoiceAt))
-	return nil
-}
-
-func (s *CreditsOnlyStateMachine) ClearAdvanceAfter(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = nil
 	return nil
 }
 

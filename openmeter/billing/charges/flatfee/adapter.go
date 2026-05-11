@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -55,6 +56,7 @@ type IntentWithInitialStatus struct {
 	Intent
 	FeatureID            *string
 	InitialStatus        Status
+	InitialAdvanceAfter  *time.Time
 	AmountAfterProration alpacadecimal.Decimal
 }
 
@@ -70,6 +72,10 @@ func (i IntentWithInitialStatus) Validate() error {
 
 	if err := i.InitialStatus.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("initial status: %w", err))
+	}
+
+	if i.InitialAdvanceAfter != nil && i.InitialAdvanceAfter.IsZero() {
+		errs = append(errs, fmt.Errorf("initial advance after cannot be zero"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
