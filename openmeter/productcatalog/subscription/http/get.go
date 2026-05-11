@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -144,12 +145,12 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 			var def ListCustomerSubscriptionsResponse
 
 			subs, err := h.SubscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-				Page:        req.Page,
-				Namespaces:  []string{req.CustomerID.Namespace},
-				CustomerIDs: []string{req.CustomerID.ID},
-				Status:      req.Status,
-				OrderBy:     req.OrderBy,
-				Order:       req.Order,
+				Page:       req.Page,
+				Namespaces: []string{req.CustomerID.Namespace},
+				CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &req.CustomerID.ID}},
+				Status:     req.Status,
+				OrderBy:    req.OrderBy,
+				Order:      req.Order,
 			})
 			if err != nil {
 				return def, err

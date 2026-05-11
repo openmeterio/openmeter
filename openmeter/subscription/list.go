@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -32,7 +33,8 @@ type ListSubscriptionsInput struct {
 	Order   sortx.Order
 
 	Namespaces     []string
-	CustomerIDs    []string
+	CustomerID     *filter.FilterULID
+	PlanKey        *filter.FilterString
 	ActiveAt       *time.Time
 	ActiveInPeriod *timeutil.StartBoundedPeriod
 	Status         []SubscriptionStatus
@@ -64,6 +66,18 @@ func (i ListSubscriptionsInput) Validate() error {
 			if err := status.Validate(); err != nil {
 				errs = append(errs, fmt.Errorf("status: %w", err))
 			}
+		}
+	}
+
+	if i.CustomerID != nil {
+		if err := i.CustomerID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("customer id filter: %w", err))
+		}
+	}
+
+	if i.PlanKey != nil {
+		if err := i.PlanKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("plan key filter: %w", err))
 		}
 	}
 

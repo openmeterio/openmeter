@@ -2488,13 +2488,7 @@ paths:
           required: false
           description: Filter subscriptions.
           schema:
-            type: object
-            properties:
-              customer_id:
-                allOf:
-                  - $ref: '#/components/schemas/ULID'
-                description: Filter subscriptions by customer ID.
-            additionalProperties: false
+            $ref: '#/components/schemas/ListSubscriptionsParamsFilter'
           style: deepObject
       responses:
         '200':
@@ -7833,17 +7827,17 @@ components:
       type: object
       properties:
         key:
-          allOf:
-            - $ref: '#/components/schemas/StringFieldFilter'
-          description: Filter customers by key.
+          $ref: '#/components/schemas/StringFieldFilter'
         name:
-          allOf:
-            - $ref: '#/components/schemas/StringFieldFilter'
-          description: Filter customers by name.
+          $ref: '#/components/schemas/StringFieldFilter'
         primary_email:
-          allOf:
-            - $ref: '#/components/schemas/StringFieldFilter'
-          description: Filter customers by primary email.
+          $ref: '#/components/schemas/StringFieldFilter'
+        usage_attribution_subject_key:
+          $ref: '#/components/schemas/StringFieldFilter'
+        plan_key:
+          $ref: '#/components/schemas/StringFieldFilter'
+        billing_profile_id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
       additionalProperties: false
       description: Filter options for listing customers.
     ListEventsParamsFilter:
@@ -7945,6 +7939,15 @@ components:
           $ref: '#/components/schemas/StringFieldFilterExact'
       additionalProperties: false
       description: Filter options for listing plans.
+    ListSubscriptionsParamsFilter:
+      type: object
+      properties:
+        customer_id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        plan_key:
+          $ref: '#/components/schemas/StringFieldFilter'
+      additionalProperties: false
+      description: Filter options for listing subscriptions.
     Meter:
       type: object
       required:

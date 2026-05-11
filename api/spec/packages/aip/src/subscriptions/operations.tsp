@@ -53,6 +53,17 @@ model SubscriptionChangeResponse {
   next: Subscription;
 }
 
+/**
+ * Filter options for listing subscriptions.
+ */
+@friendlyName("ListSubscriptionsParamsFilter")
+model ListSubscriptionsParamsFilter {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  customer_id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  plan_key?: Common.StringFieldFilter;
+}
+
 interface SubscriptionsOperations {
   @post
   @operationId("create-subscription")
@@ -73,12 +84,7 @@ interface SubscriptionsOperations {
      * Filter subscriptions.
      */
     @query(#{ style: "deepObject", explode: true })
-    filter?: {
-      /**
-       * Filter subscriptions by customer ID.
-       */
-      customer_id?: Shared.ULID;
-    },
+    filter?: ListSubscriptionsParamsFilter,
   ): Shared.PagePaginatedResponse<Subscription> | Common.NotFound | Common.ErrorResponses;
 
   @get
