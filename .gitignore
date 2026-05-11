@@ -1,7 +1,19 @@
-/.devenv/
-/.direnv/
+# devenv / nix shell state leaks into any cwd that runs `nix develop`,
+# including the repo root and subdirectories like `openmeter/ent/` where
+# code generation invokes `nix develop` to get a toolchain. Ignore these
+# at any depth so generation never produces tracked artifacts.
+.devenv/
+.direnv/
+.pre-commit-config.yaml
+
+# Stray .nvmrc files dropped by devenv's `enterShell` into any nested
+# directory that hosts a `nix develop` invocation. The root .nvmrc is
+# committed (it's the GitHub Actions Node version source-of-truth), so
+# we re-include it explicitly below.
+.nvmrc
+!/.nvmrc
+
 /.env.local
-/.pre-commit-config.yaml
 /build/
 /config.yaml
 /tmp/

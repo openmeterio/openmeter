@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/entitydiff"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/softdelete"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -33,6 +34,13 @@ func (a *adapter) HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID
 	if len(lineIDs) == 0 {
 		return nil
 	}
+
+	// The caller explicitly asked for physical removal of these gathering
+	// lines (the line+config rows are about to be replaced and the
+	// partial-unique index over (namespace, ...) WHERE deleted_at IS NULL
+	// cannot accommodate a tombstone). The default TimeMixin behavior
+	// would rewrite OpDelete -> soft-delete; opt out here.
+	ctx = softdelete.AllowHardDelete(ctx)
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
 		// Let's validate the delete

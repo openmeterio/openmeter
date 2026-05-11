@@ -126,7 +126,9 @@ func (_u *CustomCurrencyUpdate) RemoveCostBasisHistory(v ...*CurrencyCostBasis) 
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *CustomCurrencyUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -153,11 +155,15 @@ func (_u *CustomCurrencyUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *CustomCurrencyUpdate) defaults() {
+func (_u *CustomCurrencyUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if customcurrency.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized customcurrency.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := customcurrency.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -377,7 +383,9 @@ func (_u *CustomCurrencyUpdateOne) Select(field string, fields ...string) *Custo
 
 // Save executes the query and returns the updated CustomCurrency entity.
 func (_u *CustomCurrencyUpdateOne) Save(ctx context.Context) (*CustomCurrency, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -404,11 +412,15 @@ func (_u *CustomCurrencyUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *CustomCurrencyUpdateOne) defaults() {
+func (_u *CustomCurrencyUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if customcurrency.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized customcurrency.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := customcurrency.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

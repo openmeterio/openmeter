@@ -112,7 +112,9 @@ func (_u *OrganizationDefaultTaxCodesUpdate) ClearCreditGrantTaxCode() *Organiza
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *OrganizationDefaultTaxCodesUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -139,11 +141,15 @@ func (_u *OrganizationDefaultTaxCodesUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *OrganizationDefaultTaxCodesUpdate) defaults() {
+func (_u *OrganizationDefaultTaxCodesUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if organizationdefaulttaxcodes.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized organizationdefaulttaxcodes.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := organizationdefaulttaxcodes.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -352,7 +358,9 @@ func (_u *OrganizationDefaultTaxCodesUpdateOne) Select(field string, fields ...s
 
 // Save executes the query and returns the updated OrganizationDefaultTaxCodes entity.
 func (_u *OrganizationDefaultTaxCodesUpdateOne) Save(ctx context.Context) (*OrganizationDefaultTaxCodes, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -379,11 +387,15 @@ func (_u *OrganizationDefaultTaxCodesUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *OrganizationDefaultTaxCodesUpdateOne) defaults() {
+func (_u *OrganizationDefaultTaxCodesUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if organizationdefaulttaxcodes.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized organizationdefaulttaxcodes.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := organizationdefaulttaxcodes.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

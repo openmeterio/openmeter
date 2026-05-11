@@ -132,7 +132,9 @@ func (_c *SubjectCreate) Mutation() *SubjectMutation {
 
 // Save creates the Subject in the database.
 func (_c *SubjectCreate) Save(ctx context.Context) (*Subject, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -159,19 +161,29 @@ func (_c *SubjectCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *SubjectCreate) defaults() {
+func (_c *SubjectCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if subject.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized subject.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := subject.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if subject.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized subject.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := subject.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if subject.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized subject.DefaultID (forgotten import db/runtime?)")
+		}
 		v := subject.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

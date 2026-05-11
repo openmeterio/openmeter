@@ -95,7 +95,9 @@ func (_u *AppStripeCustomerUpdate) Mutation() *AppStripeCustomerMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *AppStripeCustomerUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -122,11 +124,15 @@ func (_u *AppStripeCustomerUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *AppStripeCustomerUpdate) defaults() {
+func (_u *AppStripeCustomerUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if appstripecustomer.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized appstripecustomer.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := appstripecustomer.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -275,7 +281,9 @@ func (_u *AppStripeCustomerUpdateOne) Select(field string, fields ...string) *Ap
 
 // Save executes the query and returns the updated AppStripeCustomer entity.
 func (_u *AppStripeCustomerUpdateOne) Save(ctx context.Context) (*AppStripeCustomer, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -302,11 +310,15 @@ func (_u *AppStripeCustomerUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *AppStripeCustomerUpdateOne) defaults() {
+func (_u *AppStripeCustomerUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if appstripecustomer.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized appstripecustomer.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := appstripecustomer.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

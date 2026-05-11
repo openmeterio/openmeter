@@ -5,6 +5,7 @@ package chargeusagebasedruninvoicedusage
 import (
 	"time"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 )
@@ -99,7 +100,14 @@ func ValidColumn(column string) bool {
 	return false
 }
 
+// Note that the variables below are initialized by the runtime
+// package on the initialization of the application. Therefore,
+// it should be imported in the main as follows:
+//
+//	import _ "github.com/openmeterio/openmeter/openmeter/ent/db/runtime"
 var (
+	Hooks        [1]ent.Hook
+	Interceptors [1]ent.Interceptor
 	// LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
 	LineIDValidator func(string) error
 	// LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.

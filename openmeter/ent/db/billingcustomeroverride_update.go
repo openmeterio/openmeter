@@ -320,7 +320,9 @@ func (_u *BillingCustomerOverrideUpdate) ClearTaxCode() *BillingCustomerOverride
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *BillingCustomerOverrideUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -347,11 +349,15 @@ func (_u *BillingCustomerOverrideUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *BillingCustomerOverrideUpdate) defaults() {
+func (_u *BillingCustomerOverrideUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if billingcustomeroverride.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized billingcustomeroverride.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := billingcustomeroverride.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -846,7 +852,9 @@ func (_u *BillingCustomerOverrideUpdateOne) Select(field string, fields ...strin
 
 // Save executes the query and returns the updated BillingCustomerOverride entity.
 func (_u *BillingCustomerOverrideUpdateOne) Save(ctx context.Context) (*BillingCustomerOverride, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -873,11 +881,15 @@ func (_u *BillingCustomerOverrideUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *BillingCustomerOverrideUpdateOne) defaults() {
+func (_u *BillingCustomerOverrideUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if billingcustomeroverride.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized billingcustomeroverride.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := billingcustomeroverride.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

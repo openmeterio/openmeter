@@ -281,7 +281,9 @@ func (_u *LLMCostPriceUpdate) Mutation() *LLMCostPriceMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *LLMCostPriceUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -308,11 +310,15 @@ func (_u *LLMCostPriceUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *LLMCostPriceUpdate) defaults() {
+func (_u *LLMCostPriceUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if llmcostprice.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized llmcostprice.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := llmcostprice.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -706,7 +712,9 @@ func (_u *LLMCostPriceUpdateOne) Select(field string, fields ...string) *LLMCost
 
 // Save executes the query and returns the updated LLMCostPrice entity.
 func (_u *LLMCostPriceUpdateOne) Save(ctx context.Context) (*LLMCostPrice, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -733,11 +741,15 @@ func (_u *LLMCostPriceUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *LLMCostPriceUpdateOne) defaults() {
+func (_u *LLMCostPriceUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if llmcostprice.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized llmcostprice.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := llmcostprice.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

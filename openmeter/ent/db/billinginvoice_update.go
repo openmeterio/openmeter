@@ -1091,7 +1091,9 @@ func (_u *BillingInvoiceUpdate) RemoveChargeUsageBasedRuns(v ...*ChargeUsageBase
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *BillingInvoiceUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -1118,11 +1120,15 @@ func (_u *BillingInvoiceUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *BillingInvoiceUpdate) defaults() {
+func (_u *BillingInvoiceUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if billinginvoice.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized billinginvoice.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := billinginvoice.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -2744,7 +2750,9 @@ func (_u *BillingInvoiceUpdateOne) Select(field string, fields ...string) *Billi
 
 // Save executes the query and returns the updated BillingInvoice entity.
 func (_u *BillingInvoiceUpdateOne) Save(ctx context.Context) (*BillingInvoice, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -2771,11 +2779,15 @@ func (_u *BillingInvoiceUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *BillingInvoiceUpdateOne) defaults() {
+func (_u *BillingInvoiceUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if billinginvoice.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized billinginvoice.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := billinginvoice.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

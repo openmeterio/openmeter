@@ -111,7 +111,9 @@ func (_u *LedgerTransactionGroupUpdate) RemoveTransactions(v ...*LedgerTransacti
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *LedgerTransactionGroupUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -138,11 +140,15 @@ func (_u *LedgerTransactionGroupUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *LedgerTransactionGroupUpdate) defaults() {
+func (_u *LedgerTransactionGroupUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if ledgertransactiongroup.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgertransactiongroup.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgertransactiongroup.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 func (_u *LedgerTransactionGroupUpdate) sqlSave(ctx context.Context) (_node int, err error) {
@@ -328,7 +334,9 @@ func (_u *LedgerTransactionGroupUpdateOne) Select(field string, fields ...string
 
 // Save executes the query and returns the updated LedgerTransactionGroup entity.
 func (_u *LedgerTransactionGroupUpdateOne) Save(ctx context.Context) (*LedgerTransactionGroup, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -355,11 +363,15 @@ func (_u *LedgerTransactionGroupUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *LedgerTransactionGroupUpdateOne) defaults() {
+func (_u *LedgerTransactionGroupUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if ledgertransactiongroup.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgertransactiongroup.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgertransactiongroup.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 func (_u *LedgerTransactionGroupUpdateOne) sqlSave(ctx context.Context) (_node *LedgerTransactionGroup, err error) {

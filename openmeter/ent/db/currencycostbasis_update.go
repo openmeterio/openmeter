@@ -61,7 +61,9 @@ func (_u *CurrencyCostBasisUpdate) Mutation() *CurrencyCostBasisMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *CurrencyCostBasisUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -88,11 +90,15 @@ func (_u *CurrencyCostBasisUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *CurrencyCostBasisUpdate) defaults() {
+func (_u *CurrencyCostBasisUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if currencycostbasis.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized currencycostbasis.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := currencycostbasis.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -190,7 +196,9 @@ func (_u *CurrencyCostBasisUpdateOne) Select(field string, fields ...string) *Cu
 
 // Save executes the query and returns the updated CurrencyCostBasis entity.
 func (_u *CurrencyCostBasisUpdateOne) Save(ctx context.Context) (*CurrencyCostBasis, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -217,11 +225,15 @@ func (_u *CurrencyCostBasisUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *CurrencyCostBasisUpdateOne) defaults() {
+func (_u *CurrencyCostBasisUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if currencycostbasis.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized currencycostbasis.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := currencycostbasis.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

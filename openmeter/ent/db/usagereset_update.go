@@ -74,7 +74,9 @@ func (_u *UsageResetUpdate) Mutation() *UsageResetMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *UsageResetUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -101,11 +103,15 @@ func (_u *UsageResetUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *UsageResetUpdate) defaults() {
+func (_u *UsageResetUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if usagereset.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized usagereset.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := usagereset.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -221,7 +227,9 @@ func (_u *UsageResetUpdateOne) Select(field string, fields ...string) *UsageRese
 
 // Save executes the query and returns the updated UsageReset entity.
 func (_u *UsageResetUpdateOne) Save(ctx context.Context) (*UsageReset, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -248,11 +256,15 @@ func (_u *UsageResetUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *UsageResetUpdateOne) defaults() {
+func (_u *UsageResetUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if usagereset.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized usagereset.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := usagereset.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

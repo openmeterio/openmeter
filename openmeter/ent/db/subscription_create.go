@@ -366,7 +366,9 @@ func (_c *SubscriptionCreate) Mutation() *SubscriptionMutation {
 
 // Save creates the Subscription in the database.
 func (_c *SubscriptionCreate) Save(ctx context.Context) (*Subscription, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -393,12 +395,18 @@ func (_c *SubscriptionCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *SubscriptionCreate) defaults() {
+func (_c *SubscriptionCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if subscription.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized subscription.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := subscription.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if subscription.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized subscription.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := subscription.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
@@ -407,6 +415,9 @@ func (_c *SubscriptionCreate) defaults() {
 		_c.mutation.SetName(v)
 	}
 	if _, ok := _c.mutation.ProRatingConfig(); !ok {
+		if subscription.DefaultProRatingConfig == nil {
+			return fmt.Errorf("db: uninitialized subscription.DefaultProRatingConfig (forgotten import db/runtime?)")
+		}
 		v := subscription.DefaultProRatingConfig()
 		_c.mutation.SetProRatingConfig(v)
 	}
@@ -415,9 +426,13 @@ func (_c *SubscriptionCreate) defaults() {
 		_c.mutation.SetSettlementMode(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if subscription.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized subscription.DefaultID (forgotten import db/runtime?)")
+		}
 		v := subscription.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

@@ -199,7 +199,9 @@ func (_c *ChargeCreditPurchaseExternalPaymentCreate) Mutation() *ChargeCreditPur
 
 // Save creates the ChargeCreditPurchaseExternalPayment in the database.
 func (_c *ChargeCreditPurchaseExternalPaymentCreate) Save(ctx context.Context) (*ChargeCreditPurchaseExternalPayment, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -226,19 +228,29 @@ func (_c *ChargeCreditPurchaseExternalPaymentCreate) ExecX(ctx context.Context) 
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *ChargeCreditPurchaseExternalPaymentCreate) defaults() {
+func (_c *ChargeCreditPurchaseExternalPaymentCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if chargecreditpurchaseexternalpayment.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargecreditpurchaseexternalpayment.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := chargecreditpurchaseexternalpayment.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if chargecreditpurchaseexternalpayment.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargecreditpurchaseexternalpayment.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargecreditpurchaseexternalpayment.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if chargecreditpurchaseexternalpayment.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized chargecreditpurchaseexternalpayment.DefaultID (forgotten import db/runtime?)")
+		}
 		v := chargecreditpurchaseexternalpayment.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

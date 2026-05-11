@@ -234,7 +234,9 @@ func (_c *LLMCostPriceCreate) Mutation() *LLMCostPriceMutation {
 
 // Save creates the LLMCostPrice in the database.
 func (_c *LLMCostPriceCreate) Save(ctx context.Context) (*LLMCostPrice, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -261,12 +263,18 @@ func (_c *LLMCostPriceCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *LLMCostPriceCreate) defaults() {
+func (_c *LLMCostPriceCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if llmcostprice.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized llmcostprice.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := llmcostprice.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if llmcostprice.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized llmcostprice.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := llmcostprice.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
@@ -291,9 +299,13 @@ func (_c *LLMCostPriceCreate) defaults() {
 		_c.mutation.SetCurrency(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if llmcostprice.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized llmcostprice.DefaultID (forgotten import db/runtime?)")
+		}
 		v := llmcostprice.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

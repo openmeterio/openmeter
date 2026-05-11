@@ -122,7 +122,9 @@ func (_c *ChargeCreditPurchaseCreditGrantCreate) Mutation() *ChargeCreditPurchas
 
 // Save creates the ChargeCreditPurchaseCreditGrant in the database.
 func (_c *ChargeCreditPurchaseCreditGrantCreate) Save(ctx context.Context) (*ChargeCreditPurchaseCreditGrant, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -149,19 +151,29 @@ func (_c *ChargeCreditPurchaseCreditGrantCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *ChargeCreditPurchaseCreditGrantCreate) defaults() {
+func (_c *ChargeCreditPurchaseCreditGrantCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if chargecreditpurchasecreditgrant.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargecreditpurchasecreditgrant.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := chargecreditpurchasecreditgrant.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if chargecreditpurchasecreditgrant.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargecreditpurchasecreditgrant.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargecreditpurchasecreditgrant.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if chargecreditpurchasecreditgrant.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized chargecreditpurchasecreditgrant.DefaultID (forgotten import db/runtime?)")
+		}
 		v := chargecreditpurchasecreditgrant.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

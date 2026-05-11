@@ -154,7 +154,9 @@ func (_c *NotificationChannelCreate) Mutation() *NotificationChannelMutation {
 
 // Save creates the NotificationChannel in the database.
 func (_c *NotificationChannelCreate) Save(ctx context.Context) (*NotificationChannel, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -181,12 +183,18 @@ func (_c *NotificationChannelCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *NotificationChannelCreate) defaults() {
+func (_c *NotificationChannelCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if notificationchannel.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized notificationchannel.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := notificationchannel.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if notificationchannel.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized notificationchannel.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := notificationchannel.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
@@ -195,9 +203,13 @@ func (_c *NotificationChannelCreate) defaults() {
 		_c.mutation.SetDisabled(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if notificationchannel.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized notificationchannel.DefaultID (forgotten import db/runtime?)")
+		}
 		v := notificationchannel.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

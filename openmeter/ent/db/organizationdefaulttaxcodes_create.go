@@ -115,7 +115,9 @@ func (_c *OrganizationDefaultTaxCodesCreate) Mutation() *OrganizationDefaultTaxC
 
 // Save creates the OrganizationDefaultTaxCodes in the database.
 func (_c *OrganizationDefaultTaxCodesCreate) Save(ctx context.Context) (*OrganizationDefaultTaxCodes, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -142,19 +144,29 @@ func (_c *OrganizationDefaultTaxCodesCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *OrganizationDefaultTaxCodesCreate) defaults() {
+func (_c *OrganizationDefaultTaxCodesCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if organizationdefaulttaxcodes.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized organizationdefaulttaxcodes.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := organizationdefaulttaxcodes.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if organizationdefaulttaxcodes.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized organizationdefaulttaxcodes.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := organizationdefaulttaxcodes.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if organizationdefaulttaxcodes.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized organizationdefaulttaxcodes.DefaultID (forgotten import db/runtime?)")
+		}
 		v := organizationdefaulttaxcodes.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

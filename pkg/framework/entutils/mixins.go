@@ -14,6 +14,7 @@ import (
 
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/softdelete"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -206,7 +207,24 @@ type AnnotationsMixinSetter[T any] interface {
 	SetAnnotations(annotations models.Annotations) T
 }
 
-// TimeMixin adds the created_at and updated_at fields to the schema
+// TimeMixin adds the created_at, updated_at and deleted_at fields to the
+// schema, and wires the project-wide soft-delete behavior:
+//
+//   - The interceptor automatically AND-injects the time-windowed predicate
+//     `Or(DeletedAtIsNil(), DeletedAtGT(now))` into every query, so callers
+//     no longer need `.Where(Or(...))` by hand. Callers that legitimately
+//     want tombstoned rows (admin tooling, time-window queries) opt out
+//     with `softdelete.Skip(ctx)`.
+//   - The hook converts `OpDelete*` mutations into `OpUpdate*` that stamp
+//     `deleted_at = clock.Now()`, then dispatches the generated cascade
+//     walker (registered by `pkg/framework/entutils/entsoftdelete` from
+//     each entity's `init()`) so dependents are soft-deleted in the same
+//     transaction. Callers that need a real DELETE opt in with
+//     `softdelete.AllowHardDelete(ctx)`.
+//
+// Project policy: any schema with `deleted_at` must use TimeMixin (or
+// otherwise compose this mixin's behavior). Schemas that legitimately
+// physically remove rows do not declare `deleted_at` at all.
 type TimeMixin struct {
 	mixin.Schema
 }
@@ -224,6 +242,19 @@ func (TimeMixin) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 	}
+}
+
+// Interceptors hooks up the soft-delete read filter to every query on
+// entities using this mixin. See package
+// `pkg/framework/entutils/softdelete` for details and opt-out.
+func (TimeMixin) Interceptors() []ent.Interceptor {
+	return []ent.Interceptor{softdelete.Interceptor()}
+}
+
+// Hooks hooks up the soft-delete delete-rewrite + cascade walker to every
+// mutation on entities using this mixin.
+func (TimeMixin) Hooks() []ent.Hook {
+	return softdelete.SoftDeleteMixin{}.Hooks()
 }
 
 type TimeMixinGetter interface {

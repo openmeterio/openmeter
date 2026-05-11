@@ -239,7 +239,9 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) ClearAllocation() *ChargeU
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -266,11 +268,15 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) ExecX(ctx context.Context)
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) defaults() {
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if chargeusagebasedruncreditallocations.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeusagebasedruncreditallocations.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeusagebasedruncreditallocations.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -655,7 +661,9 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) Select(field string, fi
 
 // Save executes the query and returns the updated ChargeUsageBasedRunCreditAllocations entity.
 func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) Save(ctx context.Context) (*ChargeUsageBasedRunCreditAllocations, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -682,11 +690,15 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) ExecX(ctx context.Conte
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) defaults() {
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if chargeusagebasedruncreditallocations.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeusagebasedruncreditallocations.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeusagebasedruncreditallocations.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

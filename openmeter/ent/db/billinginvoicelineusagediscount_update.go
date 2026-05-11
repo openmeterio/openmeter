@@ -215,7 +215,9 @@ func (_u *BillingInvoiceLineUsageDiscountUpdate) ClearBillingInvoiceLine() *Bill
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *BillingInvoiceLineUsageDiscountUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -242,11 +244,15 @@ func (_u *BillingInvoiceLineUsageDiscountUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *BillingInvoiceLineUsageDiscountUpdate) defaults() {
+func (_u *BillingInvoiceLineUsageDiscountUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if billinginvoicelineusagediscount.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized billinginvoicelineusagediscount.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := billinginvoicelineusagediscount.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -574,7 +580,9 @@ func (_u *BillingInvoiceLineUsageDiscountUpdateOne) Select(field string, fields 
 
 // Save executes the query and returns the updated BillingInvoiceLineUsageDiscount entity.
 func (_u *BillingInvoiceLineUsageDiscountUpdateOne) Save(ctx context.Context) (*BillingInvoiceLineUsageDiscount, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -601,11 +609,15 @@ func (_u *BillingInvoiceLineUsageDiscountUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *BillingInvoiceLineUsageDiscountUpdateOne) defaults() {
+func (_u *BillingInvoiceLineUsageDiscountUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if billinginvoicelineusagediscount.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized billinginvoicelineusagediscount.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := billinginvoicelineusagediscount.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

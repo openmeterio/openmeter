@@ -126,7 +126,9 @@ func (_u *AppCustomInvoicingUpdate) RemoveCustomerApps(v ...*AppCustomInvoicingC
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *AppCustomInvoicingUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -153,11 +155,15 @@ func (_u *AppCustomInvoicingUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *AppCustomInvoicingUpdate) defaults() {
+func (_u *AppCustomInvoicingUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if appcustominvoicing.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized appcustominvoicing.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := appcustominvoicing.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 func (_u *AppCustomInvoicingUpdate) sqlSave(ctx context.Context) (_node int, err error) {
@@ -359,7 +365,9 @@ func (_u *AppCustomInvoicingUpdateOne) Select(field string, fields ...string) *A
 
 // Save executes the query and returns the updated AppCustomInvoicing entity.
 func (_u *AppCustomInvoicingUpdateOne) Save(ctx context.Context) (*AppCustomInvoicing, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -386,11 +394,15 @@ func (_u *AppCustomInvoicingUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *AppCustomInvoicingUpdateOne) defaults() {
+func (_u *AppCustomInvoicingUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if appcustominvoicing.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized appcustominvoicing.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := appcustominvoicing.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 func (_u *AppCustomInvoicingUpdateOne) sqlSave(ctx context.Context) (_node *AppCustomInvoicing, err error) {

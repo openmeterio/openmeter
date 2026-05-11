@@ -394,7 +394,9 @@ func (_c *FeatureCreate) Mutation() *FeatureMutation {
 
 // Save creates the Feature in the database.
 func (_c *FeatureCreate) Save(ctx context.Context) (*Feature, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -421,19 +423,29 @@ func (_c *FeatureCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *FeatureCreate) defaults() {
+func (_c *FeatureCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if dbfeature.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized dbfeature.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := dbfeature.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if dbfeature.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized dbfeature.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := dbfeature.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if dbfeature.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized dbfeature.DefaultID (forgotten import db/runtime?)")
+		}
 		v := dbfeature.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

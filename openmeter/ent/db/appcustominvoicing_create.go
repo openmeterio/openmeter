@@ -156,7 +156,9 @@ func (_c *AppCustomInvoicingCreate) Mutation() *AppCustomInvoicingMutation {
 
 // Save creates the AppCustomInvoicing in the database.
 func (_c *AppCustomInvoicingCreate) Save(ctx context.Context) (*AppCustomInvoicing, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -183,12 +185,18 @@ func (_c *AppCustomInvoicingCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *AppCustomInvoicingCreate) defaults() {
+func (_c *AppCustomInvoicingCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if appcustominvoicing.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized appcustominvoicing.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := appcustominvoicing.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if appcustominvoicing.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized appcustominvoicing.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := appcustominvoicing.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
@@ -201,9 +209,13 @@ func (_c *AppCustomInvoicingCreate) defaults() {
 		_c.mutation.SetEnableIssuingSyncHook(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if appcustominvoicing.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized appcustominvoicing.DefaultID (forgotten import db/runtime?)")
+		}
 		v := appcustominvoicing.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

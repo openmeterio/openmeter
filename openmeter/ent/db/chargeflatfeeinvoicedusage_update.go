@@ -295,7 +295,9 @@ func (_u *ChargeFlatFeeInvoicedUsageUpdate) ClearBillingInvoiceLine() *ChargeFla
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *ChargeFlatFeeInvoicedUsageUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -322,11 +324,15 @@ func (_u *ChargeFlatFeeInvoicedUsageUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *ChargeFlatFeeInvoicedUsageUpdate) defaults() {
+func (_u *ChargeFlatFeeInvoicedUsageUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if chargeflatfeeinvoicedusage.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeflatfeeinvoicedusage.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeflatfeeinvoicedusage.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -739,7 +745,9 @@ func (_u *ChargeFlatFeeInvoicedUsageUpdateOne) Select(field string, fields ...st
 
 // Save executes the query and returns the updated ChargeFlatFeeInvoicedUsage entity.
 func (_u *ChargeFlatFeeInvoicedUsageUpdateOne) Save(ctx context.Context) (*ChargeFlatFeeInvoicedUsage, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -766,11 +774,15 @@ func (_u *ChargeFlatFeeInvoicedUsageUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *ChargeFlatFeeInvoicedUsageUpdateOne) defaults() {
+func (_u *ChargeFlatFeeInvoicedUsageUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if chargeflatfeeinvoicedusage.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeflatfeeinvoicedusage.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeflatfeeinvoicedusage.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

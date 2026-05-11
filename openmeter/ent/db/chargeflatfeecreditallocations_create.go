@@ -237,7 +237,9 @@ func (_c *ChargeFlatFeeCreditAllocationsCreate) Mutation() *ChargeFlatFeeCreditA
 
 // Save creates the ChargeFlatFeeCreditAllocations in the database.
 func (_c *ChargeFlatFeeCreditAllocationsCreate) Save(ctx context.Context) (*ChargeFlatFeeCreditAllocations, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -264,19 +266,29 @@ func (_c *ChargeFlatFeeCreditAllocationsCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *ChargeFlatFeeCreditAllocationsCreate) defaults() {
+func (_c *ChargeFlatFeeCreditAllocationsCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if chargeflatfeecreditallocations.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeflatfeecreditallocations.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeflatfeecreditallocations.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if chargeflatfeecreditallocations.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeflatfeecreditallocations.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeflatfeecreditallocations.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if chargeflatfeecreditallocations.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized chargeflatfeecreditallocations.DefaultID (forgotten import db/runtime?)")
+		}
 		v := chargeflatfeecreditallocations.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

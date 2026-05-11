@@ -113,20 +113,15 @@ func softDeleteCascade{{ $n.Name }}(ctx context.Context, client any, parentIDs [
     }
     _ = parentIDsTyped
 
+    {{/*
+        PASS 1 — outgoing assoc edges (edge.To) where the child holds the FK.
+        These are O2M / O2O-non-inverse relationships ("I am the parent,
+        dependents carry my ID").
+    */}}
     {{ range $e := $n.Edges }}
-        {{/*
-            Cascade only into edges where THIS node is the parent — i.e.
-            the FK lives on the *target* (child) side. That matches:
-              - inverse=false (this is an edge.To)
-              - OwnFK=false  (this side does not own the FK; the child does)
-              - M2M=false    (no deleted_at on a join table)
-        */}}
         {{ if and (not $e.IsInverse) (not $e.OwnFK) (not $e.M2M) }}
-            {{/* Skip targets that don't have `deleted_at`. */}}
             {{ if hasKey $softNodes $e.Type.Name }}
-                {{/* Skip edges opted out via softdelete.NoCascade(). */}}
                 {{ if not (hasKey $e.Annotations "SoftDeleteNoCascade") }}
-                    {{/* Resolve the FK column on the child side and the predicate function name. */}}
                     {{ if and $e.Rel.Columns (gt (len $e.Rel.Columns) 0) }}
                         {{ $fkCol := index $e.Rel.Columns 0 }}
                         {{ $childPkg := $e.Type.Package }}
@@ -158,6 +153,78 @@ func softDeleteCascade{{ $n.Name }}(ctx context.Context, client any, parentIDs [
             }
         }
     }
+                    {{ end }}
+                {{ end }}
+            {{ end }}
+        {{ end }}
+    {{ end }}
+
+    {{/*
+        PASS 2 — inbound assoc edges where some other node declares
+        `edge.To(thisNode, ...).Field(parentFKCol)` and owns the FK on its
+        side. These are M2O / O2O-inverse relationships where the schema
+        author did NOT declare a reverse `edge.From` on this node (so PASS
+        1 missed them).
+
+        Concrete openmeter case this catches: AppStripeCustomer declares
+        `edge.To("customer", Customer.Type).Field("customer_id")` but
+        Customer does not declare a matching outgoing edge to
+        AppStripeCustomer. Without this pass, deleting a Customer would
+        leave AppStripeCustomer rows pointing at a tombstoned parent.
+
+        We also skip any inbound that is already covered by an outgoing
+        edge in PASS 1, to avoid double-stamping.
+    */}}
+    {{ $coveredByPass1 := dict }}
+    {{ range $e := $n.Edges }}
+        {{ if and (not $e.IsInverse) (not $e.OwnFK) (not $e.M2M) (hasKey $softNodes $e.Type.Name) }}
+            {{ $_ := set $coveredByPass1 $e.Type.Name true }}
+        {{ end }}
+    {{ end }}
+    {{ range $other := $.Nodes }}
+        {{ if and (hasKey $softNodes $other.Name) (ne $other.Name $n.Name) (not (hasKey $coveredByPass1 $other.Name)) }}
+            {{ range $e := $other.Edges }}
+                {{/*
+                    The inbound edge we want is one declared on $other that
+                    points back to $n and owns the FK on $other's side.
+                    `edge.To(n, ...).OwnFK()` matches that. We also accept
+                    inverse edges that own the FK (edge.From with Field)
+                    when the other side declares a reverse to here.
+                */}}
+                {{ if and $e.OwnFK (eq $e.Type.Name $n.Name) (not $e.M2M) }}
+                    {{ if not (hasKey $e.Annotations "SoftDeleteNoCascade") }}
+                        {{ if and $e.Rel.Columns (gt (len $e.Rel.Columns) 0) }}
+                            {{ $fkCol := index $e.Rel.Columns 0 }}
+                            {{ $childPkg := $other.Package }}
+                            {{ $childName := $other.Name }}
+                            {{ $fkPredicate := print (pascal $fkCol) "In" }}
+
+    // Inbound cascade: {{ $childName }}.{{ $e.Name }} -> {{ $n.Name }}
+    // ({{ $childName }} owns FK {{ $fkCol }}; {{ $n.Name }} has no reverse edge)
+    {
+        childIDs, err := c.{{ $childName }}.Query().
+            Where({{ $childPkg }}.{{ $fkPredicate }}(parentIDsTyped...)).
+            IDs(ctx)
+        if err != nil {
+            return fmt.Errorf("softdelete: query {{ $childName }} inbound to {{ $n.Name }}: %w", err)
+        }
+        if len(childIDs) > 0 {
+            if _, err := c.{{ $childName }}.Update().
+                Where({{ $childPkg }}.IDIn(childIDs...)).
+                SetDeletedAt(now).
+                Save(ctx); err != nil {
+                return fmt.Errorf("softdelete: stamp {{ $childName }} deleted_at: %w", err)
+            }
+            childIDsAny := make([]any, len(childIDs))
+            for i, id := range childIDs {
+                childIDsAny[i] = id
+            }
+            if err := softdelete.RunCascadeFor(ctx, "{{ $childName }}", c, childIDsAny); err != nil {
+                return err
+            }
+        }
+    }
+                        {{ end }}
                     {{ end }}
                 {{ end }}
             {{ end }}

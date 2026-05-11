@@ -205,7 +205,9 @@ func (_c *ChargeUsageBasedRunPaymentCreate) Mutation() *ChargeUsageBasedRunPayme
 
 // Save creates the ChargeUsageBasedRunPayment in the database.
 func (_c *ChargeUsageBasedRunPaymentCreate) Save(ctx context.Context) (*ChargeUsageBasedRunPayment, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -232,19 +234,29 @@ func (_c *ChargeUsageBasedRunPaymentCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *ChargeUsageBasedRunPaymentCreate) defaults() {
+func (_c *ChargeUsageBasedRunPaymentCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if chargeusagebasedrunpayment.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeusagebasedrunpayment.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeusagebasedrunpayment.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if chargeusagebasedrunpayment.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeusagebasedrunpayment.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeusagebasedrunpayment.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if chargeusagebasedrunpayment.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized chargeusagebasedrunpayment.DefaultID (forgotten import db/runtime?)")
+		}
 		v := chargeusagebasedrunpayment.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

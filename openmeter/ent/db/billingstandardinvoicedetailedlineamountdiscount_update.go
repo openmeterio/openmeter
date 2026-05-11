@@ -215,7 +215,9 @@ func (_u *BillingStandardInvoiceDetailedLineAmountDiscountUpdate) ClearDetailedL
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *BillingStandardInvoiceDetailedLineAmountDiscountUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -242,11 +244,15 @@ func (_u *BillingStandardInvoiceDetailedLineAmountDiscountUpdate) ExecX(ctx cont
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *BillingStandardInvoiceDetailedLineAmountDiscountUpdate) defaults() {
+func (_u *BillingStandardInvoiceDetailedLineAmountDiscountUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if billingstandardinvoicedetailedlineamountdiscount.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized billingstandardinvoicedetailedlineamountdiscount.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := billingstandardinvoicedetailedlineamountdiscount.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -574,7 +580,9 @@ func (_u *BillingStandardInvoiceDetailedLineAmountDiscountUpdateOne) Select(fiel
 
 // Save executes the query and returns the updated BillingStandardInvoiceDetailedLineAmountDiscount entity.
 func (_u *BillingStandardInvoiceDetailedLineAmountDiscountUpdateOne) Save(ctx context.Context) (*BillingStandardInvoiceDetailedLineAmountDiscount, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -601,11 +609,15 @@ func (_u *BillingStandardInvoiceDetailedLineAmountDiscountUpdateOne) ExecX(ctx c
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *BillingStandardInvoiceDetailedLineAmountDiscountUpdateOne) defaults() {
+func (_u *BillingStandardInvoiceDetailedLineAmountDiscountUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if billingstandardinvoicedetailedlineamountdiscount.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized billingstandardinvoicedetailedlineamountdiscount.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := billingstandardinvoicedetailedlineamountdiscount.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

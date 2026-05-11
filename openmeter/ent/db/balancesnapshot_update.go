@@ -61,7 +61,9 @@ func (_u *BalanceSnapshotUpdate) Mutation() *BalanceSnapshotMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *BalanceSnapshotUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -88,11 +90,15 @@ func (_u *BalanceSnapshotUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *BalanceSnapshotUpdate) defaults() {
+func (_u *BalanceSnapshotUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if balancesnapshot.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized balancesnapshot.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := balancesnapshot.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -193,7 +199,9 @@ func (_u *BalanceSnapshotUpdateOne) Select(field string, fields ...string) *Bala
 
 // Save executes the query and returns the updated BalanceSnapshot entity.
 func (_u *BalanceSnapshotUpdateOne) Save(ctx context.Context) (*BalanceSnapshot, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -220,11 +228,15 @@ func (_u *BalanceSnapshotUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *BalanceSnapshotUpdateOne) defaults() {
+func (_u *BalanceSnapshotUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if balancesnapshot.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized balancesnapshot.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := balancesnapshot.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

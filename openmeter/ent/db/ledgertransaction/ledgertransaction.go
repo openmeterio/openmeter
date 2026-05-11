@@ -5,6 +5,7 @@ package ledgertransaction
 import (
 	"time"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 )
@@ -72,7 +73,14 @@ func ValidColumn(column string) bool {
 	return false
 }
 
+// Note that the variables below are initialized by the runtime
+// package on the initialization of the application. Therefore,
+// it should be imported in the main as follows:
+//
+//	import _ "github.com/openmeterio/openmeter/openmeter/ent/db/runtime"
 var (
+	Hooks        [1]ent.Hook
+	Interceptors [1]ent.Interceptor
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.

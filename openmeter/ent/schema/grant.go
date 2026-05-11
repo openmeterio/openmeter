@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils/softdelete"
 )
 
 type Grant struct {
@@ -23,7 +22,6 @@ func (Grant) Mixin() []ent.Mixin {
 		entutils.NamespaceMixin{},
 		entutils.AnnotationsMixin{},
 		entutils.TimeMixin{},
-		softdelete.SoftDeleteMixin{},
 	}
 }
 

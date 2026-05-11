@@ -186,7 +186,9 @@ func (_c *BillingInvoiceLineUsageDiscountCreate) Mutation() *BillingInvoiceLineU
 
 // Save creates the BillingInvoiceLineUsageDiscount in the database.
 func (_c *BillingInvoiceLineUsageDiscountCreate) Save(ctx context.Context) (*BillingInvoiceLineUsageDiscount, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -213,19 +215,29 @@ func (_c *BillingInvoiceLineUsageDiscountCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *BillingInvoiceLineUsageDiscountCreate) defaults() {
+func (_c *BillingInvoiceLineUsageDiscountCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if billinginvoicelineusagediscount.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized billinginvoicelineusagediscount.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := billinginvoicelineusagediscount.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if billinginvoicelineusagediscount.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized billinginvoicelineusagediscount.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := billinginvoicelineusagediscount.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if billinginvoicelineusagediscount.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized billinginvoicelineusagediscount.DefaultID (forgotten import db/runtime?)")
+		}
 		v := billinginvoicelineusagediscount.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

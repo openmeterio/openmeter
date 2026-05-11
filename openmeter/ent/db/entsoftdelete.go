@@ -13,7 +13,11 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicing"
+
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
+
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 
@@ -477,6 +481,58 @@ func softDeleteCascadeApp(ctx context.Context, client any, parentIDs []any) erro
 				childIDsAny[i] = id
 			}
 			if err := softdelete.RunCascadeFor(ctx, "BillingInvoice", c, childIDsAny); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Inbound cascade: AppCustomInvoicing.app -> App
+	// (AppCustomInvoicing owns FK id; App has no reverse edge)
+	{
+		childIDs, err := c.AppCustomInvoicing.Query().
+			Where(appcustominvoicing.IDIn(parentIDsTyped...)).
+			IDs(ctx)
+		if err != nil {
+			return fmt.Errorf("softdelete: query AppCustomInvoicing inbound to App: %w", err)
+		}
+		if len(childIDs) > 0 {
+			if _, err := c.AppCustomInvoicing.Update().
+				Where(appcustominvoicing.IDIn(childIDs...)).
+				SetDeletedAt(now).
+				Save(ctx); err != nil {
+				return fmt.Errorf("softdelete: stamp AppCustomInvoicing deleted_at: %w", err)
+			}
+			childIDsAny := make([]any, len(childIDs))
+			for i, id := range childIDs {
+				childIDsAny[i] = id
+			}
+			if err := softdelete.RunCascadeFor(ctx, "AppCustomInvoicing", c, childIDsAny); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Inbound cascade: AppStripe.app -> App
+	// (AppStripe owns FK id; App has no reverse edge)
+	{
+		childIDs, err := c.AppStripe.Query().
+			Where(appstripe.IDIn(parentIDsTyped...)).
+			IDs(ctx)
+		if err != nil {
+			return fmt.Errorf("softdelete: query AppStripe inbound to App: %w", err)
+		}
+		if len(childIDs) > 0 {
+			if _, err := c.AppStripe.Update().
+				Where(appstripe.IDIn(childIDs...)).
+				SetDeletedAt(now).
+				Save(ctx); err != nil {
+				return fmt.Errorf("softdelete: stamp AppStripe deleted_at: %w", err)
+			}
+			childIDsAny := make([]any, len(childIDs))
+			for i, id := range childIDs {
+				childIDsAny[i] = id
+			}
+			if err := softdelete.RunCascadeFor(ctx, "AppStripe", c, childIDsAny); err != nil {
 				return err
 			}
 		}
@@ -2809,6 +2865,32 @@ func softDeleteCascadeChargeUsageBasedRuns(ctx context.Context, client any, pare
 		}
 	}
 
+	// Inbound cascade: ChargeUsageBased.current_run -> ChargeUsageBasedRuns
+	// (ChargeUsageBased owns FK current_realization_run_id; ChargeUsageBasedRuns has no reverse edge)
+	{
+		childIDs, err := c.ChargeUsageBased.Query().
+			Where(chargeusagebased.CurrentRealizationRunIDIn(parentIDsTyped...)).
+			IDs(ctx)
+		if err != nil {
+			return fmt.Errorf("softdelete: query ChargeUsageBased inbound to ChargeUsageBasedRuns: %w", err)
+		}
+		if len(childIDs) > 0 {
+			if _, err := c.ChargeUsageBased.Update().
+				Where(chargeusagebased.IDIn(childIDs...)).
+				SetDeletedAt(now).
+				Save(ctx); err != nil {
+				return fmt.Errorf("softdelete: stamp ChargeUsageBased deleted_at: %w", err)
+			}
+			childIDsAny := make([]any, len(childIDs))
+			for i, id := range childIDs {
+				childIDsAny[i] = id
+			}
+			if err := softdelete.RunCascadeFor(ctx, "ChargeUsageBased", c, childIDsAny); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -3181,6 +3263,58 @@ func softDeleteCascadeCustomer(ctx context.Context, client any, parentIDs []any)
 				childIDsAny[i] = id
 			}
 			if err := softdelete.RunCascadeFor(ctx, "ChargeUsageBased", c, childIDsAny); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Inbound cascade: AppCustomInvoicingCustomer.customer -> Customer
+	// (AppCustomInvoicingCustomer owns FK customer_id; Customer has no reverse edge)
+	{
+		childIDs, err := c.AppCustomInvoicingCustomer.Query().
+			Where(appcustominvoicingcustomer.CustomerIDIn(parentIDsTyped...)).
+			IDs(ctx)
+		if err != nil {
+			return fmt.Errorf("softdelete: query AppCustomInvoicingCustomer inbound to Customer: %w", err)
+		}
+		if len(childIDs) > 0 {
+			if _, err := c.AppCustomInvoicingCustomer.Update().
+				Where(appcustominvoicingcustomer.IDIn(childIDs...)).
+				SetDeletedAt(now).
+				Save(ctx); err != nil {
+				return fmt.Errorf("softdelete: stamp AppCustomInvoicingCustomer deleted_at: %w", err)
+			}
+			childIDsAny := make([]any, len(childIDs))
+			for i, id := range childIDs {
+				childIDsAny[i] = id
+			}
+			if err := softdelete.RunCascadeFor(ctx, "AppCustomInvoicingCustomer", c, childIDsAny); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Inbound cascade: AppStripeCustomer.customer -> Customer
+	// (AppStripeCustomer owns FK customer_id; Customer has no reverse edge)
+	{
+		childIDs, err := c.AppStripeCustomer.Query().
+			Where(appstripecustomer.CustomerIDIn(parentIDsTyped...)).
+			IDs(ctx)
+		if err != nil {
+			return fmt.Errorf("softdelete: query AppStripeCustomer inbound to Customer: %w", err)
+		}
+		if len(childIDs) > 0 {
+			if _, err := c.AppStripeCustomer.Update().
+				Where(appstripecustomer.IDIn(childIDs...)).
+				SetDeletedAt(now).
+				Save(ctx); err != nil {
+				return fmt.Errorf("softdelete: stamp AppStripeCustomer deleted_at: %w", err)
+			}
+			childIDsAny := make([]any, len(childIDs))
+			for i, id := range childIDs {
+				childIDsAny[i] = id
+			}
+			if err := softdelete.RunCascadeFor(ctx, "AppStripeCustomer", c, childIDsAny); err != nil {
 				return err
 			}
 		}

@@ -110,7 +110,9 @@ func (_u *SubscriptionAddonUpdate) RemoveQuantities(v ...*SubscriptionAddonQuant
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *SubscriptionAddonUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -137,11 +139,15 @@ func (_u *SubscriptionAddonUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *SubscriptionAddonUpdate) defaults() {
+func (_u *SubscriptionAddonUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if subscriptionaddon.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized subscriptionaddon.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := subscriptionaddon.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -341,7 +347,9 @@ func (_u *SubscriptionAddonUpdateOne) Select(field string, fields ...string) *Su
 
 // Save executes the query and returns the updated SubscriptionAddon entity.
 func (_u *SubscriptionAddonUpdateOne) Save(ctx context.Context) (*SubscriptionAddon, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -368,11 +376,15 @@ func (_u *SubscriptionAddonUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *SubscriptionAddonUpdateOne) defaults() {
+func (_u *SubscriptionAddonUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if subscriptionaddon.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized subscriptionaddon.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := subscriptionaddon.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

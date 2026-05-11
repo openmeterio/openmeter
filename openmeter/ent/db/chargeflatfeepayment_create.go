@@ -223,7 +223,9 @@ func (_c *ChargeFlatFeePaymentCreate) Mutation() *ChargeFlatFeePaymentMutation {
 
 // Save creates the ChargeFlatFeePayment in the database.
 func (_c *ChargeFlatFeePaymentCreate) Save(ctx context.Context) (*ChargeFlatFeePayment, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -250,19 +252,29 @@ func (_c *ChargeFlatFeePaymentCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *ChargeFlatFeePaymentCreate) defaults() {
+func (_c *ChargeFlatFeePaymentCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if chargeflatfeepayment.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeflatfeepayment.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeflatfeepayment.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if chargeflatfeepayment.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeflatfeepayment.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeflatfeepayment.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if chargeflatfeepayment.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized chargeflatfeepayment.DefaultID (forgotten import db/runtime?)")
+		}
 		v := chargeflatfeepayment.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

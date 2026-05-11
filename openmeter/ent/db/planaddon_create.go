@@ -149,7 +149,9 @@ func (_c *PlanAddonCreate) Mutation() *PlanAddonMutation {
 
 // Save creates the PlanAddon in the database.
 func (_c *PlanAddonCreate) Save(ctx context.Context) (*PlanAddon, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -176,19 +178,29 @@ func (_c *PlanAddonCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *PlanAddonCreate) defaults() {
+func (_c *PlanAddonCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if planaddon.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized planaddon.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := planaddon.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if planaddon.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized planaddon.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := planaddon.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if planaddon.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized planaddon.DefaultID (forgotten import db/runtime?)")
+		}
 		v := planaddon.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

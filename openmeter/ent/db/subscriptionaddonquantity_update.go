@@ -61,7 +61,9 @@ func (_u *SubscriptionAddonQuantityUpdate) Mutation() *SubscriptionAddonQuantity
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *SubscriptionAddonQuantityUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -88,11 +90,15 @@ func (_u *SubscriptionAddonQuantityUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *SubscriptionAddonQuantityUpdate) defaults() {
+func (_u *SubscriptionAddonQuantityUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if subscriptionaddonquantity.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized subscriptionaddonquantity.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := subscriptionaddonquantity.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -190,7 +196,9 @@ func (_u *SubscriptionAddonQuantityUpdateOne) Select(field string, fields ...str
 
 // Save executes the query and returns the updated SubscriptionAddonQuantity entity.
 func (_u *SubscriptionAddonQuantityUpdateOne) Save(ctx context.Context) (*SubscriptionAddonQuantity, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -217,11 +225,15 @@ func (_u *SubscriptionAddonQuantityUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *SubscriptionAddonQuantityUpdateOne) defaults() {
+func (_u *SubscriptionAddonQuantityUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if subscriptionaddonquantity.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized subscriptionaddonquantity.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := subscriptionaddonquantity.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

@@ -130,7 +130,9 @@ func (_c *UsageResetCreate) Mutation() *UsageResetMutation {
 
 // Save creates the UsageReset in the database.
 func (_c *UsageResetCreate) Save(ctx context.Context) (*UsageReset, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -157,19 +159,29 @@ func (_c *UsageResetCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *UsageResetCreate) defaults() {
+func (_c *UsageResetCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if usagereset.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized usagereset.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := usagereset.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if usagereset.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized usagereset.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := usagereset.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if usagereset.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized usagereset.DefaultID (forgotten import db/runtime?)")
+		}
 		v := usagereset.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

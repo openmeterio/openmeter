@@ -208,6 +208,10 @@ func init() {
 	// dbapp.DefaultID holds the default value on creation for the id field.
 	dbapp.DefaultID = dbappDescID.Default.(func() string)
 	appcustominvoicingMixin := schema.AppCustomInvoicing{}.Mixin()
+	appcustominvoicingMixinHooks2 := appcustominvoicingMixin[2].Hooks()
+	appcustominvoicing.Hooks[0] = appcustominvoicingMixinHooks2[0]
+	appcustominvoicingMixinInters2 := appcustominvoicingMixin[2].Interceptors()
+	appcustominvoicing.Interceptors[0] = appcustominvoicingMixinInters2[0]
 	appcustominvoicingMixinFields0 := appcustominvoicingMixin[0].Fields()
 	_ = appcustominvoicingMixinFields0
 	appcustominvoicingMixinFields1 := appcustominvoicingMixin[1].Fields()
@@ -243,6 +247,10 @@ func init() {
 	// appcustominvoicing.DefaultID holds the default value on creation for the id field.
 	appcustominvoicing.DefaultID = appcustominvoicingDescID.Default.(func() string)
 	appcustominvoicingcustomerMixin := schema.AppCustomInvoicingCustomer{}.Mixin()
+	appcustominvoicingcustomerMixinHooks1 := appcustominvoicingcustomerMixin[1].Hooks()
+	appcustominvoicingcustomer.Hooks[0] = appcustominvoicingcustomerMixinHooks1[0]
+	appcustominvoicingcustomerMixinInters1 := appcustominvoicingcustomerMixin[1].Interceptors()
+	appcustominvoicingcustomer.Interceptors[0] = appcustominvoicingcustomerMixinInters1[0]
 	appcustominvoicingcustomerMixinFields0 := appcustominvoicingcustomerMixin[0].Fields()
 	_ = appcustominvoicingcustomerMixinFields0
 	appcustominvoicingcustomerMixinFields1 := appcustominvoicingcustomerMixin[1].Fields()
@@ -272,6 +280,10 @@ func init() {
 	// appcustominvoicingcustomer.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	appcustominvoicingcustomer.CustomerIDValidator = appcustominvoicingcustomerDescCustomerID.Validators[0].(func(string) error)
 	appcustomerMixin := schema.AppCustomer{}.Mixin()
+	appcustomerMixinHooks1 := appcustomerMixin[1].Hooks()
+	appcustomer.Hooks[0] = appcustomerMixinHooks1[0]
+	appcustomerMixinInters1 := appcustomerMixin[1].Interceptors()
+	appcustomer.Interceptors[0] = appcustomerMixinInters1[0]
 	appcustomerMixinFields0 := appcustomerMixin[0].Fields()
 	_ = appcustomerMixinFields0
 	appcustomerMixinFields1 := appcustomerMixin[1].Fields()
@@ -301,6 +313,10 @@ func init() {
 	// appcustomer.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	appcustomer.CustomerIDValidator = appcustomerDescCustomerID.Validators[0].(func(string) error)
 	appstripeMixin := schema.AppStripe{}.Mixin()
+	appstripeMixinHooks2 := appstripeMixin[2].Hooks()
+	appstripe.Hooks[0] = appstripeMixinHooks2[0]
+	appstripeMixinInters2 := appstripeMixin[2].Interceptors()
+	appstripe.Interceptors[0] = appstripeMixinInters2[0]
 	appstripeMixinFields0 := appstripeMixin[0].Fields()
 	_ = appstripeMixinFields0
 	appstripeMixinFields1 := appstripeMixin[1].Fields()
@@ -344,6 +360,10 @@ func init() {
 	// appstripe.DefaultID holds the default value on creation for the id field.
 	appstripe.DefaultID = appstripeDescID.Default.(func() string)
 	appstripecustomerMixin := schema.AppStripeCustomer{}.Mixin()
+	appstripecustomerMixinHooks1 := appstripecustomerMixin[1].Hooks()
+	appstripecustomer.Hooks[0] = appstripecustomerMixinHooks1[0]
+	appstripecustomerMixinInters1 := appstripecustomerMixin[1].Interceptors()
+	appstripecustomer.Interceptors[0] = appstripecustomerMixinInters1[0]
 	appstripecustomerMixinFields0 := appstripecustomerMixin[0].Fields()
 	_ = appstripecustomerMixinFields0
 	appstripecustomerMixinFields1 := appstripecustomerMixin[1].Fields()
@@ -377,6 +397,10 @@ func init() {
 	// appstripecustomer.StripeCustomerIDValidator is a validator for the "stripe_customer_id" field. It is called by the builders before save.
 	appstripecustomer.StripeCustomerIDValidator = appstripecustomerDescStripeCustomerID.Validators[0].(func(string) error)
 	balancesnapshotMixin := schema.BalanceSnapshot{}.Mixin()
+	balancesnapshotMixinHooks1 := balancesnapshotMixin[1].Hooks()
+	balancesnapshot.Hooks[0] = balancesnapshotMixinHooks1[0]
+	balancesnapshotMixinInters1 := balancesnapshotMixin[1].Interceptors()
+	balancesnapshot.Interceptors[0] = balancesnapshotMixinInters1[0]
 	balancesnapshotMixinFields0 := balancesnapshotMixin[0].Fields()
 	_ = balancesnapshotMixinFields0
 	balancesnapshotMixinFields1 := balancesnapshotMixin[1].Fields()
@@ -413,6 +437,10 @@ func init() {
 	// billingcustomerlock.DefaultID holds the default value on creation for the id field.
 	billingcustomerlock.DefaultID = billingcustomerlockDescID.Default.(func() string)
 	billingcustomeroverrideMixin := schema.BillingCustomerOverride{}.Mixin()
+	billingcustomeroverrideMixinHooks2 := billingcustomeroverrideMixin[2].Hooks()
+	billingcustomeroverride.Hooks[0] = billingcustomeroverrideMixinHooks2[0]
+	billingcustomeroverrideMixinInters2 := billingcustomeroverrideMixin[2].Interceptors()
+	billingcustomeroverride.Interceptors[0] = billingcustomeroverrideMixinInters2[0]
 	billingcustomeroverrideMixinFields0 := billingcustomeroverrideMixin[0].Fields()
 	_ = billingcustomeroverrideMixinFields0
 	billingcustomeroverrideMixinFields1 := billingcustomeroverrideMixin[1].Fields()
@@ -440,6 +468,10 @@ func init() {
 	// billingcustomeroverride.DefaultID holds the default value on creation for the id field.
 	billingcustomeroverride.DefaultID = billingcustomeroverrideDescID.Default.(func() string)
 	billinginvoiceMixin := schema.BillingInvoice{}.Mixin()
+	billinginvoiceMixinHooks3 := billinginvoiceMixin[3].Hooks()
+	billinginvoice.Hooks[0] = billinginvoiceMixinHooks3[0]
+	billinginvoiceMixinInters3 := billinginvoiceMixin[3].Interceptors()
+	billinginvoice.Interceptors[0] = billinginvoiceMixinInters3[0]
 	billinginvoiceMixinFields0 := billinginvoiceMixin[0].Fields()
 	_ = billinginvoiceMixinFields0
 	billinginvoiceMixinFields1 := billinginvoiceMixin[1].Fields()
@@ -581,6 +613,10 @@ func init() {
 	// billinginvoiceline.DefaultID holds the default value on creation for the id field.
 	billinginvoiceline.DefaultID = billinginvoicelineDescID.Default.(func() string)
 	billinginvoicelinediscountMixin := schema.BillingInvoiceLineDiscount{}.Mixin()
+	billinginvoicelinediscountMixinHooks2 := billinginvoicelinediscountMixin[2].Hooks()
+	billinginvoicelinediscount.Hooks[0] = billinginvoicelinediscountMixinHooks2[0]
+	billinginvoicelinediscountMixinInters2 := billinginvoicelinediscountMixin[2].Interceptors()
+	billinginvoicelinediscount.Interceptors[0] = billinginvoicelinediscountMixinInters2[0]
 	billinginvoicelinediscountMixinFields0 := billinginvoicelinediscountMixin[0].Fields()
 	_ = billinginvoicelinediscountMixinFields0
 	billinginvoicelinediscountMixinFields1 := billinginvoicelinediscountMixin[1].Fields()
@@ -611,6 +647,10 @@ func init() {
 	// billinginvoicelinediscount.DefaultID holds the default value on creation for the id field.
 	billinginvoicelinediscount.DefaultID = billinginvoicelinediscountDescID.Default.(func() string)
 	billinginvoicelineusagediscountMixin := schema.BillingInvoiceLineUsageDiscount{}.Mixin()
+	billinginvoicelineusagediscountMixinHooks2 := billinginvoicelineusagediscountMixin[2].Hooks()
+	billinginvoicelineusagediscount.Hooks[0] = billinginvoicelineusagediscountMixinHooks2[0]
+	billinginvoicelineusagediscountMixinInters2 := billinginvoicelineusagediscountMixin[2].Interceptors()
+	billinginvoicelineusagediscount.Interceptors[0] = billinginvoicelineusagediscountMixinInters2[0]
 	billinginvoicelineusagediscountMixinFields0 := billinginvoicelineusagediscountMixin[0].Fields()
 	_ = billinginvoicelineusagediscountMixinFields0
 	billinginvoicelineusagediscountMixinFields1 := billinginvoicelineusagediscountMixin[1].Fields()
@@ -694,6 +734,10 @@ func init() {
 	// billinginvoiceusagebasedlineconfig.DefaultID holds the default value on creation for the id field.
 	billinginvoiceusagebasedlineconfig.DefaultID = billinginvoiceusagebasedlineconfigDescID.Default.(func() string)
 	billinginvoicevalidationissueMixin := schema.BillingInvoiceValidationIssue{}.Mixin()
+	billinginvoicevalidationissueMixinHooks2 := billinginvoicevalidationissueMixin[2].Hooks()
+	billinginvoicevalidationissue.Hooks[0] = billinginvoicevalidationissueMixinHooks2[0]
+	billinginvoicevalidationissueMixinInters2 := billinginvoicevalidationissueMixin[2].Interceptors()
+	billinginvoicevalidationissue.Interceptors[0] = billinginvoicevalidationissueMixinInters2[0]
 	billinginvoicevalidationissueMixinFields0 := billinginvoicevalidationissueMixin[0].Fields()
 	_ = billinginvoicevalidationissueMixinFields0
 	billinginvoicevalidationissueMixinFields1 := billinginvoicevalidationissueMixin[1].Fields()
@@ -848,6 +892,10 @@ func init() {
 	// billingstandardinvoicedetailedline.DefaultID holds the default value on creation for the id field.
 	billingstandardinvoicedetailedline.DefaultID = billingstandardinvoicedetailedlineDescID.Default.(func() string)
 	billingstandardinvoicedetailedlineamountdiscountMixin := schema.BillingStandardInvoiceDetailedLineAmountDiscount{}.Mixin()
+	billingstandardinvoicedetailedlineamountdiscountMixinHooks2 := billingstandardinvoicedetailedlineamountdiscountMixin[2].Hooks()
+	billingstandardinvoicedetailedlineamountdiscount.Hooks[0] = billingstandardinvoicedetailedlineamountdiscountMixinHooks2[0]
+	billingstandardinvoicedetailedlineamountdiscountMixinInters2 := billingstandardinvoicedetailedlineamountdiscountMixin[2].Interceptors()
+	billingstandardinvoicedetailedlineamountdiscount.Interceptors[0] = billingstandardinvoicedetailedlineamountdiscountMixinInters2[0]
 	billingstandardinvoicedetailedlineamountdiscountMixinFields0 := billingstandardinvoicedetailedlineamountdiscountMixin[0].Fields()
 	_ = billingstandardinvoicedetailedlineamountdiscountMixinFields0
 	billingstandardinvoicedetailedlineamountdiscountMixinFields1 := billingstandardinvoicedetailedlineamountdiscountMixin[1].Fields()
@@ -878,6 +926,10 @@ func init() {
 	// billingstandardinvoicedetailedlineamountdiscount.DefaultID holds the default value on creation for the id field.
 	billingstandardinvoicedetailedlineamountdiscount.DefaultID = billingstandardinvoicedetailedlineamountdiscountDescID.Default.(func() string)
 	billingworkflowconfigMixin := schema.BillingWorkflowConfig{}.Mixin()
+	billingworkflowconfigMixinHooks2 := billingworkflowconfigMixin[2].Hooks()
+	billingworkflowconfig.Hooks[0] = billingworkflowconfigMixinHooks2[0]
+	billingworkflowconfigMixinInters2 := billingworkflowconfigMixin[2].Interceptors()
+	billingworkflowconfig.Interceptors[0] = billingworkflowconfigMixinInters2[0]
 	billingworkflowconfigMixinFields0 := billingworkflowconfigMixin[0].Fields()
 	_ = billingworkflowconfigMixinFields0
 	billingworkflowconfigMixinFields1 := billingworkflowconfigMixin[1].Fields()
@@ -970,6 +1022,10 @@ func init() {
 	// chargecreditpurchase.DefaultID holds the default value on creation for the id field.
 	chargecreditpurchase.DefaultID = chargecreditpurchaseDescID.Default.(func() string)
 	chargecreditpurchasecreditgrantMixin := schema.ChargeCreditPurchaseCreditGrant{}.Mixin()
+	chargecreditpurchasecreditgrantMixinHooks2 := chargecreditpurchasecreditgrantMixin[2].Hooks()
+	chargecreditpurchasecreditgrant.Hooks[0] = chargecreditpurchasecreditgrantMixinHooks2[0]
+	chargecreditpurchasecreditgrantMixinInters2 := chargecreditpurchasecreditgrantMixin[2].Interceptors()
+	chargecreditpurchasecreditgrant.Interceptors[0] = chargecreditpurchasecreditgrantMixinInters2[0]
 	chargecreditpurchasecreditgrantMixinFields0 := chargecreditpurchasecreditgrantMixin[0].Fields()
 	_ = chargecreditpurchasecreditgrantMixinFields0
 	chargecreditpurchasecreditgrantMixinFields1 := chargecreditpurchasecreditgrantMixin[1].Fields()
@@ -1001,6 +1057,10 @@ func init() {
 	// chargecreditpurchasecreditgrant.DefaultID holds the default value on creation for the id field.
 	chargecreditpurchasecreditgrant.DefaultID = chargecreditpurchasecreditgrantDescID.Default.(func() string)
 	chargecreditpurchaseexternalpaymentMixin := schema.ChargeCreditPurchaseExternalPayment{}.Mixin()
+	chargecreditpurchaseexternalpaymentMixinHooks0 := chargecreditpurchaseexternalpaymentMixin[0].Hooks()
+	chargecreditpurchaseexternalpayment.Hooks[0] = chargecreditpurchaseexternalpaymentMixinHooks0[0]
+	chargecreditpurchaseexternalpaymentMixinInters0 := chargecreditpurchaseexternalpaymentMixin[0].Interceptors()
+	chargecreditpurchaseexternalpayment.Interceptors[0] = chargecreditpurchaseexternalpaymentMixinInters0[0]
 	chargecreditpurchaseexternalpaymentMixinFields0 := chargecreditpurchaseexternalpaymentMixin[0].Fields()
 	_ = chargecreditpurchaseexternalpaymentMixinFields0
 	chargecreditpurchaseexternalpaymentFields := schema.ChargeCreditPurchaseExternalPayment{}.Fields()
@@ -1032,6 +1092,10 @@ func init() {
 	// chargecreditpurchaseexternalpayment.DefaultID holds the default value on creation for the id field.
 	chargecreditpurchaseexternalpayment.DefaultID = chargecreditpurchaseexternalpaymentDescID.Default.(func() string)
 	chargecreditpurchaseinvoicedpaymentMixin := schema.ChargeCreditPurchaseInvoicedPayment{}.Mixin()
+	chargecreditpurchaseinvoicedpaymentMixinHooks0 := chargecreditpurchaseinvoicedpaymentMixin[0].Hooks()
+	chargecreditpurchaseinvoicedpayment.Hooks[0] = chargecreditpurchaseinvoicedpaymentMixinHooks0[0]
+	chargecreditpurchaseinvoicedpaymentMixinInters0 := chargecreditpurchaseinvoicedpaymentMixin[0].Interceptors()
+	chargecreditpurchaseinvoicedpayment.Interceptors[0] = chargecreditpurchaseinvoicedpaymentMixinInters0[0]
 	chargecreditpurchaseinvoicedpaymentMixinFields0 := chargecreditpurchaseinvoicedpaymentMixin[0].Fields()
 	_ = chargecreditpurchaseinvoicedpaymentMixinFields0
 	chargecreditpurchaseinvoicedpaymentFields := schema.ChargeCreditPurchaseInvoicedPayment{}.Fields()
@@ -1105,6 +1169,10 @@ func init() {
 	// chargeflatfee.DefaultID holds the default value on creation for the id field.
 	chargeflatfee.DefaultID = chargeflatfeeDescID.Default.(func() string)
 	chargeflatfeecreditallocationsMixin := schema.ChargeFlatFeeCreditAllocations{}.Mixin()
+	chargeflatfeecreditallocationsMixinHooks0 := chargeflatfeecreditallocationsMixin[0].Hooks()
+	chargeflatfeecreditallocations.Hooks[0] = chargeflatfeecreditallocationsMixinHooks0[0]
+	chargeflatfeecreditallocationsMixinInters0 := chargeflatfeecreditallocationsMixin[0].Interceptors()
+	chargeflatfeecreditallocations.Interceptors[0] = chargeflatfeecreditallocationsMixinInters0[0]
 	chargeflatfeecreditallocationsMixinFields0 := chargeflatfeecreditallocationsMixin[0].Fields()
 	_ = chargeflatfeecreditallocationsMixinFields0
 	chargeflatfeecreditallocationsFields := schema.ChargeFlatFeeCreditAllocations{}.Fields()
@@ -1175,6 +1243,10 @@ func init() {
 	// chargeflatfeedetailedline.DefaultID holds the default value on creation for the id field.
 	chargeflatfeedetailedline.DefaultID = chargeflatfeedetailedlineDescID.Default.(func() string)
 	chargeflatfeeinvoicedusageMixin := schema.ChargeFlatFeeInvoicedUsage{}.Mixin()
+	chargeflatfeeinvoicedusageMixinHooks0 := chargeflatfeeinvoicedusageMixin[0].Hooks()
+	chargeflatfeeinvoicedusage.Hooks[0] = chargeflatfeeinvoicedusageMixinHooks0[0]
+	chargeflatfeeinvoicedusageMixinInters0 := chargeflatfeeinvoicedusageMixin[0].Interceptors()
+	chargeflatfeeinvoicedusage.Interceptors[0] = chargeflatfeeinvoicedusageMixinInters0[0]
 	chargeflatfeeinvoicedusageMixinFields0 := chargeflatfeeinvoicedusageMixin[0].Fields()
 	_ = chargeflatfeeinvoicedusageMixinFields0
 	chargeflatfeeinvoicedusageFields := schema.ChargeFlatFeeInvoicedUsage{}.Fields()
@@ -1206,6 +1278,10 @@ func init() {
 	// chargeflatfeeinvoicedusage.DefaultID holds the default value on creation for the id field.
 	chargeflatfeeinvoicedusage.DefaultID = chargeflatfeeinvoicedusageDescID.Default.(func() string)
 	chargeflatfeepaymentMixin := schema.ChargeFlatFeePayment{}.Mixin()
+	chargeflatfeepaymentMixinHooks0 := chargeflatfeepaymentMixin[0].Hooks()
+	chargeflatfeepayment.Hooks[0] = chargeflatfeepaymentMixinHooks0[0]
+	chargeflatfeepaymentMixinInters0 := chargeflatfeepaymentMixin[0].Interceptors()
+	chargeflatfeepayment.Interceptors[0] = chargeflatfeepaymentMixinInters0[0]
 	chargeflatfeepaymentMixinFields0 := chargeflatfeepaymentMixin[0].Fields()
 	_ = chargeflatfeepaymentMixinFields0
 	chargeflatfeepaymentFields := schema.ChargeFlatFeePayment{}.Fields()
@@ -1282,6 +1358,10 @@ func init() {
 	// chargeusagebased.DefaultID holds the default value on creation for the id field.
 	chargeusagebased.DefaultID = chargeusagebasedDescID.Default.(func() string)
 	chargeusagebasedruncreditallocationsMixin := schema.ChargeUsageBasedRunCreditAllocations{}.Mixin()
+	chargeusagebasedruncreditallocationsMixinHooks0 := chargeusagebasedruncreditallocationsMixin[0].Hooks()
+	chargeusagebasedruncreditallocations.Hooks[0] = chargeusagebasedruncreditallocationsMixinHooks0[0]
+	chargeusagebasedruncreditallocationsMixinInters0 := chargeusagebasedruncreditallocationsMixin[0].Interceptors()
+	chargeusagebasedruncreditallocations.Interceptors[0] = chargeusagebasedruncreditallocationsMixinInters0[0]
 	chargeusagebasedruncreditallocationsMixinFields0 := chargeusagebasedruncreditallocationsMixin[0].Fields()
 	_ = chargeusagebasedruncreditallocationsMixinFields0
 	chargeusagebasedruncreditallocationsFields := schema.ChargeUsageBasedRunCreditAllocations{}.Fields()
@@ -1356,6 +1436,10 @@ func init() {
 	// chargeusagebasedrundetailedline.DefaultID holds the default value on creation for the id field.
 	chargeusagebasedrundetailedline.DefaultID = chargeusagebasedrundetailedlineDescID.Default.(func() string)
 	chargeusagebasedruninvoicedusageMixin := schema.ChargeUsageBasedRunInvoicedUsage{}.Mixin()
+	chargeusagebasedruninvoicedusageMixinHooks0 := chargeusagebasedruninvoicedusageMixin[0].Hooks()
+	chargeusagebasedruninvoicedusage.Hooks[0] = chargeusagebasedruninvoicedusageMixinHooks0[0]
+	chargeusagebasedruninvoicedusageMixinInters0 := chargeusagebasedruninvoicedusageMixin[0].Interceptors()
+	chargeusagebasedruninvoicedusage.Interceptors[0] = chargeusagebasedruninvoicedusageMixinInters0[0]
 	chargeusagebasedruninvoicedusageMixinFields0 := chargeusagebasedruninvoicedusageMixin[0].Fields()
 	_ = chargeusagebasedruninvoicedusageMixinFields0
 	chargeusagebasedruninvoicedusageFields := schema.ChargeUsageBasedRunInvoicedUsage{}.Fields()
@@ -1387,6 +1471,10 @@ func init() {
 	// chargeusagebasedruninvoicedusage.DefaultID holds the default value on creation for the id field.
 	chargeusagebasedruninvoicedusage.DefaultID = chargeusagebasedruninvoicedusageDescID.Default.(func() string)
 	chargeusagebasedrunpaymentMixin := schema.ChargeUsageBasedRunPayment{}.Mixin()
+	chargeusagebasedrunpaymentMixinHooks0 := chargeusagebasedrunpaymentMixin[0].Hooks()
+	chargeusagebasedrunpayment.Hooks[0] = chargeusagebasedrunpaymentMixinHooks0[0]
+	chargeusagebasedrunpaymentMixinInters0 := chargeusagebasedrunpaymentMixin[0].Interceptors()
+	chargeusagebasedrunpayment.Interceptors[0] = chargeusagebasedrunpaymentMixinInters0[0]
 	chargeusagebasedrunpaymentMixinFields0 := chargeusagebasedrunpaymentMixin[0].Fields()
 	_ = chargeusagebasedrunpaymentMixinFields0
 	chargeusagebasedrunpaymentFields := schema.ChargeUsageBasedRunPayment{}.Fields()
@@ -1418,6 +1506,10 @@ func init() {
 	// chargeusagebasedrunpayment.DefaultID holds the default value on creation for the id field.
 	chargeusagebasedrunpayment.DefaultID = chargeusagebasedrunpaymentDescID.Default.(func() string)
 	chargeusagebasedrunsMixin := schema.ChargeUsageBasedRuns{}.Mixin()
+	chargeusagebasedrunsMixinHooks2 := chargeusagebasedrunsMixin[2].Hooks()
+	chargeusagebasedruns.Hooks[0] = chargeusagebasedrunsMixinHooks2[0]
+	chargeusagebasedrunsMixinInters2 := chargeusagebasedrunsMixin[2].Interceptors()
+	chargeusagebasedruns.Interceptors[0] = chargeusagebasedrunsMixinInters2[0]
 	chargeusagebasedrunsMixinFields0 := chargeusagebasedrunsMixin[0].Fields()
 	_ = chargeusagebasedrunsMixinFields0
 	chargeusagebasedrunsMixinFields1 := chargeusagebasedrunsMixin[1].Fields()
@@ -1545,6 +1637,10 @@ func init() {
 	// creditrealizationlineagesegment.DefaultID holds the default value on creation for the id field.
 	creditrealizationlineagesegment.DefaultID = creditrealizationlineagesegmentDescID.Default.(func() string)
 	currencycostbasisMixin := schema.CurrencyCostBasis{}.Mixin()
+	currencycostbasisMixinHooks2 := currencycostbasisMixin[2].Hooks()
+	currencycostbasis.Hooks[0] = currencycostbasisMixinHooks2[0]
+	currencycostbasisMixinInters2 := currencycostbasisMixin[2].Interceptors()
+	currencycostbasis.Interceptors[0] = currencycostbasisMixinInters2[0]
 	currencycostbasisMixinFields0 := currencycostbasisMixin[0].Fields()
 	_ = currencycostbasisMixinFields0
 	currencycostbasisMixinFields1 := currencycostbasisMixin[1].Fields()
@@ -1576,6 +1672,10 @@ func init() {
 	// currencycostbasis.DefaultID holds the default value on creation for the id field.
 	currencycostbasis.DefaultID = currencycostbasisDescID.Default.(func() string)
 	customcurrencyMixin := schema.CustomCurrency{}.Mixin()
+	customcurrencyMixinHooks2 := customcurrencyMixin[2].Hooks()
+	customcurrency.Hooks[0] = customcurrencyMixinHooks2[0]
+	customcurrencyMixinInters2 := customcurrencyMixin[2].Interceptors()
+	customcurrency.Interceptors[0] = customcurrencyMixinInters2[0]
 	customcurrencyMixinFields0 := customcurrencyMixin[0].Fields()
 	_ = customcurrencyMixinFields0
 	customcurrencyMixinFields1 := customcurrencyMixin[1].Fields()
@@ -1716,6 +1816,10 @@ func init() {
 	// customersubjects.DefaultCreatedAt holds the default value on creation for the created_at field.
 	customersubjects.DefaultCreatedAt = customersubjectsDescCreatedAt.Default.(func() time.Time)
 	entitlementMixin := schema.Entitlement{}.Mixin()
+	entitlementMixinHooks3 := entitlementMixin[3].Hooks()
+	entitlement.Hooks[0] = entitlementMixinHooks3[0]
+	entitlementMixinInters3 := entitlementMixin[3].Interceptors()
+	entitlement.Interceptors[0] = entitlementMixinInters3[0]
 	entitlementMixinFields0 := entitlementMixin[0].Fields()
 	_ = entitlementMixinFields0
 	entitlementMixinFields1 := entitlementMixin[1].Fields()
@@ -1764,6 +1868,10 @@ func init() {
 	// entitlement.DefaultID holds the default value on creation for the id field.
 	entitlement.DefaultID = entitlementDescID.Default.(func() string)
 	dbfeatureMixin := schema.Feature{}.Mixin()
+	dbfeatureMixinHooks1 := dbfeatureMixin[1].Hooks()
+	dbfeature.Hooks[0] = dbfeatureMixinHooks1[0]
+	dbfeatureMixinInters1 := dbfeatureMixin[1].Interceptors()
+	dbfeature.Interceptors[0] = dbfeatureMixinInters1[0]
 	dbfeatureMixinFields0 := dbfeatureMixin[0].Fields()
 	_ = dbfeatureMixinFields0
 	dbfeatureMixinFields1 := dbfeatureMixin[1].Fields()
@@ -1801,10 +1909,10 @@ func init() {
 	// dbfeature.DefaultID holds the default value on creation for the id field.
 	dbfeature.DefaultID = dbfeatureDescID.Default.(func() string)
 	dbgrantMixin := schema.Grant{}.Mixin()
-	dbgrantMixinHooks4 := dbgrantMixin[4].Hooks()
-	dbgrant.Hooks[0] = dbgrantMixinHooks4[0]
-	dbgrantMixinInters4 := dbgrantMixin[4].Interceptors()
-	dbgrant.Interceptors[0] = dbgrantMixinInters4[0]
+	dbgrantMixinHooks3 := dbgrantMixin[3].Hooks()
+	dbgrant.Hooks[0] = dbgrantMixinHooks3[0]
+	dbgrantMixinInters3 := dbgrantMixin[3].Interceptors()
+	dbgrant.Interceptors[0] = dbgrantMixinInters3[0]
 	dbgrantMixinFields0 := dbgrantMixin[0].Fields()
 	_ = dbgrantMixinFields0
 	dbgrantMixinFields1 := dbgrantMixin[1].Fields()
@@ -1836,6 +1944,10 @@ func init() {
 	// dbgrant.DefaultID holds the default value on creation for the id field.
 	dbgrant.DefaultID = dbgrantDescID.Default.(func() string)
 	llmcostpriceMixin := schema.LLMCostPrice{}.Mixin()
+	llmcostpriceMixinHooks2 := llmcostpriceMixin[2].Hooks()
+	llmcostprice.Hooks[0] = llmcostpriceMixinHooks2[0]
+	llmcostpriceMixinInters2 := llmcostpriceMixin[2].Interceptors()
+	llmcostprice.Interceptors[0] = llmcostpriceMixinInters2[0]
 	llmcostpriceMixinFields0 := llmcostpriceMixin[0].Fields()
 	_ = llmcostpriceMixinFields0
 	llmcostpriceMixinFields2 := llmcostpriceMixin[2].Fields()
@@ -1894,6 +2006,10 @@ func init() {
 	// llmcostprice.DefaultID holds the default value on creation for the id field.
 	llmcostprice.DefaultID = llmcostpriceDescID.Default.(func() string)
 	ledgeraccountMixin := schema.LedgerAccount{}.Mixin()
+	ledgeraccountMixinHooks3 := ledgeraccountMixin[3].Hooks()
+	ledgeraccount.Hooks[0] = ledgeraccountMixinHooks3[0]
+	ledgeraccountMixinInters3 := ledgeraccountMixin[3].Interceptors()
+	ledgeraccount.Interceptors[0] = ledgeraccountMixinInters3[0]
 	ledgeraccountMixinFields0 := ledgeraccountMixin[0].Fields()
 	_ = ledgeraccountMixinFields0
 	ledgeraccountMixinFields1 := ledgeraccountMixin[1].Fields()
@@ -1921,6 +2037,10 @@ func init() {
 	// ledgeraccount.DefaultID holds the default value on creation for the id field.
 	ledgeraccount.DefaultID = ledgeraccountDescID.Default.(func() string)
 	ledgercustomeraccountMixin := schema.LedgerCustomerAccount{}.Mixin()
+	ledgercustomeraccountMixinHooks2 := ledgercustomeraccountMixin[2].Hooks()
+	ledgercustomeraccount.Hooks[0] = ledgercustomeraccountMixinHooks2[0]
+	ledgercustomeraccountMixinInters2 := ledgercustomeraccountMixin[2].Interceptors()
+	ledgercustomeraccount.Interceptors[0] = ledgercustomeraccountMixinInters2[0]
 	ledgercustomeraccountMixinFields0 := ledgercustomeraccountMixin[0].Fields()
 	_ = ledgercustomeraccountMixinFields0
 	ledgercustomeraccountMixinFields1 := ledgercustomeraccountMixin[1].Fields()
@@ -1948,6 +2068,10 @@ func init() {
 	// ledgercustomeraccount.DefaultID holds the default value on creation for the id field.
 	ledgercustomeraccount.DefaultID = ledgercustomeraccountDescID.Default.(func() string)
 	ledgerentryMixin := schema.LedgerEntry{}.Mixin()
+	ledgerentryMixinHooks3 := ledgerentryMixin[3].Hooks()
+	ledgerentry.Hooks[0] = ledgerentryMixinHooks3[0]
+	ledgerentryMixinInters3 := ledgerentryMixin[3].Interceptors()
+	ledgerentry.Interceptors[0] = ledgerentryMixinInters3[0]
 	ledgerentryMixinFields0 := ledgerentryMixin[0].Fields()
 	_ = ledgerentryMixinFields0
 	ledgerentryMixinFields1 := ledgerentryMixin[1].Fields()
@@ -1975,6 +2099,10 @@ func init() {
 	// ledgerentry.DefaultID holds the default value on creation for the id field.
 	ledgerentry.DefaultID = ledgerentryDescID.Default.(func() string)
 	ledgersubaccountMixin := schema.LedgerSubAccount{}.Mixin()
+	ledgersubaccountMixinHooks3 := ledgersubaccountMixin[3].Hooks()
+	ledgersubaccount.Hooks[0] = ledgersubaccountMixinHooks3[0]
+	ledgersubaccountMixinInters3 := ledgersubaccountMixin[3].Interceptors()
+	ledgersubaccount.Interceptors[0] = ledgersubaccountMixinInters3[0]
 	ledgersubaccountMixinFields0 := ledgersubaccountMixin[0].Fields()
 	_ = ledgersubaccountMixinFields0
 	ledgersubaccountMixinFields1 := ledgersubaccountMixin[1].Fields()
@@ -2002,6 +2130,10 @@ func init() {
 	// ledgersubaccount.DefaultID holds the default value on creation for the id field.
 	ledgersubaccount.DefaultID = ledgersubaccountDescID.Default.(func() string)
 	ledgersubaccountrouteMixin := schema.LedgerSubAccountRoute{}.Mixin()
+	ledgersubaccountrouteMixinHooks2 := ledgersubaccountrouteMixin[2].Hooks()
+	ledgersubaccountroute.Hooks[0] = ledgersubaccountrouteMixinHooks2[0]
+	ledgersubaccountrouteMixinInters2 := ledgersubaccountrouteMixin[2].Interceptors()
+	ledgersubaccountroute.Interceptors[0] = ledgersubaccountrouteMixinInters2[0]
 	ledgersubaccountrouteMixinFields0 := ledgersubaccountrouteMixin[0].Fields()
 	_ = ledgersubaccountrouteMixinFields0
 	ledgersubaccountrouteMixinFields1 := ledgersubaccountrouteMixin[1].Fields()
@@ -2029,6 +2161,10 @@ func init() {
 	// ledgersubaccountroute.DefaultID holds the default value on creation for the id field.
 	ledgersubaccountroute.DefaultID = ledgersubaccountrouteDescID.Default.(func() string)
 	ledgertransactionMixin := schema.LedgerTransaction{}.Mixin()
+	ledgertransactionMixinHooks3 := ledgertransactionMixin[3].Hooks()
+	ledgertransaction.Hooks[0] = ledgertransactionMixinHooks3[0]
+	ledgertransactionMixinInters3 := ledgertransactionMixin[3].Interceptors()
+	ledgertransaction.Interceptors[0] = ledgertransactionMixinInters3[0]
 	ledgertransactionMixinFields0 := ledgertransactionMixin[0].Fields()
 	_ = ledgertransactionMixinFields0
 	ledgertransactionMixinFields1 := ledgertransactionMixin[1].Fields()
@@ -2056,6 +2192,10 @@ func init() {
 	// ledgertransaction.DefaultID holds the default value on creation for the id field.
 	ledgertransaction.DefaultID = ledgertransactionDescID.Default.(func() string)
 	ledgertransactiongroupMixin := schema.LedgerTransactionGroup{}.Mixin()
+	ledgertransactiongroupMixinHooks3 := ledgertransactiongroupMixin[3].Hooks()
+	ledgertransactiongroup.Hooks[0] = ledgertransactiongroupMixinHooks3[0]
+	ledgertransactiongroupMixinInters3 := ledgertransactiongroupMixin[3].Interceptors()
+	ledgertransactiongroup.Interceptors[0] = ledgertransactiongroupMixinInters3[0]
 	ledgertransactiongroupMixinFields0 := ledgertransactiongroupMixin[0].Fields()
 	_ = ledgertransactiongroupMixinFields0
 	ledgertransactiongroupMixinFields1 := ledgertransactiongroupMixin[1].Fields()
@@ -2114,6 +2254,10 @@ func init() {
 	// dbmeter.DefaultID holds the default value on creation for the id field.
 	dbmeter.DefaultID = dbmeterDescID.Default.(func() string)
 	notificationchannelMixin := schema.NotificationChannel{}.Mixin()
+	notificationchannelMixinHooks2 := notificationchannelMixin[2].Hooks()
+	notificationchannel.Hooks[0] = notificationchannelMixinHooks2[0]
+	notificationchannelMixinInters2 := notificationchannelMixin[2].Interceptors()
+	notificationchannel.Interceptors[0] = notificationchannelMixinInters2[0]
 	notificationchannelMixinFields0 := notificationchannelMixin[0].Fields()
 	_ = notificationchannelMixinFields0
 	notificationchannelMixinFields1 := notificationchannelMixin[1].Fields()
@@ -2204,6 +2348,10 @@ func init() {
 	// notificationeventdeliverystatus.DefaultID holds the default value on creation for the id field.
 	notificationeventdeliverystatus.DefaultID = notificationeventdeliverystatusDescID.Default.(func() string)
 	notificationruleMixin := schema.NotificationRule{}.Mixin()
+	notificationruleMixinHooks2 := notificationruleMixin[2].Hooks()
+	notificationrule.Hooks[0] = notificationruleMixinHooks2[0]
+	notificationruleMixinInters2 := notificationruleMixin[2].Interceptors()
+	notificationrule.Interceptors[0] = notificationruleMixinInters2[0]
 	notificationruleMixinFields0 := notificationruleMixin[0].Fields()
 	_ = notificationruleMixinFields0
 	notificationruleMixinFields1 := notificationruleMixin[1].Fields()
@@ -2242,6 +2390,10 @@ func init() {
 	// notificationrule.DefaultID holds the default value on creation for the id field.
 	notificationrule.DefaultID = notificationruleDescID.Default.(func() string)
 	organizationdefaulttaxcodesMixin := schema.OrganizationDefaultTaxCodes{}.Mixin()
+	organizationdefaulttaxcodesMixinHooks1 := organizationdefaulttaxcodesMixin[1].Hooks()
+	organizationdefaulttaxcodes.Hooks[0] = organizationdefaulttaxcodesMixinHooks1[0]
+	organizationdefaulttaxcodesMixinInters1 := organizationdefaulttaxcodesMixin[1].Interceptors()
+	organizationdefaulttaxcodes.Interceptors[0] = organizationdefaulttaxcodesMixinInters1[0]
 	organizationdefaulttaxcodesMixinFields0 := organizationdefaulttaxcodesMixin[0].Fields()
 	_ = organizationdefaulttaxcodesMixinFields0
 	organizationdefaulttaxcodesMixinFields1 := organizationdefaulttaxcodesMixin[1].Fields()
@@ -2309,6 +2461,10 @@ func init() {
 	// plan.DefaultID holds the default value on creation for the id field.
 	plan.DefaultID = planDescID.Default.(func() string)
 	planaddonMixin := schema.PlanAddon{}.Mixin()
+	planaddonMixinHooks4 := planaddonMixin[4].Hooks()
+	planaddon.Hooks[0] = planaddonMixinHooks4[0]
+	planaddonMixinInters4 := planaddonMixin[4].Interceptors()
+	planaddon.Interceptors[0] = planaddonMixinInters4[0]
 	planaddonMixinFields0 := planaddonMixin[0].Fields()
 	_ = planaddonMixinFields0
 	planaddonMixinFields1 := planaddonMixin[1].Fields()
@@ -2418,6 +2574,10 @@ func init() {
 	// planratecard.DefaultID holds the default value on creation for the id field.
 	planratecard.DefaultID = planratecardDescID.Default.(func() string)
 	subjectMixin := schema.Subject{}.Mixin()
+	subjectMixinHooks2 := subjectMixin[2].Hooks()
+	subject.Hooks[0] = subjectMixinHooks2[0]
+	subjectMixinInters2 := subjectMixin[2].Interceptors()
+	subject.Interceptors[0] = subjectMixinInters2[0]
 	subjectMixinFields0 := subjectMixin[0].Fields()
 	_ = subjectMixinFields0
 	subjectMixinFields1 := subjectMixin[1].Fields()
@@ -2449,6 +2609,10 @@ func init() {
 	// subject.DefaultID holds the default value on creation for the id field.
 	subject.DefaultID = subjectDescID.Default.(func() string)
 	subscriptionMixin := schema.Subscription{}.Mixin()
+	subscriptionMixinHooks3 := subscriptionMixin[3].Hooks()
+	subscription.Hooks[0] = subscriptionMixinHooks3[0]
+	subscriptionMixinInters3 := subscriptionMixin[3].Interceptors()
+	subscription.Interceptors[0] = subscriptionMixinInters3[0]
 	subscriptionMixinFields0 := subscriptionMixin[0].Fields()
 	_ = subscriptionMixinFields0
 	subscriptionMixinFields1 := subscriptionMixin[1].Fields()
@@ -2510,6 +2674,10 @@ func init() {
 	// subscription.DefaultID holds the default value on creation for the id field.
 	subscription.DefaultID = subscriptionDescID.Default.(func() string)
 	subscriptionaddonMixin := schema.SubscriptionAddon{}.Mixin()
+	subscriptionaddonMixinHooks3 := subscriptionaddonMixin[3].Hooks()
+	subscriptionaddon.Hooks[0] = subscriptionaddonMixinHooks3[0]
+	subscriptionaddonMixinInters3 := subscriptionaddonMixin[3].Interceptors()
+	subscriptionaddon.Interceptors[0] = subscriptionaddonMixinInters3[0]
 	subscriptionaddonMixinFields0 := subscriptionaddonMixin[0].Fields()
 	_ = subscriptionaddonMixinFields0
 	subscriptionaddonMixinFields1 := subscriptionaddonMixin[1].Fields()
@@ -2545,6 +2713,10 @@ func init() {
 	// subscriptionaddon.DefaultID holds the default value on creation for the id field.
 	subscriptionaddon.DefaultID = subscriptionaddonDescID.Default.(func() string)
 	subscriptionaddonquantityMixin := schema.SubscriptionAddonQuantity{}.Mixin()
+	subscriptionaddonquantityMixinHooks2 := subscriptionaddonquantityMixin[2].Hooks()
+	subscriptionaddonquantity.Hooks[0] = subscriptionaddonquantityMixinHooks2[0]
+	subscriptionaddonquantityMixinInters2 := subscriptionaddonquantityMixin[2].Interceptors()
+	subscriptionaddonquantity.Interceptors[0] = subscriptionaddonquantityMixinInters2[0]
 	subscriptionaddonquantityMixinFields0 := subscriptionaddonquantityMixin[0].Fields()
 	_ = subscriptionaddonquantityMixinFields0
 	subscriptionaddonquantityMixinFields1 := subscriptionaddonquantityMixin[1].Fields()
@@ -2605,6 +2777,10 @@ func init() {
 	// subscriptionbillingsyncstate.DefaultID holds the default value on creation for the id field.
 	subscriptionbillingsyncstate.DefaultID = subscriptionbillingsyncstateDescID.Default.(func() string)
 	subscriptionitemMixin := schema.SubscriptionItem{}.Mixin()
+	subscriptionitemMixinHooks2 := subscriptionitemMixin[2].Hooks()
+	subscriptionitem.Hooks[0] = subscriptionitemMixinHooks2[0]
+	subscriptionitemMixinInters2 := subscriptionitemMixin[2].Interceptors()
+	subscriptionitem.Interceptors[0] = subscriptionitemMixinInters2[0]
 	subscriptionitemMixinFields0 := subscriptionitemMixin[0].Fields()
 	_ = subscriptionitemMixinFields0
 	subscriptionitemMixinFields1 := subscriptionitemMixin[1].Fields()
@@ -2659,6 +2835,10 @@ func init() {
 	// subscriptionitem.DefaultID holds the default value on creation for the id field.
 	subscriptionitem.DefaultID = subscriptionitemDescID.Default.(func() string)
 	subscriptionphaseMixin := schema.SubscriptionPhase{}.Mixin()
+	subscriptionphaseMixinHooks2 := subscriptionphaseMixin[2].Hooks()
+	subscriptionphase.Hooks[0] = subscriptionphaseMixinHooks2[0]
+	subscriptionphaseMixinInters2 := subscriptionphaseMixin[2].Interceptors()
+	subscriptionphase.Interceptors[0] = subscriptionphaseMixinInters2[0]
 	subscriptionphaseMixinFields0 := subscriptionphaseMixin[0].Fields()
 	_ = subscriptionphaseMixinFields0
 	subscriptionphaseMixinFields1 := subscriptionphaseMixin[1].Fields()
@@ -2728,6 +2908,10 @@ func init() {
 	// dbtaxcode.DefaultID holds the default value on creation for the id field.
 	dbtaxcode.DefaultID = dbtaxcodeDescID.Default.(func() string)
 	usageresetMixin := schema.UsageReset{}.Mixin()
+	usageresetMixinHooks3 := usageresetMixin[3].Hooks()
+	usagereset.Hooks[0] = usageresetMixinHooks3[0]
+	usageresetMixinInters3 := usageresetMixin[3].Interceptors()
+	usagereset.Interceptors[0] = usageresetMixinInters3[0]
 	usageresetMixinFields0 := usageresetMixin[0].Fields()
 	_ = usageresetMixinFields0
 	usageresetMixinFields1 := usageresetMixin[1].Fields()

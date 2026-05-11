@@ -211,7 +211,9 @@ func (_c *ChargeUsageBasedRunCreditAllocationsCreate) Mutation() *ChargeUsageBas
 
 // Save creates the ChargeUsageBasedRunCreditAllocations in the database.
 func (_c *ChargeUsageBasedRunCreditAllocationsCreate) Save(ctx context.Context) (*ChargeUsageBasedRunCreditAllocations, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -238,19 +240,29 @@ func (_c *ChargeUsageBasedRunCreditAllocationsCreate) ExecX(ctx context.Context)
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *ChargeUsageBasedRunCreditAllocationsCreate) defaults() {
+func (_c *ChargeUsageBasedRunCreditAllocationsCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if chargeusagebasedruncreditallocations.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeusagebasedruncreditallocations.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeusagebasedruncreditallocations.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if chargeusagebasedruncreditallocations.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeusagebasedruncreditallocations.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeusagebasedruncreditallocations.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if chargeusagebasedruncreditallocations.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized chargeusagebasedruncreditallocations.DefaultID (forgotten import db/runtime?)")
+		}
 		v := chargeusagebasedruncreditallocations.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

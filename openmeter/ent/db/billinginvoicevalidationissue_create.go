@@ -163,7 +163,9 @@ func (_c *BillingInvoiceValidationIssueCreate) Mutation() *BillingInvoiceValidat
 
 // Save creates the BillingInvoiceValidationIssue in the database.
 func (_c *BillingInvoiceValidationIssueCreate) Save(ctx context.Context) (*BillingInvoiceValidationIssue, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -190,19 +192,29 @@ func (_c *BillingInvoiceValidationIssueCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *BillingInvoiceValidationIssueCreate) defaults() {
+func (_c *BillingInvoiceValidationIssueCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if billinginvoicevalidationissue.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized billinginvoicevalidationissue.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := billinginvoicevalidationissue.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if billinginvoicevalidationissue.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized billinginvoicevalidationissue.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := billinginvoicevalidationissue.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if billinginvoicevalidationissue.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized billinginvoicevalidationissue.DefaultID (forgotten import db/runtime?)")
+		}
 		v := billinginvoicevalidationissue.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

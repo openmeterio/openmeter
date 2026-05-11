@@ -132,7 +132,9 @@ func (_c *SubscriptionAddonQuantityCreate) Mutation() *SubscriptionAddonQuantity
 
 // Save creates the SubscriptionAddonQuantity in the database.
 func (_c *SubscriptionAddonQuantityCreate) Save(ctx context.Context) (*SubscriptionAddonQuantity, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -159,16 +161,25 @@ func (_c *SubscriptionAddonQuantityCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *SubscriptionAddonQuantityCreate) defaults() {
+func (_c *SubscriptionAddonQuantityCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if subscriptionaddonquantity.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized subscriptionaddonquantity.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := subscriptionaddonquantity.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if subscriptionaddonquantity.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized subscriptionaddonquantity.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := subscriptionaddonquantity.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ActiveFrom(); !ok {
+		if subscriptionaddonquantity.DefaultActiveFrom == nil {
+			return fmt.Errorf("db: uninitialized subscriptionaddonquantity.DefaultActiveFrom (forgotten import db/runtime?)")
+		}
 		v := subscriptionaddonquantity.DefaultActiveFrom()
 		_c.mutation.SetActiveFrom(v)
 	}
@@ -177,9 +188,13 @@ func (_c *SubscriptionAddonQuantityCreate) defaults() {
 		_c.mutation.SetQuantity(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if subscriptionaddonquantity.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized subscriptionaddonquantity.DefaultID (forgotten import db/runtime?)")
+		}
 		v := subscriptionaddonquantity.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/softdelete"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -467,8 +468,11 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 			return p, nil
 		}
 
-		// Delete all existing PlanPhases
-		_, err = a.db.PlanPhase.Delete().Where(phasedb.PlanID(p.ID)).Exec(ctx)
+		// Delete all existing PlanPhases. Plan edits replace the entire
+		// phase set atomically (next loop creates the new phases), so the
+		// rows are physically removed — opt out of the soft-delete rewrite
+		// the TimeMixin would otherwise apply.
+		_, err = a.db.PlanPhase.Delete().Where(phasedb.PlanID(p.ID)).Exec(softdelete.AllowHardDelete(ctx))
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete PlanPhases: %w", err)
 		}

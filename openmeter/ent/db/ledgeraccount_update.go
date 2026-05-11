@@ -148,7 +148,9 @@ func (_u *LedgerAccountUpdate) RemoveSubAccountRoutes(v ...*LedgerSubAccountRout
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *LedgerAccountUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -175,11 +177,15 @@ func (_u *LedgerAccountUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *LedgerAccountUpdate) defaults() {
+func (_u *LedgerAccountUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if ledgeraccount.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgeraccount.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgeraccount.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 func (_u *LedgerAccountUpdate) sqlSave(ctx context.Context) (_node int, err error) {
@@ -446,7 +452,9 @@ func (_u *LedgerAccountUpdateOne) Select(field string, fields ...string) *Ledger
 
 // Save executes the query and returns the updated LedgerAccount entity.
 func (_u *LedgerAccountUpdateOne) Save(ctx context.Context) (*LedgerAccount, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -473,11 +481,15 @@ func (_u *LedgerAccountUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *LedgerAccountUpdateOne) defaults() {
+func (_u *LedgerAccountUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if ledgeraccount.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgeraccount.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgeraccount.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 func (_u *LedgerAccountUpdateOne) sqlSave(ctx context.Context) (_node *LedgerAccount, err error) {

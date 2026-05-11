@@ -170,7 +170,9 @@ func (_c *NotificationRuleCreate) Mutation() *NotificationRuleMutation {
 
 // Save creates the NotificationRule in the database.
 func (_c *NotificationRuleCreate) Save(ctx context.Context) (*NotificationRule, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -197,12 +199,18 @@ func (_c *NotificationRuleCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *NotificationRuleCreate) defaults() {
+func (_c *NotificationRuleCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if notificationrule.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized notificationrule.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := notificationrule.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if notificationrule.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized notificationrule.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := notificationrule.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
@@ -211,9 +219,13 @@ func (_c *NotificationRuleCreate) defaults() {
 		_c.mutation.SetDisabled(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if notificationrule.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized notificationrule.DefaultID (forgotten import db/runtime?)")
+		}
 		v := notificationrule.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

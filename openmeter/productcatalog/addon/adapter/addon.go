@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/softdelete"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -498,10 +499,13 @@ func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput
 			return add, nil
 		}
 
-		// Delete all existing ratecards
+		// Delete all existing ratecards. Addon edits replace the entire
+		// ratecard set atomically (next call recreates them), so the rows
+		// are physically removed — opt out of the soft-delete rewrite the
+		// TimeMixin would otherwise apply.
 		_, err = a.db.AddonRateCard.Delete().
 			Where(addonratecarddb.AddonID(add.ID)).
-			Exec(ctx)
+			Exec(softdelete.AllowHardDelete(ctx))
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete add-on ratecards: %w", err)
 		}

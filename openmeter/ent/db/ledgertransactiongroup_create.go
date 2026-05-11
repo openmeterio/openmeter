@@ -115,7 +115,9 @@ func (_c *LedgerTransactionGroupCreate) Mutation() *LedgerTransactionGroupMutati
 
 // Save creates the LedgerTransactionGroup in the database.
 func (_c *LedgerTransactionGroupCreate) Save(ctx context.Context) (*LedgerTransactionGroup, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -142,19 +144,29 @@ func (_c *LedgerTransactionGroupCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *LedgerTransactionGroupCreate) defaults() {
+func (_c *LedgerTransactionGroupCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if ledgertransactiongroup.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgertransactiongroup.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgertransactiongroup.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if ledgertransactiongroup.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgertransactiongroup.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgertransactiongroup.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if ledgertransactiongroup.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized ledgertransactiongroup.DefaultID (forgotten import db/runtime?)")
+		}
 		v := ledgertransactiongroup.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

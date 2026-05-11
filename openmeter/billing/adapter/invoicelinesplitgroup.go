@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/softdelete"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -109,6 +110,12 @@ func (a *adapter) DeleteSplitLineGroup(ctx context.Context, input billing.Delete
 			Err: err,
 		}
 	}
+
+	// Split-line groups are reorganized as the invoice rating engine reshapes
+	// the line graph; the rows are physically removed because nothing else
+	// references them after the parent reshapes. Opt out of the soft-delete
+	// rewrite the TimeMixin would otherwise apply.
+	ctx = softdelete.AllowHardDelete(ctx)
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
 		nr, err := tx.db.BillingInvoiceSplitLineGroup.Delete().

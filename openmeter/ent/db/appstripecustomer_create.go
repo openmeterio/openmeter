@@ -127,7 +127,9 @@ func (_c *AppStripeCustomerCreate) Mutation() *AppStripeCustomerMutation {
 
 // Save creates the AppStripeCustomer in the database.
 func (_c *AppStripeCustomerCreate) Save(ctx context.Context) (*AppStripeCustomer, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -154,15 +156,22 @@ func (_c *AppStripeCustomerCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *AppStripeCustomerCreate) defaults() {
+func (_c *AppStripeCustomerCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if appstripecustomer.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized appstripecustomer.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := appstripecustomer.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if appstripecustomer.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized appstripecustomer.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := appstripecustomer.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

@@ -138,7 +138,9 @@ func (_c *SubscriptionAddonCreate) Mutation() *SubscriptionAddonMutation {
 
 // Save creates the SubscriptionAddon in the database.
 func (_c *SubscriptionAddonCreate) Save(ctx context.Context) (*SubscriptionAddon, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -165,19 +167,29 @@ func (_c *SubscriptionAddonCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *SubscriptionAddonCreate) defaults() {
+func (_c *SubscriptionAddonCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if subscriptionaddon.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized subscriptionaddon.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := subscriptionaddon.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if subscriptionaddon.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized subscriptionaddon.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := subscriptionaddon.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if subscriptionaddon.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized subscriptionaddon.DefaultID (forgotten import db/runtime?)")
+		}
 		v := subscriptionaddon.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

@@ -74,7 +74,9 @@ func (_u *LedgerEntryUpdate) Mutation() *LedgerEntryMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *LedgerEntryUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -101,11 +103,15 @@ func (_u *LedgerEntryUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *LedgerEntryUpdate) defaults() {
+func (_u *LedgerEntryUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if ledgerentry.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgerentry.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgerentry.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -224,7 +230,9 @@ func (_u *LedgerEntryUpdateOne) Select(field string, fields ...string) *LedgerEn
 
 // Save executes the query and returns the updated LedgerEntry entity.
 func (_u *LedgerEntryUpdateOne) Save(ctx context.Context) (*LedgerEntry, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -251,11 +259,15 @@ func (_u *LedgerEntryUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *LedgerEntryUpdateOne) defaults() {
+func (_u *LedgerEntryUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if ledgerentry.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgerentry.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgerentry.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

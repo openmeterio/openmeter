@@ -269,7 +269,9 @@ func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) Mutation() *ChargeUsageBasedRu
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -296,11 +298,15 @@ func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) defaults() {
+func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if chargeusagebasedruninvoicedusage.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeusagebasedruninvoicedusage.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeusagebasedruninvoicedusage.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -665,7 +671,9 @@ func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) Select(field string, fields
 
 // Save executes the query and returns the updated ChargeUsageBasedRunInvoicedUsage entity.
 func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) Save(ctx context.Context) (*ChargeUsageBasedRunInvoicedUsage, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -692,11 +700,15 @@ func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) ExecX(ctx context.Context) 
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) defaults() {
+func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if chargeusagebasedruninvoicedusage.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeusagebasedruninvoicedusage.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeusagebasedruninvoicedusage.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

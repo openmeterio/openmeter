@@ -326,7 +326,9 @@ func (_u *BillingWorkflowConfigUpdate) ClearTaxCode() *BillingWorkflowConfigUpda
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *BillingWorkflowConfigUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -353,11 +355,15 @@ func (_u *BillingWorkflowConfigUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *BillingWorkflowConfigUpdate) defaults() {
+func (_u *BillingWorkflowConfigUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if billingworkflowconfig.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized billingworkflowconfig.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := billingworkflowconfig.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -868,7 +874,9 @@ func (_u *BillingWorkflowConfigUpdateOne) Select(field string, fields ...string)
 
 // Save executes the query and returns the updated BillingWorkflowConfig entity.
 func (_u *BillingWorkflowConfigUpdateOne) Save(ctx context.Context) (*BillingWorkflowConfig, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -895,11 +903,15 @@ func (_u *BillingWorkflowConfigUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *BillingWorkflowConfigUpdateOne) defaults() {
+func (_u *BillingWorkflowConfigUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if billingworkflowconfig.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized billingworkflowconfig.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := billingworkflowconfig.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

@@ -202,7 +202,9 @@ func (_c *LedgerSubAccountRouteCreate) Mutation() *LedgerSubAccountRouteMutation
 
 // Save creates the LedgerSubAccountRoute in the database.
 func (_c *LedgerSubAccountRouteCreate) Save(ctx context.Context) (*LedgerSubAccountRoute, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -229,19 +231,29 @@ func (_c *LedgerSubAccountRouteCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *LedgerSubAccountRouteCreate) defaults() {
+func (_c *LedgerSubAccountRouteCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if ledgersubaccountroute.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgersubaccountroute.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgersubaccountroute.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if ledgersubaccountroute.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgersubaccountroute.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgersubaccountroute.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if ledgersubaccountroute.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized ledgersubaccountroute.DefaultID (forgotten import db/runtime?)")
+		}
 		v := ledgersubaccountroute.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

@@ -212,7 +212,9 @@ func (_u *ChargeCreditPurchaseInvoicedPaymentUpdate) Mutation() *ChargeCreditPur
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *ChargeCreditPurchaseInvoicedPaymentUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -239,11 +241,15 @@ func (_u *ChargeCreditPurchaseInvoicedPaymentUpdate) ExecX(ctx context.Context) 
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *ChargeCreditPurchaseInvoicedPaymentUpdate) defaults() {
+func (_u *ChargeCreditPurchaseInvoicedPaymentUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if chargecreditpurchaseinvoicedpayment.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargecreditpurchaseinvoicedpayment.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargecreditpurchaseinvoicedpayment.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -549,7 +555,9 @@ func (_u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) Select(field string, fie
 
 // Save executes the query and returns the updated ChargeCreditPurchaseInvoicedPayment entity.
 func (_u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) Save(ctx context.Context) (*ChargeCreditPurchaseInvoicedPayment, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -576,11 +584,15 @@ func (_u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) ExecX(ctx context.Contex
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) defaults() {
+func (_u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if chargecreditpurchaseinvoicedpayment.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargecreditpurchaseinvoicedpayment.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargecreditpurchaseinvoicedpayment.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

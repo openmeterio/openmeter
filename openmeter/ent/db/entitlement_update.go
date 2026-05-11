@@ -334,7 +334,9 @@ func (_u *EntitlementUpdate) RemoveSubscriptionItem(v ...*SubscriptionItem) *Ent
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *EntitlementUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -361,11 +363,15 @@ func (_u *EntitlementUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *EntitlementUpdate) defaults() {
+func (_u *EntitlementUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if entitlement.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized entitlement.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := entitlement.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -981,7 +987,9 @@ func (_u *EntitlementUpdateOne) Select(field string, fields ...string) *Entitlem
 
 // Save executes the query and returns the updated Entitlement entity.
 func (_u *EntitlementUpdateOne) Save(ctx context.Context) (*Entitlement, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -1008,11 +1016,15 @@ func (_u *EntitlementUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *EntitlementUpdateOne) defaults() {
+func (_u *EntitlementUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if entitlement.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized entitlement.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := entitlement.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

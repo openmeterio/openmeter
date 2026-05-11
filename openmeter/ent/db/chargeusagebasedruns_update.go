@@ -438,7 +438,9 @@ func (_u *ChargeUsageBasedRunsUpdate) ClearPayment() *ChargeUsageBasedRunsUpdate
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *ChargeUsageBasedRunsUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -465,11 +467,15 @@ func (_u *ChargeUsageBasedRunsUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *ChargeUsageBasedRunsUpdate) defaults() {
+func (_u *ChargeUsageBasedRunsUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if chargeusagebasedruns.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeusagebasedruns.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeusagebasedruns.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -1204,7 +1210,9 @@ func (_u *ChargeUsageBasedRunsUpdateOne) Select(field string, fields ...string) 
 
 // Save executes the query and returns the updated ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedRunsUpdateOne) Save(ctx context.Context) (*ChargeUsageBasedRuns, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -1231,11 +1239,15 @@ func (_u *ChargeUsageBasedRunsUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *ChargeUsageBasedRunsUpdateOne) defaults() {
+func (_u *ChargeUsageBasedRunsUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if chargeusagebasedruns.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized chargeusagebasedruns.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := chargeusagebasedruns.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

@@ -252,7 +252,9 @@ func (_c *SubscriptionPhaseCreate) Mutation() *SubscriptionPhaseMutation {
 
 // Save creates the SubscriptionPhase in the database.
 func (_c *SubscriptionPhaseCreate) Save(ctx context.Context) (*SubscriptionPhase, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -279,19 +281,29 @@ func (_c *SubscriptionPhaseCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *SubscriptionPhaseCreate) defaults() {
+func (_c *SubscriptionPhaseCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if subscriptionphase.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized subscriptionphase.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := subscriptionphase.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if subscriptionphase.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized subscriptionphase.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := subscriptionphase.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if subscriptionphase.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized subscriptionphase.DefaultID (forgotten import db/runtime?)")
+		}
 		v := subscriptionphase.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

@@ -1621,12 +1621,14 @@ func (c *AppCustomInvoicingClient) QueryApp(_m *AppCustomInvoicing) *AppQuery {
 
 // Hooks returns the client hooks.
 func (c *AppCustomInvoicingClient) Hooks() []Hook {
-	return c.hooks.AppCustomInvoicing
+	hooks := c.hooks.AppCustomInvoicing
+	return append(hooks[:len(hooks):len(hooks)], appcustominvoicing.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *AppCustomInvoicingClient) Interceptors() []Interceptor {
-	return c.inters.AppCustomInvoicing
+	inters := c.inters.AppCustomInvoicing
+	return append(inters[:len(inters):len(inters)], appcustominvoicing.Interceptors[:]...)
 }
 
 func (c *AppCustomInvoicingClient) mutate(ctx context.Context, m *AppCustomInvoicingMutation) (Value, error) {
@@ -1786,12 +1788,14 @@ func (c *AppCustomInvoicingCustomerClient) QueryCustomer(_m *AppCustomInvoicingC
 
 // Hooks returns the client hooks.
 func (c *AppCustomInvoicingCustomerClient) Hooks() []Hook {
-	return c.hooks.AppCustomInvoicingCustomer
+	hooks := c.hooks.AppCustomInvoicingCustomer
+	return append(hooks[:len(hooks):len(hooks)], appcustominvoicingcustomer.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *AppCustomInvoicingCustomerClient) Interceptors() []Interceptor {
-	return c.inters.AppCustomInvoicingCustomer
+	inters := c.inters.AppCustomInvoicingCustomer
+	return append(inters[:len(inters):len(inters)], appcustominvoicingcustomer.Interceptors[:]...)
 }
 
 func (c *AppCustomInvoicingCustomerClient) mutate(ctx context.Context, m *AppCustomInvoicingCustomerMutation) (Value, error) {
@@ -1951,12 +1955,14 @@ func (c *AppCustomerClient) QueryCustomer(_m *AppCustomer) *CustomerQuery {
 
 // Hooks returns the client hooks.
 func (c *AppCustomerClient) Hooks() []Hook {
-	return c.hooks.AppCustomer
+	hooks := c.hooks.AppCustomer
+	return append(hooks[:len(hooks):len(hooks)], appcustomer.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *AppCustomerClient) Interceptors() []Interceptor {
-	return c.inters.AppCustomer
+	inters := c.inters.AppCustomer
+	return append(inters[:len(inters):len(inters)], appcustomer.Interceptors[:]...)
 }
 
 func (c *AppCustomerClient) mutate(ctx context.Context, m *AppCustomerMutation) (Value, error) {
@@ -2116,12 +2122,14 @@ func (c *AppStripeClient) QueryApp(_m *AppStripe) *AppQuery {
 
 // Hooks returns the client hooks.
 func (c *AppStripeClient) Hooks() []Hook {
-	return c.hooks.AppStripe
+	hooks := c.hooks.AppStripe
+	return append(hooks[:len(hooks):len(hooks)], appstripe.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *AppStripeClient) Interceptors() []Interceptor {
-	return c.inters.AppStripe
+	inters := c.inters.AppStripe
+	return append(inters[:len(inters):len(inters)], appstripe.Interceptors[:]...)
 }
 
 func (c *AppStripeClient) mutate(ctx context.Context, m *AppStripeMutation) (Value, error) {
@@ -2281,12 +2289,14 @@ func (c *AppStripeCustomerClient) QueryCustomer(_m *AppStripeCustomer) *Customer
 
 // Hooks returns the client hooks.
 func (c *AppStripeCustomerClient) Hooks() []Hook {
-	return c.hooks.AppStripeCustomer
+	hooks := c.hooks.AppStripeCustomer
+	return append(hooks[:len(hooks):len(hooks)], appstripecustomer.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *AppStripeCustomerClient) Interceptors() []Interceptor {
-	return c.inters.AppStripeCustomer
+	inters := c.inters.AppStripeCustomer
+	return append(inters[:len(inters):len(inters)], appstripecustomer.Interceptors[:]...)
 }
 
 func (c *AppStripeCustomerClient) mutate(ctx context.Context, m *AppStripeCustomerMutation) (Value, error) {
@@ -2430,12 +2440,14 @@ func (c *BalanceSnapshotClient) QueryEntitlement(_m *BalanceSnapshot) *Entitleme
 
 // Hooks returns the client hooks.
 func (c *BalanceSnapshotClient) Hooks() []Hook {
-	return c.hooks.BalanceSnapshot
+	hooks := c.hooks.BalanceSnapshot
+	return append(hooks[:len(hooks):len(hooks)], balancesnapshot.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *BalanceSnapshotClient) Interceptors() []Interceptor {
-	return c.inters.BalanceSnapshot
+	inters := c.inters.BalanceSnapshot
+	return append(inters[:len(inters):len(inters)], balancesnapshot.Interceptors[:]...)
 }
 
 func (c *BalanceSnapshotClient) mutate(ctx context.Context, m *BalanceSnapshotMutation) (Value, error) {
@@ -2744,12 +2756,14 @@ func (c *BillingCustomerOverrideClient) QueryTaxCode(_m *BillingCustomerOverride
 
 // Hooks returns the client hooks.
 func (c *BillingCustomerOverrideClient) Hooks() []Hook {
-	return c.hooks.BillingCustomerOverride
+	hooks := c.hooks.BillingCustomerOverride
+	return append(hooks[:len(hooks):len(hooks)], billingcustomeroverride.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *BillingCustomerOverrideClient) Interceptors() []Interceptor {
-	return c.inters.BillingCustomerOverride
+	inters := c.inters.BillingCustomerOverride
+	return append(inters[:len(inters):len(inters)], billingcustomeroverride.Interceptors[:]...)
 }
 
 func (c *BillingCustomerOverrideClient) mutate(ctx context.Context, m *BillingCustomerOverrideMutation) (Value, error) {
@@ -3037,12 +3051,14 @@ func (c *BillingInvoiceClient) QueryPaymentApp(_m *BillingInvoice) *AppQuery {
 
 // Hooks returns the client hooks.
 func (c *BillingInvoiceClient) Hooks() []Hook {
-	return c.hooks.BillingInvoice
+	hooks := c.hooks.BillingInvoice
+	return append(hooks[:len(hooks):len(hooks)], billinginvoice.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *BillingInvoiceClient) Interceptors() []Interceptor {
-	return c.inters.BillingInvoice
+	inters := c.inters.BillingInvoice
+	return append(inters[:len(inters):len(inters)], billinginvoice.Interceptors[:]...)
 }
 
 func (c *BillingInvoiceClient) mutate(ctx context.Context, m *BillingInvoiceMutation) (Value, error) {
@@ -3756,12 +3772,14 @@ func (c *BillingInvoiceLineDiscountClient) QueryBillingInvoiceLine(_m *BillingIn
 
 // Hooks returns the client hooks.
 func (c *BillingInvoiceLineDiscountClient) Hooks() []Hook {
-	return c.hooks.BillingInvoiceLineDiscount
+	hooks := c.hooks.BillingInvoiceLineDiscount
+	return append(hooks[:len(hooks):len(hooks)], billinginvoicelinediscount.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *BillingInvoiceLineDiscountClient) Interceptors() []Interceptor {
-	return c.inters.BillingInvoiceLineDiscount
+	inters := c.inters.BillingInvoiceLineDiscount
+	return append(inters[:len(inters):len(inters)], billinginvoicelinediscount.Interceptors[:]...)
 }
 
 func (c *BillingInvoiceLineDiscountClient) mutate(ctx context.Context, m *BillingInvoiceLineDiscountMutation) (Value, error) {
@@ -3905,12 +3923,14 @@ func (c *BillingInvoiceLineUsageDiscountClient) QueryBillingInvoiceLine(_m *Bill
 
 // Hooks returns the client hooks.
 func (c *BillingInvoiceLineUsageDiscountClient) Hooks() []Hook {
-	return c.hooks.BillingInvoiceLineUsageDiscount
+	hooks := c.hooks.BillingInvoiceLineUsageDiscount
+	return append(hooks[:len(hooks):len(hooks)], billinginvoicelineusagediscount.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *BillingInvoiceLineUsageDiscountClient) Interceptors() []Interceptor {
-	return c.inters.BillingInvoiceLineUsageDiscount
+	inters := c.inters.BillingInvoiceLineUsageDiscount
+	return append(inters[:len(inters):len(inters)], billinginvoicelineusagediscount.Interceptors[:]...)
 }
 
 func (c *BillingInvoiceLineUsageDiscountClient) mutate(ctx context.Context, m *BillingInvoiceLineUsageDiscountMutation) (Value, error) {
@@ -4416,12 +4436,14 @@ func (c *BillingInvoiceValidationIssueClient) QueryBillingInvoice(_m *BillingInv
 
 // Hooks returns the client hooks.
 func (c *BillingInvoiceValidationIssueClient) Hooks() []Hook {
-	return c.hooks.BillingInvoiceValidationIssue
+	hooks := c.hooks.BillingInvoiceValidationIssue
+	return append(hooks[:len(hooks):len(hooks)], billinginvoicevalidationissue.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *BillingInvoiceValidationIssueClient) Interceptors() []Interceptor {
-	return c.inters.BillingInvoiceValidationIssue
+	inters := c.inters.BillingInvoiceValidationIssue
+	return append(inters[:len(inters):len(inters)], billinginvoicevalidationissue.Interceptors[:]...)
 }
 
 func (c *BillingInvoiceValidationIssueClient) mutate(ctx context.Context, m *BillingInvoiceValidationIssueMutation) (Value, error) {
@@ -5257,12 +5279,14 @@ func (c *BillingStandardInvoiceDetailedLineAmountDiscountClient) QueryDetailedLi
 
 // Hooks returns the client hooks.
 func (c *BillingStandardInvoiceDetailedLineAmountDiscountClient) Hooks() []Hook {
-	return c.hooks.BillingStandardInvoiceDetailedLineAmountDiscount
+	hooks := c.hooks.BillingStandardInvoiceDetailedLineAmountDiscount
+	return append(hooks[:len(hooks):len(hooks)], billingstandardinvoicedetailedlineamountdiscount.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *BillingStandardInvoiceDetailedLineAmountDiscountClient) Interceptors() []Interceptor {
-	return c.inters.BillingStandardInvoiceDetailedLineAmountDiscount
+	inters := c.inters.BillingStandardInvoiceDetailedLineAmountDiscount
+	return append(inters[:len(inters):len(inters)], billingstandardinvoicedetailedlineamountdiscount.Interceptors[:]...)
 }
 
 func (c *BillingStandardInvoiceDetailedLineAmountDiscountClient) mutate(ctx context.Context, m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) (Value, error) {
@@ -5438,12 +5462,14 @@ func (c *BillingWorkflowConfigClient) QueryTaxCode(_m *BillingWorkflowConfig) *T
 
 // Hooks returns the client hooks.
 func (c *BillingWorkflowConfigClient) Hooks() []Hook {
-	return c.hooks.BillingWorkflowConfig
+	hooks := c.hooks.BillingWorkflowConfig
+	return append(hooks[:len(hooks):len(hooks)], billingworkflowconfig.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *BillingWorkflowConfigClient) Interceptors() []Interceptor {
-	return c.inters.BillingWorkflowConfig
+	inters := c.inters.BillingWorkflowConfig
+	return append(inters[:len(inters):len(inters)], billingworkflowconfig.Interceptors[:]...)
 }
 
 func (c *BillingWorkflowConfigClient) mutate(ctx context.Context, m *BillingWorkflowConfigMutation) (Value, error) {
@@ -6093,12 +6119,14 @@ func (c *ChargeCreditPurchaseCreditGrantClient) QueryCreditPurchase(_m *ChargeCr
 
 // Hooks returns the client hooks.
 func (c *ChargeCreditPurchaseCreditGrantClient) Hooks() []Hook {
-	return c.hooks.ChargeCreditPurchaseCreditGrant
+	hooks := c.hooks.ChargeCreditPurchaseCreditGrant
+	return append(hooks[:len(hooks):len(hooks)], chargecreditpurchasecreditgrant.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *ChargeCreditPurchaseCreditGrantClient) Interceptors() []Interceptor {
-	return c.inters.ChargeCreditPurchaseCreditGrant
+	inters := c.inters.ChargeCreditPurchaseCreditGrant
+	return append(inters[:len(inters):len(inters)], chargecreditpurchasecreditgrant.Interceptors[:]...)
 }
 
 func (c *ChargeCreditPurchaseCreditGrantClient) mutate(ctx context.Context, m *ChargeCreditPurchaseCreditGrantMutation) (Value, error) {
@@ -6242,12 +6270,14 @@ func (c *ChargeCreditPurchaseExternalPaymentClient) QueryCreditPurchase(_m *Char
 
 // Hooks returns the client hooks.
 func (c *ChargeCreditPurchaseExternalPaymentClient) Hooks() []Hook {
-	return c.hooks.ChargeCreditPurchaseExternalPayment
+	hooks := c.hooks.ChargeCreditPurchaseExternalPayment
+	return append(hooks[:len(hooks):len(hooks)], chargecreditpurchaseexternalpayment.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *ChargeCreditPurchaseExternalPaymentClient) Interceptors() []Interceptor {
-	return c.inters.ChargeCreditPurchaseExternalPayment
+	inters := c.inters.ChargeCreditPurchaseExternalPayment
+	return append(inters[:len(inters):len(inters)], chargecreditpurchaseexternalpayment.Interceptors[:]...)
 }
 
 func (c *ChargeCreditPurchaseExternalPaymentClient) mutate(ctx context.Context, m *ChargeCreditPurchaseExternalPaymentMutation) (Value, error) {
@@ -6407,12 +6437,14 @@ func (c *ChargeCreditPurchaseInvoicedPaymentClient) QueryCreditPurchase(_m *Char
 
 // Hooks returns the client hooks.
 func (c *ChargeCreditPurchaseInvoicedPaymentClient) Hooks() []Hook {
-	return c.hooks.ChargeCreditPurchaseInvoicedPayment
+	hooks := c.hooks.ChargeCreditPurchaseInvoicedPayment
+	return append(hooks[:len(hooks):len(hooks)], chargecreditpurchaseinvoicedpayment.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *ChargeCreditPurchaseInvoicedPaymentClient) Interceptors() []Interceptor {
-	return c.inters.ChargeCreditPurchaseInvoicedPayment
+	inters := c.inters.ChargeCreditPurchaseInvoicedPayment
+	return append(inters[:len(inters):len(inters)], chargecreditpurchaseinvoicedpayment.Interceptors[:]...)
 }
 
 func (c *ChargeCreditPurchaseInvoicedPaymentClient) mutate(ctx context.Context, m *ChargeCreditPurchaseInvoicedPaymentMutation) (Value, error) {
@@ -6913,12 +6945,14 @@ func (c *ChargeFlatFeeCreditAllocationsClient) QueryBillingInvoiceLine(_m *Charg
 
 // Hooks returns the client hooks.
 func (c *ChargeFlatFeeCreditAllocationsClient) Hooks() []Hook {
-	return c.hooks.ChargeFlatFeeCreditAllocations
+	hooks := c.hooks.ChargeFlatFeeCreditAllocations
+	return append(hooks[:len(hooks):len(hooks)], chargeflatfeecreditallocations.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *ChargeFlatFeeCreditAllocationsClient) Interceptors() []Interceptor {
-	return c.inters.ChargeFlatFeeCreditAllocations
+	inters := c.inters.ChargeFlatFeeCreditAllocations
+	return append(inters[:len(inters):len(inters)], chargeflatfeecreditallocations.Interceptors[:]...)
 }
 
 func (c *ChargeFlatFeeCreditAllocationsClient) mutate(ctx context.Context, m *ChargeFlatFeeCreditAllocationsMutation) (Value, error) {
@@ -7243,12 +7277,14 @@ func (c *ChargeFlatFeeInvoicedUsageClient) QueryFlatFee(_m *ChargeFlatFeeInvoice
 
 // Hooks returns the client hooks.
 func (c *ChargeFlatFeeInvoicedUsageClient) Hooks() []Hook {
-	return c.hooks.ChargeFlatFeeInvoicedUsage
+	hooks := c.hooks.ChargeFlatFeeInvoicedUsage
+	return append(hooks[:len(hooks):len(hooks)], chargeflatfeeinvoicedusage.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *ChargeFlatFeeInvoicedUsageClient) Interceptors() []Interceptor {
-	return c.inters.ChargeFlatFeeInvoicedUsage
+	inters := c.inters.ChargeFlatFeeInvoicedUsage
+	return append(inters[:len(inters):len(inters)], chargeflatfeeinvoicedusage.Interceptors[:]...)
 }
 
 func (c *ChargeFlatFeeInvoicedUsageClient) mutate(ctx context.Context, m *ChargeFlatFeeInvoicedUsageMutation) (Value, error) {
@@ -7408,12 +7444,14 @@ func (c *ChargeFlatFeePaymentClient) QueryFlatFee(_m *ChargeFlatFeePayment) *Cha
 
 // Hooks returns the client hooks.
 func (c *ChargeFlatFeePaymentClient) Hooks() []Hook {
-	return c.hooks.ChargeFlatFeePayment
+	hooks := c.hooks.ChargeFlatFeePayment
+	return append(hooks[:len(hooks):len(hooks)], chargeflatfeepayment.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *ChargeFlatFeePaymentClient) Interceptors() []Interceptor {
-	return c.inters.ChargeFlatFeePayment
+	inters := c.inters.ChargeFlatFeePayment
+	return append(inters[:len(inters):len(inters)], chargeflatfeepayment.Interceptors[:]...)
 }
 
 func (c *ChargeFlatFeePaymentClient) mutate(ctx context.Context, m *ChargeFlatFeePaymentMutation) (Value, error) {
@@ -7882,12 +7920,14 @@ func (c *ChargeUsageBasedRunCreditAllocationsClient) QueryRun(_m *ChargeUsageBas
 
 // Hooks returns the client hooks.
 func (c *ChargeUsageBasedRunCreditAllocationsClient) Hooks() []Hook {
-	return c.hooks.ChargeUsageBasedRunCreditAllocations
+	hooks := c.hooks.ChargeUsageBasedRunCreditAllocations
+	return append(hooks[:len(hooks):len(hooks)], chargeusagebasedruncreditallocations.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *ChargeUsageBasedRunCreditAllocationsClient) Interceptors() []Interceptor {
-	return c.inters.ChargeUsageBasedRunCreditAllocations
+	inters := c.inters.ChargeUsageBasedRunCreditAllocations
+	return append(inters[:len(inters):len(inters)], chargeusagebasedruncreditallocations.Interceptors[:]...)
 }
 
 func (c *ChargeUsageBasedRunCreditAllocationsClient) mutate(ctx context.Context, m *ChargeUsageBasedRunCreditAllocationsMutation) (Value, error) {
@@ -8228,12 +8268,14 @@ func (c *ChargeUsageBasedRunInvoicedUsageClient) QueryRun(_m *ChargeUsageBasedRu
 
 // Hooks returns the client hooks.
 func (c *ChargeUsageBasedRunInvoicedUsageClient) Hooks() []Hook {
-	return c.hooks.ChargeUsageBasedRunInvoicedUsage
+	hooks := c.hooks.ChargeUsageBasedRunInvoicedUsage
+	return append(hooks[:len(hooks):len(hooks)], chargeusagebasedruninvoicedusage.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *ChargeUsageBasedRunInvoicedUsageClient) Interceptors() []Interceptor {
-	return c.inters.ChargeUsageBasedRunInvoicedUsage
+	inters := c.inters.ChargeUsageBasedRunInvoicedUsage
+	return append(inters[:len(inters):len(inters)], chargeusagebasedruninvoicedusage.Interceptors[:]...)
 }
 
 func (c *ChargeUsageBasedRunInvoicedUsageClient) mutate(ctx context.Context, m *ChargeUsageBasedRunInvoicedUsageMutation) (Value, error) {
@@ -8377,12 +8419,14 @@ func (c *ChargeUsageBasedRunPaymentClient) QueryRun(_m *ChargeUsageBasedRunPayme
 
 // Hooks returns the client hooks.
 func (c *ChargeUsageBasedRunPaymentClient) Hooks() []Hook {
-	return c.hooks.ChargeUsageBasedRunPayment
+	hooks := c.hooks.ChargeUsageBasedRunPayment
+	return append(hooks[:len(hooks):len(hooks)], chargeusagebasedrunpayment.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *ChargeUsageBasedRunPaymentClient) Interceptors() []Interceptor {
-	return c.inters.ChargeUsageBasedRunPayment
+	inters := c.inters.ChargeUsageBasedRunPayment
+	return append(inters[:len(inters):len(inters)], chargeusagebasedrunpayment.Interceptors[:]...)
 }
 
 func (c *ChargeUsageBasedRunPaymentClient) mutate(ctx context.Context, m *ChargeUsageBasedRunPaymentMutation) (Value, error) {
@@ -8654,12 +8698,14 @@ func (c *ChargeUsageBasedRunsClient) QueryPayment(_m *ChargeUsageBasedRuns) *Cha
 
 // Hooks returns the client hooks.
 func (c *ChargeUsageBasedRunsClient) Hooks() []Hook {
-	return c.hooks.ChargeUsageBasedRuns
+	hooks := c.hooks.ChargeUsageBasedRuns
+	return append(hooks[:len(hooks):len(hooks)], chargeusagebasedruns.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *ChargeUsageBasedRunsClient) Interceptors() []Interceptor {
-	return c.inters.ChargeUsageBasedRuns
+	inters := c.inters.ChargeUsageBasedRuns
+	return append(inters[:len(inters):len(inters)], chargeusagebasedruns.Interceptors[:]...)
 }
 
 func (c *ChargeUsageBasedRunsClient) mutate(ctx context.Context, m *ChargeUsageBasedRunsMutation) (Value, error) {
@@ -9147,12 +9193,14 @@ func (c *CurrencyCostBasisClient) QueryCurrency(_m *CurrencyCostBasis) *CustomCu
 
 // Hooks returns the client hooks.
 func (c *CurrencyCostBasisClient) Hooks() []Hook {
-	return c.hooks.CurrencyCostBasis
+	hooks := c.hooks.CurrencyCostBasis
+	return append(hooks[:len(hooks):len(hooks)], currencycostbasis.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *CurrencyCostBasisClient) Interceptors() []Interceptor {
-	return c.inters.CurrencyCostBasis
+	inters := c.inters.CurrencyCostBasis
+	return append(inters[:len(inters):len(inters)], currencycostbasis.Interceptors[:]...)
 }
 
 func (c *CurrencyCostBasisClient) mutate(ctx context.Context, m *CurrencyCostBasisMutation) (Value, error) {
@@ -9296,12 +9344,14 @@ func (c *CustomCurrencyClient) QueryCostBasisHistory(_m *CustomCurrency) *Curren
 
 // Hooks returns the client hooks.
 func (c *CustomCurrencyClient) Hooks() []Hook {
-	return c.hooks.CustomCurrency
+	hooks := c.hooks.CustomCurrency
+	return append(hooks[:len(hooks):len(hooks)], customcurrency.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *CustomCurrencyClient) Interceptors() []Interceptor {
-	return c.inters.CustomCurrency
+	inters := c.inters.CustomCurrency
+	return append(inters[:len(inters):len(inters)], customcurrency.Interceptors[:]...)
 }
 
 func (c *CustomCurrencyClient) mutate(ctx context.Context, m *CustomCurrencyMutation) (Value, error) {
@@ -9953,12 +10003,14 @@ func (c *EntitlementClient) QueryCustomer(_m *Entitlement) *CustomerQuery {
 
 // Hooks returns the client hooks.
 func (c *EntitlementClient) Hooks() []Hook {
-	return c.hooks.Entitlement
+	hooks := c.hooks.Entitlement
+	return append(hooks[:len(hooks):len(hooks)], entitlement.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *EntitlementClient) Interceptors() []Interceptor {
-	return c.inters.Entitlement
+	inters := c.inters.Entitlement
+	return append(inters[:len(inters):len(inters)], entitlement.Interceptors[:]...)
 }
 
 func (c *EntitlementClient) mutate(ctx context.Context, m *EntitlementMutation) (Value, error) {
@@ -10198,12 +10250,14 @@ func (c *FeatureClient) QueryMeter(_m *Feature) *MeterQuery {
 
 // Hooks returns the client hooks.
 func (c *FeatureClient) Hooks() []Hook {
-	return c.hooks.Feature
+	hooks := c.hooks.Feature
+	return append(hooks[:len(hooks):len(hooks)], dbfeature.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *FeatureClient) Interceptors() []Interceptor {
-	return c.inters.Feature
+	inters := c.inters.Feature
+	return append(inters[:len(inters):len(inters)], dbfeature.Interceptors[:]...)
 }
 
 func (c *FeatureClient) mutate(ctx context.Context, m *FeatureMutation) (Value, error) {
@@ -10482,12 +10536,14 @@ func (c *LLMCostPriceClient) GetX(ctx context.Context, id string) *LLMCostPrice 
 
 // Hooks returns the client hooks.
 func (c *LLMCostPriceClient) Hooks() []Hook {
-	return c.hooks.LLMCostPrice
+	hooks := c.hooks.LLMCostPrice
+	return append(hooks[:len(hooks):len(hooks)], llmcostprice.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *LLMCostPriceClient) Interceptors() []Interceptor {
-	return c.inters.LLMCostPrice
+	inters := c.inters.LLMCostPrice
+	return append(inters[:len(inters):len(inters)], llmcostprice.Interceptors[:]...)
 }
 
 func (c *LLMCostPriceClient) mutate(ctx context.Context, m *LLMCostPriceMutation) (Value, error) {
@@ -10647,12 +10703,14 @@ func (c *LedgerAccountClient) QuerySubAccountRoutes(_m *LedgerAccount) *LedgerSu
 
 // Hooks returns the client hooks.
 func (c *LedgerAccountClient) Hooks() []Hook {
-	return c.hooks.LedgerAccount
+	hooks := c.hooks.LedgerAccount
+	return append(hooks[:len(hooks):len(hooks)], ledgeraccount.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *LedgerAccountClient) Interceptors() []Interceptor {
-	return c.inters.LedgerAccount
+	inters := c.inters.LedgerAccount
+	return append(inters[:len(inters):len(inters)], ledgeraccount.Interceptors[:]...)
 }
 
 func (c *LedgerAccountClient) mutate(ctx context.Context, m *LedgerAccountMutation) (Value, error) {
@@ -10780,12 +10838,14 @@ func (c *LedgerCustomerAccountClient) GetX(ctx context.Context, id string) *Ledg
 
 // Hooks returns the client hooks.
 func (c *LedgerCustomerAccountClient) Hooks() []Hook {
-	return c.hooks.LedgerCustomerAccount
+	hooks := c.hooks.LedgerCustomerAccount
+	return append(hooks[:len(hooks):len(hooks)], ledgercustomeraccount.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *LedgerCustomerAccountClient) Interceptors() []Interceptor {
-	return c.inters.LedgerCustomerAccount
+	inters := c.inters.LedgerCustomerAccount
+	return append(inters[:len(inters):len(inters)], ledgercustomeraccount.Interceptors[:]...)
 }
 
 func (c *LedgerCustomerAccountClient) mutate(ctx context.Context, m *LedgerCustomerAccountMutation) (Value, error) {
@@ -10945,12 +11005,14 @@ func (c *LedgerEntryClient) QuerySubAccount(_m *LedgerEntry) *LedgerSubAccountQu
 
 // Hooks returns the client hooks.
 func (c *LedgerEntryClient) Hooks() []Hook {
-	return c.hooks.LedgerEntry
+	hooks := c.hooks.LedgerEntry
+	return append(hooks[:len(hooks):len(hooks)], ledgerentry.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *LedgerEntryClient) Interceptors() []Interceptor {
-	return c.inters.LedgerEntry
+	inters := c.inters.LedgerEntry
+	return append(inters[:len(inters):len(inters)], ledgerentry.Interceptors[:]...)
 }
 
 func (c *LedgerEntryClient) mutate(ctx context.Context, m *LedgerEntryMutation) (Value, error) {
@@ -11126,12 +11188,14 @@ func (c *LedgerSubAccountClient) QueryEntries(_m *LedgerSubAccount) *LedgerEntry
 
 // Hooks returns the client hooks.
 func (c *LedgerSubAccountClient) Hooks() []Hook {
-	return c.hooks.LedgerSubAccount
+	hooks := c.hooks.LedgerSubAccount
+	return append(hooks[:len(hooks):len(hooks)], ledgersubaccount.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *LedgerSubAccountClient) Interceptors() []Interceptor {
-	return c.inters.LedgerSubAccount
+	inters := c.inters.LedgerSubAccount
+	return append(inters[:len(inters):len(inters)], ledgersubaccount.Interceptors[:]...)
 }
 
 func (c *LedgerSubAccountClient) mutate(ctx context.Context, m *LedgerSubAccountMutation) (Value, error) {
@@ -11291,12 +11355,14 @@ func (c *LedgerSubAccountRouteClient) QuerySubAccounts(_m *LedgerSubAccountRoute
 
 // Hooks returns the client hooks.
 func (c *LedgerSubAccountRouteClient) Hooks() []Hook {
-	return c.hooks.LedgerSubAccountRoute
+	hooks := c.hooks.LedgerSubAccountRoute
+	return append(hooks[:len(hooks):len(hooks)], ledgersubaccountroute.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *LedgerSubAccountRouteClient) Interceptors() []Interceptor {
-	return c.inters.LedgerSubAccountRoute
+	inters := c.inters.LedgerSubAccountRoute
+	return append(inters[:len(inters):len(inters)], ledgersubaccountroute.Interceptors[:]...)
 }
 
 func (c *LedgerSubAccountRouteClient) mutate(ctx context.Context, m *LedgerSubAccountRouteMutation) (Value, error) {
@@ -11456,12 +11522,14 @@ func (c *LedgerTransactionClient) QueryEntries(_m *LedgerTransaction) *LedgerEnt
 
 // Hooks returns the client hooks.
 func (c *LedgerTransactionClient) Hooks() []Hook {
-	return c.hooks.LedgerTransaction
+	hooks := c.hooks.LedgerTransaction
+	return append(hooks[:len(hooks):len(hooks)], ledgertransaction.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *LedgerTransactionClient) Interceptors() []Interceptor {
-	return c.inters.LedgerTransaction
+	inters := c.inters.LedgerTransaction
+	return append(inters[:len(inters):len(inters)], ledgertransaction.Interceptors[:]...)
 }
 
 func (c *LedgerTransactionClient) mutate(ctx context.Context, m *LedgerTransactionMutation) (Value, error) {
@@ -11605,12 +11673,14 @@ func (c *LedgerTransactionGroupClient) QueryTransactions(_m *LedgerTransactionGr
 
 // Hooks returns the client hooks.
 func (c *LedgerTransactionGroupClient) Hooks() []Hook {
-	return c.hooks.LedgerTransactionGroup
+	hooks := c.hooks.LedgerTransactionGroup
+	return append(hooks[:len(hooks):len(hooks)], ledgertransactiongroup.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *LedgerTransactionGroupClient) Interceptors() []Interceptor {
-	return c.inters.LedgerTransactionGroup
+	inters := c.inters.LedgerTransactionGroup
+	return append(inters[:len(inters):len(inters)], ledgertransactiongroup.Interceptors[:]...)
 }
 
 func (c *LedgerTransactionGroupClient) mutate(ctx context.Context, m *LedgerTransactionGroupMutation) (Value, error) {
@@ -11903,12 +11973,14 @@ func (c *NotificationChannelClient) QueryRules(_m *NotificationChannel) *Notific
 
 // Hooks returns the client hooks.
 func (c *NotificationChannelClient) Hooks() []Hook {
-	return c.hooks.NotificationChannel
+	hooks := c.hooks.NotificationChannel
+	return append(hooks[:len(hooks):len(hooks)], notificationchannel.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *NotificationChannelClient) Interceptors() []Interceptor {
-	return c.inters.NotificationChannel
+	inters := c.inters.NotificationChannel
+	return append(inters[:len(inters):len(inters)], notificationchannel.Interceptors[:]...)
 }
 
 func (c *NotificationChannelClient) mutate(ctx context.Context, m *NotificationChannelMutation) (Value, error) {
@@ -12382,12 +12454,14 @@ func (c *NotificationRuleClient) QueryEvents(_m *NotificationRule) *Notification
 
 // Hooks returns the client hooks.
 func (c *NotificationRuleClient) Hooks() []Hook {
-	return c.hooks.NotificationRule
+	hooks := c.hooks.NotificationRule
+	return append(hooks[:len(hooks):len(hooks)], notificationrule.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *NotificationRuleClient) Interceptors() []Interceptor {
-	return c.inters.NotificationRule
+	inters := c.inters.NotificationRule
+	return append(inters[:len(inters):len(inters)], notificationrule.Interceptors[:]...)
 }
 
 func (c *NotificationRuleClient) mutate(ctx context.Context, m *NotificationRuleMutation) (Value, error) {
@@ -12547,12 +12621,14 @@ func (c *OrganizationDefaultTaxCodesClient) QueryCreditGrantTaxCode(_m *Organiza
 
 // Hooks returns the client hooks.
 func (c *OrganizationDefaultTaxCodesClient) Hooks() []Hook {
-	return c.hooks.OrganizationDefaultTaxCodes
+	hooks := c.hooks.OrganizationDefaultTaxCodes
+	return append(hooks[:len(hooks):len(hooks)], organizationdefaulttaxcodes.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *OrganizationDefaultTaxCodesClient) Interceptors() []Interceptor {
-	return c.inters.OrganizationDefaultTaxCodes
+	inters := c.inters.OrganizationDefaultTaxCodes
+	return append(inters[:len(inters):len(inters)], organizationdefaulttaxcodes.Interceptors[:]...)
 }
 
 func (c *OrganizationDefaultTaxCodesClient) mutate(ctx context.Context, m *OrganizationDefaultTaxCodesMutation) (Value, error) {
@@ -12893,12 +12969,14 @@ func (c *PlanAddonClient) QueryAddon(_m *PlanAddon) *AddonQuery {
 
 // Hooks returns the client hooks.
 func (c *PlanAddonClient) Hooks() []Hook {
-	return c.hooks.PlanAddon
+	hooks := c.hooks.PlanAddon
+	return append(hooks[:len(hooks):len(hooks)], planaddon.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *PlanAddonClient) Interceptors() []Interceptor {
-	return c.inters.PlanAddon
+	inters := c.inters.PlanAddon
+	return append(inters[:len(inters):len(inters)], planaddon.Interceptors[:]...)
 }
 
 func (c *PlanAddonClient) mutate(ctx context.Context, m *PlanAddonMutation) (Value, error) {
@@ -13372,12 +13450,14 @@ func (c *SubjectClient) GetX(ctx context.Context, id string) *Subject {
 
 // Hooks returns the client hooks.
 func (c *SubjectClient) Hooks() []Hook {
-	return c.hooks.Subject
+	hooks := c.hooks.Subject
+	return append(hooks[:len(hooks):len(hooks)], subject.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *SubjectClient) Interceptors() []Interceptor {
-	return c.inters.Subject
+	inters := c.inters.Subject
+	return append(inters[:len(inters):len(inters)], subject.Interceptors[:]...)
 }
 
 func (c *SubjectClient) mutate(ctx context.Context, m *SubjectMutation) (Value, error) {
@@ -13665,12 +13745,14 @@ func (c *SubscriptionClient) QueryBillingSyncState(_m *Subscription) *Subscripti
 
 // Hooks returns the client hooks.
 func (c *SubscriptionClient) Hooks() []Hook {
-	return c.hooks.Subscription
+	hooks := c.hooks.Subscription
+	return append(hooks[:len(hooks):len(hooks)], subscription.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *SubscriptionClient) Interceptors() []Interceptor {
-	return c.inters.Subscription
+	inters := c.inters.Subscription
+	return append(inters[:len(inters):len(inters)], subscription.Interceptors[:]...)
 }
 
 func (c *SubscriptionClient) mutate(ctx context.Context, m *SubscriptionMutation) (Value, error) {
@@ -13846,12 +13928,14 @@ func (c *SubscriptionAddonClient) QueryAddon(_m *SubscriptionAddon) *AddonQuery 
 
 // Hooks returns the client hooks.
 func (c *SubscriptionAddonClient) Hooks() []Hook {
-	return c.hooks.SubscriptionAddon
+	hooks := c.hooks.SubscriptionAddon
+	return append(hooks[:len(hooks):len(hooks)], subscriptionaddon.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *SubscriptionAddonClient) Interceptors() []Interceptor {
-	return c.inters.SubscriptionAddon
+	inters := c.inters.SubscriptionAddon
+	return append(inters[:len(inters):len(inters)], subscriptionaddon.Interceptors[:]...)
 }
 
 func (c *SubscriptionAddonClient) mutate(ctx context.Context, m *SubscriptionAddonMutation) (Value, error) {
@@ -13995,12 +14079,14 @@ func (c *SubscriptionAddonQuantityClient) QuerySubscriptionAddon(_m *Subscriptio
 
 // Hooks returns the client hooks.
 func (c *SubscriptionAddonQuantityClient) Hooks() []Hook {
-	return c.hooks.SubscriptionAddonQuantity
+	hooks := c.hooks.SubscriptionAddonQuantity
+	return append(hooks[:len(hooks):len(hooks)], subscriptionaddonquantity.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *SubscriptionAddonQuantityClient) Interceptors() []Interceptor {
-	return c.inters.SubscriptionAddonQuantity
+	inters := c.inters.SubscriptionAddonQuantity
+	return append(inters[:len(inters):len(inters)], subscriptionaddonquantity.Interceptors[:]...)
 }
 
 func (c *SubscriptionAddonQuantityClient) mutate(ctx context.Context, m *SubscriptionAddonQuantityMutation) (Value, error) {
@@ -14405,12 +14491,14 @@ func (c *SubscriptionItemClient) QueryTaxCode(_m *SubscriptionItem) *TaxCodeQuer
 
 // Hooks returns the client hooks.
 func (c *SubscriptionItemClient) Hooks() []Hook {
-	return c.hooks.SubscriptionItem
+	hooks := c.hooks.SubscriptionItem
+	return append(hooks[:len(hooks):len(hooks)], subscriptionitem.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *SubscriptionItemClient) Interceptors() []Interceptor {
-	return c.inters.SubscriptionItem
+	inters := c.inters.SubscriptionItem
+	return append(inters[:len(inters):len(inters)], subscriptionitem.Interceptors[:]...)
 }
 
 func (c *SubscriptionItemClient) mutate(ctx context.Context, m *SubscriptionItemMutation) (Value, error) {
@@ -14650,12 +14738,14 @@ func (c *SubscriptionPhaseClient) QueryChargesFlatFee(_m *SubscriptionPhase) *Ch
 
 // Hooks returns the client hooks.
 func (c *SubscriptionPhaseClient) Hooks() []Hook {
-	return c.hooks.SubscriptionPhase
+	hooks := c.hooks.SubscriptionPhase
+	return append(hooks[:len(hooks):len(hooks)], subscriptionphase.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *SubscriptionPhaseClient) Interceptors() []Interceptor {
-	return c.inters.SubscriptionPhase
+	inters := c.inters.SubscriptionPhase
+	return append(inters[:len(inters):len(inters)], subscriptionphase.Interceptors[:]...)
 }
 
 func (c *SubscriptionPhaseClient) mutate(ctx context.Context, m *SubscriptionPhaseMutation) (Value, error) {
@@ -15172,12 +15262,14 @@ func (c *UsageResetClient) QueryEntitlement(_m *UsageReset) *EntitlementQuery {
 
 // Hooks returns the client hooks.
 func (c *UsageResetClient) Hooks() []Hook {
-	return c.hooks.UsageReset
+	hooks := c.hooks.UsageReset
+	return append(hooks[:len(hooks):len(hooks)], usagereset.Hooks[:]...)
 }
 
 // Interceptors returns the client interceptors.
 func (c *UsageResetClient) Interceptors() []Interceptor {
-	return c.inters.UsageReset
+	inters := c.inters.UsageReset
+	return append(inters[:len(inters):len(inters)], usagereset.Interceptors[:]...)
 }
 
 func (c *UsageResetClient) mutate(ctx context.Context, m *UsageResetMutation) (Value, error) {

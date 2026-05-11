@@ -61,7 +61,9 @@ func (_u *LedgerCustomerAccountUpdate) Mutation() *LedgerCustomerAccountMutation
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *LedgerCustomerAccountUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return 0, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -88,11 +90,15 @@ func (_u *LedgerCustomerAccountUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *LedgerCustomerAccountUpdate) defaults() {
+func (_u *LedgerCustomerAccountUpdate) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if ledgercustomeraccount.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgercustomeraccount.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgercustomeraccount.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 func (_u *LedgerCustomerAccountUpdate) sqlSave(ctx context.Context) (_node int, err error) {
@@ -179,7 +185,9 @@ func (_u *LedgerCustomerAccountUpdateOne) Select(field string, fields ...string)
 
 // Save executes the query and returns the updated LedgerCustomerAccount entity.
 func (_u *LedgerCustomerAccountUpdateOne) Save(ctx context.Context) (*LedgerCustomerAccount, error) {
-	_u.defaults()
+	if err := _u.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -206,11 +214,15 @@ func (_u *LedgerCustomerAccountUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_u *LedgerCustomerAccountUpdateOne) defaults() {
+func (_u *LedgerCustomerAccountUpdateOne) defaults() error {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		if ledgercustomeraccount.UpdateDefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgercustomeraccount.UpdateDefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgercustomeraccount.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
+	return nil
 }
 
 func (_u *LedgerCustomerAccountUpdateOne) sqlSave(ctx context.Context) (_node *LedgerCustomerAccount, err error) {

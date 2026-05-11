@@ -111,7 +111,9 @@ func (_c *LedgerCustomerAccountCreate) Mutation() *LedgerCustomerAccountMutation
 
 // Save creates the LedgerCustomerAccount in the database.
 func (_c *LedgerCustomerAccountCreate) Save(ctx context.Context) (*LedgerCustomerAccount, error) {
-	_c.defaults()
+	if err := _c.defaults(); err != nil {
+		return nil, err
+	}
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -138,19 +140,29 @@ func (_c *LedgerCustomerAccountCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *LedgerCustomerAccountCreate) defaults() {
+func (_c *LedgerCustomerAccountCreate) defaults() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
+		if ledgercustomeraccount.DefaultCreatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgercustomeraccount.DefaultCreatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgercustomeraccount.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		if ledgercustomeraccount.DefaultUpdatedAt == nil {
+			return fmt.Errorf("db: uninitialized ledgercustomeraccount.DefaultUpdatedAt (forgotten import db/runtime?)")
+		}
 		v := ledgercustomeraccount.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
+		if ledgercustomeraccount.DefaultID == nil {
+			return fmt.Errorf("db: uninitialized ledgercustomeraccount.DefaultID (forgotten import db/runtime?)")
+		}
 		v := ledgercustomeraccount.DefaultID()
 		_c.mutation.SetID(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
