@@ -288,10 +288,11 @@ func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, inp
 }
 
 func (c *accrualCorrector) reissueBackfilledCredit(ctx context.Context, input CorrectCollectedAccruedInput, backingGroup ledger.TransactionGroup, amount alpacadecimal.Decimal) ([]ledger.TransactionInput, error) {
-	// Re-issue into the same known-cost bucket the backfill had used so the released value becomes
-	// ordinary purchased credit again. It can be consumed later, but we do not immediately redirect
-	// it onto some other uncovered advance during this correction flow.
-	currency, costBasis, err := c.backfilledIssueRoute(backingGroup)
+	// Re-issue into the same known-cost and priority bucket the backfill had used
+	// so the released value becomes ordinary purchased credit again. It can be
+	// consumed later, but we do not immediately redirect it onto some other
+	// uncovered advance during this correction flow.
+	currency, costBasis, creditPriority, err := c.backfilledCreditReissueRoute(backingGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -307,10 +308,11 @@ func (c *accrualCorrector) reissueBackfilledCredit(ctx context.Context, input Co
 			Namespace: input.Namespace,
 		},
 		transactions.IssueCustomerReceivableTemplate{
-			At:        input.AllocateAt,
-			Amount:    amount,
-			Currency:  currency,
-			CostBasis: costBasis,
+			At:             input.AllocateAt,
+			Amount:         amount,
+			Currency:       currency,
+			CostBasis:      costBasis,
+			CreditPriority: creditPriority,
 		},
 	)
 	if err != nil {
@@ -425,7 +427,6 @@ func (c *accrualCorrector) collectedSourcesForGroup(group ledger.TransactionGrou
 		if direction != ledger.TransactionDirectionForward {
 			continue
 		}
-
 		// Advance-backed collection comes with a receivable issue in the same group.
 		var advanceReceivableIssueTransaction ledger.Transaction
 		if templateName == transactions.TemplateName(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}) {
@@ -469,17 +470,38 @@ func (c *accrualCorrector) forwardTransactionByTemplate(group ledger.Transaction
 	return nil, fmt.Errorf("transaction with template %s not found", templateName)
 }
 
-func (c *accrualCorrector) backfilledIssueRoute(group ledger.TransactionGroup) (currencyx.Code, *alpacadecimal.Decimal, error) {
+func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.TransactionGroup) (currencyx.Code, *alpacadecimal.Decimal, *int, error) {
+	// A correction of backfilled advance turns already-covered value back into
+	// ordinary FBO credit. Use the backing group's known-cost route for that
+	// re-issue. If the group has an FBO route, prefer it because it also carries
+	// the customer credit collection priority. Fully backfilled purchases may
+	// only have the known cost basis on receivable/accrued attribution entries.
+	var fallbackCurrency currencyx.Code
+	var fallbackCostBasis *alpacadecimal.Decimal
+
 	for _, transaction := range group.Transactions() {
 		for _, entry := range transaction.Entries() {
 			route := entry.PostingAddress().Route().Route()
-			if route.CostBasis != nil {
-				return route.Currency, route.CostBasis, nil
+			if route.CostBasis == nil {
+				continue
+			}
+
+			if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO {
+				return route.Currency, route.CostBasis, route.CreditPriority, nil
+			}
+
+			if fallbackCostBasis == nil {
+				fallbackCurrency = route.Currency
+				fallbackCostBasis = route.CostBasis
 			}
 		}
 	}
 
-	return "", nil, fmt.Errorf("backing transaction group %s does not contain a known cost basis route", group.ID().ID)
+	if fallbackCostBasis != nil {
+		return fallbackCurrency, fallbackCostBasis, nil, nil
+	}
+
+	return "", nil, nil, fmt.Errorf("backing transaction group %s does not contain a known cost basis route", group.ID().ID)
 }
 
 func sortCorrectionSegments(segments []lineage.Segment) []lineage.Segment {

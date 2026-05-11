@@ -14,12 +14,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-// TransferCustomerFBOToAccruedTemplate moves value from prioritized customer FBO
-// sub-accounts into the customer's accrued account.
+// TransferCustomerFBOToAccruedTemplate moves preselected customer FBO value
+// into the customer's accrued account.
 type TransferCustomerFBOToAccruedTemplate struct {
 	At       time.Time
-	Amount   alpacadecimal.Decimal
 	Currency currencyx.Code
+	Sources  []PostingAmount
 }
 
 func (t TransferCustomerFBOToAccruedTemplate) Validate() error {
@@ -27,12 +27,26 @@ func (t TransferCustomerFBOToAccruedTemplate) Validate() error {
 		return fmt.Errorf("at is required")
 	}
 
-	if err := ledger.ValidateTransactionAmount(t.Amount); err != nil {
-		return fmt.Errorf("amount: %w", err)
-	}
-
 	if err := ledger.ValidateCurrency(t.Currency); err != nil {
 		return fmt.Errorf("currency: %w", err)
+	}
+
+	for i, source := range t.Sources {
+		if source.Address == nil {
+			return fmt.Errorf("sources[%d]: address is required", i)
+		}
+
+		if source.Address.AccountType() != ledger.AccountTypeCustomerFBO {
+			return fmt.Errorf("sources[%d]: account type must be customer_fbo", i)
+		}
+
+		if source.Address.Route().Route().Currency != t.Currency {
+			return fmt.Errorf("sources[%d]: currency must be %s", i, t.Currency)
+		}
+
+		if err := ledger.ValidateTransactionAmount(source.Amount); err != nil {
+			return fmt.Errorf("sources[%d].amount: %w", i, err)
+		}
 	}
 
 	return nil
@@ -108,11 +122,7 @@ func fboCorrectionPriority(address ledger.PostingAddress) int {
 }
 
 func (t TransferCustomerFBOToAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
-	collections, err := collectFromPrioritizedCustomerFBO(ctx, customerID, t.Currency, t.Amount, resolvers)
-	if err != nil {
-		return nil, fmt.Errorf("collect from prioritized FBO: %w", err)
-	}
-	if len(collections) == 0 {
+	if len(t.Sources) == 0 {
 		return nil, nil
 	}
 
@@ -121,39 +131,39 @@ func (t TransferCustomerFBOToAccruedTemplate) resolve(ctx context.Context, custo
 		return nil, fmt.Errorf("failed to get customer accounts: %w", err)
 	}
 
-	accruedSubAccByKey, err := t.resolveAccruedSubAccByRoutePairingKey(ctx, customerAccounts.AccruedAccount, collections)
+	accruedSubAccByKey, err := t.resolveAccruedSubAccByRoutePairingKey(ctx, customerAccounts.AccruedAccount, t.Sources)
 	if err != nil {
 		return nil, err
 	}
 
 	return &TransactionInput{
 		bookedAt:    t.At,
-		entryInputs: t.buildRoutePreservingAccrualEntries(collections, accruedSubAccByKey),
+		entryInputs: t.buildRoutePreservingAccrualEntries(t.Sources, accruedSubAccByKey),
 	}, nil
 }
 
 func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairingKey(
 	ctx context.Context,
 	accruedAccount ledger.CustomerAccruedAccount,
-	collections []subAccountAmount,
-) (map[routePairingKey]subAccountAmount, error) {
-	accruedSubAccByKey := make(map[routePairingKey]subAccountAmount, len(collections))
+	sources []PostingAmount,
+) (map[routePairingKey]PostingAmount, error) {
+	accruedSubAccByKey := make(map[routePairingKey]PostingAmount, len(sources))
 
-	for _, collection := range collections {
-		key := t.routePairingKey(collection.subAccount.Address())
+	for _, source := range sources {
+		key := t.routePairingKey(source.Address)
 		current := accruedSubAccByKey[key]
-		if current.subAccount == nil {
+		if current.Address == nil {
 			accruedSubAccount, err := accruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
 				Currency:  t.Currency,
-				CostBasis: collection.subAccount.Route().CostBasis,
+				CostBasis: source.Address.Route().Route().CostBasis,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get accrued sub-account: %w", err)
 			}
-			current.subAccount = accruedSubAccount
+			current.Address = accruedSubAccount.Address()
 		}
 
-		current.amount = current.amount.Add(collection.amount)
+		current.Amount = current.Amount.Add(source.Amount)
 		accruedSubAccByKey[key] = current
 	}
 
@@ -161,29 +171,29 @@ func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairing
 }
 
 func (t TransferCustomerFBOToAccruedTemplate) buildRoutePreservingAccrualEntries(
-	collections []subAccountAmount,
-	accruedSubAccByKey map[routePairingKey]subAccountAmount,
+	sources []PostingAmount,
+	accruedSubAccByKey map[routePairingKey]PostingAmount,
 ) []*EntryInput {
-	entryInputs := make([]*EntryInput, 0, len(collections)*2)
+	entryInputs := make([]*EntryInput, 0, len(sources)*2)
 
-	for _, collection := range collections {
+	for _, source := range sources {
 		entryInputs = append(entryInputs, &EntryInput{
-			address: collection.subAccount.Address(),
-			amount:  collection.amount.Neg(),
+			address: source.Address,
+			amount:  source.Amount.Neg(),
 		})
 	}
 
 	creditedKeys := make(map[routePairingKey]struct{}, len(accruedSubAccByKey))
-	for _, collection := range collections {
-		key := t.routePairingKey(collection.subAccount.Address())
+	for _, source := range sources {
+		key := t.routePairingKey(source.Address)
 		if _, ok := creditedKeys[key]; ok {
 			continue
 		}
 
 		accrued := accruedSubAccByKey[key]
 		entryInputs = append(entryInputs, &EntryInput{
-			address: accrued.subAccount.Address(),
-			amount:  accrued.amount,
+			address: accrued.Address,
+			amount:  accrued.Amount,
 		})
 		creditedKeys[key] = struct{}{}
 	}

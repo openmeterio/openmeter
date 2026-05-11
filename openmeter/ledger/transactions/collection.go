@@ -23,125 +23,14 @@ type subAccountAmount struct {
 	amount     alpacadecimal.Decimal
 }
 
-type prioritizedSubAccountBalance struct {
-	subAccountBalance
-	priority int
+// PostingAmount is a preselected amount to post against an address.
+type PostingAmount struct {
+	Address ledger.PostingAddress
+	Amount  alpacadecimal.Decimal
 }
 
 type accountIdentifier interface {
 	ID() models.NamespacedID
-}
-
-func collectFromPrioritizedCustomerFBO(
-	ctx context.Context,
-	customerID customer.CustomerID,
-	currency currencyx.Code,
-	target alpacadecimal.Decimal,
-	deps ResolverDependencies,
-) ([]subAccountAmount, error) {
-	sources, err := listCustomerFBOSources(ctx, customerID, currency, deps)
-	if err != nil {
-		return nil, err
-	}
-
-	return collectFromPrioritizedSources(sources, target), nil
-}
-
-func listCustomerFBOSources(
-	ctx context.Context,
-	customerID customer.CustomerID,
-	currency currencyx.Code,
-	deps ResolverDependencies,
-) ([]prioritizedSubAccountBalance, error) {
-	if deps.AccountCatalog == nil {
-		return nil, fmt.Errorf("account catalog is required")
-	}
-
-	if deps.BalanceQuerier == nil {
-		return nil, fmt.Errorf("balance querier is required")
-	}
-
-	customerAccounts, err := deps.AccountService.GetCustomerAccounts(ctx, customerID)
-	if err != nil {
-		return nil, fmt.Errorf("get customer accounts: %w", err)
-	}
-
-	fboAccountWithID, ok := customerAccounts.FBOAccount.(accountIdentifier)
-	if !ok {
-		return nil, fmt.Errorf("customer FBO account does not expose an ID")
-	}
-
-	subAccounts, err := deps.AccountCatalog.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
-		Namespace: fboAccountWithID.ID().Namespace,
-		AccountID: fboAccountWithID.ID().ID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("list sub-accounts: %w", err)
-	}
-
-	sources := make([]prioritizedSubAccountBalance, 0, len(subAccounts))
-	for _, subAccount := range subAccounts {
-		route := subAccount.Route()
-		if route.Currency != currency {
-			continue
-		}
-
-		balance, err := settledBalanceForSubAccount(ctx, deps, subAccount)
-		if err != nil {
-			return nil, err
-		}
-
-		priority := ledger.DefaultCustomerFBOPriority
-		if route.CreditPriority != nil {
-			priority = *route.CreditPriority
-		}
-
-		sources = append(sources, prioritizedSubAccountBalance{
-			subAccountBalance: subAccountBalance{
-				subAccount: subAccount,
-				balance:    balance,
-			},
-			priority: priority,
-		})
-	}
-
-	sort.Slice(sources, func(i, j int) bool {
-		if sources[i].priority == sources[j].priority {
-			return sources[i].subAccount.Address().SubAccountID() < sources[j].subAccount.Address().SubAccountID()
-		}
-
-		return sources[i].priority < sources[j].priority
-	})
-
-	return sources, nil
-}
-
-func collectFromPrioritizedSources(sources []prioritizedSubAccountBalance, target alpacadecimal.Decimal) []subAccountAmount {
-	remaining := target
-	out := make([]subAccountAmount, 0, len(sources))
-
-	for _, source := range sources {
-		if !remaining.IsPositive() {
-			break
-		}
-
-		if !source.balance.IsPositive() {
-			continue
-		}
-
-		amount := source.balance
-		if source.balance.GreaterThan(remaining) {
-			amount = remaining
-		}
-
-		out = append(out, subAccountAmount{
-			subAccount: source.subAccount,
-			amount:     amount,
-		})
-		remaining = remaining.Sub(amount)
-	}
-
-	return out
 }
 
 func collectFromAttributableCustomerAccrued(
@@ -187,6 +76,11 @@ func collectFromAttributableCustomerAccrued(
 		})
 	}
 
+	// Recognition correction sorts the original accrued source entries by
+	// sub-account id and unwinds from the end. Keep forward recognition ordered
+	// the same way so partial corrections are deterministic.
+	//
+	// There is no business requirement on the priority order of earning recognition.
 	sort.Slice(sources, func(i, j int) bool {
 		return sources[i].subAccount.Address().SubAccountID() < sources[j].subAccount.Address().SubAccountID()
 	})

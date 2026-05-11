@@ -321,7 +321,7 @@ func (r RequireFBOCostBasisTranslationRule) Validate(tx TxView) error {
 		})
 	}
 
-	return requireKnownToUnknownCostBasisTranslation(
+	return requireKnownToUnknownCostBasisTranslationEitherDirection(
 		positiveEntries,
 		negativeEntries,
 		ledger.AccountTypeCustomerFBO,
