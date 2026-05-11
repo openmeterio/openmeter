@@ -6,13 +6,12 @@ import (
 	"github.com/samber/lo"
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func toAPISubscriptionAddon(_ subscription.SubscriptionView, addon subscriptionaddon.SubscriptionAddon) (apiv3.SubscriptionAddon, error) {
+func toAPISubscriptionAddon(addon subscriptionaddon.SubscriptionAddon) (apiv3.SubscriptionAddon, error) {
 	now := clock.Now()
 
 	// If no instance is active at `now`, quantity stays 0.

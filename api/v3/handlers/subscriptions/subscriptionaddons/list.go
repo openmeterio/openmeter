@@ -90,14 +90,9 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 				return ListSubscriptionAddonsResponse{}, fmt.Errorf("failed to list subscription addons: %w", err)
 			}
 
-			view, err := h.subscriptionService.GetView(ctx, req.SubscriptionID)
-			if err != nil {
-				return ListSubscriptionAddonsResponse{}, fmt.Errorf("failed to load subscription view: %w", err)
-			}
-
 			items := make([]apiv3.SubscriptionAddon, 0, len(res.Items))
 			for _, item := range res.Items {
-				converted, err := toAPISubscriptionAddon(view, item)
+				converted, err := toAPISubscriptionAddon(item)
 				if err != nil {
 					return ListSubscriptionAddonsResponse{}, fmt.Errorf("failed to convert subscription addon: %w", err)
 				}

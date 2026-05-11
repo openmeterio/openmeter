@@ -3,7 +3,7 @@ import "../productcatalog/addon.tsp";
 namespace Subscriptions;
 
 /**
- * SubscriptionAddon represents an addon associated with a subscription.
+ * Addon purchased with a subscription.
  */
 @friendlyName("SubscriptionAddon")
 model SubscriptionAddon {
