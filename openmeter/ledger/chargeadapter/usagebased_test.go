@@ -544,6 +544,7 @@ func (e *usageBasedHandlerTestEnv) newRun() chargeusagebased.RealizationRun {
 				UpdatedAt: now,
 			},
 			Type:            chargeusagebased.RealizationRunTypeFinalRealization,
+			InitialType:     chargeusagebased.RealizationRunTypeFinalRealization,
 			StoredAtLT:      now,
 			ServicePeriodTo: now,
 			MeteredQuantity: alpacadecimal.NewFromInt(30),

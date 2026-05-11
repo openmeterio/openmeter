@@ -210,6 +210,7 @@ func newUsageBasedRun(lineID string) usagebased.RealizationRun {
 			FeatureID:       "feature-1",
 			LineID:          &lineID,
 			Type:            usagebased.RealizationRunTypeFinalRealization,
+			InitialType:     usagebased.RealizationRunTypeFinalRealization,
 			StoredAtLT:      now,
 			ServicePeriodTo: now,
 			MeteredQuantity: alpacadecimal.NewFromInt(10),

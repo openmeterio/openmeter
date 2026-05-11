@@ -414,13 +414,52 @@ func (s *CreditThenInvoiceStateMachine) handleRunsOnShrink() error {
 		}
 	}
 
-	if s.Charge.Status != usagebased.StatusCreated {
-		s.Charge.Status = usagebased.StatusActive
-		s.Charge.State.CurrentRealizationRunID = nil
-		s.Charge.State.AdvanceAfter = lo.ToPtr(newServicePeriodTo)
-	}
+	s.updateStateAfterShrink(runsToKeep, gatheringLinePeriod, newServicePeriodTo)
 
 	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) updateStateAfterShrink(
+	runsToKeep usagebased.RealizationRuns,
+	replacementGatheringLinePeriod timeutil.ClosedPeriod,
+	newServicePeriodTo time.Time,
+) {
+	if s.Charge.Status == usagebased.StatusCreated {
+		return
+	}
+
+	if s.Charge.State.CurrentRealizationRunID != nil {
+		currentRunID := *s.Charge.State.CurrentRealizationRunID
+		if _, err := runsToKeep.GetByID(currentRunID); err == nil {
+			// Billing still owns the current invoice lifecycle. Shrink may shorten
+			// future gathering, but it must not make the charge forget an in-flight
+			// invoice-backed run that still fits inside the new service period.
+			return
+		}
+	}
+
+	s.Charge.State.CurrentRealizationRunID = nil
+
+	if replacementGatheringLinePeriod.IsEmpty() && len(runsToKeep) > 0 {
+		// The new service end is already covered by the last kept invoice-backed
+		// run, so there is no future gathering work left for the charge. Decide
+		// settlement from the kept effective history only; runs removed by this
+		// shrink must not keep the charge waiting for callbacks that will never
+		// arrive.
+		chargeWithKeptRuns := s.Charge
+		chargeWithKeptRuns.Realizations = runsToKeep
+		if areAllInvoicedRunsSettled(chargeWithKeptRuns) {
+			s.Charge.Status = usagebased.StatusFinal
+		} else if s.Charge.Status != usagebased.StatusFinal {
+			s.Charge.Status = usagebased.StatusActiveAwaitingPaymentSettlement
+		}
+		s.Charge.State.AdvanceAfter = nil
+
+		return
+	}
+
+	s.Charge.Status = usagebased.StatusActive
+	s.Charge.State.AdvanceAfter = lo.ToPtr(newServicePeriodTo)
 }
 
 // Extending a charge after a final invoice run moves the customer's contractual
