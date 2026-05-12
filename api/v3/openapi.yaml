@@ -7802,12 +7802,12 @@ components:
           items:
             type: string
           minItems: 1
-          maxItems: 1000
+          maxItems: 50
           description: |-
             Each entry can be a customer `key` or a usage-attribution subject `key`.
             Identifiers that cannot be resolved to a customer are reported in the response
             `errors` array.
-          title: Customer usage attribution keys
+          title: Customer keys and usage-attribution subjects
       additionalProperties: false
       description: List of customer identifiers to evaluate access for.
     GovernanceQueryError:
@@ -7836,7 +7836,7 @@ components:
         customer:
           type: string
           description: The customer identifier from the request that produced this error.
-          title: Customer Identifier
+          title: Customer identifier
           readOnly: true
       additionalProperties: false
       description: Query error within a partially successful governance query response.
@@ -7856,7 +7856,7 @@ components:
           items:
             type: string
           minItems: 1
-          maxItems: 1000
+          maxItems: 50
           description: List of feature keys to evaluate access for.
           title: Feature Keys
       additionalProperties: false
@@ -7943,7 +7943,7 @@ components:
 
             Duplicate or aliased identifiers that resolve to the same customer collapse to a
             single result entry, with every requested identifier listed here.
-          title: Matched Identifiers
+          title: Matched identifiers
           readOnly: true
         customer:
           allOf:

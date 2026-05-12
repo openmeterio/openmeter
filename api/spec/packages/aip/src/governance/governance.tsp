@@ -14,9 +14,9 @@ model GovernanceQueryCustomersFilter {
    * Identifiers that cannot be resolved to a customer are reported in the response
    * `errors` array.
    */
-  @summary("Customer usage attribution keys")
+  @summary("Customer keys and usage-attribution subjects")
   @minItems(1)
-  @maxItems(1000)
+  @maxItems(50)
   keys: string[];
 }
 
@@ -32,7 +32,7 @@ model GovernanceQueryFeaturesFilter {
    */
   @summary("Feature Keys")
   @minItems(1)
-  @maxItems(1000)
+  @maxItems(50)
   keys: string[];
 }
 
@@ -107,7 +107,7 @@ model GovernanceQueryResult {
    * single result entry, with every requested identifier listed here.
    */
   @visibility(Lifecycle.Read)
-  @summary("Matched Identifiers")
+  @summary("Matched identifiers")
   matched: string[];
 
   /**
@@ -220,7 +220,7 @@ model GovernanceQueryError is Shared.BaseError<GovernanceQueryErrorCode> {
    * The customer identifier from the request that produced this error.
    */
   @visibility(Lifecycle.Read)
-  @summary("Customer Identifier")
+  @summary("Customer identifier")
   customer?: string;
 }
 
