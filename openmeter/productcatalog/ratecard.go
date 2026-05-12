@@ -42,6 +42,8 @@ type RateCard interface {
 	Compatible(RateCard) error
 	GetBillingCadence() *datetime.ISODuration
 	IsBillable() bool
+
+	HasFeature() bool
 }
 
 type RateCardSerde struct {
@@ -88,6 +90,10 @@ type RateCardMeta struct {
 
 	// Discounts defines a list of discounts for the RateCard
 	Discounts Discounts `json:"discounts,omitempty"`
+}
+
+func (r RateCardMeta) HasFeature() bool {
+	return lo.FromPtr(r.FeatureID) != "" || lo.FromPtr(r.FeatureKey) != ""
 }
 
 func (r RateCardMeta) Clone() RateCardMeta {
@@ -191,7 +197,7 @@ func (r RateCardMeta) Validate() error {
 	var errs []error
 
 	if r.EntitlementTemplate != nil {
-		if r.FeatureKey == nil {
+		if !r.HasFeature() {
 			errs = append(errs, ErrRateCardEntitlementTemplateWithNoFeature)
 		}
 
@@ -227,7 +233,7 @@ func (r RateCardMeta) Validate() error {
 
 		// Ratecard with usage-based price type must have feature key.
 		if r.Price.Type() != FlatPriceType {
-			if r.FeatureKey == nil {
+			if !r.HasFeature() {
 				errs = append(errs, ErrRateCardUsageBasedPriceWithNoFeature)
 			}
 		}
