@@ -139,9 +139,7 @@ func newBookPaymentAuthorizedInput() BookInvoicedPaymentAuthorizedInput {
 func newSettlePaymentInput() SettleInvoicedPaymentInput {
 	authInput := newBookPaymentAuthorizedInput()
 	authInput.Run.InvoiceUsage = &invoicedusage.AccruedUsage{
-		LineID:        &authInput.Line.ID,
 		ServicePeriod: authInput.Line.Period,
-		Mutable:       false,
 		Totals:        authInput.Line.Totals,
 	}
 	authInput.Run.Payment = &payment.Invoiced{

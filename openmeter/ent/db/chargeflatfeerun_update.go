@@ -13,6 +13,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
@@ -214,6 +216,46 @@ func (_u *ChargeFlatFeeRunUpdate) SetNillableServicePeriodTo(v *time.Time) *Char
 	return _u
 }
 
+// SetLineID sets the "line_id" field.
+func (_u *ChargeFlatFeeRunUpdate) SetLineID(v string) *ChargeFlatFeeRunUpdate {
+	_u.mutation.SetLineID(v)
+	return _u
+}
+
+// SetNillableLineID sets the "line_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeRunUpdate) SetNillableLineID(v *string) *ChargeFlatFeeRunUpdate {
+	if v != nil {
+		_u.SetLineID(*v)
+	}
+	return _u
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (_u *ChargeFlatFeeRunUpdate) ClearLineID() *ChargeFlatFeeRunUpdate {
+	_u.mutation.ClearLineID()
+	return _u
+}
+
+// SetInvoiceID sets the "invoice_id" field.
+func (_u *ChargeFlatFeeRunUpdate) SetInvoiceID(v string) *ChargeFlatFeeRunUpdate {
+	_u.mutation.SetInvoiceID(v)
+	return _u
+}
+
+// SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeRunUpdate) SetNillableInvoiceID(v *string) *ChargeFlatFeeRunUpdate {
+	if v != nil {
+		_u.SetInvoiceID(*v)
+	}
+	return _u
+}
+
+// ClearInvoiceID clears the value of the "invoice_id" field.
+func (_u *ChargeFlatFeeRunUpdate) ClearInvoiceID() *ChargeFlatFeeRunUpdate {
+	_u.mutation.ClearInvoiceID()
+	return _u
+}
+
 // SetAmountAfterProration sets the "amount_after_proration" field.
 func (_u *ChargeFlatFeeRunUpdate) SetAmountAfterProration(v alpacadecimal.Decimal) *ChargeFlatFeeRunUpdate {
 	_u.mutation.SetAmountAfterProration(v)
@@ -226,6 +268,58 @@ func (_u *ChargeFlatFeeRunUpdate) SetNillableAmountAfterProration(v *alpacadecim
 		_u.SetAmountAfterProration(*v)
 	}
 	return _u
+}
+
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (_u *ChargeFlatFeeRunUpdate) SetNoFiatTransactionRequired(v bool) *ChargeFlatFeeRunUpdate {
+	_u.mutation.SetNoFiatTransactionRequired(v)
+	return _u
+}
+
+// SetNillableNoFiatTransactionRequired sets the "no_fiat_transaction_required" field if the given value is not nil.
+func (_u *ChargeFlatFeeRunUpdate) SetNillableNoFiatTransactionRequired(v *bool) *ChargeFlatFeeRunUpdate {
+	if v != nil {
+		_u.SetNoFiatTransactionRequired(*v)
+	}
+	return _u
+}
+
+// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
+func (_u *ChargeFlatFeeRunUpdate) SetBillingInvoiceLineID(id string) *ChargeFlatFeeRunUpdate {
+	_u.mutation.SetBillingInvoiceLineID(id)
+	return _u
+}
+
+// SetNillableBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID if the given value is not nil.
+func (_u *ChargeFlatFeeRunUpdate) SetNillableBillingInvoiceLineID(id *string) *ChargeFlatFeeRunUpdate {
+	if id != nil {
+		_u = _u.SetBillingInvoiceLineID(*id)
+	}
+	return _u
+}
+
+// SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_u *ChargeFlatFeeRunUpdate) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeFlatFeeRunUpdate {
+	return _u.SetBillingInvoiceLineID(v.ID)
+}
+
+// SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
+func (_u *ChargeFlatFeeRunUpdate) SetBillingInvoiceID(id string) *ChargeFlatFeeRunUpdate {
+	_u.mutation.SetBillingInvoiceID(id)
+	return _u
+}
+
+// SetNillableBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID if the given value is not nil.
+func (_u *ChargeFlatFeeRunUpdate) SetNillableBillingInvoiceID(id *string) *ChargeFlatFeeRunUpdate {
+	if id != nil {
+		_u = _u.SetBillingInvoiceID(*id)
+	}
+	return _u
+}
+
+// SetBillingInvoice sets the "billing_invoice" edge to the BillingInvoice entity.
+func (_u *ChargeFlatFeeRunUpdate) SetBillingInvoice(v *BillingInvoice) *ChargeFlatFeeRunUpdate {
+	return _u.SetBillingInvoiceID(v.ID)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeRunCreditAllocations entity by IDs.
@@ -299,6 +393,18 @@ func (_u *ChargeFlatFeeRunUpdate) SetPayment(v *ChargeFlatFeeRunPayment) *Charge
 // Mutation returns the ChargeFlatFeeRunMutation object of the builder.
 func (_u *ChargeFlatFeeRunUpdate) Mutation() *ChargeFlatFeeRunMutation {
 	return _u.mutation
+}
+
+// ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_u *ChargeFlatFeeRunUpdate) ClearBillingInvoiceLine() *ChargeFlatFeeRunUpdate {
+	_u.mutation.ClearBillingInvoiceLine()
+	return _u
+}
+
+// ClearBillingInvoice clears the "billing_invoice" edge to the BillingInvoice entity.
+func (_u *ChargeFlatFeeRunUpdate) ClearBillingInvoice() *ChargeFlatFeeRunUpdate {
+	_u.mutation.ClearBillingInvoice()
+	return _u
 }
 
 // ClearCreditAllocations clears all "credit_allocations" edges to the ChargeFlatFeeRunCreditAllocations entity.
@@ -398,6 +504,16 @@ func (_u *ChargeFlatFeeRunUpdate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRun.type": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.LineID(); ok {
+		if err := chargeflatfeerun.LineIDValidator(v); err != nil {
+			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRun.line_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.InvoiceID(); ok {
+		if err := chargeflatfeerun.InvoiceIDValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRun.invoice_id": %w`, err)}
+		}
+	}
 	if _u.mutation.FlatFeeCleared() && len(_u.mutation.FlatFeeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeFlatFeeRun.flat_fee"`)
 	}
@@ -460,6 +576,67 @@ func (_u *ChargeFlatFeeRunUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if value, ok := _u.mutation.AmountAfterProration(); ok {
 		_spec.SetField(chargeflatfeerun.FieldAmountAfterProration, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.NoFiatTransactionRequired(); ok {
+		_spec.SetField(chargeflatfeerun.FieldNoFiatTransactionRequired, field.TypeBool, value)
+	}
+	if _u.mutation.BillingInvoiceLineCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargeflatfeerun.BillingInvoiceLineTable,
+			Columns: []string{chargeflatfeerun.BillingInvoiceLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargeflatfeerun.BillingInvoiceLineTable,
+			Columns: []string{chargeflatfeerun.BillingInvoiceLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BillingInvoiceCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfeerun.BillingInvoiceTable,
+			Columns: []string{chargeflatfeerun.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfeerun.BillingInvoiceTable,
+			Columns: []string{chargeflatfeerun.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.CreditAllocationsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -809,6 +986,46 @@ func (_u *ChargeFlatFeeRunUpdateOne) SetNillableServicePeriodTo(v *time.Time) *C
 	return _u
 }
 
+// SetLineID sets the "line_id" field.
+func (_u *ChargeFlatFeeRunUpdateOne) SetLineID(v string) *ChargeFlatFeeRunUpdateOne {
+	_u.mutation.SetLineID(v)
+	return _u
+}
+
+// SetNillableLineID sets the "line_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeRunUpdateOne) SetNillableLineID(v *string) *ChargeFlatFeeRunUpdateOne {
+	if v != nil {
+		_u.SetLineID(*v)
+	}
+	return _u
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (_u *ChargeFlatFeeRunUpdateOne) ClearLineID() *ChargeFlatFeeRunUpdateOne {
+	_u.mutation.ClearLineID()
+	return _u
+}
+
+// SetInvoiceID sets the "invoice_id" field.
+func (_u *ChargeFlatFeeRunUpdateOne) SetInvoiceID(v string) *ChargeFlatFeeRunUpdateOne {
+	_u.mutation.SetInvoiceID(v)
+	return _u
+}
+
+// SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeRunUpdateOne) SetNillableInvoiceID(v *string) *ChargeFlatFeeRunUpdateOne {
+	if v != nil {
+		_u.SetInvoiceID(*v)
+	}
+	return _u
+}
+
+// ClearInvoiceID clears the value of the "invoice_id" field.
+func (_u *ChargeFlatFeeRunUpdateOne) ClearInvoiceID() *ChargeFlatFeeRunUpdateOne {
+	_u.mutation.ClearInvoiceID()
+	return _u
+}
+
 // SetAmountAfterProration sets the "amount_after_proration" field.
 func (_u *ChargeFlatFeeRunUpdateOne) SetAmountAfterProration(v alpacadecimal.Decimal) *ChargeFlatFeeRunUpdateOne {
 	_u.mutation.SetAmountAfterProration(v)
@@ -821,6 +1038,58 @@ func (_u *ChargeFlatFeeRunUpdateOne) SetNillableAmountAfterProration(v *alpacade
 		_u.SetAmountAfterProration(*v)
 	}
 	return _u
+}
+
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (_u *ChargeFlatFeeRunUpdateOne) SetNoFiatTransactionRequired(v bool) *ChargeFlatFeeRunUpdateOne {
+	_u.mutation.SetNoFiatTransactionRequired(v)
+	return _u
+}
+
+// SetNillableNoFiatTransactionRequired sets the "no_fiat_transaction_required" field if the given value is not nil.
+func (_u *ChargeFlatFeeRunUpdateOne) SetNillableNoFiatTransactionRequired(v *bool) *ChargeFlatFeeRunUpdateOne {
+	if v != nil {
+		_u.SetNoFiatTransactionRequired(*v)
+	}
+	return _u
+}
+
+// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
+func (_u *ChargeFlatFeeRunUpdateOne) SetBillingInvoiceLineID(id string) *ChargeFlatFeeRunUpdateOne {
+	_u.mutation.SetBillingInvoiceLineID(id)
+	return _u
+}
+
+// SetNillableBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID if the given value is not nil.
+func (_u *ChargeFlatFeeRunUpdateOne) SetNillableBillingInvoiceLineID(id *string) *ChargeFlatFeeRunUpdateOne {
+	if id != nil {
+		_u = _u.SetBillingInvoiceLineID(*id)
+	}
+	return _u
+}
+
+// SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_u *ChargeFlatFeeRunUpdateOne) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeFlatFeeRunUpdateOne {
+	return _u.SetBillingInvoiceLineID(v.ID)
+}
+
+// SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
+func (_u *ChargeFlatFeeRunUpdateOne) SetBillingInvoiceID(id string) *ChargeFlatFeeRunUpdateOne {
+	_u.mutation.SetBillingInvoiceID(id)
+	return _u
+}
+
+// SetNillableBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID if the given value is not nil.
+func (_u *ChargeFlatFeeRunUpdateOne) SetNillableBillingInvoiceID(id *string) *ChargeFlatFeeRunUpdateOne {
+	if id != nil {
+		_u = _u.SetBillingInvoiceID(*id)
+	}
+	return _u
+}
+
+// SetBillingInvoice sets the "billing_invoice" edge to the BillingInvoice entity.
+func (_u *ChargeFlatFeeRunUpdateOne) SetBillingInvoice(v *BillingInvoice) *ChargeFlatFeeRunUpdateOne {
+	return _u.SetBillingInvoiceID(v.ID)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeRunCreditAllocations entity by IDs.
@@ -894,6 +1163,18 @@ func (_u *ChargeFlatFeeRunUpdateOne) SetPayment(v *ChargeFlatFeeRunPayment) *Cha
 // Mutation returns the ChargeFlatFeeRunMutation object of the builder.
 func (_u *ChargeFlatFeeRunUpdateOne) Mutation() *ChargeFlatFeeRunMutation {
 	return _u.mutation
+}
+
+// ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_u *ChargeFlatFeeRunUpdateOne) ClearBillingInvoiceLine() *ChargeFlatFeeRunUpdateOne {
+	_u.mutation.ClearBillingInvoiceLine()
+	return _u
+}
+
+// ClearBillingInvoice clears the "billing_invoice" edge to the BillingInvoice entity.
+func (_u *ChargeFlatFeeRunUpdateOne) ClearBillingInvoice() *ChargeFlatFeeRunUpdateOne {
+	_u.mutation.ClearBillingInvoice()
+	return _u
 }
 
 // ClearCreditAllocations clears all "credit_allocations" edges to the ChargeFlatFeeRunCreditAllocations entity.
@@ -1006,6 +1287,16 @@ func (_u *ChargeFlatFeeRunUpdateOne) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRun.type": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.LineID(); ok {
+		if err := chargeflatfeerun.LineIDValidator(v); err != nil {
+			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRun.line_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.InvoiceID(); ok {
+		if err := chargeflatfeerun.InvoiceIDValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRun.invoice_id": %w`, err)}
+		}
+	}
 	if _u.mutation.FlatFeeCleared() && len(_u.mutation.FlatFeeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeFlatFeeRun.flat_fee"`)
 	}
@@ -1085,6 +1376,67 @@ func (_u *ChargeFlatFeeRunUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if value, ok := _u.mutation.AmountAfterProration(); ok {
 		_spec.SetField(chargeflatfeerun.FieldAmountAfterProration, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.NoFiatTransactionRequired(); ok {
+		_spec.SetField(chargeflatfeerun.FieldNoFiatTransactionRequired, field.TypeBool, value)
+	}
+	if _u.mutation.BillingInvoiceLineCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargeflatfeerun.BillingInvoiceLineTable,
+			Columns: []string{chargeflatfeerun.BillingInvoiceLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargeflatfeerun.BillingInvoiceLineTable,
+			Columns: []string{chargeflatfeerun.BillingInvoiceLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BillingInvoiceCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfeerun.BillingInvoiceTable,
+			Columns: []string{chargeflatfeerun.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfeerun.BillingInvoiceTable,
+			Columns: []string{chargeflatfeerun.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.CreditAllocationsCleared() {
 		edge := &sqlgraph.EdgeSpec{

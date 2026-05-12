@@ -49,10 +49,11 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 			}
 
 			return flatfee.IntentWithInitialStatus{
-				Intent:               intent,
-				FeatureID:            featureID,
-				InitialStatus:        initialStatus,
-				AmountAfterProration: amountAfterProration,
+				Intent:                    intent,
+				FeatureID:                 featureID,
+				InitialStatus:             initialStatus,
+				AmountAfterProration:      amountAfterProration,
+				NoFiatTransactionRequired: intent.SettlementMode == productcatalog.CreditOnlySettlementMode || amountAfterProration.IsZero(),
 			}, nil
 		})
 		if err != nil {

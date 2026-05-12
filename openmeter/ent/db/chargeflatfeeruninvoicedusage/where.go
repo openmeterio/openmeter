@@ -66,11 +66,6 @@ func IDContainsFold(id string) predicate.ChargeFlatFeeRunInvoicedUsage {
 	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldContainsFold(FieldID, id))
 }
 
-// LineID applies equality check predicate on the "line_id" field. It's identical to LineIDEQ.
-func LineID(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldEQ(FieldLineID, v))
-}
-
 // ServicePeriodFrom applies equality check predicate on the "service_period_from" field. It's identical to ServicePeriodFromEQ.
 func ServicePeriodFrom(v time.Time) predicate.ChargeFlatFeeRunInvoicedUsage {
 	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldEQ(FieldServicePeriodFrom, v))
@@ -79,11 +74,6 @@ func ServicePeriodFrom(v time.Time) predicate.ChargeFlatFeeRunInvoicedUsage {
 // ServicePeriodTo applies equality check predicate on the "service_period_to" field. It's identical to ServicePeriodToEQ.
 func ServicePeriodTo(v time.Time) predicate.ChargeFlatFeeRunInvoicedUsage {
 	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldEQ(FieldServicePeriodTo, v))
-}
-
-// Mutable applies equality check predicate on the "mutable" field. It's identical to MutableEQ.
-func Mutable(v bool) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldEQ(FieldMutable, v))
 }
 
 // LedgerTransactionGroupID applies equality check predicate on the "ledger_transaction_group_id" field. It's identical to LedgerTransactionGroupIDEQ.
@@ -154,81 +144,6 @@ func Total(v alpacadecimal.Decimal) predicate.ChargeFlatFeeRunInvoicedUsage {
 // RunID applies equality check predicate on the "run_id" field. It's identical to RunIDEQ.
 func RunID(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
 	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldEQ(FieldRunID, v))
-}
-
-// LineIDEQ applies the EQ predicate on the "line_id" field.
-func LineIDEQ(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldEQ(FieldLineID, v))
-}
-
-// LineIDNEQ applies the NEQ predicate on the "line_id" field.
-func LineIDNEQ(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldNEQ(FieldLineID, v))
-}
-
-// LineIDIn applies the In predicate on the "line_id" field.
-func LineIDIn(vs ...string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldIn(FieldLineID, vs...))
-}
-
-// LineIDNotIn applies the NotIn predicate on the "line_id" field.
-func LineIDNotIn(vs ...string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldNotIn(FieldLineID, vs...))
-}
-
-// LineIDGT applies the GT predicate on the "line_id" field.
-func LineIDGT(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldGT(FieldLineID, v))
-}
-
-// LineIDGTE applies the GTE predicate on the "line_id" field.
-func LineIDGTE(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldGTE(FieldLineID, v))
-}
-
-// LineIDLT applies the LT predicate on the "line_id" field.
-func LineIDLT(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldLT(FieldLineID, v))
-}
-
-// LineIDLTE applies the LTE predicate on the "line_id" field.
-func LineIDLTE(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldLTE(FieldLineID, v))
-}
-
-// LineIDContains applies the Contains predicate on the "line_id" field.
-func LineIDContains(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldContains(FieldLineID, v))
-}
-
-// LineIDHasPrefix applies the HasPrefix predicate on the "line_id" field.
-func LineIDHasPrefix(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldHasPrefix(FieldLineID, v))
-}
-
-// LineIDHasSuffix applies the HasSuffix predicate on the "line_id" field.
-func LineIDHasSuffix(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldHasSuffix(FieldLineID, v))
-}
-
-// LineIDIsNil applies the IsNil predicate on the "line_id" field.
-func LineIDIsNil() predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldIsNull(FieldLineID))
-}
-
-// LineIDNotNil applies the NotNil predicate on the "line_id" field.
-func LineIDNotNil() predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldNotNull(FieldLineID))
-}
-
-// LineIDEqualFold applies the EqualFold predicate on the "line_id" field.
-func LineIDEqualFold(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldEqualFold(FieldLineID, v))
-}
-
-// LineIDContainsFold applies the ContainsFold predicate on the "line_id" field.
-func LineIDContainsFold(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldContainsFold(FieldLineID, v))
 }
 
 // ServicePeriodFromEQ applies the EQ predicate on the "service_period_from" field.
@@ -309,16 +224,6 @@ func ServicePeriodToLT(v time.Time) predicate.ChargeFlatFeeRunInvoicedUsage {
 // ServicePeriodToLTE applies the LTE predicate on the "service_period_to" field.
 func ServicePeriodToLTE(v time.Time) predicate.ChargeFlatFeeRunInvoicedUsage {
 	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldLTE(FieldServicePeriodTo, v))
-}
-
-// MutableEQ applies the EQ predicate on the "mutable" field.
-func MutableEQ(v bool) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldEQ(FieldMutable, v))
-}
-
-// MutableNEQ applies the NEQ predicate on the "mutable" field.
-func MutableNEQ(v bool) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldNEQ(FieldMutable, v))
 }
 
 // LedgerTransactionGroupIDEQ applies the EQ predicate on the "ledger_transaction_group_id" field.
@@ -984,29 +889,6 @@ func RunIDEqualFold(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
 // RunIDContainsFold applies the ContainsFold predicate on the "run_id" field.
 func RunIDContainsFold(v string) predicate.ChargeFlatFeeRunInvoicedUsage {
 	return predicate.ChargeFlatFeeRunInvoicedUsage(sql.FieldContainsFold(FieldRunID, v))
-}
-
-// HasBillingInvoiceLine applies the HasEdge predicate on the "billing_invoice_line" edge.
-func HasBillingInvoiceLine() predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceLineTable, BillingInvoiceLineColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasBillingInvoiceLineWith applies the HasEdge predicate on the "billing_invoice_line" edge with a given conditions (other predicates).
-func HasBillingInvoiceLineWith(preds ...predicate.BillingInvoiceLine) predicate.ChargeFlatFeeRunInvoicedUsage {
-	return predicate.ChargeFlatFeeRunInvoicedUsage(func(s *sql.Selector) {
-		step := newBillingInvoiceLineStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
 }
 
 // HasRun applies the HasEdge predicate on the "run" edge.

@@ -7,12 +7,8 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -239,37 +235,21 @@ func (s State) Validate() error {
 }
 
 type Realizations struct {
-	CreditRealizations creditrealization.Realizations `json:"creditRealizations"`
-	AccruedUsage       *invoicedusage.AccruedUsage    `json:"accruedUsage"`
-	Payment            *payment.Invoiced              `json:"payment"`
-	DetailedLines      mo.Option[DetailedLines]       `json:"detailedLines,omitzero"`
+	CurrentRun *RealizationRun `json:"currentRun,omitempty"`
+	PriorRuns  RealizationRuns `json:"priorRuns,omitempty"`
 }
 
 func (r Realizations) Validate() error {
 	var errs []error
 
-	for _, realization := range r.CreditRealizations {
-		if err := realization.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("credit realization[id=%s]: %w", realization.ID, err))
+	if r.CurrentRun != nil {
+		if err := r.CurrentRun.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("current run: %w", err))
 		}
 	}
 
-	if r.Payment != nil {
-		if err := r.Payment.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("payment[id=%s]: %w", r.Payment.ID, err))
-		}
-	}
-
-	if r.AccruedUsage != nil {
-		if err := r.AccruedUsage.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("accrued usage[id=%s]: %w", r.AccruedUsage.ID, err))
-		}
-	}
-
-	if r.DetailedLines.IsPresent() {
-		if err := r.DetailedLines.OrEmpty().Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("detailed lines: %w", err))
-		}
+	if err := r.PriorRuns.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("prior runs: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

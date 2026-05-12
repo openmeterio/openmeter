@@ -14,11 +14,8 @@ type AccruedUsage struct {
 	models.NamespacedID
 	models.ManagedModel
 
-	Annotations models.Annotations `json:"annotations"`
-	// TODO: Remove LineID from accrued usage once flat-fee stores line assignment on its own realization state too.
-	LineID            *string                           `json:"lineID"`
+	Annotations       models.Annotations                `json:"annotations"`
 	ServicePeriod     timeutil.ClosedPeriod             `json:"servicePeriod"`
-	Mutable           bool                              `json:"mutable"`
 	LedgerTransaction *ledgertransaction.GroupReference `json:"ledgerTransaction"`
 
 	Totals totals.Totals `json:"totals"`
@@ -27,24 +24,12 @@ type AccruedUsage struct {
 func (r AccruedUsage) Validate() error {
 	var errs []error
 
-	if !r.Mutable {
-		if r.LineID == nil {
-			errs = append(errs, fmt.Errorf("line ID is required when mutable is false"))
-		}
-	}
-
 	if err := r.ServicePeriod.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
 	}
 
 	if err := r.Totals.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("totals: %w", err))
-	}
-
-	if r.LineID != nil {
-		if *r.LineID == "" {
-			errs = append(errs, fmt.Errorf("line ID is required"))
-		}
 	}
 
 	if r.LedgerTransaction != nil {

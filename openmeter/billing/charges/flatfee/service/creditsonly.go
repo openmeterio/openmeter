@@ -51,9 +51,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 	s.Configure(flatfee.StatusActive).
 		Permit(meta.TriggerNext, flatfee.StatusFinal).
 		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
-		OnActive(
-			s.AllocateCredits,
-		)
+		OnActive(s.AllocateCredits)
 
 	s.Configure(flatfee.StatusFinal).
 		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
@@ -89,6 +87,20 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 		return fmt.Errorf("charge total is negative [charge_id=%s, amount=%s]", s.Charge.ID, amount.String())
 	}
 
+	if s.Charge.Realizations.CurrentRun == nil {
+		runBase, err := s.Adapter.ProvisionCurrentRun(ctx, flatfee.ProvisionCurrentRunInput{
+			Charge:                    s.Charge.ChargeBase,
+			NoFiatTransactionRequired: true, // We are in credits-only mode
+		})
+		if err != nil {
+			return fmt.Errorf("provision current run: %w", err)
+		}
+
+		s.Charge.Realizations.CurrentRun = &flatfee.RealizationRun{
+			RealizationRunBase: runBase,
+		}
+	}
+
 	result, err := s.Realizations.AllocateCreditsOnly(ctx, flatfeerealizations.AllocateCreditsOnlyInput{
 		Charge:             s.Charge,
 		Amount:             amount,
@@ -98,12 +110,12 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 		return fmt.Errorf("allocate credits: %w", err)
 	}
 
-	s.Charge.Realizations.CreditRealizations = append(s.Charge.Realizations.CreditRealizations, result.Realizations...)
+	s.Charge.Realizations.CurrentRun.CreditRealizations = append(s.Charge.Realizations.CurrentRun.CreditRealizations, result.Realizations...)
 	return nil
 }
 
 func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.PatchDeletePolicy) error {
-	if policy.CreditRefundPolicy == meta.CreditRefundPolicyCorrect {
+	if policy.CreditRefundPolicy == meta.CreditRefundPolicyCorrect && s.Charge.Realizations.CurrentRun != nil {
 		currencyCalculator, err := s.Charge.Intent.Currency.Calculator()
 		if err != nil {
 			return fmt.Errorf("get currency calculator: %w", err)

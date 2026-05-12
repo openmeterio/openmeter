@@ -170,10 +170,28 @@ func (ChargeFlatFeeRun) Fields() []ent.Field {
 		field.Time("service_period_from"),
 		field.Time("service_period_to"),
 
+		field.String("line_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
+
+		field.String("invoice_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
+
 		field.Other("amount_after_proration", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
+
+		field.Bool("no_fiat_transaction_required"),
 	}
 }
 
@@ -185,6 +203,16 @@ func (ChargeFlatFeeRun) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Immutable(),
+		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
+			Ref("charge_flat_fee_runs").
+			Field("line_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.From("billing_invoice", BillingInvoice.Type).
+			Ref("charge_flat_fee_runs").
+			Field("invoice_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("credit_allocations", ChargeFlatFeeRunCreditAllocations.Type).
 			StorageKey(edge.Symbol("charge_ff_credit_alloc_run")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
@@ -319,10 +347,6 @@ func (ChargeFlatFeeRunInvoicedUsage) Fields() []ent.Field {
 
 func (ChargeFlatFeeRunInvoicedUsage) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
-			Ref("charge_flat_fee_run_invoiced_usage").
-			Field("line_id").
-			Unique(),
 		edge.From("run", ChargeFlatFeeRun.Type).
 			Ref("invoiced_usage").
 			Field("run_id").

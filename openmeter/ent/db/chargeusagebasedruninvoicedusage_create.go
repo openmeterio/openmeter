@@ -26,20 +26,6 @@ type ChargeUsageBasedRunInvoicedUsageCreate struct {
 	conflict []sql.ConflictOption
 }
 
-// SetLineID sets the "line_id" field.
-func (_c *ChargeUsageBasedRunInvoicedUsageCreate) SetLineID(v string) *ChargeUsageBasedRunInvoicedUsageCreate {
-	_c.mutation.SetLineID(v)
-	return _c
-}
-
-// SetNillableLineID sets the "line_id" field if the given value is not nil.
-func (_c *ChargeUsageBasedRunInvoicedUsageCreate) SetNillableLineID(v *string) *ChargeUsageBasedRunInvoicedUsageCreate {
-	if v != nil {
-		_c.SetLineID(*v)
-	}
-	return _c
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (_c *ChargeUsageBasedRunInvoicedUsageCreate) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRunInvoicedUsageCreate {
 	_c.mutation.SetServicePeriodFrom(v)
@@ -49,12 +35,6 @@ func (_c *ChargeUsageBasedRunInvoicedUsageCreate) SetServicePeriodFrom(v time.Ti
 // SetServicePeriodTo sets the "service_period_to" field.
 func (_c *ChargeUsageBasedRunInvoicedUsageCreate) SetServicePeriodTo(v time.Time) *ChargeUsageBasedRunInvoicedUsageCreate {
 	_c.mutation.SetServicePeriodTo(v)
-	return _c
-}
-
-// SetMutable sets the "mutable" field.
-func (_c *ChargeUsageBasedRunInvoicedUsageCreate) SetMutable(v bool) *ChargeUsageBasedRunInvoicedUsageCreate {
-	_c.mutation.SetMutable(v)
 	return _c
 }
 
@@ -250,19 +230,11 @@ func (_c *ChargeUsageBasedRunInvoicedUsageCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *ChargeUsageBasedRunInvoicedUsageCreate) check() error {
-	if v, ok := _c.mutation.LineID(); ok {
-		if err := chargeusagebasedruninvoicedusage.LineIDValidator(v); err != nil {
-			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunInvoicedUsage.line_id": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.ServicePeriodFrom(); !ok {
 		return &ValidationError{Name: "service_period_from", err: errors.New(`db: missing required field "ChargeUsageBasedRunInvoicedUsage.service_period_from"`)}
 	}
 	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
 		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeUsageBasedRunInvoicedUsage.service_period_to"`)}
-	}
-	if _, ok := _c.mutation.Mutable(); !ok {
-		return &ValidationError{Name: "mutable", err: errors.New(`db: missing required field "ChargeUsageBasedRunInvoicedUsage.mutable"`)}
 	}
 	if v, ok := _c.mutation.LedgerTransactionGroupID(); ok {
 		if err := chargeusagebasedruninvoicedusage.LedgerTransactionGroupIDValidator(v); err != nil {
@@ -349,10 +321,6 @@ func (_c *ChargeUsageBasedRunInvoicedUsageCreate) createSpec() (*ChargeUsageBase
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := _c.mutation.LineID(); ok {
-		_spec.SetField(chargeusagebasedruninvoicedusage.FieldLineID, field.TypeString, value)
-		_node.LineID = &value
-	}
 	if value, ok := _c.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargeusagebasedruninvoicedusage.FieldServicePeriodFrom, field.TypeTime, value)
 		_node.ServicePeriodFrom = value
@@ -360,10 +328,6 @@ func (_c *ChargeUsageBasedRunInvoicedUsageCreate) createSpec() (*ChargeUsageBase
 	if value, ok := _c.mutation.ServicePeriodTo(); ok {
 		_spec.SetField(chargeusagebasedruninvoicedusage.FieldServicePeriodTo, field.TypeTime, value)
 		_node.ServicePeriodTo = value
-	}
-	if value, ok := _c.mutation.Mutable(); ok {
-		_spec.SetField(chargeusagebasedruninvoicedusage.FieldMutable, field.TypeBool, value)
-		_node.Mutable = value
 	}
 	if value, ok := _c.mutation.LedgerTransactionGroupID(); ok {
 		_spec.SetField(chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID, field.TypeString, value)
@@ -445,7 +409,7 @@ func (_c *ChargeUsageBasedRunInvoicedUsageCreate) createSpec() (*ChargeUsageBase
 // of the `INSERT` statement. For example:
 //
 //	client.ChargeUsageBasedRunInvoicedUsage.Create().
-//		SetLineID(v).
+//		SetServicePeriodFrom(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -454,7 +418,7 @@ func (_c *ChargeUsageBasedRunInvoicedUsageCreate) createSpec() (*ChargeUsageBase
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeUsageBasedRunInvoicedUsageUpsert) {
-//			SetLineID(v+v).
+//			SetServicePeriodFrom(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeUsageBasedRunInvoicedUsageCreate) OnConflict(opts ...sql.ConflictOption) *ChargeUsageBasedRunInvoicedUsageUpsertOne {
@@ -490,24 +454,6 @@ type (
 	}
 )
 
-// SetLineID sets the "line_id" field.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsert) SetLineID(v string) *ChargeUsageBasedRunInvoicedUsageUpsert {
-	u.Set(chargeusagebasedruninvoicedusage.FieldLineID, v)
-	return u
-}
-
-// UpdateLineID sets the "line_id" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsert) UpdateLineID() *ChargeUsageBasedRunInvoicedUsageUpsert {
-	u.SetExcluded(chargeusagebasedruninvoicedusage.FieldLineID)
-	return u
-}
-
-// ClearLineID clears the value of the "line_id" field.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsert) ClearLineID() *ChargeUsageBasedRunInvoicedUsageUpsert {
-	u.SetNull(chargeusagebasedruninvoicedusage.FieldLineID)
-	return u
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (u *ChargeUsageBasedRunInvoicedUsageUpsert) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRunInvoicedUsageUpsert {
 	u.Set(chargeusagebasedruninvoicedusage.FieldServicePeriodFrom, v)
@@ -529,18 +475,6 @@ func (u *ChargeUsageBasedRunInvoicedUsageUpsert) SetServicePeriodTo(v time.Time)
 // UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
 func (u *ChargeUsageBasedRunInvoicedUsageUpsert) UpdateServicePeriodTo() *ChargeUsageBasedRunInvoicedUsageUpsert {
 	u.SetExcluded(chargeusagebasedruninvoicedusage.FieldServicePeriodTo)
-	return u
-}
-
-// SetMutable sets the "mutable" field.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsert) SetMutable(v bool) *ChargeUsageBasedRunInvoicedUsageUpsert {
-	u.Set(chargeusagebasedruninvoicedusage.FieldMutable, v)
-	return u
-}
-
-// UpdateMutable sets the "mutable" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsert) UpdateMutable() *ChargeUsageBasedRunInvoicedUsageUpsert {
-	u.SetExcluded(chargeusagebasedruninvoicedusage.FieldMutable)
 	return u
 }
 
@@ -763,27 +697,6 @@ func (u *ChargeUsageBasedRunInvoicedUsageUpsertOne) Update(set func(*ChargeUsage
 	return u
 }
 
-// SetLineID sets the "line_id" field.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsertOne) SetLineID(v string) *ChargeUsageBasedRunInvoicedUsageUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
-		s.SetLineID(v)
-	})
-}
-
-// UpdateLineID sets the "line_id" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsertOne) UpdateLineID() *ChargeUsageBasedRunInvoicedUsageUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
-		s.UpdateLineID()
-	})
-}
-
-// ClearLineID clears the value of the "line_id" field.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsertOne) ClearLineID() *ChargeUsageBasedRunInvoicedUsageUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
-		s.ClearLineID()
-	})
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (u *ChargeUsageBasedRunInvoicedUsageUpsertOne) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRunInvoicedUsageUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
@@ -809,20 +722,6 @@ func (u *ChargeUsageBasedRunInvoicedUsageUpsertOne) SetServicePeriodTo(v time.Ti
 func (u *ChargeUsageBasedRunInvoicedUsageUpsertOne) UpdateServicePeriodTo() *ChargeUsageBasedRunInvoicedUsageUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
 		s.UpdateServicePeriodTo()
-	})
-}
-
-// SetMutable sets the "mutable" field.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsertOne) SetMutable(v bool) *ChargeUsageBasedRunInvoicedUsageUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
-		s.SetMutable(v)
-	})
-}
-
-// UpdateMutable sets the "mutable" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsertOne) UpdateMutable() *ChargeUsageBasedRunInvoicedUsageUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
-		s.UpdateMutable()
 	})
 }
 
@@ -1151,7 +1050,7 @@ func (_c *ChargeUsageBasedRunInvoicedUsageCreateBulk) ExecX(ctx context.Context)
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeUsageBasedRunInvoicedUsageUpsert) {
-//			SetLineID(v+v).
+//			SetServicePeriodFrom(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeUsageBasedRunInvoicedUsageCreateBulk) OnConflict(opts ...sql.ConflictOption) *ChargeUsageBasedRunInvoicedUsageUpsertBulk {
@@ -1239,27 +1138,6 @@ func (u *ChargeUsageBasedRunInvoicedUsageUpsertBulk) Update(set func(*ChargeUsag
 	return u
 }
 
-// SetLineID sets the "line_id" field.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsertBulk) SetLineID(v string) *ChargeUsageBasedRunInvoicedUsageUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
-		s.SetLineID(v)
-	})
-}
-
-// UpdateLineID sets the "line_id" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsertBulk) UpdateLineID() *ChargeUsageBasedRunInvoicedUsageUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
-		s.UpdateLineID()
-	})
-}
-
-// ClearLineID clears the value of the "line_id" field.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsertBulk) ClearLineID() *ChargeUsageBasedRunInvoicedUsageUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
-		s.ClearLineID()
-	})
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (u *ChargeUsageBasedRunInvoicedUsageUpsertBulk) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRunInvoicedUsageUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
@@ -1285,20 +1163,6 @@ func (u *ChargeUsageBasedRunInvoicedUsageUpsertBulk) SetServicePeriodTo(v time.T
 func (u *ChargeUsageBasedRunInvoicedUsageUpsertBulk) UpdateServicePeriodTo() *ChargeUsageBasedRunInvoicedUsageUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
 		s.UpdateServicePeriodTo()
-	})
-}
-
-// SetMutable sets the "mutable" field.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsertBulk) SetMutable(v bool) *ChargeUsageBasedRunInvoicedUsageUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
-		s.SetMutable(v)
-	})
-}
-
-// UpdateMutable sets the "mutable" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunInvoicedUsageUpsertBulk) UpdateMutable() *ChargeUsageBasedRunInvoicedUsageUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRunInvoicedUsageUpsert) {
-		s.UpdateMutable()
 	})
 }
 

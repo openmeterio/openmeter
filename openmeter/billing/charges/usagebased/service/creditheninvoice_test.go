@@ -249,7 +249,6 @@ func TestShrinkChargeMovesToFinalWhenKeptRunCoversNewEndAndSettlementIsComplete(
 			From: servicePeriod.From,
 			To:   newServicePeriodTo,
 		},
-		Mutable: true,
 	}
 
 	machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, usagebased.Charge{

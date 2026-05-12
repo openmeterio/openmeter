@@ -50,10 +50,20 @@ const (
 	FieldServicePeriodFrom = "service_period_from"
 	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
 	FieldServicePeriodTo = "service_period_to"
+	// FieldLineID holds the string denoting the line_id field in the database.
+	FieldLineID = "line_id"
+	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
+	FieldInvoiceID = "invoice_id"
 	// FieldAmountAfterProration holds the string denoting the amount_after_proration field in the database.
 	FieldAmountAfterProration = "amount_after_proration"
+	// FieldNoFiatTransactionRequired holds the string denoting the no_fiat_transaction_required field in the database.
+	FieldNoFiatTransactionRequired = "no_fiat_transaction_required"
 	// EdgeFlatFee holds the string denoting the flat_fee edge name in mutations.
 	EdgeFlatFee = "flat_fee"
+	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
+	EdgeBillingInvoiceLine = "billing_invoice_line"
+	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
+	EdgeBillingInvoice = "billing_invoice"
 	// EdgeCreditAllocations holds the string denoting the credit_allocations edge name in mutations.
 	EdgeCreditAllocations = "credit_allocations"
 	// EdgeDetailedLines holds the string denoting the detailed_lines edge name in mutations.
@@ -71,6 +81,20 @@ const (
 	FlatFeeInverseTable = "charge_flat_fees"
 	// FlatFeeColumn is the table column denoting the flat_fee relation/edge.
 	FlatFeeColumn = "charge_id"
+	// BillingInvoiceLineTable is the table that holds the billing_invoice_line relation/edge.
+	BillingInvoiceLineTable = "charge_flat_fee_runs"
+	// BillingInvoiceLineInverseTable is the table name for the BillingInvoiceLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoiceline" package.
+	BillingInvoiceLineInverseTable = "billing_invoice_lines"
+	// BillingInvoiceLineColumn is the table column denoting the billing_invoice_line relation/edge.
+	BillingInvoiceLineColumn = "line_id"
+	// BillingInvoiceTable is the table that holds the billing_invoice relation/edge.
+	BillingInvoiceTable = "charge_flat_fee_runs"
+	// BillingInvoiceInverseTable is the table name for the BillingInvoice entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoice" package.
+	BillingInvoiceInverseTable = "billing_invoices"
+	// BillingInvoiceColumn is the table column denoting the billing_invoice relation/edge.
+	BillingInvoiceColumn = "invoice_id"
 	// CreditAllocationsTable is the table that holds the credit_allocations relation/edge.
 	CreditAllocationsTable = "charge_flat_fee_run_credit_allocations"
 	// CreditAllocationsInverseTable is the table name for the ChargeFlatFeeRunCreditAllocations entity.
@@ -121,7 +145,10 @@ var Columns = []string{
 	FieldInitialType,
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
+	FieldLineID,
+	FieldInvoiceID,
 	FieldAmountAfterProration,
+	FieldNoFiatTransactionRequired,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -143,6 +170,10 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
+	LineIDValidator func(string) error
+	// InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
+	InvoiceIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -260,15 +291,44 @@ func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldServicePeriodTo, opts...).ToFunc()
 }
 
+// ByLineID orders the results by the line_id field.
+func ByLineID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLineID, opts...).ToFunc()
+}
+
+// ByInvoiceID orders the results by the invoice_id field.
+func ByInvoiceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoiceID, opts...).ToFunc()
+}
+
 // ByAmountAfterProration orders the results by the amount_after_proration field.
 func ByAmountAfterProration(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmountAfterProration, opts...).ToFunc()
+}
+
+// ByNoFiatTransactionRequired orders the results by the no_fiat_transaction_required field.
+func ByNoFiatTransactionRequired(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNoFiatTransactionRequired, opts...).ToFunc()
 }
 
 // ByFlatFeeField orders the results by flat_fee field.
 func ByFlatFeeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newFlatFeeStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByBillingInvoiceLineField orders the results by billing_invoice_line field.
+func ByBillingInvoiceLineField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceLineStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByBillingInvoiceField orders the results by billing_invoice field.
+func ByBillingInvoiceField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -318,6 +378,20 @@ func newFlatFeeStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FlatFeeInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, FlatFeeTable, FlatFeeColumn),
+	)
+}
+func newBillingInvoiceLineStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoiceLineInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, BillingInvoiceLineTable, BillingInvoiceLineColumn),
+	)
+}
+func newBillingInvoiceStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoiceInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceTable, BillingInvoiceColumn),
 	)
 }
 func newCreditAllocationsStep() *sqlgraph.Step {

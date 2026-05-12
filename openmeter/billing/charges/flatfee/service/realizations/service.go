@@ -192,7 +192,11 @@ func (s *Service) CorrectAllCredits(ctx context.Context, in CorrectAllCreditReal
 		return CorrectAllCreditRealizationsResult{}, err
 	}
 
-	realizationIDs := lo.Map(in.Charge.Realizations.CreditRealizations, func(realization creditrealization.Realization, _ int) string {
+	if in.Charge.Realizations.CurrentRun == nil {
+		return CorrectAllCreditRealizationsResult{}, fmt.Errorf("current run is required")
+	}
+
+	realizationIDs := lo.Map(in.Charge.Realizations.CurrentRun.CreditRealizations, func(realization creditrealization.Realization, _ int) string {
 		return realization.ID
 	})
 	lineageSegmentsByRealization, err := s.lineage.LoadActiveSegmentsByRealizationID(ctx, in.Charge.Namespace, realizationIDs)
@@ -200,7 +204,7 @@ func (s *Service) CorrectAllCredits(ctx context.Context, in CorrectAllCreditReal
 		return CorrectAllCreditRealizationsResult{}, fmt.Errorf("load active lineage segments: %w", err)
 	}
 
-	corrections, err := in.Charge.Realizations.CreditRealizations.CorrectAll(in.CurrencyCalculator, func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
+	corrections, err := in.Charge.Realizations.CurrentRun.CreditRealizations.CorrectAll(in.CurrencyCalculator, func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
 		return s.handler.OnCreditsOnlyUsageAccruedCorrection(ctx, flatfee.CreditsOnlyUsageAccruedCorrectionInput{
 			Charge:                       in.Charge,
 			AllocateAt:                   in.AllocateAt,

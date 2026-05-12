@@ -212,9 +212,13 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 		return ledgertransaction.GroupReference{}, err
 	}
 
+	if charge.Realizations.CurrentRun == nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("current run is required for payment authorization")
+	}
+
 	receivableReplenishment := alpacadecimal.NewFromInt(0)
-	if charge.Realizations.AccruedUsage != nil {
-		receivableReplenishment = charge.Realizations.AccruedUsage.Totals.Total
+	if charge.Realizations.CurrentRun.AccruedUsage != nil {
+		receivableReplenishment = charge.Realizations.CurrentRun.AccruedUsage.Totals.Total
 	}
 
 	if receivableReplenishment.IsZero() {
@@ -270,7 +274,11 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Ch
 		return ledgertransaction.GroupReference{}, err
 	}
 
-	if charge.Realizations.AccruedUsage == nil || !charge.Realizations.AccruedUsage.Totals.Total.IsPositive() {
+	if charge.Realizations.CurrentRun == nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("current run is required for payment settled")
+	}
+
+	if charge.Realizations.CurrentRun.AccruedUsage == nil || !charge.Realizations.CurrentRun.AccruedUsage.Totals.Total.IsPositive() {
 		return ledgertransaction.GroupReference{}, nil
 	}
 
@@ -289,7 +297,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Ch
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        charge.Intent.InvoiceAt,
-			Amount:    charge.Realizations.AccruedUsage.Totals.Total,
+			Amount:    charge.Realizations.CurrentRun.AccruedUsage.Totals.Total,
 			Currency:  charge.Intent.Currency,
 			CostBasis: invoiceCostBasis,
 		},

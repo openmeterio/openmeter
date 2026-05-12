@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -28,26 +27,6 @@ type ChargeFlatFeeRunInvoicedUsageUpdate struct {
 // Where appends a list predicates to the ChargeFlatFeeRunInvoicedUsageUpdate builder.
 func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) Where(ps ...predicate.ChargeFlatFeeRunInvoicedUsage) *ChargeFlatFeeRunInvoicedUsageUpdate {
 	_u.mutation.Where(ps...)
-	return _u
-}
-
-// SetLineID sets the "line_id" field.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) SetLineID(v string) *ChargeFlatFeeRunInvoicedUsageUpdate {
-	_u.mutation.SetLineID(v)
-	return _u
-}
-
-// SetNillableLineID sets the "line_id" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) SetNillableLineID(v *string) *ChargeFlatFeeRunInvoicedUsageUpdate {
-	if v != nil {
-		_u.SetLineID(*v)
-	}
-	return _u
-}
-
-// ClearLineID clears the value of the "line_id" field.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) ClearLineID() *ChargeFlatFeeRunInvoicedUsageUpdate {
-	_u.mutation.ClearLineID()
 	return _u
 }
 
@@ -75,20 +54,6 @@ func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) SetServicePeriodTo(v time.Time) *
 func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) SetNillableServicePeriodTo(v *time.Time) *ChargeFlatFeeRunInvoicedUsageUpdate {
 	if v != nil {
 		_u.SetServicePeriodTo(*v)
-	}
-	return _u
-}
-
-// SetMutable sets the "mutable" field.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) SetMutable(v bool) *ChargeFlatFeeRunInvoicedUsageUpdate {
-	_u.mutation.SetMutable(v)
-	return _u
-}
-
-// SetNillableMutable sets the "mutable" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) SetNillableMutable(v *bool) *ChargeFlatFeeRunInvoicedUsageUpdate {
-	if v != nil {
-		_u.SetMutable(*v)
 	}
 	return _u
 }
@@ -263,34 +228,9 @@ func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) SetNillableTotal(v *alpacadecimal
 	return _u
 }
 
-// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) SetBillingInvoiceLineID(id string) *ChargeFlatFeeRunInvoicedUsageUpdate {
-	_u.mutation.SetBillingInvoiceLineID(id)
-	return _u
-}
-
-// SetNillableBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID if the given value is not nil.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) SetNillableBillingInvoiceLineID(id *string) *ChargeFlatFeeRunInvoicedUsageUpdate {
-	if id != nil {
-		_u = _u.SetBillingInvoiceLineID(*id)
-	}
-	return _u
-}
-
-// SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeFlatFeeRunInvoicedUsageUpdate {
-	return _u.SetBillingInvoiceLineID(v.ID)
-}
-
 // Mutation returns the ChargeFlatFeeRunInvoicedUsageMutation object of the builder.
 func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) Mutation() *ChargeFlatFeeRunInvoicedUsageMutation {
 	return _u.mutation
-}
-
-// ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) ClearBillingInvoiceLine() *ChargeFlatFeeRunInvoicedUsageUpdate {
-	_u.mutation.ClearBillingInvoiceLine()
-	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -331,11 +271,6 @@ func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) check() error {
-	if v, ok := _u.mutation.LineID(); ok {
-		if err := chargeflatfeeruninvoicedusage.LineIDValidator(v); err != nil {
-			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunInvoicedUsage.line_id": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.LedgerTransactionGroupID(); ok {
 		if err := chargeflatfeeruninvoicedusage.LedgerTransactionGroupIDValidator(v); err != nil {
 			return &ValidationError{Name: "ledger_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunInvoicedUsage.ledger_transaction_group_id": %w`, err)}
@@ -364,9 +299,6 @@ func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) sqlSave(ctx context.Context) (_no
 	}
 	if value, ok := _u.mutation.ServicePeriodTo(); ok {
 		_spec.SetField(chargeflatfeeruninvoicedusage.FieldServicePeriodTo, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.Mutable(); ok {
-		_spec.SetField(chargeflatfeeruninvoicedusage.FieldMutable, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.LedgerTransactionGroupID(); ok {
 		_spec.SetField(chargeflatfeeruninvoicedusage.FieldLedgerTransactionGroupID, field.TypeString, value)
@@ -413,35 +345,6 @@ func (_u *ChargeFlatFeeRunInvoicedUsageUpdate) sqlSave(ctx context.Context) (_no
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(chargeflatfeeruninvoicedusage.FieldTotal, field.TypeOther, value)
 	}
-	if _u.mutation.BillingInvoiceLineCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeeruninvoicedusage.BillingInvoiceLineTable,
-			Columns: []string{chargeflatfeeruninvoicedusage.BillingInvoiceLineColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeeruninvoicedusage.BillingInvoiceLineTable,
-			Columns: []string{chargeflatfeeruninvoicedusage.BillingInvoiceLineColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{chargeflatfeeruninvoicedusage.Label}
@@ -460,26 +363,6 @@ type ChargeFlatFeeRunInvoicedUsageUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ChargeFlatFeeRunInvoicedUsageMutation
-}
-
-// SetLineID sets the "line_id" field.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetLineID(v string) *ChargeFlatFeeRunInvoicedUsageUpdateOne {
-	_u.mutation.SetLineID(v)
-	return _u
-}
-
-// SetNillableLineID sets the "line_id" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetNillableLineID(v *string) *ChargeFlatFeeRunInvoicedUsageUpdateOne {
-	if v != nil {
-		_u.SetLineID(*v)
-	}
-	return _u
-}
-
-// ClearLineID clears the value of the "line_id" field.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) ClearLineID() *ChargeFlatFeeRunInvoicedUsageUpdateOne {
-	_u.mutation.ClearLineID()
-	return _u
 }
 
 // SetServicePeriodFrom sets the "service_period_from" field.
@@ -506,20 +389,6 @@ func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetServicePeriodTo(v time.Time
 func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetNillableServicePeriodTo(v *time.Time) *ChargeFlatFeeRunInvoicedUsageUpdateOne {
 	if v != nil {
 		_u.SetServicePeriodTo(*v)
-	}
-	return _u
-}
-
-// SetMutable sets the "mutable" field.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetMutable(v bool) *ChargeFlatFeeRunInvoicedUsageUpdateOne {
-	_u.mutation.SetMutable(v)
-	return _u
-}
-
-// SetNillableMutable sets the "mutable" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetNillableMutable(v *bool) *ChargeFlatFeeRunInvoicedUsageUpdateOne {
-	if v != nil {
-		_u.SetMutable(*v)
 	}
 	return _u
 }
@@ -694,34 +563,9 @@ func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetNillableTotal(v *alpacadeci
 	return _u
 }
 
-// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetBillingInvoiceLineID(id string) *ChargeFlatFeeRunInvoicedUsageUpdateOne {
-	_u.mutation.SetBillingInvoiceLineID(id)
-	return _u
-}
-
-// SetNillableBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID if the given value is not nil.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetNillableBillingInvoiceLineID(id *string) *ChargeFlatFeeRunInvoicedUsageUpdateOne {
-	if id != nil {
-		_u = _u.SetBillingInvoiceLineID(*id)
-	}
-	return _u
-}
-
-// SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeFlatFeeRunInvoicedUsageUpdateOne {
-	return _u.SetBillingInvoiceLineID(v.ID)
-}
-
 // Mutation returns the ChargeFlatFeeRunInvoicedUsageMutation object of the builder.
 func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) Mutation() *ChargeFlatFeeRunInvoicedUsageMutation {
 	return _u.mutation
-}
-
-// ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
-func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) ClearBillingInvoiceLine() *ChargeFlatFeeRunInvoicedUsageUpdateOne {
-	_u.mutation.ClearBillingInvoiceLine()
-	return _u
 }
 
 // Where appends a list predicates to the ChargeFlatFeeRunInvoicedUsageUpdate builder.
@@ -775,11 +619,6 @@ func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) check() error {
-	if v, ok := _u.mutation.LineID(); ok {
-		if err := chargeflatfeeruninvoicedusage.LineIDValidator(v); err != nil {
-			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunInvoicedUsage.line_id": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.LedgerTransactionGroupID(); ok {
 		if err := chargeflatfeeruninvoicedusage.LedgerTransactionGroupIDValidator(v); err != nil {
 			return &ValidationError{Name: "ledger_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunInvoicedUsage.ledger_transaction_group_id": %w`, err)}
@@ -826,9 +665,6 @@ func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) sqlSave(ctx context.Context) (
 	if value, ok := _u.mutation.ServicePeriodTo(); ok {
 		_spec.SetField(chargeflatfeeruninvoicedusage.FieldServicePeriodTo, field.TypeTime, value)
 	}
-	if value, ok := _u.mutation.Mutable(); ok {
-		_spec.SetField(chargeflatfeeruninvoicedusage.FieldMutable, field.TypeBool, value)
-	}
 	if value, ok := _u.mutation.LedgerTransactionGroupID(); ok {
 		_spec.SetField(chargeflatfeeruninvoicedusage.FieldLedgerTransactionGroupID, field.TypeString, value)
 	}
@@ -873,35 +709,6 @@ func (_u *ChargeFlatFeeRunInvoicedUsageUpdateOne) sqlSave(ctx context.Context) (
 	}
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(chargeflatfeeruninvoicedusage.FieldTotal, field.TypeOther, value)
-	}
-	if _u.mutation.BillingInvoiceLineCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeeruninvoicedusage.BillingInvoiceLineTable,
-			Columns: []string{chargeflatfeeruninvoicedusage.BillingInvoiceLineColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeeruninvoicedusage.BillingInvoiceLineTable,
-			Columns: []string{chargeflatfeeruninvoicedusage.BillingInvoiceLineColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &ChargeFlatFeeRunInvoicedUsage{config: _u.config}
 	_spec.Assign = _node.assignValues

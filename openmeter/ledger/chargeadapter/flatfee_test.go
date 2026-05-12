@@ -184,7 +184,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		currencyCalculator, err := chargeWithRealizations.Intent.Currency.Calculator()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
@@ -221,7 +221,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		currencyCalculator, err := chargeWithRealizations.Intent.Currency.Calculator()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), currencyCalculator)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
@@ -256,7 +256,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		currencyCalculator, err := chargeWithRealizations.Intent.Currency.Calculator()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
@@ -287,7 +287,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		currencyCalculator, err := chargeWithRealizations.Intent.Currency.Calculator()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
@@ -312,7 +312,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		require.Len(t, allocations, 1)
 
 		chargeWithRealizations := env.newChargeWithCreditRealizationsAndAccruedUsage(allocations, alpacadecimal.Zero)
-		env.createInitialLineages(t, chargeWithRealizations.ID, chargeWithRealizations.Realizations.CreditRealizations)
+		env.createInitialLineages(t, chargeWithRealizations.ID, chargeWithRealizations.Realizations.CurrentRun.CreditRealizations)
 		recognitionGroupID := env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(30))
 
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
@@ -321,14 +321,14 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		currencyCalculator, err := chargeWithRealizations.Intent.Currency.Calculator()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
 			Charge:                       chargeWithRealizations,
 			AllocateAt:                   env.Now(),
 			Corrections:                  correctionsRequest,
-			LineageSegmentsByRealization: env.assertRecognizedSegments(t, chargeWithRealizations.Realizations.CreditRealizations, recognitionGroupID),
+			LineageSegmentsByRealization: env.assertRecognizedSegments(t, chargeWithRealizations.Realizations.CurrentRun.CreditRealizations, recognitionGroupID),
 		})
 		require.NoError(t, err)
 		require.Len(t, corrections, 1)
@@ -353,7 +353,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 		chargeWithRealizations := env.newChargeWithCreditRealizationsAndAccruedUsage(allocations, alpacadecimal.Zero)
 		chargeWithRealizations.Intent.SettlementMode = productcatalog.CreditOnlySettlementMode
-		env.createInitialLineages(t, chargeWithRealizations.ID, chargeWithRealizations.Realizations.CreditRealizations)
+		env.createInitialLineages(t, chargeWithRealizations.ID, chargeWithRealizations.Realizations.CurrentRun.CreditRealizations)
 		recognitionGroupID := env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(30))
 
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
@@ -362,14 +362,14 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		currencyCalculator, err := chargeWithRealizations.Intent.Currency.Calculator()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
 			Charge:                       chargeWithRealizations,
 			AllocateAt:                   env.Now(),
 			Corrections:                  correctionsRequest,
-			LineageSegmentsByRealization: env.assertRecognizedSegments(t, chargeWithRealizations.Realizations.CreditRealizations, recognitionGroupID),
+			LineageSegmentsByRealization: env.assertRecognizedSegments(t, chargeWithRealizations.Realizations.CurrentRun.CreditRealizations, recognitionGroupID),
 		})
 		require.NoError(t, err)
 		require.Len(t, corrections, 1)
@@ -807,6 +807,23 @@ func (e *flatFeeHandlerTestEnv) newBaseCharge(servicePeriod timeutil.ClosedPerio
 	}
 }
 
+func (e *flatFeeHandlerTestEnv) newRunBase(servicePeriod timeutil.ClosedPeriod, amount alpacadecimal.Decimal) chargeflatfee.RealizationRunBase {
+	return chargeflatfee.RealizationRunBase{
+		ID: chargeflatfee.RealizationRunID{
+			Namespace: e.Namespace,
+			ID:        ulid.Make().String(),
+		},
+		ManagedModel: models.ManagedModel{
+			CreatedAt: servicePeriod.To,
+			UpdatedAt: servicePeriod.To,
+		},
+		Type:                 chargeflatfee.RealizationRunTypeFinalRealization,
+		InitialType:          chargeflatfee.RealizationRunTypeFinalRealization,
+		ServicePeriod:        servicePeriod,
+		AmountAfterProration: amount,
+	}
+}
+
 func (e *flatFeeHandlerTestEnv) newChargeWithAccruedUsage(total alpacadecimal.Decimal) chargeflatfee.Charge {
 	now := time.Now().UTC()
 	servicePeriod := timeutil.ClosedPeriod{
@@ -815,9 +832,11 @@ func (e *flatFeeHandlerTestEnv) newChargeWithAccruedUsage(total alpacadecimal.De
 	}
 
 	charge := e.newBaseCharge(servicePeriod, total)
-	charge.Realizations.AccruedUsage = &invoicedusage.AccruedUsage{
+	charge.Realizations.CurrentRun = &chargeflatfee.RealizationRun{
+		RealizationRunBase: e.newRunBase(servicePeriod, total),
+	}
+	charge.Realizations.CurrentRun.AccruedUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod: servicePeriod,
-		Mutable:       true,
 		Totals: totals.Totals{
 			Amount: total,
 			Total:  total,
@@ -854,10 +873,12 @@ func (e *flatFeeHandlerTestEnv) newChargeWithCreditRealizationsAndAccruedUsage(r
 	}
 
 	charge := e.newBaseCharge(servicePeriod, totalAmount)
-	charge.Realizations.CreditRealizations = creditRealizations
-	charge.Realizations.AccruedUsage = &invoicedusage.AccruedUsage{
+	charge.Realizations.CurrentRun = &chargeflatfee.RealizationRun{
+		RealizationRunBase: e.newRunBase(servicePeriod, totalAmount),
+		CreditRealizations: creditRealizations,
+	}
+	charge.Realizations.CurrentRun.AccruedUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod: servicePeriod,
-		Mutable:       true,
 		Totals: totals.Totals{
 			Amount: accruedTotal,
 			Total:  accruedTotal,

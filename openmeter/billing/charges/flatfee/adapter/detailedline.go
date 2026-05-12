@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -20,17 +21,21 @@ import (
 
 var _ flatfee.ChargeDetailedLineAdapter = (*adapter)(nil)
 
-func (a *adapter) FetchDetailedLines(ctx context.Context, charge flatfee.Charge) (flatfee.Charge, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.Charge, error) {
-		run, err := queryCurrentRunByChargeID(tx.db, charge.GetChargeID()).Only(ctx)
-		if err != nil {
-			return flatfee.Charge{}, err
-		}
+func (a *adapter) FetchCurrentRunDetailedLines(ctx context.Context, charge flatfee.Charge) (flatfee.Charge, error) {
+	if charge.Realizations.CurrentRun == nil {
+		return flatfee.Charge{}, fmt.Errorf("current run is required to fetch flat fee detailed lines for charge %s", charge.GetChargeID())
+	}
 
+	currentRunID := charge.Realizations.CurrentRun.ID
+	if err := currentRunID.Validate(); err != nil {
+		return flatfee.Charge{}, fmt.Errorf("current run ID: %w", err)
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.Charge, error) {
 		dbLines, err := tx.db.ChargeFlatFeeRunDetailedLine.Query().
 			Where(
 				dbchargeflatfeerundetailedline.NamespaceEQ(charge.Namespace),
-				dbchargeflatfeerundetailedline.RunIDEQ(run.ID),
+				dbchargeflatfeerundetailedline.RunIDEQ(currentRunID.ID),
 				dbchargeflatfeerundetailedline.DeletedAtIsNil(),
 			).
 			WithTaxCode().
@@ -50,7 +55,7 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge flatfee.Charge)
 		}
 
 		sortDetailedLines(lines)
-		charge.Realizations.DetailedLines = mo.Some(lines)
+		charge.Realizations.CurrentRun.DetailedLines = mo.Some(lines)
 
 		return charge, nil
 	})

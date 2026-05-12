@@ -10,9 +10,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	dbchargeflatfeerun "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
-func (a *adapter) createCurrentRun(ctx context.Context, dbCharge *db.ChargeFlatFee, runTotals totals.Totals) (*db.ChargeFlatFeeRun, error) {
+func (a *adapter) createCurrentRun(ctx context.Context, dbCharge *db.ChargeFlatFee, runTotals totals.Totals, noFiatTransactionRequired bool) (*db.ChargeFlatFeeRun, error) {
 	runCreate := a.db.ChargeFlatFeeRun.Create().
 		SetNamespace(dbCharge.Namespace).
 		SetChargeID(dbCharge.ID).
@@ -20,7 +21,8 @@ func (a *adapter) createCurrentRun(ctx context.Context, dbCharge *db.ChargeFlatF
 		SetInitialType(flatfee.RealizationRunTypeFinalRealization).
 		SetServicePeriodFrom(dbCharge.ServicePeriodFrom).
 		SetServicePeriodTo(dbCharge.ServicePeriodTo).
-		SetAmountAfterProration(dbCharge.AmountAfterProration)
+		SetAmountAfterProration(dbCharge.AmountAfterProration).
+		SetNoFiatTransactionRequired(noFiatTransactionRequired)
 
 	runCreate = totals.Set(runCreate, runTotals)
 
@@ -37,6 +39,41 @@ func (a *adapter) createCurrentRun(ctx context.Context, dbCharge *db.ChargeFlatF
 	}
 
 	return dbRun, nil
+}
+
+func (a *adapter) ProvisionCurrentRun(ctx context.Context, input flatfee.ProvisionCurrentRunInput) (flatfee.RealizationRunBase, error) {
+	if err := input.Validate(); err != nil {
+		return flatfee.RealizationRunBase{}, err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.RealizationRunBase, error) {
+		dbCharge, err := tx.db.ChargeFlatFee.Query().
+			Where(
+				dbchargeflatfee.NamespaceEQ(input.Charge.Namespace),
+				dbchargeflatfee.IDEQ(input.Charge.ID),
+			).
+			WithCurrentRun().
+			Only(ctx)
+		if err != nil {
+			return flatfee.RealizationRunBase{}, fmt.Errorf("querying flat fee charge [id=%s]: %w", input.Charge.ID, err)
+		}
+
+		if dbCharge.CurrentRealizationRunID != nil {
+			dbRun, err := dbCharge.Edges.CurrentRunOrErr()
+			if err != nil {
+				return flatfee.RealizationRunBase{}, fmt.Errorf("querying flat fee current run [charge_id=%s]: %w", input.Charge.ID, err)
+			}
+
+			return mapRealizationRunBaseFromDB(dbRun), nil
+		}
+
+		dbRun, err := tx.createCurrentRun(ctx, dbCharge, totals.Totals{}, input.NoFiatTransactionRequired)
+		if err != nil {
+			return flatfee.RealizationRunBase{}, err
+		}
+
+		return mapRealizationRunBaseFromDB(dbRun), nil
+	})
 }
 
 func (a *adapter) currentRunByChargeID(ctx context.Context, chargeID meta.ChargeID) (*db.ChargeFlatFeeRun, error) {
