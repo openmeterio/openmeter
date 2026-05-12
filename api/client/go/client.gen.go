@@ -21,7 +21,7 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/oapi-codegen/runtime"
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/api/client/go/models"
 )
 
 const (

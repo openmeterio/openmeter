@@ -11,8 +11,6 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/openmeterio/openmeter/openmeter/meter"
 )
 
 func TestIngest(t *testing.T) {
@@ -120,7 +118,7 @@ func TestGetMeter(t *testing.T) {
 	meter := Meter{
 		Slug:          "meter-1",
 		Description:   lo.ToPtr("Test Meter"),
-		Aggregation:   MeterAggregation(meter.MeterAggregationSum),
+		Aggregation:   MeterAggregationSum,
 		ValueProperty: lo.ToPtr("$.tokens"),
 		GroupBy:       lo.ToPtr(map[string]string{"model": "$.model", "type": "$.type"}),
 	}
@@ -156,14 +154,14 @@ func TestListMeters(t *testing.T) {
 		{
 			Slug:          "meter-1",
 			Description:   lo.ToPtr("Test Meter"),
-			Aggregation:   MeterAggregation(meter.MeterAggregationSum),
+			Aggregation:   MeterAggregationSum,
 			ValueProperty: lo.ToPtr("$.tokens"),
 			GroupBy:       lo.ToPtr(map[string]string{"model": "$.model", "type": "$.type"}),
 		},
 		{
 			Slug:          "meter-2",
 			Description:   lo.ToPtr("Test Meter 2"),
-			Aggregation:   MeterAggregation(meter.MeterAggregationSum),
+			Aggregation:   MeterAggregationSum,
 			ValueProperty: lo.ToPtr("$.tokens"),
 			GroupBy:       lo.ToPtr(map[string]string{"model": "$.model", "type": "$.type"}),
 		},
