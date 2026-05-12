@@ -1,52 +1,11 @@
 package currencies
 
 import (
-	"errors"
 	"fmt"
 
 	v3 "github.com/openmeterio/openmeter/api/v3"
-	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
-
-// FromAPICurrencyCodeFilter converts an API StringFieldFilterExact for the
-// currency code into a flat []string of codes to match (positive list).
-// Only eq and oeq operators are supported; neq returns an error. Each value
-// is validated for length (3–24 chars), matching the custom_currencies ent
-// schema constraints (and also accepting fiat ISO codes which are 3 chars).
-func FromAPICurrencyCodeFilter(f *filters.FilterStringExact) ([]string, error) {
-	if f == nil {
-		return nil, nil
-	}
-	if f.Neq != nil {
-		return nil, models.NewNillableGenericValidationError(errors.New("only eq and oeq operators are supported for currency code"))
-	}
-
-	var codes []string
-	if f.Eq != nil {
-		codes = append(codes, *f.Eq)
-	}
-	codes = append(codes, f.Oeq...)
-
-	if len(codes) == 0 {
-		return nil, nil
-	}
-
-	var errs []error
-	for _, code := range codes {
-		if len(code) < 3 {
-			errs = append(errs, fmt.Errorf("currency code must be at least 3 characters, got %q", code))
-		} else if len(code) > 24 {
-			errs = append(errs, fmt.Errorf("currency code must be at most 24 characters, got %q", code))
-		}
-	}
-	if len(errs) > 0 {
-		return nil, models.NewNillableGenericValidationError(errors.Join(errs...))
-	}
-
-	return codes, nil
-}
 
 func FromAPIBillingCurrencyType(t v3.BillingCurrencyType) currencies.CurrencyType {
 	switch t {

@@ -2580,3 +2580,121 @@ func TestFilterULID_Validate(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterString_Match(t *testing.T) {
+	tests := []struct {
+		name   string
+		filter *filter.FilterString
+		value  string
+		want   bool
+	}{
+		// nil / empty filter matches everything
+		{name: "nil filter matches", filter: nil, value: "USD", want: true},
+		{name: "empty filter matches", filter: &filter.FilterString{}, value: "USD", want: true},
+
+		// Eq / Ne
+		{name: "Eq match", filter: &filter.FilterString{Eq: lo.ToPtr("USD")}, value: "USD", want: true},
+		{name: "Eq no match", filter: &filter.FilterString{Eq: lo.ToPtr("USD")}, value: "EUR", want: false},
+		{name: "Ne match", filter: &filter.FilterString{Ne: lo.ToPtr("USD")}, value: "EUR", want: true},
+		{name: "Ne no match", filter: &filter.FilterString{Ne: lo.ToPtr("USD")}, value: "USD", want: false},
+
+		// In / Nin
+		{name: "In match", filter: &filter.FilterString{In: lo.ToPtr([]string{"USD", "EUR"})}, value: "EUR", want: true},
+		{name: "In no match", filter: &filter.FilterString{In: lo.ToPtr([]string{"USD", "EUR"})}, value: "GBP", want: false},
+		{name: "Nin match", filter: &filter.FilterString{Nin: lo.ToPtr([]string{"USD", "EUR"})}, value: "GBP", want: true},
+		{name: "Nin no match", filter: &filter.FilterString{Nin: lo.ToPtr([]string{"USD", "EUR"})}, value: "USD", want: false},
+
+		// Exists
+		{name: "Exists true matches non-empty", filter: &filter.FilterString{Exists: lo.ToPtr(true)}, value: "USD", want: true},
+		{name: "Exists true no match empty", filter: &filter.FilterString{Exists: lo.ToPtr(true)}, value: "", want: false},
+		{name: "Exists false matches empty", filter: &filter.FilterString{Exists: lo.ToPtr(false)}, value: "", want: true},
+		{name: "Exists false no match non-empty", filter: &filter.FilterString{Exists: lo.ToPtr(false)}, value: "USD", want: false},
+
+		// Contains / Ncontains (case-insensitive)
+		{name: "Contains match case-insensitive", filter: &filter.FilterString{Contains: lo.ToPtr("us")}, value: "USD", want: true},
+		{name: "Contains no match", filter: &filter.FilterString{Contains: lo.ToPtr("eur")}, value: "USD", want: false},
+		{name: "Ncontains match", filter: &filter.FilterString{Ncontains: lo.ToPtr("eur")}, value: "USD", want: true},
+		{name: "Ncontains no match", filter: &filter.FilterString{Ncontains: lo.ToPtr("us")}, value: "USD", want: false},
+
+		// Like / Nlike
+		{name: "Like percent wildcard", filter: &filter.FilterString{Like: lo.ToPtr("U%")}, value: "USD", want: true},
+		{name: "Like underscore wildcard", filter: &filter.FilterString{Like: lo.ToPtr("U_D")}, value: "USD", want: true},
+		{name: "Like no match", filter: &filter.FilterString{Like: lo.ToPtr("E%")}, value: "USD", want: false},
+		{name: "Nlike match", filter: &filter.FilterString{Nlike: lo.ToPtr("E%")}, value: "USD", want: true},
+		{name: "Nlike no match", filter: &filter.FilterString{Nlike: lo.ToPtr("U%")}, value: "USD", want: false},
+
+		// Ilike / Nilike (case-insensitive)
+		{name: "Ilike case-insensitive match", filter: &filter.FilterString{Ilike: lo.ToPtr("u%")}, value: "USD", want: true},
+		{name: "Ilike no match", filter: &filter.FilterString{Ilike: lo.ToPtr("e%")}, value: "USD", want: false},
+		{name: "Nilike match", filter: &filter.FilterString{Nilike: lo.ToPtr("e%")}, value: "USD", want: true},
+		{name: "Nilike no match", filter: &filter.FilterString{Nilike: lo.ToPtr("u%")}, value: "USD", want: false},
+
+		// Gt / Gte / Lt / Lte (lexicographic)
+		{name: "Gt match", filter: &filter.FilterString{Gt: lo.ToPtr("GBP")}, value: "USD", want: true},
+		{name: "Gt no match equal", filter: &filter.FilterString{Gt: lo.ToPtr("USD")}, value: "USD", want: false},
+		{name: "Gte match equal", filter: &filter.FilterString{Gte: lo.ToPtr("USD")}, value: "USD", want: true},
+		{name: "Gte match greater", filter: &filter.FilterString{Gte: lo.ToPtr("EUR")}, value: "USD", want: true},
+		{name: "Lt match", filter: &filter.FilterString{Lt: lo.ToPtr("USD")}, value: "EUR", want: true},
+		{name: "Lt no match equal", filter: &filter.FilterString{Lt: lo.ToPtr("EUR")}, value: "EUR", want: false},
+		{name: "Lte match equal", filter: &filter.FilterString{Lte: lo.ToPtr("EUR")}, value: "EUR", want: true},
+		{name: "Lte match less", filter: &filter.FilterString{Lte: lo.ToPtr("USD")}, value: "EUR", want: true},
+
+		// And / Or
+		{
+			name: "And all match",
+			filter: &filter.FilterString{And: lo.ToPtr([]filter.FilterString{
+				{Gte: lo.ToPtr("EUR")},
+				{Lte: lo.ToPtr("USD")},
+			})},
+			value: "GBP",
+			want:  true,
+		},
+		{
+			name: "And one no match",
+			filter: &filter.FilterString{And: lo.ToPtr([]filter.FilterString{
+				{Gte: lo.ToPtr("EUR")},
+				{Lt: lo.ToPtr("GBP")},
+			})},
+			value: "USD",
+			want:  false,
+		},
+		{
+			name: "Or first match",
+			filter: &filter.FilterString{Or: lo.ToPtr([]filter.FilterString{
+				{Eq: lo.ToPtr("USD")},
+				{Eq: lo.ToPtr("EUR")},
+			})},
+			value: "USD",
+			want:  true,
+		},
+		{
+			name: "Or none match",
+			filter: &filter.FilterString{Or: lo.ToPtr([]filter.FilterString{
+				{Eq: lo.ToPtr("USD")},
+				{Eq: lo.ToPtr("EUR")},
+			})},
+			value: "GBP",
+			want:  false,
+		},
+		// nested And/Or
+		{
+			name: "nested And inside Or",
+			filter: &filter.FilterString{Or: lo.ToPtr([]filter.FilterString{
+				{Eq: lo.ToPtr("USD")},
+				{And: lo.ToPtr([]filter.FilterString{
+					{Gte: lo.ToPtr("GBP")},
+					{Lte: lo.ToPtr("GBP")},
+				})},
+			})},
+			value: "GBP",
+			want:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.filter.Match(tt.value)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

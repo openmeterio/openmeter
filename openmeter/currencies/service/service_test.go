@@ -2,13 +2,14 @@ package service
 
 import (
 	"context"
-	"slices"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -22,7 +23,7 @@ func (noopDriver) Rollback() error  { return nil }
 func (noopDriver) SavePoint() error { return nil }
 
 // fakeAdapter implements currencies.Adapter for unit testing the service layer.
-// ListCustomCurrencies applies FilterCodes from params to simulate DB-level filtering.
+// ListCustomCurrencies applies the Code filter from params to simulate DB-level filtering.
 type fakeAdapter struct {
 	custom []currencies.Currency
 }
@@ -32,11 +33,11 @@ func (f *fakeAdapter) Tx(ctx context.Context) (context.Context, transaction.Driv
 }
 
 func (f *fakeAdapter) ListCustomCurrencies(_ context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
-	items := f.custom
-	if len(params.FilterCodes) > 0 {
-		items = slices.DeleteFunc(slices.Clone(items), func(c currencies.Currency) bool {
-			return !slices.Contains(params.FilterCodes, c.Code)
-		})
+	items := make([]currencies.Currency, 0, len(f.custom))
+	for _, c := range f.custom {
+		if params.Code.Match(c.Code) {
+			items = append(items, c)
+		}
 	}
 	return pagination.Result[currencies.Currency]{
 		Items:      items,
@@ -90,8 +91,8 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 		{
 			name: "filter by single fiat code returns only that currency",
 			input: currencies.ListCurrenciesInput{
-				Namespace:   "test",
-				FilterCodes: []string{"USD"},
+				Namespace: "test",
+				Code:      &filter.FilterString{Eq: lo.ToPtr("USD")},
 			},
 			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
 				t.Helper()
@@ -100,10 +101,10 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 			},
 		},
 		{
-			name: "filter by multiple fiat codes returns only those currencies",
+			name: "filter by multiple fiat codes using In returns only those currencies",
 			input: currencies.ListCurrenciesInput{
-				Namespace:   "test",
-				FilterCodes: []string{"USD", "EUR"},
+				Namespace: "test",
+				Code:      &filter.FilterString{In: lo.ToPtr([]string{"USD", "EUR"})},
 			},
 			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
 				t.Helper()
@@ -115,8 +116,8 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 		{
 			name: "filter by custom currency code returns only that custom currency",
 			input: currencies.ListCurrenciesInput{
-				Namespace:   "test",
-				FilterCodes: []string{"MYCUSTOM"},
+				Namespace: "test",
+				Code:      &filter.FilterString{Eq: lo.ToPtr("MYCUSTOM")},
 			},
 			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
 				t.Helper()
@@ -127,9 +128,9 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 		{
 			name: "sort by name returns items sorted by name asc",
 			input: currencies.ListCurrenciesInput{
-				Namespace:   "test",
-				FilterCodes: []string{"USD", "EUR", "GBP"},
-				OrderBy:     currencies.OrderByName,
+				Namespace: "test",
+				Code:      &filter.FilterString{In: lo.ToPtr([]string{"USD", "EUR", "GBP"})},
+				OrderBy:   currencies.OrderByName,
 			},
 			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
 				t.Helper()
@@ -142,15 +143,30 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 		{
 			name: "sort by code desc returns items sorted by code descending",
 			input: currencies.ListCurrenciesInput{
-				Namespace:   "test",
-				FilterCodes: []string{"USD", "EUR", "GBP"},
-				Order:       sortx.OrderDesc,
+				Namespace: "test",
+				Code:      &filter.FilterString{In: lo.ToPtr([]string{"USD", "EUR", "GBP"})},
+				Order:     sortx.OrderDesc,
 			},
 			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
 				t.Helper()
 				require.Equal(t, 3, result.TotalCount)
 				for i := 1; i < len(result.Items); i++ {
 					assert.GreaterOrEqual(t, result.Items[i-1].Code, result.Items[i].Code, "items should be sorted by code desc")
+				}
+			},
+		},
+		{
+			name: "filter by Ne excludes a single code from combined results",
+			input: currencies.ListCurrenciesInput{
+				Namespace: "test",
+				Code:      &filter.FilterString{Ne: lo.ToPtr("USD")},
+				// Limit to known codes plus our custom one to make the assertion easy
+				Page: pagination.NewPage(1, 5),
+			},
+			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
+				t.Helper()
+				for _, item := range result.Items {
+					assert.NotEqual(t, "USD", item.Code, "USD should be excluded")
 				}
 			},
 		},
@@ -185,9 +201,9 @@ func TestListCurrencies_CustomOnlyPath(t *testing.T) {
 	t.Run("filter by type custom with code filter uses custom-only fast path", func(t *testing.T) {
 		ft := currencies.CurrencyTypeCustom
 		result, err := svc.ListCurrencies(t.Context(), currencies.ListCurrenciesInput{
-			Namespace:   "test",
-			FilterType:  &ft,
-			FilterCodes: []string{"MYCUSTOM"},
+			Namespace:  "test",
+			FilterType: &ft,
+			Code:       &filter.FilterString{Eq: lo.ToPtr("MYCUSTOM")},
 		})
 		require.NoError(t, err)
 		require.Equal(t, 1, result.TotalCount)

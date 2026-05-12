@@ -20,7 +20,7 @@ model ListCurrenciesParamsFilter {
   #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   type?: CurrencyType;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
-  code?: Common.StringFieldFilterExact;
+  code?: Common.StringFieldFilter;
 }
 
 interface CurrenciesOperations {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -45,8 +46,8 @@ type ListCurrenciesInput struct {
 
 	// FilterType filters currencies by type: "custom" or "fiat". Nil means no filter.
 	FilterType *CurrencyType `json:"filter_type,omitempty"`
-	// FilterCodes filters currencies by code. Empty means no filter; non-empty matches any of the listed codes.
-	FilterCodes []string `json:"filter_codes,omitempty"`
+	// Code filters currencies by code field. Nil means no filter.
+	Code *filter.FilterString `json:"code,omitempty"`
 
 	OrderBy OrderBy
 	Order   sortx.Order
@@ -62,6 +63,12 @@ func (i ListCurrenciesInput) Validate() error {
 	if i.FilterType != nil {
 		if err := i.FilterType.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("filter_type: %w", err))
+		}
+	}
+
+	if i.Code != nil {
+		if err := i.Code.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("code: %w", err))
 		}
 	}
 

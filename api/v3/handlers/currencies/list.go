@@ -9,6 +9,7 @@ import (
 
 	v3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -64,31 +65,29 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 				order = sort.Order.ToSortxOrder()
 			}
 
-			var filterType *currencies.CurrencyType
-			var filterCodes []string
+			req := ListCurrenciesRequest{
+				Page:      page,
+				Namespace: ns,
+				OrderBy:   currencies.OrderBy(orderBy),
+				Order:     order,
+			}
+
 			if params.Filter != nil {
 				if params.Filter.Type != nil {
 					ft := FromAPIBillingCurrencyType(*params.Filter.Type)
-					filterType = &ft
+					req.FilterType = &ft
 				}
 
-				codes, err := FromAPICurrencyCodeFilter(params.Filter.Code)
+				code, err := filters.FromAPIFilterString(params.Filter.Code)
 				if err != nil {
 					return ListCurrenciesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{Field: "filter[code]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
-				filterCodes = codes
+				req.Code = code
 			}
 
-			return ListCurrenciesRequest{
-				Page:        page,
-				Namespace:   ns,
-				FilterType:  filterType,
-				FilterCodes: filterCodes,
-				OrderBy:     currencies.OrderBy(orderBy),
-				Order:       order,
-			}, nil
+			return req, nil
 		},
 		func(ctx context.Context, request ListCurrenciesRequest) (ListCurrenciesResponse, error) {
 			result, err := h.currencyService.ListCurrencies(ctx, request)

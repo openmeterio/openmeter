@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -47,9 +48,7 @@ func (a *adapter) ListCustomCurrencies(ctx context.Context, params currencies.Li
 		q := a.db.CustomCurrency.Query().
 			Where(customcurrency.Namespace(params.Namespace))
 
-		if len(params.FilterCodes) > 0 {
-			q = q.Where(customcurrency.CodeIn(params.FilterCodes...))
-		}
+		q = filter.ApplyToQuery(q, params.Code, customcurrency.FieldCode)
 
 		order := entutils.GetOrdering(sortx.OrderDefault)
 		if !params.Order.IsDefaultValue() {

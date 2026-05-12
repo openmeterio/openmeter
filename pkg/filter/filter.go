@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -266,6 +267,106 @@ func (f FilterString) Select(field string) func(*sql.Selector) {
 	default:
 		return nil
 	}
+}
+
+// Match reports whether the filter matches the given string value. A nil
+// receiver and an empty filter match every value. Semantics mirror Select /
+// SelectWhereExpr: Contains/Ncontains are case-insensitive; Like/Ilike treat
+// the pattern as SQL LIKE (% and _ wildcards); Exists checks for a non-empty
+// value.
+func (f *FilterString) Match(value string) bool {
+	if f == nil || f.IsEmpty() {
+		return true
+	}
+	return f.matches(value)
+}
+
+// LoFilterPredicate returns an lo.Filter-compatible predicate that evaluates
+// the filter against a string field value.
+func (f *FilterString) LoFilterPredicate() func(value string, _ int) bool {
+	return func(value string, _ int) bool { return f.Match(value) }
+}
+
+func (f FilterString) matches(value string) bool {
+	switch {
+	case f.Eq != nil:
+		return value == *f.Eq
+	case f.Ne != nil:
+		return value != *f.Ne
+	case f.Exists != nil:
+		return *f.Exists == (value != "")
+	case f.In != nil:
+		return slices.Contains(*f.In, value)
+	case f.Nin != nil:
+		return !slices.Contains(*f.Nin, value)
+	case f.Contains != nil:
+		return strings.Contains(strings.ToLower(value), strings.ToLower(*f.Contains))
+	case f.Ncontains != nil:
+		return !strings.Contains(strings.ToLower(value), strings.ToLower(*f.Ncontains))
+	case f.Like != nil:
+		ok, _ := likeMatch(*f.Like, value, false)
+		return ok
+	case f.Nlike != nil:
+		ok, _ := likeMatch(*f.Nlike, value, false)
+		return !ok
+	case f.Ilike != nil:
+		ok, _ := likeMatch(*f.Ilike, value, true)
+		return ok
+	case f.Nilike != nil:
+		ok, _ := likeMatch(*f.Nilike, value, true)
+		return !ok
+	case f.Gt != nil:
+		return value > *f.Gt
+	case f.Gte != nil:
+		return value >= *f.Gte
+	case f.Lt != nil:
+		return value < *f.Lt
+	case f.Lte != nil:
+		return value <= *f.Lte
+	case f.And != nil:
+		for _, child := range *f.And {
+			if !child.matches(value) {
+				return false
+			}
+		}
+		return true
+	case f.Or != nil:
+		for _, child := range *f.Or {
+			if child.matches(value) {
+				return true
+			}
+		}
+		return false
+	default:
+		return true
+	}
+}
+
+// likeMatch evaluates a SQL LIKE pattern (% = any sequence, _ = any single
+// char) against value. If fold is true the comparison is case-insensitive.
+func likeMatch(pattern, value string, fold bool) (bool, error) {
+	var b strings.Builder
+	if fold {
+		b.WriteString("(?i)")
+	}
+	b.WriteByte('^')
+	for i := 0; i < len(pattern); {
+		ch := pattern[i]
+		switch ch {
+		case '%':
+			b.WriteString(".*")
+			i++
+		case '_':
+			b.WriteByte('.')
+			i++
+		default:
+			// regex-escape the character
+			b.WriteString(regexp.QuoteMeta(string(ch)))
+			i++
+		}
+	}
+	b.WriteByte('$')
+	return regexp.MatchString(b.String(), value)
 }
 
 // FilterInteger is a filter for an integer field.

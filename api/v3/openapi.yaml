@@ -8249,7 +8249,7 @@ components:
         type:
           $ref: '#/components/schemas/BillingCurrencyType'
         code:
-          $ref: '#/components/schemas/StringFieldFilterExact'
+          $ref: '#/components/schemas/StringFieldFilter'
       additionalProperties: false
       description: Filter options for listing currencies.
     ListCustomerEntitlementAccessResponseData:
