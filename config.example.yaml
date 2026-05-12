@@ -40,7 +40,7 @@ server:
     #   off      — validation disabled (default)
     #   unstable — validate only routes marked x-unstable: true in the spec
     #   all      — validate every v3 route (highest overhead)
-    mode: "off"
+    mode: "all"
 
 #ingest:
 #  kafka:
