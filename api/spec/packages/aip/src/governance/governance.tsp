@@ -43,7 +43,7 @@ model GovernanceQueryRequestFeatures {
 model GovernanceQueryRequest {
   /**
    * Whether to include credit balance availability for each resolved customer. When
-   * true, each result entry includes `has_available_credits`.
+   * true, each feature evaluation includes credit balance checks.
    *
    * Defaults to `false`.
    */
@@ -114,8 +114,8 @@ model GovernanceQueryResult {
   /**
    * Map of features with their access status.
    *
-   * Map keys are the feature keys requested in `filters.features.keys`, or every
-   * feature `key` available in the organization when the feature filter was omitted.
+   * Map keys are the feature keys requested in `feature.keys`, or every feature
+   * `key` available in the organization when the feature filter was omitted.
    */
   @visibility(Lifecycle.Read)
   @summary("Features")
