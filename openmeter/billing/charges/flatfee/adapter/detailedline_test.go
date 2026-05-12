@@ -17,7 +17,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	dbchargeflatfeedetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
+	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	dbchargeflatfeerundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -176,33 +177,43 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 	s.Equal(float64(3), fetchedCharge.Realizations.DetailedLines.OrEmpty()[0].Quantity.InexactFloat64())
 	s.Nil(fetchedCharge.Realizations.DetailedLines.OrEmpty()[0].Description)
 
-	keptRow, err := s.dbClient.ChargeFlatFeeDetailedLine.Query().
+	dbCharge, err := s.dbClient.ChargeFlatFee.Query().
 		Where(
-			dbchargeflatfeedetailedline.NamespaceEQ(namespace),
-			dbchargeflatfeedetailedline.ChargeIDEQ(charge.ID),
-			dbchargeflatfeedetailedline.ChildUniqueReferenceIDEQ("keep"),
-			dbchargeflatfeedetailedline.DeletedAtIsNil(),
+			dbchargeflatfee.NamespaceEQ(namespace),
+			dbchargeflatfee.IDEQ(charge.ID),
+		).
+		Only(ctx)
+	s.Require().NoError(err)
+	s.Require().NotNil(dbCharge.CurrentRealizationRunID)
+	runID := *dbCharge.CurrentRealizationRunID
+
+	keptRow, err := s.dbClient.ChargeFlatFeeRunDetailedLine.Query().
+		Where(
+			dbchargeflatfeerundetailedline.NamespaceEQ(namespace),
+			dbchargeflatfeerundetailedline.RunIDEQ(runID),
+			dbchargeflatfeerundetailedline.ChildUniqueReferenceIDEQ("keep"),
+			dbchargeflatfeerundetailedline.DeletedAtIsNil(),
 		).
 		Only(ctx)
 	s.Require().NoError(err)
 	s.Equal("keep", keptRow.PricerReferenceID)
 
-	newRow, err := s.dbClient.ChargeFlatFeeDetailedLine.Query().
+	newRow, err := s.dbClient.ChargeFlatFeeRunDetailedLine.Query().
 		Where(
-			dbchargeflatfeedetailedline.NamespaceEQ(namespace),
-			dbchargeflatfeedetailedline.ChargeIDEQ(charge.ID),
-			dbchargeflatfeedetailedline.ChildUniqueReferenceIDEQ("new"),
-			dbchargeflatfeedetailedline.DeletedAtIsNil(),
+			dbchargeflatfeerundetailedline.NamespaceEQ(namespace),
+			dbchargeflatfeerundetailedline.RunIDEQ(runID),
+			dbchargeflatfeerundetailedline.ChildUniqueReferenceIDEQ("new"),
+			dbchargeflatfeerundetailedline.DeletedAtIsNil(),
 		).
 		Only(ctx)
 	s.Require().NoError(err)
 	s.Equal("new", newRow.PricerReferenceID)
 
-	deletedRow, err := s.dbClient.ChargeFlatFeeDetailedLine.Query().
+	deletedRow, err := s.dbClient.ChargeFlatFeeRunDetailedLine.Query().
 		Where(
-			dbchargeflatfeedetailedline.NamespaceEQ(namespace),
-			dbchargeflatfeedetailedline.ChargeIDEQ(charge.ID),
-			dbchargeflatfeedetailedline.ChildUniqueReferenceIDEQ("delete"),
+			dbchargeflatfeerundetailedline.NamespaceEQ(namespace),
+			dbchargeflatfeerundetailedline.RunIDEQ(runID),
+			dbchargeflatfeerundetailedline.ChildUniqueReferenceIDEQ("delete"),
 		).
 		Only(ctx)
 	s.Require().NoError(err)

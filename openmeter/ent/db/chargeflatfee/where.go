@@ -203,6 +203,11 @@ func AmountAfterProration(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldAmountAfterProration, v))
 }
 
+// CurrentRealizationRunID applies equality check predicate on the "current_realization_run_id" field. It's identical to CurrentRealizationRunIDEQ.
+func CurrentRealizationRunID(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldCurrentRealizationRunID, v))
+}
+
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.
 func CustomerIDEQ(v string) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldCustomerID, v))
@@ -1896,6 +1901,81 @@ func AmountAfterProrationLTE(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldLTE(FieldAmountAfterProration, v))
 }
 
+// CurrentRealizationRunIDEQ applies the EQ predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDNEQ applies the NEQ predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDNEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDIn applies the In predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldCurrentRealizationRunID, vs...))
+}
+
+// CurrentRealizationRunIDNotIn applies the NotIn predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDNotIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldCurrentRealizationRunID, vs...))
+}
+
+// CurrentRealizationRunIDGT applies the GT predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDGT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDGTE applies the GTE predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDGTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDLT applies the LT predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDLT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDLTE applies the LTE predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDLTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDContains applies the Contains predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDContains(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDHasPrefix applies the HasPrefix predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDHasPrefix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDHasSuffix applies the HasSuffix predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDHasSuffix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDIsNil applies the IsNil predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldCurrentRealizationRunID))
+}
+
+// CurrentRealizationRunIDNotNil applies the NotNil predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldCurrentRealizationRunID))
+}
+
+// CurrentRealizationRunIDEqualFold applies the EqualFold predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDEqualFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDContainsFold applies the ContainsFold predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDContainsFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldCurrentRealizationRunID, v))
+}
+
 // StatusDetailedEQ applies the EQ predicate on the "status_detailed" field.
 func StatusDetailedEQ(v flatfee.Status) predicate.ChargeFlatFee {
 	vc := v
@@ -1926,21 +2006,21 @@ func StatusDetailedNotIn(vs ...flatfee.Status) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldStatusDetailed, v...))
 }
 
-// HasCreditAllocations applies the HasEdge predicate on the "credit_allocations" edge.
-func HasCreditAllocations() predicate.ChargeFlatFee {
+// HasRuns applies the HasEdge predicate on the "runs" edge.
+func HasRuns() predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, CreditAllocationsTable, CreditAllocationsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, RunsTable, RunsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasCreditAllocationsWith applies the HasEdge predicate on the "credit_allocations" edge with a given conditions (other predicates).
-func HasCreditAllocationsWith(preds ...predicate.ChargeFlatFeeCreditAllocations) predicate.ChargeFlatFee {
+// HasRunsWith applies the HasEdge predicate on the "runs" edge with a given conditions (other predicates).
+func HasRunsWith(preds ...predicate.ChargeFlatFeeRun) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
-		step := newCreditAllocationsStep()
+		step := newRunsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -1949,67 +2029,21 @@ func HasCreditAllocationsWith(preds ...predicate.ChargeFlatFeeCreditAllocations)
 	})
 }
 
-// HasDetailedLines applies the HasEdge predicate on the "detailed_lines" edge.
-func HasDetailedLines() predicate.ChargeFlatFee {
+// HasCurrentRun applies the HasEdge predicate on the "current_run" edge.
+func HasCurrentRun() predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesTable, DetailedLinesColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, CurrentRunTable, CurrentRunColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasDetailedLinesWith applies the HasEdge predicate on the "detailed_lines" edge with a given conditions (other predicates).
-func HasDetailedLinesWith(preds ...predicate.ChargeFlatFeeDetailedLine) predicate.ChargeFlatFee {
+// HasCurrentRunWith applies the HasEdge predicate on the "current_run" edge with a given conditions (other predicates).
+func HasCurrentRunWith(preds ...predicate.ChargeFlatFeeRun) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
-		step := newDetailedLinesStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasInvoicedUsage applies the HasEdge predicate on the "invoiced_usage" edge.
-func HasInvoicedUsage() predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, InvoicedUsageTable, InvoicedUsageColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasInvoicedUsageWith applies the HasEdge predicate on the "invoiced_usage" edge with a given conditions (other predicates).
-func HasInvoicedUsageWith(preds ...predicate.ChargeFlatFeeInvoicedUsage) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(func(s *sql.Selector) {
-		step := newInvoicedUsageStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasPayment applies the HasEdge predicate on the "payment" edge.
-func HasPayment() predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, PaymentTable, PaymentColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasPaymentWith applies the HasEdge predicate on the "payment" edge with a given conditions (other predicates).
-func HasPaymentWith(preds ...predicate.ChargeFlatFeePayment) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(func(s *sql.Selector) {
-		step := newPaymentStep()
+		step := newCurrentRunStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

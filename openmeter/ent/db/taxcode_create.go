@@ -20,7 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
@@ -235,19 +235,19 @@ func (_c *TaxCodeCreate) AddChargeUsageBasedRunDetailedLines(v ...*ChargeUsageBa
 	return _c.AddChargeUsageBasedRunDetailedLineIDs(ids...)
 }
 
-// AddChargeFlatFeeDetailedLineIDs adds the "charge_flat_fee_detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by IDs.
-func (_c *TaxCodeCreate) AddChargeFlatFeeDetailedLineIDs(ids ...string) *TaxCodeCreate {
-	_c.mutation.AddChargeFlatFeeDetailedLineIDs(ids...)
+// AddChargeFlatFeeRunDetailedLineIDs adds the "charge_flat_fee_run_detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity by IDs.
+func (_c *TaxCodeCreate) AddChargeFlatFeeRunDetailedLineIDs(ids ...string) *TaxCodeCreate {
+	_c.mutation.AddChargeFlatFeeRunDetailedLineIDs(ids...)
 	return _c
 }
 
-// AddChargeFlatFeeDetailedLines adds the "charge_flat_fee_detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
-func (_c *TaxCodeCreate) AddChargeFlatFeeDetailedLines(v ...*ChargeFlatFeeDetailedLine) *TaxCodeCreate {
+// AddChargeFlatFeeRunDetailedLines adds the "charge_flat_fee_run_detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
+func (_c *TaxCodeCreate) AddChargeFlatFeeRunDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *TaxCodeCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddChargeFlatFeeDetailedLineIDs(ids...)
+	return _c.AddChargeFlatFeeRunDetailedLineIDs(ids...)
 }
 
 // AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by IDs.
@@ -630,15 +630,15 @@ func (_c *TaxCodeCreate) createSpec() (*TaxCode, *sqlgraph.CreateSpec, error) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.ChargeFlatFeeDetailedLinesIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.ChargeFlatFeeRunDetailedLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbtaxcode.ChargeFlatFeeDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeFlatFeeDetailedLinesColumn},
+			Table:   dbtaxcode.ChargeFlatFeeRunDetailedLinesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

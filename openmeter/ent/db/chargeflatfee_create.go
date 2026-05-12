@@ -18,10 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -349,6 +346,20 @@ func (_c *ChargeFlatFeeCreate) SetAmountAfterProration(v alpacadecimal.Decimal) 
 	return _c
 }
 
+// SetCurrentRealizationRunID sets the "current_realization_run_id" field.
+func (_c *ChargeFlatFeeCreate) SetCurrentRealizationRunID(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetCurrentRealizationRunID(v)
+	return _c
+}
+
+// SetNillableCurrentRealizationRunID sets the "current_realization_run_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableCurrentRealizationRunID(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetCurrentRealizationRunID(*v)
+	}
+	return _c
+}
+
 // SetStatusDetailed sets the "status_detailed" field.
 func (_c *ChargeFlatFeeCreate) SetStatusDetailed(v flatfee.Status) *ChargeFlatFeeCreate {
 	_c.mutation.SetStatusDetailed(v)
@@ -369,72 +380,38 @@ func (_c *ChargeFlatFeeCreate) SetNillableID(v *string) *ChargeFlatFeeCreate {
 	return _c
 }
 
-// AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeCreditAllocations entity by IDs.
-func (_c *ChargeFlatFeeCreate) AddCreditAllocationIDs(ids ...string) *ChargeFlatFeeCreate {
-	_c.mutation.AddCreditAllocationIDs(ids...)
+// AddRunIDs adds the "runs" edge to the ChargeFlatFeeRun entity by IDs.
+func (_c *ChargeFlatFeeCreate) AddRunIDs(ids ...string) *ChargeFlatFeeCreate {
+	_c.mutation.AddRunIDs(ids...)
 	return _c
 }
 
-// AddCreditAllocations adds the "credit_allocations" edges to the ChargeFlatFeeCreditAllocations entity.
-func (_c *ChargeFlatFeeCreate) AddCreditAllocations(v ...*ChargeFlatFeeCreditAllocations) *ChargeFlatFeeCreate {
+// AddRuns adds the "runs" edges to the ChargeFlatFeeRun entity.
+func (_c *ChargeFlatFeeCreate) AddRuns(v ...*ChargeFlatFeeRun) *ChargeFlatFeeCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddCreditAllocationIDs(ids...)
+	return _c.AddRunIDs(ids...)
 }
 
-// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by IDs.
-func (_c *ChargeFlatFeeCreate) AddDetailedLineIDs(ids ...string) *ChargeFlatFeeCreate {
-	_c.mutation.AddDetailedLineIDs(ids...)
+// SetCurrentRunID sets the "current_run" edge to the ChargeFlatFeeRun entity by ID.
+func (_c *ChargeFlatFeeCreate) SetCurrentRunID(id string) *ChargeFlatFeeCreate {
+	_c.mutation.SetCurrentRunID(id)
 	return _c
 }
 
-// AddDetailedLines adds the "detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
-func (_c *ChargeFlatFeeCreate) AddDetailedLines(v ...*ChargeFlatFeeDetailedLine) *ChargeFlatFeeCreate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddDetailedLineIDs(ids...)
-}
-
-// SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity by ID.
-func (_c *ChargeFlatFeeCreate) SetInvoicedUsageID(id string) *ChargeFlatFeeCreate {
-	_c.mutation.SetInvoicedUsageID(id)
-	return _c
-}
-
-// SetNillableInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity by ID if the given value is not nil.
-func (_c *ChargeFlatFeeCreate) SetNillableInvoicedUsageID(id *string) *ChargeFlatFeeCreate {
+// SetNillableCurrentRunID sets the "current_run" edge to the ChargeFlatFeeRun entity by ID if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableCurrentRunID(id *string) *ChargeFlatFeeCreate {
 	if id != nil {
-		_c = _c.SetInvoicedUsageID(*id)
+		_c = _c.SetCurrentRunID(*id)
 	}
 	return _c
 }
 
-// SetInvoicedUsage sets the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity.
-func (_c *ChargeFlatFeeCreate) SetInvoicedUsage(v *ChargeFlatFeeInvoicedUsage) *ChargeFlatFeeCreate {
-	return _c.SetInvoicedUsageID(v.ID)
-}
-
-// SetPaymentID sets the "payment" edge to the ChargeFlatFeePayment entity by ID.
-func (_c *ChargeFlatFeeCreate) SetPaymentID(id string) *ChargeFlatFeeCreate {
-	_c.mutation.SetPaymentID(id)
-	return _c
-}
-
-// SetNillablePaymentID sets the "payment" edge to the ChargeFlatFeePayment entity by ID if the given value is not nil.
-func (_c *ChargeFlatFeeCreate) SetNillablePaymentID(id *string) *ChargeFlatFeeCreate {
-	if id != nil {
-		_c = _c.SetPaymentID(*id)
-	}
-	return _c
-}
-
-// SetPayment sets the "payment" edge to the ChargeFlatFeePayment entity.
-func (_c *ChargeFlatFeeCreate) SetPayment(v *ChargeFlatFeePayment) *ChargeFlatFeeCreate {
-	return _c.SetPaymentID(v.ID)
+// SetCurrentRun sets the "current_run" edge to the ChargeFlatFeeRun entity.
+func (_c *ChargeFlatFeeCreate) SetCurrentRun(v *ChargeFlatFeeRun) *ChargeFlatFeeCreate {
+	return _c.SetCurrentRunID(v.ID)
 }
 
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
@@ -822,15 +799,15 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		_spec.SetField(chargeflatfee.FieldStatusDetailed, field.TypeEnum, value)
 		_node.StatusDetailed = value
 	}
-	if nodes := _c.mutation.CreditAllocationsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.RunsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeflatfee.CreditAllocationsTable,
-			Columns: []string{chargeflatfee.CreditAllocationsColumn},
+			Table:   chargeflatfee.RunsTable,
+			Columns: []string{chargeflatfee.RunsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -838,52 +815,21 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.DetailedLinesIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.CurrentRunIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: false,
-			Table:   chargeflatfee.DetailedLinesTable,
-			Columns: []string{chargeflatfee.DetailedLinesColumn},
+			Table:   chargeflatfee.CurrentRunTable,
+			Columns: []string{chargeflatfee.CurrentRunColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.InvoicedUsageIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   chargeflatfee.InvoicedUsageTable,
-			Columns: []string{chargeflatfee.InvoicedUsageColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.PaymentIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   chargeflatfee.PaymentTable,
-			Columns: []string{chargeflatfee.PaymentColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeepayment.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
+		_node.CurrentRealizationRunID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
@@ -1416,6 +1362,24 @@ func (u *ChargeFlatFeeUpsert) UpdateAmountAfterProration() *ChargeFlatFeeUpsert 
 	return u
 }
 
+// SetCurrentRealizationRunID sets the "current_realization_run_id" field.
+func (u *ChargeFlatFeeUpsert) SetCurrentRealizationRunID(v string) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldCurrentRealizationRunID, v)
+	return u
+}
+
+// UpdateCurrentRealizationRunID sets the "current_realization_run_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateCurrentRealizationRunID() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldCurrentRealizationRunID)
+	return u
+}
+
+// ClearCurrentRealizationRunID clears the value of the "current_realization_run_id" field.
+func (u *ChargeFlatFeeUpsert) ClearCurrentRealizationRunID() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldCurrentRealizationRunID)
+	return u
+}
+
 // SetStatusDetailed sets the "status_detailed" field.
 func (u *ChargeFlatFeeUpsert) SetStatusDetailed(v flatfee.Status) *ChargeFlatFeeUpsert {
 	u.Set(chargeflatfee.FieldStatusDetailed, v)
@@ -1920,6 +1884,27 @@ func (u *ChargeFlatFeeUpsertOne) SetAmountAfterProration(v alpacadecimal.Decimal
 func (u *ChargeFlatFeeUpsertOne) UpdateAmountAfterProration() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateAmountAfterProration()
+	})
+}
+
+// SetCurrentRealizationRunID sets the "current_realization_run_id" field.
+func (u *ChargeFlatFeeUpsertOne) SetCurrentRealizationRunID(v string) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetCurrentRealizationRunID(v)
+	})
+}
+
+// UpdateCurrentRealizationRunID sets the "current_realization_run_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateCurrentRealizationRunID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateCurrentRealizationRunID()
+	})
+}
+
+// ClearCurrentRealizationRunID clears the value of the "current_realization_run_id" field.
+func (u *ChargeFlatFeeUpsertOne) ClearCurrentRealizationRunID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearCurrentRealizationRunID()
 	})
 }
 
@@ -2599,6 +2584,27 @@ func (u *ChargeFlatFeeUpsertBulk) SetAmountAfterProration(v alpacadecimal.Decima
 func (u *ChargeFlatFeeUpsertBulk) UpdateAmountAfterProration() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateAmountAfterProration()
+	})
+}
+
+// SetCurrentRealizationRunID sets the "current_realization_run_id" field.
+func (u *ChargeFlatFeeUpsertBulk) SetCurrentRealizationRunID(v string) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetCurrentRealizationRunID(v)
+	})
+}
+
+// UpdateCurrentRealizationRunID sets the "current_realization_run_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateCurrentRealizationRunID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateCurrentRealizationRunID()
+	})
+}
+
+// ClearCurrentRealizationRunID clears the value of the "current_realization_run_id" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearCurrentRealizationRunID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearCurrentRealizationRunID()
 	})
 }
 

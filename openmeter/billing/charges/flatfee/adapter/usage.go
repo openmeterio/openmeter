@@ -14,8 +14,17 @@ func (a *adapter) CreateInvoicedUsage(ctx context.Context, chargeID meta.ChargeI
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (invoicedusage.AccruedUsage, error) {
-		create := tx.db.ChargeFlatFeeInvoicedUsage.Create().
-			SetChargeID(chargeID.ID)
+		run, err := tx.currentRunByChargeID(ctx, chargeID)
+		if err != nil {
+			return invoicedusage.AccruedUsage{}, err
+		}
+
+		if _, err := tx.updateCurrentRunTotals(ctx, run, invoicedUsage.Totals); err != nil {
+			return invoicedusage.AccruedUsage{}, err
+		}
+
+		create := tx.db.ChargeFlatFeeRunInvoicedUsage.Create().
+			SetRunID(run.ID)
 
 		create = invoicedusage.Create(create, chargeID.Namespace, invoicedUsage)
 

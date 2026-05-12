@@ -88,16 +88,14 @@ const (
 	FieldAmountBeforeProration = "amount_before_proration"
 	// FieldAmountAfterProration holds the string denoting the amount_after_proration field in the database.
 	FieldAmountAfterProration = "amount_after_proration"
+	// FieldCurrentRealizationRunID holds the string denoting the current_realization_run_id field in the database.
+	FieldCurrentRealizationRunID = "current_realization_run_id"
 	// FieldStatusDetailed holds the string denoting the status_detailed field in the database.
 	FieldStatusDetailed = "status_detailed"
-	// EdgeCreditAllocations holds the string denoting the credit_allocations edge name in mutations.
-	EdgeCreditAllocations = "credit_allocations"
-	// EdgeDetailedLines holds the string denoting the detailed_lines edge name in mutations.
-	EdgeDetailedLines = "detailed_lines"
-	// EdgeInvoicedUsage holds the string denoting the invoiced_usage edge name in mutations.
-	EdgeInvoicedUsage = "invoiced_usage"
-	// EdgePayment holds the string denoting the payment edge name in mutations.
-	EdgePayment = "payment"
+	// EdgeRuns holds the string denoting the runs edge name in mutations.
+	EdgeRuns = "runs"
+	// EdgeCurrentRun holds the string denoting the current_run edge name in mutations.
+	EdgeCurrentRun = "current_run"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
@@ -114,34 +112,20 @@ const (
 	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the chargeflatfee in the database.
 	Table = "charge_flat_fees"
-	// CreditAllocationsTable is the table that holds the credit_allocations relation/edge.
-	CreditAllocationsTable = "charge_flat_fee_credit_allocations"
-	// CreditAllocationsInverseTable is the table name for the ChargeFlatFeeCreditAllocations entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeflatfeecreditallocations" package.
-	CreditAllocationsInverseTable = "charge_flat_fee_credit_allocations"
-	// CreditAllocationsColumn is the table column denoting the credit_allocations relation/edge.
-	CreditAllocationsColumn = "charge_id"
-	// DetailedLinesTable is the table that holds the detailed_lines relation/edge.
-	DetailedLinesTable = "charge_flat_fee_detailed_line"
-	// DetailedLinesInverseTable is the table name for the ChargeFlatFeeDetailedLine entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeflatfeedetailedline" package.
-	DetailedLinesInverseTable = "charge_flat_fee_detailed_line"
-	// DetailedLinesColumn is the table column denoting the detailed_lines relation/edge.
-	DetailedLinesColumn = "charge_id"
-	// InvoicedUsageTable is the table that holds the invoiced_usage relation/edge.
-	InvoicedUsageTable = "charge_flat_fee_invoiced_usages"
-	// InvoicedUsageInverseTable is the table name for the ChargeFlatFeeInvoicedUsage entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeflatfeeinvoicedusage" package.
-	InvoicedUsageInverseTable = "charge_flat_fee_invoiced_usages"
-	// InvoicedUsageColumn is the table column denoting the invoiced_usage relation/edge.
-	InvoicedUsageColumn = "charge_id"
-	// PaymentTable is the table that holds the payment relation/edge.
-	PaymentTable = "charge_flat_fee_payments"
-	// PaymentInverseTable is the table name for the ChargeFlatFeePayment entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeflatfeepayment" package.
-	PaymentInverseTable = "charge_flat_fee_payments"
-	// PaymentColumn is the table column denoting the payment relation/edge.
-	PaymentColumn = "charge_id"
+	// RunsTable is the table that holds the runs relation/edge.
+	RunsTable = "charge_flat_fee_runs"
+	// RunsInverseTable is the table name for the ChargeFlatFeeRun entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeerun" package.
+	RunsInverseTable = "charge_flat_fee_runs"
+	// RunsColumn is the table column denoting the runs relation/edge.
+	RunsColumn = "charge_id"
+	// CurrentRunTable is the table that holds the current_run relation/edge.
+	CurrentRunTable = "charge_flat_fees"
+	// CurrentRunInverseTable is the table name for the ChargeFlatFeeRun entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeerun" package.
+	CurrentRunInverseTable = "charge_flat_fee_runs"
+	// CurrentRunColumn is the table column denoting the current_run relation/edge.
+	CurrentRunColumn = "current_realization_run_id"
 	// ChargeTable is the table that holds the charge relation/edge.
 	ChargeTable = "charges"
 	// ChargeInverseTable is the table name for the Charge entity.
@@ -230,6 +214,7 @@ var Columns = []string{
 	FieldFeatureID,
 	FieldAmountBeforeProration,
 	FieldAmountAfterProration,
+	FieldCurrentRealizationRunID,
 	FieldStatusDetailed,
 }
 
@@ -496,50 +481,34 @@ func ByAmountAfterProration(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmountAfterProration, opts...).ToFunc()
 }
 
+// ByCurrentRealizationRunID orders the results by the current_realization_run_id field.
+func ByCurrentRealizationRunID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrentRealizationRunID, opts...).ToFunc()
+}
+
 // ByStatusDetailed orders the results by the status_detailed field.
 func ByStatusDetailed(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatusDetailed, opts...).ToFunc()
 }
 
-// ByCreditAllocationsCount orders the results by credit_allocations count.
-func ByCreditAllocationsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByRunsCount orders the results by runs count.
+func ByRunsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newCreditAllocationsStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newRunsStep(), opts...)
 	}
 }
 
-// ByCreditAllocations orders the results by credit_allocations terms.
-func ByCreditAllocations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByRuns orders the results by runs terms.
+func ByRuns(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCreditAllocationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newRunsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
-// ByDetailedLinesCount orders the results by detailed_lines count.
-func ByDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
+// ByCurrentRunField orders the results by current_run field.
+func ByCurrentRunField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newDetailedLinesStep(), opts...)
-	}
-}
-
-// ByDetailedLines orders the results by detailed_lines terms.
-func ByDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
-// ByInvoicedUsageField orders the results by invoiced_usage field.
-func ByInvoicedUsageField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newInvoicedUsageStep(), sql.OrderByField(field, opts...))
-	}
-}
-
-// ByPaymentField orders the results by payment field.
-func ByPaymentField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newPaymentStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newCurrentRunStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -591,32 +560,18 @@ func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
 	}
 }
-func newCreditAllocationsStep() *sqlgraph.Step {
+func newRunsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(CreditAllocationsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, CreditAllocationsTable, CreditAllocationsColumn),
+		sqlgraph.To(RunsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, RunsTable, RunsColumn),
 	)
 }
-func newDetailedLinesStep() *sqlgraph.Step {
+func newCurrentRunStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(DetailedLinesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesTable, DetailedLinesColumn),
-	)
-}
-func newInvoicedUsageStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(InvoicedUsageInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, InvoicedUsageTable, InvoicedUsageColumn),
-	)
-}
-func newPaymentStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(PaymentInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, PaymentTable, PaymentColumn),
+		sqlgraph.To(CurrentRunInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, CurrentRunTable, CurrentRunColumn),
 	)
 }
 func newChargeStep() *sqlgraph.Step {

@@ -491,10 +491,10 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Ref("billing_invoice_lines").
 			Field("charge_id").
 			Unique(),
-		edge.To("charge_flat_fee_payment", ChargeFlatFeePayment.Type).
+		edge.To("charge_flat_fee_run_payment", ChargeFlatFeeRunPayment.Type).
 			Unique(),
-		edge.To("charge_flat_fee_credit_allocations", ChargeFlatFeeCreditAllocations.Type),
-		edge.To("charge_flat_fee_invoiced_usage", ChargeFlatFeeInvoicedUsage.Type),
+		edge.To("charge_flat_fee_run_credit_allocations", ChargeFlatFeeRunCreditAllocations.Type),
+		edge.To("charge_flat_fee_run_invoiced_usage", ChargeFlatFeeRunInvoicedUsage.Type),
 		edge.To("charge_usage_based_run", ChargeUsageBasedRuns.Type).
 			Unique(),
 		edge.To("charge_credit_purchase_invoiced_payment", ChargeCreditPurchaseInvoicedPayment.Type).

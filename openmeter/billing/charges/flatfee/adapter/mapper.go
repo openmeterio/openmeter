@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -26,38 +27,24 @@ func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (
 	}
 
 	if expands.Has(meta.ExpandRealizations) {
-		dbCreditRealizations, err := entity.Edges.CreditAllocationsOrErr()
+		dbRun, err := entity.Edges.CurrentRunOrErr()
 		if err != nil {
-			return flatfee.Charge{}, fmt.Errorf("mapping flat fee charge [id=%s]: %w", entity.ID, err)
+			if _, ok := lo.ErrorsAs[*entdb.NotFoundError](err); !ok {
+				return flatfee.Charge{}, fmt.Errorf("mapping flat fee charge [id=%s]: %w", entity.ID, err)
+			}
 		}
 
-		charge.Realizations.CreditRealizations = lo.Map(dbCreditRealizations, func(entity *entdb.ChargeFlatFeeCreditAllocations, _ int) creditrealization.Realization {
-			return creditrealization.MapFromDB(entity)
-		})
-
-		dbPaymentState, err := entity.Edges.PaymentOrErr()
-		if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
-			return flatfee.Charge{}, fmt.Errorf("payment state not loaded for flat fee charge [id=%s]", entity.ID)
-		}
-
-		if dbPaymentState != nil {
-			charge.Realizations.Payment = lo.ToPtr(payment.MapInvoicedFromDB(dbPaymentState))
-		}
-
-		dbAccruedUsage, err := entity.Edges.InvoicedUsageOrErr()
-		if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
-			return flatfee.Charge{}, fmt.Errorf("accrued usage not loaded for flat fee charge [id=%s]", entity.ID)
-		}
-
-		if dbAccruedUsage != nil {
-			charge.Realizations.AccruedUsage = lo.ToPtr(invoicedusage.MapAccruedUsageFromDB(dbAccruedUsage))
+		if dbRun != nil {
+			if err := mapRealizationsFromCurrentRun(dbRun, &charge); err != nil {
+				return flatfee.Charge{}, fmt.Errorf("mapping flat fee realization run [charge_id=%s]: %w", entity.ID, err)
+			}
 		}
 	}
 
 	return charge, nil
 }
 
-func mapDetailedLineFromDB(dbLine *entdb.ChargeFlatFeeDetailedLine) (flatfee.DetailedLine, error) {
+func mapRunDetailedLineFromDB(dbLine *entdb.ChargeFlatFeeRunDetailedLine) (flatfee.DetailedLine, error) {
 	line := stddetailedline.FromDB(
 		dbLine,
 		stddetailedline.BackfillTaxConfig(
@@ -68,6 +55,55 @@ func mapDetailedLineFromDB(dbLine *entdb.ChargeFlatFeeDetailedLine) (flatfee.Det
 	)
 
 	return line, line.Validate()
+}
+
+func mapRealizationsFromCurrentRun(dbRun *entdb.ChargeFlatFeeRun, charge *flatfee.Charge) error {
+	dbCreditsAllocated, err := dbRun.Edges.CreditAllocationsOrErr()
+	if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
+		return fmt.Errorf("credits allocated not loaded for flat fee charge run [id=%s]", dbRun.ID)
+	}
+
+	for _, credit := range dbCreditsAllocated {
+		charge.Realizations.CreditRealizations = append(charge.Realizations.CreditRealizations, creditrealization.MapFromDB(credit))
+	}
+
+	dbInvoiceUsage, err := dbRun.Edges.InvoicedUsageOrErr()
+	if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
+		return fmt.Errorf("invoice usage not loaded for flat fee charge run [id=%s]", dbRun.ID)
+	}
+
+	if dbInvoiceUsage != nil {
+		usage := invoicedusage.MapAccruedUsageFromDB(dbInvoiceUsage)
+		charge.Realizations.AccruedUsage = &usage
+	}
+
+	dbPayment, err := dbRun.Edges.PaymentOrErr()
+	if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
+		return fmt.Errorf("payment not loaded for flat fee charge run [id=%s]", dbRun.ID)
+	}
+
+	if dbPayment != nil {
+		paymentState := payment.MapInvoicedFromDB(dbPayment)
+		charge.Realizations.Payment = &paymentState
+	}
+
+	dbDetailedLines, err := dbRun.Edges.DetailedLinesOrErr()
+	if err == nil {
+		lines := make(flatfee.DetailedLines, 0, len(dbDetailedLines))
+		for _, dbLine := range dbDetailedLines {
+			line, err := mapRunDetailedLineFromDB(dbLine)
+			if err != nil {
+				return err
+			}
+
+			lines = append(lines, line)
+		}
+
+		sortDetailedLines(lines)
+		charge.Realizations.DetailedLines = mo.Some(lines)
+	}
+
+	return nil
 }
 
 func taxCodeIDFromEnt(resolvedTaxCode *entdb.TaxCode) *string {

@@ -19,7 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
@@ -230,19 +230,19 @@ func (_u *TaxCodeUpdate) AddChargeUsageBasedRunDetailedLines(v ...*ChargeUsageBa
 	return _u.AddChargeUsageBasedRunDetailedLineIDs(ids...)
 }
 
-// AddChargeFlatFeeDetailedLineIDs adds the "charge_flat_fee_detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by IDs.
-func (_u *TaxCodeUpdate) AddChargeFlatFeeDetailedLineIDs(ids ...string) *TaxCodeUpdate {
-	_u.mutation.AddChargeFlatFeeDetailedLineIDs(ids...)
+// AddChargeFlatFeeRunDetailedLineIDs adds the "charge_flat_fee_run_detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity by IDs.
+func (_u *TaxCodeUpdate) AddChargeFlatFeeRunDetailedLineIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.AddChargeFlatFeeRunDetailedLineIDs(ids...)
 	return _u
 }
 
-// AddChargeFlatFeeDetailedLines adds the "charge_flat_fee_detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
-func (_u *TaxCodeUpdate) AddChargeFlatFeeDetailedLines(v ...*ChargeFlatFeeDetailedLine) *TaxCodeUpdate {
+// AddChargeFlatFeeRunDetailedLines adds the "charge_flat_fee_run_detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
+func (_u *TaxCodeUpdate) AddChargeFlatFeeRunDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *TaxCodeUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddChargeFlatFeeDetailedLineIDs(ids...)
+	return _u.AddChargeFlatFeeRunDetailedLineIDs(ids...)
 }
 
 // AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by IDs.
@@ -496,25 +496,25 @@ func (_u *TaxCodeUpdate) RemoveChargeUsageBasedRunDetailedLines(v ...*ChargeUsag
 	return _u.RemoveChargeUsageBasedRunDetailedLineIDs(ids...)
 }
 
-// ClearChargeFlatFeeDetailedLines clears all "charge_flat_fee_detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
-func (_u *TaxCodeUpdate) ClearChargeFlatFeeDetailedLines() *TaxCodeUpdate {
-	_u.mutation.ClearChargeFlatFeeDetailedLines()
+// ClearChargeFlatFeeRunDetailedLines clears all "charge_flat_fee_run_detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
+func (_u *TaxCodeUpdate) ClearChargeFlatFeeRunDetailedLines() *TaxCodeUpdate {
+	_u.mutation.ClearChargeFlatFeeRunDetailedLines()
 	return _u
 }
 
-// RemoveChargeFlatFeeDetailedLineIDs removes the "charge_flat_fee_detailed_lines" edge to ChargeFlatFeeDetailedLine entities by IDs.
-func (_u *TaxCodeUpdate) RemoveChargeFlatFeeDetailedLineIDs(ids ...string) *TaxCodeUpdate {
-	_u.mutation.RemoveChargeFlatFeeDetailedLineIDs(ids...)
+// RemoveChargeFlatFeeRunDetailedLineIDs removes the "charge_flat_fee_run_detailed_lines" edge to ChargeFlatFeeRunDetailedLine entities by IDs.
+func (_u *TaxCodeUpdate) RemoveChargeFlatFeeRunDetailedLineIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.RemoveChargeFlatFeeRunDetailedLineIDs(ids...)
 	return _u
 }
 
-// RemoveChargeFlatFeeDetailedLines removes "charge_flat_fee_detailed_lines" edges to ChargeFlatFeeDetailedLine entities.
-func (_u *TaxCodeUpdate) RemoveChargeFlatFeeDetailedLines(v ...*ChargeFlatFeeDetailedLine) *TaxCodeUpdate {
+// RemoveChargeFlatFeeRunDetailedLines removes "charge_flat_fee_run_detailed_lines" edges to ChargeFlatFeeRunDetailedLine entities.
+func (_u *TaxCodeUpdate) RemoveChargeFlatFeeRunDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *TaxCodeUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveChargeFlatFeeDetailedLineIDs(ids...)
+	return _u.RemoveChargeFlatFeeRunDetailedLineIDs(ids...)
 }
 
 // ClearSubscriptionItems clears all "subscription_items" edges to the SubscriptionItem entity.
@@ -1040,28 +1040,28 @@ func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChargeFlatFeeDetailedLinesCleared() {
+	if _u.mutation.ChargeFlatFeeRunDetailedLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbtaxcode.ChargeFlatFeeDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeFlatFeeDetailedLinesColumn},
+			Table:   dbtaxcode.ChargeFlatFeeRunDetailedLinesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedChargeFlatFeeDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeDetailedLinesCleared() {
+	if nodes := _u.mutation.RemovedChargeFlatFeeRunDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeRunDetailedLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbtaxcode.ChargeFlatFeeDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeFlatFeeDetailedLinesColumn},
+			Table:   dbtaxcode.ChargeFlatFeeRunDetailedLinesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1069,15 +1069,15 @@ func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChargeFlatFeeDetailedLinesIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChargeFlatFeeRunDetailedLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbtaxcode.ChargeFlatFeeDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeFlatFeeDetailedLinesColumn},
+			Table:   dbtaxcode.ChargeFlatFeeRunDetailedLinesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1651,19 +1651,19 @@ func (_u *TaxCodeUpdateOne) AddChargeUsageBasedRunDetailedLines(v ...*ChargeUsag
 	return _u.AddChargeUsageBasedRunDetailedLineIDs(ids...)
 }
 
-// AddChargeFlatFeeDetailedLineIDs adds the "charge_flat_fee_detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by IDs.
-func (_u *TaxCodeUpdateOne) AddChargeFlatFeeDetailedLineIDs(ids ...string) *TaxCodeUpdateOne {
-	_u.mutation.AddChargeFlatFeeDetailedLineIDs(ids...)
+// AddChargeFlatFeeRunDetailedLineIDs adds the "charge_flat_fee_run_detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity by IDs.
+func (_u *TaxCodeUpdateOne) AddChargeFlatFeeRunDetailedLineIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.AddChargeFlatFeeRunDetailedLineIDs(ids...)
 	return _u
 }
 
-// AddChargeFlatFeeDetailedLines adds the "charge_flat_fee_detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
-func (_u *TaxCodeUpdateOne) AddChargeFlatFeeDetailedLines(v ...*ChargeFlatFeeDetailedLine) *TaxCodeUpdateOne {
+// AddChargeFlatFeeRunDetailedLines adds the "charge_flat_fee_run_detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
+func (_u *TaxCodeUpdateOne) AddChargeFlatFeeRunDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *TaxCodeUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddChargeFlatFeeDetailedLineIDs(ids...)
+	return _u.AddChargeFlatFeeRunDetailedLineIDs(ids...)
 }
 
 // AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by IDs.
@@ -1917,25 +1917,25 @@ func (_u *TaxCodeUpdateOne) RemoveChargeUsageBasedRunDetailedLines(v ...*ChargeU
 	return _u.RemoveChargeUsageBasedRunDetailedLineIDs(ids...)
 }
 
-// ClearChargeFlatFeeDetailedLines clears all "charge_flat_fee_detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
-func (_u *TaxCodeUpdateOne) ClearChargeFlatFeeDetailedLines() *TaxCodeUpdateOne {
-	_u.mutation.ClearChargeFlatFeeDetailedLines()
+// ClearChargeFlatFeeRunDetailedLines clears all "charge_flat_fee_run_detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
+func (_u *TaxCodeUpdateOne) ClearChargeFlatFeeRunDetailedLines() *TaxCodeUpdateOne {
+	_u.mutation.ClearChargeFlatFeeRunDetailedLines()
 	return _u
 }
 
-// RemoveChargeFlatFeeDetailedLineIDs removes the "charge_flat_fee_detailed_lines" edge to ChargeFlatFeeDetailedLine entities by IDs.
-func (_u *TaxCodeUpdateOne) RemoveChargeFlatFeeDetailedLineIDs(ids ...string) *TaxCodeUpdateOne {
-	_u.mutation.RemoveChargeFlatFeeDetailedLineIDs(ids...)
+// RemoveChargeFlatFeeRunDetailedLineIDs removes the "charge_flat_fee_run_detailed_lines" edge to ChargeFlatFeeRunDetailedLine entities by IDs.
+func (_u *TaxCodeUpdateOne) RemoveChargeFlatFeeRunDetailedLineIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.RemoveChargeFlatFeeRunDetailedLineIDs(ids...)
 	return _u
 }
 
-// RemoveChargeFlatFeeDetailedLines removes "charge_flat_fee_detailed_lines" edges to ChargeFlatFeeDetailedLine entities.
-func (_u *TaxCodeUpdateOne) RemoveChargeFlatFeeDetailedLines(v ...*ChargeFlatFeeDetailedLine) *TaxCodeUpdateOne {
+// RemoveChargeFlatFeeRunDetailedLines removes "charge_flat_fee_run_detailed_lines" edges to ChargeFlatFeeRunDetailedLine entities.
+func (_u *TaxCodeUpdateOne) RemoveChargeFlatFeeRunDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *TaxCodeUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveChargeFlatFeeDetailedLineIDs(ids...)
+	return _u.RemoveChargeFlatFeeRunDetailedLineIDs(ids...)
 }
 
 // ClearSubscriptionItems clears all "subscription_items" edges to the SubscriptionItem entity.
@@ -2491,28 +2491,28 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChargeFlatFeeDetailedLinesCleared() {
+	if _u.mutation.ChargeFlatFeeRunDetailedLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbtaxcode.ChargeFlatFeeDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeFlatFeeDetailedLinesColumn},
+			Table:   dbtaxcode.ChargeFlatFeeRunDetailedLinesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedChargeFlatFeeDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeDetailedLinesCleared() {
+	if nodes := _u.mutation.RemovedChargeFlatFeeRunDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeRunDetailedLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbtaxcode.ChargeFlatFeeDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeFlatFeeDetailedLinesColumn},
+			Table:   dbtaxcode.ChargeFlatFeeRunDetailedLinesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2520,15 +2520,15 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChargeFlatFeeDetailedLinesIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChargeFlatFeeRunDetailedLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbtaxcode.ChargeFlatFeeDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeFlatFeeDetailedLinesColumn},
+			Table:   dbtaxcode.ChargeFlatFeeRunDetailedLinesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
