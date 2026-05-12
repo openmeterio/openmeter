@@ -167,22 +167,22 @@ model GovernanceFeatureAccess {
    * when `has_access` is `false`.
    */
   @visibility(Lifecycle.Read)
-  @summary("Denied reason")
-  denied_reason?: GovernanceFeatureAccessDeniedReason;
+  @summary("Reason")
+  reason?: GovernanceFeatureAccessReason;
 }
 
 /**
  * Reason a feature is not accessible to a customer.
  */
-@friendlyName("GovernanceFeatureAccessDeniedReason")
-model GovernanceFeatureAccessDeniedReason
-  is Shared.BaseError<GovernanceFeatureAccessDeniedReasonCode>;
+@friendlyName("GovernanceFeatureAccessReason")
+model GovernanceFeatureAccessReason
+  is Shared.BaseError<GovernanceFeatureAccessReasonCode>;
 
 /**
  * Machine-readable reason code for denied feature access.
  */
-@friendlyName("GovernanceFeatureAccessDeniedReasonCode")
-enum GovernanceFeatureAccessDeniedReasonCode {
+@friendlyName("GovernanceFeatureAccessReasonCode")
+enum GovernanceFeatureAccessReasonCode {
   /**
    * Default zero value. Reserved for forward compatibility.
    */

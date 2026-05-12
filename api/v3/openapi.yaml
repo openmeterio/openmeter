@@ -7748,17 +7748,17 @@ components:
             exhausted.
           title: Has access
           readOnly: true
-        denied_reason:
+        reason:
           allOf:
-            - $ref: '#/components/schemas/GovernanceFeatureAccessDeniedReason'
+            - $ref: '#/components/schemas/GovernanceFeatureAccessReason'
           description: |-
             Optional reason when the customer does not have access to the feature. Populated
             when `has_access` is `false`.
-          title: Denied reason
+          title: Reason
           readOnly: true
       additionalProperties: false
       description: Access status for a single feature.
-    GovernanceFeatureAccessDeniedReason:
+    GovernanceFeatureAccessReason:
       type: object
       required:
         - code
@@ -7766,7 +7766,7 @@ components:
       properties:
         code:
           allOf:
-            - $ref: '#/components/schemas/GovernanceFeatureAccessDeniedReasonCode'
+            - $ref: '#/components/schemas/GovernanceFeatureAccessReasonCode'
           description: Machine-readable error code.
           title: Code
           readOnly: true
@@ -7783,7 +7783,7 @@ components:
           readOnly: true
       additionalProperties: false
       description: Reason a feature is not accessible to a customer.
-    GovernanceFeatureAccessDeniedReasonCode:
+    GovernanceFeatureAccessReasonCode:
       type: string
       enum:
         - unknown
