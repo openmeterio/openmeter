@@ -14,6 +14,7 @@ import "./features/index.tsp";
 import "./llmcost/index.tsp";
 import "./productcatalog/index.tsp";
 import "./defaults/index.tsp";
+import "./governance/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -60,6 +61,10 @@ using TypeSpec.OpenAPI;
   #{ description: Shared.ProductCatalogDescription }
 )
 @tagMetadata(Shared.DefaultsTag, #{ description: Shared.DefaultsDescription })
+@tagMetadata(
+  Shared.GovernanceTag,
+  #{ description: Shared.GovernanceDescription }
+)
 namespace OpenMeter;
 
 @route("/openmeter/events")
@@ -192,3 +197,7 @@ interface PlanAddonEndpoints extends ProductCatalog.PlanAddonOperations {}
 @tag(Shared.DefaultsTag)
 interface OrganizationDefaultTaxCodesEndpoints
   extends Defaults.OrganizationDefaultTaxCodesOperations {}
+
+@route("/openmeter/governance")
+@tag(Shared.GovernanceTag)
+interface GovernanceEndpoints extends Governance.GovernanceOperations {}

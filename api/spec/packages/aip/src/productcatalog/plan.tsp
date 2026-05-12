@@ -119,7 +119,7 @@ model Plan {
  * Validation errors providing detailed description of the issue.
  */
 @friendlyName("ProductCatalogValidationError")
-model ProductCatalogValidationError {
+model ProductCatalogValidationError is Shared.BaseError<string> {
   /**
    * The path to the field.
    */
@@ -127,29 +127,6 @@ model ProductCatalogValidationError {
   @summary("Field")
   @example("addons/pro/ratecards/token/featureKey")
   field: string;
-
-  /**
-   * The machine readable code of the error.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Code")
-  @example("invalid_feature_key")
-  code: string;
-
-  /**
-   * The human readable description of the error.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Message")
-  @example("not found feature by key")
-  message: string;
-
-  /**
-   * Additional attributes.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Attributes")
-  attributes?: Record<unknown>;
 }
 
 /**
