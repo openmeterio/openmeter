@@ -192,6 +192,7 @@ func main() {
 		},
 		RouterHooks:         lo.FromPtr(app.RouterHooks),
 		PostAuthMiddlewares: app.PostAuthMiddlewares,
+		ResponseValidation:  conf.Server.ResponseValidation,
 	})
 	if err != nil {
 		logger.Error("failed to create server", "error", err)

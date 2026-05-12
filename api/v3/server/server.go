@@ -9,6 +9,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/getkin/kin-openapi/routers"
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/lo"
 
@@ -74,6 +75,7 @@ type Config struct {
 	Middlewares         []server.MiddlewareFunc
 	PostAuthMiddlewares []server.MiddlewareFunc
 	Credits             config.CreditsConfiguration
+	ResponseValidation  config.ResponseValidationConfig
 
 	// services
 	AddonService             addon.Service
@@ -105,6 +107,10 @@ type Config struct {
 
 func (c *Config) Validate() error {
 	var errs []error
+
+	if err := c.ResponseValidation.Mode.Validate(); err != nil {
+		errs = append(errs, err)
+	}
 
 	if c.BaseURL == "" {
 		errs = append(errs, errors.New("base URL is required"))
@@ -394,6 +400,26 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 			validationMiddleware,
 		}
 
+		if s.ResponseValidation.Mode.Enabled() {
+			middlewares = append(middlewares, oasmiddleware.ValidateResponse(validationRouter, oasmiddleware.ValidateResponseOption{
+				RouteFilterHook: buildResponseValidationRouteFilter(s.ResponseValidation),
+				ResponseValidationErrorHook: func(err error, r *http.Request) {
+					// Raw err can echo offending response field values (customer PII, billing identifiers).
+					// Keep that detail behind DEBUG; emit a sanitized summary at WARN.
+					slog.WarnContext(r.Context(), "response validation failed",
+						slog.String("method", r.Method),
+						slog.String("path", r.URL.Path),
+						slog.String("error_type", fmt.Sprintf("%T", err)),
+					)
+					slog.DebugContext(r.Context(), "response validation details",
+						slog.String("method", r.Method),
+						slog.String("path", r.URL.Path),
+						slog.Any("error", err),
+					)
+				},
+			}))
+		}
+
 		postAuthMiddlewares := lo.Map(s.PostAuthMiddlewares, func(mwf server.MiddlewareFunc, _ int) api.MiddlewareFunc {
 			return api.MiddlewareFunc(mwf)
 		})
@@ -408,4 +434,22 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 	})
 
 	return nil
+}
+
+// buildResponseValidationRouteFilter returns a route filter for response validation.
+// In "all" mode the filter is nil (every route is validated). In "unstable" mode only
+// operations marked x-unstable: true in the spec are validated.
+func buildResponseValidationRouteFilter(cfg config.ResponseValidationConfig) func(*routers.Route) bool {
+	if cfg.Mode != config.ResponseValidationModeUnstable {
+		return nil
+	}
+	return func(route *routers.Route) bool {
+		if route.Operation == nil {
+			return false
+		}
+		// kin-openapi unmarshals JSON booleans directly into map[string]any,
+		// so the extension value is a plain bool here.
+		v, _ := route.Operation.Extensions["x-unstable"].(bool)
+		return v
+	}
 }

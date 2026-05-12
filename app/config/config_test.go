@@ -418,6 +418,9 @@ func TestComplete(t *testing.T) {
 			ReadTimeout:       60 * time.Second,
 			WriteTimeout:      90 * time.Second,
 			IdleTimeout:       120 * time.Second,
+			ResponseValidation: ResponseValidationConfig{
+				Mode: ResponseValidationModeOff,
+			},
 		},
 		ProgressManager: ProgressManagerConfiguration{
 			Enabled:    false,

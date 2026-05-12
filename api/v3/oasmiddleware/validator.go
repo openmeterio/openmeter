@@ -66,6 +66,9 @@ func ValidateRequest(validationRouter routers.Router, opts ValidateRequestOption
 type ValidateResponseOption struct {
 	// ResponseValidationErrorHook is called when the route response body is not validated
 	ResponseValidationErrorHook ResponseValidationFunc
+	// RouteFilterHook is called after the route is found; return false to skip validation for that route.
+	// If nil, all matched routes are validated.
+	RouteFilterHook func(*routers.Route) bool
 	// FilterOptions are the openapi3filter option to pass to the underlying lib
 	FilterOptions *openapi3filter.Options
 }
@@ -75,8 +78,6 @@ type ValidateResponseOption struct {
 func ValidateResponse(validationRouter routers.Router, opts ValidateResponseOption) func(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			var err error
-
 			route, pathParams, err := validationRouter.FindRoute(r)
 
 			if err != nil {
@@ -85,6 +86,11 @@ func ValidateResponse(validationRouter routers.Router, opts ValidateResponseOpti
 					opts.ResponseValidationErrorHook(err, r)
 				}
 			} else {
+				if opts.RouteFilterHook != nil && !opts.RouteFilterHook(route) {
+					h.ServeHTTP(w, r)
+					return
+				}
+
 				// need to wrap std lib response to access the body
 				rww := NewResponseWriterWrapper(w)
 
