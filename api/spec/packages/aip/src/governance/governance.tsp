@@ -7,8 +7,8 @@ namespace Governance;
 /**
  * List of customer identifiers to evaluate access for.
  */
-@friendlyName("GovernanceQueryCustomersFilter")
-model GovernanceQueryCustomersFilter {
+@friendlyName("GovernanceQueryRequestCustomers")
+model GovernanceQueryRequestCustomers {
   /**
    * Each entry can be a customer `key` or a usage-attribution subject `key`.
    * Identifiers that cannot be resolved to a customer are reported in the response
@@ -16,7 +16,7 @@ model GovernanceQueryCustomersFilter {
    */
   @summary("Customer keys and usage-attribution subjects")
   @minItems(1)
-  @maxItems(50)
+  @maxItems(100)
   keys: string[];
 }
 
@@ -25,27 +25,22 @@ model GovernanceQueryCustomersFilter {
  * available in the organization are returned. Providing this list is recommended
  * to reduce the response size and the load on the backend services.
  */
-@friendlyName("GovernanceQueryFeaturesFilter")
-model GovernanceQueryFeaturesFilter {
+@friendlyName("GovernanceQueryRequestFeatures")
+model GovernanceQueryRequestFeatures {
   /**
    * List of feature keys to evaluate access for.
    */
   @summary("Feature Keys")
   @minItems(1)
-  @maxItems(50)
+  @maxItems(100)
   keys: string[];
 }
 
 /**
- * Filters to apply to the governance query.
+ * Query to evaluate feature access for a list of customers.
  */
-@friendlyName("GovernanceQueryFilters")
-model GovernanceQueryFilters {
-  #suppress "@openmeter/api-spec-aip/doc-decorator" "-"
-  customers: GovernanceQueryCustomersFilter;
-  #suppress "@openmeter/api-spec-aip/doc-decorator" "-"
-  features?: GovernanceQueryFeaturesFilter;
-
+@friendlyName("GovernanceQueryRequest")
+model GovernanceQueryRequest {
   /**
    * Whether to include credit balance availability for each resolved customer. When
    * true, each result entry includes `has_available_credits`.
@@ -54,15 +49,14 @@ model GovernanceQueryFilters {
    */
   @summary("Include credits")
   include_credits?: boolean = false;
-}
 
-/**
- * Query to evaluate feature access for a list of customers.
- */
-@friendlyName("GovernanceQueryRequest")
-model GovernanceQueryRequest {
   #suppress "@openmeter/api-spec-aip/doc-decorator" "-"
-  filters: GovernanceQueryFilters;
+  @summary("Customer")
+  customer: GovernanceQueryRequestCustomers;
+
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "-"
+  @summary("Feature")
+  feature?: GovernanceQueryRequestFeatures;
 }
 
 /**
@@ -116,15 +110,6 @@ model GovernanceQueryResult {
   @visibility(Lifecycle.Read)
   @summary("Customer")
   customer: Customers.Customer;
-
-  /**
-   * Whether the customer has any available prepaid credit balance.
-   *
-   * Only populated when the request was made with `include_credits=true`.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Has available credits")
-  has_available_credits?: boolean;
 
   /**
    * Map of features with their access status.

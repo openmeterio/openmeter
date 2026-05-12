@@ -1564,6 +1564,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GovernanceQueryRequest'
+      x-private: true
       x-internal: true
       x-unstable: true
   /openmeter/llm-cost/overrides:
@@ -7792,24 +7793,6 @@ components:
         - feature_not_found
         - no_credit_available
       description: Machine-readable reason code for denied feature access.
-    GovernanceQueryCustomersFilter:
-      type: object
-      required:
-        - keys
-      properties:
-        keys:
-          type: array
-          items:
-            type: string
-          minItems: 1
-          maxItems: 50
-          description: |-
-            Each entry can be a customer `key` or a usage-attribution subject `key`.
-            Identifiers that cannot be resolved to a customer are reported in the response
-            `errors` array.
-          title: Customer keys and usage-attribution subjects
-      additionalProperties: false
-      description: List of customer identifiers to evaluate access for.
     GovernanceQueryError:
       type: object
       required:
@@ -7846,33 +7829,11 @@ components:
         - unknown
         - customer_not_found
       description: Error code for a governance query failure.
-    GovernanceQueryFeaturesFilter:
+    GovernanceQueryRequest:
       type: object
       required:
-        - keys
+        - customer
       properties:
-        keys:
-          type: array
-          items:
-            type: string
-          minItems: 1
-          maxItems: 50
-          description: List of feature keys to evaluate access for.
-          title: Feature Keys
-      additionalProperties: false
-      description: |-
-        Optional list of feature keys to evaluate access for. If omitted, all features
-        available in the organization are returned. Providing this list is recommended
-        to reduce the response size and the load on the backend services.
-    GovernanceQueryFilters:
-      type: object
-      required:
-        - customers
-      properties:
-        customers:
-          $ref: '#/components/schemas/GovernanceQueryCustomersFilter'
-        features:
-          $ref: '#/components/schemas/GovernanceQueryFeaturesFilter'
         include_credits:
           type: boolean
           description: |-
@@ -7882,17 +7843,52 @@ components:
             Defaults to `false`.
           title: Include credits
           default: false
-      additionalProperties: false
-      description: Filters to apply to the governance query.
-    GovernanceQueryRequest:
-      type: object
-      required:
-        - filters
-      properties:
-        filters:
-          $ref: '#/components/schemas/GovernanceQueryFilters'
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/GovernanceQueryRequestCustomers'
+          title: Customer
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/GovernanceQueryRequestFeatures'
+          title: Feature
       additionalProperties: false
       description: Query to evaluate feature access for a list of customers.
+    GovernanceQueryRequestCustomers:
+      type: object
+      required:
+        - keys
+      properties:
+        keys:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 100
+          description: |-
+            Each entry can be a customer `key` or a usage-attribution subject `key`.
+            Identifiers that cannot be resolved to a customer are reported in the response
+            `errors` array.
+          title: Customer keys and usage-attribution subjects
+      additionalProperties: false
+      description: List of customer identifiers to evaluate access for.
+    GovernanceQueryRequestFeatures:
+      type: object
+      required:
+        - keys
+      properties:
+        keys:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 100
+          description: List of feature keys to evaluate access for.
+          title: Feature Keys
+      additionalProperties: false
+      description: |-
+        Optional list of feature keys to evaluate access for. If omitted, all features
+        available in the organization are returned. Providing this list is recommended
+        to reduce the response size and the load on the backend services.
     GovernanceQueryResponse:
       type: object
       required:
@@ -7950,14 +7946,6 @@ components:
             - $ref: '#/components/schemas/BillingCustomer'
           description: The customer the matched identifiers resolved to.
           title: Customer
-          readOnly: true
-        has_available_credits:
-          type: boolean
-          description: |-
-            Whether the customer has any available prepaid credit balance.
-
-            Only populated when the request was made with `include_credits=true`.
-          title: Has available credits
           readOnly: true
         features:
           type: object

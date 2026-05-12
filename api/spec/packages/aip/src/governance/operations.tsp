@@ -24,6 +24,7 @@ interface GovernanceOperations {
    */
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
   @post
   @route("/query")
   @operationId("query-governance-access")
