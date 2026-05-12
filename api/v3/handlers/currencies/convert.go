@@ -20,7 +20,7 @@ func FromAPICurrencyCodeFilter(f *filters.FilterStringExact) ([]string, error) {
 		return nil, nil
 	}
 	if f.Neq != nil {
-		return nil, errors.New("only eq and oeq operators are supported for currency code")
+		return nil, models.NewNillableGenericValidationError(errors.New("only eq and oeq operators are supported for currency code"))
 	}
 
 	var codes []string
