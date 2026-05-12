@@ -46,10 +46,10 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 
 		advancedCharges := make(charges.Charges, 0, len(chargesByType.usageBased)+len(chargesByType.flatFees))
 
-	for _, charge := range chargesByType.flatFees {
-		advancedCharge, err := s.flatFeeService.AdvanceCharge(ctx, flatfee.AdvanceChargeInput{
-			ChargeID: charge.GetChargeID(),
-		})
+		for _, charge := range chargesByType.flatFees {
+			advancedCharge, err := s.flatFeeService.AdvanceCharge(ctx, flatfee.AdvanceChargeInput{
+				ChargeID: charge.GetChargeID(),
+			})
 			if err != nil {
 				return nil, fmt.Errorf("advance flat fee charge %s: %w", charge.ID, err)
 			}
