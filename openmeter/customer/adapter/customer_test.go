@@ -13,6 +13,7 @@ import (
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	appcustominvoicingcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
@@ -22,11 +23,13 @@ import (
 )
 
 type fixture struct {
-	customerID          string
-	subjectKeys         []string
-	appID               string
-	appCustomerRowID    int
-	appStripeCustomerID int
+	customerID                      string
+	subjectKeys                     []string
+	appID                           string
+	appCustomerRowID                int
+	appStripeCustomerID             int
+	customInvoicingAppID            string
+	appCustomInvoicingCustomerRowID int
 }
 
 type testEnv struct {
@@ -62,8 +65,9 @@ func newTestEnv(t *testing.T) *testEnv {
 }
 
 // seed creates a Customer in the given namespace plus a full cascade chain:
-// 2 CustomerSubjects, an App, an AppStripe (sharing the same id as App),
-// 1 AppCustomer, and 1 AppStripeCustomer — all with deleted_at = NULL.
+// 2 CustomerSubjects, an App (Stripe), an AppStripe, 1 AppCustomer,
+// 1 AppStripeCustomer, an App (CustomInvoicing), an AppCustomInvoicing, and
+// 1 AppCustomInvoicingCustomer — all with deleted_at = NULL.
 func (e *testEnv) seed(namespace string) fixture {
 	e.t.Helper()
 	ctx := e.t.Context()
@@ -122,12 +126,35 @@ func (e *testEnv) seed(namespace string) fixture {
 		Save(ctx)
 	require.NoError(e.t, err, "seeding app stripe customer must not fail")
 
+	ciAppRow, err := e.db.App.Create().
+		SetNamespace(namespace).
+		SetName("custom-invoicing").
+		SetType(app.AppTypeCustomInvoicing).
+		SetStatus(app.AppStatusReady).
+		Save(ctx)
+	require.NoError(e.t, err, "seeding custom invoicing app must not fail")
+
+	_, err = e.db.AppCustomInvoicing.Create().
+		SetID(ciAppRow.ID).
+		SetNamespace(namespace).
+		Save(ctx)
+	require.NoError(e.t, err, "seeding app custom invoicing must not fail")
+
+	ciCust, err := e.db.AppCustomInvoicingCustomer.Create().
+		SetNamespace(namespace).
+		SetAppID(ciAppRow.ID).
+		SetCustomerID(cust.ID).
+		Save(ctx)
+	require.NoError(e.t, err, "seeding app custom invoicing customer must not fail")
+
 	return fixture{
-		customerID:          cust.ID,
-		subjectKeys:         subjectKeys,
-		appID:               appRow.ID,
-		appCustomerRowID:    appCust.ID,
-		appStripeCustomerID: appStripeCust.ID,
+		customerID:                      cust.ID,
+		subjectKeys:                     subjectKeys,
+		appID:                           appRow.ID,
+		appCustomerRowID:                appCust.ID,
+		appStripeCustomerID:             appStripeCust.ID,
+		customInvoicingAppID:            ciAppRow.ID,
+		appCustomInvoicingCustomerRowID: ciCust.ID,
 	}
 }
 
@@ -160,6 +187,7 @@ func TestDeleteCustomer(t *testing.T) {
 		assertSubjectsDeletedAt(t, env.db, ns, fix.customerID, fix.subjectKeys, now)
 		assertAppCustomerDeletedAt(t, env.db, ns, fix.customerID, now)
 		assertAppStripeCustomerDeletedAt(t, env.db, ns, fix.customerID, now)
+		assertAppCustomInvoicingCustomerDeletedAt(t, env.db, ns, fix.customerID, now)
 	})
 
 	t.Run("NoChildren", func(t *testing.T) {
@@ -260,6 +288,9 @@ func TestDeleteCustomer(t *testing.T) {
 
 		// app_stripe_customer: was active, must be deleted at t1.
 		assertAppStripeCustomerDeletedAt(t, env.db, ns, fix.customerID, t1)
+
+		// app_custom_invoicing_customer: was active, must be deleted at t1.
+		assertAppCustomInvoicingCustomerDeletedAt(t, env.db, ns, fix.customerID, t1)
 	})
 
 	t.Run("NotFound", func(t *testing.T) {
@@ -316,12 +347,14 @@ func TestDeleteCustomer(t *testing.T) {
 		assertSubjectsDeletedAt(t, env.db, nsA, fixA.customerID, fixA.subjectKeys, now)
 		assertAppCustomerDeletedAt(t, env.db, nsA, fixA.customerID, now)
 		assertAppStripeCustomerDeletedAt(t, env.db, nsA, fixA.customerID, now)
+		assertAppCustomInvoicingCustomerDeletedAt(t, env.db, nsA, fixA.customerID, now)
 
 		// nsB: completely untouched.
 		assertCustomerActive(t, env.db, nsB, fixB.customerID)
 		assertSubjectsActive(t, env.db, nsB, fixB.customerID, fixB.subjectKeys)
 		assertAppCustomerActive(t, env.db, nsB, fixB.customerID)
 		assertAppStripeCustomerActive(t, env.db, nsB, fixB.customerID)
+		assertAppCustomInvoicingCustomerActive(t, env.db, nsB, fixB.customerID)
 	})
 }
 
@@ -440,5 +473,37 @@ func assertAppStripeCustomerActive(t *testing.T, db *entdb.Client, ns, customerI
 	require.NotEmpty(t, rows, "expected at least one app_stripe_customer row")
 	for _, r := range rows {
 		assert.Nilf(t, r.DeletedAt, "app_stripe_customer %d must remain active", r.ID)
+	}
+}
+
+func assertAppCustomInvoicingCustomerDeletedAt(t *testing.T, db *entdb.Client, ns, customerID string, want time.Time) {
+	t.Helper()
+	rows, err := db.AppCustomInvoicingCustomer.Query().
+		Where(
+			appcustominvoicingcustomerdb.Namespace(ns),
+			appcustominvoicingcustomerdb.CustomerID(customerID),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+	require.NotEmpty(t, rows, "expected at least one app_custom_invoicing_customer row")
+	for _, r := range rows {
+		require.NotNilf(t, r.DeletedAt, "app_custom_invoicing_customer %d deleted_at must be set", r.ID)
+		assert.Truef(t, r.DeletedAt.Equal(want),
+			"app_custom_invoicing_customer %d deleted_at: want %s, got %s", r.ID, want, r.DeletedAt)
+	}
+}
+
+func assertAppCustomInvoicingCustomerActive(t *testing.T, db *entdb.Client, ns, customerID string) {
+	t.Helper()
+	rows, err := db.AppCustomInvoicingCustomer.Query().
+		Where(
+			appcustominvoicingcustomerdb.Namespace(ns),
+			appcustominvoicingcustomerdb.CustomerID(customerID),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+	require.NotEmpty(t, rows, "expected at least one app_custom_invoicing_customer row")
+	for _, r := range rows {
+		assert.Nilf(t, r.DeletedAt, "app_custom_invoicing_customer %d must remain active", r.ID)
 	}
 }
