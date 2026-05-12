@@ -167,32 +167,42 @@ func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input bi
 			continue
 		}
 
-		if charge.Realizations.CurrentRun != nil && charge.Realizations.CurrentRun.AccruedUsage != nil {
-			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because charge[%s] has invoice accrued allocation", stdLine.ID, charge.ID)
-		}
-
-		if charge.Realizations.CurrentRun != nil && charge.Realizations.CurrentRun.Payment != nil {
-			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because charge[%s] has payment allocation", stdLine.ID, charge.ID)
-		}
-
-		currencyCalculator, err := charge.Intent.Currency.Calculator()
-		if err != nil {
-			return fmt.Errorf("getting currency calculator for charge[%s]: %w", charge.ID, err)
-		}
-
-		if _, err := e.service.realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
-			Charge:             charge,
-			AllocateAt:         clock.Now(),
-			CurrencyCalculator: currencyCalculator,
-		}); err != nil {
-			return fmt.Errorf("correcting credits for deleted flat fee standard line[%s] charge[%s]: %w", stdLine.ID, charge.ID, err)
-		}
-
-		if err := e.service.adapter.UpsertDetailedLines(ctx, charge.GetChargeID(), nil); err != nil {
-			return fmt.Errorf("deleting detailed lines for deleted flat fee standard line[%s] charge[%s]: %w", stdLine.ID, charge.ID, err)
+		// Guards and cleanup are per charge, not per line; cleanedChargeIDs dedupes repeated lines.
+		if err := e.cleanChargeForDeletedMutableStandardLine(ctx, *stdLine, charge); err != nil {
+			return err
 		}
 
 		cleanedChargeIDs[charge.ID] = struct{}{}
+	}
+
+	return nil
+}
+
+func (e *LineEngine) cleanChargeForDeletedMutableStandardLine(ctx context.Context, stdLine billing.StandardLine, charge flatfee.Charge) error {
+	if charge.Realizations.CurrentRun != nil && charge.Realizations.CurrentRun.AccruedUsage != nil {
+		return fmt.Errorf("flat fee standard line[%s] cannot be deleted because charge[%s] has invoice accrued allocation", stdLine.ID, charge.ID)
+	}
+
+	if charge.Realizations.CurrentRun != nil && charge.Realizations.CurrentRun.Payment != nil {
+		return fmt.Errorf("flat fee standard line[%s] cannot be deleted because charge[%s] has payment allocation", stdLine.ID, charge.ID)
+	}
+
+	currencyCalculator, err := charge.Intent.Currency.Calculator()
+	if err != nil {
+		return fmt.Errorf("getting currency calculator for charge[%s]: %w", charge.ID, err)
+	}
+
+	if _, err := e.service.realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
+		Charge:             charge,
+		AllocateAt:         clock.Now(),
+		CurrencyCalculator: currencyCalculator,
+	}); err != nil {
+		return fmt.Errorf("correcting credits for deleted flat fee standard line[%s] charge[%s]: %w", stdLine.ID, charge.ID, err)
+	}
+
+	// Passing nil deletes all charge-owned detailed lines for the current run.
+	if err := e.service.adapter.UpsertDetailedLines(ctx, charge.GetChargeID(), nil); err != nil {
+		return fmt.Errorf("deleting detailed lines for deleted flat fee standard line[%s] charge[%s]: %w", stdLine.ID, charge.ID, err)
 	}
 
 	return nil
@@ -244,7 +254,7 @@ func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine
 
 	creditThenInvoiceStateMachine, ok := stateMachine.(*CreditThenInvoiceStateMachine)
 	if !ok {
-		return nil, fmt.Errorf("flat fee charge[%s]: expected credit_then_invoice state machine, got %T", charge.ID, stateMachine)
+		return nil, fmt.Errorf("BUG: flat fee charge[%s]: expected credit_then_invoice state machine, got %T", charge.ID, stateMachine)
 	}
 
 	return creditThenInvoiceStateMachine, nil

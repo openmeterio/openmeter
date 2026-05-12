@@ -124,6 +124,8 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 	return nil
 }
 
+// StartRealization mutates input.Line.CreditsApplied after allocating credits.
+// The line engine relies on that in-place update when persisting detailed lines.
 func (s *CreditThenInvoiceStateMachine) StartRealization(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
 	if err := input.Validate(); err != nil {
 		return err
@@ -180,6 +182,7 @@ func (s *CreditThenInvoiceStateMachine) AccrueInvoiceUsage(ctx context.Context, 
 
 	s.Charge.Realizations.CurrentRun.AccruedUsage = accruedUsage
 
+	// The state machine persists this clear through StatusFinal's ClearAdvanceAfter hook.
 	s.Charge.State.AdvanceAfter = nil
 
 	return nil
@@ -187,7 +190,7 @@ func (s *CreditThenInvoiceStateMachine) AccrueInvoiceUsage(ctx context.Context, 
 
 func (s *CreditThenInvoiceStateMachine) AreAllPaymentsSettled() bool {
 	if s.Charge.Realizations.CurrentRun == nil {
-		return true
+		return false
 	}
 
 	if s.Charge.Realizations.CurrentRun.AccruedUsage == nil {

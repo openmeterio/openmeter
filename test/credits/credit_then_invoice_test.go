@@ -958,7 +958,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 		CostBasis: mo.Some(&zeroCostBasis),
 	}
 
-	t.Run("given a partially credited flat fee charge", func(t *testing.T) {
+	s.Run("given a partially credited flat fee charge", func() {
 		// given:
 		// - a ledger-backed customer receives 2 USD promotional credits
 		// when:
@@ -1004,7 +1004,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "aggregate authorized receivable should be empty before invoicing")
 	})
 
-	t.Run("when the pending line is collected into a mutable draft invoice", func(t *testing.T) {
+	s.Run("when the pending line is collected into a mutable draft invoice", func() {
 		// given:
 		// - the flat fee has 2 USD available credits and 3 USD remaining fiat amount
 		// when:
@@ -1040,7 +1040,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "draft line should not create authorized receivable")
 	})
 
-	t.Run("when the charge delete patch removes the mutable standard line", func(t *testing.T) {
+	s.Run("when the charge delete patch removes the mutable standard line", func() {
 		// given:
 		// - the standard invoice is still mutable and has only draft credit allocations
 		// when:
@@ -1078,7 +1078,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 		s.Empty(deletedCharge.Realizations.CurrentRun.DetailedLines.OrEmpty())
 	})
 
-	t.Run("then deleting the mutable line restores the initial ledger state", func(t *testing.T) {
+	s.Run("then deleting the mutable line restores the initial ledger state", func() {
 		// given:
 		// - the mutable line has been deleted by billing's line engine
 		// when:
@@ -1297,7 +1297,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		CostBasis: mo.Some(&zeroCostBasis),
 	}
 
-	t.Run("given a partially credited flat fee charge", func(t *testing.T) {
+	s.Run("given a partially credited flat fee charge", func() {
 		// given:
 		// - a ledger-backed customer receives 2 USD promotional credits
 		// when:
@@ -1346,7 +1346,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "aggregate authorized receivable should be empty before invoicing")
 	})
 
-	t.Run("when the line is collected into a draft invoice", func(t *testing.T) {
+	s.Run("when the line is collected into a draft invoice", func() {
 		// given:
 		// - the charge has a pending gathering line at service period start
 		// when:
@@ -1398,7 +1398,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "draft line should book credited portion to zero-cost-basis wash")
 	})
 
-	t.Run("when the invoice is approved", func(t *testing.T) {
+	s.Run("when the invoice is approved", func() {
 		// given:
 		// - the draft standard invoice has a 3 USD fiat total after credits
 		// when:
@@ -1440,7 +1440,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "approval should keep only credited portion in zero-cost-basis wash")
 	})
 
-	t.Run("when payment is authorized but not settled", func(t *testing.T) {
+	s.Run("when payment is authorized but not settled", func() {
 		// given:
 		// - the invoice is payment-processing pending
 		// when:
@@ -1467,7 +1467,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "authorized payment should keep zero-cost-basis wash unchanged")
 	})
 
-	t.Run("when payment is settled", func(t *testing.T) {
+	s.Run("when payment is settled", func() {
 		// given:
 		// - the invoice payment is authorized
 		// when:
@@ -1533,7 +1533,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDirectPaidTrigg
 		invoice         billing.StandardInvoice
 	)
 
-	t.Run("given an unpaid credit-then-invoice flat fee invoice", func(t *testing.T) {
+	s.Run("given an unpaid credit-then-invoice flat fee invoice", func() {
 		// given:
 		// - a ledger-backed customer has no credits
 		// when:
@@ -1583,7 +1583,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDirectPaidTrigg
 		s.AssertDecimalEqual(startLedger.Wash, s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "payment should not be settled yet")
 	})
 
-	t.Run("when the payment app reports paid directly", func(t *testing.T) {
+	s.Run("when the payment app reports paid directly", func() {
 		// given:
 		// - the invoice is payment-processing pending and payment has not been separately authorized
 		// when:
@@ -1649,7 +1649,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteImmutable
 		immutableLedger LedgerSnapshot
 	)
 
-	t.Run("given an immutable invoice with accrued usage and authorized payment", func(t *testing.T) {
+	s.Run("given an immutable invoice with accrued usage and authorized payment", func() {
 		// given:
 		// - a ledger-backed customer has no credits
 		// when:
@@ -1714,7 +1714,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteImmutable
 		s.Equal(payment.StatusAuthorized, charge.Realizations.CurrentRun.Payment.Status)
 	})
 
-	t.Run("when the charge delete patch targets the immutable standard line", func(t *testing.T) {
+	s.Run("when the charge delete patch targets the immutable standard line", func() {
 		// given:
 		// - the invoice line is immutable and payment authorization is booked
 		// when:
@@ -1747,7 +1747,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteImmutable
 		s.Equal(payment.StatusAuthorized, deletedCharge.Realizations.CurrentRun.Payment.Status)
 	})
 
-	t.Run("then immutable invoice delete keeps ledger bookings unchanged", func(t *testing.T) {
+	s.Run("then immutable invoice delete keeps ledger bookings unchanged", func() {
 		// given:
 		// - the delete request only produced an immutable invoice warning
 		// when:
@@ -1790,7 +1790,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActiva
 
 	var flatFeeChargeID meta.ChargeID
 
-	t.Run("given an in-arrears flat fee charge", func(t *testing.T) {
+	s.Run("given an in-arrears flat fee charge", func() {
 		// given:
 		// - a future service period flat fee uses in-arrears payment term
 		// when:
@@ -1828,7 +1828,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActiva
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 	})
 
-	t.Run("when charges advance before the service period starts", func(t *testing.T) {
+	s.Run("when charges advance before the service period starts", func() {
 		// given:
 		// - the service period has not started
 		// when:
@@ -1845,7 +1845,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActiva
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 	})
 
-	t.Run("when the service period starts", func(t *testing.T) {
+	s.Run("when the service period starts", func() {
 		// given:
 		// - the clock is at service period start
 		// when:
@@ -1862,7 +1862,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActiva
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 	})
 
-	t.Run("when billing tries to invoice at service period start", func(t *testing.T) {
+	s.Run("when billing tries to invoice at service period start", func() {
 		// given:
 		// - the in-arrears line is not due until service period end
 		// when:
@@ -1878,7 +1878,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActiva
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 	})
 
-	t.Run("when billing invoices at invoice_at", func(t *testing.T) {
+	s.Run("when billing invoices at invoice_at", func() {
 		// given:
 		// - the clock is at service period end
 		// when:
@@ -1934,7 +1934,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteActiveCha
 
 	var flatFeeChargeID meta.ChargeID
 
-	t.Run("given an active flat fee charge before standard invoice creation", func(t *testing.T) {
+	s.Run("given an active flat fee charge before standard invoice creation", func() {
 		// given:
 		// - an in-arrears flat fee has a pending gathering line
 		// when:
@@ -1975,7 +1975,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteActiveCha
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 	})
 
-	t.Run("when the active charge is deleted before standard invoice creation", func(t *testing.T) {
+	s.Run("when the active charge is deleted before standard invoice creation", func() {
 		// given:
 		// - the only billing artifact is still the gathering line
 		// when:
@@ -1989,6 +1989,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteActiveCha
 
 		allLines := s.mustGatheringLinesForCharge(ns, cust.ID, flatFeeChargeID.ID, true)
 		s.Len(allLines, 1)
+		s.Equal(flatFeeChargeID.ID, lo.FromPtr(allLines[0].ChargeID))
 		s.NotNil(allLines[0].DeletedAt)
 		s.RequireChargeStatus(flatFeeChargeID, flatfee.StatusDeleted)
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
