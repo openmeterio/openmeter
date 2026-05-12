@@ -1394,6 +1394,8 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()), "draft line should not accrue the fiat remainder")
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "draft line should not create open receivable")
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "draft line should not create authorized receivable")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "draft line should book credited portion to wash")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "draft line should book credited portion to zero-cost-basis wash")
 	})
 
 	t.Run("when the invoice is approved", func(t *testing.T) {
@@ -1434,7 +1436,8 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()), "approved invoice should accrue full line amount")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-3), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "approved invoice should create open receivable for fiat remainder")
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "payment should not be authorized yet")
-		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "payment should not be settled yet")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "approval should not settle the fiat remainder")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "approval should keep only credited portion in zero-cost-basis wash")
 	})
 
 	t.Run("when payment is authorized but not settled", func(t *testing.T) {
@@ -1460,7 +1463,8 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()), "authorized payment should keep accrued amount")
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "authorized payment should clear open receivable")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-3), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "authorized payment should move fiat remainder to authorized receivable")
-		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "authorized payment should not settle to wash")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "authorized payment should not settle the fiat remainder")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "authorized payment should keep zero-cost-basis wash unchanged")
 	})
 
 	t.Run("when payment is settled", func(t *testing.T) {
@@ -1489,7 +1493,8 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()), "settled payment should keep accrued amount")
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "settled payment should keep open receivable cleared")
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "settled payment should clear authorized receivable")
-		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-3), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "settled payment should book fiat remainder to wash")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-5), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "settled payment should book fiat remainder to wash in addition to credits")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "settled payment should leave zero-cost-basis wash at credited portion only")
 		s.AssertDecimalEqual(startLedger.Earnings, s.MustEarningsBalance(ns, USD), "settled payment should not change earnings")
 	})
 }
