@@ -48,8 +48,8 @@ const (
 	EdgeBillingStandardInvoiceDetailedLines = "billing_standard_invoice_detailed_lines"
 	// EdgeChargeUsageBasedRunDetailedLines holds the string denoting the charge_usage_based_run_detailed_lines edge name in mutations.
 	EdgeChargeUsageBasedRunDetailedLines = "charge_usage_based_run_detailed_lines"
-	// EdgeChargeFlatFeeDetailedLines holds the string denoting the charge_flat_fee_detailed_lines edge name in mutations.
-	EdgeChargeFlatFeeDetailedLines = "charge_flat_fee_detailed_lines"
+	// EdgeChargeFlatFeeRunDetailedLines holds the string denoting the charge_flat_fee_run_detailed_lines edge name in mutations.
+	EdgeChargeFlatFeeRunDetailedLines = "charge_flat_fee_run_detailed_lines"
 	// EdgeSubscriptionItems holds the string denoting the subscription_items edge name in mutations.
 	EdgeSubscriptionItems = "subscription_items"
 	// EdgePlanRateCards holds the string denoting the plan_rate_cards edge name in mutations.
@@ -110,13 +110,13 @@ const (
 	ChargeUsageBasedRunDetailedLinesInverseTable = "charge_usage_based_run_detailed_line"
 	// ChargeUsageBasedRunDetailedLinesColumn is the table column denoting the charge_usage_based_run_detailed_lines relation/edge.
 	ChargeUsageBasedRunDetailedLinesColumn = "tax_code_id"
-	// ChargeFlatFeeDetailedLinesTable is the table that holds the charge_flat_fee_detailed_lines relation/edge.
-	ChargeFlatFeeDetailedLinesTable = "charge_flat_fee_detailed_line"
-	// ChargeFlatFeeDetailedLinesInverseTable is the table name for the ChargeFlatFeeDetailedLine entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeflatfeedetailedline" package.
-	ChargeFlatFeeDetailedLinesInverseTable = "charge_flat_fee_detailed_line"
-	// ChargeFlatFeeDetailedLinesColumn is the table column denoting the charge_flat_fee_detailed_lines relation/edge.
-	ChargeFlatFeeDetailedLinesColumn = "tax_code_id"
+	// ChargeFlatFeeRunDetailedLinesTable is the table that holds the charge_flat_fee_run_detailed_lines relation/edge.
+	ChargeFlatFeeRunDetailedLinesTable = "charge_flat_fee_run_detailed_lines"
+	// ChargeFlatFeeRunDetailedLinesInverseTable is the table name for the ChargeFlatFeeRunDetailedLine entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeerundetailedline" package.
+	ChargeFlatFeeRunDetailedLinesInverseTable = "charge_flat_fee_run_detailed_lines"
+	// ChargeFlatFeeRunDetailedLinesColumn is the table column denoting the charge_flat_fee_run_detailed_lines relation/edge.
+	ChargeFlatFeeRunDetailedLinesColumn = "tax_code_id"
 	// SubscriptionItemsTable is the table that holds the subscription_items relation/edge.
 	SubscriptionItemsTable = "subscription_items"
 	// SubscriptionItemsInverseTable is the table name for the SubscriptionItem entity.
@@ -351,17 +351,17 @@ func ByChargeUsageBasedRunDetailedLines(term sql.OrderTerm, terms ...sql.OrderTe
 	}
 }
 
-// ByChargeFlatFeeDetailedLinesCount orders the results by charge_flat_fee_detailed_lines count.
-func ByChargeFlatFeeDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
+// ByChargeFlatFeeRunDetailedLinesCount orders the results by charge_flat_fee_run_detailed_lines count.
+func ByChargeFlatFeeRunDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newChargeFlatFeeDetailedLinesStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newChargeFlatFeeRunDetailedLinesStep(), opts...)
 	}
 }
 
-// ByChargeFlatFeeDetailedLines orders the results by charge_flat_fee_detailed_lines terms.
-func ByChargeFlatFeeDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByChargeFlatFeeRunDetailedLines orders the results by charge_flat_fee_run_detailed_lines terms.
+func ByChargeFlatFeeRunDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeFlatFeeDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newChargeFlatFeeRunDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -518,11 +518,11 @@ func newChargeUsageBasedRunDetailedLinesStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, ChargeUsageBasedRunDetailedLinesTable, ChargeUsageBasedRunDetailedLinesColumn),
 	)
 }
-func newChargeFlatFeeDetailedLinesStep() *sqlgraph.Step {
+func newChargeFlatFeeRunDetailedLinesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeFlatFeeDetailedLinesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeDetailedLinesTable, ChargeFlatFeeDetailedLinesColumn),
+		sqlgraph.To(ChargeFlatFeeRunDetailedLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeRunDetailedLinesTable, ChargeFlatFeeRunDetailedLinesColumn),
 	)
 }
 func newSubscriptionItemsStep() *sqlgraph.Step {

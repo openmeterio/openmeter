@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	dbchargeflatfeedetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
+	dbchargeflatfeerundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -22,11 +22,16 @@ var _ flatfee.ChargeDetailedLineAdapter = (*adapter)(nil)
 
 func (a *adapter) FetchDetailedLines(ctx context.Context, charge flatfee.Charge) (flatfee.Charge, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.Charge, error) {
-		dbLines, err := tx.db.ChargeFlatFeeDetailedLine.Query().
+		run, err := queryCurrentRunByChargeID(tx.db, charge.GetChargeID()).Only(ctx)
+		if err != nil {
+			return flatfee.Charge{}, err
+		}
+
+		dbLines, err := tx.db.ChargeFlatFeeRunDetailedLine.Query().
 			Where(
-				dbchargeflatfeedetailedline.NamespaceEQ(charge.Namespace),
-				dbchargeflatfeedetailedline.ChargeIDEQ(charge.ID),
-				dbchargeflatfeedetailedline.DeletedAtIsNil(),
+				dbchargeflatfeerundetailedline.NamespaceEQ(charge.Namespace),
+				dbchargeflatfeerundetailedline.RunIDEQ(run.ID),
+				dbchargeflatfeerundetailedline.DeletedAtIsNil(),
 			).
 			WithTaxCode().
 			All(ctx)
@@ -36,7 +41,7 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge flatfee.Charge)
 
 		lines := make(flatfee.DetailedLines, 0, len(dbLines))
 		for _, dbLine := range dbLines {
-			line, err := mapDetailedLineFromDB(dbLine)
+			line, err := mapRunDetailedLineFromDB(dbLine)
 			if err != nil {
 				return flatfee.Charge{}, err
 			}
@@ -61,14 +66,19 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		createBuilders := make([]*entdb.ChargeFlatFeeDetailedLineCreate, 0, len(lines))
+		run, err := tx.currentRunByChargeID(ctx, chargeID)
+		if err != nil {
+			return err
+		}
+
+		createBuilders := make([]*entdb.ChargeFlatFeeRunDetailedLineCreate, 0, len(lines))
 
 		for _, line := range lines {
 			lineToPersist := line.Clone()
 			lineToPersist.Namespace = chargeID.Namespace
 			lineToPersist.DeletedAt = nil
 
-			create, err := buildDetailedLineCreate(tx.db, chargeID, lineToPersist)
+			create, err := buildDetailedLineCreate(tx.db, chargeID, run.ID, lineToPersist)
 			if err != nil {
 				return err
 			}
@@ -77,11 +87,11 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 		}
 
 		now := clock.Now().In(time.UTC)
-		deleteQuery := tx.db.ChargeFlatFeeDetailedLine.Update().
+		deleteQuery := tx.db.ChargeFlatFeeRunDetailedLine.Update().
 			Where(
-				dbchargeflatfeedetailedline.NamespaceEQ(chargeID.Namespace),
-				dbchargeflatfeedetailedline.ChargeIDEQ(chargeID.ID),
-				dbchargeflatfeedetailedline.DeletedAtIsNil(),
+				dbchargeflatfeerundetailedline.NamespaceEQ(chargeID.Namespace),
+				dbchargeflatfeerundetailedline.RunIDEQ(run.ID),
+				dbchargeflatfeerundetailedline.DeletedAtIsNil(),
 			).
 			SetDeletedAt(now)
 
@@ -90,7 +100,7 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 		})
 		if len(childRefsToKeep) > 0 {
 			deleteQuery = deleteQuery.Where(
-				dbchargeflatfeedetailedline.ChildUniqueReferenceIDNotIn(childRefsToKeep...),
+				dbchargeflatfeerundetailedline.ChildUniqueReferenceIDNotIn(childRefsToKeep...),
 			)
 		}
 
@@ -102,18 +112,18 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 			return nil
 		}
 
-		return tx.db.ChargeFlatFeeDetailedLine.CreateBulk(createBuilders...).
+		return tx.db.ChargeFlatFeeRunDetailedLine.CreateBulk(createBuilders...).
 			OnConflict(
 				sql.ConflictColumns(
-					dbchargeflatfeedetailedline.FieldNamespace,
-					dbchargeflatfeedetailedline.FieldChargeID,
-					dbchargeflatfeedetailedline.FieldChildUniqueReferenceID,
+					dbchargeflatfeerundetailedline.FieldNamespace,
+					dbchargeflatfeerundetailedline.FieldRunID,
+					dbchargeflatfeerundetailedline.FieldChildUniqueReferenceID,
 				),
-				sql.ConflictWhere(sql.IsNull(dbchargeflatfeedetailedline.FieldDeletedAt)),
+				sql.ConflictWhere(sql.IsNull(dbchargeflatfeerundetailedline.FieldDeletedAt)),
 				sql.ResolveWithNewValues(),
 				sql.ResolveWith(func(u *sql.UpdateSet) {
-					u.SetIgnore(dbchargeflatfeedetailedline.FieldCreatedAt)
-					u.SetIgnore(dbchargeflatfeedetailedline.FieldID)
+					u.SetIgnore(dbchargeflatfeerundetailedline.FieldCreatedAt)
+					u.SetIgnore(dbchargeflatfeerundetailedline.FieldID)
 				}),
 			).
 			UpdateDescription().
@@ -132,15 +142,15 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 	})
 }
 
-func buildDetailedLineCreate(db *entdb.Client, chargeID meta.ChargeID, line flatfee.DetailedLine) (*entdb.ChargeFlatFeeDetailedLineCreate, error) {
+func buildDetailedLineCreate(db *entdb.Client, chargeID meta.ChargeID, runID string, line flatfee.DetailedLine) (*entdb.ChargeFlatFeeRunDetailedLineCreate, error) {
 	if line.ID == "" {
 		line.ID = ulid.Make().String()
 	}
 
-	create := db.ChargeFlatFeeDetailedLine.Create().
+	create := db.ChargeFlatFeeRunDetailedLine.Create().
 		SetID(line.ID).
 		SetNamespace(chargeID.Namespace).
-		SetChargeID(chargeID.ID).
+		SetRunID(runID).
 		SetPricerReferenceID(line.ChildUniqueReferenceID)
 
 	create = stddetailedline.Create(create, line)

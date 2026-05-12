@@ -4,7 +4,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
-	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -16,7 +15,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 type ChargeFlatFee struct {
@@ -75,6 +76,13 @@ func (ChargeFlatFee) Fields() []ent.Field {
 				dialect.Postgres: "numeric",
 			}),
 
+		field.String("current_realization_run_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable(),
+
 		field.Enum("status_detailed").
 			GoType(flatfee.Status("")),
 	}
@@ -82,17 +90,22 @@ func (ChargeFlatFee) Fields() []ent.Field {
 
 func (ChargeFlatFee) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("credit_allocations", ChargeFlatFeeCreditAllocations.Type).
+		edge.To("credit_allocations", ChargeFlatFeeRunCreditAllocations.Type).
 			StorageKey(edge.Symbol("charge_ff_credit_alloc_flat_fee")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("detailed_lines", ChargeFlatFeeDetailedLine.Type).
+		edge.To("detailed_lines", ChargeFlatFeeRunDetailedLine.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("invoiced_usage", ChargeFlatFeeInvoicedUsage.Type).
+		edge.To("invoiced_usage", ChargeFlatFeeRunInvoicedUsage.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("payment", ChargeFlatFeePayment.Type).
+		edge.To("payment", ChargeFlatFeeRunPayment.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("runs", ChargeFlatFeeRun.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("current_run", ChargeFlatFeeRun.Type).
+			Field("current_realization_run_id").
+			Unique(),
 		edge.To("charge", Charge.Type).
 			Unique().
 			Immutable().
@@ -137,74 +150,163 @@ func (ChargeFlatFee) Indexes() []ent.Index {
 	}
 }
 
-type ChargeFlatFeeDetailedLine struct {
+type ChargeFlatFeeRun struct {
 	ent.Schema
 }
 
-func (ChargeFlatFeeDetailedLine) Mixin() []ent.Mixin {
+func (ChargeFlatFeeRun) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+		entutils.TimeMixin{},
+		totals.Mixin{},
+	}
+}
+
+func (ChargeFlatFeeRun) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
+
+		field.Enum("type").
+			GoType(flatfee.RealizationRunType("")),
+
+		field.Enum("initial_type").
+			GoType(flatfee.RealizationRunType("")).
+			Immutable(),
+
+		field.Time("service_period_from"),
+		field.Time("service_period_to"),
+
+		field.Other("amount_after_proration", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+	}
+}
+
+func (ChargeFlatFeeRun) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("flat_fee", ChargeFlatFee.Type).
+			Ref("runs").
+			Field("charge_id").
+			Unique().
+			Required().
+			Immutable(),
+		edge.To("credit_allocations", ChargeFlatFeeRunCreditAllocations.Type).
+			StorageKey(edge.Symbol("charge_ff_credit_alloc_run")).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("detailed_lines", ChargeFlatFeeRunDetailedLine.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("invoiced_usage", ChargeFlatFeeRunInvoicedUsage.Type).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("payment", ChargeFlatFeeRunPayment.Type).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+	}
+}
+
+func (ChargeFlatFeeRun) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "charge_id"),
+	}
+}
+
+type ChargeFlatFeeRunDetailedLine struct {
+	ent.Schema
+}
+
+func (ChargeFlatFeeRunDetailedLine) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		stddetailedline.Mixin{},
 	}
 }
 
-func (ChargeFlatFeeDetailedLine) Fields() []ent.Field {
+func (ChargeFlatFeeRunDetailedLine) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("charge_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
-			}),
+			}).
+			Optional().
+			Nillable().
+			Deprecated("flat-fee realization ownership is stored on run_id"),
+
+		field.String("run_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
 
 		field.String("pricer_reference_id").
 			NotEmpty(),
 	}
 }
 
-func (ChargeFlatFeeDetailedLine) Edges() []ent.Edge {
+func (ChargeFlatFeeRunDetailedLine) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("charge", ChargeFlatFee.Type).
 			Ref("detailed_lines").
 			Field("charge_id").
+			Unique(),
+		edge.From("run", ChargeFlatFeeRun.Type).
+			Ref("detailed_lines").
+			Field("run_id").
 			Unique().
-			Required(),
+			Required().
+			Immutable(),
 		edge.From("tax_code", TaxCode.Type).
-			Ref("charge_flat_fee_detailed_lines").
+			Ref("charge_flat_fee_run_detailed_lines").
 			Field("tax_code_id").
 			Unique().
 			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 
-func (ChargeFlatFeeDetailedLine) Indexes() []ent.Index {
+func (ChargeFlatFeeRunDetailedLine) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "charge_id"),
+		index.Fields("namespace", "run_id"),
 		index.Fields("namespace", "charge_id", "child_unique_reference_id").
 			Annotations(
 				entsql.IndexWhere("deleted_at IS NULL"),
 			).
-			StorageKey("chargeffdetailedline_ns_charge_child_id").
+			StorageKey("chargeffrundetailedline_ns_charge_child_id").
+			Unique(),
+		index.Fields("namespace", "run_id", "child_unique_reference_id").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
+			StorageKey("chargeffdetailedline_ns_run_child_id").
 			Unique(),
 	}
 }
 
-func (ChargeFlatFeeDetailedLine) Annotations() []schema.Annotation {
-	return []schema.Annotation{
-		entsql.Annotation{Table: "charge_flat_fee_detailed_line"},
-	}
-}
-
-type ChargeFlatFeePayment struct {
+type ChargeFlatFeeRunPayment struct {
 	ent.Schema
 }
 
-func (ChargeFlatFeePayment) Mixin() []ent.Mixin {
+func (ChargeFlatFeeRunPayment) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		payment.InvoicedMixin{},
 	}
 }
 
-func (ChargeFlatFeePayment) Fields() []ent.Field {
+func (ChargeFlatFeeRunPayment) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Immutable().
+			Deprecated("flat-fee payment ownership is stored on run_id"),
+		field.String("run_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}).
@@ -212,10 +314,10 @@ func (ChargeFlatFeePayment) Fields() []ent.Field {
 	}
 }
 
-func (ChargeFlatFeePayment) Edges() []ent.Edge {
+func (ChargeFlatFeeRunPayment) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
-			Ref("charge_flat_fee_payment").
+			Ref("charge_flat_fee_run_payment").
 			Field("line_id").
 			Required().
 			Immutable().
@@ -224,28 +326,41 @@ func (ChargeFlatFeePayment) Edges() []ent.Edge {
 			Ref("payment").
 			Field("charge_id").
 			Unique().
+			Immutable(),
+		edge.From("run", ChargeFlatFeeRun.Type).
+			Ref("payment").
+			Field("run_id").
+			Unique().
 			Required().
 			Immutable(),
 	}
 }
 
-func (ChargeFlatFeePayment) Indexes() []ent.Index {
+func (ChargeFlatFeeRunPayment) Indexes() []ent.Index {
 	return nil
 }
 
-type ChargeFlatFeeInvoicedUsage struct {
+type ChargeFlatFeeRunInvoicedUsage struct {
 	ent.Schema
 }
 
-func (ChargeFlatFeeInvoicedUsage) Mixin() []ent.Mixin {
+func (ChargeFlatFeeRunInvoicedUsage) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		invoicedusage.Mixin{},
 	}
 }
 
-func (ChargeFlatFeeInvoicedUsage) Fields() []ent.Field {
+func (ChargeFlatFeeRunInvoicedUsage) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Immutable().
+			Deprecated("flat-fee invoiced usage ownership is stored on run_id"),
+		field.String("run_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}).
@@ -253,43 +368,58 @@ func (ChargeFlatFeeInvoicedUsage) Fields() []ent.Field {
 	}
 }
 
-func (ChargeFlatFeeInvoicedUsage) Edges() []ent.Edge {
+func (ChargeFlatFeeRunInvoicedUsage) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
-			Ref("charge_flat_fee_invoiced_usage").
+			Ref("charge_flat_fee_run_invoiced_usage").
 			Field("line_id").
 			Unique(),
 		edge.From("flat_fee", ChargeFlatFee.Type).
 			Ref("invoiced_usage").
 			Field("charge_id").
 			Unique().
+			Immutable(),
+		edge.From("run", ChargeFlatFeeRun.Type).
+			Ref("invoiced_usage").
+			Field("run_id").
+			Unique().
 			Required().
 			Immutable(),
 	}
 }
 
-func (ChargeFlatFeeInvoicedUsage) Indexes() []ent.Index {
+func (ChargeFlatFeeRunInvoicedUsage) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "charge_id").
+			Unique(),
+		index.Fields("namespace", "run_id").
 			Unique(),
 	}
 }
 
-type ChargeFlatFeeCreditAllocations struct {
+type ChargeFlatFeeRunCreditAllocations struct {
 	ent.Schema
 }
 
-func (ChargeFlatFeeCreditAllocations) Mixin() []ent.Mixin {
+func (ChargeFlatFeeRunCreditAllocations) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		creditrealization.Mixin{
-			SelfReferenceType: ChargeFlatFeeCreditAllocations.Type,
+			SelfReferenceType: ChargeFlatFeeRunCreditAllocations.Type,
 		},
 	}
 }
 
-func (ChargeFlatFeeCreditAllocations) Fields() []ent.Field {
+func (ChargeFlatFeeRunCreditAllocations) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Immutable().
+			Deprecated("flat-fee credit allocation ownership is stored on run_id"),
+		field.String("run_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}).
@@ -297,16 +427,21 @@ func (ChargeFlatFeeCreditAllocations) Fields() []ent.Field {
 	}
 }
 
-func (ChargeFlatFeeCreditAllocations) Edges() []ent.Edge {
+func (ChargeFlatFeeRunCreditAllocations) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("flat_fee", ChargeFlatFee.Type).
 			Ref("credit_allocations").
 			Field("charge_id").
 			Unique().
+			Immutable(),
+		edge.From("run", ChargeFlatFeeRun.Type).
+			Ref("credit_allocations").
+			Field("run_id").
+			Unique().
 			Required().
 			Immutable(),
 		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
-			Ref("charge_flat_fee_credit_allocations").
+			Ref("charge_flat_fee_run_credit_allocations").
 			Field("line_id").
 			Unique(),
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -136,6 +137,12 @@ func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInp
 			return nil, err
 		}
 
+		for _, entity := range entities {
+			if _, err := tx.createCurrentRun(ctx, entity, totals.Totals{}); err != nil {
+				return nil, err
+			}
+		}
+
 		// Let's reserve the charge IDs
 		err = tx.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{
 			Namespace: in.Namespace,
@@ -242,9 +249,12 @@ func (a *adapter) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flat
 }
 
 func expandRealizations(query *db.ChargeFlatFeeQuery) *db.ChargeFlatFeeQuery {
-	return query.WithCreditAllocations().
-		WithInvoicedUsage().
-		WithPayment()
+	return query.WithCurrentRun(func(query *db.ChargeFlatFeeRunQuery) {
+		query.
+			WithCreditAllocations().
+			WithInvoicedUsage().
+			WithPayment()
+	})
 }
 
 func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithInitialStatus) (*db.ChargeFlatFeeCreate, error) {

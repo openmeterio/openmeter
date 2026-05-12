@@ -24,9 +24,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -827,53 +827,53 @@ func (_u *BillingInvoiceLineUpdate) SetCharge(v *Charge) *BillingInvoiceLineUpda
 	return _u.SetChargeID(v.ID)
 }
 
-// SetChargeFlatFeePaymentID sets the "charge_flat_fee_payment" edge to the ChargeFlatFeePayment entity by ID.
-func (_u *BillingInvoiceLineUpdate) SetChargeFlatFeePaymentID(id string) *BillingInvoiceLineUpdate {
-	_u.mutation.SetChargeFlatFeePaymentID(id)
+// SetChargeFlatFeeRunPaymentID sets the "charge_flat_fee_run_payment" edge to the ChargeFlatFeeRunPayment entity by ID.
+func (_u *BillingInvoiceLineUpdate) SetChargeFlatFeeRunPaymentID(id string) *BillingInvoiceLineUpdate {
+	_u.mutation.SetChargeFlatFeeRunPaymentID(id)
 	return _u
 }
 
-// SetNillableChargeFlatFeePaymentID sets the "charge_flat_fee_payment" edge to the ChargeFlatFeePayment entity by ID if the given value is not nil.
-func (_u *BillingInvoiceLineUpdate) SetNillableChargeFlatFeePaymentID(id *string) *BillingInvoiceLineUpdate {
+// SetNillableChargeFlatFeeRunPaymentID sets the "charge_flat_fee_run_payment" edge to the ChargeFlatFeeRunPayment entity by ID if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillableChargeFlatFeeRunPaymentID(id *string) *BillingInvoiceLineUpdate {
 	if id != nil {
-		_u = _u.SetChargeFlatFeePaymentID(*id)
+		_u = _u.SetChargeFlatFeeRunPaymentID(*id)
 	}
 	return _u
 }
 
-// SetChargeFlatFeePayment sets the "charge_flat_fee_payment" edge to the ChargeFlatFeePayment entity.
-func (_u *BillingInvoiceLineUpdate) SetChargeFlatFeePayment(v *ChargeFlatFeePayment) *BillingInvoiceLineUpdate {
-	return _u.SetChargeFlatFeePaymentID(v.ID)
+// SetChargeFlatFeeRunPayment sets the "charge_flat_fee_run_payment" edge to the ChargeFlatFeeRunPayment entity.
+func (_u *BillingInvoiceLineUpdate) SetChargeFlatFeeRunPayment(v *ChargeFlatFeeRunPayment) *BillingInvoiceLineUpdate {
+	return _u.SetChargeFlatFeeRunPaymentID(v.ID)
 }
 
-// AddChargeFlatFeeCreditAllocationIDs adds the "charge_flat_fee_credit_allocations" edge to the ChargeFlatFeeCreditAllocations entity by IDs.
-func (_u *BillingInvoiceLineUpdate) AddChargeFlatFeeCreditAllocationIDs(ids ...string) *BillingInvoiceLineUpdate {
-	_u.mutation.AddChargeFlatFeeCreditAllocationIDs(ids...)
+// AddChargeFlatFeeRunCreditAllocationIDs adds the "charge_flat_fee_run_credit_allocations" edge to the ChargeFlatFeeRunCreditAllocations entity by IDs.
+func (_u *BillingInvoiceLineUpdate) AddChargeFlatFeeRunCreditAllocationIDs(ids ...string) *BillingInvoiceLineUpdate {
+	_u.mutation.AddChargeFlatFeeRunCreditAllocationIDs(ids...)
 	return _u
 }
 
-// AddChargeFlatFeeCreditAllocations adds the "charge_flat_fee_credit_allocations" edges to the ChargeFlatFeeCreditAllocations entity.
-func (_u *BillingInvoiceLineUpdate) AddChargeFlatFeeCreditAllocations(v ...*ChargeFlatFeeCreditAllocations) *BillingInvoiceLineUpdate {
+// AddChargeFlatFeeRunCreditAllocations adds the "charge_flat_fee_run_credit_allocations" edges to the ChargeFlatFeeRunCreditAllocations entity.
+func (_u *BillingInvoiceLineUpdate) AddChargeFlatFeeRunCreditAllocations(v ...*ChargeFlatFeeRunCreditAllocations) *BillingInvoiceLineUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddChargeFlatFeeCreditAllocationIDs(ids...)
+	return _u.AddChargeFlatFeeRunCreditAllocationIDs(ids...)
 }
 
-// AddChargeFlatFeeInvoicedUsageIDs adds the "charge_flat_fee_invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity by IDs.
-func (_u *BillingInvoiceLineUpdate) AddChargeFlatFeeInvoicedUsageIDs(ids ...string) *BillingInvoiceLineUpdate {
-	_u.mutation.AddChargeFlatFeeInvoicedUsageIDs(ids...)
+// AddChargeFlatFeeRunInvoicedUsageIDs adds the "charge_flat_fee_run_invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity by IDs.
+func (_u *BillingInvoiceLineUpdate) AddChargeFlatFeeRunInvoicedUsageIDs(ids ...string) *BillingInvoiceLineUpdate {
+	_u.mutation.AddChargeFlatFeeRunInvoicedUsageIDs(ids...)
 	return _u
 }
 
-// AddChargeFlatFeeInvoicedUsage adds the "charge_flat_fee_invoiced_usage" edges to the ChargeFlatFeeInvoicedUsage entity.
-func (_u *BillingInvoiceLineUpdate) AddChargeFlatFeeInvoicedUsage(v ...*ChargeFlatFeeInvoicedUsage) *BillingInvoiceLineUpdate {
+// AddChargeFlatFeeRunInvoicedUsage adds the "charge_flat_fee_run_invoiced_usage" edges to the ChargeFlatFeeRunInvoicedUsage entity.
+func (_u *BillingInvoiceLineUpdate) AddChargeFlatFeeRunInvoicedUsage(v ...*ChargeFlatFeeRunInvoicedUsage) *BillingInvoiceLineUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddChargeFlatFeeInvoicedUsageIDs(ids...)
+	return _u.AddChargeFlatFeeRunInvoicedUsageIDs(ids...)
 }
 
 // SetChargeUsageBasedRunID sets the "charge_usage_based_run" edge to the ChargeUsageBasedRuns entity by ID.
@@ -1062,52 +1062,52 @@ func (_u *BillingInvoiceLineUpdate) ClearCharge() *BillingInvoiceLineUpdate {
 	return _u
 }
 
-// ClearChargeFlatFeePayment clears the "charge_flat_fee_payment" edge to the ChargeFlatFeePayment entity.
-func (_u *BillingInvoiceLineUpdate) ClearChargeFlatFeePayment() *BillingInvoiceLineUpdate {
-	_u.mutation.ClearChargeFlatFeePayment()
+// ClearChargeFlatFeeRunPayment clears the "charge_flat_fee_run_payment" edge to the ChargeFlatFeeRunPayment entity.
+func (_u *BillingInvoiceLineUpdate) ClearChargeFlatFeeRunPayment() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearChargeFlatFeeRunPayment()
 	return _u
 }
 
-// ClearChargeFlatFeeCreditAllocations clears all "charge_flat_fee_credit_allocations" edges to the ChargeFlatFeeCreditAllocations entity.
-func (_u *BillingInvoiceLineUpdate) ClearChargeFlatFeeCreditAllocations() *BillingInvoiceLineUpdate {
-	_u.mutation.ClearChargeFlatFeeCreditAllocations()
+// ClearChargeFlatFeeRunCreditAllocations clears all "charge_flat_fee_run_credit_allocations" edges to the ChargeFlatFeeRunCreditAllocations entity.
+func (_u *BillingInvoiceLineUpdate) ClearChargeFlatFeeRunCreditAllocations() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearChargeFlatFeeRunCreditAllocations()
 	return _u
 }
 
-// RemoveChargeFlatFeeCreditAllocationIDs removes the "charge_flat_fee_credit_allocations" edge to ChargeFlatFeeCreditAllocations entities by IDs.
-func (_u *BillingInvoiceLineUpdate) RemoveChargeFlatFeeCreditAllocationIDs(ids ...string) *BillingInvoiceLineUpdate {
-	_u.mutation.RemoveChargeFlatFeeCreditAllocationIDs(ids...)
+// RemoveChargeFlatFeeRunCreditAllocationIDs removes the "charge_flat_fee_run_credit_allocations" edge to ChargeFlatFeeRunCreditAllocations entities by IDs.
+func (_u *BillingInvoiceLineUpdate) RemoveChargeFlatFeeRunCreditAllocationIDs(ids ...string) *BillingInvoiceLineUpdate {
+	_u.mutation.RemoveChargeFlatFeeRunCreditAllocationIDs(ids...)
 	return _u
 }
 
-// RemoveChargeFlatFeeCreditAllocations removes "charge_flat_fee_credit_allocations" edges to ChargeFlatFeeCreditAllocations entities.
-func (_u *BillingInvoiceLineUpdate) RemoveChargeFlatFeeCreditAllocations(v ...*ChargeFlatFeeCreditAllocations) *BillingInvoiceLineUpdate {
+// RemoveChargeFlatFeeRunCreditAllocations removes "charge_flat_fee_run_credit_allocations" edges to ChargeFlatFeeRunCreditAllocations entities.
+func (_u *BillingInvoiceLineUpdate) RemoveChargeFlatFeeRunCreditAllocations(v ...*ChargeFlatFeeRunCreditAllocations) *BillingInvoiceLineUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveChargeFlatFeeCreditAllocationIDs(ids...)
+	return _u.RemoveChargeFlatFeeRunCreditAllocationIDs(ids...)
 }
 
-// ClearChargeFlatFeeInvoicedUsage clears all "charge_flat_fee_invoiced_usage" edges to the ChargeFlatFeeInvoicedUsage entity.
-func (_u *BillingInvoiceLineUpdate) ClearChargeFlatFeeInvoicedUsage() *BillingInvoiceLineUpdate {
-	_u.mutation.ClearChargeFlatFeeInvoicedUsage()
+// ClearChargeFlatFeeRunInvoicedUsage clears all "charge_flat_fee_run_invoiced_usage" edges to the ChargeFlatFeeRunInvoicedUsage entity.
+func (_u *BillingInvoiceLineUpdate) ClearChargeFlatFeeRunInvoicedUsage() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearChargeFlatFeeRunInvoicedUsage()
 	return _u
 }
 
-// RemoveChargeFlatFeeInvoicedUsageIDs removes the "charge_flat_fee_invoiced_usage" edge to ChargeFlatFeeInvoicedUsage entities by IDs.
-func (_u *BillingInvoiceLineUpdate) RemoveChargeFlatFeeInvoicedUsageIDs(ids ...string) *BillingInvoiceLineUpdate {
-	_u.mutation.RemoveChargeFlatFeeInvoicedUsageIDs(ids...)
+// RemoveChargeFlatFeeRunInvoicedUsageIDs removes the "charge_flat_fee_run_invoiced_usage" edge to ChargeFlatFeeRunInvoicedUsage entities by IDs.
+func (_u *BillingInvoiceLineUpdate) RemoveChargeFlatFeeRunInvoicedUsageIDs(ids ...string) *BillingInvoiceLineUpdate {
+	_u.mutation.RemoveChargeFlatFeeRunInvoicedUsageIDs(ids...)
 	return _u
 }
 
-// RemoveChargeFlatFeeInvoicedUsage removes "charge_flat_fee_invoiced_usage" edges to ChargeFlatFeeInvoicedUsage entities.
-func (_u *BillingInvoiceLineUpdate) RemoveChargeFlatFeeInvoicedUsage(v ...*ChargeFlatFeeInvoicedUsage) *BillingInvoiceLineUpdate {
+// RemoveChargeFlatFeeRunInvoicedUsage removes "charge_flat_fee_run_invoiced_usage" edges to ChargeFlatFeeRunInvoicedUsage entities.
+func (_u *BillingInvoiceLineUpdate) RemoveChargeFlatFeeRunInvoicedUsage(v ...*ChargeFlatFeeRunInvoicedUsage) *BillingInvoiceLineUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveChargeFlatFeeInvoicedUsageIDs(ids...)
+	return _u.RemoveChargeFlatFeeRunInvoicedUsageIDs(ids...)
 }
 
 // ClearChargeUsageBasedRun clears the "charge_usage_based_run" edge to the ChargeUsageBasedRuns entity.
@@ -1801,28 +1801,28 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChargeFlatFeePaymentCleared() {
+	if _u.mutation.ChargeFlatFeeRunPaymentCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeePaymentTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeePaymentColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunPaymentTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunPaymentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeepayment.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunpayment.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChargeFlatFeePaymentIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChargeFlatFeeRunPaymentIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeePaymentTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeePaymentColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunPaymentTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunPaymentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeepayment.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunpayment.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1830,28 +1830,28 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChargeFlatFeeCreditAllocationsCleared() {
+	if _u.mutation.ChargeFlatFeeRunCreditAllocationsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeeCreditAllocationsTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeeCreditAllocationsColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunCreditAllocationsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunCreditAllocationsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedChargeFlatFeeCreditAllocationsIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeCreditAllocationsCleared() {
+	if nodes := _u.mutation.RemovedChargeFlatFeeRunCreditAllocationsIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeRunCreditAllocationsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeeCreditAllocationsTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeeCreditAllocationsColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunCreditAllocationsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunCreditAllocationsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1859,15 +1859,15 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChargeFlatFeeCreditAllocationsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChargeFlatFeeRunCreditAllocationsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeeCreditAllocationsTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeeCreditAllocationsColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunCreditAllocationsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunCreditAllocationsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1875,28 +1875,28 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChargeFlatFeeInvoicedUsageCleared() {
+	if _u.mutation.ChargeFlatFeeRunInvoicedUsageCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeeInvoicedUsageTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeeInvoicedUsageColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunInvoicedUsageTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunInvoicedUsageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedChargeFlatFeeInvoicedUsageIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeInvoicedUsageCleared() {
+	if nodes := _u.mutation.RemovedChargeFlatFeeRunInvoicedUsageIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeRunInvoicedUsageCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeeInvoicedUsageTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeeInvoicedUsageColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunInvoicedUsageTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunInvoicedUsageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1904,15 +1904,15 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChargeFlatFeeInvoicedUsageIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChargeFlatFeeRunInvoicedUsageIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeeInvoicedUsageTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeeInvoicedUsageColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunInvoicedUsageTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunInvoicedUsageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2804,53 +2804,53 @@ func (_u *BillingInvoiceLineUpdateOne) SetCharge(v *Charge) *BillingInvoiceLineU
 	return _u.SetChargeID(v.ID)
 }
 
-// SetChargeFlatFeePaymentID sets the "charge_flat_fee_payment" edge to the ChargeFlatFeePayment entity by ID.
-func (_u *BillingInvoiceLineUpdateOne) SetChargeFlatFeePaymentID(id string) *BillingInvoiceLineUpdateOne {
-	_u.mutation.SetChargeFlatFeePaymentID(id)
+// SetChargeFlatFeeRunPaymentID sets the "charge_flat_fee_run_payment" edge to the ChargeFlatFeeRunPayment entity by ID.
+func (_u *BillingInvoiceLineUpdateOne) SetChargeFlatFeeRunPaymentID(id string) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetChargeFlatFeeRunPaymentID(id)
 	return _u
 }
 
-// SetNillableChargeFlatFeePaymentID sets the "charge_flat_fee_payment" edge to the ChargeFlatFeePayment entity by ID if the given value is not nil.
-func (_u *BillingInvoiceLineUpdateOne) SetNillableChargeFlatFeePaymentID(id *string) *BillingInvoiceLineUpdateOne {
+// SetNillableChargeFlatFeeRunPaymentID sets the "charge_flat_fee_run_payment" edge to the ChargeFlatFeeRunPayment entity by ID if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillableChargeFlatFeeRunPaymentID(id *string) *BillingInvoiceLineUpdateOne {
 	if id != nil {
-		_u = _u.SetChargeFlatFeePaymentID(*id)
+		_u = _u.SetChargeFlatFeeRunPaymentID(*id)
 	}
 	return _u
 }
 
-// SetChargeFlatFeePayment sets the "charge_flat_fee_payment" edge to the ChargeFlatFeePayment entity.
-func (_u *BillingInvoiceLineUpdateOne) SetChargeFlatFeePayment(v *ChargeFlatFeePayment) *BillingInvoiceLineUpdateOne {
-	return _u.SetChargeFlatFeePaymentID(v.ID)
+// SetChargeFlatFeeRunPayment sets the "charge_flat_fee_run_payment" edge to the ChargeFlatFeeRunPayment entity.
+func (_u *BillingInvoiceLineUpdateOne) SetChargeFlatFeeRunPayment(v *ChargeFlatFeeRunPayment) *BillingInvoiceLineUpdateOne {
+	return _u.SetChargeFlatFeeRunPaymentID(v.ID)
 }
 
-// AddChargeFlatFeeCreditAllocationIDs adds the "charge_flat_fee_credit_allocations" edge to the ChargeFlatFeeCreditAllocations entity by IDs.
-func (_u *BillingInvoiceLineUpdateOne) AddChargeFlatFeeCreditAllocationIDs(ids ...string) *BillingInvoiceLineUpdateOne {
-	_u.mutation.AddChargeFlatFeeCreditAllocationIDs(ids...)
+// AddChargeFlatFeeRunCreditAllocationIDs adds the "charge_flat_fee_run_credit_allocations" edge to the ChargeFlatFeeRunCreditAllocations entity by IDs.
+func (_u *BillingInvoiceLineUpdateOne) AddChargeFlatFeeRunCreditAllocationIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	_u.mutation.AddChargeFlatFeeRunCreditAllocationIDs(ids...)
 	return _u
 }
 
-// AddChargeFlatFeeCreditAllocations adds the "charge_flat_fee_credit_allocations" edges to the ChargeFlatFeeCreditAllocations entity.
-func (_u *BillingInvoiceLineUpdateOne) AddChargeFlatFeeCreditAllocations(v ...*ChargeFlatFeeCreditAllocations) *BillingInvoiceLineUpdateOne {
+// AddChargeFlatFeeRunCreditAllocations adds the "charge_flat_fee_run_credit_allocations" edges to the ChargeFlatFeeRunCreditAllocations entity.
+func (_u *BillingInvoiceLineUpdateOne) AddChargeFlatFeeRunCreditAllocations(v ...*ChargeFlatFeeRunCreditAllocations) *BillingInvoiceLineUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddChargeFlatFeeCreditAllocationIDs(ids...)
+	return _u.AddChargeFlatFeeRunCreditAllocationIDs(ids...)
 }
 
-// AddChargeFlatFeeInvoicedUsageIDs adds the "charge_flat_fee_invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity by IDs.
-func (_u *BillingInvoiceLineUpdateOne) AddChargeFlatFeeInvoicedUsageIDs(ids ...string) *BillingInvoiceLineUpdateOne {
-	_u.mutation.AddChargeFlatFeeInvoicedUsageIDs(ids...)
+// AddChargeFlatFeeRunInvoicedUsageIDs adds the "charge_flat_fee_run_invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity by IDs.
+func (_u *BillingInvoiceLineUpdateOne) AddChargeFlatFeeRunInvoicedUsageIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	_u.mutation.AddChargeFlatFeeRunInvoicedUsageIDs(ids...)
 	return _u
 }
 
-// AddChargeFlatFeeInvoicedUsage adds the "charge_flat_fee_invoiced_usage" edges to the ChargeFlatFeeInvoicedUsage entity.
-func (_u *BillingInvoiceLineUpdateOne) AddChargeFlatFeeInvoicedUsage(v ...*ChargeFlatFeeInvoicedUsage) *BillingInvoiceLineUpdateOne {
+// AddChargeFlatFeeRunInvoicedUsage adds the "charge_flat_fee_run_invoiced_usage" edges to the ChargeFlatFeeRunInvoicedUsage entity.
+func (_u *BillingInvoiceLineUpdateOne) AddChargeFlatFeeRunInvoicedUsage(v ...*ChargeFlatFeeRunInvoicedUsage) *BillingInvoiceLineUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddChargeFlatFeeInvoicedUsageIDs(ids...)
+	return _u.AddChargeFlatFeeRunInvoicedUsageIDs(ids...)
 }
 
 // SetChargeUsageBasedRunID sets the "charge_usage_based_run" edge to the ChargeUsageBasedRuns entity by ID.
@@ -3039,52 +3039,52 @@ func (_u *BillingInvoiceLineUpdateOne) ClearCharge() *BillingInvoiceLineUpdateOn
 	return _u
 }
 
-// ClearChargeFlatFeePayment clears the "charge_flat_fee_payment" edge to the ChargeFlatFeePayment entity.
-func (_u *BillingInvoiceLineUpdateOne) ClearChargeFlatFeePayment() *BillingInvoiceLineUpdateOne {
-	_u.mutation.ClearChargeFlatFeePayment()
+// ClearChargeFlatFeeRunPayment clears the "charge_flat_fee_run_payment" edge to the ChargeFlatFeeRunPayment entity.
+func (_u *BillingInvoiceLineUpdateOne) ClearChargeFlatFeeRunPayment() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearChargeFlatFeeRunPayment()
 	return _u
 }
 
-// ClearChargeFlatFeeCreditAllocations clears all "charge_flat_fee_credit_allocations" edges to the ChargeFlatFeeCreditAllocations entity.
-func (_u *BillingInvoiceLineUpdateOne) ClearChargeFlatFeeCreditAllocations() *BillingInvoiceLineUpdateOne {
-	_u.mutation.ClearChargeFlatFeeCreditAllocations()
+// ClearChargeFlatFeeRunCreditAllocations clears all "charge_flat_fee_run_credit_allocations" edges to the ChargeFlatFeeRunCreditAllocations entity.
+func (_u *BillingInvoiceLineUpdateOne) ClearChargeFlatFeeRunCreditAllocations() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearChargeFlatFeeRunCreditAllocations()
 	return _u
 }
 
-// RemoveChargeFlatFeeCreditAllocationIDs removes the "charge_flat_fee_credit_allocations" edge to ChargeFlatFeeCreditAllocations entities by IDs.
-func (_u *BillingInvoiceLineUpdateOne) RemoveChargeFlatFeeCreditAllocationIDs(ids ...string) *BillingInvoiceLineUpdateOne {
-	_u.mutation.RemoveChargeFlatFeeCreditAllocationIDs(ids...)
+// RemoveChargeFlatFeeRunCreditAllocationIDs removes the "charge_flat_fee_run_credit_allocations" edge to ChargeFlatFeeRunCreditAllocations entities by IDs.
+func (_u *BillingInvoiceLineUpdateOne) RemoveChargeFlatFeeRunCreditAllocationIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	_u.mutation.RemoveChargeFlatFeeRunCreditAllocationIDs(ids...)
 	return _u
 }
 
-// RemoveChargeFlatFeeCreditAllocations removes "charge_flat_fee_credit_allocations" edges to ChargeFlatFeeCreditAllocations entities.
-func (_u *BillingInvoiceLineUpdateOne) RemoveChargeFlatFeeCreditAllocations(v ...*ChargeFlatFeeCreditAllocations) *BillingInvoiceLineUpdateOne {
+// RemoveChargeFlatFeeRunCreditAllocations removes "charge_flat_fee_run_credit_allocations" edges to ChargeFlatFeeRunCreditAllocations entities.
+func (_u *BillingInvoiceLineUpdateOne) RemoveChargeFlatFeeRunCreditAllocations(v ...*ChargeFlatFeeRunCreditAllocations) *BillingInvoiceLineUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveChargeFlatFeeCreditAllocationIDs(ids...)
+	return _u.RemoveChargeFlatFeeRunCreditAllocationIDs(ids...)
 }
 
-// ClearChargeFlatFeeInvoicedUsage clears all "charge_flat_fee_invoiced_usage" edges to the ChargeFlatFeeInvoicedUsage entity.
-func (_u *BillingInvoiceLineUpdateOne) ClearChargeFlatFeeInvoicedUsage() *BillingInvoiceLineUpdateOne {
-	_u.mutation.ClearChargeFlatFeeInvoicedUsage()
+// ClearChargeFlatFeeRunInvoicedUsage clears all "charge_flat_fee_run_invoiced_usage" edges to the ChargeFlatFeeRunInvoicedUsage entity.
+func (_u *BillingInvoiceLineUpdateOne) ClearChargeFlatFeeRunInvoicedUsage() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearChargeFlatFeeRunInvoicedUsage()
 	return _u
 }
 
-// RemoveChargeFlatFeeInvoicedUsageIDs removes the "charge_flat_fee_invoiced_usage" edge to ChargeFlatFeeInvoicedUsage entities by IDs.
-func (_u *BillingInvoiceLineUpdateOne) RemoveChargeFlatFeeInvoicedUsageIDs(ids ...string) *BillingInvoiceLineUpdateOne {
-	_u.mutation.RemoveChargeFlatFeeInvoicedUsageIDs(ids...)
+// RemoveChargeFlatFeeRunInvoicedUsageIDs removes the "charge_flat_fee_run_invoiced_usage" edge to ChargeFlatFeeRunInvoicedUsage entities by IDs.
+func (_u *BillingInvoiceLineUpdateOne) RemoveChargeFlatFeeRunInvoicedUsageIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	_u.mutation.RemoveChargeFlatFeeRunInvoicedUsageIDs(ids...)
 	return _u
 }
 
-// RemoveChargeFlatFeeInvoicedUsage removes "charge_flat_fee_invoiced_usage" edges to ChargeFlatFeeInvoicedUsage entities.
-func (_u *BillingInvoiceLineUpdateOne) RemoveChargeFlatFeeInvoicedUsage(v ...*ChargeFlatFeeInvoicedUsage) *BillingInvoiceLineUpdateOne {
+// RemoveChargeFlatFeeRunInvoicedUsage removes "charge_flat_fee_run_invoiced_usage" edges to ChargeFlatFeeRunInvoicedUsage entities.
+func (_u *BillingInvoiceLineUpdateOne) RemoveChargeFlatFeeRunInvoicedUsage(v ...*ChargeFlatFeeRunInvoicedUsage) *BillingInvoiceLineUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveChargeFlatFeeInvoicedUsageIDs(ids...)
+	return _u.RemoveChargeFlatFeeRunInvoicedUsageIDs(ids...)
 }
 
 // ClearChargeUsageBasedRun clears the "charge_usage_based_run" edge to the ChargeUsageBasedRuns entity.
@@ -3808,28 +3808,28 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChargeFlatFeePaymentCleared() {
+	if _u.mutation.ChargeFlatFeeRunPaymentCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeePaymentTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeePaymentColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunPaymentTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunPaymentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeepayment.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunpayment.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChargeFlatFeePaymentIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChargeFlatFeeRunPaymentIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeePaymentTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeePaymentColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunPaymentTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunPaymentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeepayment.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunpayment.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -3837,28 +3837,28 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChargeFlatFeeCreditAllocationsCleared() {
+	if _u.mutation.ChargeFlatFeeRunCreditAllocationsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeeCreditAllocationsTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeeCreditAllocationsColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunCreditAllocationsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunCreditAllocationsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedChargeFlatFeeCreditAllocationsIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeCreditAllocationsCleared() {
+	if nodes := _u.mutation.RemovedChargeFlatFeeRunCreditAllocationsIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeRunCreditAllocationsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeeCreditAllocationsTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeeCreditAllocationsColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunCreditAllocationsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunCreditAllocationsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -3866,15 +3866,15 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChargeFlatFeeCreditAllocationsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChargeFlatFeeRunCreditAllocationsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeeCreditAllocationsTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeeCreditAllocationsColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunCreditAllocationsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunCreditAllocationsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -3882,28 +3882,28 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChargeFlatFeeInvoicedUsageCleared() {
+	if _u.mutation.ChargeFlatFeeRunInvoicedUsageCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeeInvoicedUsageTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeeInvoicedUsageColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunInvoicedUsageTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunInvoicedUsageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedChargeFlatFeeInvoicedUsageIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeInvoicedUsageCleared() {
+	if nodes := _u.mutation.RemovedChargeFlatFeeRunInvoicedUsageIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeRunInvoicedUsageCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeeInvoicedUsageTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeeInvoicedUsageColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunInvoicedUsageTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunInvoicedUsageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -3911,15 +3911,15 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChargeFlatFeeInvoicedUsageIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChargeFlatFeeRunInvoicedUsageIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeeInvoicedUsageTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeeInvoicedUsageColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunInvoicedUsageTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunInvoicedUsageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

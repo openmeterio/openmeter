@@ -5,7 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -15,8 +15,13 @@ func (a *adapter) CreatePayment(ctx context.Context, chargeID meta.ChargeID, pay
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (payment.Invoiced, error) {
-		create := tx.db.ChargeFlatFeePayment.Create().
-			SetChargeID(chargeID.ID)
+		run, err := tx.currentRunByChargeID(ctx, chargeID)
+		if err != nil {
+			return payment.Invoiced{}, err
+		}
+
+		create := tx.db.ChargeFlatFeeRunPayment.Create().
+			SetRunID(run.ID)
 
 		create = payment.CreateInvoiced(create, paymentSettlement)
 
@@ -35,8 +40,8 @@ func (a *adapter) UpdatePayment(ctx context.Context, paymentSettlement payment.I
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (payment.Invoiced, error) {
-		update := tx.db.ChargeFlatFeePayment.UpdateOneID(paymentSettlement.ID).
-			Where(chargeflatfeepayment.Namespace(paymentSettlement.Namespace))
+		update := tx.db.ChargeFlatFeeRunPayment.UpdateOneID(paymentSettlement.ID).
+			Where(chargeflatfeerunpayment.Namespace(paymentSettlement.Namespace))
 
 		updated := payment.UpdateInvoiced(update, paymentSettlement)
 

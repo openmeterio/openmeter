@@ -18,10 +18,15 @@ func (a *adapter) CreateCreditAllocations(ctx context.Context, chargeID meta.Cha
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditrealization.Realizations, error) {
-		dbEntities, err := tx.db.ChargeFlatFeeCreditAllocations.CreateBulk(
-			lo.Map(creditAllocations, func(creditAllocation creditrealization.CreateInput, idx int) *db.ChargeFlatFeeCreditAllocationsCreate {
-				create := tx.db.ChargeFlatFeeCreditAllocations.Create().
-					SetChargeID(chargeID.ID)
+		run, err := tx.currentRunByChargeID(ctx, chargeID)
+		if err != nil {
+			return creditrealization.Realizations{}, err
+		}
+
+		dbEntities, err := tx.db.ChargeFlatFeeRunCreditAllocations.CreateBulk(
+			lo.Map(creditAllocations, func(creditAllocation creditrealization.CreateInput, idx int) *db.ChargeFlatFeeRunCreditAllocationsCreate {
+				create := tx.db.ChargeFlatFeeRunCreditAllocations.Create().
+					SetRunID(run.ID)
 
 				create = creditrealization.Create(create, chargeID.Namespace, idx, creditAllocation)
 
@@ -32,7 +37,7 @@ func (a *adapter) CreateCreditAllocations(ctx context.Context, chargeID meta.Cha
 			return creditrealization.Realizations{}, err
 		}
 
-		realizations, err := slicesx.MapWithErr(dbEntities, func(entity *db.ChargeFlatFeeCreditAllocations) (creditrealization.Realization, error) {
+		realizations, err := slicesx.MapWithErr(dbEntities, func(entity *db.ChargeFlatFeeRunCreditAllocations) (creditrealization.Realization, error) {
 			return creditrealization.MapFromDB(entity), nil
 		})
 		if err != nil {

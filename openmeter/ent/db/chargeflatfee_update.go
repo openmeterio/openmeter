@@ -16,10 +16,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -418,6 +419,26 @@ func (_u *ChargeFlatFeeUpdate) SetNillableAmountAfterProration(v *alpacadecimal.
 	return _u
 }
 
+// SetCurrentRealizationRunID sets the "current_realization_run_id" field.
+func (_u *ChargeFlatFeeUpdate) SetCurrentRealizationRunID(v string) *ChargeFlatFeeUpdate {
+	_u.mutation.SetCurrentRealizationRunID(v)
+	return _u
+}
+
+// SetNillableCurrentRealizationRunID sets the "current_realization_run_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableCurrentRealizationRunID(v *string) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetCurrentRealizationRunID(*v)
+	}
+	return _u
+}
+
+// ClearCurrentRealizationRunID clears the value of the "current_realization_run_id" field.
+func (_u *ChargeFlatFeeUpdate) ClearCurrentRealizationRunID() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearCurrentRealizationRunID()
+	return _u
+}
+
 // SetStatusDetailed sets the "status_detailed" field.
 func (_u *ChargeFlatFeeUpdate) SetStatusDetailed(v flatfee.Status) *ChargeFlatFeeUpdate {
 	_u.mutation.SetStatusDetailed(v)
@@ -432,14 +453,14 @@ func (_u *ChargeFlatFeeUpdate) SetNillableStatusDetailed(v *flatfee.Status) *Cha
 	return _u
 }
 
-// AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeCreditAllocations entity by IDs.
+// AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeRunCreditAllocations entity by IDs.
 func (_u *ChargeFlatFeeUpdate) AddCreditAllocationIDs(ids ...string) *ChargeFlatFeeUpdate {
 	_u.mutation.AddCreditAllocationIDs(ids...)
 	return _u
 }
 
-// AddCreditAllocations adds the "credit_allocations" edges to the ChargeFlatFeeCreditAllocations entity.
-func (_u *ChargeFlatFeeUpdate) AddCreditAllocations(v ...*ChargeFlatFeeCreditAllocations) *ChargeFlatFeeUpdate {
+// AddCreditAllocations adds the "credit_allocations" edges to the ChargeFlatFeeRunCreditAllocations entity.
+func (_u *ChargeFlatFeeUpdate) AddCreditAllocations(v ...*ChargeFlatFeeRunCreditAllocations) *ChargeFlatFeeUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -447,14 +468,14 @@ func (_u *ChargeFlatFeeUpdate) AddCreditAllocations(v ...*ChargeFlatFeeCreditAll
 	return _u.AddCreditAllocationIDs(ids...)
 }
 
-// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by IDs.
+// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity by IDs.
 func (_u *ChargeFlatFeeUpdate) AddDetailedLineIDs(ids ...string) *ChargeFlatFeeUpdate {
 	_u.mutation.AddDetailedLineIDs(ids...)
 	return _u
 }
 
-// AddDetailedLines adds the "detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
-func (_u *ChargeFlatFeeUpdate) AddDetailedLines(v ...*ChargeFlatFeeDetailedLine) *ChargeFlatFeeUpdate {
+// AddDetailedLines adds the "detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
+func (_u *ChargeFlatFeeUpdate) AddDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *ChargeFlatFeeUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -462,13 +483,13 @@ func (_u *ChargeFlatFeeUpdate) AddDetailedLines(v ...*ChargeFlatFeeDetailedLine)
 	return _u.AddDetailedLineIDs(ids...)
 }
 
-// SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity by ID.
+// SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity by ID.
 func (_u *ChargeFlatFeeUpdate) SetInvoicedUsageID(id string) *ChargeFlatFeeUpdate {
 	_u.mutation.SetInvoicedUsageID(id)
 	return _u
 }
 
-// SetNillableInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity by ID if the given value is not nil.
+// SetNillableInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity by ID if the given value is not nil.
 func (_u *ChargeFlatFeeUpdate) SetNillableInvoicedUsageID(id *string) *ChargeFlatFeeUpdate {
 	if id != nil {
 		_u = _u.SetInvoicedUsageID(*id)
@@ -476,18 +497,18 @@ func (_u *ChargeFlatFeeUpdate) SetNillableInvoicedUsageID(id *string) *ChargeFla
 	return _u
 }
 
-// SetInvoicedUsage sets the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity.
-func (_u *ChargeFlatFeeUpdate) SetInvoicedUsage(v *ChargeFlatFeeInvoicedUsage) *ChargeFlatFeeUpdate {
+// SetInvoicedUsage sets the "invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity.
+func (_u *ChargeFlatFeeUpdate) SetInvoicedUsage(v *ChargeFlatFeeRunInvoicedUsage) *ChargeFlatFeeUpdate {
 	return _u.SetInvoicedUsageID(v.ID)
 }
 
-// SetPaymentID sets the "payment" edge to the ChargeFlatFeePayment entity by ID.
+// SetPaymentID sets the "payment" edge to the ChargeFlatFeeRunPayment entity by ID.
 func (_u *ChargeFlatFeeUpdate) SetPaymentID(id string) *ChargeFlatFeeUpdate {
 	_u.mutation.SetPaymentID(id)
 	return _u
 }
 
-// SetNillablePaymentID sets the "payment" edge to the ChargeFlatFeePayment entity by ID if the given value is not nil.
+// SetNillablePaymentID sets the "payment" edge to the ChargeFlatFeeRunPayment entity by ID if the given value is not nil.
 func (_u *ChargeFlatFeeUpdate) SetNillablePaymentID(id *string) *ChargeFlatFeeUpdate {
 	if id != nil {
 		_u = _u.SetPaymentID(*id)
@@ -495,9 +516,43 @@ func (_u *ChargeFlatFeeUpdate) SetNillablePaymentID(id *string) *ChargeFlatFeeUp
 	return _u
 }
 
-// SetPayment sets the "payment" edge to the ChargeFlatFeePayment entity.
-func (_u *ChargeFlatFeeUpdate) SetPayment(v *ChargeFlatFeePayment) *ChargeFlatFeeUpdate {
+// SetPayment sets the "payment" edge to the ChargeFlatFeeRunPayment entity.
+func (_u *ChargeFlatFeeUpdate) SetPayment(v *ChargeFlatFeeRunPayment) *ChargeFlatFeeUpdate {
 	return _u.SetPaymentID(v.ID)
+}
+
+// AddRunIDs adds the "runs" edge to the ChargeFlatFeeRun entity by IDs.
+func (_u *ChargeFlatFeeUpdate) AddRunIDs(ids ...string) *ChargeFlatFeeUpdate {
+	_u.mutation.AddRunIDs(ids...)
+	return _u
+}
+
+// AddRuns adds the "runs" edges to the ChargeFlatFeeRun entity.
+func (_u *ChargeFlatFeeUpdate) AddRuns(v ...*ChargeFlatFeeRun) *ChargeFlatFeeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddRunIDs(ids...)
+}
+
+// SetCurrentRunID sets the "current_run" edge to the ChargeFlatFeeRun entity by ID.
+func (_u *ChargeFlatFeeUpdate) SetCurrentRunID(id string) *ChargeFlatFeeUpdate {
+	_u.mutation.SetCurrentRunID(id)
+	return _u
+}
+
+// SetNillableCurrentRunID sets the "current_run" edge to the ChargeFlatFeeRun entity by ID if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableCurrentRunID(id *string) *ChargeFlatFeeUpdate {
+	if id != nil {
+		_u = _u.SetCurrentRunID(*id)
+	}
+	return _u
+}
+
+// SetCurrentRun sets the "current_run" edge to the ChargeFlatFeeRun entity.
+func (_u *ChargeFlatFeeUpdate) SetCurrentRun(v *ChargeFlatFeeRun) *ChargeFlatFeeUpdate {
+	return _u.SetCurrentRunID(v.ID)
 }
 
 // SetFeature sets the "feature" edge to the Feature entity.
@@ -515,20 +570,20 @@ func (_u *ChargeFlatFeeUpdate) Mutation() *ChargeFlatFeeMutation {
 	return _u.mutation
 }
 
-// ClearCreditAllocations clears all "credit_allocations" edges to the ChargeFlatFeeCreditAllocations entity.
+// ClearCreditAllocations clears all "credit_allocations" edges to the ChargeFlatFeeRunCreditAllocations entity.
 func (_u *ChargeFlatFeeUpdate) ClearCreditAllocations() *ChargeFlatFeeUpdate {
 	_u.mutation.ClearCreditAllocations()
 	return _u
 }
 
-// RemoveCreditAllocationIDs removes the "credit_allocations" edge to ChargeFlatFeeCreditAllocations entities by IDs.
+// RemoveCreditAllocationIDs removes the "credit_allocations" edge to ChargeFlatFeeRunCreditAllocations entities by IDs.
 func (_u *ChargeFlatFeeUpdate) RemoveCreditAllocationIDs(ids ...string) *ChargeFlatFeeUpdate {
 	_u.mutation.RemoveCreditAllocationIDs(ids...)
 	return _u
 }
 
-// RemoveCreditAllocations removes "credit_allocations" edges to ChargeFlatFeeCreditAllocations entities.
-func (_u *ChargeFlatFeeUpdate) RemoveCreditAllocations(v ...*ChargeFlatFeeCreditAllocations) *ChargeFlatFeeUpdate {
+// RemoveCreditAllocations removes "credit_allocations" edges to ChargeFlatFeeRunCreditAllocations entities.
+func (_u *ChargeFlatFeeUpdate) RemoveCreditAllocations(v ...*ChargeFlatFeeRunCreditAllocations) *ChargeFlatFeeUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -536,20 +591,20 @@ func (_u *ChargeFlatFeeUpdate) RemoveCreditAllocations(v ...*ChargeFlatFeeCredit
 	return _u.RemoveCreditAllocationIDs(ids...)
 }
 
-// ClearDetailedLines clears all "detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
+// ClearDetailedLines clears all "detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
 func (_u *ChargeFlatFeeUpdate) ClearDetailedLines() *ChargeFlatFeeUpdate {
 	_u.mutation.ClearDetailedLines()
 	return _u
 }
 
-// RemoveDetailedLineIDs removes the "detailed_lines" edge to ChargeFlatFeeDetailedLine entities by IDs.
+// RemoveDetailedLineIDs removes the "detailed_lines" edge to ChargeFlatFeeRunDetailedLine entities by IDs.
 func (_u *ChargeFlatFeeUpdate) RemoveDetailedLineIDs(ids ...string) *ChargeFlatFeeUpdate {
 	_u.mutation.RemoveDetailedLineIDs(ids...)
 	return _u
 }
 
-// RemoveDetailedLines removes "detailed_lines" edges to ChargeFlatFeeDetailedLine entities.
-func (_u *ChargeFlatFeeUpdate) RemoveDetailedLines(v ...*ChargeFlatFeeDetailedLine) *ChargeFlatFeeUpdate {
+// RemoveDetailedLines removes "detailed_lines" edges to ChargeFlatFeeRunDetailedLine entities.
+func (_u *ChargeFlatFeeUpdate) RemoveDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *ChargeFlatFeeUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -557,15 +612,42 @@ func (_u *ChargeFlatFeeUpdate) RemoveDetailedLines(v ...*ChargeFlatFeeDetailedLi
 	return _u.RemoveDetailedLineIDs(ids...)
 }
 
-// ClearInvoicedUsage clears the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity.
+// ClearInvoicedUsage clears the "invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity.
 func (_u *ChargeFlatFeeUpdate) ClearInvoicedUsage() *ChargeFlatFeeUpdate {
 	_u.mutation.ClearInvoicedUsage()
 	return _u
 }
 
-// ClearPayment clears the "payment" edge to the ChargeFlatFeePayment entity.
+// ClearPayment clears the "payment" edge to the ChargeFlatFeeRunPayment entity.
 func (_u *ChargeFlatFeeUpdate) ClearPayment() *ChargeFlatFeeUpdate {
 	_u.mutation.ClearPayment()
+	return _u
+}
+
+// ClearRuns clears all "runs" edges to the ChargeFlatFeeRun entity.
+func (_u *ChargeFlatFeeUpdate) ClearRuns() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearRuns()
+	return _u
+}
+
+// RemoveRunIDs removes the "runs" edge to ChargeFlatFeeRun entities by IDs.
+func (_u *ChargeFlatFeeUpdate) RemoveRunIDs(ids ...string) *ChargeFlatFeeUpdate {
+	_u.mutation.RemoveRunIDs(ids...)
+	return _u
+}
+
+// RemoveRuns removes "runs" edges to ChargeFlatFeeRun entities.
+func (_u *ChargeFlatFeeUpdate) RemoveRuns(v ...*ChargeFlatFeeRun) *ChargeFlatFeeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveRunIDs(ids...)
+}
+
+// ClearCurrentRun clears the "current_run" edge to the ChargeFlatFeeRun entity.
+func (_u *ChargeFlatFeeUpdate) ClearCurrentRun() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearCurrentRun()
 	return _u
 }
 
@@ -788,7 +870,7 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Columns: []string{chargeflatfee.CreditAllocationsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -801,7 +883,7 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Columns: []string{chargeflatfee.CreditAllocationsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -817,7 +899,7 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Columns: []string{chargeflatfee.CreditAllocationsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -833,7 +915,7 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Columns: []string{chargeflatfee.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -846,7 +928,7 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Columns: []string{chargeflatfee.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -862,7 +944,7 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Columns: []string{chargeflatfee.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -878,7 +960,7 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Columns: []string{chargeflatfee.InvoicedUsageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -891,7 +973,7 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Columns: []string{chargeflatfee.InvoicedUsageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -907,7 +989,7 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Columns: []string{chargeflatfee.PaymentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeepayment.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunpayment.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -920,7 +1002,81 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Columns: []string{chargeflatfee.PaymentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeepayment.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunpayment.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.RunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.RunsTable,
+			Columns: []string{chargeflatfee.RunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedRunsIDs(); len(nodes) > 0 && !_u.mutation.RunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.RunsTable,
+			Columns: []string{chargeflatfee.RunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RunsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.RunsTable,
+			Columns: []string{chargeflatfee.RunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CurrentRunCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeflatfee.CurrentRunTable,
+			Columns: []string{chargeflatfee.CurrentRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CurrentRunIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeflatfee.CurrentRunTable,
+			Columns: []string{chargeflatfee.CurrentRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1384,6 +1540,26 @@ func (_u *ChargeFlatFeeUpdateOne) SetNillableAmountAfterProration(v *alpacadecim
 	return _u
 }
 
+// SetCurrentRealizationRunID sets the "current_realization_run_id" field.
+func (_u *ChargeFlatFeeUpdateOne) SetCurrentRealizationRunID(v string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetCurrentRealizationRunID(v)
+	return _u
+}
+
+// SetNillableCurrentRealizationRunID sets the "current_realization_run_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableCurrentRealizationRunID(v *string) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetCurrentRealizationRunID(*v)
+	}
+	return _u
+}
+
+// ClearCurrentRealizationRunID clears the value of the "current_realization_run_id" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearCurrentRealizationRunID() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearCurrentRealizationRunID()
+	return _u
+}
+
 // SetStatusDetailed sets the "status_detailed" field.
 func (_u *ChargeFlatFeeUpdateOne) SetStatusDetailed(v flatfee.Status) *ChargeFlatFeeUpdateOne {
 	_u.mutation.SetStatusDetailed(v)
@@ -1398,14 +1574,14 @@ func (_u *ChargeFlatFeeUpdateOne) SetNillableStatusDetailed(v *flatfee.Status) *
 	return _u
 }
 
-// AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeCreditAllocations entity by IDs.
+// AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeRunCreditAllocations entity by IDs.
 func (_u *ChargeFlatFeeUpdateOne) AddCreditAllocationIDs(ids ...string) *ChargeFlatFeeUpdateOne {
 	_u.mutation.AddCreditAllocationIDs(ids...)
 	return _u
 }
 
-// AddCreditAllocations adds the "credit_allocations" edges to the ChargeFlatFeeCreditAllocations entity.
-func (_u *ChargeFlatFeeUpdateOne) AddCreditAllocations(v ...*ChargeFlatFeeCreditAllocations) *ChargeFlatFeeUpdateOne {
+// AddCreditAllocations adds the "credit_allocations" edges to the ChargeFlatFeeRunCreditAllocations entity.
+func (_u *ChargeFlatFeeUpdateOne) AddCreditAllocations(v ...*ChargeFlatFeeRunCreditAllocations) *ChargeFlatFeeUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -1413,14 +1589,14 @@ func (_u *ChargeFlatFeeUpdateOne) AddCreditAllocations(v ...*ChargeFlatFeeCredit
 	return _u.AddCreditAllocationIDs(ids...)
 }
 
-// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeFlatFeeDetailedLine entity by IDs.
+// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity by IDs.
 func (_u *ChargeFlatFeeUpdateOne) AddDetailedLineIDs(ids ...string) *ChargeFlatFeeUpdateOne {
 	_u.mutation.AddDetailedLineIDs(ids...)
 	return _u
 }
 
-// AddDetailedLines adds the "detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
-func (_u *ChargeFlatFeeUpdateOne) AddDetailedLines(v ...*ChargeFlatFeeDetailedLine) *ChargeFlatFeeUpdateOne {
+// AddDetailedLines adds the "detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
+func (_u *ChargeFlatFeeUpdateOne) AddDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *ChargeFlatFeeUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -1428,13 +1604,13 @@ func (_u *ChargeFlatFeeUpdateOne) AddDetailedLines(v ...*ChargeFlatFeeDetailedLi
 	return _u.AddDetailedLineIDs(ids...)
 }
 
-// SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity by ID.
+// SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity by ID.
 func (_u *ChargeFlatFeeUpdateOne) SetInvoicedUsageID(id string) *ChargeFlatFeeUpdateOne {
 	_u.mutation.SetInvoicedUsageID(id)
 	return _u
 }
 
-// SetNillableInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity by ID if the given value is not nil.
+// SetNillableInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity by ID if the given value is not nil.
 func (_u *ChargeFlatFeeUpdateOne) SetNillableInvoicedUsageID(id *string) *ChargeFlatFeeUpdateOne {
 	if id != nil {
 		_u = _u.SetInvoicedUsageID(*id)
@@ -1442,18 +1618,18 @@ func (_u *ChargeFlatFeeUpdateOne) SetNillableInvoicedUsageID(id *string) *Charge
 	return _u
 }
 
-// SetInvoicedUsage sets the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity.
-func (_u *ChargeFlatFeeUpdateOne) SetInvoicedUsage(v *ChargeFlatFeeInvoicedUsage) *ChargeFlatFeeUpdateOne {
+// SetInvoicedUsage sets the "invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity.
+func (_u *ChargeFlatFeeUpdateOne) SetInvoicedUsage(v *ChargeFlatFeeRunInvoicedUsage) *ChargeFlatFeeUpdateOne {
 	return _u.SetInvoicedUsageID(v.ID)
 }
 
-// SetPaymentID sets the "payment" edge to the ChargeFlatFeePayment entity by ID.
+// SetPaymentID sets the "payment" edge to the ChargeFlatFeeRunPayment entity by ID.
 func (_u *ChargeFlatFeeUpdateOne) SetPaymentID(id string) *ChargeFlatFeeUpdateOne {
 	_u.mutation.SetPaymentID(id)
 	return _u
 }
 
-// SetNillablePaymentID sets the "payment" edge to the ChargeFlatFeePayment entity by ID if the given value is not nil.
+// SetNillablePaymentID sets the "payment" edge to the ChargeFlatFeeRunPayment entity by ID if the given value is not nil.
 func (_u *ChargeFlatFeeUpdateOne) SetNillablePaymentID(id *string) *ChargeFlatFeeUpdateOne {
 	if id != nil {
 		_u = _u.SetPaymentID(*id)
@@ -1461,9 +1637,43 @@ func (_u *ChargeFlatFeeUpdateOne) SetNillablePaymentID(id *string) *ChargeFlatFe
 	return _u
 }
 
-// SetPayment sets the "payment" edge to the ChargeFlatFeePayment entity.
-func (_u *ChargeFlatFeeUpdateOne) SetPayment(v *ChargeFlatFeePayment) *ChargeFlatFeeUpdateOne {
+// SetPayment sets the "payment" edge to the ChargeFlatFeeRunPayment entity.
+func (_u *ChargeFlatFeeUpdateOne) SetPayment(v *ChargeFlatFeeRunPayment) *ChargeFlatFeeUpdateOne {
 	return _u.SetPaymentID(v.ID)
+}
+
+// AddRunIDs adds the "runs" edge to the ChargeFlatFeeRun entity by IDs.
+func (_u *ChargeFlatFeeUpdateOne) AddRunIDs(ids ...string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.AddRunIDs(ids...)
+	return _u
+}
+
+// AddRuns adds the "runs" edges to the ChargeFlatFeeRun entity.
+func (_u *ChargeFlatFeeUpdateOne) AddRuns(v ...*ChargeFlatFeeRun) *ChargeFlatFeeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddRunIDs(ids...)
+}
+
+// SetCurrentRunID sets the "current_run" edge to the ChargeFlatFeeRun entity by ID.
+func (_u *ChargeFlatFeeUpdateOne) SetCurrentRunID(id string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetCurrentRunID(id)
+	return _u
+}
+
+// SetNillableCurrentRunID sets the "current_run" edge to the ChargeFlatFeeRun entity by ID if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableCurrentRunID(id *string) *ChargeFlatFeeUpdateOne {
+	if id != nil {
+		_u = _u.SetCurrentRunID(*id)
+	}
+	return _u
+}
+
+// SetCurrentRun sets the "current_run" edge to the ChargeFlatFeeRun entity.
+func (_u *ChargeFlatFeeUpdateOne) SetCurrentRun(v *ChargeFlatFeeRun) *ChargeFlatFeeUpdateOne {
+	return _u.SetCurrentRunID(v.ID)
 }
 
 // SetFeature sets the "feature" edge to the Feature entity.
@@ -1481,20 +1691,20 @@ func (_u *ChargeFlatFeeUpdateOne) Mutation() *ChargeFlatFeeMutation {
 	return _u.mutation
 }
 
-// ClearCreditAllocations clears all "credit_allocations" edges to the ChargeFlatFeeCreditAllocations entity.
+// ClearCreditAllocations clears all "credit_allocations" edges to the ChargeFlatFeeRunCreditAllocations entity.
 func (_u *ChargeFlatFeeUpdateOne) ClearCreditAllocations() *ChargeFlatFeeUpdateOne {
 	_u.mutation.ClearCreditAllocations()
 	return _u
 }
 
-// RemoveCreditAllocationIDs removes the "credit_allocations" edge to ChargeFlatFeeCreditAllocations entities by IDs.
+// RemoveCreditAllocationIDs removes the "credit_allocations" edge to ChargeFlatFeeRunCreditAllocations entities by IDs.
 func (_u *ChargeFlatFeeUpdateOne) RemoveCreditAllocationIDs(ids ...string) *ChargeFlatFeeUpdateOne {
 	_u.mutation.RemoveCreditAllocationIDs(ids...)
 	return _u
 }
 
-// RemoveCreditAllocations removes "credit_allocations" edges to ChargeFlatFeeCreditAllocations entities.
-func (_u *ChargeFlatFeeUpdateOne) RemoveCreditAllocations(v ...*ChargeFlatFeeCreditAllocations) *ChargeFlatFeeUpdateOne {
+// RemoveCreditAllocations removes "credit_allocations" edges to ChargeFlatFeeRunCreditAllocations entities.
+func (_u *ChargeFlatFeeUpdateOne) RemoveCreditAllocations(v ...*ChargeFlatFeeRunCreditAllocations) *ChargeFlatFeeUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -1502,20 +1712,20 @@ func (_u *ChargeFlatFeeUpdateOne) RemoveCreditAllocations(v ...*ChargeFlatFeeCre
 	return _u.RemoveCreditAllocationIDs(ids...)
 }
 
-// ClearDetailedLines clears all "detailed_lines" edges to the ChargeFlatFeeDetailedLine entity.
+// ClearDetailedLines clears all "detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
 func (_u *ChargeFlatFeeUpdateOne) ClearDetailedLines() *ChargeFlatFeeUpdateOne {
 	_u.mutation.ClearDetailedLines()
 	return _u
 }
 
-// RemoveDetailedLineIDs removes the "detailed_lines" edge to ChargeFlatFeeDetailedLine entities by IDs.
+// RemoveDetailedLineIDs removes the "detailed_lines" edge to ChargeFlatFeeRunDetailedLine entities by IDs.
 func (_u *ChargeFlatFeeUpdateOne) RemoveDetailedLineIDs(ids ...string) *ChargeFlatFeeUpdateOne {
 	_u.mutation.RemoveDetailedLineIDs(ids...)
 	return _u
 }
 
-// RemoveDetailedLines removes "detailed_lines" edges to ChargeFlatFeeDetailedLine entities.
-func (_u *ChargeFlatFeeUpdateOne) RemoveDetailedLines(v ...*ChargeFlatFeeDetailedLine) *ChargeFlatFeeUpdateOne {
+// RemoveDetailedLines removes "detailed_lines" edges to ChargeFlatFeeRunDetailedLine entities.
+func (_u *ChargeFlatFeeUpdateOne) RemoveDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *ChargeFlatFeeUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -1523,15 +1733,42 @@ func (_u *ChargeFlatFeeUpdateOne) RemoveDetailedLines(v ...*ChargeFlatFeeDetaile
 	return _u.RemoveDetailedLineIDs(ids...)
 }
 
-// ClearInvoicedUsage clears the "invoiced_usage" edge to the ChargeFlatFeeInvoicedUsage entity.
+// ClearInvoicedUsage clears the "invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity.
 func (_u *ChargeFlatFeeUpdateOne) ClearInvoicedUsage() *ChargeFlatFeeUpdateOne {
 	_u.mutation.ClearInvoicedUsage()
 	return _u
 }
 
-// ClearPayment clears the "payment" edge to the ChargeFlatFeePayment entity.
+// ClearPayment clears the "payment" edge to the ChargeFlatFeeRunPayment entity.
 func (_u *ChargeFlatFeeUpdateOne) ClearPayment() *ChargeFlatFeeUpdateOne {
 	_u.mutation.ClearPayment()
+	return _u
+}
+
+// ClearRuns clears all "runs" edges to the ChargeFlatFeeRun entity.
+func (_u *ChargeFlatFeeUpdateOne) ClearRuns() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearRuns()
+	return _u
+}
+
+// RemoveRunIDs removes the "runs" edge to ChargeFlatFeeRun entities by IDs.
+func (_u *ChargeFlatFeeUpdateOne) RemoveRunIDs(ids ...string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.RemoveRunIDs(ids...)
+	return _u
+}
+
+// RemoveRuns removes "runs" edges to ChargeFlatFeeRun entities.
+func (_u *ChargeFlatFeeUpdateOne) RemoveRuns(v ...*ChargeFlatFeeRun) *ChargeFlatFeeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveRunIDs(ids...)
+}
+
+// ClearCurrentRun clears the "current_run" edge to the ChargeFlatFeeRun entity.
+func (_u *ChargeFlatFeeUpdateOne) ClearCurrentRun() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearCurrentRun()
 	return _u
 }
 
@@ -1784,7 +2021,7 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Columns: []string{chargeflatfee.CreditAllocationsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1797,7 +2034,7 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Columns: []string{chargeflatfee.CreditAllocationsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1813,7 +2050,7 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Columns: []string{chargeflatfee.CreditAllocationsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecreditallocations.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1829,7 +2066,7 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Columns: []string{chargeflatfee.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1842,7 +2079,7 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Columns: []string{chargeflatfee.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1858,7 +2095,7 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Columns: []string{chargeflatfee.DetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeedetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1874,7 +2111,7 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Columns: []string{chargeflatfee.InvoicedUsageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1887,7 +2124,7 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Columns: []string{chargeflatfee.InvoicedUsageColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1903,7 +2140,7 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Columns: []string{chargeflatfee.PaymentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeepayment.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunpayment.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1916,7 +2153,81 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Columns: []string{chargeflatfee.PaymentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeepayment.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunpayment.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.RunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.RunsTable,
+			Columns: []string{chargeflatfee.RunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedRunsIDs(); len(nodes) > 0 && !_u.mutation.RunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.RunsTable,
+			Columns: []string{chargeflatfee.RunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RunsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.RunsTable,
+			Columns: []string{chargeflatfee.RunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CurrentRunCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeflatfee.CurrentRunTable,
+			Columns: []string{chargeflatfee.CurrentRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CurrentRunIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeflatfee.CurrentRunTable,
+			Columns: []string{chargeflatfee.CurrentRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

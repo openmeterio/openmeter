@@ -1261,323 +1261,375 @@ func (e *ChargeFlatFee) GetDescription() *string {
 	return e.Description
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetID() string {
+func (e *ChargeFlatFeeRun) GetID() string {
 	return e.ID
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetLineID() *string {
-	return e.LineID
+func (e *ChargeFlatFeeRun) GetNamespace() string {
+	return e.Namespace
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetAmount() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRun) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeFlatFeeRun) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeFlatFeeRun) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeFlatFeeRun) GetAmount() alpacadecimal.Decimal {
 	return e.Amount
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetServicePeriodFrom() time.Time {
+func (e *ChargeFlatFeeRun) GetTaxesTotal() alpacadecimal.Decimal {
+	return e.TaxesTotal
+}
+
+func (e *ChargeFlatFeeRun) GetTaxesInclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesInclusiveTotal
+}
+
+func (e *ChargeFlatFeeRun) GetTaxesExclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesExclusiveTotal
+}
+
+func (e *ChargeFlatFeeRun) GetChargesTotal() alpacadecimal.Decimal {
+	return e.ChargesTotal
+}
+
+func (e *ChargeFlatFeeRun) GetDiscountsTotal() alpacadecimal.Decimal {
+	return e.DiscountsTotal
+}
+
+func (e *ChargeFlatFeeRun) GetCreditsTotal() alpacadecimal.Decimal {
+	return e.CreditsTotal
+}
+
+func (e *ChargeFlatFeeRun) GetTotal() alpacadecimal.Decimal {
+	return e.Total
+}
+
+func (e *ChargeFlatFeeRunCreditAllocations) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeFlatFeeRunCreditAllocations) GetLineID() *string {
+	return e.LineID
+}
+
+func (e *ChargeFlatFeeRunCreditAllocations) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeFlatFeeRunCreditAllocations) GetServicePeriodFrom() time.Time {
 	return e.ServicePeriodFrom
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetServicePeriodTo() time.Time {
+func (e *ChargeFlatFeeRunCreditAllocations) GetServicePeriodTo() time.Time {
 	return e.ServicePeriodTo
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetLedgerTransactionGroupID() string {
+func (e *ChargeFlatFeeRunCreditAllocations) GetLedgerTransactionGroupID() string {
 	return e.LedgerTransactionGroupID
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetSortHint() int {
+func (e *ChargeFlatFeeRunCreditAllocations) GetSortHint() int {
 	return e.SortHint
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetType() creditrealization.Type {
+func (e *ChargeFlatFeeRunCreditAllocations) GetType() creditrealization.Type {
 	return e.Type
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetCorrectsRealizationID() *string {
+func (e *ChargeFlatFeeRunCreditAllocations) GetCorrectsRealizationID() *string {
 	return e.CorrectsRealizationID
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetNamespace() string {
+func (e *ChargeFlatFeeRunCreditAllocations) GetNamespace() string {
 	return e.Namespace
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetCreatedAt() time.Time {
+func (e *ChargeFlatFeeRunCreditAllocations) GetCreatedAt() time.Time {
 	return e.CreatedAt
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetUpdatedAt() time.Time {
+func (e *ChargeFlatFeeRunCreditAllocations) GetUpdatedAt() time.Time {
 	return e.UpdatedAt
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetDeletedAt() *time.Time {
+func (e *ChargeFlatFeeRunCreditAllocations) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
-func (e *ChargeFlatFeeCreditAllocations) GetAnnotations() models.Annotations {
+func (e *ChargeFlatFeeRunCreditAllocations) GetAnnotations() models.Annotations {
 	return e.Annotations
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetID() string {
+func (e *ChargeFlatFeeRunDetailedLine) GetID() string {
 	return e.ID
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetCurrency() currencyx.Code {
+func (e *ChargeFlatFeeRunDetailedLine) GetCurrency() currencyx.Code {
 	return e.Currency
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetTaxConfig() productcatalog.TaxConfig {
+func (e *ChargeFlatFeeRunDetailedLine) GetTaxConfig() productcatalog.TaxConfig {
 	return e.TaxConfig
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetTaxCodeID() *string {
+func (e *ChargeFlatFeeRunDetailedLine) GetTaxCodeID() *string {
 	return e.TaxCodeID
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetTaxBehavior() *productcatalog.TaxBehavior {
+func (e *ChargeFlatFeeRunDetailedLine) GetTaxBehavior() *productcatalog.TaxBehavior {
 	return e.TaxBehavior
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetServicePeriodStart() time.Time {
+func (e *ChargeFlatFeeRunDetailedLine) GetServicePeriodStart() time.Time {
 	return e.ServicePeriodStart
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetServicePeriodEnd() time.Time {
+func (e *ChargeFlatFeeRunDetailedLine) GetServicePeriodEnd() time.Time {
 	return e.ServicePeriodEnd
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetQuantity() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunDetailedLine) GetQuantity() alpacadecimal.Decimal {
 	return e.Quantity
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetInvoicingAppExternalID() *string {
+func (e *ChargeFlatFeeRunDetailedLine) GetInvoicingAppExternalID() *string {
 	return e.InvoicingAppExternalID
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetChildUniqueReferenceID() string {
+func (e *ChargeFlatFeeRunDetailedLine) GetChildUniqueReferenceID() string {
 	return e.ChildUniqueReferenceID
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetPerUnitAmount() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunDetailedLine) GetPerUnitAmount() alpacadecimal.Decimal {
 	return e.PerUnitAmount
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetCategory() stddetailedline.Category {
+func (e *ChargeFlatFeeRunDetailedLine) GetCategory() stddetailedline.Category {
 	return e.Category
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetPaymentTerm() productcatalog.PaymentTermType {
+func (e *ChargeFlatFeeRunDetailedLine) GetPaymentTerm() productcatalog.PaymentTermType {
 	return e.PaymentTerm
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetIndex() *int {
+func (e *ChargeFlatFeeRunDetailedLine) GetIndex() *int {
 	return e.Index
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetCreditsApplied() *creditsapplied.CreditsApplied {
+func (e *ChargeFlatFeeRunDetailedLine) GetCreditsApplied() *creditsapplied.CreditsApplied {
 	return e.CreditsApplied
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetAnnotations() models.Annotations {
+func (e *ChargeFlatFeeRunDetailedLine) GetAnnotations() models.Annotations {
 	return e.Annotations
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetNamespace() string {
+func (e *ChargeFlatFeeRunDetailedLine) GetNamespace() string {
 	return e.Namespace
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetMetadata() map[string]string {
+func (e *ChargeFlatFeeRunDetailedLine) GetMetadata() map[string]string {
 	return e.Metadata
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetCreatedAt() time.Time {
+func (e *ChargeFlatFeeRunDetailedLine) GetCreatedAt() time.Time {
 	return e.CreatedAt
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetUpdatedAt() time.Time {
+func (e *ChargeFlatFeeRunDetailedLine) GetUpdatedAt() time.Time {
 	return e.UpdatedAt
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetDeletedAt() *time.Time {
+func (e *ChargeFlatFeeRunDetailedLine) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetName() string {
+func (e *ChargeFlatFeeRunDetailedLine) GetName() string {
 	return e.Name
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetDescription() *string {
+func (e *ChargeFlatFeeRunDetailedLine) GetDescription() *string {
 	return e.Description
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetAmount() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunDetailedLine) GetAmount() alpacadecimal.Decimal {
 	return e.Amount
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetTaxesTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunDetailedLine) GetTaxesTotal() alpacadecimal.Decimal {
 	return e.TaxesTotal
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetTaxesInclusiveTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunDetailedLine) GetTaxesInclusiveTotal() alpacadecimal.Decimal {
 	return e.TaxesInclusiveTotal
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetTaxesExclusiveTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunDetailedLine) GetTaxesExclusiveTotal() alpacadecimal.Decimal {
 	return e.TaxesExclusiveTotal
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetChargesTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunDetailedLine) GetChargesTotal() alpacadecimal.Decimal {
 	return e.ChargesTotal
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetDiscountsTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunDetailedLine) GetDiscountsTotal() alpacadecimal.Decimal {
 	return e.DiscountsTotal
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetCreditsTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunDetailedLine) GetCreditsTotal() alpacadecimal.Decimal {
 	return e.CreditsTotal
 }
 
-func (e *ChargeFlatFeeDetailedLine) GetTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunDetailedLine) GetTotal() alpacadecimal.Decimal {
 	return e.Total
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetID() string {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetID() string {
 	return e.ID
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetLineID() *string {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetLineID() *string {
 	return e.LineID
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetServicePeriodFrom() time.Time {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetServicePeriodFrom() time.Time {
 	return e.ServicePeriodFrom
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetServicePeriodTo() time.Time {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetServicePeriodTo() time.Time {
 	return e.ServicePeriodTo
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetMutable() bool {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetMutable() bool {
 	return e.Mutable
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetLedgerTransactionGroupID() *string {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetLedgerTransactionGroupID() *string {
 	return e.LedgerTransactionGroupID
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetNamespace() string {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetNamespace() string {
 	return e.Namespace
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetCreatedAt() time.Time {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetCreatedAt() time.Time {
 	return e.CreatedAt
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetUpdatedAt() time.Time {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetUpdatedAt() time.Time {
 	return e.UpdatedAt
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetDeletedAt() *time.Time {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetAnnotations() models.Annotations {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetAnnotations() models.Annotations {
 	return e.Annotations
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetAmount() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetAmount() alpacadecimal.Decimal {
 	return e.Amount
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetTaxesTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetTaxesTotal() alpacadecimal.Decimal {
 	return e.TaxesTotal
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetTaxesInclusiveTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetTaxesInclusiveTotal() alpacadecimal.Decimal {
 	return e.TaxesInclusiveTotal
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetTaxesExclusiveTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetTaxesExclusiveTotal() alpacadecimal.Decimal {
 	return e.TaxesExclusiveTotal
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetChargesTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetChargesTotal() alpacadecimal.Decimal {
 	return e.ChargesTotal
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetDiscountsTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetDiscountsTotal() alpacadecimal.Decimal {
 	return e.DiscountsTotal
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetCreditsTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetCreditsTotal() alpacadecimal.Decimal {
 	return e.CreditsTotal
 }
 
-func (e *ChargeFlatFeeInvoicedUsage) GetTotal() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunInvoicedUsage) GetTotal() alpacadecimal.Decimal {
 	return e.Total
 }
 
-func (e *ChargeFlatFeePayment) GetID() string {
+func (e *ChargeFlatFeeRunPayment) GetID() string {
 	return e.ID
 }
 
-func (e *ChargeFlatFeePayment) GetLineID() string {
+func (e *ChargeFlatFeeRunPayment) GetLineID() string {
 	return e.LineID
 }
 
-func (e *ChargeFlatFeePayment) GetInvoiceID() string {
+func (e *ChargeFlatFeeRunPayment) GetInvoiceID() string {
 	return e.InvoiceID
 }
 
-func (e *ChargeFlatFeePayment) GetServicePeriodFrom() time.Time {
+func (e *ChargeFlatFeeRunPayment) GetServicePeriodFrom() time.Time {
 	return e.ServicePeriodFrom
 }
 
-func (e *ChargeFlatFeePayment) GetServicePeriodTo() time.Time {
+func (e *ChargeFlatFeeRunPayment) GetServicePeriodTo() time.Time {
 	return e.ServicePeriodTo
 }
 
-func (e *ChargeFlatFeePayment) GetStatus() payment.Status {
+func (e *ChargeFlatFeeRunPayment) GetStatus() payment.Status {
 	return e.Status
 }
 
-func (e *ChargeFlatFeePayment) GetAmount() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeRunPayment) GetAmount() alpacadecimal.Decimal {
 	return e.Amount
 }
 
-func (e *ChargeFlatFeePayment) GetAuthorizedTransactionGroupID() *string {
+func (e *ChargeFlatFeeRunPayment) GetAuthorizedTransactionGroupID() *string {
 	return e.AuthorizedTransactionGroupID
 }
 
-func (e *ChargeFlatFeePayment) GetAuthorizedAt() *time.Time {
+func (e *ChargeFlatFeeRunPayment) GetAuthorizedAt() *time.Time {
 	return e.AuthorizedAt
 }
 
-func (e *ChargeFlatFeePayment) GetSettledTransactionGroupID() *string {
+func (e *ChargeFlatFeeRunPayment) GetSettledTransactionGroupID() *string {
 	return e.SettledTransactionGroupID
 }
 
-func (e *ChargeFlatFeePayment) GetSettledAt() *time.Time {
+func (e *ChargeFlatFeeRunPayment) GetSettledAt() *time.Time {
 	return e.SettledAt
 }
 
-func (e *ChargeFlatFeePayment) GetNamespace() string {
+func (e *ChargeFlatFeeRunPayment) GetNamespace() string {
 	return e.Namespace
 }
 
-func (e *ChargeFlatFeePayment) GetCreatedAt() time.Time {
+func (e *ChargeFlatFeeRunPayment) GetCreatedAt() time.Time {
 	return e.CreatedAt
 }
 
-func (e *ChargeFlatFeePayment) GetUpdatedAt() time.Time {
+func (e *ChargeFlatFeeRunPayment) GetUpdatedAt() time.Time {
 	return e.UpdatedAt
 }
 
-func (e *ChargeFlatFeePayment) GetDeletedAt() *time.Time {
+func (e *ChargeFlatFeeRunPayment) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
-func (e *ChargeFlatFeePayment) GetAnnotations() models.Annotations {
+func (e *ChargeFlatFeeRunPayment) GetAnnotations() models.Annotations {
 	return e.Annotations
 }
 
