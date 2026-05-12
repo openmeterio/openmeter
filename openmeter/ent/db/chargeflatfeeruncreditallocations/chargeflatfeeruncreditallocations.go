@@ -42,16 +42,12 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldAnnotations holds the string denoting the annotations field in the database.
 	FieldAnnotations = "annotations"
-	// FieldChargeID holds the string denoting the charge_id field in the database.
-	FieldChargeID = "charge_id"
 	// FieldRunID holds the string denoting the run_id field in the database.
 	FieldRunID = "run_id"
 	// EdgeCorrections holds the string denoting the corrections edge name in mutations.
 	EdgeCorrections = "corrections"
 	// EdgeAllocation holds the string denoting the allocation edge name in mutations.
 	EdgeAllocation = "allocation"
-	// EdgeFlatFee holds the string denoting the flat_fee edge name in mutations.
-	EdgeFlatFee = "flat_fee"
 	// EdgeRun holds the string denoting the run edge name in mutations.
 	EdgeRun = "run"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
@@ -66,13 +62,6 @@ const (
 	AllocationTable = "charge_flat_fee_run_credit_allocations"
 	// AllocationColumn is the table column denoting the allocation relation/edge.
 	AllocationColumn = "corrects_realization_id"
-	// FlatFeeTable is the table that holds the flat_fee relation/edge.
-	FlatFeeTable = "charge_flat_fee_run_credit_allocations"
-	// FlatFeeInverseTable is the table name for the ChargeFlatFee entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeflatfee" package.
-	FlatFeeInverseTable = "charge_flat_fees"
-	// FlatFeeColumn is the table column denoting the flat_fee relation/edge.
-	FlatFeeColumn = "charge_id"
 	// RunTable is the table that holds the run relation/edge.
 	RunTable = "charge_flat_fee_run_credit_allocations"
 	// RunInverseTable is the table name for the ChargeFlatFeeRun entity.
@@ -112,11 +101,6 @@ var Columns = []string{
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for _, f := range [...]string{FieldChargeID} {
-		if column == f {
 			return true
 		}
 	}
@@ -220,11 +204,6 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// ByChargeID orders the results by the charge_id field.
-func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldChargeID, opts...).ToFunc()
-}
-
 // ByRunID orders the results by the run_id field.
 func ByRunID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRunID, opts...).ToFunc()
@@ -248,13 +227,6 @@ func ByCorrections(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 func ByAllocationField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newAllocationStep(), sql.OrderByField(field, opts...))
-	}
-}
-
-// ByFlatFeeField orders the results by flat_fee field.
-func ByFlatFeeField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newFlatFeeStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -283,13 +255,6 @@ func newAllocationStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(Table, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, false, AllocationTable, AllocationColumn),
-	)
-}
-func newFlatFeeStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(FlatFeeInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, FlatFeeTable, FlatFeeColumn),
 	)
 }
 func newRunStep() *sqlgraph.Step {

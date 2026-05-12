@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -59,10 +58,6 @@ type ChargeFlatFeeRunInvoicedUsage struct {
 	CreditsTotal alpacadecimal.Decimal `json:"credits_total,omitempty"`
 	// Total holds the value of the "total" field.
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
-	// ChargeID holds the value of the "charge_id" field.
-	//
-	// Deprecated: flat-fee invoiced usage ownership is stored on run_id
-	ChargeID *string `json:"charge_id,omitempty"`
 	// RunID holds the value of the "run_id" field.
 	RunID string `json:"run_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -75,13 +70,11 @@ type ChargeFlatFeeRunInvoicedUsage struct {
 type ChargeFlatFeeRunInvoicedUsageEdges struct {
 	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
 	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
-	// FlatFee holds the value of the flat_fee edge.
-	FlatFee *ChargeFlatFee `json:"flat_fee,omitempty"`
 	// Run holds the value of the run edge.
 	Run *ChargeFlatFeeRun `json:"run,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [2]bool
 }
 
 // BillingInvoiceLineOrErr returns the BillingInvoiceLine value or an error if the edge
@@ -95,23 +88,12 @@ func (e ChargeFlatFeeRunInvoicedUsageEdges) BillingInvoiceLineOrErr() (*BillingI
 	return nil, &NotLoadedError{edge: "billing_invoice_line"}
 }
 
-// FlatFeeOrErr returns the FlatFee value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeFlatFeeRunInvoicedUsageEdges) FlatFeeOrErr() (*ChargeFlatFee, error) {
-	if e.FlatFee != nil {
-		return e.FlatFee, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: chargeflatfee.Label}
-	}
-	return nil, &NotLoadedError{edge: "flat_fee"}
-}
-
 // RunOrErr returns the Run value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeFlatFeeRunInvoicedUsageEdges) RunOrErr() (*ChargeFlatFeeRun, error) {
 	if e.Run != nil {
 		return e.Run, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: chargeflatfeerun.Label}
 	}
 	return nil, &NotLoadedError{edge: "run"}
@@ -128,7 +110,7 @@ func (*ChargeFlatFeeRunInvoicedUsage) scanValues(columns []string) ([]any, error
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeflatfeeruninvoicedusage.FieldMutable:
 			values[i] = new(sql.NullBool)
-		case chargeflatfeeruninvoicedusage.FieldID, chargeflatfeeruninvoicedusage.FieldLineID, chargeflatfeeruninvoicedusage.FieldLedgerTransactionGroupID, chargeflatfeeruninvoicedusage.FieldNamespace, chargeflatfeeruninvoicedusage.FieldChargeID, chargeflatfeeruninvoicedusage.FieldRunID:
+		case chargeflatfeeruninvoicedusage.FieldID, chargeflatfeeruninvoicedusage.FieldLineID, chargeflatfeeruninvoicedusage.FieldLedgerTransactionGroupID, chargeflatfeeruninvoicedusage.FieldNamespace, chargeflatfeeruninvoicedusage.FieldRunID:
 			values[i] = new(sql.NullString)
 		case chargeflatfeeruninvoicedusage.FieldServicePeriodFrom, chargeflatfeeruninvoicedusage.FieldServicePeriodTo, chargeflatfeeruninvoicedusage.FieldCreatedAt, chargeflatfeeruninvoicedusage.FieldUpdatedAt, chargeflatfeeruninvoicedusage.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -266,13 +248,6 @@ func (_m *ChargeFlatFeeRunInvoicedUsage) assignValues(columns []string, values [
 			} else if value != nil {
 				_m.Total = *value
 			}
-		case chargeflatfeeruninvoicedusage.FieldChargeID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field charge_id", values[i])
-			} else if value.Valid {
-				_m.ChargeID = new(string)
-				*_m.ChargeID = value.String
-			}
 		case chargeflatfeeruninvoicedusage.FieldRunID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field run_id", values[i])
@@ -295,11 +270,6 @@ func (_m *ChargeFlatFeeRunInvoicedUsage) Value(name string) (ent.Value, error) {
 // QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the ChargeFlatFeeRunInvoicedUsage entity.
 func (_m *ChargeFlatFeeRunInvoicedUsage) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
 	return NewChargeFlatFeeRunInvoicedUsageClient(_m.config).QueryBillingInvoiceLine(_m)
-}
-
-// QueryFlatFee queries the "flat_fee" edge of the ChargeFlatFeeRunInvoicedUsage entity.
-func (_m *ChargeFlatFeeRunInvoicedUsage) QueryFlatFee() *ChargeFlatFeeQuery {
-	return NewChargeFlatFeeRunInvoicedUsageClient(_m.config).QueryFlatFee(_m)
 }
 
 // QueryRun queries the "run" edge of the ChargeFlatFeeRunInvoicedUsage entity.
@@ -389,11 +359,6 @@ func (_m *ChargeFlatFeeRunInvoicedUsage) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Total))
-	builder.WriteString(", ")
-	if v := _m.ChargeID; v != nil {
-		builder.WriteString("charge_id=")
-		builder.WriteString(*v)
-	}
 	builder.WriteString(", ")
 	builder.WriteString("run_id=")
 	builder.WriteString(_m.RunID)

@@ -13,7 +13,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -87,10 +86,6 @@ type ChargeFlatFeeRunDetailedLine struct {
 	CreditsTotal alpacadecimal.Decimal `json:"credits_total,omitempty"`
 	// Total holds the value of the "total" field.
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
-	// ChargeID holds the value of the "charge_id" field.
-	//
-	// Deprecated: flat-fee realization ownership is stored on run_id
-	ChargeID *string `json:"charge_id,omitempty"`
 	// RunID holds the value of the "run_id" field.
 	RunID string `json:"run_id,omitempty"`
 	// PricerReferenceID holds the value of the "pricer_reference_id" field.
@@ -103,26 +98,13 @@ type ChargeFlatFeeRunDetailedLine struct {
 
 // ChargeFlatFeeRunDetailedLineEdges holds the relations/edges for other nodes in the graph.
 type ChargeFlatFeeRunDetailedLineEdges struct {
-	// Charge holds the value of the charge edge.
-	Charge *ChargeFlatFee `json:"charge,omitempty"`
 	// Run holds the value of the run edge.
 	Run *ChargeFlatFeeRun `json:"run,omitempty"`
 	// TaxCode holds the value of the tax_code edge.
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
-}
-
-// ChargeOrErr returns the Charge value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeFlatFeeRunDetailedLineEdges) ChargeOrErr() (*ChargeFlatFee, error) {
-	if e.Charge != nil {
-		return e.Charge, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: chargeflatfee.Label}
-	}
-	return nil, &NotLoadedError{edge: "charge"}
+	loadedTypes [2]bool
 }
 
 // RunOrErr returns the Run value or an error if the edge
@@ -130,7 +112,7 @@ func (e ChargeFlatFeeRunDetailedLineEdges) ChargeOrErr() (*ChargeFlatFee, error)
 func (e ChargeFlatFeeRunDetailedLineEdges) RunOrErr() (*ChargeFlatFeeRun, error) {
 	if e.Run != nil {
 		return e.Run, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[0] {
 		return nil, &NotFoundError{label: chargeflatfeerun.Label}
 	}
 	return nil, &NotLoadedError{edge: "run"}
@@ -141,7 +123,7 @@ func (e ChargeFlatFeeRunDetailedLineEdges) RunOrErr() (*ChargeFlatFeeRun, error)
 func (e ChargeFlatFeeRunDetailedLineEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: dbtaxcode.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_code"}
@@ -158,7 +140,7 @@ func (*ChargeFlatFeeRunDetailedLine) scanValues(columns []string) ([]any, error)
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeflatfeerundetailedline.FieldIndex:
 			values[i] = new(sql.NullInt64)
-		case chargeflatfeerundetailedline.FieldID, chargeflatfeerundetailedline.FieldCurrency, chargeflatfeerundetailedline.FieldTaxCodeID, chargeflatfeerundetailedline.FieldTaxBehavior, chargeflatfeerundetailedline.FieldInvoicingAppExternalID, chargeflatfeerundetailedline.FieldChildUniqueReferenceID, chargeflatfeerundetailedline.FieldCategory, chargeflatfeerundetailedline.FieldPaymentTerm, chargeflatfeerundetailedline.FieldNamespace, chargeflatfeerundetailedline.FieldName, chargeflatfeerundetailedline.FieldDescription, chargeflatfeerundetailedline.FieldChargeID, chargeflatfeerundetailedline.FieldRunID, chargeflatfeerundetailedline.FieldPricerReferenceID:
+		case chargeflatfeerundetailedline.FieldID, chargeflatfeerundetailedline.FieldCurrency, chargeflatfeerundetailedline.FieldTaxCodeID, chargeflatfeerundetailedline.FieldTaxBehavior, chargeflatfeerundetailedline.FieldInvoicingAppExternalID, chargeflatfeerundetailedline.FieldChildUniqueReferenceID, chargeflatfeerundetailedline.FieldCategory, chargeflatfeerundetailedline.FieldPaymentTerm, chargeflatfeerundetailedline.FieldNamespace, chargeflatfeerundetailedline.FieldName, chargeflatfeerundetailedline.FieldDescription, chargeflatfeerundetailedline.FieldRunID, chargeflatfeerundetailedline.FieldPricerReferenceID:
 			values[i] = new(sql.NullString)
 		case chargeflatfeerundetailedline.FieldServicePeriodStart, chargeflatfeerundetailedline.FieldServicePeriodEnd, chargeflatfeerundetailedline.FieldCreatedAt, chargeflatfeerundetailedline.FieldUpdatedAt, chargeflatfeerundetailedline.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -377,13 +359,6 @@ func (_m *ChargeFlatFeeRunDetailedLine) assignValues(columns []string, values []
 			} else if value != nil {
 				_m.Total = *value
 			}
-		case chargeflatfeerundetailedline.FieldChargeID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field charge_id", values[i])
-			} else if value.Valid {
-				_m.ChargeID = new(string)
-				*_m.ChargeID = value.String
-			}
 		case chargeflatfeerundetailedline.FieldRunID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field run_id", values[i])
@@ -407,11 +382,6 @@ func (_m *ChargeFlatFeeRunDetailedLine) assignValues(columns []string, values []
 // This includes values selected through modifiers, order, etc.
 func (_m *ChargeFlatFeeRunDetailedLine) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
-}
-
-// QueryCharge queries the "charge" edge of the ChargeFlatFeeRunDetailedLine entity.
-func (_m *ChargeFlatFeeRunDetailedLine) QueryCharge() *ChargeFlatFeeQuery {
-	return NewChargeFlatFeeRunDetailedLineClient(_m.config).QueryCharge(_m)
 }
 
 // QueryRun queries the "run" edge of the ChargeFlatFeeRunDetailedLine entity.
@@ -548,11 +518,6 @@ func (_m *ChargeFlatFeeRunDetailedLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Total))
-	builder.WriteString(", ")
-	if v := _m.ChargeID; v != nil {
-		builder.WriteString("charge_id=")
-		builder.WriteString(*v)
-	}
 	builder.WriteString(", ")
 	builder.WriteString("run_id=")
 	builder.WriteString(_m.RunID)

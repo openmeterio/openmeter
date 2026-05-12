@@ -19,10 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -382,74 +378,6 @@ func (_c *ChargeFlatFeeCreate) SetNillableID(v *string) *ChargeFlatFeeCreate {
 		_c.SetID(*v)
 	}
 	return _c
-}
-
-// AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeRunCreditAllocations entity by IDs.
-func (_c *ChargeFlatFeeCreate) AddCreditAllocationIDs(ids ...string) *ChargeFlatFeeCreate {
-	_c.mutation.AddCreditAllocationIDs(ids...)
-	return _c
-}
-
-// AddCreditAllocations adds the "credit_allocations" edges to the ChargeFlatFeeRunCreditAllocations entity.
-func (_c *ChargeFlatFeeCreate) AddCreditAllocations(v ...*ChargeFlatFeeRunCreditAllocations) *ChargeFlatFeeCreate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddCreditAllocationIDs(ids...)
-}
-
-// AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity by IDs.
-func (_c *ChargeFlatFeeCreate) AddDetailedLineIDs(ids ...string) *ChargeFlatFeeCreate {
-	_c.mutation.AddDetailedLineIDs(ids...)
-	return _c
-}
-
-// AddDetailedLines adds the "detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
-func (_c *ChargeFlatFeeCreate) AddDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *ChargeFlatFeeCreate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddDetailedLineIDs(ids...)
-}
-
-// SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity by ID.
-func (_c *ChargeFlatFeeCreate) SetInvoicedUsageID(id string) *ChargeFlatFeeCreate {
-	_c.mutation.SetInvoicedUsageID(id)
-	return _c
-}
-
-// SetNillableInvoicedUsageID sets the "invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity by ID if the given value is not nil.
-func (_c *ChargeFlatFeeCreate) SetNillableInvoicedUsageID(id *string) *ChargeFlatFeeCreate {
-	if id != nil {
-		_c = _c.SetInvoicedUsageID(*id)
-	}
-	return _c
-}
-
-// SetInvoicedUsage sets the "invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity.
-func (_c *ChargeFlatFeeCreate) SetInvoicedUsage(v *ChargeFlatFeeRunInvoicedUsage) *ChargeFlatFeeCreate {
-	return _c.SetInvoicedUsageID(v.ID)
-}
-
-// SetPaymentID sets the "payment" edge to the ChargeFlatFeeRunPayment entity by ID.
-func (_c *ChargeFlatFeeCreate) SetPaymentID(id string) *ChargeFlatFeeCreate {
-	_c.mutation.SetPaymentID(id)
-	return _c
-}
-
-// SetNillablePaymentID sets the "payment" edge to the ChargeFlatFeeRunPayment entity by ID if the given value is not nil.
-func (_c *ChargeFlatFeeCreate) SetNillablePaymentID(id *string) *ChargeFlatFeeCreate {
-	if id != nil {
-		_c = _c.SetPaymentID(*id)
-	}
-	return _c
-}
-
-// SetPayment sets the "payment" edge to the ChargeFlatFeeRunPayment entity.
-func (_c *ChargeFlatFeeCreate) SetPayment(v *ChargeFlatFeeRunPayment) *ChargeFlatFeeCreate {
-	return _c.SetPaymentID(v.ID)
 }
 
 // AddRunIDs adds the "runs" edge to the ChargeFlatFeeRun entity by IDs.
@@ -870,70 +798,6 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargeflatfee.FieldStatusDetailed, field.TypeEnum, value)
 		_node.StatusDetailed = value
-	}
-	if nodes := _c.mutation.CreditAllocationsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   chargeflatfee.CreditAllocationsTable,
-			Columns: []string{chargeflatfee.CreditAllocationsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.DetailedLinesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   chargeflatfee.DetailedLinesTable,
-			Columns: []string{chargeflatfee.DetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.InvoicedUsageIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   chargeflatfee.InvoicedUsageTable,
-			Columns: []string{chargeflatfee.InvoicedUsageColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruninvoicedusage.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.PaymentIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   chargeflatfee.PaymentTable,
-			Columns: []string{chargeflatfee.PaymentColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunpayment.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.RunsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

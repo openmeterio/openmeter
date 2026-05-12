@@ -14,7 +14,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -29,7 +28,6 @@ type ChargeFlatFeeRunCreditAllocationsQuery struct {
 	predicates             []predicate.ChargeFlatFeeRunCreditAllocations
 	withCorrections        *ChargeFlatFeeRunCreditAllocationsQuery
 	withAllocation         *ChargeFlatFeeRunCreditAllocationsQuery
-	withFlatFee            *ChargeFlatFeeQuery
 	withRun                *ChargeFlatFeeRunQuery
 	withBillingInvoiceLine *BillingInvoiceLineQuery
 	modifiers              []func(*sql.Selector)
@@ -106,28 +104,6 @@ func (_q *ChargeFlatFeeRunCreditAllocationsQuery) QueryAllocation() *ChargeFlatF
 			sqlgraph.From(chargeflatfeeruncreditallocations.Table, chargeflatfeeruncreditallocations.FieldID, selector),
 			sqlgraph.To(chargeflatfeeruncreditallocations.Table, chargeflatfeeruncreditallocations.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, chargeflatfeeruncreditallocations.AllocationTable, chargeflatfeeruncreditallocations.AllocationColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryFlatFee chains the current query on the "flat_fee" edge.
-func (_q *ChargeFlatFeeRunCreditAllocationsQuery) QueryFlatFee() *ChargeFlatFeeQuery {
-	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeflatfeeruncreditallocations.Table, chargeflatfeeruncreditallocations.FieldID, selector),
-			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfeeruncreditallocations.FlatFeeTable, chargeflatfeeruncreditallocations.FlatFeeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -373,7 +349,6 @@ func (_q *ChargeFlatFeeRunCreditAllocationsQuery) Clone() *ChargeFlatFeeRunCredi
 		predicates:             append([]predicate.ChargeFlatFeeRunCreditAllocations{}, _q.predicates...),
 		withCorrections:        _q.withCorrections.Clone(),
 		withAllocation:         _q.withAllocation.Clone(),
-		withFlatFee:            _q.withFlatFee.Clone(),
 		withRun:                _q.withRun.Clone(),
 		withBillingInvoiceLine: _q.withBillingInvoiceLine.Clone(),
 		// clone intermediate query.
@@ -401,17 +376,6 @@ func (_q *ChargeFlatFeeRunCreditAllocationsQuery) WithAllocation(opts ...func(*C
 		opt(query)
 	}
 	_q.withAllocation = query
-	return _q
-}
-
-// WithFlatFee tells the query-builder to eager-load the nodes that are connected to
-// the "flat_fee" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ChargeFlatFeeRunCreditAllocationsQuery) WithFlatFee(opts ...func(*ChargeFlatFeeQuery)) *ChargeFlatFeeRunCreditAllocationsQuery {
-	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withFlatFee = query
 	return _q
 }
 
@@ -515,10 +479,9 @@ func (_q *ChargeFlatFeeRunCreditAllocationsQuery) sqlAll(ctx context.Context, ho
 	var (
 		nodes       = []*ChargeFlatFeeRunCreditAllocations{}
 		_spec       = _q.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [4]bool{
 			_q.withCorrections != nil,
 			_q.withAllocation != nil,
-			_q.withFlatFee != nil,
 			_q.withRun != nil,
 			_q.withBillingInvoiceLine != nil,
 		}
@@ -560,12 +523,6 @@ func (_q *ChargeFlatFeeRunCreditAllocationsQuery) sqlAll(ctx context.Context, ho
 			func(n *ChargeFlatFeeRunCreditAllocations, e *ChargeFlatFeeRunCreditAllocations) {
 				n.Edges.Allocation = e
 			}); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withFlatFee; query != nil {
-		if err := _q.loadFlatFee(ctx, query, nodes, nil,
-			func(n *ChargeFlatFeeRunCreditAllocations, e *ChargeFlatFee) { n.Edges.FlatFee = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -642,38 +599,6 @@ func (_q *ChargeFlatFeeRunCreditAllocationsQuery) loadAllocation(ctx context.Con
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "corrects_realization_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (_q *ChargeFlatFeeRunCreditAllocationsQuery) loadFlatFee(ctx context.Context, query *ChargeFlatFeeQuery, nodes []*ChargeFlatFeeRunCreditAllocations, init func(*ChargeFlatFeeRunCreditAllocations), assign func(*ChargeFlatFeeRunCreditAllocations, *ChargeFlatFee)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*ChargeFlatFeeRunCreditAllocations)
-	for i := range nodes {
-		if nodes[i].ChargeID == nil {
-			continue
-		}
-		fk := *nodes[i].ChargeID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(chargeflatfee.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "charge_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -773,9 +698,6 @@ func (_q *ChargeFlatFeeRunCreditAllocationsQuery) querySpec() *sqlgraph.QuerySpe
 		}
 		if _q.withAllocation != nil {
 			_spec.Node.AddColumnOnce(chargeflatfeeruncreditallocations.FieldCorrectsRealizationID)
-		}
-		if _q.withFlatFee != nil {
-			_spec.Node.AddColumnOnce(chargeflatfeeruncreditallocations.FieldChargeID)
 		}
 		if _q.withRun != nil {
 			_spec.Node.AddColumnOnce(chargeflatfeeruncreditallocations.FieldRunID)

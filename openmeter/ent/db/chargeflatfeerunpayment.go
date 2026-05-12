@@ -13,7 +13,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -54,10 +53,6 @@ type ChargeFlatFeeRunPayment struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Annotations holds the value of the "annotations" field.
 	Annotations models.Annotations `json:"annotations,omitempty"`
-	// ChargeID holds the value of the "charge_id" field.
-	//
-	// Deprecated: flat-fee payment ownership is stored on run_id
-	ChargeID *string `json:"charge_id,omitempty"`
 	// RunID holds the value of the "run_id" field.
 	RunID string `json:"run_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -70,13 +65,11 @@ type ChargeFlatFeeRunPayment struct {
 type ChargeFlatFeeRunPaymentEdges struct {
 	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
 	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
-	// FlatFee holds the value of the flat_fee edge.
-	FlatFee *ChargeFlatFee `json:"flat_fee,omitempty"`
 	// Run holds the value of the run edge.
 	Run *ChargeFlatFeeRun `json:"run,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [2]bool
 }
 
 // BillingInvoiceLineOrErr returns the BillingInvoiceLine value or an error if the edge
@@ -90,23 +83,12 @@ func (e ChargeFlatFeeRunPaymentEdges) BillingInvoiceLineOrErr() (*BillingInvoice
 	return nil, &NotLoadedError{edge: "billing_invoice_line"}
 }
 
-// FlatFeeOrErr returns the FlatFee value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeFlatFeeRunPaymentEdges) FlatFeeOrErr() (*ChargeFlatFee, error) {
-	if e.FlatFee != nil {
-		return e.FlatFee, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: chargeflatfee.Label}
-	}
-	return nil, &NotLoadedError{edge: "flat_fee"}
-}
-
 // RunOrErr returns the Run value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeFlatFeeRunPaymentEdges) RunOrErr() (*ChargeFlatFeeRun, error) {
 	if e.Run != nil {
 		return e.Run, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: chargeflatfeerun.Label}
 	}
 	return nil, &NotLoadedError{edge: "run"}
@@ -121,7 +103,7 @@ func (*ChargeFlatFeeRunPayment) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case chargeflatfeerunpayment.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeflatfeerunpayment.FieldID, chargeflatfeerunpayment.FieldLineID, chargeflatfeerunpayment.FieldInvoiceID, chargeflatfeerunpayment.FieldStatus, chargeflatfeerunpayment.FieldAuthorizedTransactionGroupID, chargeflatfeerunpayment.FieldSettledTransactionGroupID, chargeflatfeerunpayment.FieldNamespace, chargeflatfeerunpayment.FieldChargeID, chargeflatfeerunpayment.FieldRunID:
+		case chargeflatfeerunpayment.FieldID, chargeflatfeerunpayment.FieldLineID, chargeflatfeerunpayment.FieldInvoiceID, chargeflatfeerunpayment.FieldStatus, chargeflatfeerunpayment.FieldAuthorizedTransactionGroupID, chargeflatfeerunpayment.FieldSettledTransactionGroupID, chargeflatfeerunpayment.FieldNamespace, chargeflatfeerunpayment.FieldRunID:
 			values[i] = new(sql.NullString)
 		case chargeflatfeerunpayment.FieldServicePeriodFrom, chargeflatfeerunpayment.FieldServicePeriodTo, chargeflatfeerunpayment.FieldAuthorizedAt, chargeflatfeerunpayment.FieldSettledAt, chargeflatfeerunpayment.FieldCreatedAt, chargeflatfeerunpayment.FieldUpdatedAt, chargeflatfeerunpayment.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -243,13 +225,6 @@ func (_m *ChargeFlatFeeRunPayment) assignValues(columns []string, values []any) 
 					return fmt.Errorf("unmarshal field annotations: %w", err)
 				}
 			}
-		case chargeflatfeerunpayment.FieldChargeID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field charge_id", values[i])
-			} else if value.Valid {
-				_m.ChargeID = new(string)
-				*_m.ChargeID = value.String
-			}
 		case chargeflatfeerunpayment.FieldRunID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field run_id", values[i])
@@ -272,11 +247,6 @@ func (_m *ChargeFlatFeeRunPayment) Value(name string) (ent.Value, error) {
 // QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the ChargeFlatFeeRunPayment entity.
 func (_m *ChargeFlatFeeRunPayment) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
 	return NewChargeFlatFeeRunPaymentClient(_m.config).QueryBillingInvoiceLine(_m)
-}
-
-// QueryFlatFee queries the "flat_fee" edge of the ChargeFlatFeeRunPayment entity.
-func (_m *ChargeFlatFeeRunPayment) QueryFlatFee() *ChargeFlatFeeQuery {
-	return NewChargeFlatFeeRunPaymentClient(_m.config).QueryFlatFee(_m)
 }
 
 // QueryRun queries the "run" edge of the ChargeFlatFeeRunPayment entity.
@@ -361,11 +331,6 @@ func (_m *ChargeFlatFeeRunPayment) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
-	builder.WriteString(", ")
-	if v := _m.ChargeID; v != nil {
-		builder.WriteString("charge_id=")
-		builder.WriteString(*v)
-	}
 	builder.WriteString(", ")
 	builder.WriteString("run_id=")
 	builder.WriteString(_m.RunID)

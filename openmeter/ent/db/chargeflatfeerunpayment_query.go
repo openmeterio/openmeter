@@ -13,7 +13,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -27,7 +26,6 @@ type ChargeFlatFeeRunPaymentQuery struct {
 	inters                 []Interceptor
 	predicates             []predicate.ChargeFlatFeeRunPayment
 	withBillingInvoiceLine *BillingInvoiceLineQuery
-	withFlatFee            *ChargeFlatFeeQuery
 	withRun                *ChargeFlatFeeRunQuery
 	modifiers              []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -81,28 +79,6 @@ func (_q *ChargeFlatFeeRunPaymentQuery) QueryBillingInvoiceLine() *BillingInvoic
 			sqlgraph.From(chargeflatfeerunpayment.Table, chargeflatfeerunpayment.FieldID, selector),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, chargeflatfeerunpayment.BillingInvoiceLineTable, chargeflatfeerunpayment.BillingInvoiceLineColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryFlatFee chains the current query on the "flat_fee" edge.
-func (_q *ChargeFlatFeeRunPaymentQuery) QueryFlatFee() *ChargeFlatFeeQuery {
-	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeflatfeerunpayment.Table, chargeflatfeerunpayment.FieldID, selector),
-			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, chargeflatfeerunpayment.FlatFeeTable, chargeflatfeerunpayment.FlatFeeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -325,7 +301,6 @@ func (_q *ChargeFlatFeeRunPaymentQuery) Clone() *ChargeFlatFeeRunPaymentQuery {
 		inters:                 append([]Interceptor{}, _q.inters...),
 		predicates:             append([]predicate.ChargeFlatFeeRunPayment{}, _q.predicates...),
 		withBillingInvoiceLine: _q.withBillingInvoiceLine.Clone(),
-		withFlatFee:            _q.withFlatFee.Clone(),
 		withRun:                _q.withRun.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
@@ -341,17 +316,6 @@ func (_q *ChargeFlatFeeRunPaymentQuery) WithBillingInvoiceLine(opts ...func(*Bil
 		opt(query)
 	}
 	_q.withBillingInvoiceLine = query
-	return _q
-}
-
-// WithFlatFee tells the query-builder to eager-load the nodes that are connected to
-// the "flat_fee" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ChargeFlatFeeRunPaymentQuery) WithFlatFee(opts ...func(*ChargeFlatFeeQuery)) *ChargeFlatFeeRunPaymentQuery {
-	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withFlatFee = query
 	return _q
 }
 
@@ -444,9 +408,8 @@ func (_q *ChargeFlatFeeRunPaymentQuery) sqlAll(ctx context.Context, hooks ...que
 	var (
 		nodes       = []*ChargeFlatFeeRunPayment{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [2]bool{
 			_q.withBillingInvoiceLine != nil,
-			_q.withFlatFee != nil,
 			_q.withRun != nil,
 		}
 	)
@@ -474,12 +437,6 @@ func (_q *ChargeFlatFeeRunPaymentQuery) sqlAll(ctx context.Context, hooks ...que
 	if query := _q.withBillingInvoiceLine; query != nil {
 		if err := _q.loadBillingInvoiceLine(ctx, query, nodes, nil,
 			func(n *ChargeFlatFeeRunPayment, e *BillingInvoiceLine) { n.Edges.BillingInvoiceLine = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withFlatFee; query != nil {
-		if err := _q.loadFlatFee(ctx, query, nodes, nil,
-			func(n *ChargeFlatFeeRunPayment, e *ChargeFlatFee) { n.Edges.FlatFee = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -514,38 +471,6 @@ func (_q *ChargeFlatFeeRunPaymentQuery) loadBillingInvoiceLine(ctx context.Conte
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "line_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (_q *ChargeFlatFeeRunPaymentQuery) loadFlatFee(ctx context.Context, query *ChargeFlatFeeQuery, nodes []*ChargeFlatFeeRunPayment, init func(*ChargeFlatFeeRunPayment), assign func(*ChargeFlatFeeRunPayment, *ChargeFlatFee)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*ChargeFlatFeeRunPayment)
-	for i := range nodes {
-		if nodes[i].ChargeID == nil {
-			continue
-		}
-		fk := *nodes[i].ChargeID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(chargeflatfee.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "charge_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -613,9 +538,6 @@ func (_q *ChargeFlatFeeRunPaymentQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withBillingInvoiceLine != nil {
 			_spec.Node.AddColumnOnce(chargeflatfeerunpayment.FieldLineID)
-		}
-		if _q.withFlatFee != nil {
-			_spec.Node.AddColumnOnce(chargeflatfeerunpayment.FieldChargeID)
 		}
 		if _q.withRun != nil {
 			_spec.Node.AddColumnOnce(chargeflatfeerunpayment.FieldRunID)

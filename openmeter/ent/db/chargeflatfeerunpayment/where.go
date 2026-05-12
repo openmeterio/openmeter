@@ -132,11 +132,6 @@ func DeletedAt(v time.Time) predicate.ChargeFlatFeeRunPayment {
 	return predicate.ChargeFlatFeeRunPayment(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// ChargeID applies equality check predicate on the "charge_id" field. It's identical to ChargeIDEQ.
-func ChargeID(v string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldEQ(FieldChargeID, v))
-}
-
 // RunID applies equality check predicate on the "run_id" field. It's identical to RunIDEQ.
 func RunID(v string) predicate.ChargeFlatFeeRunPayment {
 	return predicate.ChargeFlatFeeRunPayment(sql.FieldEQ(FieldRunID, v))
@@ -877,81 +872,6 @@ func AnnotationsNotNil() predicate.ChargeFlatFeeRunPayment {
 	return predicate.ChargeFlatFeeRunPayment(sql.FieldNotNull(FieldAnnotations))
 }
 
-// ChargeIDEQ applies the EQ predicate on the "charge_id" field.
-func ChargeIDEQ(v string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldEQ(FieldChargeID, v))
-}
-
-// ChargeIDNEQ applies the NEQ predicate on the "charge_id" field.
-func ChargeIDNEQ(v string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldNEQ(FieldChargeID, v))
-}
-
-// ChargeIDIn applies the In predicate on the "charge_id" field.
-func ChargeIDIn(vs ...string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldIn(FieldChargeID, vs...))
-}
-
-// ChargeIDNotIn applies the NotIn predicate on the "charge_id" field.
-func ChargeIDNotIn(vs ...string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldNotIn(FieldChargeID, vs...))
-}
-
-// ChargeIDGT applies the GT predicate on the "charge_id" field.
-func ChargeIDGT(v string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldGT(FieldChargeID, v))
-}
-
-// ChargeIDGTE applies the GTE predicate on the "charge_id" field.
-func ChargeIDGTE(v string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldGTE(FieldChargeID, v))
-}
-
-// ChargeIDLT applies the LT predicate on the "charge_id" field.
-func ChargeIDLT(v string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldLT(FieldChargeID, v))
-}
-
-// ChargeIDLTE applies the LTE predicate on the "charge_id" field.
-func ChargeIDLTE(v string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldLTE(FieldChargeID, v))
-}
-
-// ChargeIDContains applies the Contains predicate on the "charge_id" field.
-func ChargeIDContains(v string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldContains(FieldChargeID, v))
-}
-
-// ChargeIDHasPrefix applies the HasPrefix predicate on the "charge_id" field.
-func ChargeIDHasPrefix(v string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldHasPrefix(FieldChargeID, v))
-}
-
-// ChargeIDHasSuffix applies the HasSuffix predicate on the "charge_id" field.
-func ChargeIDHasSuffix(v string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldHasSuffix(FieldChargeID, v))
-}
-
-// ChargeIDIsNil applies the IsNil predicate on the "charge_id" field.
-func ChargeIDIsNil() predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldIsNull(FieldChargeID))
-}
-
-// ChargeIDNotNil applies the NotNil predicate on the "charge_id" field.
-func ChargeIDNotNil() predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldNotNull(FieldChargeID))
-}
-
-// ChargeIDEqualFold applies the EqualFold predicate on the "charge_id" field.
-func ChargeIDEqualFold(v string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldEqualFold(FieldChargeID, v))
-}
-
-// ChargeIDContainsFold applies the ContainsFold predicate on the "charge_id" field.
-func ChargeIDContainsFold(v string) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(sql.FieldContainsFold(FieldChargeID, v))
-}
-
 // RunIDEQ applies the EQ predicate on the "run_id" field.
 func RunIDEQ(v string) predicate.ChargeFlatFeeRunPayment {
 	return predicate.ChargeFlatFeeRunPayment(sql.FieldEQ(FieldRunID, v))
@@ -1032,29 +952,6 @@ func HasBillingInvoiceLine() predicate.ChargeFlatFeeRunPayment {
 func HasBillingInvoiceLineWith(preds ...predicate.BillingInvoiceLine) predicate.ChargeFlatFeeRunPayment {
 	return predicate.ChargeFlatFeeRunPayment(func(s *sql.Selector) {
 		step := newBillingInvoiceLineStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasFlatFee applies the HasEdge predicate on the "flat_fee" edge.
-func HasFlatFee() predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, FlatFeeTable, FlatFeeColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasFlatFeeWith applies the HasEdge predicate on the "flat_fee" edge with a given conditions (other predicates).
-func HasFlatFeeWith(preds ...predicate.ChargeFlatFee) predicate.ChargeFlatFeeRunPayment {
-	return predicate.ChargeFlatFeeRunPayment(func(s *sql.Selector) {
-		step := newFlatFeeStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -14,7 +14,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -176,20 +175,6 @@ func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetTotal(v alpacadecimal.Decimal)
 	return _c
 }
 
-// SetChargeID sets the "charge_id" field.
-func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetChargeID(v string) *ChargeFlatFeeRunInvoicedUsageCreate {
-	_c.mutation.SetChargeID(v)
-	return _c
-}
-
-// SetNillableChargeID sets the "charge_id" field if the given value is not nil.
-func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetNillableChargeID(v *string) *ChargeFlatFeeRunInvoicedUsageCreate {
-	if v != nil {
-		_c.SetChargeID(*v)
-	}
-	return _c
-}
-
 // SetRunID sets the "run_id" field.
 func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetRunID(v string) *ChargeFlatFeeRunInvoicedUsageCreate {
 	_c.mutation.SetRunID(v)
@@ -227,25 +212,6 @@ func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetNillableBillingInvoiceLineID(i
 // SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
 func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeFlatFeeRunInvoicedUsageCreate {
 	return _c.SetBillingInvoiceLineID(v.ID)
-}
-
-// SetFlatFeeID sets the "flat_fee" edge to the ChargeFlatFee entity by ID.
-func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetFlatFeeID(id string) *ChargeFlatFeeRunInvoicedUsageCreate {
-	_c.mutation.SetFlatFeeID(id)
-	return _c
-}
-
-// SetNillableFlatFeeID sets the "flat_fee" edge to the ChargeFlatFee entity by ID if the given value is not nil.
-func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetNillableFlatFeeID(id *string) *ChargeFlatFeeRunInvoicedUsageCreate {
-	if id != nil {
-		_c = _c.SetFlatFeeID(*id)
-	}
-	return _c
-}
-
-// SetFlatFee sets the "flat_fee" edge to the ChargeFlatFee entity.
-func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetFlatFee(v *ChargeFlatFee) *ChargeFlatFeeRunInvoicedUsageCreate {
-	return _c.SetFlatFeeID(v.ID)
 }
 
 // SetRun sets the "run" edge to the ChargeFlatFeeRun entity.
@@ -486,23 +452,6 @@ func (_c *ChargeFlatFeeRunInvoicedUsageCreate) createSpec() (*ChargeFlatFeeRunIn
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.LineID = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.FlatFeeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   chargeflatfeeruninvoicedusage.FlatFeeTable,
-			Columns: []string{chargeflatfeeruninvoicedusage.FlatFeeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.ChargeID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.RunIDs(); len(nodes) > 0 {
@@ -812,9 +761,6 @@ func (u *ChargeFlatFeeRunInvoicedUsageUpsertOne) UpdateNewValues() *ChargeFlatFe
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(chargeflatfeeruninvoicedusage.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.ChargeID(); exists {
-			s.SetIgnore(chargeflatfeeruninvoicedusage.FieldChargeID)
 		}
 		if _, exists := u.create.mutation.RunID(); exists {
 			s.SetIgnore(chargeflatfeeruninvoicedusage.FieldRunID)
@@ -1290,9 +1236,6 @@ func (u *ChargeFlatFeeRunInvoicedUsageUpsertBulk) UpdateNewValues() *ChargeFlatF
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(chargeflatfeeruninvoicedusage.FieldCreatedAt)
-			}
-			if _, exists := b.mutation.ChargeID(); exists {
-				s.SetIgnore(chargeflatfeeruninvoicedusage.FieldChargeID)
 			}
 			if _, exists := b.mutation.RunID(); exists {
 				s.SetIgnore(chargeflatfeeruninvoicedusage.FieldRunID)

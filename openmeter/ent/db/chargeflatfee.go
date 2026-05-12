@@ -17,8 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -115,14 +113,6 @@ type ChargeFlatFee struct {
 
 // ChargeFlatFeeEdges holds the relations/edges for other nodes in the graph.
 type ChargeFlatFeeEdges struct {
-	// CreditAllocations holds the value of the credit_allocations edge.
-	CreditAllocations []*ChargeFlatFeeRunCreditAllocations `json:"credit_allocations,omitempty"`
-	// DetailedLines holds the value of the detailed_lines edge.
-	DetailedLines []*ChargeFlatFeeRunDetailedLine `json:"detailed_lines,omitempty"`
-	// InvoicedUsage holds the value of the invoiced_usage edge.
-	InvoicedUsage *ChargeFlatFeeRunInvoicedUsage `json:"invoiced_usage,omitempty"`
-	// Payment holds the value of the payment edge.
-	Payment *ChargeFlatFeeRunPayment `json:"payment,omitempty"`
 	// Runs holds the value of the runs edge.
 	Runs []*ChargeFlatFeeRun `json:"runs,omitempty"`
 	// CurrentRun holds the value of the current_run edge.
@@ -143,53 +133,13 @@ type ChargeFlatFeeEdges struct {
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [13]bool
-}
-
-// CreditAllocationsOrErr returns the CreditAllocations value or an error if the edge
-// was not loaded in eager-loading.
-func (e ChargeFlatFeeEdges) CreditAllocationsOrErr() ([]*ChargeFlatFeeRunCreditAllocations, error) {
-	if e.loadedTypes[0] {
-		return e.CreditAllocations, nil
-	}
-	return nil, &NotLoadedError{edge: "credit_allocations"}
-}
-
-// DetailedLinesOrErr returns the DetailedLines value or an error if the edge
-// was not loaded in eager-loading.
-func (e ChargeFlatFeeEdges) DetailedLinesOrErr() ([]*ChargeFlatFeeRunDetailedLine, error) {
-	if e.loadedTypes[1] {
-		return e.DetailedLines, nil
-	}
-	return nil, &NotLoadedError{edge: "detailed_lines"}
-}
-
-// InvoicedUsageOrErr returns the InvoicedUsage value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeFlatFeeEdges) InvoicedUsageOrErr() (*ChargeFlatFeeRunInvoicedUsage, error) {
-	if e.InvoicedUsage != nil {
-		return e.InvoicedUsage, nil
-	} else if e.loadedTypes[2] {
-		return nil, &NotFoundError{label: chargeflatfeeruninvoicedusage.Label}
-	}
-	return nil, &NotLoadedError{edge: "invoiced_usage"}
-}
-
-// PaymentOrErr returns the Payment value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeFlatFeeEdges) PaymentOrErr() (*ChargeFlatFeeRunPayment, error) {
-	if e.Payment != nil {
-		return e.Payment, nil
-	} else if e.loadedTypes[3] {
-		return nil, &NotFoundError{label: chargeflatfeerunpayment.Label}
-	}
-	return nil, &NotLoadedError{edge: "payment"}
+	loadedTypes [9]bool
 }
 
 // RunsOrErr returns the Runs value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeFlatFeeEdges) RunsOrErr() ([]*ChargeFlatFeeRun, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[0] {
 		return e.Runs, nil
 	}
 	return nil, &NotLoadedError{edge: "runs"}
@@ -200,7 +150,7 @@ func (e ChargeFlatFeeEdges) RunsOrErr() ([]*ChargeFlatFeeRun, error) {
 func (e ChargeFlatFeeEdges) CurrentRunOrErr() (*ChargeFlatFeeRun, error) {
 	if e.CurrentRun != nil {
 		return e.CurrentRun, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: chargeflatfeerun.Label}
 	}
 	return nil, &NotLoadedError{edge: "current_run"}
@@ -211,7 +161,7 @@ func (e ChargeFlatFeeEdges) CurrentRunOrErr() (*ChargeFlatFeeRun, error) {
 func (e ChargeFlatFeeEdges) ChargeOrErr() (*Charge, error) {
 	if e.Charge != nil {
 		return e.Charge, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: charge.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge"}
@@ -222,7 +172,7 @@ func (e ChargeFlatFeeEdges) ChargeOrErr() (*Charge, error) {
 func (e ChargeFlatFeeEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[3] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -233,7 +183,7 @@ func (e ChargeFlatFeeEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e ChargeFlatFeeEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -244,7 +194,7 @@ func (e ChargeFlatFeeEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error)
 func (e ChargeFlatFeeEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[9] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -255,7 +205,7 @@ func (e ChargeFlatFeeEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 func (e ChargeFlatFeeEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[10] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -266,7 +216,7 @@ func (e ChargeFlatFeeEdges) CustomerOrErr() (*Customer, error) {
 func (e ChargeFlatFeeEdges) FeatureOrErr() (*Feature, error) {
 	if e.Feature != nil {
 		return e.Feature, nil
-	} else if e.loadedTypes[11] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: dbfeature.Label}
 	}
 	return nil, &NotLoadedError{edge: "feature"}
@@ -277,7 +227,7 @@ func (e ChargeFlatFeeEdges) FeatureOrErr() (*Feature, error) {
 func (e ChargeFlatFeeEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
-	} else if e.loadedTypes[12] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: dbtaxcode.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_code"}
@@ -562,26 +512,6 @@ func (_m *ChargeFlatFee) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *ChargeFlatFee) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
-}
-
-// QueryCreditAllocations queries the "credit_allocations" edge of the ChargeFlatFee entity.
-func (_m *ChargeFlatFee) QueryCreditAllocations() *ChargeFlatFeeRunCreditAllocationsQuery {
-	return NewChargeFlatFeeClient(_m.config).QueryCreditAllocations(_m)
-}
-
-// QueryDetailedLines queries the "detailed_lines" edge of the ChargeFlatFee entity.
-func (_m *ChargeFlatFee) QueryDetailedLines() *ChargeFlatFeeRunDetailedLineQuery {
-	return NewChargeFlatFeeClient(_m.config).QueryDetailedLines(_m)
-}
-
-// QueryInvoicedUsage queries the "invoiced_usage" edge of the ChargeFlatFee entity.
-func (_m *ChargeFlatFee) QueryInvoicedUsage() *ChargeFlatFeeRunInvoicedUsageQuery {
-	return NewChargeFlatFeeClient(_m.config).QueryInvoicedUsage(_m)
-}
-
-// QueryPayment queries the "payment" edge of the ChargeFlatFee entity.
-func (_m *ChargeFlatFee) QueryPayment() *ChargeFlatFeeRunPaymentQuery {
-	return NewChargeFlatFeeClient(_m.config).QueryPayment(_m)
 }
 
 // QueryRuns queries the "runs" edge of the ChargeFlatFee entity.

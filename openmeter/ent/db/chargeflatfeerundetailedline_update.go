@@ -14,7 +14,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -448,26 +447,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetNillableTotal(v *alpacadecimal.
 	return _u
 }
 
-// SetChargeID sets the "charge_id" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetChargeID(v string) *ChargeFlatFeeRunDetailedLineUpdate {
-	_u.mutation.SetChargeID(v)
-	return _u
-}
-
-// SetNillableChargeID sets the "charge_id" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetNillableChargeID(v *string) *ChargeFlatFeeRunDetailedLineUpdate {
-	if v != nil {
-		_u.SetChargeID(*v)
-	}
-	return _u
-}
-
-// ClearChargeID clears the value of the "charge_id" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) ClearChargeID() *ChargeFlatFeeRunDetailedLineUpdate {
-	_u.mutation.ClearChargeID()
-	return _u
-}
-
 // SetPricerReferenceID sets the "pricer_reference_id" field.
 func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetPricerReferenceID(v string) *ChargeFlatFeeRunDetailedLineUpdate {
 	_u.mutation.SetPricerReferenceID(v)
@@ -482,11 +461,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetNillablePricerReferenceID(v *st
 	return _u
 }
 
-// SetCharge sets the "charge" edge to the ChargeFlatFee entity.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetCharge(v *ChargeFlatFee) *ChargeFlatFeeRunDetailedLineUpdate {
-	return _u.SetChargeID(v.ID)
-}
-
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
 func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetTaxCode(v *TaxCode) *ChargeFlatFeeRunDetailedLineUpdate {
 	return _u.SetTaxCodeID(v.ID)
@@ -495,12 +469,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetTaxCode(v *TaxCode) *ChargeFlat
 // Mutation returns the ChargeFlatFeeRunDetailedLineMutation object of the builder.
 func (_u *ChargeFlatFeeRunDetailedLineUpdate) Mutation() *ChargeFlatFeeRunDetailedLineMutation {
 	return _u.mutation
-}
-
-// ClearCharge clears the "charge" edge to the ChargeFlatFee entity.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) ClearCharge() *ChargeFlatFeeRunDetailedLineUpdate {
-	_u.mutation.ClearCharge()
-	return _u
 }
 
 // ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
@@ -710,35 +678,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdate) sqlSave(ctx context.Context) (_nod
 	}
 	if value, ok := _u.mutation.PricerReferenceID(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldPricerReferenceID, field.TypeString, value)
-	}
-	if _u.mutation.ChargeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeerundetailedline.ChargeTable,
-			Columns: []string{chargeflatfeerundetailedline.ChargeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.ChargeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeerundetailedline.ChargeTable,
-			Columns: []string{chargeflatfeerundetailedline.ChargeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.TaxCodeCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1202,26 +1141,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetNillableTotal(v *alpacadecim
 	return _u
 }
 
-// SetChargeID sets the "charge_id" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetChargeID(v string) *ChargeFlatFeeRunDetailedLineUpdateOne {
-	_u.mutation.SetChargeID(v)
-	return _u
-}
-
-// SetNillableChargeID sets the "charge_id" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetNillableChargeID(v *string) *ChargeFlatFeeRunDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetChargeID(*v)
-	}
-	return _u
-}
-
-// ClearChargeID clears the value of the "charge_id" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) ClearChargeID() *ChargeFlatFeeRunDetailedLineUpdateOne {
-	_u.mutation.ClearChargeID()
-	return _u
-}
-
 // SetPricerReferenceID sets the "pricer_reference_id" field.
 func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetPricerReferenceID(v string) *ChargeFlatFeeRunDetailedLineUpdateOne {
 	_u.mutation.SetPricerReferenceID(v)
@@ -1236,11 +1155,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetNillablePricerReferenceID(v 
 	return _u
 }
 
-// SetCharge sets the "charge" edge to the ChargeFlatFee entity.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetCharge(v *ChargeFlatFee) *ChargeFlatFeeRunDetailedLineUpdateOne {
-	return _u.SetChargeID(v.ID)
-}
-
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
 func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetTaxCode(v *TaxCode) *ChargeFlatFeeRunDetailedLineUpdateOne {
 	return _u.SetTaxCodeID(v.ID)
@@ -1249,12 +1163,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetTaxCode(v *TaxCode) *ChargeF
 // Mutation returns the ChargeFlatFeeRunDetailedLineMutation object of the builder.
 func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) Mutation() *ChargeFlatFeeRunDetailedLineMutation {
 	return _u.mutation
-}
-
-// ClearCharge clears the "charge" edge to the ChargeFlatFee entity.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) ClearCharge() *ChargeFlatFeeRunDetailedLineUpdateOne {
-	_u.mutation.ClearCharge()
-	return _u
 }
 
 // ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
@@ -1494,35 +1402,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) sqlSave(ctx context.Context) (_
 	}
 	if value, ok := _u.mutation.PricerReferenceID(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldPricerReferenceID, field.TypeString, value)
-	}
-	if _u.mutation.ChargeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeerundetailedline.ChargeTable,
-			Columns: []string{chargeflatfeerundetailedline.ChargeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.ChargeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeerundetailedline.ChargeTable,
-			Columns: []string{chargeflatfeerundetailedline.ChargeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.TaxCodeCleared() {
 		edge := &sqlgraph.EdgeSpec{

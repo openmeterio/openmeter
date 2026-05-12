@@ -2945,20 +2945,6 @@ func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearDescription(value *str
 	return u.SetDescription(*value)
 }
 
-func (u *ChargeFlatFeeRunDetailedLineUpdate) SetOrClearChargeID(value *string) *ChargeFlatFeeRunDetailedLineUpdate {
-	if value == nil {
-		return u.ClearChargeID()
-	}
-	return u.SetChargeID(*value)
-}
-
-func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearChargeID(value *string) *ChargeFlatFeeRunDetailedLineUpdateOne {
-	if value == nil {
-		return u.ClearChargeID()
-	}
-	return u.SetChargeID(*value)
-}
-
 func (u *ChargeFlatFeeRunInvoicedUsageUpdate) SetOrClearLineID(value *string) *ChargeFlatFeeRunInvoicedUsageUpdate {
 	if value == nil {
 		return u.ClearLineID()

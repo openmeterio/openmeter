@@ -15,7 +15,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -175,20 +174,6 @@ func (_c *ChargeFlatFeeRunPaymentCreate) SetAnnotations(v models.Annotations) *C
 	return _c
 }
 
-// SetChargeID sets the "charge_id" field.
-func (_c *ChargeFlatFeeRunPaymentCreate) SetChargeID(v string) *ChargeFlatFeeRunPaymentCreate {
-	_c.mutation.SetChargeID(v)
-	return _c
-}
-
-// SetNillableChargeID sets the "charge_id" field if the given value is not nil.
-func (_c *ChargeFlatFeeRunPaymentCreate) SetNillableChargeID(v *string) *ChargeFlatFeeRunPaymentCreate {
-	if v != nil {
-		_c.SetChargeID(*v)
-	}
-	return _c
-}
-
 // SetRunID sets the "run_id" field.
 func (_c *ChargeFlatFeeRunPaymentCreate) SetRunID(v string) *ChargeFlatFeeRunPaymentCreate {
 	_c.mutation.SetRunID(v)
@@ -218,25 +203,6 @@ func (_c *ChargeFlatFeeRunPaymentCreate) SetBillingInvoiceLineID(id string) *Cha
 // SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
 func (_c *ChargeFlatFeeRunPaymentCreate) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeFlatFeeRunPaymentCreate {
 	return _c.SetBillingInvoiceLineID(v.ID)
-}
-
-// SetFlatFeeID sets the "flat_fee" edge to the ChargeFlatFee entity by ID.
-func (_c *ChargeFlatFeeRunPaymentCreate) SetFlatFeeID(id string) *ChargeFlatFeeRunPaymentCreate {
-	_c.mutation.SetFlatFeeID(id)
-	return _c
-}
-
-// SetNillableFlatFeeID sets the "flat_fee" edge to the ChargeFlatFee entity by ID if the given value is not nil.
-func (_c *ChargeFlatFeeRunPaymentCreate) SetNillableFlatFeeID(id *string) *ChargeFlatFeeRunPaymentCreate {
-	if id != nil {
-		_c = _c.SetFlatFeeID(*id)
-	}
-	return _c
-}
-
-// SetFlatFee sets the "flat_fee" edge to the ChargeFlatFee entity.
-func (_c *ChargeFlatFeeRunPaymentCreate) SetFlatFee(v *ChargeFlatFee) *ChargeFlatFeeRunPaymentCreate {
-	return _c.SetFlatFeeID(v.ID)
 }
 
 // SetRun sets the "run" edge to the ChargeFlatFeeRun entity.
@@ -458,23 +424,6 @@ func (_c *ChargeFlatFeeRunPaymentCreate) createSpec() (*ChargeFlatFeeRunPayment,
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.LineID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.FlatFeeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   chargeflatfeerunpayment.FlatFeeTable,
-			Columns: []string{chargeflatfeerunpayment.FlatFeeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.ChargeID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.RunIDs(); len(nodes) > 0 {
@@ -742,9 +691,6 @@ func (u *ChargeFlatFeeRunPaymentUpsertOne) UpdateNewValues() *ChargeFlatFeeRunPa
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(chargeflatfeerunpayment.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.ChargeID(); exists {
-			s.SetIgnore(chargeflatfeerunpayment.FieldChargeID)
 		}
 		if _, exists := u.create.mutation.RunID(); exists {
 			s.SetIgnore(chargeflatfeerunpayment.FieldRunID)
@@ -1170,9 +1116,6 @@ func (u *ChargeFlatFeeRunPaymentUpsertBulk) UpdateNewValues() *ChargeFlatFeeRunP
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(chargeflatfeerunpayment.FieldCreatedAt)
-			}
-			if _, exists := b.mutation.ChargeID(); exists {
-				s.SetIgnore(chargeflatfeerunpayment.FieldChargeID)
 			}
 			if _, exists := b.mutation.RunID(); exists {
 				s.SetIgnore(chargeflatfeerunpayment.FieldRunID)

@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -15,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/samber/mo"
 )
 
 // MapFlatFeeChargeFromDB converts a DB Charge entity (with loaded FlatFee edge) to a FlatFeeCharge.

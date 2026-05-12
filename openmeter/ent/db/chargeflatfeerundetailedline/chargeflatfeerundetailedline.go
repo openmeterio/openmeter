@@ -77,27 +77,16 @@ const (
 	FieldCreditsTotal = "credits_total"
 	// FieldTotal holds the string denoting the total field in the database.
 	FieldTotal = "total"
-	// FieldChargeID holds the string denoting the charge_id field in the database.
-	FieldChargeID = "charge_id"
 	// FieldRunID holds the string denoting the run_id field in the database.
 	FieldRunID = "run_id"
 	// FieldPricerReferenceID holds the string denoting the pricer_reference_id field in the database.
 	FieldPricerReferenceID = "pricer_reference_id"
-	// EdgeCharge holds the string denoting the charge edge name in mutations.
-	EdgeCharge = "charge"
 	// EdgeRun holds the string denoting the run edge name in mutations.
 	EdgeRun = "run"
 	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
 	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the chargeflatfeerundetailedline in the database.
 	Table = "charge_flat_fee_run_detailed_lines"
-	// ChargeTable is the table that holds the charge relation/edge.
-	ChargeTable = "charge_flat_fee_run_detailed_lines"
-	// ChargeInverseTable is the table name for the ChargeFlatFee entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeflatfee" package.
-	ChargeInverseTable = "charge_flat_fees"
-	// ChargeColumn is the table column denoting the charge relation/edge.
-	ChargeColumn = "charge_id"
 	// RunTable is the table that holds the run relation/edge.
 	RunTable = "charge_flat_fee_run_detailed_lines"
 	// RunInverseTable is the table name for the ChargeFlatFeeRun entity.
@@ -155,11 +144,6 @@ var Columns = []string{
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for _, f := range [...]string{FieldChargeID} {
-		if column == f {
 			return true
 		}
 	}
@@ -357,11 +341,6 @@ func ByTotal(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTotal, opts...).ToFunc()
 }
 
-// ByChargeID orders the results by the charge_id field.
-func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldChargeID, opts...).ToFunc()
-}
-
 // ByRunID orders the results by the run_id field.
 func ByRunID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRunID, opts...).ToFunc()
@@ -370,13 +349,6 @@ func ByRunID(opts ...sql.OrderTermOption) OrderOption {
 // ByPricerReferenceID orders the results by the pricer_reference_id field.
 func ByPricerReferenceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPricerReferenceID, opts...).ToFunc()
-}
-
-// ByChargeField orders the results by charge field.
-func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeStep(), sql.OrderByField(field, opts...))
-	}
 }
 
 // ByRunField orders the results by run field.
@@ -391,13 +363,6 @@ func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
 	}
-}
-func newChargeStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, ChargeTable, ChargeColumn),
-	)
 }
 func newRunStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

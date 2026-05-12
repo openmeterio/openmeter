@@ -15,7 +15,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -300,20 +299,6 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) SetTotal(v alpacadecimal.Decimal) 
 	return _c
 }
 
-// SetChargeID sets the "charge_id" field.
-func (_c *ChargeFlatFeeRunDetailedLineCreate) SetChargeID(v string) *ChargeFlatFeeRunDetailedLineCreate {
-	_c.mutation.SetChargeID(v)
-	return _c
-}
-
-// SetNillableChargeID sets the "charge_id" field if the given value is not nil.
-func (_c *ChargeFlatFeeRunDetailedLineCreate) SetNillableChargeID(v *string) *ChargeFlatFeeRunDetailedLineCreate {
-	if v != nil {
-		_c.SetChargeID(*v)
-	}
-	return _c
-}
-
 // SetRunID sets the "run_id" field.
 func (_c *ChargeFlatFeeRunDetailedLineCreate) SetRunID(v string) *ChargeFlatFeeRunDetailedLineCreate {
 	_c.mutation.SetRunID(v)
@@ -338,11 +323,6 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) SetNillableID(v *string) *ChargeFl
 		_c.SetID(*v)
 	}
 	return _c
-}
-
-// SetCharge sets the "charge" edge to the ChargeFlatFee entity.
-func (_c *ChargeFlatFeeRunDetailedLineCreate) SetCharge(v *ChargeFlatFee) *ChargeFlatFeeRunDetailedLineCreate {
-	return _c.SetChargeID(v.ID)
 }
 
 // SetRun sets the "run" edge to the ChargeFlatFeeRun entity.
@@ -683,23 +663,6 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) createSpec() (*ChargeFlatFeeRunDet
 	if value, ok := _c.mutation.PricerReferenceID(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldPricerReferenceID, field.TypeString, value)
 		_node.PricerReferenceID = value
-	}
-	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeerundetailedline.ChargeTable,
-			Columns: []string{chargeflatfeerundetailedline.ChargeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.ChargeID = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.RunIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1174,24 +1137,6 @@ func (u *ChargeFlatFeeRunDetailedLineUpsert) SetTotal(v alpacadecimal.Decimal) *
 // UpdateTotal sets the "total" field to the value that was provided on create.
 func (u *ChargeFlatFeeRunDetailedLineUpsert) UpdateTotal() *ChargeFlatFeeRunDetailedLineUpsert {
 	u.SetExcluded(chargeflatfeerundetailedline.FieldTotal)
-	return u
-}
-
-// SetChargeID sets the "charge_id" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsert) SetChargeID(v string) *ChargeFlatFeeRunDetailedLineUpsert {
-	u.Set(chargeflatfeerundetailedline.FieldChargeID, v)
-	return u
-}
-
-// UpdateChargeID sets the "charge_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunDetailedLineUpsert) UpdateChargeID() *ChargeFlatFeeRunDetailedLineUpsert {
-	u.SetExcluded(chargeflatfeerundetailedline.FieldChargeID)
-	return u
-}
-
-// ClearChargeID clears the value of the "charge_id" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsert) ClearChargeID() *ChargeFlatFeeRunDetailedLineUpsert {
-	u.SetNull(chargeflatfeerundetailedline.FieldChargeID)
 	return u
 }
 
@@ -1719,27 +1664,6 @@ func (u *ChargeFlatFeeRunDetailedLineUpsertOne) SetTotal(v alpacadecimal.Decimal
 func (u *ChargeFlatFeeRunDetailedLineUpsertOne) UpdateTotal() *ChargeFlatFeeRunDetailedLineUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
 		s.UpdateTotal()
-	})
-}
-
-// SetChargeID sets the "charge_id" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertOne) SetChargeID(v string) *ChargeFlatFeeRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.SetChargeID(v)
-	})
-}
-
-// UpdateChargeID sets the "charge_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunDetailedLineUpsertOne) UpdateChargeID() *ChargeFlatFeeRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.UpdateChargeID()
-	})
-}
-
-// ClearChargeID clears the value of the "charge_id" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertOne) ClearChargeID() *ChargeFlatFeeRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.ClearChargeID()
 	})
 }
 
@@ -2436,27 +2360,6 @@ func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) SetTotal(v alpacadecimal.Decima
 func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) UpdateTotal() *ChargeFlatFeeRunDetailedLineUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
 		s.UpdateTotal()
-	})
-}
-
-// SetChargeID sets the "charge_id" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) SetChargeID(v string) *ChargeFlatFeeRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.SetChargeID(v)
-	})
-}
-
-// UpdateChargeID sets the "charge_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) UpdateChargeID() *ChargeFlatFeeRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.UpdateChargeID()
-	})
-}
-
-// ClearChargeID clears the value of the "charge_id" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) ClearChargeID() *ChargeFlatFeeRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.ClearChargeID()
 	})
 }
 

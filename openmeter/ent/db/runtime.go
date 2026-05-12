@@ -1195,7 +1195,7 @@ func init() {
 	// chargeflatfeerundetailedline.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargeflatfeerundetailedline.UpdateDefaultUpdatedAt = chargeflatfeerundetailedlineDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// chargeflatfeerundetailedlineDescPricerReferenceID is the schema descriptor for pricer_reference_id field.
-	chargeflatfeerundetailedlineDescPricerReferenceID := chargeflatfeerundetailedlineFields[2].Descriptor()
+	chargeflatfeerundetailedlineDescPricerReferenceID := chargeflatfeerundetailedlineFields[1].Descriptor()
 	// chargeflatfeerundetailedline.PricerReferenceIDValidator is a validator for the "pricer_reference_id" field. It is called by the builders before save.
 	chargeflatfeerundetailedline.PricerReferenceIDValidator = chargeflatfeerundetailedlineDescPricerReferenceID.Validators[0].(func(string) error)
 	// chargeflatfeerundetailedlineDescID is the schema descriptor for id field.
