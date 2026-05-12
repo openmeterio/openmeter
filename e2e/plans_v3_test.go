@@ -603,36 +603,3 @@ func TestV3PlanReadTranslatesV1DynamicAndPackagePrices(t *testing.T) {
 		assert.Equal(t, apiv3.BillingUnitConfigRoundingModeCeiling, *pkgRC.UnitConfig.Rounding)
 	})
 }
-
-// findRateCardByKey looks up a rate card by key across all phases of a plan.
-// Fails the test if no match is found.
-func findRateCardByKey(t *testing.T, plan *apiv3.BillingPlan, key string) *apiv3.BillingRateCard {
-	t.Helper()
-
-	for i := range plan.Phases {
-		for j := range plan.Phases[i].RateCards {
-			rc := &plan.Phases[i].RateCards[j]
-			if rc.Key == key {
-				return rc
-			}
-		}
-	}
-
-	require.FailNow(t, "rate card not found", "key=%s", key)
-	return nil
-}
-
-// assertUnitPriceAmount asserts the rate card's price discriminates as "unit"
-// and carries the given amount. Used to verify the synthesized unit price that
-// replaces v1 dynamic and package prices on the v3 read path.
-func assertUnitPriceAmount(t *testing.T, rc *apiv3.BillingRateCard, want string) {
-	t.Helper()
-
-	disc, err := rc.Price.Discriminator()
-	require.NoError(t, err)
-	require.Equal(t, "unit", disc, "expected synthesized unit price")
-
-	unit, err := rc.Price.AsBillingPriceUnit()
-	require.NoError(t, err)
-	assert.Equal(t, want, unit.Amount)
-}
