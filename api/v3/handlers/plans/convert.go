@@ -527,6 +527,14 @@ func FromAPIBillingPlanPhase(p api.BillingPlanPhase) (productcatalog.Phase, erro
 }
 
 func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, error) {
+	// unit_config is read-only: it is synthesized from v1 dynamic and package
+	// prices on the response path. Accepting it on create/update would silently
+	// drop the original v1 price semantics, so reject it explicitly until v3
+	// authoring is designed.
+	if rc.UnitConfig != nil {
+		return nil, models.NewGenericValidationError(fmt.Errorf("unit_config is not accepted on create or update for rate card %q", rc.Key))
+	}
+
 	priceType, err := rc.Price.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read price type: %w", err)

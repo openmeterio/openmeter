@@ -1300,6 +1300,31 @@ func TestToRateCard(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, productcatalog.VolumeTieredPrice, tiered.Mode)
 	})
+
+	t.Run("rejects unit_config on create/update", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "1", Type: "unit"}))
+
+		bc := api.ISO8601Duration("P1M")
+
+		rc := api.BillingRateCard{
+			Key:            "tokens",
+			Name:           "Tokens",
+			Price:          price,
+			BillingCadence: &bc,
+			UnitConfig: &api.BillingUnitConfig{
+				Operation:        api.BillingUnitConfigOperationMultiply,
+				ConversionFactor: "1.2",
+			},
+		}
+
+		_, err := FromAPIBillingRateCard(rc)
+		require.Error(t, err)
+		var validationErr *models.GenericValidationError
+		assert.ErrorAs(t, err, &validationErr)
+		assert.Contains(t, err.Error(), "unit_config")
+		assert.Contains(t, err.Error(), "tokens")
+	})
 }
 
 func TestToBillingPrice(t *testing.T) {
