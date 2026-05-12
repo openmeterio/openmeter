@@ -29,6 +29,7 @@ type Adapter interface {
 type ChargeAdapter interface {
 	CreateCharges(ctx context.Context, charges CreateChargesInput) ([]Charge, error)
 	ProvisionCurrentRun(ctx context.Context, input ProvisionCurrentRunInput) (RealizationRunBase, error)
+	AssignCurrentRunInvoiceLine(ctx context.Context, input AssignCurrentRunInvoiceLineInput) (RealizationRunBase, error)
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
@@ -92,6 +93,30 @@ func (i CreateInvoicedUsageInput) Validate() error {
 
 	if err := i.InvoicedUsage.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("invoiced usage: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type AssignCurrentRunInvoiceLineInput struct {
+	ChargeID  meta.ChargeID
+	LineID    string
+	InvoiceID string
+}
+
+func (i AssignCurrentRunInvoiceLineInput) Validate() error {
+	var errs []error
+
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
+	}
+
+	if i.InvoiceID == "" {
+		errs = append(errs, fmt.Errorf("invoice ID is required"))
+	}
+
+	if i.LineID == "" {
+		errs = append(errs, fmt.Errorf("line ID is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

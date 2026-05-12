@@ -152,6 +152,12 @@ Important rules:
 - usage-based invoice branches should read in this order: `started -> waiting_for_collection -> processing -> issuing -> completed`, then auto-advance out of the branch. Keep `invoice_issued` as the boundary between `processing` and `issuing`, run `FinalizeInvoiceRun(...)` from the `issuing` state, and let `completed` be the last branch-local status before `next` returns a partial invoice to `active` or moves a final invoice to `active.awaiting_payment_settlement`
 - when adding or renaming usage-based detailed statuses, remember that `status_detailed` is an Ent enum for `ChargeUsageBased`; run `make generate` so the generated enum validators and migrate schema include the new values before trusting state-machine changes
 
+Flat-fee credit-then-invoice lifecycle rules:
+
+- Flat-fee invoice lifecycle behavior must be driven by `billing.LineEngineTypeChargeFlatFee` through the flat-fee line engine. Do not reintroduce public flat-fee invoice lifecycle service methods or call the flat-fee state machine from `charges/service` standard-invoice hooks.
+- The charges standard-invoice hook may still run for cross-charge concerns such as revenue recognition and credit-purchase callbacks. For flat-fee invoice statuses, keep the hook processors as no-ops and let the line engine own `OnStandardInvoiceCreated`, `OnCollectionCompleted`, `OnInvoiceIssued`, `OnPaymentAuthorized`, `OnPaymentSettled`, and mutable-line cleanup.
+- Flat-fee `credit_only` is not a line-engine flow; the flat-fee line engine should treat non-`credit_then_invoice` standard invoice callbacks as lifecycle misuse.
+
 Usage-based credit-then-invoice extension rules:
 
 - `PatchExtend` must represent a real extension: the new service period end must be after the persisted intent end; full service period and billing period ends may stay unchanged but must not move backwards. Carry the new invoice-at on the patch separately from the service-period end.

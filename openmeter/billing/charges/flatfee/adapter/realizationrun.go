@@ -76,6 +76,30 @@ func (a *adapter) ProvisionCurrentRun(ctx context.Context, input flatfee.Provisi
 	})
 }
 
+func (a *adapter) AssignCurrentRunInvoiceLine(ctx context.Context, input flatfee.AssignCurrentRunInvoiceLineInput) (flatfee.RealizationRunBase, error) {
+	if err := input.Validate(); err != nil {
+		return flatfee.RealizationRunBase{}, err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.RealizationRunBase, error) {
+		run, err := tx.currentRunByChargeID(ctx, input.ChargeID)
+		if err != nil {
+			return flatfee.RealizationRunBase{}, err
+		}
+
+		updated, err := tx.db.ChargeFlatFeeRun.UpdateOneID(run.ID).
+			Where(dbchargeflatfeerun.Namespace(input.ChargeID.Namespace)).
+			SetLineID(input.LineID).
+			SetInvoiceID(input.InvoiceID).
+			Save(ctx)
+		if err != nil {
+			return flatfee.RealizationRunBase{}, fmt.Errorf("assigning invoice line to flat fee current run [charge_id=%s, run_id=%s]: %w", input.ChargeID.ID, run.ID, err)
+		}
+
+		return mapRealizationRunBaseFromDB(updated), nil
+	})
+}
+
 func (a *adapter) currentRunByChargeID(ctx context.Context, chargeID meta.ChargeID) (*db.ChargeFlatFeeRun, error) {
 	if err := chargeID.Validate(); err != nil {
 		return nil, err

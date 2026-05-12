@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/samber/mo"
@@ -198,7 +199,7 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 }
 
 // autoAdvanceCreatedCharges post-processes newly created charges
-// it handles credit-only usage-based and flat fee charges
+// it handles credit-only usage-based and flat fee charges whose next advancement is already due.
 // a separate transaction is used to make sure that we persist the creation state even if the advancing fails (as
 // a worker will try to advance the charges again).
 func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges.Charges) (charges.Charges, error) {
@@ -216,6 +217,10 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 				continue
 			}
 
+			if !isAdvanceDue(ub.State.AdvanceAfter) {
+				continue
+			}
+
 			customerIDs[customer.CustomerID{Namespace: ub.Namespace, ID: ub.Intent.CustomerID}] = struct{}{}
 
 		case meta.ChargeTypeFlatFee:
@@ -225,6 +230,10 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 			}
 
 			if ff.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
+				continue
+			}
+
+			if !isAdvanceDue(ff.State.AdvanceAfter) {
 				continue
 			}
 
@@ -273,6 +282,10 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 	}
 
 	return out, nil
+}
+
+func isAdvanceDue(advanceAfter *time.Time) bool {
+	return advanceAfter == nil || !clock.Now().Before(*advanceAfter)
 }
 
 type currencyAndCustomerID struct {

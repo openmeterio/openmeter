@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -11,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.Charge, line billing.StandardLine) (creditrealization.Realizations, error) {
+func (s *service) postLineAssignedToInvoice(ctx context.Context, charge flatfee.Charge, line billing.StandardLine) (creditrealization.Realizations, error) {
 	if charge.State.AmountAfterProration.IsZero() {
 		return nil, nil
 	}
@@ -40,6 +42,10 @@ func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.
 			return nil, nil
 		}
 
+		for idx := range creditAllocations {
+			creditAllocations[idx].LineID = lo.ToPtr(line.ID)
+		}
+
 		// TODO: If we want we can bulk insert these into the database for better performance (for now it's fine)
 		realizations, err := s.realizations.CreateCreditAllocations(ctx, charge, creditAllocations.AsCreateInputs())
 		if err != nil {
@@ -50,54 +56,52 @@ func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.
 	})
 }
 
-func (s *service) PostInvoiceIssued(ctx context.Context, charge flatfee.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
-	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		if charge.Realizations.CurrentRun == nil {
-			return fmt.Errorf("current run is required")
-		}
+func (s *service) accrueInvoiceUsage(ctx context.Context, charge flatfee.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) (*invoicedusage.AccruedUsage, error) {
+	if charge.Realizations.CurrentRun == nil {
+		return nil, fmt.Errorf("current run is required")
+	}
 
-		if charge.Realizations.CurrentRun.AccruedUsage != nil {
-			// Lifecycle violation: this should not happen as we should not be able to issue an invoice if the charge already has an accrued usage.
-			return fmt.Errorf("accrued invoice usage already exists for charge %s", charge.GetChargeID())
-		}
+	if charge.Realizations.CurrentRun.AccruedUsage != nil {
+		// Lifecycle violation: this should not happen as we should not be able to issue an invoice if the charge already has an accrued usage.
+		return nil, fmt.Errorf("accrued invoice usage already exists for charge %s", charge.GetChargeID())
+	}
 
-		if lineWithHeader.Line == nil {
-			return fmt.Errorf("postInvoiceIssued: line is nil")
-		}
+	if lineWithHeader.Line == nil {
+		return nil, fmt.Errorf("postInvoiceIssued: line is nil")
+	}
 
-		if err := s.persistDetailedLines(ctx, charge, *lineWithHeader.Line); err != nil {
-			return fmt.Errorf("persisting detailed lines: %w", err)
-		}
+	if err := s.persistDetailedLines(ctx, charge, *lineWithHeader.Line); err != nil {
+		return nil, fmt.Errorf("persisting detailed lines: %w", err)
+	}
 
-		if lineWithHeader.Line.Totals.Total.IsZero() {
-			return nil
-		}
+	if lineWithHeader.Line.Totals.Total.IsZero() {
+		return nil, nil
+	}
 
-		ledgerTransactionRef, err := s.handler.OnInvoiceUsageAccrued(ctx, flatfee.OnInvoiceUsageAccruedInput{
-			Charge:        charge,
-			ServicePeriod: lineWithHeader.Line.Period,
-			Totals:        lineWithHeader.Line.Totals,
-		})
-		if err != nil {
-			return fmt.Errorf("on flat fee standard invoice usage accrued: %w", err)
-		}
-
-		accruedUsage := invoicedusage.AccruedUsage{
-			ServicePeriod:     lineWithHeader.Line.Period,
-			Totals:            lineWithHeader.Line.Totals,
-			LedgerTransaction: &ledgerTransactionRef,
-		}
-
-		_, err = s.adapter.CreateInvoicedUsage(ctx, flatfee.CreateInvoicedUsageInput{
-			ChargeID:      charge.GetChargeID(),
-			LineID:        lineWithHeader.Line.ID,
-			InvoiceID:     lineWithHeader.Invoice.ID,
-			InvoicedUsage: accruedUsage,
-		})
-		if err != nil {
-			return fmt.Errorf("creating standard invoice accrued usage: %w", err)
-		}
-
-		return nil
+	ledgerTransactionRef, err := s.handler.OnInvoiceUsageAccrued(ctx, flatfee.OnInvoiceUsageAccruedInput{
+		Charge:        charge,
+		ServicePeriod: lineWithHeader.Line.Period,
+		Totals:        lineWithHeader.Line.Totals,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("on flat fee standard invoice usage accrued: %w", err)
+	}
+
+	accruedUsage := invoicedusage.AccruedUsage{
+		ServicePeriod:     lineWithHeader.Line.Period,
+		Totals:            lineWithHeader.Line.Totals,
+		LedgerTransaction: &ledgerTransactionRef,
+	}
+
+	accruedUsage, err = s.adapter.CreateInvoicedUsage(ctx, flatfee.CreateInvoicedUsageInput{
+		ChargeID:      charge.GetChargeID(),
+		LineID:        lineWithHeader.Line.ID,
+		InvoiceID:     lineWithHeader.Invoice.ID,
+		InvoicedUsage: accruedUsage,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating standard invoice accrued usage: %w", err)
+	}
+
+	return &accruedUsage, nil
 }

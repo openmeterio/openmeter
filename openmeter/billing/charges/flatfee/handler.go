@@ -127,7 +127,7 @@ type Handler interface {
 	// OnFlatFeeStandardInvoiceUsageAccrued is called when the remaining usage is sent to the customer on a standard invoice.
 	OnInvoiceUsageAccrued(ctx context.Context, input OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
 
-	// OnCreditsOnlyUsageAccrued is called when a credit-only flat fee becomes active (clock >= InvoiceAt)
+	// OnCreditsOnlyUsageAccrued is called when a credit-only flat fee reaches invoice_at
 	// and the full amount needs to be allocated as credits.
 	OnCreditsOnlyUsageAccrued(ctx context.Context, input OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
 

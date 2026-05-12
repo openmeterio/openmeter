@@ -15,12 +15,12 @@ const (
 	StatusCreated Status = Status(meta.ChargeStatusCreated)
 	StatusActive  Status = Status(meta.ChargeStatusActive)
 
-	StatusRealizationStarted              Status = "active.realization.started"
-	StatusRealizationWaitingForCollection Status = "active.realization.waiting_for_collection"
-	StatusRealizationProcessing           Status = "active.realization.processing"
-	StatusRealizationIssuing              Status = "active.realization.issuing"
-	StatusRealizationCompleted            Status = "active.realization.completed"
-	StatusAwaitingPaymentSettlement       Status = "active.awaiting_payment_settlement"
+	StatusActiveRealizationStarted              Status = "active.realization.started"
+	StatusActiveRealizationWaitingForCollection Status = "active.realization.waiting_for_collection"
+	StatusActiveRealizationProcessing           Status = "active.realization.processing"
+	StatusActiveRealizationIssuing              Status = "active.realization.issuing"
+	StatusActiveRealizationCompleted            Status = "active.realization.completed"
+	StatusActiveAwaitingPaymentSettlement       Status = "active.awaiting_payment_settlement"
 
 	StatusFinal   Status = Status(meta.ChargeStatusFinal)
 	StatusDeleted Status = Status(meta.ChargeStatusDeleted)
@@ -30,12 +30,12 @@ func (Status) Values() []string {
 	return []string{
 		string(StatusCreated),
 		string(StatusActive),
-		string(StatusRealizationStarted),
-		string(StatusRealizationWaitingForCollection),
-		string(StatusRealizationProcessing),
-		string(StatusRealizationIssuing),
-		string(StatusRealizationCompleted),
-		string(StatusAwaitingPaymentSettlement),
+		string(StatusActiveRealizationStarted),
+		string(StatusActiveRealizationWaitingForCollection),
+		string(StatusActiveRealizationProcessing),
+		string(StatusActiveRealizationIssuing),
+		string(StatusActiveRealizationCompleted),
+		string(StatusActiveAwaitingPaymentSettlement),
 		string(StatusFinal),
 		string(StatusDeleted),
 	}
