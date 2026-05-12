@@ -73,6 +73,10 @@ func mapRealizationsFromDB(entity *entdb.ChargeFlatFee) (flatfee.Realizations, e
 		realizations.PriorRuns = append(realizations.PriorRuns, run)
 	}
 
+	if entity.CurrentRealizationRunID != nil && realizations.CurrentRun == nil {
+		return flatfee.Realizations{}, fmt.Errorf("current realization run [id=%s] not loaded for flat fee charge [id=%s]", *entity.CurrentRealizationRunID, entity.ID)
+	}
+
 	return realizations, nil
 }
 

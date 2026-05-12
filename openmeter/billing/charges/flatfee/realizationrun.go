@@ -166,6 +166,18 @@ func (r RealizationRun) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+// IsVoidedBillingHistory reports whether this run must be ignored as billing
+// history. Deleted runs were already cleaned up through billing; unsupported
+// credit-note runs are retained for audit even though the invoice line should
+// have been removed once prorating/credit-note support exists.
+func (r RealizationRun) IsVoidedBillingHistory() bool {
+	if r.Type.IsVoidedBillingHistory() {
+		return true
+	}
+
+	return r.DeletedAt != nil
+}
+
 type RealizationRuns []RealizationRun
 
 func (r RealizationRuns) Validate() error {

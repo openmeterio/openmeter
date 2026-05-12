@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -200,6 +201,33 @@ func TestImpactRealizedCreditsSkipsVoidedUsageBasedBillingHistory(t *testing.T) 
 	require.NoError(t, err)
 
 	require.Equal(t, float64(7), impact.RealizedCredits().InexactFloat64())
+}
+
+func TestImpactRealizedCreditsSkipsVoidedFlatFeeBillingHistory(t *testing.T) {
+	impact, err := NewImpact(charges.NewCharge(flatfee.Charge{
+		ChargeBase: flatfee.ChargeBase{
+			Intent: flatfee.Intent{
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			},
+		},
+		Realizations: flatfee.Realizations{
+			CurrentRun: &flatfee.RealizationRun{
+				RealizationRunBase: flatfee.RealizationRunBase{
+					Type: flatfee.RealizationRunTypeInvalidDueToUnsupportedCreditNote,
+				},
+				CreditRealizations: creditrealization.Realizations{
+					{
+						CreateInput: creditrealization.CreateInput{
+							Amount: alpacadecimal.NewFromInt(10),
+						},
+					},
+				},
+			},
+		},
+	}), alpacadecimal.NewFromInt(50))
+	require.NoError(t, err)
+
+	require.True(t, impact.RealizedCredits().Equal(alpacadecimal.Zero))
 }
 
 func TestGetBalanceWithDifferentCurrency(t *testing.T) {

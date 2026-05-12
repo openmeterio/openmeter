@@ -41,6 +41,9 @@ func (i Impact) RealizedCredits() alpacadecimal.Decimal {
 		if charge.Realizations.CurrentRun == nil {
 			return alpacadecimal.Zero
 		}
+		if charge.Realizations.CurrentRun.IsVoidedBillingHistory() {
+			return alpacadecimal.Zero
+		}
 
 		return charge.Realizations.CurrentRun.CreditRealizations.Sum()
 	case meta.ChargeTypeUsageBased:
