@@ -1497,20 +1497,12 @@ func (e *ChargeFlatFeeRunInvoicedUsage) GetID() string {
 	return e.ID
 }
 
-func (e *ChargeFlatFeeRunInvoicedUsage) GetLineID() *string {
-	return e.LineID
-}
-
 func (e *ChargeFlatFeeRunInvoicedUsage) GetServicePeriodFrom() time.Time {
 	return e.ServicePeriodFrom
 }
 
 func (e *ChargeFlatFeeRunInvoicedUsage) GetServicePeriodTo() time.Time {
 	return e.ServicePeriodTo
-}
-
-func (e *ChargeFlatFeeRunInvoicedUsage) GetMutable() bool {
-	return e.Mutable
 }
 
 func (e *ChargeFlatFeeRunInvoicedUsage) GetLedgerTransactionGroupID() *string {
@@ -1921,20 +1913,12 @@ func (e *ChargeUsageBasedRunInvoicedUsage) GetID() string {
 	return e.ID
 }
 
-func (e *ChargeUsageBasedRunInvoicedUsage) GetLineID() *string {
-	return e.LineID
-}
-
 func (e *ChargeUsageBasedRunInvoicedUsage) GetServicePeriodFrom() time.Time {
 	return e.ServicePeriodFrom
 }
 
 func (e *ChargeUsageBasedRunInvoicedUsage) GetServicePeriodTo() time.Time {
 	return e.ServicePeriodTo
-}
-
-func (e *ChargeUsageBasedRunInvoicedUsage) GetMutable() bool {
-	return e.Mutable
 }
 
 func (e *ChargeUsageBasedRunInvoicedUsage) GetLedgerTransactionGroupID() *string {

@@ -11948,6 +11948,9 @@ type BillingInvoiceMutation struct {
 	billing_invoice_validation_issues        map[string]struct{}
 	removedbilling_invoice_validation_issues map[string]struct{}
 	clearedbilling_invoice_validation_issues bool
+	charge_flat_fee_runs                     map[string]struct{}
+	removedcharge_flat_fee_runs              map[string]struct{}
+	clearedcharge_flat_fee_runs              bool
 	charge_usage_based_runs                  map[string]struct{}
 	removedcharge_usage_based_runs           map[string]struct{}
 	clearedcharge_usage_based_runs           bool
@@ -14847,6 +14850,60 @@ func (m *BillingInvoiceMutation) ResetBillingInvoiceValidationIssues() {
 	m.removedbilling_invoice_validation_issues = nil
 }
 
+// AddChargeFlatFeeRunIDs adds the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity by ids.
+func (m *BillingInvoiceMutation) AddChargeFlatFeeRunIDs(ids ...string) {
+	if m.charge_flat_fee_runs == nil {
+		m.charge_flat_fee_runs = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.charge_flat_fee_runs[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChargeFlatFeeRuns clears the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity.
+func (m *BillingInvoiceMutation) ClearChargeFlatFeeRuns() {
+	m.clearedcharge_flat_fee_runs = true
+}
+
+// ChargeFlatFeeRunsCleared reports if the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity was cleared.
+func (m *BillingInvoiceMutation) ChargeFlatFeeRunsCleared() bool {
+	return m.clearedcharge_flat_fee_runs
+}
+
+// RemoveChargeFlatFeeRunIDs removes the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity by IDs.
+func (m *BillingInvoiceMutation) RemoveChargeFlatFeeRunIDs(ids ...string) {
+	if m.removedcharge_flat_fee_runs == nil {
+		m.removedcharge_flat_fee_runs = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.charge_flat_fee_runs, ids[i])
+		m.removedcharge_flat_fee_runs[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChargeFlatFeeRuns returns the removed IDs of the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity.
+func (m *BillingInvoiceMutation) RemovedChargeFlatFeeRunsIDs() (ids []string) {
+	for id := range m.removedcharge_flat_fee_runs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChargeFlatFeeRunsIDs returns the "charge_flat_fee_runs" edge IDs in the mutation.
+func (m *BillingInvoiceMutation) ChargeFlatFeeRunsIDs() (ids []string) {
+	for id := range m.charge_flat_fee_runs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChargeFlatFeeRuns resets all changes to the "charge_flat_fee_runs" edge.
+func (m *BillingInvoiceMutation) ResetChargeFlatFeeRuns() {
+	m.charge_flat_fee_runs = nil
+	m.clearedcharge_flat_fee_runs = false
+	m.removedcharge_flat_fee_runs = nil
+}
+
 // AddChargeUsageBasedRunIDs adds the "charge_usage_based_runs" edge to the ChargeUsageBasedRuns entity by ids.
 func (m *BillingInvoiceMutation) AddChargeUsageBasedRunIDs(ids ...string) {
 	if m.charge_usage_based_runs == nil {
@@ -16346,7 +16403,7 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingInvoiceMutation) AddedEdges() []string {
-	edges := make([]string, 0, 10)
+	edges := make([]string, 0, 11)
 	if m.source_billing_profile != nil {
 		edges = append(edges, billinginvoice.EdgeSourceBillingProfile)
 	}
@@ -16361,6 +16418,9 @@ func (m *BillingInvoiceMutation) AddedEdges() []string {
 	}
 	if m.billing_invoice_validation_issues != nil {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceValidationIssues)
+	}
+	if m.charge_flat_fee_runs != nil {
+		edges = append(edges, billinginvoice.EdgeChargeFlatFeeRuns)
 	}
 	if m.charge_usage_based_runs != nil {
 		edges = append(edges, billinginvoice.EdgeChargeUsageBasedRuns)
@@ -16410,6 +16470,12 @@ func (m *BillingInvoiceMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case billinginvoice.EdgeChargeFlatFeeRuns:
+		ids := make([]ent.Value, 0, len(m.charge_flat_fee_runs))
+		for id := range m.charge_flat_fee_runs {
+			ids = append(ids, id)
+		}
+		return ids
 	case billinginvoice.EdgeChargeUsageBasedRuns:
 		ids := make([]ent.Value, 0, len(m.charge_usage_based_runs))
 		for id := range m.charge_usage_based_runs {
@@ -16438,7 +16504,7 @@ func (m *BillingInvoiceMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingInvoiceMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 10)
+	edges := make([]string, 0, 11)
 	if m.removedbilling_invoice_lines != nil {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceLines)
 	}
@@ -16447,6 +16513,9 @@ func (m *BillingInvoiceMutation) RemovedEdges() []string {
 	}
 	if m.removedbilling_invoice_validation_issues != nil {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceValidationIssues)
+	}
+	if m.removedcharge_flat_fee_runs != nil {
+		edges = append(edges, billinginvoice.EdgeChargeFlatFeeRuns)
 	}
 	if m.removedcharge_usage_based_runs != nil {
 		edges = append(edges, billinginvoice.EdgeChargeUsageBasedRuns)
@@ -16476,6 +16545,12 @@ func (m *BillingInvoiceMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case billinginvoice.EdgeChargeFlatFeeRuns:
+		ids := make([]ent.Value, 0, len(m.removedcharge_flat_fee_runs))
+		for id := range m.removedcharge_flat_fee_runs {
+			ids = append(ids, id)
+		}
+		return ids
 	case billinginvoice.EdgeChargeUsageBasedRuns:
 		ids := make([]ent.Value, 0, len(m.removedcharge_usage_based_runs))
 		for id := range m.removedcharge_usage_based_runs {
@@ -16488,7 +16563,7 @@ func (m *BillingInvoiceMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingInvoiceMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 10)
+	edges := make([]string, 0, 11)
 	if m.clearedsource_billing_profile {
 		edges = append(edges, billinginvoice.EdgeSourceBillingProfile)
 	}
@@ -16503,6 +16578,9 @@ func (m *BillingInvoiceMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_invoice_validation_issues {
 		edges = append(edges, billinginvoice.EdgeBillingInvoiceValidationIssues)
+	}
+	if m.clearedcharge_flat_fee_runs {
+		edges = append(edges, billinginvoice.EdgeChargeFlatFeeRuns)
 	}
 	if m.clearedcharge_usage_based_runs {
 		edges = append(edges, billinginvoice.EdgeChargeUsageBasedRuns)
@@ -16536,6 +16614,8 @@ func (m *BillingInvoiceMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoice_detailed_lines
 	case billinginvoice.EdgeBillingInvoiceValidationIssues:
 		return m.clearedbilling_invoice_validation_issues
+	case billinginvoice.EdgeChargeFlatFeeRuns:
+		return m.clearedcharge_flat_fee_runs
 	case billinginvoice.EdgeChargeUsageBasedRuns:
 		return m.clearedcharge_usage_based_runs
 	case billinginvoice.EdgeBillingInvoiceCustomer:
@@ -16594,6 +16674,9 @@ func (m *BillingInvoiceMutation) ResetEdge(name string) error {
 		return nil
 	case billinginvoice.EdgeBillingInvoiceValidationIssues:
 		m.ResetBillingInvoiceValidationIssues()
+		return nil
+	case billinginvoice.EdgeChargeFlatFeeRuns:
+		m.ResetChargeFlatFeeRuns()
 		return nil
 	case billinginvoice.EdgeChargeUsageBasedRuns:
 		m.ResetChargeUsageBasedRuns()
@@ -17298,9 +17381,8 @@ type BillingInvoiceLineMutation struct {
 	charge_flat_fee_run_credit_allocations         map[string]struct{}
 	removedcharge_flat_fee_run_credit_allocations  map[string]struct{}
 	clearedcharge_flat_fee_run_credit_allocations  bool
-	charge_flat_fee_run_invoiced_usage             map[string]struct{}
-	removedcharge_flat_fee_run_invoiced_usage      map[string]struct{}
-	clearedcharge_flat_fee_run_invoiced_usage      bool
+	charge_flat_fee_runs                           *string
+	clearedcharge_flat_fee_runs                    bool
 	charge_usage_based_run                         *string
 	clearedcharge_usage_based_run                  bool
 	charge_credit_purchase_invoiced_payment        *string
@@ -19839,58 +19921,43 @@ func (m *BillingInvoiceLineMutation) ResetChargeFlatFeeRunCreditAllocations() {
 	m.removedcharge_flat_fee_run_credit_allocations = nil
 }
 
-// AddChargeFlatFeeRunInvoicedUsageIDs adds the "charge_flat_fee_run_invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity by ids.
-func (m *BillingInvoiceLineMutation) AddChargeFlatFeeRunInvoicedUsageIDs(ids ...string) {
-	if m.charge_flat_fee_run_invoiced_usage == nil {
-		m.charge_flat_fee_run_invoiced_usage = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.charge_flat_fee_run_invoiced_usage[ids[i]] = struct{}{}
-	}
+// SetChargeFlatFeeRunsID sets the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity by id.
+func (m *BillingInvoiceLineMutation) SetChargeFlatFeeRunsID(id string) {
+	m.charge_flat_fee_runs = &id
 }
 
-// ClearChargeFlatFeeRunInvoicedUsage clears the "charge_flat_fee_run_invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity.
-func (m *BillingInvoiceLineMutation) ClearChargeFlatFeeRunInvoicedUsage() {
-	m.clearedcharge_flat_fee_run_invoiced_usage = true
+// ClearChargeFlatFeeRuns clears the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity.
+func (m *BillingInvoiceLineMutation) ClearChargeFlatFeeRuns() {
+	m.clearedcharge_flat_fee_runs = true
 }
 
-// ChargeFlatFeeRunInvoicedUsageCleared reports if the "charge_flat_fee_run_invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity was cleared.
-func (m *BillingInvoiceLineMutation) ChargeFlatFeeRunInvoicedUsageCleared() bool {
-	return m.clearedcharge_flat_fee_run_invoiced_usage
+// ChargeFlatFeeRunsCleared reports if the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity was cleared.
+func (m *BillingInvoiceLineMutation) ChargeFlatFeeRunsCleared() bool {
+	return m.clearedcharge_flat_fee_runs
 }
 
-// RemoveChargeFlatFeeRunInvoicedUsageIDs removes the "charge_flat_fee_run_invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity by IDs.
-func (m *BillingInvoiceLineMutation) RemoveChargeFlatFeeRunInvoicedUsageIDs(ids ...string) {
-	if m.removedcharge_flat_fee_run_invoiced_usage == nil {
-		m.removedcharge_flat_fee_run_invoiced_usage = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.charge_flat_fee_run_invoiced_usage, ids[i])
-		m.removedcharge_flat_fee_run_invoiced_usage[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedChargeFlatFeeRunInvoicedUsage returns the removed IDs of the "charge_flat_fee_run_invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity.
-func (m *BillingInvoiceLineMutation) RemovedChargeFlatFeeRunInvoicedUsageIDs() (ids []string) {
-	for id := range m.removedcharge_flat_fee_run_invoiced_usage {
-		ids = append(ids, id)
+// ChargeFlatFeeRunsID returns the "charge_flat_fee_runs" edge ID in the mutation.
+func (m *BillingInvoiceLineMutation) ChargeFlatFeeRunsID() (id string, exists bool) {
+	if m.charge_flat_fee_runs != nil {
+		return *m.charge_flat_fee_runs, true
 	}
 	return
 }
 
-// ChargeFlatFeeRunInvoicedUsageIDs returns the "charge_flat_fee_run_invoiced_usage" edge IDs in the mutation.
-func (m *BillingInvoiceLineMutation) ChargeFlatFeeRunInvoicedUsageIDs() (ids []string) {
-	for id := range m.charge_flat_fee_run_invoiced_usage {
-		ids = append(ids, id)
+// ChargeFlatFeeRunsIDs returns the "charge_flat_fee_runs" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ChargeFlatFeeRunsID instead. It exists only for internal usage by the builders.
+func (m *BillingInvoiceLineMutation) ChargeFlatFeeRunsIDs() (ids []string) {
+	if id := m.charge_flat_fee_runs; id != nil {
+		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetChargeFlatFeeRunInvoicedUsage resets all changes to the "charge_flat_fee_run_invoiced_usage" edge.
-func (m *BillingInvoiceLineMutation) ResetChargeFlatFeeRunInvoicedUsage() {
-	m.charge_flat_fee_run_invoiced_usage = nil
-	m.clearedcharge_flat_fee_run_invoiced_usage = false
-	m.removedcharge_flat_fee_run_invoiced_usage = nil
+// ResetChargeFlatFeeRuns resets all changes to the "charge_flat_fee_runs" edge.
+func (m *BillingInvoiceLineMutation) ResetChargeFlatFeeRuns() {
+	m.charge_flat_fee_runs = nil
+	m.clearedcharge_flat_fee_runs = false
 }
 
 // SetChargeUsageBasedRunID sets the "charge_usage_based_run" edge to the ChargeUsageBasedRuns entity by id.
@@ -21026,8 +21093,8 @@ func (m *BillingInvoiceLineMutation) AddedEdges() []string {
 	if m.charge_flat_fee_run_credit_allocations != nil {
 		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRunCreditAllocations)
 	}
-	if m.charge_flat_fee_run_invoiced_usage != nil {
-		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRunInvoicedUsage)
+	if m.charge_flat_fee_runs != nil {
+		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRuns)
 	}
 	if m.charge_usage_based_run != nil {
 		edges = append(edges, billinginvoiceline.EdgeChargeUsageBasedRun)
@@ -21115,12 +21182,10 @@ func (m *BillingInvoiceLineMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case billinginvoiceline.EdgeChargeFlatFeeRunInvoicedUsage:
-		ids := make([]ent.Value, 0, len(m.charge_flat_fee_run_invoiced_usage))
-		for id := range m.charge_flat_fee_run_invoiced_usage {
-			ids = append(ids, id)
+	case billinginvoiceline.EdgeChargeFlatFeeRuns:
+		if id := m.charge_flat_fee_runs; id != nil {
+			return []ent.Value{*id}
 		}
-		return ids
 	case billinginvoiceline.EdgeChargeUsageBasedRun:
 		if id := m.charge_usage_based_run; id != nil {
 			return []ent.Value{*id}
@@ -21154,9 +21219,6 @@ func (m *BillingInvoiceLineMutation) RemovedEdges() []string {
 	}
 	if m.removedcharge_flat_fee_run_credit_allocations != nil {
 		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRunCreditAllocations)
-	}
-	if m.removedcharge_flat_fee_run_invoiced_usage != nil {
-		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRunInvoicedUsage)
 	}
 	return edges
 }
@@ -21192,12 +21254,6 @@ func (m *BillingInvoiceLineMutation) RemovedIDs(name string) []ent.Value {
 	case billinginvoiceline.EdgeChargeFlatFeeRunCreditAllocations:
 		ids := make([]ent.Value, 0, len(m.removedcharge_flat_fee_run_credit_allocations))
 		for id := range m.removedcharge_flat_fee_run_credit_allocations {
-			ids = append(ids, id)
-		}
-		return ids
-	case billinginvoiceline.EdgeChargeFlatFeeRunInvoicedUsage:
-		ids := make([]ent.Value, 0, len(m.removedcharge_flat_fee_run_invoiced_usage))
-		for id := range m.removedcharge_flat_fee_run_invoiced_usage {
 			ids = append(ids, id)
 		}
 		return ids
@@ -21253,8 +21309,8 @@ func (m *BillingInvoiceLineMutation) ClearedEdges() []string {
 	if m.clearedcharge_flat_fee_run_credit_allocations {
 		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRunCreditAllocations)
 	}
-	if m.clearedcharge_flat_fee_run_invoiced_usage {
-		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRunInvoicedUsage)
+	if m.clearedcharge_flat_fee_runs {
+		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRuns)
 	}
 	if m.clearedcharge_usage_based_run {
 		edges = append(edges, billinginvoiceline.EdgeChargeUsageBasedRun)
@@ -21302,8 +21358,8 @@ func (m *BillingInvoiceLineMutation) EdgeCleared(name string) bool {
 		return m.clearedcharge_flat_fee_run_payment
 	case billinginvoiceline.EdgeChargeFlatFeeRunCreditAllocations:
 		return m.clearedcharge_flat_fee_run_credit_allocations
-	case billinginvoiceline.EdgeChargeFlatFeeRunInvoicedUsage:
-		return m.clearedcharge_flat_fee_run_invoiced_usage
+	case billinginvoiceline.EdgeChargeFlatFeeRuns:
+		return m.clearedcharge_flat_fee_runs
 	case billinginvoiceline.EdgeChargeUsageBasedRun:
 		return m.clearedcharge_usage_based_run
 	case billinginvoiceline.EdgeChargeCreditPurchaseInvoicedPayment:
@@ -21347,6 +21403,9 @@ func (m *BillingInvoiceLineMutation) ClearEdge(name string) error {
 		return nil
 	case billinginvoiceline.EdgeChargeFlatFeeRunPayment:
 		m.ClearChargeFlatFeeRunPayment()
+		return nil
+	case billinginvoiceline.EdgeChargeFlatFeeRuns:
+		m.ClearChargeFlatFeeRuns()
 		return nil
 	case billinginvoiceline.EdgeChargeUsageBasedRun:
 		m.ClearChargeUsageBasedRun()
@@ -21410,8 +21469,8 @@ func (m *BillingInvoiceLineMutation) ResetEdge(name string) error {
 	case billinginvoiceline.EdgeChargeFlatFeeRunCreditAllocations:
 		m.ResetChargeFlatFeeRunCreditAllocations()
 		return nil
-	case billinginvoiceline.EdgeChargeFlatFeeRunInvoicedUsage:
-		m.ResetChargeFlatFeeRunInvoicedUsage()
+	case billinginvoiceline.EdgeChargeFlatFeeRuns:
+		m.ResetChargeFlatFeeRuns()
 		return nil
 	case billinginvoiceline.EdgeChargeUsageBasedRun:
 		m.ResetChargeUsageBasedRun()
@@ -45836,42 +45895,47 @@ func (m *ChargeFlatFeeMutation) ResetEdge(name string) error {
 // ChargeFlatFeeRunMutation represents an operation that mutates the ChargeFlatFeeRun nodes in the graph.
 type ChargeFlatFeeRunMutation struct {
 	config
-	op                        Op
-	typ                       string
-	id                        *string
-	namespace                 *string
-	created_at                *time.Time
-	updated_at                *time.Time
-	deleted_at                *time.Time
-	amount                    *alpacadecimal.Decimal
-	taxes_total               *alpacadecimal.Decimal
-	taxes_inclusive_total     *alpacadecimal.Decimal
-	taxes_exclusive_total     *alpacadecimal.Decimal
-	charges_total             *alpacadecimal.Decimal
-	discounts_total           *alpacadecimal.Decimal
-	credits_total             *alpacadecimal.Decimal
-	total                     *alpacadecimal.Decimal
-	_type                     *flatfee.RealizationRunType
-	initial_type              *flatfee.RealizationRunType
-	service_period_from       *time.Time
-	service_period_to         *time.Time
-	amount_after_proration    *alpacadecimal.Decimal
-	clearedFields             map[string]struct{}
-	flat_fee                  *string
-	clearedflat_fee           bool
-	credit_allocations        map[string]struct{}
-	removedcredit_allocations map[string]struct{}
-	clearedcredit_allocations bool
-	detailed_lines            map[string]struct{}
-	removeddetailed_lines     map[string]struct{}
-	cleareddetailed_lines     bool
-	invoiced_usage            *string
-	clearedinvoiced_usage     bool
-	payment                   *string
-	clearedpayment            bool
-	done                      bool
-	oldValue                  func(context.Context) (*ChargeFlatFeeRun, error)
-	predicates                []predicate.ChargeFlatFeeRun
+	op                           Op
+	typ                          string
+	id                           *string
+	namespace                    *string
+	created_at                   *time.Time
+	updated_at                   *time.Time
+	deleted_at                   *time.Time
+	amount                       *alpacadecimal.Decimal
+	taxes_total                  *alpacadecimal.Decimal
+	taxes_inclusive_total        *alpacadecimal.Decimal
+	taxes_exclusive_total        *alpacadecimal.Decimal
+	charges_total                *alpacadecimal.Decimal
+	discounts_total              *alpacadecimal.Decimal
+	credits_total                *alpacadecimal.Decimal
+	total                        *alpacadecimal.Decimal
+	_type                        *flatfee.RealizationRunType
+	initial_type                 *flatfee.RealizationRunType
+	service_period_from          *time.Time
+	service_period_to            *time.Time
+	amount_after_proration       *alpacadecimal.Decimal
+	no_fiat_transaction_required *bool
+	clearedFields                map[string]struct{}
+	flat_fee                     *string
+	clearedflat_fee              bool
+	billing_invoice_line         *string
+	clearedbilling_invoice_line  bool
+	billing_invoice              *string
+	clearedbilling_invoice       bool
+	credit_allocations           map[string]struct{}
+	removedcredit_allocations    map[string]struct{}
+	clearedcredit_allocations    bool
+	detailed_lines               map[string]struct{}
+	removeddetailed_lines        map[string]struct{}
+	cleareddetailed_lines        bool
+	invoiced_usage               *string
+	clearedinvoiced_usage        bool
+	payment                      *string
+	clearedpayment               bool
+	done                         bool
+	oldValue                     func(context.Context) (*ChargeFlatFeeRun, error)
+	predicates                   []predicate.ChargeFlatFeeRun
 }
 
 var _ ent.Mutation = (*ChargeFlatFeeRunMutation)(nil)
@@ -46603,6 +46667,104 @@ func (m *ChargeFlatFeeRunMutation) ResetServicePeriodTo() {
 	m.service_period_to = nil
 }
 
+// SetLineID sets the "line_id" field.
+func (m *ChargeFlatFeeRunMutation) SetLineID(s string) {
+	m.billing_invoice_line = &s
+}
+
+// LineID returns the value of the "line_id" field in the mutation.
+func (m *ChargeFlatFeeRunMutation) LineID() (r string, exists bool) {
+	v := m.billing_invoice_line
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLineID returns the old "line_id" field's value of the ChargeFlatFeeRun entity.
+// If the ChargeFlatFeeRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunMutation) OldLineID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLineID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLineID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLineID: %w", err)
+	}
+	return oldValue.LineID, nil
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (m *ChargeFlatFeeRunMutation) ClearLineID() {
+	m.billing_invoice_line = nil
+	m.clearedFields[chargeflatfeerun.FieldLineID] = struct{}{}
+}
+
+// LineIDCleared returns if the "line_id" field was cleared in this mutation.
+func (m *ChargeFlatFeeRunMutation) LineIDCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeerun.FieldLineID]
+	return ok
+}
+
+// ResetLineID resets all changes to the "line_id" field.
+func (m *ChargeFlatFeeRunMutation) ResetLineID() {
+	m.billing_invoice_line = nil
+	delete(m.clearedFields, chargeflatfeerun.FieldLineID)
+}
+
+// SetInvoiceID sets the "invoice_id" field.
+func (m *ChargeFlatFeeRunMutation) SetInvoiceID(s string) {
+	m.billing_invoice = &s
+}
+
+// InvoiceID returns the value of the "invoice_id" field in the mutation.
+func (m *ChargeFlatFeeRunMutation) InvoiceID() (r string, exists bool) {
+	v := m.billing_invoice
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoiceID returns the old "invoice_id" field's value of the ChargeFlatFeeRun entity.
+// If the ChargeFlatFeeRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunMutation) OldInvoiceID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoiceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoiceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoiceID: %w", err)
+	}
+	return oldValue.InvoiceID, nil
+}
+
+// ClearInvoiceID clears the value of the "invoice_id" field.
+func (m *ChargeFlatFeeRunMutation) ClearInvoiceID() {
+	m.billing_invoice = nil
+	m.clearedFields[chargeflatfeerun.FieldInvoiceID] = struct{}{}
+}
+
+// InvoiceIDCleared returns if the "invoice_id" field was cleared in this mutation.
+func (m *ChargeFlatFeeRunMutation) InvoiceIDCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeerun.FieldInvoiceID]
+	return ok
+}
+
+// ResetInvoiceID resets all changes to the "invoice_id" field.
+func (m *ChargeFlatFeeRunMutation) ResetInvoiceID() {
+	m.billing_invoice = nil
+	delete(m.clearedFields, chargeflatfeerun.FieldInvoiceID)
+}
+
 // SetAmountAfterProration sets the "amount_after_proration" field.
 func (m *ChargeFlatFeeRunMutation) SetAmountAfterProration(a alpacadecimal.Decimal) {
 	m.amount_after_proration = &a
@@ -46637,6 +46799,42 @@ func (m *ChargeFlatFeeRunMutation) OldAmountAfterProration(ctx context.Context) 
 // ResetAmountAfterProration resets all changes to the "amount_after_proration" field.
 func (m *ChargeFlatFeeRunMutation) ResetAmountAfterProration() {
 	m.amount_after_proration = nil
+}
+
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (m *ChargeFlatFeeRunMutation) SetNoFiatTransactionRequired(b bool) {
+	m.no_fiat_transaction_required = &b
+}
+
+// NoFiatTransactionRequired returns the value of the "no_fiat_transaction_required" field in the mutation.
+func (m *ChargeFlatFeeRunMutation) NoFiatTransactionRequired() (r bool, exists bool) {
+	v := m.no_fiat_transaction_required
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNoFiatTransactionRequired returns the old "no_fiat_transaction_required" field's value of the ChargeFlatFeeRun entity.
+// If the ChargeFlatFeeRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunMutation) OldNoFiatTransactionRequired(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNoFiatTransactionRequired is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNoFiatTransactionRequired requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNoFiatTransactionRequired: %w", err)
+	}
+	return oldValue.NoFiatTransactionRequired, nil
+}
+
+// ResetNoFiatTransactionRequired resets all changes to the "no_fiat_transaction_required" field.
+func (m *ChargeFlatFeeRunMutation) ResetNoFiatTransactionRequired() {
+	m.no_fiat_transaction_required = nil
 }
 
 // SetFlatFeeID sets the "flat_fee" edge to the ChargeFlatFee entity by id.
@@ -46677,6 +46875,86 @@ func (m *ChargeFlatFeeRunMutation) FlatFeeIDs() (ids []string) {
 func (m *ChargeFlatFeeRunMutation) ResetFlatFee() {
 	m.flat_fee = nil
 	m.clearedflat_fee = false
+}
+
+// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by id.
+func (m *ChargeFlatFeeRunMutation) SetBillingInvoiceLineID(id string) {
+	m.billing_invoice_line = &id
+}
+
+// ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (m *ChargeFlatFeeRunMutation) ClearBillingInvoiceLine() {
+	m.clearedbilling_invoice_line = true
+	m.clearedFields[chargeflatfeerun.FieldLineID] = struct{}{}
+}
+
+// BillingInvoiceLineCleared reports if the "billing_invoice_line" edge to the BillingInvoiceLine entity was cleared.
+func (m *ChargeFlatFeeRunMutation) BillingInvoiceLineCleared() bool {
+	return m.LineIDCleared() || m.clearedbilling_invoice_line
+}
+
+// BillingInvoiceLineID returns the "billing_invoice_line" edge ID in the mutation.
+func (m *ChargeFlatFeeRunMutation) BillingInvoiceLineID() (id string, exists bool) {
+	if m.billing_invoice_line != nil {
+		return *m.billing_invoice_line, true
+	}
+	return
+}
+
+// BillingInvoiceLineIDs returns the "billing_invoice_line" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BillingInvoiceLineID instead. It exists only for internal usage by the builders.
+func (m *ChargeFlatFeeRunMutation) BillingInvoiceLineIDs() (ids []string) {
+	if id := m.billing_invoice_line; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBillingInvoiceLine resets all changes to the "billing_invoice_line" edge.
+func (m *ChargeFlatFeeRunMutation) ResetBillingInvoiceLine() {
+	m.billing_invoice_line = nil
+	m.clearedbilling_invoice_line = false
+}
+
+// SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by id.
+func (m *ChargeFlatFeeRunMutation) SetBillingInvoiceID(id string) {
+	m.billing_invoice = &id
+}
+
+// ClearBillingInvoice clears the "billing_invoice" edge to the BillingInvoice entity.
+func (m *ChargeFlatFeeRunMutation) ClearBillingInvoice() {
+	m.clearedbilling_invoice = true
+	m.clearedFields[chargeflatfeerun.FieldInvoiceID] = struct{}{}
+}
+
+// BillingInvoiceCleared reports if the "billing_invoice" edge to the BillingInvoice entity was cleared.
+func (m *ChargeFlatFeeRunMutation) BillingInvoiceCleared() bool {
+	return m.InvoiceIDCleared() || m.clearedbilling_invoice
+}
+
+// BillingInvoiceID returns the "billing_invoice" edge ID in the mutation.
+func (m *ChargeFlatFeeRunMutation) BillingInvoiceID() (id string, exists bool) {
+	if m.billing_invoice != nil {
+		return *m.billing_invoice, true
+	}
+	return
+}
+
+// BillingInvoiceIDs returns the "billing_invoice" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BillingInvoiceID instead. It exists only for internal usage by the builders.
+func (m *ChargeFlatFeeRunMutation) BillingInvoiceIDs() (ids []string) {
+	if id := m.billing_invoice; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBillingInvoice resets all changes to the "billing_invoice" edge.
+func (m *ChargeFlatFeeRunMutation) ResetBillingInvoice() {
+	m.billing_invoice = nil
+	m.clearedbilling_invoice = false
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeRunCreditAllocations entity by ids.
@@ -46899,7 +47177,7 @@ func (m *ChargeFlatFeeRunMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeRunMutation) Fields() []string {
-	fields := make([]string, 0, 18)
+	fields := make([]string, 0, 21)
 	if m.namespace != nil {
 		fields = append(fields, chargeflatfeerun.FieldNamespace)
 	}
@@ -46951,8 +47229,17 @@ func (m *ChargeFlatFeeRunMutation) Fields() []string {
 	if m.service_period_to != nil {
 		fields = append(fields, chargeflatfeerun.FieldServicePeriodTo)
 	}
+	if m.billing_invoice_line != nil {
+		fields = append(fields, chargeflatfeerun.FieldLineID)
+	}
+	if m.billing_invoice != nil {
+		fields = append(fields, chargeflatfeerun.FieldInvoiceID)
+	}
 	if m.amount_after_proration != nil {
 		fields = append(fields, chargeflatfeerun.FieldAmountAfterProration)
+	}
+	if m.no_fiat_transaction_required != nil {
+		fields = append(fields, chargeflatfeerun.FieldNoFiatTransactionRequired)
 	}
 	return fields
 }
@@ -46996,8 +47283,14 @@ func (m *ChargeFlatFeeRunMutation) Field(name string) (ent.Value, bool) {
 		return m.ServicePeriodFrom()
 	case chargeflatfeerun.FieldServicePeriodTo:
 		return m.ServicePeriodTo()
+	case chargeflatfeerun.FieldLineID:
+		return m.LineID()
+	case chargeflatfeerun.FieldInvoiceID:
+		return m.InvoiceID()
 	case chargeflatfeerun.FieldAmountAfterProration:
 		return m.AmountAfterProration()
+	case chargeflatfeerun.FieldNoFiatTransactionRequired:
+		return m.NoFiatTransactionRequired()
 	}
 	return nil, false
 }
@@ -47041,8 +47334,14 @@ func (m *ChargeFlatFeeRunMutation) OldField(ctx context.Context, name string) (e
 		return m.OldServicePeriodFrom(ctx)
 	case chargeflatfeerun.FieldServicePeriodTo:
 		return m.OldServicePeriodTo(ctx)
+	case chargeflatfeerun.FieldLineID:
+		return m.OldLineID(ctx)
+	case chargeflatfeerun.FieldInvoiceID:
+		return m.OldInvoiceID(ctx)
 	case chargeflatfeerun.FieldAmountAfterProration:
 		return m.OldAmountAfterProration(ctx)
+	case chargeflatfeerun.FieldNoFiatTransactionRequired:
+		return m.OldNoFiatTransactionRequired(ctx)
 	}
 	return nil, fmt.Errorf("unknown ChargeFlatFeeRun field %s", name)
 }
@@ -47171,12 +47470,33 @@ func (m *ChargeFlatFeeRunMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetServicePeriodTo(v)
 		return nil
+	case chargeflatfeerun.FieldLineID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLineID(v)
+		return nil
+	case chargeflatfeerun.FieldInvoiceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoiceID(v)
+		return nil
 	case chargeflatfeerun.FieldAmountAfterProration:
 		v, ok := value.(alpacadecimal.Decimal)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAmountAfterProration(v)
+		return nil
+	case chargeflatfeerun.FieldNoFiatTransactionRequired:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNoFiatTransactionRequired(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeRun field %s", name)
@@ -47211,6 +47531,12 @@ func (m *ChargeFlatFeeRunMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeflatfeerun.FieldDeletedAt) {
 		fields = append(fields, chargeflatfeerun.FieldDeletedAt)
 	}
+	if m.FieldCleared(chargeflatfeerun.FieldLineID) {
+		fields = append(fields, chargeflatfeerun.FieldLineID)
+	}
+	if m.FieldCleared(chargeflatfeerun.FieldInvoiceID) {
+		fields = append(fields, chargeflatfeerun.FieldInvoiceID)
+	}
 	return fields
 }
 
@@ -47227,6 +47553,12 @@ func (m *ChargeFlatFeeRunMutation) ClearField(name string) error {
 	switch name {
 	case chargeflatfeerun.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case chargeflatfeerun.FieldLineID:
+		m.ClearLineID()
+		return nil
+	case chargeflatfeerun.FieldInvoiceID:
+		m.ClearInvoiceID()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeRun nullable field %s", name)
@@ -47287,8 +47619,17 @@ func (m *ChargeFlatFeeRunMutation) ResetField(name string) error {
 	case chargeflatfeerun.FieldServicePeriodTo:
 		m.ResetServicePeriodTo()
 		return nil
+	case chargeflatfeerun.FieldLineID:
+		m.ResetLineID()
+		return nil
+	case chargeflatfeerun.FieldInvoiceID:
+		m.ResetInvoiceID()
+		return nil
 	case chargeflatfeerun.FieldAmountAfterProration:
 		m.ResetAmountAfterProration()
+		return nil
+	case chargeflatfeerun.FieldNoFiatTransactionRequired:
+		m.ResetNoFiatTransactionRequired()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeRun field %s", name)
@@ -47296,9 +47637,15 @@ func (m *ChargeFlatFeeRunMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeFlatFeeRunMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 7)
 	if m.flat_fee != nil {
 		edges = append(edges, chargeflatfeerun.EdgeFlatFee)
+	}
+	if m.billing_invoice_line != nil {
+		edges = append(edges, chargeflatfeerun.EdgeBillingInvoiceLine)
+	}
+	if m.billing_invoice != nil {
+		edges = append(edges, chargeflatfeerun.EdgeBillingInvoice)
 	}
 	if m.credit_allocations != nil {
 		edges = append(edges, chargeflatfeerun.EdgeCreditAllocations)
@@ -47321,6 +47668,14 @@ func (m *ChargeFlatFeeRunMutation) AddedIDs(name string) []ent.Value {
 	switch name {
 	case chargeflatfeerun.EdgeFlatFee:
 		if id := m.flat_fee; id != nil {
+			return []ent.Value{*id}
+		}
+	case chargeflatfeerun.EdgeBillingInvoiceLine:
+		if id := m.billing_invoice_line; id != nil {
+			return []ent.Value{*id}
+		}
+	case chargeflatfeerun.EdgeBillingInvoice:
+		if id := m.billing_invoice; id != nil {
 			return []ent.Value{*id}
 		}
 	case chargeflatfeerun.EdgeCreditAllocations:
@@ -47349,7 +47704,7 @@ func (m *ChargeFlatFeeRunMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeFlatFeeRunMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 7)
 	if m.removedcredit_allocations != nil {
 		edges = append(edges, chargeflatfeerun.EdgeCreditAllocations)
 	}
@@ -47381,9 +47736,15 @@ func (m *ChargeFlatFeeRunMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeFlatFeeRunMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 7)
 	if m.clearedflat_fee {
 		edges = append(edges, chargeflatfeerun.EdgeFlatFee)
+	}
+	if m.clearedbilling_invoice_line {
+		edges = append(edges, chargeflatfeerun.EdgeBillingInvoiceLine)
+	}
+	if m.clearedbilling_invoice {
+		edges = append(edges, chargeflatfeerun.EdgeBillingInvoice)
 	}
 	if m.clearedcredit_allocations {
 		edges = append(edges, chargeflatfeerun.EdgeCreditAllocations)
@@ -47406,6 +47767,10 @@ func (m *ChargeFlatFeeRunMutation) EdgeCleared(name string) bool {
 	switch name {
 	case chargeflatfeerun.EdgeFlatFee:
 		return m.clearedflat_fee
+	case chargeflatfeerun.EdgeBillingInvoiceLine:
+		return m.clearedbilling_invoice_line
+	case chargeflatfeerun.EdgeBillingInvoice:
+		return m.clearedbilling_invoice
 	case chargeflatfeerun.EdgeCreditAllocations:
 		return m.clearedcredit_allocations
 	case chargeflatfeerun.EdgeDetailedLines:
@@ -47425,6 +47790,12 @@ func (m *ChargeFlatFeeRunMutation) ClearEdge(name string) error {
 	case chargeflatfeerun.EdgeFlatFee:
 		m.ClearFlatFee()
 		return nil
+	case chargeflatfeerun.EdgeBillingInvoiceLine:
+		m.ClearBillingInvoiceLine()
+		return nil
+	case chargeflatfeerun.EdgeBillingInvoice:
+		m.ClearBillingInvoice()
+		return nil
 	case chargeflatfeerun.EdgeInvoicedUsage:
 		m.ClearInvoicedUsage()
 		return nil
@@ -47441,6 +47812,12 @@ func (m *ChargeFlatFeeRunMutation) ResetEdge(name string) error {
 	switch name {
 	case chargeflatfeerun.EdgeFlatFee:
 		m.ResetFlatFee()
+		return nil
+	case chargeflatfeerun.EdgeBillingInvoiceLine:
+		m.ResetBillingInvoiceLine()
+		return nil
+	case chargeflatfeerun.EdgeBillingInvoice:
+		m.ResetBillingInvoice()
 		return nil
 	case chargeflatfeerun.EdgeCreditAllocations:
 		m.ResetCreditAllocations()
@@ -51208,7 +51585,6 @@ type ChargeFlatFeeRunInvoicedUsageMutation struct {
 	id                          *string
 	service_period_from         *time.Time
 	service_period_to           *time.Time
-	mutable                     *bool
 	ledger_transaction_group_id *string
 	namespace                   *string
 	created_at                  *time.Time
@@ -51224,8 +51600,6 @@ type ChargeFlatFeeRunInvoicedUsageMutation struct {
 	credits_total               *alpacadecimal.Decimal
 	total                       *alpacadecimal.Decimal
 	clearedFields               map[string]struct{}
-	billing_invoice_line        *string
-	clearedbilling_invoice_line bool
 	run                         *string
 	clearedrun                  bool
 	done                        bool
@@ -51337,55 +51711,6 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) IDs(ctx context.Context) ([]stri
 	}
 }
 
-// SetLineID sets the "line_id" field.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) SetLineID(s string) {
-	m.billing_invoice_line = &s
-}
-
-// LineID returns the value of the "line_id" field in the mutation.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) LineID() (r string, exists bool) {
-	v := m.billing_invoice_line
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLineID returns the old "line_id" field's value of the ChargeFlatFeeRunInvoicedUsage entity.
-// If the ChargeFlatFeeRunInvoicedUsage object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) OldLineID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLineID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLineID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLineID: %w", err)
-	}
-	return oldValue.LineID, nil
-}
-
-// ClearLineID clears the value of the "line_id" field.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) ClearLineID() {
-	m.billing_invoice_line = nil
-	m.clearedFields[chargeflatfeeruninvoicedusage.FieldLineID] = struct{}{}
-}
-
-// LineIDCleared returns if the "line_id" field was cleared in this mutation.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) LineIDCleared() bool {
-	_, ok := m.clearedFields[chargeflatfeeruninvoicedusage.FieldLineID]
-	return ok
-}
-
-// ResetLineID resets all changes to the "line_id" field.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) ResetLineID() {
-	m.billing_invoice_line = nil
-	delete(m.clearedFields, chargeflatfeeruninvoicedusage.FieldLineID)
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) SetServicePeriodFrom(t time.Time) {
 	m.service_period_from = &t
@@ -51456,42 +51781,6 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) OldServicePeriodTo(ctx context.C
 // ResetServicePeriodTo resets all changes to the "service_period_to" field.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) ResetServicePeriodTo() {
 	m.service_period_to = nil
-}
-
-// SetMutable sets the "mutable" field.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) SetMutable(b bool) {
-	m.mutable = &b
-}
-
-// Mutable returns the value of the "mutable" field in the mutation.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) Mutable() (r bool, exists bool) {
-	v := m.mutable
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldMutable returns the old "mutable" field's value of the ChargeFlatFeeRunInvoicedUsage entity.
-// If the ChargeFlatFeeRunInvoicedUsage object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) OldMutable(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldMutable is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldMutable requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMutable: %w", err)
-	}
-	return oldValue.Mutable, nil
-}
-
-// ResetMutable resets all changes to the "mutable" field.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) ResetMutable() {
-	m.mutable = nil
 }
 
 // SetLedgerTransactionGroupID sets the "ledger_transaction_group_id" field.
@@ -52073,46 +52362,6 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) ResetRunID() {
 	m.run = nil
 }
 
-// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by id.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) SetBillingInvoiceLineID(id string) {
-	m.billing_invoice_line = &id
-}
-
-// ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) ClearBillingInvoiceLine() {
-	m.clearedbilling_invoice_line = true
-	m.clearedFields[chargeflatfeeruninvoicedusage.FieldLineID] = struct{}{}
-}
-
-// BillingInvoiceLineCleared reports if the "billing_invoice_line" edge to the BillingInvoiceLine entity was cleared.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) BillingInvoiceLineCleared() bool {
-	return m.LineIDCleared() || m.clearedbilling_invoice_line
-}
-
-// BillingInvoiceLineID returns the "billing_invoice_line" edge ID in the mutation.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) BillingInvoiceLineID() (id string, exists bool) {
-	if m.billing_invoice_line != nil {
-		return *m.billing_invoice_line, true
-	}
-	return
-}
-
-// BillingInvoiceLineIDs returns the "billing_invoice_line" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// BillingInvoiceLineID instead. It exists only for internal usage by the builders.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) BillingInvoiceLineIDs() (ids []string) {
-	if id := m.billing_invoice_line; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetBillingInvoiceLine resets all changes to the "billing_invoice_line" edge.
-func (m *ChargeFlatFeeRunInvoicedUsageMutation) ResetBillingInvoiceLine() {
-	m.billing_invoice_line = nil
-	m.clearedbilling_invoice_line = false
-}
-
 // ClearRun clears the "run" edge to the ChargeFlatFeeRun entity.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) ClearRun() {
 	m.clearedrun = true
@@ -52174,18 +52423,12 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) Fields() []string {
-	fields := make([]string, 0, 19)
-	if m.billing_invoice_line != nil {
-		fields = append(fields, chargeflatfeeruninvoicedusage.FieldLineID)
-	}
+	fields := make([]string, 0, 17)
 	if m.service_period_from != nil {
 		fields = append(fields, chargeflatfeeruninvoicedusage.FieldServicePeriodFrom)
 	}
 	if m.service_period_to != nil {
 		fields = append(fields, chargeflatfeeruninvoicedusage.FieldServicePeriodTo)
-	}
-	if m.mutable != nil {
-		fields = append(fields, chargeflatfeeruninvoicedusage.FieldMutable)
 	}
 	if m.ledger_transaction_group_id != nil {
 		fields = append(fields, chargeflatfeeruninvoicedusage.FieldLedgerTransactionGroupID)
@@ -52240,14 +52483,10 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) Fields() []string {
 // schema.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case chargeflatfeeruninvoicedusage.FieldLineID:
-		return m.LineID()
 	case chargeflatfeeruninvoicedusage.FieldServicePeriodFrom:
 		return m.ServicePeriodFrom()
 	case chargeflatfeeruninvoicedusage.FieldServicePeriodTo:
 		return m.ServicePeriodTo()
-	case chargeflatfeeruninvoicedusage.FieldMutable:
-		return m.Mutable()
 	case chargeflatfeeruninvoicedusage.FieldLedgerTransactionGroupID:
 		return m.LedgerTransactionGroupID()
 	case chargeflatfeeruninvoicedusage.FieldNamespace:
@@ -52287,14 +52526,10 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) Field(name string) (ent.Value, b
 // database failed.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case chargeflatfeeruninvoicedusage.FieldLineID:
-		return m.OldLineID(ctx)
 	case chargeflatfeeruninvoicedusage.FieldServicePeriodFrom:
 		return m.OldServicePeriodFrom(ctx)
 	case chargeflatfeeruninvoicedusage.FieldServicePeriodTo:
 		return m.OldServicePeriodTo(ctx)
-	case chargeflatfeeruninvoicedusage.FieldMutable:
-		return m.OldMutable(ctx)
 	case chargeflatfeeruninvoicedusage.FieldLedgerTransactionGroupID:
 		return m.OldLedgerTransactionGroupID(ctx)
 	case chargeflatfeeruninvoicedusage.FieldNamespace:
@@ -52334,13 +52569,6 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) OldField(ctx context.Context, na
 // type.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case chargeflatfeeruninvoicedusage.FieldLineID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLineID(v)
-		return nil
 	case chargeflatfeeruninvoicedusage.FieldServicePeriodFrom:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -52354,13 +52582,6 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) SetField(name string, value ent.
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetServicePeriodTo(v)
-		return nil
-	case chargeflatfeeruninvoicedusage.FieldMutable:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetMutable(v)
 		return nil
 	case chargeflatfeeruninvoicedusage.FieldLedgerTransactionGroupID:
 		v, ok := value.(string)
@@ -52497,9 +52718,6 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) AddField(name string, value ent.
 // mutation.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(chargeflatfeeruninvoicedusage.FieldLineID) {
-		fields = append(fields, chargeflatfeeruninvoicedusage.FieldLineID)
-	}
 	if m.FieldCleared(chargeflatfeeruninvoicedusage.FieldLedgerTransactionGroupID) {
 		fields = append(fields, chargeflatfeeruninvoicedusage.FieldLedgerTransactionGroupID)
 	}
@@ -52523,9 +52741,6 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) ClearField(name string) error {
 	switch name {
-	case chargeflatfeeruninvoicedusage.FieldLineID:
-		m.ClearLineID()
-		return nil
 	case chargeflatfeeruninvoicedusage.FieldLedgerTransactionGroupID:
 		m.ClearLedgerTransactionGroupID()
 		return nil
@@ -52543,17 +52758,11 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) ResetField(name string) error {
 	switch name {
-	case chargeflatfeeruninvoicedusage.FieldLineID:
-		m.ResetLineID()
-		return nil
 	case chargeflatfeeruninvoicedusage.FieldServicePeriodFrom:
 		m.ResetServicePeriodFrom()
 		return nil
 	case chargeflatfeeruninvoicedusage.FieldServicePeriodTo:
 		m.ResetServicePeriodTo()
-		return nil
-	case chargeflatfeeruninvoicedusage.FieldMutable:
-		m.ResetMutable()
 		return nil
 	case chargeflatfeeruninvoicedusage.FieldLedgerTransactionGroupID:
 		m.ResetLedgerTransactionGroupID()
@@ -52606,10 +52815,7 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.billing_invoice_line != nil {
-		edges = append(edges, chargeflatfeeruninvoicedusage.EdgeBillingInvoiceLine)
-	}
+	edges := make([]string, 0, 1)
 	if m.run != nil {
 		edges = append(edges, chargeflatfeeruninvoicedusage.EdgeRun)
 	}
@@ -52620,10 +52826,6 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case chargeflatfeeruninvoicedusage.EdgeBillingInvoiceLine:
-		if id := m.billing_invoice_line; id != nil {
-			return []ent.Value{*id}
-		}
 	case chargeflatfeeruninvoicedusage.EdgeRun:
 		if id := m.run; id != nil {
 			return []ent.Value{*id}
@@ -52634,7 +52836,7 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) AddedIDs(name string) []ent.Valu
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	return edges
 }
 
@@ -52646,10 +52848,7 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) RemovedIDs(name string) []ent.Va
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.clearedbilling_invoice_line {
-		edges = append(edges, chargeflatfeeruninvoicedusage.EdgeBillingInvoiceLine)
-	}
+	edges := make([]string, 0, 1)
 	if m.clearedrun {
 		edges = append(edges, chargeflatfeeruninvoicedusage.EdgeRun)
 	}
@@ -52660,8 +52859,6 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) EdgeCleared(name string) bool {
 	switch name {
-	case chargeflatfeeruninvoicedusage.EdgeBillingInvoiceLine:
-		return m.clearedbilling_invoice_line
 	case chargeflatfeeruninvoicedusage.EdgeRun:
 		return m.clearedrun
 	}
@@ -52672,9 +52869,6 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) ClearEdge(name string) error {
 	switch name {
-	case chargeflatfeeruninvoicedusage.EdgeBillingInvoiceLine:
-		m.ClearBillingInvoiceLine()
-		return nil
 	case chargeflatfeeruninvoicedusage.EdgeRun:
 		m.ClearRun()
 		return nil
@@ -52686,9 +52880,6 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *ChargeFlatFeeRunInvoicedUsageMutation) ResetEdge(name string) error {
 	switch name {
-	case chargeflatfeeruninvoicedusage.EdgeBillingInvoiceLine:
-		m.ResetBillingInvoiceLine()
-		return nil
 	case chargeflatfeeruninvoicedusage.EdgeRun:
 		m.ResetRun()
 		return nil
@@ -60910,10 +61101,8 @@ type ChargeUsageBasedRunInvoicedUsageMutation struct {
 	op                          Op
 	typ                         string
 	id                          *string
-	line_id                     *string
 	service_period_from         *time.Time
 	service_period_to           *time.Time
-	mutable                     *bool
 	ledger_transaction_group_id *string
 	namespace                   *string
 	created_at                  *time.Time
@@ -61040,55 +61229,6 @@ func (m *ChargeUsageBasedRunInvoicedUsageMutation) IDs(ctx context.Context) ([]s
 	}
 }
 
-// SetLineID sets the "line_id" field.
-func (m *ChargeUsageBasedRunInvoicedUsageMutation) SetLineID(s string) {
-	m.line_id = &s
-}
-
-// LineID returns the value of the "line_id" field in the mutation.
-func (m *ChargeUsageBasedRunInvoicedUsageMutation) LineID() (r string, exists bool) {
-	v := m.line_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLineID returns the old "line_id" field's value of the ChargeUsageBasedRunInvoicedUsage entity.
-// If the ChargeUsageBasedRunInvoicedUsage object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedRunInvoicedUsageMutation) OldLineID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLineID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLineID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLineID: %w", err)
-	}
-	return oldValue.LineID, nil
-}
-
-// ClearLineID clears the value of the "line_id" field.
-func (m *ChargeUsageBasedRunInvoicedUsageMutation) ClearLineID() {
-	m.line_id = nil
-	m.clearedFields[chargeusagebasedruninvoicedusage.FieldLineID] = struct{}{}
-}
-
-// LineIDCleared returns if the "line_id" field was cleared in this mutation.
-func (m *ChargeUsageBasedRunInvoicedUsageMutation) LineIDCleared() bool {
-	_, ok := m.clearedFields[chargeusagebasedruninvoicedusage.FieldLineID]
-	return ok
-}
-
-// ResetLineID resets all changes to the "line_id" field.
-func (m *ChargeUsageBasedRunInvoicedUsageMutation) ResetLineID() {
-	m.line_id = nil
-	delete(m.clearedFields, chargeusagebasedruninvoicedusage.FieldLineID)
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (m *ChargeUsageBasedRunInvoicedUsageMutation) SetServicePeriodFrom(t time.Time) {
 	m.service_period_from = &t
@@ -61159,42 +61299,6 @@ func (m *ChargeUsageBasedRunInvoicedUsageMutation) OldServicePeriodTo(ctx contex
 // ResetServicePeriodTo resets all changes to the "service_period_to" field.
 func (m *ChargeUsageBasedRunInvoicedUsageMutation) ResetServicePeriodTo() {
 	m.service_period_to = nil
-}
-
-// SetMutable sets the "mutable" field.
-func (m *ChargeUsageBasedRunInvoicedUsageMutation) SetMutable(b bool) {
-	m.mutable = &b
-}
-
-// Mutable returns the value of the "mutable" field in the mutation.
-func (m *ChargeUsageBasedRunInvoicedUsageMutation) Mutable() (r bool, exists bool) {
-	v := m.mutable
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldMutable returns the old "mutable" field's value of the ChargeUsageBasedRunInvoicedUsage entity.
-// If the ChargeUsageBasedRunInvoicedUsage object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedRunInvoicedUsageMutation) OldMutable(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldMutable is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldMutable requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMutable: %w", err)
-	}
-	return oldValue.Mutable, nil
-}
-
-// ResetMutable resets all changes to the "mutable" field.
-func (m *ChargeUsageBasedRunInvoicedUsageMutation) ResetMutable() {
-	m.mutable = nil
 }
 
 // SetLedgerTransactionGroupID sets the "ledger_transaction_group_id" field.
@@ -61837,18 +61941,12 @@ func (m *ChargeUsageBasedRunInvoicedUsageMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunInvoicedUsageMutation) Fields() []string {
-	fields := make([]string, 0, 19)
-	if m.line_id != nil {
-		fields = append(fields, chargeusagebasedruninvoicedusage.FieldLineID)
-	}
+	fields := make([]string, 0, 17)
 	if m.service_period_from != nil {
 		fields = append(fields, chargeusagebasedruninvoicedusage.FieldServicePeriodFrom)
 	}
 	if m.service_period_to != nil {
 		fields = append(fields, chargeusagebasedruninvoicedusage.FieldServicePeriodTo)
-	}
-	if m.mutable != nil {
-		fields = append(fields, chargeusagebasedruninvoicedusage.FieldMutable)
 	}
 	if m.ledger_transaction_group_id != nil {
 		fields = append(fields, chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID)
@@ -61903,14 +62001,10 @@ func (m *ChargeUsageBasedRunInvoicedUsageMutation) Fields() []string {
 // schema.
 func (m *ChargeUsageBasedRunInvoicedUsageMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case chargeusagebasedruninvoicedusage.FieldLineID:
-		return m.LineID()
 	case chargeusagebasedruninvoicedusage.FieldServicePeriodFrom:
 		return m.ServicePeriodFrom()
 	case chargeusagebasedruninvoicedusage.FieldServicePeriodTo:
 		return m.ServicePeriodTo()
-	case chargeusagebasedruninvoicedusage.FieldMutable:
-		return m.Mutable()
 	case chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID:
 		return m.LedgerTransactionGroupID()
 	case chargeusagebasedruninvoicedusage.FieldNamespace:
@@ -61950,14 +62044,10 @@ func (m *ChargeUsageBasedRunInvoicedUsageMutation) Field(name string) (ent.Value
 // database failed.
 func (m *ChargeUsageBasedRunInvoicedUsageMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case chargeusagebasedruninvoicedusage.FieldLineID:
-		return m.OldLineID(ctx)
 	case chargeusagebasedruninvoicedusage.FieldServicePeriodFrom:
 		return m.OldServicePeriodFrom(ctx)
 	case chargeusagebasedruninvoicedusage.FieldServicePeriodTo:
 		return m.OldServicePeriodTo(ctx)
-	case chargeusagebasedruninvoicedusage.FieldMutable:
-		return m.OldMutable(ctx)
 	case chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID:
 		return m.OldLedgerTransactionGroupID(ctx)
 	case chargeusagebasedruninvoicedusage.FieldNamespace:
@@ -61997,13 +62087,6 @@ func (m *ChargeUsageBasedRunInvoicedUsageMutation) OldField(ctx context.Context,
 // type.
 func (m *ChargeUsageBasedRunInvoicedUsageMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case chargeusagebasedruninvoicedusage.FieldLineID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLineID(v)
-		return nil
 	case chargeusagebasedruninvoicedusage.FieldServicePeriodFrom:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -62017,13 +62100,6 @@ func (m *ChargeUsageBasedRunInvoicedUsageMutation) SetField(name string, value e
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetServicePeriodTo(v)
-		return nil
-	case chargeusagebasedruninvoicedusage.FieldMutable:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetMutable(v)
 		return nil
 	case chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID:
 		v, ok := value.(string)
@@ -62160,9 +62236,6 @@ func (m *ChargeUsageBasedRunInvoicedUsageMutation) AddField(name string, value e
 // mutation.
 func (m *ChargeUsageBasedRunInvoicedUsageMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(chargeusagebasedruninvoicedusage.FieldLineID) {
-		fields = append(fields, chargeusagebasedruninvoicedusage.FieldLineID)
-	}
 	if m.FieldCleared(chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID) {
 		fields = append(fields, chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID)
 	}
@@ -62186,9 +62259,6 @@ func (m *ChargeUsageBasedRunInvoicedUsageMutation) FieldCleared(name string) boo
 // error if the field is not defined in the schema.
 func (m *ChargeUsageBasedRunInvoicedUsageMutation) ClearField(name string) error {
 	switch name {
-	case chargeusagebasedruninvoicedusage.FieldLineID:
-		m.ClearLineID()
-		return nil
 	case chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID:
 		m.ClearLedgerTransactionGroupID()
 		return nil
@@ -62206,17 +62276,11 @@ func (m *ChargeUsageBasedRunInvoicedUsageMutation) ClearField(name string) error
 // It returns an error if the field is not defined in the schema.
 func (m *ChargeUsageBasedRunInvoicedUsageMutation) ResetField(name string) error {
 	switch name {
-	case chargeusagebasedruninvoicedusage.FieldLineID:
-		m.ResetLineID()
-		return nil
 	case chargeusagebasedruninvoicedusage.FieldServicePeriodFrom:
 		m.ResetServicePeriodFrom()
 		return nil
 	case chargeusagebasedruninvoicedusage.FieldServicePeriodTo:
 		m.ResetServicePeriodTo()
-		return nil
-	case chargeusagebasedruninvoicedusage.FieldMutable:
-		m.ResetMutable()
 		return nil
 	case chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID:
 		m.ResetLedgerTransactionGroupID()

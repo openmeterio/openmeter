@@ -14,14 +14,10 @@ const (
 	Label = "charge_flat_fee_run_invoiced_usage"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldLineID holds the string denoting the line_id field in the database.
-	FieldLineID = "line_id"
 	// FieldServicePeriodFrom holds the string denoting the service_period_from field in the database.
 	FieldServicePeriodFrom = "service_period_from"
 	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
 	FieldServicePeriodTo = "service_period_to"
-	// FieldMutable holds the string denoting the mutable field in the database.
-	FieldMutable = "mutable"
 	// FieldLedgerTransactionGroupID holds the string denoting the ledger_transaction_group_id field in the database.
 	FieldLedgerTransactionGroupID = "ledger_transaction_group_id"
 	// FieldNamespace holds the string denoting the namespace field in the database.
@@ -52,19 +48,10 @@ const (
 	FieldTotal = "total"
 	// FieldRunID holds the string denoting the run_id field in the database.
 	FieldRunID = "run_id"
-	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
-	EdgeBillingInvoiceLine = "billing_invoice_line"
 	// EdgeRun holds the string denoting the run edge name in mutations.
 	EdgeRun = "run"
 	// Table holds the table name of the chargeflatfeeruninvoicedusage in the database.
 	Table = "charge_flat_fee_run_invoiced_usages"
-	// BillingInvoiceLineTable is the table that holds the billing_invoice_line relation/edge.
-	BillingInvoiceLineTable = "charge_flat_fee_run_invoiced_usages"
-	// BillingInvoiceLineInverseTable is the table name for the BillingInvoiceLine entity.
-	// It exists in this package in order to avoid circular dependency with the "billinginvoiceline" package.
-	BillingInvoiceLineInverseTable = "billing_invoice_lines"
-	// BillingInvoiceLineColumn is the table column denoting the billing_invoice_line relation/edge.
-	BillingInvoiceLineColumn = "line_id"
 	// RunTable is the table that holds the run relation/edge.
 	RunTable = "charge_flat_fee_run_invoiced_usages"
 	// RunInverseTable is the table name for the ChargeFlatFeeRun entity.
@@ -77,10 +64,8 @@ const (
 // Columns holds all SQL columns for chargeflatfeeruninvoicedusage fields.
 var Columns = []string{
 	FieldID,
-	FieldLineID,
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
-	FieldMutable,
 	FieldLedgerTransactionGroupID,
 	FieldNamespace,
 	FieldCreatedAt,
@@ -109,8 +94,6 @@ func ValidColumn(column string) bool {
 }
 
 var (
-	// LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
-	LineIDValidator func(string) error
 	// LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
 	LedgerTransactionGroupIDValidator func(string) error
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
@@ -133,11 +116,6 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
-// ByLineID orders the results by the line_id field.
-func ByLineID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLineID, opts...).ToFunc()
-}
-
 // ByServicePeriodFrom orders the results by the service_period_from field.
 func ByServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldServicePeriodFrom, opts...).ToFunc()
@@ -146,11 +124,6 @@ func ByServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
 // ByServicePeriodTo orders the results by the service_period_to field.
 func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldServicePeriodTo, opts...).ToFunc()
-}
-
-// ByMutable orders the results by the mutable field.
-func ByMutable(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldMutable, opts...).ToFunc()
 }
 
 // ByLedgerTransactionGroupID orders the results by the ledger_transaction_group_id field.
@@ -223,25 +196,11 @@ func ByRunID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRunID, opts...).ToFunc()
 }
 
-// ByBillingInvoiceLineField orders the results by billing_invoice_line field.
-func ByBillingInvoiceLineField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceLineStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByRunField orders the results by run field.
 func ByRunField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newRunStep(), sql.OrderByField(field, opts...))
 	}
-}
-func newBillingInvoiceLineStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(BillingInvoiceLineInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceLineTable, BillingInvoiceLineColumn),
-	)
 }
 func newRunStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

@@ -27,6 +27,7 @@ type Adapter interface {
 
 type ChargeAdapter interface {
 	CreateCharges(ctx context.Context, charges CreateChargesInput) ([]Charge, error)
+	ProvisionCurrentRun(ctx context.Context, input ProvisionCurrentRunInput) (RealizationRunBase, error)
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
@@ -35,11 +36,11 @@ type ChargeAdapter interface {
 
 type ChargeDetailedLineAdapter interface {
 	UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeID, lines DetailedLines) error
-	FetchDetailedLines(ctx context.Context, charge Charge) (Charge, error)
+	FetchCurrentRunDetailedLines(ctx context.Context, charge Charge) (Charge, error)
 }
 
 type ChargeInvoicedUsageAdapter interface {
-	CreateInvoicedUsage(ctx context.Context, chargeID meta.ChargeID, invoicedUsage invoicedusage.AccruedUsage) (invoicedusage.AccruedUsage, error)
+	CreateInvoicedUsage(ctx context.Context, input CreateInvoicedUsageInput) (invoicedusage.AccruedUsage, error)
 }
 
 type ChargeCreditAllocationAdapter interface {
@@ -51,11 +52,56 @@ type ChargePaymentAdapter interface {
 	UpdatePayment(ctx context.Context, paymentSettlement payment.Invoiced) (payment.Invoiced, error)
 }
 
+type ProvisionCurrentRunInput struct {
+	Charge                    ChargeBase
+	NoFiatTransactionRequired bool
+}
+
+func (i ProvisionCurrentRunInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type CreateInvoicedUsageInput struct {
+	ChargeID      meta.ChargeID
+	LineID        string
+	InvoiceID     string
+	InvoicedUsage invoicedusage.AccruedUsage
+}
+
+func (i CreateInvoicedUsageInput) Validate() error {
+	var errs []error
+
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
+	}
+
+	if i.InvoiceID == "" {
+		errs = append(errs, fmt.Errorf("invoice ID is required"))
+	}
+
+	if i.LineID == "" {
+		errs = append(errs, fmt.Errorf("line ID is required"))
+	}
+
+	if err := i.InvoicedUsage.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invoiced usage: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type IntentWithInitialStatus struct {
 	Intent
-	FeatureID            *string
-	InitialStatus        Status
-	AmountAfterProration alpacadecimal.Decimal
+	FeatureID                 *string
+	InitialStatus             Status
+	AmountAfterProration      alpacadecimal.Decimal
+	NoFiatTransactionRequired bool
 }
 
 func (i IntentWithInitialStatus) Validate() error {

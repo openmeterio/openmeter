@@ -63,9 +63,7 @@ func (s *Service) BookAccruedInvoiceUsage(ctx context.Context, in BookAccruedInv
 
 	if in.Run.NoFiatTransactionRequired {
 		accruedUsage, err := s.adapter.CreateRunInvoicedUsage(ctx, in.Run.ID, invoicedusage.AccruedUsage{
-			LineID:        in.Run.LineID,
 			ServicePeriod: in.Line.Period,
-			Mutable:       false,
 			Totals:        in.Line.Totals,
 		})
 		if err != nil {
@@ -101,9 +99,7 @@ func (s *Service) BookAccruedInvoiceUsage(ctx context.Context, in BookAccruedInv
 	}
 
 	accruedUsage, err := s.adapter.CreateRunInvoicedUsage(ctx, in.Run.ID, invoicedusage.AccruedUsage{
-		LineID:            in.Run.LineID,
 		ServicePeriod:     in.Line.Period,
-		Mutable:           false,
 		Totals:            in.Line.Totals,
 		LedgerTransaction: &ledgerTransactionRef,
 	})

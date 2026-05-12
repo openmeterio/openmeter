@@ -567,9 +567,7 @@ func (e *usageBasedHandlerTestEnv) newRunWithLine(lineID string) chargeusagebase
 func (e *usageBasedHandlerTestEnv) newRunWithInvoiceUsage(lineID string, total alpacadecimal.Decimal) chargeusagebased.RealizationRun {
 	run := e.newRunWithLine(lineID)
 	run.InvoiceUsage = &invoicedusage.AccruedUsage{
-		LineID:        &lineID,
 		ServicePeriod: e.newCharge(productcatalog.CreditThenInvoiceSettlementMode).Intent.ServicePeriod,
-		Mutable:       false,
 		Totals: totals.Totals{
 			Amount: total,
 			Total:  total,

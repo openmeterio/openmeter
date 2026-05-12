@@ -245,7 +245,8 @@ func (s *SanitySuite) createAndAdvanceFlatFeeCreditOnlyCharge(setup creditOnlyDe
 	advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
 	s.NoError(err)
 	s.Equal(flatfee.StatusFinal, advancedCharge.Status)
-	s.Len(advancedCharge.Realizations.CreditRealizations, 1)
+	s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
+	s.Len(advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
 
 	return flatFeeChargeID.ID
 }
@@ -696,6 +697,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.NoError(err)
 
 		s.Equal(flatFeeChargeID.ID, updatedFlatFeeCharge.ID)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
 
 		// LEDGER:
 		// - OnFlatFeeAssignedToInvoice is called with the pre tax total amount of USD 100
@@ -703,11 +705,11 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		// Validate the credit realizations
 		// The charge should have $80 realized as credits
-		s.Len(updatedFlatFeeCharge.Realizations.CreditRealizations, 2)
-		promotionalCreditRealization := updatedFlatFeeCharge.Realizations.CreditRealizations[0]
+		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations, 2)
+		promotionalCreditRealization := updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations[0]
 		s.Equal(float64(30), promotionalCreditRealization.Amount.InexactFloat64())
 
-		customerCreditRealization := updatedFlatFeeCharge.Realizations.CreditRealizations[1]
+		customerCreditRealization := updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations[1]
 		s.Equal(float64(50), customerCreditRealization.Amount.InexactFloat64())
 
 		assertDelta("promo FBO after invoice assignment", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
@@ -740,12 +742,12 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		// - Payment authorization is deferred until the payment app advances the invoice beyond pending
 
 		// Invoice usage accrued callback should have been invoked
-		accruedUsage := updatedFlatFeeCharge.Realizations.AccruedUsage
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		accruedUsage := updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage
 		s.NotNil(accruedUsage)
 		s.Equal(servicePeriod, accruedUsage.ServicePeriod, "service period should be the same as the input")
-		s.False(accruedUsage.Mutable, "accrued usage should not be mutable")
-		s.NotNil(accruedUsage.LineID, "line ID should be set")
-		s.Equal(stdLineID.ID, *accruedUsage.LineID, "line ID should be the same as the standard line")
+		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.LineID, "run line ID should be set")
+		s.Equal(stdLineID.ID, *updatedFlatFeeCharge.Realizations.CurrentRun.LineID, "run line ID should be the same as the standard line")
 		s.Equal(float64(20), accruedUsage.Totals.Total.InexactFloat64(), "totals should be the same as the input")
 		s.Equal(float64(80), accruedUsage.Totals.CreditsTotal.InexactFloat64(), "totals should be the same as the input")
 
@@ -773,10 +775,11 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
 		s.Equal(flatfee.StatusActive, updatedFlatFeeCharge.Status)
-		s.NotNil(updatedFlatFeeCharge.Realizations.Payment)
-		s.Equal(payment.StatusAuthorized, updatedFlatFeeCharge.Realizations.Payment.Status)
-		s.NotNil(updatedFlatFeeCharge.Realizations.Payment.Authorized)
-		s.Nil(updatedFlatFeeCharge.Realizations.Payment.Settled)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment)
+		s.Equal(payment.StatusAuthorized, updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Status)
+		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Authorized)
+		s.Nil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Settled)
 
 		assertDelta("promo receivable after payment authorization", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
 		assertDelta("external receivable after payment authorization", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
@@ -803,10 +806,11 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
 		s.Equal(flatfee.StatusFinal, updatedFlatFeeCharge.Status)
-		s.NotNil(updatedFlatFeeCharge.Realizations.Payment)
-		s.Equal(payment.StatusSettled, updatedFlatFeeCharge.Realizations.Payment.Status)
-		s.NotNil(updatedFlatFeeCharge.Realizations.Payment.Authorized)
-		s.NotNil(updatedFlatFeeCharge.Realizations.Payment.Settled)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment)
+		s.Equal(payment.StatusSettled, updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Status)
+		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Authorized)
+		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Settled)
 
 		assertDelta("promo receivable after payment settlement", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
 		assertDelta("external receivable after payment settlement", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
@@ -1231,14 +1235,16 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 		s.NoError(err)
 		s.Equal(flatFeeChargeID.ID, advancedFlatFee.ID)
 		s.Equal(flatfee.StatusFinal, advancedFlatFee.Status)
+		s.Require().NotNil(advancedFlatFee.Realizations.CurrentRun)
 		// We expect three realizations here: promotional credit, purchased credit, and the synthetic shortfall coverage.
-		s.Len(advancedFlatFee.Realizations.CreditRealizations, 3)
+		s.Len(advancedFlatFee.Realizations.CurrentRun.CreditRealizations, 3)
 
 		fetchedCharge := s.MustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := fetchedCharge.AsFlatFeeCharge()
 		s.NoError(err)
 		s.Equal(flatfee.StatusFinal, updatedFlatFeeCharge.Status)
-		s.Len(updatedFlatFeeCharge.Realizations.CreditRealizations, 3)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations, 3)
 
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 			Namespaces: []string{ns},

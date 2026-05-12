@@ -13,7 +13,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -27,20 +26,6 @@ type ChargeFlatFeeRunInvoicedUsageCreate struct {
 	conflict []sql.ConflictOption
 }
 
-// SetLineID sets the "line_id" field.
-func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetLineID(v string) *ChargeFlatFeeRunInvoicedUsageCreate {
-	_c.mutation.SetLineID(v)
-	return _c
-}
-
-// SetNillableLineID sets the "line_id" field if the given value is not nil.
-func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetNillableLineID(v *string) *ChargeFlatFeeRunInvoicedUsageCreate {
-	if v != nil {
-		_c.SetLineID(*v)
-	}
-	return _c
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetServicePeriodFrom(v time.Time) *ChargeFlatFeeRunInvoicedUsageCreate {
 	_c.mutation.SetServicePeriodFrom(v)
@@ -50,12 +35,6 @@ func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetServicePeriodFrom(v time.Time)
 // SetServicePeriodTo sets the "service_period_to" field.
 func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetServicePeriodTo(v time.Time) *ChargeFlatFeeRunInvoicedUsageCreate {
 	_c.mutation.SetServicePeriodTo(v)
-	return _c
-}
-
-// SetMutable sets the "mutable" field.
-func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetMutable(v bool) *ChargeFlatFeeRunInvoicedUsageCreate {
-	_c.mutation.SetMutable(v)
 	return _c
 }
 
@@ -195,25 +174,6 @@ func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetNillableID(v *string) *ChargeF
 	return _c
 }
 
-// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
-func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetBillingInvoiceLineID(id string) *ChargeFlatFeeRunInvoicedUsageCreate {
-	_c.mutation.SetBillingInvoiceLineID(id)
-	return _c
-}
-
-// SetNillableBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID if the given value is not nil.
-func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetNillableBillingInvoiceLineID(id *string) *ChargeFlatFeeRunInvoicedUsageCreate {
-	if id != nil {
-		_c = _c.SetBillingInvoiceLineID(*id)
-	}
-	return _c
-}
-
-// SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
-func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeFlatFeeRunInvoicedUsageCreate {
-	return _c.SetBillingInvoiceLineID(v.ID)
-}
-
 // SetRun sets the "run" edge to the ChargeFlatFeeRun entity.
 func (_c *ChargeFlatFeeRunInvoicedUsageCreate) SetRun(v *ChargeFlatFeeRun) *ChargeFlatFeeRunInvoicedUsageCreate {
 	return _c.SetRunID(v.ID)
@@ -270,19 +230,11 @@ func (_c *ChargeFlatFeeRunInvoicedUsageCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *ChargeFlatFeeRunInvoicedUsageCreate) check() error {
-	if v, ok := _c.mutation.LineID(); ok {
-		if err := chargeflatfeeruninvoicedusage.LineIDValidator(v); err != nil {
-			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunInvoicedUsage.line_id": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.ServicePeriodFrom(); !ok {
 		return &ValidationError{Name: "service_period_from", err: errors.New(`db: missing required field "ChargeFlatFeeRunInvoicedUsage.service_period_from"`)}
 	}
 	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
 		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeFlatFeeRunInvoicedUsage.service_period_to"`)}
-	}
-	if _, ok := _c.mutation.Mutable(); !ok {
-		return &ValidationError{Name: "mutable", err: errors.New(`db: missing required field "ChargeFlatFeeRunInvoicedUsage.mutable"`)}
 	}
 	if v, ok := _c.mutation.LedgerTransactionGroupID(); ok {
 		if err := chargeflatfeeruninvoicedusage.LedgerTransactionGroupIDValidator(v); err != nil {
@@ -377,10 +329,6 @@ func (_c *ChargeFlatFeeRunInvoicedUsageCreate) createSpec() (*ChargeFlatFeeRunIn
 		_spec.SetField(chargeflatfeeruninvoicedusage.FieldServicePeriodTo, field.TypeTime, value)
 		_node.ServicePeriodTo = value
 	}
-	if value, ok := _c.mutation.Mutable(); ok {
-		_spec.SetField(chargeflatfeeruninvoicedusage.FieldMutable, field.TypeBool, value)
-		_node.Mutable = value
-	}
 	if value, ok := _c.mutation.LedgerTransactionGroupID(); ok {
 		_spec.SetField(chargeflatfeeruninvoicedusage.FieldLedgerTransactionGroupID, field.TypeString, value)
 		_node.LedgerTransactionGroupID = &value
@@ -437,23 +385,6 @@ func (_c *ChargeFlatFeeRunInvoicedUsageCreate) createSpec() (*ChargeFlatFeeRunIn
 		_spec.SetField(chargeflatfeeruninvoicedusage.FieldTotal, field.TypeOther, value)
 		_node.Total = value
 	}
-	if nodes := _c.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeeruninvoicedusage.BillingInvoiceLineTable,
-			Columns: []string{chargeflatfeeruninvoicedusage.BillingInvoiceLineColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.LineID = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
 	if nodes := _c.mutation.RunIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -478,7 +409,7 @@ func (_c *ChargeFlatFeeRunInvoicedUsageCreate) createSpec() (*ChargeFlatFeeRunIn
 // of the `INSERT` statement. For example:
 //
 //	client.ChargeFlatFeeRunInvoicedUsage.Create().
-//		SetLineID(v).
+//		SetServicePeriodFrom(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -487,7 +418,7 @@ func (_c *ChargeFlatFeeRunInvoicedUsageCreate) createSpec() (*ChargeFlatFeeRunIn
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeFlatFeeRunInvoicedUsageUpsert) {
-//			SetLineID(v+v).
+//			SetServicePeriodFrom(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeFlatFeeRunInvoicedUsageCreate) OnConflict(opts ...sql.ConflictOption) *ChargeFlatFeeRunInvoicedUsageUpsertOne {
@@ -523,24 +454,6 @@ type (
 	}
 )
 
-// SetLineID sets the "line_id" field.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsert) SetLineID(v string) *ChargeFlatFeeRunInvoicedUsageUpsert {
-	u.Set(chargeflatfeeruninvoicedusage.FieldLineID, v)
-	return u
-}
-
-// UpdateLineID sets the "line_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsert) UpdateLineID() *ChargeFlatFeeRunInvoicedUsageUpsert {
-	u.SetExcluded(chargeflatfeeruninvoicedusage.FieldLineID)
-	return u
-}
-
-// ClearLineID clears the value of the "line_id" field.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsert) ClearLineID() *ChargeFlatFeeRunInvoicedUsageUpsert {
-	u.SetNull(chargeflatfeeruninvoicedusage.FieldLineID)
-	return u
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (u *ChargeFlatFeeRunInvoicedUsageUpsert) SetServicePeriodFrom(v time.Time) *ChargeFlatFeeRunInvoicedUsageUpsert {
 	u.Set(chargeflatfeeruninvoicedusage.FieldServicePeriodFrom, v)
@@ -562,18 +475,6 @@ func (u *ChargeFlatFeeRunInvoicedUsageUpsert) SetServicePeriodTo(v time.Time) *C
 // UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
 func (u *ChargeFlatFeeRunInvoicedUsageUpsert) UpdateServicePeriodTo() *ChargeFlatFeeRunInvoicedUsageUpsert {
 	u.SetExcluded(chargeflatfeeruninvoicedusage.FieldServicePeriodTo)
-	return u
-}
-
-// SetMutable sets the "mutable" field.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsert) SetMutable(v bool) *ChargeFlatFeeRunInvoicedUsageUpsert {
-	u.Set(chargeflatfeeruninvoicedusage.FieldMutable, v)
-	return u
-}
-
-// UpdateMutable sets the "mutable" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsert) UpdateMutable() *ChargeFlatFeeRunInvoicedUsageUpsert {
-	u.SetExcluded(chargeflatfeeruninvoicedusage.FieldMutable)
 	return u
 }
 
@@ -796,27 +697,6 @@ func (u *ChargeFlatFeeRunInvoicedUsageUpsertOne) Update(set func(*ChargeFlatFeeR
 	return u
 }
 
-// SetLineID sets the "line_id" field.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsertOne) SetLineID(v string) *ChargeFlatFeeRunInvoicedUsageUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
-		s.SetLineID(v)
-	})
-}
-
-// UpdateLineID sets the "line_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsertOne) UpdateLineID() *ChargeFlatFeeRunInvoicedUsageUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
-		s.UpdateLineID()
-	})
-}
-
-// ClearLineID clears the value of the "line_id" field.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsertOne) ClearLineID() *ChargeFlatFeeRunInvoicedUsageUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
-		s.ClearLineID()
-	})
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (u *ChargeFlatFeeRunInvoicedUsageUpsertOne) SetServicePeriodFrom(v time.Time) *ChargeFlatFeeRunInvoicedUsageUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
@@ -842,20 +722,6 @@ func (u *ChargeFlatFeeRunInvoicedUsageUpsertOne) SetServicePeriodTo(v time.Time)
 func (u *ChargeFlatFeeRunInvoicedUsageUpsertOne) UpdateServicePeriodTo() *ChargeFlatFeeRunInvoicedUsageUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
 		s.UpdateServicePeriodTo()
-	})
-}
-
-// SetMutable sets the "mutable" field.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsertOne) SetMutable(v bool) *ChargeFlatFeeRunInvoicedUsageUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
-		s.SetMutable(v)
-	})
-}
-
-// UpdateMutable sets the "mutable" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsertOne) UpdateMutable() *ChargeFlatFeeRunInvoicedUsageUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
-		s.UpdateMutable()
 	})
 }
 
@@ -1184,7 +1050,7 @@ func (_c *ChargeFlatFeeRunInvoicedUsageCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeFlatFeeRunInvoicedUsageUpsert) {
-//			SetLineID(v+v).
+//			SetServicePeriodFrom(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeFlatFeeRunInvoicedUsageCreateBulk) OnConflict(opts ...sql.ConflictOption) *ChargeFlatFeeRunInvoicedUsageUpsertBulk {
@@ -1272,27 +1138,6 @@ func (u *ChargeFlatFeeRunInvoicedUsageUpsertBulk) Update(set func(*ChargeFlatFee
 	return u
 }
 
-// SetLineID sets the "line_id" field.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsertBulk) SetLineID(v string) *ChargeFlatFeeRunInvoicedUsageUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
-		s.SetLineID(v)
-	})
-}
-
-// UpdateLineID sets the "line_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsertBulk) UpdateLineID() *ChargeFlatFeeRunInvoicedUsageUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
-		s.UpdateLineID()
-	})
-}
-
-// ClearLineID clears the value of the "line_id" field.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsertBulk) ClearLineID() *ChargeFlatFeeRunInvoicedUsageUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
-		s.ClearLineID()
-	})
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (u *ChargeFlatFeeRunInvoicedUsageUpsertBulk) SetServicePeriodFrom(v time.Time) *ChargeFlatFeeRunInvoicedUsageUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
@@ -1318,20 +1163,6 @@ func (u *ChargeFlatFeeRunInvoicedUsageUpsertBulk) SetServicePeriodTo(v time.Time
 func (u *ChargeFlatFeeRunInvoicedUsageUpsertBulk) UpdateServicePeriodTo() *ChargeFlatFeeRunInvoicedUsageUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
 		s.UpdateServicePeriodTo()
-	})
-}
-
-// SetMutable sets the "mutable" field.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsertBulk) SetMutable(v bool) *ChargeFlatFeeRunInvoicedUsageUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
-		s.SetMutable(v)
-	})
-}
-
-// UpdateMutable sets the "mutable" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunInvoicedUsageUpsertBulk) UpdateMutable() *ChargeFlatFeeRunInvoicedUsageUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunInvoicedUsageUpsert) {
-		s.UpdateMutable()
 	})
 }
 

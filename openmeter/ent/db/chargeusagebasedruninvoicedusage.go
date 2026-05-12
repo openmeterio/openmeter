@@ -21,14 +21,10 @@ type ChargeUsageBasedRunInvoicedUsage struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
-	// LineID holds the value of the "line_id" field.
-	LineID *string `json:"line_id,omitempty"`
 	// ServicePeriodFrom holds the value of the "service_period_from" field.
 	ServicePeriodFrom time.Time `json:"service_period_from,omitempty"`
 	// ServicePeriodTo holds the value of the "service_period_to" field.
 	ServicePeriodTo time.Time `json:"service_period_to,omitempty"`
-	// Mutable holds the value of the "mutable" field.
-	Mutable bool `json:"mutable,omitempty"`
 	// LedgerTransactionGroupID holds the value of the "ledger_transaction_group_id" field.
 	LedgerTransactionGroupID *string `json:"ledger_transaction_group_id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
@@ -94,9 +90,7 @@ func (*ChargeUsageBasedRunInvoicedUsage) scanValues(columns []string) ([]any, er
 			values[i] = new([]byte)
 		case chargeusagebasedruninvoicedusage.FieldAmount, chargeusagebasedruninvoicedusage.FieldTaxesTotal, chargeusagebasedruninvoicedusage.FieldTaxesInclusiveTotal, chargeusagebasedruninvoicedusage.FieldTaxesExclusiveTotal, chargeusagebasedruninvoicedusage.FieldChargesTotal, chargeusagebasedruninvoicedusage.FieldDiscountsTotal, chargeusagebasedruninvoicedusage.FieldCreditsTotal, chargeusagebasedruninvoicedusage.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeusagebasedruninvoicedusage.FieldMutable:
-			values[i] = new(sql.NullBool)
-		case chargeusagebasedruninvoicedusage.FieldID, chargeusagebasedruninvoicedusage.FieldLineID, chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID, chargeusagebasedruninvoicedusage.FieldNamespace, chargeusagebasedruninvoicedusage.FieldRunID:
+		case chargeusagebasedruninvoicedusage.FieldID, chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID, chargeusagebasedruninvoicedusage.FieldNamespace, chargeusagebasedruninvoicedusage.FieldRunID:
 			values[i] = new(sql.NullString)
 		case chargeusagebasedruninvoicedusage.FieldServicePeriodFrom, chargeusagebasedruninvoicedusage.FieldServicePeriodTo, chargeusagebasedruninvoicedusage.FieldCreatedAt, chargeusagebasedruninvoicedusage.FieldUpdatedAt, chargeusagebasedruninvoicedusage.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -121,13 +115,6 @@ func (_m *ChargeUsageBasedRunInvoicedUsage) assignValues(columns []string, value
 			} else if value.Valid {
 				_m.ID = value.String
 			}
-		case chargeusagebasedruninvoicedusage.FieldLineID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field line_id", values[i])
-			} else if value.Valid {
-				_m.LineID = new(string)
-				*_m.LineID = value.String
-			}
 		case chargeusagebasedruninvoicedusage.FieldServicePeriodFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field service_period_from", values[i])
@@ -139,12 +126,6 @@ func (_m *ChargeUsageBasedRunInvoicedUsage) assignValues(columns []string, value
 				return fmt.Errorf("unexpected type %T for field service_period_to", values[i])
 			} else if value.Valid {
 				_m.ServicePeriodTo = value.Time
-			}
-		case chargeusagebasedruninvoicedusage.FieldMutable:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field mutable", values[i])
-			} else if value.Valid {
-				_m.Mutable = value.Bool
 			}
 		case chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -281,19 +262,11 @@ func (_m *ChargeUsageBasedRunInvoicedUsage) String() string {
 	var builder strings.Builder
 	builder.WriteString("ChargeUsageBasedRunInvoicedUsage(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
-	if v := _m.LineID; v != nil {
-		builder.WriteString("line_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
 	builder.WriteString("service_period_from=")
 	builder.WriteString(_m.ServicePeriodFrom.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("service_period_to=")
 	builder.WriteString(_m.ServicePeriodTo.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("mutable=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Mutable))
 	builder.WriteString(", ")
 	if v := _m.LedgerTransactionGroupID; v != nil {
 		builder.WriteString("ledger_transaction_group_id=")

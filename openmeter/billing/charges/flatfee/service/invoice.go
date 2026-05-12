@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -54,7 +52,11 @@ func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.
 
 func (s *service) PostInvoiceIssued(ctx context.Context, charge flatfee.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		if charge.Realizations.AccruedUsage != nil {
+		if charge.Realizations.CurrentRun == nil {
+			return fmt.Errorf("current run is required")
+		}
+
+		if charge.Realizations.CurrentRun.AccruedUsage != nil {
 			// Lifecycle violation: this should not happen as we should not be able to issue an invoice if the charge already has an accrued usage.
 			return fmt.Errorf("accrued invoice usage already exists for charge %s", charge.GetChargeID())
 		}
@@ -81,14 +83,17 @@ func (s *service) PostInvoiceIssued(ctx context.Context, charge flatfee.Charge, 
 		}
 
 		accruedUsage := invoicedusage.AccruedUsage{
-			LineID:            lo.ToPtr(lineWithHeader.Line.ID),
 			ServicePeriod:     lineWithHeader.Line.Period,
-			Mutable:           false,
 			Totals:            lineWithHeader.Line.Totals,
 			LedgerTransaction: &ledgerTransactionRef,
 		}
 
-		_, err = s.adapter.CreateInvoicedUsage(ctx, charge.GetChargeID(), accruedUsage)
+		_, err = s.adapter.CreateInvoicedUsage(ctx, flatfee.CreateInvoicedUsageInput{
+			ChargeID:      charge.GetChargeID(),
+			LineID:        lineWithHeader.Line.ID,
+			InvoiceID:     lineWithHeader.Invoice.ID,
+			InvoicedUsage: accruedUsage,
+		})
 		if err != nil {
 			return fmt.Errorf("creating standard invoice accrued usage: %w", err)
 		}

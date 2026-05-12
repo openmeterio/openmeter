@@ -135,8 +135,8 @@ const (
 	EdgeChargeFlatFeeRunPayment = "charge_flat_fee_run_payment"
 	// EdgeChargeFlatFeeRunCreditAllocations holds the string denoting the charge_flat_fee_run_credit_allocations edge name in mutations.
 	EdgeChargeFlatFeeRunCreditAllocations = "charge_flat_fee_run_credit_allocations"
-	// EdgeChargeFlatFeeRunInvoicedUsage holds the string denoting the charge_flat_fee_run_invoiced_usage edge name in mutations.
-	EdgeChargeFlatFeeRunInvoicedUsage = "charge_flat_fee_run_invoiced_usage"
+	// EdgeChargeFlatFeeRuns holds the string denoting the charge_flat_fee_runs edge name in mutations.
+	EdgeChargeFlatFeeRuns = "charge_flat_fee_runs"
 	// EdgeChargeUsageBasedRun holds the string denoting the charge_usage_based_run edge name in mutations.
 	EdgeChargeUsageBasedRun = "charge_usage_based_run"
 	// EdgeChargeCreditPurchaseInvoicedPayment holds the string denoting the charge_credit_purchase_invoiced_payment edge name in mutations.
@@ -244,13 +244,13 @@ const (
 	ChargeFlatFeeRunCreditAllocationsInverseTable = "charge_flat_fee_run_credit_allocations"
 	// ChargeFlatFeeRunCreditAllocationsColumn is the table column denoting the charge_flat_fee_run_credit_allocations relation/edge.
 	ChargeFlatFeeRunCreditAllocationsColumn = "line_id"
-	// ChargeFlatFeeRunInvoicedUsageTable is the table that holds the charge_flat_fee_run_invoiced_usage relation/edge.
-	ChargeFlatFeeRunInvoicedUsageTable = "charge_flat_fee_run_invoiced_usages"
-	// ChargeFlatFeeRunInvoicedUsageInverseTable is the table name for the ChargeFlatFeeRunInvoicedUsage entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeflatfeeruninvoicedusage" package.
-	ChargeFlatFeeRunInvoicedUsageInverseTable = "charge_flat_fee_run_invoiced_usages"
-	// ChargeFlatFeeRunInvoicedUsageColumn is the table column denoting the charge_flat_fee_run_invoiced_usage relation/edge.
-	ChargeFlatFeeRunInvoicedUsageColumn = "line_id"
+	// ChargeFlatFeeRunsTable is the table that holds the charge_flat_fee_runs relation/edge.
+	ChargeFlatFeeRunsTable = "charge_flat_fee_runs"
+	// ChargeFlatFeeRunsInverseTable is the table name for the ChargeFlatFeeRun entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeerun" package.
+	ChargeFlatFeeRunsInverseTable = "charge_flat_fee_runs"
+	// ChargeFlatFeeRunsColumn is the table column denoting the charge_flat_fee_runs relation/edge.
+	ChargeFlatFeeRunsColumn = "line_id"
 	// ChargeUsageBasedRunTable is the table that holds the charge_usage_based_run relation/edge.
 	ChargeUsageBasedRunTable = "charge_usage_based_runs"
 	// ChargeUsageBasedRunInverseTable is the table name for the ChargeUsageBasedRuns entity.
@@ -768,17 +768,10 @@ func ByChargeFlatFeeRunCreditAllocations(term sql.OrderTerm, terms ...sql.OrderT
 	}
 }
 
-// ByChargeFlatFeeRunInvoicedUsageCount orders the results by charge_flat_fee_run_invoiced_usage count.
-func ByChargeFlatFeeRunInvoicedUsageCount(opts ...sql.OrderTermOption) OrderOption {
+// ByChargeFlatFeeRunsField orders the results by charge_flat_fee_runs field.
+func ByChargeFlatFeeRunsField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newChargeFlatFeeRunInvoicedUsageStep(), opts...)
-	}
-}
-
-// ByChargeFlatFeeRunInvoicedUsage orders the results by charge_flat_fee_run_invoiced_usage terms.
-func ByChargeFlatFeeRunInvoicedUsage(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeFlatFeeRunInvoicedUsageStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newChargeFlatFeeRunsStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -907,11 +900,11 @@ func newChargeFlatFeeRunCreditAllocationsStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeRunCreditAllocationsTable, ChargeFlatFeeRunCreditAllocationsColumn),
 	)
 }
-func newChargeFlatFeeRunInvoicedUsageStep() *sqlgraph.Step {
+func newChargeFlatFeeRunsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeFlatFeeRunInvoicedUsageInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeRunInvoicedUsageTable, ChargeFlatFeeRunInvoicedUsageColumn),
+		sqlgraph.To(ChargeFlatFeeRunsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ChargeFlatFeeRunsTable, ChargeFlatFeeRunsColumn),
 	)
 }
 func newChargeUsageBasedRunStep() *sqlgraph.Step {

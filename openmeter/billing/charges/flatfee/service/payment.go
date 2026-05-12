@@ -14,10 +14,14 @@ import (
 
 func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge flatfee.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		if charge.Realizations.Payment != nil {
+		if charge.Realizations.CurrentRun == nil {
+			return fmt.Errorf("current run is required")
+		}
+
+		if charge.Realizations.CurrentRun.Payment != nil {
 			return payment.ErrPaymentAlreadyAuthorized.
 				WithAttrs(charge.ErrorAttributes()).
-				WithAttrs(charge.Realizations.Payment.ErrorAttributes())
+				WithAttrs(charge.Realizations.CurrentRun.Payment.ErrorAttributes())
 		}
 
 		ledgerTransactionGroupReference, err := s.handler.OnPaymentAuthorized(ctx, charge)
@@ -47,7 +51,7 @@ func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge flatf
 			return err
 		}
 
-		charge.Realizations.Payment = &paymentSettlement
+		charge.Realizations.CurrentRun.Payment = &paymentSettlement
 
 		return nil
 	})
@@ -55,11 +59,15 @@ func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge flatf
 
 func (s *service) PostInvoicePaymentSettled(ctx context.Context, charge flatfee.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		if charge.Realizations.Payment == nil {
+		if charge.Realizations.CurrentRun == nil {
+			return fmt.Errorf("current run is required")
+		}
+
+		if charge.Realizations.CurrentRun.Payment == nil {
 			return payment.ErrCannotSettleNotAuthorizedPayment.WithAttrs(charge.ErrorAttributes())
 		}
 
-		paymentSettlement := *charge.Realizations.Payment
+		paymentSettlement := *charge.Realizations.CurrentRun.Payment
 
 		if paymentSettlement.LineID != lineWithHeader.Line.ID {
 			return fmt.Errorf("payment settlement line ID does not match the line ID: %s != %s", paymentSettlement.LineID, lineWithHeader.Line.ID)
@@ -88,7 +96,7 @@ func (s *service) PostInvoicePaymentSettled(ctx context.Context, charge flatfee.
 			return err
 		}
 
-		charge.Realizations.Payment = &paymentSettlement
+		charge.Realizations.CurrentRun.Payment = &paymentSettlement
 		charge.Status = flatfee.StatusFinal
 
 		_, err = s.adapter.UpdateCharge(ctx, charge.ChargeBase)

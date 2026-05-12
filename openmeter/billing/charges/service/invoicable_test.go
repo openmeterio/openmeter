@@ -168,8 +168,9 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 
 		// Validate the credit realizations
 		// The charge should have $30 realized as credits
-		s.Len(updatedFlatFeeCharge.Realizations.CreditRealizations, 1)
-		creditRealization := updatedFlatFeeCharge.Realizations.CreditRealizations[0]
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations, 1)
+		creditRealization := updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations[0]
 		s.Equal(testTrnsGroupID, creditRealization.LedgerTransaction.TransactionGroupID)
 		s.Equal(servicePeriod.From, creditRealization.ServicePeriod.From)
 		s.Equal(servicePeriod.To, creditRealization.ServicePeriod.To)
@@ -213,12 +214,13 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.Equal(creditRealization.ID, creditRealizationDetail.CreditRealizationID)
 
 		flatFeeWithDetailedLines := s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
-		s.True(flatFeeWithDetailedLines.Realizations.DetailedLines.IsPresent())
-		s.Len(flatFeeWithDetailedLines.Realizations.DetailedLines.OrEmpty(), 1)
-		s.Equal(detailedLine.ChildUniqueReferenceID, flatFeeWithDetailedLines.Realizations.DetailedLines.OrEmpty()[0].ChildUniqueReferenceID)
-		s.Equal(detailedLine.Totals.Total.String(), flatFeeWithDetailedLines.Realizations.DetailedLines.OrEmpty()[0].Totals.Total.String())
-		s.Equal(detailedLine.Quantity.String(), flatFeeWithDetailedLines.Realizations.DetailedLines.OrEmpty()[0].Quantity.String())
-		s.Len(flatFeeWithDetailedLines.Realizations.DetailedLines.OrEmpty()[0].CreditsApplied, 1)
+		s.Require().NotNil(flatFeeWithDetailedLines.Realizations.CurrentRun)
+		s.True(flatFeeWithDetailedLines.Realizations.CurrentRun.DetailedLines.IsPresent())
+		s.Len(flatFeeWithDetailedLines.Realizations.CurrentRun.DetailedLines.OrEmpty(), 1)
+		s.Equal(detailedLine.ChildUniqueReferenceID, flatFeeWithDetailedLines.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].ChildUniqueReferenceID)
+		s.Equal(detailedLine.Totals.Total.String(), flatFeeWithDetailedLines.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].Totals.Total.String())
+		s.Equal(detailedLine.Quantity.String(), flatFeeWithDetailedLines.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].Quantity.String())
+		s.Len(flatFeeWithDetailedLines.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].CreditsApplied, 1)
 
 		stdInvoiceID = invoice.GetInvoiceID()
 		s.NotEmpty(stdInvoiceID)
@@ -231,8 +233,9 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		// Use non-fatal assertions inside handler callbacks so failures are reported
 		// on the callback's testing context without aborting the parent test flow.
 		s.FlatFeeTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, charge flatfee.Charge) {
-			assert.NotNil(t, charge.Realizations.AccruedUsage)
-			assert.Nil(t, charge.Realizations.Payment)
+			assert.NotNil(t, charge.Realizations.CurrentRun)
+			assert.NotNil(t, charge.Realizations.CurrentRun.AccruedUsage)
+			assert.Nil(t, charge.Realizations.CurrentRun.Payment)
 			assert.Equal(t, flatfee.StatusActive, charge.Status)
 		})
 
@@ -251,13 +254,13 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.NoError(err)
 
 		// Invoice usage accrued callback should have been invoked
-		accruedUsage := updatedFlatFeeCharge.Realizations.AccruedUsage
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		accruedUsage := updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage
 		s.NotNil(accruedUsage)
 		s.Equal(invoiceUsageAccruedCallback.id, accruedUsage.LedgerTransaction.TransactionGroupID, "ledger transaction gets recorded")
 		s.Equal(servicePeriod, accruedUsage.ServicePeriod, "service period should be the same as the input")
-		s.False(accruedUsage.Mutable, "accrued usage should not be mutable")
-		s.NotNil(accruedUsage.LineID, "line ID should be set")
-		s.Equal(stdLineID.ID, *accruedUsage.LineID, "line ID should be the same as the standard line")
+		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.LineID, "run line ID should be set")
+		s.Equal(stdLineID.ID, *updatedFlatFeeCharge.Realizations.CurrentRun.LineID, "run line ID should be the same as the standard line")
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       100,
 			Total:        70,
@@ -265,7 +268,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		}, accruedUsage.Totals)
 
 		// Payment authorization should not be persisted until the payment flow advances past pending.
-		s.Nil(updatedFlatFeeCharge.Realizations.Payment)
+		s.Nil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment)
 		s.Equal(flatfee.StatusActive, updatedFlatFeeCharge.Status)
 	})
 
@@ -276,8 +279,9 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		// Use non-fatal assertions inside handler callbacks so failures are reported
 		// on the callback's testing context without aborting the parent test flow.
 		s.FlatFeeTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, charge flatfee.Charge) {
-			assert.Nil(t, charge.Realizations.Payment)
-			assert.NotNil(t, charge.Realizations.AccruedUsage)
+			assert.NotNil(t, charge.Realizations.CurrentRun)
+			assert.Nil(t, charge.Realizations.CurrentRun.Payment)
+			assert.NotNil(t, charge.Realizations.CurrentRun.AccruedUsage)
 			assert.Equal(t, flatfee.StatusActive, charge.Status)
 		})
 
@@ -285,11 +289,12 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		// Use non-fatal assertions inside handler callbacks so failures are reported
 		// on the callback's testing context without aborting the parent test flow.
 		s.FlatFeeTestHandler.onPaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, charge flatfee.Charge) {
-			assert.NotNil(t, charge.Realizations.Payment)
-			assert.NotNil(t, charge.Realizations.Payment.Authorized)
-			assert.Nil(t, charge.Realizations.Payment.Settled)
-			assert.Equal(t, authorizedCallback.id, charge.Realizations.Payment.Authorized.TransactionGroupID)
-			assert.Equal(t, payment.StatusAuthorized, charge.Realizations.Payment.Status)
+			assert.NotNil(t, charge.Realizations.CurrentRun)
+			assert.NotNil(t, charge.Realizations.CurrentRun.Payment)
+			assert.NotNil(t, charge.Realizations.CurrentRun.Payment.Authorized)
+			assert.Nil(t, charge.Realizations.CurrentRun.Payment.Settled)
+			assert.Equal(t, authorizedCallback.id, charge.Realizations.CurrentRun.Payment.Authorized.TransactionGroupID)
+			assert.Equal(t, payment.StatusAuthorized, charge.Realizations.CurrentRun.Payment.Status)
 			assert.Equal(t, flatfee.StatusActive, charge.Status)
 		})
 
@@ -306,8 +311,9 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		charge := s.mustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(authorizedCallback.id, updatedFlatFeeCharge.Realizations.Payment.Authorized.TransactionGroupID)
-		s.Equal(settledCallback.id, updatedFlatFeeCharge.Realizations.Payment.Settled.TransactionGroupID)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.Equal(authorizedCallback.id, updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Authorized.TransactionGroupID)
+		s.Equal(settledCallback.id, updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Settled.TransactionGroupID)
 		s.Equal(flatfee.StatusFinal, updatedFlatFeeCharge.Status)
 	})
 }
@@ -397,12 +403,14 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 		charge := s.mustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Len(updatedFlatFeeCharge.Realizations.CreditRealizations, 1)
-		s.Nil(updatedFlatFeeCharge.Realizations.AccruedUsage)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations, 1)
+		s.Nil(updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage)
 
 		flatFeeWithDetailedLines := s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
-		s.True(flatFeeWithDetailedLines.Realizations.DetailedLines.IsPresent())
-		s.Len(flatFeeWithDetailedLines.Realizations.DetailedLines.OrEmpty(), len(invoice.Lines.OrEmpty()[0].DetailedLines))
+		s.Require().NotNil(flatFeeWithDetailedLines.Realizations.CurrentRun)
+		s.True(flatFeeWithDetailedLines.Realizations.CurrentRun.DetailedLines.IsPresent())
+		s.Len(flatFeeWithDetailedLines.Realizations.CurrentRun.DetailedLines.OrEmpty(), len(invoice.Lines.OrEmpty()[0].DetailedLines))
 	})
 
 	s.Run("post invoice issued without invoice usage accrual", func() {
@@ -423,9 +431,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
 
 		updatedFlatFeeCharge := s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
-		s.Nil(updatedFlatFeeCharge.Realizations.AccruedUsage)
-		s.True(updatedFlatFeeCharge.Realizations.DetailedLines.IsPresent())
-		s.Len(updatedFlatFeeCharge.Realizations.DetailedLines.OrEmpty(), len(invoice.Lines.OrEmpty()[0].DetailedLines))
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.Nil(updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage)
+		s.True(updatedFlatFeeCharge.Realizations.CurrentRun.DetailedLines.IsPresent())
+		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.DetailedLines.OrEmpty(), len(invoice.Lines.OrEmpty()[0].DetailedLines))
 	})
 }
 
@@ -1246,8 +1255,6 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.NotNil(finalRun.LineID)
 		s.Equal(stdLineID.ID, *finalRun.LineID)
 		s.NotNil(finalRun.InvoiceUsage)
-		s.NotNil(finalRun.InvoiceUsage.LineID)
-		s.Equal(stdLineID.ID, *finalRun.InvoiceUsage.LineID)
 		s.Equal(invoice.Lines.OrEmpty()[0].Period, finalRun.InvoiceUsage.ServicePeriod)
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       12.5,
@@ -1502,8 +1509,6 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		s.Equal(stdLineID.ID, *finalRun.LineID)
 		s.True(finalRun.NoFiatTransactionRequired)
 		s.NotNil(finalRun.InvoiceUsage)
-		s.NotNil(finalRun.InvoiceUsage.LineID)
-		s.Equal(stdLineID.ID, *finalRun.InvoiceUsage.LineID)
 		s.Nil(finalRun.InvoiceUsage.LedgerTransaction)
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       10,
@@ -1917,7 +1922,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 		flatFeeChargeID = flatFeeCharge.GetChargeID()
 
 		s.Equal(flatfee.StatusCreated, fetchedFF.Status)
-		s.Empty(fetchedFF.Realizations.CreditRealizations)
+		s.Nil(fetchedFF.Realizations.CurrentRun)
 		s.Nil(fetchedFF.State.AdvanceAfter)
 
 		// Advancing is a noop (clock is before InvoiceAt).
@@ -1980,8 +1985,9 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 		s.Equal(float64(100), callbacks[0].Input.AmountToAllocate.InexactFloat64())
 
 		// Credit realizations were persisted.
-		s.Len(fetchedFF.Realizations.CreditRealizations, 1)
-		s.Equal(float64(100), fetchedFF.Realizations.CreditRealizations[0].Amount.InexactFloat64())
+		s.Require().NotNil(fetchedFF.Realizations.CurrentRun)
+		s.Len(fetchedFF.Realizations.CurrentRun.CreditRealizations, 1)
+		s.Equal(float64(100), fetchedFF.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
 	})
 
 	s.Run("#3 final charge advance is noop", func() {
@@ -2065,8 +2071,9 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 	s.NoError(err)
 	s.Equal(flatfee.StatusFinal, returnedCharge.Status)
 	s.Nil(returnedCharge.State.AdvanceAfter)
-	s.Len(returnedCharge.Realizations.CreditRealizations, 1)
-	s.Equal(float64(50), returnedCharge.Realizations.CreditRealizations[0].Amount.InexactFloat64())
+	s.Require().NotNil(returnedCharge.Realizations.CurrentRun)
+	s.Len(returnedCharge.Realizations.CurrentRun.CreditRealizations, 1)
+	s.Equal(float64(50), returnedCharge.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
 
 	// And the DB state matches.
 	dbCharge := s.mustGetChargeByID(returnedCharge.GetChargeID())
@@ -2074,8 +2081,9 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 	s.NoError(err)
 	s.Equal(flatfee.StatusFinal, dbFF.Status)
 	s.Nil(dbFF.State.AdvanceAfter)
-	s.Len(dbFF.Realizations.CreditRealizations, 1)
-	s.Equal(float64(50), dbFF.Realizations.CreditRealizations[0].Amount.InexactFloat64())
+	s.Require().NotNil(dbFF.Realizations.CurrentRun)
+	s.Len(dbFF.Realizations.CurrentRun.CreditRealizations, 1)
+	s.Equal(float64(50), dbFF.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
 }
 
 func (s *InvoicableChargesTestSuite) mustAdvanceFlatFeeCharges(ctx context.Context, customerID customer.CustomerID) charges.Charges {

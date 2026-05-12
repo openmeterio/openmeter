@@ -1128,6 +1128,14 @@ func init() {
 	chargeflatfeerun.DefaultUpdatedAt = chargeflatfeerunDescUpdatedAt.Default.(func() time.Time)
 	// chargeflatfeerun.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargeflatfeerun.UpdateDefaultUpdatedAt = chargeflatfeerunDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargeflatfeerunDescLineID is the schema descriptor for line_id field.
+	chargeflatfeerunDescLineID := chargeflatfeerunFields[5].Descriptor()
+	// chargeflatfeerun.LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
+	chargeflatfeerun.LineIDValidator = chargeflatfeerunDescLineID.Validators[0].(func(string) error)
+	// chargeflatfeerunDescInvoiceID is the schema descriptor for invoice_id field.
+	chargeflatfeerunDescInvoiceID := chargeflatfeerunFields[6].Descriptor()
+	// chargeflatfeerun.InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
+	chargeflatfeerun.InvoiceIDValidator = chargeflatfeerunDescInvoiceID.Validators[0].(func(string) error)
 	// chargeflatfeerunDescID is the schema descriptor for id field.
 	chargeflatfeerunDescID := chargeflatfeerunMixinFields1[0].Descriptor()
 	// chargeflatfeerun.DefaultID holds the default value on creation for the id field.
@@ -1207,30 +1215,26 @@ func init() {
 	_ = chargeflatfeeruninvoicedusageMixinFields0
 	chargeflatfeeruninvoicedusageFields := schema.ChargeFlatFeeRunInvoicedUsage{}.Fields()
 	_ = chargeflatfeeruninvoicedusageFields
-	// chargeflatfeeruninvoicedusageDescLineID is the schema descriptor for line_id field.
-	chargeflatfeeruninvoicedusageDescLineID := chargeflatfeeruninvoicedusageMixinFields0[0].Descriptor()
-	// chargeflatfeeruninvoicedusage.LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
-	chargeflatfeeruninvoicedusage.LineIDValidator = chargeflatfeeruninvoicedusageDescLineID.Validators[0].(func(string) error)
 	// chargeflatfeeruninvoicedusageDescLedgerTransactionGroupID is the schema descriptor for ledger_transaction_group_id field.
-	chargeflatfeeruninvoicedusageDescLedgerTransactionGroupID := chargeflatfeeruninvoicedusageMixinFields0[4].Descriptor()
+	chargeflatfeeruninvoicedusageDescLedgerTransactionGroupID := chargeflatfeeruninvoicedusageMixinFields0[2].Descriptor()
 	// chargeflatfeeruninvoicedusage.LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
 	chargeflatfeeruninvoicedusage.LedgerTransactionGroupIDValidator = chargeflatfeeruninvoicedusageDescLedgerTransactionGroupID.Validators[0].(func(string) error)
 	// chargeflatfeeruninvoicedusageDescNamespace is the schema descriptor for namespace field.
-	chargeflatfeeruninvoicedusageDescNamespace := chargeflatfeeruninvoicedusageMixinFields0[5].Descriptor()
+	chargeflatfeeruninvoicedusageDescNamespace := chargeflatfeeruninvoicedusageMixinFields0[3].Descriptor()
 	// chargeflatfeeruninvoicedusage.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	chargeflatfeeruninvoicedusage.NamespaceValidator = chargeflatfeeruninvoicedusageDescNamespace.Validators[0].(func(string) error)
 	// chargeflatfeeruninvoicedusageDescCreatedAt is the schema descriptor for created_at field.
-	chargeflatfeeruninvoicedusageDescCreatedAt := chargeflatfeeruninvoicedusageMixinFields0[7].Descriptor()
+	chargeflatfeeruninvoicedusageDescCreatedAt := chargeflatfeeruninvoicedusageMixinFields0[5].Descriptor()
 	// chargeflatfeeruninvoicedusage.DefaultCreatedAt holds the default value on creation for the created_at field.
 	chargeflatfeeruninvoicedusage.DefaultCreatedAt = chargeflatfeeruninvoicedusageDescCreatedAt.Default.(func() time.Time)
 	// chargeflatfeeruninvoicedusageDescUpdatedAt is the schema descriptor for updated_at field.
-	chargeflatfeeruninvoicedusageDescUpdatedAt := chargeflatfeeruninvoicedusageMixinFields0[8].Descriptor()
+	chargeflatfeeruninvoicedusageDescUpdatedAt := chargeflatfeeruninvoicedusageMixinFields0[6].Descriptor()
 	// chargeflatfeeruninvoicedusage.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	chargeflatfeeruninvoicedusage.DefaultUpdatedAt = chargeflatfeeruninvoicedusageDescUpdatedAt.Default.(func() time.Time)
 	// chargeflatfeeruninvoicedusage.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargeflatfeeruninvoicedusage.UpdateDefaultUpdatedAt = chargeflatfeeruninvoicedusageDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// chargeflatfeeruninvoicedusageDescID is the schema descriptor for id field.
-	chargeflatfeeruninvoicedusageDescID := chargeflatfeeruninvoicedusageMixinFields0[6].Descriptor()
+	chargeflatfeeruninvoicedusageDescID := chargeflatfeeruninvoicedusageMixinFields0[4].Descriptor()
 	// chargeflatfeeruninvoicedusage.DefaultID holds the default value on creation for the id field.
 	chargeflatfeeruninvoicedusage.DefaultID = chargeflatfeeruninvoicedusageDescID.Default.(func() string)
 	chargeflatfeerunpaymentMixin := schema.ChargeFlatFeeRunPayment{}.Mixin()
@@ -1388,30 +1392,26 @@ func init() {
 	_ = chargeusagebasedruninvoicedusageMixinFields0
 	chargeusagebasedruninvoicedusageFields := schema.ChargeUsageBasedRunInvoicedUsage{}.Fields()
 	_ = chargeusagebasedruninvoicedusageFields
-	// chargeusagebasedruninvoicedusageDescLineID is the schema descriptor for line_id field.
-	chargeusagebasedruninvoicedusageDescLineID := chargeusagebasedruninvoicedusageMixinFields0[0].Descriptor()
-	// chargeusagebasedruninvoicedusage.LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
-	chargeusagebasedruninvoicedusage.LineIDValidator = chargeusagebasedruninvoicedusageDescLineID.Validators[0].(func(string) error)
 	// chargeusagebasedruninvoicedusageDescLedgerTransactionGroupID is the schema descriptor for ledger_transaction_group_id field.
-	chargeusagebasedruninvoicedusageDescLedgerTransactionGroupID := chargeusagebasedruninvoicedusageMixinFields0[4].Descriptor()
+	chargeusagebasedruninvoicedusageDescLedgerTransactionGroupID := chargeusagebasedruninvoicedusageMixinFields0[2].Descriptor()
 	// chargeusagebasedruninvoicedusage.LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
 	chargeusagebasedruninvoicedusage.LedgerTransactionGroupIDValidator = chargeusagebasedruninvoicedusageDescLedgerTransactionGroupID.Validators[0].(func(string) error)
 	// chargeusagebasedruninvoicedusageDescNamespace is the schema descriptor for namespace field.
-	chargeusagebasedruninvoicedusageDescNamespace := chargeusagebasedruninvoicedusageMixinFields0[5].Descriptor()
+	chargeusagebasedruninvoicedusageDescNamespace := chargeusagebasedruninvoicedusageMixinFields0[3].Descriptor()
 	// chargeusagebasedruninvoicedusage.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	chargeusagebasedruninvoicedusage.NamespaceValidator = chargeusagebasedruninvoicedusageDescNamespace.Validators[0].(func(string) error)
 	// chargeusagebasedruninvoicedusageDescCreatedAt is the schema descriptor for created_at field.
-	chargeusagebasedruninvoicedusageDescCreatedAt := chargeusagebasedruninvoicedusageMixinFields0[7].Descriptor()
+	chargeusagebasedruninvoicedusageDescCreatedAt := chargeusagebasedruninvoicedusageMixinFields0[5].Descriptor()
 	// chargeusagebasedruninvoicedusage.DefaultCreatedAt holds the default value on creation for the created_at field.
 	chargeusagebasedruninvoicedusage.DefaultCreatedAt = chargeusagebasedruninvoicedusageDescCreatedAt.Default.(func() time.Time)
 	// chargeusagebasedruninvoicedusageDescUpdatedAt is the schema descriptor for updated_at field.
-	chargeusagebasedruninvoicedusageDescUpdatedAt := chargeusagebasedruninvoicedusageMixinFields0[8].Descriptor()
+	chargeusagebasedruninvoicedusageDescUpdatedAt := chargeusagebasedruninvoicedusageMixinFields0[6].Descriptor()
 	// chargeusagebasedruninvoicedusage.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	chargeusagebasedruninvoicedusage.DefaultUpdatedAt = chargeusagebasedruninvoicedusageDescUpdatedAt.Default.(func() time.Time)
 	// chargeusagebasedruninvoicedusage.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargeusagebasedruninvoicedusage.UpdateDefaultUpdatedAt = chargeusagebasedruninvoicedusageDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// chargeusagebasedruninvoicedusageDescID is the schema descriptor for id field.
-	chargeusagebasedruninvoicedusageDescID := chargeusagebasedruninvoicedusageMixinFields0[6].Descriptor()
+	chargeusagebasedruninvoicedusageDescID := chargeusagebasedruninvoicedusageMixinFields0[4].Descriptor()
 	// chargeusagebasedruninvoicedusage.DefaultID holds the default value on creation for the id field.
 	chargeusagebasedruninvoicedusage.DefaultID = chargeusagebasedruninvoicedusageDescID.Default.(func() string)
 	chargeusagebasedrunpaymentMixin := schema.ChargeUsageBasedRunPayment{}.Mixin()

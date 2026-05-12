@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -164,8 +165,8 @@ type BillingInvoiceLineEdges struct {
 	ChargeFlatFeeRunPayment *ChargeFlatFeeRunPayment `json:"charge_flat_fee_run_payment,omitempty"`
 	// ChargeFlatFeeRunCreditAllocations holds the value of the charge_flat_fee_run_credit_allocations edge.
 	ChargeFlatFeeRunCreditAllocations []*ChargeFlatFeeRunCreditAllocations `json:"charge_flat_fee_run_credit_allocations,omitempty"`
-	// ChargeFlatFeeRunInvoicedUsage holds the value of the charge_flat_fee_run_invoiced_usage edge.
-	ChargeFlatFeeRunInvoicedUsage []*ChargeFlatFeeRunInvoicedUsage `json:"charge_flat_fee_run_invoiced_usage,omitempty"`
+	// ChargeFlatFeeRuns holds the value of the charge_flat_fee_runs edge.
+	ChargeFlatFeeRuns *ChargeFlatFeeRun `json:"charge_flat_fee_runs,omitempty"`
 	// ChargeUsageBasedRun holds the value of the charge_usage_based_run edge.
 	ChargeUsageBasedRun *ChargeUsageBasedRuns `json:"charge_usage_based_run,omitempty"`
 	// ChargeCreditPurchaseInvoicedPayment holds the value of the charge_credit_purchase_invoiced_payment edge.
@@ -332,13 +333,15 @@ func (e BillingInvoiceLineEdges) ChargeFlatFeeRunCreditAllocationsOrErr() ([]*Ch
 	return nil, &NotLoadedError{edge: "charge_flat_fee_run_credit_allocations"}
 }
 
-// ChargeFlatFeeRunInvoicedUsageOrErr returns the ChargeFlatFeeRunInvoicedUsage value or an error if the edge
-// was not loaded in eager-loading.
-func (e BillingInvoiceLineEdges) ChargeFlatFeeRunInvoicedUsageOrErr() ([]*ChargeFlatFeeRunInvoicedUsage, error) {
-	if e.loadedTypes[15] {
-		return e.ChargeFlatFeeRunInvoicedUsage, nil
+// ChargeFlatFeeRunsOrErr returns the ChargeFlatFeeRuns value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceLineEdges) ChargeFlatFeeRunsOrErr() (*ChargeFlatFeeRun, error) {
+	if e.ChargeFlatFeeRuns != nil {
+		return e.ChargeFlatFeeRuns, nil
+	} else if e.loadedTypes[15] {
+		return nil, &NotFoundError{label: chargeflatfeerun.Label}
 	}
-	return nil, &NotLoadedError{edge: "charge_flat_fee_run_invoiced_usage"}
+	return nil, &NotLoadedError{edge: "charge_flat_fee_runs"}
 }
 
 // ChargeUsageBasedRunOrErr returns the ChargeUsageBasedRun value or an error if the edge
@@ -801,9 +804,9 @@ func (_m *BillingInvoiceLine) QueryChargeFlatFeeRunCreditAllocations() *ChargeFl
 	return NewBillingInvoiceLineClient(_m.config).QueryChargeFlatFeeRunCreditAllocations(_m)
 }
 
-// QueryChargeFlatFeeRunInvoicedUsage queries the "charge_flat_fee_run_invoiced_usage" edge of the BillingInvoiceLine entity.
-func (_m *BillingInvoiceLine) QueryChargeFlatFeeRunInvoicedUsage() *ChargeFlatFeeRunInvoicedUsageQuery {
-	return NewBillingInvoiceLineClient(_m.config).QueryChargeFlatFeeRunInvoicedUsage(_m)
+// QueryChargeFlatFeeRuns queries the "charge_flat_fee_runs" edge of the BillingInvoiceLine entity.
+func (_m *BillingInvoiceLine) QueryChargeFlatFeeRuns() *ChargeFlatFeeRunQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryChargeFlatFeeRuns(_m)
 }
 
 // QueryChargeUsageBasedRun queries the "charge_usage_based_run" edge of the BillingInvoiceLine entity.

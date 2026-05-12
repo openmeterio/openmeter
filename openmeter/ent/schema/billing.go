@@ -494,7 +494,8 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 		edge.To("charge_flat_fee_run_payment", ChargeFlatFeeRunPayment.Type).
 			Unique(),
 		edge.To("charge_flat_fee_run_credit_allocations", ChargeFlatFeeRunCreditAllocations.Type),
-		edge.To("charge_flat_fee_run_invoiced_usage", ChargeFlatFeeRunInvoicedUsage.Type),
+		edge.To("charge_flat_fee_runs", ChargeFlatFeeRun.Type).
+			Unique(),
 		edge.To("charge_usage_based_run", ChargeUsageBasedRuns.Type).
 			Unique(),
 		edge.To("charge_credit_purchase_invoiced_payment", ChargeCreditPurchaseInvoicedPayment.Type).
@@ -1186,6 +1187,7 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("billing_invoice_validation_issues", BillingInvoiceValidationIssue.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("charge_flat_fee_runs", ChargeFlatFeeRun.Type),
 		edge.To("charge_usage_based_runs", ChargeUsageBasedRuns.Type),
 		edge.From("billing_invoice_customer", Customer.Type).
 			Ref("billing_invoice").

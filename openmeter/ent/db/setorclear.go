@@ -2749,6 +2749,34 @@ func (u *ChargeFlatFeeRunUpdateOne) SetOrClearDeletedAt(value *time.Time) *Charg
 	return u.SetDeletedAt(*value)
 }
 
+func (u *ChargeFlatFeeRunUpdate) SetOrClearLineID(value *string) *ChargeFlatFeeRunUpdate {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeFlatFeeRunUpdateOne) SetOrClearLineID(value *string) *ChargeFlatFeeRunUpdateOne {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeFlatFeeRunUpdate) SetOrClearInvoiceID(value *string) *ChargeFlatFeeRunUpdate {
+	if value == nil {
+		return u.ClearInvoiceID()
+	}
+	return u.SetInvoiceID(*value)
+}
+
+func (u *ChargeFlatFeeRunUpdateOne) SetOrClearInvoiceID(value *string) *ChargeFlatFeeRunUpdateOne {
+	if value == nil {
+		return u.ClearInvoiceID()
+	}
+	return u.SetInvoiceID(*value)
+}
+
 func (u *ChargeFlatFeeRunCreditAllocationsUpdate) SetOrClearLineID(value *string) *ChargeFlatFeeRunCreditAllocationsUpdate {
 	if value == nil {
 		return u.ClearLineID()
@@ -2943,20 +2971,6 @@ func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearDescription(value *str
 		return u.ClearDescription()
 	}
 	return u.SetDescription(*value)
-}
-
-func (u *ChargeFlatFeeRunInvoicedUsageUpdate) SetOrClearLineID(value *string) *ChargeFlatFeeRunInvoicedUsageUpdate {
-	if value == nil {
-		return u.ClearLineID()
-	}
-	return u.SetLineID(*value)
-}
-
-func (u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetOrClearLineID(value *string) *ChargeFlatFeeRunInvoicedUsageUpdateOne {
-	if value == nil {
-		return u.ClearLineID()
-	}
-	return u.SetLineID(*value)
 }
 
 func (u *ChargeFlatFeeRunInvoicedUsageUpdate) SetOrClearLedgerTransactionGroupID(value *string) *ChargeFlatFeeRunInvoicedUsageUpdate {
@@ -3419,20 +3433,6 @@ func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearCorrectsRunID(value
 		return u.ClearCorrectsRunID()
 	}
 	return u.SetCorrectsRunID(*value)
-}
-
-func (u *ChargeUsageBasedRunInvoicedUsageUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunInvoicedUsageUpdate {
-	if value == nil {
-		return u.ClearLineID()
-	}
-	return u.SetLineID(*value)
-}
-
-func (u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetOrClearLineID(value *string) *ChargeUsageBasedRunInvoicedUsageUpdateOne {
-	if value == nil {
-		return u.ClearLineID()
-	}
-	return u.SetLineID(*value)
 }
 
 func (u *ChargeUsageBasedRunInvoicedUsageUpdate) SetOrClearLedgerTransactionGroupID(value *string) *ChargeUsageBasedRunInvoicedUsageUpdate {

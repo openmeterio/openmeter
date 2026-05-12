@@ -10,9 +10,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
-	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	dbchargeflatfeerun "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -137,8 +137,16 @@ func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInp
 			return nil, err
 		}
 
-		for _, entity := range entities {
-			if _, err := tx.createCurrentRun(ctx, entity, totals.Totals{}); err != nil {
+		for idx, entity := range entities {
+			if entity.StatusDetailed != flatfee.StatusActive {
+				continue
+			}
+
+			chargeBase := MapChargeBaseFromDB(entity)
+			if _, err := tx.ProvisionCurrentRun(ctx, flatfee.ProvisionCurrentRunInput{
+				Charge:                    chargeBase,
+				NoFiatTransactionRequired: in.Intents[idx].NoFiatTransactionRequired,
+			}); err != nil {
 				return nil, err
 			}
 		}
@@ -204,7 +212,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 
 		if input.Expands.Has(meta.ExpandDetailedLines) {
 			return slicesx.MapWithErr(out, func(charge flatfee.Charge) (flatfee.Charge, error) {
-				return tx.FetchDetailedLines(ctx, charge)
+				return tx.FetchCurrentRunDetailedLines(ctx, charge)
 			})
 		}
 
@@ -241,7 +249,7 @@ func (a *adapter) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flat
 		}
 
 		if input.Expands.Has(meta.ExpandDetailedLines) {
-			return tx.FetchDetailedLines(ctx, charge)
+			return tx.FetchCurrentRunDetailedLines(ctx, charge)
 		}
 
 		return charge, nil
@@ -249,8 +257,12 @@ func (a *adapter) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flat
 }
 
 func expandRealizations(query *db.ChargeFlatFeeQuery) *db.ChargeFlatFeeQuery {
-	return query.WithCurrentRun(func(query *db.ChargeFlatFeeRunQuery) {
+	return query.WithRuns(func(query *db.ChargeFlatFeeRunQuery) {
 		query.
+			Order(
+				dbchargeflatfeerun.ByServicePeriodTo(),
+				dbchargeflatfeerun.ByCreatedAt(),
+			).
 			WithCreditAllocations().
 			WithInvoicedUsage().
 			WithPayment()

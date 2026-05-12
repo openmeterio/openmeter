@@ -38,7 +38,11 @@ func (i Impact) RealizedCredits() alpacadecimal.Decimal {
 	switch i.Type() {
 	case meta.ChargeTypeFlatFee:
 		charge, _ := i.AsFlatFeeCharge()
-		return charge.Realizations.CreditRealizations.Sum()
+		if charge.Realizations.CurrentRun == nil {
+			return alpacadecimal.Zero
+		}
+
+		return charge.Realizations.CurrentRun.CreditRealizations.Sum()
 	case meta.ChargeTypeUsageBased:
 		charge, _ := i.AsUsageBasedCharge()
 		total := alpacadecimal.Zero

@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -37,6 +38,7 @@ type BillingInvoiceQuery struct {
 	withBillingInvoiceLines            *BillingInvoiceLineQuery
 	withBillingInvoiceDetailedLines    *BillingStandardInvoiceDetailedLineQuery
 	withBillingInvoiceValidationIssues *BillingInvoiceValidationIssueQuery
+	withChargeFlatFeeRuns              *ChargeFlatFeeRunQuery
 	withChargeUsageBasedRuns           *ChargeUsageBasedRunsQuery
 	withBillingInvoiceCustomer         *CustomerQuery
 	withTaxApp                         *AppQuery
@@ -182,6 +184,28 @@ func (_q *BillingInvoiceQuery) QueryBillingInvoiceValidationIssues() *BillingInv
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
 			sqlgraph.To(billinginvoicevalidationissue.Table, billinginvoicevalidationissue.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceValidationIssuesTable, billinginvoice.BillingInvoiceValidationIssuesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChargeFlatFeeRuns chains the current query on the "charge_flat_fee_runs" edge.
+func (_q *BillingInvoiceQuery) QueryChargeFlatFeeRuns() *ChargeFlatFeeRunQuery {
+	query := (&ChargeFlatFeeRunClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
+			sqlgraph.To(chargeflatfeerun.Table, chargeflatfeerun.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.ChargeFlatFeeRunsTable, billinginvoice.ChargeFlatFeeRunsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -496,6 +520,7 @@ func (_q *BillingInvoiceQuery) Clone() *BillingInvoiceQuery {
 		withBillingInvoiceLines:            _q.withBillingInvoiceLines.Clone(),
 		withBillingInvoiceDetailedLines:    _q.withBillingInvoiceDetailedLines.Clone(),
 		withBillingInvoiceValidationIssues: _q.withBillingInvoiceValidationIssues.Clone(),
+		withChargeFlatFeeRuns:              _q.withChargeFlatFeeRuns.Clone(),
 		withChargeUsageBasedRuns:           _q.withChargeUsageBasedRuns.Clone(),
 		withBillingInvoiceCustomer:         _q.withBillingInvoiceCustomer.Clone(),
 		withTaxApp:                         _q.withTaxApp.Clone(),
@@ -559,6 +584,17 @@ func (_q *BillingInvoiceQuery) WithBillingInvoiceValidationIssues(opts ...func(*
 		opt(query)
 	}
 	_q.withBillingInvoiceValidationIssues = query
+	return _q
+}
+
+// WithChargeFlatFeeRuns tells the query-builder to eager-load the nodes that are connected to
+// the "charge_flat_fee_runs" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceQuery) WithChargeFlatFeeRuns(opts ...func(*ChargeFlatFeeRunQuery)) *BillingInvoiceQuery {
+	query := (&ChargeFlatFeeRunClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChargeFlatFeeRuns = query
 	return _q
 }
 
@@ -695,12 +731,13 @@ func (_q *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	var (
 		nodes       = []*BillingInvoice{}
 		_spec       = _q.querySpec()
-		loadedTypes = [10]bool{
+		loadedTypes = [11]bool{
 			_q.withSourceBillingProfile != nil,
 			_q.withBillingWorkflowConfig != nil,
 			_q.withBillingInvoiceLines != nil,
 			_q.withBillingInvoiceDetailedLines != nil,
 			_q.withBillingInvoiceValidationIssues != nil,
+			_q.withChargeFlatFeeRuns != nil,
 			_q.withChargeUsageBasedRuns != nil,
 			_q.withBillingInvoiceCustomer != nil,
 			_q.withTaxApp != nil,
@@ -764,6 +801,15 @@ func (_q *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 			func(n *BillingInvoice) { n.Edges.BillingInvoiceValidationIssues = []*BillingInvoiceValidationIssue{} },
 			func(n *BillingInvoice, e *BillingInvoiceValidationIssue) {
 				n.Edges.BillingInvoiceValidationIssues = append(n.Edges.BillingInvoiceValidationIssues, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChargeFlatFeeRuns; query != nil {
+		if err := _q.loadChargeFlatFeeRuns(ctx, query, nodes,
+			func(n *BillingInvoice) { n.Edges.ChargeFlatFeeRuns = []*ChargeFlatFeeRun{} },
+			func(n *BillingInvoice, e *ChargeFlatFeeRun) {
+				n.Edges.ChargeFlatFeeRuns = append(n.Edges.ChargeFlatFeeRuns, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -948,6 +994,39 @@ func (_q *BillingInvoiceQuery) loadBillingInvoiceValidationIssues(ctx context.Co
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "invoice_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *BillingInvoiceQuery) loadChargeFlatFeeRuns(ctx context.Context, query *ChargeFlatFeeRunQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *ChargeFlatFeeRun)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoice)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeflatfeerun.FieldInvoiceID)
+	}
+	query.Where(predicate.ChargeFlatFeeRun(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoice.ChargeFlatFeeRunsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.InvoiceID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "invoice_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "invoice_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

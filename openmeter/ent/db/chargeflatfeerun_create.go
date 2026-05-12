@@ -14,6 +14,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
@@ -156,9 +158,43 @@ func (_c *ChargeFlatFeeRunCreate) SetServicePeriodTo(v time.Time) *ChargeFlatFee
 	return _c
 }
 
+// SetLineID sets the "line_id" field.
+func (_c *ChargeFlatFeeRunCreate) SetLineID(v string) *ChargeFlatFeeRunCreate {
+	_c.mutation.SetLineID(v)
+	return _c
+}
+
+// SetNillableLineID sets the "line_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeRunCreate) SetNillableLineID(v *string) *ChargeFlatFeeRunCreate {
+	if v != nil {
+		_c.SetLineID(*v)
+	}
+	return _c
+}
+
+// SetInvoiceID sets the "invoice_id" field.
+func (_c *ChargeFlatFeeRunCreate) SetInvoiceID(v string) *ChargeFlatFeeRunCreate {
+	_c.mutation.SetInvoiceID(v)
+	return _c
+}
+
+// SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeRunCreate) SetNillableInvoiceID(v *string) *ChargeFlatFeeRunCreate {
+	if v != nil {
+		_c.SetInvoiceID(*v)
+	}
+	return _c
+}
+
 // SetAmountAfterProration sets the "amount_after_proration" field.
 func (_c *ChargeFlatFeeRunCreate) SetAmountAfterProration(v alpacadecimal.Decimal) *ChargeFlatFeeRunCreate {
 	_c.mutation.SetAmountAfterProration(v)
+	return _c
+}
+
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (_c *ChargeFlatFeeRunCreate) SetNoFiatTransactionRequired(v bool) *ChargeFlatFeeRunCreate {
+	_c.mutation.SetNoFiatTransactionRequired(v)
 	return _c
 }
 
@@ -185,6 +221,44 @@ func (_c *ChargeFlatFeeRunCreate) SetFlatFeeID(id string) *ChargeFlatFeeRunCreat
 // SetFlatFee sets the "flat_fee" edge to the ChargeFlatFee entity.
 func (_c *ChargeFlatFeeRunCreate) SetFlatFee(v *ChargeFlatFee) *ChargeFlatFeeRunCreate {
 	return _c.SetFlatFeeID(v.ID)
+}
+
+// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
+func (_c *ChargeFlatFeeRunCreate) SetBillingInvoiceLineID(id string) *ChargeFlatFeeRunCreate {
+	_c.mutation.SetBillingInvoiceLineID(id)
+	return _c
+}
+
+// SetNillableBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID if the given value is not nil.
+func (_c *ChargeFlatFeeRunCreate) SetNillableBillingInvoiceLineID(id *string) *ChargeFlatFeeRunCreate {
+	if id != nil {
+		_c = _c.SetBillingInvoiceLineID(*id)
+	}
+	return _c
+}
+
+// SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_c *ChargeFlatFeeRunCreate) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeFlatFeeRunCreate {
+	return _c.SetBillingInvoiceLineID(v.ID)
+}
+
+// SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
+func (_c *ChargeFlatFeeRunCreate) SetBillingInvoiceID(id string) *ChargeFlatFeeRunCreate {
+	_c.mutation.SetBillingInvoiceID(id)
+	return _c
+}
+
+// SetNillableBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID if the given value is not nil.
+func (_c *ChargeFlatFeeRunCreate) SetNillableBillingInvoiceID(id *string) *ChargeFlatFeeRunCreate {
+	if id != nil {
+		_c = _c.SetBillingInvoiceID(*id)
+	}
+	return _c
+}
+
+// SetBillingInvoice sets the "billing_invoice" edge to the BillingInvoice entity.
+func (_c *ChargeFlatFeeRunCreate) SetBillingInvoice(v *BillingInvoice) *ChargeFlatFeeRunCreate {
+	return _c.SetBillingInvoiceID(v.ID)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeRunCreditAllocations entity by IDs.
@@ -369,8 +443,21 @@ func (_c *ChargeFlatFeeRunCreate) check() error {
 	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
 		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeFlatFeeRun.service_period_to"`)}
 	}
+	if v, ok := _c.mutation.LineID(); ok {
+		if err := chargeflatfeerun.LineIDValidator(v); err != nil {
+			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRun.line_id": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.InvoiceID(); ok {
+		if err := chargeflatfeerun.InvoiceIDValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRun.invoice_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.AmountAfterProration(); !ok {
 		return &ValidationError{Name: "amount_after_proration", err: errors.New(`db: missing required field "ChargeFlatFeeRun.amount_after_proration"`)}
+	}
+	if _, ok := _c.mutation.NoFiatTransactionRequired(); !ok {
+		return &ValidationError{Name: "no_fiat_transaction_required", err: errors.New(`db: missing required field "ChargeFlatFeeRun.no_fiat_transaction_required"`)}
 	}
 	if len(_c.mutation.FlatFeeIDs()) == 0 {
 		return &ValidationError{Name: "flat_fee", err: errors.New(`db: missing required edge "ChargeFlatFeeRun.flat_fee"`)}
@@ -479,6 +566,10 @@ func (_c *ChargeFlatFeeRunCreate) createSpec() (*ChargeFlatFeeRun, *sqlgraph.Cre
 		_spec.SetField(chargeflatfeerun.FieldAmountAfterProration, field.TypeOther, value)
 		_node.AmountAfterProration = value
 	}
+	if value, ok := _c.mutation.NoFiatTransactionRequired(); ok {
+		_spec.SetField(chargeflatfeerun.FieldNoFiatTransactionRequired, field.TypeBool, value)
+		_node.NoFiatTransactionRequired = value
+	}
 	if nodes := _c.mutation.FlatFeeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -494,6 +585,40 @@ func (_c *ChargeFlatFeeRunCreate) createSpec() (*ChargeFlatFeeRun, *sqlgraph.Cre
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.ChargeID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargeflatfeerun.BillingInvoiceLineTable,
+			Columns: []string{chargeflatfeerun.BillingInvoiceLineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.LineID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfeerun.BillingInvoiceTable,
+			Columns: []string{chargeflatfeerun.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.InvoiceID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.CreditAllocationsIDs(); len(nodes) > 0 {
@@ -774,6 +899,42 @@ func (u *ChargeFlatFeeRunUpsert) UpdateServicePeriodTo() *ChargeFlatFeeRunUpsert
 	return u
 }
 
+// SetLineID sets the "line_id" field.
+func (u *ChargeFlatFeeRunUpsert) SetLineID(v string) *ChargeFlatFeeRunUpsert {
+	u.Set(chargeflatfeerun.FieldLineID, v)
+	return u
+}
+
+// UpdateLineID sets the "line_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsert) UpdateLineID() *ChargeFlatFeeRunUpsert {
+	u.SetExcluded(chargeflatfeerun.FieldLineID)
+	return u
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (u *ChargeFlatFeeRunUpsert) ClearLineID() *ChargeFlatFeeRunUpsert {
+	u.SetNull(chargeflatfeerun.FieldLineID)
+	return u
+}
+
+// SetInvoiceID sets the "invoice_id" field.
+func (u *ChargeFlatFeeRunUpsert) SetInvoiceID(v string) *ChargeFlatFeeRunUpsert {
+	u.Set(chargeflatfeerun.FieldInvoiceID, v)
+	return u
+}
+
+// UpdateInvoiceID sets the "invoice_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsert) UpdateInvoiceID() *ChargeFlatFeeRunUpsert {
+	u.SetExcluded(chargeflatfeerun.FieldInvoiceID)
+	return u
+}
+
+// ClearInvoiceID clears the value of the "invoice_id" field.
+func (u *ChargeFlatFeeRunUpsert) ClearInvoiceID() *ChargeFlatFeeRunUpsert {
+	u.SetNull(chargeflatfeerun.FieldInvoiceID)
+	return u
+}
+
 // SetAmountAfterProration sets the "amount_after_proration" field.
 func (u *ChargeFlatFeeRunUpsert) SetAmountAfterProration(v alpacadecimal.Decimal) *ChargeFlatFeeRunUpsert {
 	u.Set(chargeflatfeerun.FieldAmountAfterProration, v)
@@ -783,6 +944,18 @@ func (u *ChargeFlatFeeRunUpsert) SetAmountAfterProration(v alpacadecimal.Decimal
 // UpdateAmountAfterProration sets the "amount_after_proration" field to the value that was provided on create.
 func (u *ChargeFlatFeeRunUpsert) UpdateAmountAfterProration() *ChargeFlatFeeRunUpsert {
 	u.SetExcluded(chargeflatfeerun.FieldAmountAfterProration)
+	return u
+}
+
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (u *ChargeFlatFeeRunUpsert) SetNoFiatTransactionRequired(v bool) *ChargeFlatFeeRunUpsert {
+	u.Set(chargeflatfeerun.FieldNoFiatTransactionRequired, v)
+	return u
+}
+
+// UpdateNoFiatTransactionRequired sets the "no_fiat_transaction_required" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsert) UpdateNoFiatTransactionRequired() *ChargeFlatFeeRunUpsert {
+	u.SetExcluded(chargeflatfeerun.FieldNoFiatTransactionRequired)
 	return u
 }
 
@@ -1035,6 +1208,48 @@ func (u *ChargeFlatFeeRunUpsertOne) UpdateServicePeriodTo() *ChargeFlatFeeRunUps
 	})
 }
 
+// SetLineID sets the "line_id" field.
+func (u *ChargeFlatFeeRunUpsertOne) SetLineID(v string) *ChargeFlatFeeRunUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.SetLineID(v)
+	})
+}
+
+// UpdateLineID sets the "line_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsertOne) UpdateLineID() *ChargeFlatFeeRunUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.UpdateLineID()
+	})
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (u *ChargeFlatFeeRunUpsertOne) ClearLineID() *ChargeFlatFeeRunUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.ClearLineID()
+	})
+}
+
+// SetInvoiceID sets the "invoice_id" field.
+func (u *ChargeFlatFeeRunUpsertOne) SetInvoiceID(v string) *ChargeFlatFeeRunUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.SetInvoiceID(v)
+	})
+}
+
+// UpdateInvoiceID sets the "invoice_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsertOne) UpdateInvoiceID() *ChargeFlatFeeRunUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.UpdateInvoiceID()
+	})
+}
+
+// ClearInvoiceID clears the value of the "invoice_id" field.
+func (u *ChargeFlatFeeRunUpsertOne) ClearInvoiceID() *ChargeFlatFeeRunUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.ClearInvoiceID()
+	})
+}
+
 // SetAmountAfterProration sets the "amount_after_proration" field.
 func (u *ChargeFlatFeeRunUpsertOne) SetAmountAfterProration(v alpacadecimal.Decimal) *ChargeFlatFeeRunUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
@@ -1046,6 +1261,20 @@ func (u *ChargeFlatFeeRunUpsertOne) SetAmountAfterProration(v alpacadecimal.Deci
 func (u *ChargeFlatFeeRunUpsertOne) UpdateAmountAfterProration() *ChargeFlatFeeRunUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
 		s.UpdateAmountAfterProration()
+	})
+}
+
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (u *ChargeFlatFeeRunUpsertOne) SetNoFiatTransactionRequired(v bool) *ChargeFlatFeeRunUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.SetNoFiatTransactionRequired(v)
+	})
+}
+
+// UpdateNoFiatTransactionRequired sets the "no_fiat_transaction_required" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsertOne) UpdateNoFiatTransactionRequired() *ChargeFlatFeeRunUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.UpdateNoFiatTransactionRequired()
 	})
 }
 
@@ -1465,6 +1694,48 @@ func (u *ChargeFlatFeeRunUpsertBulk) UpdateServicePeriodTo() *ChargeFlatFeeRunUp
 	})
 }
 
+// SetLineID sets the "line_id" field.
+func (u *ChargeFlatFeeRunUpsertBulk) SetLineID(v string) *ChargeFlatFeeRunUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.SetLineID(v)
+	})
+}
+
+// UpdateLineID sets the "line_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsertBulk) UpdateLineID() *ChargeFlatFeeRunUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.UpdateLineID()
+	})
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (u *ChargeFlatFeeRunUpsertBulk) ClearLineID() *ChargeFlatFeeRunUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.ClearLineID()
+	})
+}
+
+// SetInvoiceID sets the "invoice_id" field.
+func (u *ChargeFlatFeeRunUpsertBulk) SetInvoiceID(v string) *ChargeFlatFeeRunUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.SetInvoiceID(v)
+	})
+}
+
+// UpdateInvoiceID sets the "invoice_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsertBulk) UpdateInvoiceID() *ChargeFlatFeeRunUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.UpdateInvoiceID()
+	})
+}
+
+// ClearInvoiceID clears the value of the "invoice_id" field.
+func (u *ChargeFlatFeeRunUpsertBulk) ClearInvoiceID() *ChargeFlatFeeRunUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.ClearInvoiceID()
+	})
+}
+
 // SetAmountAfterProration sets the "amount_after_proration" field.
 func (u *ChargeFlatFeeRunUpsertBulk) SetAmountAfterProration(v alpacadecimal.Decimal) *ChargeFlatFeeRunUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
@@ -1476,6 +1747,20 @@ func (u *ChargeFlatFeeRunUpsertBulk) SetAmountAfterProration(v alpacadecimal.Dec
 func (u *ChargeFlatFeeRunUpsertBulk) UpdateAmountAfterProration() *ChargeFlatFeeRunUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
 		s.UpdateAmountAfterProration()
+	})
+}
+
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (u *ChargeFlatFeeRunUpsertBulk) SetNoFiatTransactionRequired(v bool) *ChargeFlatFeeRunUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.SetNoFiatTransactionRequired(v)
+	})
+}
+
+// UpdateNoFiatTransactionRequired sets the "no_fiat_transaction_required" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsertBulk) UpdateNoFiatTransactionRequired() *ChargeFlatFeeRunUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.UpdateNoFiatTransactionRequired()
 	})
 }
 

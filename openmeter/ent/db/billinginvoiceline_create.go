@@ -25,8 +25,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -659,19 +659,23 @@ func (_c *BillingInvoiceLineCreate) AddChargeFlatFeeRunCreditAllocations(v ...*C
 	return _c.AddChargeFlatFeeRunCreditAllocationIDs(ids...)
 }
 
-// AddChargeFlatFeeRunInvoicedUsageIDs adds the "charge_flat_fee_run_invoiced_usage" edge to the ChargeFlatFeeRunInvoicedUsage entity by IDs.
-func (_c *BillingInvoiceLineCreate) AddChargeFlatFeeRunInvoicedUsageIDs(ids ...string) *BillingInvoiceLineCreate {
-	_c.mutation.AddChargeFlatFeeRunInvoicedUsageIDs(ids...)
+// SetChargeFlatFeeRunsID sets the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity by ID.
+func (_c *BillingInvoiceLineCreate) SetChargeFlatFeeRunsID(id string) *BillingInvoiceLineCreate {
+	_c.mutation.SetChargeFlatFeeRunsID(id)
 	return _c
 }
 
-// AddChargeFlatFeeRunInvoicedUsage adds the "charge_flat_fee_run_invoiced_usage" edges to the ChargeFlatFeeRunInvoicedUsage entity.
-func (_c *BillingInvoiceLineCreate) AddChargeFlatFeeRunInvoicedUsage(v ...*ChargeFlatFeeRunInvoicedUsage) *BillingInvoiceLineCreate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
+// SetNillableChargeFlatFeeRunsID sets the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity by ID if the given value is not nil.
+func (_c *BillingInvoiceLineCreate) SetNillableChargeFlatFeeRunsID(id *string) *BillingInvoiceLineCreate {
+	if id != nil {
+		_c = _c.SetChargeFlatFeeRunsID(*id)
 	}
-	return _c.AddChargeFlatFeeRunInvoicedUsageIDs(ids...)
+	return _c
+}
+
+// SetChargeFlatFeeRuns sets the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity.
+func (_c *BillingInvoiceLineCreate) SetChargeFlatFeeRuns(v *ChargeFlatFeeRun) *BillingInvoiceLineCreate {
+	return _c.SetChargeFlatFeeRunsID(v.ID)
 }
 
 // SetChargeUsageBasedRunID sets the "charge_usage_based_run" edge to the ChargeUsageBasedRuns entity by ID.
@@ -1319,15 +1323,15 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.ChargeFlatFeeRunInvoicedUsageIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.ChargeFlatFeeRunsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
-			Table:   billinginvoiceline.ChargeFlatFeeRunInvoicedUsageTable,
-			Columns: []string{billinginvoiceline.ChargeFlatFeeRunInvoicedUsageColumn},
+			Table:   billinginvoiceline.ChargeFlatFeeRunsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruninvoicedusage.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

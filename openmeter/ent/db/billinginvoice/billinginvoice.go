@@ -142,6 +142,8 @@ const (
 	EdgeBillingInvoiceDetailedLines = "billing_invoice_detailed_lines"
 	// EdgeBillingInvoiceValidationIssues holds the string denoting the billing_invoice_validation_issues edge name in mutations.
 	EdgeBillingInvoiceValidationIssues = "billing_invoice_validation_issues"
+	// EdgeChargeFlatFeeRuns holds the string denoting the charge_flat_fee_runs edge name in mutations.
+	EdgeChargeFlatFeeRuns = "charge_flat_fee_runs"
 	// EdgeChargeUsageBasedRuns holds the string denoting the charge_usage_based_runs edge name in mutations.
 	EdgeChargeUsageBasedRuns = "charge_usage_based_runs"
 	// EdgeBillingInvoiceCustomer holds the string denoting the billing_invoice_customer edge name in mutations.
@@ -189,6 +191,13 @@ const (
 	BillingInvoiceValidationIssuesInverseTable = "billing_invoice_validation_issues"
 	// BillingInvoiceValidationIssuesColumn is the table column denoting the billing_invoice_validation_issues relation/edge.
 	BillingInvoiceValidationIssuesColumn = "invoice_id"
+	// ChargeFlatFeeRunsTable is the table that holds the charge_flat_fee_runs relation/edge.
+	ChargeFlatFeeRunsTable = "charge_flat_fee_runs"
+	// ChargeFlatFeeRunsInverseTable is the table name for the ChargeFlatFeeRun entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeerun" package.
+	ChargeFlatFeeRunsInverseTable = "charge_flat_fee_runs"
+	// ChargeFlatFeeRunsColumn is the table column denoting the charge_flat_fee_runs relation/edge.
+	ChargeFlatFeeRunsColumn = "invoice_id"
 	// ChargeUsageBasedRunsTable is the table that holds the charge_usage_based_runs relation/edge.
 	ChargeUsageBasedRunsTable = "charge_usage_based_runs"
 	// ChargeUsageBasedRunsInverseTable is the table name for the ChargeUsageBasedRuns entity.
@@ -687,6 +696,20 @@ func ByBillingInvoiceValidationIssues(term sql.OrderTerm, terms ...sql.OrderTerm
 	}
 }
 
+// ByChargeFlatFeeRunsCount orders the results by charge_flat_fee_runs count.
+func ByChargeFlatFeeRunsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChargeFlatFeeRunsStep(), opts...)
+	}
+}
+
+// ByChargeFlatFeeRuns orders the results by charge_flat_fee_runs terms.
+func ByChargeFlatFeeRuns(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeFlatFeeRunsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByChargeUsageBasedRunsCount orders the results by charge_usage_based_runs count.
 func ByChargeUsageBasedRunsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -761,6 +784,13 @@ func newBillingInvoiceValidationIssuesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceValidationIssuesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceValidationIssuesTable, BillingInvoiceValidationIssuesColumn),
+	)
+}
+func newChargeFlatFeeRunsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeFlatFeeRunsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeRunsTable, ChargeFlatFeeRunsColumn),
 	)
 }
 func newChargeUsageBasedRunsStep() *sqlgraph.Step {

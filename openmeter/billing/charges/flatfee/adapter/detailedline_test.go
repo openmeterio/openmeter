@@ -170,12 +170,13 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 		},
 	})
 	s.Require().NoError(err)
-	s.True(fetchedCharge.Realizations.DetailedLines.IsPresent())
-	s.Len(fetchedCharge.Realizations.DetailedLines.OrEmpty(), 2)
-	s.Equal("keep", fetchedCharge.Realizations.DetailedLines.OrEmpty()[0].ChildUniqueReferenceID)
-	s.Equal("new", fetchedCharge.Realizations.DetailedLines.OrEmpty()[1].ChildUniqueReferenceID)
-	s.Equal(float64(3), fetchedCharge.Realizations.DetailedLines.OrEmpty()[0].Quantity.InexactFloat64())
-	s.Nil(fetchedCharge.Realizations.DetailedLines.OrEmpty()[0].Description)
+	s.Require().NotNil(fetchedCharge.Realizations.CurrentRun)
+	s.True(fetchedCharge.Realizations.CurrentRun.DetailedLines.IsPresent())
+	s.Len(fetchedCharge.Realizations.CurrentRun.DetailedLines.OrEmpty(), 2)
+	s.Equal("keep", fetchedCharge.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].ChildUniqueReferenceID)
+	s.Equal("new", fetchedCharge.Realizations.CurrentRun.DetailedLines.OrEmpty()[1].ChildUniqueReferenceID)
+	s.Equal(float64(3), fetchedCharge.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].Quantity.InexactFloat64())
+	s.Nil(fetchedCharge.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].Description)
 
 	dbCharge, err := s.dbClient.ChargeFlatFee.Query().
 		Where(
@@ -218,6 +219,22 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 		Only(ctx)
 	s.Require().NoError(err)
 	s.NotNil(deletedRow.DeletedAt)
+}
+
+func (s *FlatFeeDetailedLineAdapterSuite) TestFetchCurrentRunDetailedLinesRequiresCurrentRun() {
+	ctx := s.T().Context()
+
+	_, err := s.adapter.FetchCurrentRunDetailedLines(ctx, flatfee.Charge{
+		ChargeBase: flatfee.ChargeBase{
+			ManagedResource: chargesmeta.ManagedResource{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: "flatfee-detailedline-adapter",
+				},
+				ID: "charge-id",
+			},
+		},
+	})
+	s.Require().ErrorContains(err, "current run is required")
 }
 
 func (s *FlatFeeDetailedLineAdapterSuite) createCustomer(namespace string) string {
