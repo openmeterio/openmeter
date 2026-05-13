@@ -35,7 +35,7 @@ func (f *fakeAdapter) Tx(ctx context.Context) (context.Context, transaction.Driv
 func (f *fakeAdapter) ListCustomCurrencies(_ context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
 	items := make([]currencies.Currency, 0, len(f.custom))
 	for _, c := range f.custom {
-		if params.Code.Match(c.Code) {
+		if ok, _ := params.Code.Match(c.Code); ok {
 			items = append(items, c)
 		}
 	}

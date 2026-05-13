@@ -2583,10 +2583,11 @@ func TestFilterULID_Validate(t *testing.T) {
 
 func TestFilterString_Match(t *testing.T) {
 	tests := []struct {
-		name   string
-		filter *filter.FilterString
-		value  string
-		want   bool
+		name    string
+		filter  *filter.FilterString
+		value   string
+		want    bool
+		wantErr bool
 	}{
 		// nil / empty filter matches everything
 		{name: "nil filter matches", filter: nil, value: "USD", want: true},
@@ -2617,17 +2618,17 @@ func TestFilterString_Match(t *testing.T) {
 		{name: "Ncontains no match", filter: &filter.FilterString{Ncontains: lo.ToPtr("us")}, value: "USD", want: false},
 
 		// Like / Nlike
-		{name: "Like percent wildcard", filter: &filter.FilterString{Like: lo.ToPtr("U%")}, value: "USD", want: true},
-		{name: "Like underscore wildcard", filter: &filter.FilterString{Like: lo.ToPtr("U_D")}, value: "USD", want: true},
-		{name: "Like no match", filter: &filter.FilterString{Like: lo.ToPtr("E%")}, value: "USD", want: false},
-		{name: "Nlike match", filter: &filter.FilterString{Nlike: lo.ToPtr("E%")}, value: "USD", want: true},
-		{name: "Nlike no match", filter: &filter.FilterString{Nlike: lo.ToPtr("U%")}, value: "USD", want: false},
+		{name: "Like percent wildcard", filter: &filter.FilterString{Like: lo.ToPtr("U%")}, value: "USD", wantErr: true},
+		{name: "Like underscore wildcard", filter: &filter.FilterString{Like: lo.ToPtr("U_D")}, value: "USD", wantErr: true},
+		{name: "Like no match", filter: &filter.FilterString{Like: lo.ToPtr("E%")}, value: "USD", wantErr: true},
+		{name: "Nlike match", filter: &filter.FilterString{Nlike: lo.ToPtr("E%")}, value: "USD", wantErr: true},
+		{name: "Nlike no match", filter: &filter.FilterString{Nlike: lo.ToPtr("U%")}, value: "USD", wantErr: true},
 
 		// Ilike / Nilike (case-insensitive)
-		{name: "Ilike case-insensitive match", filter: &filter.FilterString{Ilike: lo.ToPtr("u%")}, value: "USD", want: true},
-		{name: "Ilike no match", filter: &filter.FilterString{Ilike: lo.ToPtr("e%")}, value: "USD", want: false},
-		{name: "Nilike match", filter: &filter.FilterString{Nilike: lo.ToPtr("e%")}, value: "USD", want: true},
-		{name: "Nilike no match", filter: &filter.FilterString{Nilike: lo.ToPtr("u%")}, value: "USD", want: false},
+		{name: "Ilike case-insensitive match", filter: &filter.FilterString{Ilike: lo.ToPtr("u%")}, value: "USD", wantErr: true},
+		{name: "Ilike no match", filter: &filter.FilterString{Ilike: lo.ToPtr("e%")}, value: "USD", wantErr: true},
+		{name: "Nilike match", filter: &filter.FilterString{Nilike: lo.ToPtr("e%")}, value: "USD", wantErr: true},
+		{name: "Nilike no match", filter: &filter.FilterString{Nilike: lo.ToPtr("u%")}, value: "USD", wantErr: true},
 
 		// Gt / Gte / Lt / Lte (lexicographic)
 		{name: "Gt match", filter: &filter.FilterString{Gt: lo.ToPtr("GBP")}, value: "USD", want: true},
@@ -2693,7 +2694,12 @@ func TestFilterString_Match(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.filter.Match(tt.value)
+			got, err := tt.filter.Match(tt.value)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 			assert.Equal(t, tt.want, got)
 		})
 	}

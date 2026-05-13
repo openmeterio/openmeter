@@ -59,13 +59,17 @@ func (s *Service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 
 		if includeFiat {
 			matchCode := params.Code.LoFilterPredicate()
-			for _, def := range lo.Filter(currency.Definitions(), func(def *currency.Def, _ int) bool {
+			filteredMatchCode, err := lo.FilterErr(currency.Definitions(), func(def *currency.Def, _ int) (bool, error) {
 				// NOTE: this filters out non-iso currencies such as crypto
 				if def.ISONumeric == "" {
-					return false
+					return false, nil
 				}
 				return matchCode(def.ISOCode.String(), 0)
-			}) {
+			})
+			if err != nil {
+				return pagination.Result[currencies.Currency]{}, fmt.Errorf("filtering fiat currencies by code: %w", err)
+			}
+			for _, def := range filteredMatchCode {
 				items = append(items, currencies.Currency{
 					Code:   def.ISOCode.String(),
 					Name:   def.Name,

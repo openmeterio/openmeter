@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -36,6 +35,7 @@ var (
 	ErrFilterMultipleOperators  = errors.New("filter is invalid: multiple operators are set")
 	ErrFilterComplexityExceeded = errors.New("filter complexity exceeds maximum allowed depth")
 	ErrFilterFormatMismatch     = errors.New("filter is invalid: format mismatch")
+	ErrOperationNotSupported    = errors.New("filter is invalid: operation not supported")
 )
 
 var (
@@ -274,99 +274,72 @@ func (f FilterString) Select(field string) func(*sql.Selector) {
 // SelectWhereExpr: Contains/Ncontains are case-insensitive; Like/Ilike treat
 // the pattern as SQL LIKE (% and _ wildcards); Exists checks for a non-empty
 // value.
-func (f *FilterString) Match(value string) bool {
+func (f *FilterString) Match(value string) (bool, error) {
 	if f == nil || f.IsEmpty() {
-		return true
+		return true, nil
 	}
 	return f.matches(value)
 }
 
 // LoFilterPredicate returns an lo.Filter-compatible predicate that evaluates
 // the filter against a string field value.
-func (f *FilterString) LoFilterPredicate() func(value string, _ int) bool {
-	return func(value string, _ int) bool { return f.Match(value) }
+func (f *FilterString) LoFilterPredicate() func(value string, _ int) (bool, error) {
+	return func(value string, _ int) (bool, error) { return f.Match(value) }
 }
 
-func (f FilterString) matches(value string) bool {
+func (f FilterString) matches(value string) (bool, error) {
 	switch {
 	case f.Eq != nil:
-		return value == *f.Eq
+		return value == *f.Eq, nil
 	case f.Ne != nil:
-		return value != *f.Ne
+		return value != *f.Ne, nil
 	case f.Exists != nil:
-		return *f.Exists == (value != "")
+		return *f.Exists == (value != ""), nil
 	case f.In != nil:
-		return slices.Contains(*f.In, value)
+		return slices.Contains(*f.In, value), nil
 	case f.Nin != nil:
-		return !slices.Contains(*f.Nin, value)
+		return !slices.Contains(*f.Nin, value), nil
 	case f.Contains != nil:
-		return strings.Contains(strings.ToLower(value), strings.ToLower(*f.Contains))
+		return strings.Contains(strings.ToLower(value), strings.ToLower(*f.Contains)), nil
 	case f.Ncontains != nil:
-		return !strings.Contains(strings.ToLower(value), strings.ToLower(*f.Ncontains))
+		return !strings.Contains(strings.ToLower(value), strings.ToLower(*f.Ncontains)), nil
 	case f.Like != nil:
-		ok, _ := likeMatch(*f.Like, value, false)
-		return ok
+		return false, ErrOperationNotSupported
 	case f.Nlike != nil:
-		ok, _ := likeMatch(*f.Nlike, value, false)
-		return !ok
+		return false, ErrOperationNotSupported
 	case f.Ilike != nil:
-		ok, _ := likeMatch(*f.Ilike, value, true)
-		return ok
+		return false, ErrOperationNotSupported
 	case f.Nilike != nil:
-		ok, _ := likeMatch(*f.Nilike, value, true)
-		return !ok
+		return false, ErrOperationNotSupported
 	case f.Gt != nil:
-		return value > *f.Gt
+		return value > *f.Gt, nil
 	case f.Gte != nil:
-		return value >= *f.Gte
+		return value >= *f.Gte, nil
 	case f.Lt != nil:
-		return value < *f.Lt
+		return value < *f.Lt, nil
 	case f.Lte != nil:
-		return value <= *f.Lte
+		return value <= *f.Lte, nil
 	case f.And != nil:
 		for _, child := range *f.And {
-			if !child.matches(value) {
-				return false
+			if match, err := child.matches(value); err != nil {
+				return false, err
+			} else if !match {
+				return false, nil
 			}
 		}
-		return true
+		return true, nil
 	case f.Or != nil:
 		for _, child := range *f.Or {
-			if child.matches(value) {
-				return true
+			if match, err := child.matches(value); err != nil {
+				return false, err
+			} else if match {
+				return true, nil
 			}
 		}
-		return false
+		return false, nil
 	default:
-		return true
+		return true, nil
 	}
-}
-
-// likeMatch evaluates a SQL LIKE pattern (% = any sequence, _ = any single
-// char) against value. If fold is true the comparison is case-insensitive.
-func likeMatch(pattern, value string, fold bool) (bool, error) {
-	var b strings.Builder
-	if fold {
-		b.WriteString("(?i)")
-	}
-	b.WriteByte('^')
-	for i := 0; i < len(pattern); {
-		ch := pattern[i]
-		switch ch {
-		case '%':
-			b.WriteString(".*")
-			i++
-		case '_':
-			b.WriteByte('.')
-			i++
-		default:
-			// regex-escape the character
-			b.WriteString(regexp.QuoteMeta(string(ch)))
-			i++
-		}
-	}
-	b.WriteByte('$')
-	return regexp.MatchString(b.String(), value)
 }
 
 // FilterInteger is a filter for an integer field.
