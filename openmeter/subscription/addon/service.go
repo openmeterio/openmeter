@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/oklog/ulid/v2"
-
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -86,15 +84,5 @@ func (i GetSubscriptionAddonInput) Validate() error {
 		errs = append(errs, err)
 	}
 
-	if _, err := ulid.Parse(i.NamespacedID.ID); err != nil {
-		errs = append(errs, errors.New("assignment id is not a valid ULID"))
-	}
-
-	if i.SubscriptionID != "" {
-		if _, err := ulid.Parse(i.NamespacedID.ID); err != nil {
-			errs = append(errs, errors.New("subscription id is not a valid ULID"))
-		}
-	}
-
-	return errors.Join(errs...)
+	return models.NewGenericValidationError(errors.Join(errs...))
 }
