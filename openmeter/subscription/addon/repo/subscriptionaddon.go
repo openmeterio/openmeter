@@ -56,8 +56,8 @@ func (r *subscriptionAddonRepo) Get(ctx context.Context, params subscriptionaddo
 		query := querySubscriptionAddon(repo.db.SubscriptionAddon.Query())
 
 		query = query.Where(
-			dbsubscriptionaddon.ID(params.ID),
-			dbsubscriptionaddon.Namespace(params.Namespace),
+			dbsubscriptionaddon.ID(params.NamespacedID.ID),
+			dbsubscriptionaddon.Namespace(params.NamespacedID.Namespace),
 		)
 		if params.SubscriptionID != "" {
 			query = query.Where(dbsubscriptionaddon.SubscriptionID(params.SubscriptionID))
@@ -67,7 +67,7 @@ func (r *subscriptionAddonRepo) Get(ctx context.Context, params subscriptionaddo
 		if err != nil {
 			if db.IsNotFound(err) {
 				return nil, models.NewGenericNotFoundError(
-					fmt.Errorf("subscription addon %s not found", params.ID),
+					fmt.Errorf("subscription addon %s not found", params.NamespacedID.ID),
 				)
 			}
 
