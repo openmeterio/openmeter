@@ -141,7 +141,6 @@ func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input bi
 
 	chargesByID, err := e.getChargesForStandardLineEvent(ctx, input, meta.Expands{
 		meta.ExpandRealizations,
-		meta.ExpandDetailedLines,
 	})
 	if err != nil {
 		return fmt.Errorf("getting flat fee charges for deleted standard lines: %w", err)
