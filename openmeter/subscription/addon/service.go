@@ -84,5 +84,5 @@ func (i GetSubscriptionAddonInput) Validate() error {
 		errs = append(errs, err)
 	}
 
-	return models.NewGenericValidationError(errors.Join(errs...))
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
