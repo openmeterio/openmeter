@@ -329,14 +329,15 @@ func (f FilterString) matches(value string) (bool, error) {
 		}
 		return true, nil
 	case f.Or != nil:
+		var orErr error
 		for _, child := range *f.Or {
 			if match, err := child.matches(value); err != nil {
-				return false, err
+				orErr = err
 			} else if match {
 				return true, nil
 			}
 		}
-		return false, nil
+		return false, orErr
 	default:
 		return true, nil
 	}
