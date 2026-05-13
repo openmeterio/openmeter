@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	appcustominvoicingcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	billingcustomeroverridedb "github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -407,6 +408,17 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 			Exec(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to delete app stripe customer: %w", err)
+		}
+
+		// Soft delete the app custom invoicing customer associations
+		err = repo.db.AppCustomInvoicingCustomer.Update().
+			Where(appcustominvoicingcustomerdb.CustomerID(input.ID)).
+			Where(appcustominvoicingcustomerdb.Namespace(input.Namespace)).
+			Where(appcustominvoicingcustomerdb.DeletedAtIsNil()).
+			SetDeletedAt(deletedAt).
+			Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to delete app custom invoicing customer: %w", err)
 		}
 
 		return nil
