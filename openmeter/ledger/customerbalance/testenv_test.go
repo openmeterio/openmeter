@@ -27,6 +27,7 @@ import (
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
@@ -168,6 +169,7 @@ func newTestEnv(t *testing.T) *testEnv {
 			AccountCatalog: base.Deps.AccountService,
 			BalanceQuerier: base.Deps.HistoricalLedger,
 		},
+		TransactionManager: enttx.NewCreator(base.DB),
 	})
 
 	usageAdapter, err := usagebasedadapter.New(usagebasedadapter.Config{

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -141,6 +142,82 @@ func TestFacadeGetBalanceAfterTransactionCursor(t *testing.T) {
 	require.True(t, currentBalance.Equal(alpacadecimal.NewFromInt(120)))
 }
 
+func TestFacadeGetBalanceAsOfIncludesBreakageExpiry(t *testing.T) {
+	env := newTestEnv(t)
+	facade, err := NewFacade(env.Service)
+	require.NoError(t, err)
+
+	issuedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
+	expiresAt := issuedAt.Add(time.Hour)
+	beforeExpiry := expiresAt.Add(-time.Nanosecond)
+
+	clock.FreezeTime(issuedAt)
+	defer clock.UnFreeze()
+	defer clock.ResetTime()
+
+	amount := alpacadecimal.NewFromInt(100)
+	env.bookFBOBalance(t, amount)
+	env.fundOpenReceivable(t, amount)
+
+	fbo := env.FBOSubAccount(t, ledger.DefaultCustomerFBOPriority)
+	breakage := env.BreakageSubAccountWithCostBasis(t, nil)
+
+	inputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		transactions.ResolverDependencies{
+			AccountService: env.Deps.ResolversService,
+			AccountCatalog: env.Deps.AccountService,
+			BalanceQuerier: env.Deps.HistoricalLedger,
+		},
+		transactions.ResolutionScope{
+			CustomerID: env.CustomerID,
+			Namespace:  env.Namespace,
+		},
+		transactions.PlanCustomerFBOBreakageTemplate{
+			At:              expiresAt,
+			Amount:          amount,
+			FBOAddress:      fbo.Address(),
+			BreakageAddress: breakage.Address(),
+		},
+	)
+	require.NoError(t, err)
+
+	_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
+	require.NoError(t, err)
+
+	balanceBeforeExpiry, err := facade.GetBalance(t.Context(), GetBalanceInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+		AsOf:       &beforeExpiry,
+	})
+	require.NoError(t, err)
+	require.True(t, balanceBeforeExpiry.Equal(amount), "balance before expiry: %s", balanceBeforeExpiry)
+
+	balanceAtExpiry, err := facade.GetBalance(t.Context(), GetBalanceInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+		AsOf:       &expiresAt,
+	})
+	require.NoError(t, err)
+	require.True(t, balanceAtExpiry.Equal(alpacadecimal.Zero), "balance at expiry: %s", balanceAtExpiry)
+
+	clock.FreezeTime(beforeExpiry)
+	currentBeforeExpiry, err := facade.GetBalance(t.Context(), GetBalanceInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+	})
+	require.NoError(t, err)
+	require.True(t, currentBeforeExpiry.Equal(amount), "current balance before expiry: %s", currentBeforeExpiry)
+
+	clock.FreezeTime(expiresAt)
+	currentAtExpiry, err := facade.GetBalance(t.Context(), GetBalanceInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+	})
+	require.NoError(t, err)
+	require.True(t, currentAtExpiry.Equal(alpacadecimal.Zero), "current balance at expiry: %s", currentAtExpiry)
+}
+
 func TestFacadeGetBalanceAsOf(t *testing.T) {
 	env := newTestEnv(t)
 	facade, err := NewFacade(env.Service)
@@ -149,12 +226,13 @@ func TestFacadeGetBalanceAsOf(t *testing.T) {
 	firstBookedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
 	secondBookedAt := firstBookedAt.Add(time.Minute)
 
-	clock.SetTime(firstBookedAt)
+	clock.FreezeTime(firstBookedAt)
+	defer clock.UnFreeze()
 	defer clock.ResetTime()
 	env.bookFBOBalance(t, alpacadecimal.NewFromInt(100))
 	env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
 
-	clock.SetTime(secondBookedAt)
+	clock.FreezeTime(secondBookedAt)
 	env.bookFBOBalance(t, alpacadecimal.NewFromInt(20))
 	env.fundOpenReceivable(t, alpacadecimal.NewFromInt(20))
 

@@ -30,6 +30,7 @@ const (
 	AccountTypeWash      AccountType = "wash"
 	AccountTypeEarnings  AccountType = "earnings"
 	AccountTypeBrokerage AccountType = "brokerage"
+	AccountTypeBreakage  AccountType = "breakage"
 )
 
 var CustomerAccountTypes = []AccountType{
@@ -42,19 +43,21 @@ var BusinessAccountTypes = []AccountType{
 	AccountTypeWash,
 	AccountTypeEarnings,
 	AccountTypeBrokerage,
+	AccountTypeBreakage,
 }
 
 type BusinessAccounts struct {
 	WashAccount      BusinessAccount
 	EarningsAccount  BusinessAccount
 	BrokerageAccount BusinessAccount
+	BreakageAccount  BusinessAccount
 }
 
 func (t AccountType) Validate() error {
 	switch t {
 	case AccountTypeCustomerFBO, AccountTypeCustomerReceivable, AccountTypeCustomerAccrued:
 		return nil
-	case AccountTypeWash, AccountTypeEarnings, AccountTypeBrokerage:
+	case AccountTypeWash, AccountTypeEarnings, AccountTypeBrokerage, AccountTypeBreakage:
 		return nil
 	default:
 		return models.NewGenericValidationError(fmt.Errorf("invalid account type: %s", t))

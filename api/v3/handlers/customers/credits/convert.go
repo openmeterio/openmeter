@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -29,6 +30,7 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 		Description:   charge.Intent.Description,
 		Amount:        charge.Intent.CreditAmount.String(),
 		Currency:      api.BillingCurrencyCode(charge.Intent.Currency),
+		ExpiresAt:     charge.Intent.ExpiresAt,
 		FundingMethod: toAPIBillingCreditFundingMethod(charge.Intent.Settlement),
 		Status:        toAPIBillingCreditGrantStatus(charge),
 		CreatedAt:     charge.CreatedAt,
@@ -311,6 +313,15 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 		FundingMethod: fromAPIBillingCreditFundingMethod(body.FundingMethod),
 		Priority:      body.Priority,
 		Labels:        lo.FromPtrOr(body.Labels, api.Labels{}),
+	}
+
+	if body.ExpiresAfter != nil {
+		expiresAfter, err := datetime.ISODurationString(*body.ExpiresAfter).Parse()
+		if err != nil {
+			return creditgrant.CreateInput{}, fmt.Errorf("invalid expires_after: %w", err)
+		}
+
+		req.ExpiresAfter = &expiresAfter
 	}
 
 	if body.Purchase != nil {

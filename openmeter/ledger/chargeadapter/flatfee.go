@@ -59,15 +59,16 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 	}
 
 	realizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{
-		Namespace:      input.Charge.Namespace,
-		ChargeID:       input.Charge.ID,
-		CustomerID:     input.Charge.Intent.CustomerID,
-		Annotations:    chargeAnnotationsForFlatFeeCharge(input.Charge),
-		At:             input.Charge.Intent.InvoiceAt,
-		Currency:       input.Charge.Intent.Currency,
-		SettlementMode: input.Charge.Intent.SettlementMode,
-		ServicePeriod:  input.ServicePeriod,
-		Amount:         input.PreTaxAmountToAllocate,
+		Namespace:         input.Charge.Namespace,
+		ChargeID:          input.Charge.ID,
+		CustomerID:        input.Charge.Intent.CustomerID,
+		Annotations:       chargeAnnotationsForFlatFeeCharge(input.Charge),
+		BookedAt:          input.Charge.Intent.InvoiceAt,
+		SourceBalanceAsOf: input.Charge.Intent.InvoiceAt,
+		Currency:          input.Charge.Intent.Currency,
+		SettlementMode:    input.Charge.Intent.SettlementMode,
+		ServicePeriod:     input.ServicePeriod,
+		Amount:            input.PreTaxAmountToAllocate,
 	})
 	if err != nil {
 		return nil, err

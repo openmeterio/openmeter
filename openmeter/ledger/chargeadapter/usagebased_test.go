@@ -446,6 +446,7 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 			AccountCatalog: base.Deps.AccountService,
 			BalanceQuerier: base.Deps.HistoricalLedger,
 		},
+		TransactionManager: enttx.NewCreator(base.DB),
 	})
 	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
 		Client: base.DB,

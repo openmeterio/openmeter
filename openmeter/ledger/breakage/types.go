@@ -1,0 +1,178 @@
+package breakage
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/alpacahq/alpacadecimal"
+
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
+)
+
+type SourceKind = ledger.BreakageSourceKind
+
+const (
+	SourceKindCreditPurchase           SourceKind = ledger.BreakageSourceKindCreditPurchase
+	SourceKindUsage                    SourceKind = ledger.BreakageSourceKindUsage
+	SourceKindUsageCorrection          SourceKind = ledger.BreakageSourceKindUsageCorrection
+	SourceKindCreditPurchaseCorrection SourceKind = ledger.BreakageSourceKindCreditPurchaseCorrection
+	SourceKindAdvanceBackfill          SourceKind = ledger.BreakageSourceKindAdvanceBackfill
+)
+
+// Record is the durable bookkeeping row for one breakage ledger transaction.
+//
+// It intentionally repeats the fields the allocator needs to find and lock open
+// plans without joining back through ledger transactions or parsing annotations.
+// The ledger entry remains the accounting source of truth; the record is the
+// allocation/index layer that ties plan, release, and reopen transactions
+// together.
+type Record struct {
+	ID        models.NamespacedID
+	Kind      ledger.BreakageKind
+	Amount    alpacadecimal.Decimal
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
+
+	CustomerID customer.CustomerID
+	Currency   currencyx.Code
+
+	CreditPriority int
+	ExpiresAt      time.Time
+
+	SourceKind               SourceKind
+	SourceTransactionGroupID *string
+	SourceTransactionID      *string
+
+	BreakageTransactionGroupID string
+	BreakageTransactionID      string
+
+	FBOSubAccountID      string
+	BreakageSubAccountID string
+
+	PlanID    *string
+	ReleaseID *string
+
+	Annotations models.Annotations
+}
+
+// Plan is a planned breakage row with its current unreleased amount and the
+// posting addresses needed to book a release. It is calculated from plan rows
+// minus releases plus reopens.
+type Plan struct {
+	Record
+
+	OpenAmount      alpacadecimal.Decimal
+	FBOAddress      ledger.PostingAddress
+	BreakageAddress ledger.PostingAddress
+}
+
+// PendingRecord is a record row that has been planned before the ledger
+// commit. PersistCommittedRecords fills in the committed ledger transaction
+// ids after CommitGroup succeeds.
+type PendingRecord struct {
+	Record
+}
+
+// ListPlansInput selects expiring credit that can still produce breakage as of
+// the collector's AsOf time. Plans expiring at or before AsOf are not
+// candidates because those credits are already expired from the collector's
+// perspective.
+type ListPlansInput struct {
+	CustomerID customer.CustomerID
+	Currency   currencyx.Code
+	AsOf       time.Time
+}
+
+// CreateRecordsInput persists record rows for already committed
+// breakage ledger transactions.
+type CreateRecordsInput struct {
+	Records []Record
+}
+
+func (i CreateRecordsInput) Validate() error {
+	for idx, record := range i.Records {
+		if err := record.Validate(); err != nil {
+			return fmt.Errorf("records[%d]: %w", idx, err)
+		}
+	}
+
+	return nil
+}
+
+func (c Record) Validate() error {
+	var errs []error
+
+	if err := c.ID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("id: %w", err))
+	}
+
+	switch c.Kind {
+	case ledger.BreakageKindPlan, ledger.BreakageKindRelease, ledger.BreakageKindReopen:
+	default:
+		errs = append(errs, fmt.Errorf("invalid kind: %s", c.Kind))
+	}
+
+	if !c.Amount.IsPositive() {
+		errs = append(errs, errors.New("amount must be positive"))
+	}
+
+	if err := c.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer id: %w", err))
+	}
+
+	if err := c.Currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if err := ledger.ValidateCreditPriority(c.CreditPriority); err != nil {
+		errs = append(errs, fmt.Errorf("credit priority: %w", err))
+	}
+
+	if c.ExpiresAt.IsZero() {
+		errs = append(errs, errors.New("expires at is required"))
+	}
+
+	switch c.SourceKind {
+	case SourceKindCreditPurchase, SourceKindUsage, SourceKindUsageCorrection, SourceKindCreditPurchaseCorrection, SourceKindAdvanceBackfill:
+	default:
+		errs = append(errs, fmt.Errorf("invalid source kind: %s", c.SourceKind))
+	}
+
+	if c.BreakageTransactionGroupID == "" {
+		errs = append(errs, errors.New("breakage transaction group id is required"))
+	}
+
+	if c.BreakageTransactionID == "" {
+		errs = append(errs, errors.New("breakage transaction id is required"))
+	}
+
+	if c.FBOSubAccountID == "" {
+		errs = append(errs, errors.New("FBO sub-account id is required"))
+	}
+
+	if c.BreakageSubAccountID == "" {
+		errs = append(errs, errors.New("breakage sub-account id is required"))
+	}
+
+	if c.Kind != ledger.BreakageKindPlan && (c.PlanID == nil || *c.PlanID == "") {
+		errs = append(errs, errors.New("plan id is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
+type Adapter interface {
+	// CreateRecords persists planned/released/reopened breakage rows.
+	CreateRecords(ctx context.Context, input CreateRecordsInput) error
+
+	// ListCandidateRecords returns plan and adjustment rows needed to compute
+	// open plans. Implementations should lock returned rows when the caller is in
+	// a transaction so concurrent collectors cannot release the same open amount.
+	ListCandidateRecords(ctx context.Context, input ListPlansInput) ([]Record, error)
+}

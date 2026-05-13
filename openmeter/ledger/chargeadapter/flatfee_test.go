@@ -591,8 +591,9 @@ func newFlatFeeHandlerTestEnv(t *testing.T) *flatFeeHandlerTestEnv {
 		BalanceQuerier: base.Deps.HistoricalLedger,
 	}
 	collectorService := ledgercollector.NewService(ledgercollector.Config{
-		Ledger:       base.Deps.HistoricalLedger,
-		Dependencies: deps,
+		Ledger:             base.Deps.HistoricalLedger,
+		Dependencies:       deps,
+		TransactionManager: enttx.NewCreator(base.DB),
 	})
 	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
 		Client: base.DB,
