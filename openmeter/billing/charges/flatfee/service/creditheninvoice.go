@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -25,10 +24,6 @@ func NewCreditThenInvoiceStateMachine(config StateMachineConfig) (*CreditThenInv
 
 	if config.Charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
 		return nil, fmt.Errorf("charge %s is not credit_then_invoice", config.Charge.ID)
-	}
-
-	if config.Service == nil {
-		return nil, errors.New("service is required")
 	}
 
 	stateMachine, err := newStateMachineBase(config)

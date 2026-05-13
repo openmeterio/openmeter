@@ -47,6 +47,10 @@ func (c StateMachineConfig) Validate() error {
 		errs = append(errs, errors.New("realizations service is required"))
 	}
 
+	if c.Service == nil {
+		errs = append(errs, errors.New("service is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
