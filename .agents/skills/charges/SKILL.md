@@ -157,6 +157,15 @@ Flat-fee credit-then-invoice lifecycle rules:
 - Flat-fee invoice lifecycle behavior must be driven by `billing.LineEngineTypeChargeFlatFee` through the flat-fee line engine. Do not reintroduce public flat-fee invoice lifecycle service methods or call the flat-fee state machine from `charges/service` standard-invoice hooks.
 - The charges standard-invoice hook may still run for cross-charge concerns such as revenue recognition and credit-purchase callbacks. For flat-fee invoice statuses, keep the hook processors as no-ops and let the line engine own `OnStandardInvoiceCreated`, `OnCollectionCompleted`, `OnInvoiceIssued`, `OnPaymentAuthorized`, `OnPaymentSettled`, and mutable-line cleanup.
 - Flat-fee `credit_only` is not a line-engine flow; the flat-fee line engine should treat non-`credit_then_invoice` standard invoice callbacks as lifecycle misuse.
+- Flat-fee `credit_then_invoice` charges start as `created`, become `active` at the service-period start, and use `active.realization.*` substates for invoice lifecycle. Keep invoice-issued work in the `issuing` state and only move to `final` after required fiat payment settlement or a no-fiat run.
+- The flat-fee line engine should map persisted run state back onto returned standard invoice lines after run creation. Do not rely on state-machine methods mutating a standard-line pointer as their public contract.
+- `CreateCurrentRun(...)` must fail when the charge already has a non-detached current run. It may be created with invoice and line IDs when the standard line is known; otherwise the caller should pass the required run period and amount explicitly and attach line references later through the normal lifecycle.
+- Flat-fee realization runs use `Immutable` to choose invoice patching behavior. Mutable runs may update the standard line in place; immutable runs require deleting the old invoice line and creating a replacement gathering line when the amount changes. A deleted realization run must never remain the charge's current run.
+- Flat-fee mutable-line deletion cleanup is owned by the line engine callback. The shrink/extend/delete state-machine path should detach the current run before emitting a delete-line patch; `OnMutableStandardLinesDeleted(...)` should then correct credits, clear charge-owned detailed lines, and mark only the detached run deleted.
+- For flat-fee shrink/extend before standard-line creation, replace the pending gathering line by charge ID. For a mutable standard-line-backed current run, update the same standard line in place. For an immutable current run, keep the old invoice history intact; if the recalculated amount is unchanged, emit no customer-visible invoice change, and if the amount changes, detach the run, create a replacement gathering line, reset the charge to `created`, and set `AdvanceAfter` to the replacement service-period start.
+- Flat-fee shrink/extend should reject while invoice issuing/completion callbacks own the charge state. Subscription sync can retry after billing advances out of those transient states.
+- Flat-fee invoice accrual should not create an accrued-usage row or call the ledger-backed accrual handler when the standard line total is zero. The run can still become immutable and move through the no-fiat finalization path.
+- Flat-fee payment booking is line/run based rather than current-run only: asynchronous payment callbacks must locate the realization run by standard-line ID so detached historical runs can still receive authorization/settlement. No-fiat runs skip payment booking callbacks.
 
 Usage-based credit-then-invoice extension rules:
 
@@ -331,7 +340,7 @@ When extracting helpers:
 
 - `charges.AdvanceCharges(...)` advances both usage-based and flat-fee credit-only charges
 - `usagebased.Service.AdvanceCharge(...)` routes to the settlement-mode-specific state machine: `CreditOnly` uses the credits-only state machine and `CreditThenInvoice` uses `NewCreditThenInvoiceStateMachine(...)`
-- `flatfee.Service.AdvanceCharge(...)` currently only supports `CreditOnly`; it does not have a `CreditThenInvoice` state machine path
+- `flatfee.Service.AdvanceCharge(...)` routes to the settlement-mode-specific state machine: `CreditOnly` uses the credits-only state machine and `CreditThenInvoice` uses `NewCreditThenInvoiceStateMachine(...)`
 - Both `AdvanceCharge(...)` methods return `*Charge` (nil means noop, non-nil means at least one transition)
 - For invoice-settled flows, invoice creation and collection completion are still billing-triggered downstream events (`invoice_created`, `collection_completed`), not generic advance-loop transitions
 

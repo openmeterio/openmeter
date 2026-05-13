@@ -448,7 +448,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInAdvanceWithPr
 		s.FlatFeeTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T(), func(t *testing.T, input flatfee.OnInvoiceUsageAccruedInput) {
 			assert.Equal(t, flatFeeChargeID.ID, input.Charge.ID)
 			assert.Equal(t, servicePeriod, input.ServicePeriod)
-			s.RequireTotals(expectedTotals, input.Totals)
+			billingtest.AssertTotals(t, expectedTotals, input.Totals)
 		})
 
 		var err error
@@ -681,7 +681,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZe
 
 		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[flatfee.OnInvoiceUsageAccruedInput]()
 		s.FlatFeeTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T(), func(t *testing.T, input flatfee.OnInvoiceUsageAccruedInput) {
-			s.RequireTotals(billingtest.ExpectedTotals{
+			billingtest.AssertTotals(t, billingtest.ExpectedTotals{
 				Amount:       0,
 				ChargesTotal: 100,
 				Total:        100,
