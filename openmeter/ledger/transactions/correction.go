@@ -8,7 +8,10 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+const legacyAnnotationTransactionTemplateName = "ledger.transaction.template_name"
 
 type CorrectionInput struct {
 	At     time.Time
@@ -54,14 +57,9 @@ func CorrectTransaction(
 		return nil, fmt.Errorf("cannot correct a correction transaction")
 	}
 
-	templateName, err := ledger.TransactionTemplateNameFromAnnotations(scope.OriginalTransaction.Annotations())
+	template, err := transactionTemplateFromAnnotations(scope.OriginalTransaction.Annotations())
 	if err != nil {
-		return nil, fmt.Errorf("transaction template name: %w", err)
-	}
-
-	template, err := transactionTemplateByName(templateName)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("transaction template: %w", err)
 	}
 
 	outputs, err := correctTemplate(scope, template)
@@ -71,43 +69,47 @@ func CorrectTransaction(
 
 	annotated := make([]ledger.TransactionInput, 0, len(outputs))
 	for _, output := range outputs {
-		annotated = append(annotated, annotateTemplateTransaction(output, template, ledger.TransactionDirectionCorrection))
+		annotatedOutput, err := annotateTemplateTransaction(output, template, ledger.TransactionDirectionCorrection)
+		if err != nil {
+			return nil, err
+		}
+
+		annotated = append(annotated, annotatedOutput)
 	}
 
 	return annotated, nil
 }
 
-func transactionTemplateByName(name string) (TransactionTemplate, error) {
-	switch name {
-	case templateName(IssueCustomerReceivableTemplate{}):
-		return IssueCustomerReceivableTemplate{}, nil
-	case templateName(FundCustomerReceivableTemplate{}):
-		return FundCustomerReceivableTemplate{}, nil
-	case templateName(SettleCustomerReceivablePaymentTemplate{}):
-		return SettleCustomerReceivablePaymentTemplate{}, nil
-	case templateName(AuthorizeCustomerReceivablePaymentTemplate{}):
-		return AuthorizeCustomerReceivablePaymentTemplate{}, nil
-	case templateName(SettleCustomerReceivableFromPaymentTemplate{}):
-		return SettleCustomerReceivableFromPaymentTemplate{}, nil
-	case templateName(AttributeCustomerAdvanceReceivableCostBasisTemplate{}):
-		return AttributeCustomerAdvanceReceivableCostBasisTemplate{}, nil
-	case templateName(CoverCustomerReceivableTemplate{}):
-		return CoverCustomerReceivableTemplate{}, nil
-	case templateName(TransferCustomerFBOToAccruedTemplate{}):
-		return TransferCustomerFBOToAccruedTemplate{}, nil
-	case templateName(TransferCustomerFBOAdvanceToAccruedTemplate{}):
-		return TransferCustomerFBOAdvanceToAccruedTemplate{}, nil
-	case templateName(TransferCustomerReceivableToAccruedTemplate{}):
-		return TransferCustomerReceivableToAccruedTemplate{}, nil
-	case templateName(TranslateCustomerAccruedCostBasisTemplate{}):
-		return TranslateCustomerAccruedCostBasisTemplate{}, nil
-	case templateName(RecognizeEarningsFromAttributableAccruedTemplate{}):
-		return RecognizeEarningsFromAttributableAccruedTemplate{}, nil
-	case templateName(ConvertCurrencyTemplate{}):
-		return ConvertCurrencyTemplate{}, nil
-	default:
-		return nil, fmt.Errorf("unknown correction template %q", name)
+func transactionTemplateFromAnnotations(annotations models.Annotations) (TransactionTemplate, error) {
+	if _, ok := annotations[ledger.AnnotationTransactionTemplateCode]; ok {
+		code, err := ledger.TransactionTemplateCodeFromAnnotations(annotations)
+		if err != nil {
+			return nil, fmt.Errorf("code: %w", err)
+		}
+
+		return transactionTemplateByCode(code)
 	}
+
+	name, err := transactionTemplateNameFromAnnotations(annotations)
+	if err != nil {
+		return nil, fmt.Errorf("name: %w", err)
+	}
+
+	return transactionTemplateByLegacyName(name)
+}
+
+func transactionTemplateNameFromAnnotations(annotations models.Annotations) (string, error) {
+	raw, ok := annotations[legacyAnnotationTransactionTemplateName]
+	if !ok {
+		return "", fmt.Errorf("transaction template name annotation is required")
+	}
+
+	templateName, ok := raw.(string)
+	if !ok || templateName == "" {
+		return "", fmt.Errorf("transaction template name annotation is invalid")
+	}
+
+	return templateName, nil
 }
 
 func correctTemplate(scope CorrectionScope, template TransactionTemplate) ([]ledger.TransactionInput, error) {
@@ -121,6 +123,6 @@ func correctTemplate(scope CorrectionScope, template TransactionTemplate) ([]led
 	}
 }
 
-func templateCorrectionNotImplemented(name string) error {
-	return fmt.Errorf("%s correction is not implemented", name)
+func templateCorrectionNotImplemented(template string) error {
+	return fmt.Errorf("%s correction is not implemented", template)
 }

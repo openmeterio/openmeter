@@ -52,7 +52,7 @@ func TestCorrectTransactionRejectsCorrectionDirection(t *testing.T) {
 		OriginalTransaction: &correctionTestTransaction{
 			id: models.NamespacedID{Namespace: "ns", ID: "tx"},
 			annotations: ledger.TransactionAnnotations(
-				templateName(TransferCustomerFBOToAccruedTemplate{}),
+				TemplateCode(TransferCustomerFBOToAccruedTemplate{}),
 				ledger.TransactionDirectionCorrection,
 			),
 		},
@@ -70,13 +70,13 @@ func TestCorrectTransactionDispatchesTemplateStub(t *testing.T) {
 		OriginalTransaction: &correctionTestTransaction{
 			id: models.NamespacedID{Namespace: "ns", ID: "tx"},
 			annotations: ledger.TransactionAnnotations(
-				templateName(SettleCustomerReceivableFromPaymentTemplate{}),
+				TemplateCode(SettleCustomerReceivableFromPaymentTemplate{}),
 				ledger.TransactionDirectionForward,
 			),
 		},
 	})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "SettleCustomerReceivableFromPaymentTemplate correction is not implemented")
+	require.Contains(t, err.Error(), "customer.receivable.payment.settle correction is not implemented")
 }
 
 func TestCorrectTransactionDispatchesArchivedReceivablePaymentTemplates(t *testing.T) {
@@ -89,12 +89,12 @@ func TestCorrectTransactionDispatchesArchivedReceivablePaymentTemplates(t *testi
 	}{
 		{
 			name:          "legacy fund means settlement funding",
-			templateName:  templateName(FundCustomerReceivableTemplate{}),
+			templateName:  legacyTemplateNameFundCustomerReceivable,
 			expectedError: "FundCustomerReceivableTemplate correction is not implemented",
 		},
 		{
 			name:          "legacy settle means authorization status transfer",
-			templateName:  templateName(SettleCustomerReceivablePaymentTemplate{}),
+			templateName:  legacyTemplateNameSettleCustomerReceivablePayment,
 			expectedError: "SettleCustomerReceivablePaymentTemplate correction is not implemented",
 		},
 	}
@@ -108,14 +108,51 @@ func TestCorrectTransactionDispatchesArchivedReceivablePaymentTemplates(t *testi
 				Amount: alpacadecimal.NewFromInt(1),
 				OriginalTransaction: &correctionTestTransaction{
 					id: models.NamespacedID{Namespace: "ns", ID: "tx"},
-					annotations: ledger.TransactionAnnotations(
-						tt.templateName,
-						ledger.TransactionDirectionForward,
-					),
+					annotations: models.Annotations{
+						legacyAnnotationTransactionTemplateName: tt.templateName,
+						ledger.AnnotationTransactionDirection:   string(ledger.TransactionDirectionForward),
+					},
 				},
 			})
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tt.expectedError)
 		})
 	}
+}
+
+func TestCorrectTransactionDispatchesLegacyTemplateNames(t *testing.T) {
+	t.Parallel()
+
+	_, err := CorrectTransaction(t.Context(), ResolverDependencies{}, CorrectionInput{
+		At:     time.Now(),
+		Amount: alpacadecimal.NewFromInt(1),
+		OriginalTransaction: &correctionTestTransaction{
+			id: models.NamespacedID{Namespace: "ns", ID: "tx"},
+			annotations: models.Annotations{
+				legacyAnnotationTransactionTemplateName: legacyTemplateNameSettleCustomerReceivableFromPayment,
+				ledger.AnnotationTransactionDirection:   string(ledger.TransactionDirectionForward),
+			},
+		},
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "customer.receivable.payment.settle correction is not implemented")
+}
+
+func TestCorrectTransactionDoesNotFallbackToLegacyTemplateNameWhenCodeExists(t *testing.T) {
+	t.Parallel()
+
+	_, err := CorrectTransaction(t.Context(), ResolverDependencies{}, CorrectionInput{
+		At:     time.Now(),
+		Amount: alpacadecimal.NewFromInt(1),
+		OriginalTransaction: &correctionTestTransaction{
+			id: models.NamespacedID{Namespace: "ns", ID: "tx"},
+			annotations: models.Annotations{
+				ledger.AnnotationTransactionTemplateCode: "unknown.template",
+				legacyAnnotationTransactionTemplateName:  legacyTemplateNameSettleCustomerReceivableFromPayment,
+				ledger.AnnotationTransactionDirection:    string(ledger.TransactionDirectionForward),
+			},
+		},
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), `unknown correction template code "unknown.template"`)
 }

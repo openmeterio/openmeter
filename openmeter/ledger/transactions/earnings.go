@@ -41,6 +41,10 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) typeGuard() guard {
 	return true
 }
 
+func (t RecognizeEarningsFromAttributableAccruedTemplate) code() TransactionTemplateCode {
+	return TemplateCodeRecognizeEarningsFromAttributableAccrued
+}
+
 var _ CustomerTransactionTemplate = (RecognizeEarningsFromAttributableAccruedTemplate{})
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {

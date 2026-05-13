@@ -3,7 +3,6 @@ package transactions
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -90,8 +89,9 @@ func ResolveTransactions(
 				return nil, err
 			}
 
-			if tx != nil {
-				inputs = append(inputs, annotateTemplateTransaction(tx, template, ledger.TransactionDirectionForward))
+			inputs, err = appendResolvedTemplateTransaction(inputs, tx, template, ledger.TransactionDirectionForward)
+			if err != nil {
+				return nil, err
 			}
 		case OrgTransactionTemplate:
 			if err := scope.validateForOrgTransaction(); err != nil {
@@ -103,8 +103,9 @@ func ResolveTransactions(
 				return nil, err
 			}
 
-			if tx != nil {
-				inputs = append(inputs, annotateTemplateTransaction(tx, template, ledger.TransactionDirectionForward))
+			inputs, err = appendResolvedTemplateTransaction(inputs, tx, template, ledger.TransactionDirectionForward)
+			if err != nil {
+				return nil, err
 			}
 		default:
 			return nil, ledger.ErrResolutionTemplateUnknown.WithAttrs(models.Attributes{
@@ -114,21 +115,4 @@ func ResolveTransactions(
 	}
 
 	return inputs, nil
-}
-
-func templateName(template TransactionTemplate) string {
-	typ := reflect.TypeOf(template)
-	for typ.Kind() == reflect.Pointer {
-		typ = typ.Elem()
-	}
-
-	return typ.Name()
-}
-
-func TemplateName(template TransactionTemplate) string {
-	return templateName(template)
-}
-
-func annotateTemplateTransaction(input ledger.TransactionInput, template TransactionTemplate, direction ledger.TransactionDirection) ledger.TransactionInput {
-	return WithAnnotations(input, ledger.TransactionAnnotations(templateName(template), direction))
 }

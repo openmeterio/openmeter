@@ -19,8 +19,17 @@ func TestTransferCustomerFBOToAccruedTemplate(t *testing.T) {
 		t,
 		TransferCustomerFBOToAccruedTemplate{
 			At:       env.Now(),
-			Amount:   alpacadecimal.NewFromInt(60),
 			Currency: env.Currency,
+			Sources: []PostingAmount{
+				{
+					Address: priorityOne.Address(),
+					Amount:  alpacadecimal.NewFromInt(30),
+				},
+				{
+					Address: priorityTwo.Address(),
+					Amount:  alpacadecimal.NewFromInt(30),
+				},
+			},
 		},
 	)
 	require.Len(t, inputs, 1)
@@ -43,8 +52,17 @@ func TestTransferCustomerFBOToAccruedTemplate_PreservesCostBasisAcrossBuckets(t 
 		t,
 		TransferCustomerFBOToAccruedTemplate{
 			At:       env.Now(),
-			Amount:   alpacadecimal.NewFromInt(60),
 			Currency: env.Currency,
+			Sources: []PostingAmount{
+				{
+					Address: promoFBO.Address(),
+					Amount:  alpacadecimal.NewFromInt(30),
+				},
+				{
+					Address: purchasedFBO.Address(),
+					Amount:  alpacadecimal.NewFromInt(30),
+				},
+			},
 		},
 	)
 	require.Len(t, inputs, 1)
@@ -65,8 +83,17 @@ func TestTransferCustomerFBOToAccruedCorrection_UsesReverseCollectionPriority(t 
 
 	originalInputs := env.resolve(t, TransferCustomerFBOToAccruedTemplate{
 		At:       env.Now(),
-		Amount:   alpacadecimal.NewFromInt(30),
 		Currency: env.Currency,
+		Sources: []PostingAmount{
+			{
+				Address: fboPriorityOne.Address(),
+				Amount:  alpacadecimal.NewFromInt(10),
+			},
+			{
+				Address: fboPriorityTwo.Address(),
+				Amount:  alpacadecimal.NewFromInt(20),
+			},
+		},
 	})
 	require.Len(t, originalInputs, 1)
 

@@ -14,7 +14,7 @@ const (
 	AnnotationSubscriptionItemID  = "ledger.subscription.item.id"
 	AnnotationFeatureID           = "ledger.feature.id"
 
-	AnnotationTransactionTemplateName = "ledger.transaction.template_name"
+	AnnotationTransactionTemplateCode = "ledger.transaction.template_code"
 	AnnotationTransactionDirection    = "ledger.transaction.direction"
 )
 
@@ -63,25 +63,25 @@ func ChargeTransactionAnnotations(input ChargeTransactionAnnotationsInput) model
 	return annotations
 }
 
-func TransactionAnnotations(templateName string, direction TransactionDirection) models.Annotations {
+func TransactionAnnotations(templateCode string, direction TransactionDirection) models.Annotations {
 	return models.Annotations{
-		AnnotationTransactionTemplateName: templateName,
+		AnnotationTransactionTemplateCode: templateCode,
 		AnnotationTransactionDirection:    string(direction),
 	}
 }
 
-func TransactionTemplateNameFromAnnotations(annotations models.Annotations) (string, error) {
-	raw, ok := annotations[AnnotationTransactionTemplateName]
+func TransactionTemplateCodeFromAnnotations(annotations models.Annotations) (string, error) {
+	raw, ok := annotations[AnnotationTransactionTemplateCode]
 	if !ok {
-		return "", fmt.Errorf("transaction template name annotation is required")
+		return "", fmt.Errorf("transaction template code annotation is required")
 	}
 
-	name, ok := raw.(string)
-	if !ok || name == "" {
-		return "", fmt.Errorf("transaction template name annotation is invalid")
+	code, ok := raw.(string)
+	if !ok || code == "" {
+		return "", fmt.Errorf("transaction template code annotation is invalid")
 	}
 
-	return name, nil
+	return code, nil
 }
 
 func TransactionDirectionFromAnnotations(annotations models.Annotations) (TransactionDirection, error) {
