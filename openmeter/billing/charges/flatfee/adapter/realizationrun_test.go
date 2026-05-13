@@ -14,7 +14,6 @@ import (
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	dbchargeflatfeerun "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -112,28 +111,14 @@ func (s *FlatFeeRealizationRunAdapterSuite) TestCreateCurrentRunFailsWhenCurrent
 	s.Require().NoError(err)
 	s.Require().Len(createdCharges, 1)
 
-	lineID := "line-id"
-	invoiceID := "invoice-id"
 	run, err := s.adapter.CreateCurrentRun(ctx, flatfee.CreateCurrentRunInput{
 		Charge:               createdCharges[0].ChargeBase,
 		ServicePeriod:        servicePeriod,
 		AmountAfterProration: alpacadecimal.NewFromInt(10),
-		LineID:               &lineID,
-		InvoiceID:            &invoiceID,
 	})
 	s.Require().NoError(err)
-	s.Equal(lineID, *run.LineID)
-	s.Equal(invoiceID, *run.InvoiceID)
-
-	dbRun, err := s.dbClient.ChargeFlatFeeRun.Query().
-		Where(
-			dbchargeflatfeerun.NamespaceEQ(namespace),
-			dbchargeflatfeerun.IDEQ(run.ID.ID),
-		).
-		Only(ctx)
-	s.Require().NoError(err)
-	s.Equal(lineID, *dbRun.LineID)
-	s.Equal(invoiceID, *dbRun.InvoiceID)
+	s.Nil(run.LineID)
+	s.Nil(run.InvoiceID)
 
 	_, err = s.adapter.CreateCurrentRun(ctx, flatfee.CreateCurrentRunInput{
 		Charge:               createdCharges[0].ChargeBase,
