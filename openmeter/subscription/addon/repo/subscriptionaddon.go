@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	addondb "github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	dbsubscriptionaddon "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	dbsubscriptionaddonquantity "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
@@ -56,20 +55,12 @@ func (r *subscriptionAddonRepo) Get(ctx context.Context, params subscriptionaddo
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionAddonRepo) (*subscriptionaddon.SubscriptionAddon, error) {
 		query := querySubscriptionAddon(repo.db.SubscriptionAddon.Query())
 
-		if params.ID != "" {
-			query = query.Where(
-				dbsubscriptionaddon.ID(params.ID),
-				dbsubscriptionaddon.Namespace(params.Namespace),
-			)
-			if params.SubscriptionID != "" {
-				query = query.Where(dbsubscriptionaddon.SubscriptionID(params.SubscriptionID))
-			}
-		} else {
-			query = query.Where(
-				dbsubscriptionaddon.Namespace(params.Namespace),
-				dbsubscriptionaddon.SubscriptionID(params.SubscriptionID),
-				dbsubscriptionaddon.HasAddonWith(addondb.Or(addondb.ID(params.AddonIDOrKey), addondb.Key(params.AddonIDOrKey))),
-			)
+		query = query.Where(
+			dbsubscriptionaddon.ID(params.ID),
+			dbsubscriptionaddon.Namespace(params.Namespace),
+		)
+		if params.SubscriptionID != "" {
+			query = query.Where(dbsubscriptionaddon.SubscriptionID(params.SubscriptionID))
 		}
 
 		entity, err := query.Only(ctx)
