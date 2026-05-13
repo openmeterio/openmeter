@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -450,4 +451,28 @@ func TestComplete(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, actual)
+}
+
+func TestCreditsConfigurationUnmarshal(t *testing.T) {
+	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
+	SetViperDefaults(v, flags)
+
+	v.SetConfigType("yaml")
+	err := v.ReadConfig(strings.NewReader(`
+credits:
+  enabled: true
+  enable_credit_then_invoice: true
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var actual Configuration
+	err = v.Unmarshal(&actual, viper.DecodeHook(DecodeHook()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.True(t, actual.Credits.Enabled)
+	assert.True(t, actual.Credits.EnableCreditThenInvoice)
 }

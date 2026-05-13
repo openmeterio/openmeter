@@ -9,6 +9,10 @@ aggregation:
   clickhouse:
     address: clickhouse:9000
 
+credits:
+  enabled: true
+  enable_credit_then_invoice: true
+
 sink:
   minCommitCount: 1
   namespaceRefetch: 1s
