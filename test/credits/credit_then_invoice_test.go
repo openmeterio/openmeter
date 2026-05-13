@@ -898,7 +898,6 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 
 		charge := s.mustGetFlatFeeChargeByIDWithExpands(flatFeeChargeID, meta.Expands{
 			meta.ExpandRealizations,
-			meta.ExpandDetailedLines,
 		})
 		s.Equal(flatfee.StatusDeleted, charge.Status)
 		run, err := charge.Realizations.GetByLineID(lineID.ID)
@@ -1069,7 +1068,6 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 
 		deletedCharge := s.mustGetFlatFeeChargeByIDWithExpands(flatFeeChargeID, meta.Expands{
 			meta.ExpandRealizations,
-			meta.ExpandDetailedLines,
 		})
 		s.Equal(flatfee.StatusDeleted, deletedCharge.Status)
 		run, err := deletedCharge.Realizations.GetByLineID(lineID.ID)
@@ -1244,11 +1242,17 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchKeep
 		s.Equal("line should be deleted, but the invoice is immutable", issue.Message)
 		s.Equal("lines/"+lineID.ID, issue.Path)
 
-		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusDeleted)
-		s.Require().NotNil(charge.Realizations.CurrentRun)
-		s.Len(charge.Realizations.CurrentRun.CreditRealizations, 1)
-		s.Equal(alpacadecimal.NewFromInt(5), charge.Realizations.CurrentRun.CreditRealizations.Sum())
-		s.True(charge.Realizations.CurrentRun.Immutable)
+		charge := s.mustGetFlatFeeChargeByIDWithExpands(flatFeeChargeID, meta.Expands{
+			meta.ExpandRealizations,
+		})
+		s.Equal(flatfee.StatusDeleted, charge.Status)
+		run, err := charge.Realizations.GetByLineID(lineID.ID)
+		s.NoError(err)
+		s.Require().NotNil(run)
+		s.Nil(run.DeletedAt)
+		s.Len(run.CreditRealizations, 1)
+		s.Equal(alpacadecimal.NewFromInt(5), run.CreditRealizations.Sum())
+		s.True(run.Immutable)
 	})
 
 	s.Run("then immutable invoice deletion does not reverse ledger bookings", func() {
@@ -1990,11 +1994,16 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteImmutable
 		s.Require().Len(standardInvoice.ValidationIssues, 1)
 		s.Equal(billing.ImmutableInvoiceHandlingNotSupportedErrorCode, standardInvoice.ValidationIssues[0].Code)
 
-		deletedCharge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusDeleted)
-		s.Require().NotNil(deletedCharge.Realizations.CurrentRun)
-		s.NotNil(deletedCharge.Realizations.CurrentRun.AccruedUsage)
-		s.Require().NotNil(deletedCharge.Realizations.CurrentRun.Payment)
-		s.Equal(payment.StatusAuthorized, deletedCharge.Realizations.CurrentRun.Payment.Status)
+		deletedCharge := s.mustGetFlatFeeChargeByIDWithExpands(flatFeeChargeID, meta.Expands{
+			meta.ExpandRealizations,
+		})
+		s.Equal(flatfee.StatusDeleted, deletedCharge.Status)
+		run, err := deletedCharge.Realizations.GetByLineID(lineID.ID)
+		s.NoError(err)
+		s.Require().NotNil(run)
+		s.NotNil(run.AccruedUsage)
+		s.Require().NotNil(run.Payment)
+		s.Equal(payment.StatusAuthorized, run.Payment.Status)
 	})
 
 	s.Run("then immutable invoice delete keeps ledger bookings unchanged", func() {

@@ -18,10 +18,6 @@ func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceCharge
 	}
 
 	return s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) {
-		if charge.Intent.SettlementMode == productcatalog.InvoiceOnlySettlementMode {
-			return nil, nil
-		}
-
 		stateMachine, err := s.newStateMachine(StateMachineConfig{
 			Charge:       charge,
 			Adapter:      s.adapter,
