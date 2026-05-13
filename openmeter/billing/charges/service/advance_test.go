@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -35,7 +34,7 @@ func (s *AdvanceChargesTestSuite) TearDownTest() {
 }
 
 func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyForAlreadyActiveCreditCharges() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-usage-only")
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
@@ -122,7 +121,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyForAlreadyActive
 }
 
 func (s *AdvanceChargesTestSuite) TestAdvanceChargesSkipsInvoiceOnlyFlatFeeCharges() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-empty")
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
@@ -164,7 +163,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesSkipsInvoiceOnlyFlatFeeCharg
 }
 
 func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceUsageBasedChargesAtServicePeriodStart() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-credit-then-invoice")
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
