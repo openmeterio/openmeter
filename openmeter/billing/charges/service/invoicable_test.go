@@ -236,7 +236,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 			assert.NotNil(t, charge.Realizations.CurrentRun)
 			assert.NotNil(t, charge.Realizations.CurrentRun.AccruedUsage)
 			assert.Nil(t, charge.Realizations.CurrentRun.Payment)
-			assert.Equal(t, flatfee.StatusActive, charge.Status)
+			assert.Equal(t, flatfee.StatusActiveAwaitingPaymentSettlement, charge.Status)
 		})
 
 		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[flatfee.OnInvoiceUsageAccruedInput]()
@@ -269,7 +269,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 
 		// Payment authorization should not be persisted until the payment flow advances past pending.
 		s.Nil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment)
-		s.Equal(flatfee.StatusActive, updatedFlatFeeCharge.Status)
+		s.Equal(flatfee.StatusActiveAwaitingPaymentSettlement, updatedFlatFeeCharge.Status)
 	})
 
 	s.Run("trigger paid authorizes then settles payment", func() {
@@ -282,7 +282,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 			assert.NotNil(t, charge.Realizations.CurrentRun)
 			assert.Nil(t, charge.Realizations.CurrentRun.Payment)
 			assert.NotNil(t, charge.Realizations.CurrentRun.AccruedUsage)
-			assert.Equal(t, flatfee.StatusActive, charge.Status)
+			assert.Equal(t, flatfee.StatusActiveAwaitingPaymentSettlement, charge.Status)
 		})
 
 		settledCallback := newCountedLedgerTransactionCallback[flatfee.Charge]()
@@ -295,7 +295,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 			assert.Nil(t, charge.Realizations.CurrentRun.Payment.Settled)
 			assert.Equal(t, authorizedCallback.id, charge.Realizations.CurrentRun.Payment.Authorized.TransactionGroupID)
 			assert.Equal(t, payment.StatusAuthorized, charge.Realizations.CurrentRun.Payment.Status)
-			assert.Equal(t, flatfee.StatusActive, charge.Status)
+			assert.Equal(t, flatfee.StatusActiveAwaitingPaymentSettlement, charge.Status)
 		})
 
 		invoice, err := s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
