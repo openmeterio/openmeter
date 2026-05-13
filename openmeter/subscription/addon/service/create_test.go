@@ -493,9 +493,9 @@ func TestAddonServiceCreate(t *testing.T) {
 			require.Nil(t, err)
 
 			// Now, let's fetch the subscription addon
-subAdd2, err := deps.SubscriptionAddonService.Get(t.Context(), subscriptionaddon.GetSubscriptionAddonInput{
-	NamespacedID: subAdd1.NamespacedID,
-})
+			subAdd2, err := deps.SubscriptionAddonService.Get(t.Context(), subscriptionaddon.GetSubscriptionAddonInput{
+				NamespacedID: subAdd1.NamespacedID,
+			})
 			require.Nil(t, err)
 
 			t.Run("Should create addon as specified", func(t *testing.T) {
