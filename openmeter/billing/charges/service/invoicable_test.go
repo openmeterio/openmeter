@@ -432,11 +432,12 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInAdvanceWithPr
 		s.Require().Len(invoice.Lines.OrEmpty(), 1)
 		stdLineID = invoice.Lines.OrEmpty()[0].GetLineID()
 		s.assertFlatFeeCreditThenInvoiceLineAndRun(assertFlatFeeCreditThenInvoiceLineAndRunInput{
-			Invoice:            invoice,
-			FlatFeeChargeID:    flatFeeChargeID,
-			ServicePeriod:      servicePeriod,
-			ExpectedTotals:     expectedTotals,
-			ExpectAccruedUsage: false,
+			Invoice:                invoice,
+			FlatFeeChargeID:        flatFeeChargeID,
+			ServicePeriod:          servicePeriod,
+			ExpectedTotals:         expectedTotals,
+			ExpectedCreditsApplied: alpacadecimal.NewFromInt(5),
+			ExpectAccruedUsage:     false,
 		})
 	})
 
@@ -463,6 +464,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInAdvanceWithPr
 			FlatFeeChargeID:               flatFeeChargeID,
 			ServicePeriod:                 servicePeriod,
 			ExpectedTotals:                expectedTotals,
+			ExpectedCreditsApplied:        alpacadecimal.NewFromInt(5),
 			ExpectAccruedUsage:            true,
 			InvoiceUsageAccruedCallbackID: invoiceUsageAccruedCallback.id,
 		})
@@ -2554,6 +2556,7 @@ type assertFlatFeeCreditThenInvoiceLineAndRunInput struct {
 	FlatFeeChargeID               meta.ChargeID
 	ServicePeriod                 timeutil.ClosedPeriod
 	ExpectedTotals                billingtest.ExpectedTotals
+	ExpectedCreditsApplied        alpacadecimal.Decimal
 	ExpectAccruedUsage            bool
 	InvoiceUsageAccruedCallbackID string
 }
@@ -2567,14 +2570,14 @@ func (s *InvoicableChargesTestSuite) assertFlatFeeCreditThenInvoiceLineAndRun(in
 	s.Equal(input.FlatFeeChargeID.ID, lo.FromPtr(stdLine.ChargeID))
 	s.RequireTotals(input.ExpectedTotals, stdLine.Totals)
 	s.Len(stdLine.CreditsApplied, 1)
-	s.Equal(float64(5), stdLine.CreditsApplied[0].Amount.InexactFloat64())
+	s.True(input.ExpectedCreditsApplied.Equal(stdLine.CreditsApplied[0].Amount), "standard line credits applied amount should match")
 	s.Len(stdLine.DetailedLines, 1)
 
 	detailedLine := stdLine.DetailedLines[0]
 	s.True(detailedLine.Totals.Equal(stdLine.Totals), "standard line detailed line totals should match standard line totals")
 	s.RequireTotals(input.ExpectedTotals, detailedLine.Totals)
 	s.Len(detailedLine.CreditsApplied, 1)
-	s.Equal(float64(5), detailedLine.CreditsApplied[0].Amount.InexactFloat64())
+	s.True(input.ExpectedCreditsApplied.Equal(detailedLine.CreditsApplied[0].Amount), "standard line detailed credits applied amount should match")
 	s.Equal(stdLine.CreditsApplied[0].CreditRealizationID, detailedLine.CreditsApplied[0].CreditRealizationID)
 
 	flatFeeWithDetailedLines := s.mustGetFlatFeeChargeByIDWithDetailedLines(input.FlatFeeChargeID)
@@ -2585,7 +2588,7 @@ func (s *InvoicableChargesTestSuite) assertFlatFeeCreditThenInvoiceLineAndRun(in
 	s.NotNil(currentRun.InvoiceID)
 	s.Equal(input.Invoice.ID, *currentRun.InvoiceID)
 	s.Len(currentRun.CreditRealizations, 1)
-	s.Equal(float64(5), currentRun.CreditRealizations[0].Amount.InexactFloat64())
+	s.True(input.ExpectedCreditsApplied.Equal(currentRun.CreditRealizations[0].Amount), "run credit realization amount should match")
 	s.Equal(stdLine.CreditsApplied[0].CreditRealizationID, currentRun.CreditRealizations[0].ID)
 	s.RequireTotals(input.ExpectedTotals, currentRun.Totals)
 	s.True(currentRun.DetailedLines.IsPresent())
@@ -2603,7 +2606,7 @@ func (s *InvoicableChargesTestSuite) assertFlatFeeCreditThenInvoiceLineAndRun(in
 	s.True(runDetailedLine.Totals.Equal(stdLine.Totals), "persisted run detailed line totals should match standard line totals")
 	s.RequireTotals(input.ExpectedTotals, runDetailedLine.Totals)
 	s.Len(runDetailedLine.CreditsApplied, 1)
-	s.Equal(float64(5), runDetailedLine.CreditsApplied[0].Amount.InexactFloat64())
+	s.True(input.ExpectedCreditsApplied.Equal(runDetailedLine.CreditsApplied[0].Amount), "run detailed line credits applied amount should match")
 	s.Equal(detailedLine.CreditsApplied[0].CreditRealizationID, runDetailedLine.CreditsApplied[0].CreditRealizationID)
 
 	if input.ExpectAccruedUsage {

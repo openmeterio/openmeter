@@ -1071,6 +1071,7 @@ func (e *flatFeeHandlerTestEnv) transactionBookedAtTimes(t *testing.T, groupID s
 		).
 		All(t.Context())
 	require.NoError(t, err)
+	require.NotEmpty(t, transactions, "expected at least one ledger transaction for group")
 
 	out := make([]time.Time, 0, len(transactions))
 	for _, tx := range transactions {

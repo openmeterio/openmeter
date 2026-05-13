@@ -1660,7 +1660,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedPa
 		CostBasis: mo.Some(&zeroCostBasis),
 	}
 
-	t.Run("given a fully credited immutable flat fee invoice", func(t *testing.T) {
+	s.Run("given a fully credited immutable flat fee invoice", func() {
 		// given:
 		// - a ledger-backed customer has enough promotional credits to cover the flat fee
 		// when:
@@ -1728,7 +1728,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedPa
 		s.AssertDecimalEqual(alpacadecimal.Zero, approvedLedger.AuthorizedReceivable, "fully credited invoice should not create authorized receivable")
 	})
 
-	t.Run("when payment callbacks arrive for the fully credited invoice", func(t *testing.T) {
+	s.Run("when payment callbacks arrive for the fully credited invoice", func() {
 		// given:
 		// - the invoice total is zero after credits and the charge run is already final
 		// when:
@@ -1787,7 +1787,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceRoundedZeroAmou
 		CostBasis: mo.None[*alpacadecimal.Decimal](),
 	}
 
-	t.Run("given a flat fee amount that rounds to zero", func(t *testing.T) {
+	s.Run("given a flat fee amount that rounds to zero", func() {
 		// given:
 		// - a ledger-backed customer has no credits
 		// when:
@@ -1834,7 +1834,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceRoundedZeroAmou
 		s.AssertDecimalEqual(alpacadecimal.Zero, startLedger.AuthorizedReceivable, "rounded-zero charge should not create authorized receivable")
 	})
 
-	t.Run("when the rounded-zero line is invoiced and approved", func(t *testing.T) {
+	s.Run("when the rounded-zero line is invoiced and approved", func() {
 		// given:
 		// - the flat fee amount rounds to zero in the charge currency
 		// when:
@@ -2048,7 +2048,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceAsyncPaymentBoo
 		replacementLineID  billing.LineID
 	)
 
-	t.Run("given an immutable invoice waiting for payment", func(t *testing.T) {
+	s.Run("given an immutable invoice waiting for payment", func() {
 		// given:
 		// - a ledger-backed customer has no credits
 		// when:
@@ -2111,7 +2111,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceAsyncPaymentBoo
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "payment should not be authorized yet")
 	})
 
-	t.Run("when shrink detaches the immutable run before payment arrives", func(t *testing.T) {
+	s.Run("when shrink detaches the immutable run before payment arrives", func() {
 		// given:
 		// - the current run is backed by an immutable invoice line
 		// when:
@@ -2145,7 +2145,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceAsyncPaymentBoo
 		s.Equal(shrunkServicePeriodTo, activeLine.ServicePeriod.To)
 	})
 
-	t.Run("when the replacement invoice is paid before the detached invoice settles", func(t *testing.T) {
+	s.Run("when the replacement invoice is paid before the detached invoice settles", func() {
 		// given:
 		// - the previous invoice line still belongs to an unsettled prior run
 		// when:
@@ -2194,7 +2194,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceAsyncPaymentBoo
 		s.Nil(priorRun.Payment)
 	})
 
-	t.Run("when payment is authorized and settled for the detached invoice line", func(t *testing.T) {
+	s.Run("when payment is authorized and settled for the detached invoice line", func() {
 		// given:
 		// - the replacement charge is already final and the previous invoice payment arrives later
 		// when:
@@ -2514,7 +2514,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 		startLedger = s.CreateLedgerSnapshot(ledgerSnapshotInput)
 	)
 
-	t.Run("given a credit-then-invoice flat fee charge with a pending gathering line", func(t *testing.T) {
+	s.Run("given a credit-then-invoice flat fee charge with a pending gathering line", func() {
 		// given:
 		// - a ledger-backed customer has no credit allocations or invoice bookings
 		// when:
@@ -2561,7 +2561,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 	})
 
-	t.Run("when the charge is shrunk before collection", func(t *testing.T) {
+	s.Run("when the charge is shrunk before collection", func() {
 		// given:
 		// - the charge is still represented only by a pending gathering line
 		// when:
@@ -2599,7 +2599,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 	})
 
-	t.Run("when the charge is extended before collection", func(t *testing.T) {
+	s.Run("when the charge is extended before collection", func() {
 		// given:
 		// - the charge is still represented only by a pending gathering line
 		// when:
@@ -2653,7 +2653,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchUpda
 		runID           flatfee.RealizationRunID
 	)
 
-	t.Run("given a mutable standard invoice line", func(t *testing.T) {
+	s.Run("given a mutable standard invoice line", func() {
 		// given:
 		// - a credit-then-invoice flat fee charge has no credits or invoice accrual
 		// when:
@@ -2716,7 +2716,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchUpda
 		s.Nil(charge.Realizations.CurrentRun.Payment)
 	})
 
-	t.Run("when the charge is shrunk while the standard line is still mutable", func(t *testing.T) {
+	s.Run("when the charge is shrunk while the standard line is still mutable", func() {
 		// given:
 		// - the current run is backed by a mutable draft standard line
 		// when:
@@ -2810,7 +2810,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		CostBasis: mo.Some(&zeroCostBasis),
 	}
 
-	t.Run("given a fully credited immutable invoice", func(t *testing.T) {
+	s.Run("given a fully credited immutable invoice", func() {
 		// given:
 		// - a ledger-backed customer has enough credits for the original flat fee
 		// when:
@@ -2877,7 +2877,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		immutableLedger = s.CreateLedgerSnapshot(ledgerSnapshotInput)
 	})
 
-	t.Run("when the immutable invoice is shrunk", func(t *testing.T) {
+	s.Run("when the immutable invoice is shrunk", func() {
 		// given:
 		// - the current run is backed by an immutable invoice line
 		// when:
@@ -2927,7 +2927,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, immutableLedger)
 	})
 
-	t.Run("when the replacement gathering line is extended and shrunk again", func(t *testing.T) {
+	s.Run("when the replacement gathering line is extended and shrunk again", func() {
 		// given:
 		// - the immutable invoice history is detached and only a replacement gathering line is mutable
 		// when:

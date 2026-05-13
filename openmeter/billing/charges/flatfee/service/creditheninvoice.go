@@ -232,8 +232,8 @@ func (s *CreditThenInvoiceStateMachine) UnsupportedShrinkOperation(_ context.Con
 	)
 }
 
-// StartRealization mutates input.Line.CreditsApplied after allocating credits.
-// The line engine relies on that in-place update when persisting detailed lines.
+// StartRealization creates the current run. The line engine maps the run back
+// onto the returned standard line before billing persists line updates.
 func (s *CreditThenInvoiceStateMachine) StartRealization(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
 	if err := input.Validate(); err != nil {
 		return err

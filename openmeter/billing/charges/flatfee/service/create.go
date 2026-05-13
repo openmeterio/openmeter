@@ -128,6 +128,10 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 	lineIntent.InvoiceAt = input.InvoiceAt
 	lineIntent = lineIntent.Normalized()
 
+	if err := lineIntent.Validate(); err != nil {
+		return billing.GatheringLine{}, fmt.Errorf("validating line intent: %w", err)
+	}
+
 	amountAfterProration, err := lineIntent.CalculateAmountAfterProration()
 	if err != nil {
 		return billing.GatheringLine{}, fmt.Errorf("calculating amount after proration: %w", err)
@@ -174,8 +178,8 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 			FeatureKey: lineIntent.FeatureKey,
 
 			Currency:      lineIntent.Currency,
-			ServicePeriod: input.ServicePeriod,
-			InvoiceAt:     input.InvoiceAt,
+			ServicePeriod: lineIntent.ServicePeriod,
+			InvoiceAt:     lineIntent.InvoiceAt,
 
 			TaxConfig: lineIntent.TaxConfig.ToTaxConfig(),
 

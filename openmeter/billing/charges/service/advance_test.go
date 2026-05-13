@@ -135,6 +135,8 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceFl
 		To:   datetime.MustParseTimeInLocation(s.T(), "2026-04-01T00:00:00Z", time.UTC).AsTime(),
 	}
 
+	clock.SetTime(servicePeriod.From.Add(-time.Second))
+
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
@@ -154,6 +156,8 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceFl
 		},
 	})
 	s.NoError(err)
+
+	clock.SetTime(servicePeriod.From)
 
 	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 		Customer: cust.GetID(),

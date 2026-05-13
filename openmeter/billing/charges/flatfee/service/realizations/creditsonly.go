@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -42,11 +43,11 @@ type AllocateCreditsOnlyResult struct {
 }
 
 func (s *Service) AllocateCreditsOnly(ctx context.Context, in AllocateCreditsOnlyInput) (AllocateCreditsOnlyResult, error) {
-	in.Amount = in.CurrencyCalculator.RoundToPrecision(in.Amount)
-
 	if err := in.Validate(); err != nil {
 		return AllocateCreditsOnlyResult{}, err
 	}
+
+	in.Amount = in.CurrencyCalculator.RoundToPrecision(in.Amount)
 
 	if in.Amount.IsZero() {
 		return AllocateCreditsOnlyResult{}, nil
@@ -82,20 +83,27 @@ func (s *Service) AllocateCreditsOnly(ctx context.Context, in AllocateCreditsOnl
 			return AllocateCreditsOnlyResult{}, fmt.Errorf("current run is required")
 		}
 
-		realizations, err := s.createCreditAllocations(ctx, in.Charge, in.Charge.Realizations.CurrentRun.ID, creditAllocations.AsCreateInputs())
-		if err != nil {
-			return AllocateCreditsOnlyResult{}, fmt.Errorf("create credit allocations: %w", err)
-		}
+		realizations, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditrealization.Realizations, error) {
+			realizations, err := s.createCreditAllocations(ctx, in.Charge, in.Charge.Realizations.CurrentRun.ID, creditAllocations.AsCreateInputs())
+			if err != nil {
+				return nil, fmt.Errorf("create credit allocations: %w", err)
+			}
 
-		if _, err := s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
-			ID: in.Charge.Realizations.CurrentRun.ID,
-			Totals: mo.Some(totals.Totals{
-				Amount:       allocated,
-				CreditsTotal: allocated,
-				Total:        alpacadecimal.Zero,
-			}),
-		}); err != nil {
-			return AllocateCreditsOnlyResult{}, fmt.Errorf("update credit-only run totals: %w", err)
+			if _, err := s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
+				ID: in.Charge.Realizations.CurrentRun.ID,
+				Totals: mo.Some(totals.Totals{
+					Amount:       allocated,
+					CreditsTotal: allocated,
+					Total:        alpacadecimal.Zero,
+				}),
+			}); err != nil {
+				return nil, fmt.Errorf("update credit-only run totals: %w", err)
+			}
+
+			return realizations, nil
+		})
+		if err != nil {
+			return AllocateCreditsOnlyResult{}, err
 		}
 
 		result.Realizations = realizations

@@ -25,6 +25,7 @@ func (a *adapter) CreateCurrentRun(ctx context.Context, input flatfee.CreateCurr
 				dbchargeflatfee.NamespaceEQ(input.Charge.Namespace),
 				dbchargeflatfee.IDEQ(input.Charge.ID),
 			).
+			ForUpdate().
 			Only(ctx)
 		if err != nil {
 			return flatfee.RealizationRunBase{}, fmt.Errorf("querying flat fee charge [id=%s]: %w", input.Charge.ID, err)

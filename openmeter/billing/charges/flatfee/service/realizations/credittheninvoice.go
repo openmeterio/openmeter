@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -37,12 +38,17 @@ func (i StartCreditThenInvoiceRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("invoice: %w", err))
 	}
 
+	lineChargeID := "<nil>"
+	if i.Line.ChargeID != nil {
+		lineChargeID = *i.Line.ChargeID
+	}
+
 	if i.Line.ChargeID == nil || *i.Line.ChargeID != i.Charge.ID {
-		errs = append(errs, fmt.Errorf("line charge id must match charge"))
+		errs = append(errs, fmt.Errorf("line charge id mismatch: got %s, want %s", lineChargeID, i.Charge.ID))
 	}
 
 	if i.Line.InvoiceID != i.Invoice.ID {
-		errs = append(errs, fmt.Errorf("line invoice id must match invoice"))
+		errs = append(errs, fmt.Errorf("line invoice id mismatch: got %s, want %s", i.Line.InvoiceID, i.Invoice.ID))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -109,12 +115,13 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 				return StartCreditThenInvoiceRunResult{}, fmt.Errorf("on flat fee assigned to invoice: %w", err)
 			}
 
-			for idx := range creditAllocations {
-				creditAllocations[idx].LineID = lo.ToPtr(in.Line.ID)
+			creditAllocationsWithLineID := append(creditrealization.CreateAllocationInputs(nil), creditAllocations...)
+			for idx := range creditAllocationsWithLineID {
+				creditAllocationsWithLineID[idx].LineID = lo.ToPtr(in.Line.ID)
 			}
 
-			if len(creditAllocations) > 0 {
-				realizations, err := s.createCreditAllocations(ctx, charge, runBase.ID, creditAllocations.AsCreateInputs())
+			if len(creditAllocationsWithLineID) > 0 {
+				realizations, err := s.createCreditAllocations(ctx, charge, runBase.ID, creditAllocationsWithLineID.AsCreateInputs())
 				if err != nil {
 					return StartCreditThenInvoiceRunResult{}, fmt.Errorf("creating credit realizations: %w", err)
 				}
