@@ -10,9 +10,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	ledgerbreakagerecorddb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -79,6 +84,74 @@ func TestOnCreditPurchaseInitiated(t *testing.T) {
 
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
+}
+
+func TestOnCreditPurchaseInitiated_ExpiringCreditPlansBreakage(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	expiresAt := charge.CreatedAt.Add(time.Hour)
+	charge.Intent.ExpiresAt = &expiresAt
+
+	ref, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+	require.ElementsMatch(t, []string{
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+		transactions.TemplateCode(transactions.PlanCustomerFBOBreakageTemplate{}),
+	}, env.transactionTemplateCodes(t, ref.TransactionGroupID))
+
+	rows := env.breakageRows(t, ref.TransactionGroupID)
+	require.Len(t, rows, 1)
+	require.Equal(t, ledger.BreakageKindPlan, rows[0].Kind)
+	require.True(t, rows[0].Amount.Equal(alpacadecimal.NewFromInt(100)), "plan amount: %s", rows[0].Amount)
+	require.True(t, rows[0].ExpiresAt.Equal(expiresAt), "expires_at: %s", rows[0].ExpiresAt)
+
+	fbo := env.fboSubAccount(t, costBasis)
+	breakageSubAccount := env.BreakageSubAccountWithCostBasis(t, &costBasis)
+	require.True(t, env.sumBalanceAsOf(t, fbo, charge.CreatedAt).Equal(alpacadecimal.NewFromInt(100)))
+	require.True(t, env.sumBalanceAsOf(t, breakageSubAccount, charge.CreatedAt).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalanceAsOf(t, fbo, expiresAt).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalanceAsOf(t, breakageSubAccount, expiresAt).Equal(alpacadecimal.NewFromInt(100)))
+}
+
+func TestOnCreditPurchaseInitiated_ExpiringCreditReleasesAdvanceCoverage(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	env.createAdvanceExposure(t, alpacadecimal.NewFromInt(40))
+
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	expiresAt := charge.CreatedAt.Add(time.Hour)
+	charge.Intent.ExpiresAt = &expiresAt
+
+	ref, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+	require.ElementsMatch(t, []string{
+		transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+		transactions.TemplateCode(transactions.PlanCustomerFBOBreakageTemplate{}),
+		transactions.TemplateCode(transactions.ReleaseCustomerFBOBreakageTemplate{}),
+	}, env.transactionTemplateCodes(t, ref.TransactionGroupID))
+
+	rows := env.breakageRows(t, ref.TransactionGroupID)
+	require.Len(t, rows, 2)
+
+	byKind := map[ledger.BreakageKind]alpacadecimal.Decimal{}
+	for _, row := range rows {
+		byKind[row.Kind] = row.Amount
+	}
+	require.True(t, byKind[ledger.BreakageKindPlan].Equal(alpacadecimal.NewFromInt(100)))
+	require.True(t, byKind[ledger.BreakageKindRelease].Equal(alpacadecimal.NewFromInt(40)))
+
+	fbo := env.fboSubAccount(t, costBasis)
+	breakageSubAccount := env.BreakageSubAccountWithCostBasis(t, &costBasis)
+	require.True(t, env.sumBalanceAsOf(t, fbo, charge.CreatedAt).Equal(alpacadecimal.NewFromInt(60)))
+	require.True(t, env.sumBalanceAsOf(t, breakageSubAccount, charge.CreatedAt).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalanceAsOf(t, fbo, expiresAt).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalanceAsOf(t, breakageSubAccount, expiresAt).Equal(alpacadecimal.NewFromInt(60)))
 }
 
 func TestOnCreditPurchaseInitiated_TracksChargeReferencesOnTransactions(t *testing.T) {
@@ -218,6 +291,20 @@ type creditPurchaseHandlerTestEnv struct {
 
 func newCreditPurchaseHandlerTestEnv(t *testing.T) *creditPurchaseHandlerTestEnv {
 	base := ledgertestutils.NewIntegrationEnv(t, "chargeadapter-creditpurchase")
+	breakageAdapter, err := ledgerbreakageadapter.New(ledgerbreakageadapter.Config{
+		Client: base.DB,
+	})
+	require.NoError(t, err)
+
+	breakageService, err := ledgerbreakage.NewService(ledgerbreakage.Config{
+		Adapter: breakageAdapter,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: base.Deps.ResolversService,
+			AccountCatalog: base.Deps.AccountService,
+			BalanceQuerier: base.Deps.HistoricalLedger,
+		},
+	})
+	require.NoError(t, err)
 
 	return &creditPurchaseHandlerTestEnv{
 		IntegrationEnv: base,
@@ -226,6 +313,8 @@ func newCreditPurchaseHandlerTestEnv(t *testing.T) *creditPurchaseHandlerTestEnv
 			base.Deps.HistoricalLedger,
 			base.Deps.ResolversService,
 			base.Deps.AccountService,
+			breakageService,
+			enttx.NewCreator(base.DB),
 		),
 	}
 }
@@ -400,6 +489,35 @@ func (e *creditPurchaseHandlerTestEnv) washSubAccount(t *testing.T, costBasis al
 
 func (e *creditPurchaseHandlerTestEnv) sumBalance(t *testing.T, subAccount ledger.SubAccount) alpacadecimal.Decimal {
 	return e.SumBalance(t, subAccount)
+}
+
+func (e *creditPurchaseHandlerTestEnv) sumBalanceAsOf(t *testing.T, subAccount ledger.SubAccount, asOf time.Time) alpacadecimal.Decimal {
+	t.Helper()
+
+	balance, err := e.Deps.HistoricalLedger.GetSubAccountBalance(t.Context(), subAccount, ledger.BalanceQuery{
+		AsOf: &asOf,
+	})
+	require.NoError(t, err)
+
+	return balance.Settled()
+}
+
+func (e *creditPurchaseHandlerTestEnv) breakageRows(t *testing.T, groupID string) []*entdb.LedgerBreakageRecord {
+	t.Helper()
+
+	rows, err := e.DB.LedgerBreakageRecord.Query().
+		Where(
+			ledgerbreakagerecorddb.Namespace(e.Namespace),
+			ledgerbreakagerecorddb.BreakageTransactionGroupID(groupID),
+		).
+		Order(
+			ledgerbreakagerecorddb.ByCreatedAt(),
+			ledgerbreakagerecorddb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+
+	return rows
 }
 
 func (e *creditPurchaseHandlerTestEnv) createAdvanceExposure(t *testing.T, amount alpacadecimal.Decimal) {

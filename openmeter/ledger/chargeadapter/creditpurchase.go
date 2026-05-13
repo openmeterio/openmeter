@@ -10,8 +10,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 // creditPurchaseHandler maps credit purchase lifecycle events to ledger transaction templates.
@@ -20,6 +22,9 @@ type creditPurchaseHandler struct {
 	balanceQuerier  ledger.BalanceQuerier
 	accountResolver ledger.AccountResolver
 	accountCatalog  ledger.AccountCatalog
+
+	breakage           breakage.Service
+	transactionManager transaction.Creator
 }
 
 var _ chargecreditpurchase.Handler = (*creditPurchaseHandler)(nil)
@@ -29,12 +34,23 @@ func NewCreditPurchaseHandler(
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountCatalog ledger.AccountCatalog,
+	breakageService breakage.Service,
+	transactionManager transaction.Creator,
 ) chargecreditpurchase.Handler {
+	if breakageService == nil {
+		breakageService = breakage.NewNoopService()
+	}
+	if transactionManager == nil {
+		panic("credit purchase transaction manager is required")
+	}
+
 	return &creditPurchaseHandler{
-		ledger:          ledger,
-		balanceQuerier:  balanceQuerier,
-		accountResolver: accountResolver,
-		accountCatalog:  accountCatalog,
+		ledger:             ledger,
+		balanceQuerier:     balanceQuerier,
+		accountResolver:    accountResolver,
+		accountCatalog:     accountCatalog,
+		breakage:           breakageService,
+		transactionManager: transactionManager,
 	}
 }
 
@@ -158,6 +174,12 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 // It attributes outstanding advance receivables and unattributed accrued balances to the given cost basis,
 // then issues new receivables for any remaining amount.
 func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+	return transaction.Run(ctx, h.transactionManager, func(ctx context.Context) (ledgertransaction.GroupReference, error) {
+		return h.issueCreditPurchaseGroup(ctx, charge)
+	})
+}
+
+func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
 	if err := charge.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
@@ -257,10 +279,6 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 		return ledgertransaction.GroupReference{}, fmt.Errorf("unsupported settlement type: %s", charge.Intent.Settlement.Type())
 	}
 
-	if len(templates) == 0 {
-		return ledgertransaction.GroupReference{}, nil
-	}
-
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
 		h.resolverDependencies(),
@@ -272,6 +290,29 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 	)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	var pendingBreakage []breakage.PendingRecord
+	if charge.Intent.ExpiresAt != nil {
+		breakageInputs, pending, err := h.breakage.PlanIssuance(ctx, breakage.PlanIssuanceInput{
+			CustomerID:             customerID,
+			Amount:                 charge.Intent.CreditAmount,
+			ImmediateReleaseAmount: advanceAttributionAmount,
+			Currency:               charge.Intent.Currency,
+			CostBasis:              &costBasis,
+			CreditPriority:         charge.Intent.Priority,
+			ExpiresAt:              *charge.Intent.ExpiresAt,
+		})
+		if err != nil {
+			return ledgertransaction.GroupReference{}, fmt.Errorf("resolve breakage plan: %w", err)
+		}
+
+		inputs = append(inputs, breakageInputs...)
+		pendingBreakage = append(pendingBreakage, pending...)
+	}
+
+	if len(inputs) == 0 {
+		return ledgertransaction.GroupReference{}, nil
 	}
 
 	for i, input := range inputs {
@@ -287,6 +328,10 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 	))
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
+	}
+
+	if err := h.breakage.PersistCommittedRecords(ctx, pendingBreakage, transactionGroup); err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("persist breakage records: %w", err)
 	}
 
 	return ledgertransaction.GroupReference{

@@ -1672,6 +1672,7 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "credit_amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "effective_at", Type: field.TypeTime, Nullable: true},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "priority", Type: field.TypeInt, Nullable: true},
 		{Name: "settlement", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "final", "deleted"}},
@@ -1689,31 +1690,31 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_credit_purchases_customers_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[26]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[27]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscriptions_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[27]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[28]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_items_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[28]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[29]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_phases_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[29]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[30]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_tax_codes_charge_credit_purchases",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[30]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[31]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -1722,7 +1723,7 @@ var (
 			{
 				Name:    "chargecreditpurchase_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[26], ChargeCreditPurchasesColumns[8]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[27], ChargeCreditPurchasesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -1755,7 +1756,7 @@ var (
 			{
 				Name:    "chargecreditpurchases_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[30]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[31]},
 			},
 		},
 	}
@@ -3575,6 +3576,78 @@ var (
 			},
 		},
 	}
+	// LedgerBreakageRecordsColumns holds the columns for the "ledger_breakage_records" table.
+	LedgerBreakageRecordsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"plan", "release", "reopen"}},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "credit_priority", Type: field.TypeInt},
+		{Name: "expires_at", Type: field.TypeTime},
+		{Name: "source_kind", Type: field.TypeEnum, Enums: []string{"credit_purchase", "usage", "usage_correction", "credit_purchase_correction", "advance_backfill"}},
+		{Name: "source_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "source_transaction_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "breakage_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "breakage_transaction_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "fbo_sub_account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "breakage_sub_account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "plan_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "release_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// LedgerBreakageRecordsTable holds the schema information for the "ledger_breakage_records" table.
+	LedgerBreakageRecordsTable = &schema.Table{
+		Name:       "ledger_breakage_records",
+		Columns:    LedgerBreakageRecordsColumns,
+		PrimaryKey: []*schema.Column{LedgerBreakageRecordsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ledgerbreakagerecord_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[0]},
+			},
+			{
+				Name:    "ledgerbreakagerecord_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1]},
+			},
+			{
+				Name:    "ledgerbreakagerecord_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "ledgerbreakagerecord_namespace_customer_id_currency_credit_priority_expires_at_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[8], LedgerBreakageRecordsColumns[9], LedgerBreakageRecordsColumns[10], LedgerBreakageRecordsColumns[11], LedgerBreakageRecordsColumns[0]},
+			},
+			{
+				Name:    "ledgerbreakagerecord_namespace_plan_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[19]},
+			},
+			{
+				Name:    "ledgerbreakagerecord_namespace_source_transaction_group_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[13]},
+			},
+			{
+				Name:    "ledgerbreakagerecord_namespace_breakage_transaction_group_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[15]},
+			},
+		},
+	}
 	// LedgerCustomerAccountsColumns holds the columns for the "ledger_customer_accounts" table.
 	LedgerCustomerAccountsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -5145,6 +5218,7 @@ var (
 		GrantsTable,
 		LlmCostPricesTable,
 		LedgerAccountsTable,
+		LedgerBreakageRecordsTable,
 		LedgerCustomerAccountsTable,
 		LedgerEntriesTable,
 		LedgerSubAccountsTable,

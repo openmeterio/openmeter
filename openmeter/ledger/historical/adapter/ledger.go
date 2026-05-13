@@ -319,6 +319,13 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 			})
 		}
 
+		// Exclude transactions by annotation key-value matches.
+		for key, value := range input.ExcludeAnnotationFilters {
+			query = query.Where(ledgertransactiondb.Not(func(s *sql.Selector) {
+				s.Where(sqljson.ValueEQ(ledgertransactiondb.FieldAnnotations, value, sqljson.Path(key)))
+			}))
+		}
+
 		if input.CreditMovement != ledger.ListTransactionsCreditMovementUnspecified {
 			pred, err := ledgerTransactionCreditMovementPredicate(input.AccountIDs, input.Currency, input.CreditMovement)
 			if err != nil {

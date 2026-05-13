@@ -120,6 +120,7 @@ func (AccountResolver) EnsureBusinessAccounts(context.Context, string) (ledger.B
 		WashAccount:      businessAccount{accountType: ledger.AccountTypeWash},
 		EarningsAccount:  businessAccount{accountType: ledger.AccountTypeEarnings},
 		BrokerageAccount: businessAccount{accountType: ledger.AccountTypeBrokerage},
+		BreakageAccount:  businessAccount{accountType: ledger.AccountTypeBreakage},
 	}, nil
 }
 
@@ -128,6 +129,7 @@ func (AccountResolver) GetBusinessAccounts(context.Context, string) (ledger.Busi
 		WashAccount:      businessAccount{accountType: ledger.AccountTypeWash},
 		EarningsAccount:  businessAccount{accountType: ledger.AccountTypeEarnings},
 		BrokerageAccount: businessAccount{accountType: ledger.AccountTypeBrokerage},
+		BreakageAccount:  businessAccount{accountType: ledger.AccountTypeBreakage},
 	}, nil
 }
 

@@ -74,6 +74,8 @@ const (
 	FieldCreditAmount = "credit_amount"
 	// FieldEffectiveAt holds the string denoting the effective_at field in the database.
 	FieldEffectiveAt = "effective_at"
+	// FieldExpiresAt holds the string denoting the expires_at field in the database.
+	FieldExpiresAt = "expires_at"
 	// FieldPriority holds the string denoting the priority field in the database.
 	FieldPriority = "priority"
 	// FieldSettlement holds the string denoting the settlement field in the database.
@@ -195,6 +197,7 @@ var Columns = []string{
 	FieldDescription,
 	FieldCreditAmount,
 	FieldEffectiveAt,
+	FieldExpiresAt,
 	FieldPriority,
 	FieldSettlement,
 	FieldStatusDetailed,
@@ -402,6 +405,11 @@ func ByCreditAmount(opts ...sql.OrderTermOption) OrderOption {
 // ByEffectiveAt orders the results by the effective_at field.
 func ByEffectiveAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEffectiveAt, opts...).ToFunc()
+}
+
+// ByExpiresAt orders the results by the expires_at field.
+func ByExpiresAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExpiresAt, opts...).ToFunc()
 }
 
 // ByPriority orders the results by the priority field.

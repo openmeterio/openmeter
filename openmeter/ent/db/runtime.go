@@ -62,6 +62,7 @@ import (
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercustomeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
@@ -964,7 +965,7 @@ func init() {
 	// chargecreditpurchase.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargecreditpurchase.UpdateDefaultUpdatedAt = chargecreditpurchaseDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// chargecreditpurchaseDescSettlement is the schema descriptor for settlement field.
-	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[3].Descriptor()
+	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[4].Descriptor()
 	chargecreditpurchase.ValueScanner.Settlement = chargecreditpurchaseDescSettlement.ValueScanner.(field.TypeValueScanner[creditpurchase.Settlement])
 	// chargecreditpurchaseDescID is the schema descriptor for id field.
 	chargecreditpurchaseDescID := chargecreditpurchaseMixinFields0[18].Descriptor()
@@ -1940,6 +1941,57 @@ func init() {
 	ledgeraccountDescID := ledgeraccountMixinFields0[0].Descriptor()
 	// ledgeraccount.DefaultID holds the default value on creation for the id field.
 	ledgeraccount.DefaultID = ledgeraccountDescID.Default.(func() string)
+	ledgerbreakagerecordMixin := schema.LedgerBreakageRecord{}.Mixin()
+	ledgerbreakagerecordMixinFields0 := ledgerbreakagerecordMixin[0].Fields()
+	_ = ledgerbreakagerecordMixinFields0
+	ledgerbreakagerecordMixinFields1 := ledgerbreakagerecordMixin[1].Fields()
+	_ = ledgerbreakagerecordMixinFields1
+	ledgerbreakagerecordMixinFields3 := ledgerbreakagerecordMixin[3].Fields()
+	_ = ledgerbreakagerecordMixinFields3
+	ledgerbreakagerecordFields := schema.LedgerBreakageRecord{}.Fields()
+	_ = ledgerbreakagerecordFields
+	// ledgerbreakagerecordDescNamespace is the schema descriptor for namespace field.
+	ledgerbreakagerecordDescNamespace := ledgerbreakagerecordMixinFields1[0].Descriptor()
+	// ledgerbreakagerecord.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	ledgerbreakagerecord.NamespaceValidator = ledgerbreakagerecordDescNamespace.Validators[0].(func(string) error)
+	// ledgerbreakagerecordDescCreatedAt is the schema descriptor for created_at field.
+	ledgerbreakagerecordDescCreatedAt := ledgerbreakagerecordMixinFields3[0].Descriptor()
+	// ledgerbreakagerecord.DefaultCreatedAt holds the default value on creation for the created_at field.
+	ledgerbreakagerecord.DefaultCreatedAt = ledgerbreakagerecordDescCreatedAt.Default.(func() time.Time)
+	// ledgerbreakagerecordDescUpdatedAt is the schema descriptor for updated_at field.
+	ledgerbreakagerecordDescUpdatedAt := ledgerbreakagerecordMixinFields3[1].Descriptor()
+	// ledgerbreakagerecord.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	ledgerbreakagerecord.DefaultUpdatedAt = ledgerbreakagerecordDescUpdatedAt.Default.(func() time.Time)
+	// ledgerbreakagerecord.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	ledgerbreakagerecord.UpdateDefaultUpdatedAt = ledgerbreakagerecordDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ledgerbreakagerecordDescCustomerID is the schema descriptor for customer_id field.
+	ledgerbreakagerecordDescCustomerID := ledgerbreakagerecordFields[2].Descriptor()
+	// ledgerbreakagerecord.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
+	ledgerbreakagerecord.CustomerIDValidator = ledgerbreakagerecordDescCustomerID.Validators[0].(func(string) error)
+	// ledgerbreakagerecordDescCurrency is the schema descriptor for currency field.
+	ledgerbreakagerecordDescCurrency := ledgerbreakagerecordFields[3].Descriptor()
+	// ledgerbreakagerecord.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	ledgerbreakagerecord.CurrencyValidator = ledgerbreakagerecordDescCurrency.Validators[0].(func(string) error)
+	// ledgerbreakagerecordDescBreakageTransactionGroupID is the schema descriptor for breakage_transaction_group_id field.
+	ledgerbreakagerecordDescBreakageTransactionGroupID := ledgerbreakagerecordFields[9].Descriptor()
+	// ledgerbreakagerecord.BreakageTransactionGroupIDValidator is a validator for the "breakage_transaction_group_id" field. It is called by the builders before save.
+	ledgerbreakagerecord.BreakageTransactionGroupIDValidator = ledgerbreakagerecordDescBreakageTransactionGroupID.Validators[0].(func(string) error)
+	// ledgerbreakagerecordDescBreakageTransactionID is the schema descriptor for breakage_transaction_id field.
+	ledgerbreakagerecordDescBreakageTransactionID := ledgerbreakagerecordFields[10].Descriptor()
+	// ledgerbreakagerecord.BreakageTransactionIDValidator is a validator for the "breakage_transaction_id" field. It is called by the builders before save.
+	ledgerbreakagerecord.BreakageTransactionIDValidator = ledgerbreakagerecordDescBreakageTransactionID.Validators[0].(func(string) error)
+	// ledgerbreakagerecordDescFboSubAccountID is the schema descriptor for fbo_sub_account_id field.
+	ledgerbreakagerecordDescFboSubAccountID := ledgerbreakagerecordFields[11].Descriptor()
+	// ledgerbreakagerecord.FboSubAccountIDValidator is a validator for the "fbo_sub_account_id" field. It is called by the builders before save.
+	ledgerbreakagerecord.FboSubAccountIDValidator = ledgerbreakagerecordDescFboSubAccountID.Validators[0].(func(string) error)
+	// ledgerbreakagerecordDescBreakageSubAccountID is the schema descriptor for breakage_sub_account_id field.
+	ledgerbreakagerecordDescBreakageSubAccountID := ledgerbreakagerecordFields[12].Descriptor()
+	// ledgerbreakagerecord.BreakageSubAccountIDValidator is a validator for the "breakage_sub_account_id" field. It is called by the builders before save.
+	ledgerbreakagerecord.BreakageSubAccountIDValidator = ledgerbreakagerecordDescBreakageSubAccountID.Validators[0].(func(string) error)
+	// ledgerbreakagerecordDescID is the schema descriptor for id field.
+	ledgerbreakagerecordDescID := ledgerbreakagerecordMixinFields0[0].Descriptor()
+	// ledgerbreakagerecord.DefaultID holds the default value on creation for the id field.
+	ledgerbreakagerecord.DefaultID = ledgerbreakagerecordDescID.Default.(func() string)
 	ledgercustomeraccountMixin := schema.LedgerCustomerAccount{}.Mixin()
 	ledgercustomeraccountMixinFields0 := ledgercustomeraccountMixin[0].Fields()
 	_ = ledgercustomeraccountMixinFields0

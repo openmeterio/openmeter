@@ -16,6 +16,10 @@ const (
 
 	AnnotationTransactionTemplateCode = "ledger.transaction.template_code"
 	AnnotationTransactionDirection    = "ledger.transaction.direction"
+	AnnotationCollectionType          = "ledger.collection.type"
+	AnnotationBreakageKind            = "ledger.breakage.kind"
+	AnnotationBreakageRecordID        = "ledger.breakage.record_id"
+	AnnotationBreakagePlanID          = "ledger.breakage.plan_id"
 )
 
 type ChargeTransactionAnnotationsInput struct {
@@ -33,6 +37,44 @@ const (
 	TransactionDirectionForward    TransactionDirection = "forward"
 	TransactionDirectionCorrection TransactionDirection = "correction"
 )
+
+const CollectionTypeBreakage = "breakage"
+
+type BreakageKind string
+
+const (
+	BreakageKindPlan    BreakageKind = "plan"
+	BreakageKindRelease BreakageKind = "release"
+	BreakageKindReopen  BreakageKind = "reopen"
+)
+
+func (BreakageKind) Values() []string {
+	return []string{
+		string(BreakageKindPlan),
+		string(BreakageKindRelease),
+		string(BreakageKindReopen),
+	}
+}
+
+type BreakageSourceKind string
+
+const (
+	BreakageSourceKindCreditPurchase           BreakageSourceKind = "credit_purchase"
+	BreakageSourceKindUsage                    BreakageSourceKind = "usage"
+	BreakageSourceKindUsageCorrection          BreakageSourceKind = "usage_correction"
+	BreakageSourceKindCreditPurchaseCorrection BreakageSourceKind = "credit_purchase_correction"
+	BreakageSourceKindAdvanceBackfill          BreakageSourceKind = "advance_backfill"
+)
+
+func (BreakageSourceKind) Values() []string {
+	return []string{
+		string(BreakageSourceKindCreditPurchase),
+		string(BreakageSourceKindUsage),
+		string(BreakageSourceKindUsageCorrection),
+		string(BreakageSourceKindCreditPurchaseCorrection),
+		string(BreakageSourceKindAdvanceBackfill),
+	}
+}
 
 func ChargeAnnotations(chargeID models.NamespacedID) models.Annotations {
 	return models.Annotations{
@@ -68,6 +110,20 @@ func TransactionAnnotations(templateCode string, direction TransactionDirection)
 		AnnotationTransactionTemplateCode: templateCode,
 		AnnotationTransactionDirection:    string(direction),
 	}
+}
+
+func BreakageAnnotations(kind BreakageKind, recordID string, planID *string) models.Annotations {
+	annotations := models.Annotations{
+		AnnotationCollectionType:   CollectionTypeBreakage,
+		AnnotationBreakageKind:     string(kind),
+		AnnotationBreakageRecordID: recordID,
+	}
+
+	if planID != nil && *planID != "" {
+		annotations[AnnotationBreakagePlanID] = *planID
+	}
+
+	return annotations
 }
 
 func TransactionTemplateCodeFromAnnotations(annotations models.Annotations) (string, error) {

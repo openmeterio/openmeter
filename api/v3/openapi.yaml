@@ -4360,6 +4360,14 @@ components:
           maximum: 1000
           description: Draw-down priority of the grant. Lower values have higher priority.
           default: 10
+        expires_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The timestamp when the credit grant expires.
+
+            Calculated from the grant effective time and `expires_after` if provided.
+          readOnly: true
         voided_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -7061,6 +7069,13 @@ components:
           maximum: 1000
           description: Draw-down priority of the grant. Lower values have higher priority.
           default: 10
+        expires_after:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: |-
+            The duration after which the credit grant expires.
+
+            Defaults to never expiring.
       additionalProperties: false
       description: CreditGrant create request.
     CreateCurrencyCustomRequest:

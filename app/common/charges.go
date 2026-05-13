@@ -28,6 +28,8 @@ import (
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
@@ -35,6 +37,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 func NewChargesMetaAdapter(
@@ -53,6 +56,7 @@ func NewChargesMetaAdapter(
 }
 
 func NewChargesCollectorService(
+	db *entdb.Client,
 	ledgerService ledger.Ledger,
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
@@ -65,7 +69,36 @@ func NewChargesCollectorService(
 			AccountCatalog: accountService,
 			BalanceQuerier: balanceQuerier,
 		},
+		TransactionManager: enttx.NewCreator(db),
 	})
+}
+
+func NewLedgerBreakageService(
+	db *entdb.Client,
+	balanceQuerier ledger.BalanceQuerier,
+	accountResolver ledger.AccountResolver,
+	accountService ledgeraccount.Service,
+) (ledgerbreakage.Service, error) {
+	breakageAdapter, err := ledgerbreakageadapter.New(ledgerbreakageadapter.Config{
+		Client: db,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ledger breakage adapter: %w", err)
+	}
+
+	breakageService, err := ledgerbreakage.NewService(ledgerbreakage.Config{
+		Adapter: breakageAdapter,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: accountResolver,
+			AccountCatalog: accountService,
+			BalanceQuerier: balanceQuerier,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ledger breakage service: %w", err)
+	}
+
+	return breakageService, nil
 }
 
 func NewChargesFlatFeeHandler(
@@ -87,8 +120,10 @@ func NewChargesCreditPurchaseHandler(
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
+	breakageService ledgerbreakage.Service,
+	transactionManager transaction.Creator,
 ) creditpurchase.Handler {
-	return ledgerchargeadapter.NewCreditPurchaseHandler(ledgerService, balanceQuerier, accountResolver, accountService)
+	return ledgerchargeadapter.NewCreditPurchaseHandler(ledgerService, balanceQuerier, accountResolver, accountService, breakageService, transactionManager)
 }
 
 func NewChargesUsageBasedHandler(
@@ -350,7 +385,22 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	collectorService := NewChargesCollectorService(ledgerService, balanceQuerier, accountResolver, accountService)
+	breakageService, err := NewLedgerBreakageService(db, balanceQuerier, accountResolver, accountService)
+	if err != nil {
+		return nil, err
+	}
+
+	transactionManager := enttx.NewCreator(db)
+	collectorService := ledgercollector.NewService(ledgercollector.Config{
+		Ledger: ledgerService,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: accountResolver,
+			AccountCatalog: accountService,
+			BalanceQuerier: balanceQuerier,
+		},
+		Breakage:           breakageService,
+		TransactionManager: transactionManager,
+	})
 
 	recognizerService, err := NewRecognizerService(db, ledgerService, balanceQuerier, accountResolver, accountService, lineageService)
 	if err != nil {
@@ -359,7 +409,14 @@ func newChargesRegistry(
 
 	flatFeeHandler := NewChargesFlatFeeHandler(ledgerService, balanceQuerier, accountResolver, accountService, collectorService)
 	usageBasedHandler := NewChargesUsageBasedHandler(ledgerService, balanceQuerier, accountResolver, accountService, collectorService)
-	creditPurchaseHandler := NewChargesCreditPurchaseHandler(ledgerService, balanceQuerier, accountResolver, accountService)
+	creditPurchaseHandler := NewChargesCreditPurchaseHandler(
+		ledgerService,
+		balanceQuerier,
+		accountResolver,
+		accountService,
+		breakageService,
+		transactionManager,
+	)
 
 	flatFeeAdapter, err := NewChargesFlatFeeAdapter(db, logger, metaAdapter)
 	if err != nil {

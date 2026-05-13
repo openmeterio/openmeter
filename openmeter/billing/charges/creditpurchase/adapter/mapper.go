@@ -25,6 +25,7 @@ func MapChargeBaseFromDB(dbEntity *entdb.ChargeCreditPurchase) creditpurchase.Ch
 			Intent:       mappedMeta.Intent,
 			CreditAmount: dbEntity.CreditAmount,
 			EffectiveAt:  convert.SafeToUTC(dbEntity.EffectiveAt),
+			ExpiresAt:    convert.SafeToUTC(dbEntity.ExpiresAt),
 			Priority:     dbEntity.Priority,
 			Settlement:   dbEntity.Settlement,
 		},

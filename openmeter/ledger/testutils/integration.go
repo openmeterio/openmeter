@@ -201,6 +201,18 @@ func (e *IntegrationEnv) BrokerageSubAccount(t *testing.T) ledger.SubAccount {
 	return subAccount
 }
 
+func (e *IntegrationEnv) BreakageSubAccountWithCostBasis(t *testing.T, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.BusinessAccounts.BreakageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
+		Currency:  e.Currency,
+		CostBasis: costBasis,
+	})
+	require.NoError(t, err)
+
+	return subAccount
+}
+
 func (e *IntegrationEnv) SumBalance(t *testing.T, subAccount ledger.SubAccount) alpacadecimal.Decimal {
 	t.Helper()
 
