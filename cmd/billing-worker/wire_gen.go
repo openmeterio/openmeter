@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
@@ -244,7 +245,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	productCatalogConfiguration := conf.ProductCatalog
+	featureResolver, err := featureresolver.New(featureConnector)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	repository, err := common.NewTaxCodeAdapter(logger, client)
 	if err != nil {
 		cleanup7()
@@ -267,7 +278,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector, taxcodeService, eventbusPublisher)
+	planService, err := common.NewPlanService(logger, client, featureResolver, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -278,7 +289,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	addonService, err := common.NewAddonService(logger, client, featureConnector, taxcodeService, eventbusPublisher)
+	addonService, err := common.NewAddonService(logger, client, featureResolver, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()

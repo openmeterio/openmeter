@@ -15,6 +15,7 @@ import (
 	addonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
@@ -99,6 +100,8 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	// Init feature service
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger)
 	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, publisher)
+	featureResolver, err := featureresolver.New(featureService)
+	require.NoErrorf(t, err, "failed to create feature resolver: %v", err)
 
 	// Init tax code service
 	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
@@ -123,11 +126,11 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NotNilf(t, planAdapter, "plan adapter must not be nil")
 
 	planService, err := planservice.New(planservice.Config{
-		Adapter:   planAdapter,
-		Feature:   featureService,
-		TaxCode:   taxCodeService,
-		Logger:    logger,
-		Publisher: publisher,
+		Adapter:         planAdapter,
+		FeatureResolver: featureResolver,
+		TaxCode:         taxCodeService,
+		Logger:          logger,
+		Publisher:       publisher,
 	})
 	require.NoErrorf(t, err, "initializing plan service must not fail")
 	require.NotNilf(t, planService, "plan service must not be nil")
@@ -141,11 +144,11 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NotNilf(t, addonAdapter, "addon adapter must not be nil")
 
 	addonService, err := addonservice.New(addonservice.Config{
-		Adapter:   addonAdapter,
-		Feature:   featureService,
-		TaxCode:   taxCodeService,
-		Logger:    logger,
-		Publisher: publisher,
+		Adapter:         addonAdapter,
+		FeatureResolver: featureResolver,
+		TaxCode:         taxCodeService,
+		Logger:          logger,
+		Publisher:       publisher,
 	})
 	require.NoErrorf(t, err, "initializing addon service must not fail")
 	require.NotNilf(t, addonService, "addon service must not be nil")

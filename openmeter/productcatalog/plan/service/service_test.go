@@ -218,10 +218,10 @@ func TestPlanService(t *testing.T) {
 			t.Run("WithCreditOnlySettlement", func(t *testing.T) {
 				creditOnlyInput := pctestutils.NewTestPlan(t, namespace,
 					pctestutils.WithPlanPhases(planInput.Phases...),
+					pctestutils.WithPlanKey("test-credit-only"),
 					func(t *testing.T, p *productcatalog.Plan) {
 						t.Helper()
 
-						p.Key = "test-credit-only"
 						p.SettlementMode = productcatalog.CreditOnlySettlementMode
 					},
 				)
@@ -237,10 +237,10 @@ func TestPlanService(t *testing.T) {
 			t.Run("DefaultsSettlementModeWhenEmpty", func(t *testing.T) {
 				defaultInput := pctestutils.NewTestPlan(t, namespace,
 					pctestutils.WithPlanPhases(planInput.Phases...),
+					pctestutils.WithPlanKey("test-default-settlement"),
 					func(t *testing.T, p *productcatalog.Plan) {
 						t.Helper()
 
-						p.Key = "test-default-settlement"
 						p.SettlementMode = ""
 					},
 				)
@@ -312,7 +312,7 @@ func TestPlanService(t *testing.T) {
 									Description: lo.ToPtr("RateCard 1"),
 									Metadata:    models.Metadata{"name": features[0].Name},
 									FeatureKey:  lo.ToPtr(features[0].Key),
-									FeatureID:   lo.ToPtr(features[0].ID),
+									FeatureID:   nil,
 									EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 										productcatalog.MeteredEntitlementTemplate{
 											Metadata:                nil,
@@ -430,7 +430,7 @@ func TestPlanService(t *testing.T) {
 											Name:        features[0].Name,
 											Description: lo.ToPtr("RateCard 1"),
 											Metadata:    models.Metadata{"name": features[0].Name},
-											FeatureKey:  lo.ToPtr(features[0].Key),
+											FeatureKey:  nil,
 											FeatureID:   lo.ToPtr(features[0].ID),
 											TaxConfig: &productcatalog.TaxConfig{
 												Stripe: &productcatalog.StripeTaxConfig{
@@ -877,10 +877,10 @@ func TestListPlansFilters(t *testing.T) {
 					},
 				},
 			}),
+			pctestutils.WithPlanKey(key),
 			func(t *testing.T, p *productcatalog.Plan) {
 				t.Helper()
 
-				p.Key = key
 				p.Name = name
 				p.Currency = cur
 			},

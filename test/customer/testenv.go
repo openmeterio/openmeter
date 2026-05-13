@@ -30,6 +30,7 @@ import (
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	planpkg "github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
@@ -37,7 +38,7 @@ import (
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
-	subject "github.com/openmeterio/openmeter/openmeter/subject"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
 	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
@@ -271,12 +272,15 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create tax code service: %w", err)
 	}
 
+	featureResolver, err := featureresolver.New(entitlementRegistry.Feature)
+	require.NoErrorf(t, err, "failed to create feature resolver: %v", err)
+
 	planService, err := planservice.New(planservice.Config{
-		Adapter:   planAdapter,
-		Feature:   entitlementRegistry.Feature,
-		TaxCode:   taxCodeService,
-		Logger:    logger.WithGroup("plan"),
-		Publisher: publisher,
+		Adapter:         planAdapter,
+		FeatureResolver: featureResolver,
+		TaxCode:         taxCodeService,
+		Logger:          logger.WithGroup("plan"),
+		Publisher:       publisher,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create plan service: %w", err)
@@ -334,11 +338,11 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	require.NoError(t, err)
 
 	addonService, err := addonservice.New(addonservice.Config{
-		Adapter:   addonRepo,
-		Logger:    logger,
-		Publisher: publisher,
-		Feature:   entitlementRegistry.Feature,
-		TaxCode:   taxCodeService,
+		Adapter:         addonRepo,
+		Logger:          logger,
+		Publisher:       publisher,
+		FeatureResolver: featureResolver,
+		TaxCode:         taxCodeService,
 	})
 	require.NoError(t, err)
 

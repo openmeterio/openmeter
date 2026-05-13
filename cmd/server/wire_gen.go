@@ -28,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
@@ -148,6 +149,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	featureConnector := common.NewFeatureConnector(logger, client, service, eventbusPublisher)
+	featureResolver, err := featureresolver.New(featureConnector)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	repository, err := common.NewTaxCodeAdapter(logger, client)
 	if err != nil {
 		cleanup6()
@@ -168,7 +179,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	addonService, err := common.NewAddonService(logger, client, featureConnector, taxcodeService, eventbusPublisher)
+	addonService, err := common.NewAddonService(logger, client, featureResolver, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -281,8 +292,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	productCatalogConfiguration := conf.ProductCatalog
-	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector, taxcodeService, eventbusPublisher)
+	planService, err := common.NewPlanService(logger, client, featureResolver, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -697,6 +707,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	telemetryMiddlewareHook := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	routerHooks := common.NewRouterHooks(telemetryMiddlewareHook)
+	productCatalogConfiguration := conf.ProductCatalog
 	subscriptionConfiguration := productCatalogConfiguration.Subscription
 	namespaceDecoder := common.NewStaticNamespaceDecoder(namespaceConfiguration)
 	ffxConfigContextMiddleware := common.NewFFXConfigContextMiddleware(subscriptionConfiguration, namespaceDecoder, logger)

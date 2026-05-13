@@ -44,6 +44,9 @@ type RateCard interface {
 	IsBillable() bool
 
 	HasFeature() bool
+	GetFeatureID() *string
+	GetFeatureKey() *string
+	SetFeature(id, key *string)
 }
 
 type RateCardSerde struct {
@@ -94,6 +97,19 @@ type RateCardMeta struct {
 
 func (r RateCardMeta) HasFeature() bool {
 	return lo.FromPtr(r.FeatureID) != "" || lo.FromPtr(r.FeatureKey) != ""
+}
+
+func (r RateCardMeta) GetFeatureID() *string {
+	return r.FeatureID
+}
+
+func (r RateCardMeta) GetFeatureKey() *string {
+	return r.FeatureKey
+}
+
+func (r *RateCardMeta) SetFeature(id, key *string) {
+	r.FeatureID = id
+	r.FeatureKey = key
 }
 
 func (r RateCardMeta) Clone() RateCardMeta {
