@@ -76,11 +76,11 @@ func New(config Config) (flatfee.Service, error) {
 }
 
 type service struct {
-	adapter       flatfee.Adapter
-	handler       flatfee.Handler
-	metaAdapter   meta.Adapter
-	locker        *lockr.Locker
-	realizations  *flatfeerealizations.Service
+	adapter      flatfee.Adapter
+	handler      flatfee.Handler
+	metaAdapter  meta.Adapter
+	locker       *lockr.Locker
+	realizations *flatfeerealizations.Service
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {
