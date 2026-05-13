@@ -198,6 +198,12 @@ func (_c *ChargeFlatFeeRunCreate) SetNoFiatTransactionRequired(v bool) *ChargeFl
 	return _c
 }
 
+// SetImmutable sets the "immutable" field.
+func (_c *ChargeFlatFeeRunCreate) SetImmutable(v bool) *ChargeFlatFeeRunCreate {
+	_c.mutation.SetImmutable(v)
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeFlatFeeRunCreate) SetID(v string) *ChargeFlatFeeRunCreate {
 	_c.mutation.SetID(v)
@@ -459,6 +465,9 @@ func (_c *ChargeFlatFeeRunCreate) check() error {
 	if _, ok := _c.mutation.NoFiatTransactionRequired(); !ok {
 		return &ValidationError{Name: "no_fiat_transaction_required", err: errors.New(`db: missing required field "ChargeFlatFeeRun.no_fiat_transaction_required"`)}
 	}
+	if _, ok := _c.mutation.Immutable(); !ok {
+		return &ValidationError{Name: "immutable", err: errors.New(`db: missing required field "ChargeFlatFeeRun.immutable"`)}
+	}
 	if len(_c.mutation.FlatFeeIDs()) == 0 {
 		return &ValidationError{Name: "flat_fee", err: errors.New(`db: missing required edge "ChargeFlatFeeRun.flat_fee"`)}
 	}
@@ -569,6 +578,10 @@ func (_c *ChargeFlatFeeRunCreate) createSpec() (*ChargeFlatFeeRun, *sqlgraph.Cre
 	if value, ok := _c.mutation.NoFiatTransactionRequired(); ok {
 		_spec.SetField(chargeflatfeerun.FieldNoFiatTransactionRequired, field.TypeBool, value)
 		_node.NoFiatTransactionRequired = value
+	}
+	if value, ok := _c.mutation.Immutable(); ok {
+		_spec.SetField(chargeflatfeerun.FieldImmutable, field.TypeBool, value)
+		_node.Immutable = value
 	}
 	if nodes := _c.mutation.FlatFeeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -959,6 +972,18 @@ func (u *ChargeFlatFeeRunUpsert) UpdateNoFiatTransactionRequired() *ChargeFlatFe
 	return u
 }
 
+// SetImmutable sets the "immutable" field.
+func (u *ChargeFlatFeeRunUpsert) SetImmutable(v bool) *ChargeFlatFeeRunUpsert {
+	u.Set(chargeflatfeerun.FieldImmutable, v)
+	return u
+}
+
+// UpdateImmutable sets the "immutable" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsert) UpdateImmutable() *ChargeFlatFeeRunUpsert {
+	u.SetExcluded(chargeflatfeerun.FieldImmutable)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1275,6 +1300,20 @@ func (u *ChargeFlatFeeRunUpsertOne) SetNoFiatTransactionRequired(v bool) *Charge
 func (u *ChargeFlatFeeRunUpsertOne) UpdateNoFiatTransactionRequired() *ChargeFlatFeeRunUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
 		s.UpdateNoFiatTransactionRequired()
+	})
+}
+
+// SetImmutable sets the "immutable" field.
+func (u *ChargeFlatFeeRunUpsertOne) SetImmutable(v bool) *ChargeFlatFeeRunUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.SetImmutable(v)
+	})
+}
+
+// UpdateImmutable sets the "immutable" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsertOne) UpdateImmutable() *ChargeFlatFeeRunUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.UpdateImmutable()
 	})
 }
 
@@ -1761,6 +1800,20 @@ func (u *ChargeFlatFeeRunUpsertBulk) SetNoFiatTransactionRequired(v bool) *Charg
 func (u *ChargeFlatFeeRunUpsertBulk) UpdateNoFiatTransactionRequired() *ChargeFlatFeeRunUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
 		s.UpdateNoFiatTransactionRequired()
+	})
+}
+
+// SetImmutable sets the "immutable" field.
+func (u *ChargeFlatFeeRunUpsertBulk) SetImmutable(v bool) *ChargeFlatFeeRunUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.SetImmutable(v)
+	})
+}
+
+// UpdateImmutable sets the "immutable" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsertBulk) UpdateImmutable() *ChargeFlatFeeRunUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.UpdateImmutable()
 	})
 }
 

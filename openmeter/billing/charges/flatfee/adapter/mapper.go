@@ -96,6 +96,7 @@ func mapRealizationRunBaseFromDB(dbRun *entdb.ChargeFlatFeeRun) flatfee.Realizat
 		AmountAfterProration:      dbRun.AmountAfterProration,
 		Totals:                    totals.FromDB(dbRun),
 		NoFiatTransactionRequired: dbRun.NoFiatTransactionRequired,
+		Immutable:                 dbRun.Immutable,
 	}
 }
 

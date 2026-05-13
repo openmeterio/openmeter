@@ -5,21 +5,18 @@ import (
 	"fmt"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-var (
-	_ billing.LineEngine     = (*LineEngine)(nil)
-	_ billing.LineCalculator = (*LineEngine)(nil)
-)
+var _ billing.LineEngine = (*LineEngine)(nil)
 
 type LineEngine struct {
 	service *service
@@ -54,10 +51,7 @@ func (e *LineEngine) BuildStandardInvoiceLines(ctx context.Context, input billin
 		return nil, err
 	}
 
-	return e.CalculateLines(billing.CalculateLinesInput{
-		Invoice: input.Invoice,
-		Lines:   stdLines,
-	})
+	return stdLines, nil
 }
 
 func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
@@ -65,8 +59,7 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	chargesByID := make(map[string]flatfee.Charge, len(input.Lines))
-	for _, stdLine := range input.Lines {
+	stdLines, err := slicesx.MapWithErr(input.Lines, func(stdLine *billing.StandardLine) (*billing.StandardLine, error) {
 		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
 		if err != nil {
 			return nil, err
@@ -88,30 +81,25 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		}
 
 		charge := stateMachine.GetCharge()
-		chargesByID[charge.ID] = charge
-	}
+		if charge.Realizations.CurrentRun == nil {
+			return nil, fmt.Errorf("flat fee charge[%s]: current run is required for line[%s]", charge.ID, stdLine.ID)
+		}
 
-	lines, err := e.CalculateLines(billing.CalculateLinesInput(input))
+		if err := populateFlatFeeStandardLineFromRun(stdLine, *charge.Realizations.CurrentRun); err != nil {
+			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
+		}
+
+		if err := stdLine.Validate(); err != nil {
+			return nil, fmt.Errorf("validating standard line[%s]: %w", stdLine.ID, err)
+		}
+
+		return stdLine, nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	for _, stdLine := range lines {
-		if stdLine.ChargeID == nil {
-			return nil, fmt.Errorf("flat fee standard line[%s]: charge id is required", stdLine.ID)
-		}
-
-		charge, ok := chargesByID[*stdLine.ChargeID]
-		if !ok {
-			return nil, fmt.Errorf("flat fee charge not found for line[%s]: %s", stdLine.ID, *stdLine.ChargeID)
-		}
-
-		if err := e.service.persistDetailedLines(ctx, charge, *stdLine); err != nil {
-			return nil, fmt.Errorf("persisting detailed lines for line[%s]: %w", stdLine.ID, err)
-		}
-	}
-
-	return lines, nil
+	return stdLines, nil
 }
 
 func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {
@@ -151,64 +139,117 @@ func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input bi
 		return fmt.Errorf("validating input: %w", err)
 	}
 
-	chargesByID, err := e.getChargesForMutableStandardLineDelete(ctx, input)
+	chargesByID, err := e.getChargesForStandardLineEvent(ctx, input, meta.Expands{
+		meta.ExpandRealizations,
+		meta.ExpandDetailedLines,
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("getting flat fee charges for deleted standard lines: %w", err)
 	}
 
-	cleanedChargeIDs := make(map[string]struct{}, len(chargesByID))
 	for _, stdLine := range input.Lines {
 		charge, ok := chargesByID[*stdLine.ChargeID]
 		if !ok {
 			return fmt.Errorf("flat fee charge[%s] not found for deleted standard line[%s]", *stdLine.ChargeID, stdLine.ID)
 		}
 
-		if _, ok := cleanedChargeIDs[charge.ID]; ok {
-			continue
-		}
-
-		// Guards and cleanup are per charge, not per line; cleanedChargeIDs dedupes repeated lines.
-		if err := e.cleanChargeForDeletedMutableStandardLine(ctx, *stdLine, charge); err != nil {
+		run, err := charge.Realizations.GetByLineID(stdLine.ID)
+		if err != nil {
 			return err
 		}
 
-		cleanedChargeIDs[charge.ID] = struct{}{}
+		if run.DeletedAt != nil {
+			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] is already deleted", stdLine.ID, run.ID.ID)
+		}
+
+		if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
+			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] is not associated with invoice[%s]", stdLine.ID, run.ID.ID, input.Invoice.ID)
+		}
+
+		if run.AccruedUsage != nil {
+			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] has invoice accrued allocation", stdLine.ID, run.ID.ID)
+		}
+
+		if run.Payment != nil {
+			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] has payment allocation", stdLine.ID, run.ID.ID)
+		}
+
+		if charge.Realizations.CurrentRun != nil && charge.Realizations.CurrentRun.ID.ID == run.ID.ID {
+			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] is still current for charge[%s]", stdLine.ID, run.ID.ID, charge.ID)
+		}
+
+		currencyCalculator, err := charge.Intent.Currency.Calculator()
+		if err != nil {
+			return fmt.Errorf("getting currency calculator for charge[%s]: %w", charge.ID, err)
+		}
+
+		if _, err := e.service.realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
+			Charge:             charge,
+			Run:                run,
+			AllocateAt:         clock.Now(),
+			CurrencyCalculator: currencyCalculator,
+		}); err != nil {
+			return fmt.Errorf("correcting credits for deleted flat fee standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)
+		}
+
+		if err := e.service.adapter.UpsertDetailedLines(ctx, run.ID, nil); err != nil {
+			return fmt.Errorf("deleting detailed lines for deleted flat fee standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)
+		}
+
+		if _, err := e.service.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
+			ID:        run.ID,
+			DeletedAt: mo.Some(lo.ToPtr(clock.Now())),
+		}); err != nil {
+			return fmt.Errorf("marking realization run[%s] deleted for flat fee standard line[%s]: %w", run.ID.ID, stdLine.ID, err)
+		}
 	}
 
 	return nil
 }
 
-func (e *LineEngine) cleanChargeForDeletedMutableStandardLine(ctx context.Context, stdLine billing.StandardLine, charge flatfee.Charge) error {
-	if charge.Realizations.CurrentRun != nil && charge.Realizations.CurrentRun.AccruedUsage != nil {
-		return fmt.Errorf("flat fee standard line[%s] cannot be deleted because charge[%s] has invoice accrued allocation", stdLine.ID, charge.ID)
+func (e *LineEngine) OnUnsupportedCreditNote(ctx context.Context, input billing.OnUnsupportedCreditNoteInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
 	}
 
-	if charge.Realizations.CurrentRun != nil && charge.Realizations.CurrentRun.Payment != nil {
-		return fmt.Errorf("flat fee standard line[%s] cannot be deleted because charge[%s] has payment allocation", stdLine.ID, charge.ID)
-	}
-
-	currencyCalculator, err := charge.Intent.Currency.Calculator()
+	chargesByID, err := e.getChargesForStandardLineEvent(ctx, input, meta.Expands{
+		meta.ExpandRealizations,
+	})
 	if err != nil {
-		return fmt.Errorf("getting currency calculator for charge[%s]: %w", charge.ID, err)
+		return fmt.Errorf("getting flat fee charges for unsupported credit note: %w", err)
 	}
 
-	if _, err := e.service.realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
-		Charge:             charge,
-		AllocateAt:         clock.Now(),
-		CurrencyCalculator: currencyCalculator,
-	}); err != nil {
-		return fmt.Errorf("correcting credits for deleted flat fee standard line[%s] charge[%s]: %w", stdLine.ID, charge.ID, err)
+	for _, stdLine := range input.Lines {
+		charge, ok := chargesByID[*stdLine.ChargeID]
+		if !ok {
+			return fmt.Errorf("flat fee charge[%s] not found for unsupported credit note line[%s]", *stdLine.ChargeID, stdLine.ID)
+		}
+
+		run, err := charge.Realizations.GetByLineID(stdLine.ID)
+		if err != nil {
+			return err
+		}
+
+		if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
+			return fmt.Errorf("flat fee standard line[%s] cannot be marked unsupported credit note because realization run[%s] is not associated with invoice[%s]", stdLine.ID, run.ID.ID, input.Invoice.ID)
+		}
+
+		if run.DeletedAt != nil {
+			return fmt.Errorf("flat fee standard line[%s] cannot be marked unsupported credit note because realization run[%s] is already deleted", stdLine.ID, run.ID.ID)
+		}
+
+		if run.Type == flatfee.RealizationRunTypeInvalidDueToUnsupportedCreditNote {
+			continue
+		}
+
+		if _, err := e.service.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
+			ID:   run.ID,
+			Type: mo.Some(flatfee.RealizationRunTypeInvalidDueToUnsupportedCreditNote),
+		}); err != nil {
+			return fmt.Errorf("marking realization run[%s] invalid due to unsupported credit note for flat fee standard line[%s]: %w", run.ID.ID, stdLine.ID, err)
+		}
 	}
 
-	// Passing nil deletes all charge-owned detailed lines for the current run.
-	if err := e.service.adapter.UpsertDetailedLines(ctx, charge.GetChargeID(), nil); err != nil {
-		return fmt.Errorf("deleting detailed lines for deleted flat fee standard line[%s] charge[%s]: %w", stdLine.ID, charge.ID, err)
-	}
-
-	return nil
-}
-
-func (e *LineEngine) OnUnsupportedCreditNote(_ context.Context, _ billing.OnUnsupportedCreditNoteInput) error {
 	return nil
 }
 
@@ -260,7 +301,7 @@ func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine
 	return creditThenInvoiceStateMachine, nil
 }
 
-func (e *LineEngine) getChargesForMutableStandardLineDelete(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) (map[string]flatfee.Charge, error) {
+func (e *LineEngine) getChargesForStandardLineEvent(ctx context.Context, input billing.StandardLineEventInput, expands meta.Expands) (map[string]flatfee.Charge, error) {
 	chargeIDs := make([]string, 0, len(input.Lines))
 	seenChargeIDs := make(map[string]struct{}, len(input.Lines))
 
@@ -284,13 +325,10 @@ func (e *LineEngine) getChargesForMutableStandardLineDelete(ctx context.Context,
 	charges, err := e.service.GetByIDs(ctx, flatfee.GetByIDsInput{
 		Namespace: input.Invoice.Namespace,
 		IDs:       chargeIDs,
-		Expands: meta.Expands{
-			meta.ExpandRealizations,
-			meta.ExpandDetailedLines,
-		},
+		Expands:   expands,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("getting flat fee charges for deleted standard lines: %w", err)
+		return nil, fmt.Errorf("getting flat fee charges: %w", err)
 	}
 
 	return lo.KeyBy(charges, func(charge flatfee.Charge) string {
@@ -383,31 +421,4 @@ func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPayme
 	}
 
 	return nil
-}
-
-func (e *LineEngine) CalculateLines(input billing.CalculateLinesInput) (billing.StandardLines, error) {
-	if input.Invoice.ID == "" {
-		return nil, fmt.Errorf("invoice id is required")
-	}
-
-	if len(input.Lines) == 0 {
-		return nil, fmt.Errorf("lines are required")
-	}
-
-	for _, stdLine := range input.Lines {
-		generatedDetailedLines, err := e.service.ratingService.GenerateDetailedLines(stdLine)
-		if err != nil {
-			return nil, fmt.Errorf("generating detailed lines for line[%s]: %w", stdLine.ID, err)
-		}
-
-		if err := invoicecalc.MergeGeneratedDetailedLines(stdLine, generatedDetailedLines); err != nil {
-			return nil, fmt.Errorf("merging generated detailed lines for line[%s]: %w", stdLine.ID, err)
-		}
-
-		if err := stdLine.Validate(); err != nil {
-			return nil, fmt.Errorf("validating standard line[%s]: %w", stdLine.ID, err)
-		}
-	}
-
-	return input.Lines, nil
 }

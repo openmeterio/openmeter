@@ -120,6 +120,30 @@ func (i CreditsOnlyUsageAccruedCorrectionInput) ValidateWith(currencyCalculator 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type PaymentEventInput struct {
+	Charge Charge                `json:"charge"`
+	Amount alpacadecimal.Decimal `json:"amount"`
+}
+
+func (i PaymentEventInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if i.Amount.IsNegative() {
+		errs = append(errs, fmt.Errorf("amount cannot be negative"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type (
+	OnPaymentAuthorizedInput = PaymentEventInput
+	OnPaymentSettledInput    = PaymentEventInput
+)
+
 type Handler interface {
 	// OnFlatFeeAssignedToInvoice is called when a flat fee is being assigned to an invoice
 	OnAssignedToInvoice(ctx context.Context, input OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error)
@@ -134,11 +158,11 @@ type Handler interface {
 	// OnCreditsOnlyUsageAccruedCorrection is called when a credit allocation needs to be corrected.
 	OnCreditsOnlyUsageAccruedCorrection(ctx context.Context, input CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error)
 
-	// OnFlatFeePaymentAuthorized is called when a flat fee payment is authorized
-	OnPaymentAuthorized(ctx context.Context, charge Charge) (ledgertransaction.GroupReference, error)
+	// OnFlatFeePaymentAuthorized is called when a flat fee payment is authorized.
+	OnPaymentAuthorized(ctx context.Context, input OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)
 
-	// OnFlatFeePaymentSettled is called when a flat fee payment is settled
-	OnPaymentSettled(ctx context.Context, charge Charge) (ledgertransaction.GroupReference, error)
+	// OnFlatFeePaymentSettled is called when a flat fee payment is settled.
+	OnPaymentSettled(ctx context.Context, input OnPaymentSettledInput) (ledgertransaction.GroupReference, error)
 
 	// OnFlatFeePaymentUncollectible is called when a flat fee payment is uncollectible
 	OnPaymentUncollectible(ctx context.Context, charge Charge) (ledgertransaction.GroupReference, error)

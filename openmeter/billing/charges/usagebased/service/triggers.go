@@ -173,13 +173,6 @@ func (s *service) withLockedCharge(ctx context.Context, chargeID meta.ChargeID, 
 			return nil, fmt.Errorf("get charge: %w", err)
 		}
 
-		if charge.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode &&
-			charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
-			return nil, models.NewGenericNotImplementedError(
-				fmt.Errorf("charge %s has unsupported settlement mode %s", charge.ID, charge.Intent.SettlementMode),
-			)
-		}
-
 		return fn(ctx, charge)
 	})
 }

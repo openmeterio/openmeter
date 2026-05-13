@@ -94,6 +94,10 @@ func (p PatchShrink) GetNewInvoiceAt() time.Time {
 	return p.newInvoiceAt
 }
 
+func (p PatchShrink) Op() PatchType {
+	return PatchTypeShrink
+}
+
 func (p PatchShrink) Trigger() stateless.Trigger {
 	return TriggerShrink
 }

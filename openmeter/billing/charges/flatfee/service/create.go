@@ -36,14 +36,6 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 				return flatfee.IntentWithInitialStatus{}, fmt.Errorf("calculating amount after proration: %w", err)
 			}
 
-			initialStatus := flatfee.StatusActive
-			var initialAdvanceAfter *time.Time
-			switch intent.SettlementMode {
-			case productcatalog.CreditOnlySettlementMode, productcatalog.CreditThenInvoiceSettlementMode:
-				initialStatus = flatfee.StatusCreated
-				initialAdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(intent.ServicePeriod.From))
-			}
-
 			var featureID *string
 			if intent.FeatureKey != "" {
 				featureMeter, err := input.FeatureMeters.Get(intent.FeatureKey, false)
@@ -56,8 +48,8 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 			return flatfee.IntentWithInitialStatus{
 				Intent:                    intent,
 				FeatureID:                 featureID,
-				InitialStatus:             initialStatus,
-				InitialAdvanceAfter:       initialAdvanceAfter,
+				InitialStatus:             flatfee.StatusCreated,
+				InitialAdvanceAfter:       lo.ToPtr(meta.NormalizeTimestamp(intent.ServicePeriod.From)),
 				AmountAfterProration:      amountAfterProration,
 				NoFiatTransactionRequired: intent.SettlementMode == productcatalog.CreditOnlySettlementMode || amountAfterProration.IsZero(),
 			}, nil
@@ -82,77 +74,125 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 				}, nil
 			}
 
-			return gatheringLineFromFlatFeeCharge(charge)
+			gatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
+				Charge:        charge,
+				ServicePeriod: charge.Intent.ServicePeriod,
+				InvoiceAt:     charge.Intent.InvoiceAt,
+			})
+			if err != nil {
+				return flatfee.ChargeWithGatheringLine{}, err
+			}
+
+			return flatfee.ChargeWithGatheringLine{
+				Charge:                charge,
+				GatheringLineToCreate: &gatheringLine,
+			}, nil
 		})
 	})
 }
 
-func gatheringLineFromFlatFeeCharge(flatFee flatfee.Charge) (flatfee.ChargeWithGatheringLine, error) {
-	intent := flatFee.Intent
+type buildFlatFeeGatheringLineInput struct {
+	Charge        flatfee.Charge
+	ServicePeriod timeutil.ClosedPeriod
+	InvoiceAt     time.Time
+}
+
+func (i buildFlatFeeGatheringLineInput) Validate() error {
+	if err := i.Charge.Validate(); err != nil {
+		return fmt.Errorf("charge: %w", err)
+	}
+
+	if err := i.ServicePeriod.Validate(); err != nil {
+		return fmt.Errorf("service period: %w", err)
+	}
+
+	if i.InvoiceAt.IsZero() {
+		return fmt.Errorf("invoice at is required")
+	}
+
+	if i.Charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+		return fmt.Errorf("charge %s is not credit_then_invoice", i.Charge.ID)
+	}
+
+	return nil
+}
+
+func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.GatheringLine, error) {
+	if err := input.Validate(); err != nil {
+		return billing.GatheringLine{}, err
+	}
+
+	flatFee := input.Charge
+	lineIntent := flatFee.Intent
+	lineIntent.ServicePeriod = input.ServicePeriod
+	lineIntent.InvoiceAt = input.InvoiceAt
+	lineIntent = lineIntent.Normalized()
+
+	amountAfterProration, err := lineIntent.CalculateAmountAfterProration()
+	if err != nil {
+		return billing.GatheringLine{}, fmt.Errorf("calculating amount after proration: %w", err)
+	}
 
 	var subscription *billing.SubscriptionReference
-	if intent.Subscription != nil {
+	if lineIntent.Subscription != nil {
 		subscription = &billing.SubscriptionReference{
-			SubscriptionID: intent.Subscription.SubscriptionID,
-			PhaseID:        intent.Subscription.PhaseID,
-			ItemID:         intent.Subscription.ItemID,
+			SubscriptionID: lineIntent.Subscription.SubscriptionID,
+			PhaseID:        lineIntent.Subscription.PhaseID,
+			ItemID:         lineIntent.Subscription.ItemID,
 			BillingPeriod: timeutil.ClosedPeriod{
-				From: intent.BillingPeriod.From,
-				To:   intent.BillingPeriod.To,
+				From: lineIntent.BillingPeriod.From,
+				To:   lineIntent.BillingPeriod.To,
 			},
 		}
 	}
 
-	clonedAnnotations, err := intent.Annotations.Clone()
+	clonedAnnotations, err := lineIntent.Annotations.Clone()
 	if err != nil {
-		return flatfee.ChargeWithGatheringLine{}, fmt.Errorf("cloning annotations: %w", err)
+		return billing.GatheringLine{}, fmt.Errorf("cloning annotations: %w", err)
 	}
 
 	gatheringLine := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   flatFee.Namespace,
-				Name:        intent.Name,
-				Description: intent.Description,
+				Name:        lineIntent.Name,
+				Description: lineIntent.Description,
 			}),
 
-			Metadata:    intent.Metadata.Clone(),
+			Metadata:    lineIntent.Metadata.Clone(),
 			Annotations: clonedAnnotations,
-			ManagedBy:   intent.ManagedBy,
+			ManagedBy:   lineIntent.ManagedBy,
 
 			Price: lo.FromPtr(
 				productcatalog.NewPriceFrom(
 					productcatalog.FlatPrice{
-						Amount:      flatFee.State.AmountAfterProration,
-						PaymentTerm: intent.PaymentTerm,
+						Amount:      amountAfterProration,
+						PaymentTerm: lineIntent.PaymentTerm,
 					},
 				),
 			),
-			FeatureKey: intent.FeatureKey,
+			FeatureKey: lineIntent.FeatureKey,
 
-			Currency:      intent.Currency,
-			ServicePeriod: intent.ServicePeriod,
-			InvoiceAt:     intent.InvoiceAt,
+			Currency:      lineIntent.Currency,
+			ServicePeriod: input.ServicePeriod,
+			InvoiceAt:     input.InvoiceAt,
 
-			TaxConfig: intent.TaxConfig.ToTaxConfig(),
+			TaxConfig: lineIntent.TaxConfig.ToTaxConfig(),
 
 			Engine:                 billing.LineEngineTypeChargeFlatFee,
 			ChargeID:               lo.ToPtr(flatFee.ID),
-			ChildUniqueReferenceID: intent.UniqueReferenceID,
+			ChildUniqueReferenceID: lineIntent.UniqueReferenceID,
 			Subscription:           subscription,
 		},
 	}
 
-	if intent.PercentageDiscounts != nil {
+	if lineIntent.PercentageDiscounts != nil {
 		gatheringLine.RateCardDiscounts = billing.Discounts{
 			Percentage: &billing.PercentageDiscount{
-				PercentageDiscount: *intent.PercentageDiscounts,
+				PercentageDiscount: *lineIntent.PercentageDiscounts,
 			},
 		}
 	}
 
-	return flatfee.ChargeWithGatheringLine{
-		Charge:                flatFee,
-		GatheringLineToCreate: &gatheringLine,
-	}, nil
+	return gatheringLine, nil
 }

@@ -239,6 +239,22 @@ type Realizations struct {
 	PriorRuns  RealizationRuns `json:"priorRuns,omitempty"`
 }
 
+func (r Realizations) GetByLineID(lineID string) (RealizationRun, error) {
+	if r.CurrentRun != nil {
+		if r.CurrentRun.LineID != nil && *r.CurrentRun.LineID == lineID {
+			return *r.CurrentRun, nil
+		}
+	}
+
+	for _, run := range r.PriorRuns {
+		if run.LineID != nil && *run.LineID == lineID {
+			return run, nil
+		}
+	}
+
+	return RealizationRun{}, fmt.Errorf("realization run not found [line_id=%s]", lineID)
+}
+
 func (r Realizations) Validate() error {
 	var errs []error
 

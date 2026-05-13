@@ -120,7 +120,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyForAlreadyActive
 	s.True(servicePeriod.To.Equal(*usageBasedFromDB.State.AdvanceAfter))
 }
 
-func (s *AdvanceChargesTestSuite) TestAdvanceChargesSkipsInvoiceOnlyFlatFeeCharges() {
+func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceFlatFeeAtServicePeriodStart() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-empty")
 
@@ -142,7 +142,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesSkipsInvoiceOnlyFlatFeeCharg
 				customer:       cust.GetID(),
 				currency:       USD,
 				servicePeriod:  servicePeriod,
-				settlementMode: productcatalog.InvoiceOnlySettlementMode,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromFloat(100),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -159,7 +159,11 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesSkipsInvoiceOnlyFlatFeeCharg
 		Customer: cust.GetID(),
 	})
 	s.NoError(err)
-	s.Empty(advancedCharges)
+	s.Len(advancedCharges, 1)
+
+	flatFeeCharge, err := advancedCharges[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(flatFeeCharge.Status))
 }
 
 func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceUsageBasedChargesAtServicePeriodStart() {

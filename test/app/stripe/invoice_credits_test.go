@@ -338,7 +338,7 @@ func (s *StripeInvoiceTestSuite) createMockChargeIntent(input createMockChargeIn
 		},
 		Price:          *input.price,
 		InvoiceAt:      input.servicePeriod.To,
-		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.InvoiceOnlySettlementMode),
+		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 		FeatureKey:     input.featureKey,
 	})
 }

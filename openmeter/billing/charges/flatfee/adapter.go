@@ -14,12 +14,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type Adapter interface {
 	ChargeAdapter
 	ChargeDetailedLineAdapter
 	ChargeCreditAllocationAdapter
+	ChargeRunAdapter
 	ChargeInvoicedUsageAdapter
 	ChargePaymentAdapter
 
@@ -28,8 +30,7 @@ type Adapter interface {
 
 type ChargeAdapter interface {
 	CreateCharges(ctx context.Context, charges CreateChargesInput) ([]Charge, error)
-	ProvisionCurrentRun(ctx context.Context, input ProvisionCurrentRunInput) (RealizationRunBase, error)
-	AssignCurrentRunInvoiceLine(ctx context.Context, input AssignCurrentRunInvoiceLineInput) (RealizationRunBase, error)
+
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
@@ -37,7 +38,7 @@ type ChargeAdapter interface {
 }
 
 type ChargeDetailedLineAdapter interface {
-	UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeID, lines DetailedLines) error
+	UpsertDetailedLines(ctx context.Context, runID RealizationRunID, lines DetailedLines) error
 	FetchCurrentRunDetailedLines(ctx context.Context, charge Charge) (Charge, error)
 }
 
@@ -45,32 +46,63 @@ type ChargeInvoicedUsageAdapter interface {
 	CreateInvoicedUsage(ctx context.Context, input CreateInvoicedUsageInput) (invoicedusage.AccruedUsage, error)
 }
 
+type ChargeRunAdapter interface {
+	CreateCurrentRun(ctx context.Context, input CreateCurrentRunInput) (RealizationRunBase, error)
+	UpdateRealizationRun(ctx context.Context, input UpdateRealizationRunInput) (RealizationRunBase, error)
+	DetachCurrentRun(ctx context.Context, chargeID meta.ChargeID) error
+}
+
 type ChargeCreditAllocationAdapter interface {
-	CreateCreditAllocations(ctx context.Context, chargeID meta.ChargeID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error)
+	CreateCreditAllocations(ctx context.Context, runID RealizationRunID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error)
 }
 
 type ChargePaymentAdapter interface {
-	CreatePayment(ctx context.Context, chargeID meta.ChargeID, paymentSettlement payment.InvoicedCreate) (payment.Invoiced, error)
+	CreatePayment(ctx context.Context, runID RealizationRunID, paymentSettlement payment.InvoicedCreate) (payment.Invoiced, error)
 	UpdatePayment(ctx context.Context, paymentSettlement payment.Invoiced) (payment.Invoiced, error)
 }
 
-type ProvisionCurrentRunInput struct {
+type CreateCurrentRunInput struct {
 	Charge                    ChargeBase
+	ServicePeriod             timeutil.ClosedPeriod
+	AmountAfterProration      alpacadecimal.Decimal
 	NoFiatTransactionRequired bool
+	Immutable                 bool
+	LineID                    *string
+	InvoiceID                 *string
 }
 
-func (i ProvisionCurrentRunInput) Validate() error {
+func (i CreateCurrentRunInput) Validate() error {
 	var errs []error
 
 	if err := i.Charge.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
 
+	if err := i.ServicePeriod.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("service period: %w", err))
+	}
+
+	if i.AmountAfterProration.IsNegative() {
+		errs = append(errs, fmt.Errorf("amount after proration cannot be negative"))
+	}
+
+	if i.LineID != nil && *i.LineID == "" {
+		errs = append(errs, fmt.Errorf("line id must be non-empty"))
+	}
+
+	if i.InvoiceID != nil && *i.InvoiceID == "" {
+		errs = append(errs, fmt.Errorf("invoice id must be non-empty"))
+	}
+
+	if (i.LineID == nil) != (i.InvoiceID == nil) {
+		errs = append(errs, fmt.Errorf("line id and invoice id must be provided together"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreateInvoicedUsageInput struct {
-	ChargeID      meta.ChargeID
+	RunID         RealizationRunID
 	LineID        string
 	InvoiceID     string
 	InvoicedUsage invoicedusage.AccruedUsage
@@ -79,8 +111,8 @@ type CreateInvoicedUsageInput struct {
 func (i CreateInvoicedUsageInput) Validate() error {
 	var errs []error
 
-	if err := i.ChargeID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("charge ID: %w", err))
+	if err := i.RunID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run ID: %w", err))
 	}
 
 	if i.InvoiceID == "" {
@@ -93,30 +125,6 @@ func (i CreateInvoicedUsageInput) Validate() error {
 
 	if err := i.InvoicedUsage.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("invoiced usage: %w", err))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
-type AssignCurrentRunInvoiceLineInput struct {
-	ChargeID  meta.ChargeID
-	LineID    string
-	InvoiceID string
-}
-
-func (i AssignCurrentRunInvoiceLineInput) Validate() error {
-	var errs []error
-
-	if err := i.ChargeID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("charge ID: %w", err))
-	}
-
-	if i.InvoiceID == "" {
-		errs = append(errs, fmt.Errorf("invoice ID is required"))
-	}
-
-	if i.LineID == "" {
-		errs = append(errs, fmt.Errorf("line ID is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

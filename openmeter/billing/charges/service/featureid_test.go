@@ -72,7 +72,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndF
 				customer:       cust.GetID(),
 				currency:       USD,
 				servicePeriod:  servicePeriod,
-				settlementMode: productcatalog.InvoiceOnlySettlementMode,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromFloat(25),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,

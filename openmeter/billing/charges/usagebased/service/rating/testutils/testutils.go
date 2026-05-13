@@ -90,7 +90,7 @@ func NewIntentForTest(t testing.TB, servicePeriod timeutil.ClosedPeriod, price p
 			BillingPeriod:     servicePeriod,
 		},
 		InvoiceAt:      servicePeriod.To,
-		SettlementMode: productcatalog.InvoiceOnlySettlementMode,
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		FeatureKey:     "feature-1",
 		Price:          price,
 		Discounts:      discounts,

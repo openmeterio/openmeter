@@ -58,6 +58,8 @@ const (
 	FieldAmountAfterProration = "amount_after_proration"
 	// FieldNoFiatTransactionRequired holds the string denoting the no_fiat_transaction_required field in the database.
 	FieldNoFiatTransactionRequired = "no_fiat_transaction_required"
+	// FieldImmutable holds the string denoting the immutable field in the database.
+	FieldImmutable = "immutable"
 	// EdgeFlatFee holds the string denoting the flat_fee edge name in mutations.
 	EdgeFlatFee = "flat_fee"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
@@ -149,6 +151,7 @@ var Columns = []string{
 	FieldInvoiceID,
 	FieldAmountAfterProration,
 	FieldNoFiatTransactionRequired,
+	FieldImmutable,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -309,6 +312,11 @@ func ByAmountAfterProration(opts ...sql.OrderTermOption) OrderOption {
 // ByNoFiatTransactionRequired orders the results by the no_fiat_transaction_required field.
 func ByNoFiatTransactionRequired(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNoFiatTransactionRequired, opts...).ToFunc()
+}
+
+// ByImmutable orders the results by the immutable field.
+func ByImmutable(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldImmutable, opts...).ToFunc()
 }
 
 // ByFlatFeeField orders the results by flat_fee field.

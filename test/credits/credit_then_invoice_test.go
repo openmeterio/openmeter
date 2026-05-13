@@ -862,6 +862,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 		s.Equal(alpacadecimal.NewFromInt(5), charge.Realizations.CurrentRun.CreditRealizations.Sum())
 		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
 		s.Nil(charge.Realizations.CurrentRun.Payment)
+		s.False(charge.Realizations.CurrentRun.Immutable)
 
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)), "draft line credit allocation should consume FBO")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)), "draft line credit allocation should accrue credits")
@@ -900,12 +901,13 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 			meta.ExpandDetailedLines,
 		})
 		s.Equal(flatfee.StatusDeleted, charge.Status)
-		s.Require().NotNil(charge.Realizations.CurrentRun)
-		s.Equal(alpacadecimal.Zero, charge.Realizations.CurrentRun.CreditRealizations.Sum())
-		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
-		s.Nil(charge.Realizations.CurrentRun.Payment)
-		s.True(charge.Realizations.CurrentRun.DetailedLines.IsPresent())
-		s.Empty(charge.Realizations.CurrentRun.DetailedLines.OrEmpty())
+		run, err := charge.Realizations.GetByLineID(lineID.ID)
+		s.NoError(err)
+		s.NotNil(run.DeletedAt)
+		s.Equal(alpacadecimal.Zero, run.CreditRealizations.Sum())
+		s.Nil(run.AccruedUsage)
+		s.Nil(run.Payment)
+		s.False(run.Immutable)
 	})
 
 	s.Run("then deleting the mutable line reverses only the credit allocation ledger transactions", func() {
@@ -1070,12 +1072,12 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 			meta.ExpandDetailedLines,
 		})
 		s.Equal(flatfee.StatusDeleted, deletedCharge.Status)
-		s.Require().NotNil(deletedCharge.Realizations.CurrentRun)
-		s.Equal(alpacadecimal.Zero, deletedCharge.Realizations.CurrentRun.CreditRealizations.Sum())
-		s.Nil(deletedCharge.Realizations.CurrentRun.AccruedUsage)
-		s.Nil(deletedCharge.Realizations.CurrentRun.Payment)
-		s.True(deletedCharge.Realizations.CurrentRun.DetailedLines.IsPresent())
-		s.Empty(deletedCharge.Realizations.CurrentRun.DetailedLines.OrEmpty())
+		run, err := deletedCharge.Realizations.GetByLineID(lineID.ID)
+		s.NoError(err)
+		s.NotNil(run.DeletedAt)
+		s.Equal(alpacadecimal.Zero, run.CreditRealizations.Sum())
+		s.Nil(run.AccruedUsage)
+		s.Nil(run.Payment)
 	})
 
 	s.Run("then deleting the mutable line restores the initial ledger state", func() {
@@ -1199,6 +1201,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchKeep
 		s.Equal(lineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.CreditRealizations[0].LineID))
 		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
 		s.Nil(charge.Realizations.CurrentRun.Payment)
+		s.True(charge.Realizations.CurrentRun.Immutable)
 
 		immutableLedger = s.CreateLedgerSnapshot(ledgerSnapshotInput)
 		s.AssertDecimalEqual(alpacadecimal.Zero, immutableLedger.FBO, "immutable invoice credit allocation should keep FBO consumed")
@@ -1245,6 +1248,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchKeep
 		s.Require().NotNil(charge.Realizations.CurrentRun)
 		s.Len(charge.Realizations.CurrentRun.CreditRealizations, 1)
 		s.Equal(alpacadecimal.NewFromInt(5), charge.Realizations.CurrentRun.CreditRealizations.Sum())
+		s.True(charge.Realizations.CurrentRun.Immutable)
 	})
 
 	s.Run("then immutable invoice deletion does not reverse ledger bookings", func() {
@@ -1388,6 +1392,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.Equal(alpacadecimal.NewFromInt(2), charge.Realizations.CurrentRun.CreditRealizations.Sum())
 		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
 		s.Nil(charge.Realizations.CurrentRun.Payment)
+		s.False(charge.Realizations.CurrentRun.Immutable)
 
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)), "draft line credit allocation should consume FBO")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)), "draft line credit allocation should accrue credits")
@@ -1430,6 +1435,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.Nil(charge.Realizations.CurrentRun.Payment)
 		s.True(charge.Realizations.CurrentRun.DetailedLines.IsPresent())
 		s.Len(charge.Realizations.CurrentRun.DetailedLines.OrEmpty(), 1)
+		s.True(charge.Realizations.CurrentRun.Immutable)
 
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)), "approved invoice should keep credits consumed")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)), "approved invoice should keep credited portion accrued")
@@ -1614,6 +1620,250 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDirectPaidTrigg
 	})
 }
 
+func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedPaymentCallbacksSkipPaymentBooking() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-no-fiat-payment-callback")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	zeroCostBasis := alpacadecimal.Zero
+
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
+
+	var (
+		flatFeeChargeID meta.ChargeID
+		invoice         billing.StandardInvoice
+		lineID          billing.LineID
+		approvedLedger  LedgerSnapshot
+	)
+	ledgerSnapshotInput := LedgerSnapshotInput{
+		Namespace: ns,
+		Customer:  cust.GetID(),
+		Currency:  USD,
+		CostBasis: mo.Some(&zeroCostBasis),
+	}
+
+	t.Run("given a fully credited immutable flat fee invoice", func(t *testing.T) {
+		// given:
+		// - a ledger-backed customer has enough promotional credits to cover the flat fee
+		// when:
+		// - the invoice is collected and approved
+		// then:
+		// - the run is no-fiat, final, and has no invoice accrued usage or payment record
+		s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+			Namespace: ns,
+			Customer:  cust.GetID(),
+			Amount:    alpacadecimal.NewFromInt(5),
+			At:        setupAt,
+			CostBasis: zeroCostBasis,
+		})
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(5),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					Name:              "flatfee-credit-then-invoice-no-fiat-payment-callback",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "flatfee-credit-then-invoice-no-fiat-payment-callback",
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		flatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+
+		clock.FreezeTime(servicePeriod.From)
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.From),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+		lineID = invoices[0].Lines.OrEmpty()[0].GetLineID()
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoices[0].GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusFinal)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.True(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
+		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
+		s.Nil(charge.Realizations.CurrentRun.Payment)
+		s.Equal(lineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+
+		approvedLedger = s.CreateLedgerSnapshot(ledgerSnapshotInput)
+		s.AssertDecimalEqual(alpacadecimal.Zero, approvedLedger.FBO, "approved fully credited invoice should consume credits")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(5), approvedLedger.Accrued, "approved fully credited invoice should keep accrued credit booking")
+		s.AssertDecimalEqual(alpacadecimal.Zero, approvedLedger.OpenReceivable, "fully credited invoice should not create open receivable")
+		s.AssertDecimalEqual(alpacadecimal.Zero, approvedLedger.AuthorizedReceivable, "fully credited invoice should not create authorized receivable")
+	})
+
+	t.Run("when payment callbacks arrive for the fully credited invoice", func(t *testing.T) {
+		// given:
+		// - the invoice total is zero after credits and the charge run is already final
+		// when:
+		// - the payment app reports the invoice as paid
+		// then:
+		// - no flat-fee payment record or fiat ledger booking is created
+		var err error
+		invoice, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+			InvoiceID: invoice.GetInvoiceID(),
+			Trigger:   billing.TriggerPaid,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
+
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusFinal)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.True(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
+		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
+		s.Nil(charge.Realizations.CurrentRun.Payment)
+		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, approvedLedger)
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceRoundedZeroAmountFinalizesWithoutInvoiceAccrual() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-rounded-zero")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
+
+	var (
+		flatFeeChargeID meta.ChargeID
+		invoice         billing.StandardInvoice
+		lineID          billing.LineID
+		startLedger     LedgerSnapshot
+	)
+	ledgerSnapshotInput := LedgerSnapshotInput{
+		Namespace: ns,
+		Customer:  cust.GetID(),
+		Currency:  USD,
+		CostBasis: mo.None[*alpacadecimal.Decimal](),
+	}
+
+	t.Run("given a flat fee amount that rounds to zero", func(t *testing.T) {
+		// given:
+		// - a ledger-backed customer has no credits
+		// when:
+		// - a 0.0001 USD flat fee is created in USD precision
+		// then:
+		// - the persisted amount after proration is zero and no ledger booking exists
+		amount, err := alpacadecimal.NewFromString("0.0001")
+		s.NoError(err)
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      amount,
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					Name:              "flatfee-credit-then-invoice-rounded-zero",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "flatfee-credit-then-invoice-rounded-zero",
+					ProRating: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		flatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+		s.AssertDecimalEqual(alpacadecimal.Zero, flatFeeCharge.State.AmountAfterProration, "USD precision should round the amount to zero")
+
+		startLedger = s.CreateLedgerSnapshot(ledgerSnapshotInput)
+		s.AssertDecimalEqual(alpacadecimal.Zero, startLedger.FBO, "rounded-zero charge should not allocate credits")
+		s.AssertDecimalEqual(alpacadecimal.Zero, startLedger.Accrued, "rounded-zero charge should not accrue usage")
+		s.AssertDecimalEqual(alpacadecimal.Zero, startLedger.OpenReceivable, "rounded-zero charge should not create open receivable")
+		s.AssertDecimalEqual(alpacadecimal.Zero, startLedger.AuthorizedReceivable, "rounded-zero charge should not create authorized receivable")
+	})
+
+	t.Run("when the rounded-zero line is invoiced and approved", func(t *testing.T) {
+		// given:
+		// - the flat fee amount rounds to zero in the charge currency
+		// when:
+		// - billing collects and approves the standard invoice
+		// then:
+		// - the charge reaches final without invoice usage accrual or payment state
+		clock.FreezeTime(servicePeriod.From)
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.From),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+
+		line := invoices[0].Lines.OrEmpty()[0]
+		lineID = line.GetLineID()
+		s.RequireTotals(billingtest.ExpectedTotals{}, line.Totals)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoices[0].GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusFinal)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.Equal(lineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+		s.True(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
+		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
+		s.Nil(charge.Realizations.CurrentRun.Payment)
+		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
+	})
+}
+
 func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteImmutableInvoiceWithPaymentKeepsBookings() {
 	t := s.T()
 	ctx := t.Context()
@@ -1755,6 +2005,228 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteImmutable
 		// then:
 		// - invoice accrual and payment authorization bookings are preserved
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, immutableLedger)
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceAsyncPaymentBooksDetachedRun() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-async-prior-payment")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	shrunkServicePeriodTo := datetime.MustParseTimeInLocation(t, "2026-01-16T00:00:00Z", time.UTC).AsTime()
+
+	clock.FreezeTime(datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime())
+	defer clock.UnFreeze()
+
+	var (
+		flatFeeChargeID    meta.ChargeID
+		invoice            billing.StandardInvoice
+		lineID             billing.LineID
+		runID              flatfee.RealizationRunID
+		replacementInvoice billing.StandardInvoice
+		replacementLineID  billing.LineID
+	)
+
+	t.Run("given an immutable invoice waiting for payment", func(t *testing.T) {
+		// given:
+		// - a ledger-backed customer has no credits
+		// when:
+		// - a flat fee invoice is approved but payment has not arrived yet
+		// then:
+		// - the current run has accrued invoice usage and no payment
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(5),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					Name:              "flatfee-credit-then-invoice-async-prior-payment",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "flatfee-credit-then-invoice-async-prior-payment",
+					ProRating: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		flatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+
+		clock.FreezeTime(servicePeriod.From)
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.From),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		invoice = invoices[0]
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+		lineID = invoice.Lines.OrEmpty()[0].GetLineID()
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusActiveAwaitingPaymentSettlement)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		runID = charge.Realizations.CurrentRun.ID
+		s.Equal(lineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+		s.Require().NotNil(charge.Realizations.CurrentRun.AccruedUsage)
+		s.Nil(charge.Realizations.CurrentRun.Payment)
+
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()), "approved invoice should accrue usage")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-5), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "approved invoice should create open receivable")
+		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "payment should not be authorized yet")
+	})
+
+	t.Run("when shrink detaches the immutable run before payment arrives", func(t *testing.T) {
+		// given:
+		// - the current run is backed by an immutable invoice line
+		// when:
+		// - the charge is shrunk to a smaller amount
+		// then:
+		// - the old run is no longer current and replacement gathering is created
+		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			NewServicePeriodTo:     shrunkServicePeriodTo,
+			NewFullServicePeriodTo: servicePeriod.To,
+			NewBillingPeriodTo:     shrunkServicePeriodTo,
+			NewInvoiceAt:           servicePeriod.From,
+		})
+		s.NoError(err)
+		s.NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: cust.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				flatFeeChargeID.ID: patch,
+			},
+		}))
+
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
+		s.Nil(charge.Realizations.CurrentRun)
+		run, err := charge.Realizations.GetByLineID(lineID.ID)
+		s.NoError(err)
+		s.Equal(runID, run.ID)
+		s.Require().NotNil(run.AccruedUsage)
+		s.Nil(run.Payment)
+
+		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
+		s.Equal(servicePeriod.From, activeLine.ServicePeriod.From)
+		s.Equal(shrunkServicePeriodTo, activeLine.ServicePeriod.To)
+	})
+
+	t.Run("when the replacement invoice is paid before the detached invoice settles", func(t *testing.T) {
+		// given:
+		// - the previous invoice line still belongs to an unsettled prior run
+		// when:
+		// - billing collects, approves, and settles the replacement invoice
+		// then:
+		// - the charge can reach final based only on the current run settlement
+		clock.FreezeTime(servicePeriod.From)
+		replacementInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.From),
+		})
+		s.NoError(err)
+		s.Len(replacementInvoices, 1)
+		replacementInvoice = replacementInvoices[0]
+		s.NotEqual(invoice.ID, replacementInvoice.ID)
+		s.Require().Len(replacementInvoice.Lines.OrEmpty(), 1)
+		replacementLineID = replacementInvoice.Lines.OrEmpty()[0].GetLineID()
+
+		replacementInvoice, err = s.BillingService.ApproveInvoice(ctx, replacementInvoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, replacementInvoice.Status)
+
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusActiveAwaitingPaymentSettlement)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.Equal(replacementLineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+		priorRun, err := charge.Realizations.GetByLineID(lineID.ID)
+		s.NoError(err)
+		s.Equal(runID, priorRun.ID)
+		s.Nil(priorRun.Payment)
+
+		replacementInvoice, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+			InvoiceID: replacementInvoice.GetInvoiceID(),
+			Trigger:   billing.TriggerPaid,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaid, replacementInvoice.Status)
+
+		charge = s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusFinal)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.Equal(replacementLineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+		s.Require().NotNil(charge.Realizations.CurrentRun.Payment)
+		s.Equal(payment.StatusSettled, charge.Realizations.CurrentRun.Payment.Status)
+		priorRun, err = charge.Realizations.GetByLineID(lineID.ID)
+		s.NoError(err)
+		s.Equal(runID, priorRun.ID)
+		s.Nil(priorRun.Payment)
+	})
+
+	t.Run("when payment is authorized and settled for the detached invoice line", func(t *testing.T) {
+		// given:
+		// - the replacement charge is already final and the previous invoice payment arrives later
+		// when:
+		// - payment authorization and settlement callbacks arrive asynchronously for the prior invoice
+		// then:
+		// - payment is booked on the prior run without changing the current final run
+		var err error
+		invoice, err = s.BillingService.PaymentAuthorized(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusFinal)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.Equal(replacementLineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+		run, err := charge.Realizations.GetByLineID(lineID.ID)
+		s.NoError(err)
+		s.Require().NotNil(run.Payment)
+		s.Equal(payment.StatusAuthorized, run.Payment.Status)
+		s.NotNil(run.Payment.Authorized)
+		s.Nil(run.Payment.Settled)
+		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "authorization should clear open receivable")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-5), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "authorization should move receivable to authorized")
+
+		invoice, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+			InvoiceID: invoice.GetInvoiceID(),
+			Trigger:   billing.TriggerPaid,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
+
+		charge = s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusFinal)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.Equal(replacementLineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+		run, err = charge.Realizations.GetByLineID(lineID.ID)
+		s.NoError(err)
+		s.Require().NotNil(run.Payment)
+		s.Equal(payment.StatusSettled, run.Payment.Status)
+		s.NotNil(run.Payment.Authorized)
+		s.NotNil(run.Payment.Settled)
+		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "settlement should keep open receivable cleared")
+		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "settlement should clear authorized receivable")
 	})
 }
 
@@ -1993,6 +2465,509 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteActiveCha
 		s.NotNil(allLines[0].DeletedAt)
 		s.RequireChargeStatus(flatFeeChargeID, flatfee.StatusDeleted)
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPatchReplacesPendingGatheringLineWithProratedAmount() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-shrink-extend-gathering")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-03-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	shrunkServicePeriodTo := datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime()
+	extendedServicePeriodTo := datetime.MustParseTimeInLocation(t, "2026-04-01T00:00:00Z", time.UTC).AsTime()
+	extendedInvoiceAt := datetime.MustParseTimeInLocation(t, "2026-04-02T00:00:00Z", time.UTC).AsTime()
+
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
+
+	var (
+		flatFeeChargeID     meta.ChargeID
+		firstGatheringLine  string
+		ledgerSnapshotInput = LedgerSnapshotInput{
+			Namespace: ns,
+			Customer:  cust.GetID(),
+			Currency:  USD,
+			CostBasis: mo.None[*alpacadecimal.Decimal](),
+		}
+		startLedger = s.CreateLedgerSnapshot(ledgerSnapshotInput)
+	)
+
+	t.Run("given a credit-then-invoice flat fee charge with a pending gathering line", func(t *testing.T) {
+		// given:
+		// - a ledger-backed customer has no credit allocations or invoice bookings
+		// when:
+		// - a prorated credit-then-invoice flat fee charge is created for a future service period
+		// then:
+		// - billing has one active gathering line for the charge and the ledger remains unchanged
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(120),
+						PaymentTerm: productcatalog.InArrearsPaymentTerm,
+					}),
+					Name:              "flatfee-credit-then-invoice-shrink-extend-gathering",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "flatfee-credit-then-invoice-shrink-extend-gathering",
+					ProRating: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		flatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+		s.Equal(alpacadecimal.NewFromInt(120), flatFeeCharge.State.AmountAfterProration)
+
+		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
+		firstGatheringLine = activeLine.ID
+		s.Equal(servicePeriod, activeLine.ServicePeriod)
+		s.Equal(servicePeriod.To, activeLine.InvoiceAt)
+		flatPrice, err := activeLine.Price.AsFlat()
+		s.NoError(err)
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(120), flatPrice.Amount, "full period flat fee amount should be preserved")
+		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
+	})
+
+	t.Run("when the charge is shrunk before collection", func(t *testing.T) {
+		// given:
+		// - the charge is still represented only by a pending gathering line
+		// when:
+		// - the charge is shrunk to half of the original service period
+		// then:
+		// - the pending gathering line is replaced with a prorated half amount
+		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			NewServicePeriodTo:     shrunkServicePeriodTo,
+			NewFullServicePeriodTo: servicePeriod.To,
+			NewBillingPeriodTo:     shrunkServicePeriodTo,
+			NewInvoiceAt:           shrunkServicePeriodTo,
+		})
+		s.NoError(err)
+		s.NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: cust.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				flatFeeChargeID.ID: patch,
+			},
+		}))
+
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
+		s.Equal(shrunkServicePeriodTo, charge.Intent.ServicePeriod.To)
+		shrunkAmount, err := alpacadecimal.NewFromString("63.05")
+		s.NoError(err)
+		s.AssertDecimalEqual(shrunkAmount, charge.State.AmountAfterProration, "charge state amount should be prorated for the shrunk period")
+
+		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
+		s.NotEqual(firstGatheringLine, activeLine.ID)
+		s.Equal(servicePeriod.From, activeLine.ServicePeriod.From)
+		s.Equal(shrunkServicePeriodTo, activeLine.ServicePeriod.To)
+		s.Equal(shrunkServicePeriodTo, activeLine.InvoiceAt)
+		flatPrice, err := activeLine.Price.AsFlat()
+		s.NoError(err)
+		s.AssertDecimalEqual(shrunkAmount, flatPrice.Amount, "shrunk gathering line should carry the prorated amount")
+		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
+	})
+
+	t.Run("when the charge is extended before collection", func(t *testing.T) {
+		// given:
+		// - the charge is still represented only by a pending gathering line
+		// when:
+		// - the charge is extended beyond the original full service period
+		// then:
+		// - the pending gathering line is replaced and capped at the full flat fee amount
+		s.mustExtendChargeWithInvoiceAt(ctx, cust.GetID(), flatFeeChargeID, extendedServicePeriodTo, extendedInvoiceAt)
+
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
+		s.Equal(extendedServicePeriodTo, charge.Intent.ServicePeriod.To)
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(120), charge.State.AmountAfterProration, "extension past full period should not exceed the full flat fee amount")
+
+		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
+		s.Equal(servicePeriod.From, activeLine.ServicePeriod.From)
+		s.Equal(extendedServicePeriodTo, activeLine.ServicePeriod.To)
+		s.Equal(extendedInvoiceAt, activeLine.InvoiceAt)
+		flatPrice, err := activeLine.Price.AsFlat()
+		s.NoError(err)
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(120), flatPrice.Amount, "extended gathering line should carry the capped full amount")
+		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchUpdatesMutableStandardLineInPlace() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-shrink-mutable-standard")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	shrunkServicePeriodTo := datetime.MustParseTimeInLocation(t, "2026-01-16T00:00:00Z", time.UTC).AsTime()
+
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
+
+	var (
+		flatFeeChargeID meta.ChargeID
+		invoice         billing.StandardInvoice
+		lineID          billing.LineID
+		runID           flatfee.RealizationRunID
+	)
+
+	t.Run("given a mutable standard invoice line", func(t *testing.T) {
+		// given:
+		// - a credit-then-invoice flat fee charge has no credits or invoice accrual
+		// when:
+		// - billing collects the pending line into a draft invoice
+		// then:
+		// - the current run is mutable and attached to the draft standard line
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(31),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					Name:              "flatfee-credit-then-invoice-shrink-mutable-standard",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "flatfee-credit-then-invoice-shrink-mutable-standard",
+					ProRating: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		flatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+
+		clock.FreezeTime(servicePeriod.From)
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.From),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		invoice = invoices[0]
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+
+		line := invoice.Lines.OrEmpty()[0]
+		lineID = line.GetLineID()
+		s.Equal(servicePeriod, line.Period)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount: 31,
+			Total:  31,
+		}, line.Totals)
+
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusActiveRealizationProcessing)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		runID = charge.Realizations.CurrentRun.ID
+		s.Equal(lineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+		s.False(charge.Realizations.CurrentRun.Immutable)
+		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
+		s.Nil(charge.Realizations.CurrentRun.Payment)
+	})
+
+	t.Run("when the charge is shrunk while the standard line is still mutable", func(t *testing.T) {
+		// given:
+		// - the current run is backed by a mutable draft standard line
+		// when:
+		// - the charge is shrunk to an earlier service-period end
+		// then:
+		// - the invoice updater updates the same standard line in place
+		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			NewServicePeriodTo:     shrunkServicePeriodTo,
+			NewFullServicePeriodTo: servicePeriod.To,
+			NewBillingPeriodTo:     shrunkServicePeriodTo,
+			NewInvoiceAt:           servicePeriod.From,
+		})
+		s.NoError(err)
+		s.NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: cust.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				flatFeeChargeID.ID: patch,
+			},
+		}))
+
+		fetchedInvoice, err := s.BillingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand: billing.InvoiceExpands{
+				billing.InvoiceExpandLines,
+				billing.InvoiceExpandDeletedLines,
+			},
+		})
+		s.NoError(err)
+
+		standardInvoice, err := fetchedInvoice.AsStandardInvoice()
+		s.NoError(err)
+		s.Len(standardInvoice.Lines.OrEmpty(), 1)
+
+		line := standardInvoice.Lines.GetByID(lineID.ID)
+		s.Require().NotNil(line)
+		s.Nil(line.DeletedAt)
+		s.Equal(servicePeriod.From, line.Period.From)
+		s.Equal(shrunkServicePeriodTo, line.Period.To)
+		s.Equal(servicePeriod.From, line.InvoiceAt)
+		flatPrice, err := line.UsageBased.Price.AsFlat()
+		s.NoError(err)
+
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusActiveRealizationProcessing)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.Equal(runID, charge.Realizations.CurrentRun.ID)
+		s.Equal(lineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+		s.False(charge.Realizations.CurrentRun.Immutable)
+		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
+		s.Nil(charge.Realizations.CurrentRun.Payment)
+		s.AssertDecimalEqual(charge.State.AmountAfterProration, flatPrice.Amount, "mutable standard line amount should match charge state")
+		s.Empty(s.mustGatheringLinesForCharge(ns, cust.ID, flatFeeChargeID.ID, false))
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrinkExtendShrinkCreatesReplacementGatheringLines() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-immutable-shrink-extend-shrink")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	firstShrinkTo := datetime.MustParseTimeInLocation(t, "2026-01-16T00:00:00Z", time.UTC).AsTime()
+	secondShrinkTo := datetime.MustParseTimeInLocation(t, "2026-01-20T00:00:00Z", time.UTC).AsTime()
+	zeroCostBasis := alpacadecimal.Zero
+
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
+
+	var (
+		flatFeeChargeID meta.ChargeID
+		invoice         billing.StandardInvoice
+		lineID          billing.LineID
+		runID           flatfee.RealizationRunID
+		immutableLedger LedgerSnapshot
+	)
+	ledgerSnapshotInput := LedgerSnapshotInput{
+		Namespace: ns,
+		Customer:  cust.GetID(),
+		Currency:  USD,
+		CostBasis: mo.Some(&zeroCostBasis),
+	}
+
+	t.Run("given a fully credited immutable invoice", func(t *testing.T) {
+		// given:
+		// - a ledger-backed customer has enough credits for the original flat fee
+		// when:
+		// - the invoice is approved
+		// then:
+		// - the invoice line is immutable and its run is current
+		s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+			Namespace: ns,
+			Customer:  cust.GetID(),
+			Amount:    alpacadecimal.NewFromInt(31),
+			At:        setupAt,
+			CostBasis: zeroCostBasis,
+		})
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(31),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					Name:              "flatfee-credit-then-invoice-immutable-shrink-extend-shrink",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "flatfee-credit-then-invoice-immutable-shrink-extend-shrink",
+					ProRating: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		flatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+
+		clock.FreezeTime(servicePeriod.From)
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.From),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		invoice = invoices[0]
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+		lineID = invoice.Lines.OrEmpty()[0].GetLineID()
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusFinal)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		runID = charge.Realizations.CurrentRun.ID
+		s.True(charge.Realizations.CurrentRun.Immutable)
+		s.Equal(lineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+		immutableLedger = s.CreateLedgerSnapshot(ledgerSnapshotInput)
+	})
+
+	t.Run("when the immutable invoice is shrunk", func(t *testing.T) {
+		// given:
+		// - the current run is backed by an immutable invoice line
+		// when:
+		// - the charge is shrunk to a smaller amount
+		// then:
+		// - the prior invoice remains, the run is detached, and a replacement gathering line is created
+		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			NewServicePeriodTo:     firstShrinkTo,
+			NewFullServicePeriodTo: servicePeriod.To,
+			NewBillingPeriodTo:     firstShrinkTo,
+			NewInvoiceAt:           servicePeriod.From,
+		})
+		s.NoError(err)
+		s.NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: cust.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				flatFeeChargeID.ID: patch,
+			},
+		}))
+
+		fetchedInvoice, err := s.BillingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand: billing.InvoiceExpands{
+				billing.InvoiceExpandLines,
+			},
+		})
+		s.NoError(err)
+		standardInvoice, err := fetchedInvoice.AsStandardInvoice()
+		s.NoError(err)
+		line := standardInvoice.Lines.GetByID(lineID.ID)
+		s.Require().NotNil(line)
+		s.Nil(line.DeletedAt)
+		s.Require().Len(standardInvoice.ValidationIssues, 1)
+		s.Equal(billing.ImmutableInvoiceHandlingNotSupportedErrorCode, standardInvoice.ValidationIssues[0].Code)
+
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
+		s.Nil(charge.Realizations.CurrentRun)
+		run, err := charge.Realizations.GetByLineID(lineID.ID)
+		s.NoError(err)
+		s.Equal(runID, run.ID)
+		s.True(run.Immutable)
+
+		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
+		s.Equal(servicePeriod.From, activeLine.ServicePeriod.From)
+		s.Equal(firstShrinkTo, activeLine.ServicePeriod.To)
+		s.Equal(servicePeriod.From, activeLine.InvoiceAt)
+		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, immutableLedger)
+	})
+
+	t.Run("when the replacement gathering line is extended and shrunk again", func(t *testing.T) {
+		// given:
+		// - the immutable invoice history is detached and only a replacement gathering line is mutable
+		// when:
+		// - the charge is extended back to the full period and then shrunk again
+		// then:
+		// - only the replacement gathering line is recreated, while immutable ledger history stays unchanged
+		extendPatch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
+			NewServicePeriodTo:     servicePeriod.To,
+			NewFullServicePeriodTo: servicePeriod.To,
+			NewBillingPeriodTo:     servicePeriod.To,
+			NewInvoiceAt:           servicePeriod.From,
+		})
+		s.NoError(err)
+		s.NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: cust.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				flatFeeChargeID.ID: extendPatch,
+			},
+		}))
+
+		extendedCharge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
+		s.Nil(extendedCharge.Realizations.CurrentRun)
+		extendedLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
+		s.Equal(servicePeriod, extendedLine.ServicePeriod)
+
+		shrinkPatch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			NewServicePeriodTo:     secondShrinkTo,
+			NewFullServicePeriodTo: servicePeriod.To,
+			NewBillingPeriodTo:     secondShrinkTo,
+			NewInvoiceAt:           servicePeriod.From,
+		})
+		s.NoError(err)
+		s.NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: cust.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				flatFeeChargeID.ID: shrinkPatch,
+			},
+		}))
+
+		shrunkCharge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
+		s.Nil(shrunkCharge.Realizations.CurrentRun)
+		run, err := shrunkCharge.Realizations.GetByLineID(lineID.ID)
+		s.NoError(err)
+		s.Equal(runID, run.ID)
+		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
+		s.Equal(servicePeriod.From, activeLine.ServicePeriod.From)
+		s.Equal(secondShrinkTo, activeLine.ServicePeriod.To)
+		s.Equal(servicePeriod.From, activeLine.InvoiceAt)
+		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, immutableLedger)
 	})
 }
 

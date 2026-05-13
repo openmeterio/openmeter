@@ -66,6 +66,8 @@ type ChargeFlatFeeRun struct {
 	AmountAfterProration alpacadecimal.Decimal `json:"amount_after_proration,omitempty"`
 	// NoFiatTransactionRequired holds the value of the "no_fiat_transaction_required" field.
 	NoFiatTransactionRequired bool `json:"no_fiat_transaction_required,omitempty"`
+	// Immutable holds the value of the "immutable" field.
+	Immutable bool `json:"immutable,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeFlatFeeRunQuery when eager-loading is set.
 	Edges        ChargeFlatFeeRunEdges `json:"edges"`
@@ -173,7 +175,7 @@ func (*ChargeFlatFeeRun) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeflatfeerun.FieldAmount, chargeflatfeerun.FieldTaxesTotal, chargeflatfeerun.FieldTaxesInclusiveTotal, chargeflatfeerun.FieldTaxesExclusiveTotal, chargeflatfeerun.FieldChargesTotal, chargeflatfeerun.FieldDiscountsTotal, chargeflatfeerun.FieldCreditsTotal, chargeflatfeerun.FieldTotal, chargeflatfeerun.FieldAmountAfterProration:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeflatfeerun.FieldNoFiatTransactionRequired:
+		case chargeflatfeerun.FieldNoFiatTransactionRequired, chargeflatfeerun.FieldImmutable:
 			values[i] = new(sql.NullBool)
 		case chargeflatfeerun.FieldID, chargeflatfeerun.FieldNamespace, chargeflatfeerun.FieldChargeID, chargeflatfeerun.FieldType, chargeflatfeerun.FieldInitialType, chargeflatfeerun.FieldLineID, chargeflatfeerun.FieldInvoiceID:
 			values[i] = new(sql.NullString)
@@ -329,6 +331,12 @@ func (_m *ChargeFlatFeeRun) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.NoFiatTransactionRequired = value.Bool
 			}
+		case chargeflatfeerun.FieldImmutable:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field immutable", values[i])
+			} else if value.Valid {
+				_m.Immutable = value.Bool
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -468,6 +476,9 @@ func (_m *ChargeFlatFeeRun) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("no_fiat_transaction_required=")
 	builder.WriteString(fmt.Sprintf("%v", _m.NoFiatTransactionRequired))
+	builder.WriteString(", ")
+	builder.WriteString("immutable=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Immutable))
 	builder.WriteByte(')')
 	return builder.String()
 }

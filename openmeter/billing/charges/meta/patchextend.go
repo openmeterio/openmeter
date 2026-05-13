@@ -94,6 +94,10 @@ func (p PatchExtend) GetNewInvoiceAt() time.Time {
 	return p.newInvoiceAt
 }
 
+func (p PatchExtend) Op() PatchType {
+	return PatchTypeExtend
+}
+
 func (p PatchExtend) Trigger() stateless.Trigger {
 	return TriggerExtend
 }

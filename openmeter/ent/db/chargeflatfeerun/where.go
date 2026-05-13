@@ -162,6 +162,11 @@ func NoFiatTransactionRequired(v bool) predicate.ChargeFlatFeeRun {
 	return predicate.ChargeFlatFeeRun(sql.FieldEQ(FieldNoFiatTransactionRequired, v))
 }
 
+// Immutable applies equality check predicate on the "immutable" field. It's identical to ImmutableEQ.
+func Immutable(v bool) predicate.ChargeFlatFeeRun {
+	return predicate.ChargeFlatFeeRun(sql.FieldEQ(FieldImmutable, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.ChargeFlatFeeRun {
 	return predicate.ChargeFlatFeeRun(sql.FieldEQ(FieldNamespace, v))
@@ -1080,6 +1085,16 @@ func NoFiatTransactionRequiredEQ(v bool) predicate.ChargeFlatFeeRun {
 // NoFiatTransactionRequiredNEQ applies the NEQ predicate on the "no_fiat_transaction_required" field.
 func NoFiatTransactionRequiredNEQ(v bool) predicate.ChargeFlatFeeRun {
 	return predicate.ChargeFlatFeeRun(sql.FieldNEQ(FieldNoFiatTransactionRequired, v))
+}
+
+// ImmutableEQ applies the EQ predicate on the "immutable" field.
+func ImmutableEQ(v bool) predicate.ChargeFlatFeeRun {
+	return predicate.ChargeFlatFeeRun(sql.FieldEQ(FieldImmutable, v))
+}
+
+// ImmutableNEQ applies the NEQ predicate on the "immutable" field.
+func ImmutableNEQ(v bool) predicate.ChargeFlatFeeRun {
+	return predicate.ChargeFlatFeeRun(sql.FieldNEQ(FieldImmutable, v))
 }
 
 // HasFlatFee applies the HasEdge predicate on the "flat_fee" edge.
