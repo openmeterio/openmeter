@@ -70,6 +70,8 @@ type CustomerReceivableAccount interface {
 
 // CustomerReceivableRouteParams are routing parameters specific to customer receivable sub-accounts.
 // TransactionAuthorizationStatus is required; callers must explicitly select the open or authorized route.
+// TaxBehavior is intentionally absent: it is an FBO-only routing dimension and receivable sub-accounts
+// never carry it.
 type CustomerReceivableRouteParams struct {
 	Currency                       currencyx.Code
 	TaxCode                        *string
@@ -134,6 +136,7 @@ type BusinessAccount interface {
 
 type BusinessRouteParams struct {
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 }
 
@@ -144,6 +147,7 @@ func (p BusinessRouteParams) Validate() error {
 func (p BusinessRouteParams) Route() Route {
 	return Route{
 		Currency:  p.Currency,
+		TaxCode:   p.TaxCode,
 		CostBasis: p.CostBasis,
 	}
 }

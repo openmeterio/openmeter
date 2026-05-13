@@ -163,7 +163,7 @@ func mustEntryData(t *testing.T, id string, accountType ledger.AccountType, curr
 	t.Helper()
 
 	route := ledger.Route{Currency: currency}
-	key, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, route)
+	key, err := ledger.BuildRoutingKey(route)
 	require.NoError(t, err)
 
 	return ledgerhistorical.EntryData{

@@ -18,14 +18,13 @@ func TestBuildRoutingKeyV1(t *testing.T) {
 
 	key, err := BuildRoutingKeyV1(Route{
 		TaxCode:        &taxcode,
-		TaxBehavior:    nil,
 		Currency:       currencyx.Code("USD"),
 		CostBasis:      &costBasis,
 		CreditPriority: &priority,
 	})
 	require.NoError(t, err)
 	require.Equal(t, RoutingKeyVersionV1, key.Version())
-	require.Equal(t, "currency:USD|tax_code:GST10|tax_behavior:null|features:null|cost_basis:0.7|credit_priority:7|transaction_authorization_status:null", key.Value())
+	require.Equal(t, "currency:USD|tax_code:GST10|features:null|cost_basis:0.7|credit_priority:7|transaction_authorization_status:null", key.Value())
 }
 
 func TestBuildRoutingKeyV1_Nulls(t *testing.T) {
@@ -33,7 +32,7 @@ func TestBuildRoutingKeyV1_Nulls(t *testing.T) {
 		Currency: currencyx.Code("USD"),
 	})
 	require.NoError(t, err)
-	require.Equal(t, "currency:USD|tax_code:null|tax_behavior:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
+	require.Equal(t, "currency:USD|tax_code:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
 }
 
 func TestBuildRoutingKeyV1_SameLiterals_SameKey(t *testing.T) {
@@ -66,7 +65,7 @@ func TestBuildRoutingKeyV1_WithTaxCodeAndFeatures(t *testing.T) {
 	})
 	require.NoError(t, err)
 	// Features are sorted canonically
-	require.Equal(t, "currency:USD|tax_code:VAT20|tax_behavior:null|features:feat-a,feat-b|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
+	require.Equal(t, "currency:USD|tax_code:VAT20|features:feat-a,feat-b|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
 }
 
 func TestBuildRoutingKeyV1_EmptyFeatures(t *testing.T) {
@@ -75,7 +74,7 @@ func TestBuildRoutingKeyV1_EmptyFeatures(t *testing.T) {
 		Features: []string{},
 	})
 	require.NoError(t, err)
-	require.Equal(t, "currency:USD|tax_code:null|tax_behavior:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
+	require.Equal(t, "currency:USD|tax_code:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
 }
 
 func TestBuildRoutingKeyV1_DifferentPriority_DifferentKey(t *testing.T) {
@@ -94,7 +93,7 @@ func TestBuildRoutingKeyV1_CanonicalizesCostBasis(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, key1.Value(), key2.Value())
-	require.Equal(t, "currency:USD|tax_code:null|tax_behavior:null|features:null|cost_basis:0.7|credit_priority:null|transaction_authorization_status:null", key1.Value())
+	require.Equal(t, "currency:USD|tax_code:null|features:null|cost_basis:0.7|credit_priority:null|transaction_authorization_status:null", key1.Value())
 }
 
 func TestBuildRoutingKeyV1_DifferentAuthorizationStatus_DifferentKey(t *testing.T) {
@@ -110,27 +109,21 @@ func TestBuildRoutingKeyV1_DifferentAuthorizationStatus_DifferentKey(t *testing.
 	require.NoError(t, err)
 
 	require.NotEqual(t, key1.Value(), key2.Value())
-	require.Equal(t, "currency:USD|tax_code:null|tax_behavior:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:authorized", key2.Value())
+	require.Equal(t, "currency:USD|tax_code:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:authorized", key2.Value())
 }
 
-func TestBuildRoutingKeyV1_DifferentTaxBehavior_DifferentKey(t *testing.T) {
-	base := Route{Currency: currencyx.Code("USD"), TaxCode: lo.ToPtr("GST10")}
+func TestBuildRoutingKeyV2_DifferentTaxBehavior_DifferentKey(t *testing.T) {
+	base := Route{Currency: currencyx.Code("USD"), TaxCode: lo.ToPtr("GST10"), TaxBehavior: lo.ToPtr(TaxBehaviorInclusive)}
 
-	keyNil, err := BuildRoutingKeyV1(base)
+	k1, err := BuildRoutingKeyV2(base)
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV2, k1.Version())
+
+	exclusive := base
+	exclusive.TaxBehavior = lo.ToPtr(TaxBehaviorExclusive)
+	k2, err := BuildRoutingKeyV2(exclusive)
 	require.NoError(t, err)
 
-	keyInclusive := base
-	keyInclusive.TaxBehavior = lo.ToPtr(TaxBehaviorInclusive)
-	k1, err := BuildRoutingKeyV1(keyInclusive)
-	require.NoError(t, err)
-
-	keyExclusive := base
-	keyExclusive.TaxBehavior = lo.ToPtr(TaxBehaviorExclusive)
-	k2, err := BuildRoutingKeyV1(keyExclusive)
-	require.NoError(t, err)
-
-	require.NotEqual(t, keyNil.Value(), k1.Value())
-	require.NotEqual(t, keyNil.Value(), k2.Value())
 	require.NotEqual(t, k1.Value(), k2.Value())
 }
 
@@ -237,12 +230,13 @@ func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {
 	return value
 }
 
-func TestBuildRoutingKeyV1_WithTaxBehaviorAndTaxCode(t *testing.T) {
-	key, err := BuildRoutingKeyV1(Route{
+func TestBuildRoutingKeyV2_WithTaxBehaviorAndTaxCode(t *testing.T) {
+	key, err := BuildRoutingKeyV2(Route{
 		Currency:    currencyx.Code("USD"),
 		TaxCode:     lo.ToPtr("GST10"),
 		TaxBehavior: lo.ToPtr(TaxBehaviorExclusive),
 	})
 	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV2, key.Version())
 	require.Equal(t, "currency:USD|tax_code:GST10|tax_behavior:exclusive|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
 }

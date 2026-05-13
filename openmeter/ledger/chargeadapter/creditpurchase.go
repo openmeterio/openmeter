@@ -202,6 +202,11 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 		issuableAmount = alpacadecimal.Zero
 	}
 
+	var taxCodeID *string
+	if charge.Intent.TaxConfig != nil {
+		taxCodeID = charge.Intent.TaxConfig.TaxCodeID
+	}
+
 	var templates []transactions.TransactionTemplate
 
 	if advanceAttributionAmount.IsPositive() {
@@ -209,6 +214,7 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 			At:        charge.CreatedAt,
 			Amount:    advanceAttributionAmount,
 			Currency:  charge.Intent.Currency,
+			TaxCode:   taxCodeID,
 			CostBasis: &costBasis,
 		})
 	}
@@ -218,19 +224,26 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 			At:            charge.CreatedAt,
 			Amount:        accruedAttributionAmount,
 			Currency:      charge.Intent.Currency,
+			TaxCode:       taxCodeID,
 			FromCostBasis: nil,
 			ToCostBasis:   &costBasis,
 		})
 	}
 
 	if issuableAmount.IsPositive() {
-		templates = append(templates, transactions.IssueCustomerReceivableTemplate{
+		tmpl := transactions.IssueCustomerReceivableTemplate{
 			At:             charge.CreatedAt,
 			Amount:         issuableAmount,
 			Currency:       charge.Intent.Currency,
+			TaxCode:        taxCodeID,
 			CostBasis:      &costBasis,
 			CreditPriority: charge.Intent.Priority,
-		})
+		}
+		if charge.Intent.TaxConfig != nil && charge.Intent.TaxConfig.Behavior != nil {
+			b := ledger.TaxBehavior(*charge.Intent.TaxConfig.Behavior)
+			tmpl.TaxBehavior = &b
+		}
+		templates = append(templates, tmpl)
 	}
 
 	switch charge.Intent.Settlement.Type() {
@@ -242,12 +255,14 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 				At:        charge.CreatedAt,
 				Amount:    charge.Intent.CreditAmount,
 				Currency:  charge.Intent.Currency,
+				TaxCode:   taxCodeID,
 				CostBasis: &costBasis,
 			},
 			transactions.SettleCustomerReceivableFromPaymentTemplate{
 				At:        charge.CreatedAt,
 				Amount:    charge.Intent.CreditAmount,
 				Currency:  charge.Intent.Currency,
+				TaxCode:   taxCodeID,
 				CostBasis: &costBasis,
 			},
 		)

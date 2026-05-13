@@ -267,7 +267,7 @@ func newSubAccount(namespace, accountID string, route ledger.Route) *ledgeraccou
 	}
 
 	accountType := accountTypeForRoute(normalizedRoute)
-	routingKey, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, normalizedRoute)
+	routingKey, err := ledger.BuildRoutingKey(normalizedRoute)
 	if err != nil {
 		return &ledgeraccount.SubAccount{}
 	}

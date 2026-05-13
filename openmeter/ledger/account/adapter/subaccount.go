@@ -74,7 +74,7 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		return nil, fmt.Errorf("failed to normalize route: %w", err)
 	}
 
-	routeKey, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, normalizedRoute)
+	routeKey, err := ledger.BuildRoutingKey(normalizedRoute)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build routing key: %w", err)
 	}

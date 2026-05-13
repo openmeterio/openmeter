@@ -14,11 +14,12 @@ import (
 
 // IssueCustomerReceivableTemplate is a transaction increasing the customer's balance against an outstanding receivable account
 type IssueCustomerReceivableTemplate struct {
-	At        time.Time
-	Amount    alpacadecimal.Decimal
-	Currency  currencyx.Code
-	TaxCode   *string
-	CostBasis *alpacadecimal.Decimal
+	At          time.Time
+	Amount      alpacadecimal.Decimal
+	Currency    currencyx.Code
+	TaxCode     *string
+	TaxBehavior *ledger.TaxBehavior
+	CostBasis   *alpacadecimal.Decimal
 	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
 	CreditPriority *int
 }
@@ -118,6 +119,7 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       t.Currency,
 		TaxCode:        t.TaxCode,
+		TaxBehavior:    t.TaxBehavior,
 		CostBasis:      t.CostBasis,
 		CreditPriority: priority,
 	})
@@ -333,6 +335,7 @@ type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 }
 
@@ -422,6 +425,7 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 
 	advanceReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		TaxCode:                        t.TaxCode,
 		CostBasis:                      nil,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -431,6 +435,7 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 
 	attributedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		TaxCode:                        t.TaxCode,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})

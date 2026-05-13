@@ -36,6 +36,8 @@ type CollectToAccruedInput struct {
 	SettlementMode productcatalog.SettlementMode
 	ServicePeriod  timeutil.ClosedPeriod
 	Amount         alpacadecimal.Decimal
+	TaxCode        *string
+	TaxBehavior    *ledger.TaxBehavior
 }
 
 type CorrectCollectedAccruedInput struct {

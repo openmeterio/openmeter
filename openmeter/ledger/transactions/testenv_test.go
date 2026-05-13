@@ -133,6 +133,7 @@ func (e *transactionsTestEnv) fundPriorityWithTaxParams(t *testing.T, priority i
 			Amount:         alpacadecimal.NewFromInt(amount),
 			Currency:       e.Currency,
 			TaxCode:        taxCode,
+			TaxBehavior:    taxBehavior,
 			CostBasis:      costBasis,
 			CreditPriority: &priority,
 		},
