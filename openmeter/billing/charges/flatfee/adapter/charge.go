@@ -302,9 +302,10 @@ func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithI
 	}
 
 	create, err = chargemeta.Create[*db.ChargeFlatFeeCreate](create, chargemeta.CreateInput{
-		Namespace: ns,
-		Intent:    intent.Intent.Intent,
-		Status:    metaStatus,
+		Namespace:    ns,
+		Intent:       intent.Intent.Intent,
+		Status:       metaStatus,
+		AdvanceAfter: meta.NormalizeOptionalTimestamp(intent.InitialAdvanceAfter),
 	})
 	if err != nil {
 		return nil, err

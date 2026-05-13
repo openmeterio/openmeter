@@ -7,7 +7,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -15,7 +14,6 @@ import (
 type Service interface {
 	FlatFeeService
 	GetLineEngine() billing.LineEngine
-	InvoiceLifecycleHooks
 }
 
 type FlatFeeService interface {
@@ -24,13 +22,6 @@ type FlatFeeService interface {
 	GetByID(ctx context.Context, input GetByIDInput) (Charge, error)
 	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (*Charge, error)
 	TriggerPatch(ctx context.Context, charge meta.ChargeID, patch meta.Patch) (meta.TriggerPatchResult[Charge], error)
-}
-
-type InvoiceLifecycleHooks interface {
-	PostLineAssignedToInvoice(ctx context.Context, charge Charge, line billing.StandardLine) (creditrealization.Realizations, error)
-	PostInvoiceIssued(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
-	PostInvoicePaymentAuthorized(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
-	PostInvoicePaymentSettled(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 }
 
 type CreateInput struct {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -28,6 +29,7 @@ type Adapter interface {
 type ChargeAdapter interface {
 	CreateCharges(ctx context.Context, charges CreateChargesInput) ([]Charge, error)
 	ProvisionCurrentRun(ctx context.Context, input ProvisionCurrentRunInput) (RealizationRunBase, error)
+	AssignCurrentRunInvoiceLine(ctx context.Context, input AssignCurrentRunInvoiceLineInput) (RealizationRunBase, error)
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
@@ -96,10 +98,35 @@ func (i CreateInvoicedUsageInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type AssignCurrentRunInvoiceLineInput struct {
+	ChargeID  meta.ChargeID
+	LineID    string
+	InvoiceID string
+}
+
+func (i AssignCurrentRunInvoiceLineInput) Validate() error {
+	var errs []error
+
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
+	}
+
+	if i.InvoiceID == "" {
+		errs = append(errs, fmt.Errorf("invoice ID is required"))
+	}
+
+	if i.LineID == "" {
+		errs = append(errs, fmt.Errorf("line ID is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type IntentWithInitialStatus struct {
 	Intent
 	FeatureID                 *string
 	InitialStatus             Status
+	InitialAdvanceAfter       *time.Time
 	AmountAfterProration      alpacadecimal.Decimal
 	NoFiatTransactionRequired bool
 }
@@ -116,6 +143,10 @@ func (i IntentWithInitialStatus) Validate() error {
 
 	if err := i.InitialStatus.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("initial status: %w", err))
+	}
+
+	if i.InitialAdvanceAfter != nil && i.InitialAdvanceAfter.IsZero() {
+		errs = append(errs, fmt.Errorf("initial advance after cannot be zero"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

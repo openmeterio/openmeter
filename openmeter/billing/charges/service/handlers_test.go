@@ -214,6 +214,18 @@ func newCountedLedgerTransactionCallback[T any]() *countedLedgerTransactionCallb
 	}
 }
 
+type countedCreditAllocationCallback[T any] struct {
+	nrInvocations int
+	id            string
+}
+
+func newCountedCreditAllocationCallback[T any]() *countedCreditAllocationCallback[T] {
+	return &countedCreditAllocationCallback[T]{
+		nrInvocations: 0,
+		id:            ulid.Make().String(),
+	}
+}
+
 func newCappedCreditAllocator(availableCredits float64) (func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error), *alpacadecimal.Decimal) {
 	remainingCredits := alpacadecimal.NewFromFloat(availableCredits)
 
@@ -250,5 +262,18 @@ func (c *countedLedgerTransactionCallback[T]) Handler(t *testing.T, asserts ...a
 		return ledgertransaction.GroupReference{
 			TransactionGroupID: c.id,
 		}, nil
+	}
+}
+
+func (c *countedCreditAllocationCallback[T]) Handler(t *testing.T, allocations func(T, ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs, asserts ...assertFunc[T]) func(ctx context.Context, t T) (creditrealization.CreateAllocationInputs, error) {
+	return func(ctx context.Context, arg T) (creditrealization.CreateAllocationInputs, error) {
+		c.nrInvocations++
+		for _, assert := range asserts {
+			assert(t, arg)
+		}
+
+		return allocations(arg, ledgertransaction.GroupReference{
+			TransactionGroupID: c.id,
+		}), nil
 	}
 }

@@ -4,10 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -62,33 +67,28 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 
 	chargesByID := make(map[string]flatfee.Charge, len(input.Lines))
 	for _, stdLine := range input.Lines {
-		chargeID := stdLine.ChargeID
-		if chargeID == nil {
-			return nil, fmt.Errorf("flat fee standard line[%s]: charge id is required", stdLine.ID)
+		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
+		if err != nil {
+			return nil, err
 		}
 
-		charge, err := e.service.GetByID(ctx, flatfee.GetByIDInput{
-			ChargeID: meta.ChargeID{
-				Namespace: stdLine.Namespace,
-				ID:        *chargeID,
-			},
-			Expands: meta.Expands{
-				meta.ExpandRealizations,
-			},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("getting flat fee charge for line[%s]: %w", stdLine.ID, err)
+		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+			return nil, fmt.Errorf("advancing flat fee charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
+
+		if err := stateMachine.FireAndActivate(ctx, meta.TriggerFinalInvoiceCreated, billing.StandardLineWithInvoiceHeader{
+			Line:    stdLine,
+			Invoice: input.Invoice,
+		}); err != nil {
+			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerFinalInvoiceCreated, stateMachine.GetCharge().ID, err)
+		}
+
+		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+			return nil, fmt.Errorf("advancing flat fee charge[%s] after %s: %w", stateMachine.GetCharge().ID, meta.TriggerFinalInvoiceCreated, err)
+		}
+
+		charge := stateMachine.GetCharge()
 		chargesByID[charge.ID] = charge
-
-		realizations, err := e.service.PostLineAssignedToInvoice(ctx, charge, *stdLine)
-		if err != nil {
-			return nil, fmt.Errorf("allocating credits for line[%s]: %w", stdLine.ID, err)
-		}
-
-		if len(realizations) > 0 {
-			stdLine.CreditsApplied = convertCreditRealizations(realizations)
-		}
 	}
 
 	lines, err := e.CalculateLines(billing.CalculateLinesInput(input))
@@ -114,11 +114,97 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 	return lines, nil
 }
 
-func (e *LineEngine) OnCollectionCompleted(_ context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {
+func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
+	}
+
+	for _, stdLine := range input.Lines {
+		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
+		if err != nil {
+			return nil, err
+		}
+
+		canFire, err := stateMachine.CanFire(ctx, meta.TriggerCollectionCompleted)
+		if err != nil {
+			return nil, fmt.Errorf("checking collection_completed for charge[%s]: %w", stateMachine.GetCharge().ID, err)
+		}
+
+		if !canFire {
+			continue
+		}
+
+		if err := stateMachine.FireAndActivate(ctx, meta.TriggerCollectionCompleted); err != nil {
+			return nil, fmt.Errorf("triggering collection_completed for charge[%s]: %w", stateMachine.GetCharge().ID, err)
+		}
+
+		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+			return nil, fmt.Errorf("advancing flat fee charge[%s] after collection_completed: %w", stateMachine.GetCharge().ID, err)
+		}
+	}
+
 	return input.Lines, nil
 }
 
-func (e *LineEngine) OnMutableStandardLinesDeleted(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {
+func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	chargesByID, err := e.getChargesForMutableStandardLineDelete(ctx, input)
+	if err != nil {
+		return err
+	}
+
+	cleanedChargeIDs := make(map[string]struct{}, len(chargesByID))
+	for _, stdLine := range input.Lines {
+		charge, ok := chargesByID[*stdLine.ChargeID]
+		if !ok {
+			return fmt.Errorf("flat fee charge[%s] not found for deleted standard line[%s]", *stdLine.ChargeID, stdLine.ID)
+		}
+
+		if _, ok := cleanedChargeIDs[charge.ID]; ok {
+			continue
+		}
+
+		// Guards and cleanup are per charge, not per line; cleanedChargeIDs dedupes repeated lines.
+		if err := e.cleanChargeForDeletedMutableStandardLine(ctx, *stdLine, charge); err != nil {
+			return err
+		}
+
+		cleanedChargeIDs[charge.ID] = struct{}{}
+	}
+
+	return nil
+}
+
+func (e *LineEngine) cleanChargeForDeletedMutableStandardLine(ctx context.Context, stdLine billing.StandardLine, charge flatfee.Charge) error {
+	if charge.Realizations.CurrentRun != nil && charge.Realizations.CurrentRun.AccruedUsage != nil {
+		return fmt.Errorf("flat fee standard line[%s] cannot be deleted because charge[%s] has invoice accrued allocation", stdLine.ID, charge.ID)
+	}
+
+	if charge.Realizations.CurrentRun != nil && charge.Realizations.CurrentRun.Payment != nil {
+		return fmt.Errorf("flat fee standard line[%s] cannot be deleted because charge[%s] has payment allocation", stdLine.ID, charge.ID)
+	}
+
+	currencyCalculator, err := charge.Intent.Currency.Calculator()
+	if err != nil {
+		return fmt.Errorf("getting currency calculator for charge[%s]: %w", charge.ID, err)
+	}
+
+	if _, err := e.service.realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
+		Charge:             charge,
+		AllocateAt:         clock.Now(),
+		CurrencyCalculator: currencyCalculator,
+	}); err != nil {
+		return fmt.Errorf("correcting credits for deleted flat fee standard line[%s] charge[%s]: %w", stdLine.ID, charge.ID, err)
+	}
+
+	// Passing nil deletes all charge-owned detailed lines for the current run.
+	if err := e.service.adapter.UpsertDetailedLines(ctx, charge.GetChargeID(), nil); err != nil {
+		return fmt.Errorf("deleting detailed lines for deleted flat fee standard line[%s] charge[%s]: %w", stdLine.ID, charge.ID, err)
+	}
+
 	return nil
 }
 
@@ -126,15 +212,176 @@ func (e *LineEngine) OnUnsupportedCreditNote(_ context.Context, _ billing.OnUnsu
 	return nil
 }
 
-func (e *LineEngine) OnInvoiceIssued(_ context.Context, _ billing.OnInvoiceIssuedInput) error {
+func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine *billing.StandardLine) (*CreditThenInvoiceStateMachine, error) {
+	if stdLine == nil {
+		return nil, fmt.Errorf("flat fee standard line is nil")
+	}
+
+	if stdLine.ChargeID == nil || *stdLine.ChargeID == "" {
+		return nil, fmt.Errorf("flat fee standard line[%s]: charge id is required", stdLine.ID)
+	}
+
+	charge, err := e.service.GetByID(ctx, flatfee.GetByIDInput{
+		ChargeID: meta.ChargeID{
+			Namespace: stdLine.Namespace,
+			ID:        *stdLine.ChargeID,
+		},
+		Expands: meta.Expands{
+			meta.ExpandRealizations,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting flat fee charge for line[%s]: %w", stdLine.ID, err)
+	}
+
+	if charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+		return nil, fmt.Errorf(
+			"flat fee standard line[%s]: unsupported settlement mode for standard invoice lifecycle: %s",
+			stdLine.ID,
+			charge.Intent.SettlementMode,
+		)
+	}
+
+	stateMachine, err := e.service.newStateMachine(StateMachineConfig{
+		Charge:       charge,
+		Adapter:      e.service.adapter,
+		Realizations: e.service.realizations,
+		Service:      e.service,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)
+	}
+
+	creditThenInvoiceStateMachine, ok := stateMachine.(*CreditThenInvoiceStateMachine)
+	if !ok {
+		return nil, fmt.Errorf("BUG: flat fee charge[%s]: expected credit_then_invoice state machine, got %T", charge.ID, stateMachine)
+	}
+
+	return creditThenInvoiceStateMachine, nil
+}
+
+func (e *LineEngine) getChargesForMutableStandardLineDelete(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) (map[string]flatfee.Charge, error) {
+	chargeIDs := make([]string, 0, len(input.Lines))
+	seenChargeIDs := make(map[string]struct{}, len(input.Lines))
+
+	for _, stdLine := range input.Lines {
+		if stdLine.ChargeID == nil || *stdLine.ChargeID == "" {
+			return nil, fmt.Errorf("flat fee standard line[%s]: charge id is required", stdLine.ID)
+		}
+
+		if stdLine.Namespace != input.Invoice.Namespace {
+			return nil, fmt.Errorf("flat fee standard line[%s]: namespace %s does not match invoice namespace %s", stdLine.ID, stdLine.Namespace, input.Invoice.Namespace)
+		}
+
+		if _, ok := seenChargeIDs[*stdLine.ChargeID]; ok {
+			continue
+		}
+
+		seenChargeIDs[*stdLine.ChargeID] = struct{}{}
+		chargeIDs = append(chargeIDs, *stdLine.ChargeID)
+	}
+
+	charges, err := e.service.GetByIDs(ctx, flatfee.GetByIDsInput{
+		Namespace: input.Invoice.Namespace,
+		IDs:       chargeIDs,
+		Expands: meta.Expands{
+			meta.ExpandRealizations,
+			meta.ExpandDetailedLines,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting flat fee charges for deleted standard lines: %w", err)
+	}
+
+	return lo.KeyBy(charges, func(charge flatfee.Charge) string {
+		return charge.ID
+	}), nil
+}
+
+func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoiceIssuedInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	for _, stdLine := range input.Lines {
+		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
+		if err != nil {
+			return err
+		}
+
+		if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceIssued, billing.StandardLineWithInvoiceHeader{
+			Line:    stdLine,
+			Invoice: input.Invoice,
+		}); err != nil {
+			return fmt.Errorf("triggering invoice_issued for charge[%s]: %w", stateMachine.GetCharge().ID, err)
+		}
+
+		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+			return fmt.Errorf("advancing flat fee charge[%s] after invoice_issued: %w", stateMachine.GetCharge().ID, err)
+		}
+	}
+
 	return nil
 }
 
-func (e *LineEngine) OnPaymentAuthorized(_ context.Context, _ billing.OnPaymentAuthorizedInput) error {
+func (e *LineEngine) OnPaymentAuthorized(ctx context.Context, input billing.OnPaymentAuthorizedInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	for _, stdLine := range input.Lines {
+		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
+		if err != nil {
+			return err
+		}
+
+		if err := e.service.postInvoicePaymentAuthorized(ctx, stateMachine.GetCharge(), billing.StandardLineWithInvoiceHeader{
+			Line:    stdLine,
+			Invoice: input.Invoice,
+		}); err != nil {
+			return fmt.Errorf("authorizing invoice payment for charge[%s]: %w", stateMachine.GetCharge().ID, err)
+		}
+	}
+
 	return nil
 }
 
-func (e *LineEngine) OnPaymentSettled(_ context.Context, _ billing.OnPaymentSettledInput) error {
+func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPaymentSettledInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	for _, stdLine := range input.Lines {
+		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
+		if err != nil {
+			return err
+		}
+
+		if err := e.service.postInvoicePaymentSettled(ctx, stateMachine.GetCharge(), billing.StandardLineWithInvoiceHeader{
+			Line:    stdLine,
+			Invoice: input.Invoice,
+		}); err != nil {
+			return fmt.Errorf("settling invoice payment for charge[%s]: %w", stateMachine.GetCharge().ID, err)
+		}
+
+		if err := stateMachine.RefetchCharge(ctx); err != nil {
+			return fmt.Errorf("refetching flat fee charge[%s]: %w", stateMachine.GetCharge().ID, err)
+		}
+
+		canFire, err := stateMachine.CanFire(ctx, meta.TriggerAllPaymentsSettled)
+		if err != nil {
+			return fmt.Errorf("checking all_payments_settled for charge[%s]: %w", stateMachine.GetCharge().ID, err)
+		}
+
+		if !canFire {
+			continue
+		}
+
+		if err := stateMachine.FireAndActivate(ctx, meta.TriggerAllPaymentsSettled); err != nil {
+			return fmt.Errorf("triggering all_payments_settled for charge[%s]: %w", stateMachine.GetCharge().ID, err)
+		}
+	}
+
 	return nil
 }
 

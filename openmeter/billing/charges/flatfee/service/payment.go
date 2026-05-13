@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge flatfee.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
+func (s *service) postInvoicePaymentAuthorized(ctx context.Context, charge flatfee.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		if charge.Realizations.CurrentRun == nil {
 			return fmt.Errorf("current run is required")
@@ -57,7 +57,7 @@ func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge flatf
 	})
 }
 
-func (s *service) PostInvoicePaymentSettled(ctx context.Context, charge flatfee.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
+func (s *service) postInvoicePaymentSettled(ctx context.Context, charge flatfee.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		if charge.Realizations.CurrentRun == nil {
 			return fmt.Errorf("current run is required")
@@ -97,12 +97,6 @@ func (s *service) PostInvoicePaymentSettled(ctx context.Context, charge flatfee.
 		}
 
 		charge.Realizations.CurrentRun.Payment = &paymentSettlement
-		charge.Status = flatfee.StatusFinal
-
-		_, err = s.adapter.UpdateCharge(ctx, charge.ChargeBase)
-		if err != nil {
-			return err
-		}
 
 		return nil
 	})

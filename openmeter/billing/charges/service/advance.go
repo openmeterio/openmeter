@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -47,12 +46,7 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 
 		advancedCharges := make(charges.Charges, 0, len(chargesByType.usageBased)+len(chargesByType.flatFees))
 
-		// Advance credit-only flat fee charges
 		for _, charge := range chargesByType.flatFees {
-			if charge.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
-				continue
-			}
-
 			advancedCharge, err := s.flatFeeService.AdvanceCharge(ctx, flatfee.AdvanceChargeInput{
 				ChargeID: charge.GetChargeID(),
 			})

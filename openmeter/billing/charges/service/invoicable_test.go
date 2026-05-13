@@ -236,7 +236,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 			assert.NotNil(t, charge.Realizations.CurrentRun)
 			assert.NotNil(t, charge.Realizations.CurrentRun.AccruedUsage)
 			assert.Nil(t, charge.Realizations.CurrentRun.Payment)
-			assert.Equal(t, flatfee.StatusActive, charge.Status)
+			assert.Equal(t, flatfee.StatusActiveAwaitingPaymentSettlement, charge.Status)
 		})
 
 		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[flatfee.OnInvoiceUsageAccruedInput]()
@@ -269,7 +269,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 
 		// Payment authorization should not be persisted until the payment flow advances past pending.
 		s.Nil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment)
-		s.Equal(flatfee.StatusActive, updatedFlatFeeCharge.Status)
+		s.Equal(flatfee.StatusActiveAwaitingPaymentSettlement, updatedFlatFeeCharge.Status)
 	})
 
 	s.Run("trigger paid authorizes then settles payment", func() {
@@ -282,7 +282,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 			assert.NotNil(t, charge.Realizations.CurrentRun)
 			assert.Nil(t, charge.Realizations.CurrentRun.Payment)
 			assert.NotNil(t, charge.Realizations.CurrentRun.AccruedUsage)
-			assert.Equal(t, flatfee.StatusActive, charge.Status)
+			assert.Equal(t, flatfee.StatusActiveAwaitingPaymentSettlement, charge.Status)
 		})
 
 		settledCallback := newCountedLedgerTransactionCallback[flatfee.Charge]()
@@ -295,7 +295,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 			assert.Nil(t, charge.Realizations.CurrentRun.Payment.Settled)
 			assert.Equal(t, authorizedCallback.id, charge.Realizations.CurrentRun.Payment.Authorized.TransactionGroupID)
 			assert.Equal(t, payment.StatusAuthorized, charge.Realizations.CurrentRun.Payment.Status)
-			assert.Equal(t, flatfee.StatusActive, charge.Status)
+			assert.Equal(t, flatfee.StatusActiveAwaitingPaymentSettlement, charge.Status)
 		})
 
 		invoice, err := s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
@@ -419,13 +419,17 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[flatfee.OnInvoiceUsageAccruedInput]()
 		s.FlatFeeTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T())
 
-		charge := s.mustGetChargeByID(flatFeeChargeID)
-		flatFeeCharge, err := charge.AsFlatFeeCharge()
-		s.NoError(err)
-
-		err = s.Charges.flatFeeService.PostInvoiceIssued(ctx, flatFeeCharge, billing.StandardLineWithInvoiceHeader{
-			Line:    invoice.Lines.OrEmpty()[0],
+		lineEngine := s.Charges.flatFeeService.GetLineEngine()
+		lines, err := lineEngine.OnCollectionCompleted(ctx, billing.OnCollectionCompletedInput{
 			Invoice: invoice,
+			Lines:   invoice.Lines.OrEmpty(),
+		})
+		s.NoError(err)
+		invoice.Lines = billing.NewStandardInvoiceLines(lines)
+
+		err = lineEngine.OnInvoiceIssued(ctx, billing.OnInvoiceIssuedInput{
+			Invoice: invoice,
+			Lines:   invoice.Lines.OrEmpty(),
 		})
 		s.NoError(err)
 		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
@@ -1923,7 +1927,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 
 		s.Equal(flatfee.StatusCreated, fetchedFF.Status)
 		s.Nil(fetchedFF.Realizations.CurrentRun)
-		s.Nil(fetchedFF.State.AdvanceAfter)
+		s.NotNil(fetchedFF.State.AdvanceAfter)
+		s.True(servicePeriod.From.Equal(*fetchedFF.State.AdvanceAfter))
 
 		// Advancing is a noop (clock is before InvoiceAt).
 		advancedCharges := s.mustAdvanceFlatFeeCharges(ctx, cust.GetID())
@@ -2084,6 +2089,96 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 	s.Require().NotNil(dbFF.Realizations.CurrentRun)
 	s.Len(dbFF.Realizations.CurrentRun.CreditRealizations, 1)
 	s.Equal(float64(50), dbFF.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
+}
+
+func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsActivatesAtServiceStartAndAllocatesAtInvoiceAt() {
+	defer s.FlatFeeTestHandler.Reset()
+
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-only-in-arrears")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
+
+	creditsOnlyUsageAccruedCallback := newCountedCreditAllocationCallback[flatfee.OnCreditsOnlyUsageAccruedInput]()
+	s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = creditsOnlyUsageAccruedCallback.Handler(s.T(), func(input flatfee.OnCreditsOnlyUsageAccruedInput, ledgerTransaction ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
+		return creditrealization.CreateAllocationInputs{
+			{
+				ServicePeriod:     input.Charge.Intent.ServicePeriod,
+				Amount:            input.AmountToAllocate,
+				LedgerTransaction: ledgerTransaction,
+			},
+		}
+	})
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditOnlySettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(75),
+					PaymentTerm: productcatalog.InArrearsPaymentTerm,
+				}),
+				name:              "flat-fee-credit-only-in-arrears",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "flat-fee-credit-only-in-arrears",
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(res, 1)
+
+	createdCharge, err := res[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusCreated, createdCharge.Status)
+	s.NotNil(createdCharge.State.AdvanceAfter)
+	s.True(servicePeriod.From.Equal(*createdCharge.State.AdvanceAfter))
+	s.Nil(createdCharge.Realizations.CurrentRun)
+	s.Zero(creditsOnlyUsageAccruedCallback.nrInvocations)
+
+	clock.FreezeTime(servicePeriod.From)
+	advancedCharges := s.mustAdvanceFlatFeeCharges(ctx, cust.GetID())
+	s.Len(advancedCharges, 1)
+	activeCharge, err := advancedCharges[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusActive, activeCharge.Status)
+	s.NotNil(activeCharge.State.AdvanceAfter)
+	s.True(servicePeriod.To.Equal(*activeCharge.State.AdvanceAfter))
+	s.Nil(activeCharge.Realizations.CurrentRun)
+	s.Zero(creditsOnlyUsageAccruedCallback.nrInvocations)
+
+	clock.FreezeTime(servicePeriod.To)
+	advancedCharges = s.mustAdvanceFlatFeeCharges(ctx, cust.GetID())
+	s.Len(advancedCharges, 1)
+	finalCharge, err := advancedCharges[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusFinal, finalCharge.Status)
+	s.Nil(finalCharge.State.AdvanceAfter)
+	s.Require().NotNil(finalCharge.Realizations.CurrentRun)
+	s.Len(finalCharge.Realizations.CurrentRun.CreditRealizations, 1)
+	s.Equal(float64(75), finalCharge.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
+	s.Equal(1, creditsOnlyUsageAccruedCallback.nrInvocations)
 }
 
 func (s *InvoicableChargesTestSuite) mustAdvanceFlatFeeCharges(ctx context.Context, customerID customer.CustomerID) charges.Charges {
