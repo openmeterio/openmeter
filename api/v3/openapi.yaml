@@ -19,6 +19,8 @@ servers:
     description: Cloud
     variables: {}
 tags:
+  - name: OpenMeter Accounting
+    description: Accounting manages the accounting periods, transactions, and revenue recognition.
   - name: OpenMeter Governance
     description: Governance evaluation of customers to check their feature access.
   - name: OpenMeter Defaults
@@ -46,6 +48,131 @@ tags:
   - name: Meters
     description: Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.
 paths:
+  /openmeter/accounting/periods:
+    get:
+      operationId: list-accounting-periods
+      summary: List accounting periods
+      description: |-
+        List accounting periods.
+
+        Returns the namespace's periods in reverse-chronological order by `start_at` by
+        default (most recent first).
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort periods returned in the response. Supported sort attributes are:
+
+            - `start_at` (default, descending)
+            - `created_at`
+            - `id`
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: Filter periods returned in the response.
+          schema:
+            $ref: '#/components/schemas/ListAccountingPeriodsParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountingPeriodPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Accounting
+      x-internal: true
+      x-unstable: true
+  /openmeter/accounting/periods/close:
+    post:
+      operationId: close-accounting-period
+      summary: Close the open accounting period
+      description: |-
+        Close the currently-open accounting period.
+
+        Atomically, under a namespace-period advisory lock:
+
+        1. Freezes membership on the currently-open period `P`: sets `P.end_at`,
+        transitions `P.status` to `closing`, and records `P.closing_started_at`.
+        2. Opens a new period `N` with `N.start_at = P.end_at` and `N.status = open`.
+
+        The transition `closing → closed` (balance snapshot computation, close-time
+        validations, and seal hash commit) is performed by the close pipeline; poll
+        `GET .../{periodId}` to observe the final `closed` state, `closed_at`,
+        `sealed_at`, and seal fields.
+
+        Late-arriving transactions whose `booked_at` falls inside the now-closed period
+        are posted to `N` with an `adjusts_period_id` backpointer to `P`; they do not
+        modify `P`.
+
+        Returns the period transitioned to `closing`. The newly-opened next period can
+        be retrieved by listing with `filter[status]=open`.
+      responses:
+        '201':
+          description: AccountingPeriod created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountingPeriod'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Accounting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloseAccountingPeriodRequest'
+      x-internal: true
+      x-unstable: true
+  /openmeter/accounting/periods/{periodId}:
+    get:
+      operationId: get-accounting-period
+      summary: Get an accounting period
+      description: Get an accounting period by id.
+      parameters:
+        - name: periodId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: AccountingPeriod response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountingPeriod'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Accounting
+      x-internal: true
+      x-unstable: true
   /openmeter/addons:
     get:
       operationId: list-addons
@@ -2926,6 +3053,156 @@ components:
         additionalProperties: false
       style: deepObject
   schemas:
+    AccountingPeriod:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - start_at
+        - status
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        start_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            Start of the period (inclusive).
+
+            For the first period in a namespace this is the namespace creation time. For
+            every subsequent period, equals the previous period's `end_at`. Immutable once
+            set.
+          title: Start of period
+          readOnly: true
+        end_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            End of the period (exclusive).
+
+            Unset while the period is `open`. Fixed at the moment a close is initiated, and
+            immutable thereafter.
+          title: End of period
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/AccountingPeriodStatus'
+          description: Current lifecycle status of the period.
+          title: Status
+          readOnly: true
+        closing_started_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            Timestamp when the close was initiated (open → closing transition). Set on
+            `closing` and `closed` periods.
+          title: Closing started at
+          readOnly: true
+        closed_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            Timestamp when the period was marked `closed` (closing → closed transition). Set
+            only on `closed` periods.
+          title: Closed at
+          readOnly: true
+        sealed_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            Timestamp when the seal hash was committed. Set only on `closed` periods that
+            have a seal hash.
+          title: Sealed at
+          readOnly: true
+        seal_hash:
+          type: string
+          description: |-
+            Cryptographic hash sealing the period. The hash covers the period's frozen
+            transaction membership and closing balance snapshots in a deterministic,
+            versioned input format described by `seal_algorithm` and `seal_input_version`.
+
+            Set only on `closed` periods that have been sealed.
+          title: Seal hash
+          readOnly: true
+        seal_algorithm:
+          type: string
+          description: 'Algorithm used to compute `seal_hash`. Example: `"sha256"`.'
+          title: Seal algorithm
+          readOnly: true
+        seal_input_version:
+          type: string
+          description: |-
+            Version of the seal input format. Versioning the input format lets verifiers
+            reproduce a historical seal even after the format evolves.
+          title: Seal input version
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        An accounting period is a sequential, non-overlapping window of ledger activity
+        within a namespace. Closing a period freezes its transaction membership and
+        (eventually) seals an authoritative closing balance.
+
+        Late-arriving transactions whose `booked_at` falls inside an already-closed
+        period are posted to the current open period with an `adjusts_period_id`
+        backpointer; they do not mutate the closed period.
+      title: Accounting period
+    AccountingPeriodPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountingPeriod'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
+    AccountingPeriodStatus:
+      type: string
+      enum:
+        - open
+        - closing
+        - closed
+      description: |-
+        Lifecycle status of an accounting period.
+
+        - `open`: the current posting bucket. New transactions can be posted to this
+        period. Exactly one period per namespace is `open` at any time.
+        - `closing`: membership is frozen — no new transactions can post to this period
+        — but balance snapshots and the seal have not yet been committed. At most one
+        period per namespace is `closing` at any time.
+        - `closed`: the period is sealed. `closed_at`, `sealed_at`, and (when sealing is
+        enabled) `seal_hash` are set. Transaction membership and the closing balance
+        snapshots are immutable.
+      title: Accounting period status
     Addon:
       type: object
       required:
@@ -6753,6 +7030,42 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
+    CloseAccountingPeriodRequest:
+      type: object
+      required:
+        - end_at
+      properties:
+        end_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The intended end of the period being closed (exclusive). Must be strictly
+            greater than the open period's `start_at` and not in the future.
+
+            Becomes the closing period's `end_at` and the newly-opened next period's
+            `start_at`.
+          title: End of period
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          description: Optional labels applied to the closing period.
+          title: Labels
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Optional display name for the period (e.g. "2026-Q2"). Auto-generated if
+            omitted.
+          title: Name
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description.
+          title: Description
+      additionalProperties: false
+      description: Request body for initiating a close on the currently-open accounting period.
+      title: Close accounting period request
     ClosedPeriod:
       type: object
       required:
@@ -8174,6 +8487,46 @@ components:
           description: Name of the provider, e.g., "OpenAI", "Anthropic".
       additionalProperties: false
       description: LLM Provider
+    LabelsFieldFilter:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/StringFieldFilter'
+      description: |-
+        Filters on the resource's `labels` field.
+
+        The schema is a map keyed by the label name; each value is a
+        `StringFieldFilter`. Both deepObject forms are accepted:
+        `filter[labels][key]=value` (nested) and `filter[labels.key]=value`
+        (dot-notation).
+      title: Labels Field Filter
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/v3/filters
+      x-go-type: filters.FilterLabels
+    ListAccountingPeriodsParamsFilter:
+      type: object
+      properties:
+        status:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: |-
+            Filter periods by lifecycle status. Use `filter[status][oeq]=open,closing` to
+            fetch the currently-active periods.
+        start_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: Filter periods by `start_at`.
+        end_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: |-
+            Filter periods by `end_at`. Open periods (no `end_at`) are excluded when this
+            filter is applied.
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/LabelsFieldFilter'
+          description: Filter periods by labels.
+      additionalProperties: false
+      description: Filter options for listing accounting periods.
     ListAddonsParamsFilter:
       type: object
       properties:
