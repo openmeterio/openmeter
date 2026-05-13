@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -211,8 +212,18 @@ type patchesParsed struct {
 }
 
 type invoicePatches struct {
-	updatedLines []billing.GenericInvoiceLine
-	deletedLines []billing.LineID
+	updatedLines []invoiceLineUpdatePatch
+	deletedLines []invoiceLineDeletePatch
+}
+
+type invoiceLineUpdatePatch struct {
+	line billing.GenericInvoiceLine
+	op   PatchOperation
+}
+
+type invoiceLineDeletePatch struct {
+	line billing.LineID
+	op   PatchOperation
 }
 
 func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
@@ -237,7 +248,10 @@ func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
 			}
 
 			lineUpdates := parsed.updatedLinesByInvoiceID[deletePatch.InvoiceID]
-			lineUpdates.deletedLines = append(lineUpdates.deletedLines, deletePatch.Line)
+			lineUpdates.deletedLines = append(lineUpdates.deletedLines, invoiceLineDeletePatch{
+				line: deletePatch.Line,
+				op:   patch.Op(),
+			})
 			parsed.updatedLinesByInvoiceID[deletePatch.InvoiceID] = lineUpdates
 		case PatchOpLineUpdate:
 			update, err := patch.AsUpdateLinePatch()
@@ -246,7 +260,10 @@ func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
 			}
 
 			lineUpdates := parsed.updatedLinesByInvoiceID[update.TargetState.GetInvoiceID()]
-			lineUpdates.updatedLines = append(lineUpdates.updatedLines, update.TargetState)
+			lineUpdates.updatedLines = append(lineUpdates.updatedLines, invoiceLineUpdatePatch{
+				line: update.TargetState,
+				op:   patch.Op(),
+			})
 			parsed.updatedLinesByInvoiceID[update.TargetState.GetInvoiceID()] = lineUpdates
 		case PatchOpDeleteGatheringLineByChargeID:
 			deletePatch, err := patch.AsDeleteGatheringLineByChargeIDPatch()
@@ -325,7 +342,10 @@ func (u *Updater) resolveGatheringLineDeletesByChargeID(ctx context.Context, cus
 			}
 
 			lineUpdates := parsed.updatedLinesByInvoiceID[invoice.ID]
-			lineUpdates.deletedLines = append(lineUpdates.deletedLines, line.GetLineID())
+			lineUpdates.deletedLines = append(lineUpdates.deletedLines, invoiceLineDeletePatch{
+				line: line.GetLineID(),
+				op:   PatchOpDeleteGatheringLineByChargeID,
+			})
 			parsed.updatedLinesByInvoiceID[invoice.ID] = lineUpdates
 		}
 	}
@@ -372,7 +392,10 @@ func (u *Updater) resolveGatheringLineUpdatesByChargeID(ctx context.Context, cus
 			}
 
 			lineUpdates := parsed.updatedLinesByInvoiceID[invoice.ID]
-			lineUpdates.updatedLines = append(lineUpdates.updatedLines, genericLine)
+			lineUpdates.updatedLines = append(lineUpdates.updatedLines, invoiceLineUpdatePatch{
+				line: genericLine,
+				op:   PatchOpUpdateGatheringLineByChargeID,
+			})
 			parsed.updatedLinesByInvoiceID[invoice.ID] = lineUpdates
 		}
 	}
@@ -385,16 +408,21 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 		Invoice:             invoice.GetInvoiceID(),
 		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.StandardInvoice) error {
-			for _, lineID := range linePatches.deletedLines {
+			for _, deletePatch := range linePatches.deletedLines {
+				lineID := deletePatch.line
 				line := invoice.Lines.GetByID(lineID.ID)
 				if line == nil {
 					return fmt.Errorf("line[%s] not found in the invoice, cannot delete", lineID)
+				}
+				if err := ensureLineHasChargeID(line, deletePatch.op); err != nil {
+					return err
 				}
 
 				line.DeletedAt = lo.ToPtr(clock.Now())
 			}
 
-			for _, targetState := range linePatches.updatedLines {
+			for _, updatePatch := range linePatches.updatedLines {
+				targetState := updatePatch.line
 				targetStandardLine, err := targetState.AsInvoiceLine().AsStandardLine()
 				if err != nil {
 					return fmt.Errorf("line[%s] is not a standard line, cannot update: %w", targetState.GetID(), err)
@@ -404,16 +432,16 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 				if line == nil {
 					return fmt.Errorf("line[%s] not found in the invoice, cannot update", targetStandardLine.ID)
 				}
-
-				updatedQtyLine, err := u.billingService.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
-					Invoice: invoice,
-					Line:    &targetStandardLine,
-				})
-				if err != nil {
-					return fmt.Errorf("recalculating line[%s]: %w", targetStandardLine.ID, err)
+				if err := ensureLineHasChargeID(line, updatePatch.op); err != nil {
+					return err
+				}
+				if err := ensureLineHasChargeID(&targetStandardLine, updatePatch.op); err != nil {
+					return err
 				}
 
-				targetStandardLine = *updatedQtyLine
+				// The charges invoice updater only owns charge-backed lines. Charge line
+				// engines own quantity snapshots and detailed-line projection, so the
+				// target state must not be passed through billing's generic snapshotter here.
 
 				if ok := invoice.Lines.ReplaceByID(targetStandardLine.ID, &targetStandardLine); !ok {
 					return fmt.Errorf("line[%s/%s] not found in the invoice, cannot update", targetStandardLine.ID, lo.FromPtrOr(targetStandardLine.ChildUniqueReferenceID, "nil"))
@@ -457,10 +485,14 @@ func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.
 		Invoice:             invoiceID,
 		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.GatheringInvoice) error {
-			for _, lineID := range linePatches.deletedLines {
+			for _, deletePatch := range linePatches.deletedLines {
+				lineID := deletePatch.line
 				line, ok := invoice.Lines.GetByID(lineID.ID)
 				if !ok {
 					return fmt.Errorf("line[%s] not found in the invoice, cannot delete", lineID)
+				}
+				if err := ensureLineHasChargeID(&line, deletePatch.op); err != nil {
+					return err
 				}
 
 				line.DeletedAt = lo.ToPtr(clock.Now())
@@ -470,10 +502,14 @@ func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.
 				}
 			}
 
-			for _, targetStateGeneric := range linePatches.updatedLines {
+			for _, updatePatch := range linePatches.updatedLines {
+				targetStateGeneric := updatePatch.line
 				targetGatheringLine, err := targetStateGeneric.AsInvoiceLine().AsGatheringLine()
 				if err != nil {
 					return fmt.Errorf("line[%s] is not a gathering line, cannot update: %w", targetStateGeneric.GetID(), err)
+				}
+				if err := ensureLineHasChargeID(&targetGatheringLine, updatePatch.op); err != nil {
+					return err
 				}
 
 				if err := invoice.Lines.ReplaceByID(targetGatheringLine); err != nil {
@@ -498,8 +534,13 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 	validationIssues := []billing.ValidationIssue{}
 	unsupportedCreditNoteLines := billing.StandardLines{}
 
-	for _, lineID := range linePatches.deletedLines {
-		line := invoice.Lines.GetByID(lineID.ID)
+	for _, deletePatch := range linePatches.deletedLines {
+		line := invoice.Lines.GetByID(deletePatch.line.ID)
+		if line != nil {
+			if err := ensureLineHasChargeID(line, deletePatch.op); err != nil {
+				return err
+			}
+		}
 		validationIssues = append(validationIssues,
 			newValidationIssueOnLine(line, "line should be deleted, but the invoice is immutable"),
 		)
@@ -509,10 +550,22 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 		}
 	}
 
-	for _, targetState := range linePatches.updatedLines {
+	for _, updatePatch := range linePatches.updatedLines {
+		targetState := updatePatch.line
 		existingLine := invoice.Lines.GetByID(targetState.GetID())
 		if existingLine == nil {
 			return fmt.Errorf("line[%s] not found in the invoice, cannot update", targetState.GetID())
+		}
+		if err := ensureLineHasChargeID(existingLine, updatePatch.op); err != nil {
+			return err
+		}
+
+		targetStandardLine, err := targetState.AsInvoiceLine().AsStandardLine()
+		if err != nil {
+			return fmt.Errorf("line[%s] is not a standard line, cannot update: %w", targetState.GetID(), err)
+		}
+		if err := ensureLineHasChargeID(&targetStandardLine, updatePatch.op); err != nil {
+			return err
 		}
 
 		if IsFlatFee(targetState) {
@@ -545,24 +598,12 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 		}
 
 		if !targetState.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).Equal(existingLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration)) {
-			targetStandardLine, err := targetState.AsInvoiceLine().AsStandardLine()
-			if err != nil {
-				return fmt.Errorf("line[%s] is not a standard line, cannot update: %w", targetState.GetID(), err)
-			}
-
-			targetStateWithUpdatedQty, err := u.billingService.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
-				Invoice: &invoice,
-				Line:    &targetStandardLine,
-			})
-			if err != nil {
-				return fmt.Errorf("snapshotting quantity for line[%s]: %w", targetState.GetID(), err)
-			}
-
-			existingQty := existingLine.UsageBased.Quantity
-			if existingQty == nil || !targetStateWithUpdatedQty.UsageBased.Quantity.Equal(*existingQty) {
+			existingQty := standardLineUsageQuantity(existingLine)
+			targetQty := standardLineUsageQuantity(&targetStandardLine)
+			if existingQty == nil || targetQty == nil || !targetQty.Equal(*existingQty) {
 				validationIssues = append(validationIssues,
 					newValidationIssueOnLine(existingLine, "usage based line's quantity cannot be changed on immutable invoice (new qty: %s)",
-						targetStateWithUpdatedQty.UsageBased.Quantity.String()),
+						standardLineUsageQuantityString(&targetStandardLine)),
 				)
 			}
 		}
@@ -587,6 +628,40 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 			Invoice: invoice.GetInvoiceID(),
 			Issues:  mergedValidationIssues,
 		})
+	}
+
+	return nil
+}
+
+func standardLineUsageQuantity(line *billing.StandardLine) *alpacadecimal.Decimal {
+	if line == nil || line.UsageBased == nil {
+		return nil
+	}
+
+	return line.UsageBased.Quantity
+}
+
+func standardLineUsageQuantityString(line *billing.StandardLine) string {
+	qty := standardLineUsageQuantity(line)
+	if qty == nil {
+		return "nil"
+	}
+
+	return qty.String()
+}
+
+func ensureLineHasChargeID(line billing.GenericInvoiceLineReader, operation PatchOperation) error {
+	if line == nil {
+		return fmt.Errorf("line is nil for patch operation[%s]", operation)
+	}
+
+	chargeID, err := line.AsInvoiceLine().GetChargeID()
+	if err != nil {
+		return fmt.Errorf("line[%s] charge id: %w", line.GetID(), err)
+	}
+
+	if chargeID == nil || *chargeID == "" {
+		return fmt.Errorf("line[%s] has no charge ID, charges invoice updater cannot apply patch operation[%s] to non-charge lines", line.GetID(), operation)
 	}
 
 	return nil
