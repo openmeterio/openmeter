@@ -190,6 +190,9 @@ type ListTransactionsInput struct {
 
 	// AnnotationFilters matches transactions whose annotations contain all the given key-value pairs.
 	AnnotationFilters map[string]string
+
+	// ExcludeAnnotationFilters excludes transactions whose annotations contain any given key-value pair.
+	ExcludeAnnotationFilters map[string]string
 }
 
 type ListTransactionsResult struct {

@@ -2325,6 +2325,30 @@ func (e *LedgerAccount) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *LedgerBreakageRecord) GetID() string {
+	return e.ID
+}
+
+func (e *LedgerBreakageRecord) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *LedgerBreakageRecord) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *LedgerBreakageRecord) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *LedgerBreakageRecord) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *LedgerBreakageRecord) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *LedgerCustomerAccount) GetID() string {
 	return e.ID
 }

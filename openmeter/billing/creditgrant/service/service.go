@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -18,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -211,6 +213,9 @@ func (s *service) UpdateExternalSettlement(ctx context.Context, input creditgran
 }
 
 func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {
+	now := clock.Now().UTC()
+	effectiveAt := now
+
 	intent := creditpurchase.Intent{
 		Intent: meta.Intent{
 			Name:        input.Name,
@@ -221,11 +226,12 @@ func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {
 			Metadata:    input.Labels,
 			ManagedBy:   billing.ManuallyManagedLine,
 			// TODO: replace with actual service period
-			ServicePeriod:     timeutil.ClosedPeriod{From: clock.Now(), To: clock.Now()},
-			BillingPeriod:     timeutil.ClosedPeriod{From: clock.Now(), To: clock.Now()},
-			FullServicePeriod: timeutil.ClosedPeriod{From: clock.Now(), To: clock.Now()},
+			ServicePeriod:     timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
+			BillingPeriod:     timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
+			FullServicePeriod: timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
 		},
 		CreditAmount: input.Amount,
+		ExpiresAt:    calculateExpiresAt(effectiveAt, input.ExpiresAfter),
 		Settlement:   toSettlement(input),
 	}
 
@@ -235,6 +241,16 @@ func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {
 	}
 
 	return intent
+}
+
+func calculateExpiresAt(from time.Time, expiresAfter *datetime.ISODuration) *time.Time {
+	if expiresAfter == nil {
+		return nil
+	}
+
+	expiresAt, _ := expiresAfter.AddTo(from)
+
+	return &expiresAt
 }
 
 func toSettlement(input creditgrant.CreateInput) creditpurchase.Settlement {

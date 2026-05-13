@@ -20,6 +20,9 @@ const (
 	TemplateCodeTranslateCustomerAccruedCostBasis           TransactionTemplateCode = "customer.accrued.cost_basis.translate"
 	TemplateCodeRecognizeEarningsFromAttributableAccrued    TransactionTemplateCode = "customer.accrued.earnings.recognize"
 	TemplateCodeConvertCurrency                             TransactionTemplateCode = "customer.fbo.currency.convert"
+	TemplateCodePlanCustomerFBOBreakage                     TransactionTemplateCode = "customer.fbo.breakage.plan"
+	TemplateCodeReleaseCustomerFBOBreakage                  TransactionTemplateCode = "customer.fbo.breakage.release"
+	TemplateCodeReopenCustomerFBOBreakage                   TransactionTemplateCode = "customer.fbo.breakage.reopen"
 )
 
 const (
@@ -36,6 +39,9 @@ const (
 	legacyTemplateNameTranslateCustomerAccruedCostBasis           = "TranslateCustomerAccruedCostBasisTemplate"
 	legacyTemplateNameRecognizeEarningsFromAttributableAccrued    = "RecognizeEarningsFromAttributableAccruedTemplate"
 	legacyTemplateNameConvertCurrency                             = "ConvertCurrencyTemplate"
+	legacyTemplateNamePlanCustomerFBOBreakage                     = "PlanCustomerFBOBreakageTemplate"
+	legacyTemplateNameReleaseCustomerFBOBreakage                  = "ReleaseCustomerFBOBreakageTemplate"
+	legacyTemplateNameReopenCustomerFBOBreakage                   = "ReopenCustomerFBOBreakageTemplate"
 )
 
 var transactionTemplatesByLegacyName = map[string]TransactionTemplate{
@@ -52,6 +58,9 @@ var transactionTemplatesByLegacyName = map[string]TransactionTemplate{
 	legacyTemplateNameTranslateCustomerAccruedCostBasis:           TranslateCustomerAccruedCostBasisTemplate{},
 	legacyTemplateNameRecognizeEarningsFromAttributableAccrued:    RecognizeEarningsFromAttributableAccruedTemplate{},
 	legacyTemplateNameConvertCurrency:                             ConvertCurrencyTemplate{},
+	legacyTemplateNamePlanCustomerFBOBreakage:                     PlanCustomerFBOBreakageTemplate{},
+	legacyTemplateNameReleaseCustomerFBOBreakage:                  ReleaseCustomerFBOBreakageTemplate{},
+	legacyTemplateNameReopenCustomerFBOBreakage:                   ReopenCustomerFBOBreakageTemplate{},
 }
 
 var transactionTemplatesByCode = map[TransactionTemplateCode]TransactionTemplate{
@@ -66,6 +75,9 @@ var transactionTemplatesByCode = map[TransactionTemplateCode]TransactionTemplate
 	TranslateCustomerAccruedCostBasisTemplate{}.code():           TranslateCustomerAccruedCostBasisTemplate{},
 	RecognizeEarningsFromAttributableAccruedTemplate{}.code():    RecognizeEarningsFromAttributableAccruedTemplate{},
 	ConvertCurrencyTemplate{}.code():                             ConvertCurrencyTemplate{},
+	PlanCustomerFBOBreakageTemplate{}.code():                     PlanCustomerFBOBreakageTemplate{},
+	ReleaseCustomerFBOBreakageTemplate{}.code():                  ReleaseCustomerFBOBreakageTemplate{},
+	ReopenCustomerFBOBreakageTemplate{}.code():                   ReopenCustomerFBOBreakageTemplate{},
 }
 
 func templateCode(template TransactionTemplate) (TransactionTemplateCode, error) {
