@@ -333,6 +333,21 @@ paths:
       description: List currencies supported by the billing system.
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort currencies returned in the response. Supported sort attributes are:
+
+            - `code` (default)
+            - `name`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
         - name: filter
           in: query
           required: false
@@ -8232,9 +8247,9 @@ components:
       type: object
       properties:
         type:
-          allOf:
-            - $ref: '#/components/schemas/BillingCurrencyType'
-          description: Filter currencies by type.
+          $ref: '#/components/schemas/BillingCurrencyType'
+        code:
+          $ref: '#/components/schemas/StringFieldFilter'
       additionalProperties: false
       description: Filter options for listing currencies.
     ListCustomerEntitlementAccessResponseData:

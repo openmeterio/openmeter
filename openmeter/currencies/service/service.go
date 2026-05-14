@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/invopop/gobl/currency"
@@ -12,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 var _ currencies.CurrencyService = (*Service)(nil)
@@ -55,10 +58,18 @@ func (s *Service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 		}
 
 		if includeFiat {
-			for _, def := range lo.Filter(currency.Definitions(), func(def *currency.Def, _ int) bool {
+			matchCode := params.Code.LoFilterPredicate()
+			filteredMatchCode, err := lo.FilterErr(currency.Definitions(), func(def *currency.Def, _ int) (bool, error) {
 				// NOTE: this filters out non-iso currencies such as crypto
-				return def.ISONumeric != ""
-			}) {
+				if def.ISONumeric == "" {
+					return false, nil
+				}
+				return matchCode(def.ISOCode.String(), 0)
+			})
+			if err != nil {
+				return pagination.Result[currencies.Currency]{}, fmt.Errorf("filtering fiat currencies by code: %w", err)
+			}
+			for _, def := range filteredMatchCode {
 				items = append(items, currencies.Currency{
 					Code:   def.ISOCode.String(),
 					Name:   def.Name,
@@ -66,6 +77,19 @@ func (s *Service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 				})
 			}
 		}
+
+		slices.SortFunc(items, func(a, b currencies.Currency) int {
+			result := 0
+			if params.OrderBy == currencies.OrderByName {
+				result = strings.Compare(a.Name, b.Name)
+			} else {
+				result = strings.Compare(a.Code, b.Code)
+			}
+			if params.Order == sortx.OrderDesc {
+				return -result
+			}
+			return result
+		})
 
 		total := len(items)
 
