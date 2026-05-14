@@ -40,18 +40,29 @@ func (f FuncRule) Validate(tx TxView) error {
 
 type RequireUniqueSubAccountsRule struct{}
 
+type entryIdentityKey struct {
+	subAccountID string
+	identityKey  string
+}
+
 func (r RequireUniqueSubAccountsRule) Validate(tx TxView) error {
-	seen := make(map[string]struct{}, len(tx.Entries()))
+	seen := make(map[entryIdentityKey]struct{}, len(tx.Entries()))
 	for _, entry := range tx.Entries() {
 		subAccountID := entry.Entry().PostingAddress().SubAccountID()
-		if _, ok := seen[subAccountID]; ok {
+		identityKey := entry.Entry().IdentityKey()
+		key := entryIdentityKey{
+			subAccountID: subAccountID,
+			identityKey:  identityKey,
+		}
+		if _, ok := seen[key]; ok {
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
-				"reason":         "duplicate_sub_account_entry",
+				"reason":         "duplicate_entry_identity",
 				"sub_account_id": subAccountID,
+				"identity_key":   identityKey,
 			})
 		}
 
-		seen[subAccountID] = struct{}{}
+		seen[key] = struct{}{}
 	}
 
 	return nil

@@ -77,10 +77,13 @@ type Account interface {
 type EntryInput interface {
 	PostingAddress() PostingAddress
 	Amount() alpacadecimal.Decimal
+	IdentityKey() string
+	Annotations() models.Annotations
 }
 
 type Entry interface {
 	EntryInput
+	ID() models.NamespacedID
 	TransactionID() models.NamespacedID
 }
 
@@ -89,6 +92,11 @@ type TransactionInput interface {
 	EntryInputs() []EntryInput
 	Annotations() models.Annotations
 	AsGroupInput(namespace string, annotations models.Annotations) TransactionGroupInput
+}
+
+type ImpactFilter struct {
+	AccountType AccountType
+	Route       RouteFilter
 }
 
 // Transaction represents a list of entries booked at the same time

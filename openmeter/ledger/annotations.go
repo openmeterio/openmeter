@@ -17,6 +17,7 @@ const (
 	AnnotationTransactionTemplateCode = "ledger.transaction.template_code"
 	AnnotationTransactionDirection    = "ledger.transaction.direction"
 	AnnotationCollectionType          = "ledger.collection.type"
+	AnnotationCollectionSourceOrder   = "ledger.collection.source_order"
 	AnnotationBreakageKind            = "ledger.breakage.kind"
 	AnnotationBreakageRecordID        = "ledger.breakage.record_id"
 	AnnotationBreakagePlanID          = "ledger.breakage.plan_id"

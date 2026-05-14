@@ -111,7 +111,8 @@ func (LedgerBreakageRecord) Fields() []ent.Field {
 
 func (LedgerBreakageRecord) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "customer_id", "currency", "credit_priority", "expires_at", "id"),
+		index.Fields("namespace", "customer_id", "currency", "credit_priority", "expires_at", "id").
+			StorageKey("ledgerbreakagerecord_namespace_customer_id_currency_credit_"),
 		index.Fields("namespace", "plan_id"),
 		index.Fields("namespace", "source_transaction_group_id"),
 		index.Fields("namespace", "breakage_transaction_group_id"),

@@ -1,4 +1,4 @@
-h1:WTxy/UBLguSNWcnzymmD8y2u5y7y4Nqng2u2P5ud9ro=
+h1:b4HSURrbg/fNLHnsAS332iCFxqNQGjR+GlYGdCz/VfI=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -200,3 +200,4 @@ h1:WTxy/UBLguSNWcnzymmD8y2u5y7y4Nqng2u2P5ud9ro=
 20260513072457_ledger_transaction_template_codes.up.sql h1:qbiFeJwp78WmAiUZjBne6RZwsij5lMRdkJn24yVkPTE=
 20260513083018_add_flat_fee_run_immutable.up.sql h1:Wbl6jpSXveNQ8s1IJQ72AKsULD1pFffVTyPOypXYsY0=
 20260513120726_add_app_custom_invoicing_customers_partial_unique_indexes.up.sql h1:8CAyzs63mv7p2EXSZ7IxvLvPvemN+9kTMn8iiY/jXm4=
+20260514084134_add_ledger_entry_identity_key.up.sql h1:RqAqrBdsN42xGnS4NvSp6biZBHACGLsgKDtIYWJzsLc=

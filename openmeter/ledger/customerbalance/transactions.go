@@ -230,35 +230,48 @@ func creditTransactionsFromLedgerTransactions(txs []ledger.Transaction) ([]Credi
 }
 
 func creditTransactionFromLedgerTransaction(tx ledger.Transaction) (CreditTransaction, error) {
-	entry, err := creditTransactionEntry(tx)
+	fboImpact, currency, err := creditTransactionFBOImpact(tx)
 	if err != nil {
 		return CreditTransaction{}, err
 	}
-
-	amount := entry.Amount()
 
 	return CreditTransaction{
 		ID:          tx.ID(),
 		CreatedAt:   tx.Cursor().CreatedAt,
 		BookedAt:    tx.BookedAt(),
-		Type:        creditTransactionType(amount),
-		Currency:    entry.PostingAddress().Route().Route().Currency,
-		Amount:      amount,
+		Type:        creditTransactionType(fboImpact),
+		Currency:    currency,
+		Amount:      fboImpact,
 		Name:        "",
 		Annotations: tx.Annotations(),
 	}, nil
 }
 
-func creditTransactionEntry(tx ledger.Transaction) (ledger.Entry, error) {
+func creditTransactionFBOImpact(tx ledger.Transaction) (alpacadecimal.Decimal, currencyx.Code, error) {
+	amount := ledger.TransactionImpact(tx, ledger.ImpactFilter{
+		AccountType: ledger.AccountTypeCustomerFBO,
+	})
+	var currency currencyx.Code
+
 	for _, entry := range tx.Entries() {
 		if entry.PostingAddress().AccountType() != ledger.AccountTypeCustomerFBO {
 			continue
 		}
 
-		return entry, nil
+		entryCurrency := entry.PostingAddress().Route().Route().Currency
+		if currency == "" {
+			currency = entryCurrency
+		}
+		if currency != entryCurrency {
+			return alpacadecimal.Decimal{}, "", fmt.Errorf("transaction %s has multiple customer FBO currencies", tx.ID().ID)
+		}
 	}
 
-	return nil, fmt.Errorf("no customer FBO entry found in transaction %s", tx.ID().ID)
+	if currency == "" {
+		return alpacadecimal.Decimal{}, "", fmt.Errorf("no customer FBO entry found in transaction %s", tx.ID().ID)
+	}
+
+	return amount, currency, nil
 }
 
 func applyCreditTransactionBalances(items []CreditTransaction, after alpacadecimal.Decimal) {

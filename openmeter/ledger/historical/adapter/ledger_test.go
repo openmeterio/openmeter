@@ -69,8 +69,12 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 
 	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     testAddress(t, subAccountA),
-			AmountValue: alpacadecimal.NewFromInt(-100),
+			Address:          testAddress(t, subAccountA),
+			AmountValue:      alpacadecimal.NewFromInt(-100),
+			IdentityKeyValue: "source:0",
+			AnnotationsValue: models.Annotations{
+				ledger.AnnotationCollectionSourceOrder: 0,
+			},
 		},
 		{
 			Address:     testAddress(t, subAccountB),
@@ -113,17 +117,28 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	})
 	require.Contains(t, subAccountIDs, subAccountA.ID)
 	require.Contains(t, subAccountIDs, subAccountB.ID)
+	entriesBySubAccount := lo.SliceToMap(entries, func(e *entdb.LedgerEntry) (string, *entdb.LedgerEntry) {
+		return e.SubAccountID, e
+	})
+	require.Equal(t, "source:0", entriesBySubAccount[subAccountA.ID].IdentityKey)
+	require.EqualValues(t, 0, entriesBySubAccount[subAccountA.ID].Annotations[ledger.AnnotationCollectionSourceOrder])
+	require.Equal(t, "", entriesBySubAccount[subAccountB.ID].IdentityKey)
 
 	require.Len(t, tx.Entries(), 2)
 	addressesBySubAccount := map[string]ledger.PostingAddress{}
+	entriesBySubAccountFromTx := map[string]ledger.Entry{}
 	for _, entry := range tx.Entries() {
 		addr := entry.PostingAddress()
 		addressesBySubAccount[addr.SubAccountID()] = addr
+		entriesBySubAccountFromTx[addr.SubAccountID()] = entry
 	}
 	require.Equal(t, subAccountA.RouteMeta.RoutingKey, addressesBySubAccount[subAccountA.ID].Route().RoutingKey().Value())
 	require.Equal(t, ledger.RoutingKeyVersionV1, addressesBySubAccount[subAccountA.ID].Route().RoutingKey().Version())
 	require.Equal(t, subAccountB.RouteMeta.RoutingKey, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Value())
 	require.Equal(t, ledger.RoutingKeyVersionV1, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Version())
+	require.Equal(t, "source:0", entriesBySubAccountFromTx[subAccountA.ID].IdentityKey())
+	require.EqualValues(t, 0, entriesBySubAccountFromTx[subAccountA.ID].Annotations()[ledger.AnnotationCollectionSourceOrder])
+	require.Equal(t, "", entriesBySubAccountFromTx[subAccountB.ID].IdentityKey())
 }
 
 func TestRepo_BookTransaction_NilInput(t *testing.T) {
@@ -447,6 +462,59 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 	})
 	require.NoError(t, err)
 	require.Len(t, eurConsumed.Items, 0)
+}
+
+func TestRepo_ListTransactions_FiltersCreditMovementByScopedNetFBOAmount(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	usdSubAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	usdSubAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, usdSubAccountA),
+			AmountValue: alpacadecimal.NewFromInt(-10),
+		},
+		{
+			Address:     testAddress(t, usdSubAccountB),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+	}))
+	require.NoError(t, err)
+
+	usd := currencyx.Code("USD")
+	accountIDs := []string{usdSubAccountA.AccountID, usdSubAccountB.AccountID}
+
+	consumed, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:      namespace,
+		Limit:          20,
+		AccountIDs:     accountIDs,
+		Currency:       &usd,
+		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
+	})
+	require.NoError(t, err)
+	require.Len(t, consumed.Items, 0)
+
+	funded, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:      namespace,
+		Limit:          20,
+		AccountIDs:     accountIDs,
+		Currency:       &usd,
+		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+	})
+	require.NoError(t, err)
+	require.Len(t, funded.Items, 0)
 }
 
 func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *testing.T) {

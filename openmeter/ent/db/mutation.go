@@ -82557,6 +82557,7 @@ type LedgerEntryMutation struct {
 	created_at         *time.Time
 	updated_at         *time.Time
 	deleted_at         *time.Time
+	identity_key       *string
 	amount             *alpacadecimal.Decimal
 	clearedFields      map[string]struct{}
 	transaction        *string
@@ -82914,6 +82915,42 @@ func (m *LedgerEntryMutation) ResetSubAccountID() {
 	m.sub_account = nil
 }
 
+// SetIdentityKey sets the "identity_key" field.
+func (m *LedgerEntryMutation) SetIdentityKey(s string) {
+	m.identity_key = &s
+}
+
+// IdentityKey returns the value of the "identity_key" field in the mutation.
+func (m *LedgerEntryMutation) IdentityKey() (r string, exists bool) {
+	v := m.identity_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdentityKey returns the old "identity_key" field's value of the LedgerEntry entity.
+// If the LedgerEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerEntryMutation) OldIdentityKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdentityKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdentityKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdentityKey: %w", err)
+	}
+	return oldValue.IdentityKey, nil
+}
+
+// ResetIdentityKey resets all changes to the "identity_key" field.
+func (m *LedgerEntryMutation) ResetIdentityKey() {
+	m.identity_key = nil
+}
+
 // SetAmount sets the "amount" field.
 func (m *LedgerEntryMutation) SetAmount(a alpacadecimal.Decimal) {
 	m.amount = &a
@@ -83074,7 +83111,7 @@ func (m *LedgerEntryMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerEntryMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.namespace != nil {
 		fields = append(fields, ledgerentry.FieldNamespace)
 	}
@@ -83092,6 +83129,9 @@ func (m *LedgerEntryMutation) Fields() []string {
 	}
 	if m.sub_account != nil {
 		fields = append(fields, ledgerentry.FieldSubAccountID)
+	}
+	if m.identity_key != nil {
+		fields = append(fields, ledgerentry.FieldIdentityKey)
 	}
 	if m.amount != nil {
 		fields = append(fields, ledgerentry.FieldAmount)
@@ -83119,6 +83159,8 @@ func (m *LedgerEntryMutation) Field(name string) (ent.Value, bool) {
 		return m.DeletedAt()
 	case ledgerentry.FieldSubAccountID:
 		return m.SubAccountID()
+	case ledgerentry.FieldIdentityKey:
+		return m.IdentityKey()
 	case ledgerentry.FieldAmount:
 		return m.Amount()
 	case ledgerentry.FieldTransactionID:
@@ -83144,6 +83186,8 @@ func (m *LedgerEntryMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldDeletedAt(ctx)
 	case ledgerentry.FieldSubAccountID:
 		return m.OldSubAccountID(ctx)
+	case ledgerentry.FieldIdentityKey:
+		return m.OldIdentityKey(ctx)
 	case ledgerentry.FieldAmount:
 		return m.OldAmount(ctx)
 	case ledgerentry.FieldTransactionID:
@@ -83198,6 +83242,13 @@ func (m *LedgerEntryMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSubAccountID(v)
+		return nil
+	case ledgerentry.FieldIdentityKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdentityKey(v)
 		return nil
 	case ledgerentry.FieldAmount:
 		v, ok := value.(alpacadecimal.Decimal)
@@ -83294,6 +83345,9 @@ func (m *LedgerEntryMutation) ResetField(name string) error {
 		return nil
 	case ledgerentry.FieldSubAccountID:
 		m.ResetSubAccountID()
+		return nil
+	case ledgerentry.FieldIdentityKey:
+		m.ResetIdentityKey()
 		return nil
 	case ledgerentry.FieldAmount:
 		m.ResetAmount()
