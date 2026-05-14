@@ -206,18 +206,35 @@ func (i collectedInputs) toCreditRealizations(servicePeriod timeutil.ClosedPerio
 		}
 
 		annotations := creditRealizationAnnotationsForCollectedInput(input)
-		// One realization row per FBO debit on the resolved inputs (the spend from balance).
+		// Keep billing realization granularity at the FBO sub-account bucket.
+		// Entry identity may split same-sub-account collection internally, but
+		// that should not leak as separate credit realizations.
+		amountsBySubAccountID := make(map[string]alpacadecimal.Decimal)
+		subAccountOrder := make([]string, 0)
 		for _, entry := range input.EntryInputs() {
 			if entry.Amount().IsNegative() && entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO {
-				out = append(out, creditrealization.CreateAllocationInput{
-					Annotations:   annotations,
-					ServicePeriod: servicePeriod,
-					Amount:        entry.Amount().Abs(),
-					LedgerTransaction: ledgertransaction.GroupReference{
-						TransactionGroupID: transactionGroupID,
-					},
-				})
+				subAccountID := entry.PostingAddress().SubAccountID()
+				if _, ok := amountsBySubAccountID[subAccountID]; !ok {
+					subAccountOrder = append(subAccountOrder, subAccountID)
+				}
+				amountsBySubAccountID[subAccountID] = amountsBySubAccountID[subAccountID].Add(entry.Amount().Abs())
 			}
+		}
+
+		for _, subAccountID := range subAccountOrder {
+			amount := amountsBySubAccountID[subAccountID]
+			if !amount.IsPositive() {
+				continue
+			}
+
+			out = append(out, creditrealization.CreateAllocationInput{
+				Annotations:   annotations,
+				ServicePeriod: servicePeriod,
+				Amount:        amount,
+				LedgerTransaction: ledgertransaction.GroupReference{
+					TransactionGroupID: transactionGroupID,
+				},
+			})
 		}
 	}
 

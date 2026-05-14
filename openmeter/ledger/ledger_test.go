@@ -28,6 +28,14 @@ func (e exampleEntryInput) Amount() alpacadecimal.Decimal {
 	return e.amount
 }
 
+func (e exampleEntryInput) IdentityKey() string {
+	return ""
+}
+
+func (e exampleEntryInput) Annotations() models.Annotations {
+	return nil
+}
+
 var _ ledger.EntryInput = exampleEntryInput{}
 
 func TestTwoAccountTransaction(t *testing.T) {

@@ -48,6 +48,7 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 			Namespace:    entry.Namespace,
 			Annotations:  entry.Annotations,
 			CreatedAt:    entry.CreatedAt,
+			IdentityKey:  entry.IdentityKey,
 			SubAccountID: entry.SubAccountID,
 			AccountType:  account.AccountType,
 			Route: ledger.Route{
@@ -121,6 +122,8 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 			createInputs = append(createInputs, tx.db.LedgerEntry.Create().
 				SetNamespace(groupID.Namespace).
 				SetSubAccountID(subAccountID).
+				SetIdentityKey(entryInput.IdentityKey()).
+				SetAnnotations(entryInput.Annotations()).
 				SetAmount(entryInput.Amount()).
 				SetTransactionID(entity.ID))
 		}
@@ -147,6 +150,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 					Namespace:     e.Namespace,
 					Annotations:   e.Annotations,
 					CreatedAt:     e.CreatedAt,
+					IdentityKey:   e.IdentityKey,
 					SubAccountID:  e.SubAccountID,
 					AccountType:   accountTypesBySubAccountID[e.SubAccountID],
 					Route:         routeBySubAccountID[e.SubAccountID],
@@ -467,38 +471,70 @@ func ledgerTransactionCreditMovementPredicate(
 	currency *currencyx.Code,
 	movement ledger.ListTransactionsCreditMovement,
 ) (predicate.LedgerTransaction, error) {
-	subAccountPredicates := []predicate.LedgerSubAccount{
-		ledgersubaccountdb.HasAccountWith(
-			ledgeraccountdb.AccountType(ledger.AccountTypeCustomerFBO),
-		),
-	}
-
-	if len(accountIDs) > 0 {
-		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.AccountIDIn(accountIDs...))
-	}
-
-	if currency != nil {
-		subAccountPredicates = append(subAccountPredicates,
-			ledgersubaccountdb.HasRouteWith(
-				ledgersubaccountroutedb.Currency(string(*currency)),
-			),
-		)
-	}
-
-	entryPredicates := []predicate.LedgerEntry{
-		ledgerentrydb.HasSubAccountWith(subAccountPredicates...),
-	}
+	var having *sql.Predicate
 
 	switch movement {
 	case ledger.ListTransactionsCreditMovementPositive:
-		entryPredicates = append(entryPredicates, ledgerentrydb.AmountGT(alpacadecimal.Zero))
+		having = scopedEntryAmountSumPredicate(">")
 	case ledger.ListTransactionsCreditMovementNegative:
-		entryPredicates = append(entryPredicates, ledgerentrydb.AmountLT(alpacadecimal.Zero))
+		having = scopedEntryAmountSumPredicate("<")
 	case ledger.ListTransactionsCreditMovementUnspecified:
 		return nil, nil
 	default:
 		return nil, fmt.Errorf("unsupported credit movement filter: %d", movement)
 	}
 
-	return ledgertransactiondb.HasEntriesWith(entryPredicates...), nil
+	return func(s *sql.Selector) {
+		s.Where(sql.In(
+			s.C(ledgertransactiondb.FieldID),
+			scopedFBOMovementTransactionSelector(accountIDs, currency, having),
+		))
+	}, nil
+}
+
+func scopedFBOMovementTransactionSelector(
+	accountIDs []string,
+	currency *currencyx.Code,
+	having *sql.Predicate,
+) *sql.Selector {
+	entries := sql.Table(ledgerentrydb.Table)
+	subAccounts := sql.Table(ledgersubaccountdb.Table)
+	accounts := sql.Table(ledgeraccountdb.Table)
+
+	selector := sql.Select(entries.C(ledgerentrydb.FieldTransactionID)).
+		From(entries).
+		Join(subAccounts).
+		On(entries.C(ledgerentrydb.FieldSubAccountID), subAccounts.C(ledgersubaccountdb.FieldID)).
+		Join(accounts).
+		On(subAccounts.C(ledgersubaccountdb.FieldAccountID), accounts.C(ledgeraccountdb.FieldID)).
+		Where(sql.EQ(accounts.C(ledgeraccountdb.FieldAccountType), ledger.AccountTypeCustomerFBO))
+
+	if len(accountIDs) > 0 {
+		selector.Where(sql.In(subAccounts.C(ledgersubaccountdb.FieldAccountID), stringsToAny(accountIDs)...))
+	}
+
+	if currency != nil {
+		routes := sql.Table(ledgersubaccountroutedb.Table)
+		selector.
+			Join(routes).
+			On(subAccounts.C(ledgersubaccountdb.FieldRouteID), routes.C(ledgersubaccountroutedb.FieldID)).
+			Where(sql.EQ(routes.C(ledgersubaccountroutedb.FieldCurrency), string(*currency)))
+	}
+
+	return selector.
+		GroupBy(entries.C(ledgerentrydb.FieldTransactionID)).
+		Having(having)
+}
+
+func scopedEntryAmountSumPredicate(op string) *sql.Predicate {
+	return sql.ExprP(fmt.Sprintf("SUM(%s) %s 0", ledgerentrydb.FieldAmount, op))
+}
+
+func stringsToAny(values []string) []any {
+	out := make([]any, len(values))
+	for i, value := range values {
+		out[i] = value
+	}
+
+	return out
 }

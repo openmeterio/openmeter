@@ -25,8 +25,10 @@ type subAccountAmount struct {
 
 // PostingAmount is a preselected amount to post against an address.
 type PostingAmount struct {
-	Address ledger.PostingAddress
-	Amount  alpacadecimal.Decimal
+	Address     ledger.PostingAddress
+	Amount      alpacadecimal.Decimal
+	IdentityKey string
+	Annotations models.Annotations
 }
 
 type accountIdentifier interface {

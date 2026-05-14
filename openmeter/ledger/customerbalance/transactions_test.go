@@ -41,6 +41,21 @@ func TestCreditTransactionFromLedgerTransaction_UsesFBOEntry(t *testing.T) {
 	require.True(t, item.Amount.Equal(alpacadecimal.NewFromInt(-10)))
 }
 
+func TestCreditTransactionFromLedgerTransaction_AggregatesScopedFBOEntries(t *testing.T) {
+	usd := currencyx.Code("USD")
+	tx := mustHistoricalTransaction(t, []ledgerhistorical.EntryData{
+		mustEntryData(t, "entry-fbo-1", ledger.AccountTypeCustomerFBO, usd, alpacadecimal.NewFromInt(-10)),
+		mustEntryData(t, "entry-fbo-2", ledger.AccountTypeCustomerFBO, usd, alpacadecimal.NewFromInt(-5)),
+		mustEntryData(t, "entry-accrued", ledger.AccountTypeCustomerAccrued, usd, alpacadecimal.NewFromInt(15)),
+	})
+
+	item, err := creditTransactionFromLedgerTransaction(tx)
+	require.NoError(t, err)
+	require.Equal(t, CreditTransactionTypeConsumed, item.Type)
+	require.Equal(t, currencyx.Code("USD"), item.Currency)
+	require.True(t, item.Amount.Equal(alpacadecimal.NewFromInt(-15)))
+}
+
 func TestApplyCreditTransactionBalances(t *testing.T) {
 	items := []CreditTransaction{
 		{

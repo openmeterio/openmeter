@@ -2042,6 +2042,10 @@ func init() {
 	ledgerentry.DefaultUpdatedAt = ledgerentryDescUpdatedAt.Default.(func() time.Time)
 	// ledgerentry.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	ledgerentry.UpdateDefaultUpdatedAt = ledgerentryDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ledgerentryDescIdentityKey is the schema descriptor for identity_key field.
+	ledgerentryDescIdentityKey := ledgerentryFields[1].Descriptor()
+	// ledgerentry.DefaultIdentityKey holds the default value on creation for the identity_key field.
+	ledgerentry.DefaultIdentityKey = ledgerentryDescIdentityKey.Default.(string)
 	// ledgerentryDescID is the schema descriptor for id field.
 	ledgerentryDescID := ledgerentryMixinFields0[0].Descriptor()
 	// ledgerentry.DefaultID holds the default value on creation for the id field.
