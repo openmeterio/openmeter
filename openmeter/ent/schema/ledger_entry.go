@@ -30,6 +30,9 @@ func (LedgerEntry) Fields() []ent.Field {
 		field.String("sub_account_id").SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}).Immutable(),
+		field.String("identity_key").
+			Default("").
+			Immutable(),
 		field.Other("amount", alpacadecimal.Decimal{}).Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "numeric",
 		}),
@@ -61,6 +64,7 @@ func (LedgerEntry) Indexes() []ent.Index {
 		index.Fields("namespace", "id").Unique(),
 		index.Fields("namespace", "transaction_id"),
 		index.Fields("namespace", "sub_account_id"),
+		index.Fields("transaction_id", "sub_account_id", "identity_key").Unique(),
 		index.Fields("created_at", "id").Annotations(
 			entsql.IndexWhere("deleted_at IS NULL"),
 		),

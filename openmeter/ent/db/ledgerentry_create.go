@@ -87,6 +87,20 @@ func (_c *LedgerEntryCreate) SetSubAccountID(v string) *LedgerEntryCreate {
 	return _c
 }
 
+// SetIdentityKey sets the "identity_key" field.
+func (_c *LedgerEntryCreate) SetIdentityKey(v string) *LedgerEntryCreate {
+	_c.mutation.SetIdentityKey(v)
+	return _c
+}
+
+// SetNillableIdentityKey sets the "identity_key" field if the given value is not nil.
+func (_c *LedgerEntryCreate) SetNillableIdentityKey(v *string) *LedgerEntryCreate {
+	if v != nil {
+		_c.SetIdentityKey(*v)
+	}
+	return _c
+}
+
 // SetAmount sets the "amount" field.
 func (_c *LedgerEntryCreate) SetAmount(v alpacadecimal.Decimal) *LedgerEntryCreate {
 	_c.mutation.SetAmount(v)
@@ -166,6 +180,10 @@ func (_c *LedgerEntryCreate) defaults() {
 		v := ledgerentry.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.IdentityKey(); !ok {
+		v := ledgerentry.DefaultIdentityKey
+		_c.mutation.SetIdentityKey(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := ledgerentry.DefaultID()
 		_c.mutation.SetID(v)
@@ -190,6 +208,9 @@ func (_c *LedgerEntryCreate) check() error {
 	}
 	if _, ok := _c.mutation.SubAccountID(); !ok {
 		return &ValidationError{Name: "sub_account_id", err: errors.New(`db: missing required field "LedgerEntry.sub_account_id"`)}
+	}
+	if _, ok := _c.mutation.IdentityKey(); !ok {
+		return &ValidationError{Name: "identity_key", err: errors.New(`db: missing required field "LedgerEntry.identity_key"`)}
 	}
 	if _, ok := _c.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "LedgerEntry.amount"`)}
@@ -258,6 +279,10 @@ func (_c *LedgerEntryCreate) createSpec() (*LedgerEntry, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(ledgerentry.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.IdentityKey(); ok {
+		_spec.SetField(ledgerentry.FieldIdentityKey, field.TypeString, value)
+		_node.IdentityKey = value
 	}
 	if value, ok := _c.mutation.Amount(); ok {
 		_spec.SetField(ledgerentry.FieldAmount, field.TypeOther, value)
@@ -422,6 +447,9 @@ func (u *LedgerEntryUpsertOne) UpdateNewValues() *LedgerEntryUpsertOne {
 		}
 		if _, exists := u.create.mutation.SubAccountID(); exists {
 			s.SetIgnore(ledgerentry.FieldSubAccountID)
+		}
+		if _, exists := u.create.mutation.IdentityKey(); exists {
+			s.SetIgnore(ledgerentry.FieldIdentityKey)
 		}
 		if _, exists := u.create.mutation.Amount(); exists {
 			s.SetIgnore(ledgerentry.FieldAmount)
@@ -707,6 +735,9 @@ func (u *LedgerEntryUpsertBulk) UpdateNewValues() *LedgerEntryUpsertBulk {
 			}
 			if _, exists := b.mutation.SubAccountID(); exists {
 				s.SetIgnore(ledgerentry.FieldSubAccountID)
+			}
+			if _, exists := b.mutation.IdentityKey(); exists {
+				s.SetIgnore(ledgerentry.FieldIdentityKey)
 			}
 			if _, exists := b.mutation.Amount(); exists {
 				s.SetIgnore(ledgerentry.FieldAmount)
