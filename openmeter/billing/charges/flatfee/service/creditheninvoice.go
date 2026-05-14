@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -305,6 +306,9 @@ func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Conte
 	// We are in pre-active state, so only the gathering line exists
 	if currentRun == nil {
 		s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
+		if input.NewAmountAfterProration.IsZero() {
+			return nil
+		}
 		s.AddInvoicePatch(invoiceupdater.NewCreateLinePatch(updatedGatheringLine))
 		return nil
 	}
@@ -326,6 +330,29 @@ func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Conte
 
 	// If the run is not immutable, we can just update the invoice standard line.
 	if !currentRun.Immutable {
+		// Case #1: If the new amount is zero we just need to delete the old line
+		if input.NewAmountAfterProration.IsZero() {
+			s.AddInvoicePatch(invoiceupdater.NewDeleteLinePatch(
+				billing.LineID{
+					Namespace: s.Charge.Namespace,
+					ID:        *currentRun.LineID,
+				},
+				*currentRun.InvoiceID,
+			))
+
+			if err := s.Adapter.DetachCurrentRun(ctx, s.Charge.GetChargeID()); err != nil {
+				return fmt.Errorf("detach zero-amount current run: %w", err)
+			}
+
+			s.Charge.Realizations.PriorRuns = append(s.Charge.Realizations.PriorRuns, *currentRun)
+			s.Charge.Realizations.CurrentRun = nil
+
+			s.Charge.Status = flatfee.StatusCreated
+			s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(input.Period.From))
+
+			return nil
+		}
+
 		line, err := updatedGatheringLine.AsNewStandardLine(*currentRun.InvoiceID)
 		if err != nil {
 			return fmt.Errorf("converting %s flat-fee gathering line target to standard line: %w", input.Op, err)

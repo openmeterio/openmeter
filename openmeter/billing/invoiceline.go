@@ -84,6 +84,7 @@ type GenericInvoiceLineReader interface {
 	GetServicePeriod() timeutil.ClosedPeriod
 	GetChildUniqueReferenceID() *string
 	GetFeatureKey() string
+	GetChargeID() *string
 
 	Validate() error
 	AsInvoiceLine() InvoiceLine
