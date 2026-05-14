@@ -3,6 +3,8 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     devenv.url = "github:cachix/devenv";
+    git-hooks.url = "github:cachix/git-hooks.nix";
+    pre-commit-hooks.follows = "git-hooks";
   };
 
   outputs = inputs@{ flake-parts, ... }:
@@ -42,7 +44,7 @@
 
               javascript = {
                 enable = true;
-                package = pkgs.nodejs_24;
+                package = pkgs.nodejs-slim_24;
                 corepack = {
                   enable = true;
                 };
@@ -64,6 +66,9 @@
                 stages = [ "manual" ];
               };
             };
+
+            # Use alternative pre-commit implementations
+            git-hooks.package = pkgs.prek;
 
             packages = with pkgs; [
               gnumake
@@ -188,8 +193,8 @@
 
               src = pkgs.fetchurl {
                 # License: https://ariga.io/legal/atlas/eula/eula-20240804.pdf
-                url = "https://release.ariga.io/atlas/atlas-${systemMappings."${system}"}-v${version}";
-                hash = hashMappings."${system}";
+                url = "https://release.ariga.io/atlas/atlas-${systemMappings."${pkgs.stdenv.hostPlatform.system}"}-v${version}";
+                hash = hashMappings."${pkgs.stdenv.hostPlatform.system}";
               };
 
               unpackPhase = ''

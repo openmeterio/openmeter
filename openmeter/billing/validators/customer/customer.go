@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
 var _ customer.RequestValidator = (*Validator)(nil)
@@ -46,8 +47,8 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 
 	// Let's sync any subscriptions pending for this customer
 	subs, err := v.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-		Namespaces:  []string{input.Namespace},
-		CustomerIDs: []string{input.ID},
+		Namespaces: []string{input.Namespace},
+		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &input.ID}},
 	})
 	if err != nil {
 		return err

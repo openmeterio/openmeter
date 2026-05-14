@@ -33,6 +33,14 @@ server:
   writeTimeout: 90s
   # idleTimeout is the maximum time a keep-alive connection remains idle before being closed.
   idleTimeout: 120s
+  responseValidation:
+    # mode selects which v3 routes have their response bodies validated against the OpenAPI spec.
+    # Violations are logged as warnings; the client response is never affected.
+    # Validation buffers the full response body in memory.
+    #   off      — validation disabled (default)
+    #   unstable — validate only routes marked x-unstable: true in the spec
+    #   all      — validate every v3 route (highest overhead)
+    mode: "all"
 
 #ingest:
 #  kafka:

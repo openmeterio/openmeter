@@ -6,6 +6,7 @@ import "../common/error.tsp";
 import "../common/pagination.tsp";
 import "../common/parameters.tsp";
 import "./subscription.tsp";
+import "./subscriptionaddon.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -31,8 +32,9 @@ model SubscriptionChange {
   ...OmitProperties<SubscriptionCreate, "customer_id" | "customer_key">;
 
   /**
-   * Timing configuration for the change, when the change should take effect.
-   * For changing a subscription, the accepted values depend on the subscription configuration.
+   * Timing configuration for the change, when the change should take effect. For
+   * changing a subscription, the accepted values depend on the subscription
+   * configuration.
    */
   timing: SubscriptionEditTiming;
 }
@@ -53,6 +55,24 @@ model SubscriptionChangeResponse {
   next: Subscription;
 }
 
+/**
+ * Filter options for listing subscriptions.
+ */
+#suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "plan_id and plan_key should not be grouped"
+@friendlyName("ListSubscriptionsParamsFilter")
+model ListSubscriptionsParamsFilter {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  customer_id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  status?: Common.StringFieldFilterExact;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  plan_id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  plan_key?: Common.StringFieldFilterExact;
+}
+
 interface SubscriptionsOperations {
   @post
   @operationId("create-subscription")
@@ -70,15 +90,20 @@ interface SubscriptionsOperations {
     ...Common.PagePaginationQuery,
 
     /**
+     * Sort subscriptions returned in the response. Supported sort attributes are:
+     *
+     * - `id`
+     * - `active_from` (default)
+     * - `active_to`
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
      * Filter subscriptions.
      */
     @query(#{ style: "deepObject", explode: true })
-    filter?: {
-      /**
-       * Filter subscriptions by customer ID.
-       */
-      customer_id?: Shared.ULID;
-    },
+    filter?: ListSubscriptionsParamsFilter,
   ): Shared.PagePaginatedResponse<Subscription> | Common.NotFound | Common.ErrorResponses;
 
   @get
@@ -89,8 +114,8 @@ interface SubscriptionsOperations {
   ): Shared.GetResponse<Subscription> | Common.NotFound | Common.ErrorResponses;
 
   /**
-   * Cancels the subscription.
-   * Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancelation time.
+   * Cancels the subscription. Will result in a scheduling conflict if there are
+   * other subscriptions scheduled to start after the cancelation time.
    */
   @post
   @operationId("cancel-subscription")
@@ -116,8 +141,8 @@ interface SubscriptionsOperations {
     | Common.ErrorResponses;
 
   /**
-   * Closes a running subscription and starts a new one according to the specification.
-   * Can be used for upgrades, downgrades, and plan changes.
+   * Closes a running subscription and starts a new one according to the
+   * specification. Can be used for upgrades, downgrades, and plan changes.
    */
   @post
   @operationId("change-subscription")
@@ -133,4 +158,20 @@ interface SubscriptionsOperations {
     | Common.NotFound
     | Common.Conflict
     | Common.ErrorResponses;
+}
+
+interface SubscriptionAddonOperations {
+  /**
+   * List the addons of a subscription.
+   */
+  @get
+  @operationId("list-subscription-addons")
+  @summary("List subscription addons")
+  list(
+    @path subscriptionId: Shared.ULID,
+    ...Common.PagePaginationQuery,
+
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+  ): Shared.PagePaginatedResponse<SubscriptionAddon> | Common.NotFound | Common.ErrorResponses;
 }

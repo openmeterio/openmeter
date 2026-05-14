@@ -47,3 +47,32 @@ func TestTotalsRoundToPrecision(t *testing.T) {
 	require.Equal(t, "2.78", got.CreditsTotal.String())
 	require.Equal(t, "7.34", got.Total.String())
 }
+
+func TestTotalsEqual(t *testing.T) {
+	t.Parallel()
+
+	in := Totals{
+		Amount:              alpacadecimal.NewFromInt(1),
+		ChargesTotal:        alpacadecimal.NewFromInt(2),
+		DiscountsTotal:      alpacadecimal.NewFromInt(3),
+		TaxesInclusiveTotal: alpacadecimal.NewFromInt(4),
+		TaxesExclusiveTotal: alpacadecimal.NewFromInt(5),
+		TaxesTotal:          alpacadecimal.NewFromInt(6),
+		CreditsTotal:        alpacadecimal.NewFromInt(7),
+		Total:               alpacadecimal.NewFromInt(8),
+	}
+
+	require.True(t, in.Equal(in))
+
+	other := in
+	other.Total = alpacadecimal.NewFromInt(9)
+	require.False(t, in.Equal(other))
+}
+
+func TestValidateTotalNonNegative(t *testing.T) {
+	t.Parallel()
+
+	require.NoError(t, Totals{Total: alpacadecimal.Zero}.ValidateTotalNonNegative())
+	require.NoError(t, Totals{Total: alpacadecimal.NewFromInt(1)}.ValidateTotalNonNegative())
+	require.ErrorContains(t, Totals{Total: alpacadecimal.NewFromInt(-1)}.ValidateTotalNonNegative(), "total is negative")
+}

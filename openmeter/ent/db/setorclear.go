@@ -2721,336 +2721,378 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearFeatureID(value *string) *ChargeFlatF
 	return u.SetFeatureID(*value)
 }
 
-func (u *ChargeFlatFeeCreditAllocationsUpdate) SetOrClearLineID(value *string) *ChargeFlatFeeCreditAllocationsUpdate {
+func (u *ChargeFlatFeeUpdate) SetOrClearCurrentRealizationRunID(value *string) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearCurrentRealizationRunID()
+	}
+	return u.SetCurrentRealizationRunID(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearCurrentRealizationRunID(value *string) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearCurrentRealizationRunID()
+	}
+	return u.SetCurrentRealizationRunID(*value)
+}
+
+func (u *ChargeFlatFeeRunUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeRunUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeRunUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeRunUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeRunUpdate) SetOrClearLineID(value *string) *ChargeFlatFeeRunUpdate {
 	if value == nil {
 		return u.ClearLineID()
 	}
 	return u.SetLineID(*value)
 }
 
-func (u *ChargeFlatFeeCreditAllocationsUpdateOne) SetOrClearLineID(value *string) *ChargeFlatFeeCreditAllocationsUpdateOne {
+func (u *ChargeFlatFeeRunUpdateOne) SetOrClearLineID(value *string) *ChargeFlatFeeRunUpdateOne {
 	if value == nil {
 		return u.ClearLineID()
 	}
 	return u.SetLineID(*value)
 }
 
-func (u *ChargeFlatFeeCreditAllocationsUpdate) SetOrClearCorrectsRealizationID(value *string) *ChargeFlatFeeCreditAllocationsUpdate {
+func (u *ChargeFlatFeeRunUpdate) SetOrClearInvoiceID(value *string) *ChargeFlatFeeRunUpdate {
+	if value == nil {
+		return u.ClearInvoiceID()
+	}
+	return u.SetInvoiceID(*value)
+}
+
+func (u *ChargeFlatFeeRunUpdateOne) SetOrClearInvoiceID(value *string) *ChargeFlatFeeRunUpdateOne {
+	if value == nil {
+		return u.ClearInvoiceID()
+	}
+	return u.SetInvoiceID(*value)
+}
+
+func (u *ChargeFlatFeeRunCreditAllocationsUpdate) SetOrClearLineID(value *string) *ChargeFlatFeeRunCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeFlatFeeRunCreditAllocationsUpdateOne) SetOrClearLineID(value *string) *ChargeFlatFeeRunCreditAllocationsUpdateOne {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeFlatFeeRunCreditAllocationsUpdate) SetOrClearCorrectsRealizationID(value *string) *ChargeFlatFeeRunCreditAllocationsUpdate {
 	if value == nil {
 		return u.ClearCorrectsRealizationID()
 	}
 	return u.SetCorrectsRealizationID(*value)
 }
 
-func (u *ChargeFlatFeeCreditAllocationsUpdateOne) SetOrClearCorrectsRealizationID(value *string) *ChargeFlatFeeCreditAllocationsUpdateOne {
+func (u *ChargeFlatFeeRunCreditAllocationsUpdateOne) SetOrClearCorrectsRealizationID(value *string) *ChargeFlatFeeRunCreditAllocationsUpdateOne {
 	if value == nil {
 		return u.ClearCorrectsRealizationID()
 	}
 	return u.SetCorrectsRealizationID(*value)
 }
 
-func (u *ChargeFlatFeeCreditAllocationsUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeCreditAllocationsUpdate {
+func (u *ChargeFlatFeeRunCreditAllocationsUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeRunCreditAllocationsUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
 }
 
-func (u *ChargeFlatFeeCreditAllocationsUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeCreditAllocationsUpdateOne {
+func (u *ChargeFlatFeeRunCreditAllocationsUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeRunCreditAllocationsUpdateOne {
 	if value == nil {
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
 }
 
-func (u *ChargeFlatFeeCreditAllocationsUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeCreditAllocationsUpdate {
+func (u *ChargeFlatFeeRunCreditAllocationsUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeRunCreditAllocationsUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *ChargeFlatFeeCreditAllocationsUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeCreditAllocationsUpdateOne {
+func (u *ChargeFlatFeeRunCreditAllocationsUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeRunCreditAllocationsUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *ChargeFlatFeeDetailedLineUpdate {
+func (u *ChargeFlatFeeRunDetailedLineUpdate) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *ChargeFlatFeeRunDetailedLineUpdate {
 	if value == nil {
 		return u.ClearTaxConfig()
 	}
 	return u.SetTaxConfig(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *ChargeFlatFeeDetailedLineUpdateOne {
+func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *ChargeFlatFeeRunDetailedLineUpdateOne {
 	if value == nil {
 		return u.ClearTaxConfig()
 	}
 	return u.SetTaxConfig(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearTaxCodeID(value *string) *ChargeFlatFeeDetailedLineUpdate {
+func (u *ChargeFlatFeeRunDetailedLineUpdate) SetOrClearTaxCodeID(value *string) *ChargeFlatFeeRunDetailedLineUpdate {
 	if value == nil {
 		return u.ClearTaxCodeID()
 	}
 	return u.SetTaxCodeID(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearTaxCodeID(value *string) *ChargeFlatFeeDetailedLineUpdateOne {
+func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearTaxCodeID(value *string) *ChargeFlatFeeRunDetailedLineUpdateOne {
 	if value == nil {
 		return u.ClearTaxCodeID()
 	}
 	return u.SetTaxCodeID(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeFlatFeeDetailedLineUpdate {
+func (u *ChargeFlatFeeRunDetailedLineUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeFlatFeeRunDetailedLineUpdate {
 	if value == nil {
 		return u.ClearTaxBehavior()
 	}
 	return u.SetTaxBehavior(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeFlatFeeDetailedLineUpdateOne {
+func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeFlatFeeRunDetailedLineUpdateOne {
 	if value == nil {
 		return u.ClearTaxBehavior()
 	}
 	return u.SetTaxBehavior(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *ChargeFlatFeeDetailedLineUpdate {
+func (u *ChargeFlatFeeRunDetailedLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *ChargeFlatFeeRunDetailedLineUpdate {
 	if value == nil {
 		return u.ClearInvoicingAppExternalID()
 	}
 	return u.SetInvoicingAppExternalID(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *ChargeFlatFeeDetailedLineUpdateOne {
+func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearInvoicingAppExternalID(value *string) *ChargeFlatFeeRunDetailedLineUpdateOne {
 	if value == nil {
 		return u.ClearInvoicingAppExternalID()
 	}
 	return u.SetInvoicingAppExternalID(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearIndex(value *int) *ChargeFlatFeeDetailedLineUpdate {
+func (u *ChargeFlatFeeRunDetailedLineUpdate) SetOrClearIndex(value *int) *ChargeFlatFeeRunDetailedLineUpdate {
 	if value == nil {
 		return u.ClearIndex()
 	}
 	return u.SetIndex(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearIndex(value *int) *ChargeFlatFeeDetailedLineUpdateOne {
+func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearIndex(value *int) *ChargeFlatFeeRunDetailedLineUpdateOne {
 	if value == nil {
 		return u.ClearIndex()
 	}
 	return u.SetIndex(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeFlatFeeDetailedLineUpdate {
+func (u *ChargeFlatFeeRunDetailedLineUpdate) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeFlatFeeRunDetailedLineUpdate {
 	if value == nil {
 		return u.ClearCreditsApplied()
 	}
 	return u.SetCreditsApplied(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeFlatFeeDetailedLineUpdateOne {
+func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeFlatFeeRunDetailedLineUpdateOne {
 	if value == nil {
 		return u.ClearCreditsApplied()
 	}
 	return u.SetCreditsApplied(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeDetailedLineUpdate {
+func (u *ChargeFlatFeeRunDetailedLineUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeRunDetailedLineUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeDetailedLineUpdateOne {
+func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeRunDetailedLineUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearMetadata(value *map[string]string) *ChargeFlatFeeDetailedLineUpdate {
+func (u *ChargeFlatFeeRunDetailedLineUpdate) SetOrClearMetadata(value *map[string]string) *ChargeFlatFeeRunDetailedLineUpdate {
 	if value == nil {
 		return u.ClearMetadata()
 	}
 	return u.SetMetadata(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearMetadata(value *map[string]string) *ChargeFlatFeeDetailedLineUpdateOne {
+func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearMetadata(value *map[string]string) *ChargeFlatFeeRunDetailedLineUpdateOne {
 	if value == nil {
 		return u.ClearMetadata()
 	}
 	return u.SetMetadata(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeDetailedLineUpdate {
+func (u *ChargeFlatFeeRunDetailedLineUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeRunDetailedLineUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeDetailedLineUpdateOne {
+func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeRunDetailedLineUpdateOne {
 	if value == nil {
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdate) SetOrClearDescription(value *string) *ChargeFlatFeeDetailedLineUpdate {
+func (u *ChargeFlatFeeRunDetailedLineUpdate) SetOrClearDescription(value *string) *ChargeFlatFeeRunDetailedLineUpdate {
 	if value == nil {
 		return u.ClearDescription()
 	}
 	return u.SetDescription(*value)
 }
 
-func (u *ChargeFlatFeeDetailedLineUpdateOne) SetOrClearDescription(value *string) *ChargeFlatFeeDetailedLineUpdateOne {
+func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearDescription(value *string) *ChargeFlatFeeRunDetailedLineUpdateOne {
 	if value == nil {
 		return u.ClearDescription()
 	}
 	return u.SetDescription(*value)
 }
 
-func (u *ChargeFlatFeeInvoicedUsageUpdate) SetOrClearLineID(value *string) *ChargeFlatFeeInvoicedUsageUpdate {
-	if value == nil {
-		return u.ClearLineID()
-	}
-	return u.SetLineID(*value)
-}
-
-func (u *ChargeFlatFeeInvoicedUsageUpdateOne) SetOrClearLineID(value *string) *ChargeFlatFeeInvoicedUsageUpdateOne {
-	if value == nil {
-		return u.ClearLineID()
-	}
-	return u.SetLineID(*value)
-}
-
-func (u *ChargeFlatFeeInvoicedUsageUpdate) SetOrClearLedgerTransactionGroupID(value *string) *ChargeFlatFeeInvoicedUsageUpdate {
+func (u *ChargeFlatFeeRunInvoicedUsageUpdate) SetOrClearLedgerTransactionGroupID(value *string) *ChargeFlatFeeRunInvoicedUsageUpdate {
 	if value == nil {
 		return u.ClearLedgerTransactionGroupID()
 	}
 	return u.SetLedgerTransactionGroupID(*value)
 }
 
-func (u *ChargeFlatFeeInvoicedUsageUpdateOne) SetOrClearLedgerTransactionGroupID(value *string) *ChargeFlatFeeInvoicedUsageUpdateOne {
+func (u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetOrClearLedgerTransactionGroupID(value *string) *ChargeFlatFeeRunInvoicedUsageUpdateOne {
 	if value == nil {
 		return u.ClearLedgerTransactionGroupID()
 	}
 	return u.SetLedgerTransactionGroupID(*value)
 }
 
-func (u *ChargeFlatFeeInvoicedUsageUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeInvoicedUsageUpdate {
+func (u *ChargeFlatFeeRunInvoicedUsageUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeRunInvoicedUsageUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
 }
 
-func (u *ChargeFlatFeeInvoicedUsageUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeInvoicedUsageUpdateOne {
+func (u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeRunInvoicedUsageUpdateOne {
 	if value == nil {
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
 }
 
-func (u *ChargeFlatFeeInvoicedUsageUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeInvoicedUsageUpdate {
+func (u *ChargeFlatFeeRunInvoicedUsageUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeRunInvoicedUsageUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *ChargeFlatFeeInvoicedUsageUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeInvoicedUsageUpdateOne {
+func (u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeRunInvoicedUsageUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *ChargeFlatFeePaymentUpdate) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeFlatFeePaymentUpdate {
+func (u *ChargeFlatFeeRunPaymentUpdate) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeFlatFeeRunPaymentUpdate {
 	if value == nil {
 		return u.ClearAuthorizedTransactionGroupID()
 	}
 	return u.SetAuthorizedTransactionGroupID(*value)
 }
 
-func (u *ChargeFlatFeePaymentUpdateOne) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeFlatFeePaymentUpdateOne {
+func (u *ChargeFlatFeeRunPaymentUpdateOne) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeFlatFeeRunPaymentUpdateOne {
 	if value == nil {
 		return u.ClearAuthorizedTransactionGroupID()
 	}
 	return u.SetAuthorizedTransactionGroupID(*value)
 }
 
-func (u *ChargeFlatFeePaymentUpdate) SetOrClearAuthorizedAt(value *time.Time) *ChargeFlatFeePaymentUpdate {
+func (u *ChargeFlatFeeRunPaymentUpdate) SetOrClearAuthorizedAt(value *time.Time) *ChargeFlatFeeRunPaymentUpdate {
 	if value == nil {
 		return u.ClearAuthorizedAt()
 	}
 	return u.SetAuthorizedAt(*value)
 }
 
-func (u *ChargeFlatFeePaymentUpdateOne) SetOrClearAuthorizedAt(value *time.Time) *ChargeFlatFeePaymentUpdateOne {
+func (u *ChargeFlatFeeRunPaymentUpdateOne) SetOrClearAuthorizedAt(value *time.Time) *ChargeFlatFeeRunPaymentUpdateOne {
 	if value == nil {
 		return u.ClearAuthorizedAt()
 	}
 	return u.SetAuthorizedAt(*value)
 }
 
-func (u *ChargeFlatFeePaymentUpdate) SetOrClearSettledTransactionGroupID(value *string) *ChargeFlatFeePaymentUpdate {
+func (u *ChargeFlatFeeRunPaymentUpdate) SetOrClearSettledTransactionGroupID(value *string) *ChargeFlatFeeRunPaymentUpdate {
 	if value == nil {
 		return u.ClearSettledTransactionGroupID()
 	}
 	return u.SetSettledTransactionGroupID(*value)
 }
 
-func (u *ChargeFlatFeePaymentUpdateOne) SetOrClearSettledTransactionGroupID(value *string) *ChargeFlatFeePaymentUpdateOne {
+func (u *ChargeFlatFeeRunPaymentUpdateOne) SetOrClearSettledTransactionGroupID(value *string) *ChargeFlatFeeRunPaymentUpdateOne {
 	if value == nil {
 		return u.ClearSettledTransactionGroupID()
 	}
 	return u.SetSettledTransactionGroupID(*value)
 }
 
-func (u *ChargeFlatFeePaymentUpdate) SetOrClearSettledAt(value *time.Time) *ChargeFlatFeePaymentUpdate {
+func (u *ChargeFlatFeeRunPaymentUpdate) SetOrClearSettledAt(value *time.Time) *ChargeFlatFeeRunPaymentUpdate {
 	if value == nil {
 		return u.ClearSettledAt()
 	}
 	return u.SetSettledAt(*value)
 }
 
-func (u *ChargeFlatFeePaymentUpdateOne) SetOrClearSettledAt(value *time.Time) *ChargeFlatFeePaymentUpdateOne {
+func (u *ChargeFlatFeeRunPaymentUpdateOne) SetOrClearSettledAt(value *time.Time) *ChargeFlatFeeRunPaymentUpdateOne {
 	if value == nil {
 		return u.ClearSettledAt()
 	}
 	return u.SetSettledAt(*value)
 }
 
-func (u *ChargeFlatFeePaymentUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeePaymentUpdate {
+func (u *ChargeFlatFeeRunPaymentUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeRunPaymentUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
 }
 
-func (u *ChargeFlatFeePaymentUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeePaymentUpdateOne {
+func (u *ChargeFlatFeeRunPaymentUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeRunPaymentUpdateOne {
 	if value == nil {
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
 }
 
-func (u *ChargeFlatFeePaymentUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeePaymentUpdate {
+func (u *ChargeFlatFeeRunPaymentUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeRunPaymentUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
 }
 
-func (u *ChargeFlatFeePaymentUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeePaymentUpdateOne {
+func (u *ChargeFlatFeeRunPaymentUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeRunPaymentUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}
@@ -3379,18 +3421,18 @@ func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearDescription(value *
 	return u.SetDescription(*value)
 }
 
-func (u *ChargeUsageBasedRunInvoicedUsageUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunInvoicedUsageUpdate {
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearCorrectsRunID(value *string) *ChargeUsageBasedRunDetailedLineUpdate {
 	if value == nil {
-		return u.ClearLineID()
+		return u.ClearCorrectsRunID()
 	}
-	return u.SetLineID(*value)
+	return u.SetCorrectsRunID(*value)
 }
 
-func (u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetOrClearLineID(value *string) *ChargeUsageBasedRunInvoicedUsageUpdateOne {
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearCorrectsRunID(value *string) *ChargeUsageBasedRunDetailedLineUpdateOne {
 	if value == nil {
-		return u.ClearLineID()
+		return u.ClearCorrectsRunID()
 	}
-	return u.SetLineID(*value)
+	return u.SetCorrectsRunID(*value)
 }
 
 func (u *ChargeUsageBasedRunInvoicedUsageUpdate) SetOrClearLedgerTransactionGroupID(value *string) *ChargeUsageBasedRunInvoicedUsageUpdate {
@@ -4721,6 +4763,20 @@ func (u *NotificationRuleUpdateOne) SetOrClearDisabled(value *bool) *Notificatio
 		return u.ClearDisabled()
 	}
 	return u.SetDisabled(*value)
+}
+
+func (u *OrganizationDefaultTaxCodesUpdate) SetOrClearDeletedAt(value *time.Time) *OrganizationDefaultTaxCodesUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *OrganizationDefaultTaxCodesUpdateOne) SetOrClearDeletedAt(value *time.Time) *OrganizationDefaultTaxCodesUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
 }
 
 func (u *PlanUpdate) SetOrClearMetadata(value *map[string]string) *PlanUpdate {

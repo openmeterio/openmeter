@@ -40,6 +40,14 @@ func (i BookAccruedInvoiceUsageInput) Validate() error {
 		return fmt.Errorf("run %s already has an invoice usage", i.Run.ID.ID)
 	}
 
+	if i.Run.NoFiatTransactionRequired && !i.Line.Totals.Total.IsZero() {
+		return fmt.Errorf("run %s requires no fiat transaction but line total is non-zero", i.Run.ID.ID)
+	}
+
+	if !i.Run.NoFiatTransactionRequired && i.Line.Totals.Total.IsZero() {
+		return fmt.Errorf("run %s has zero line total but requires a fiat transaction", i.Run.ID.ID)
+	}
+
 	return nil
 }
 
@@ -53,9 +61,20 @@ func (s *Service) BookAccruedInvoiceUsage(ctx context.Context, in BookAccruedInv
 		return BookAccruedInvoiceUsageResult{}, err
 	}
 
-	if in.Line.Totals.Total.IsZero() {
+	if in.Run.NoFiatTransactionRequired {
+		accruedUsage, err := s.adapter.CreateRunInvoicedUsage(ctx, in.Run.ID, invoicedusage.AccruedUsage{
+			ServicePeriod: in.Line.Period,
+			Totals:        in.Line.Totals,
+		})
+		if err != nil {
+			return BookAccruedInvoiceUsageResult{}, fmt.Errorf("create invoiced usage for run %s: %w", in.Run.ID.ID, err)
+		}
+
+		in.Run.InvoiceUsage = &accruedUsage
+
 		return BookAccruedInvoiceUsageResult{
-			Run: in.Run,
+			Run:          in.Run,
+			InvoiceUsage: &accruedUsage,
 		}, nil
 	}
 
@@ -80,9 +99,7 @@ func (s *Service) BookAccruedInvoiceUsage(ctx context.Context, in BookAccruedInv
 	}
 
 	accruedUsage, err := s.adapter.CreateRunInvoicedUsage(ctx, in.Run.ID, invoicedusage.AccruedUsage{
-		LineID:            in.Run.LineID,
 		ServicePeriod:     in.Line.Period,
-		Mutable:           false,
 		Totals:            in.Line.Totals,
 		LedgerTransaction: &ledgerTransactionRef,
 	})

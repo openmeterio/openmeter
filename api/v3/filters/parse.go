@@ -83,6 +83,7 @@ var (
 	filterDateTimeType    = reflect.TypeFor[*FilterDateTime]()
 	filterBooleanType     = reflect.TypeFor[*FilterBoolean]()
 	filterLabelsType      = reflect.TypeFor[FilterLabels]()
+	filterLabelsPtrType   = reflect.TypeFor[*FilterLabels]()
 	stringPtrType         = reflect.TypeFor[*string]()
 )
 
@@ -109,13 +110,21 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			continue
 		}
 
-		// FilterLabels uses dot-notation: filter[labels.env][eq]=prod
-		if fieldVal.Type() == filterLabelsType {
+		// FilterLabels accepts two query forms (handled together):
+		//   filter[labels.env][eq]=prod   (dot-notation)
+		//   filter[labels][env][eq]=prod  (nested deepObject)
+		// Both struct-field shapes are supported: FilterLabels (a map) and *FilterLabels.
+		if fieldVal.Type() == filterLabelsType || fieldVal.Type() == filterLabelsPtrType {
 			labels, err := parseFilterLabels(qs, name)
 			if err != nil {
 				return err
 			}
-			if labels != nil {
+			if labels == nil {
+				continue
+			}
+			if fieldVal.Type() == filterLabelsPtrType {
+				fieldVal.Set(reflect.ValueOf(&labels))
+			} else {
 				fieldVal.Set(reflect.ValueOf(labels))
 			}
 			continue
@@ -426,67 +435,93 @@ func parseFilterBoolean(qs url.Values, field string) (FilterBoolean, error) {
 	return f, err
 }
 
-// parseFilterLabel extracts a FilterLabel for a single dot-notation label key.
-func parseFilterLabel(qs url.Values, field string) (FilterLabel, error) {
-	var f FilterLabel
-
-	err := forEachFieldParam(qs, field, func(p parsedFilterParam) error {
-		switch p.op {
-		case OpEq:
-			f.Eq = &p.value
-		case OpNeq:
-			f.Neq = &p.value
-		case OpContains:
-			f.Contains = &p.value
-		case OpOeq:
-			items, err := parseCommaSeparatedField(field, p.op, p.value)
-			if err != nil {
-				return err
-			}
-			f.Oeq = items
-		case OpOcontains:
-			items, err := parseCommaSeparatedField(field, p.op, p.value)
-			if err != nil {
-				return err
-			}
-			f.Ocontains = items
-		default:
-			return fieldError(field, p.op, ErrUnsupportedOperator)
+// applyLabelOp folds a single (op, value) pair into a FilterLabel.
+// labelField is used purely for error messages and matches "labels.key".
+func applyLabelOp(f *FilterLabel, labelField string, p parsedFilterParam) error {
+	switch p.op {
+	case OpEq:
+		f.Eq = &p.value
+	case OpNeq:
+		f.Neq = &p.value
+	case OpContains:
+		f.Contains = &p.value
+	case OpOeq:
+		items, err := parseCommaSeparatedField(labelField, p.op, p.value)
+		if err != nil {
+			return err
 		}
-		return nil
-	})
-
-	return f, err
+		f.Oeq = items
+	case OpOcontains:
+		items, err := parseCommaSeparatedField(labelField, p.op, p.value)
+		if err != nil {
+			return err
+		}
+		f.Ocontains = items
+	default:
+		return fieldError(labelField, p.op, ErrUnsupportedOperator)
+	}
+	return nil
 }
 
-// parseFilterLabels collects dot-notation filter params into a FilterLabels map.
+// parseFilterLabels collects label filter params into a FilterLabels map.
+// Two query shapes are accepted and merged:
+//
+//	filter[labels.key][op]=value   (dot-notation)
+//	filter[labels][key][op]=value  (nested deepObject)
 func parseFilterLabels(qs url.Values, field string) (FilterLabels, error) {
-	prefix := "filter[" + field + "."
+	dotPrefix := "filter[" + field + "."
+	nestedPrefix := "filter[" + field + "]["
 
-	labelKeys := make(map[string]struct{})
-	for key := range qs {
-		if !strings.HasPrefix(key, prefix) {
+	result := make(FilterLabels)
+
+	for key, values := range qs {
+		var labelKey, rest string
+
+		switch {
+		case strings.HasPrefix(key, dotPrefix):
+			tail := key[len(dotPrefix):]
+			end := strings.IndexByte(tail, ']')
+			if end <= 0 {
+				continue
+			}
+			labelKey = tail[:end]
+			rest = tail[end+1:]
+		case strings.HasPrefix(key, nestedPrefix):
+			tail := key[len(nestedPrefix):]
+			end := strings.IndexByte(tail, ']')
+			if end <= 0 {
+				continue
+			}
+			labelKey = tail[:end]
+			rest = tail[end+1:]
+		default:
 			continue
 		}
-		rest := key[len(prefix):]
-		end := strings.IndexByte(rest, ']')
-		if end <= 0 {
-			continue
-		}
-		labelKeys[rest[:end]] = struct{}{}
-	}
 
-	if len(labelKeys) == 0 {
-		return nil, nil
-	}
-
-	result := make(FilterLabels, len(labelKeys))
-	for labelKey := range labelKeys {
-		parsed, err := parseFilterLabel(qs, field+"."+labelKey)
+		value, err := singleValue(key, values)
 		if err != nil {
 			return nil, err
 		}
-		result[labelKey] = parsed
+
+		op, err := parseOperator(rest)
+		if err != nil {
+			return nil, fmt.Errorf("invalid filter parameter %q: %w", key, err)
+		}
+
+		labelField := field + "." + labelKey
+		current := result[labelKey]
+		if err := applyLabelOp(&current, labelField, parsedFilterParam{
+			op:    op,
+			value: value,
+			bare:  rest == "" && value == "",
+		}); err != nil {
+			return nil, err
+		}
+		result[labelKey] = current
+	}
+
+	if len(result) == 0 {
+		return nil, nil
 	}
 	return result, nil
 }

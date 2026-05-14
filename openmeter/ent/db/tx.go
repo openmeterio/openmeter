@@ -76,14 +76,16 @@ type Tx struct {
 	ChargeCreditPurchaseInvoicedPayment *ChargeCreditPurchaseInvoicedPaymentClient
 	// ChargeFlatFee is the client for interacting with the ChargeFlatFee builders.
 	ChargeFlatFee *ChargeFlatFeeClient
-	// ChargeFlatFeeCreditAllocations is the client for interacting with the ChargeFlatFeeCreditAllocations builders.
-	ChargeFlatFeeCreditAllocations *ChargeFlatFeeCreditAllocationsClient
-	// ChargeFlatFeeDetailedLine is the client for interacting with the ChargeFlatFeeDetailedLine builders.
-	ChargeFlatFeeDetailedLine *ChargeFlatFeeDetailedLineClient
-	// ChargeFlatFeeInvoicedUsage is the client for interacting with the ChargeFlatFeeInvoicedUsage builders.
-	ChargeFlatFeeInvoicedUsage *ChargeFlatFeeInvoicedUsageClient
-	// ChargeFlatFeePayment is the client for interacting with the ChargeFlatFeePayment builders.
-	ChargeFlatFeePayment *ChargeFlatFeePaymentClient
+	// ChargeFlatFeeRun is the client for interacting with the ChargeFlatFeeRun builders.
+	ChargeFlatFeeRun *ChargeFlatFeeRunClient
+	// ChargeFlatFeeRunCreditAllocations is the client for interacting with the ChargeFlatFeeRunCreditAllocations builders.
+	ChargeFlatFeeRunCreditAllocations *ChargeFlatFeeRunCreditAllocationsClient
+	// ChargeFlatFeeRunDetailedLine is the client for interacting with the ChargeFlatFeeRunDetailedLine builders.
+	ChargeFlatFeeRunDetailedLine *ChargeFlatFeeRunDetailedLineClient
+	// ChargeFlatFeeRunInvoicedUsage is the client for interacting with the ChargeFlatFeeRunInvoicedUsage builders.
+	ChargeFlatFeeRunInvoicedUsage *ChargeFlatFeeRunInvoicedUsageClient
+	// ChargeFlatFeeRunPayment is the client for interacting with the ChargeFlatFeeRunPayment builders.
+	ChargeFlatFeeRunPayment *ChargeFlatFeeRunPaymentClient
 	// ChargeUsageBased is the client for interacting with the ChargeUsageBased builders.
 	ChargeUsageBased *ChargeUsageBasedClient
 	// ChargeUsageBasedRunCreditAllocations is the client for interacting with the ChargeUsageBasedRunCreditAllocations builders.
@@ -142,6 +144,8 @@ type Tx struct {
 	NotificationEventDeliveryStatus *NotificationEventDeliveryStatusClient
 	// NotificationRule is the client for interacting with the NotificationRule builders.
 	NotificationRule *NotificationRuleClient
+	// OrganizationDefaultTaxCodes is the client for interacting with the OrganizationDefaultTaxCodes builders.
+	OrganizationDefaultTaxCodes *OrganizationDefaultTaxCodesClient
 	// Plan is the client for interacting with the Plan builders.
 	Plan *PlanClient
 	// PlanAddon is the client for interacting with the PlanAddon builders.
@@ -330,10 +334,11 @@ func (tx *Tx) init() {
 	tx.ChargeCreditPurchaseExternalPayment = NewChargeCreditPurchaseExternalPaymentClient(tx.config)
 	tx.ChargeCreditPurchaseInvoicedPayment = NewChargeCreditPurchaseInvoicedPaymentClient(tx.config)
 	tx.ChargeFlatFee = NewChargeFlatFeeClient(tx.config)
-	tx.ChargeFlatFeeCreditAllocations = NewChargeFlatFeeCreditAllocationsClient(tx.config)
-	tx.ChargeFlatFeeDetailedLine = NewChargeFlatFeeDetailedLineClient(tx.config)
-	tx.ChargeFlatFeeInvoicedUsage = NewChargeFlatFeeInvoicedUsageClient(tx.config)
-	tx.ChargeFlatFeePayment = NewChargeFlatFeePaymentClient(tx.config)
+	tx.ChargeFlatFeeRun = NewChargeFlatFeeRunClient(tx.config)
+	tx.ChargeFlatFeeRunCreditAllocations = NewChargeFlatFeeRunCreditAllocationsClient(tx.config)
+	tx.ChargeFlatFeeRunDetailedLine = NewChargeFlatFeeRunDetailedLineClient(tx.config)
+	tx.ChargeFlatFeeRunInvoicedUsage = NewChargeFlatFeeRunInvoicedUsageClient(tx.config)
+	tx.ChargeFlatFeeRunPayment = NewChargeFlatFeeRunPaymentClient(tx.config)
 	tx.ChargeUsageBased = NewChargeUsageBasedClient(tx.config)
 	tx.ChargeUsageBasedRunCreditAllocations = NewChargeUsageBasedRunCreditAllocationsClient(tx.config)
 	tx.ChargeUsageBasedRunDetailedLine = NewChargeUsageBasedRunDetailedLineClient(tx.config)
@@ -363,6 +368,7 @@ func (tx *Tx) init() {
 	tx.NotificationEvent = NewNotificationEventClient(tx.config)
 	tx.NotificationEventDeliveryStatus = NewNotificationEventDeliveryStatusClient(tx.config)
 	tx.NotificationRule = NewNotificationRuleClient(tx.config)
+	tx.OrganizationDefaultTaxCodes = NewOrganizationDefaultTaxCodesClient(tx.config)
 	tx.Plan = NewPlanClient(tx.config)
 	tx.PlanAddon = NewPlanAddonClient(tx.config)
 	tx.PlanPhase = NewPlanPhaseClient(tx.config)

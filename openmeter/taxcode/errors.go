@@ -28,6 +28,15 @@ var ErrResourceKeyEmpty = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeResourceIDEmpty models.ErrorCode = "resource_id_empty"
+
+var ErrResourceIDEmpty = models.NewValidationIssue(
+	ErrCodeResourceIDEmpty,
+	"id must not be empty",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 const ErrCodeResourceNameEmpty models.ErrorCode = "resource_name_empty"
 
 var ErrResourceNameEmpty = models.NewValidationIssue(
@@ -103,3 +112,23 @@ var ErrTaxCodeStripeInvalid = models.NewValidationIssue(
 	models.WithCriticalSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
+
+const ErrCodeOrganizationDefaultTaxCodesNotFound models.ErrorCode = "organization_default_tax_codes_not_found"
+
+var ErrOrganizationDefaultTaxCodesNotFound = models.NewValidationIssue(
+	ErrCodeOrganizationDefaultTaxCodesNotFound,
+	"organization default tax codes not found",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusNotFound),
+)
+
+func NewOrganizationDefaultTaxCodesNotFoundError(namespace string) error {
+	return ErrOrganizationDefaultTaxCodesNotFound.
+		WithPathString("namespace").
+		WithAttr("namespace", namespace)
+}
+
+func IsOrganizationDefaultTaxCodesNotFoundError(err error) bool {
+	var vi models.ValidationIssue
+	return errors.As(err, &vi) && vi.Code() == ErrCodeOrganizationDefaultTaxCodesNotFound
+}

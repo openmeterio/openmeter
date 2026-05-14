@@ -2,44 +2,19 @@ package account
 
 import (
 	"context"
-	"fmt"
-
-	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/pagination/v2"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
-
-// Balance represents the balance of an account.
-type Balance struct {
-	settled alpacadecimal.Decimal
-	pending alpacadecimal.Decimal
-}
-
-var _ ledger.Balance = (*Balance)(nil)
-
-func (b *Balance) Settled() alpacadecimal.Decimal {
-	return b.settled
-}
-
-func (b *Balance) Pending() alpacadecimal.Decimal {
-	return b.pending
-}
 
 // SubAccountCreatorLister is used by account types to find-or-create sub-accounts
 // for a given route.
 type SubAccountCreatorLister interface {
-	ListSubAccounts(ctx context.Context, input ListSubAccountsInput) ([]*SubAccount, error)
-	EnsureSubAccount(ctx context.Context, input CreateSubAccountInput) (*SubAccount, error)
+	ListSubAccounts(ctx context.Context, input ledger.ListSubAccountsInput) ([]ledger.SubAccount, error)
+	EnsureSubAccount(ctx context.Context, input ledger.CreateSubAccountInput) (ledger.SubAccount, error)
 }
 
 type AccountLiveServices struct {
-	Querier           ledger.Querier
-	Locker            *lockr.Locker
 	SubAccountService SubAccountCreatorLister
 }
 
@@ -51,11 +26,28 @@ type AccountData struct {
 	AccountType ledger.AccountType
 }
 
-func NewAccountFromData(data AccountData, services AccountLiveServices) (*Account, error) {
-	return &Account{
+func NewAccountFromData(data AccountData, services AccountLiveServices) (ledger.Account, error) {
+	base := &Account{
 		data:     data,
 		services: services,
-	}, nil
+	}
+
+	switch data.AccountType {
+	case ledger.AccountTypeCustomerFBO:
+		return newCustomerFBOAccount(base), nil
+	case ledger.AccountTypeCustomerReceivable:
+		return newCustomerReceivableAccount(base), nil
+	case ledger.AccountTypeCustomerAccrued:
+		return newCustomerAccruedAccount(base), nil
+	case ledger.AccountTypeWash, ledger.AccountTypeEarnings, ledger.AccountTypeBrokerage:
+		return newBusinessAccount(base), nil
+	default:
+		if err := data.AccountType.Validate(); err != nil {
+			return nil, err
+		}
+
+		return base, nil
+	}
 }
 
 // Account instance represent a given account
@@ -65,45 +57,7 @@ type Account struct {
 	services AccountLiveServices
 }
 
-// ----------------------------------------------------------------------------
-// Let's implement ledger.Account interface
-// ----------------------------------------------------------------------------
-
 var _ ledger.Account = (*Account)(nil)
-
-func (a *Account) GetBalance(ctx context.Context, query ledger.RouteFilter, after *ledger.TransactionCursor) (ledger.Balance, error) {
-	// TODO: this is a hack
-	// package boundary between account and historical ledger is incorrect, dependency resolution is broken
-	if a.services.Querier == nil {
-		return nil, fmt.Errorf("account %s in namespace %s cannot query balances: querier is not configured", a.data.ID.ID, a.data.ID.Namespace)
-	}
-
-	// We can store the last cursor and balance, this will be added later
-	lastClosingCursor := (*pagination.Cursor)(nil)
-	periodSinceListClosing := (*timeutil.OpenPeriod)(nil)
-	startingBalance := alpacadecimal.NewFromInt(0)
-
-	ledgerQuery := ledger.Query{
-		Namespace: a.data.ID.Namespace,
-		Cursor:    lastClosingCursor,
-		Filters: ledger.Filters{
-			BookedAtPeriod: periodSinceListClosing,
-			After:          after,
-			AccountID:      lo.ToPtr(a.data.ID.ID),
-			Route:          query,
-		},
-	}
-
-	res, err := a.services.Querier.SumEntries(ctx, ledgerQuery)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sum entries for query %+v: %w", query, err)
-	}
-
-	return &Balance{
-		settled: res.SettledSum.Add(startingBalance),
-		pending: res.PendingSum.Add(startingBalance),
-	}, nil
-}
 
 func (a *Account) Type() ledger.AccountType {
 	return a.data.AccountType

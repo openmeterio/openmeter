@@ -17,9 +17,9 @@ enum SubscriptionStatus {
 }
 
 /**
- * Subscription edit timing.
- * When immediate, the requested changes take effect immediately.
- * When next_billing_cycle, the requested changes take effect at the next billing cycle.
+ * Subscription edit timing. When immediate, the requested changes take effect
+ * immediately. When next_billing_cycle, the requested changes take effect at the
+ * next billing cycle.
  */
 @friendlyName("BillingSubscriptionEditTimingEnum")
 enum SubscriptionEditTimingEnum {
@@ -28,8 +28,9 @@ enum SubscriptionEditTimingEnum {
 }
 
 /**
- * Subscription edit timing defined when the changes should take effect.
- * If the provided configuration is not supported by the subscription, an error will be returned.
+ * Subscription edit timing defined when the changes should take effect. If the
+ * provided configuration is not supported by the subscription, an error will be
+ * returned.
  */
 @oneOf
 @friendlyName("BillingSubscriptionEditTiming")
@@ -56,8 +57,8 @@ model SubscriptionCreate {
     /**
      * The ID of the customer to create the subscription for.
      *
-     * Either customer ID or customer key must be provided.
-     * If both are provided, the ID will be used.
+     * Either customer ID or customer key must be provided. If both are provided, the
+     * ID will be used.
      */
     @visibility(Lifecycle.Create)
     @summary("Customer ID")
@@ -66,8 +67,8 @@ model SubscriptionCreate {
     /**
      * The key of the customer to create the subscription for.
      *
-     * Either customer ID or customer key must be provided.
-     * If both are provided, the ID will be used.
+     * Either customer ID or customer key must be provided. If both are provided, the
+     * ID will be used.
      */
     @visibility(Lifecycle.Create)
     @summary("Customer Key")
@@ -79,30 +80,29 @@ model SubscriptionCreate {
    */
   plan: {
     /**
-     * The plan ID of the subscription.
-     * Set if subscription is created from a plan.
+     * The plan ID of the subscription. Set if subscription is created from a plan.
      *
-     * ID or Key of the plan is required if creating a subscription from a plan.
-     * If both are provided, the ID will be used.
+     * ID or Key of the plan is required if creating a subscription from a plan. If
+     * both are provided, the ID will be used.
      */
     @visibility(Lifecycle.Create)
     @summary("Plan ID")
     id?: Shared.ULID;
 
     /**
-     * The plan Key of the subscription, if any.
-     * Set if subscription is created from a plan.
+     * The plan Key of the subscription, if any. Set if subscription is created from a
+     * plan.
      *
-     * ID or Key of the plan is required if creating a subscription from a plan.
-     * If both are provided, the ID will be used.
+     * ID or Key of the plan is required if creating a subscription from a plan. If
+     * both are provided, the ID will be used.
      */
     @visibility(Lifecycle.Create)
     @summary("Plan Key")
     key?: Shared.ResourceKey;
 
     /**
-     * The plan version of the subscription, if any.
-     * If not provided, the latest version of the plan will be used.
+     * The plan version of the subscription, if any. If not provided, the latest
+     * version of the plan will be used.
      */
     @visibility(Lifecycle.Create)
     @summary("Plan Version")
@@ -110,14 +110,16 @@ model SubscriptionCreate {
   };
 
   /**
-   * A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle.
-   * It affects when charges occur and how prorations are calculated.
-   * Common anchors:
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
    * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
    * - Subscription anniversary (day customer signed up)
    * - Custom date (customer-specified day)
    *
-   * If not provided, the subscription will be created with the subscription's creation time as the billing anchor.
+   * If not provided, the subscription will be created with the subscription's
+   * creation time as the billing anchor.
    */
   @visibility(Lifecycle.Create)
   @summary("Billing anchor")
@@ -139,17 +141,17 @@ model Subscription {
   customer_id: Shared.ULID;
 
   /**
-   * The plan ID of the subscription.
-   * Set if subscription is created from a plan.
+   * The plan ID of the subscription. Set if subscription is created from a plan.
    */
   @visibility(Lifecycle.Read)
   @summary("Plan ID")
   plan_id?: Shared.ULID;
 
   /**
-   * A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle.
-   * It affects when charges occur and how prorations are calculated.
-   * Common anchors:
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
    * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
    * - Subscription anniversary (day customer signed up)
    * - Custom date (customer-specified day)

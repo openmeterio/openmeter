@@ -121,7 +121,7 @@ func (c patchCollectionRouter) ResolveDefaultCollection(target targetstate.State
 		return c.lineCollection, nil
 	}
 
-	// If credit then invoice is not enabled, we return the lineCollection which is generally an invoice_only settlement mode implementation.
+	// If credit then invoice is not enabled, we return the lineCollection.
 	if target.Subscription.SettlementMode == productcatalog.CreditThenInvoiceSettlementMode && !c.creditThenInvoiceEnabled {
 		return c.lineCollection, nil
 	}

@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
@@ -146,6 +147,12 @@ func (_c *ChargeUsageBasedRunsCreate) SetType(v usagebased.RealizationRunType) *
 	return _c
 }
 
+// SetInitialType sets the "initial_type" field.
+func (_c *ChargeUsageBasedRunsCreate) SetInitialType(v usagebased.RealizationRunType) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetInitialType(v)
+	return _c
+}
+
 // SetStoredAtLt sets the "stored_at_lt" field.
 func (_c *ChargeUsageBasedRunsCreate) SetStoredAtLt(v time.Time) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetStoredAtLt(v)
@@ -178,9 +185,29 @@ func (_c *ChargeUsageBasedRunsCreate) SetNillableLineID(v *string) *ChargeUsageB
 	return _c
 }
 
+// SetInvoiceID sets the "invoice_id" field.
+func (_c *ChargeUsageBasedRunsCreate) SetInvoiceID(v string) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetInvoiceID(v)
+	return _c
+}
+
+// SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunsCreate) SetNillableInvoiceID(v *string) *ChargeUsageBasedRunsCreate {
+	if v != nil {
+		_c.SetInvoiceID(*v)
+	}
+	return _c
+}
+
 // SetMeteredQuantity sets the "metered_quantity" field.
 func (_c *ChargeUsageBasedRunsCreate) SetMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetMeteredQuantity(v)
+	return _c
+}
+
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (_c *ChargeUsageBasedRunsCreate) SetNoFiatTransactionRequired(v bool) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetNoFiatTransactionRequired(v)
 	return _c
 }
 
@@ -233,6 +260,25 @@ func (_c *ChargeUsageBasedRunsCreate) SetBillingInvoiceLine(v *BillingInvoiceLin
 	return _c.SetBillingInvoiceLineID(v.ID)
 }
 
+// SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
+func (_c *ChargeUsageBasedRunsCreate) SetBillingInvoiceID(id string) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetBillingInvoiceID(id)
+	return _c
+}
+
+// SetNillableBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID if the given value is not nil.
+func (_c *ChargeUsageBasedRunsCreate) SetNillableBillingInvoiceID(id *string) *ChargeUsageBasedRunsCreate {
+	if id != nil {
+		_c = _c.SetBillingInvoiceID(*id)
+	}
+	return _c
+}
+
+// SetBillingInvoice sets the "billing_invoice" edge to the BillingInvoice entity.
+func (_c *ChargeUsageBasedRunsCreate) SetBillingInvoice(v *BillingInvoice) *ChargeUsageBasedRunsCreate {
+	return _c.SetBillingInvoiceID(v.ID)
+}
+
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRunCreditAllocations entity by IDs.
 func (_c *ChargeUsageBasedRunsCreate) AddCreditAllocationIDs(ids ...string) *ChargeUsageBasedRunsCreate {
 	_c.mutation.AddCreditAllocationIDs(ids...)
@@ -261,6 +307,21 @@ func (_c *ChargeUsageBasedRunsCreate) AddDetailedLines(v ...*ChargeUsageBasedRun
 		ids[i] = v[i].ID
 	}
 	return _c.AddDetailedLineIDs(ids...)
+}
+
+// AddCorrectedDetailedLineIDs adds the "corrected_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
+func (_c *ChargeUsageBasedRunsCreate) AddCorrectedDetailedLineIDs(ids ...string) *ChargeUsageBasedRunsCreate {
+	_c.mutation.AddCorrectedDetailedLineIDs(ids...)
+	return _c
+}
+
+// AddCorrectedDetailedLines adds the "corrected_detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
+func (_c *ChargeUsageBasedRunsCreate) AddCorrectedDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedRunsCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCorrectedDetailedLineIDs(ids...)
 }
 
 // SetInvoicedUsageID sets the "invoiced_usage" edge to the ChargeUsageBasedRunInvoicedUsage entity by ID.
@@ -409,6 +470,14 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.type": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.InitialType(); !ok {
+		return &ValidationError{Name: "initial_type", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.initial_type"`)}
+	}
+	if v, ok := _c.mutation.InitialType(); ok {
+		if err := chargeusagebasedruns.InitialTypeValidator(v); err != nil {
+			return &ValidationError{Name: "initial_type", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.initial_type": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.StoredAtLt(); !ok {
 		return &ValidationError{Name: "stored_at_lt", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.stored_at_lt"`)}
 	}
@@ -423,8 +492,16 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.line_id": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.InvoiceID(); ok {
+		if err := chargeusagebasedruns.InvoiceIDValidator(v); err != nil {
+			return &ValidationError{Name: "invoice_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRuns.invoice_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.MeteredQuantity(); !ok {
 		return &ValidationError{Name: "metered_quantity", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.metered_quantity"`)}
+	}
+	if _, ok := _c.mutation.NoFiatTransactionRequired(); !ok {
+		return &ValidationError{Name: "no_fiat_transaction_required", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.no_fiat_transaction_required"`)}
 	}
 	if len(_c.mutation.UsageBasedIDs()) == 0 {
 		return &ValidationError{Name: "usage_based", err: errors.New(`db: missing required edge "ChargeUsageBasedRuns.usage_based"`)}
@@ -520,6 +597,10 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 		_spec.SetField(chargeusagebasedruns.FieldType, field.TypeEnum, value)
 		_node.Type = value
 	}
+	if value, ok := _c.mutation.InitialType(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldInitialType, field.TypeEnum, value)
+		_node.InitialType = value
+	}
 	if value, ok := _c.mutation.StoredAtLt(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldStoredAtLt, field.TypeTime, value)
 		_node.StoredAtLt = value
@@ -535,6 +616,10 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 	if value, ok := _c.mutation.MeteredQuantity(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeteredQuantity, field.TypeOther, value)
 		_node.MeteredQuantity = value
+	}
+	if value, ok := _c.mutation.NoFiatTransactionRequired(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldNoFiatTransactionRequired, field.TypeBool, value)
+		_node.NoFiatTransactionRequired = value
 	}
 	if nodes := _c.mutation.UsageBasedIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -587,6 +672,23 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 		_node.LineID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebasedruns.BillingInvoiceTable,
+			Columns: []string{chargeusagebasedruns.BillingInvoiceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.InvoiceID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	if nodes := _c.mutation.CreditAllocationsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -609,6 +711,22 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 			Inverse: false,
 			Table:   chargeusagebasedruns.DetailedLinesTable,
 			Columns: []string{chargeusagebasedruns.DetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CorrectedDetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.CorrectedDetailedLinesTable,
+			Columns: []string{chargeusagebasedruns.CorrectedDetailedLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
@@ -829,6 +947,18 @@ func (u *ChargeUsageBasedRunsUpsert) UpdateTotal() *ChargeUsageBasedRunsUpsert {
 	return u
 }
 
+// SetType sets the "type" field.
+func (u *ChargeUsageBasedRunsUpsert) SetType(v usagebased.RealizationRunType) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldType, v)
+	return u
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateType() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldType)
+	return u
+}
+
 // SetStoredAtLt sets the "stored_at_lt" field.
 func (u *ChargeUsageBasedRunsUpsert) SetStoredAtLt(v time.Time) *ChargeUsageBasedRunsUpsert {
 	u.Set(chargeusagebasedruns.FieldStoredAtLt, v)
@@ -883,6 +1013,18 @@ func (u *ChargeUsageBasedRunsUpsert) UpdateMeteredQuantity() *ChargeUsageBasedRu
 	return u
 }
 
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (u *ChargeUsageBasedRunsUpsert) SetNoFiatTransactionRequired(v bool) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldNoFiatTransactionRequired, v)
+	return u
+}
+
+// UpdateNoFiatTransactionRequired sets the "no_fiat_transaction_required" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateNoFiatTransactionRequired() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldNoFiatTransactionRequired)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -912,11 +1054,14 @@ func (u *ChargeUsageBasedRunsUpsertOne) UpdateNewValues() *ChargeUsageBasedRunsU
 		if _, exists := u.create.mutation.FeatureID(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldFeatureID)
 		}
-		if _, exists := u.create.mutation.GetType(); exists {
-			s.SetIgnore(chargeusagebasedruns.FieldType)
+		if _, exists := u.create.mutation.InitialType(); exists {
+			s.SetIgnore(chargeusagebasedruns.FieldInitialType)
 		}
 		if _, exists := u.create.mutation.ServicePeriodTo(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldServicePeriodTo)
+		}
+		if _, exists := u.create.mutation.InvoiceID(); exists {
+			s.SetIgnore(chargeusagebasedruns.FieldInvoiceID)
 		}
 	}))
 	return u
@@ -1096,6 +1241,20 @@ func (u *ChargeUsageBasedRunsUpsertOne) UpdateTotal() *ChargeUsageBasedRunsUpser
 	})
 }
 
+// SetType sets the "type" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetType(v usagebased.RealizationRunType) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateType() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateType()
+	})
+}
+
 // SetStoredAtLt sets the "stored_at_lt" field.
 func (u *ChargeUsageBasedRunsUpsertOne) SetStoredAtLt(v time.Time) *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
@@ -1156,6 +1315,20 @@ func (u *ChargeUsageBasedRunsUpsertOne) SetMeteredQuantity(v alpacadecimal.Decim
 func (u *ChargeUsageBasedRunsUpsertOne) UpdateMeteredQuantity() *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateMeteredQuantity()
+	})
+}
+
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetNoFiatTransactionRequired(v bool) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetNoFiatTransactionRequired(v)
+	})
+}
+
+// UpdateNoFiatTransactionRequired sets the "no_fiat_transaction_required" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateNoFiatTransactionRequired() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateNoFiatTransactionRequired()
 	})
 }
 
@@ -1354,11 +1527,14 @@ func (u *ChargeUsageBasedRunsUpsertBulk) UpdateNewValues() *ChargeUsageBasedRuns
 			if _, exists := b.mutation.FeatureID(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldFeatureID)
 			}
-			if _, exists := b.mutation.GetType(); exists {
-				s.SetIgnore(chargeusagebasedruns.FieldType)
+			if _, exists := b.mutation.InitialType(); exists {
+				s.SetIgnore(chargeusagebasedruns.FieldInitialType)
 			}
 			if _, exists := b.mutation.ServicePeriodTo(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldServicePeriodTo)
+			}
+			if _, exists := b.mutation.InvoiceID(); exists {
+				s.SetIgnore(chargeusagebasedruns.FieldInvoiceID)
 			}
 		}
 	}))
@@ -1539,6 +1715,20 @@ func (u *ChargeUsageBasedRunsUpsertBulk) UpdateTotal() *ChargeUsageBasedRunsUpse
 	})
 }
 
+// SetType sets the "type" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetType(v usagebased.RealizationRunType) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetType(v)
+	})
+}
+
+// UpdateType sets the "type" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateType() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateType()
+	})
+}
+
 // SetStoredAtLt sets the "stored_at_lt" field.
 func (u *ChargeUsageBasedRunsUpsertBulk) SetStoredAtLt(v time.Time) *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
@@ -1599,6 +1789,20 @@ func (u *ChargeUsageBasedRunsUpsertBulk) SetMeteredQuantity(v alpacadecimal.Deci
 func (u *ChargeUsageBasedRunsUpsertBulk) UpdateMeteredQuantity() *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateMeteredQuantity()
+	})
+}
+
+// SetNoFiatTransactionRequired sets the "no_fiat_transaction_required" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetNoFiatTransactionRequired(v bool) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetNoFiatTransactionRequired(v)
+	})
+}
+
+// UpdateNoFiatTransactionRequired sets the "no_fiat_transaction_required" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateNoFiatTransactionRequired() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateNoFiatTransactionRequired()
 	})
 }
 

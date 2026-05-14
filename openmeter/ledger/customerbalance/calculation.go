@@ -38,12 +38,26 @@ func (i Impact) RealizedCredits() alpacadecimal.Decimal {
 	switch i.Type() {
 	case meta.ChargeTypeFlatFee:
 		charge, _ := i.AsFlatFeeCharge()
-		return charge.Realizations.CreditRealizations.Sum()
+		if charge.Realizations.CurrentRun == nil {
+			return alpacadecimal.Zero
+		}
+		if charge.Realizations.CurrentRun.IsVoidedBillingHistory() {
+			return alpacadecimal.Zero
+		}
+
+		return charge.Realizations.CurrentRun.CreditRealizations.Sum()
 	case meta.ChargeTypeUsageBased:
 		charge, _ := i.AsUsageBasedCharge()
 		total := alpacadecimal.Zero
 
 		for _, run := range charge.Realizations {
+			// Voided billing history either has already been reversed through billing,
+			// or should have been removed by prorating/credit-note support. In both
+			// cases it must not reduce the customer's outstanding balance.
+			if run.IsVoidedBillingHistory() {
+				continue
+			}
+
 			total = total.Add(run.CreditsAllocated.Sum())
 		}
 

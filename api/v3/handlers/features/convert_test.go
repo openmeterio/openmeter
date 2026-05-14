@@ -306,10 +306,7 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 		body := api.CreateFeatureRequest{
 			Key:  "tokens",
 			Name: "Tokens",
-			Meter: &struct {
-				Filters *map[string]api.QueryFilterStringMapItem `json:"filters,omitempty"`
-				Id      api.ULID                                 `json:"id"`
-			}{
+			Meter: &api.FeatureMeterReference{
 				Id: api.ULID("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 				Filters: &map[string]api.QueryFilterStringMapItem{
 					"model": {Eq: lo.ToPtr("gpt-4")},

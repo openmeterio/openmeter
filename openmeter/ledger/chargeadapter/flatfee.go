@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 // flatFeeHandler maps charge lifecycle events to ledger transaction templates
@@ -52,14 +53,9 @@ func (h *flatFeeHandler) OnAssignedToInvoice(ctx context.Context, input flatfee.
 
 	if err := validateSettlementMode(
 		input.Charge.Intent.SettlementMode,
-		productcatalog.InvoiceOnlySettlementMode,
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
 		return nil, fmt.Errorf("assigned to invoice: %w", err)
-	}
-
-	if input.Charge.Intent.SettlementMode == productcatalog.InvoiceOnlySettlementMode {
-		return nil, nil
 	}
 
 	realizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{
@@ -98,7 +94,6 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 
 	if err := validateSettlementMode(
 		input.Charge.Intent.SettlementMode,
-		productcatalog.InvoiceOnlySettlementMode,
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("invoice usage accrued: %w", err)
@@ -205,39 +200,34 @@ func (h *flatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context
 	})
 }
 
-// OnFlatFeePaymentAuthorized currently only stages receivable funding from wash
-// for the directly-invoiced portion. Revenue recognition is handled elsewhere.
-func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {
-	if err := charge.Validate(); err != nil {
+// OnFlatFeePaymentAuthorized stages the directly-invoiced receivable as
+// authorized. Revenue recognition is handled elsewhere.
+func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
+	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
 
-	receivableReplenishment := alpacadecimal.NewFromInt(0)
-	if charge.Realizations.AccruedUsage != nil {
-		receivableReplenishment = charge.Realizations.AccruedUsage.Totals.Total
-	}
-
-	if receivableReplenishment.IsZero() {
+	if input.Amount.IsZero() {
 		return ledgertransaction.GroupReference{}, nil
 	}
 
 	customerID := customer.CustomerID{
-		Namespace: charge.Namespace,
-		ID:        charge.Intent.CustomerID,
+		Namespace: input.Charge.Namespace,
+		ID:        input.Charge.Intent.CustomerID,
 	}
-	annotations := chargeAnnotationsForFlatFeeCharge(charge)
+	annotations := chargeAnnotationsForFlatFeeCharge(input.Charge)
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
 		h.deps,
 		transactions.ResolutionScope{
 			CustomerID: customerID,
-			Namespace:  charge.Namespace,
+			Namespace:  input.Charge.Namespace,
 		},
-		transactions.FundCustomerReceivableTemplate{
-			At:        charge.Intent.InvoiceAt,
-			Amount:    receivableReplenishment,
-			Currency:  charge.Intent.Currency,
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
+			At:        clock.Now(),
+			Amount:    input.Amount,
+			Currency:  input.Charge.Intent.Currency,
 			CostBasis: invoiceCostBasis,
 		},
 	)
@@ -252,7 +242,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 	}
 
 	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
-		charge.Namespace,
+		input.Charge.Namespace,
 		annotations,
 		inputs...,
 	))
@@ -265,32 +255,32 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 	}, nil
 }
 
-func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {
-	if err := charge.Validate(); err != nil {
+func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
+	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
 
-	if charge.Realizations.AccruedUsage == nil || !charge.Realizations.AccruedUsage.Totals.Total.IsPositive() {
+	if !input.Amount.IsPositive() {
 		return ledgertransaction.GroupReference{}, nil
 	}
 
 	customerID := customer.CustomerID{
-		Namespace: charge.Namespace,
-		ID:        charge.Intent.CustomerID,
+		Namespace: input.Charge.Namespace,
+		ID:        input.Charge.Intent.CustomerID,
 	}
-	annotations := chargeAnnotationsForFlatFeeCharge(charge)
+	annotations := chargeAnnotationsForFlatFeeCharge(input.Charge)
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
 		h.deps,
 		transactions.ResolutionScope{
 			CustomerID: customerID,
-			Namespace:  charge.Namespace,
+			Namespace:  input.Charge.Namespace,
 		},
-		transactions.SettleCustomerReceivablePaymentTemplate{
-			At:        charge.Intent.InvoiceAt,
-			Amount:    charge.Realizations.AccruedUsage.Totals.Total,
-			Currency:  charge.Intent.Currency,
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
+			At:        clock.Now(),
+			Amount:    input.Amount,
+			Currency:  input.Charge.Intent.Currency,
 			CostBasis: invoiceCostBasis,
 		},
 	)
@@ -305,7 +295,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Ch
 	}
 
 	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
-		charge.Namespace,
+		input.Charge.Namespace,
 		annotations,
 		inputs...,
 	))

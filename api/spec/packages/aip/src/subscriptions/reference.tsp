@@ -3,8 +3,8 @@ import "../shared/index.tsp";
 namespace Subscriptions;
 
 /**
- * Subscription reference represents a reference to the specific subscription item this
- * entity represents.
+ * Subscription reference represents a reference to the specific subscription item
+ * this entity represents.
  */
 @friendlyName("BillingSubscriptionReference")
 model SubscriptionReference {

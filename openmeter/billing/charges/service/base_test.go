@@ -151,6 +151,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.NoError(err)
 
 	chargesService, err := New(Config{
+		Logger:  slog.Default(),
 		Adapter: chargesAdapter,
 
 		FeatureService:        s.FeatureService,
@@ -250,7 +251,7 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 			PaymentTerm:    price.PaymentTerm,
 			FeatureKey:     input.featureKey,
 			InvoiceAt:      invoiceAt,
-			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.InvoiceOnlySettlementMode),
+			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 
 			AmountBeforeProration: price.Amount,
 		}
@@ -262,7 +263,7 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 		FeatureKey:     input.featureKey,
 		Price:          lo.FromPtr(input.price),
 		InvoiceAt:      invoiceAt,
-		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.InvoiceOnlySettlementMode),
+		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 	}
 	return charges.NewChargeIntent(usageBasedIntent)
 }

@@ -50,7 +50,6 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 
 	if err := validateSettlementMode(
 		input.Charge.Intent.SettlementMode,
-		productcatalog.InvoiceOnlySettlementMode,
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("invoice usage accrued: %w", err)
@@ -101,7 +100,6 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 
 	if err := validateSettlementMode(
 		input.Charge.Intent.SettlementMode,
-		productcatalog.InvoiceOnlySettlementMode,
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("payment authorized: %w", err)
@@ -129,7 +127,7 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 			CustomerID: customerID,
 			Namespace:  input.Charge.Namespace,
 		},
-		transactions.FundCustomerReceivableTemplate{
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        eventTime,
 			Amount:    receivableReplenishment,
 			Currency:  input.Charge.Intent.Currency,
@@ -168,7 +166,6 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 
 	if err := validateSettlementMode(
 		input.Charge.Intent.SettlementMode,
-		productcatalog.InvoiceOnlySettlementMode,
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", err)
@@ -191,7 +188,7 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 			CustomerID: customerID,
 			Namespace:  input.Charge.Namespace,
 		},
-		transactions.SettleCustomerReceivablePaymentTemplate{
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        eventTime,
 			Amount:    input.Run.InvoiceUsage.Totals.Total,
 			Currency:  input.Charge.Intent.Currency,

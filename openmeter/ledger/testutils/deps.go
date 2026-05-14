@@ -31,15 +31,8 @@ func InitDeps(db *entdb.Client, logger *slog.Logger) (Deps, error) {
 	}
 
 	historicalRepo := historicaladapter.NewRepo(db)
-	internalAccountService := accountservice.New(repo, ledgeraccount.AccountLiveServices{
-		Locker: locker,
-	})
-	historicalLedger := historical.NewLedger(historicalRepo, internalAccountService, locker, routingrules.DefaultValidator)
-
-	accountService := accountservice.New(repo, ledgeraccount.AccountLiveServices{
-		Locker:  locker,
-		Querier: historicalLedger,
-	})
+	accountService := accountservice.New(repo, locker)
+	historicalLedger := historical.NewLedger(historicalRepo, accountService, accountService, routingrules.DefaultValidator)
 	customerAccountRepo := resolversadapter.NewRepo(db)
 	accountResolver := resolvers.NewAccountResolver(resolvers.AccountResolverConfig{
 		AccountService: accountService,

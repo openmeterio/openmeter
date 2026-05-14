@@ -8,6 +8,7 @@ options:
   '@typespec/openapi3':
     emitter-output-dir: '{output-dir}/output/definitions/metering-and-billing/v3'
     omit-unreachable-types: true
+    seal-object-schemas: true
 linter:
   extends:
     - '@openmeter/api-spec-aip/all'

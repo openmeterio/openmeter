@@ -4,7 +4,6 @@ package billing
 
 import (
 	creditsapplied "github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
-	totals "github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	models "github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -99,7 +98,7 @@ func deriveEqualLineBase(this, that *StandardLineBase) bool {
 			deriveEqual_3(this.CreditsApplied, that.CreditsApplied) &&
 			this.ExternalIDs.Equal(that.ExternalIDs) &&
 			deriveEqual_1(this.Subscription, that.Subscription) &&
-			deriveEqual_4(&this.Totals, &that.Totals)
+			this.Totals.Equal(that.Totals)
 }
 
 // deriveEqualUsageBasedLine returns whether this and that are equal.
@@ -162,7 +161,7 @@ func deriveEqual_3(this, that []creditsapplied.CreditApplied) bool {
 		return false
 	}
 	for i := 0; i < len(this); i++ {
-		if !(deriveEqual_5(&this[i], &that[i])) {
+		if !(deriveEqual_4(&this[i], &that[i])) {
 			return false
 		}
 	}
@@ -170,21 +169,7 @@ func deriveEqual_3(this, that []creditsapplied.CreditApplied) bool {
 }
 
 // deriveEqual_4 returns whether this and that are equal.
-func deriveEqual_4(this, that *totals.Totals) bool {
-	return (this == nil && that == nil) ||
-		this != nil && that != nil &&
-			this.Amount.Equal(that.Amount) &&
-			this.ChargesTotal.Equal(that.ChargesTotal) &&
-			this.DiscountsTotal.Equal(that.DiscountsTotal) &&
-			this.TaxesInclusiveTotal.Equal(that.TaxesInclusiveTotal) &&
-			this.TaxesExclusiveTotal.Equal(that.TaxesExclusiveTotal) &&
-			this.TaxesTotal.Equal(that.TaxesTotal) &&
-			this.CreditsTotal.Equal(that.CreditsTotal) &&
-			this.Total.Equal(that.Total)
-}
-
-// deriveEqual_5 returns whether this and that are equal.
-func deriveEqual_5(this, that *creditsapplied.CreditApplied) bool {
+func deriveEqual_4(this, that *creditsapplied.CreditApplied) bool {
 	return (this == nil && that == nil) ||
 		this != nil && that != nil &&
 			this.Amount.Equal(that.Amount) &&

@@ -48,7 +48,7 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 
 	case billing.StandardInvoiceStatusIssued:
 		processors = &processorByType{
-			flatFee:    s.flatFeeService.PostInvoiceIssued,
+			flatFee:    noop[flatfee.Charge],
 			usageBased: noop[usagebased.Charge],
 			// Invoice credit purchase settlements are not requiring any special handling at this point
 			creditPurchase: noop[creditpurchase.Charge],
@@ -56,7 +56,7 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 
 	case billing.StandardInvoiceStatusPaymentProcessingAuthorized:
 		processors = &processorByType{
-			flatFee:        s.flatFeeService.PostInvoicePaymentAuthorized,
+			flatFee:        noop[flatfee.Charge],
 			usageBased:     noop[usagebased.Charge],
 			creditPurchase: s.creditPurchaseService.PostInvoicePaymentAuthorized,
 		}
@@ -66,14 +66,14 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 	// charge types.
 	case billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled:
 		processors = &processorByType{
-			flatFee:        s.flatFeeService.PostInvoicePaymentAuthorized,
+			flatFee:        noop[flatfee.Charge],
 			usageBased:     noop[usagebased.Charge],
 			creditPurchase: s.creditPurchaseService.PostInvoicePaymentAuthorized,
 		}
 
 	case billing.StandardInvoiceStatusPaid:
 		processors = &processorByType{
-			flatFee:        s.flatFeeService.PostInvoicePaymentSettled,
+			flatFee:        noop[flatfee.Charge],
 			usageBased:     noop[usagebased.Charge],
 			creditPurchase: s.creditPurchaseService.PostInvoicePaymentSettled,
 		}

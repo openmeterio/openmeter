@@ -31,8 +31,8 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 		Currency:      api.BillingCurrencyCode(charge.Intent.Currency),
 		FundingMethod: toAPIBillingCreditFundingMethod(charge.Intent.Settlement),
 		Status:        toAPIBillingCreditGrantStatus(charge),
-		CreatedAt:     lo.ToPtr(charge.CreatedAt),
-		UpdatedAt:     lo.ToPtr(charge.UpdatedAt),
+		CreatedAt:     charge.CreatedAt,
+		UpdatedAt:     charge.UpdatedAt,
 		DeletedAt:     charge.DeletedAt,
 		Labels:        labels.FromMetadata(charge.Intent.Metadata),
 	}
@@ -186,11 +186,7 @@ func toAPIBillingCreditGrantTaxConfig(charge creditpurchase.Charge) *api.Billing
 	}
 
 	if charge.Intent.TaxConfig.TaxCodeID != nil {
-		tc.TaxCode = &struct {
-			Id api.ULID `json:"id"`
-		}{
-			Id: *charge.Intent.TaxConfig.TaxCodeID,
-		}
+		tc.TaxCode = &api.BillingTaxCodeReference{Id: *charge.Intent.TaxConfig.TaxCodeID}
 	}
 
 	return tc
@@ -424,7 +420,7 @@ func toAPIBillingCreditTransactions(items []customerbalance.CreditTransaction) [
 func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) api.BillingCreditTransaction {
 	apiTx := api.BillingCreditTransaction{
 		Id:          tx.ID.ID,
-		CreatedAt:   &tx.CreatedAt,
+		CreatedAt:   tx.CreatedAt,
 		BookedAt:    tx.BookedAt,
 		Type:        toAPIBillingCreditTransactionType(tx.Type),
 		Currency:    api.BillingCurrencyCode(tx.Currency),

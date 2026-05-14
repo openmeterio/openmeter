@@ -55,12 +55,16 @@ func (r RateableIntent) GetRateCardDiscounts() billing.Discounts {
 	if r.Discounts.Usage != nil {
 		out.Usage = &billing.UsageDiscount{
 			UsageDiscount: *r.Discounts.Usage,
+			// Note: given we are not using splitlinegroups this correlation ID is not used for anything in charges.
+			CorrelationID: "usagebased-ratecard-usage",
 		}
 	}
 
 	if r.Discounts.Percentage != nil {
 		out.Percentage = &billing.PercentageDiscount{
 			PercentageDiscount: *r.Discounts.Percentage,
+			// Note: given we are not using splitlinegroups this correlation ID is not used for anything in charges.
+			CorrelationID: "usagebased-ratecard-percentage",
 		}
 	}
 

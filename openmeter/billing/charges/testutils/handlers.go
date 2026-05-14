@@ -59,11 +59,11 @@ func (mockFlatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(_ context.Context,
 	}), nil
 }
 
-func (mockFlatFeeHandler) OnPaymentAuthorized(context.Context, flatfee.Charge) (ledgertransaction.GroupReference, error) {
+func (mockFlatFeeHandler) OnPaymentAuthorized(context.Context, flatfee.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
 	return newMockLedgerTransactionGroupReference(), nil
 }
 
-func (mockFlatFeeHandler) OnPaymentSettled(context.Context, flatfee.Charge) (ledgertransaction.GroupReference, error) {
+func (mockFlatFeeHandler) OnPaymentSettled(context.Context, flatfee.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
 	return newMockLedgerTransactionGroupReference(), nil
 }
 

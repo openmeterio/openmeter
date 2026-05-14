@@ -8,7 +8,8 @@ namespace Customers;
  *
  * - `none`: No funding workflow applies, for example promotional grants
  * - `invoice`: The grant is funded by an in-system invoice flow
- * - `external`: The grant is funded outside the system (e.g., wire transfer, external invoice, or manual reconciliation)
+ * - `external`: The grant is funded outside the system (e.g., wire transfer,
+ *   external invoice, or manual reconciliation)
  */
 @friendlyName("BillingCreditFundingMethod")
 @summary("Credit funding method")
@@ -66,9 +67,13 @@ enum CreditPurchasePaymentSettlementStatus {
 /**
  * Credit grant lifecycle status.
  *
- * - `pending`: The credit block has been created but is not yet valid. (`effective_at` is in the future or availability_policy is not met)
- * - `active`: The credit block is currently valid and eligible for consumption. (`effective_at` is in the past, `expires_at` is in the future and availability_policy is met)
- * - `expired`: The credit block expired with remaining unused balance, `expires_at` time has passed.
+ * - `pending`: The credit block has been created but is not yet valid.
+ *   (`effective_at` is in the future or availability_policy is not met)
+ * - `active`: The credit block is currently valid and eligible for consumption.
+ *   (`effective_at` is in the past, `expires_at` is in the future and
+ *   availability_policy is met)
+ * - `expired`: The credit block expired with remaining unused balance,
+ *   `expires_at` time has passed.
  * - `voided`: The credit block was voided. Remaining balance is forfeited.
  */
 @friendlyName("BillingCreditGrantStatus")
@@ -104,16 +109,14 @@ model CreditGrantTaxConfig {
   /**
    * Tax code applied to the invoice line item.
    */
-  tax_code?: {
-    id: Shared.ULID;
-  };
+  tax_code?: Tax.TaxCodeReference;
 }
 
 /**
  * A credit grant allocates credits to a customer.
  *
- * Credits are drawn down against charges according to the
- * settlement mode configured on the rate card.
+ * Credits are drawn down against charges according to the settlement mode
+ * configured on the rate card.
  */
 #suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "credit grant model"
 @summary("Credit grant")
@@ -140,8 +143,8 @@ model CreditGrant {
   amount: Shared.Numeric;
 
   /**
-   * Purchase and payment terms of the grant.
-   * Present when a funding workflow applies (funding_method is not `none`).
+   * Purchase and payment terms of the grant. Present when a funding workflow applies
+   * (funding_method is not `none`).
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   purchase?: {
@@ -154,9 +157,8 @@ model CreditGrant {
     /**
      * Cost basis per credit unit used to calculate the purchase amount.
      *
-     * If `per_unit_cost_basis` is 0.50 and credit amount is $100.00,
-     * the total charge is $50.00.
-     * The value must be greater than 0. If the cost basis is 0, use
+     * If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
+     * is $50.00. The value must be greater than 0. If the cost basis is 0, use
      * `funding_method=none` instead.
      *
      * Defaults to 1.0.
@@ -165,8 +167,7 @@ model CreditGrant {
     per_unit_cost_basis?: Shared.Numeric = "1.0";
 
     /**
-     * The purchase amount.
-     * Calculated from `per_unit_cost_basis` and credit `amount`.
+     * The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`.
      */
     @visibility(Lifecycle.Read)
     amount: Shared.Numeric;
@@ -203,15 +204,16 @@ model CreditGrant {
   /**
    * Tax configuration for the grant.
    *
-   * For `invoice` and `external` funding methods, tax configuration should be provided to ensure correct revenue recognition.
-   * When not provided, the default credit grant tax code is applied, if that's not set the global default taxcode is used.
+   * For `invoice` and `external` funding methods, tax configuration should be
+   * provided to ensure correct revenue recognition. When not provided, the default
+   * credit grant tax code is applied, if that's not set the global default taxcode
+   * is used.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   tax_config?: CreditGrantTaxConfig;
 
   /**
-   * Invoice references for the grant.
-   * Available when `funding_method` is `invoice`.
+   * Invoice references for the grant. Available when `funding_method` is `invoice`.
    */
   @visibility(Lifecycle.Read)
   invoice?: {
@@ -236,16 +238,15 @@ model CreditGrant {
   @visibility(Lifecycle.Read, Lifecycle.Create)
   filters?: {
     /**
-     * Limit the credit grant to specific features.
-     * If no features are specified, the credit grant can be used for any feature.
+     * Limit the credit grant to specific features. If no features are specified, the
+     * credit grant can be used for any feature.
      */
     @example(#["input_tokens", "output_tokens"])
     features?: Shared.ResourceKey[];
   };
 
   /**
-   * Draw-down priority of the grant.
-   * Lower values have higher priority.
+   * Draw-down priority of the grant. Lower values have higher priority.
    */
   @visibility(Lifecycle.Create, Lifecycle.Read)
   @minValue(1)

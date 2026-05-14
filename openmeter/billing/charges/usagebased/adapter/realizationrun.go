@@ -27,11 +27,14 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 			SetChargeID(chargeID.ID).
 			SetFeatureID(input.FeatureID).
 			SetType(input.Type).
+			SetInitialType(input.Type).
 			SetStoredAtLt(meta.NormalizeTimestamp(input.StoredAtLT)).
 			SetServicePeriodTo(meta.NormalizeTimestamp(input.ServicePeriodTo)).
 			SetDetailedLinesPresent(false).
 			SetNillableBillingInvoiceLineID(input.LineID).
-			SetMeteredQuantity(input.MeteredQuantity)
+			SetNillableBillingInvoiceID(input.InvoiceID).
+			SetMeteredQuantity(input.MeteredQuantity).
+			SetNoFiatTransactionRequired(input.NoFiatTransactionRequired)
 
 		create = totals.Set(create, input.Totals)
 
@@ -45,6 +48,8 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 }
 
 func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.UpdateRealizationRunInput) (usagebased.RealizationRunBase, error) {
+	input = input.Normalized()
+
 	if err := input.Validate(); err != nil {
 		return usagebased.RealizationRunBase{}, err
 	}
@@ -53,8 +58,16 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.Upd
 		update := tx.db.ChargeUsageBasedRuns.UpdateOneID(input.ID.ID).
 			Where(dbchargeusagebasedruns.NamespaceEQ(input.ID.Namespace))
 
+		if input.Type.IsPresent() {
+			update = update.SetType(input.Type.OrEmpty())
+		}
+
 		if input.StoredAtLT.IsPresent() {
-			update = update.SetStoredAtLt(meta.NormalizeTimestamp(input.StoredAtLT.OrEmpty()))
+			update = update.SetStoredAtLt(input.StoredAtLT.OrEmpty())
+		}
+
+		if input.DeletedAt.IsPresent() {
+			update = update.SetOrClearDeletedAt(input.DeletedAt.OrEmpty())
 		}
 
 		if input.LineID.IsPresent() {
@@ -67,6 +80,10 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.Upd
 
 		if input.Totals.IsPresent() {
 			update = totals.Set(update, input.Totals.OrEmpty())
+		}
+
+		if input.NoFiatTransactionRequired.IsPresent() {
+			update = update.SetNoFiatTransactionRequired(input.NoFiatTransactionRequired.OrEmpty())
 		}
 
 		dbRun, err := update.Save(ctx)

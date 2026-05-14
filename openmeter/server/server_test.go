@@ -1829,6 +1829,14 @@ func (n NoopBillingService) GetRegisteredLineEngines() []billing.LineEngineType 
 	return nil
 }
 
+func (n NoopBillingService) OnMutableStandardLinesDeleted(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) error {
+	return nil
+}
+
+func (n NoopBillingService) OnUnsupportedCreditNote(ctx context.Context, input billing.OnUnsupportedCreditNoteInput) error {
+	return nil
+}
+
 func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
 	return []billing.LineOrHierarchy{}, nil
 }
@@ -2006,6 +2014,14 @@ func (n NoopTaxCodeService) GetTaxCodeByAppMapping(ctx context.Context, input ta
 
 func (n NoopTaxCodeService) GetOrCreateByAppMapping(ctx context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error) {
 	return taxcode.TaxCode{}, nil
+}
+
+func (n NoopTaxCodeService) GetOrganizationDefaultTaxCodes(ctx context.Context, input taxcode.GetOrganizationDefaultTaxCodesInput) (taxcode.OrganizationDefaultTaxCodes, error) {
+	return taxcode.OrganizationDefaultTaxCodes{}, nil
+}
+
+func (n NoopTaxCodeService) UpsertOrganizationDefaultTaxCodes(ctx context.Context, input taxcode.UpsertOrganizationDefaultTaxCodesInput) (taxcode.OrganizationDefaultTaxCodes, error) {
+	return taxcode.OrganizationDefaultTaxCodes{}, nil
 }
 
 // SubjectService methods

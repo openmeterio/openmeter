@@ -8,6 +8,8 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -58,11 +60,57 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 
 			// Filters
 			if params.Filter != nil {
-				// Filter by customer ID
-				if params.Filter.CustomerId != nil {
-					// Add the customer ID filter to the request
-					req.CustomerIDs = []string{*params.Filter.CustomerId}
+				customerID, err := filters.FromAPIFilterULID(params.Filter.CustomerId)
+				if err != nil {
+					return ListSubscriptionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[customer_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
 				}
+				req.CustomerID = customerID
+
+				id, err := filters.FromAPIFilterULID(params.Filter.Id)
+				if err != nil {
+					return ListSubscriptionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.ID = id
+
+				status, err := filters.FromAPIStatusFilter[subscription.SubscriptionStatus](ctx, params.Filter.Status)
+				if err != nil {
+					return ListSubscriptionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[status]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Status = status
+
+				planID, err := filters.FromAPIFilterULID(params.Filter.PlanId)
+				if err != nil {
+					return ListSubscriptionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[plan_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.PlanID = planID
+
+				planKey, err := filters.FromAPIFilterStringExact(params.Filter.PlanKey)
+				if err != nil {
+					return ListSubscriptionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[plan_key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.PlanKey = planKey
+			}
+
+			// Sort
+			if params.Sort != nil {
+				sort, err := request.ParseSortBy(*params.Sort)
+				if err != nil {
+					return ListSubscriptionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.OrderBy = subscription.OrderBy(sort.Field)
+				req.Order = sort.Order.ToSortxOrder()
 			}
 
 			return req, nil

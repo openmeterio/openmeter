@@ -67,6 +67,13 @@ func TestSettleInvoicedPaymentInputValidate(t *testing.T) {
 		require.ErrorContains(t, in.Validate(), "cannot settle an unauthorized payment")
 	})
 
+	t.Run("allows missing payment when no fiat transaction is required", func(t *testing.T) {
+		in := newSettlePaymentInput()
+		in.Run.Payment = nil
+		in.Run.NoFiatTransactionRequired = true
+		require.NoError(t, in.Validate())
+	})
+
 	t.Run("rejects mismatched payment line id", func(t *testing.T) {
 		in := newSettlePaymentInput()
 		in.Run.Payment.LineID = "other-line"
@@ -132,9 +139,7 @@ func newBookPaymentAuthorizedInput() BookInvoicedPaymentAuthorizedInput {
 func newSettlePaymentInput() SettleInvoicedPaymentInput {
 	authInput := newBookPaymentAuthorizedInput()
 	authInput.Run.InvoiceUsage = &invoicedusage.AccruedUsage{
-		LineID:        &authInput.Line.ID,
 		ServicePeriod: authInput.Line.Period,
-		Mutable:       false,
 		Totals:        authInput.Line.Totals,
 	}
 	authInput.Run.Payment = &payment.Invoiced{
@@ -187,7 +192,8 @@ func newUsageBasedCharge() usagebased.Charge {
 			},
 			Status: usagebased.StatusActiveAwaitingPaymentSettlement,
 			State: usagebased.State{
-				FeatureID: "feature-1",
+				FeatureID:    "feature-1",
+				RatingEngine: usagebased.RatingEngineDelta,
 			},
 		},
 	}
@@ -202,6 +208,7 @@ func newUsageBasedRun(lineID string) usagebased.RealizationRun {
 			FeatureID:       "feature-1",
 			LineID:          &lineID,
 			Type:            usagebased.RealizationRunTypeFinalRealization,
+			InitialType:     usagebased.RealizationRunTypeFinalRealization,
 			StoredAtLT:      now,
 			ServicePeriodTo: now,
 			MeteredQuantity: alpacadecimal.NewFromInt(10),

@@ -22,6 +22,15 @@ const (
 	SubscriptionStatusScheduled SubscriptionStatus = "scheduled"
 )
 
+func (s SubscriptionStatus) Values() []SubscriptionStatus {
+	return []SubscriptionStatus{
+		SubscriptionStatusActive,
+		SubscriptionStatusCanceled,
+		SubscriptionStatusInactive,
+		SubscriptionStatusScheduled,
+	}
+}
+
 func (s SubscriptionStatus) Validate() error {
 	switch s {
 	case SubscriptionStatusActive, SubscriptionStatusCanceled, SubscriptionStatusInactive, SubscriptionStatusScheduled:

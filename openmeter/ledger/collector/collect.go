@@ -75,14 +75,31 @@ func (c *accrualCollector) collect(ctx context.Context, input CollectToAccruedIn
 }
 
 func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input CollectToAccruedInput, amount alpacadecimal.Decimal) ([]ledger.TransactionInput, error) {
+	if err := ledger.ValidateTransactionAmount(amount); err != nil {
+		return nil, fmt.Errorf("amount: %w", err)
+	}
+
+	if err := ledger.ValidateCurrency(input.Currency); err != nil {
+		return nil, fmt.Errorf("currency: %w", err)
+	}
+
+	sources, err := c.collectCustomerFBO(ctx, c.customerID(input), input.Currency, amount)
+	if err != nil {
+		return nil, fmt.Errorf("collect customer FBO: %w", err)
+	}
+
+	if len(sources) == 0 {
+		return nil, nil
+	}
+
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
 		c.deps,
 		c.resolutionScope(input),
 		transactions.TransferCustomerFBOToAccruedTemplate{
 			At:       input.At,
-			Amount:   amount,
 			Currency: input.Currency,
+			Sources:  sources,
 		},
 	)
 	if err != nil {
@@ -121,11 +138,15 @@ func (c *accrualCollector) shouldAdvanceShortfall(input CollectToAccruedInput, s
 
 func (c *accrualCollector) resolutionScope(input CollectToAccruedInput) transactions.ResolutionScope {
 	return transactions.ResolutionScope{
-		CustomerID: customer.CustomerID{
-			Namespace: input.Namespace,
-			ID:        input.CustomerID,
-		},
+		CustomerID: c.customerID(input),
+		Namespace:  input.Namespace,
+	}
+}
+
+func (c *accrualCollector) customerID(input CollectToAccruedInput) customer.CustomerID {
+	return customer.CustomerID{
 		Namespace: input.Namespace,
+		ID:        input.CustomerID,
 	}
 }
 
@@ -172,16 +193,16 @@ func (i collectedInputs) collectedFBOAmount() alpacadecimal.Decimal {
 }
 
 func creditRealizationAnnotationsForCollectedInput(input ledger.TransactionInput) models.Annotations {
-	templateName, err := ledger.TransactionTemplateNameFromAnnotations(input.Annotations())
+	templateCode, err := ledger.TransactionTemplateCodeFromAnnotations(input.Annotations())
 	if err != nil {
 		return input.Annotations()
 	}
 
 	var originKind creditrealization.LineageOriginKind
-	switch templateName {
-	case transactions.TemplateName(transactions.TransferCustomerFBOToAccruedTemplate{}):
+	switch templateCode {
+	case transactions.TemplateCode(transactions.TransferCustomerFBOToAccruedTemplate{}):
 		originKind = creditrealization.LineageOriginKindRealCredit
-	case transactions.TemplateName(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}):
+	case transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}):
 		originKind = creditrealization.LineageOriginKindAdvance
 	default:
 		return input.Annotations()

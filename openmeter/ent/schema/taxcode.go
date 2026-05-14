@@ -57,13 +57,17 @@ func (TaxCode) Edges() []ent.Edge {
 		edge.To("billing_invoice_split_line_groups", BillingInvoiceSplitLineGroup.Type),
 		edge.To("billing_standard_invoice_detailed_lines", BillingStandardInvoiceDetailedLine.Type),
 		edge.To("charge_usage_based_run_detailed_lines", ChargeUsageBasedRunDetailedLine.Type),
-		edge.To("charge_flat_fee_detailed_lines", ChargeFlatFeeDetailedLine.Type),
+		edge.To("charge_flat_fee_run_detailed_lines", ChargeFlatFeeRunDetailedLine.Type),
 		edge.To("subscription_items", SubscriptionItem.Type),
 		edge.To("plan_rate_cards", PlanRateCard.Type),
 		edge.To("addon_rate_cards", AddonRateCard.Type),
 		edge.To("charge_flat_fees", ChargeFlatFee.Type),
 		edge.To("charge_usage_based", ChargeUsageBased.Type),
 		edge.To("charge_credit_purchases", ChargeCreditPurchase.Type),
+		edge.To("organization_default_invoicing", OrganizationDefaultTaxCodes.Type).
+			StorageKey(edge.Symbol("org_dtc_invoicing_tax_code_fk")),
+		edge.To("organization_default_credit_grant", OrganizationDefaultTaxCodes.Type).
+			StorageKey(edge.Symbol("org_dtc_credit_grant_tax_code_fk")),
 	}
 }
 

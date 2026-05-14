@@ -21,7 +21,7 @@ type UsageBasedService interface {
 	Create(ctx context.Context, input CreateInput) ([]ChargeWithGatheringLine, error)
 	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
 	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (*Charge, error)
-	TriggerPatch(ctx context.Context, charge meta.ChargeID, patch meta.Patch) (*Charge, error)
+	TriggerPatch(ctx context.Context, charge meta.ChargeID, patch meta.Patch) (meta.TriggerPatchResult[Charge], error)
 	GetCurrentTotals(ctx context.Context, input GetCurrentTotalsInput) (GetCurrentTotalsResult, error)
 }
 
@@ -57,7 +57,8 @@ type ChargeWithGatheringLine struct {
 
 type CreateIntent struct {
 	Intent
-	FeatureID string
+	FeatureID    string
+	RatingEngine RatingEngine
 }
 
 func (i CreateIntent) Validate() error {
@@ -69,6 +70,10 @@ func (i CreateIntent) Validate() error {
 
 	if i.FeatureID == "" {
 		errs = append(errs, errors.New("feature id is required"))
+	}
+
+	if err := i.RatingEngine.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("rating engine: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -184,6 +189,10 @@ func validateExpands(expands meta.Expands) error {
 
 	if expands.Has(meta.ExpandDetailedLines) && !expands.Has(meta.ExpandRealizations) {
 		return fmt.Errorf("%q requires %q", meta.ExpandDetailedLines, meta.ExpandRealizations)
+	}
+
+	if expands.Has(meta.ExpandDeletedRealizations) && !expands.Has(meta.ExpandRealizations) {
+		return fmt.Errorf("%q requires %q", meta.ExpandDeletedRealizations, meta.ExpandRealizations)
 	}
 
 	return nil

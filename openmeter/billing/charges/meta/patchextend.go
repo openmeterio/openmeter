@@ -19,12 +19,14 @@ type PatchExtend struct {
 	newServicePeriodTo     time.Time
 	newFullServicePeriodTo time.Time
 	newBillingPeriodTo     time.Time
+	newInvoiceAt           time.Time
 }
 
 type NewPatchExtendInput struct {
 	NewServicePeriodTo     time.Time
 	NewFullServicePeriodTo time.Time
 	NewBillingPeriodTo     time.Time
+	NewInvoiceAt           time.Time
 }
 
 func (i NewPatchExtendInput) Validate() error {
@@ -40,6 +42,10 @@ func (i NewPatchExtendInput) Validate() error {
 		return models.NewGenericValidationError(fmt.Errorf("new billing period to is required"))
 	}
 
+	if i.NewInvoiceAt.IsZero() {
+		return models.NewGenericValidationError(fmt.Errorf("new invoice at is required"))
+	}
+
 	return nil
 }
 
@@ -52,6 +58,7 @@ func NewPatchExtend(input NewPatchExtendInput) (PatchExtend, error) {
 	patch.SetNewServicePeriodTo(input.NewServicePeriodTo)
 	patch.SetNewFullServicePeriodTo(input.NewFullServicePeriodTo)
 	patch.SetNewBillingPeriodTo(input.NewBillingPeriodTo)
+	patch.SetNewInvoiceAt(input.NewInvoiceAt)
 	return patch, nil
 }
 
@@ -79,6 +86,18 @@ func (p PatchExtend) GetNewBillingPeriodTo() time.Time {
 	return p.newBillingPeriodTo
 }
 
+func (p *PatchExtend) SetNewInvoiceAt(v time.Time) {
+	p.newInvoiceAt = NormalizeTimestamp(v)
+}
+
+func (p PatchExtend) GetNewInvoiceAt() time.Time {
+	return p.newInvoiceAt
+}
+
+func (p PatchExtend) Op() PatchType {
+	return PatchTypeExtend
+}
+
 func (p PatchExtend) Trigger() stateless.Trigger {
 	return TriggerExtend
 }
@@ -100,6 +119,10 @@ func (p PatchExtend) Validate() error {
 		return models.NewGenericValidationError(fmt.Errorf("new billing period to is required"))
 	}
 
+	if p.GetNewInvoiceAt().IsZero() {
+		return models.NewGenericValidationError(fmt.Errorf("new invoice at is required"))
+	}
+
 	return nil
 }
 
@@ -110,8 +133,8 @@ func (p PatchExtend) ValidateWith(intent Intent) error {
 		errs = append(errs, err)
 	}
 
-	if p.GetNewServicePeriodTo().Before(intent.ServicePeriod.To) {
-		errs = append(errs, fmt.Errorf("new service period to must be greater than or equal to existing service period to"))
+	if !p.GetNewServicePeriodTo().After(intent.ServicePeriod.To) {
+		errs = append(errs, fmt.Errorf("new service period to must be greater than existing service period to"))
 	}
 
 	if p.GetNewFullServicePeriodTo().Before(intent.FullServicePeriod.To) {

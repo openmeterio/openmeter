@@ -140,7 +140,7 @@ const DefaultSettlementMode productcatalog.SettlementMode = "credit_then_invoice
 // SettlementModeValidator is a validator for the "settlement_mode" field enum values. It is called by the builders before save.
 func SettlementModeValidator(sm productcatalog.SettlementMode) error {
 	switch sm {
-	case "invoice_only", "credit_then_invoice", "credit_only":
+	case "credit_then_invoice", "credit_only":
 		return nil
 	default:
 		return fmt.Errorf("plan: invalid enum value for settlement_mode field: %q", sm)

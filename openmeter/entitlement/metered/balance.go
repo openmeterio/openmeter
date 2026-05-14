@@ -22,11 +22,15 @@ import (
 )
 
 type EntitlementBalance struct {
-	EntitlementID             string             `json:"entitlementId"`
-	Balance                   float64            `json:"balance"`
-	UsageInPeriod             float64            `json:"usageInPeriod"`
-	Overage                   float64            `json:"overage"`
-	TotalAvailableGrantAmount float64            `json:"totalAvailableGrantAmount"`
+	EntitlementID string `json:"entitlementId"`
+	// Point in time value for balance
+	Balance float64 `json:"balance"`
+	// Period delta for usage
+	UsageInPeriod float64 `json:"usageInPeriod"`
+	// Point in time value for overage
+	Overage float64 `json:"overage"`
+	// Total amount in period, composite of usage delta + current point in time balance
+	TotalAvailableGrantAmount float64            `json:"totalAvailableGrantAmount"` // IN PERIOD
 	GrantBalances             map[string]float64 `json:"grantBalances"`
 	StartOfPeriod             time.Time          `json:"startOfPeriod"`
 }
@@ -96,7 +100,7 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 		Balance:                   res.Snapshot.Balance(),
 		UsageInPeriod:             res.Snapshot.Usage.Usage,
 		Overage:                   res.Snapshot.Overage,
-		TotalAvailableGrantAmount: res.TotalAvailableGrantAmount(),
+		TotalAvailableGrantAmount: res.TotalAvailableGrantAmountAtLastPeriod(),
 		GrantBalances:             grantBalances,
 		StartOfPeriod:             startOfPeriod,
 	}, nil

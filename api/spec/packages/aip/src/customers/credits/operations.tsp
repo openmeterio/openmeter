@@ -33,10 +33,9 @@ model ListCreditGrantsParamsFilter {
 
 interface CustomerCreditGrantsOperations {
   /**
-   * Create a new credit grant.
-   * A credit grant represents an allocation of prepaid credits to a customer.
+   * Create a new credit grant. A credit grant represents an allocation of prepaid
+   * credits to a customer.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @post
@@ -50,7 +49,6 @@ interface CustomerCreditGrantsOperations {
   /**
    * Get a credit grant.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -64,7 +62,6 @@ interface CustomerCreditGrantsOperations {
   /**
    * List credit grants.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -102,7 +99,8 @@ interface CustomerCreditGrantsOperations {
 // }
 
 /**
- * Request body for updating the external payment settlement status of a credit grant.
+ * Request body for updating the external payment settlement status of a credit
+ * grant.
  */
 @friendlyName("UpdateCreditGrantExternalSettlementRequest")
 model UpdateCreditGrantExternalSettlementRequest {
@@ -116,10 +114,9 @@ interface CustomerCreditGrantExternalSettlementOperations {
   /**
    * Update the payment settlement status of an externally funded credit grant.
    *
-   * Use this endpoint to synchronize the payment state of an external payment
-   * with the system so that revenue recognition and credit availability work as expected.
+   * Use this endpoint to synchronize the payment state of an external payment with
+   * the system so that revenue recognition and credit availability work as expected.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @post
@@ -141,18 +138,12 @@ model GetCreditBalanceParamsFilter {
    * Filter credit balance by currency.
    */
   currency?: Currencies.CurrencyCode;
-
-  /**
-   * Filter by specific feature.
-   */
-  feature?: Shared.ResourceKey;
 }
 
 interface CustomerCreditBalancesOperations {
   /**
    * Get a credit balance.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -188,11 +179,10 @@ interface CustomerCreditTransactionOperations {
   /**
    * List credit transactions for a customer.
    *
-   * Returns an immutable, chronological record of credit movements:
-   * funded credits and consumed credits.
-   * Transactions are returned in reverse chronological order by default.
+   * Returns an immutable, chronological record of credit movements: funded credits
+   * and consumed credits. Transactions are returned in reverse chronological order
+   * by default.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -212,12 +202,13 @@ interface CustomerCreditTransactionOperations {
 
 interface CustomerCreditAdjustmentsOperations {
   /**
-   * A credit adjustment can be used to make manual adjustments to a customer's credit balance.
+   * A credit adjustment can be used to make manual adjustments to a customer's
+   * credit balance.
    *
    * Supported use-cases:
+   *
    * - Usage correction
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @post

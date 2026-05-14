@@ -151,13 +151,15 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		ChargeFlatFee: NewChargeFlatFeeClient(config),
 
-		ChargeFlatFeeCreditAllocations: NewChargeFlatFeeCreditAllocationsClient(config),
+		ChargeFlatFeeRun: NewChargeFlatFeeRunClient(config),
 
-		ChargeFlatFeeDetailedLine: NewChargeFlatFeeDetailedLineClient(config),
+		ChargeFlatFeeRunCreditAllocations: NewChargeFlatFeeRunCreditAllocationsClient(config),
 
-		ChargeFlatFeeInvoicedUsage: NewChargeFlatFeeInvoicedUsageClient(config),
+		ChargeFlatFeeRunDetailedLine: NewChargeFlatFeeRunDetailedLineClient(config),
 
-		ChargeFlatFeePayment: NewChargeFlatFeePaymentClient(config),
+		ChargeFlatFeeRunInvoicedUsage: NewChargeFlatFeeRunInvoicedUsageClient(config),
+
+		ChargeFlatFeeRunPayment: NewChargeFlatFeeRunPaymentClient(config),
 
 		ChargeUsageBased: NewChargeUsageBasedClient(config),
 
@@ -216,6 +218,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 		NotificationEventDeliveryStatus: NewNotificationEventDeliveryStatusClient(config),
 
 		NotificationRule: NewNotificationRuleClient(config),
+
+		OrganizationDefaultTaxCodes: NewOrganizationDefaultTaxCodesClient(config),
 
 		Plan: NewPlanClient(config),
 

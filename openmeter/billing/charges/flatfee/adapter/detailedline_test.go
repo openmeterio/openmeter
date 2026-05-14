@@ -17,7 +17,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	dbchargeflatfeedetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
+	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	dbchargeflatfeerundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -108,7 +109,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 						BillingPeriod:     servicePeriod,
 					},
 					InvoiceAt:             servicePeriod.To,
-					SettlementMode:        productcatalog.InvoiceOnlySettlementMode,
+					SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,
 					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
 					AmountBeforeProration: alpacadecimal.NewFromInt(10),
 					ProRating: productcatalog.ProRatingConfig{
@@ -116,7 +117,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				},
-				InitialStatus:        flatfee.StatusActive,
+				InitialStatus:        flatfee.StatusCreated,
 				AmountAfterProration: alpacadecimal.NewFromInt(10),
 			},
 		},
@@ -125,6 +126,13 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 	s.Require().Len(createdCharges, 1)
 
 	charge := createdCharges[0]
+	run, err := s.adapter.CreateCurrentRun(ctx, flatfee.CreateCurrentRunInput{
+		Charge:               charge.ChargeBase,
+		ServicePeriod:        servicePeriod,
+		AmountAfterProration: alpacadecimal.NewFromInt(10),
+	})
+	s.Require().NoError(err)
+	runID := run.ID
 
 	initialLines := flatfee.DetailedLines{
 		s.newDetailedLine(newDetailedLineInput{
@@ -142,7 +150,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 			Description:            lo.ToPtr("delete me"),
 		}),
 	}
-	s.Require().NoError(s.adapter.UpsertDetailedLines(ctx, charge.GetChargeID(), initialLines))
+	s.Require().NoError(s.adapter.UpsertDetailedLines(ctx, runID, initialLines))
 
 	replacementLines := flatfee.DetailedLines{
 		s.newDetailedLine(newDetailedLineInput{
@@ -159,7 +167,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 			Description:            lo.ToPtr("new description"),
 		}),
 	}
-	s.Require().NoError(s.adapter.UpsertDetailedLines(ctx, charge.GetChargeID(), replacementLines))
+	s.Require().NoError(s.adapter.UpsertDetailedLines(ctx, runID, replacementLines))
 
 	fetchedCharge, err := s.adapter.GetByID(ctx, flatfee.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
@@ -169,22 +177,71 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 		},
 	})
 	s.Require().NoError(err)
-	s.True(fetchedCharge.Realizations.DetailedLines.IsPresent())
-	s.Len(fetchedCharge.Realizations.DetailedLines.OrEmpty(), 2)
-	s.Equal("keep", fetchedCharge.Realizations.DetailedLines.OrEmpty()[0].ChildUniqueReferenceID)
-	s.Equal("new", fetchedCharge.Realizations.DetailedLines.OrEmpty()[1].ChildUniqueReferenceID)
-	s.Equal(float64(3), fetchedCharge.Realizations.DetailedLines.OrEmpty()[0].Quantity.InexactFloat64())
-	s.Nil(fetchedCharge.Realizations.DetailedLines.OrEmpty()[0].Description)
+	s.Require().NotNil(fetchedCharge.Realizations.CurrentRun)
+	s.True(fetchedCharge.Realizations.CurrentRun.DetailedLines.IsPresent())
+	s.Len(fetchedCharge.Realizations.CurrentRun.DetailedLines.OrEmpty(), 2)
+	s.Equal("keep", fetchedCharge.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].ChildUniqueReferenceID)
+	s.Equal("new", fetchedCharge.Realizations.CurrentRun.DetailedLines.OrEmpty()[1].ChildUniqueReferenceID)
+	s.Equal(float64(3), fetchedCharge.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].Quantity.InexactFloat64())
+	s.Nil(fetchedCharge.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].Description)
 
-	deletedRow, err := s.dbClient.ChargeFlatFeeDetailedLine.Query().
+	dbCharge, err := s.dbClient.ChargeFlatFee.Query().
 		Where(
-			dbchargeflatfeedetailedline.NamespaceEQ(namespace),
-			dbchargeflatfeedetailedline.ChargeIDEQ(charge.ID),
-			dbchargeflatfeedetailedline.ChildUniqueReferenceIDEQ("delete"),
+			dbchargeflatfee.NamespaceEQ(namespace),
+			dbchargeflatfee.IDEQ(charge.ID),
+		).
+		Only(ctx)
+	s.Require().NoError(err)
+	s.Require().NotNil(dbCharge.CurrentRealizationRunID)
+	s.Equal(runID.ID, *dbCharge.CurrentRealizationRunID)
+
+	keptRow, err := s.dbClient.ChargeFlatFeeRunDetailedLine.Query().
+		Where(
+			dbchargeflatfeerundetailedline.NamespaceEQ(namespace),
+			dbchargeflatfeerundetailedline.RunIDEQ(runID.ID),
+			dbchargeflatfeerundetailedline.ChildUniqueReferenceIDEQ("keep"),
+			dbchargeflatfeerundetailedline.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	s.Require().NoError(err)
+	s.Equal("keep", keptRow.PricerReferenceID)
+
+	newRow, err := s.dbClient.ChargeFlatFeeRunDetailedLine.Query().
+		Where(
+			dbchargeflatfeerundetailedline.NamespaceEQ(namespace),
+			dbchargeflatfeerundetailedline.RunIDEQ(runID.ID),
+			dbchargeflatfeerundetailedline.ChildUniqueReferenceIDEQ("new"),
+			dbchargeflatfeerundetailedline.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	s.Require().NoError(err)
+	s.Equal("new", newRow.PricerReferenceID)
+
+	deletedRow, err := s.dbClient.ChargeFlatFeeRunDetailedLine.Query().
+		Where(
+			dbchargeflatfeerundetailedline.NamespaceEQ(namespace),
+			dbchargeflatfeerundetailedline.RunIDEQ(runID.ID),
+			dbchargeflatfeerundetailedline.ChildUniqueReferenceIDEQ("delete"),
 		).
 		Only(ctx)
 	s.Require().NoError(err)
 	s.NotNil(deletedRow.DeletedAt)
+}
+
+func (s *FlatFeeDetailedLineAdapterSuite) TestFetchCurrentRunDetailedLinesRequiresCurrentRun() {
+	ctx := s.T().Context()
+
+	_, err := s.adapter.FetchCurrentRunDetailedLines(ctx, flatfee.Charge{
+		ChargeBase: flatfee.ChargeBase{
+			ManagedResource: chargesmeta.ManagedResource{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: "flatfee-detailedline-adapter",
+				},
+				ID: "charge-id",
+			},
+		},
+	})
+	s.Require().ErrorContains(err, "current run is required")
 }
 
 func (s *FlatFeeDetailedLineAdapterSuite) createCustomer(namespace string) string {

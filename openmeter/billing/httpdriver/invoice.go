@@ -793,6 +793,7 @@ func mapTotalsToAPI(t totals.Totals) api.InvoiceTotals {
 	return api.InvoiceTotals{
 		Amount:              t.Amount.String(),
 		ChargesTotal:        t.ChargesTotal.String(),
+		CreditsTotal:        t.CreditsTotal.String(),
 		DiscountsTotal:      t.DiscountsTotal.String(),
 		TaxesInclusiveTotal: t.TaxesInclusiveTotal.String(),
 		TaxesExclusiveTotal: t.TaxesExclusiveTotal.String(),

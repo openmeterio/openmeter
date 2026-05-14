@@ -8,9 +8,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -140,6 +145,89 @@ func TestGetBalance(t *testing.T) {
 			assert.True(t, balance.Pending().Equal(alpacadecimal.NewFromInt(tt.wantPending)), "pending: %s", balance.Pending())
 		})
 	}
+}
+
+func TestImpactRealizedCreditsSkipsVoidedUsageBasedBillingHistory(t *testing.T) {
+	deletedAt := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	impact, err := NewImpact(charges.NewCharge(usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			Intent: usagebased.Intent{
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			},
+		},
+		Realizations: usagebased.RealizationRuns{
+			{
+				RealizationRunBase: usagebased.RealizationRunBase{
+					Type: usagebased.RealizationRunTypeFinalRealization,
+				},
+				CreditsAllocated: creditrealization.Realizations{
+					{
+						CreateInput: creditrealization.CreateInput{
+							Amount: alpacadecimal.NewFromInt(7),
+						},
+					},
+				},
+			},
+			{
+				RealizationRunBase: usagebased.RealizationRunBase{
+					Type: usagebased.RealizationRunTypeInvalidDueToUnsupportedCreditNote,
+				},
+				CreditsAllocated: creditrealization.Realizations{
+					{
+						CreateInput: creditrealization.CreateInput{
+							Amount: alpacadecimal.NewFromInt(10),
+						},
+					},
+				},
+			},
+			{
+				RealizationRunBase: usagebased.RealizationRunBase{
+					Type: usagebased.RealizationRunTypePartialInvoice,
+					ManagedModel: models.ManagedModel{
+						DeletedAt: &deletedAt,
+					},
+				},
+				CreditsAllocated: creditrealization.Realizations{
+					{
+						CreateInput: creditrealization.CreateInput{
+							Amount: alpacadecimal.NewFromInt(20),
+						},
+					},
+				},
+			},
+		},
+	}), alpacadecimal.NewFromInt(50))
+	require.NoError(t, err)
+
+	require.Equal(t, float64(7), impact.RealizedCredits().InexactFloat64())
+}
+
+func TestImpactRealizedCreditsSkipsVoidedFlatFeeBillingHistory(t *testing.T) {
+	impact, err := NewImpact(charges.NewCharge(flatfee.Charge{
+		ChargeBase: flatfee.ChargeBase{
+			Intent: flatfee.Intent{
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			},
+		},
+		Realizations: flatfee.Realizations{
+			CurrentRun: &flatfee.RealizationRun{
+				RealizationRunBase: flatfee.RealizationRunBase{
+					Type: flatfee.RealizationRunTypeInvalidDueToUnsupportedCreditNote,
+				},
+				CreditRealizations: creditrealization.Realizations{
+					{
+						CreateInput: creditrealization.CreateInput{
+							Amount: alpacadecimal.NewFromInt(10),
+						},
+					},
+				},
+			},
+		},
+	}), alpacadecimal.NewFromInt(50))
+	require.NoError(t, err)
+
+	require.True(t, impact.RealizedCredits().Equal(alpacadecimal.Zero))
 }
 
 func TestGetBalanceWithDifferentCurrency(t *testing.T) {

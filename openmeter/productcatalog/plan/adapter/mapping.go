@@ -261,7 +261,12 @@ func fromPlanPhaseRow(p entdb.PlanPhase) (*plan.Phase, error) {
 
 	// Set Rate Cards
 
-	if len(p.Edges.Ratecards) > 0 {
+	ratecards, err := p.Edges.RatecardsOrErr()
+	if err != nil {
+		return nil, fmt.Errorf("ratecards are not loaded: %w", err)
+	}
+
+	if len(ratecards) > 0 {
 		pp.RateCards = make([]productcatalog.RateCard, 0, len(p.Edges.Ratecards))
 		for _, edge := range p.Edges.Ratecards {
 			if edge == nil {
@@ -292,6 +297,16 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
+	}
+
+	// This is a workaround to make sure that the feature key is set if the feature id is set.
+	if r.FeatureID != nil && r.FeatureKey == nil {
+		ratecardFeature, err := r.Edges.FeaturesOrErr()
+		if err != nil {
+			return nil, errors.New("feature is not loaded for ratecard")
+		}
+
+		meta.FeatureKey = &ratecardFeature.Key
 	}
 
 	// Map TaxCode if eagerly loaded.

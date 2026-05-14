@@ -21,9 +21,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -43,13 +44,15 @@ type TaxCodeQuery struct {
 	withBillingInvoiceSplitLineGroups       *BillingInvoiceSplitLineGroupQuery
 	withBillingStandardInvoiceDetailedLines *BillingStandardInvoiceDetailedLineQuery
 	withChargeUsageBasedRunDetailedLines    *ChargeUsageBasedRunDetailedLineQuery
-	withChargeFlatFeeDetailedLines          *ChargeFlatFeeDetailedLineQuery
+	withChargeFlatFeeRunDetailedLines       *ChargeFlatFeeRunDetailedLineQuery
 	withSubscriptionItems                   *SubscriptionItemQuery
 	withPlanRateCards                       *PlanRateCardQuery
 	withAddonRateCards                      *AddonRateCardQuery
 	withChargeFlatFees                      *ChargeFlatFeeQuery
 	withChargeUsageBased                    *ChargeUsageBasedQuery
 	withChargeCreditPurchases               *ChargeCreditPurchaseQuery
+	withOrganizationDefaultInvoicing        *OrganizationDefaultTaxCodesQuery
+	withOrganizationDefaultCreditGrant      *OrganizationDefaultTaxCodesQuery
 	modifiers                               []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -219,9 +222,9 @@ func (_q *TaxCodeQuery) QueryChargeUsageBasedRunDetailedLines() *ChargeUsageBase
 	return query
 }
 
-// QueryChargeFlatFeeDetailedLines chains the current query on the "charge_flat_fee_detailed_lines" edge.
-func (_q *TaxCodeQuery) QueryChargeFlatFeeDetailedLines() *ChargeFlatFeeDetailedLineQuery {
-	query := (&ChargeFlatFeeDetailedLineClient{config: _q.config}).Query()
+// QueryChargeFlatFeeRunDetailedLines chains the current query on the "charge_flat_fee_run_detailed_lines" edge.
+func (_q *TaxCodeQuery) QueryChargeFlatFeeRunDetailedLines() *ChargeFlatFeeRunDetailedLineQuery {
+	query := (&ChargeFlatFeeRunDetailedLineClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -232,8 +235,8 @@ func (_q *TaxCodeQuery) QueryChargeFlatFeeDetailedLines() *ChargeFlatFeeDetailed
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
-			sqlgraph.To(chargeflatfeedetailedline.Table, chargeflatfeedetailedline.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.ChargeFlatFeeDetailedLinesTable, dbtaxcode.ChargeFlatFeeDetailedLinesColumn),
+			sqlgraph.To(chargeflatfeerundetailedline.Table, chargeflatfeerundetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.ChargeFlatFeeRunDetailedLinesTable, dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -366,6 +369,50 @@ func (_q *TaxCodeQuery) QueryChargeCreditPurchases() *ChargeCreditPurchaseQuery 
 			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
 			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.ChargeCreditPurchasesTable, dbtaxcode.ChargeCreditPurchasesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOrganizationDefaultInvoicing chains the current query on the "organization_default_invoicing" edge.
+func (_q *TaxCodeQuery) QueryOrganizationDefaultInvoicing() *OrganizationDefaultTaxCodesQuery {
+	query := (&OrganizationDefaultTaxCodesClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
+			sqlgraph.To(organizationdefaulttaxcodes.Table, organizationdefaulttaxcodes.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.OrganizationDefaultInvoicingTable, dbtaxcode.OrganizationDefaultInvoicingColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOrganizationDefaultCreditGrant chains the current query on the "organization_default_credit_grant" edge.
+func (_q *TaxCodeQuery) QueryOrganizationDefaultCreditGrant() *OrganizationDefaultTaxCodesQuery {
+	query := (&OrganizationDefaultTaxCodesClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
+			sqlgraph.To(organizationdefaulttaxcodes.Table, organizationdefaulttaxcodes.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.OrganizationDefaultCreditGrantTable, dbtaxcode.OrganizationDefaultCreditGrantColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -571,13 +618,15 @@ func (_q *TaxCodeQuery) Clone() *TaxCodeQuery {
 		withBillingInvoiceSplitLineGroups:       _q.withBillingInvoiceSplitLineGroups.Clone(),
 		withBillingStandardInvoiceDetailedLines: _q.withBillingStandardInvoiceDetailedLines.Clone(),
 		withChargeUsageBasedRunDetailedLines:    _q.withChargeUsageBasedRunDetailedLines.Clone(),
-		withChargeFlatFeeDetailedLines:          _q.withChargeFlatFeeDetailedLines.Clone(),
+		withChargeFlatFeeRunDetailedLines:       _q.withChargeFlatFeeRunDetailedLines.Clone(),
 		withSubscriptionItems:                   _q.withSubscriptionItems.Clone(),
 		withPlanRateCards:                       _q.withPlanRateCards.Clone(),
 		withAddonRateCards:                      _q.withAddonRateCards.Clone(),
 		withChargeFlatFees:                      _q.withChargeFlatFees.Clone(),
 		withChargeUsageBased:                    _q.withChargeUsageBased.Clone(),
 		withChargeCreditPurchases:               _q.withChargeCreditPurchases.Clone(),
+		withOrganizationDefaultInvoicing:        _q.withOrganizationDefaultInvoicing.Clone(),
+		withOrganizationDefaultCreditGrant:      _q.withOrganizationDefaultCreditGrant.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -650,14 +699,14 @@ func (_q *TaxCodeQuery) WithChargeUsageBasedRunDetailedLines(opts ...func(*Charg
 	return _q
 }
 
-// WithChargeFlatFeeDetailedLines tells the query-builder to eager-load the nodes that are connected to
-// the "charge_flat_fee_detailed_lines" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *TaxCodeQuery) WithChargeFlatFeeDetailedLines(opts ...func(*ChargeFlatFeeDetailedLineQuery)) *TaxCodeQuery {
-	query := (&ChargeFlatFeeDetailedLineClient{config: _q.config}).Query()
+// WithChargeFlatFeeRunDetailedLines tells the query-builder to eager-load the nodes that are connected to
+// the "charge_flat_fee_run_detailed_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TaxCodeQuery) WithChargeFlatFeeRunDetailedLines(opts ...func(*ChargeFlatFeeRunDetailedLineQuery)) *TaxCodeQuery {
+	query := (&ChargeFlatFeeRunDetailedLineClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withChargeFlatFeeDetailedLines = query
+	_q.withChargeFlatFeeRunDetailedLines = query
 	return _q
 }
 
@@ -724,6 +773,28 @@ func (_q *TaxCodeQuery) WithChargeCreditPurchases(opts ...func(*ChargeCreditPurc
 		opt(query)
 	}
 	_q.withChargeCreditPurchases = query
+	return _q
+}
+
+// WithOrganizationDefaultInvoicing tells the query-builder to eager-load the nodes that are connected to
+// the "organization_default_invoicing" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TaxCodeQuery) WithOrganizationDefaultInvoicing(opts ...func(*OrganizationDefaultTaxCodesQuery)) *TaxCodeQuery {
+	query := (&OrganizationDefaultTaxCodesClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOrganizationDefaultInvoicing = query
+	return _q
+}
+
+// WithOrganizationDefaultCreditGrant tells the query-builder to eager-load the nodes that are connected to
+// the "organization_default_credit_grant" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TaxCodeQuery) WithOrganizationDefaultCreditGrant(opts ...func(*OrganizationDefaultTaxCodesQuery)) *TaxCodeQuery {
+	query := (&OrganizationDefaultTaxCodesClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOrganizationDefaultCreditGrant = query
 	return _q
 }
 
@@ -805,20 +876,22 @@ func (_q *TaxCodeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*TaxC
 	var (
 		nodes       = []*TaxCode{}
 		_spec       = _q.querySpec()
-		loadedTypes = [13]bool{
+		loadedTypes = [15]bool{
 			_q.withBillingWorkflowConfigs != nil,
 			_q.withBillingCustomerOverrides != nil,
 			_q.withBillingInvoiceLines != nil,
 			_q.withBillingInvoiceSplitLineGroups != nil,
 			_q.withBillingStandardInvoiceDetailedLines != nil,
 			_q.withChargeUsageBasedRunDetailedLines != nil,
-			_q.withChargeFlatFeeDetailedLines != nil,
+			_q.withChargeFlatFeeRunDetailedLines != nil,
 			_q.withSubscriptionItems != nil,
 			_q.withPlanRateCards != nil,
 			_q.withAddonRateCards != nil,
 			_q.withChargeFlatFees != nil,
 			_q.withChargeUsageBased != nil,
 			_q.withChargeCreditPurchases != nil,
+			_q.withOrganizationDefaultInvoicing != nil,
+			_q.withOrganizationDefaultCreditGrant != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -898,11 +971,11 @@ func (_q *TaxCodeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*TaxC
 			return nil, err
 		}
 	}
-	if query := _q.withChargeFlatFeeDetailedLines; query != nil {
-		if err := _q.loadChargeFlatFeeDetailedLines(ctx, query, nodes,
-			func(n *TaxCode) { n.Edges.ChargeFlatFeeDetailedLines = []*ChargeFlatFeeDetailedLine{} },
-			func(n *TaxCode, e *ChargeFlatFeeDetailedLine) {
-				n.Edges.ChargeFlatFeeDetailedLines = append(n.Edges.ChargeFlatFeeDetailedLines, e)
+	if query := _q.withChargeFlatFeeRunDetailedLines; query != nil {
+		if err := _q.loadChargeFlatFeeRunDetailedLines(ctx, query, nodes,
+			func(n *TaxCode) { n.Edges.ChargeFlatFeeRunDetailedLines = []*ChargeFlatFeeRunDetailedLine{} },
+			func(n *TaxCode, e *ChargeFlatFeeRunDetailedLine) {
+				n.Edges.ChargeFlatFeeRunDetailedLines = append(n.Edges.ChargeFlatFeeRunDetailedLines, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -949,6 +1022,24 @@ func (_q *TaxCodeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*TaxC
 			func(n *TaxCode) { n.Edges.ChargeCreditPurchases = []*ChargeCreditPurchase{} },
 			func(n *TaxCode, e *ChargeCreditPurchase) {
 				n.Edges.ChargeCreditPurchases = append(n.Edges.ChargeCreditPurchases, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withOrganizationDefaultInvoicing; query != nil {
+		if err := _q.loadOrganizationDefaultInvoicing(ctx, query, nodes,
+			func(n *TaxCode) { n.Edges.OrganizationDefaultInvoicing = []*OrganizationDefaultTaxCodes{} },
+			func(n *TaxCode, e *OrganizationDefaultTaxCodes) {
+				n.Edges.OrganizationDefaultInvoicing = append(n.Edges.OrganizationDefaultInvoicing, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withOrganizationDefaultCreditGrant; query != nil {
+		if err := _q.loadOrganizationDefaultCreditGrant(ctx, query, nodes,
+			func(n *TaxCode) { n.Edges.OrganizationDefaultCreditGrant = []*OrganizationDefaultTaxCodes{} },
+			func(n *TaxCode, e *OrganizationDefaultTaxCodes) {
+				n.Edges.OrganizationDefaultCreditGrant = append(n.Edges.OrganizationDefaultCreditGrant, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -1155,7 +1246,7 @@ func (_q *TaxCodeQuery) loadChargeUsageBasedRunDetailedLines(ctx context.Context
 	}
 	return nil
 }
-func (_q *TaxCodeQuery) loadChargeFlatFeeDetailedLines(ctx context.Context, query *ChargeFlatFeeDetailedLineQuery, nodes []*TaxCode, init func(*TaxCode), assign func(*TaxCode, *ChargeFlatFeeDetailedLine)) error {
+func (_q *TaxCodeQuery) loadChargeFlatFeeRunDetailedLines(ctx context.Context, query *ChargeFlatFeeRunDetailedLineQuery, nodes []*TaxCode, init func(*TaxCode), assign func(*TaxCode, *ChargeFlatFeeRunDetailedLine)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*TaxCode)
 	for i := range nodes {
@@ -1166,10 +1257,10 @@ func (_q *TaxCodeQuery) loadChargeFlatFeeDetailedLines(ctx context.Context, quer
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(chargeflatfeedetailedline.FieldTaxCodeID)
+		query.ctx.AppendFieldOnce(chargeflatfeerundetailedline.FieldTaxCodeID)
 	}
-	query.Where(predicate.ChargeFlatFeeDetailedLine(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(dbtaxcode.ChargeFlatFeeDetailedLinesColumn), fks...))
+	query.Where(predicate.ChargeFlatFeeRunDetailedLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -1381,6 +1472,66 @@ func (_q *TaxCodeQuery) loadChargeCreditPurchases(ctx context.Context, query *Ch
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *TaxCodeQuery) loadOrganizationDefaultInvoicing(ctx context.Context, query *OrganizationDefaultTaxCodesQuery, nodes []*TaxCode, init func(*TaxCode), assign func(*TaxCode, *OrganizationDefaultTaxCodes)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*TaxCode)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(organizationdefaulttaxcodes.FieldInvoicingTaxCodeID)
+	}
+	query.Where(predicate.OrganizationDefaultTaxCodes(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbtaxcode.OrganizationDefaultInvoicingColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.InvoicingTaxCodeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "invoicing_tax_code_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *TaxCodeQuery) loadOrganizationDefaultCreditGrant(ctx context.Context, query *OrganizationDefaultTaxCodesQuery, nodes []*TaxCode, init func(*TaxCode), assign func(*TaxCode, *OrganizationDefaultTaxCodes)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*TaxCode)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(organizationdefaulttaxcodes.FieldCreditGrantTaxCodeID)
+	}
+	query.Where(predicate.OrganizationDefaultTaxCodes(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbtaxcode.OrganizationDefaultCreditGrantColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CreditGrantTaxCodeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "credit_grant_tax_code_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

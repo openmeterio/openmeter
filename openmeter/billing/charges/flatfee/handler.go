@@ -120,6 +120,30 @@ func (i CreditsOnlyUsageAccruedCorrectionInput) ValidateWith(currencyCalculator 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type PaymentEventInput struct {
+	Charge Charge                `json:"charge"`
+	Amount alpacadecimal.Decimal `json:"amount"`
+}
+
+func (i PaymentEventInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if i.Amount.IsNegative() {
+		errs = append(errs, fmt.Errorf("amount cannot be negative"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type (
+	OnPaymentAuthorizedInput = PaymentEventInput
+	OnPaymentSettledInput    = PaymentEventInput
+)
+
 type Handler interface {
 	// OnFlatFeeAssignedToInvoice is called when a flat fee is being assigned to an invoice
 	OnAssignedToInvoice(ctx context.Context, input OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error)
@@ -127,18 +151,18 @@ type Handler interface {
 	// OnFlatFeeStandardInvoiceUsageAccrued is called when the remaining usage is sent to the customer on a standard invoice.
 	OnInvoiceUsageAccrued(ctx context.Context, input OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
 
-	// OnCreditsOnlyUsageAccrued is called when a credit-only flat fee becomes active (clock >= InvoiceAt)
+	// OnCreditsOnlyUsageAccrued is called when a credit-only flat fee reaches invoice_at
 	// and the full amount needs to be allocated as credits.
 	OnCreditsOnlyUsageAccrued(ctx context.Context, input OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
 
 	// OnCreditsOnlyUsageAccruedCorrection is called when a credit allocation needs to be corrected.
 	OnCreditsOnlyUsageAccruedCorrection(ctx context.Context, input CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error)
 
-	// OnFlatFeePaymentAuthorized is called when a flat fee payment is authorized
-	OnPaymentAuthorized(ctx context.Context, charge Charge) (ledgertransaction.GroupReference, error)
+	// OnFlatFeePaymentAuthorized is called when a flat fee payment is authorized.
+	OnPaymentAuthorized(ctx context.Context, input OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)
 
-	// OnFlatFeePaymentSettled is called when a flat fee payment is settled
-	OnPaymentSettled(ctx context.Context, charge Charge) (ledgertransaction.GroupReference, error)
+	// OnFlatFeePaymentSettled is called when a flat fee payment is settled.
+	OnPaymentSettled(ctx context.Context, input OnPaymentSettledInput) (ledgertransaction.GroupReference, error)
 
 	// OnFlatFeePaymentUncollectible is called when a flat fee payment is uncollectible
 	OnPaymentUncollectible(ctx context.Context, charge Charge) (ledgertransaction.GroupReference, error)

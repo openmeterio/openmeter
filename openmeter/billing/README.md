@@ -116,7 +116,7 @@ Apps can choose to synchronize the original line (if the upstream system underst
 
 When we are dealing with a split line, the calculation of the quantity is by taking the meter's quantity for the whole line period ([`parent.period.start`, `splitline.period.end`]) and the amount before the period (`parent.period.start`, `splitline.period.start`).
 
-When substracting the two we get the delta for the period (this gets the delta for all supported meter types except of Min and Avg).
+When subtracting the two we get the delta for the period (this gets the delta for all supported meter types except Min and Avg).
 
 We execute the pricing logic (e.g. tiered pricing) for the line qty, while considering the before usage, as it reflects the already billed for items.
 

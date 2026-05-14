@@ -208,6 +208,8 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.Equal(usagebased.RealizationRunTypePartialInvoice, currentRun.Type)
 		s.Require().NotNil(currentRun.LineID)
 		s.Equal(stdLine.ID, *currentRun.LineID)
+		s.Require().NotNil(currentRun.InvoiceID)
+		s.Equal(partialInvoice.ID, *currentRun.InvoiceID)
 		s.True(midPeriodInvoiceAt.Equal(currentRun.ServicePeriodTo))
 		s.True(midPeriodInvoiceAt.Equal(currentRun.StoredAtLT))
 		s.Require().NotNil(partialInvoice.CollectionAt)
@@ -335,6 +337,8 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		currentRun, runErr := charge.GetCurrentRealizationRun()
 		s.NoError(runErr)
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, currentRun.Type)
+		s.Require().NotNil(currentRun.InvoiceID)
+		s.Equal(finalInvoice.ID, *currentRun.InvoiceID)
 
 		// given
 		clock.FreezeTime(finalInvoice.DefaultCollectionAtForStandardInvoice())

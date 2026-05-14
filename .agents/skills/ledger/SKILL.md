@@ -74,6 +74,7 @@ Guidance for working with the OpenMeter ledger package (`openmeter/ledger/`).
 
 - Ledger tests are Postgres-backed. Use real migrations, not bare schema creation, when tests rely on route/account/entry integrity.
 - For direct `go test` runs, set `POSTGRES_HOST=127.0.0.1` so Postgres-backed tests are not skipped.
+- For ledger changes that affect customer credit balance, credit flows, or related API behavior, also run the credit package tests and any referenced end-to-end coverage. At minimum, include `POSTGRES_HOST=127.0.0.1 go test -tags=dynamic ./test/credits` so the legacy credit stack is covered too.
 - `openmeter/ledger/testutils/integration.go` is the main integration fixture for the ledger domain. It sets up:
   - migrated Postgres schema
   - account service

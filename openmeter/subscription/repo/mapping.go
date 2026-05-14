@@ -99,6 +99,10 @@ func MapDBSubscripitonPhase(phase *db.SubscriptionPhase) (subscription.Subscript
 }
 
 func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.SubscriptionItem, error) {
+	if item == nil {
+		return subscription.SubscriptionItem{}, fmt.Errorf("unexpected nil subscription item")
+	}
+
 	phase, err := item.Edges.PhaseOrErr()
 	if err != nil {
 		return subscription.SubscriptionItem{}, fmt.Errorf("failed to get phase for subscription item: %w", err)
@@ -106,10 +110,6 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 
 	if phase == nil {
 		return subscription.SubscriptionItem{}, fmt.Errorf("unexpected nil phase for subscription item")
-	}
-
-	if item == nil {
-		return subscription.SubscriptionItem{}, fmt.Errorf("unexpected nil subscription item")
 	}
 
 	sa, err := item.ActiveFromOverrideRelativeToPhaseStart.ParsePtrOrNil()
@@ -137,7 +137,8 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		Price:               item.Price,
 		Discounts:           lo.FromPtr(item.Discounts),
 		Key:                 item.Key,
-		FeatureID:           nil, // FIXME: is this an issue?
+		// NOTE: resolving feature is done on service level as there is no direct relationship between subscription items and features.
+		FeatureID: nil,
 	}
 
 	// Map TaxCode if eagerly loaded.

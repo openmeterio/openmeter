@@ -19,12 +19,14 @@ type PatchShrink struct {
 	newServicePeriodTo     time.Time
 	newFullServicePeriodTo time.Time
 	newBillingPeriodTo     time.Time
+	newInvoiceAt           time.Time
 }
 
 type NewPatchShrinkInput struct {
 	NewServicePeriodTo     time.Time
 	NewFullServicePeriodTo time.Time
 	NewBillingPeriodTo     time.Time
+	NewInvoiceAt           time.Time
 }
 
 func (i NewPatchShrinkInput) Validate() error {
@@ -40,6 +42,10 @@ func (i NewPatchShrinkInput) Validate() error {
 		return models.NewGenericValidationError(fmt.Errorf("new billing period to is required"))
 	}
 
+	if i.NewInvoiceAt.IsZero() {
+		return models.NewGenericValidationError(fmt.Errorf("new invoice at is required"))
+	}
+
 	return nil
 }
 
@@ -52,6 +58,7 @@ func NewPatchShrink(input NewPatchShrinkInput) (PatchShrink, error) {
 	patch.SetNewServicePeriodTo(input.NewServicePeriodTo)
 	patch.SetNewFullServicePeriodTo(input.NewFullServicePeriodTo)
 	patch.SetNewBillingPeriodTo(input.NewBillingPeriodTo)
+	patch.SetNewInvoiceAt(input.NewInvoiceAt)
 	return patch, nil
 }
 
@@ -79,6 +86,18 @@ func (p PatchShrink) GetNewBillingPeriodTo() time.Time {
 	return p.newBillingPeriodTo
 }
 
+func (p *PatchShrink) SetNewInvoiceAt(v time.Time) {
+	p.newInvoiceAt = NormalizeTimestamp(v)
+}
+
+func (p PatchShrink) GetNewInvoiceAt() time.Time {
+	return p.newInvoiceAt
+}
+
+func (p PatchShrink) Op() PatchType {
+	return PatchTypeShrink
+}
+
 func (p PatchShrink) Trigger() stateless.Trigger {
 	return TriggerShrink
 }
@@ -100,6 +119,10 @@ func (p PatchShrink) Validate() error {
 		return models.NewGenericValidationError(fmt.Errorf("new billing period to is required"))
 	}
 
+	if p.GetNewInvoiceAt().IsZero() {
+		return models.NewGenericValidationError(fmt.Errorf("new invoice at is required"))
+	}
+
 	return nil
 }
 
@@ -110,16 +133,28 @@ func (p PatchShrink) ValidateWith(intent Intent) error {
 		errs = append(errs, err)
 	}
 
-	if p.GetNewServicePeriodTo().After(intent.ServicePeriod.To) {
-		errs = append(errs, fmt.Errorf("new service period to must be less than or equal to existing service period to"))
+	if !p.GetNewServicePeriodTo().Before(intent.ServicePeriod.To) {
+		errs = append(errs, fmt.Errorf("new service period to must be less than existing service period to"))
+	}
+
+	if !p.GetNewServicePeriodTo().After(intent.ServicePeriod.From) {
+		errs = append(errs, fmt.Errorf("new service period to must be greater than existing service period from"))
 	}
 
 	if p.GetNewFullServicePeriodTo().After(intent.FullServicePeriod.To) {
 		errs = append(errs, fmt.Errorf("new full service period to must be less than or equal to existing full service period to"))
 	}
 
+	if !p.GetNewFullServicePeriodTo().After(intent.FullServicePeriod.From) {
+		errs = append(errs, fmt.Errorf("new full service period to must be greater than existing full service period from"))
+	}
+
 	if p.GetNewBillingPeriodTo().After(intent.BillingPeriod.To) {
 		errs = append(errs, fmt.Errorf("new billing period to must be less than or equal to existing billing period to"))
+	}
+
+	if !p.GetNewBillingPeriodTo().After(intent.BillingPeriod.From) {
+		errs = append(errs, fmt.Errorf("new billing period to must be greater than existing billing period from"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

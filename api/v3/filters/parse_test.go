@@ -20,7 +20,7 @@ type testFilter struct {
 	Field     *FilterString      `json:"field,omitempty"`
 	Name      *FilterString      `json:"name,omitempty"`
 	Email     *FilterString      `json:"email,omitempty"`
-	Labels    *FilterString      `json:"labels,omitempty"`
+	Labels    *FilterLabels      `json:"labels,omitempty"`
 	Status    *FilterStringExact `json:"status,omitempty"`
 	Count     *FilterNumeric     `json:"count,omitempty"`
 	CreatedAt *FilterDateTime    `json:"created_at,omitempty"`
@@ -245,6 +245,20 @@ func TestParse_FilterDateTime(t *testing.T) {
 		require.NotNil(t, f.CreatedAt.Gt)
 		require.NotNil(t, f.CreatedAt.Lte)
 		assert.Equal(t, time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), *f.CreatedAt.Gt)
+		assert.Equal(t, time.Date(2024, 12, 31, 23, 59, 59, 0, time.UTC), *f.CreatedAt.Lte)
+	})
+
+	t.Run("gte and lte closed range", func(t *testing.T) {
+		var f testFilter
+		qs := url.Values{
+			"filter[created_at][gte]": {"2024-01-01T00:00:00Z"},
+			"filter[created_at][lte]": {"2024-12-31T23:59:59Z"},
+		}
+		require.NoError(t, Parse(qs, &f))
+		require.NotNil(t, f.CreatedAt)
+		require.NotNil(t, f.CreatedAt.Gte)
+		require.NotNil(t, f.CreatedAt.Lte)
+		assert.Equal(t, time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), *f.CreatedAt.Gte)
 		assert.Equal(t, time.Date(2024, 12, 31, 23, 59, 59, 0, time.UTC), *f.CreatedAt.Lte)
 	})
 

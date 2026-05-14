@@ -13,13 +13,15 @@ import "./currencies/index.tsp";
 import "./features/index.tsp";
 import "./llmcost/index.tsp";
 import "./productcatalog/index.tsp";
+import "./defaults/index.tsp";
+import "./governance/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
 /**
- * OpenMeter is a cloud native usage metering and billing service.
- * The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
+ * OpenMeter is a cloud native usage metering and billing service. The OpenMeter
+ * API allows you to ingest events, query meter usage, and manage resources.
  */
 @service(#{ title: "OpenMeter API" })
 @info(#{
@@ -57,6 +59,11 @@ using TypeSpec.OpenAPI;
 @tagMetadata(
   Shared.ProductCatalogTag,
   #{ description: Shared.ProductCatalogDescription }
+)
+@tagMetadata(Shared.DefaultsTag, #{ description: Shared.DefaultsDescription })
+@tagMetadata(
+  Shared.GovernanceTag,
+  #{ description: Shared.GovernanceDescription }
 )
 namespace OpenMeter;
 
@@ -126,6 +133,11 @@ interface CustomerChargesEndpoints
 interface SubscriptionsEndpoints
   extends Subscriptions.SubscriptionsOperations {}
 
+@route("/openmeter/subscriptions/{subscriptionId}/addons")
+@tag(Shared.SubscriptionsTag)
+interface SubscriptionAddonEndpoints
+  extends Subscriptions.SubscriptionAddonOperations {}
+
 @route("/openmeter/apps")
 @tag(Shared.AppsTag)
 interface AppsEndpoints extends Apps.AppsOperations {}
@@ -180,3 +192,12 @@ interface AddonsEndpoints extends ProductCatalog.AddonOperations {}
 @route("/openmeter/plans/{planId}/addons")
 @tag(Shared.ProductCatalogTag)
 interface PlanAddonEndpoints extends ProductCatalog.PlanAddonOperations {}
+
+@route("/openmeter/defaults/tax-codes")
+@tag(Shared.DefaultsTag)
+interface OrganizationDefaultTaxCodesEndpoints
+  extends Defaults.OrganizationDefaultTaxCodesOperations {}
+
+@route("/openmeter/governance")
+@tag(Shared.GovernanceTag)
+interface GovernanceEndpoints extends Governance.GovernanceOperations {}

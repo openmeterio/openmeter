@@ -66,3 +66,74 @@ type AccountResolver interface {
 	EnsureBusinessAccounts(ctx context.Context, namespace string) (BusinessAccounts, error)
 	GetBusinessAccounts(ctx context.Context, namespace string) (BusinessAccounts, error)
 }
+
+type AccountReader interface {
+	GetAccountByID(ctx context.Context, id models.NamespacedID) (Account, error)
+	GetSubAccountByID(ctx context.Context, id models.NamespacedID) (SubAccount, error)
+
+	ListSubAccounts(ctx context.Context, input ListSubAccountsInput) ([]SubAccount, error)
+	ListAccounts(ctx context.Context, input ListAccountsInput) ([]Account, error)
+}
+
+type AccountProvisioner interface {
+	CreateAccount(ctx context.Context, input CreateAccountInput) (Account, error)
+	EnsureSubAccount(ctx context.Context, input CreateSubAccountInput) (SubAccount, error)
+}
+
+type AccountCatalog interface {
+	AccountReader
+	AccountProvisioner
+}
+
+type AccountLocker interface {
+	LockAccountsForPosting(ctx context.Context, accounts []Account) error
+}
+
+type ListAccountsInput struct {
+	Namespace    string
+	AccountTypes []AccountType
+}
+
+type ListSubAccountsInput struct {
+	Namespace string
+	AccountID string
+
+	Route RouteFilter
+}
+
+type CreateAccountInput struct {
+	Namespace   string
+	Type        AccountType
+	Annotations models.Annotations
+}
+
+func (c CreateAccountInput) Validate() error {
+	if err := c.Type.Validate(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type CreateSubAccountInput struct {
+	Namespace   string
+	AccountID   string
+	Annotations models.Annotations
+	Route       Route
+}
+
+func (c CreateSubAccountInput) Validate() error {
+	if c.AccountID == "" {
+		return models.NewGenericValidationError(fmt.Errorf("account id is required"))
+	}
+
+	if c.Namespace == "" {
+		return models.NewGenericValidationError(fmt.Errorf("namespace is required"))
+	}
+
+	if err := c.Route.Validate(); err != nil {
+		return models.NewGenericValidationError(err)
+	}
+
+	return nil
+}

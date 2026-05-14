@@ -17,17 +17,16 @@ namespace Currencies;
  */
 @friendlyName("ListCurrenciesParamsFilter")
 model ListCurrenciesParamsFilter {
-  /**
-   * Filter currencies by type.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
   type?: CurrencyType;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  code?: Common.StringFieldFilter;
 }
 
 interface CurrenciesOperations {
   /**
    * List currencies supported by the billing system.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @get
@@ -35,6 +34,18 @@ interface CurrenciesOperations {
   @summary("List currencies")
   list(
     ...Common.PagePaginationQuery,
+
+    /**
+     * Sort currencies returned in the response. Supported sort attributes are:
+     *
+     * - `code` (default)
+     * - `name`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
 
     /**
      * Filter currencies returned in the response.
@@ -48,10 +59,9 @@ interface CurrenciesOperations {
 
 interface CurrenciesCustomOperations {
   /**
-   * Create a custom currency.
-   * This operation allows defining your own custom currency for billing purposes.
+   * Create a custom currency. This operation allows defining your own custom
+   * currency for billing purposes.
    */
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @post

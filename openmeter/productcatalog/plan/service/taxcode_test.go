@@ -44,13 +44,13 @@ func newTestFlatRateCard(feat feature.Feature, tc *productcatalog.TaxConfig, bil
 
 func newTestPlanInput(t *testing.T, namespace string, rc productcatalog.RateCard) plan.CreatePlanInput {
 	t.Helper()
-	return pctestutils.NewTestPlan(t, namespace, productcatalog.Phase{
+	return pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanPhases(productcatalog.Phase{
 		PhaseMeta: productcatalog.PhaseMeta{
 			Key:  "default",
 			Name: "Default",
 		},
 		RateCards: productcatalog.RateCards{rc},
-	})
+	}))
 }
 
 func getFirstRCTaxConfig(t *testing.T, p *plan.Plan) *productcatalog.TaxConfig {
@@ -291,15 +291,21 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 				BillingCadence: &MonthPeriod,
 			}
 
-			input := pctestutils.NewTestPlan(t, namespace, productcatalog.Phase{
-				PhaseMeta: productcatalog.PhaseMeta{
-					Key:  "default",
-					Name: "Default",
+			input := pctestutils.NewTestPlan(t, namespace,
+				pctestutils.WithPlanPhases(productcatalog.Phase{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Key:  "default",
+						Name: "Default",
+					},
+					RateCards: productcatalog.RateCards{rc1, rc2},
+				}),
+				func(t *testing.T, p *productcatalog.Plan) {
+					t.Helper()
+
+					p.Key = "multi-stripe"
+					p.Name = "Multi Stripe"
 				},
-				RateCards: productcatalog.RateCards{rc1, rc2},
-			})
-			input.Key = "multi-stripe"
-			input.Name = "Multi Stripe"
+			)
 
 			p, err := env.Plan.CreatePlan(ctx, input)
 			require.NoError(t, err)
@@ -377,32 +383,38 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 			TwoMonthPeriod := datetime.MustParseDuration(t, "P2M")
 
 			input := pctestutils.NewTestPlan(t, namespace,
-				productcatalog.Phase{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:      "phase-a",
-						Name:     "Phase A",
-						Duration: &TwoMonthPeriod,
+				pctestutils.WithPlanPhases(
+					productcatalog.Phase{
+						PhaseMeta: productcatalog.PhaseMeta{
+							Key:      "phase-a",
+							Name:     "Phase A",
+							Duration: &TwoMonthPeriod,
+						},
+						RateCards: productcatalog.RateCards{
+							newTestFlatRateCard(features[0], &productcatalog.TaxConfig{
+								Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_60000000"},
+							}, &MonthPeriod),
+						},
 					},
-					RateCards: productcatalog.RateCards{
-						newTestFlatRateCard(features[0], &productcatalog.TaxConfig{
-							Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_60000000"},
-						}, &MonthPeriod),
+					productcatalog.Phase{
+						PhaseMeta: productcatalog.PhaseMeta{
+							Key:  "phase-b",
+							Name: "Phase B",
+						},
+						RateCards: productcatalog.RateCards{
+							newTestFlatRateCard(features[0], &productcatalog.TaxConfig{
+								Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_60000000"},
+							}, &MonthPeriod),
+						},
 					},
-				},
-				productcatalog.Phase{
-					PhaseMeta: productcatalog.PhaseMeta{
-						Key:  "phase-b",
-						Name: "Phase B",
-					},
-					RateCards: productcatalog.RateCards{
-						newTestFlatRateCard(features[0], &productcatalog.TaxConfig{
-							Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_60000000"},
-						}, &MonthPeriod),
-					},
+				),
+				func(t *testing.T, p *productcatalog.Plan) {
+					t.Helper()
+
+					p.Key = "multi-phase-same-code"
+					p.Name = "Multi Phase Same Code"
 				},
 			)
-			input.Key = "multi-phase-same-code"
-			input.Name = "Multi Phase Same Code"
 
 			p, err := env.Plan.CreatePlan(ctx, input)
 			require.NoError(t, err)

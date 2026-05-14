@@ -125,8 +125,8 @@ jobs:
 
       - name: Validate commit messages
         run: |
-          nix develop --impure .#ci -c pre-commit run -a
-          nix develop --impure .#ci -c pre-commit run --hook-stage manual
+          nix develop --impure .#ci -c prek run -a
+          nix develop --impure .#ci -c prek run --stage manual
 
   generators-openapi:
     name: Code Generators / OpenAPI
@@ -200,12 +200,12 @@ jobs:
           persist-credentials: false
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@903f9c1a6ebcba6cf41d87230be49611ac97822e # v6
+        uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6
         with:
           package_json_file: api/client/javascript/package.json
 
       - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -404,7 +404,7 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-
 
       - name: Restore go.mod cache if exists
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: .devenv/state/go
           key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}

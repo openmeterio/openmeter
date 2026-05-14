@@ -44,8 +44,8 @@ model BillingParty {
   name?: string;
 
   /**
-   * The entity's legal identification used for tax purposes. They may have
-   * other numbers, but we're only interested in those valid for tax purposes.
+   * The entity's legal identification used for tax purposes. They may have other
+   * numbers, but we're only interested in those valid for tax purposes.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   tax_id?: BillingPartyTaxIdentity;
@@ -69,7 +69,8 @@ model BillingPartyAddresses {
 }
 
 /**
- * Identity stores the details required to identify an entity for tax purposes in a specific country.
+ * Identity stores the details required to identify an entity for tax purposes in a
+ * specific country.
  */
 @friendlyName("BillingPartyTaxIdentity")
 model BillingPartyTaxIdentity {

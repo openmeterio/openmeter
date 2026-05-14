@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -10,23 +11,31 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	dbchargeflatfeedetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
+	dbchargeflatfeerundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 var _ flatfee.ChargeDetailedLineAdapter = (*adapter)(nil)
 
-func (a *adapter) FetchDetailedLines(ctx context.Context, charge flatfee.Charge) (flatfee.Charge, error) {
+func (a *adapter) FetchCurrentRunDetailedLines(ctx context.Context, charge flatfee.Charge) (flatfee.Charge, error) {
+	if charge.Realizations.CurrentRun == nil {
+		return flatfee.Charge{}, fmt.Errorf("current run is required to fetch flat fee detailed lines for charge %s", charge.GetChargeID())
+	}
+
+	currentRunID := charge.Realizations.CurrentRun.ID
+	if err := currentRunID.Validate(); err != nil {
+		return flatfee.Charge{}, fmt.Errorf("current run ID: %w", err)
+	}
+
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.Charge, error) {
-		dbLines, err := tx.db.ChargeFlatFeeDetailedLine.Query().
+		dbLines, err := tx.db.ChargeFlatFeeRunDetailedLine.Query().
 			Where(
-				dbchargeflatfeedetailedline.NamespaceEQ(charge.Namespace),
-				dbchargeflatfeedetailedline.ChargeIDEQ(charge.ID),
-				dbchargeflatfeedetailedline.DeletedAtIsNil(),
+				dbchargeflatfeerundetailedline.NamespaceEQ(charge.Namespace),
+				dbchargeflatfeerundetailedline.RunIDEQ(currentRunID.ID),
+				dbchargeflatfeerundetailedline.DeletedAtIsNil(),
 			).
 			WithTaxCode().
 			All(ctx)
@@ -36,7 +45,7 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge flatfee.Charge)
 
 		lines := make(flatfee.DetailedLines, 0, len(dbLines))
 		for _, dbLine := range dbLines {
-			line, err := mapDetailedLineFromDB(dbLine)
+			line, err := mapRunDetailedLineFromDB(dbLine)
 			if err != nil {
 				return flatfee.Charge{}, err
 			}
@@ -45,14 +54,14 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge flatfee.Charge)
 		}
 
 		sortDetailedLines(lines)
-		charge.Realizations.DetailedLines = mo.Some(lines)
+		charge.Realizations.CurrentRun.DetailedLines = mo.Some(lines)
 
 		return charge, nil
 	})
 }
 
-func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeID, lines flatfee.DetailedLines) error {
-	if err := chargeID.Validate(); err != nil {
+func (a *adapter) UpsertDetailedLines(ctx context.Context, runID flatfee.RealizationRunID, lines flatfee.DetailedLines) error {
+	if err := runID.Validate(); err != nil {
 		return err
 	}
 
@@ -61,14 +70,14 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		createBuilders := make([]*entdb.ChargeFlatFeeDetailedLineCreate, 0, len(lines))
+		createBuilders := make([]*entdb.ChargeFlatFeeRunDetailedLineCreate, 0, len(lines))
 
 		for _, line := range lines {
 			lineToPersist := line.Clone()
-			lineToPersist.Namespace = chargeID.Namespace
+			lineToPersist.Namespace = runID.Namespace
 			lineToPersist.DeletedAt = nil
 
-			create, err := buildDetailedLineCreate(tx.db, chargeID, lineToPersist)
+			create, err := buildDetailedLineCreate(tx.db, runID, lineToPersist)
 			if err != nil {
 				return err
 			}
@@ -77,11 +86,11 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 		}
 
 		now := clock.Now().In(time.UTC)
-		deleteQuery := tx.db.ChargeFlatFeeDetailedLine.Update().
+		deleteQuery := tx.db.ChargeFlatFeeRunDetailedLine.Update().
 			Where(
-				dbchargeflatfeedetailedline.NamespaceEQ(chargeID.Namespace),
-				dbchargeflatfeedetailedline.ChargeIDEQ(chargeID.ID),
-				dbchargeflatfeedetailedline.DeletedAtIsNil(),
+				dbchargeflatfeerundetailedline.NamespaceEQ(runID.Namespace),
+				dbchargeflatfeerundetailedline.RunIDEQ(runID.ID),
+				dbchargeflatfeerundetailedline.DeletedAtIsNil(),
 			).
 			SetDeletedAt(now)
 
@@ -90,7 +99,7 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 		})
 		if len(childRefsToKeep) > 0 {
 			deleteQuery = deleteQuery.Where(
-				dbchargeflatfeedetailedline.ChildUniqueReferenceIDNotIn(childRefsToKeep...),
+				dbchargeflatfeerundetailedline.ChildUniqueReferenceIDNotIn(childRefsToKeep...),
 			)
 		}
 
@@ -102,18 +111,18 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 			return nil
 		}
 
-		return tx.db.ChargeFlatFeeDetailedLine.CreateBulk(createBuilders...).
+		return tx.db.ChargeFlatFeeRunDetailedLine.CreateBulk(createBuilders...).
 			OnConflict(
 				sql.ConflictColumns(
-					dbchargeflatfeedetailedline.FieldNamespace,
-					dbchargeflatfeedetailedline.FieldChargeID,
-					dbchargeflatfeedetailedline.FieldChildUniqueReferenceID,
+					dbchargeflatfeerundetailedline.FieldNamespace,
+					dbchargeflatfeerundetailedline.FieldRunID,
+					dbchargeflatfeerundetailedline.FieldChildUniqueReferenceID,
 				),
-				sql.ConflictWhere(sql.IsNull(dbchargeflatfeedetailedline.FieldDeletedAt)),
+				sql.ConflictWhere(sql.IsNull(dbchargeflatfeerundetailedline.FieldDeletedAt)),
 				sql.ResolveWithNewValues(),
 				sql.ResolveWith(func(u *sql.UpdateSet) {
-					u.SetIgnore(dbchargeflatfeedetailedline.FieldCreatedAt)
-					u.SetIgnore(dbchargeflatfeedetailedline.FieldID)
+					u.SetIgnore(dbchargeflatfeerundetailedline.FieldCreatedAt)
+					u.SetIgnore(dbchargeflatfeerundetailedline.FieldID)
 				}),
 			).
 			UpdateDescription().
@@ -121,6 +130,7 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 			UpdateTaxCodeID().
 			UpdateTaxBehavior().
 			UpdateIndex().
+			UpdatePricerReferenceID().
 			UpdateDeletedAt().
 			UpdateInvoicingAppExternalID().
 			UpdateChildUniqueReferenceID().
@@ -131,15 +141,16 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 	})
 }
 
-func buildDetailedLineCreate(db *entdb.Client, chargeID meta.ChargeID, line flatfee.DetailedLine) (*entdb.ChargeFlatFeeDetailedLineCreate, error) {
+func buildDetailedLineCreate(db *entdb.Client, runID flatfee.RealizationRunID, line flatfee.DetailedLine) (*entdb.ChargeFlatFeeRunDetailedLineCreate, error) {
 	if line.ID == "" {
 		line.ID = ulid.Make().String()
 	}
 
-	create := db.ChargeFlatFeeDetailedLine.Create().
+	create := db.ChargeFlatFeeRunDetailedLine.Create().
 		SetID(line.ID).
-		SetNamespace(chargeID.Namespace).
-		SetChargeID(chargeID.ID)
+		SetNamespace(runID.Namespace).
+		SetRunID(runID.ID).
+		SetPricerReferenceID(line.ChildUniqueReferenceID)
 
 	create = stddetailedline.Create(create, line)
 

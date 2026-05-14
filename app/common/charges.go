@@ -54,47 +54,54 @@ func NewChargesMetaAdapter(
 
 func NewChargesCollectorService(
 	ledgerService ledger.Ledger,
+	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 ) ledgercollector.Service {
 	return ledgercollector.NewService(ledgercollector.Config{
 		Ledger: ledgerService,
 		Dependencies: transactions.ResolverDependencies{
-			AccountService:    accountResolver,
-			SubAccountService: accountService,
+			AccountService: accountResolver,
+			AccountCatalog: accountService,
+			BalanceQuerier: balanceQuerier,
 		},
 	})
 }
 
 func NewChargesFlatFeeHandler(
 	ledgerService ledger.Ledger,
+	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 	collectorService ledgercollector.Service,
 ) flatfee.Handler {
 	return ledgerchargeadapter.NewFlatFeeHandler(ledgerService, transactions.ResolverDependencies{
-		AccountService:    accountResolver,
-		SubAccountService: accountService,
+		AccountService: accountResolver,
+		AccountCatalog: accountService,
+		BalanceQuerier: balanceQuerier,
 	}, collectorService)
 }
 
 func NewChargesCreditPurchaseHandler(
 	ledgerService ledger.Ledger,
+	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 ) creditpurchase.Handler {
-	return ledgerchargeadapter.NewCreditPurchaseHandler(ledgerService, accountResolver, accountService)
+	return ledgerchargeadapter.NewCreditPurchaseHandler(ledgerService, balanceQuerier, accountResolver, accountService)
 }
 
 func NewChargesUsageBasedHandler(
 	ledgerService ledger.Ledger,
+	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 	collectorService ledgercollector.Service,
 ) usagebased.Handler {
 	return ledgerchargeadapter.NewUsageBasedHandler(ledgerService, transactions.ResolverDependencies{
-		AccountService:    accountResolver,
-		SubAccountService: accountService,
+		AccountService: accountResolver,
+		AccountCatalog: accountService,
+		BalanceQuerier: balanceQuerier,
 	}, collectorService)
 }
 
@@ -262,6 +269,7 @@ func NewChargesAdapter(
 }
 
 func NewChargesService(
+	logger *slog.Logger,
 	rootAdapter charges.Adapter,
 	metaAdapter meta.Adapter,
 	featureService feature.FeatureConnector,
@@ -273,6 +281,7 @@ func NewChargesService(
 	fsNamespaceLockdown []string,
 ) (charges.Service, error) {
 	chargesSvc, err := chargesservice.New(chargesservice.Config{
+		Logger:                logger,
 		Adapter:               rootAdapter,
 		MetaAdapter:           metaAdapter,
 		FeatureService:        featureService,
@@ -293,6 +302,7 @@ func NewChargesService(
 func NewRecognizerService(
 	db *entdb.Client,
 	ledgerService ledger.Ledger,
+	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 	lineageService lineage.Service,
@@ -300,8 +310,9 @@ func NewRecognizerService(
 	return recognizer.NewService(recognizer.Config{
 		Ledger: ledgerService,
 		Dependencies: transactions.ResolverDependencies{
-			AccountService:    accountResolver,
-			SubAccountService: accountService,
+			AccountService: accountResolver,
+			AccountCatalog: accountService,
+			BalanceQuerier: balanceQuerier,
 		},
 		Lineage:            lineageService,
 		TransactionManager: enttx.NewCreator(db),
@@ -319,6 +330,7 @@ func newChargesRegistry(
 	featureService feature.FeatureConnector,
 	streamingConnector streaming.Connector,
 	ledgerService ledger.Ledger,
+	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 	fsNamespaceLockdown []string,
@@ -338,16 +350,16 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	collectorService := NewChargesCollectorService(ledgerService, accountResolver, accountService)
+	collectorService := NewChargesCollectorService(ledgerService, balanceQuerier, accountResolver, accountService)
 
-	recognizerService, err := NewRecognizerService(db, ledgerService, accountResolver, accountService, lineageService)
+	recognizerService, err := NewRecognizerService(db, ledgerService, balanceQuerier, accountResolver, accountService, lineageService)
 	if err != nil {
 		return nil, err
 	}
 
-	flatFeeHandler := NewChargesFlatFeeHandler(ledgerService, accountResolver, accountService, collectorService)
-	usageBasedHandler := NewChargesUsageBasedHandler(ledgerService, accountResolver, accountService, collectorService)
-	creditPurchaseHandler := NewChargesCreditPurchaseHandler(ledgerService, accountResolver, accountService)
+	flatFeeHandler := NewChargesFlatFeeHandler(ledgerService, balanceQuerier, accountResolver, accountService, collectorService)
+	usageBasedHandler := NewChargesUsageBasedHandler(ledgerService, balanceQuerier, accountResolver, accountService, collectorService)
+	creditPurchaseHandler := NewChargesCreditPurchaseHandler(ledgerService, balanceQuerier, accountResolver, accountService)
 
 	flatFeeAdapter, err := NewChargesFlatFeeAdapter(db, logger, metaAdapter)
 	if err != nil {
@@ -414,6 +426,7 @@ func newChargesRegistry(
 	}
 
 	chargesSvc, err := NewChargesService(
+		logger,
 		rootAdapter,
 		metaAdapter,
 		featureService,

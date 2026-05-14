@@ -348,10 +348,10 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
 
-		// Receivable is only funded into the authorized staging bucket at authorization time.
-		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-40)))
-		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(40)))
-		require.True(t, env.sumBalance(t, env.washSubAccount(t)).Equal(alpacadecimal.NewFromInt(-40)))
+		// Authorization only moves the receivable between status buckets.
+		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-40)))
+		require.True(t, env.sumBalance(t, env.washSubAccount(t)).Equal(alpacadecimal.Zero))
 		// No revenue recognition happens here anymore.
 		require.True(t, env.sumBalance(t, env.invoiceAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(40)))
 		require.True(t, env.sumBalance(t, env.invoiceEarningsSubAccount(t)).Equal(alpacadecimal.Zero))
@@ -375,7 +375,7 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 }
 
 func TestOnUsageBasedPaymentSettled(t *testing.T) {
-	t.Run("credit_then_invoice settles authorized receivable", func(t *testing.T) {
+	t.Run("credit_then_invoice settles authorized receivable from wash", func(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
 		total := alpacadecimal.NewFromInt(25)
@@ -442,8 +442,9 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 	collectorService := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: base.Deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
-			AccountService:    base.Deps.ResolversService,
-			SubAccountService: base.Deps.AccountService,
+			AccountService: base.Deps.ResolversService,
+			AccountCatalog: base.Deps.AccountService,
+			BalanceQuerier: base.Deps.HistoricalLedger,
 		},
 	})
 	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
@@ -457,8 +458,9 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 	require.NoError(t, err)
 
 	deps := transactions.ResolverDependencies{
-		AccountService:    base.Deps.ResolversService,
-		SubAccountService: base.Deps.AccountService,
+		AccountService: base.Deps.ResolversService,
+		AccountCatalog: base.Deps.AccountService,
+		BalanceQuerier: base.Deps.HistoricalLedger,
 	}
 	recognizerService, err := recognizer.NewService(recognizer.Config{
 		Ledger:             base.Deps.HistoricalLedger,
@@ -471,8 +473,9 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 	return &usageBasedHandlerTestEnv{
 		IntegrationEnv: base,
 		handler: chargeadapter.NewUsageBasedHandler(base.Deps.HistoricalLedger, transactions.ResolverDependencies{
-			AccountService:    base.Deps.ResolversService,
-			SubAccountService: base.Deps.AccountService,
+			AccountService: base.Deps.ResolversService,
+			AccountCatalog: base.Deps.AccountService,
+			BalanceQuerier: base.Deps.HistoricalLedger,
 		}, collectorService),
 		lineage:    lineageService,
 		recognizer: recognizerService,
@@ -519,7 +522,8 @@ func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.Settl
 			},
 			Status: chargeusagebased.StatusActiveFinalRealizationProcessing,
 			State: chargeusagebased.State{
-				FeatureID: featureID,
+				FeatureID:    featureID,
+				RatingEngine: chargeusagebased.RatingEngineDelta,
 			},
 		},
 	}
@@ -540,6 +544,7 @@ func (e *usageBasedHandlerTestEnv) newRun() chargeusagebased.RealizationRun {
 				UpdatedAt: now,
 			},
 			Type:            chargeusagebased.RealizationRunTypeFinalRealization,
+			InitialType:     chargeusagebased.RealizationRunTypeFinalRealization,
 			StoredAtLT:      now,
 			ServicePeriodTo: now,
 			MeteredQuantity: alpacadecimal.NewFromInt(30),
@@ -562,9 +567,7 @@ func (e *usageBasedHandlerTestEnv) newRunWithLine(lineID string) chargeusagebase
 func (e *usageBasedHandlerTestEnv) newRunWithInvoiceUsage(lineID string, total alpacadecimal.Decimal) chargeusagebased.RealizationRun {
 	run := e.newRunWithLine(lineID)
 	run.InvoiceUsage = &invoicedusage.AccruedUsage{
-		LineID:        &lineID,
 		ServicePeriod: e.newCharge(productcatalog.CreditThenInvoiceSettlementMode).Intent.ServicePeriod,
-		Mutable:       false,
 		Totals: totals.Totals{
 			Amount: total,
 			Total:  total,
@@ -623,8 +626,9 @@ func (e *usageBasedHandlerTestEnv) fundPriority(t *testing.T, priority int, amou
 	inputs, err := transactions.ResolveTransactions(
 		t.Context(),
 		transactions.ResolverDependencies{
-			AccountService:    e.Deps.ResolversService,
-			SubAccountService: e.Deps.AccountService,
+			AccountService: e.Deps.ResolversService,
+			AccountCatalog: e.Deps.AccountService,
+			BalanceQuerier: e.Deps.HistoricalLedger,
 		},
 		transactions.ResolutionScope{
 			CustomerID: e.CustomerID,
@@ -637,13 +641,13 @@ func (e *usageBasedHandlerTestEnv) fundPriority(t *testing.T, priority int, amou
 			CostBasis:      &costBasis,
 			CreditPriority: &priority,
 		},
-		transactions.FundCustomerReceivableTemplate{
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,
 			CostBasis: &costBasis,
 		},
-		transactions.SettleCustomerReceivablePaymentTemplate{
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,

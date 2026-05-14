@@ -124,11 +124,19 @@ func areAllInvoicedRunsSettled(charge usagebased.Charge) bool {
 	hasFinalInvoicedRun := false
 
 	for _, run := range charge.Realizations {
+		if run.IsVoidedBillingHistory() {
+			continue
+		}
+
 		if run.Type == usagebased.RealizationRunTypeFinalRealization && run.InvoiceUsage != nil {
 			hasFinalInvoicedRun = true
 		}
 
 		if run.InvoiceUsage == nil {
+			continue
+		}
+
+		if run.NoFiatTransactionRequired {
 			continue
 		}
 

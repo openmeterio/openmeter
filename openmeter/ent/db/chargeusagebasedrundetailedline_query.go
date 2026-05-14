@@ -22,14 +22,15 @@ import (
 // ChargeUsageBasedRunDetailedLineQuery is the builder for querying ChargeUsageBasedRunDetailedLine entities.
 type ChargeUsageBasedRunDetailedLineQuery struct {
 	config
-	ctx         *QueryContext
-	order       []chargeusagebasedrundetailedline.OrderOption
-	inters      []Interceptor
-	predicates  []predicate.ChargeUsageBasedRunDetailedLine
-	withCharge  *ChargeUsageBasedQuery
-	withRun     *ChargeUsageBasedRunsQuery
-	withTaxCode *TaxCodeQuery
-	modifiers   []func(*sql.Selector)
+	ctx             *QueryContext
+	order           []chargeusagebasedrundetailedline.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.ChargeUsageBasedRunDetailedLine
+	withCharge      *ChargeUsageBasedQuery
+	withRun         *ChargeUsageBasedRunsQuery
+	withCorrectsRun *ChargeUsageBasedRunsQuery
+	withTaxCode     *TaxCodeQuery
+	modifiers       []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -103,6 +104,28 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) QueryRun() *ChargeUsageBasedRuns
 			sqlgraph.From(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID, selector),
 			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrundetailedline.RunTable, chargeusagebasedrundetailedline.RunColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCorrectsRun chains the current query on the "corrects_run" edge.
+func (_q *ChargeUsageBasedRunDetailedLineQuery) QueryCorrectsRun() *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID, selector),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrundetailedline.CorrectsRunTable, chargeusagebasedrundetailedline.CorrectsRunColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -319,14 +342,15 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) Clone() *ChargeUsageBasedRunDeta
 		return nil
 	}
 	return &ChargeUsageBasedRunDetailedLineQuery{
-		config:      _q.config,
-		ctx:         _q.ctx.Clone(),
-		order:       append([]chargeusagebasedrundetailedline.OrderOption{}, _q.order...),
-		inters:      append([]Interceptor{}, _q.inters...),
-		predicates:  append([]predicate.ChargeUsageBasedRunDetailedLine{}, _q.predicates...),
-		withCharge:  _q.withCharge.Clone(),
-		withRun:     _q.withRun.Clone(),
-		withTaxCode: _q.withTaxCode.Clone(),
+		config:          _q.config,
+		ctx:             _q.ctx.Clone(),
+		order:           append([]chargeusagebasedrundetailedline.OrderOption{}, _q.order...),
+		inters:          append([]Interceptor{}, _q.inters...),
+		predicates:      append([]predicate.ChargeUsageBasedRunDetailedLine{}, _q.predicates...),
+		withCharge:      _q.withCharge.Clone(),
+		withRun:         _q.withRun.Clone(),
+		withCorrectsRun: _q.withCorrectsRun.Clone(),
+		withTaxCode:     _q.withTaxCode.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -352,6 +376,17 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) WithRun(opts ...func(*ChargeUsag
 		opt(query)
 	}
 	_q.withRun = query
+	return _q
+}
+
+// WithCorrectsRun tells the query-builder to eager-load the nodes that are connected to
+// the "corrects_run" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedRunDetailedLineQuery) WithCorrectsRun(opts ...func(*ChargeUsageBasedRunsQuery)) *ChargeUsageBasedRunDetailedLineQuery {
+	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCorrectsRun = query
 	return _q
 }
 
@@ -444,9 +479,10 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) sqlAll(ctx context.Context, hook
 	var (
 		nodes       = []*ChargeUsageBasedRunDetailedLine{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			_q.withCharge != nil,
 			_q.withRun != nil,
+			_q.withCorrectsRun != nil,
 			_q.withTaxCode != nil,
 		}
 	)
@@ -480,6 +516,12 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) sqlAll(ctx context.Context, hook
 	if query := _q.withRun; query != nil {
 		if err := _q.loadRun(ctx, query, nodes, nil,
 			func(n *ChargeUsageBasedRunDetailedLine, e *ChargeUsageBasedRuns) { n.Edges.Run = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCorrectsRun; query != nil {
+		if err := _q.loadCorrectsRun(ctx, query, nodes, nil,
+			func(n *ChargeUsageBasedRunDetailedLine, e *ChargeUsageBasedRuns) { n.Edges.CorrectsRun = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -543,6 +585,38 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) loadRun(ctx context.Context, que
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "run_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *ChargeUsageBasedRunDetailedLineQuery) loadCorrectsRun(ctx context.Context, query *ChargeUsageBasedRunsQuery, nodes []*ChargeUsageBasedRunDetailedLine, init func(*ChargeUsageBasedRunDetailedLine), assign func(*ChargeUsageBasedRunDetailedLine, *ChargeUsageBasedRuns)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeUsageBasedRunDetailedLine)
+	for i := range nodes {
+		if nodes[i].CorrectsRunID == nil {
+			continue
+		}
+		fk := *nodes[i].CorrectsRunID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(chargeusagebasedruns.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "corrects_run_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -616,6 +690,9 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) querySpec() *sqlgraph.QuerySpec 
 		}
 		if _q.withRun != nil {
 			_spec.Node.AddColumnOnce(chargeusagebasedrundetailedline.FieldRunID)
+		}
+		if _q.withCorrectsRun != nil {
+			_spec.Node.AddColumnOnce(chargeusagebasedrundetailedline.FieldCorrectsRunID)
 		}
 		if _q.withTaxCode != nil {
 			_spec.Node.AddColumnOnce(chargeusagebasedrundetailedline.FieldTaxCodeID)

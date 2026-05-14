@@ -120,3 +120,61 @@ func (t TaxCode) Validate() error {
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
+
+// OrganizationDefaultTaxCodesExpand controls which related objects are loaded.
+type OrganizationDefaultTaxCodesExpand struct {
+	InvoicingTaxCode   bool
+	CreditGrantTaxCode bool
+}
+
+// OrganizationDefaultTaxCodesExpandAll loads all related objects.
+var OrganizationDefaultTaxCodesExpandAll = OrganizationDefaultTaxCodesExpand{
+	InvoicingTaxCode:   true,
+	CreditGrantTaxCode: true,
+}
+
+// OrganizationDefaultTaxCodes stores the per-namespace default tax code references.
+type OrganizationDefaultTaxCodes struct {
+	models.NamespacedID
+	models.ManagedModel
+
+	InvoicingTaxCodeID string   `json:"invoicing_tax_code_id"`
+	InvoicingTaxCode   *TaxCode `json:"invoicing_tax_code,omitempty"`
+
+	CreditGrantTaxCodeID string   `json:"credit_grant_tax_code_id"`
+	CreditGrantTaxCode   *TaxCode `json:"credit_grant_tax_code,omitempty"`
+}
+
+func (o OrganizationDefaultTaxCodes) Validate() error {
+	var errs []error
+
+	if err := o.NamespacedID.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := o.ManagedModel.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if o.InvoicingTaxCodeID == "" {
+		errs = append(errs, ErrResourceIDEmpty.WithPathString("invoicing_tax_code_id"))
+	}
+
+	if o.CreditGrantTaxCodeID == "" {
+		errs = append(errs, ErrResourceIDEmpty.WithPathString("credit_grant_tax_code_id"))
+	}
+
+	if o.InvoicingTaxCode != nil {
+		if err := o.InvoicingTaxCode.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if o.CreditGrantTaxCode != nil {
+		if err := o.CreditGrantTaxCode.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}

@@ -46,6 +46,10 @@ func ValidateEntryInput(ctx context.Context, entry EntryInput) error {
 		})
 	}
 
+	if err := validateEntryAmountPrecision(entry); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -57,6 +61,29 @@ func ValidateAddress(ctx context.Context, address PostingAddress) error {
 	}
 
 	return nil
+}
+
+func validateEntryAmountPrecision(entry EntryInput) error {
+	currency := entry.PostingAddress().Route().Route().Currency
+	calculator, err := currency.Calculator()
+	if err != nil {
+		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
+			"currency": currency,
+			"error":    err,
+		})
+	}
+
+	amount := entry.Amount()
+	if calculator.IsRoundedToPrecision(amount) {
+		return nil
+	}
+
+	return ErrTransactionAmountInvalid.WithAttrs(models.Attributes{
+		"reason":         "amount_not_rounded_to_currency_precision",
+		"currency":       currency,
+		"amount":         amount.String(),
+		"rounded_amount": calculator.RoundToPrecision(amount).String(),
+	})
 }
 
 func ValidateTransactionInput(ctx context.Context, transaction TransactionInput) error {

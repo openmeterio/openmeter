@@ -22,6 +22,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceCharge
 			Charge:       charge,
 			Adapter:      s.adapter,
 			Realizations: s.realizations,
+			Service:      s,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
@@ -31,20 +32,23 @@ func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceCharge
 	})
 }
 
-func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patch meta.Patch) (*flatfee.Charge, error) {
+func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patch meta.Patch) (meta.TriggerPatchResult[flatfee.Charge], error) {
 	if err := patch.Validate(); err != nil {
-		return nil, fmt.Errorf("patch: %w", err)
+		return meta.TriggerPatchResult[flatfee.Charge]{}, fmt.Errorf("patch: %w", err)
 	}
 
 	if err := chargeID.Validate(); err != nil {
-		return nil, fmt.Errorf("chargeID: %w", err)
+		return meta.TriggerPatchResult[flatfee.Charge]{}, fmt.Errorf("chargeID: %w", err)
 	}
 
-	return s.withLockedCharge(ctx, chargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) {
+	var result meta.TriggerPatchResult[flatfee.Charge]
+
+	charge, err := s.withLockedCharge(ctx, chargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) {
 		stateMachine, err := s.newStateMachine(StateMachineConfig{
 			Charge:       charge,
 			Adapter:      s.adapter,
 			Realizations: s.realizations,
+			Service:      s,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
@@ -56,14 +60,30 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 		}
 
 		charge = stateMachine.GetCharge()
+		result.InvoicePatches = stateMachine.DrainInvoicePatches()
+
 		return &charge, nil
 	})
+	if err != nil {
+		return meta.TriggerPatchResult[flatfee.Charge]{}, err
+	}
+
+	result.Charge = charge
+
+	return result, nil
 }
 
 func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, error) {
 	switch config.Charge.Intent.SettlementMode {
 	case productcatalog.CreditOnlySettlementMode:
 		stateMachine, err := NewCreditsOnlyStateMachine(config)
+		if err != nil {
+			return nil, err
+		}
+
+		return stateMachine, nil
+	case productcatalog.CreditThenInvoiceSettlementMode:
+		stateMachine, err := NewCreditThenInvoiceStateMachine(config)
 		if err != nil {
 			return nil, err
 		}
@@ -101,10 +121,6 @@ func (s *service) withLockedCharge(ctx context.Context, chargeID meta.ChargeID, 
 		}
 
 		charge := fetchedCharges[0]
-
-		if charge.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
-			return nil, fmt.Errorf("charge %s is not credit_only (settlement_mode=%s)", charge.ID, charge.Intent.SettlementMode)
-		}
 
 		return fn(ctx, charge)
 	})

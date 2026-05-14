@@ -56,6 +56,7 @@ func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased) usagebased.ChargeBase {
 			CurrentRealizationRunID: entity.CurrentRealizationRunID,
 			AdvanceAfter:            entity.AdvanceAfter,
 			FeatureID:               entity.FeatureID,
+			RatingEngine:            entity.RatingEngine,
 		},
 	}
 }
@@ -95,13 +96,16 @@ func MapRealizationRunBaseFromDB(dbRun *entdb.ChargeUsageBasedRuns) usagebased.R
 		},
 		ManagedModel: entutils.MapTimeMixinFromDB(dbRun),
 
-		FeatureID:       dbRun.FeatureID,
-		LineID:          dbRun.LineID,
-		Type:            dbRun.Type,
-		StoredAtLT:      dbRun.StoredAtLt.UTC(),
-		ServicePeriodTo: dbRun.ServicePeriodTo.UTC(),
-		MeteredQuantity: dbRun.MeteredQuantity,
-		Totals:          totals.FromDB(dbRun),
+		FeatureID:                 dbRun.FeatureID,
+		LineID:                    dbRun.LineID,
+		InvoiceID:                 dbRun.InvoiceID,
+		Type:                      dbRun.Type,
+		InitialType:               dbRun.InitialType,
+		StoredAtLT:                dbRun.StoredAtLt.UTC(),
+		ServicePeriodTo:           dbRun.ServicePeriodTo.UTC(),
+		MeteredQuantity:           dbRun.MeteredQuantity,
+		Totals:                    totals.FromDB(dbRun),
+		NoFiatTransactionRequired: dbRun.NoFiatTransactionRequired,
 	}
 }
 

@@ -576,6 +576,46 @@ func ExecuteTriggerWithIncludeDeletedLines(includeDeletedLines bool) executeTrig
 	}
 }
 
+func collectNewlyDeletedStandardLines(before, after billing.StandardInvoiceLines) (billing.StandardLines, error) {
+	if before.IsAbsent() || after.IsAbsent() {
+		return nil, nil
+	}
+
+	beforeByID := make(map[string]*billing.StandardLine, len(before.OrEmpty()))
+	for _, line := range before.OrEmpty() {
+		if line == nil {
+			return nil, fmt.Errorf("before line is nil")
+		}
+
+		beforeByID[line.ID] = line
+	}
+
+	deletedLines := make(billing.StandardLines, 0)
+	for _, line := range after.OrEmpty() {
+		if line == nil {
+			return nil, fmt.Errorf("after line is nil")
+		}
+
+		beforeLine, ok := beforeByID[line.ID]
+		if !ok {
+			continue
+		}
+
+		if beforeLine.DeletedAt != nil || line.DeletedAt == nil {
+			continue
+		}
+
+		clonedLine, err := line.Clone()
+		if err != nil {
+			return nil, fmt.Errorf("cloning deleted line[%s]: %w", line.ID, err)
+		}
+
+		deletedLines = append(deletedLines, clonedLine)
+	}
+
+	return deletedLines, nil
+}
+
 func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing.InvoiceID, trigger billing.InvoiceTrigger, opts ...executeTriggerApplyOptionFunc) (billing.StandardInvoice, error) {
 	if err := invoiceID.Validate(); err != nil {
 		return billing.StandardInvoice{}, billing.ValidationError{
@@ -605,6 +645,11 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 				}
 
 				if options.editCallback != nil {
+					linesBeforeEdit, err := sm.Invoice.Lines.Clone()
+					if err != nil {
+						return fmt.Errorf("cloning invoice lines before edit: %w", err)
+					}
+
 					if err := options.editCallback(sm); err != nil {
 						return err
 					}
@@ -628,6 +673,20 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 					sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
 					if err != nil {
 						return fmt.Errorf("updating invoice[%s]: %w", invoiceID, err)
+					}
+
+					deletedLines, err := collectNewlyDeletedStandardLines(linesBeforeEdit, sm.Invoice.Lines)
+					if err != nil {
+						return fmt.Errorf("collecting newly deleted standard lines for invoice[%s]: %w", invoiceID, err)
+					}
+
+					if len(deletedLines) > 0 {
+						if err := s.OnMutableStandardLinesDeleted(ctx, billing.OnMutableStandardLinesDeletedInput{
+							Invoice: sm.Invoice,
+							Lines:   deletedLines,
+						}); err != nil {
+							return fmt.Errorf("handling mutable standard lines deleted for invoice[%s]: %w", invoiceID, err)
+						}
 					}
 				}
 

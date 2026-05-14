@@ -16,9 +16,6 @@ import (
 // CustomerAccount is a Customer specific account
 type CustomerAccount interface {
 	Account
-
-	// Lock locks the entire account for the duration of the transaction so balances are stable.
-	Lock(ctx context.Context) error
 }
 
 // CustomerFBOAccount is a customer FBO account.

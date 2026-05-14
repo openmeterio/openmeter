@@ -15,6 +15,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.opentelemetry.io/otel/trace/noop"
@@ -222,7 +223,12 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 		Logger: slog.Default(),
 	})
 	require.NoError(t, err)
-	taxCodeService := taxcodeservice.New(taxCodeAdapter, slog.Default())
+
+	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
+		Adapter: taxCodeAdapter,
+		Logger:  slog.Default(),
+	})
+	require.NoError(t, err)
 	s.TaxCodeService = taxCodeService
 
 	// Billing
@@ -731,7 +737,23 @@ type ExpectedTotals struct {
 func (s *BaseSuite) RequireTotals(expected ExpectedTotals, actual totals.Totals) {
 	s.T().Helper()
 
-	s.Require().Equal(expected, ExpectedTotals{
+	require.Equal(s.T(), expected, totalsToExpected(actual))
+}
+
+func (s *BaseSuite) AssertTotals(expected ExpectedTotals, actual totals.Totals) {
+	s.T().Helper()
+
+	AssertTotals(s.T(), expected, actual)
+}
+
+func AssertTotals(t *testing.T, expected ExpectedTotals, actual totals.Totals) {
+	t.Helper()
+
+	assert.Equal(t, expected, totalsToExpected(actual))
+}
+
+func totalsToExpected(actual totals.Totals) ExpectedTotals {
+	return ExpectedTotals{
 		Amount:              actual.Amount.InexactFloat64(),
 		ChargesTotal:        actual.ChargesTotal.InexactFloat64(),
 		DiscountsTotal:      actual.DiscountsTotal.InexactFloat64(),
@@ -740,5 +762,11 @@ func (s *BaseSuite) RequireTotals(expected ExpectedTotals, actual totals.Totals)
 		TaxesTotal:          actual.TaxesTotal.InexactFloat64(),
 		Total:               actual.Total.InexactFloat64(),
 		CreditsTotal:        actual.CreditsTotal.InexactFloat64(),
-	})
+	}
+}
+
+func (s *BaseSuite) AssertDecimalEqual(expected, actual alpacadecimal.Decimal, label string) {
+	s.T().Helper()
+
+	s.True(actual.Equal(expected), "%s: expected %s, got %s", label, expected.String(), actual.String())
 }

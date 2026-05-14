@@ -1,6 +1,6 @@
 import { defineLinter } from '@typespec/compiler'
 import { casingErrorsRule, casingRule } from './rules/casing.js'
-import { docDecoratorRule } from './rules/docs.js'
+import { docDecoratorRule, docFormatRule } from './rules/docs.js'
 import { friendlyNameRule } from './rules/friendly-name.js'
 import { operationSummaryRule } from './rules/operation-summary.js'
 import { operationIdKebabCaseRule } from './rules/operation-id.js'
@@ -13,6 +13,7 @@ const rules = [
   casingRule,
   casingErrorsRule,
   docDecoratorRule,
+  docFormatRule,
   friendlyNameRule,
   noNullableRule,
   operationSummaryRule,

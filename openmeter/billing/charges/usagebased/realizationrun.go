@@ -16,19 +16,22 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type RealizationRunType string
 
 const (
-	RealizationRunTypeFinalRealization RealizationRunType = "final_realization"
-	RealizationRunTypePartialInvoice   RealizationRunType = "partial_invoice"
+	RealizationRunTypeFinalRealization                  RealizationRunType = "final_realization"
+	RealizationRunTypePartialInvoice                    RealizationRunType = "partial_invoice"
+	RealizationRunTypeInvalidDueToUnsupportedCreditNote RealizationRunType = "invalid_due_to_unsupported_credit_note"
 )
 
 func (t RealizationRunType) Values() []string {
 	return []string{
 		string(RealizationRunTypeFinalRealization),
 		string(RealizationRunTypePartialInvoice),
+		string(RealizationRunTypeInvalidDueToUnsupportedCreditNote),
 	}
 }
 
@@ -39,20 +42,42 @@ func (t RealizationRunType) Validate() error {
 	return nil
 }
 
+// IsVoidedBillingHistory reports whether this run type is audit-only billing
+// history that should not participate in future billing calculations.
+func (t RealizationRunType) IsVoidedBillingHistory() bool {
+	return t == RealizationRunTypeInvalidDueToUnsupportedCreditNote
+}
+
 type RealizationRunID models.NamespacedID
 
 func (i RealizationRunID) Validate() error {
 	return models.NamespacedID(i).Validate()
 }
 
+// BillingMeteredQuantity maps a cumulative charge run quantity to the quantity
+// semantics expected by billing.StandardLine. RealizationRun.MeteredQuantity is
+// cumulative from the charge service-period start to the run's ServicePeriodTo,
+// while standard invoice lines need the current line-period quantity plus the
+// quantity already represented by earlier billed lines.
+type BillingMeteredQuantity struct {
+	// PreLinePeriod is the cumulative quantity already represented by earlier
+	// billed runs.
+	PreLinePeriod alpacadecimal.Decimal
+	// LinePeriod is the quantity represented by the current standard invoice
+	// line.
+	LinePeriod alpacadecimal.Decimal
+}
+
 type CreateRealizationRunInput struct {
-	FeatureID       string                `json:"featureId"`
-	Type            RealizationRunType    `json:"type"`
-	StoredAtLT      time.Time             `json:"storedAtLT"`
-	ServicePeriodTo time.Time             `json:"servicePeriodTo"`
-	LineID          *string               `json:"lineId,omitempty"`
-	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
-	Totals          totals.Totals         `json:"totals"`
+	FeatureID                 string                `json:"featureId"`
+	Type                      RealizationRunType    `json:"type"`
+	StoredAtLT                time.Time             `json:"storedAtLT"`
+	ServicePeriodTo           time.Time             `json:"servicePeriodTo"`
+	LineID                    *string               `json:"lineId,omitempty"`
+	InvoiceID                 *string               `json:"invoiceId,omitempty"`
+	MeteredQuantity           alpacadecimal.Decimal `json:"meteredQuantity"`
+	Totals                    totals.Totals         `json:"totals"`
+	NoFiatTransactionRequired bool                  `json:"noFiatTransactionRequired"`
 }
 
 func (r CreateRealizationRunInput) Normalized() CreateRealizationRunInput {
@@ -67,6 +92,10 @@ func (r CreateRealizationRunInput) Validate() error {
 
 	if err := r.Type.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("type: %w", err))
+	}
+
+	if r.Type == RealizationRunTypeInvalidDueToUnsupportedCreditNote {
+		errs = append(errs, fmt.Errorf("type cannot be %s when creating a realization run", RealizationRunTypeInvalidDueToUnsupportedCreditNote))
 	}
 
 	if r.FeatureID == "" {
@@ -93,16 +122,23 @@ func (r CreateRealizationRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("line id must be non-empty"))
 	}
 
+	if r.InvoiceID != nil && *r.InvoiceID == "" {
+		errs = append(errs, fmt.Errorf("invoice id must be non-empty"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type UpdateRealizationRunInput struct {
 	ID RealizationRunID
 
-	StoredAtLT      mo.Option[time.Time]             `json:"storedAtLT"`
-	LineID          mo.Option[*string]               `json:"lineId,omitempty"`
-	MeteredQuantity mo.Option[alpacadecimal.Decimal] `json:"meteredQuantity"`
-	Totals          mo.Option[totals.Totals]         `json:"totals"`
+	Type                      mo.Option[RealizationRunType]    `json:"type"`
+	StoredAtLT                mo.Option[time.Time]             `json:"storedAtLT"`
+	DeletedAt                 mo.Option[*time.Time]            `json:"deletedAt,omitempty"`
+	LineID                    mo.Option[*string]               `json:"lineId,omitempty"`
+	MeteredQuantity           mo.Option[alpacadecimal.Decimal] `json:"meteredQuantity"`
+	Totals                    mo.Option[totals.Totals]         `json:"totals"`
+	NoFiatTransactionRequired mo.Option[bool]                  `json:"noFiatTransactionRequired"`
 }
 
 func (r UpdateRealizationRunInput) Normalized() UpdateRealizationRunInput {
@@ -121,8 +157,21 @@ func (r UpdateRealizationRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("namespaced id: %w", err))
 	}
 
+	if r.Type.IsPresent() {
+		if err := r.Type.OrEmpty().Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("type: %w", err))
+		}
+	}
+
 	if r.StoredAtLT.IsPresent() && r.StoredAtLT.OrEmpty().IsZero() {
 		errs = append(errs, fmt.Errorf("stored at lt must be non-zero when set"))
+	}
+
+	if r.DeletedAt.IsPresent() {
+		deletedAt := r.DeletedAt.OrEmpty()
+		if deletedAt != nil && deletedAt.IsZero() {
+			errs = append(errs, fmt.Errorf("deleted at must be non-zero when set"))
+		}
 	}
 
 	if r.LineID.IsPresent() {
@@ -151,14 +200,17 @@ type RealizationRunBase struct {
 
 	FeatureID string  `json:"featureId"`
 	LineID    *string `json:"lineId,omitempty"`
+	InvoiceID *string `json:"invoiceId,omitempty"`
 
-	Type       RealizationRunType `json:"type"`
-	StoredAtLT time.Time          `json:"storedAtLT"`
+	Type        RealizationRunType `json:"type"`
+	InitialType RealizationRunType `json:"initialType"`
+	StoredAtLT  time.Time          `json:"storedAtLT"`
 	// ServicePeriodTo is the end of the service period for the realization run.
 	ServicePeriodTo time.Time `json:"servicePeriodTo"`
 	// MeteredQuantity is the metered quantity for time IN [intent.servicePeriod.from, servicePeriodTo) capped by stored_at < StoredAtLT.
-	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
-	Totals          totals.Totals         `json:"totals"`
+	MeteredQuantity           alpacadecimal.Decimal `json:"meteredQuantity"`
+	Totals                    totals.Totals         `json:"totals"`
+	NoFiatTransactionRequired bool                  `json:"noFiatTransactionRequired"`
 }
 
 func (r RealizationRunBase) Normalized() RealizationRunBase {
@@ -187,8 +239,20 @@ func (r RealizationRunBase) Validate() error {
 		errs = append(errs, fmt.Errorf("line id must be non-empty"))
 	}
 
+	if r.InvoiceID != nil && *r.InvoiceID == "" {
+		errs = append(errs, fmt.Errorf("invoice id must be non-empty"))
+	}
+
 	if err := r.Type.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("type: %w", err))
+	}
+
+	if err := r.InitialType.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("initial type: %w", err))
+	}
+
+	if r.InitialType == RealizationRunTypeInvalidDueToUnsupportedCreditNote {
+		errs = append(errs, fmt.Errorf("initial type cannot be %s", RealizationRunTypeInvalidDueToUnsupportedCreditNote))
 	}
 
 	if r.StoredAtLT.IsZero() {
@@ -252,7 +316,116 @@ func (r RealizationRun) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+// IsVoidedBillingHistory reports whether this run must be ignored as billing
+// history. Deleted runs were already cleaned up through billing; unsupported
+// credit-note runs are retained for audit even though the invoice line should
+// have been removed once prorating/credit-note support exists.
+func (r RealizationRun) IsVoidedBillingHistory() bool {
+	// Unsupported-credit-note runs are kept for audit because the invoice line
+	// could not be deleted without prorating/credit-note support, but future
+	// rating and balance calculations must not count them as billing history.
+	if r.Type.IsVoidedBillingHistory() {
+		return true
+	}
+
+	// Deleted realizations were already cleaned up through billing and no
+	// longer represent invoice or ledger history.
+	return r.DeletedAt != nil
+}
+
 type RealizationRuns []RealizationRun
+
+// BisectByTimestamp splits non-voided realization runs by their
+// derived service period relative to at.
+//
+// The returned before slice contains every non-voided run whose derived
+// service period ends at or before at. The returned containingOrAfter slice
+// contains every non-voided run whose derived service period contains at, or
+// whose derived service period starts after at. Each run's service-period start
+// is derived from the previous non-voided run's ServicePeriodTo, with the first
+// run starting at chargeIntentServicePeriod.From. Both returned slices are
+// sorted by ServicePeriodTo and then CreatedAt.
+func (r RealizationRuns) BisectByTimestamp(chargeIntentServicePeriod timeutil.ClosedPeriod, at time.Time) (before RealizationRuns, containingOrAfter RealizationRuns) {
+	previousServicePeriodTo := meta.NormalizeTimestamp(chargeIntentServicePeriod.From)
+	at = meta.NormalizeTimestamp(at)
+
+	nonVoidedRuns := r.WithoutVoidedBillingHistory()
+
+	slices.SortStableFunc(nonVoidedRuns, func(a RealizationRun, b RealizationRun) int {
+		if c := meta.NormalizeTimestamp(a.ServicePeriodTo).Compare(meta.NormalizeTimestamp(b.ServicePeriodTo)); c != 0 {
+			return c
+		}
+
+		return a.CreatedAt.Compare(b.CreatedAt)
+	})
+
+	for _, run := range nonVoidedRuns {
+		runPeriodTo := meta.NormalizeTimestamp(run.ServicePeriodTo)
+
+		containsAt := !at.Before(previousServicePeriodTo) && at.Before(runPeriodTo)
+		startsAfterAt := previousServicePeriodTo.After(at)
+		if containsAt || startsAfterAt {
+			containingOrAfter = append(containingOrAfter, run)
+		} else {
+			before = append(before, run)
+		}
+
+		previousServicePeriodTo = runPeriodTo
+	}
+
+	return before, containingOrAfter
+}
+
+func (r RealizationRuns) MapToBillingMeteredQuantity(currentRun RealizationRun) (BillingMeteredQuantity, error) {
+	preLinePeriod := alpacadecimal.Zero
+	var latestPriorRun *RealizationRun
+
+	for idx := range r {
+		if r[idx].IsVoidedBillingHistory() {
+			continue
+		}
+
+		if !r[idx].ServicePeriodTo.Before(currentRun.ServicePeriodTo) {
+			continue
+		}
+
+		if latestPriorRun == nil || r[idx].ServicePeriodTo.After(latestPriorRun.ServicePeriodTo) {
+			latestPriorRun = &r[idx]
+		}
+	}
+
+	if latestPriorRun != nil {
+		// Standard invoice line quantities intentionally use the prior run's
+		// persisted cumulative quantity. That value may have been captured with
+		// an older StoredAtLT than the current run. Period-preserving rating may
+		// still freshly snapshot prior event-time periods with the current
+		// StoredAtLT for correction calculation, but invoice line quantities
+		// should reflect what was previously billed.
+		preLinePeriod = latestPriorRun.MeteredQuantity
+	}
+
+	linePeriod := currentRun.MeteredQuantity.Sub(preLinePeriod)
+	if linePeriod.IsNegative() {
+		return BillingMeteredQuantity{}, fmt.Errorf(
+			"line period metered quantity is negative: current=%s pre_line=%s",
+			currentRun.MeteredQuantity.String(),
+			preLinePeriod.String(),
+		)
+	}
+
+	return BillingMeteredQuantity{
+		PreLinePeriod: preLinePeriod,
+		LinePeriod:    linePeriod,
+	}, nil
+}
+
+// WithoutVoidedBillingHistory returns runs that still represent effective
+// invoice or ledger history.
+func (r RealizationRuns) WithoutVoidedBillingHistory() RealizationRuns {
+	return lo.Filter(r, func(run RealizationRun, _ int) bool {
+		return !run.IsVoidedBillingHistory()
+	})
+}
 
 func (r RealizationRuns) Validate() error {
 	var errs []error
@@ -264,9 +437,9 @@ func (r RealizationRuns) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// Sum returns the aggregate totals across all realization runs.
+// Sum returns the aggregate totals across non-voided billing history.
 func (r RealizationRuns) Sum() totals.Totals {
-	return totals.Sum(lo.Map(r, func(run RealizationRun, _ int) totals.Totals {
+	return totals.Sum(lo.Map(r.WithoutVoidedBillingHistory(), func(run RealizationRun, _ int) totals.Totals {
 		return run.Totals
 	})...)
 }
@@ -278,6 +451,17 @@ func (r RealizationRuns) GetByID(id string) (RealizationRun, error) {
 		}
 	}
 	return RealizationRun{}, fmt.Errorf("realization run not found [id=%s]", id)
+}
+
+func (r RealizationRuns) GetByLineID(lineID string) (RealizationRun, error) {
+	run, found := lo.Find(r, func(run RealizationRun) bool {
+		return run.LineID != nil && *run.LineID == lineID
+	})
+	if found {
+		return run, nil
+	}
+
+	return RealizationRun{}, fmt.Errorf("realization run not found [line_id=%s]", lineID)
 }
 
 func (r RealizationRuns) Without(id RealizationRunID) RealizationRuns {

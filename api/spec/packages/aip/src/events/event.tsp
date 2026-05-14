@@ -47,14 +47,16 @@ model MeteringEvent {
   specversion: string = "1.0";
 
   /**
-   * Contains a value describing the type of event related to the originating occurrence.
+   * Contains a value describing the type of event related to the originating
+   * occurrence.
    */
   @minLength(1)
   @example("com.example.someevent")
   type: string;
 
   /**
-   * Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.
+   * Content type of the CloudEvents data value. Only the value "application/json" is
+   * allowed over HTTP.
    */
   @example("application/json")
   datacontenttype?: "application/json" | null;
@@ -66,7 +68,8 @@ model MeteringEvent {
   dataschema?: url | null;
 
   /**
-   * Describes the subject of the event in the context of the event producer (identified by source).
+   * Describes the subject of the event in the context of the event producer
+   * (identified by source).
    */
   @minLength(1)
   @example("customer-id")
@@ -79,8 +82,7 @@ model MeteringEvent {
   time?: Shared.DateTime | null;
 
   /**
-   * The event payload.
-   * Optional, if present it must be a JSON object.
+   * The event payload. Optional, if present it must be a JSON object.
    */
   data?: Record<unknown> | null;
 }

@@ -66,6 +66,14 @@ func (t Totals) Validate() error {
 	return nil
 }
 
+func (t Totals) ValidateTotalNonNegative() error {
+	if t.Total.IsNegative() {
+		return errors.New("total is negative")
+	}
+
+	return nil
+}
+
 func (t Totals) Add(others ...Totals) Totals {
 	res := t
 
@@ -81,6 +89,58 @@ func (t Totals) Add(others ...Totals) Totals {
 	}
 
 	return res
+}
+
+func (t Totals) Sub(others ...Totals) Totals {
+	res := t
+
+	for _, other := range others {
+		res.Amount = res.Amount.Sub(other.Amount)
+		res.ChargesTotal = res.ChargesTotal.Sub(other.ChargesTotal)
+		res.DiscountsTotal = res.DiscountsTotal.Sub(other.DiscountsTotal)
+		res.TaxesInclusiveTotal = res.TaxesInclusiveTotal.Sub(other.TaxesInclusiveTotal)
+		res.TaxesExclusiveTotal = res.TaxesExclusiveTotal.Sub(other.TaxesExclusiveTotal)
+		res.TaxesTotal = res.TaxesTotal.Sub(other.TaxesTotal)
+		res.CreditsTotal = res.CreditsTotal.Sub(other.CreditsTotal)
+		res.Total = res.Total.Sub(other.Total)
+	}
+
+	return res
+}
+
+func (t Totals) Neg() Totals {
+	return Totals{
+		Amount:              t.Amount.Neg(),
+		ChargesTotal:        t.ChargesTotal.Neg(),
+		DiscountsTotal:      t.DiscountsTotal.Neg(),
+		TaxesInclusiveTotal: t.TaxesInclusiveTotal.Neg(),
+		TaxesExclusiveTotal: t.TaxesExclusiveTotal.Neg(),
+		TaxesTotal:          t.TaxesTotal.Neg(),
+		CreditsTotal:        t.CreditsTotal.Neg(),
+		Total:               t.Total.Neg(),
+	}
+}
+
+func (t Totals) IsZero() bool {
+	return t.Amount.IsZero() &&
+		t.ChargesTotal.IsZero() &&
+		t.DiscountsTotal.IsZero() &&
+		t.TaxesInclusiveTotal.IsZero() &&
+		t.TaxesExclusiveTotal.IsZero() &&
+		t.TaxesTotal.IsZero() &&
+		t.CreditsTotal.IsZero() &&
+		t.Total.IsZero()
+}
+
+func (t Totals) Equal(other Totals) bool {
+	return t.Amount.Equal(other.Amount) &&
+		t.ChargesTotal.Equal(other.ChargesTotal) &&
+		t.DiscountsTotal.Equal(other.DiscountsTotal) &&
+		t.TaxesInclusiveTotal.Equal(other.TaxesInclusiveTotal) &&
+		t.TaxesExclusiveTotal.Equal(other.TaxesExclusiveTotal) &&
+		t.TaxesTotal.Equal(other.TaxesTotal) &&
+		t.CreditsTotal.Equal(other.CreditsTotal) &&
+		t.Total.Equal(other.Total)
 }
 
 func Sum(others ...Totals) Totals {

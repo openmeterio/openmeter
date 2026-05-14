@@ -119,7 +119,11 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	})
 	require.NoError(t, err)
 
-	taxCodeService := taxcodeservice.New(taxCodeAdapter, slog.Default())
+	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
+		Adapter: taxCodeAdapter,
+		Logger:  slog.Default(),
+	})
+	require.NoError(t, err)
 
 	planService, err := planservice.New(planservice.Config{
 		Feature:   deps.FeatureService,

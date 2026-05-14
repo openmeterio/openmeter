@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -405,6 +406,14 @@ func NewSubscriptionView(
 					}); ok {
 						itemFeat = &feat
 					}
+				}
+
+				if itemFeat != nil {
+					_ = item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+						m.FeatureID = lo.ToPtr(itemFeat.ID)
+
+						return m, nil
+					})
 				}
 
 				itemView := SubscriptionItemView{

@@ -22,8 +22,8 @@ type flatFeeTestHandler struct {
 	onInvoiceUsageAccrued               func(ctx context.Context, input flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
 	onCreditsOnlyUsageAccrued           func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
 	onCreditsOnlyUsageAccruedCorrection func(ctx context.Context, input flatfee.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error)
-	onPaymentAuthorized                 func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
-	onPaymentSettled                    func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
+	onPaymentAuthorized                 func(ctx context.Context, input flatfee.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)
+	onPaymentSettled                    func(ctx context.Context, input flatfee.OnPaymentSettledInput) (ledgertransaction.GroupReference, error)
 	onPaymentUncollectible              func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
 }
 
@@ -63,20 +63,20 @@ func (h *flatFeeTestHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Con
 	return h.onCreditsOnlyUsageAccruedCorrection(ctx, input)
 }
 
-func (h *flatFeeTestHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {
+func (h *flatFeeTestHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
 	if h.onPaymentAuthorized == nil {
 		return ledgertransaction.GroupReference{}, errors.New("onPaymentAuthorized is not set")
 	}
 
-	return h.onPaymentAuthorized(ctx, charge)
+	return h.onPaymentAuthorized(ctx, input)
 }
 
-func (h *flatFeeTestHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {
+func (h *flatFeeTestHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
 	if h.onPaymentSettled == nil {
 		return ledgertransaction.GroupReference{}, errors.New("onPaymentSettled is not set")
 	}
 
-	return h.onPaymentSettled(ctx, charge)
+	return h.onPaymentSettled(ctx, input)
 }
 
 func (h *flatFeeTestHandler) OnPaymentUncollectible(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {
@@ -214,6 +214,18 @@ func newCountedLedgerTransactionCallback[T any]() *countedLedgerTransactionCallb
 	}
 }
 
+type countedCreditAllocationCallback[T any] struct {
+	nrInvocations int
+	id            string
+}
+
+func newCountedCreditAllocationCallback[T any]() *countedCreditAllocationCallback[T] {
+	return &countedCreditAllocationCallback[T]{
+		nrInvocations: 0,
+		id:            ulid.Make().String(),
+	}
+}
+
 func newCappedCreditAllocator(availableCredits float64) (func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error), *alpacadecimal.Decimal) {
 	remainingCredits := alpacadecimal.NewFromFloat(availableCredits)
 
@@ -250,5 +262,18 @@ func (c *countedLedgerTransactionCallback[T]) Handler(t *testing.T, asserts ...a
 		return ledgertransaction.GroupReference{
 			TransactionGroupID: c.id,
 		}, nil
+	}
+}
+
+func (c *countedCreditAllocationCallback[T]) Handler(t *testing.T, allocations func(T, ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs, asserts ...assertFunc[T]) func(ctx context.Context, t T) (creditrealization.CreateAllocationInputs, error) {
+	return func(ctx context.Context, arg T) (creditrealization.CreateAllocationInputs, error) {
+		c.nrInvocations++
+		for _, assert := range asserts {
+			assert(t, arg)
+		}
+
+		return allocations(arg, ledgertransaction.GroupReference{
+			TransactionGroupID: c.id,
+		}), nil
 	}
 }

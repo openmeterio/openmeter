@@ -1,6 +1,7 @@
 package billingservice
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -165,4 +166,60 @@ func (s *Service) DeregisterLineEngine(engineType billing.LineEngineType) error 
 
 func (s *Service) GetRegisteredLineEngines() []billing.LineEngineType {
 	return s.lineEngines.List()
+}
+
+func (s *Service) OnMutableStandardLinesDeleted(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating mutable standard lines deleted input: %w", err)
+	}
+
+	groupedLines, err := s.lineEngines.groupStandardLinesByEngine(input.Lines)
+	if err != nil {
+		return fmt.Errorf("grouping standard lines by engine: %w", err)
+	}
+
+	for _, grouped := range groupedLines {
+		groupedInput := billing.OnMutableStandardLinesDeletedInput{
+			Invoice: input.Invoice,
+			Lines:   grouped.Lines,
+		}
+
+		if err := groupedInput.Validate(); err != nil {
+			return fmt.Errorf("validating mutable standard lines deleted input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if err := grouped.Engine.OnMutableStandardLinesDeleted(ctx, groupedInput); err != nil {
+			return billing.NewLineEngineValidationError(grouped.Engine, err)
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) OnUnsupportedCreditNote(ctx context.Context, input billing.OnUnsupportedCreditNoteInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating unsupported credit note input: %w", err)
+	}
+
+	groupedLines, err := s.lineEngines.groupStandardLinesByEngine(input.Lines)
+	if err != nil {
+		return fmt.Errorf("grouping standard lines by engine: %w", err)
+	}
+
+	for _, grouped := range groupedLines {
+		groupedInput := billing.OnUnsupportedCreditNoteInput{
+			Invoice: input.Invoice,
+			Lines:   grouped.Lines,
+		}
+
+		if err := groupedInput.Validate(); err != nil {
+			return fmt.Errorf("validating unsupported credit note input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if err := grouped.Engine.OnUnsupportedCreditNote(ctx, groupedInput); err != nil {
+			return billing.NewLineEngineValidationError(grouped.Engine, err)
+		}
+	}
+
+	return nil
 }

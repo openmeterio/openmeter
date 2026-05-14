@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -35,8 +36,9 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 			}
 
 			return usagebased.CreateIntent{
-				Intent:    intent,
-				FeatureID: featureMeter.Feature.ID,
+				Intent:       intent,
+				FeatureID:    featureMeter.Feature.ID,
+				RatingEngine: s.rater.GetPreferredRatingEngineFor(intent),
 			}, nil
 		})
 		if err != nil {
@@ -79,8 +81,12 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 	})
 }
 
-func gatheringLineFromUsageBasedCharge(flatFee usagebased.Charge) (usagebased.ChargeWithGatheringLine, error) {
-	intent := flatFee.Intent
+func gatheringLineFromUsageBasedCharge(charge usagebased.Charge) (usagebased.ChargeWithGatheringLine, error) {
+	return gatheringLineFromUsageBasedChargeForPeriod(charge, charge.Intent.ServicePeriod, charge.Intent.InvoiceAt)
+}
+
+func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servicePeriod timeutil.ClosedPeriod, invoiceAt time.Time) (usagebased.ChargeWithGatheringLine, error) {
+	intent := charge.Intent
 
 	var subscription *billing.SubscriptionReference
 	if intent.Subscription != nil {
@@ -103,7 +109,7 @@ func gatheringLineFromUsageBasedCharge(flatFee usagebased.Charge) (usagebased.Ch
 	gatheringLine := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Namespace:   flatFee.Namespace,
+				Namespace:   charge.Namespace,
 				Name:        intent.Name,
 				Description: intent.Description,
 			}),
@@ -116,12 +122,12 @@ func gatheringLineFromUsageBasedCharge(flatFee usagebased.Charge) (usagebased.Ch
 			FeatureKey: intent.FeatureKey,
 
 			Currency:      intent.Currency,
-			ServicePeriod: intent.ServicePeriod,
-			InvoiceAt:     intent.InvoiceAt,
+			ServicePeriod: servicePeriod,
+			InvoiceAt:     invoiceAt,
 
 			TaxConfig: intent.TaxConfig.ToTaxConfig(),
 
-			ChargeID:               lo.ToPtr(flatFee.ID),
+			ChargeID:               lo.ToPtr(charge.ID),
 			Engine:                 billing.LineEngineTypeChargeUsageBased,
 			ChildUniqueReferenceID: intent.UniqueReferenceID,
 			Subscription:           subscription,
@@ -141,7 +147,7 @@ func gatheringLineFromUsageBasedCharge(flatFee usagebased.Charge) (usagebased.Ch
 	}
 
 	return usagebased.ChargeWithGatheringLine{
-		Charge:                flatFee,
+		Charge:                charge,
 		GatheringLineToCreate: &gatheringLine,
 	}, nil
 }

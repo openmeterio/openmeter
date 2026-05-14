@@ -14,6 +14,7 @@ import (
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -162,8 +163,17 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 			query = query.Where(dbsubscription.NamespaceIn(in.Namespaces...))
 		}
 
-		if len(in.CustomerIDs) > 0 {
-			query = query.Where(dbsubscription.CustomerIDIn(in.CustomerIDs...))
+		if in.PlanKey != nil {
+			if p := filter.SelectPredicate[predicate.Plan](filter.Filter(*in.PlanKey), dbplan.FieldKey); p != nil {
+				query = query.Where(dbsubscription.HasPlanWith(*p))
+			}
+		}
+		query = filter.ApplyToQuery(query, in.ID, dbsubscription.FieldID)
+		query = filter.ApplyToQuery(query, in.CustomerID, dbsubscription.FieldCustomerID)
+		query = filter.ApplyToQuery(query, in.PlanID, dbsubscription.FieldPlanID)
+
+		if planKeyPred := filter.SelectPredicate[predicate.Plan](lo.FromPtrOr(in.PlanKey, filter.FilterString{}), dbplan.FieldKey); planKeyPred != nil {
+			query = query.Where(dbsubscription.HasPlanWith(*planKeyPred))
 		}
 
 		if in.ActiveAt != nil {
@@ -216,6 +226,8 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 		}
 
 		switch in.OrderBy {
+		case subscription.OrderByID:
+			query = query.Order(dbsubscription.ByID(order...))
 		case subscription.OrderByActiveFrom:
 			query = query.Order(dbsubscription.ByActiveFrom(order...))
 		case subscription.OrderByActiveTo:

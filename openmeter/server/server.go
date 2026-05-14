@@ -17,6 +17,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	v3server "github.com/openmeterio/openmeter/api/v3/server"
+	appconfig "github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/portal/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
@@ -67,6 +68,7 @@ type Config struct {
 	RouterConfig        router.Config
 	RouterHooks         RouterHooks
 	PostAuthMiddlewares PostAuthMiddlewares
+	ResponseValidation  appconfig.ResponseValidationConfig
 }
 
 func NewServer(config *Config) (*Server, error) {
@@ -106,36 +108,38 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	v3API, err := v3server.NewServer(&v3server.Config{
-		BaseURL:                 "/api/v3",
-		NamespaceDecoder:        namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace()),
-		ErrorHandler:            config.RouterConfig.ErrorHandler,
-		Credits:                 config.RouterConfig.Credits,
-		AddonService:            config.RouterConfig.Addon,
-		AppService:              config.RouterConfig.App,
-		BillingService:          config.RouterConfig.Billing,
-		CustomerService:         config.RouterConfig.Customer,
-		CreditGrantService:      config.RouterConfig.CreditGrantService,
-		Ledger:                  config.RouterConfig.Ledger,
-		AccountResolver:         config.RouterConfig.AccountResolver,
-		CustomerBalanceFacade:   config.RouterConfig.CustomerBalanceFacade,
-		CurrencyService:         config.RouterConfig.CurrencyService,
-		EntitlementService:      config.RouterConfig.EntitlementConnector,
-		IngestService:           config.RouterConfig.IngestService,
-		MeterEventService:       config.RouterConfig.MeterEventService,
-		LLMCostService:          config.RouterConfig.LLMCostService,
-		MeterService:            config.RouterConfig.MeterManageService,
-		StreamingConnector:      config.RouterConfig.StreamingConnector,
-		PlanService:             config.RouterConfig.Plan,
-		PlanAddonService:        config.RouterConfig.PlanAddon,
-		PlanSubscriptionService: config.RouterConfig.PlanSubscriptionService,
-		StripeService:           config.RouterConfig.AppStripe,
-		SubscriptionService:     config.RouterConfig.SubscriptionService,
-		ChargeService:           config.RouterConfig.ChargeService,
-		TaxCodeService:          config.RouterConfig.TaxCodeService,
-		CostService:             config.RouterConfig.CostService,
-		FeatureConnector:        config.RouterConfig.FeatureConnector,
-		Middlewares:             v3Middlewares,
-		PostAuthMiddlewares:     config.PostAuthMiddlewares,
+		BaseURL:                  "/api/v3",
+		NamespaceDecoder:         namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace()),
+		ErrorHandler:             config.RouterConfig.ErrorHandler,
+		Credits:                  config.RouterConfig.Credits,
+		AddonService:             config.RouterConfig.Addon,
+		AppService:               config.RouterConfig.App,
+		BillingService:           config.RouterConfig.Billing,
+		CustomerService:          config.RouterConfig.Customer,
+		CreditGrantService:       config.RouterConfig.CreditGrantService,
+		Ledger:                   config.RouterConfig.Ledger,
+		AccountResolver:          config.RouterConfig.AccountResolver,
+		CustomerBalanceFacade:    config.RouterConfig.CustomerBalanceFacade,
+		CurrencyService:          config.RouterConfig.CurrencyService,
+		EntitlementService:       config.RouterConfig.EntitlementConnector,
+		IngestService:            config.RouterConfig.IngestService,
+		MeterEventService:        config.RouterConfig.MeterEventService,
+		LLMCostService:           config.RouterConfig.LLMCostService,
+		MeterService:             config.RouterConfig.MeterManageService,
+		StreamingConnector:       config.RouterConfig.StreamingConnector,
+		PlanService:              config.RouterConfig.Plan,
+		PlanAddonService:         config.RouterConfig.PlanAddon,
+		PlanSubscriptionService:  config.RouterConfig.PlanSubscriptionService,
+		StripeService:            config.RouterConfig.AppStripe,
+		SubscriptionService:      config.RouterConfig.SubscriptionService,
+		SubscriptionAddonService: config.RouterConfig.SubscriptionAddonService,
+		ChargeService:            config.RouterConfig.ChargeService,
+		TaxCodeService:           config.RouterConfig.TaxCodeService,
+		CostService:              config.RouterConfig.CostService,
+		FeatureConnector:         config.RouterConfig.FeatureConnector,
+		Middlewares:              v3Middlewares,
+		PostAuthMiddlewares:      config.PostAuthMiddlewares,
+		ResponseValidation:       config.ResponseValidation,
 	})
 	if err != nil {
 		slog.Error("failed to create v3 API", "error", err)

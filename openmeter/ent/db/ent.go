@@ -44,10 +44,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeedetailedline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargessearchv1"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
@@ -80,6 +81,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
@@ -185,10 +187,11 @@ func checkColumn(t, c string) error {
 			chargecreditpurchaseexternalpayment.Table:              chargecreditpurchaseexternalpayment.ValidColumn,
 			chargecreditpurchaseinvoicedpayment.Table:              chargecreditpurchaseinvoicedpayment.ValidColumn,
 			chargeflatfee.Table:                                    chargeflatfee.ValidColumn,
-			chargeflatfeecreditallocations.Table:                   chargeflatfeecreditallocations.ValidColumn,
-			chargeflatfeedetailedline.Table:                        chargeflatfeedetailedline.ValidColumn,
-			chargeflatfeeinvoicedusage.Table:                       chargeflatfeeinvoicedusage.ValidColumn,
-			chargeflatfeepayment.Table:                             chargeflatfeepayment.ValidColumn,
+			chargeflatfeerun.Table:                                 chargeflatfeerun.ValidColumn,
+			chargeflatfeeruncreditallocations.Table:                chargeflatfeeruncreditallocations.ValidColumn,
+			chargeflatfeerundetailedline.Table:                     chargeflatfeerundetailedline.ValidColumn,
+			chargeflatfeeruninvoicedusage.Table:                    chargeflatfeeruninvoicedusage.ValidColumn,
+			chargeflatfeerunpayment.Table:                          chargeflatfeerunpayment.ValidColumn,
 			chargeusagebased.Table:                                 chargeusagebased.ValidColumn,
 			chargeusagebasedruncreditallocations.Table:             chargeusagebasedruncreditallocations.ValidColumn,
 			chargeusagebasedrundetailedline.Table:                  chargeusagebasedrundetailedline.ValidColumn,
@@ -218,6 +221,7 @@ func checkColumn(t, c string) error {
 			notificationevent.Table:                                notificationevent.ValidColumn,
 			notificationeventdeliverystatus.Table:                  notificationeventdeliverystatus.ValidColumn,
 			notificationrule.Table:                                 notificationrule.ValidColumn,
+			organizationdefaulttaxcodes.Table:                      organizationdefaulttaxcodes.ValidColumn,
 			plan.Table:                                             plan.ValidColumn,
 			planaddon.Table:                                        planaddon.ValidColumn,
 			planphase.Table:                                        planphase.ValidColumn,

@@ -40,12 +40,6 @@ func TestPatchCollectionRouterResolveDefaultCollection(t *testing.T) {
 		expectedCollection      any
 	}{
 		{
-			name:               "invoice only stays on invoice lines",
-			settlementMode:     productcatalog.InvoiceOnlySettlementMode,
-			rateCard:           flatRateCard,
-			expectedCollection: &lineInvoicePatchCollection{},
-		},
-		{
 			name:               "credit only flat fee uses flat fee charges",
 			settlementMode:     productcatalog.CreditOnlySettlementMode,
 			rateCard:           flatRateCard,

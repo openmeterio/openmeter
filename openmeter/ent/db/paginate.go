@@ -1809,7 +1809,7 @@ var _ pagination.Paginator[*ChargeFlatFee] = (*ChargeFlatFeeQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *ChargeFlatFeeCreditAllocationsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeCreditAllocations], error) {
+func (_m *ChargeFlatFeeRunQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeRun], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1828,7 +1828,7 @@ func (_m *ChargeFlatFeeCreditAllocationsQuery) Paginate(ctx context.Context, pag
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.Result[*ChargeFlatFeeCreditAllocations]{
+	pagedResponse := pagination.Result[*ChargeFlatFeeRun]{
 		Page: page,
 	}
 
@@ -1842,7 +1842,7 @@ func (_m *ChargeFlatFeeCreditAllocationsQuery) Paginate(ctx context.Context, pag
 	// If there are no items, return the empty response early
 	if count == 0 {
 		// Items should be [] not null.
-		pagedResponse.Items = make([]*ChargeFlatFeeCreditAllocations, 0)
+		pagedResponse.Items = make([]*ChargeFlatFeeRun, 0)
 		return pagedResponse, nil
 	}
 
@@ -1863,11 +1863,11 @@ func (_m *ChargeFlatFeeCreditAllocationsQuery) Paginate(ctx context.Context, pag
 }
 
 // type check
-var _ pagination.Paginator[*ChargeFlatFeeCreditAllocations] = (*ChargeFlatFeeCreditAllocationsQuery)(nil)
+var _ pagination.Paginator[*ChargeFlatFeeRun] = (*ChargeFlatFeeRunQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *ChargeFlatFeeDetailedLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeDetailedLine], error) {
+func (_m *ChargeFlatFeeRunCreditAllocationsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeRunCreditAllocations], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1886,7 +1886,7 @@ func (_m *ChargeFlatFeeDetailedLineQuery) Paginate(ctx context.Context, page pag
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.Result[*ChargeFlatFeeDetailedLine]{
+	pagedResponse := pagination.Result[*ChargeFlatFeeRunCreditAllocations]{
 		Page: page,
 	}
 
@@ -1900,7 +1900,7 @@ func (_m *ChargeFlatFeeDetailedLineQuery) Paginate(ctx context.Context, page pag
 	// If there are no items, return the empty response early
 	if count == 0 {
 		// Items should be [] not null.
-		pagedResponse.Items = make([]*ChargeFlatFeeDetailedLine, 0)
+		pagedResponse.Items = make([]*ChargeFlatFeeRunCreditAllocations, 0)
 		return pagedResponse, nil
 	}
 
@@ -1921,11 +1921,11 @@ func (_m *ChargeFlatFeeDetailedLineQuery) Paginate(ctx context.Context, page pag
 }
 
 // type check
-var _ pagination.Paginator[*ChargeFlatFeeDetailedLine] = (*ChargeFlatFeeDetailedLineQuery)(nil)
+var _ pagination.Paginator[*ChargeFlatFeeRunCreditAllocations] = (*ChargeFlatFeeRunCreditAllocationsQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *ChargeFlatFeeInvoicedUsageQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeInvoicedUsage], error) {
+func (_m *ChargeFlatFeeRunDetailedLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeRunDetailedLine], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1944,7 +1944,7 @@ func (_m *ChargeFlatFeeInvoicedUsageQuery) Paginate(ctx context.Context, page pa
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.Result[*ChargeFlatFeeInvoicedUsage]{
+	pagedResponse := pagination.Result[*ChargeFlatFeeRunDetailedLine]{
 		Page: page,
 	}
 
@@ -1958,7 +1958,7 @@ func (_m *ChargeFlatFeeInvoicedUsageQuery) Paginate(ctx context.Context, page pa
 	// If there are no items, return the empty response early
 	if count == 0 {
 		// Items should be [] not null.
-		pagedResponse.Items = make([]*ChargeFlatFeeInvoicedUsage, 0)
+		pagedResponse.Items = make([]*ChargeFlatFeeRunDetailedLine, 0)
 		return pagedResponse, nil
 	}
 
@@ -1979,11 +1979,11 @@ func (_m *ChargeFlatFeeInvoicedUsageQuery) Paginate(ctx context.Context, page pa
 }
 
 // type check
-var _ pagination.Paginator[*ChargeFlatFeeInvoicedUsage] = (*ChargeFlatFeeInvoicedUsageQuery)(nil)
+var _ pagination.Paginator[*ChargeFlatFeeRunDetailedLine] = (*ChargeFlatFeeRunDetailedLineQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *ChargeFlatFeePaymentQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeePayment], error) {
+func (_m *ChargeFlatFeeRunInvoicedUsageQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeRunInvoicedUsage], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -2002,7 +2002,7 @@ func (_m *ChargeFlatFeePaymentQuery) Paginate(ctx context.Context, page paginati
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.Result[*ChargeFlatFeePayment]{
+	pagedResponse := pagination.Result[*ChargeFlatFeeRunInvoicedUsage]{
 		Page: page,
 	}
 
@@ -2016,7 +2016,7 @@ func (_m *ChargeFlatFeePaymentQuery) Paginate(ctx context.Context, page paginati
 	// If there are no items, return the empty response early
 	if count == 0 {
 		// Items should be [] not null.
-		pagedResponse.Items = make([]*ChargeFlatFeePayment, 0)
+		pagedResponse.Items = make([]*ChargeFlatFeeRunInvoicedUsage, 0)
 		return pagedResponse, nil
 	}
 
@@ -2037,7 +2037,65 @@ func (_m *ChargeFlatFeePaymentQuery) Paginate(ctx context.Context, page paginati
 }
 
 // type check
-var _ pagination.Paginator[*ChargeFlatFeePayment] = (*ChargeFlatFeePaymentQuery)(nil)
+var _ pagination.Paginator[*ChargeFlatFeeRunInvoicedUsage] = (*ChargeFlatFeeRunInvoicedUsageQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (_m *ChargeFlatFeeRunPaymentQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeRunPayment], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := _m.Clone()
+	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.Result[*ChargeFlatFeeRunPayment]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*ChargeFlatFeeRunPayment, 0)
+		return pagedResponse, nil
+	}
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*ChargeFlatFeeRunPayment] = (*ChargeFlatFeeRunPaymentQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
@@ -3720,6 +3778,64 @@ func (_m *NotificationRuleQuery) Paginate(ctx context.Context, page pagination.P
 
 // type check
 var _ pagination.Paginator[*NotificationRule] = (*NotificationRuleQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (_m *OrganizationDefaultTaxCodesQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*OrganizationDefaultTaxCodes], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := _m.Clone()
+	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.Result[*OrganizationDefaultTaxCodes]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*OrganizationDefaultTaxCodes, 0)
+		return pagedResponse, nil
+	}
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*OrganizationDefaultTaxCodes] = (*OrganizationDefaultTaxCodesQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.

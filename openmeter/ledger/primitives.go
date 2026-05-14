@@ -38,11 +38,11 @@ type SubAccount interface {
 	// Returns the address of the sub-account
 	Address() PostingAddress
 
+	// AccountID returns the identifier of the parent account.
+	AccountID() models.NamespacedID
+
 	// Route returns the routing values of the sub-account.
 	Route() Route
-
-	// GetBalance returns the balance for this concrete sub-account route.
-	GetBalance(ctx context.Context) (Balance, error)
 }
 
 // RouteFilter is the set of route fields that can be used to filter sub-accounts and query balances.
@@ -66,8 +66,8 @@ type RouteFilter struct {
 // Account represents a ledger account tying together multiple sub-accounts.
 // Accounts describe ownership and purpose while SubAccounts parameterize the actual posting address.
 type Account interface {
-	// Balance can be queried across sub-accounts according to RouteFilter
-	GetBalance(ctx context.Context, query RouteFilter, after *TransactionCursor) (Balance, error)
+	ID() models.NamespacedID
+	Type() AccountType
 }
 
 // ----------------------------------------------------------------------------

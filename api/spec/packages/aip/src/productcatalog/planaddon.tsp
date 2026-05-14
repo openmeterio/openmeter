@@ -4,8 +4,8 @@ import "./plan.tsp";
 namespace ProductCatalog;
 
 /**
- * PlanAddon represents an association between a plan and an add-on,
- * controlling which add-ons are available for purchase within a plan.
+ * PlanAddon represents an association between a plan and an add-on, controlling
+ * which add-ons are available for purchase within a plan.
  */
 @friendlyName("PlanAddon")
 model PlanAddon {
@@ -26,9 +26,9 @@ model PlanAddon {
   from_plan_phase: Shared.ResourceKey;
 
   /**
-   * The maximum number of times the add-on can be purchased for the plan.
-   * For single-instance add-ons this field must be omitted.
-   * For multi-instance add-ons when omitted, unlimited quantity can be purchased.
+   * The maximum number of times the add-on can be purchased for the plan. For
+   * single-instance add-ons this field must be omitted. For multi-instance add-ons
+   * when omitted, unlimited quantity can be purchased.
    */
   @summary("Max quantity")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)

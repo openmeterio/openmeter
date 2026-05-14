@@ -17,6 +17,11 @@ type burnPhase struct {
 	priorityChange bool
 }
 
+type phasePlan struct {
+	phases                []burnPhase
+	grantsRecurredAtStart []string
+}
+
 // Calculates the burn phases for the given period.
 // The period is expected not to contain any resets.
 //
@@ -26,11 +31,11 @@ type burnPhase struct {
 //
 // Note that grant balance does not effect the burndown order if we simply ignore grants that don't
 // have balance while burning down.
-func (e *engine) getPhases(grants []grant.Grant, period timeutil.ClosedPeriod) ([]burnPhase, error) {
+func (e *engine) getPhases(grants []grant.Grant, period timeutil.ClosedPeriod, recurrenceEndBoundaryBehavior timeutil.Boundary) (phasePlan, error) {
 	activityChanges := e.getGrantActivityChanges(grants, period)
-	recurrenceTimes, err := e.getGrantRecurrenceTimes(grants, period)
+	recurrenceTimes, err := e.getGrantRecurrenceTimes(grants, period, recurrenceEndBoundaryBehavior)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get grant recurrence times: %w", err)
+		return phasePlan{}, fmt.Errorf("failed to get grant recurrence times: %w", err)
 	}
 	phases := []burnPhase{}
 
@@ -45,13 +50,31 @@ func (e *engine) getPhases(grants []grant.Grant, period timeutil.ClosedPeriod) (
 		}{}
 	}
 
+	grantsRecurredAtStart := []string{}
+	for len(recurrenceTimes) > 0 && recurrenceTimes[0].time.Equal(period.From) {
+		grantsRecurredAtStart = append(grantsRecurredAtStart, recurrenceTimes[0].grantIDs...)
+		recurrenceTimes = recurrenceTimes[1:]
+	}
+
 	// if both are null then return single phase for entire period
 	if len(activityChanges) == 0 && len(recurrenceTimes) == 0 {
-		return []burnPhase{{from: period.From, to: period.To}}, nil
+		return phasePlan{
+			phases:                []burnPhase{{from: period.From, to: period.To}},
+			grantsRecurredAtStart: grantsRecurredAtStart,
+		}, nil
 	}
 
 	acI, rtI := 0, 0
 	phaseFrom := period.From
+
+	appendPhase := func(phase burnPhase) {
+		if !phase.to.After(phase.from) {
+			return
+		}
+
+		phases = append(phases, phase)
+		phaseFrom = phase.to
+	}
 
 	var phase burnPhase
 	for len(activityChanges) > acI && len(recurrenceTimes) > rtI {
@@ -83,39 +106,55 @@ func (e *engine) getPhases(grants []grant.Grant, period timeutil.ClosedPeriod) (
 			rtI++
 		}
 
-		// If it's a valid phase (non-zero duration), we save it and break
-		if phase.to.After(phase.from) {
-			phases = append(phases, phase)
-			phaseFrom = phase.to
-		}
+		appendPhase(phase)
 	}
 
 	// order here doesn't matter as one or both of them is empty
 	// append all activityChanges remaining
 	for _, activityChange := range activityChanges[acI:] {
-		phases = append(phases, burnPhase{
+		appendPhase(burnPhase{
 			from:           phaseFrom,
 			to:             activityChange,
 			priorityChange: true,
 		})
-		phaseFrom = activityChange
 	}
 	// append all recurrenceTimes remaining
 	for _, recurrenceTime := range recurrenceTimes[rtI:] {
-		phases = append(phases, burnPhase{
+		appendPhase(burnPhase{
 			from:                phaseFrom,
 			to:                  recurrenceTime.time,
 			grantsRecurredAtEnd: recurrenceTime.grantIDs,
 		})
-		phaseFrom = recurrenceTime.time
 	}
 
 	if phaseFrom.Before(period.To) {
-		phases = append(phases, burnPhase{
+		appendPhase(burnPhase{
 			from: phaseFrom,
 			to:   period.To,
 		})
 	}
 
-	return phases, nil
+	if len(phases) > 0 {
+		lastPhase := phases[len(phases)-1]
+		terminalEvent := lastPhase.to.Equal(period.To) &&
+			len(lastPhase.grantsRecurredAtEnd) > 0
+		if terminalEvent {
+			phases = append(phases, burnPhase{
+				from: period.To,
+				to:   period.To,
+			})
+		}
+	}
+
+	if len(phases) == 0 {
+		phases = append(phases, burnPhase{
+			from: period.From,
+			to:   period.To,
+		})
+	}
+
+	return phasePlan{
+		phases:                phases,
+		grantsRecurredAtStart: grantsRecurredAtStart,
+	}, nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -30,7 +31,7 @@ func (l DetailedLineBase) Validate() error {
 		errs = append(errs, errors.New("invoiceID is required"))
 	}
 
-	if err := l.Base.Validate(); err != nil {
+	if err := l.Base.Validate(stddetailedline.IgnoreQuantityChecks()); err != nil {
 		errs = append(errs, fmt.Errorf("base: %w", err))
 	}
 
@@ -107,6 +108,12 @@ func (l DetailedLines) Clone() DetailedLines {
 	return l.Map(func(dl DetailedLine) DetailedLine {
 		return dl.Clone()
 	})
+}
+
+func (l DetailedLines) SumTotals() totals.Totals {
+	return totals.Sum(lo.Map(l, func(line DetailedLine, _ int) totals.Totals {
+		return line.Totals
+	})...)
 }
 
 func (l DetailedLines) Validate() error {

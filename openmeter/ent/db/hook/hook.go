@@ -381,52 +381,64 @@ func (f ChargeFlatFeeFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value,
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeMutation", m)
 }
 
-// The ChargeFlatFeeCreditAllocationsFunc type is an adapter to allow the use of ordinary
-// function as ChargeFlatFeeCreditAllocations mutator.
-type ChargeFlatFeeCreditAllocationsFunc func(context.Context, *db.ChargeFlatFeeCreditAllocationsMutation) (db.Value, error)
+// The ChargeFlatFeeRunFunc type is an adapter to allow the use of ordinary
+// function as ChargeFlatFeeRun mutator.
+type ChargeFlatFeeRunFunc func(context.Context, *db.ChargeFlatFeeRunMutation) (db.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f ChargeFlatFeeCreditAllocationsFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.ChargeFlatFeeCreditAllocationsMutation); ok {
+func (f ChargeFlatFeeRunFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeFlatFeeRunMutation); ok {
 		return f(ctx, mv)
 	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeCreditAllocationsMutation", m)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeRunMutation", m)
 }
 
-// The ChargeFlatFeeDetailedLineFunc type is an adapter to allow the use of ordinary
-// function as ChargeFlatFeeDetailedLine mutator.
-type ChargeFlatFeeDetailedLineFunc func(context.Context, *db.ChargeFlatFeeDetailedLineMutation) (db.Value, error)
+// The ChargeFlatFeeRunCreditAllocationsFunc type is an adapter to allow the use of ordinary
+// function as ChargeFlatFeeRunCreditAllocations mutator.
+type ChargeFlatFeeRunCreditAllocationsFunc func(context.Context, *db.ChargeFlatFeeRunCreditAllocationsMutation) (db.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f ChargeFlatFeeDetailedLineFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.ChargeFlatFeeDetailedLineMutation); ok {
+func (f ChargeFlatFeeRunCreditAllocationsFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeFlatFeeRunCreditAllocationsMutation); ok {
 		return f(ctx, mv)
 	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeDetailedLineMutation", m)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeRunCreditAllocationsMutation", m)
 }
 
-// The ChargeFlatFeeInvoicedUsageFunc type is an adapter to allow the use of ordinary
-// function as ChargeFlatFeeInvoicedUsage mutator.
-type ChargeFlatFeeInvoicedUsageFunc func(context.Context, *db.ChargeFlatFeeInvoicedUsageMutation) (db.Value, error)
+// The ChargeFlatFeeRunDetailedLineFunc type is an adapter to allow the use of ordinary
+// function as ChargeFlatFeeRunDetailedLine mutator.
+type ChargeFlatFeeRunDetailedLineFunc func(context.Context, *db.ChargeFlatFeeRunDetailedLineMutation) (db.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f ChargeFlatFeeInvoicedUsageFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.ChargeFlatFeeInvoicedUsageMutation); ok {
+func (f ChargeFlatFeeRunDetailedLineFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeFlatFeeRunDetailedLineMutation); ok {
 		return f(ctx, mv)
 	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeInvoicedUsageMutation", m)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeRunDetailedLineMutation", m)
 }
 
-// The ChargeFlatFeePaymentFunc type is an adapter to allow the use of ordinary
-// function as ChargeFlatFeePayment mutator.
-type ChargeFlatFeePaymentFunc func(context.Context, *db.ChargeFlatFeePaymentMutation) (db.Value, error)
+// The ChargeFlatFeeRunInvoicedUsageFunc type is an adapter to allow the use of ordinary
+// function as ChargeFlatFeeRunInvoicedUsage mutator.
+type ChargeFlatFeeRunInvoicedUsageFunc func(context.Context, *db.ChargeFlatFeeRunInvoicedUsageMutation) (db.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f ChargeFlatFeePaymentFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.ChargeFlatFeePaymentMutation); ok {
+func (f ChargeFlatFeeRunInvoicedUsageFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeFlatFeeRunInvoicedUsageMutation); ok {
 		return f(ctx, mv)
 	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeePaymentMutation", m)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeRunInvoicedUsageMutation", m)
+}
+
+// The ChargeFlatFeeRunPaymentFunc type is an adapter to allow the use of ordinary
+// function as ChargeFlatFeeRunPayment mutator.
+type ChargeFlatFeeRunPaymentFunc func(context.Context, *db.ChargeFlatFeeRunPaymentMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeFlatFeeRunPaymentFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeFlatFeeRunPaymentMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeRunPaymentMutation", m)
 }
 
 // The ChargeUsageBasedFunc type is an adapter to allow the use of ordinary
@@ -763,6 +775,18 @@ func (f NotificationRuleFunc) Mutate(ctx context.Context, m db.Mutation) (db.Val
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.NotificationRuleMutation", m)
+}
+
+// The OrganizationDefaultTaxCodesFunc type is an adapter to allow the use of ordinary
+// function as OrganizationDefaultTaxCodes mutator.
+type OrganizationDefaultTaxCodesFunc func(context.Context, *db.OrganizationDefaultTaxCodesMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OrganizationDefaultTaxCodesFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.OrganizationDefaultTaxCodesMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.OrganizationDefaultTaxCodesMutation", m)
 }
 
 // The PlanFunc type is an adapter to allow the use of ordinary

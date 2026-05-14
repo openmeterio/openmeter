@@ -24,8 +24,12 @@ type CreateRatedRunInput struct {
 	StoredAtLT         time.Time
 	ServicePeriodTo    time.Time
 	LineID             *string
+	InvoiceID          *string
 	CreditAllocation   CreditAllocationMode
 	CurrencyCalculator currencyx.Calculator
+	// NoFiatTransactionRequired is set if either there's no fiat-based
+	// settlement is expected (credits_only) or if the run totals are zero.
+	NoFiatTransactionRequired bool
 }
 
 func (i CreateRatedRunInput) Validate() error {
@@ -68,6 +72,10 @@ func (i CreateRatedRunInput) Validate() error {
 
 	if i.LineID != nil && *i.LineID == "" {
 		return fmt.Errorf("line id if set, must be non-empty")
+	}
+
+	if i.InvoiceID != nil && *i.InvoiceID == "" {
+		return fmt.Errorf("invoice id if set, must be non-empty")
 	}
 
 	if err := i.CreditAllocation.Validate(); err != nil {
@@ -141,15 +149,18 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 				"charge_id": in.Charge.ID,
 			})
 	}
+	noFiatTransactionRequired := in.NoFiatTransactionRequired || runTotals.Total.IsZero()
 
 	updatedCharge, err := s.createNewRealizationRun(ctx, in.Charge, usagebased.CreateRealizationRunInput{
-		FeatureID:       in.Charge.State.FeatureID,
-		Type:            in.Type,
-		StoredAtLT:      in.StoredAtLT,
-		ServicePeriodTo: in.ServicePeriodTo,
-		LineID:          in.LineID,
-		MeteredQuantity: ratingResult.Quantity,
-		Totals:          runTotals,
+		FeatureID:                 in.Charge.State.FeatureID,
+		Type:                      in.Type,
+		StoredAtLT:                in.StoredAtLT,
+		ServicePeriodTo:           in.ServicePeriodTo,
+		LineID:                    in.LineID,
+		InvoiceID:                 in.InvoiceID,
+		MeteredQuantity:           ratingResult.Quantity,
+		Totals:                    runTotals,
+		NoFiatTransactionRequired: noFiatTransactionRequired,
 	})
 	if err != nil {
 		return CreateRatedRunResult{}, fmt.Errorf("create new realization run: %w", err)
@@ -181,10 +192,12 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		currentRun.CreditsAllocated = allocationResult.Realizations
 		runTotals.CreditsTotal = runTotals.CreditsTotal.Add(allocationResult.Allocated)
 		runTotals.Total = in.CurrencyCalculator.RoundToPrecision(runTotals.Total.Sub(allocationResult.Allocated))
+		noFiatTransactionRequired = in.NoFiatTransactionRequired || runTotals.Total.IsZero()
 
 		currentRunBase, err := s.adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
-			ID:     currentRun.ID,
-			Totals: mo.Some(runTotals),
+			ID:                        currentRun.ID,
+			Totals:                    mo.Some(runTotals),
+			NoFiatTransactionRequired: mo.Some(noFiatTransactionRequired),
 		})
 		if err != nil {
 			return CreateRatedRunResult{}, fmt.Errorf("update realization run: %w", err)
