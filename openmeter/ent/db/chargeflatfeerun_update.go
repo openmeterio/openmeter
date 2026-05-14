@@ -284,6 +284,20 @@ func (_u *ChargeFlatFeeRunUpdate) SetNillableNoFiatTransactionRequired(v *bool) 
 	return _u
 }
 
+// SetImmutable sets the "immutable" field.
+func (_u *ChargeFlatFeeRunUpdate) SetImmutable(v bool) *ChargeFlatFeeRunUpdate {
+	_u.mutation.SetImmutable(v)
+	return _u
+}
+
+// SetNillableImmutable sets the "immutable" field if the given value is not nil.
+func (_u *ChargeFlatFeeRunUpdate) SetNillableImmutable(v *bool) *ChargeFlatFeeRunUpdate {
+	if v != nil {
+		_u.SetImmutable(*v)
+	}
+	return _u
+}
+
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (_u *ChargeFlatFeeRunUpdate) SetBillingInvoiceLineID(id string) *ChargeFlatFeeRunUpdate {
 	_u.mutation.SetBillingInvoiceLineID(id)
@@ -579,6 +593,9 @@ func (_u *ChargeFlatFeeRunUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if value, ok := _u.mutation.NoFiatTransactionRequired(); ok {
 		_spec.SetField(chargeflatfeerun.FieldNoFiatTransactionRequired, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Immutable(); ok {
+		_spec.SetField(chargeflatfeerun.FieldImmutable, field.TypeBool, value)
 	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1054,6 +1071,20 @@ func (_u *ChargeFlatFeeRunUpdateOne) SetNillableNoFiatTransactionRequired(v *boo
 	return _u
 }
 
+// SetImmutable sets the "immutable" field.
+func (_u *ChargeFlatFeeRunUpdateOne) SetImmutable(v bool) *ChargeFlatFeeRunUpdateOne {
+	_u.mutation.SetImmutable(v)
+	return _u
+}
+
+// SetNillableImmutable sets the "immutable" field if the given value is not nil.
+func (_u *ChargeFlatFeeRunUpdateOne) SetNillableImmutable(v *bool) *ChargeFlatFeeRunUpdateOne {
+	if v != nil {
+		_u.SetImmutable(*v)
+	}
+	return _u
+}
+
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (_u *ChargeFlatFeeRunUpdateOne) SetBillingInvoiceLineID(id string) *ChargeFlatFeeRunUpdateOne {
 	_u.mutation.SetBillingInvoiceLineID(id)
@@ -1379,6 +1410,9 @@ func (_u *ChargeFlatFeeRunUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if value, ok := _u.mutation.NoFiatTransactionRequired(); ok {
 		_spec.SetField(chargeflatfeerun.FieldNoFiatTransactionRequired, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Immutable(); ok {
+		_spec.SetField(chargeflatfeerun.FieldImmutable, field.TypeBool, value)
 	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{

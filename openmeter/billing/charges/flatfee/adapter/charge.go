@@ -137,20 +137,6 @@ func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInp
 			return nil, err
 		}
 
-		for idx, entity := range entities {
-			if entity.StatusDetailed != flatfee.StatusActive {
-				continue
-			}
-
-			chargeBase := MapChargeBaseFromDB(entity)
-			if _, err := tx.ProvisionCurrentRun(ctx, flatfee.ProvisionCurrentRunInput{
-				Charge:                    chargeBase,
-				NoFiatTransactionRequired: in.Intents[idx].NoFiatTransactionRequired,
-			}); err != nil {
-				return nil, err
-			}
-		}
-
 		// Let's reserve the charge IDs
 		err = tx.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{
 			Namespace: in.Namespace,

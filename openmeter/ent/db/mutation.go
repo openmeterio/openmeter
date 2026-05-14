@@ -45916,6 +45916,7 @@ type ChargeFlatFeeRunMutation struct {
 	service_period_to            *time.Time
 	amount_after_proration       *alpacadecimal.Decimal
 	no_fiat_transaction_required *bool
+	immutable                    *bool
 	clearedFields                map[string]struct{}
 	flat_fee                     *string
 	clearedflat_fee              bool
@@ -46837,6 +46838,42 @@ func (m *ChargeFlatFeeRunMutation) ResetNoFiatTransactionRequired() {
 	m.no_fiat_transaction_required = nil
 }
 
+// SetImmutable sets the "immutable" field.
+func (m *ChargeFlatFeeRunMutation) SetImmutable(b bool) {
+	m.immutable = &b
+}
+
+// Immutable returns the value of the "immutable" field in the mutation.
+func (m *ChargeFlatFeeRunMutation) Immutable() (r bool, exists bool) {
+	v := m.immutable
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldImmutable returns the old "immutable" field's value of the ChargeFlatFeeRun entity.
+// If the ChargeFlatFeeRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunMutation) OldImmutable(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldImmutable is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldImmutable requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldImmutable: %w", err)
+	}
+	return oldValue.Immutable, nil
+}
+
+// ResetImmutable resets all changes to the "immutable" field.
+func (m *ChargeFlatFeeRunMutation) ResetImmutable() {
+	m.immutable = nil
+}
+
 // SetFlatFeeID sets the "flat_fee" edge to the ChargeFlatFee entity by id.
 func (m *ChargeFlatFeeRunMutation) SetFlatFeeID(id string) {
 	m.flat_fee = &id
@@ -47177,7 +47214,7 @@ func (m *ChargeFlatFeeRunMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeRunMutation) Fields() []string {
-	fields := make([]string, 0, 21)
+	fields := make([]string, 0, 22)
 	if m.namespace != nil {
 		fields = append(fields, chargeflatfeerun.FieldNamespace)
 	}
@@ -47241,6 +47278,9 @@ func (m *ChargeFlatFeeRunMutation) Fields() []string {
 	if m.no_fiat_transaction_required != nil {
 		fields = append(fields, chargeflatfeerun.FieldNoFiatTransactionRequired)
 	}
+	if m.immutable != nil {
+		fields = append(fields, chargeflatfeerun.FieldImmutable)
+	}
 	return fields
 }
 
@@ -47291,6 +47331,8 @@ func (m *ChargeFlatFeeRunMutation) Field(name string) (ent.Value, bool) {
 		return m.AmountAfterProration()
 	case chargeflatfeerun.FieldNoFiatTransactionRequired:
 		return m.NoFiatTransactionRequired()
+	case chargeflatfeerun.FieldImmutable:
+		return m.Immutable()
 	}
 	return nil, false
 }
@@ -47342,6 +47384,8 @@ func (m *ChargeFlatFeeRunMutation) OldField(ctx context.Context, name string) (e
 		return m.OldAmountAfterProration(ctx)
 	case chargeflatfeerun.FieldNoFiatTransactionRequired:
 		return m.OldNoFiatTransactionRequired(ctx)
+	case chargeflatfeerun.FieldImmutable:
+		return m.OldImmutable(ctx)
 	}
 	return nil, fmt.Errorf("unknown ChargeFlatFeeRun field %s", name)
 }
@@ -47498,6 +47542,13 @@ func (m *ChargeFlatFeeRunMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetNoFiatTransactionRequired(v)
 		return nil
+	case chargeflatfeerun.FieldImmutable:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetImmutable(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeRun field %s", name)
 }
@@ -47630,6 +47681,9 @@ func (m *ChargeFlatFeeRunMutation) ResetField(name string) error {
 		return nil
 	case chargeflatfeerun.FieldNoFiatTransactionRequired:
 		m.ResetNoFiatTransactionRequired()
+		return nil
+	case chargeflatfeerun.FieldImmutable:
+		m.ResetImmutable()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeRun field %s", name)

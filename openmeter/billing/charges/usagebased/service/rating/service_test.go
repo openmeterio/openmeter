@@ -499,7 +499,7 @@ func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.R
 					BillingPeriod:     period,
 				},
 				InvoiceAt:      period.To,
-				SettlementMode: productcatalog.InvoiceOnlySettlementMode,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				FeatureKey:     "feature-1",
 				Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromInt(3),

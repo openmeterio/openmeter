@@ -120,7 +120,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyForAlreadyActive
 	s.True(servicePeriod.To.Equal(*usageBasedFromDB.State.AdvanceAfter))
 }
 
-func (s *AdvanceChargesTestSuite) TestAdvanceChargesSkipsInvoiceOnlyFlatFeeCharges() {
+func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceFlatFeeAtServicePeriodStart() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-empty")
 
@@ -135,6 +135,8 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesSkipsInvoiceOnlyFlatFeeCharg
 		To:   datetime.MustParseTimeInLocation(s.T(), "2026-04-01T00:00:00Z", time.UTC).AsTime(),
 	}
 
+	clock.SetTime(servicePeriod.From.Add(-time.Second))
+
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
@@ -142,7 +144,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesSkipsInvoiceOnlyFlatFeeCharg
 				customer:       cust.GetID(),
 				currency:       USD,
 				servicePeriod:  servicePeriod,
-				settlementMode: productcatalog.InvoiceOnlySettlementMode,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromFloat(100),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -155,11 +157,17 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesSkipsInvoiceOnlyFlatFeeCharg
 	})
 	s.NoError(err)
 
+	clock.SetTime(servicePeriod.From)
+
 	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 		Customer: cust.GetID(),
 	})
 	s.NoError(err)
-	s.Empty(advancedCharges)
+	s.Len(advancedCharges, 1)
+
+	flatFeeCharge, err := advancedCharges[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(flatFeeCharge.Status))
 }
 
 func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceUsageBasedChargesAtServicePeriodStart() {

@@ -11,7 +11,6 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfeerundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
@@ -61,8 +60,8 @@ func (a *adapter) FetchCurrentRunDetailedLines(ctx context.Context, charge flatf
 	})
 }
 
-func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeID, lines flatfee.DetailedLines) error {
-	if err := chargeID.Validate(); err != nil {
+func (a *adapter) UpsertDetailedLines(ctx context.Context, runID flatfee.RealizationRunID, lines flatfee.DetailedLines) error {
+	if err := runID.Validate(); err != nil {
 		return err
 	}
 
@@ -71,19 +70,14 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		run, err := tx.currentRunByChargeID(ctx, chargeID)
-		if err != nil {
-			return err
-		}
-
 		createBuilders := make([]*entdb.ChargeFlatFeeRunDetailedLineCreate, 0, len(lines))
 
 		for _, line := range lines {
 			lineToPersist := line.Clone()
-			lineToPersist.Namespace = chargeID.Namespace
+			lineToPersist.Namespace = runID.Namespace
 			lineToPersist.DeletedAt = nil
 
-			create, err := buildDetailedLineCreate(tx.db, chargeID, run.ID, lineToPersist)
+			create, err := buildDetailedLineCreate(tx.db, runID, lineToPersist)
 			if err != nil {
 				return err
 			}
@@ -94,8 +88,8 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 		now := clock.Now().In(time.UTC)
 		deleteQuery := tx.db.ChargeFlatFeeRunDetailedLine.Update().
 			Where(
-				dbchargeflatfeerundetailedline.NamespaceEQ(chargeID.Namespace),
-				dbchargeflatfeerundetailedline.RunIDEQ(run.ID),
+				dbchargeflatfeerundetailedline.NamespaceEQ(runID.Namespace),
+				dbchargeflatfeerundetailedline.RunIDEQ(runID.ID),
 				dbchargeflatfeerundetailedline.DeletedAtIsNil(),
 			).
 			SetDeletedAt(now)
@@ -147,15 +141,15 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, chargeID meta.ChargeI
 	})
 }
 
-func buildDetailedLineCreate(db *entdb.Client, chargeID meta.ChargeID, runID string, line flatfee.DetailedLine) (*entdb.ChargeFlatFeeRunDetailedLineCreate, error) {
+func buildDetailedLineCreate(db *entdb.Client, runID flatfee.RealizationRunID, line flatfee.DetailedLine) (*entdb.ChargeFlatFeeRunDetailedLineCreate, error) {
 	if line.ID == "" {
 		line.ID = ulid.Make().String()
 	}
 
 	create := db.ChargeFlatFeeRunDetailedLine.Create().
 		SetID(line.ID).
-		SetNamespace(chargeID.Namespace).
-		SetRunID(runID).
+		SetNamespace(runID.Namespace).
+		SetRunID(runID.ID).
 		SetPricerReferenceID(line.ChildUniqueReferenceID)
 
 	create = stddetailedline.Create(create, line)

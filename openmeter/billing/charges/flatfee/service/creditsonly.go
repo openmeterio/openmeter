@@ -90,12 +90,14 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 	}
 
 	if s.Charge.Realizations.CurrentRun == nil {
-		runBase, err := s.Adapter.ProvisionCurrentRun(ctx, flatfee.ProvisionCurrentRunInput{
+		runBase, err := s.Adapter.CreateCurrentRun(ctx, flatfee.CreateCurrentRunInput{
 			Charge:                    s.Charge.ChargeBase,
+			ServicePeriod:             s.Charge.Intent.ServicePeriod,
+			AmountAfterProration:      amount,
 			NoFiatTransactionRequired: true, // We are in credits-only mode
 		})
 		if err != nil {
-			return fmt.Errorf("provision current run: %w", err)
+			return fmt.Errorf("create current run: %w", err)
 		}
 
 		s.Charge.Realizations.CurrentRun = &flatfee.RealizationRun{
@@ -125,6 +127,7 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 
 		if _, err := s.Realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
 			Charge:             s.Charge,
+			Run:                *s.Charge.Realizations.CurrentRun,
 			AllocateAt:         clock.Now(),
 			CurrencyCalculator: currencyCalculator,
 		}); err != nil {

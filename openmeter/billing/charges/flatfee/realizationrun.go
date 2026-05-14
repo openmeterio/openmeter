@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/mo"
@@ -49,6 +50,81 @@ func (i RealizationRunID) Validate() error {
 	return models.NamespacedID(i).Validate()
 }
 
+type UpdateRealizationRunInput struct {
+	ID RealizationRunID
+
+	Type                      mo.Option[RealizationRunType]    `json:"type"`
+	DeletedAt                 mo.Option[*time.Time]            `json:"deletedAt,omitempty"`
+	LineID                    mo.Option[*string]               `json:"lineId,omitempty"`
+	InvoiceID                 mo.Option[*string]               `json:"invoiceId,omitempty"`
+	ServicePeriod             mo.Option[timeutil.ClosedPeriod] `json:"servicePeriod"`
+	AmountAfterProration      mo.Option[alpacadecimal.Decimal] `json:"amountAfterProration"`
+	Totals                    mo.Option[totals.Totals]         `json:"totals"`
+	NoFiatTransactionRequired mo.Option[bool]                  `json:"noFiatTransactionRequired"`
+	Immutable                 mo.Option[bool]                  `json:"immutable"`
+}
+
+func (r UpdateRealizationRunInput) Normalized() UpdateRealizationRunInput {
+	if r.ServicePeriod.IsPresent() {
+		r.ServicePeriod = mo.Some(meta.NormalizeClosedPeriod(r.ServicePeriod.OrEmpty()))
+	}
+
+	return r
+}
+
+func (r UpdateRealizationRunInput) Validate() error {
+	var errs []error
+
+	if err := r.ID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("namespaced id: %w", err))
+	}
+
+	if r.Type.IsPresent() {
+		if err := r.Type.OrEmpty().Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("type: %w", err))
+		}
+	}
+
+	if r.DeletedAt.IsPresent() {
+		deletedAt := r.DeletedAt.OrEmpty()
+		if deletedAt != nil && deletedAt.IsZero() {
+			errs = append(errs, fmt.Errorf("deleted at must be non-zero when set"))
+		}
+	}
+
+	if r.LineID.IsPresent() {
+		lineID := r.LineID.OrEmpty()
+		if lineID != nil && *lineID == "" {
+			errs = append(errs, fmt.Errorf("line id must be non-empty"))
+		}
+	}
+
+	if r.InvoiceID.IsPresent() {
+		invoiceID := r.InvoiceID.OrEmpty()
+		if invoiceID != nil && *invoiceID == "" {
+			errs = append(errs, fmt.Errorf("invoice id must be non-empty"))
+		}
+	}
+
+	if r.ServicePeriod.IsPresent() {
+		if err := r.ServicePeriod.OrEmpty().Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("service period: %w", err))
+		}
+	}
+
+	if r.AmountAfterProration.IsPresent() && r.AmountAfterProration.OrEmpty().IsNegative() {
+		errs = append(errs, fmt.Errorf("amount after proration must be zero or positive"))
+	}
+
+	if r.Totals.IsPresent() {
+		if err := r.Totals.OrEmpty().Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("totals: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type RealizationRunBase struct {
 	ID RealizationRunID `json:"id"`
 	models.ManagedModel
@@ -63,6 +139,9 @@ type RealizationRunBase struct {
 	AmountAfterProration      alpacadecimal.Decimal `json:"amountAfterProration"`
 	Totals                    totals.Totals         `json:"totals"`
 	NoFiatTransactionRequired bool                  `json:"noFiatTransactionRequired"`
+	// Immutable means the backing invoice line can no longer be updated in place.
+	// When true, deleting this run requires issuing a credit note instead of mutating the invoice line.
+	Immutable bool `json:"immutable"`
 }
 
 func (r RealizationRunBase) Normalized() RealizationRunBase {

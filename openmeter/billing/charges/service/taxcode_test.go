@@ -727,10 +727,10 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 	s.FlatFeeTestHandler.onInvoiceUsageAccrued = func(_ context.Context, _ flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error) {
 		return ledgertransaction.GroupReference{TransactionGroupID: ulid.Make().String()}, nil
 	}
-	s.FlatFeeTestHandler.onPaymentAuthorized = func(_ context.Context, _ flatfee.Charge) (ledgertransaction.GroupReference, error) {
+	s.FlatFeeTestHandler.onPaymentAuthorized = func(_ context.Context, _ flatfee.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
 		return ledgertransaction.GroupReference{TransactionGroupID: ulid.Make().String()}, nil
 	}
-	s.FlatFeeTestHandler.onPaymentSettled = func(_ context.Context, _ flatfee.Charge) (ledgertransaction.GroupReference, error) {
+	s.FlatFeeTestHandler.onPaymentSettled = func(_ context.Context, _ flatfee.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
 		return ledgertransaction.GroupReference{TransactionGroupID: ulid.Make().String()}, nil
 	}
 

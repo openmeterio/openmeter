@@ -109,7 +109,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 						BillingPeriod:     servicePeriod,
 					},
 					InvoiceAt:             servicePeriod.To,
-					SettlementMode:        productcatalog.InvoiceOnlySettlementMode,
+					SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,
 					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
 					AmountBeforeProration: alpacadecimal.NewFromInt(10),
 					ProRating: productcatalog.ProRatingConfig{
@@ -117,7 +117,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				},
-				InitialStatus:        flatfee.StatusActive,
+				InitialStatus:        flatfee.StatusCreated,
 				AmountAfterProration: alpacadecimal.NewFromInt(10),
 			},
 		},
@@ -126,6 +126,13 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 	s.Require().Len(createdCharges, 1)
 
 	charge := createdCharges[0]
+	run, err := s.adapter.CreateCurrentRun(ctx, flatfee.CreateCurrentRunInput{
+		Charge:               charge.ChargeBase,
+		ServicePeriod:        servicePeriod,
+		AmountAfterProration: alpacadecimal.NewFromInt(10),
+	})
+	s.Require().NoError(err)
+	runID := run.ID
 
 	initialLines := flatfee.DetailedLines{
 		s.newDetailedLine(newDetailedLineInput{
@@ -143,7 +150,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 			Description:            lo.ToPtr("delete me"),
 		}),
 	}
-	s.Require().NoError(s.adapter.UpsertDetailedLines(ctx, charge.GetChargeID(), initialLines))
+	s.Require().NoError(s.adapter.UpsertDetailedLines(ctx, runID, initialLines))
 
 	replacementLines := flatfee.DetailedLines{
 		s.newDetailedLine(newDetailedLineInput{
@@ -160,7 +167,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 			Description:            lo.ToPtr("new description"),
 		}),
 	}
-	s.Require().NoError(s.adapter.UpsertDetailedLines(ctx, charge.GetChargeID(), replacementLines))
+	s.Require().NoError(s.adapter.UpsertDetailedLines(ctx, runID, replacementLines))
 
 	fetchedCharge, err := s.adapter.GetByID(ctx, flatfee.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
@@ -186,12 +193,12 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 		Only(ctx)
 	s.Require().NoError(err)
 	s.Require().NotNil(dbCharge.CurrentRealizationRunID)
-	runID := *dbCharge.CurrentRealizationRunID
+	s.Equal(runID.ID, *dbCharge.CurrentRealizationRunID)
 
 	keptRow, err := s.dbClient.ChargeFlatFeeRunDetailedLine.Query().
 		Where(
 			dbchargeflatfeerundetailedline.NamespaceEQ(namespace),
-			dbchargeflatfeerundetailedline.RunIDEQ(runID),
+			dbchargeflatfeerundetailedline.RunIDEQ(runID.ID),
 			dbchargeflatfeerundetailedline.ChildUniqueReferenceIDEQ("keep"),
 			dbchargeflatfeerundetailedline.DeletedAtIsNil(),
 		).
@@ -202,7 +209,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 	newRow, err := s.dbClient.ChargeFlatFeeRunDetailedLine.Query().
 		Where(
 			dbchargeflatfeerundetailedline.NamespaceEQ(namespace),
-			dbchargeflatfeerundetailedline.RunIDEQ(runID),
+			dbchargeflatfeerundetailedline.RunIDEQ(runID.ID),
 			dbchargeflatfeerundetailedline.ChildUniqueReferenceIDEQ("new"),
 			dbchargeflatfeerundetailedline.DeletedAtIsNil(),
 		).
@@ -213,7 +220,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 	deletedRow, err := s.dbClient.ChargeFlatFeeRunDetailedLine.Query().
 		Where(
 			dbchargeflatfeerundetailedline.NamespaceEQ(namespace),
-			dbchargeflatfeerundetailedline.RunIDEQ(runID),
+			dbchargeflatfeerundetailedline.RunIDEQ(runID.ID),
 			dbchargeflatfeerundetailedline.ChildUniqueReferenceIDEQ("delete"),
 		).
 		Only(ctx)

@@ -50,7 +50,6 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 
 	if err := validateSettlementMode(
 		input.Charge.Intent.SettlementMode,
-		productcatalog.InvoiceOnlySettlementMode,
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("invoice usage accrued: %w", err)
@@ -101,7 +100,6 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 
 	if err := validateSettlementMode(
 		input.Charge.Intent.SettlementMode,
-		productcatalog.InvoiceOnlySettlementMode,
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("payment authorized: %w", err)
@@ -168,7 +166,6 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 
 	if err := validateSettlementMode(
 		input.Charge.Intent.SettlementMode,
-		productcatalog.InvoiceOnlySettlementMode,
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", err)

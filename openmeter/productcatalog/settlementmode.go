@@ -8,14 +8,12 @@ import (
 type SettlementMode string
 
 const (
-	InvoiceOnlySettlementMode       SettlementMode = "invoice_only"
 	CreditThenInvoiceSettlementMode SettlementMode = "credit_then_invoice"
 	CreditOnlySettlementMode        SettlementMode = "credit_only"
 )
 
 func (s SettlementMode) Values() []string {
 	return []string{
-		string(InvoiceOnlySettlementMode),
 		string(CreditThenInvoiceSettlementMode),
 		string(CreditOnlySettlementMode),
 	}

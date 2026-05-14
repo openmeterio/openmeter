@@ -1947,7 +1947,7 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "payment_term", Type: field.TypeString},
 		{Name: "invoice_at", Type: field.TypeTime},
-		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"invoice_only", "credit_then_invoice", "credit_only"}},
+		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"credit_then_invoice", "credit_only"}},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "pro_rating", Type: field.TypeEnum, Enums: []string{"prorate_prices", "no_prorate"}},
 		{Name: "feature_key", Type: field.TypeString, Nullable: true},
@@ -2073,6 +2073,7 @@ var (
 		{Name: "service_period_to", Type: field.TypeTime},
 		{Name: "amount_after_proration", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "no_fiat_transaction_required", Type: field.TypeBool},
+		{Name: "immutable", Type: field.TypeBool},
 		{Name: "invoice_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "line_id", Type: field.TypeString, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2085,19 +2086,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_flat_fee_runs_billing_invoices_charge_flat_fee_runs",
-				Columns:    []*schema.Column{ChargeFlatFeeRunsColumns[19]},
+				Columns:    []*schema.Column{ChargeFlatFeeRunsColumns[20]},
 				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fee_runs_billing_invoice_lines_charge_flat_fee_runs",
-				Columns:    []*schema.Column{ChargeFlatFeeRunsColumns[20]},
+				Columns:    []*schema.Column{ChargeFlatFeeRunsColumns[21]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fee_runs_charge_flat_fees_runs",
-				Columns:    []*schema.Column{ChargeFlatFeeRunsColumns[21]},
+				Columns:    []*schema.Column{ChargeFlatFeeRunsColumns[22]},
 				RefColumns: []*schema.Column{ChargeFlatFeesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -2116,7 +2117,7 @@ var (
 			{
 				Name:    "chargeflatfeerun_namespace_charge_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeeRunsColumns[1], ChargeFlatFeeRunsColumns[21]},
+				Columns: []*schema.Column{ChargeFlatFeeRunsColumns[1], ChargeFlatFeeRunsColumns[22]},
 			},
 		},
 	}
@@ -2435,7 +2436,7 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "invoice_at", Type: field.TypeTime},
-		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"invoice_only", "credit_then_invoice", "credit_only"}},
+		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"credit_then_invoice", "credit_only"}},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "feature_key", Type: field.TypeString},
 		{Name: "rating_engine", Type: field.TypeEnum, Enums: []string{"delta", "period_preserving"}},
@@ -4253,7 +4254,7 @@ var (
 		{Name: "pro_rating_config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "effective_from", Type: field.TypeTime, Nullable: true},
 		{Name: "effective_to", Type: field.TypeTime, Nullable: true},
-		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"invoice_only", "credit_then_invoice", "credit_only"}, Default: "credit_then_invoice"},
+		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"credit_then_invoice", "credit_only"}, Default: "credit_then_invoice"},
 	}
 	// PlansTable holds the schema information for the "plans" table.
 	PlansTable = &schema.Table{
@@ -4602,7 +4603,7 @@ var (
 		{Name: "billing_anchor", Type: field.TypeTime},
 		{Name: "billing_cadence", Type: field.TypeString},
 		{Name: "pro_rating_config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"invoice_only", "credit_then_invoice", "credit_only"}, Default: "credit_then_invoice"},
+		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"credit_then_invoice", "credit_only"}, Default: "credit_then_invoice"},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "plan_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}

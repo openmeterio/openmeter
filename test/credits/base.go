@@ -126,6 +126,7 @@ type CreateMockChargeIntentInput struct {
 	SettlementMode    productcatalog.SettlementMode
 	ManagedBy         billing.InvoiceLineManagedBy
 	UniqueReferenceID string
+	ProRating         productcatalog.ProRatingConfig
 }
 
 func (i *CreateMockChargeIntentInput) Validate() error {
@@ -189,7 +190,8 @@ func (s *BaseSuite) CreateMockChargeIntent(input CreateMockChargeIntentInput) ch
 			PaymentTerm:    price.PaymentTerm,
 			FeatureKey:     input.FeatureKey,
 			InvoiceAt:      invoiceAt,
-			SettlementMode: lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.InvoiceOnlySettlementMode),
+			SettlementMode: lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
+			ProRating:      input.ProRating,
 
 			AmountBeforeProration: price.Amount,
 		}
@@ -200,7 +202,7 @@ func (s *BaseSuite) CreateMockChargeIntent(input CreateMockChargeIntentInput) ch
 		Intent:         intentMeta,
 		Price:          *input.Price,
 		InvoiceAt:      invoiceAt,
-		SettlementMode: lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.InvoiceOnlySettlementMode),
+		SettlementMode: lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 		FeatureKey:     input.FeatureKey,
 	}
 

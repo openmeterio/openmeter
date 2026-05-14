@@ -57,31 +57,30 @@ func New(config Config) (flatfee.Service, error) {
 	}
 
 	realizations, err := flatfeerealizations.New(flatfeerealizations.Config{
-		Adapter: config.Adapter,
-		Handler: config.Handler,
-		Lineage: config.Lineage,
+		Adapter:       config.Adapter,
+		Handler:       config.Handler,
+		Lineage:       config.Lineage,
+		RatingService: config.RatingService,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &service{
-		adapter:       config.Adapter,
-		handler:       config.Handler,
-		metaAdapter:   config.MetaAdapter,
-		locker:        config.Locker,
-		realizations:  realizations,
-		ratingService: config.RatingService,
+		adapter:      config.Adapter,
+		handler:      config.Handler,
+		metaAdapter:  config.MetaAdapter,
+		locker:       config.Locker,
+		realizations: realizations,
 	}, nil
 }
 
 type service struct {
-	adapter       flatfee.Adapter
-	handler       flatfee.Handler
-	metaAdapter   meta.Adapter
-	locker        *lockr.Locker
-	realizations  *flatfeerealizations.Service
-	ratingService rating.Service
+	adapter      flatfee.Adapter
+	handler      flatfee.Handler
+	metaAdapter  meta.Adapter
+	locker       *lockr.Locker
+	realizations *flatfeerealizations.Service
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {
