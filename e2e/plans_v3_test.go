@@ -4,9 +4,11 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	api "github.com/openmeterio/openmeter/api/client/go"
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
 )
 
@@ -442,4 +444,162 @@ func TestV3PlanInvalidCurrency(t *testing.T) {
 	status, _, problem := c.CreatePlan(body)
 	assert.Equal(t, http.StatusBadRequest, status, "problem: %+v", problem)
 	assertValidationCode(t, problem, "currency_invalid")
+}
+
+// TestV3PlanReadTranslatesV1DynamicAndPackagePrices verifies the v3 read-side
+// translation of v1 dynamic and package prices into a unit price plus a
+// synthesized unit_config on the rate card.
+//
+// Mapping (api/v3/handlers/plans/convert.go):
+//   - dynamic(multiplier=m)      → unit(amount=1) + unit_config{operation=multiply, conversion_factor=m}
+//   - package(amount=a, qpp=q)   → unit(amount=a) + unit_config{operation=divide, conversion_factor=q, rounding=ceiling}
+//
+// Spend commitments (min/max amount) carried on the v1 price flow through to
+// the v3 rate card's commitments field unchanged.
+//
+// The plan is authored via the v1 SDK and read via v3 GET and v3 LIST. The
+// unit_config field is read-only on v3, so this test does not exercise a v3
+// write path for it.
+func TestV3PlanReadTranslatesV1DynamicAndPackagePrices(t *testing.T) {
+	v1 := initClient(t)
+	v3 := newV3Client(t)
+
+	suffix := uniqueKey("v3_translates_v1")
+	planKey := suffix
+	dynamicRCKey := "dynamic_rc_" + suffix
+	packageRCKey := "package_rc_" + suffix
+
+	dynamicPrice := api.RateCardUsageBasedPrice{}
+	require.NoError(t, dynamicPrice.FromDynamicPriceWithCommitments(api.DynamicPriceWithCommitments{
+		Type:          api.DynamicPriceWithCommitmentsTypeDynamic,
+		Multiplier:    lo.ToPtr(api.Numeric("1.2")),
+		MinimumAmount: lo.ToPtr(api.Numeric("10")),
+		MaximumAmount: lo.ToPtr(api.Numeric("100")),
+	}))
+
+	dynamicRC := api.RateCard{}
+	require.NoError(t, dynamicRC.FromRateCardUsageBased(api.RateCardUsageBased{
+		Type:           api.RateCardUsageBasedTypeUsageBased,
+		Name:           "Dynamic RC",
+		Key:            dynamicRCKey,
+		BillingCadence: "P1M",
+		Price:          &dynamicPrice,
+	}))
+
+	packagePrice := api.RateCardUsageBasedPrice{}
+	require.NoError(t, packagePrice.FromPackagePriceWithCommitments(api.PackagePriceWithCommitments{
+		Type:               api.PackagePriceWithCommitmentsTypePackage,
+		Amount:             "0.5",
+		QuantityPerPackage: "1000",
+		MinimumAmount:      lo.ToPtr(api.Numeric("5")),
+	}))
+
+	packageRC := api.RateCard{}
+	require.NoError(t, packageRC.FromRateCardUsageBased(api.RateCardUsageBased{
+		Type:           api.RateCardUsageBasedTypeUsageBased,
+		Name:           "Package RC",
+		Key:            packageRCKey,
+		BillingCadence: "P1M",
+		Price:          &packagePrice,
+	}))
+
+	planCreate := api.PlanCreate{
+		Currency:       api.CurrencyCode("USD"),
+		Name:           "v1 Plan with Dynamic and Package Prices",
+		Key:            planKey,
+		BillingCadence: "P1M",
+		Phases: []api.PlanPhase{
+			{
+				Name:      "Phase 1",
+				Key:       "phase_1_" + suffix,
+				RateCards: []api.RateCard{dynamicRC, packageRC},
+			},
+		},
+	}
+
+	var planID string
+
+	t.Run("Should create the v1 plan with dynamic and package rate cards", func(t *testing.T) {
+		resp, err := v1.CreatePlanWithResponse(t.Context(), planCreate)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON201)
+
+		planID = resp.JSON201.Id
+	})
+
+	t.Run("v3 GET should translate dynamic price to unit + multiply unit_config", func(t *testing.T) {
+		require.NotEmpty(t, planID)
+
+		status, plan, problem := v3.GetPlan(planID)
+		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		require.NotNil(t, plan)
+
+		rc := findRateCardByKey(t, plan, dynamicRCKey)
+
+		assertUnitPriceAmount(t, rc, "1")
+
+		require.NotNil(t, rc.UnitConfig, "expected synthesized unit_config")
+		assert.Equal(t, apiv3.BillingUnitConfigOperationMultiply, rc.UnitConfig.Operation)
+		assert.Equal(t, apiv3.Numeric("1.2"), rc.UnitConfig.ConversionFactor)
+		assert.Nil(t, rc.UnitConfig.Rounding, "dynamic translation does not set rounding")
+
+		require.NotNil(t, rc.Commitments, "v1 commitments should round-trip via v3")
+		assert.Equal(t, lo.ToPtr(apiv3.Numeric("10")), rc.Commitments.MinimumAmount)
+		assert.Equal(t, lo.ToPtr(apiv3.Numeric("100")), rc.Commitments.MaximumAmount)
+	})
+
+	t.Run("v3 GET should translate package price to unit + divide+ceiling unit_config", func(t *testing.T) {
+		require.NotEmpty(t, planID)
+
+		status, plan, problem := v3.GetPlan(planID)
+		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		require.NotNil(t, plan)
+
+		rc := findRateCardByKey(t, plan, packageRCKey)
+
+		assertUnitPriceAmount(t, rc, "0.5")
+
+		require.NotNil(t, rc.UnitConfig, "expected synthesized unit_config")
+		assert.Equal(t, apiv3.BillingUnitConfigOperationDivide, rc.UnitConfig.Operation)
+		assert.Equal(t, apiv3.Numeric("1000"), rc.UnitConfig.ConversionFactor)
+		require.NotNil(t, rc.UnitConfig.Rounding, "package translation must set rounding=ceiling")
+		assert.Equal(t, apiv3.BillingUnitConfigRoundingModeCeiling, *rc.UnitConfig.Rounding)
+
+		require.NotNil(t, rc.Commitments, "v1 commitments should round-trip via v3")
+		assert.Equal(t, lo.ToPtr(apiv3.Numeric("5")), rc.Commitments.MinimumAmount)
+		assert.Nil(t, rc.Commitments.MaximumAmount)
+	})
+
+	t.Run("v3 LIST should include the plan with both rate cards translated", func(t *testing.T) {
+		require.NotEmpty(t, planID)
+
+		// Bump page size so a fresh fixture isn't pushed off page 1 on a shared DB.
+		status, page, problem := v3.ListPlans(withPageSize(1000))
+		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		require.NotNil(t, page)
+
+		var found *apiv3.BillingPlan
+		for i := range page.Data {
+			if page.Data[i].Id == planID {
+				found = &page.Data[i]
+				break
+			}
+		}
+		require.NotNil(t, found, "created plan not in list response (the v3 list handler should no longer skip plans with v1 dynamic/package prices)")
+
+		dynRC := findRateCardByKey(t, found, dynamicRCKey)
+		assertUnitPriceAmount(t, dynRC, "1")
+		require.NotNil(t, dynRC.UnitConfig)
+		assert.Equal(t, apiv3.BillingUnitConfigOperationMultiply, dynRC.UnitConfig.Operation)
+		assert.Equal(t, apiv3.Numeric("1.2"), dynRC.UnitConfig.ConversionFactor)
+
+		pkgRC := findRateCardByKey(t, found, packageRCKey)
+		assertUnitPriceAmount(t, pkgRC, "0.5")
+		require.NotNil(t, pkgRC.UnitConfig)
+		assert.Equal(t, apiv3.BillingUnitConfigOperationDivide, pkgRC.UnitConfig.Operation)
+		assert.Equal(t, apiv3.Numeric("1000"), pkgRC.UnitConfig.ConversionFactor)
+		require.NotNil(t, pkgRC.UnitConfig.Rounding)
+		assert.Equal(t, apiv3.BillingUnitConfigRoundingModeCeiling, *pkgRC.UnitConfig.Rounding)
+	})
 }
