@@ -1,0 +1,111 @@
+{
+  "openmeter/billing": {
+    "purpose": "Core billing domain contract layer \u2014 defines the composite billing.Service interface (12 sub-interfaces: ProfileService, CustomerOverrideService, InvoiceService, GatheringInvoiceService, StandardInvoiceService, InvoiceLineService, SequenceService, LockableService, InvoiceAppService, ConfigService, LineEngineService, SplitLineGroupService), billing.Adapter interface, and all billing domain model types. No business logic lives here; this is the shared import contract for billing/service, billing/adapter, billing/httpdriver, billing/worker, app/common, and v3 API handlers.",
+    "patterns": [
+      {
+        "name": "Tagged-union InvoiceLine with private discriminator",
+        "description": "InvoiceLine has a private field `t InvoiceLineType` set only by NewStandardInvoiceLine / NewGatheringInvoiceLine constructors. Accessed via AsStandardLine() / AsGatheringLine() / AsGenericLine() which return errors on type mismatch. Never construct with struct literals \u2014 discriminator stays zero and all accessors error.",
+        "example": "line := billing.NewStandardInvoiceLine(billing.StandardInvoiceLineInput{...})\nstd, err := line.AsStandardLine() // type-safe access"
+      },
+      {
+        "name": "Composite Service assembled from fine-grained sub-interfaces",
+        "description": "billing.Service embeds 12 sub-interfaces (ProfileService, CustomerOverrideService, InvoiceService, etc.). Callers depend only on the narrowest slice. When adding a new capability, add it to the appropriate sub-interface \u2014 never add methods directly to the top-level Service alias.",
+        "example": "// Callers that only need profile operations take ProfileService, not billing.Service\nfunc NewProfileHandler(svc billing.ProfileService) *ProfileHandler { ... }"
+      },
+      {
+        "name": "Input.Validate() on every cross-boundary struct",
+        "description": "Every Input type implements Validate() error. Service methods call input.Validate() at entry. New Input types must implement Validate() and callers must invoke it before passing to service or adapter methods.",
+        "example": "func (u UpsertCustomerOverrideInput) Validate() error {\n    if u.Namespace == \"\" { return fmt.Errorf(\"namespace is required\") }\n    return u.Collection.Validate()\n}"
+      },
+      {
+        "name": "InvoicingApp plugin interface with read-only invoice contract",
+        "description": "billing.InvoicingApp (ValidateStandardInvoice, UpsertStandardInvoice, FinalizeStandardInvoice, DeleteStandardInvoice) is the plugin contract for Stripe/Sandbox/CustomInvoicing. Invoices passed to callbacks are read-only snapshots \u2014 mutations are silently dropped. Use UpsertResults / FinalizeStandardInvoiceResult builder and MergeIntoInvoice() to propagate external IDs back.",
+        "example": "result := billing.NewUpsertStandardInvoiceResult()\nresult.AddLineExternalID(line.ID, extID)\nresult.MergeIntoInvoice(invoice) // called by billing.Service, not by the app"
+      },
+      {
+        "name": "AnnotationKey/AnnotationValue constants for gathering line metadata",
+        "description": "consts.go and annotations.go define AnnotationKeyTaxable, AnnotationKeyReason, AnnotationValueReasonCreditPurchase, AnnotationSubscriptionSyncIgnore, AnnotationSubscriptionSyncForceContinuousLines. Always use these constants; never hardcode annotation strings inline.",
+        "example": "line.Annotations[billing.AnnotationKeyReason] = billing.AnnotationValueReasonCreditPurchase"
+      },
+      {
+        "name": "WorkflowConfig nested Validate() chain",
+        "description": "WorkflowConfig embeds CollectionConfig, InvoicingConfig, PaymentConfig, WorkflowTaxConfig \u2014 each with its own Validate(). CollectionConfig enforces AnchoredAlignmentDetail \u2194 AlignmentKindAnchored consistency. WorkflowTaxConfig rejects Enforced=true when Enabled=false. Always call WorkflowConfig.Validate() before persisting.",
+        "example": "func (c WorkflowConfig) Validate() error {\n    if err := c.Collection.Validate(); err != nil { return fmt.Errorf(\"collection: %w\", err) }\n    return c.Tax.Validate()\n}"
+      },
+      {
+        "name": "UpsertResults builder for external-ID round-trip",
+        "description": "UpsertStandardInvoiceResult / FinalizeStandardInvoiceResult use fluent setters (SetInvoiceNumber, AddLineExternalID, SetPaymentExternalID). MergeIntoInvoice() propagates external IDs into the in-memory invoice under billing-service control. Never set fields directly on invoice inside an app callback.",
+        "example": "result := billing.NewUpsertStandardInvoiceResult()\nresult.SetInvoiceNumber(\"INV-001\").AddLineExternalID(lineID, \"ext-123\")\n// billing.Service calls result.MergeIntoInvoice(invoice) after callback returns"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Composite billing.Service interface definition and all 12 sub-interface declarations. The single import point for all callers of billing capabilities.",
+        "watch_for": "Adding implementation code here breaks the contract layer. Adding a method to a sub-interface silently breaks all existing mock implementations \u2014 regenerate wire_gen.go and update all mocks."
+      },
+      {
+        "file": "adapter.go",
+        "role": "billing.Adapter interface composed of all DB access sub-interfaces plus entutils.TxCreator. Every new DB operation must appear here before the Ent adapter can implement it.",
+        "watch_for": "Missing TxCreator embedment breaks entutils.TransactingRepo rebinding. New adapter sub-interface methods must also be added to the concrete adapter in billing/adapter/."
+      },
+      {
+        "file": "invoiceline.go",
+        "role": "InvoiceLine tagged-union type with private discriminator, constructor functions NewStandardInvoiceLine / NewGatheringInvoiceLine, and typed accessors AsStandardLine / AsGatheringLine / AsGenericLine.",
+        "watch_for": "Never construct InvoiceLine{} with struct literals \u2014 discriminator `t` is zero, all accessors error. Always use the constructor functions."
+      },
+      {
+        "file": "app.go",
+        "role": "InvoicingApp interface, optional InvoicingAppPostAdvanceHook + InvoicingAppAsyncSyncer, UpsertResults/FinalizeStandardInvoiceResult builders, and SyncInput interface with SyncDraftStandardInvoiceInput / SyncIssuingStandardInvoiceInput implementations.",
+        "watch_for": "Invoice passed to app callbacks is read-only \u2014 mutations are lost. Never call billing.Service from inside app callbacks. SyncInput.Validate() and ValidateWithInvoice() must both be called."
+      },
+      {
+        "file": "workflow.go",
+        "role": "WorkflowConfig and sub-configs (CollectionConfig, InvoicingConfig, PaymentConfig, WorkflowTaxConfig) with full Validate() chains.",
+        "watch_for": "AnchoredAlignmentDetail is only valid when Alignment == AlignmentKindAnchored. WorkflowTaxConfig.Enforced=true requires Enabled=true. DefaultWorkflowConfig in defaults.go is the canonical zero-value \u2014 do not duplicate it."
+      },
+      {
+        "file": "errors.go",
+        "role": "Sentinel error types: ValidationError, NotFoundError, UpdateAfterDeleteError, AppError. HTTP layer maps these to 400/404/400/424 respectively via the billing errorEncoder.",
+        "watch_for": "Returning plain fmt.Errorf for domain conditions breaks HTTP status code mapping \u2014 always use the typed sentinels so the error encoder chain produces correct 4xx responses."
+      },
+      {
+        "file": "validationissue.go",
+        "role": "billing.ValidationIssue (distinct from pkg/models.ValidationIssue) for invoice-level domain validation errors stored on the invoice record itself.",
+        "watch_for": "Do not confuse billing.ValidationIssue with models.ValidationIssue / pkg/models. They serve different purposes: billing.ValidationIssue is persisted on the invoice; models.ValidationIssue is ephemeral HTTP-layer error metadata."
+      },
+      {
+        "file": "consts.go / annotations.go",
+        "role": "AnnotationKey*, AnnotationValue* constants for gathering invoice line metadata. AnnotationSubscriptionSync* constants drive subscription sync behavior.",
+        "watch_for": "Hardcoding annotation key/value strings instead of using these constants creates silent mismatches when constants change."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing InvoiceLine{} or InvoiceGatheringLine{} with struct literals instead of NewStandardInvoiceLine/NewGatheringInvoiceLine \u2014 leaves discriminator field `t` empty, all accessor methods error at runtime",
+      "Returning plain fmt.Errorf from service/adapter methods for domain conditions \u2014 use billing.ValidationError, billing.NotFoundError, or billing.UpdateAfterDeleteError so the HTTP error encoder maps to correct 4xx status codes",
+      "Mutating the invoice inside InvoicingApp callbacks (ValidateStandardInvoice/UpsertStandardInvoice/FinalizeStandardInvoice) \u2014 the invoice is a read-only snapshot; mutations are silently discarded by the billing.Service",
+      "Hardcoding annotation key/value strings instead of using the billing.AnnotationKey*/AnnotationValue* constants from consts.go and annotations.go",
+      "Adding implementation code to service.go or adapter.go \u2014 these define only interface contracts; business logic belongs in billing/service/, persistence in billing/adapter/"
+    ],
+    "decisions": [
+      {
+        "decision": "Composite billing.Service assembled from 12 fine-grained sub-interfaces rather than a single monolithic interface",
+        "rationale": "Callers (worker, httpdriver, charges, subscriptionsync) depend only on the slice of billing capability they use, making mocking, testing, and future extraction of sub-domains cheaper without forcing full interface implementation."
+      },
+      {
+        "decision": "InvoiceLine as a tagged union with a private discriminator rather than a Go interface or separate top-level types",
+        "rationale": "A tagged union provides exhaustive switching via Type() and type-safe accessors (AsStandardLine, AsGatheringLine) while keeping both line kinds in a single list type without reflection or interface casts at every call site."
+      },
+      {
+        "decision": "UpsertResults / FinalizeStandardInvoiceResult as opaque builder structs with fluent setters rather than plain maps or direct invoice mutations",
+        "rationale": "External billing apps must not arbitrarily mutate billing domain state; the builder limits writable surface to invoice numbers, external IDs, and payment IDs, and MergeIntoInvoice applies them under billing-service control."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implementing a new InvoicingApp integration",
+        "code": "import (\n    \"context\"\n    \"github.com/openmeterio/openmeter/openmeter/billing\"\n)\n\ntype myApp struct{}\n\nfunc (a *myApp) ValidateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {\n    // Validate without mutating invoice \u2014 mutations are silently dropped\n    return nil\n}\n\nfunc (a *myApp) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {\n    result := billing.NewUpsertStandardInvoiceResult()\n    for _, line := range invoice.Lines.OrEmpty() {\n        extID, err := syncLineToExternal(ctx, line)\n        if err != nil { return nil, err }\n        result.AddLineExternalID(line.ID, extID)\n    }\n    return result, nil\n    // billing.Service calls result.MergeIntoInvoice(invoice) after this returns\n}"
+      }
+    ]
+  }
+}

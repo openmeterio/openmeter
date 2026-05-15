@@ -2,23 +2,23 @@
 
 <!-- archie:ai-start -->
 
-> Integration tests for the custom invoicing app — validates the async sync protocol (draft→issuing→payment) and invoice event JSON marshaling, exercising the full billing state machine against a real Postgres DB via billingtest.BaseSuite.
+> Integration tests for the custom invoicing app validating the async sync protocol (draft→issuing→payment) and invoice event JSON marshaling against a real Postgres DB via billingtest.BaseSuite. Primary constraint: all service interactions must go through BillingService and CustomInvoicingService — never adapter or Ent directly.
 
 ## Patterns
 
-**Embed billingtest.BaseSuite** — All test suites embed billingtest.BaseSuite (not app/common wiring) to get BillingService, CustomerService, AppService, MockStreamingConnector, etc. wired from raw package constructors. (`type CustomInvoicingTestSuite struct { billingtest.BaseSuite }`)
-**setupDefaultBillingProfile helper** — Each test scenario calls s.setupDefaultBillingProfile(ctx, namespace, config) to install the custom invoicing app, configure it, and provision the billing profile before any invoice operations. (`s.setupDefaultBillingProfile(ctx, namespace, appcustominvoicing.Configuration{EnableDraftSyncHook: true, EnableIssuingSyncHook: true})`)
-**Drive state machine via service layer, not adapter** — Invoice lifecycle is driven through s.BillingService and s.CustomInvoicingService (SyncDraftInvoice, SyncIssuingInvoice, HandlePaymentTrigger) — never through adapter or Ent directly. (`s.CustomInvoicingService.SyncDraftInvoice(ctx, appcustominvoicing.SyncDraftInvoiceInput{...})`)
-**Unique namespace per test function** — Every test function uses a unique namespace string literal (e.g. 'ns-custom-invoicing-flow') to avoid cross-test DB contamination without needing teardown. (`namespace := "ns-custom-invoicing-flow"`)
-**MockStreamingConnector for usage data** — Usage data is injected via s.MockStreamingConnector.AddSimpleEvent before invoicing; always defer s.MockStreamingConnector.Reset() to clean up. (`s.MockStreamingConnector.AddSimpleEvent("test", 100, periodStart.Add(time.Minute)); defer s.MockStreamingConnector.Reset()`)
-**Suite.Run for sub-scenarios** — Related invoice lifecycle steps are grouped with s.Run('description', func(){...}) to produce hierarchical test output and share invoice state between steps. (`s.Run("invoice can be created", func() { invoices, err := s.BillingService.InvoicePendingLines(...) })`)
+**Embed billingtest.BaseSuite** — All test suites embed billingtest.BaseSuite (not app/common wiring) to get BillingService, CustomerService, AppService, MockStreamingConnector wired from raw package constructors. (`type CustomInvoicingTestSuite struct { billingtest.BaseSuite }`)
+**setupDefaultBillingProfile helper** — Each test scenario calls s.setupDefaultBillingProfile(ctx, namespace, config) to install the custom invoicing app, configure it, and provision the billing profile before any invoice operations. DraftPeriod is set to P0D so lines immediately become invoiceable. (`s.setupDefaultBillingProfile(ctx, namespace, appcustominvoicing.Configuration{EnableDraftSyncHook: true, EnableIssuingSyncHook: true})`)
+**Drive state machine via service layer only** — Invoice lifecycle is driven exclusively through s.BillingService and s.CustomInvoicingService (SyncDraftInvoice, SyncIssuingInvoice, HandlePaymentTrigger) — never through adapter or Ent directly. (`s.CustomInvoicingService.SyncDraftInvoice(ctx, appcustominvoicing.SyncDraftInvoiceInput{InvoiceID: invoice.GetInvoiceID(), UpsertInvoiceResults: upsertResults})`)
+**Unique namespace per test function** — Every test function uses a unique string literal namespace to avoid cross-test DB contamination without teardown. (`namespace := "ns-custom-invoicing-flow"`)
+**MockStreamingConnector with deferred Reset** — Usage data injected via s.MockStreamingConnector.AddSimpleEvent before invoicing; always defer s.MockStreamingConnector.Reset() to prevent stale events bleeding into subsequent tests. (`s.MockStreamingConnector.AddSimpleEvent("test", 100, periodStart.Add(time.Minute)); defer s.MockStreamingConnector.Reset()`)
+**Suite.Run for sub-scenarios** — Related invoice lifecycle steps grouped with s.Run('description', func(){}) to share invoice state between steps and produce hierarchical test output. (`s.Run("invoice can be created", func() { invoices, err := s.BillingService.InvoicePendingLines(...) })`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `invocing_test.go` | Main integration test: CustomInvoicingTestSuite covers full invoice flow (hooks enabled) and payment-status-only flow (hooks disabled); also provides setupDefaultBillingProfile helper. | DraftPeriod is set to P0D in setupDefaultBillingProfile so lines immediately become invoiceable — change carefully or invoicing assertions will break. |
-| `event_test.go` | Unit-level JSON round-trip test for billing.StandardInvoiceCreatedEvent — validates that app bases and appcustominvoicing.Meta survive marshal/unmarshal. | Uses context.Background() (not t.Context()) — acceptable here because no cancellation semantics are tested; new tests should prefer t.Context(). |
+| `invocing_test.go` | Main integration test covering full invoice flow (hooks enabled) and payment-status-only flow (hooks disabled); also provides setupDefaultBillingProfile helper used by event_test.go. | DraftPeriod is set to P0D in setupDefaultBillingProfile so lines immediately become invoiceable — changing this requires adjusting AsOf in InvoicePendingLines or assertions will fail. The two test functions cover two distinct state machine paths: hooks-enabled produces draft.syncing; hooks-disabled produces payment_processing.pending directly. |
+| `event_test.go` | Unit-level JSON round-trip test for billing.StandardInvoiceCreatedEvent — validates that app bases and appcustominvoicing.Meta survive marshal/unmarshal intact. | Uses context.Background() rather than t.Context() — acceptable here since no cancellation semantics are tested; new tests should prefer t.Context(). |
 
 ## Anti-Patterns
 
@@ -31,7 +31,7 @@
 ## Decisions
 
 - **Tests embed billingtest.BaseSuite instead of constructing services manually** — Keeps test setup DRY and independent from app/common to avoid import cycles; BaseSuite provides all shared services from underlying constructors.
-- **Hook configuration (EnableDraftSyncHook/EnableIssuingSyncHook) is exercised with both true and false to validate the two distinct invoice state paths** — Custom invoicing has two modes: full async sync (draft→issuing sync) and payment-status-only (skips sync hooks); both paths need explicit coverage.
+- **Both EnableDraftSyncHook=true and EnableDraftSyncHook=false flows are exercised in separate test functions** — Custom invoicing has two distinct state machine paths: full async sync (draft→issuing sync hooks) and payment-status-only (skips sync hooks, goes directly to payment_processing.pending); both paths need explicit coverage.
 
 ## Example: Full invoice lifecycle with sync hooks enabled
 
@@ -50,7 +50,7 @@ func (s *MyTestSuite) TestFlow() {
   s.setupDefaultBillingProfile(ctx, namespace, appcustominvoicing.Configuration{EnableDraftSyncHook: true})
   invoices, _ := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{...})
   s.Equal(billing.StandardInvoiceStatusDraftSyncing, invoices[0].Status)
-  synced, _ := s.CustomInvoicingService.SyncDraftInvoice(ctx, appcustominvoicing.SyncDraftInvoiceInput{InvoiceID: invoices[0].GetInvoiceID(), ...})
+  synced, _ := s.CustomInvoicingService.SyncDraftInvoice(ctx, appcustominvoicing.SyncDraftInvoiceInput{InvoiceID: invoices[0].GetInvoiceID()})
 // ...
 ```
 

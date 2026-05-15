@@ -1,6 +1,6 @@
 {
   "api/v3/handlers/addons": {
-    "purpose": "HTTP handlers for the v3 addon CRUD + lifecycle (publish/archive) endpoints, translating between apiv3.Addon wire types and addon.Service domain calls via the httptransport pattern.",
+    "purpose": "HTTP handlers for the v3 addon CRUD and lifecycle (publish/archive) endpoints, translating between apiv3.Addon wire types and addon.Service domain calls via the httptransport pipeline. Each operation lives in its own dedicated file.",
     "patterns": [
       {
         "name": "One operation per file",
@@ -53,6 +53,11 @@
         "file": "list.go",
         "role": "ListAddons with page-pagination using pagination.NewPage defaults (1, 20); validates page before building ListAddonsInput.",
         "watch_for": "Default page size is 20; page validation errors must use apierrors.NewBadRequestError with field='page'."
+      },
+      {
+        "file": "archive.go",
+        "role": "ArchiveAddon sets EffectiveTo: clock.Now() in the decoder \u2014 the HTTP layer owns wall-clock time, not the domain service.",
+        "watch_for": "Lifecycle operations (publish, archive) must set clock.Now() in the decoder, not inside the service call."
       }
     ],
     "anti_patterns": [
@@ -75,12 +80,12 @@
     "code_examples": [
       {
         "scenario": "Add a new addon lifecycle endpoint (e.g., RestoreAddon)",
-        "code": "// handler.go: add RestoreAddon() RestoreAddonHandler to Handler interface\n// restore.go:\npackage addons\nimport (\n\t\"context\"\n\t\"net/http\"\n\tapiv3 \"github.com/openmeterio/openmeter/api/v3\"\n\t\"github.com/openmeterio/openmeter/api/v3/apierrors\"\n\t\"github.com/openmeterio/openmeter/openmeter/productcatalog/addon\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\ntype (\n\tRestoreAddonRequest  = addon.RestoreAddonInput\n\tRestoreAddonResponse = apiv3.Addon\n\tRestoreAddonHandler  httptransport.HandlerWithArgs[RestoreAddonRequest, RestoreAddonResponse, string]\n)\nfunc (h *handler) RestoreAddon() RestoreAddonHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, addonID string) (RestoreAddonRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return RestoreAddonRequest{}, err }\n\t\t\treturn RestoreAddonRequest{NamespacedID: models.NamespacedID{Namespace: ns, ID: addonID}}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request RestoreAddonRequest) (RestoreAddonResponse, error) {\n\t\t\ta, err := h.service.RestoreAddon(ctx, request)\n\t\t\tif err != nil { return RestoreAddonResponse{}, err }\n\t\t\tif a == nil { return RestoreAddonResponse{}, fmt.Errorf(\"failed to restore add-on\") }\n\t\t\treturn ToAPIAddon(*a)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[RestoreAddonResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"restore-addon\"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))...,\n\t)\n}"
+        "code": "// restore.go\npackage addons\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"net/http\"\n\tapiv3 \"github.com/openmeterio/openmeter/api/v3\"\n\t\"github.com/openmeterio/openmeter/api/v3/apierrors\"\n\t\"github.com/openmeterio/openmeter/openmeter/productcatalog/addon\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\ntype (\n\tRestoreAddonRequest  = addon.RestoreAddonInput\n\tRestoreAddonResponse = apiv3.Addon\n\tRestoreAddonParams   = string\n\tRestoreAddonHandler  httptransport.HandlerWithArgs[RestoreAddonRequest, RestoreAddonResponse, string]\n)\nfunc (h *handler) RestoreAddon() RestoreAddonHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, addonID RestoreAddonParams) (RestoreAddonRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return RestoreAddonRequest{}, err }\n\t\t\treturn RestoreAddonRequest{NamespacedID: models.NamespacedID{Namespace: ns, ID: addonID}}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request RestoreAddonRequest) (RestoreAddonResponse, error) {\n\t\t\ta, err := h.service.RestoreAddon(ctx, request)\n\t\t\tif err != nil { return RestoreAddonResponse{}, err }\n\t\t\tif a == nil { return RestoreAddonResponse{}, fmt.Errorf(\"failed to restore add-on\") }\n\t\t\treturn ToAPIAddon(*a)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[RestoreAddonResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options,\n\t\t\thttptransport.WithOperationName(\"restore-addon\"),\n\t\t\thttptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n\t\t)...,\n\t)\n}"
       }
     ]
   },
   "api/v3/handlers/apps": {
-    "purpose": "HTTP handlers for listing and getting installed billing apps (Stripe, Sandbox, CustomInvoicing) in the v3 API; performs polymorphic type-assertion to map each app.App concrete type to the BillingApp union.",
+    "purpose": "HTTP handlers for listing and getting installed billing apps (Stripe, Sandbox, CustomInvoicing) in the v3 API; performs polymorphic type-assertion on app.App to map each concrete type to the BillingApp union discriminated type.",
     "patterns": [
       {
         "name": "Polymorphic app mapping via type-assertion switch",
@@ -89,11 +94,11 @@
       },
       {
         "name": "Goverter for simple struct conversions, manual code for discriminated unions",
-        "description": "convert.go carries goverter:variables annotations; convert.gen.go is generated. Simple field-to-field mappings (AppPagePaginatedResponse, BillingAppCatalogItem) are goverter-generated; the polymorphic ToAPIBillingApp is hand-written.",
+        "description": "convert.go carries goverter:variables annotations; convert.gen.go is generated. Simple field-to-field mappings are goverter-generated; the polymorphic ToAPIBillingApp is hand-written.",
         "example": "//go:generate go run github.com/jmattheis/goverter/cmd/goverter gen ./"
       },
       {
-        "name": "handler struct holds appService app.Service",
+        "name": "handler struct holds app.Service (not a domain-specific service)",
         "description": "Unlike other handlers that hold a domain-specific service, the apps handler holds app.Service (the top-level app registry service).",
         "example": "type handler struct { resolveNamespace ...; appService app.Service; options ... }"
       },
@@ -136,7 +141,12 @@
         "rationale": "Goverter cannot handle interface type-switches or oneOf union encoding."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Add a new billing app type mapping",
+        "code": "// In convert.go ToAPIBillingApp switch:\ncase app.AppTypeNewProvider:\n\tnewApp, ok := item.(appnewprovider.App)\n\tif !ok {\n\t\treturn api.BillingApp{}, fmt.Errorf(\"expected new-provider app, got %T\", item)\n\t}\n\tbillingAppNew, err := toAPIBillingAppNewProvider(newApp.Meta)\n\tif err != nil {\n\t\treturn api.BillingApp{}, fmt.Errorf(\"failed to map new-provider app to API: %w\", err)\n\t}\n\tbillingApp := api.BillingApp{}\n\tif err := billingApp.FromBillingAppNewProvider(billingAppNew); err != nil {\n\t\treturn billingApp, err\n\t}\n\treturn billingApp, nil\n// Also add goverter:enum:map AppTypeNewProvider BillingAppTypeNewProvider in ToAPIBillingAppTypeFromDomain"
+      }
+    ]
   },
   "api/v3/handlers/billingprofiles": {
     "purpose": "HTTP handlers for billing profile CRUD in the v3 API; bridges billing.Service (ProfileService) to HTTP with a domain-specific error encoder and goverter-generated conversions for workflow configs, tax config, and supplier parties.",
@@ -166,7 +176,7 @@
       {
         "file": "convert.go",
         "role": "Goverter annotations + hand-written helpers (ToAPIBillingWorkflow, FromAPIBillingWorkflow, ToAPIBillingParty, FromAPIBillingParty, ToAPIBillingAppReference). FromAPIBillingWorkflow parses ISO duration strings and handles alignment discriminated union.",
-        "watch_for": "FromAPIBillingWorkflow uses period.Parse for duration strings and falls back to defaults for missing fields; both collection alignment variants (subscription, anchored) must be handled."
+        "watch_for": "FromAPIBillingWorkflow uses period.Parse for duration strings and falls back to billing.DefaultWorkflowConfig; both collection alignment variants (subscription, anchored) must be handled."
       },
       {
         "file": "error_encoder.go",
@@ -177,6 +187,11 @@
         "file": "convert.gen.go",
         "role": "Generated by goverter \u2014 DO NOT EDIT. Contains FromAPICreateBillingProfileRequest, FromAPIUpsertBillingProfileRequest, ToAPIBillingProfile, ToAPIBillingProfiles, ToAPIBillingTaxConfig, FromAPIBillingTaxConfig.",
         "watch_for": "Regenerate after any change to convert.go annotations."
+      },
+      {
+        "file": "get.go",
+        "role": "GetBillingProfile with ProfileExpand{Apps: true}; returns apierrors.NewNotFoundError if profile is nil after service call.",
+        "watch_for": "Nil profile check after service call must return apierrors.NewNotFoundError, not a generic error."
       }
     ],
     "anti_patterns": [
@@ -195,7 +210,12 @@
         "rationale": "Avoids boilerplate in every FromAPI function while keeping the generated code correct and auditable."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Add a new billing profile operation with proper error encoding",
+        "code": "// In handler.go: add to Handler interface\nValidateBillingProfile() ValidateBillingProfileHandler\n\n// validate.go:\npackage billingprofiles\nimport (\n\t\"context\"\n\t\"net/http\"\n\tapi \"github.com/openmeterio/openmeter/api/v3\"\n\t\"github.com/openmeterio/openmeter/api/v3/apierrors\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\ntype (\n\tValidateBillingProfileRequest  = billing.GetProfileInput\n\tValidateBillingProfileResponse = api.BillingProfile\n\tValidateBillingProfileParams   = string\n\tValidateBillingProfileHandler  httptransport.HandlerWithArgs[ValidateBillingProfileRequest, ValidateBillingProfileResponse, string]\n)\nfunc (h *handler) ValidateBillingProfile() ValidateBillingProfileHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, profileID string) (ValidateBillingProfileRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return ValidateBillingProfileRequest{}, err }\n\t\t\treturn ValidateBillingProfileRequest{\n\t\t\t\tProfile: billing.ProfileID(models.NamespacedID{Namespace: ns, ID: profileID}),\n\t\t\t\tExpand: billing.ProfileExpand{Apps: true},\n\t\t\t}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request ValidateBillingProfileRequest) (ValidateBillingProfileResponse, error) {\n\t\t\tprofile, err := h.service.GetProfile(ctx, request)\n\t\t\tif err != nil { return ValidateBillingProfileResponse{}, err }\n\t\t\treturn ToAPIBillingProfile(*profile)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ValidateBillingProfileResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options,\n\t\t\thttptransport.WithOperationName(\"validate-billing-profile\"),\n\t\t\thttptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n\t\t\thttptransport.WithErrorEncoder(errorEncoder()), // always chain both\n\t\t)...,\n\t)\n}"
+      }
+    ]
   },
   "api/v3/handlers/currencies": {
     "purpose": "HTTP handlers for listing custom currencies and cost bases in the v3 API; uses namespacedriver.NamespaceDecoder (not a resolveNamespace closure) for namespace resolution and delegates to currencies.CurrencyService.",
@@ -207,57 +227,73 @@
       },
       {
         "name": "Page defaults differ by operation",
-        "description": "ListCurrencies uses default page size 100 (not 20 like other handlers), reflecting expected catalog size.",
+        "description": "ListCurrencies uses default page size 100 (not 20 like other handlers), reflecting expected currency catalog size.",
         "example": "page := pagination.NewPage(1, 100)"
       },
       {
-        "name": "Handler interface declares all resource sub-types",
-        "description": "The Handler interface includes both currency (ListCurrencies, CreateCurrency) and cost basis (CreateCostBasis, ListCostBases) endpoints in a single handler struct.",
+        "name": "Handler interface groups both resource sub-types",
+        "description": "The Handler interface includes both currency (ListCurrencies, CreateCurrency) and cost basis (CreateCostBasis, ListCostBases) endpoints in a single handler struct backed by currencies.CurrencyService.",
         "example": "type Handler interface { ListCurrencies() ...; CreateCurrency() ...; CreateCostBasis() ...; ListCostBases() ... }"
+      },
+      {
+        "name": "BillingCurrency discriminated union via generic helper",
+        "description": "convert.go uses NewBillingCurrencyFrom[T] generic to construct the BillingCurrency union for both custom and fiat types, calling From* discriminator methods.",
+        "example": "func NewBillingCurrencyFrom[T v3.BillingCurrencyCustom | v3.BillingCurrencyFiat](v T) (v3.BillingCurrency, error)"
       }
     ],
     "key_file_guides": [
       {
         "file": "handler.go",
         "role": "Handler interface + handler struct holding namespaceDecoder, currencyService currencies.CurrencyService, and options. New() constructor.",
-        "watch_for": "This handler uses namespacedriver.NamespaceDecoder not a func; new operations must call GetNamespace not resolveNamespace."
+        "watch_for": "This handler uses namespacedriver.NamespaceDecoder not a func; new operations must call GetNamespace (returns bool, not error) not resolveNamespace."
       },
       {
         "file": "list.go",
         "role": "ListCurrencies with optional filter[type] query param mapped through FromAPIBillingCurrencyType and page-pagination with default size 100.",
         "watch_for": "Filter is optional; nil check required before dereferencing params.Filter."
+      },
+      {
+        "file": "convert.go",
+        "role": "ToAPIBillingCurrency distinguishes custom (has ID) from fiat (no ID) to route to the correct union branch; ToAPIBillingCostBasis converts the rate Decimal to string.",
+        "watch_for": "The custom vs fiat branch is determined by c.ID != '' \u2014 any currency with an empty ID is treated as fiat."
       }
     ],
     "anti_patterns": [
       "Using resolveNamespace pattern instead of namespaceDecoder.GetNamespace",
       "Defaulting page size to 20 (use 100 for currency catalog lists)",
-      "Mixing currency and cost-basis conversion logic into operation files rather than a convert.go"
+      "Mixing currency and cost-basis conversion logic into operation files rather than a convert.go",
+      "Forgetting the ok bool from GetNamespace and assuming it always returns a valid namespace"
     ],
     "decisions": [
       {
         "decision": "namespacedriver.NamespaceDecoder is injected instead of a resolveNamespace closure because currencies was wired before the closure pattern was standardized.",
-        "rationale": "Both patterns resolve namespace from context; the decoder pattern is older and specific to certain handler packages."
+        "rationale": "Both patterns resolve namespace from context; the decoder pattern is older and specific to certain handler packages that predate the closure convention."
       }
     ],
     "code_examples": []
   },
   "api/v3/handlers/events": {
-    "purpose": "HTTP handler for listing ingested events (v3 event query API) with rich filter support (type, time, ingested_at, stored_at, customer_id) and sort; includes unit tests for filter parsing.",
+    "purpose": "HTTP handler for listing and ingesting CloudEvents in the v3 API; provides rich filter support (type, time, ingested_at, stored_at, customer_id) and sort with unit-tested filter parsing helpers.",
     "patterns": [
       {
         "name": "Filter parsing helpers are package-private and unit-tested",
         "description": "fromAPICustomerIDFilter, fromAPIEventSort, and fromAPIEventFilter are unexported helpers in list.go with dedicated unit tests in list_test.go covering all supported and rejected filter variants.",
-        "example": "func fromAPICustomerIDFilter(ctx context.Context, f *api.ULIDFieldFilter) (*streaming.CustomerIDFilter, error)"
+        "example": "func fromAPICustomerIDFilter(ctx context.Context, f *api.ULIDFieldFilter) (*filter.FilterString, error)"
       },
       {
-        "name": "apierrors.NewBadRequestError with field path for filter errors",
-        "description": "Every unsupported filter operator returns apierrors.NewBadRequestError with the exact query-param field path as the InvalidParameter.Field value (e.g., 'filter[customer_id]', 'sort').",
-        "example": "apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{Field: \"filter[customer_id]\", ...}})"
+        "name": "apierrors.NewBadRequestError with exact field path for filter errors",
+        "description": "Every unsupported filter operator returns apierrors.NewBadRequestError with the exact query-param field path as the InvalidParameter.Field value.",
+        "example": "apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{Field: \"filter[customer_id]\", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery}})"
       },
       {
         "name": "Sort defaults to desc when no suffix provided",
-        "description": "fromAPIEventSort parses the SortQuery string; a field name without a suffix is treated as descending by default.",
+        "description": "fromAPIEventSort parses the SortQuery string; a field name without an asc/desc suffix is treated as descending by default so sort=time means most-recent first.",
         "example": "sort := api.SortQuery(\"time\") // \u2192 sortx.OrderDesc"
+      },
+      {
+        "name": "Customer ID filter supports only Eq and Oeq operators",
+        "description": "fromAPICustomerIDFilter explicitly rejects Neq, Contains, Ocontains, Exists operators with a descriptive error; only eq and oeq are forwarded as an IN set to the backend.",
+        "example": "if f.Neq != nil { err := errors.New(\"only eq and oeq operators are supported\"); return nil, apierrors.NewBadRequestError(...) }"
       }
     ],
     "key_file_guides": [
@@ -270,12 +306,23 @@
         "file": "list_test.go",
         "role": "Unit tests for filter and sort parsing helpers using t.Context(). assertBadRequestField verifies the exact InvalidParameter.Field in error responses.",
         "watch_for": "Tests use t.Context() not context.Background() \u2014 keep consistent."
+      },
+      {
+        "file": "convert.go",
+        "role": "toAPIMeteringIngestedEvent converts meterevent.Event to API wire form; parses JSON data string to map[string]any; sets CloudEvents specversion=1.0.",
+        "watch_for": "e.Data is a raw JSON string \u2014 must unmarshal to map[string]any before assigning to nullable event.Data field."
+      },
+      {
+        "file": "ingest.go",
+        "role": "IngestEvents handler for CloudEvent ingestion path.",
+        "watch_for": "Ingest path is separate from list path; do not mix streaming connector calls with ingest collector calls."
       }
     ],
     "anti_patterns": [
       "Supporting filter operators beyond Eq/Oeq for customer_id without adding explicit rejection tests for unsupported operators",
-      "Parsing filter defaults in the handler operation func instead of dedicated helper functions",
-      "Returning raw errors from filter parsing instead of apierrors.NewBadRequestError with field path"
+      "Parsing filter defaults in the handler operation func instead of dedicated unexported helper functions",
+      "Returning raw errors from filter parsing instead of apierrors.NewBadRequestError with exact field path",
+      "Using context.Background() in list_test.go tests instead of t.Context()"
     ],
     "decisions": [
       {
@@ -283,6 +330,11 @@
         "rationale": "Parser logic is deterministic and does not require a running service; unit tests give fast feedback on edge cases like malformed sort strings."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Add a new filter field to the events list handler",
+        "code": "// In list.go \u2014 add a parsing helper:\nfunc fromAPISubjectFilter(ctx context.Context, f *api.StringFieldFilter) (*filter.FilterString, error) {\n\tif f == nil {\n\t\treturn nil, nil\n\t}\n\tvar values []string\n\tif f.Eq != nil {\n\t\tvalues = append(values, *f.Eq)\n\t}\n\tif len(values) == 0 {\n\t\treturn nil, nil\n\t}\n\treturn &filter.FilterString{In: &values}, nil\n}\n// Then call it in the decoder:\nsubjectFilter, err := fromAPISubjectFilter(ctx, params.Filter.Subject)\nif err != nil {\n\treturn ListEventsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{\n\t\t{Field: \"filter[subject]\", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},\n\t})\n}\n// Add corresponding test in list_test.go using t.Context()"
+      }
+    ]
   }
 }

@@ -1,80 +1,144 @@
 {
-  "openmeter/billing/charges/meta/adapter": {
-    "purpose": "Ent/PostgreSQL adapter implementing meta.Adapter for the charges meta-registry \u2014 persists charge cross-reference records (the Charge join table linking charge IDs to their typed sub-entities) and manages their soft-delete lifecycle. All DB writes are transaction-aware via entutils.TransactingRepoWithNoValue.",
+  "openmeter/billing/charges/lineage/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing lineage.Adapter for credit realization lineage and segment persistence. Pure persistence layer: all reads, bulk creates, row-locking FOR UPDATE queries, and close/create segment mutations \u2014 no business logic.",
     "patterns": [
       {
-        "name": "TransactingRepoWithNoValue wrapping every write",
-        "description": "Every mutating method calls entutils.TransactingRepoWithNoValue(ctx, a, func(ctx, tx *adapter) error{...}). This rebinds to the caller's ctx-propagated transaction or starts a new one. Passing the raw a.db directly would bypass the tx.",
-        "example": "return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error { return tx.db.Charge.Create()...Save(ctx) })"
+        "name": "TransactingRepo on every method body",
+        "description": "Every public method wraps its Ent calls in entutils.TransactingRepo or entutils.TransactingRepoWithNoValue so operations rebind to any transaction already in ctx rather than using the raw *entdb.Client field.",
+        "example": "return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error { _, err := tx.db.CreditRealizationLineage.CreateBulk(...).Save(ctx); return err })"
       },
       {
-        "name": "Compile-time interface assertion",
-        "description": "var _ meta.Adapter = (*adapter)(nil) at package level ensures adapter always satisfies meta.Adapter at compile time.",
-        "example": "var _ meta.Adapter = (*adapter)(nil)"
+        "name": "Tx/WithTx/Self triad",
+        "description": "adapter implements Tx(ctx) (context.Context, transaction.Driver, error), WithTx(ctx, *TxDriver) *adapter, and Self() *adapter \u2014 required by entutils.TransactingRepo to rebind to in-progress transactions.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDB := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDB.Client()} }"
       },
       {
-        "name": "Config struct with Validate() before New()",
-        "description": "Config holds Client *entdb.Client and Logger *slog.Logger. New() calls config.Validate() and returns error before constructing the adapter \u2014 never returns a broken adapter.",
-        "example": "func New(config Config) (meta.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+        "name": "GetDriverFromContext guard on lock methods",
+        "description": "LockCorrectionLineages and LockAdvanceLineagesForBackfill call entutils.GetDriverFromContext and return an error immediately if no active transaction is found \u2014 FOR UPDATE locks are only meaningful inside a transaction.",
+        "example": "if _, err := entutils.GetDriverFromContext(ctx); err != nil { return nil, fmt.Errorf(\"lock correction lineages must be called in a transaction: %w\", err) }"
       },
       {
-        "name": "WithTx / Self / Tx triad for entutils.TxDriver",
-        "description": "adapter implements WithTx(ctx, *TxDriver) *adapter, Self() *adapter, and Tx(ctx) for entutils.TransactingRepo to rebind or start transactions. All three must be present for TransactingRepoWithNoValue to work.",
-        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client(), logger: a.logger} }"
+        "name": "Package-level standalone helper",
+        "description": "LoadActiveSegmentsByRealizationID is exposed as a package-level function (not only a method) so other sub-packages can reuse it without constructing a full adapter through DI; internally it wraps a temporary &adapter{db: db} in TransactingRepo.",
+        "example": "func LoadActiveSegmentsByRealizationID(ctx context.Context, db *entdb.Client, ...) (...) { repo := &adapter{db: db}; return entutils.TransactingRepo(ctx, repo, ...) }"
       },
       {
-        "name": "Soft-delete via SetDeletedAt(clock.Now())",
-        "description": "DeleteRegisteredCharge updates the record's deleted_at column with clock.Now() and a chargedb.DeletedAtIsNil() predicate to guard against double-deletion \u2014 never issues a hard DELETE.",
-        "example": "tx.db.Charge.UpdateOneID(in.ID).Where(chargedb.DeletedAtIsNil(), chargedb.Namespace(in.Namespace)).SetDeletedAt(clock.Now()).Exec(ctx)"
+        "name": "Config/Validate/New constructor",
+        "description": "New(Config) validates required fields (Client not nil) via Config.Validate() and returns (lineage.Adapter, error) \u2014 consistent adapter constructor shape across the billing domain.",
+        "example": "func New(config Config) (lineage.Adapter, error) { if err := config.Validate(); err != nil { return nil, err }; return &adapter{db: config.Client}, nil }"
       },
       {
-        "name": "Input Validate() before any Ent call",
-        "description": "Every exported method calls in.Validate() first, returning its error before touching the DB. Input types own their own validation.",
-        "example": "func (a *adapter) RegisterCharges(ctx context.Context, in meta.RegisterChargesInput) error { if err := in.Validate(); err != nil { return err } ... }"
-      },
-      {
-        "name": "Type-switched charge foreign-key assignment",
-        "description": "When creating a Charge row, the adapter switches on in.Type (FlatFee / UsageBased / CreditPurchase) and calls the matching SetCharge*ID builder method, ensuring exactly one FK column is populated per charge type.",
-        "example": "switch in.Type { case meta.ChargeTypeFlatFee: create = create.SetChargeFlatFeeID(charge.ID) ... }"
+        "name": "Private mapLineage/mapSegment conversion helpers",
+        "description": "Unexported pure functions translate Ent rows to domain types, keeping conversion centralized and isolating Ent internals from callers.",
+        "example": "func mapSegment(segment *entdb.CreditRealizationLineageSegment) lineage.Segment { return lineage.Segment{ID: segment.ID, LineageID: segment.LineageID, ...} }"
       }
     ],
     "key_file_guides": [
       {
         "file": "adapter.go",
-        "role": "Defines Config, New constructor, and the adapter struct with Tx/WithTx/Self. This is the only place where *entdb.Client is stored; all DB access elsewhere goes through tx.db obtained from WithTx.",
-        "watch_for": "Never store or use a bare *entdb.Client outside of Tx/WithTx/Self \u2014 doing so bypasses the ctx-bound transaction."
+        "role": "Defines Config, New constructor, and the adapter struct with Tx/WithTx/Self \u2014 the minimal scaffold required by entutils.TransactingRepo. No business logic.",
+        "watch_for": "Never use a.db directly inside a method body \u2014 always use tx.db inside the TransactingRepo closure. Struct field db is overridden by WithTx when a caller tx is active."
       },
       {
-        "file": "charges.go",
-        "role": "Implements RegisterCharges (bulk-create) and DeleteRegisteredCharge (soft-delete). Both operations wrap their Ent calls in TransactingRepoWithNoValue.",
-        "watch_for": "If you add a new write method, it must also call TransactingRepoWithNoValue. Missing this wrapping causes writes to fall outside the caller's transaction."
+        "file": "lineage.go",
+        "role": "Implements all lineage.Adapter methods: bulk create lineages/segments, load active segments by realization ID or customer, close/create individual segments, and FOR UPDATE locking queries for correction and backfill paths.",
+        "watch_for": "LockCorrectionLineages and LockAdvanceLineagesForBackfill call ForUpdate() \u2014 always verify GetDriverFromContext before issuing these. The standalone LoadActiveSegmentsByRealizationID must also use TransactingRepo, not raw db. Segments have no UpdatedAt \u2014 close-and-create is the only mutation path."
       }
     ],
     "anti_patterns": [
-      "Calling tx.db.Charge... directly in an exported method body without TransactingRepoWithNoValue \u2014 bypasses the ctx transaction",
-      "Hard-deleting rows (tx.db.Charge.DeleteOneID) instead of soft-deleting via SetDeletedAt",
-      "Storing business logic or validation in this adapter \u2014 logic belongs in the meta service layer",
-      "Adding new fields to Config without a corresponding nil-check in Config.Validate()",
-      "Removing or bypassing the var _ meta.Adapter = (*adapter)(nil) assertion"
+      "Calling tx.db.X directly in a method body without entutils.TransactingRepo/TransactingRepoWithNoValue \u2014 falls off the caller's transaction and produces partial writes",
+      "Removing the GetDriverFromContext guard from lock methods \u2014 makes FOR UPDATE semantics unreliable outside explicit transactions",
+      "Adding business or computation logic to the adapter \u2014 persistence only; service logic belongs in lineage/service",
+      "Returning *adapter publicly instead of the lineage.Adapter interface \u2014 leaks implementation and breaks testability",
+      "Constructing adapter{db: db} inline outside New() or WithTx() \u2014 bypasses validation and breaks the TxCreator contract"
     ],
     "decisions": [
       {
-        "decision": "TransactingRepoWithNoValue instead of direct Ent calls",
-        "rationale": "Charge advancement mixes multiple writes; if any helper uses the raw client instead of rebinding to ctx's transaction, partial writes occur under concurrency. Explicit wrapping is the only compiler-enforceable guard."
+        "decision": "Every method wraps Ent calls in TransactingRepo even when no caller tx is present",
+        "rationale": "Charge advancement mixes multiple reads and writes; a helper that falls off the transaction produces partial writes. TransactingRepo rebinds to the existing tx in ctx or starts a new one automatically."
       },
       {
-        "decision": "Separate Config struct with Validate() before construction",
-        "rationale": "Fails fast with a descriptive error rather than a nil-pointer panic at first DB call, which could be deep inside a billing transaction."
+        "decision": "Lock methods assert an active transaction via GetDriverFromContext before issuing FOR UPDATE",
+        "rationale": "FOR UPDATE row locks are only useful inside a transaction. An explicit guard surfaces programmer errors early rather than silently issuing no-op locks."
       },
       {
-        "decision": "Soft-delete with DeletedAtIsNil predicate guard",
-        "rationale": "Billing charge records are audit-critical; hard deletes lose history. The IsNil predicate makes double-soft-delete a no-op rather than an error-prone state."
+        "decision": "Package-level LoadActiveSegmentsByRealizationID alongside the method",
+        "rationale": "Other sub-packages in billing/charges need lineage segments without constructing a full adapter through DI; the standalone function accepts a raw *entdb.Client and internally wraps it in TransactingRepo for safety."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new write method that bulk-updates charge status",
-        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/meta\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) MarkChargesProcessed(ctx context.Context, in meta.MarkChargesProcessedInput) error {\n\tif err := in.Validate(); err != nil {\n\t\treturn err\n\t}\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n\t\t_, err := tx.db.Charge.Update().\n\t\t\tWhere(chargedb.IDIn(in.IDs...), chargedb.Namespace(in.Namespace)).\n\t\t\tSetProcessedAt(clock.Now()).\n\t\t\tSave(ctx)\n\t\treturn err\n\t})\n}"
+        "scenario": "Adding a new adapter method that reads and writes lineage segments atomically",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) MyNewOperation(ctx context.Context, input lineage.MyInput) error {\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n\t\t// Always use tx.db \u2014 never a.db \u2014 inside this closure\n\t\tif _, err := tx.db.CreditRealizationLineage.Query()...; err != nil {\n\t\t\treturn fmt.Errorf(\"my new operation: %w\", err)\n\t\t}\n\t\treturn nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/lineage/service": {
+    "purpose": "Business-logic service implementing lineage.Service for credit realization lineage lifecycle: creating initial lineages, persisting correction segments, and backfilling advance segments. Orchestrates multi-step segment mutation sequences within transactions, delegating all persistence to lineage.Adapter.",
+    "patterns": [
+      {
+        "name": "transaction.RunWithNoValue for all multi-step mutations",
+        "description": "Every mutating method wraps its full sequence in transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error { ... }) to ensure atomicity \u2014 the service holds an Adapter interface (not concrete *adapter) so it uses the transaction.Runner abstraction rather than entutils.TransactingRepo directly.",
+        "example": "return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error { ...; return s.adapter.CreateLineages(ctx, ...) })"
+      },
+      {
+        "name": "Input.Validate() before any business logic",
+        "description": "Every public method calls input.Validate() as its first operation and returns early on failure \u2014 before acquiring locks or performing DB reads.",
+        "example": "func (s *service) CreateInitialLineages(ctx context.Context, input lineage.CreateInitialLineagesInput) error { if err := input.Validate(); err != nil { return err }; ... }"
+      },
+      {
+        "name": "Config/Validate/New constructor",
+        "description": "New(Config) validates required fields (Adapter not nil) and returns (lineage.Service, error), consistent with service constructors across the billing domain.",
+        "example": "func New(config Config) (lineage.Service, error) { if err := config.Validate(); err != nil { return nil, err }; return &service{adapter: config.Adapter}, nil }"
+      },
+      {
+        "name": "Lock-then-mutate segment pattern",
+        "description": "Multi-realization mutations call a locking adapter method (LockCorrectionLineages / LockAdvanceLineagesForBackfill) first to serialize concurrent writers inside the transaction, then perform CloseSegment + CreateSegment splits.",
+        "example": "lineages, err := s.adapter.LockCorrectionLineages(ctx, input.Namespace, correctionOrder)\n// then iterate: CloseSegment(id, now) + CreateSegment(remainder) + CreateSegment(covered)"
+      },
+      {
+        "name": "Close-then-split for partial segment amounts",
+        "description": "When a correction or backfill partially covers a segment, the service closes the original and creates two new segments: remainder (same state) and covered amount (new state). This preserves an immutable audit trail.",
+        "example": "s.adapter.CloseSegment(ctx, segment.ID, now)\nif remainder.IsPositive() { s.adapter.CreateSegment(ctx, lineage.CreateSegmentInput{Amount: remainder, State: segment.State}) }\ns.adapter.CreateSegment(ctx, lineage.CreateSegmentInput{Amount: covered, State: newState})"
+      },
+      {
+        "name": "clock.Now().Truncate(time.Microsecond) for timestamps",
+        "description": "All segment close timestamps use clock.Now().Truncate(time.Microsecond) \u2014 never raw time.Now() \u2014 to match Postgres microsecond precision and avoid equality check failures.",
+        "example": "now := clock.Now().Truncate(time.Microsecond)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Single file implementing lineage.Service with six methods: CreateInitialLineages, LoadActiveSegmentsByRealizationID, LoadLineagesByCustomer, PersistCorrectionLineageSegments, BackfillAdvanceLineageSegments, CloseSegment, CreateSegment. All writes are transaction-wrapped; reads are straight passthroughs.",
+        "watch_for": "PersistCorrectionLineageSegments iterates corrections in a deterministic order (correctionOrder slice) and verifies remaining coverage reaches zero \u2014 if a correction exceeds available coverage it returns an error. BackfillAdvanceLineageSegments only covers segments in state LineageSegmentStateAdvanceUncovered. Do not call adapter methods outside the transaction.RunWithNoValue closure."
+      }
+    ],
+    "anti_patterns": [
+      "Bypassing transaction.RunWithNoValue for multi-step adapter calls \u2014 creates partial writes when any step fails mid-sequence",
+      "Calling adapter methods outside the transaction.RunWithNoValue closure \u2014 the closure's ctx carries the active tx driver; calls outside use a different connection",
+      "Skipping Input.Validate() \u2014 lock operations and bulk creates do no further validation inside the transaction",
+      "Using time.Now() directly instead of clock.Now().Truncate(time.Microsecond) for segment timestamps",
+      "Adding Ent query logic directly in service.go \u2014 all DB access must go through lineage.Adapter"
+    ],
+    "decisions": [
+      {
+        "decision": "Use transaction.RunWithNoValue at the service layer instead of entutils.TransactingRepo",
+        "rationale": "The service holds a lineage.Adapter interface (not the concrete *adapter), so it uses the higher-level transaction.Runner abstraction. The adapter implements transaction.Creator, satisfying the runner contract."
+      },
+      {
+        "decision": "Lock rows before reading active segments in correction and backfill paths",
+        "rationale": "Concurrent charge advancement can race to apply corrections against the same realization; locking before reading serializes writers and prevents double-application of the same correction amount."
+      },
+      {
+        "decision": "Close-and-split rather than update-in-place for segment mutation",
+        "rationale": "Segments form an immutable append-only ledger of state transitions. Closing a segment and creating new ones preserves a full audit trail of how each amount was covered or corrected."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new service method that locks lineages and transitions segment state",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage\"\n\t\"github.com/openmeterio/openmeter/pkg/clock\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\nfunc (s *service) MyNewMutation(ctx context.Context, input lineage.MyInput) error {\n\tif err := input.Validate(); err != nil {\n\t\treturn err\n\t}\n\n\treturn transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {\n\t\t// 1. Lock before reading\n\t\tlineages, err := s.adapter.LockCorrectionLineages(ctx, input.Namespace, input.IDs)\n\t\tif err != nil {\n\t\t\treturn fmt.Errorf(\"lock lineages: %w\", err)\n\t\t}\n\n\t\tnow := clock.Now().Truncate(time.Microsecond)\n\n\t\tfor _, seg := range lineages[0].Segments {\n\t\t\t// 2. Close then split\n\t\t\tif err := s.adapter.CloseSegment(ctx, seg.ID, now); err != nil {\n\t\t\t\treturn err\n\t\t\t}\n\t\t\t// create new segment(s) as needed\n\t\t}\n\t\treturn nil\n\t})\n}"
       }
     ]
   }

@@ -1,0 +1,240 @@
+{
+  "pkg/pgxpoolobserver": {
+    "purpose": "Single-function OTel metrics registration for pgxpool.Pool, exposing 13 pool statistics as observable gauges/counters via a single RegisterCallback call. Call ObservePoolMetrics once per pool at startup; the registered callback polls pool.Stat() on each OTel collection cycle.",
+    "patterns": [
+      {
+        "name": "Single RegisterCallback for all metrics",
+        "description": "Collect all metric.Observable instances into allMetrics and pass them to meter.RegisterCallback in one call. Never register separate callbacks per metric \u2014 OTel requires all observables used inside a callback to be declared in the same RegisterCallback call.",
+        "example": "_, err = meter.RegisterCallback(func(_ context.Context, o metric.Observer) error { ... }, allMetrics...)"
+      },
+      {
+        "name": "Append-then-register pattern",
+        "description": "Each metric is created with meter.Int64ObservableCounter/Gauge, error-checked immediately (return on error), then appended to allMetrics before RegisterCallback. New metrics must follow this exact sequence.",
+        "example": "m, err := meter.Int64ObservableGauge(\"pgxpool.idle_conns\", ...)\nif err != nil { return err }\nallMetrics = append(allMetrics, m)"
+      },
+      {
+        "name": "additionalAttributes variadic for label injection",
+        "description": "Callers pass extra attribute.KeyValue pairs via the variadic additionalAttributes parameter; every ObserveInt64 call appends them via metric.WithAttributes(additionalAttributes...).",
+        "example": "o.ObserveInt64(idleConnsMetric, int64(stat.IdleConns()), metric.WithAttributes(additionalAttributes...))"
+      },
+      {
+        "name": "Guard derived metrics against division by zero",
+        "description": "avgAcquiredDurationMetric is only observed when acquireCount > 0. Replicate this guard for any future ratio or average metrics.",
+        "example": "if acquireCount > 0 { o.ObserveInt64(avgAcquiredDurationMetric, acquireDurationMS/acquireCount, ...) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "observer.go",
+        "role": "Entire package. Exposes only ObservePoolMetrics(meter, pool, ...attributes). 13 metrics registered in a single function.",
+        "watch_for": "Each of the 13 meter.Int64Observable* calls is checked for error and returns immediately on failure. Adding a new metric requires: create \u2192 check error \u2192 append to allMetrics \u2192 observe inside callback."
+      }
+    ],
+    "anti_patterns": [
+      "Calling ObservePoolMetrics more than once for the same pool/meter pair \u2014 duplicate metric registration will error.",
+      "Adding a new metric without appending it to allMetrics \u2014 it will never be observed in the callback.",
+      "Omitting the division-by-zero guard on derived ratio metrics \u2014 produces NaN or panic in the callback."
+    ],
+    "decisions": [
+      {
+        "decision": "Observable push model (RegisterCallback) instead of explicit Record calls",
+        "rationale": "Pool stats are instantaneous gauge values; polling them only when the OTel collector pulls avoids background goroutines and unnecessary polling when no collector is active."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/redis": {
+    "purpose": "Thin factory layer for go-redis/v9 client construction from a Viper-backed Config struct, with built-in OTel tracing and metrics instrumentation via redisotel. Supports standalone and Sentinel topologies; always enforces TLS 1.3 minimum when TLS is enabled.",
+    "patterns": [
+      {
+        "name": "Validate before NewClient",
+        "description": "Config.Validate() uses errors.Join to accumulate field errors. Always call Validate() before constructing the client in Wire wiring or application startup.",
+        "example": "if err := cfg.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "Functional options for OTel providers",
+        "description": "TracerProvider and MeterProvider are injected via Option funcs (WithTracingProvider, WithMeterProvider). Nil providers are silently ignored; options are layered on top of the base Options struct.",
+        "example": "client, err := redis.NewClient(redis.Options{Config: cfg}, redis.WithTracingProvider(tp), redis.WithMeterProvider(mp))"
+      },
+      {
+        "name": "Configure sets Viper defaults with prefix",
+        "description": "Call Configure(v, prefix) to register all Redis defaults under a namespaced Viper prefix. Never call viper.SetDefault inline in app config for Redis settings.",
+        "example": "redis.Configure(v, \"dedupe.redis\")"
+      },
+      {
+        "name": "OTel instrumentation is always attempted",
+        "description": "redisotel.InstrumentTracing and InstrumentMetrics are called unconditionally; when no provider is set the opts slice is empty and the calls are effectively no-ops. Do not short-circuit these calls.",
+        "example": "if err := redisotel.InstrumentTracing(client, tracingOpts...); err != nil { return nil, err }"
+      },
+      {
+        "name": "TLS minimum version is TLS 1.3",
+        "description": "When TLS.Enabled is true, MinVersion is always set to tls.VersionTLS13. Do not override or relax this in callers.",
+        "example": "tlsConfig = &tls.Config{InsecureSkipVerify: o.TLS.InsecureSkipVerify, MinVersion: tls.VersionTLS13}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "client.go",
+        "role": "NewClient factory. Applies functional options, builds TLS config, constructs standalone or Sentinel client, instruments tracing and metrics.",
+        "watch_for": "redisotel.InstrumentTracing and InstrumentMetrics are called even when providers are nil (empty opts slice). Do not add nil-guard short-circuits \u2014 the unconditional call is intentional."
+      },
+      {
+        "file": "config.go",
+        "role": "Config struct, Validate, Configure (Viper defaults), and Config.NewClient convenience method.",
+        "watch_for": "Config.NewClient() does not accept OTel options. Use NewClient(Options{Config: c}, WithTracingProvider(...)) directly when telemetry is needed."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing go-redis client directly in application code \u2014 OTel instrumentation would be missing.",
+      "Calling Configure with an empty prefix \u2014 all keys would collide at the root Viper namespace.",
+      "Ignoring Config.Validate() \u2014 an empty Address produces a client that fails at first use, not at construction.",
+      "Relaxing TLS MinVersion below tls.VersionTLS13 \u2014 this is a deliberate security invariant."
+    ],
+    "decisions": [
+      {
+        "decision": "OTel instrumentation is always attempted, not gated on provider presence",
+        "rationale": "redisotel calls are no-ops when no provider is passed, so always calling them ensures new callers automatically get observability when they wire providers, without conditional branching."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructing a Redis client with OTel in Wire wiring",
+        "code": "import (\n    pkgredis \"github.com/openmeterio/openmeter/pkg/redis\"\n    \"go.opentelemetry.io/otel/metric\"\n    \"go.opentelemetry.io/otel/trace\"\n)\n\nfunc NewRedisClient(cfg pkgredis.Config, tp trace.TracerProvider, mp metric.MeterProvider) (*redis.Client, error) {\n    if err := cfg.Validate(); err != nil {\n        return nil, err\n    }\n    return pkgredis.NewClient(\n        pkgredis.Options{Config: cfg},\n        pkgredis.WithTracingProvider(tp),\n        pkgredis.WithMeterProvider(mp),\n    )\n}"
+      }
+    ]
+  },
+  "pkg/ref": {
+    "purpose": "Single-file utility providing IDOrKey \u2014 a discriminated union type that holds either a ULID-format ID or an arbitrary string key, used wherever domain lookups must accept both identifiers interchangeably without ambiguity.",
+    "patterns": [
+      {
+        "name": "ULID-based discrimination via ParseIDOrKey",
+        "description": "ParseIDOrKey uses ulid.Parse to decide which field to populate: successful parse \u2192 ID set, parse error \u2192 Key set. Never set both fields manually.",
+        "example": "r := ref.ParseIDOrKey(rawParam) // r.ID set if ULID, r.Key set otherwise"
+      },
+      {
+        "name": "Validate before service call",
+        "description": "Always call Validate() before passing an IDOrKey into a service layer. It returns an error if both fields are empty (the all-zero case).",
+        "example": "if err := r.Validate(); err != nil { return err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ref.go",
+        "role": "Defines IDOrKey struct with GetIDs, GetKeys, Validate, and ParseIDOrKey. The entire package surface.",
+        "watch_for": "Validate only guards the all-empty case, not the both-set case. Callers must not set both ID and Key simultaneously \u2014 semantics are undefined and there is no runtime check."
+      }
+    ],
+    "anti_patterns": [
+      "Setting both ID and Key on an IDOrKey struct \u2014 undefined semantics, no runtime guard.",
+      "Skipping Validate() before service calls \u2014 silently passes empty identifiers into domain logic.",
+      "Adding new identifier union types here \u2014 define domain-specific discriminated unions in the relevant domain package instead."
+    ],
+    "decisions": [
+      {
+        "decision": "Use ulid.Parse as the discriminator rather than a regex or length check",
+        "rationale": "ULID has a canonical 26-char Crockford Base32 format; parse error cleanly distinguishes it from freeform key strings without false positives from length heuristics."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/server": {
+    "purpose": "Shared HTTP server primitives \u2014 request attribute extraction, structured logging middleware, powered-by header middleware, and a MiddlewareFunc type alias \u2014 reused by both the v1 (openmeter/server) and v3 (api/v3/server) API servers with no business logic.",
+    "patterns": [
+      {
+        "name": "OTel semconv attribute keys",
+        "description": "Use go.opentelemetry.io/otel/semconv/v1.27.0 key constants for all HTTP attribute names. Never hardcode string keys.",
+        "example": "string(semconv.HTTPRequestMethodKey): r.Method"
+      },
+      {
+        "name": "Chi middleware.LogFormatter / LogEntry interfaces",
+        "description": "RequestLogger implements middleware.LogFormatter and RequestLoggerEntry implements middleware.LogEntry. Pass RequestLogger to middleware.RequestLogger() to integrate with Chi's request logging chain.",
+        "example": "middleware.RequestLogger(&RequestLogger{Logger: handler})"
+      },
+      {
+        "name": "Middleware factory pattern",
+        "description": "Every middleware is exposed as a NewXxxMiddleware() function returning func(http.Handler) http.Handler, matching Chi's middleware signature.",
+        "example": "func NewPoweredByMiddleware() func(next http.Handler) http.Handler { ... }"
+      },
+      {
+        "name": "req_id depends on upstream RequestID middleware",
+        "description": "GetRequestAttributes populates the req_id field only when middleware.RequestID is in the middleware chain upstream. Absent middleware \u2192 absent attribute with no error.",
+        "example": "if reqID := middleware.GetReqID(ctx); reqID != \"\" { attrs[\"req_id\"] = reqID }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "attributes.go",
+        "role": "Returns OTel-keyed attribute map for a request. Requires middleware.RequestID upstream for req_id field.",
+        "watch_for": "req_id is silently absent if RequestID middleware is missing; this is not an error."
+      },
+      {
+        "file": "logger.go",
+        "role": "Structured slog-based request logger satisfying Chi's middleware.LogFormatter interface.",
+        "watch_for": "Normal requests log at slog.LevelDebug; panics log at slog.LevelError. Do not raise normal requests to LevelInfo without considering log volume."
+      },
+      {
+        "file": "middleware.go",
+        "role": "Defines shared MiddlewareFunc type alias used across v1 and v3 server wiring.",
+        "watch_for": "Must stay in sync with Chi's func(http.Handler) http.Handler signature. Never wrap in a struct."
+      },
+      {
+        "file": "poweredby.go",
+        "role": "Injects X-Powered-By header on every response.",
+        "watch_for": "Header value 'OpenMeter by Kong, Inc.' is asserted in poweredby_test.go \u2014 changing it is a breaking change for clients that parse this header."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic or domain package imports \u2014 this package must remain a pure infrastructure utility.",
+      "Hardcoding OTel attribute key strings instead of using semconv constants.",
+      "Returning errors from middleware constructors \u2014 they should panic on bad config or return a no-op handler.",
+      "Registering GetRequestAttributes usage without middleware.RequestID in the chain \u2014 req_id will silently be missing."
+    ],
+    "decisions": [
+      {
+        "decision": "Log at DEBUG for normal requests, ERROR for panics",
+        "rationale": "High-volume request logs would flood INFO level in production; DEBUG keeps them filterable without losing panic diagnostics."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/set": {
+    "purpose": "Thread-safe generic set backed by map[T]struct{} with RWMutex; provides Add, Remove, AsSlice, IsEmpty, Subtract, and Union for any domain package needing concurrent set semantics over comparable types.",
+    "patterns": [
+      {
+        "name": "Construct via New[T](items...)",
+        "description": "Always use New[T]() or New(item1, item2). Never construct Set{} directly \u2014 the content map will be nil and any write will panic.",
+        "example": "s := set.New(\"a\", \"b\")"
+      },
+      {
+        "name": "RWMutex for read/write separation",
+        "description": "Mutating methods (Add, Remove) acquire write locks; read methods (AsSlice, IsEmpty) acquire read locks. Subtract and Union acquire read locks on all input sets before building the result.",
+        "example": "s.mu.Lock(); defer s.mu.Unlock() // writes\ns.mu.RLock(); defer s.mu.RUnlock() // reads"
+      },
+      {
+        "name": "Package-level Subtract and Union functions",
+        "description": "Subtract and Union are package-level functions, not methods, to support multi-set operations. Subtract(a, b) removes items in b from a \u2014 argument order matches lo.Difference(base, toRemove).",
+        "example": "result := set.Subtract(set.New(1,2,3), set.New(2,3)) // result: {1}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "set.go",
+        "role": "Full set implementation. All operations are in this single file.",
+        "watch_for": "AsSlice returns items in random map-iteration order \u2014 never assume stability. The slice is a snapshot; future mutations are not reflected. Subtract(a, b) argument order: a is the base set, b items are removed from it."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing Set{} directly \u2014 nil content map panics on first write.",
+      "Assuming stable ordering from AsSlice \u2014 map iteration is random.",
+      "Holding the AsSlice result and expecting it to reflect future Add/Remove calls \u2014 it is a copy.",
+      "Using this package for large sets under high contention \u2014 RWMutex is optimized for small sets; sync.Map may be preferable for high-read-concurrency large sets."
+    ],
+    "decisions": [
+      {
+        "decision": "Use RWMutex with a plain map over sync.Map",
+        "rationale": "RWMutex with map[T]struct{} is simpler and lower-overhead for the small sets typical in domain use; sync.Map optimizes for high-concurrency read-heavy workloads with minimal write contention."
+      }
+    ],
+    "code_examples": []
+  }
+}

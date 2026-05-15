@@ -2,19 +2,19 @@
 
 <!-- archie:ai-start -->
 
-> Thin orchestration layer implementing cost.Service: validates input via input.Validate() then delegates to cost.Adapter.QueryFeatureCost. Contains no business logic.
+> Thin orchestration layer implementing cost.Service: validates input via input.Validate() then delegates to cost.Adapter.QueryFeatureCost. Contains no business logic — exists solely to enforce layered architecture and provide a stable DI interface.
 
 ## Patterns
 
-**Config struct with Validate()** — Constructor accepts a Config struct with a Validate() method; New returns (*Service, error) and rejects invalid config at wiring time. (`func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }`)
-**Interface compliance assertion** — var _ cost.Service = (*Service)(nil) at package level. (`var _ cost.Service = (*Service)(nil)`)
+**Config struct with Validate()** — Constructor accepts a Config struct with a Validate() method; New returns (*Service, error) and rejects invalid config at wiring time rather than at runtime. (`func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }`)
+**Interface compliance assertion** — var _ cost.Service = (*Service)(nil) at package level ensures the struct satisfies the interface at compile time. (`var _ cost.Service = (*Service)(nil)`)
 **Input validation before delegation** — Every service method calls input.Validate() before forwarding to the adapter, keeping validation centralized at the service boundary. (`if err := input.Validate(); err != nil { return nil, err }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `service.go` | Sole file: defines Service struct, Config, New constructor, and QueryFeatureCost — the only cost.Service method. | Do not add business logic here; all computation belongs in the adapter. New methods on cost.Service must follow the same validate-then-delegate pattern. |
+| `service.go` | Sole file: defines Service struct, Config, New constructor, and QueryFeatureCost — the only cost.Service method. | Do not add business logic or data access here; all computation belongs in the adapter. New methods on cost.Service must follow the same validate-then-delegate pattern. |
 
 ## Anti-Patterns
 

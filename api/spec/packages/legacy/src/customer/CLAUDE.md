@@ -13,12 +13,12 @@
 
 ## Key Files
 
-| File           | Role                                                                                                                                                                                | Watch For                                                                                                           |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| File | Role | Watch For |
+|------|------|-----------|
 | `customer.tsp` | Defines Customer model, CustomersEndpoints interface, and all list/filter param models. Customer spreads `...Resource` and exposes `subscriptions` as a Lifecycle.Read-only expand. | `subscriptions` field is only populated when `expand=subscriptions` is passed; it is not part of default responses. |
-| `app.tsp`      | CustomerAppsEndpoints interface for list/upsert/delete of CustomerAppData, and ListCustomerAppDataParams model.                                                                     | This app.tsp is under customer/ and defines customer-scoped app data endpoints, not the app-domain app.tsp.         |
-| `stripe.tsp`   | CustomerStripeEndpoints with get/upsert Stripe app data and createPortalSession. Stripe-specific convenience endpoints separate from the generic app data API.                      | createPortalSession returns 201, not 200 — matches the Go handler response encoding.                                |
-| `main.tsp`     | Imports app.tsp, customer.tsp, stripe.tsp. No definitions.                                                                                                                          | Add new customer sub-resource .tsp files here.                                                                      |
+| `app.tsp` | CustomerAppsEndpoints interface for list/upsert/delete of CustomerAppData, and ListCustomerAppDataParams model. | This app.tsp is under customer/ and defines customer-scoped app data endpoints, not the app-domain app.tsp. |
+| `stripe.tsp` | CustomerStripeEndpoints with get/upsert Stripe app data and createPortalSession. Stripe-specific convenience endpoints separate from the generic app data API. | createPortalSession returns 201, not 200 — matches the Go handler response encoding. |
+| `main.tsp` | Imports app.tsp, customer.tsp, stripe.tsp. No definitions. | Add new customer sub-resource .tsp files here. |
 
 ## Anti-Patterns
 

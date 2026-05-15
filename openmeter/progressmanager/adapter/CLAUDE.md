@@ -2,33 +2,33 @@
 
 <!-- archie:ai-start -->
 
-> Redis-backed implementation of progressmanager.Adapter that stores/retrieves progress data as JSON with TTL expiration. Also provides a noop implementation (adapterNoop) and a testify-based mock (MockProgressManager) in the same package.
+> Redis-backed implementation of progressmanager.Adapter that stores/retrieves TTL-bound progress data as JSON; also provides adapterNoop (silent no-op) and MockProgressManager (testify mock for Service) in the same package.
 
 ## Patterns
 
-**Config struct with Validate() before construction** — All required fields (Redis client, Logger, Expiration > 0) are validated in Config.Validate() before the adapter is constructed. New() returns (Adapter, error) and calls Validate() first. (`func New(config Config) (progressmanager.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }`)
-**Interface compliance assertion** — Both adapter structs assert interface compliance at compile time via blank identifier assignment. (`var _ progressmanager.Adapter = (*adapter)(nil)
+**Config.Validate() before construction** — New() calls config.Validate() first and returns (Adapter, error). Required fields: non-nil Redis client, non-nil Logger, Expiration > 0. Never relax these guards. (`func New(config Config) (progressmanager.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }`)
+**Compile-time interface assertion** — Both adapter and adapterNoop assert interface compliance via blank-identifier assignment at package level. (`var _ progressmanager.Adapter = (*adapter)(nil)
 var _ progressmanager.Adapter = (*adapterNoop)(nil)`)
-**Namespaced Redis key format** — Keys follow the format '<keyPrefix>:progress:<namespace>:<id>' (or 'progress:<namespace>:<id>' when keyPrefix is empty). Never store progress without namespace isolation. (`fmt.Sprintf("%s:%s:%s:%s", a.keyPrefix, staticKeyPrefix, id.Namespace, id.ID)`)
-**redis.Nil sentinel mapped to GenericNotFoundError** — When redis.Get returns redis.Nil, return models.NewGenericNotFoundError(...) — not a raw error — so the HTTP layer maps it to 404. (`if cmd.Err() == redis.Nil { return nil, models.NewGenericNotFoundError(...) }`)
-**Input validation before Redis ops** — Both GetProgress and UpsertProgress call input.Validate() and wrap the error before touching Redis. (`if err := input.Validate(); err != nil { return nil, fmt.Errorf("validate get progress input: %w", err) }`)
-**Noop UpsertProgress silently succeeds** — adapterNoop.UpsertProgress returns nil (no-op), but adapterNoop.GetProgress returns GenericNotFoundError. This asymmetry is intentional — writes are discarded, reads report not-found. (`func (a *adapterNoop) UpsertProgress(...) error { return nil }`)
-**Mock implements Service not Adapter** — MockProgressManager implements progressmanager.Service (not Adapter), covering the full service surface including DeleteProgressByRuntimeID. (`var _ progressmanager.Service = &MockProgressManager{}`)
+**Namespaced Redis key via getKey()** — All Redis operations must route through getKey(id ProgressID) which produces '<keyPrefix>:progress:<namespace>:<id>' (or without prefix when keyPrefix is empty). Never construct keys inline. (`fmt.Sprintf("%s:%s:%s:%s", a.keyPrefix, staticKeyPrefix, id.Namespace, id.ID)`)
+**redis.Nil mapped to GenericNotFoundError** — When redis.Get returns redis.Nil, return models.NewGenericNotFoundError(...) — not the raw redis error — so the HTTP layer maps it to 404. (`if cmd.Err() == redis.Nil { return nil, models.NewGenericNotFoundError(fmt.Errorf("progress not found for id: %s", input.ProgressID.ID)) }`)
+**Input validation before Redis operations** — Both GetProgress and UpsertProgress call input.Validate() and wrap the error before any Redis call. (`if err := input.Validate(); err != nil { return nil, fmt.Errorf("validate get progress input: %w", err) }`)
+**Noop asymmetry: writes succeed, reads return not-found** — adapterNoop.UpsertProgress returns nil (writes discarded silently); adapterNoop.GetProgress returns GenericNotFoundError. This asymmetry is intentional — callers treat noop writes as safe to ignore. (`func (a *adapterNoop) UpsertProgress(...) error { return nil }`)
+**Mock implements Service not Adapter** — MockProgressManager satisfies progressmanager.Service (including DeleteProgressByRuntimeID), not progressmanager.Adapter. Keep in sync when Service interface gains new methods. (`var _ progressmanager.Service = &MockProgressManager{}`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `adapter.go` | Defines Config struct, New() constructor, adapter struct, and adapterNoop stub. Entry point for wiring. | Config.Validate() must reject nil Redis client and zero Expiration — never relax these guards. |
-| `progress.go` | Implements GetProgress and UpsertProgress on the real adapter using Redis GET/SET with JSON marshaling. | getKey() is the sole key-format authority; if key format changes, all existing Redis data becomes unreachable. |
-| `noop.go` | No-op implementation for disabled progress tracking; GetProgress always returns not-found, UpsertProgress is silent. | Do not make noop methods return non-nil errors for UpsertProgress — callers treat the noop as safe to ignore. |
-| `mock.go` | Testify mock for progressmanager.Service used in unit tests. | Mock implements Service, not Adapter — keep in sync if Service interface gains new methods. |
+| `adapter.go` | Config struct, New() constructor, adapter and adapterNoop type definitions. Entry point for wiring in app/common. | Config.Validate() must reject nil Redis client and zero Expiration — never relax these guards. |
+| `progress.go` | GetProgress and UpsertProgress implementations using Redis GET/SET with JSON marshaling and TTL. | getKey() is the sole key-format authority; changing the format orphans all existing in-flight Redis records. |
+| `noop.go` | No-op adapter for disabled progress tracking. GetProgress always returns not-found; UpsertProgress is silent. | Do not make UpsertProgress return a non-nil error — callers rely on noop writes being safe no-ops. |
+| `mock.go` | Testify mock for progressmanager.Service used in unit tests. | Mock is for Service (not Adapter); must be updated when Service interface adds new methods. |
 
 ## Anti-Patterns
 
 - Storing progress keys without namespace prefix — breaks multi-tenant isolation
 - Returning raw redis errors instead of models.GenericNotFoundError for redis.Nil — breaks HTTP 404 mapping
-- Calling redis operations without first calling input.Validate() — bypasses invariant checks
+- Calling Redis operations without first calling input.Validate() — bypasses domain invariant checks
 - Editing the key format in getKey() without a migration plan — orphans all existing in-flight progress records
 - Making adapterNoop.UpsertProgress return an error — callers rely on noop writes being safe no-ops
 
@@ -44,10 +44,10 @@ import (
     "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 )
 
-func ProvideProgressAdapter(redis *redis.Client, logger *slog.Logger) (progressmanager.Adapter, error) {
+func ProvideProgressAdapter(redisClient *redis.Client, logger *slog.Logger) (progressmanager.Adapter, error) {
     return adapter.New(adapter.Config{
         Expiration: 24 * time.Hour,
-        Redis:      redis,
+        Redis:      redisClient,
         Logger:     logger,
         KeyPrefix:  "om",
     })

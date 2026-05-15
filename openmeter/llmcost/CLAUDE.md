@@ -13,7 +13,7 @@ func (i ListPricesInput) Validate() error { ... return models.NewNillableGeneric
 **PriceSource discrimination for global vs override rows** — Rows with namespace IS NULL and source='system' are global prices; rows with namespace IS NOT NULL and source='manual' are overrides. Never mix these in a single query path. (`PriceSourceManual PriceSource = "manual"; PriceSourceSystem PriceSource = "system"`)
 **alpacadecimal.Decimal for all price fields** — All cost-per-token fields use alpacadecimal.Decimal (never float64 or string). Optional token dimensions (CacheRead, CacheWrite, Reasoning) are *alpacadecimal.Decimal. (`InputPerToken alpacadecimal.Decimal; CacheReadPerToken *alpacadecimal.Decimal`)
 **NormalizeModelID before any price lookup or insert** — Call llmcost.NormalizeModelID(provider, modelID) before storing or resolving prices to canonicalise casing, version suffixes, region prefixes, and provider aliases. (`canonicalProvider, canonicalModelID := llmcost.NormalizeModelID(provider, modelID)`)
-**TransactingRepo wrapping in adapter** — Every adapter method that writes must be wrapped with entutils.TransactingRepo / TransactingRepoWithNoValue so ctx-carried transactions are honored. (`return entutils.TransactingRepo(ctx, a.db, func(tx *entdb.Tx) (Price, error) { ... })`)
+**TransactingRepo wrapping in adapter** — Every adapter method that writes must be wrapped with entutils.TransactingRepo / TransactingRepoWithNoValue so ctx-carried transactions are honored. (`return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (Price, error) { ... })`)
 
 ## Key Files
 
@@ -60,7 +60,6 @@ func (i GetLatestPriceInput) Validate() error {
     if i.ModelID == "" { errs = append(errs, ErrModelIDEmpty) }
     return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
-// ...
 ```
 
 <!-- archie:ai-end -->

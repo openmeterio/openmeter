@@ -2,7 +2,7 @@
 
 <!-- archie:ai-start -->
 
-> Core implementation of subscription.Service: orchestrates Create/Update/Delete/Cancel/Continue/GetView/List/ExpandViews by coordinating SubscriptionRepo, SubscriptionPhaseRepo, SubscriptionItemRepo, EntitlementAdapter, CustomerService, and event publishing, all inside pg-advisory-locked transactions.
+> Core implementation of subscription.Service: orchestrates Create/Update/Delete/Cancel/Continue/GetView/List/ExpandViews by coordinating repos, EntitlementAdapter, CustomerService, and event publishing, all inside pg-advisory-locked transactions.
 
 ## Patterns
 
@@ -30,7 +30,7 @@ sub, err := s.sync(ctx, view, spec)`)
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `service.go` | Main service implementation: Create, Update, Delete, Cancel, Continue, Get, GetView, List, ExpandViews, UpdateAnnotations, RegisterHook. | ExpandViews requires all subs to share the same customer ID; panics otherwise. |
+| `service.go` | Main service implementation: Create, Update, Delete, Cancel, Continue, Get, GetView, List, ExpandViews, UpdateAnnotations, RegisterHook. | ExpandViews requires all subs to share the same customer ID; calling with mixed customers produces incorrect views. |
 | `servicevalidation.go` | validateCreate/validateUpdate/validateCancel/validateContinue — pure validation helpers that check state machine transitions, currency consistency, and timing constraints. | validateCreate checks customer.Currency vs spec.Currency only when spec.HasBillables() is true. |
 | `sync.go` | sync() and helpers: diffs current view against new spec and issues create/delete/update calls on repos and EntitlementAdapter. | sync() is the single authorised path for spec→DB reconciliation; do not call repo methods directly from service mutators. |
 | `synchelpers.go` | createPhase, deletePhase, createItem, deleteItem — building-blocks called by sync(). | createItem calls EntitlementAdapter.ScheduleEntitlement for items with entitlement templates; missing EntitlementAdapter wiring causes runtime nil-deref. |
@@ -41,7 +41,7 @@ sub, err := s.sync(ctx, view, spec)`)
 - Calling repo methods directly from service methods instead of routing through sync().
 - Adding a new mutation operation without calling NewSubscriptionOperationContext(ctx) at entry.
 - Omitting the customer advisory lock for operations that write subscription or item rows.
-- Adding a new hook without using errors.Join fan-out (partial hook failure would be silently swallowed).
+- Adding a new hook without using errors.Join fan-out — partial hook failure would be silently swallowed.
 - Publishing events before the transaction commits — event must be emitted after transaction.Run succeeds.
 
 ## Decisions

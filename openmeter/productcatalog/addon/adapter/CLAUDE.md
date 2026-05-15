@@ -2,39 +2,39 @@
 
 <!-- archie:ai-start -->
 
-> Ent/PostgreSQL adapter implementing addon.Repository: CRUD + list for add-ons and their rate cards. All operations wrap adapter methods with entutils.TransactingRepo so the ctx-bound transaction is always honored.
+> Ent/PostgreSQL adapter implementing addon.Repository: full CRUD and list for add-ons and their rate cards, with all operations wrapped in entutils.TransactingRepo to honor ctx-bound transactions. This is the persistence boundary for the addon domain.
 
 ## Patterns
 
-**TransactingRepo wrapping** — Every exported adapter method wraps its body in entutils.TransactingRepo[T, *adapter](ctx, a, fn) to rebind to any caller-supplied Ent transaction carried in ctx. (`return entutils.TransactingRepo[*addon.Addon, *adapter](ctx, a, fn)`)
-**Tx / WithTx / Self trio** — adapter implements transaction.Driver via Tx() (HijackTx), WithTx() (returns new *adapter bound to txClient), and Self() — required by entutils.TransactingRepo. (`func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), ...} }`)
-**Config + Validate constructor** — New(Config) validates all required fields (Client, Logger) before constructing. Config implements models.Validator. (`var _ models.Validator = (*Config)(nil)`)
-**Eager loading via WithRatecards** — All queries that return an Addon call query.WithRatecards(AddonEagerLoadRateCardsFn) so rate cards are always populated; PlanAddons are loaded only when Expand.PlanAddons is true. (`query = query.WithRatecards(AddonEagerLoadRateCardsFn)`)
-**mapping.go: FromAddonRow converts Ent row to domain type** — All type conversions live in mapping.go (FromAddonRow, FromAddonRateCardRow, FromPlanAddonRow, asAddonRateCardRow). Do not embed conversion logic inside CRUD methods. (`add, err := FromAddonRow(*addonRow)`)
-**Soft delete via DeletedAt** — DeleteAddon sets DeletedAt to time.Now().UTC() via UpdateOneID; ListAddons excludes deleted rows with addondb.DeletedAtIsNil() unless IncludeDeleted is set. (`err = a.db.Addon.UpdateOneID(add.ID).SetDeletedAt(deletedAt).Exec(ctx)`)
-**Status filtering via time predicates** — AddonStatus is derived from EffectiveFrom/EffectiveTo columns at query time: active = EffectiveFrom<=now AND (EffectiveTo>=now OR nil), draft = both nil, archived = EffectiveTo<now. (`predicates = append(predicates, addondb.And(addondb.EffectiveFromLTE(now), addondb.Or(addondb.EffectiveToGTE(now), addondb.EffectiveToIsNil())))`)
+**TransactingRepo wrapping on every method** — Every exported adapter method wraps its fn body in entutils.TransactingRepo[T, *adapter](ctx, a, fn). Never access a.db directly in a method body without this wrapper. (`return entutils.TransactingRepo[*addon.Addon, *adapter](ctx, a, fn)`)
+**Tx / WithTx / Self triad** — adapter implements TxCreator via Tx() (HijackTx + NewTxDriver), TxUser via WithTx() (NewTxClientFromRawConfig -> Client()), and Self(). All three are required by entutils.TransactingRepo. (`func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), logger: a.logger} }`)
+**Eager load rate cards with WithRatecards** — Every query returning an Addon calls query.WithRatecards(AddonEagerLoadRateCardsFn). PlanAddons are loaded only when Expand.PlanAddons is true via WithPlans(addonEagerLoadActivePlans). (`query = query.WithRatecards(AddonEagerLoadRateCardsFn)`)
+**Soft delete via DeletedAt** — DeleteAddon sets DeletedAt to time.Now().UTC() via UpdateOneID; ListAddons excludes deleted rows with addondb.DeletedAtIsNil() unless IncludeDeleted is set. (`err = a.db.Addon.UpdateOneID(add.ID).Where(addondb.Namespace(add.Namespace)).SetDeletedAt(deletedAt).Exec(ctx)`)
+**Status filtering via EffectiveFrom/EffectiveTo time predicates** — AddonStatus is derived at query time: active = EffectiveFromLTE(now) AND (EffectiveToGTE(now) OR nil), draft = both nil, archived = EffectiveToLT(now). Never compute status in Go after fetching all rows. (`predicates = append(predicates, addondb.And(addondb.EffectiveFromLTE(now), addondb.Or(addondb.EffectiveToGTE(now), addondb.EffectiveToIsNil())))`)
+**Rate card updates replace all cards (delete + bulk-create)** — UpdateAddon deletes all existing AddonRateCard rows then calls rateCardBulkCreate. No diff logic — full replacement ensures consistency and key uniqueness. (`a.db.AddonRateCard.Delete().Where(addonratecarddb.AddonID(add.ID)).Exec(ctx)`)
+**All type conversions live in mapping.go** — CRUD methods call FromAddonRow, FromAddonRateCardRow, FromPlanAddonRow, asAddonRateCardRow from mapping.go. Never embed conversion logic inside query methods. (`add, err := FromAddonRow(*addonRow)`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `adapter.go` | Config struct, New constructor, adapter struct, Tx/WithTx/Self transaction plumbing. | Never remove Tx/WithTx/Self — they are required by entutils.TransactingRepo. Always validate Config before constructing. |
-| `addon.go` | All CRUD + list methods for add-ons and their rate cards. Contains rateCardBulkCreate helper and addonEagerLoadActivePlans closure. | Every method must wrap its fn body with TransactingRepo. UpdateAddon replaces all rate cards by delete+bulk-create; partial updates on individual cards are not supported. |
-| `mapping.go` | Bidirectional mapping between Ent rows and domain types: FromAddonRow, FromAddonRateCardRow, FromPlanAddonRow, asAddonRateCardRow, plus helpers that reuse plan/phase/ratecard converters from the plan adapter. | TaxConfig.BackfillTaxConfig must be called after mapping TaxCode edge to ensure legacy field compatibility. BillingCadence uses ISOString parse/stringify, never raw string. |
-| `adapter_test.go` | Integration tests against a real Postgres DB using pctestutils.NewTestEnv. Tests cover create/get/list/update/delete and status-filter logic. | Tests use context.WithCancel — prefer t.Context() for new tests. TestEnv is closed in t.Cleanup. |
+| `adapter.go` | Config struct, New constructor with Validate(), adapter struct, and Tx/WithTx/Self transaction plumbing. | Never remove Tx/WithTx/Self — they are required by entutils.TransactingRepo. Always call config.Validate() before constructing. |
+| `addon.go` | All CRUD + list methods (ListAddons, CreateAddon, GetAddon, UpdateAddon, DeleteAddon) plus rateCardBulkCreate helper and addonEagerLoadActivePlans closure. | Every method must wrap its fn body with TransactingRepo. GetAddon uses complex SQL subquery for latest-version-by-key lookup; prefer using the existing addondb predicates rather than raw SQL selectors. |
+| `mapping.go` | Bidirectional mapping: FromAddonRow/FromAddonRateCardRow/FromPlanAddonRow (Ent->domain) and asAddonRateCardRow (domain->Ent). Also imports plan adapter mapping functions (FromPlanRow, FromPlanPhaseRow, FromPlanRateCardRow). | TaxConfig.BackfillTaxConfig must be called after mapping TaxCode edge. BillingCadence uses ISOString parse/stringify (r.BillingCadence.ParsePtrOrNil()), never raw string assignment. |
+| `adapter_test.go` | Integration tests against real Postgres via pctestutils.NewTestEnv. Covers create/get/list/update/delete plus status-filter logic. | Tests use context.WithCancel — prefer t.Context() for new tests. TestEnv is closed in t.Cleanup. |
 
 ## Anti-Patterns
 
-- Accepting *entdb.Client directly in helper functions without wrapping the body with entutils.TransactingRepo — this bypasses the ctx-bound transaction.
-- Embedding type-conversion logic inside CRUD methods instead of mapping.go.
-- Querying add-ons without WithRatecards eager load — callers expect rate cards always populated.
+- Calling a.db.Foo() directly inside an adapter method without wrapping in entutils.TransactingRepo — this bypasses ctx-bound transactions.
+- Embedding type-conversion logic inside CRUD methods instead of using mapping.go helpers.
+- Querying add-ons without WithRatecards eager load — callers always expect rate cards populated.
 - Hard-deleting rows instead of setting DeletedAt for soft delete.
-- Building raw SQL predicates for status filtering instead of using the established EffectiveFrom/EffectiveTo Ent predicates.
+- Building raw SQL predicates for status filtering instead of using the EffectiveFrom/EffectiveTo Ent predicate helpers.
 
 ## Decisions
 
-- **TransactingRepo wraps every adapter method rather than passing *entdb.Tx explicitly.** — Ent transactions are carried implicitly in ctx; explicit tx parameters leak plumbing to every call site and make helpers harder to compose.
-- **Rate card updates replace all existing cards (delete + bulk-create) rather than diffing.** — Simplifies consistency guarantees — no partial state can exist after an update, and ordering/key uniqueness is enforced atomically.
+- **TransactingRepo wraps every adapter method rather than passing *entdb.Tx explicitly.** — Ent transactions propagate implicitly via ctx; explicit tx parameters leak plumbing to every call site and prevent safe nesting via savepoints.
+- **Rate card updates replace all existing cards (delete + bulk-create) rather than diffing.** — Simplifies consistency guarantees — no partial state after an update, ordering and key uniqueness enforced atomically without complex diff logic.
 
 ## Example: Add a new adapter method for an addon sub-resource
 

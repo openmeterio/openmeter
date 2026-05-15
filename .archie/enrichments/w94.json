@@ -1,141 +1,355 @@
 {
-  "openmeter/ledger/account/adapter": {
-    "purpose": "Ent/PostgreSQL adapter implementing ledgeraccount.Repo for ledger account and sub-account persistence. All DB operations must be transaction-aware via entutils.TransactingRepo; route creation uses an upsert pattern keyed on canonical routing key.",
+  "openmeter/ledger/chargeadapter": {
+    "purpose": "Bridges charge lifecycle events (credit purchase, flat fee, usage-based) to double-entry ledger postings by translating domain charge state transitions into typed transaction templates committed via ledger.Ledger.CommitGroup. Each charge type has its own private handler struct implementing the corresponding charge domain Handler interface.",
     "patterns": [
       {
-        "name": "TransactingRepo wrapping",
-        "description": "Every exported method body is wrapped in entutils.TransactingRepo(ctx, r, func(ctx, tx *repo) ...) so the ctx-bound Ent transaction is honored. Never use r.db directly in a public method without this wrapper.",
-        "example": "return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgeraccount.AccountData, error) { ... r.db.LedgerAccount... })"
+        "name": "Handler-per-charge-type with compile-time assertion",
+        "description": "Each charge type (creditPurchase, flatFee, usageBased) has a private handler struct and a public New*Handler constructor returning the domain Handler interface. A var _ <interface> = (*handler)(nil) assertion ensures compile-time compliance.",
+        "example": "var _ chargecreditpurchase.Handler = (*creditPurchaseHandler)(nil)\nfunc NewCreditPurchaseHandler(ledger ledger.Ledger, ...) chargecreditpurchase.Handler { return &creditPurchaseHandler{...} }"
       },
       {
-        "name": "TxUser implementation on repo",
-        "description": "repo implements entutils.TxUser[*repo] via WithTx and Self, enabling TransactingRepo to rebind to the caller's transaction. Both must be present for any new repo struct.",
-        "example": "func (r *repo) WithTx(ctx context.Context, tx *entutils.TxDriver) *repo { return &repo{db: entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()} }"
+        "name": "Resolve-then-annotate-then-commit pipeline",
+        "description": "Every ledger write follows: transactions.ResolveTransactions \u2192 annotate each resolved input with transactions.WithAnnotations \u2192 h.ledger.CommitGroup(ctx, transactions.GroupInputs(ns, annotations, inputs...)). Never call CommitGroup directly with un-annotated or un-resolved inputs.",
+        "example": "inputs, _ := transactions.ResolveTransactions(ctx, h.deps, scope, template)\nfor i, in := range inputs { inputs[i] = transactions.WithAnnotations(in, annotations) }\nh.ledger.CommitGroup(ctx, transactions.GroupInputs(ns, annotations, inputs...))"
       },
       {
-        "name": "Route upsert via canonical routing key",
-        "description": "EnsureSubAccount normalizes the route, builds a deterministic routing key via ledger.BuildRoutingKey(RoutingKeyVersionV1, ...), attempts insert, and on constraint error falls back to query by (namespace, accountID, routingKeyVersion, routingKey). Cost basis is canonicalized before key computation so '0.7' and '0.70' collide correctly.",
-        "example": "normalizedRoute, _ := input.Route.Normalize(); routeKey, _ := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, normalizedRoute); create.Save(ctx) \u2192 on IsConstraintError \u2192 query by routingKey"
+        "name": "ChargeAnnotations on every CommitGroup call",
+        "description": "Every transaction group receives charge-scoped annotations via chargeAnnotationsForXxxCharge \u2192 chargeTransactionAnnotations \u2192 ledger.ChargeTransactionAnnotations. These attach chargeID, namespace, subscriptionID, phaseID, itemID, featureID. Omitting them breaks per-charge traceability.",
+        "example": "annotations := chargeAnnotationsForFlatFeeCharge(charge)\ninputs[i] = transactions.WithAnnotations(inputs[i], annotations)"
       },
       {
-        "name": "Constraint-error idempotent upsert for sub-accounts",
-        "description": "EnsureSubAccount attempts Create on LedgerSubAccount; on db.IsConstraintError it re-fetches the existing row by (namespace, accountID, routeID) instead of failing. This makes the operation safe to call multiple times.",
-        "example": "if db.IsConstraintError(err) { entity, err = r.db.LedgerSubAccount.Query().Where(...).Only(ctx) }"
+        "name": "Settlement mode guard before any ledger work",
+        "description": "Every handler method that deals with invoice-side accrual calls validateSettlementMode with an explicit allowlist of permitted modes before doing any ledger work. Incompatible modes return an error, not a no-op.",
+        "example": "if err := validateSettlementMode(input.Charge.Intent.SettlementMode, productcatalog.InvoiceOnlySettlementMode, productcatalog.CreditThenInvoiceSettlementMode); err != nil { return ..., fmt.Errorf(\"invoice usage accrued: %w\", err) }"
       },
       {
-        "name": "WithRoute+WithAccount eager loading for subaccount reads",
-        "description": "GetSubAccountByID and ListSubAccounts always call .WithRoute().WithAccount() on the query. MapSubAccountData panics-as-error if either edge is nil, so never query sub-accounts without these eager loads.",
-        "example": "r.db.LedgerSubAccount.Query().Where(...).WithRoute().WithAccount().Only(ctx)"
+        "name": "Return empty GroupReference on zero-amount",
+        "description": "All handler methods return an empty ledgertransaction.GroupReference{} (not an error) when the amount is zero rather than issuing a zero-value ledger group.",
+        "example": "if amount.IsZero() { return ledgertransaction.GroupReference{}, nil }"
       },
       {
-        "name": "MapAccountData / MapSubAccountData as pure domain converters",
-        "description": "Both are exported functions (not methods) that convert Ent entities to domain types. They must stay pure \u2014 no repo calls inside. MapSubAccountData returns an error if Account or Route edges are nil.",
-        "example": "func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountData, error) { if entity.Edges.Account == nil { return ..., fmt.Errorf(...) } ... }"
+        "name": "Delegate FBO collection to collector.Service",
+        "description": "flatFeeHandler and usageBasedHandler delegate FBO\u2192accrued collection to collector.Service.CollectToAccrued and CorrectCollectedAccrued instead of calling ledger directly. Only payment authorization/settlement calls ledger directly.",
+        "example": "realizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{Namespace: ..., ChargeID: ..., Amount: ...})"
       },
       {
-        "name": "RouteFilter normalization before predicate building",
-        "description": "ListSubAccounts calls input.Route.Normalize() before constructing Ent predicates so that filter values match the canonicalized DB values (especially cost basis decimal normalization).",
-        "example": "normalizedRoute, err := input.Route.Normalize(); if normalizedRoute.CostBasis.IsPresent() { ... dbledgersubaccountroute.CostBasis(*costBasis) ... }"
+        "name": "clock.Now() for payment timestamps, not Intent.InvoiceAt",
+        "description": "Payment-authorized and payment-settled handler methods use clock.Now() for the booking timestamp to reflect wall-clock event time. InvoiceAt is only used for accrual booking (OnInvoiceUsageAccrued, OnAssignedToInvoice). Tests freeze clock via pkg/clock to verify this.",
+        "example": "transactions.AuthorizeCustomerReceivablePaymentTemplate{ At: clock.Now(), ... }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "repo.go",
-        "role": "Defines the repo struct, NewRepo constructor, and the Tx/WithTx/Self methods that satisfy entutils.TxUser[*repo] and transaction.TxCreator. This is the DI entry point.",
-        "watch_for": "Both var _ assertions (ledgeraccount.Repo and entutils.TxUser[*repo]) must stay satisfied; dropping either breaks transaction rebinding."
+        "file": "annotations.go",
+        "role": "Shared helper constructing models.Annotations for each charge type via ledger.ChargeTransactionAnnotations. All three handler files import this.",
+        "watch_for": "If a new field is added to charge.Intent.Subscription (meta.SubscriptionReference), thread it through chargeTransactionAnnotations here or it will be silently omitted from all ledger annotations."
       },
       {
-        "file": "account.go",
-        "role": "CRUD for LedgerAccount rows: CreateAccount, GetAccountByID, ListAccounts. Also holds the exported MapAccountData converter.",
-        "watch_for": "All three methods are wrapped in TransactingRepo; ListAccounts filters by AccountTypes when non-empty \u2014 omitting that filter returns unscoped results."
+        "file": "creditpurchase.go",
+        "role": "Handles promotional, external, and invoice-settled credit purchase lifecycles. issueCreditPurchase orchestrates advance-attribution, accrued-translation, and receivable-issuance templates in one CommitGroup call.",
+        "watch_for": "outstandingAdvanceBalance and unattributedAccruedBalance reads happen before ResolveTransactions and are not inside the ledger transaction \u2014 ordering matters for correctness."
       },
       {
-        "file": "subaccount.go",
-        "role": "EnsureSubAccount (idempotent upsert), GetSubAccountByID, ListSubAccounts, and the internal resolveOrCreateRoute (route upsert). Also holds MapSubAccountData.",
-        "watch_for": "resolveOrCreateRoute is not wrapped in TransactingRepo itself \u2014 it is always called from within an outer TransactingRepo in EnsureSubAccount. Adding a public call to it directly would bypass tx rebinding."
+        "file": "flatfee.go",
+        "role": "Handles flat-fee invoice-assignment, invoice-usage-accrual, credits-only accrual, payment authorization, and settlement. invoiceCostBasis package-level constant (1.0) used for all invoice-backed transactions.",
+        "watch_for": "OnAssignedToInvoice and OnCreditsOnlyUsageAccrued return creditrealization.CreateAllocationInputs (via collector); OnInvoiceUsageAccrued and payment handlers return ledgertransaction.GroupReference. These are different return types."
       },
       {
-        "file": "repo_test.go",
-        "role": "Integration tests using testutils.InitPostgresDB + migrate.Up. TestEnv wires repo directly from adapter.NewRepo without app/common \u2014 follow this for new tests.",
-        "watch_for": "Tests call t.Context() (not context.Background()). DBSchemaMigrate runs the full golang-migrate Up; skip it and FK constraints will fail."
+        "file": "usagebased.go",
+        "role": "Mirrors flatfee.go but for usage-based charges; payment timestamps use clock.Now() not charge.Intent.InvoiceAt.",
+        "watch_for": "clock.Now() is used for authorization and settlement timestamps; tests freeze clock to assert this \u2014 do not change to InvoiceAt."
+      },
+      {
+        "file": "helpers.go",
+        "role": "settledBalanceForSubAccount \u2014 wraps SubAccount.GetBalance and returns the Settled() value only.",
+        "watch_for": "Returns only the settled portion; pending balance is excluded. Do not call Pending() here."
       }
     ],
     "anti_patterns": [
-      "Calling r.db.LedgerAccount/LedgerSubAccount directly in a public method without TransactingRepo \u2014 falls off the caller's transaction",
-      "Querying LedgerSubAccount without .WithRoute().WithAccount() \u2014 MapSubAccountData will error on nil edges",
-      "Manually constructing routingKey strings instead of using ledger.BuildRoutingKey \u2014 breaks canonical uniqueness",
-      "Using context.Background() in tests instead of t.Context()",
-      "Importing app/common in test setup \u2014 causes import cycles; use adapter.NewRepo directly"
+      "Calling h.ledger.CommitGroup without first resolving through transactions.ResolveTransactions (bypasses sub-account routing)",
+      "Omitting chargeAnnotations from a CommitGroup call (breaks per-charge traceability in ledger)",
+      "Skipping validateSettlementMode in any new lifecycle event handler method",
+      "Using charge.Intent.InvoiceAt as the booking timestamp in payment-authorized or payment-settled events (must use clock.Now())",
+      "Writing tests without ledgertestutils.IntegrationEnv and instead mocking the ledger (breaks coverage of sub-account routing logic)"
     ],
     "decisions": [
       {
-        "decision": "Routes are a separate table (LedgerSubAccountRoute) shared across sub-accounts, not embedded in sub-accounts.",
-        "rationale": "Routes give a meaningful view of which currencies/cost bases are held without requiring a join through the structural sub-account grouping; upsert on routing key makes route reuse automatic."
+        "decision": "Handler interfaces are defined in the charge sub-packages (chargecreditpurchase.Handler etc.), not in chargeadapter itself.",
+        "rationale": "Keeps charge domain packages free of ledger imports; chargeadapter is the bridge that knows both sides without creating circular imports."
       },
       {
-        "decision": "Cost basis is canonicalized via Route.Normalize() before key computation and DB storage.",
-        "rationale": "Decimal representations like '0.7' and '0.70' must map to the same route row to preserve uniqueness guarantees; normalization happens once in the adapter, never in callers."
+        "decision": "invoiceCostBasis is a package-level constant (*alpacadecimal = 1) used for all invoice-backed accrual and payment transactions.",
+        "rationale": "Invoice-backed receivables have a known 1:1 cost basis; encoding it as a constant prevents per-call divergence."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new filtered list method on repo (e.g. ListAccountsByType)",
-        "code": "func (r *repo) ListAccountsByType(ctx context.Context, ns string, accType ledger.AccountType) ([]*ledgeraccount.AccountData, error) {\n\treturn entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) ([]*ledgeraccount.AccountData, error) {\n\t\tentities, err := r.db.LedgerAccount.Query().\n\t\t\tWhere(ledgeraccountdb.Namespace(ns), ledgeraccountdb.AccountType(accType)).\n\t\t\tAll(ctx)\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"failed to list accounts by type: %w\", err)\n\t\t}\n\t\tout := make([]*ledgeraccount.AccountData, 0, len(entities))\n\t\tfor _, e := range entities {\n\t\t\tad, err := MapAccountData(e)\n\t\t\tif err != nil {\n\t\t\t\treturn nil, err\n\t\t\t}\n\t\t\tout = append(out, ad)\n\t\t}\n\t\treturn out, nil\n\t})\n}"
+        "scenario": "Adding a new flat-fee lifecycle event handler",
+        "code": "// flatfee.go\nfunc (h *flatFeeHandler) OnNewEvent(ctx context.Context, input flatfee.OnNewEventInput) (ledgertransaction.GroupReference, error) {\n    if err := input.Validate(); err != nil {\n        return ledgertransaction.GroupReference{}, err\n    }\n    if input.Amount.IsZero() {\n        return ledgertransaction.GroupReference{}, nil\n    }\n    if err := validateSettlementMode(input.Charge.Intent.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode); err != nil {\n        return ledgertransaction.GroupReference{}, fmt.Errorf(\"new event: %w\", err)\n    }\n    customerID := customer.CustomerID{Namespace: input.Charge.Namespace, ID: input.Charge.Intent.CustomerID}\n    annotations := chargeAnnotationsForFlatFeeCharge(input.Charge)\n    inputs, err := transactions.ResolveTransactions(ctx, h.deps, transactions.ResolutionScope{CustomerID: customerID, Namespace: input.Charge.Namespace}, transactions.SomeTemplate{At: clock.Now(), Amount: input.Amount, Currency: input.Charge.Intent.Currency, CostBasis: invoiceCostBasis})\n    if err != nil { return ledgertransaction.GroupReference{}, fmt.Errorf(\"resolve transactions: %w\", err) }\n    for i, txInput := range inputs { if txInput != nil { inputs[i] = transactions.WithAnnotations(txInput, annotations) } }\n    transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(input.Charge.Namespace, annotations, inputs...))\n    if err != nil { return ledgertransaction.GroupReference{}, fmt.Errorf(\"commit ledger transaction group: %w\", err) }\n    return ledgertransaction.GroupReference{TransactionGroupID: transactionGroup.ID().ID}, nil\n}"
       }
     ]
   },
-  "openmeter/ledger/account/service": {
-    "purpose": "Business-logic service layer for ledger accounts and sub-accounts, delegating all persistence to account.Repo and enriching raw AccountData/SubAccountData with live runtime dependencies (Locker, Querier) via account.AccountLiveServices.",
+  "openmeter/ledger/collector": {
+    "purpose": "Implements FBO-to-accrued credit collection and lineage-aware correction (reversal) as a standalone service consumed by chargeadapter's flat-fee and usage-based handlers. Encapsulates advance shortfall issuance for CreditOnly mode and plan-then-execute merging for multi-step accrual corrections.",
     "patterns": [
       {
-        "name": "Service wires itself as SubAccountService",
-        "description": "New() injects the constructed service back into live.SubAccountService before storing live, so Account domain objects receive a real SubAccountService reference. Never construct service without this self-wiring step.",
-        "example": "func New(repo account.Repo, live account.AccountLiveServices) account.Service { svc := &service{repo: repo}; live.SubAccountService = svc; svc.live = live; return svc }"
+        "name": "Service interface with two operations only",
+        "description": "collector.Service exposes exactly CollectToAccrued and CorrectCollectedAccrued. Implementation delegates to private accrualCollector (collect.go) and accrualCorrector (correct.go) structs constructed in NewService(Config).",
+        "example": "func NewService(config Config) Service { return &service{collector: &accrualCollector{ledger: config.Ledger, deps: config.Dependencies}, corrector: &accrualCorrector{...}} }"
       },
       {
-        "name": "Validate input before repo calls",
-        "description": "CreateAccount and EnsureSubAccount call input.Validate() and return immediately on error before touching the repo. All mutating methods must validate first.",
-        "example": "if err := input.Validate(); err != nil { return nil, err }"
+        "name": "Advance shortfall issuance in collect (CreditOnly only)",
+        "description": "After resolving FBO\u2192accrued templates, collect checks if settlement mode is CreditOnly and FBO didn't cover the full amount; if so it appends IssueCustomerReceivable + TransferCustomerFBOAdvanceToAccrued for the shortfall to the same group. CreditThenInvoice shortfall is never issued as advance.",
+        "example": "if shortfall := input.Amount.Sub(collectedFBOAmount); c.shouldAdvanceShortfall(input, shortfall) { advanceInputs, _ := c.resolveAdvanceInputs(ctx, input, shortfall); inputs = append(inputs, advanceInputs...) }"
       },
       {
-        "name": "transaction.Run for multi-step mutations",
-        "description": "EnsureSubAccount wraps the repo call and subsequent GetAccountByID in a single transaction.Run(ctx, s.repo, ...) to ensure both complete atomically.",
-        "example": "return transaction.Run(ctx, s.repo, func(ctx context.Context) (*account.SubAccount, error) { subAccountData, _ := s.repo.EnsureSubAccount(ctx, input); acc, _ := s.GetAccountByID(ctx, ...); return account.NewSubAccountFromData(...) })"
+        "name": "Credit realization rows from FBO debits",
+        "description": "toCreditRealizations scans resolved inputs and creates one creditrealization.CreateAllocationInput per entry that debits AccountTypeCustomerFBO (negative amount on FBO sub-account). The transactionGroupID is shared across all realizations in the same group.",
+        "example": "for _, entry := range input.EntryInputs() { if entry.Amount().IsNegative() && entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO { out = append(out, creditrealization.CreateAllocationInput{Amount: entry.Amount().Abs(), LedgerTransaction: ledgertransaction.GroupReference{TransactionGroupID: transactionGroupID}}) } }"
       },
       {
-        "name": "Domain object construction via NewAccountFromData / NewSubAccountFromData",
-        "description": "Service never returns raw *AccountData or *SubAccountData \u2014 it always wraps them in account.NewAccountFromData(data, s.live) or account.NewSubAccountFromData(data, acc). This attaches live runtime services to the domain object.",
-        "example": "return account.NewAccountFromData(*accData, s.live)"
+        "name": "Plan-then-execute with per-transaction merging for corrections",
+        "description": "accrualCorrector.correct builds []plannedAction per correction item, merges overlapping corrections by transaction ID (to produce one aggregated amount per original transaction), then calls transactions.CorrectTransaction for each in correctionOrder. Changing execution order breaks the merging invariant.",
+        "example": "actions := planCorrection(...); mergedByTx := mergeByTransactionID(actions); for _, txID := range correctionOrder { c.ledger.CommitGroup(ctx, mergedByTx[txID]) }"
       },
       {
-        "name": "N+1 mitigation with local accountsByID cache in ListSubAccounts",
-        "description": "ListSubAccounts deduplicates GetAccountByID calls using an in-memory accountsByID map keyed by accountID. New batch-list methods should follow this pattern until the Ent query is fixed.",
-        "example": "accountsByID := make(map[string]*account.Account, len(subAccountDatas)); for _, d := range subAccountDatas { acc, ok := accountsByID[d.AccountID]; if !ok { acc, _ = s.GetAccountByID(...); accountsByID[d.AccountID] = acc } }"
+        "name": "Lineage-aware segment dispatch in planCorrection",
+        "description": "When LineageSegmentsByRealization is present, planCorrection dispatches per segment.State: RealCredit \u2192 planSourceCorrectionActions, AdvanceUncovered \u2192 planAdvanceCorrection, AdvanceBackfilled \u2192 planBackfilledCorrection (which re-issues to FBO rather than immediately redirecting).",
+        "example": "switch segment.State { case LineageSegmentStateRealCredit: return plannedSourceCorrectionActions(source, amount, false) ... }"
       }
     ],
     "key_file_guides": [
       {
         "file": "service.go",
-        "role": "Single file containing the entire service implementation. Exposes New() constructor and implements account.Service via compile-time assertion var _ account.Service = (*service)(nil).",
-        "watch_for": "The self-wiring of live.SubAccountService in New() is load-bearing \u2014 if a caller passes a pre-built AccountLiveServices without going through New(), SubAccountService will be nil and Account.SubAccount() calls will panic."
+        "role": "Public interface Service, Config, CollectToAccruedInput, CorrectCollectedAccruedInput, and NewService constructor. All external callers (chargeadapter flat-fee and usage-based handlers) use this file.",
+        "watch_for": "CollectToAccruedInput.Annotations is optional; if nil, ChargeAnnotations is synthesized from Namespace+ChargeID inside collect.go. CorrectCollectedAccruedInput.LineageSegmentsByRealization may be empty for legacy data \u2014 the corrector must handle this gracefully."
+      },
+      {
+        "file": "collect.go",
+        "role": "accrualCollector \u2014 drives the FBO\u2192accrued collection path and advance shortfall issuance. Returns creditrealization.CreateAllocationInputs (one per FBO debit).",
+        "watch_for": "shouldAdvanceShortfall only returns true for CreditOnlySettlementMode; never issue advances for CreditThenInvoice."
+      },
+      {
+        "file": "correct.go",
+        "role": "accrualCorrector \u2014 reverses prior collections using lineage-aware planning. Most complex file; plan/execute split prevents double-counting when multiple corrections reference the same source transaction.",
+        "watch_for": "reissueBackfilledCredit re-issues purchased credits back to FBO without triggering a new backfill sweep \u2014 this is intentional; do not replace with a recursive advance correction."
+      },
+      {
+        "file": "collection_fbo.go",
+        "role": "collectCustomerFBO \u2014 sorts and drains FBO sub-accounts in ascending creditPriority order to produce fboCollectionSource slices consumed by resolveCollectedInputs.",
+        "watch_for": "Priority ordering is ascending (lower priority number = drained first); changing cmp logic here breaks priority-ordered credit consumption."
       }
     ],
     "anti_patterns": [
-      "Returning *AccountData or *SubAccountData directly from service methods \u2014 callers expect domain objects with live services attached",
-      "Calling s.repo.EnsureSubAccount outside a transaction.Run when the method also needs to call s.GetAccountByID \u2014 creates a TOCTOU window",
-      "Constructing service and setting live.SubAccountService externally instead of via New() \u2014 SubAccountService self-wiring is intentional",
-      "Introducing context.Background() or context.TODO() \u2014 propagate the caller's ctx throughout"
+      "Calling ledger.CommitGroup directly from charge handlers for FBO collection instead of routing through collector.Service",
+      "Modifying the correction plan execution order (correctionOrder preserves insertion order; reordering breaks per-transaction merging)",
+      "Assuming CorrectCollectedAccrued is idempotent \u2014 it must only be called once per correction batch",
+      "Issuing advance shortfall for CreditThenInvoice mode (shouldAdvanceShortfall is CreditOnly-only)"
     ],
     "decisions": [
       {
-        "decision": "AccountLiveServices is injected as a value type and the service self-registers as SubAccountService inside New().",
-        "rationale": "Account domain objects need a SubAccountService reference to load their sub-accounts lazily; circular DI is resolved by having the single service implement both Account and SubAccount operations and wiring itself into the live struct at construction time."
+        "decision": "Correction uses plan-then-execute with merged per-transaction amounts.",
+        "rationale": "Multiple realization corrections may reference the same original ledger transaction; merging before execution ensures one aggregated correction entry per original transaction, preventing over-correction."
       },
       {
-        "decision": "ListSubAccounts uses an in-memory accountsByID cache rather than a joined Ent query.",
-        "rationale": "The FIXME comment notes this is an intentional N+1 deferral \u2014 the cache makes it O(distinct accounts) rather than O(sub-accounts) while the proper Ent join is deferred."
+        "decision": "Backfilled advance corrections re-issue to FBO rather than immediately redirecting to another uncovered advance.",
+        "rationale": "Prevents correction from triggering a cascading backfill pass that could unpredictably affect other outstanding advances."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Calling collector.Service from a charge handler to collect FBO credits",
+        "code": "// In chargeadapter/flatfee.go or usagebased.go\nrealizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{\n    Namespace:      input.Charge.Namespace,\n    ChargeID:       input.Charge.ID,\n    CustomerID:     input.Charge.Intent.CustomerID,\n    Annotations:    chargeAnnotationsForFlatFeeCharge(input.Charge),\n    At:             input.Charge.Intent.InvoiceAt,\n    Currency:       input.Charge.Intent.Currency,\n    SettlementMode: input.Charge.Intent.SettlementMode,\n    ServicePeriod:  input.ServicePeriod,\n    Amount:         input.PreTaxTotalAmount,\n})\nif err != nil { return nil, err }\nif len(realizations) == 0 { return nil, nil }\nreturn realizations, nil"
+      }
+    ]
+  },
+  "openmeter/ledger/customerbalance": {
+    "purpose": "Computes customer credit balances by combining settled ledger account balances with pending charge impacts, exposing a Service interface and Facade for balance queries used by billing and the v3 credits API.",
+    "patterns": [
+      {
+        "name": "Bounded vs unbounded impact split in pending balance",
+        "description": "chargePendingBalanceCalculator.CalculatePendingBalance separates CreditThenInvoice impact (bounded \u2014 capped at existing positive balance, cannot create credit debt) from CreditOnly impact (unbounded \u2014 can drive balance negative representing advance exposure).",
+        "example": "pendingBalance := applyBoundedAmount(bookedBalance, boundedAmount); return pendingBalance.Sub(unboundedAmount)"
+      },
+      {
+        "name": "Facade wrapping Service for validated external access",
+        "description": "Facade is a thin wrapper around Service that exposes GetBalances and GetBalance with validated inputs. NewFacade requires a non-nil Service. External callers (API handlers) must go through Facade, not Service directly.",
+        "example": "func NewFacade(service Service) (*Facade, error) { if service == nil { return nil, errors.New(\"service is required\") }; return &Facade{service: service}, nil }"
+      },
+      {
+        "name": "Noop implementation for credits-disabled deployments",
+        "description": "noop.go provides a no-op Service implementation returning empty balances without touching the ledger. app/common wires this when credits.enabled=false. Must stay in sync with Service interface.",
+        "example": "// noop.go\ntype noopService struct{}\nfunc (noopService) GetBalances(ctx context.Context, in GetBalancesInput) ([]BalanceByCurrency, error) { return nil, nil }"
+      },
+      {
+        "name": "RealizedCredits type-switches on ChargeType",
+        "description": "Impact.RealizedCredits() switches on meta.ChargeType (FlatFee vs UsageBased). CreditPurchase charges return zero realized credits because purchased credits are reflected in FBO balance, not in charge realizations.",
+        "example": "switch i.Type() { case meta.ChargeTypeFlatFee: charge, _ := i.AsFlatFeeCharge(); return charge.Realizations.CurrentRun.CreditRealizations.Sum() ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "calculation.go",
+        "role": "Impact type and chargePendingBalanceCalculator. Impact wraps charges.Charge with an amount and derives RealizedCredits, OutstandingAmount, BoundedAmount, UnboundedAmount.",
+        "watch_for": "RealizedCredits switches on ChargeType \u2014 if a new charge type is added to billing/charges, add a case here or it silently returns zero realized credits."
+      },
+      {
+        "file": "facade.go",
+        "role": "GetBalancesInput, GetBalanceInput, BalanceByCurrency types, and Facade struct. Entry point for external callers including v3 API handlers.",
+        "watch_for": "GetBalanceInput.After is an optional TransactionCursor for pagination; callers that omit it get the full balance."
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface definition and NewService constructor. Composes loaders (funded_loader, ledger_loader) and chargePendingBalanceCalculator.",
+        "watch_for": "Service is the wiring boundary; app/common provides either the real implementation or noop from noop.go."
+      },
+      {
+        "file": "noop.go",
+        "role": "No-op Service implementation for credits-disabled deployments.",
+        "watch_for": "Must be updated whenever the Service interface gains new methods; compile-time var _ assertion will catch this."
+      }
+    ],
+    "anti_patterns": [
+      "Instantiating the real Service when credits.enabled=false (must use noop)",
+      "Calling Service methods directly without going through Facade when input validation is required",
+      "Adding pending balance calculation logic outside calculation.go",
+      "Treating CreditPurchase charges as having realized credits in RealizedCredits() \u2014 they return zero"
+    ],
+    "decisions": [
+      {
+        "decision": "Bounded vs unbounded impact split in CalculatePendingBalance.",
+        "rationale": "CreditThenInvoice credit consumption is bounded by the existing positive balance (cannot create credit debt); CreditOnly can drive balance negative representing advance exposure. Mixing them into a single deduction would misrepresent available credit."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Computing pending balance impact for a charge",
+        "code": "impact, err := customerbalance.NewImpact(charge, chargeAmount)\nif err != nil { return err }\n// BoundedAmount is capped at existing balance (CreditThenInvoice)\nboundedDelta := impact.BoundedAmount()\n// UnboundedAmount can exceed balance (CreditOnly advance)\nunboundedDelta := impact.UnboundedAmount()"
+      }
+    ]
+  },
+  "openmeter/ledger/noop": {
+    "purpose": "Provides no-op implementations of all ledger interfaces (ledger.Ledger, ledger.AccountResolver, ledger.BalanceQuerier, ledgeraccount.Service, namespace.Handler) used when credits.enabled=false; all methods return zero values and nil errors without touching any database.",
+    "patterns": [
+      {
+        "name": "Compile-time interface assertions for every noop type",
+        "description": "Every noop type has a var _ <interface> = <type>{} assertion to guarantee it stays in sync when interface methods are added. Removing these assertions silently breaks the credits-disabled guarantee.",
+        "example": "var _ ledger.Ledger = Ledger{}\nvar _ ledger.AccountResolver = AccountResolver{}"
+      },
+      {
+        "name": "Value-type structs for trivial construction",
+        "description": "All noop types are value types (struct{} or struct with minimal fields) rather than pointers, making Wire providers return them with zero-value syntax without allocation.",
+        "example": "func NewLedgerNamespaceHandler() noop.NamespaceHandler { return noop.NamespaceHandler{} }"
+      },
+      {
+        "name": "Deterministic non-nil return values",
+        "description": "Methods return minimal valid non-nil objects (e.g. CustomerAccounts with all three account types populated) so callers can dereference without nil checks even when credits are disabled.",
+        "example": "return ledger.CustomerAccounts{FBOAccount: customerFBOAccount{...}, ReceivableAccount: ..., AccruedAccount: ...}, nil"
+      },
+      {
+        "name": "normalizeID / normalizeNamespace for empty-string safety",
+        "description": "Helper functions substitute a fallback string ('noop', 'noop-account') when namespace or ID is empty to prevent downstream panics in callers that call .ID() on returned objects.",
+        "example": "func normalizeID(id, fallback string) string { if id == \"\" { return fallback }; return id }"
+      },
+      {
+        "name": "accountTypeForRoute for structurally valid sub-accounts",
+        "description": "newSubAccount infers AccountType from Route fields (TransactionAuthorizationStatus present \u2192 Receivable, CreditPriority present \u2192 FBO, else Accrued) to produce sub-account objects that pass interface type checks.",
+        "example": "accountType := accountTypeForRoute(normalizedRoute)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "noop.go",
+        "role": "Single file containing all noop types and internal helper types. All interface compliance is asserted here.",
+        "watch_for": "When any ledger interface gains new methods, add matching stubs here immediately \u2014 the var _ assertions will cause compile failure if missed."
+      }
+    ],
+    "anti_patterns": [
+      "Removing the var _ interface assertion lines \u2014 they are the only compile-time proof the noop types stay compliant",
+      "Adding any database calls or side-effects to noop methods \u2014 they must remain pure no-ops",
+      "Returning nil for interface-typed fields inside CustomerAccounts or BusinessAccounts \u2014 callers dereference without nil checks",
+      "Using this package when credits.enabled=true \u2014 app/common must route to real implementations"
+    ],
+    "decisions": [
+      {
+        "decision": "All noop types are value types (struct{}) rather than pointers.",
+        "rationale": "Simplifies Wire provider functions: return noop.Ledger{} and noop.AccountResolver{} without allocation or error handling."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wire provider returning noop implementations when credits are disabled",
+        "code": "// app/common/ledger.go\nfunc NewLedgerAccountService(creditsConfig config.CreditsConfiguration, db *entdb.Client) (ledgeraccount.Service, error) {\n    if !creditsConfig.Enabled {\n        return noop.AccountService{}, nil\n    }\n    return ledgeraccount.NewService(db)\n}"
+      }
+    ]
+  },
+  "openmeter/ledger/recognizer": {
+    "purpose": "Implements revenue recognition by transferring attributable accrued ledger balances to earnings accounts using lineage-aware segment splitting, exposing a single RecognizeEarnings operation wrapped in a Postgres transaction.",
+    "patterns": [
+      {
+        "name": "Config struct with Validate() before NewService",
+        "description": "Config holds all dependencies (Ledger, ResolverDependencies, Lineage, TransactionManager) and validates they are non-nil before NewService proceeds. NewService returns (Service, error) \u2014 callers must handle the error.",
+        "example": "func NewService(config Config) (Service, error) { if err := config.Validate(); err != nil { return nil, err }; return &service{...}, nil }"
+      },
+      {
+        "name": "transaction.Run wrapping entire recognition flow",
+        "description": "RecognizeEarnings wraps all DB reads and writes inside transaction.Run(ctx, s.transactionManager, ...) to ensure atomic segment splitting and ledger commit.",
+        "example": "return transaction.Run(ctx, s.transactionManager, func(ctx context.Context) (RecognizeEarningsResult, error) { ... })"
+      },
+      {
+        "name": "Collect eligible lineages then resolve recognition template",
+        "description": "RecognizeEarnings first loads all lineages for the customer+currency via s.lnge.LoadLineagesByCustomer, filters to recognizable segment states (RealCredit, AdvanceBackfilled), sums totalEligible, then resolves RecognizeEarningsFromAttributableAccruedTemplate against the actual ledger balance.",
+        "example": "lineages, _ := s.lnge.LoadLineagesByCustomer(ctx, ...); eligible := collectEligibleLineages(lineages); resolved, _ := transactions.ResolveTransactions(ctx, s.deps, scope, RecognizeEarningsFromAttributableAccruedTemplate{Amount: totalEligible, ...})"
+      },
+      {
+        "name": "Segment splitting with remainder creation",
+        "description": "For each eligible segment, consumed = min(segRemaining, remainingToAllocate). If consumed < segment amount, a remainder segment is created. Then an EarningsRecognized segment is created referencing the backing transaction group for reversal traceability.",
+        "example": "consumed := minDecimal(seg.Amount, remaining); if remainder := seg.Amount.Sub(consumed); remainder.IsPositive() { s.lnge.CreateSegment(ctx, lineage.CreateSegmentInput{Amount: remainder, State: seg.State, ...}) }"
+      },
+      {
+        "name": "NoopService for tests not exercising recognition",
+        "description": "NoopService implements Service with var _ Service = NoopService{} assertion and returns zero RecognizeEarningsResult. Used in tests that don't need recognition side-effects.",
+        "example": "func (NoopService) RecognizeEarnings(context.Context, RecognizeEarningsInput) (RecognizeEarningsResult, error) { return RecognizeEarningsResult{}, nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service interface, Config, RecognizeEarningsInput (with Validate()), RecognizeEarningsResult, and NewService constructor.",
+        "watch_for": "RecognizeEarningsInput.Validate() checks CustomerID, At (non-zero), and Currency \u2014 callers must provide all three."
+      },
+      {
+        "file": "recognize.go",
+        "role": "RecognizeEarnings implementation: lineage loading, eligible segment collection, template resolution, segment splitting, and ledger commit.",
+        "watch_for": "recognizableSegmentStates map governs which segment states are eligible \u2014 adding a new LineageSegmentState that should be recognized requires updating this map."
+      },
+      {
+        "file": "noop.go",
+        "role": "NoopService \u2014 returns zero results. Used in tests and potentially in credits-disabled paths that still instantiate the recognizer interface.",
+        "watch_for": "var _ Service = NoopService{} assertion ensures compile-time compliance when Service gains methods."
+      }
+    ],
+    "anti_patterns": [
+      "Calling RecognizeEarnings outside a Postgres transaction context (transaction.Run is the required wrapper \u2014 already enforced inside service, but must not be disabled)",
+      "Adding new recognizable segment states without updating the recognizableSegmentStates map in recognize.go",
+      "Constructing recognizer.Service without calling Config.Validate() first",
+      "Skipping segment remainder creation when consumed < segment amount (leaves orphan balance in the lineage)"
+    ],
+    "decisions": [
+      {
+        "decision": "Recognition resolves against actual ledger accrued balance (not purely against lineage amounts).",
+        "rationale": "The real ledger accrued balance may differ from the sum of lineage amounts due to manual adjustments or advance shortfall issuances; resolving against the ledger guarantees the recognition entry matches actual accounting state."
+      },
+      {
+        "decision": "Segment splitting stores SourceState and SourceBackingTransactionGroupID on EarningsRecognized segments.",
+        "rationale": "Enables future correction to unwind recognition back to the prior state by restoring the original segment state and its backing group reference."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Calling RecognizeEarnings with full input",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/ledger/recognizer\"\n    \"github.com/openmeterio/openmeter/openmeter/customer\"\n    \"github.com/openmeterio/openmeter/pkg/currencyx\"\n)\n\nresult, err := recognizerSvc.RecognizeEarnings(ctx, recognizer.RecognizeEarningsInput{\n    CustomerID: customer.CustomerID{Namespace: ns, ID: customerID},\n    At:         time.Now().UTC(),\n    Currency:   currencyx.Code(\"USD\"),\n})\nif err != nil { return fmt.Errorf(\"recognize earnings: %w\", err) }\nif result.RecognizedAmount.IsZero() { /* nothing to recognize */ }"
+      }
+    ]
   }
 }

@@ -1,89 +1,62 @@
 {
-  "openmeter/event/metadata": {
-    "purpose": "Defines shared event identity primitives: the canonical event name format (`io.openmeter.<subsystem>.<version>.<name>`), event metadata (ID, time, source, subject), and resource path helpers for constructing `//openmeter.io/...` URIs. All event payloads across the system reference these types for consistent naming and routing.",
+  "openmeter/entitlement/hooks/subscription": {
+    "purpose": "Single-file package implementing a models.ServiceHook[entitlement.Entitlement] that guards subscription-managed entitlements from direct mutation or deletion. Prevents bypassing subscription lifecycle constraints by blocking PreDelete and PreUpdate on entitlements annotated with subscription metadata.",
     "patterns": [
       {
-        "name": "EventType triple (Subsystem/Version/Name)",
-        "description": "Every event kind is declared as an `EventType{Subsystem, Version, Name}` value. The canonical string form is produced by `EventType.EventName()` \u2014 never build the string manually.",
-        "example": "EventType{Subsystem: \"ingest\", Version: \"v1\", Name: \"flush\"}.EventName() // \"io.openmeter.ingest.v1.flush\""
+        "name": "Embed NoopServiceHook, override only needed methods",
+        "description": "The hook struct embeds NoopEntitlementSubscriptionHook (alias for models.NoopServiceHook[entitlement.Entitlement]) so unimplemented lifecycle methods are no-ops by default. Only PreDelete and PreUpdate are overridden.",
+        "example": "type hook struct { NoopEntitlementSubscriptionHook }"
       },
       {
-        "name": "Resource paths via ComposeResourcePath",
-        "description": "All `source` / `subject` fields in `EventMetadata` must be built with `ComposeResourcePath(namespace, entityType, id)` or `ComposeResourcePathRaw(...)`. Never construct `//openmeter.io/...` paths by hand.",
-        "example": "ComposeResourcePath(ns, EntityEntitlement, entID) // \"//openmeter.io/namespace/<ns>/entitlement/<id>\""
+        "name": "Two-step gate: IsSubscriptionOperation then HasSubscription",
+        "description": "Every guarded hook method must first check subscription.IsSubscriptionOperation(ctx) and return nil if true (allows subscription package self-management), then check subscription.AnnotationParser.HasSubscription(ent.Annotations) and return GenericForbiddenError if annotated.",
+        "example": "if subscription.IsSubscriptionOperation(ctx) { return nil }\nif subscription.AnnotationParser.HasSubscription(ent.Annotations) { return models.NewGenericForbiddenError(fmt.Errorf(\"entitlement is managed by subscription\")) }"
       },
       {
-        "name": "Entity constant registry",
-        "description": "All entity type strings (e.g. `EntityInvoice`, `EntityCustomer`) are declared as package-level constants. New entity types must be added here, not as inline strings in event producers.",
-        "example": "const EntitySubscriptionAddon = \"subscriptionAddon\""
+        "name": "Compile-time interface assertion",
+        "description": "A package-level blank-identifier var asserts *hook satisfies models.ServiceHook[entitlement.Entitlement] at compile time.",
+        "example": "var _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil)"
+      },
+      {
+        "name": "Constructor accepts typed config struct",
+        "description": "NewEntitlementSubscriptionHook accepts EntitlementSubscriptionHookConfig (currently empty) so future config fields can be added without a signature change.",
+        "example": "func NewEntitlementSubscriptionHook(_ EntitlementSubscriptionHookConfig) EntitlementSubscriptionHook { return &hook{} }"
+      },
+      {
+        "name": "Return GenericForbiddenError (not other error types) for annotation guard",
+        "description": "The annotation guard must return models.NewGenericForbiddenError so the HTTP error encoder maps it to 403 Forbidden via GenericErrorEncoder.",
+        "example": "return models.NewGenericForbiddenError(fmt.Errorf(\"entitlement is managed by subscription\"))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "event_type.go",
-        "role": "Canonical event naming: EventType struct + EventName()/VersionSubsystem() formatters, plus EventMetadata for ID/time/source/subject.",
-        "watch_for": "Do not bypass EventType.EventName() to build the name string; version is the second segment, not the third \u2014 the format is `<subsystem>.<version>.<name>`."
-      },
-      {
-        "file": "resourcepath.go",
-        "role": "Entity-type constants and ComposeResourcePath/ComposeResourcePathRaw helpers for all `//openmeter.io/...` URIs.",
-        "watch_for": "New domain entities need a matching `Entity*` constant added here; missing constants cause inconsistent resource paths across event sources."
+        "file": "hook.go",
+        "role": "Entire package implementation: defines hook struct, type aliases for the hook and noop base, constructor, and PreDelete/PreUpdate guards.",
+        "watch_for": "Both PreDelete and PreUpdate must apply the identical two-step gate (IsSubscriptionOperation then HasSubscription). Adding a new hook method that skips either step silently allows direct mutation of subscription-managed entitlements."
       }
     ],
     "anti_patterns": [
-      "Building `io.openmeter.*` event name strings by hand instead of using EventType.EventName()",
-      "Constructing `//openmeter.io/...` paths with fmt.Sprintf instead of ComposeResourcePath",
-      "Adding a new entity type as an inline string literal in an event struct rather than adding an EntityXxx constant here"
+      "Implementing a new hook method (e.g. PreCreate) without the IsSubscriptionOperation check \u2014 breaks subscription self-management",
+      "Returning any error type other than GenericForbiddenError for the annotation guard \u2014 callers expect 403 HTTP status mapping",
+      "Adding DB calls or business logic inside hook methods \u2014 hooks must be pure guards with no I/O",
+      "Removing the compile-time interface assertion var _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil)",
+      "Implementing PostCreate/PostUpdate/PostDelete with side effects that import entitlement or subscription packages \u2014 risks import cycles"
     ],
     "decisions": [
       {
-        "decision": "EventName format encodes subsystem + version + name in a fixed dot-separated URI",
-        "rationale": "Watermill consumers route and filter events by name prefix; a deterministic format prevents routing mismatches across worker binaries."
+        "decision": "Package lives in hooks/subscription sub-package rather than inline in the entitlement service",
+        "rationale": "Avoids a circular import between openmeter/entitlement and openmeter/subscription; the hook depends on both but neither depends on it."
       },
       {
-        "decision": "Resource paths follow `//openmeter.io/namespace/<ns>/<entity>/<id>` convention",
-        "rationale": "CloudEvents spec requires unambiguous source/subject URIs; the `//openmeter.io/` authority prefix scopes all paths to this system globally."
+        "decision": "Embed models.NoopServiceHook rather than implementing all ServiceHook methods manually",
+        "rationale": "ServiceHook has multiple lifecycle methods; embedding the noop ensures new interface methods are automatically no-ops, preventing accidental breakage when the interface evolves."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Declaring a new event type and building its metadata",
-        "code": "import \"github.com/openmeterio/openmeter/openmeter/event/metadata\"\n\nvar MyEventType = metadata.EventType{\n    Subsystem: \"billing\",\n    Version:   \"v1\",\n    Name:      \"invoiceCreated\",\n}\n\nmeta := metadata.EventMetadata{\n    ID:      ulid.Make().String(),\n    Time:    time.Now(),\n    Source:  metadata.ComposeResourcePath(ns, metadata.EntityInvoice, invoiceID),\n    Subject: metadata.ComposeResourcePath(ns, metadata.EntityCustomer, customerID),\n}"
+        "scenario": "Adding a new guarded hook method following the established two-step gate pattern",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/entitlement\"\n\t\"github.com/openmeterio/openmeter/openmeter/subscription\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (h *hook) PreUpdate(ctx context.Context, ent *entitlement.Entitlement) error {\n\tif subscription.IsSubscriptionOperation(ctx) {\n\t\treturn nil\n\t}\n\tif subscription.AnnotationParser.HasSubscription(ent.Annotations) {\n\t\treturn models.NewGenericForbiddenError(fmt.Errorf(\"entitlement is managed by subscription\"))\n\t}\n\treturn nil\n}"
       }
     ]
-  },
-  "openmeter/event/models": {
-    "purpose": "Holds shared payload model types for events that cross subsystem boundaries (e.g. FeatureKeyAndID, NamespaceID). These are minimal value types with inline Validate() methods used inside event payloads, not domain entities.",
-    "patterns": [
-      {
-        "name": "Inline Validate() on every model",
-        "description": "Each struct exported from this package implements `Validate() error` that checks required fields. Callers must invoke Validate() before using the value in an event payload.",
-        "example": "if err := f.Validate(); err != nil { return fmt.Errorf(\"invalid feature ref: %w\", err) }"
-      },
-      {
-        "name": "Minimal shared types only",
-        "description": "Only cross-subsystem value types belong here. Domain-specific structs belong in their own domain package, not in this shared models package.",
-        "example": "FeatureKeyAndID{Key: \"storage\", ID: \"feat_01\"} \u2014 used in both entitlement and billing event payloads"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "models.go",
-        "role": "Declares FeatureKeyAndID and NamespaceID \u2014 small value types with Validate() used as embedded fields inside event payloads across subsystems.",
-        "watch_for": "Do not add domain-specific structs here; this package is imported by many subsystems so adding heavy types creates wide coupling."
-      }
-    ],
-    "anti_patterns": [
-      "Adding domain-specific types (e.g. Invoice, Subscription) to this package \u2014 they belong in their own domain packages",
-      "Skipping Validate() calls on values received in event payloads",
-      "Importing openmeter domain packages from this package (creates circular dependencies)"
-    ],
-    "decisions": [
-      {
-        "decision": "Separate package for cross-subsystem event model types",
-        "rationale": "Prevents import cycles: both entitlement and billing packages can import event/models without pulling in each other's full domain."
-      }
-    ],
-    "code_examples": []
   }
 }

@@ -1,0 +1,91 @@
+{
+  "api/spec/packages": {
+    "purpose": "Organisational root for TypeSpec source packages: aip/ owns the v3 AIP spec (compiles to api/v3/openapi.yaml) and legacy/ owns the v1/v2 spec (compiles to api/openapi.yaml and api/openapi.cloud.yaml). All SDKs and Go server stubs are downstream artefacts \u2014 never edit them directly.",
+    "patterns": [
+      {
+        "name": "Two-package split: aip vs legacy",
+        "description": "v3 domain changes go in aip/; v1/v2 changes go in legacy/. Cross-contamination (e.g. adding a v3 route in legacy/) breaks the separate compile targets and OpenAPI output files.",
+        "example": "aip/src/openmeter.tsp \u2014 v3 route binding; legacy/src/main.tsp \u2014 v1 entry point"
+      },
+      {
+        "name": "make gen-api is the only regeneration path",
+        "description": "Both packages are consumed by `make gen-api` (tsp compile + flatten-allof post-processing). Partial runs or manual edits to api/openapi.yaml / api/v3/openapi.yaml produce silent drift.",
+        "example": "make gen-api  # regenerates all OpenAPI YAMLs + SDKs from both packages"
+      },
+      {
+        "name": "Route/tag binding at root namespace files only",
+        "description": "In aip/, @route and @tag belong only in openmeter.tsp / konnect.tsp. In legacy/, they belong only in src/main.tsp or cloud/main.tsp. Domain sub-folder .tsp files declare operations without routing.",
+        "example": "aip/src/openmeter.tsp: interface BillingRoutes extends billing.Routes {}"
+      },
+      {
+        "name": "Custom linter rules must be registered in lib/index.js",
+        "description": "Each sub-package has its own lib/index.js that exports createRule-based rules. A rule defined in lib/rules/ but not exported from lib/index.js has no effect.",
+        "example": "aip/lib/index.js: export { pascalCaseRule, friendlyNameRule }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "aip/src/openmeter.tsp",
+        "role": "v3 composition root: imports domain index barrels, binds @route/@tag, declares @tagMetadata",
+        "watch_for": "Every new domain import needs a matching @tagMetadata declaration; missing it causes undeclared tag lint errors"
+      },
+      {
+        "file": "aip/src/konnect.tsp",
+        "role": "Second v3 entry point for the Konnect variant; same routing conventions as openmeter.tsp",
+        "watch_for": "New domain ops added to openmeter.tsp may need mirroring in konnect.tsp if they belong in the Konnect surface"
+      },
+      {
+        "file": "aip/scripts/flatten-allof.mjs",
+        "role": "Post-compile OpenAPI transformation that flattens allOf schemas for SDK generator compatibility",
+        "watch_for": "Runs after tsp compile; if it fails silently the output YAML contains nested allOf that breaks some SDK generators"
+      },
+      {
+        "file": "legacy/src/main.tsp",
+        "role": "v1 composition root: imports all domain sub-folders and registers operations",
+        "watch_for": "New sub-domain .tsp files must be imported here AND in legacy/src/cloud/main.tsp or they are excluded from the cloud variant"
+      },
+      {
+        "file": "legacy/src/types.tsp",
+        "role": "Shared primitive types (ULID, DateTime, Key, Resource base models) for the entire legacy package",
+        "watch_for": "Re-declaring these primitives in sub-domain files causes duplicate schema definitions and inconsistent SDK types"
+      },
+      {
+        "file": "legacy/src/errors.tsp",
+        "role": "Defines the OpenMeterError union used on every operation's error branch",
+        "watch_for": "Using `extends Error` without @error decorator breaks OpenAPI error schema generation"
+      },
+      {
+        "file": "aip/lib/rules/utils.js",
+        "role": "Shared utilities for aip linter rules including pascalCaseExceptions list",
+        "watch_for": "New accepted PascalCase acronym exceptions must be added here, not inline in individual rules"
+      },
+      {
+        "file": "aip/tspconfig.yaml",
+        "role": "TypeSpec compiler config for the v3 package; sets omit-unreachable-types: true and output paths",
+        "watch_for": "omit-unreachable-types: true means types not reachable from any declared operation are silently dropped from the output YAML"
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing api/openapi.yaml, api/openapi.cloud.yaml, or api/v3/openapi.yaml \u2014 always regenerate via `make gen-api`",
+      "Declaring @route or @tag inside domain sub-folder operation files \u2014 routing is bound only in the root namespace files",
+      "Adding a new sub-domain file in legacy/ without registering it in both src/main.tsp and src/cloud/main.tsp",
+      "Re-declaring primitive types (ULID, DateTime, Resource) in sub-domain files \u2014 they are already in legacy/src/types.tsp",
+      "Adding v3 domain content into legacy/ or v1 content into aip/ \u2014 the packages compile to separate output files and mix-ins break both"
+    ],
+    "decisions": [
+      {
+        "decision": "Two separate packages (aip/ and legacy/) with independent tspconfig files and entry points",
+        "rationale": "v1 and v3 APIs have different structural rules (AIP vs REST-CRUD), different output targets, and different SDK generators; a single package would require conditional compilation logic and increase cross-version coupling"
+      },
+      {
+        "decision": "Post-processing step (flatten-allof.mjs) in aip/ rather than upstream TypeSpec changes",
+        "rationale": "TypeSpec's allOf output is structurally correct but incompatible with some SDK generators; post-processing keeps the TypeSpec source idiomatic while producing generator-friendly output"
+      },
+      {
+        "decision": "Custom per-package linters (lib/index.js + lib/rules/) instead of relying solely on upstream TypeSpec linter",
+        "rationale": "Project-specific conventions (PascalCase acronym exceptions, @friendlyName requirement, @operationId enforcement) cannot be expressed in upstream linter rules; custom rules block gen-api on violations"
+      }
+    ],
+    "code_examples": []
+  }
+}

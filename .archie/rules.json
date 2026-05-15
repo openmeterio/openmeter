@@ -1744,7 +1744,8 @@
       "applies_to": "openmeter/ent/db/",
       "forbidden_patterns": [
         "^(?!// Code generated)"
-      ]
+      ],
+      "source": "deep_scan"
     },
     {
       "id": "gen-002",
@@ -1763,7 +1764,8 @@
       "file_pattern": "*.gen.go",
       "required_in_content": [
         "// Code generated"
-      ]
+      ],
+      "source": "deep_scan"
     },
     {
       "id": "gen-003",
@@ -1779,7 +1781,8 @@
         "route"
       ],
       "check": "architectural_constraint",
-      "applies_to": "api/spec/"
+      "applies_to": "api/spec/",
+      "source": "deep_scan"
     },
     {
       "id": "gen-004",
@@ -1799,7 +1802,8 @@
       "file_pattern": "*.tsp",
       "required_in_content": [
         "using TypeSpec.Http;"
-      ]
+      ],
+      "source": "deep_scan"
     },
     {
       "id": "gen-005",
@@ -1814,7 +1818,8 @@
         "schema change"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/ent/schema/"
+      "applies_to": "openmeter/ent/schema/",
+      "source": "deep_scan"
     },
     {
       "id": "gen-006",
@@ -1829,7 +1834,8 @@
         "atlas.sum"
       ],
       "check": "architectural_constraint",
-      "applies_to": "tools/migrate/migrations/"
+      "applies_to": "tools/migrate/migrations/",
+      "source": "deep_scan"
     },
     {
       "id": "gen-007",
@@ -1844,7 +1850,8 @@
         "database view"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/ent/schema/"
+      "applies_to": "openmeter/ent/schema/",
+      "source": "deep_scan"
     },
     {
       "id": "tx-001",
@@ -1860,7 +1867,8 @@
         "TransactingRepo"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/billing/charges/"
+      "applies_to": "openmeter/billing/charges/",
+      "source": "deep_scan"
     },
     {
       "id": "tx-002",
@@ -1880,7 +1888,8 @@
       "forbidden_patterns": [
         "context\\.Background\\(\\)",
         "context\\.TODO\\(\\)"
-      ]
+      ],
+      "source": "deep_scan"
     },
     {
       "id": "credits-001",
@@ -1895,7 +1904,8 @@
         "wiring"
       ],
       "check": "architectural_constraint",
-      "applies_to": "app/common/"
+      "applies_to": "app/common/",
+      "source": "deep_scan"
     },
     {
       "id": "credits-002",
@@ -1910,7 +1920,8 @@
         "ledger_accounts"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/ledger/"
+      "applies_to": "openmeter/ledger/",
+      "source": "deep_scan"
     },
     {
       "id": "build-001",
@@ -1930,7 +1941,8 @@
       "file_pattern": "Makefile",
       "required_in_content": [
         "-tags=dynamic"
-      ]
+      ],
+      "source": "deep_scan"
     },
     {
       "id": "test-001",
@@ -1945,7 +1957,8 @@
         "skip"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/"
+      "applies_to": "openmeter/",
+      "source": "deep_scan"
     },
     {
       "id": "test-002",
@@ -1961,7 +1974,8 @@
       ],
       "check": "architectural_constraint",
       "applies_to": "openmeter/",
-      "file_pattern": "*_test.go"
+      "file_pattern": "*_test.go",
+      "source": "deep_scan"
     },
     {
       "id": "test-003",
@@ -1980,7 +1994,8 @@
       "file_pattern": "*_test.go",
       "forbidden_patterns": [
         "\"github\\.com/openmeterio/openmeter/app/common\""
-      ]
+      ],
+      "source": "deep_scan"
     },
     {
       "id": "test-004",
@@ -1996,7 +2011,8 @@
         "MockStreamingConnector"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/billing/charges/"
+      "applies_to": "openmeter/billing/charges/",
+      "source": "deep_scan"
     },
     {
       "id": "layer-001",
@@ -2011,7 +2027,8 @@
         "domain package"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/"
+      "applies_to": "openmeter/",
+      "source": "deep_scan"
     },
     {
       "id": "layer-002",
@@ -2027,7 +2044,8 @@
         "provider"
       ],
       "check": "architectural_constraint",
-      "applies_to": "cmd/"
+      "applies_to": "cmd/",
+      "source": "deep_scan"
     },
     {
       "id": "layer-003",
@@ -2043,7 +2061,8 @@
         "models.Validator"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/"
+      "applies_to": "openmeter/",
+      "source": "deep_scan"
     },
     {
       "id": "kafka-001",
@@ -2058,7 +2077,8 @@
         "admin"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/"
+      "applies_to": "openmeter/",
+      "source": "deep_scan"
     },
     {
       "id": "kafka-002",
@@ -2074,7 +2094,8 @@
         "ingest events"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/watermill/"
+      "applies_to": "openmeter/watermill/",
+      "source": "deep_scan"
     },
     {
       "id": "notification-001",
@@ -2090,7 +2111,8 @@
         "Svix"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/notification/"
+      "applies_to": "openmeter/notification/",
+      "source": "deep_scan"
     },
     {
       "id": "migration-001",
@@ -2106,7 +2128,8 @@
         "merge conflict"
       ],
       "check": "architectural_constraint",
-      "applies_to": "tools/migrate/migrations/"
+      "applies_to": "tools/migrate/migrations/",
+      "source": "deep_scan"
     },
     {
       "id": "migration-002",
@@ -2121,7 +2144,8 @@
         "validate"
       ],
       "check": "architectural_constraint",
-      "applies_to": "tools/migrate/migrations/"
+      "applies_to": "tools/migrate/migrations/",
+      "source": "deep_scan"
     },
     {
       "id": "security-001",
@@ -2138,7 +2162,8 @@
       ],
       "check": "file_naming",
       "applies_to": ".",
-      "file_pattern": "^(config\\.yaml|\\.env.*|.*\\.key|.*\\.pem)$"
+      "file_pattern": "^(config\\.yaml|\\.env.*|.*\\.key|.*\\.pem)$",
+      "source": "deep_scan"
     },
     {
       "id": "charges-001",
@@ -2154,7 +2179,8 @@
         "lifecycle"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/billing/"
+      "applies_to": "openmeter/billing/",
+      "source": "deep_scan"
     },
     {
       "id": "namespace-001",
@@ -2169,7 +2195,8 @@
         "provisioning"
       ],
       "check": "architectural_constraint",
-      "applies_to": "cmd/server/"
+      "applies_to": "cmd/server/",
+      "source": "deep_scan"
     },
     {
       "id": "api-v3-001",
@@ -2185,7 +2212,8 @@
         "AIP"
       ],
       "check": "architectural_constraint",
-      "applies_to": "api/v3/"
+      "applies_to": "api/v3/",
+      "source": "deep_scan"
     },
     {
       "id": "billing-001",
@@ -2201,7 +2229,8 @@
         "marketplace"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/billing/"
+      "applies_to": "openmeter/billing/",
+      "source": "deep_scan"
     },
     {
       "id": "billing-002",
@@ -2217,7 +2246,8 @@
         "status"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/billing/"
+      "applies_to": "openmeter/billing/",
+      "source": "deep_scan"
     },
     {
       "id": "di-001",
@@ -2234,7 +2264,8 @@
         "Svix"
       ],
       "check": "architectural_constraint",
-      "applies_to": "app/common/"
+      "applies_to": "app/common/",
+      "source": "deep_scan"
     },
     {
       "id": "di-002",
@@ -2251,7 +2282,8 @@
       ],
       "check": "file_naming",
       "applies_to": "app/common/",
-      "file_pattern": "^openmeter_.*\\.go$"
+      "file_pattern": "^openmeter_.*\\.go$",
+      "source": "deep_scan"
     },
     {
       "id": "http-001",
@@ -2266,7 +2298,8 @@
         "ResponseEncoder"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/"
+      "applies_to": "openmeter/",
+      "source": "deep_scan"
     },
     {
       "id": "http-002",
@@ -2281,7 +2314,8 @@
         "Problem Details"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/"
+      "applies_to": "openmeter/",
+      "source": "deep_scan"
     },
     {
       "id": "servicehook-001",
@@ -2297,7 +2331,8 @@
         "RegisterHook"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/"
+      "applies_to": "openmeter/",
+      "source": "deep_scan"
     },
     {
       "id": "lock-001",
@@ -2313,7 +2348,249 @@
         "pg_advisory"
       ],
       "check": "architectural_constraint",
-      "applies_to": "openmeter/billing/"
+      "applies_to": "openmeter/billing/",
+      "source": "deep_scan"
+    },
+    {
+      "id": "portal-001",
+      "kind": "semantic_pattern",
+      "topic": "security",
+      "severity_class": "pattern_divergence",
+      "description": "Portal token meter-slug allowlist validation must happen in the HTTP handler against meter.Service, not inside portal.Service itself.",
+      "why": "The openmeter/portal component description states: 'Meter slug validation happens in the HTTP handler operation against meter.Service, not inside portal.Service itself.' Portal.Service only issues and validates JWT tokens scoped to namespace, subject, and optional meter slug allowlist. Placing meter existence checks inside portal.Service creates a cross-domain import (portal imports meter) that violates the layered boundary.",
+      "example": "// Correct: HTTP handler validates meter slugs before calling portal.Service.CreateToken\nfor _, slug := range req.Params.AllowedMeters {\n    if _, err := meterSvc.GetMeterByIDOrSlug(ctx, ns, slug); err != nil {\n        return nil, models.NewGenericNotFoundError(\"meter not found\")\n    }\n}\nreturn portalSvc.CreateToken(ctx, ...)\n\n// Wrong: portal.Service.CreateToken queries meter.Service internally",
+      "source": "deep_scan",
+      "keywords": [
+        "portal",
+        "JWT",
+        "meter slug",
+        "allowlist",
+        "token"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/portal/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "meter\\.Service|meter\\.GetMeter"
+            ],
+            "must_not_match": [
+              "// meter validation",
+              "httpdriver",
+              "httphandler"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ingest-001",
+      "kind": "semantic_pattern",
+      "topic": "data-access",
+      "severity_class": "pattern_divergence",
+      "description": "CloudEvent ingestion must flow through openmeter/ingest.Collector (which handles deduplication and Kafka forwarding). Never write ingest events directly to ClickHouse from domain code.",
+      "why": "The openmeter/ingest component description states: 'Collector interface (Ingest, Close) receives single events and forwards to Kafka. DeduplicatingCollector wraps any Collector with Redis or in-memory deduplication.' Usage events must flow through the deduplication layer before reaching ClickHouse via the sink-worker. Bypassing Collector skips deduplication, causes double-counting on retries, and breaks the three-phase sink flush ordering.",
+      "example": "// Correct: domain code calls ingest.Collector\nreturn collector.Ingest(ctx, namespace, event)\n\n// Wrong: inserting directly into ClickHouse from a domain service\nreturn clickhouseClient.Exec(ctx, \"INSERT INTO events ...\")",
+      "source": "deep_scan",
+      "keywords": [
+        "ingest",
+        "Collector",
+        "deduplication",
+        "ClickHouse",
+        "CloudEvent"
+      ],
+      "forced_by": "Sink-worker three-phase flush ordering; dedupe-before-ClickHouse invariant.",
+      "enables": [
+        "Exactly-once usage event semantics",
+        "Redis dedupe on consumer restart"
+      ],
+      "alternative": "If a batch backfill is needed, use streaming.Connector.BatchInsert directly from a jobs command \u2014 never from an HTTP handler or domain service."
+    },
+    {
+      "id": "meter-001",
+      "kind": "semantic_pattern",
+      "topic": "data-access",
+      "severity_class": "pattern_divergence",
+      "description": "Meter value and group-by extraction from CloudEvent JSON at ingest time must use meter.ParseEvent. Do not re-implement JSON path extraction outside this function.",
+      "why": "The openmeter/meter component description states: 'ParseEvent extracts value and group-by fields from CloudEvent JSON at ingest time.' ParseEvent centralises JSONPath evaluation, aggregation type dispatch, and event schema validation. Duplicating this logic elsewhere diverges from the meter definition and can produce inconsistent aggregations in ClickHouse.",
+      "example": "// Correct: use meter.ParseEvent during ingest processing\nparsed, err := meter.ParseEvent(m, event)\nif err != nil { return err }\n// parsed.Value, parsed.GroupByValues are safe to use\n\n// Wrong: re-implementing JSONPath extraction inline in sink code",
+      "source": "deep_scan",
+      "keywords": [
+        "meter",
+        "ParseEvent",
+        "JSONPath",
+        "CloudEvent",
+        "aggregation"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/sink/**/*.go",
+          "openmeter/ingest/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "jsonpath|gjson\\.Get|json\\.Path"
+            ],
+            "must_not_match": [
+              "meter\\.ParseEvent",
+              "ParseEvent"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "credit-001",
+      "kind": "semantic_pattern",
+      "topic": "billing",
+      "severity_class": "pattern_divergence",
+      "description": "All effective times for credit grants and balance snapshots must be truncated to Granularity (time.Minute) before storage or computation. Never pass sub-minute timestamps into the credit engine.",
+      "why": "The openmeter/credit component description states: 'Granularity truncation (time.Minute) applied to all effective times.' The credit engine's burn-down arithmetic assumes all effective times are at minute boundaries. Sub-minute timestamps cause the engine to produce incorrect balance snapshots and period calculations that do not align with ClickHouse meter aggregations.",
+      "example": "// Correct: truncate before passing to credit engine\neffectiveAt := time.Now().Truncate(time.Minute)\nreturn creditConnector.CreateGrant(ctx, credit.CreateGrantInput{EffectiveAt: effectiveAt})\n\n// Wrong: passing sub-minute time\nreturn creditConnector.CreateGrant(ctx, credit.CreateGrantInput{EffectiveAt: time.Now()})",
+      "source": "deep_scan",
+      "keywords": [
+        "credit",
+        "grant",
+        "Granularity",
+        "truncate",
+        "time.Minute",
+        "balance"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/credit/**/*.go",
+          "openmeter/entitlement/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "CreateGrant|EffectiveAt"
+            ],
+            "must_not_match": [
+              "Truncate\\(time\\.Minute\\)",
+              "\\.Truncate\\("
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "entitlement-001",
+      "kind": "semantic_pattern",
+      "topic": "concurrency",
+      "severity_class": "tradeoff_undermined",
+      "description": "Entitlement operations that modify multiple entitlement rows for the same customer must acquire a pg_advisory_lock per customer via lockr.Locker before beginning mutations.",
+      "why": "The openmeter/entitlement component description states: 'Acquires pg_advisory_lock per customer before operations modifying multiple entitlement rows.' Without this lock, concurrent balance recalculation in balance-worker and entitlement mutations from the API server can race, producing split-brain grant burn-down snapshots that are invisible at the query level.",
+      "example": "// Correct: acquire lock before multi-row entitlement mutation\nreturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*Entitlement, error) {\n    if err := locker.LockForTX(ctx, lockr.NewKey(\"entitlement\", customerID)); err != nil {\n        return nil, err\n    }\n    // ... mutations ...\n})",
+      "source": "deep_scan",
+      "keywords": [
+        "entitlement",
+        "advisory lock",
+        "lockr",
+        "concurrent",
+        "customer lock"
+      ],
+      "forced_by": "Multi-row entitlement mutation race condition between balance-worker and API server.",
+      "enables": [
+        "Consistent grant burn-down snapshots",
+        "Correct balance history queries"
+      ]
+    },
+    {
+      "id": "balance-001",
+      "kind": "semantic_pattern",
+      "topic": "state-management",
+      "severity_class": "pattern_divergence",
+      "description": "The balance-worker high-watermark filter must be used to skip ClickHouse queries for entitlement IDs that have already been recalculated at or after the event timestamp. Never bypass the high-watermark check for performance optimization.",
+      "why": "The openmeter/entitlement/balanceworker component description states: 'Uses LRU caches and high-watermark filter to avoid redundant ClickHouse queries.' The high-watermark filter in the balance-worker is the primary mechanism preventing excessive ClickHouse load under burst conditions. Bypassing it converts every ingest event into a ClickHouse query, which at high throughput exhausts ClickHouse connections.",
+      "example": "// Correct: check high-watermark before querying ClickHouse\nif w.highWatermark.HasPassedFor(entitlementID, eventTime) {\n    return nil // already recalculated at or after this time\n}\n// ... proceed with ClickHouse query ...",
+      "source": "deep_scan",
+      "keywords": [
+        "balance-worker",
+        "high-watermark",
+        "LRU cache",
+        "ClickHouse",
+        "entitlement recalculation"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/entitlement/balanceworker/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "QueryMeter|GetBalanceAt|handleEntitlementEvent"
+            ],
+            "must_not_match": [
+              "highWatermark|HighWatermark|watermark"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dedupe-001",
+      "kind": "semantic_pattern",
+      "topic": "data-access",
+      "severity_class": "tradeoff_undermined",
+      "description": "The Redis deduplicator in openmeter/dedupe must be updated only after the Kafka offset commit in the sink flush. Never update Redis dedupe state before the Kafka offset commit \u2014 this breaks exactly-once semantics on consumer restart.",
+      "why": "The Sink Worker pattern states: 'Flush ordering is strict: ClickHouse insert then Kafka offset commit then Redis dedupe.' If Redis dedupe is updated before the Kafka offset commit and the sink crashes, the consumer restarts from the uncommitted offset but Redis marks those events as already processed, silently dropping them from ClickHouse.",
+      "example": "// Correct three-phase order:\n// 1. clickhouseStorage.BatchInsert(ctx, messages)\n// 2. kafkaConsumer.CommitOffsets(ctx)\n// 3. deduplicator.Set(ctx, keys)\n\n// Wrong: updating Redis before offset commit loses events on crash",
+      "source": "deep_scan",
+      "keywords": [
+        "dedupe",
+        "Redis",
+        "offset commit",
+        "sink",
+        "exactly-once",
+        "flush order"
+      ],
+      "forced_by": "Three-phase sink flush ordering (ClickHouse \u2192 offset commit \u2192 Redis dedupe).",
+      "enables": [
+        "Exactly-once usage event ingestion",
+        "No silent event loss on crash-restart"
+      ]
+    },
+    {
+      "id": "billing-010-split-line-group",
+      "kind": "semantic_pattern",
+      "topic": "billing",
+      "severity_class": "pattern_divergence",
+      "description": "SplitLineGroup operations must go through billing.Service.SplitLineGroupService methods. Never manipulate SplitLineGroup fields directly on InvoiceLine structs \u2014 the group linkage must remain consistent with the billing adapter's diff computation.",
+      "why": "The openmeter/billing component description lists SplitLineGroupService as a composite sub-interface of billing.Service. The billing adapter's stdinvoicelinediff.go computes line hierarchies using SplitLineGroup linkage. Direct field manipulation on line structs bypasses the diff computation and can produce orphaned or duplicate line groups in invoice advancement.",
+      "example": "// Correct: use billing.Service.SplitLineGroupService methods to manage line groups\n// Wrong: setting line.SplitLineGroupID = someID directly without going through the service",
+      "source": "deep_scan",
+      "keywords": [
+        "SplitLineGroup",
+        "InvoiceLine",
+        "billing",
+        "line hierarchy",
+        "invoice advancement"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/billing/**/*.go"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "SplitLineGroupID\\s*="
+            ],
+            "must_not_match": [
+              "SplitLineGroupService",
+              "// adapter"
+            ]
+          }
+        ]
+      }
     }
   ]
 }

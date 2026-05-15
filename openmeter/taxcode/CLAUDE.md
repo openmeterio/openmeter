@@ -2,7 +2,7 @@
 
 <!-- archie:ai-start -->
 
-> Manages tax codes (with per-app-type mappings) used during invoice line processing. The root package owns the Service and Repository interfaces, all input/output types, and domain errors as ValidationIssue sentinels; adapter/ provides the Ent/PostgreSQL persistence; service/ provides the business logic layer including system-managed protection and get-or-create with conflict retry.
+> Manages tax codes (with per-app-type mappings) used during invoice line processing. The root package owns the Service and Repository interfaces, all input/output types, and domain errors as ValidationIssue sentinels; adapter/ provides Ent/PostgreSQL persistence; service/ provides business logic including system-managed protection and get-or-create with conflict retry.
 
 ## Patterns
 
@@ -52,7 +52,6 @@ tc, err := svc.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
 		{AppType: app.AppTypeStripe, TaxCode: "txcd_99999999"},
 	},
 })
-
 ```
 
 <!-- archie:ai-end -->

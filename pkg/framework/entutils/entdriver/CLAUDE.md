@@ -2,7 +2,7 @@
 
 <!-- archie:ai-start -->
 
-> Thin wrapper that pairs an `entDialectSQL.Driver` with an `entdb.Client` into a single `EntPostgresDriver` struct, providing the canonical way to construct and close Ent + Postgres connections in all binaries and tests.
+> Thin wrapper that pairs an `entDialectSQL.Driver` with an `entdb.Client` into a single `EntPostgresDriver` struct, providing the canonical way to construct and close Ent + Postgres connections in all binaries and tests. The `Clone()` method allows isolated clients sharing one connection (used in tests).
 
 ## Patterns
 

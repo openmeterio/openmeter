@@ -1,77 +1,67 @@
 ## Tech Stack
 
 - **API Specification:** TypeSpec 1.11.0 (@typespec/compiler)
-- **Auth:** golang-jwt v5.3.1, AuthZed/SpiceDB v1.4.1 (authzed-go)
-- **Backend Framework:** Chi v5.2.5, kin-openapi v0.135.0, oasmiddleware (oapi-codegen/nethttp-middleware) v1.1.2, oapi-codegen v2.6.1 (pinned fork), Cobra v1.10.2, Viper v1.21.0, oklog/run v1.1.1 (openmeterio fork), Redpanda Benthos/Connect v4.55.0 (benthos) + v4.61.0 (connect free)
-- **Cache:** Redis 7.4.7
-- **Code Generation:** Goverter v1.9.3, Goderive v0.5.1
-- **Database:** PostgreSQL 14.20-alpine3.23 (docker image), ClickHouse 25.12.3-alpine
+- **Auth:** golang-jwt v5.3.1, AuthZed/SpiceDB (authzed-go) v1.4.1
+- **Backend Framework:** Chi v5.2.5, kin-openapi v0.137.0, oasmiddleware (oapi-codegen/nethttp-middleware) v1.1.2, oapi-codegen v2.6.1 (pinned fork at oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen), Cobra v1.10.2, Viper v1.21.0, oklog/run (openmeterio fork) v0.0.0-20250217124527-c72029d4b634, Redpanda Benthos/Connect v4.55.0 (benthos) + v4.61.0 (connect free), Goverter v1.9.3, Goderive v0.5.1, qmuntal/stateless v1.8.0, gocron v2.21.1, go-resty v2.17.2
+- **Cache:** Redis 7.4.7 (docker image)
+- **Database:** PostgreSQL 15 (dev docker), 14.20-alpine3.23 (per docs), ClickHouse 25.12.3-alpine (docker image)
 - **Database Driver:** pgx v5.9.2
-- **Database Migration:** Atlas CLI 0.36.0, golang-migrate v4.19.1
+- **Database Migration:** Atlas ariga.io/atlas v0.36.2 (custom fork), golang-migrate v4.19.1
 - **Database ORM:** Ent v0.14.6
-- **Dependency Injection:** Google Wire v0.7.0
-- **Infrastructure:** Nix (devenv/flake) nixpkgs-unstable
-- **Kubernetes:** controller-runtime v0.23.3
-- **Linting/Formatting:** golangci-lint config version: 2 (from Nix shell), Spectral CLI 6.13.1 (via npx in Nix shell), Prettier 3.8.3 (api/spec), 3.8.2 (javascript client), Biome 2.4.11
-- **Observability:** OpenTelemetry (otel) v1.43.0, Prometheus client v1.23.2
-- **Payments:** Stripe Go SDK v80.2.1, GOBL v0.401.0
-- **Queue:** Kafka (confluent-kafka-go) v2.14.1, Watermill + watermill-kafka v1.5.1 + v3.1.2, IBM Sarama v1.47.0
-- **Runtime:** Go 1.25.5, Node.js 24 (nodejs_24 via Nix), Python ^3.9 (client SDK), 3.14 (dev/Nix)
-- **SDK / Client:** @openmeter/sdk (JavaScript SDK) generated from TypeSpec via orval/openapi-typescript, openmeter (Python SDK) generated from TypeSpec via @typespec/http-client-python, Go SDK (api/client/go/client.gen.go) generated via oapi-codegen from api/openapi.cloud.yaml
-- **Scheduling:** gocron v2.21.0
-- **State Management:** qmuntal/stateless v1.8.0
-- **Testing:** testify v1.11.1, pgtestdb v0.1.1, gofakeit v6.28.0
+- **Infrastructure:** Nix (devenv/flake) nixpkgs-unstable, Helm from Nix shell, Kubernetes/controller-runtime v0.23.3, Air from Nix shell, Depot depot/build-push-action
+- **Linting/Formatting:** golangci-lint from Nix shell (.#ci), Spectral CLI 6.13.1 (via npx in Nix shell), Prettier 3.8.3 (api/spec), 3.8.2 (js client), Biome 2.4.11, commitizen from Nix (git-hooks)
+- **Monitoring:** OpenTelemetry (otel) v1.43.0, Prometheus client v1.23.2
+- **Payments:** Stripe Go SDK v80.2.1, GOBL v0.402.0
+- **Queue:** Kafka (confluent-kafka-go) v2.14.1 (librdkafka v2.14.1), Watermill + watermill-kafka v1.5.1 + v3.1.2, IBM Sarama v1.48.0
+- **Runtime:** Go 1.25.5, Node.js 24 (nodejs-slim_24 via Nix), Python 3.14 (pkgs.python314 via Nix)
+- **State Management:** Google Wire v0.7.0
+- **Testing:** testify v1.11.1, pgtestdb v0.1.1, gofakeit v6.28.0, gotestsum v1.13.0
 - **Utilities:** samber/lo v1.53.0, CloudEvents SDK v2.16.2, oklog/ulid v2.1.1, alpacadecimal v0.0.9, hashicorp/golang-lru v2.0.7
-- **Webhooks:** Svix Go SDK v1.90.0
+- **Webhooks:** Svix Go SDK v1.92.2
 
 ## Project Structure
 
 ```
 openmeter/
-├── cmd/                          # Service entrypoints (seven binaries)
-│   ├── server/                   # Main API server (main.go, wire.go, wire_gen.go)
-│   ├── sink-worker/              # Kafka->ClickHouse sink
+├── cmd/                          # Seven binary entrypoints
+│   ├── server/                   # Main API (wire.go, wire_gen.go, main.go)
+│   ├── sink-worker/              # Kafka→ClickHouse
 │   ├── balance-worker/           # Entitlement balance recalculation
-│   ├── billing-worker/           # Billing lifecycle worker
-│   ├── notification-service/     # Webhook/notification dispatcher
-│   ├── jobs/                     # Admin CLI (Cobra subcommands)
-│   └── benthos-collector/        # Benthos/Connect event pipeline
-├── openmeter/                    # Core business logic (domain packages)
+│   ├── billing-worker/           # Billing lifecycle
+│   ├── notification-service/     # Webhook dispatcher
+│   ├── jobs/                     # Cobra admin CLI
+│   └── benthos-collector/        # Redpanda Benthos pipeline
+├── openmeter/                    # Core domain packages
 │   ├── billing/                  # Billing domain (charges, invoices, apps, worker)
-│   ├── customer/                 # Customer lifecycle management
+│   ├── customer/                 # Customer lifecycle
 │   ├── entitlement/              # Entitlement and balance worker
 │   ├── subscription/             # Subscription lifecycle
 │   ├── credit/                   # Credit grants and balance snapshots
-│   ├── ledger/                   # Double-entry ledger accounts
-│   ├── notification/             # Notification channels, rules, events, consumer
+│   ├── ledger/                   # Double-entry ledger
+│   ├── notification/             # Notification channels, rules, events
 │   ├── meter/                    # Meter definitions
-│   ├── ingest/                   # CloudEvent ingestion pipeline
-│   ├── sink/                     # ClickHouse sink logic
+│   ├── ingest/                   # CloudEvent ingestion
+│   ├── sink/                     # ClickHouse sink
 │   ├── streaming/                # Streaming connector abstraction
-│   ├── ent/                      # Ent ORM
-│   │   ├── schema/               # Source-of-truth entity definitions (~30 files)
+│   ├── ent/
+│   │   ├── schema/               # ~30 Ent entity schemas (source of truth)
 │   │   └── db/                   # Generated Ent code (DO NOT EDIT)
-│   ├── watermill/                # Watermill pub-sub wiring (eventbus, router, grouphandler)
+│   ├── watermill/                # Watermill pub-sub (eventbus, router, grouphandler)
 │   ├── productcatalog/           # Plans, features, rate cards, addons
-│   ├── namespace/                # Multi-tenancy namespace management
+│   ├── namespace/                # Multi-tenancy management
 │   ├── app/                      # App marketplace (Stripe, Sandbox, CustomInvoicing)
 │   ├── llmcost/                  # LLM model cost prices
 │   ├── portal/                   # Portal JWT token issuance
-│   ├── subject/                  # Subject management
-│   ├── taxcode/                  # Tax code management
-│   ├── secret/                   # Encrypted secrets store
-│   ├── currencies/               # Custom currencies
-│   ├── cost/                     # Feature cost computation
 │   └── testutils/                # Shared test helpers
-├── api/                          # API layer
+├── api/
 │   ├── spec/                     # TypeSpec source (source of truth)
 │   │   └── packages/
 │   │       ├── aip/              # v3 AIP-style TypeSpec
 │   │       └── legacy/           # v1 legacy TypeSpec
-│   ├── openapi.yaml              # Generated OpenAPI v1 spec
-│   ├── openapi.cloud.yaml        # Generated cloud OpenAPI v1 spec
+│   ├── openapi.yaml              # Generated v1 OpenAPI spec
+│   ├── openapi.cloud.yaml        # Generated cloud v1 OpenAPI spec
 │   ├── api.gen.go                # Generated Go v1 server stubs (DO NOT EDIT)
-│   ├── v3/                       # v3 API
+│   ├── v3/
 │   │   ├── openapi.yaml          # Generated v3 OpenAPI spec
 │   │   ├── api.gen.go            # Generated Go v3 server stubs (DO NOT EDIT)
 │   │   ├── server/               # v3 server wiring
@@ -80,40 +70,37 @@ openmeter/
 │       ├── go/                   # Generated Go SDK (client.gen.go)
 │       ├── javascript/           # @openmeter/sdk (npm)
 │       └── python/               # openmeter Python SDK (PyPI)
-├── app/                          # Application wiring
+├── app/
 │   ├── common/                   # Google Wire provider sets (one file per domain)
-│   └── config/                   # Viper config structs (Configuration type)
-├── pkg/                          # Shared utility packages
-│   ├── framework/                # HTTP/Ent/Postgres framework helpers
+│   └── config/                   # Viper config structs
+├── pkg/
+│   ├── framework/
 │   │   ├── transport/httptransport/ # Generic Handler[Request,Response]
 │   │   ├── entutils/             # TransactingRepo, mixins, ULID
 │   │   ├── lockr/                # pg_advisory_xact_lock wrapper
 │   │   ├── commonhttp/           # RFC 7807 error encoding
 │   │   └── tracex/               # OTel span helpers
-│   ├── models/                   # Shared domain primitives (errors, hooks, pagination)
+│   ├── models/                   # Shared domain primitives
 │   ├── pagination/               # Cursor/offset pagination
 │   ├── kafka/                    # Kafka helpers
-│   └── ...                       # clock, contextx, errorsx, otelx, filter, etc.
+│   └── ...                       # clock, contextx, errorsx, filter, etc.
 ├── tools/
-│   └── migrate/                  # Migration tooling
+│   └── migrate/
 │       ├── migrations/           # Atlas SQL migration files (golang-migrate format)
-│       └── cmd/viewgen/          # SQL view generator tool
+│       └── cmd/viewgen/          # SQL view generator
 ├── deploy/
 │   └── charts/
 │       ├── openmeter/            # Main Helm chart
 │       └── benthos-collector/    # Collector Helm chart
-├── e2e/                          # End-to-end test suite (docker-compose based)
+├── e2e/                          # End-to-end test suite
 ├── collector/                    # Benthos collector config + quickstart presets
-├── quickstart/                   # Quickstart full-stack docker-compose
-├── docs/                         # Documentation and ADRs
-├── etc/                          # Seed data, misc configs
-├── Dockerfile                    # Main multi-stage Docker build (all 6 binaries)
-├── benthos-collector.Dockerfile  # Collector Docker build (CGO_ENABLED=0)
+├── Dockerfile                    # Multi-stage build producing 6 binaries
+├── benthos-collector.Dockerfile  # Separate collector Docker build (CGO_ENABLED=0)
 ├── docker-compose.yaml           # Local dev dependencies
 ├── docker-compose.base.yaml      # Base service definitions
-├── atlas.hcl                     # Atlas migration config (ent schema -> migrations)
+├── atlas.hcl                     # Atlas migration config
 ├── config.example.yaml           # Reference config (Viper)
-├── flake.nix                     # Nix reproducible environment (Go, Node, Python, Atlas)
+├── flake.nix                     # Nix reproducible environment
 ├── go.mod / go.sum               # Go module definition
 └── Makefile                      # All development commands
 ```
@@ -273,9 +260,10 @@ func (Entity) Fields() []ent.Field { return []ent.Field{field.String("name")} }
 
 ## Testing
 
-- **testify v1.11.1** — Assertion and mock library for all Go unit and integration tests
-- **pgtestdb v0.1.1** — Fast PostgreSQL test database provisioning for integration tests
+- **testify v1.11.1** — Assertions and mocking for all Go unit and integration tests
+- **pgtestdb v0.1.1** — Fast PostgreSQL test database provisioning
 - **gofakeit v6.28.0** — Fake data generation for test fixtures
+- **gotestsum v1.13.0** — Test runner with improved output formatting
 
 ```bash
 # test

@@ -1,0 +1,234 @@
+{
+  "pkg/idempotency": {
+    "purpose": "Single-purpose package that generates UUIDv7 idempotency keys for external API calls (e.g., Stripe). UUIDv7 provides monotonic, time-ordered keys that are safe to use as idempotency tokens without a shared counter.",
+    "patterns": [
+      {
+        "name": "Key() in production, MustKey() in tests/init only",
+        "description": "Key() returns (string, error) and must be used in all application code paths. MustKey() panics on failure and is only appropriate in test setup or package-level init where panics are acceptable.",
+        "example": "key, err := idempotency.Key()\nif err != nil {\n    return fmt.Errorf(\"idempotency key: %w\", err)\n}"
+      },
+      {
+        "name": "One key per request \u2014 never reuse",
+        "description": "Each external API call that requires idempotency must call Key() to produce a fresh UUIDv7. Reusing the same key across requests causes the remote API to deduplicate what should be distinct operations.",
+        "example": "key, err := idempotency.Key()\n// pass key to stripe.ChargeCreate or similar"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "key.go",
+        "role": "Entire package \u2014 exports Key() and MustKey(). uuid.NewV7() is the sole dependency.",
+        "watch_for": "uuid.NewV7() can fail in environments with broken entropy sources \u2014 always handle the error in production paths. MustKey() panics; never call it inside request handlers."
+      }
+    ],
+    "anti_patterns": [
+      "Using MustKey() in request-handling code paths \u2014 prefer Key() and propagate errors",
+      "Reusing the same key across multiple requests \u2014 each call to Key() must produce a fresh key",
+      "Hand-rolling UUID generation instead of using this package \u2014 breaks the centralized key strategy"
+    ],
+    "decisions": [
+      {
+        "decision": "UUIDv7 instead of UUIDv4 for idempotency keys",
+        "rationale": "UUIDv7 is time-ordered, making keys sortable and cache-friendly in database indexes while still being globally unique \u2014 important for Stripe and similar APIs that store idempotency keys in indexed tables."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Generate a fresh idempotency key before a Stripe charge call",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/idempotency\"\n\nkey, err := idempotency.Key()\nif err != nil {\n    return fmt.Errorf(\"idempotency key: %w\", err)\n}\n// use key as stripe.ChargeCreateParams.IdempotencyKey"
+      }
+    ]
+  },
+  "pkg/log": {
+    "purpose": "Provides two orthogonal logging utilities: a testify-based mock for slog.Handler used in unit tests, and a PanicLogger recover-and-log helper for goroutine entry points. This is infrastructure glue, not a logger factory \u2014 callers must use slog.Default() for actual logging.",
+    "patterns": [
+      {
+        "name": "PanicLogger via defer with explicit propagation strategy",
+        "description": "Always invoke PanicLogger as a deferred call at the top of a goroutine or main, passing exactly one propagation option. The zero value (no option) re-panics \u2014 explicitly pass WithExit or WithContinue for workers and servers.",
+        "example": "defer log.PanicLogger(log.WithExit)   // server main\ndefer log.PanicLogger(log.WithContinue) // worker loop iteration"
+      },
+      {
+        "name": "OTelCodeStackTrace constant for stack trace attribute key",
+        "description": "Stack traces must be logged under the OTelCodeStackTrace constant (\"code.stacktrace\") per OpenTelemetry semantic conventions. Never use a raw string for this key.",
+        "example": "slog.Error(description, log.OTelCodeStackTrace, string(debug.Stack()))"
+      },
+      {
+        "name": "Compile-time slog.Handler interface assertion for MockHandler",
+        "description": "var _ slog.Handler = &MockHandler{} is declared to enforce interface compliance at compile time. Any new mock in this package must include the same assertion.",
+        "example": "var _ slog.Handler = &MockHandler{}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "panic.go",
+        "role": "Recover-and-log wrapper; exposes PanicLogger and three propagation strategies (WithRePanic, WithExit, WithContinue).",
+        "watch_for": "Default strategy (zero value) is RePanic \u2014 omitting any option re-panics, which is rarely correct for worker goroutines. Always pass WithExit or WithContinue explicitly."
+      },
+      {
+        "file": "mock.go",
+        "role": "testify mock for slog.Handler; use only in tests.",
+        "watch_for": "MockHandler.WithAttrs and WithGroup return values obtained via type assertion on mock.Called \u2014 if the mock expectation is not set up, the assertion panics at test runtime."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a custom logger constructor here \u2014 callers should use slog.Default() or inject slog.Logger externally",
+      "Using a raw string instead of OTelCodeStackTrace for stack trace attribute keys",
+      "Invoking PanicLogger without defer \u2014 it must run inside a recover() scope",
+      "Calling PanicLogger with no options in a worker loop \u2014 the default re-panic strategy will terminate the worker"
+    ],
+    "decisions": [
+      {
+        "decision": "Three named propagation strategies instead of a boolean re-panic flag",
+        "rationale": "Workers (WithContinue), long-running servers (WithExit), and test helpers (WithRePanic) have fundamentally different needs; a single boolean would conflate exit-process vs continue-loop semantics."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/lrux": {
+    "purpose": "Generic LRU cache with per-item TTL and a synchronous Fetcher callback, wrapping hashicorp/golang-lru/v2. Primary constraint: all time comparisons use pkg/clock (not time.Now) so tests can freeze time deterministically.",
+    "patterns": [
+      {
+        "name": "Use clock.Now() never time.Now()",
+        "description": "All TTL comparisons inside the package use clock.Now() so tests can freeze time with clock.FreezeTime / clock.SetTime. Any new code added here must follow the same pattern.",
+        "example": "if ok && (item.ExpiresAt.IsZero() || item.ExpiresAt.After(clock.Now())) {"
+      },
+      {
+        "name": "Functional options via cacheOptionsFunc",
+        "description": "Constructor accepts variadic cacheOptionsFunc. New options must define a func(*cacheOptions) and expose a With* factory function following the existing WithTTL pattern.",
+        "example": "func WithTTL(ttl time.Duration) cacheOptionsFunc {\n    return func(o *cacheOptions) { o.ttl = ttl }\n}"
+      },
+      {
+        "name": "Zero TTL means never-expire via zero time.Time",
+        "description": "When ttl == 0, ExpiresAt is set to time.Time{} (zero value) via clock.Now().Add(0) logic path. The check item.ExpiresAt.IsZero() short-circuits to cache-hit, meaning ttl=0 is a never-expire signal \u2014 not zero-second expiry.",
+        "example": "// ttl=0 => ExpiresAt stays zero => item never expires"
+      },
+      {
+        "name": "Fetcher must not be nil \u2014 validate at construction",
+        "description": "Constructor returns an error if fetcher is nil. Callers must provide a non-nil fetcher; the package does not attempt lazy validation.",
+        "example": "if fetcher == nil { return nil, fmt.Errorf(\"fetcher is required\") }"
+      },
+      {
+        "name": "t.Context() in tests, defer clock.UnFreeze()",
+        "description": "All tests use t.Context() instead of context.Background() and defer clock.UnFreeze() immediately after clock.FreezeTime to prevent time leakage across parallel tests.",
+        "example": "clock.FreezeTime(baseTime)\ndefer clock.UnFreeze()\nitem, err := cache.Get(t.Context(), \"key\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "lruitemttl.go",
+        "role": "Entire package implementation \u2014 CacheWithItemTTL struct, Fetcher type, NewCacheWithItemTTL, Get, Refresh, fetchItem.",
+        "watch_for": "No mutex around fetch+store: concurrent Gets on an expired key will issue multiple simultaneous fetcher calls. This is intentional for simplicity but must be considered when the fetcher is expensive or has side effects."
+      },
+      {
+        "file": "lruitemttl_test.go",
+        "role": "Unit tests validating TTL boundary behavior, cache hit/miss transitions, and error propagation from the fetcher.",
+        "watch_for": "Tests use clock.FreezeTime with baseTime parsed from RFC3339 \u2014 use the same approach for any new TTL boundary tests to keep them deterministic."
+      }
+    ],
+    "anti_patterns": [
+      "Using time.Now() inside a Fetcher or anywhere in this package \u2014 always use clock.Now()",
+      "Adding a mutex around Get without profiling \u2014 stampede tolerance is an intentional design choice",
+      "Constructing with a nil fetcher \u2014 the constructor rejects it but upstream callers should validate early",
+      "Using context.Background() in tests when t.Context() is available"
+    ],
+    "decisions": [
+      {
+        "decision": "Wrap hashicorp/golang-lru with CacheItemWithTTL instead of using lru's built-in expiry",
+        "rationale": "lru's native eviction does not integrate with pkg/clock, making TTL boundary tests non-deterministic. Storing ExpiresAt on the item and checking via clock.Now() gives full test control."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Create a cache that fetches string values by string key with a 10-second TTL",
+        "code": "import (\n    \"context\"\n    \"github.com/openmeterio/openmeter/pkg/lrux\"\n    \"time\"\n)\n\ncache, err := lrux.NewCacheWithItemTTL(100, func(ctx context.Context, key string) (string, error) {\n    return fetchFromDB(ctx, key)\n}, lrux.WithTTL(10*time.Second))\nif err != nil { /* handle */ }\nval, err := cache.Get(ctx, \"mykey\")"
+      }
+    ]
+  },
+  "pkg/otelx": {
+    "purpose": "Minimal OpenTelemetry span-context serialization helpers for cross-process propagation over non-HTTP transports (e.g. Kafka message headers). Serializes trace.SpanContext to/from base64-encoded JSON using the OTelSpanContextKey constant.",
+    "patterns": [
+      {
+        "name": "OTelSpanContextKey constant as the canonical header/attribute name",
+        "description": "Always use the OTelSpanContextKey constant (\"otel.span.context\") when storing or reading the serialized span context in message headers or attributes. Never hardcode the string.",
+        "example": "headers[otelx.OTelSpanContextKey] = serialized"
+      },
+      {
+        "name": "Base64-over-JSON encoding for transport-agnostic propagation",
+        "description": "SpanContext is marshalled to JSON via trace.SpanContext.MarshalJSON() and then base64-encoded. Reversal uses base64.DecodeString then json.Unmarshal into trace.SpanContextConfig then trace.NewSpanContext.",
+        "example": "b, _ := c.MarshalJSON()\ns := base64.StdEncoding.EncodeToString(b)"
+      },
+      {
+        "name": "Nil-check DeserializeSpanContext return value",
+        "description": "DeserializeSpanContext returns *trace.SpanContext (pointer). Callers must nil-check before dereferencing even when err == nil, because a non-nil error short-circuits via early return.",
+        "example": "sc, err := otelx.DeserializeSpanContext(headerVal)\nif err != nil || sc == nil { return }\nspan := sc.TraceID()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "spancontext.go",
+        "role": "Only file; exports SerializeSpanContext, DeserializeSpanContext, and OTelSpanContextKey constant.",
+        "watch_for": "DeserializeSpanContext returns *trace.SpanContext \u2014 callers must nil-check. The function does not validate that the resulting SpanContext is valid (IsValid()); add that check at the call site if needed."
+      }
+    ],
+    "anti_patterns": [
+      "Storing the serialized span context under any key other than OTelSpanContextKey",
+      "Using W3C TraceContext or B3 propagators here \u2014 this package uses its own JSON/base64 scheme for non-HTTP transports",
+      "Dereferencing the *trace.SpanContext return from DeserializeSpanContext without a nil check"
+    ],
+    "decisions": [
+      {
+        "decision": "Custom base64+JSON serialization instead of standard W3C propagator",
+        "rationale": "Kafka message headers carry opaque byte slices; the W3C TraceContext propagator expects an HTTP carrier interface. Base64-over-JSON is self-contained, transport-agnostic, and avoids pulling the full otel propagation API into Kafka message handling code."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/pglockx": {
+    "purpose": "Thin constructor for cirello.io/pglock distributed lock clients backed by a PostgreSQL table (distributed_locks). Enforces the invariant that HeartbeatInterval must be less than half the LeaseTime to prevent lock expiry before renewal.",
+    "patterns": [
+      {
+        "name": "Validate config before constructing the client",
+        "description": "Config.Validate() enforces two rules: LeaseTime >= 2*HeartbeatInterval and Owner must be non-empty. Call Validate() or rely on New() which calls it internally \u2014 never pass an unvalidated Config to pglock.UnsafeNew.",
+        "example": "if err := config.Validate(); err != nil {\n    return nil, fmt.Errorf(\"invalid lock configuration: %w\", err)\n}"
+      },
+      {
+        "name": "Use DefaultHeartbeatInterval and DefaultLeaseTime as safe starting values",
+        "description": "The package exports DefaultHeartbeatInterval (3s) and DefaultLeaseTime (1m) which satisfy the heartbeat < lease/2 invariant. Prefer these defaults when no specific timing is required.",
+        "example": "cfg := pglockx.Config{\n    LeaseTime:         pglockx.DefaultLeaseTime,\n    HeartbeatInterval: pglockx.DefaultHeartbeatInterval,\n    Owner:             \"billing-worker\",\n}"
+      },
+      {
+        "name": "Fixed table name \u2014 never override per caller",
+        "description": "The lock table is hardcoded as the unexported constant lockTable (\"distributed_locks\"). All lock clients in the codebase share this table \u2014 do not create per-feature lock tables.",
+        "example": "pglock.WithCustomTable(lockTable) // internal; not configurable by callers"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "pglock.go",
+        "role": "Entire package \u2014 Config struct, Validate(), New() constructor wrapping pglock.UnsafeNew with fixed table and configurable lease/heartbeat/owner.",
+        "watch_for": "pglock.UnsafeNew is used (not pglock.New) because the safe constructor requires a createTable migration that conflicts with Atlas-managed schema. Do not switch to pglock.New without adding the distributed_locks table to Atlas migrations."
+      }
+    ],
+    "anti_patterns": [
+      "Setting HeartbeatInterval >= LeaseTime/2 \u2014 Validate() rejects this but the invariant must be understood: the heartbeat must renew the lease well before expiry",
+      "Leaving Owner empty \u2014 the lock client requires an owner string to identify which process holds the lock",
+      "Creating per-feature lock tables by overriding WithCustomTable \u2014 all locks share the distributed_locks table",
+      "Using pglock.New instead of pglock.UnsafeNew without adding the distributed_locks table to Atlas migrations"
+    ],
+    "decisions": [
+      {
+        "decision": "pglock.UnsafeNew over pglock.New",
+        "rationale": "pglock.New attempts to create the lock table at startup, which conflicts with Atlas-managed schema migrations. UnsafeNew skips the auto-create; the table is created via the Atlas migration pipeline."
+      },
+      {
+        "decision": "Single hardcoded lock table name (distributed_locks)",
+        "rationale": "A single shared table avoids schema proliferation and keeps the Atlas migration surface minimal. All distributed lock use cases in the codebase share the same table with owner-scoped rows."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Construct a pglock client for a billing worker process",
+        "code": "import (\n    \"database/sql\"\n    \"github.com/openmeterio/openmeter/pkg/pglockx\"\n)\n\nclient, err := pglockx.New(db, pglockx.Config{\n    LeaseTime:         pglockx.DefaultLeaseTime,\n    HeartbeatInterval: pglockx.DefaultHeartbeatInterval,\n    Owner:             \"billing-worker-instance-1\",\n})\nif err != nil {\n    return fmt.Errorf(\"pglock client: %w\", err)\n}"
+      }
+    ]
+  }
+}

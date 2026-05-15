@@ -18,11 +18,11 @@
 
 ## Anti-Patterns
 
-- Duplicating the Equaler interface in another package instead of importing pkg/equal — this breaks the entitydiff type constraint.
-- Implementing Equal with reflect.DeepEqual — breaks with pointer fields and is not safe for billing amount types.
+- Duplicating the Equaler interface in another package instead of importing pkg/equal — this breaks the entitydiff type constraint
+- Implementing Equal with reflect.DeepEqual — breaks with pointer fields and is not safe for billing amount types
 
 ## Decisions
 
-- **Equaler[T] lives in pkg/equal rather than pkg/models to avoid import cycles between entitydiff and models.** — entitydiff imports equal; models imports entitydiff in some domains; a single shared equal package cuts the cycle.
+- **Equaler[T] lives in pkg/equal rather than pkg/models to avoid import cycles between entitydiff and models** — entitydiff imports equal; models imports entitydiff in some domains; a single shared equal package cuts the cycle.
 
 <!-- archie:ai-end -->

@@ -1,160 +1,171 @@
 {
-  "openmeter/billing/worker/subscriptionsync/service/persistedstate": {
-    "purpose": "Provides a typed snapshot of subscription-related billing state already stored in the database (invoice lines, split-line hierarchies, flat-fee charges, usage-based charges), keyed by ChildUniqueReferenceID, so the subscription-sync reconciler can diff persisted state against target state without re-querying inside the diff loop.",
+  "openmeter/billing/worker/advance": {
+    "purpose": "Batch auto-advance loop for StandardInvoices: polls three disjoint invoice states (DraftWaitingAutoApproval, DraftWaitingForCollection, stuck-advanceable), merges and deduplicates the lists, then fans out parallel goroutines in lo.Chunk batches to call billing.Service.AdvanceInvoice. Acts as the scheduled polling counterpart to the event-driven asyncadvance handler.",
     "patterns": [
       {
-        "name": "Sealed Item type hierarchy",
-        "description": "All concrete item types (persistedLine, persistedSplitLineHierarchy, persistedUsageBasedCharge, persistedFlatFeeCharge) implement the Item interface but are package-private. Callers access backing data through typed getter interfaces (LineGetter, SplitLineHierarchyGetter, UsageBasedChargeGetter, FlatFeeChargeGetter) via type assertions using the exported ItemAs* helpers.",
-        "example": "line, err := persistedstate.ItemAsLine(item)  // returns error if item is not line-backed"
+        "name": "Config struct constructor with nil validation",
+        "description": "NewAdvancer accepts a Config struct and returns error if BillingService or Logger is nil. All new workers in this package must follow this pattern.",
+        "example": "func NewAdvancer(config Config) (*AutoAdvancer, error) { if config.BillingService == nil { return nil, fmt.Errorf(\"billing service is required\") } }"
       },
       {
-        "name": "Construction-time validation",
-        "description": "Private constructors (newPersistedLine, newPersistedUsageBasedCharge, newPersistedFlatFeeCharge, newPersistedSplitLineHierarchy) validate the wrapped value before returning; callers receive an error rather than an invalid Item.",
-        "example": "item, err := newPersistedUsageBasedCharge(charge)  // calls charge.Validate() inside"
+        "name": "Batched parallel fan-out with errChan + sync.WaitGroup",
+        "description": "lo.Chunk splits work into batches; each batch spawns goroutines writing to a buffered errChan sized to total invoice count. sync.OnceFunc closes the channel after all batches complete. errors.Join collects all failures.",
+        "example": "errChan := make(chan error, len(invoices)); closeErrChan := sync.OnceFunc(func() { close(errChan) }); defer closeErrChan()"
       },
       {
-        "name": "MinimumWindowSizeDuration normalization on load",
-        "description": "normalizePersistedLineOrHierarchy and normalizeSubscriptionReference truncate all timestamps to streaming.MinimumWindowSizeDuration on read so legacy sub-second precision in the DB never leaks into the diff. Must be applied to every line/hierarchy loaded from billing service.",
-        "example": "period.Truncate(streaming.MinimumWindowSizeDuration)"
+        "name": "ErrInvoiceCannotAdvance is a non-fatal sentinel",
+        "description": "When AdvanceInvoice returns billing.ErrInvoiceCannotAdvance, fetch invoice details, log a warning with status/draftUntil fields, and return nil \u2014 never propagate as an error.",
+        "example": "if errors.Is(err, billing.ErrInvoiceCannotAdvance) { a.logger.WarnContext(ctx, \"invoice cannot be advanced\", logArgs...); return invoice, nil }"
       },
       {
-        "name": "Unified ByUniqueID map merging lines and charges",
-        "description": "State.ByUniqueID merges invoice lines/hierarchies and charges into a single map keyed by ChildUniqueReferenceID. Duplicate keys across lines and charges are treated as an error; the loader enforces this during LoadForSubscription.",
-        "example": "if _, ok := byUniqueID[uniqueID]; ok { return State{}, fmt.Errorf(\"duplicate unique ids\") }"
+        "name": "List consolidation with lo.UniqBy before batching",
+        "description": "ListInvoicesToAdvance merges three separate list calls and deduplicates by invoice ID using lo.UniqBy before batching to prevent double-advances.",
+        "example": "return lo.UniqBy(allInvoices, func(i billing.StandardInvoice) string { return i.ID }), nil"
       },
       {
-        "name": "Nil chargeService guard",
-        "description": "Loader.loadChargesForSubscription returns an empty map when chargeService is nil, allowing callers to construct a Loader without a charge service for contexts where charges are not yet enabled.",
-        "example": "if l.chargeService == nil { return map[string]Item{}, nil }"
+        "name": "Context with cancel wraps batch runs",
+        "description": "All() immediately creates a cancellable child context so in-flight goroutines can be cancelled if the parent is cancelled.",
+        "example": "ctx, cancel := context.WithCancel(ctx); defer cancel()"
       }
     ],
     "key_file_guides": [
       {
-        "file": "item.go",
-        "role": "Defines the Item interface, all four concrete implementations, typed getter interfaces, and the public factory functions NewItemFromLineOrHierarchy and NewChargeItemFromChargeType.",
-        "watch_for": "All concrete types have compile-time interface guards (var _ Item = ...). Adding a new item type requires implementing all Item methods and adding a matching ItemAs* helper and NewChargeItemFromChargeType case."
-      },
-      {
-        "file": "loader.go",
-        "role": "Loads persisted state for a subscription by calling billingService.GetLinesForSubscription and chargeService.ListCharges, normalizes timestamps, and assembles the unified State.",
-        "watch_for": "normalizePersistedLineOrHierarchy must be applied to every line returned from GetLinesForSubscription; credit purchase charges tied to subscriptions are explicitly unsupported and return an error."
-      },
-      {
-        "file": "state.go",
-        "role": "Defines the State and Invoices types and their Validate methods; Invoices.IsGatheringInvoice is the only query method on the invoice map.",
-        "watch_for": "State.Validate returns an error if either map is nil; callers must always initialize via LoadForSubscription, not by hand-constructing a State{} without populating both fields."
+        "file": "advance.go",
+        "role": "Entire package \u2014 AutoAdvancer struct with All(), ListInvoicesToAdvance(), ListInvoicesPendingAutoAdvance(), ListInvoicesPendingCollection(), ListStuckInvoicesNeedingAdvance(), AdvanceInvoice(), and NewAdvancer().",
+        "watch_for": "batchSize=0 means single batch (all invoices in one pass). errChan capacity must equal len(invoices) not len(batches) or sends will block. ErrInvoiceCannotAdvance must remain a warning return (nil), not an error propagation."
       }
     ],
     "anti_patterns": [
-      "Constructing a concrete persistedLine/persistedXxx struct directly \u2014 use the private constructors via NewItemFromLineOrHierarchy or NewChargeItemFromChargeType to get construction-time validation",
-      "Skipping normalizePersistedLineOrHierarchy when loading lines \u2014 sub-second timestamps will leak into diff decisions and produce phantom no-op repairs",
-      "Accessing backing data via direct type assertion to the concrete struct type \u2014 use the exported ItemAs* helpers which return a typed error",
-      "Adding credit purchase charges to a subscription's persisted state \u2014 explicitly unsupported; return an error and fail loudly",
-      "Hand-constructing State{} with nil maps \u2014 Validate() will reject it; always build via Loader.LoadForSubscription"
+      "Calling billing.Adapter directly \u2014 all DB access must go through billing.Service",
+      "Propagating billing.ErrInvoiceCannotAdvance as an error return from AdvanceInvoice",
+      "Forgetting lo.UniqBy deduplication on the merged invoice list, causing double-advances",
+      "Using context.Background() inside goroutines instead of the caller-supplied ctx",
+      "Sizing errChan to len(batches) instead of len(invoices) \u2014 goroutine sends will deadlock"
     ],
     "decisions": [
       {
-        "decision": "Item interface with private concrete types and public ItemAs* accessors",
-        "rationale": "Keeps construction-time validation inside the package and forces callers to handle the error path when the item is not of the expected type, preventing silent nil-dereferences in the reconciler."
+        "decision": "Three separate list queries merged with lo.UniqBy deduplication instead of a single compound query",
+        "rationale": "DraftWaitingAutoApproval, DraftWaitingForCollection, and stuck-advanceable invoices have distinct filter shapes in ListStandardInvoicesInput; merging at the query level would require OR semantics the adapter does not support cleanly."
       },
       {
-        "decision": "Timestamp normalization on read rather than at write time",
-        "rationale": "Historical rows in the DB already carry sub-second precision; normalizing on load avoids a migration dependency while ensuring the reconciler always compares at MinimumWindowSizeDuration resolution."
+        "decision": "Batched parallel goroutines rather than sequential advance",
+        "rationale": "Invoice advancement is per-invoice and independent; parallelism reduces wall-clock time for large namespaces while batchSize controls memory pressure."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Load persisted state for a subscription and extract a line from an Item",
-        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate\"\n)\n\nloader := persistedstate.NewLoader(billingService, chargeService)\nstate, err := loader.LoadForSubscription(ctx, subs)\nif err != nil { return err }\n\nitem, ok := state.ByUniqueID[uniqueID]\nif !ok { /* not yet persisted */ }\nif line, err := persistedstate.ItemAsLine(item); err == nil {\n\t// use line\n}"
+        "scenario": "Advance all eligible invoices in batches of 50",
+        "code": "import billingworkeradvance \"github.com/openmeterio/openmeter/openmeter/billing/worker/advance\"\n\nadvancer, err := billingworkeradvance.NewAdvancer(billingworkeradvance.Config{\n    BillingService: svc,\n    Logger:         logger,\n})\nif err != nil {\n    return err\n}\nreturn advancer.All(ctx, []string{\"default\"}, 50)"
       }
     ]
   },
-  "openmeter/billing/worker/subscriptionsync/service/targetstate": {
-    "purpose": "Computes the desired (target) set of billing line items for a subscription as of a given point in time, by iterating over subscription phases and rate-card cadences via PhaseIterator, then correcting period boundaries against persisted state, so the reconciler knows exactly what should exist in the database.",
+  "openmeter/billing/worker/asyncadvance": {
+    "purpose": "Watermill event handler for async invoice advancement: receives a billing.AdvanceStandardInvoiceEvent from the system Kafka topic and calls billing.Service.AdvanceInvoice once, treating ErrInvoiceCannotAdvance as a benign late-message condition. Requires billing service configured with ForegroundAdvancementStrategy to prevent infinite retry loops.",
     "patterns": [
       {
-        "name": "PhaseIterator per-phase generation",
-        "description": "Builder.collectUpcomingLines creates one PhaseIterator per subscription phase. Each iterator advances through aligned billing periods up to a generationLimit derived from the current billing period boundary, never past the current period's end.",
-        "example": "iterator, err := NewPhaseIterator(b.logger, b.tracer, subs, phase.SubscriptionPhase.Key)\nif !iterator.HasInvoicableItems() { continue }\nitems, err := iterator.Generate(ctx, generationLimit)"
+        "name": "Config.Validate() guards strategy mismatch at construction time",
+        "description": "New() calls c.Validate() which rejects any BillingService not using ForegroundAdvancementStrategy \u2014 prevents infinite event loops where background advancement re-emits the same advance event.",
+        "example": "if c.BillingService.GetAdvancementStrategy() != billing.ForegroundAdvancementStrategy { return errors.New(\"billing service must have foreground advancement strategy or we are creating an infinite loop\") }"
       },
       {
-        "name": "UniqueID as subID/phaseKey/itemKey/v[N]/period[N] composite key",
-        "description": "Every generated SubscriptionItemWithPeriods carries a UniqueID composed of subscription ID, phase key, item key, version index, and period index joined with '/'. This must match the ChildUniqueReferenceID format used in persistedstate so the diff can correlate target and persisted items.",
-        "example": "UniqueID: strings.Join([]string{sub.ID, phase.Spec.PhaseKey, item.Spec.ItemKey, fmt.Sprintf(\"v[%d]\", version), fmt.Sprintf(\"period[%d]\", periodIdx)}, \"/\")"
+        "name": "Single-event Handle() signature matching Watermill NoPublisherHandler closure",
+        "description": "Handler.Handle(ctx, *billing.AdvanceStandardInvoiceEvent) is the only exported method beyond New() \u2014 matches the expected closure signature for the worker router's NoPublisherHandler.",
+        "example": "func (h *Handler) Handle(ctx context.Context, event *billing.AdvanceStandardInvoiceEvent) error"
       },
       {
-        "name": "MinimumWindowSizeDuration truncation of all periods",
-        "description": "truncateItemsIfNeeded applies streaming.MinimumWindowSizeDuration truncation to ServicePeriod, BillingPeriod, and FullServicePeriod on every generated item. Non-flat-fee items with empty service periods after truncation are dropped.",
-        "example": "item.ServicePeriod = item.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)"
-      },
-      {
-        "name": "Period-start continuity correction from persisted state",
-        "description": "correctPeriodStartForUpcomingLines adjusts the start of a generated period to align with the persisted previous period's end when the previous line carries AnnotationSubscriptionSyncIgnore + AnnotationSubscriptionSyncForceContinuousLines. The carried boundary is also truncated to MinimumWindowSizeDuration.",
-        "example": "continuousStart := previousServicePeriod.To.Truncate(streaming.MinimumWindowSizeDuration)\ninScopeLines[idx].ServicePeriod.From = continuousStart"
-      },
-      {
-        "name": "Customer-deleted-at subscription view capping",
-        "description": "If the customer was deleted before the subscription's ActiveTo, Builder.Build caps the subscription view's ActiveTo at CustomerDeletedAt to prevent the iterator from generating lines past the customer's lifecycle.",
-        "example": "subs = withActiveTo(subs, *input.CustomerDeletedAt)"
-      },
-      {
-        "name": "StateItem.GetExpectedLine for gathering-line construction",
-        "description": "StateItem.GetExpectedLine converts a SubscriptionItemWithPeriods into a *billing.GatheringLine including proration for flat-fee items. Returns nil (not an error) when the computed amount rounds to zero \u2014 callers must handle nil as 'do not create line'.",
-        "example": "line, err := item.GetExpectedLine()\nif err != nil { return err }\nif line == nil { /* skip */ }"
-      },
-      {
-        "name": "tracex.Start spans on all public methods",
-        "description": "Every non-trivial method on Builder and PhaseIterator wraps its body in a tracex.Start span so OTel tracing captures subscription-sync generation timing end-to-end.",
-        "example": "span := tracex.Start[State](ctx, b.tracer, \"billing.worker.subscription.sync.targetstate.Build\")\nreturn span.Wrap(func(ctx context.Context) (State, error) { ... })"
+        "name": "ErrInvoiceCannotAdvance \u2192 warn + nil return",
+        "description": "Late Kafka messages for already-advanced invoices must log a warning and return nil (no requeue); all other errors propagate normally.",
+        "example": "if errors.Is(err, billing.ErrInvoiceCannotAdvance) { h.logger.WarnContext(ctx, \"invoice cannot advance (most probably a late message has occurred)\", \"invoice_id\", event.Invoice); return nil }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "targetstate.go",
-        "role": "Entry point: Builder.Build validates input, caps subscription view at customer deletion, iterates phases via collectUpcomingLines, corrects period starts, and returns a fully assembled State.",
-        "watch_for": "generationLimit logic in collectUpcomingLines is subtle: it advances to currBillingPeriod.To unless asOf is before subscription start or the phase hasn't started yet; changes here break the lookahead window."
-      },
-      {
-        "file": "phaseiterator.go",
-        "role": "Generates SubscriptionItemWithPeriods for all billable items in a single phase, handling recurring cadences (advancing at, periodIdx loop), one-time items, aligned billing periods, and truncation.",
-        "watch_for": "maxSafeIter=1000 guards against infinite loops; iterationEnd is extended to end-of-second before passing to generateAligned to compensate for 1s resolution. Do not pass a raw asOf as iterationEnd."
-      },
-      {
-        "file": "targetstateitem.go",
-        "role": "Defines StateItem embedding SubscriptionItemWithPeriods and exposing GetExpectedLine, IsBillable, shouldProrate. Contains all proration and flat-fee/usage-based price dispatch logic.",
-        "watch_for": "GetExpectedLine returns (nil, nil) for zero-amount pro-rated flat fee \u2014 callers must check for nil line separately from error. shouldProrate returns false when the subscription ends within the service period."
-      },
-      {
-        "file": "phaseiterator_test.go",
-        "role": "Table-driven tests for PhaseIterator covering aligned/unaligned cadences, phase boundaries, version splits, and truncation edge cases.",
-        "watch_for": "Uses suite-level Assertions and testify/suite; new test cases must add to the tcs slice and call suite.Run."
+        "file": "asyncadvance.go",
+        "role": "Entire package \u2014 Config, Config.Validate(), New(), Handler.Handle(). No other files.",
+        "watch_for": "Forgetting the strategy validation in Validate() creates an infinite loop: background strategy re-emits advance events, which this handler re-processes forever. Handler is intentionally stateless beyond service + logger \u2014 do not add mutable state."
       }
     ],
     "anti_patterns": [
-      "Passing a raw asOf time as iterationEnd to PhaseIterator.Generate \u2014 must extend to end-of-second via Add(MinimumWindowSizeDuration - time.Nanosecond) first",
-      "Constructing SubscriptionItemWithPeriods.UniqueID with a different separator or field order \u2014 the format subID/phaseKey/itemKey/v[N]/period[N] must match persistedstate exactly",
-      "Returning an error from GetExpectedLine when the expected line is nil \u2014 nil means 'do not create', not a failure; use GetExpectedLineOrErr only when a line is mandatory",
-      "Skipping correctPeriodStartForUpcomingLines \u2014 continuity annotations (AnnotationSubscriptionSyncForceContinuousLines) will be ignored and sync will propose spurious period-start repairs",
-      "Adding generation logic that creates lines past the customer's deleted-at timestamp \u2014 the Builder.Build capping via withActiveTo is the only sanctioned guard"
+      "Wiring this handler with a BillingService that has BackgroundAdvancementStrategy \u2014 Validate() catches it at startup; missing the check creates an infinite Kafka consume-emit loop",
+      "Returning ErrInvoiceCannotAdvance from Handle() \u2014 causes Watermill to nack and potentially requeue indefinitely",
+      "Adding mutable state to Handler \u2014 the struct is intentionally stateless beyond service + logger",
+      "Using context.Background() inside Handle() instead of the event's ctx parameter"
     ],
     "decisions": [
       {
-        "decision": "PhaseIterator generates target state purely from the subscription view without DB access",
-        "rationale": "Keeping generation stateless (no DB calls) means the diff between target and persisted state is a pure in-memory computation, making it idempotent and safe to retry."
-      },
-      {
-        "decision": "correctPeriodStartForUpcomingLines patches generated period boundaries from persisted state",
-        "rationale": "When a previous period was manually frozen (SyncIgnore + ForceContinuousLines), the next period must start exactly where the frozen period ends, even if the iterator would compute a different start from the subscription cadence."
-      },
-      {
-        "decision": "StateItem.GetExpectedLine returns nil for zero-amount lines instead of filtering before returning",
-        "rationale": "Separating 'nothing to bill' (nil) from 'error' lets the reconciler distinguish legitimate zero-value periods from calculation failures without a separate IsBillable pre-check being mandatory."
+        "decision": "Strategy guard in Config.Validate() rather than a runtime check inside Handle()",
+        "rationale": "Misconfiguration (background strategy + this handler) creates an infinite loop that is hard to detect at runtime; failing fast at construction time is safer and surfaces the bug immediately on startup."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Build target state and get expected gathering lines for all billable items",
-        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate\"\n)\n\nbuilder := targetstate.NewBuilder(logger, tracer)\nstate, err := builder.Build(ctx, targetstate.BuildInput{\n\tAsOf:             asOf,\n\tSubscriptionView: subsView,\n\tPersisted:        persistedState,\n})\nif err != nil { return err }\n\nfor _, item := range state.Items {\n\tif !item.IsBillable() { continue }\n\tline, err := item.GetExpectedLine()\n\tif err != nil { return err }\n\tif line == nil { continue } // zero-amount, skip\n\t// upsert line into gathering invoice\n}"
+        "scenario": "Wire asyncadvance handler into a Watermill NoPublisherHandler",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/billing\"\n    \"github.com/openmeterio/openmeter/openmeter/billing/worker/asyncadvance\"\n)\n\nhandler, err := asyncadvance.New(asyncadvance.Config{\n    BillingService: foregroundBillingSvc, // must be ForegroundAdvancementStrategy\n    Logger:         logger,\n})\nif err != nil {\n    return err\n}\n// Register with watermill grouphandler:\n// grouphandler.NewGroupEventHandler(handler.Handle)"
+      }
+    ]
+  },
+  "openmeter/billing/worker/collect": {
+    "purpose": "Batch invoice collection loop: lists GatheringInvoices whose NextCollectionAt is due (including nil-NextCollectionAt legacy invoices), deduplicates by customer, filters locked namespaces, then fans out parallel CollectCustomerInvoice calls that trigger billing.Service.InvoicePendingLines with partial-lines disabled.",
+    "patterns": [
+      {
+        "name": "Config struct constructor with nil checks",
+        "description": "NewInvoiceCollector validates GatheringInvoiceService, BillingService, and Logger are non-nil before constructing. LockedNamespaces is optional.",
+        "example": "func NewInvoiceCollector(config Config) (*InvoiceCollector, error) { if config.GatheringInvoiceService == nil { return nil, fmt.Errorf(...) } }"
+      },
+      {
+        "name": "Input types carry Validate() method checked at caller entry",
+        "description": "ListCollectableInvoicesInput and CollectCustomerInvoiceInput each have a Validate() error method checked at the top of their callers before any service calls.",
+        "example": "if err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid input: %w\", err) }"
+      },
+      {
+        "name": "Sentinel errors drive recovery not failure",
+        "description": "ErrNamespaceLocked \u2192 warn + return nil. ErrInvoiceCreateNoLines \u2192 warn + RecalculateGatheringInvoices + return nil. Only unknown errors propagate.",
+        "example": "if errors.Is(err, billing.ErrNamespaceLocked) { a.logger.WarnContext(ctx, \"namespace is locked, skipping\", ...); return nil, nil }"
+      },
+      {
+        "name": "InvoicePendingLines always called with WithPartialInvoiceLinesDisabled",
+        "description": "System-initiated collection must always use billing.WithPartialInvoiceLinesDisabled() to prevent progressive billing during automated collection.",
+        "example": "a.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{Customer: params.CustomerID}, billing.WithPartialInvoiceLinesDisabled())"
+      },
+      {
+        "name": "Locked namespace exclusion before fan-out",
+        "description": "All() filters customer IDs whose namespace appears in a.lockedNamespaces using slices.Contains before building batches \u2014 prevents wasted goroutine launches against locked namespaces.",
+        "example": "customerIDs = lo.Filter(lo.Uniq(customerIDs), func(id customer.CustomerID, _ int) bool { return !slices.Contains(a.lockedNamespaces, id.Namespace) })"
+      },
+      {
+        "name": "Batched parallel fan-out with errChan + sync.WaitGroup (same as advance package)",
+        "description": "lo.Chunk splits by batchSize; goroutines per batch item write to a buffered errChan sized to total customer count; sync.OnceFunc closes channel; errors.Join collects.",
+        "example": "errChan := make(chan error, len(customerIDs)); closeErrChan := sync.OnceFunc(func() { close(errChan) }); defer closeErrChan()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "collect.go",
+        "role": "Entire package \u2014 InvoiceCollector with All(), ListCollectableInvoices(), CollectCustomerInvoice(), NewInvoiceCollector(); input types ListCollectableInvoicesInput and CollectCustomerInvoiceInput with Validate().",
+        "watch_for": "ListCollectableInvoices uses a filter.FilterTime OR clause to include invoices with nil NextCollectionAt \u2014 removing the nil branch silently skips legacy invoices. errChan must be sized to len(customerIDs) not len(batches). lo.Uniq must be applied to customerIDs before batching or a customer with multiple gathering invoices gets collected twice."
+      }
+    ],
+    "anti_patterns": [
+      "Calling InvoicePendingLines without billing.WithPartialInvoiceLinesDisabled() \u2014 allows progressive billing in system-initiated collection, which is explicitly forbidden",
+      "Treating ErrNamespaceLocked or ErrInvoiceCreateNoLines as hard errors \u2014 both have defined recovery paths",
+      "Skipping the locked namespace filter before fan-out \u2014 causes redundant errors for every customer in a locked namespace",
+      "Using context.Background() inside goroutines instead of the parent ctx",
+      "Forgetting lo.Uniq on customerIDs before batching \u2014 a customer with multiple gathering invoices gets collected twice"
+    ],
+    "decisions": [
+      {
+        "decision": "Collect at customer granularity, not invoice granularity",
+        "rationale": "InvoicePendingLines operates per-customer and may merge multiple pending lines into one invoice; iterating by invoice ID would cause double-collect races for customers with multiple gathering invoices."
+      },
+      {
+        "decision": "ErrInvoiceCreateNoLines triggers RecalculateGatheringInvoices instead of failing",
+        "rationale": "This state indicates stale gathering invoice state (possible data inconsistency); a recalculation heals it without surfacing an error to the caller or causing unnecessary alert noise."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Collect all due gathering invoices for a namespace in batches of 100",
+        "code": "import billingworkercollect \"github.com/openmeterio/openmeter/openmeter/billing/worker/collect\"\n\ncollector, err := billingworkercollect.NewInvoiceCollector(billingworkercollect.Config{\n    GatheringInvoiceService: billingSvc,\n    BillingService:          billingSvc,\n    Logger:                  logger,\n    LockedNamespaces:        lockedNS,\n})\nif err != nil {\n    return err\n}\nreturn collector.All(ctx, []string{\"default\"}, nil, 100)"
       }
     ]
   }

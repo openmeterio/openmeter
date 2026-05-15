@@ -1,55 +1,56 @@
 {
-  "openmeter/notification/webhook/svix/internal": {
-    "purpose": "Internal Svix error translation layer: converts raw *svix.Error HTTP responses into typed webhook error categories (retryable, unrecoverable, not-found, validation) consumed by the svix webhook handler. Single-responsibility package \u2014 error mapping only.",
+  "openmeter/notification/eventhandler/noop": {
+    "purpose": "No-op implementation of notification.EventHandler used when the notification subsystem is disabled or unconfigured. All methods satisfy the interface contract without performing any real dispatch, reconciliation, or lifecycle work, enabling Wire to inject a safe zero-value implementation instead of a nil pointer.",
     "patterns": [
       {
-        "name": "SvixError wraps to domain error via Wrap()",
-        "description": "SvixError.Wrap() maps HTTP status codes to webhook.NewRetryableError, webhook.NewUnrecoverableError, webhook.NewNotFoundError, or returns raw SvixError for unrecognized statuses. Always call .Wrap() after constructing SvixError.",
-        "example": "return SvixError{HTTPStatus: svixErr.Status(), Code: &body.Code, Details: []string{body.Detail}}.Wrap()"
+        "name": "Compile-time interface assertion",
+        "description": "The file-level `var _ notification.EventHandler = (*Handler)(nil)` ensures the package fails to compile if Handler drifts from the interface, providing the only automated guard against method-set changes in notification.EventHandler.",
+        "example": "var _ notification.EventHandler = (*Handler)(nil)"
       },
       {
-        "name": "WrapSvixError is the entry-point for callers",
-        "description": "All Svix API call sites must pass errors through WrapSvixError(err) which type-asserts to *svix.Error via lo.ErrorsAs and dispatches to status-specific JSON unmarshal + SvixError construction. Never construct SvixError directly from outside this package.",
-        "example": "if err := WrapSvixError(svixAPIErr); err != nil { return err }"
+        "name": "Blank-identifier parameters, nil return",
+        "description": "Every method uses blank identifiers for all parameters and returns nil \u2014 no logging, no metrics, no state mutation. This is the canonical noop body shape used throughout the repo (ledgernoop, webhooknoop).",
+        "example": "func (h Handler) Dispatch(_ context.Context, _ *notification.Event) error { return nil }"
       },
       {
-        "name": "422 UnprocessableEntity uses SvixValidationErrorBody",
-        "description": "HTTP 422 responses from Svix carry a detail array of SvixValidationError structs; all other statuses carry a flat SvixErrorBody. Unmarshal branch must be kept in sync with Svix's actual response shapes.",
-        "example": "case http.StatusUnprocessableEntity: var body SvixValidationErrorBody; json.Unmarshal(svixErr.Body(), &body)"
+        "name": "Two-value constructor matching Wire expectation",
+        "description": "New() returns (*Handler, error) even though no error can occur, matching the standard Wire provider signature so app/common can swap real vs. noop without changing provider function signatures.",
+        "example": "func New() (*Handler, error) { return &Handler{}, nil }"
       },
       {
-        "name": "Rate-limit carries RetryAfter duration",
-        "description": "429 Too Many Requests and 5xx server errors are wrapped as webhook.NewRetryableError(e, e.RetryAfter). The RetryAfter field must be populated by callers parsing the Retry-After response header before constructing SvixError.",
-        "example": "case http.StatusTooManyRequests: return webhook.NewRetryableError(e, e.RetryAfter)"
+        "name": "Value receiver on zero-value struct",
+        "description": "Handler holds no state; most methods use value receivers to avoid heap allocation and communicate that the struct is safe to copy.",
+        "example": "func (h Handler) Reconcile(_ context.Context) error { return nil }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "error.go",
-        "role": "Defines SvixError value type, its Wrap() HTTP-status-to-domain-error mapping, JSON body structs for Svix error responses, and the WrapSvixError public entry-point.",
-        "watch_for": "Adding a new HTTP status mapping requires a new case in both SvixError.Wrap() and WrapSvixError's switch. Missing a status silently returns the raw SvixError without domain wrapping, bypassing retry/unrecoverable classification."
+        "file": "handler.go",
+        "role": "Single-file package providing the noop EventHandler; wired by app/common when notification is disabled.",
+        "watch_for": "If notification.EventHandler gains new methods, this file will fail to compile \u2014 add matching no-op stubs immediately using blank-identifier params and nil returns."
       }
     ],
     "anti_patterns": [
-      "Returning *svix.Error directly to callers outside this package \u2014 always go through WrapSvixError",
-      "Adding business logic or Svix API calls to this package \u2014 it is error-mapping only",
-      "Unmarshaling Svix response body outside this package and duplicating the JSON struct definitions",
-      "Treating all Svix errors as retryable \u2014 4xx validation errors must be wrapped as unrecoverable to avoid infinite retry loops"
+      "Adding logging, metrics, or side-effects to any method \u2014 this package must remain intentionally inert.",
+      "Removing the compile-time interface assertion (var _ notification.EventHandler = (*Handler)(nil)) \u2014 it is the only guard against interface drift.",
+      "Using context.Background() or context.TODO() instead of blank-identifying the received context parameter.",
+      "Storing any state on Handler \u2014 it must remain a zero-value struct with no fields.",
+      "Returning non-nil errors from any method \u2014 callers in app/common assume noop always succeeds."
     ],
     "decisions": [
       {
-        "decision": "Separate internal package for Svix error translation",
-        "rationale": "Keeps *svix.Error (an SDK type) from leaking into the domain webhook package. The internal boundary enforces that callers only see webhook.RetryableError / webhook.UnrecoverableError / webhook.NotFoundError \u2014 domain-portable error types."
+        "decision": "Separate noop sub-package rather than a nil check inside the real handler",
+        "rationale": "Matches the broader noop pattern across openmeter (ledgernoop, webhooknoop): Wire injects the concrete noop type so call sites need no nil guards at runtime, keeping business logic free of feature-flag branches."
       },
       {
-        "decision": "HTTP status drives retry vs unrecoverable classification",
-        "rationale": "Svix 4xx (400, 409, 422) indicate caller-side data problems that will not resolve on retry; 429 and 5xx are transient. Encoding this in Wrap() keeps retry logic out of the notification consumer."
+        "decision": "Value receivers for all methods",
+        "rationale": "Handler holds no state so value receivers avoid unnecessary heap allocation and signal that copies are safe \u2014 consistent with other zero-value noop structs in the repo."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Wrapping a Svix API error at a call site in the svix webhook handler",
-        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix/internal\"\n)\n\n_, err := svixClient.Message.Create(ctx, appID, &svix.MessageIn{...})\nif err != nil {\n    return internal.WrapSvixError(err)\n}"
+        "scenario": "Adding a new method after notification.EventHandler interface change",
+        "code": "// handler.go \u2014 append below existing methods\nfunc (h Handler) NewMethod(_ context.Context, _ *notification.SomeInput) error {\n\treturn nil\n}"
       }
     ]
   }

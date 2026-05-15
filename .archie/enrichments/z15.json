@@ -1,0 +1,122 @@
+{
+  "openmeter/entitlement/hooks": {
+    "purpose": "Organisational container for entitlement ServiceHook implementations that enforce cross-domain constraints (e.g. subscription ownership) without creating circular imports. Each child package implements models.ServiceHook[entitlement.Entitlement] for a specific external domain concern.",
+    "patterns": [
+      {
+        "name": "Embed NoopServiceHook, override only needed methods",
+        "description": "Hook structs embed models.NoopServiceHook[entitlement.Entitlement] (aliased as NoopEntitlementSubscriptionHook) so only PreDelete/PreUpdate methods that need logic are overridden. Compile-time assertion var _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil) is mandatory.",
+        "example": "type hook struct { NoopEntitlementSubscriptionHook }\nvar _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil)"
+      },
+      {
+        "name": "IsSubscriptionOperation gate must be checked first",
+        "description": "Any PreDelete/PreUpdate override must call subscription.IsSubscriptionOperation(ctx) before the annotation check to allow the subscription service to bypass the guard during its own lifecycle operations.",
+        "example": "if subscription.IsSubscriptionOperation(ctx) { return nil }\nif subscription.AnnotationParser.HasSubscription(ent.Annotations) { return models.NewGenericForbiddenError(...) }"
+      },
+      {
+        "name": "Return GenericForbiddenError for annotation guards",
+        "description": "Blocked operations must return models.NewGenericForbiddenError \u2014 the HTTP error encoder maps this to 403. Using any other error type breaks status code mapping.",
+        "example": "return models.NewGenericForbiddenError(fmt.Errorf(\"entitlement is managed by subscription\"))"
+      },
+      {
+        "name": "Constructor accepts typed config struct",
+        "description": "Constructors follow the pattern NewXxxHook(cfg XxxHookConfig) XxxHook \u2014 even if the config struct is empty \u2014 to allow future extension without breaking callers.",
+        "example": "func NewEntitlementSubscriptionHook(_ EntitlementSubscriptionHookConfig) EntitlementSubscriptionHook { ... }"
+      },
+      {
+        "name": "Type aliases for the hook interface and noop",
+        "description": "Each child package defines type aliases EntitlementXxxHook = models.ServiceHook[entitlement.Entitlement] and NoopEntitlementXxxHook = models.NoopServiceHook[entitlement.Entitlement] so callers reference a domain-named type.",
+        "example": "type EntitlementSubscriptionHook = models.ServiceHook[entitlement.Entitlement]\ntype NoopEntitlementSubscriptionHook = models.NoopServiceHook[entitlement.Entitlement]"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/entitlement/hooks/subscription/hook.go",
+        "role": "Implements PreDelete/PreUpdate guard: blocks deletion/mutation of subscription-annotated entitlements unless called from within a subscription operation. Returns models.GenericForbiddenError (maps to 403).",
+        "watch_for": "Must check subscription.IsSubscriptionOperation(ctx) before subscription.AnnotationParser.HasSubscription. Returning any error type other than GenericForbiddenError breaks HTTP status mapping. No I/O or DB calls inside hook methods."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing a new Pre* method without the IsSubscriptionOperation(ctx) check \u2014 breaks subscription self-management",
+      "Returning a non-GenericForbiddenError for annotation guard failures \u2014 HTTP layer maps only ForbiddenError to 403",
+      "Adding DB calls or business logic inside hook methods \u2014 hooks must be pure guards with no I/O",
+      "Omitting the compile-time var _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil) assertion",
+      "Importing entitlement.Service (rather than entitlement domain types) \u2014 risks import cycles"
+    ],
+    "decisions": [
+      {
+        "decision": "One sub-package per external domain concern (subscription/)",
+        "rationale": "Keeps each cross-domain constraint in its own compilation unit, preventing any single hook from accumulating unrelated concerns and making it trivial to wire/unwire individual hooks in app/common."
+      },
+      {
+        "decision": "Embed models.NoopServiceHook rather than implementing all ServiceHook methods manually",
+        "rationale": "Reduces boilerplate and ensures the hook compiles correctly even when the ServiceHook interface gains new methods, as long as the noop provides default no-op implementations."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new cross-domain hook that guards entitlement mutation",
+        "code": "package entitlementbillinghook\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/entitlement\"\n\t\"github.com/openmeterio/openmeter/openmeter/subscription\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype (\n\tEntitlementBillingHook     = models.ServiceHook[entitlement.Entitlement]\n\tNoopEntitlementBillingHook = models.NoopServiceHook[entitlement.Entitlement]\n)\n\ntype hook struct{ NoopEntitlementBillingHook }\n\nvar _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil)\n\nfunc NewEntitlementBillingHook(_ EntitlementBillingHookConfig) EntitlementBillingHook {\n\treturn &hook{}\n}\n\nfunc (h *hook) PreDelete(ctx context.Context, ent *entitlement.Entitlement) error {\n\tif subscription.IsSubscriptionOperation(ctx) {\n\t\treturn nil\n\t}\n\t// domain-specific guard\n\treturn models.NewGenericForbiddenError(fmt.Errorf(\"entitlement is managed by billing\"))\n}"
+      }
+    ]
+  },
+  "openmeter/entitlement/validators": {
+    "purpose": "Organisational container for customer.RequestValidator implementations that enforce entitlement-domain pre-mutation constraints on customer operations. Prevents illegal customer lifecycle transitions (e.g. deleting a customer with active entitlements) without creating circular imports.",
+    "patterns": [
+      {
+        "name": "Embed customer.NoopRequestValidator",
+        "description": "Validator structs embed customer.NoopRequestValidator so only the relevant Validate* methods need to be overridden. Compile-time assertion var _ customer.RequestValidator = (*Validator)(nil) is mandatory.",
+        "example": "type Validator struct {\n\tcustomer.NoopRequestValidator\n\tentitlementRepo entitlement.EntitlementRepo\n}\nvar _ customer.RequestValidator = (*Validator)(nil)"
+      },
+      {
+        "name": "Depend on EntitlementRepo, not entitlement.Service",
+        "description": "Use entitlement.EntitlementRepo for validation queries to avoid heavy dependency on the full service and to prevent import cycles. Constructor nil-guards the repo and returns an error if nil.",
+        "example": "func NewValidator(entitlementRepo entitlement.EntitlementRepo) (*Validator, error) {\n\tif entitlementRepo == nil {\n\t\treturn nil, fmt.Errorf(\"entitlement repository is required\")\n\t}\n\treturn &Validator{entitlementRepo: entitlementRepo}, nil\n}"
+      },
+      {
+        "name": "Return models.GenericConflictError for blocked operations",
+        "description": "Pre-mutation blocking failures must use models.NewGenericConflictError \u2014 the HTTP error encoder maps ConflictError to 409. Using GenericValidationError or plain errors produces incorrect status codes.",
+        "example": "return models.NewGenericConflictError(fmt.Errorf(\"customer %s still has active entitlements\", input.ID))"
+      },
+      {
+        "name": "Use clock.Now() for testable time",
+        "description": "All time references inside validators must use pkg/clock.Now() rather than time.Now() to allow test clock injection and ensure deterministic test behaviour.",
+        "example": "now := clock.Now()\nentitlements, err := v.entitlementRepo.ListEntitlements(ctx, entitlement.ListEntitlementsParams{ActiveAt: lo.ToPtr(now), ...})"
+      },
+      {
+        "name": "Validate input before querying",
+        "description": "Call input.Validate() at the start of each ValidateXxx method to catch malformed inputs before issuing any DB queries.",
+        "example": "if err := input.Validate(); err != nil { return err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/entitlement/validators/customer/validator.go",
+        "role": "ValidateDeleteCustomer: lists active entitlements for the customer at clock.Now() (including soft-deleted ones active at that instant), returns GenericConflictError if any exist. Depends on entitlement.EntitlementRepo, not entitlement.Service.",
+        "watch_for": "Must use clock.Now() not time.Now(). Depends on EntitlementRepo, not entitlement.Service. IncludeDeleted+IncludeDeletedAfter pair is required to catch entitlements soft-deleted after the check instant. Return GenericConflictError (not ValidationError) so HTTP maps to 409."
+      }
+    ],
+    "anti_patterns": [
+      "Importing entitlement.Service instead of entitlement.EntitlementRepo \u2014 creates import cycles and heavier dependency graph",
+      "Using time.Now() instead of clock.Now() \u2014 breaks test determinism",
+      "Returning non-GenericConflictError for 'has active entitlements' \u2014 HTTP layer maps only ConflictError to 409",
+      "Adding state-mutating logic inside validator methods \u2014 validators are read-only pre-mutation guards only",
+      "Omitting the compile-time interface assertion var _ customer.RequestValidator = (*Validator)(nil)"
+    ],
+    "decisions": [
+      {
+        "decision": "Depend on entitlement.EntitlementRepo rather than entitlement.Service",
+        "rationale": "RequestValidator is called from within the customer service; depending on entitlement.Service would risk import cycles since the service layer imports customer for hooks. The repo interface is a lighter, cycle-safe dependency."
+      },
+      {
+        "decision": "One sub-package per external domain concern (customer/)",
+        "rationale": "Mirrors the hooks/ layout \u2014 each validator lives in its own compilation unit so it can be individually wired/unwired in app/common without touching other validators."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Correct ValidateDeleteCustomer implementation checking active entitlements",
+        "code": "package customer\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/samber/lo\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/customer\"\n\t\"github.com/openmeterio/openmeter/openmeter/entitlement\"\n\t\"github.com/openmeterio/openmeter/pkg/clock\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nvar _ customer.RequestValidator = (*Validator)(nil)\n\nfunc NewValidator(entitlementRepo entitlement.EntitlementRepo) (*Validator, error) {\n\tif entitlementRepo == nil {\n\t\treturn nil, fmt.Errorf(\"entitlement repository is required\")\n\t}\n\treturn &Validator{entitlementRepo: entitlementRepo}, nil\n}\n\ntype Validator struct {\n\tcustomer.NoopRequestValidator\n\tentitlementRepo entitlement.EntitlementRepo\n}\n\nfunc (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {\n\tif err := input.Validate(); err != nil {\n\t\treturn err\n\t}\n\tnow := clock.Now()\n\tents, err := v.entitlementRepo.ListEntitlements(ctx, entitlement.ListEntitlementsParams{\n\t\tCustomerIDs:         []string{input.ID},\n\t\tNamespaces:          []string{input.Namespace},\n\t\tActiveAt:            lo.ToPtr(now),\n\t\tIncludeDeleted:      true,\n\t\tIncludeDeletedAfter: now,\n\t})\n\tif err != nil {\n\t\treturn fmt.Errorf(\"failed to list customer entitlements: %w\", err)\n\t}\n\tif len(ents.Items) > 0 {\n\t\treturn models.NewGenericConflictError(fmt.Errorf(\"customer %s still has active entitlements\", input.ID))\n\t}\n\treturn nil\n}"
+      }
+    ]
+  }
+}

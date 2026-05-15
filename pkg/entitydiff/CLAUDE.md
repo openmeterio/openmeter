@@ -2,12 +2,11 @@
 
 <!-- archie:ai-start -->
 
-> Generic diffing library for entity collections that need create/update/delete reconciliation between expected state and persisted DB state. Used by billing subscription sync to reconcile invoice lines and subscription phases against their DB representations.
+> Generic diffing library for entity collections needing create/update/delete reconciliation between expected state and persisted DB state. Used by billing subscription sync to reconcile invoice lines and subscription phases against their DB representations.
 
 ## Patterns
 
-**Entity interface constraint** — All diffable types must implement Entity (GetID() string, IsDeleted() bool). ID-less items (GetID()=="") that are not deleted are always treated as creates. (`type InvoiceLine struct{...}
-func (l InvoiceLine) GetID() string { return l.ID }
+**Entity interface constraint** — All diffable types must implement Entity (GetID() string, IsDeleted() bool). ID-less items (GetID()=="") that are not deleted are always treated as creates. (`func (l InvoiceLine) GetID() string { return l.ID }
 func (l InvoiceLine) IsDeleted() bool { return l.DeletedAt != nil }`)
 **DiffByIDEqualer for leaf entities** — Use DiffByIDEqualer when the entity has no child entities and implements equal.Equaler[T]. It skips updates where PersistedState.Equal(ExpectedState) is true. (`diff := entitydiff.DiffByIDEqualer(expectedLines, dbLines)`)
 **DiffByID with callbacks for parent entities** — Use DiffByID with HandleCreate/HandleUpdate/HandleDelete callbacks when the entity has child entities that require their own nested diffing inside the update handler. (`entitydiff.DiffByID(entitydiff.DiffByIDInput[Phase]{DBState: db, ExpectedState: exp, HandleUpdate: func(u DiffUpdate[Phase]) error { return diffChildren(u) }})`)
@@ -23,15 +22,15 @@ func (l InvoiceLine) IsDeleted() bool { return l.DeletedAt != nil }`)
 
 ## Anti-Patterns
 
-- Implementing Entity.GetID() to return a non-stable ID (e.g. index-based) — IDs must be stable DB identifiers or empty string for new items.
-- Using DiffByID for leaf entities without children — use DiffByIDEqualer to skip no-op updates.
-- Mutating DB state inside a diff callback and then running another diff on the same collection — diffs are computed once against the original DB snapshot.
-- Passing a filtered expectedState slice to diffByID — items absent from expectedState are unconditionally deleted.
+- Implementing Entity.GetID() to return a non-stable ID (e.g. index-based) — IDs must be stable DB identifiers or empty string for new items
+- Using DiffByID for leaf entities without children — use DiffByIDEqualer to skip no-op updates
+- Mutating DB state inside a diff callback and then running another diff on the same collection — diffs are computed once against the original DB snapshot
+- Passing a filtered expectedState slice to diffByID — items absent from expectedState are unconditionally deleted
 
 ## Decisions
 
-- **Split diffByID (returns UpdateCandidates) from DiffByIDEqualer (filters candidates via Equal) into two separate code paths.** — Entities with children cannot use equality comparison because child state is not embedded; callers with children need all update candidates to recurse into child diffs.
-- **IsDeleted() on the expected state drives deletion, not absence from the expected list alone.** — Subscription sync needs to represent soft-delete intent explicitly (e.g. managedBy change co-located with deleted_at) so the deleted expected state carries the full target row to persist before deleting.
+- **Split diffByID (returns UpdateCandidates) from DiffByIDEqualer (filters candidates via Equal) into two separate code paths** — Entities with children cannot use equality comparison because child state is not embedded; callers with children need all update candidates to recurse into child diffs.
+- **IsDeleted() on the expected state drives deletion, not absence from the expected list alone** — Subscription sync needs to represent soft-delete intent explicitly (e.g. managedBy change co-located with deleted_at) so the deleted expected state carries the full target row to persist before deleting.
 
 ## Example: Diff invoice lines (leaf entities with equality) and apply changes
 

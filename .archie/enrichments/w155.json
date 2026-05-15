@@ -1,0 +1,47 @@
+{
+  "tools/migrate/cmd/viewgen": {
+    "purpose": "Thin CLI entrypoint that parses two flags (--schema, --out) and delegates entirely to viewgen.GenerateFile to produce ClickHouse view SQL from the Ent schema. Contains zero business logic \u2014 all generation resides in the sibling tools/migrate/viewgen package.",
+    "patterns": [
+      {
+        "name": "Thin entrypoint delegation",
+        "description": "main.go calls exactly one library function (viewgen.GenerateFile) after flag parsing. No SQL generation, schema inspection, or domain logic belongs here.",
+        "example": "viewgen.GenerateFile(*schemaPath, *outPath)"
+      },
+      {
+        "name": "stdlib flag for single-purpose tools",
+        "description": "Uses stdlib flag package (not Cobra/Viper) for the two flags --schema and --out. New flags must use flag.String with the same pattern.",
+        "example": "schemaPath = flag.String(\"schema\", \"./openmeter/ent/schema\", \"...\")"
+      },
+      {
+        "name": "exitf error reporting",
+        "description": "Errors are reported via the local exitf helper which writes to stderr and calls os.Exit(1). Never use log.Fatal, panic, or fmt.Println for error exit paths.",
+        "example": "exitf(\"%v\", err)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.go",
+        "role": "CLI entry: parse --schema and --out flags, call viewgen.GenerateFile, exit non-zero on error via exitf.",
+        "watch_for": "Do not add any SQL or schema logic here. exitf is the only valid error exit \u2014 never substitute log.Fatal or panic."
+      }
+    ],
+    "anti_patterns": [
+      "Adding SQL generation or schema inspection logic directly in main.go instead of tools/migrate/viewgen",
+      "Using Cobra or Viper instead of stdlib flag for this single-purpose tool",
+      "Importing app/common or any openmeter domain package \u2014 this tool only needs the ent schema path and viewgen",
+      "Using log.Fatal or panic instead of exitf for error exits"
+    ],
+    "decisions": [
+      {
+        "decision": "Separate cmd/viewgen entrypoint from the viewgen library package",
+        "rationale": "Keeps SQL generation logic testable and reusable independently of the CLI surface; the library can be imported by other tools without pulling in flag/os.Exit side-effects."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new flag and passing it to GenerateFile",
+        "code": "package main\n\nimport (\n\t\"flag\"\n\t\"fmt\"\n\t\"os\"\n\n\t\"github.com/openmeterio/openmeter/tools/migrate/viewgen\"\n)\n\nfunc main() {\n\tvar (\n\t\tschemaPath = flag.String(\"schema\", \"./openmeter/ent/schema\", \"path to the ent schema package\")\n\t\toutPath    = flag.String(\"out\", viewgen.DefaultOutputPath, \"output SQL file path\")\n\t)\n\tflag.Parse()\n\n\tif err := viewgen.GenerateFile(*schemaPath, *outPath); err != nil {\n\t\texitf(\"%v\", err)\n\t}\n}\n\nfunc exitf(format string, args ...any) {\n\tfmt.Fprintf(os.Stderr, format+\"\\n\", args...)\n\tos.Exit(1)\n}"
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 {
   "api/v3/handlers/featurecost": {
-    "purpose": "Single-operation v3 HTTP handler for querying feature cost by delegating to cost.Service using meter query params built via shared query.BuildQueryParams logic. Bridges feature lookup, meter resolution, and cost calculation into one endpoint.",
+    "purpose": "Single-operation v3 HTTP handler for querying feature cost by delegating to cost.Service using meter query params built via shared query.BuildQueryParams logic. Bridges feature lookup, meter resolution, and cost calculation into one endpoint with optional request body.",
     "patterns": [
       {
         "name": "HandlerWithArgs for path-param endpoints",
@@ -15,12 +15,22 @@
       {
         "name": "Domain validation before service call",
         "description": "Validate domain preconditions (e.g., feature has a meter) in the operation func using models.NewGenericValidationError before calling the service.",
-        "example": "if feat.MeterID == nil { return QueryFeatureCostResponse{}, models.NewGenericValidationError(...) }"
+        "example": "if feat.MeterID == nil { return QueryFeatureCostResponse{}, models.NewGenericValidationError(fmt.Errorf(\"feature %s has no meter associated\", feat.Key)) }"
       },
       {
         "name": "Nil-safe conversion with empty slice fallback",
-        "description": "ToAPIFeatureCostQueryResult returns an empty Data slice (not nil) when result is nil, preventing null in JSON.",
+        "description": "ToAPIFeatureCostQueryResult returns an empty Data slice (not nil) when result is nil, preventing JSON null.",
         "example": "if result == nil { return api.FeatureCostQueryResult{..., Data: []api.FeatureCostQueryRow{}} }"
+      },
+      {
+        "name": "ParseOptionalBody for query endpoints",
+        "description": "Use request.ParseOptionalBody (not ParseBody) because the request body is optional for this query endpoint.",
+        "example": "if err := request.ParseOptionalBody(r, &body); err != nil { return QueryFeatureCostRequest{}, err }"
+      },
+      {
+        "name": "nullable.NewNullNullable vs nullable.NewNullableWithValue",
+        "description": "In convert.go, use nullable.NewNullableWithValue when cost is present and nullable.NewNullNullable[api.Numeric]() when absent \u2014 wrong choice silently produces unexpected JSON nullability.",
+        "example": "if row.Cost != nil { apiRow.Cost = nullable.NewNullableWithValue(row.Cost.String()) } else { apiRow.Cost = nullable.NewNullNullable[api.Numeric]() }"
       }
     ],
     "key_file_guides": [
@@ -32,7 +42,7 @@
       {
         "file": "query.go",
         "role": "Implements QueryFeatureCost operation: resolves namespace, parses optional body, looks up feature, validates meter association, builds query params, calls cost service.",
-        "watch_for": "ParseOptionalBody is used (not ParseBody) because the request body is optional for this query endpoint."
+        "watch_for": "ParseOptionalBody is used (not ParseBody) because request body is optional; switching to ParseBody breaks bodyless requests."
       },
       {
         "file": "convert.go",
@@ -42,8 +52,9 @@
     ],
     "anti_patterns": [
       "Duplicating query.BuildQueryParams logic inline instead of calling the shared function from api/v3/handlers/meters/query",
-      "Returning nil instead of empty slice for Data when result is nil",
-      "Using context.Background() instead of propagating the request ctx"
+      "Returning nil instead of empty slice for Data when result is nil \u2014 causes JSON null",
+      "Using context.Background() instead of propagating the request ctx",
+      "Calling request.ParseBody instead of request.ParseOptionalBody for this query endpoint"
     ],
     "decisions": [
       {
@@ -51,7 +62,12 @@
         "rationale": "Feature cost uses the same streaming query structure as meter queries; sharing the builder avoids drift between the two filter/window handling paths."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Implementing a query operation with optional body and path param",
+        "code": "func (h *handler) QueryFeatureCost() QueryFeatureCostHandler {\n  return httptransport.NewHandlerWithArgs(\n    func(ctx context.Context, r *http.Request, featureID QueryFeatureCostParams) (QueryFeatureCostRequest, error) {\n      ns, err := h.resolveNamespace(ctx)\n      if err != nil { return QueryFeatureCostRequest{}, err }\n      var body api.MeterQueryRequest\n      if err := request.ParseOptionalBody(r, &body); err != nil {\n        return QueryFeatureCostRequest{}, err\n      }\n      return QueryFeatureCostRequest{Namespace: ns, FeatureID: featureID, Body: body}, nil\n    },\n    func(ctx context.Context, req QueryFeatureCostRequest) (QueryFeatureCostResponse, error) {\n      feat, err := h.featureConnector.GetFeature(ctx, req.Namespace, req.FeatureID, feature.IncludeArchivedFeatureFalse)\n      if err != nil { return QueryFeatureCostResponse{}, err }\n      if feat.MeterID == nil {\n        return QueryFeatureCostResponse{}, models.NewGenericValidationError(fmt.Errorf(\"feature %s has no meter\", feat.Key))\n      }\n      m, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{Namespace: req.Namespace, IDOrSlug: *feat.MeterID})\n      if err != nil { return QueryFeatureCostResponse{}, err }\n      params, err := query.BuildQueryParams(ctx, m, req.Body, query.NewCustomerResolver(h.customerService))\n      if err != nil { return QueryFeatureCostResponse{}, err }\n      result, err := h.costService.QueryFeatureCost(ctx, cost.QueryFeatureCostInput{Namespace: req.Namespace, FeatureID: feat.ID, QueryParams: params})\n      if err != nil { return QueryFeatureCostResponse{}, err }\n      return ToAPIFeatureCostQueryResult(result, req.Body), nil\n    },\n    commonhttp.JSONResponseEncoderWithStatus[QueryFeatureCostResponse](http.StatusOK),\n    httptransport.AppendOptions(h.options,\n      httptransport.WithOperationName(\"query-feature-cost\"),\n      httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n    )...,\n  )\n}"
+      }
+    ]
   },
   "api/v3/handlers/features": {
     "purpose": "Full CRUD v3 HTTP handler package for product-catalog features (list, get, create, update, delete/archive). Includes LLM pricing enrichment on get/update responses and domain-error-specific HTTP status mapping via a local errorEncoder.",
@@ -68,12 +84,12 @@
       },
       {
         "name": "Domain-specific errorEncoder chained after GenericErrorEncoder",
-        "description": "Append httptransport.WithErrorEncoder(errorEncoder()) after apierrors.GenericErrorEncoder() in AppendOptions. errorEncoder handles feature-domain typed errors (FeatureInvalidFiltersError \u2192 400, ForbiddenError \u2192 403, FeatureWithNameAlreadyExistsError \u2192 409).",
+        "description": "Append httptransport.WithErrorEncoder(errorEncoder()) after apierrors.GenericErrorEncoder() in AppendOptions. errorEncoder handles feature-domain typed errors (FeatureInvalidFiltersError -> 400, ForbiddenError -> 403, FeatureWithNameAlreadyExistsError -> 409).",
         "example": "httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()), httptransport.WithErrorEncoder(errorEncoder())"
       },
       {
         "name": "Conditional LLM pricing enrichment on read responses",
-        "description": "After converting a feature to API, check UnitCost.Type == UnitCostTypeLLM and call resolveLLMPricing; if pricing returned is non-nil call enrichFeatureResponseWithPricing. This is done in both get.go and update.go.",
+        "description": "After converting a feature to API, check UnitCost.Type == UnitCostTypeLLM and h.llmcostService != nil before calling resolveLLMPricing. Pricing errors are silently swallowed \u2014 enrichment is best-effort. Done in both get.go and update.go.",
         "example": "if feat.UnitCost != nil && feat.UnitCost.Type == feature.UnitCostTypeLLM && h.llmcostService != nil { pricing := resolveLLMPricing(ctx, h.llmcostService, feat); if pricing != nil { enrichFeatureResponseWithPricing(&resp, pricing) } }"
       },
       {
@@ -83,47 +99,53 @@
       },
       {
         "name": "nullable.Nullable for optional-null PATCH fields",
-        "description": "Update inputs use nullable.Nullable[T]; check IsNull() to clear, IsSpecified()+Get() to set, neither to leave unchanged. Test all three branches.",
+        "description": "Update inputs use nullable.Nullable[T]; check IsNull() to clear, IsSpecified()+Get() to set, neither to leave unchanged. Test all three branches in convert_test.go.",
         "example": "if body.UnitCost.IsNull() { input.UnitCost = nullable.NewNullNullable[feature.UnitCost]() } else if body.UnitCost.IsSpecified() { ... }"
+      },
+      {
+        "name": "UnitCost discriminated union via switch",
+        "description": "convertUnitCostToAPI and convertUnitCostFromAPI use switch statements on UnitCostType/discriminator string. The default case must return an error for unknown types to catch future additions.",
+        "example": "switch u.Type { case feature.UnitCostTypeManual: ... case feature.UnitCostTypeLLM: ... default: return out, fmt.Errorf(\"unknown unit cost type: %s\", u.Type) }"
       }
     ],
     "key_file_guides": [
       {
         "file": "handler.go",
         "role": "Handler interface with 5 methods; handler struct holds resolveNamespace, connector (feature.FeatureConnector), meterService, llmcostService, options.",
-        "watch_for": "llmcostService may be nil (optional dependency); guard with != nil before calling."
+        "watch_for": "llmcostService may be nil (optional dependency); guard with != nil before calling in get.go and update.go."
       },
       {
         "file": "convert.go",
         "role": "All domain<->API conversions: convertFeatureToAPI, convertCreateRequestToDomain, convertUpdateRequestToDomain, convertUnitCostToAPI/FromAPI, enrichFeatureResponseWithPricing, resolveLLMPricing, filter conversions.",
-        "watch_for": "UnitCost discriminator switch must cover all UnitCostType values; unknown type returns error."
+        "watch_for": "UnitCost discriminator switch must cover all UnitCostType values; unknown type returns error. resolveLLMPricing silently returns nil on error \u2014 callers must not treat nil as a hard failure."
       },
       {
         "file": "error_encoder.go",
         "role": "Maps feature-domain typed errors to HTTP status codes using commonhttp.HandleErrorIfTypeMatches.",
-        "watch_for": "Add new feature-domain errors here; do not let them fall through to 500."
+        "watch_for": "Add new feature-domain errors here; do not let them fall through to 500 via unhandled types."
       },
       {
         "file": "list.go",
         "role": "List with pagination (default page 1/size 20), filter[meter_id], filter[key], filter[name], sort. Uses apierrors.NewBadRequestError for invalid filter/sort params.",
-        "watch_for": "Page validation must be called after construction; missing it allows page=0 through."
+        "watch_for": "page.Validate() must be called after construction; missing it allows page=0 through."
       },
       {
         "file": "create.go",
-        "role": "Validates meter reference exists and filter keys match meter GroupBy dimensions before calling CreateFeature.",
+        "role": "Validates meter reference exists and filter keys match meter GroupBy dimensions before calling CreateFeature. Meter lookup and filter validation happen in the decoder.",
         "watch_for": "validateMeterFilters only checks key existence, not operator validity; operator validation is done downstream in MeterGroupByFilters.Validate."
       }
     ],
     "anti_patterns": [
       "Calling h.connector directly from handler.go methods instead of delegating to per-operation files",
-      "Skipping errorEncoder() in AppendOptions \u2014 feature domain errors will become 500",
-      "Returning pricing enrichment errors instead of silently skipping \u2014 pricing is best-effort",
-      "Accepting llmcostService as non-optional if it can be nil in some wirings"
+      "Skipping errorEncoder() in AppendOptions \u2014 feature domain errors (FeatureInvalidFiltersError, ForbiddenError, FeatureWithNameAlreadyExistsError) will become 500",
+      "Returning pricing enrichment errors instead of silently skipping \u2014 pricing resolution is best-effort",
+      "Accepting llmcostService as a required parameter when it can be nil in some wirings (e.g., credits disabled)",
+      "Constructing BillingFeatureUnitCost{} struct literal instead of using FromBillingFeatureManualUnitCost/FromBillingFeatureLLMUnitCost setters"
     ],
     "decisions": [
       {
         "decision": "Hand-written conversions instead of Goverter",
-        "rationale": "UnitCost is a discriminated union (manual/llm) requiring switch-based dispatch that Goverter cannot generate cleanly; hand-written code with tests is more explicit."
+        "rationale": "UnitCost is a discriminated union (manual/llm) requiring switch-based dispatch that Goverter cannot generate cleanly; hand-written code with tests is more explicit and caught by convert_test.go."
       },
       {
         "decision": "LLM pricing resolved at read time, not stored",
@@ -132,8 +154,8 @@
     ],
     "code_examples": [
       {
-        "scenario": "Add a new CRUD operation (e.g. PatchFeature)",
-        "code": "// patch.go\npackage features\n\nimport (\n\t\"context\"\n\t\"net/http\"\n\n\tapi \"github.com/openmeterio/openmeter/api/v3\"\n\t\"github.com/openmeterio/openmeter/api/v3/apierrors\"\n\t\"github.com/openmeterio/openmeter/api/v3/request\"\n\t\"github.com/openmeterio/openmeter/openmeter/productcatalog/feature\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n)\n\ntype (\n\tPatchFeatureRequest  = feature.PatchFeatureInputs\n\tPatchFeatureResponse = api.Feature\n\tPatchFeatureParams   = string\n\tPatchFeatureHandler  httptransport.HandlerWithArgs[PatchFeatureRequest, PatchFeatureResponse, PatchFeatureParams]\n)\n\nfunc (h *handler) PatchFeature() PatchFeatureHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, featureID PatchFeatureParams) (PatchFeatureRequest, error) {\n\t\t\tvar body api.PatchFeatureRequest\n\t\t\tif err := request.ParseBody(r, &body); err != nil {\n\t\t\t\treturn PatchFeatureRequest{}, err\n\t\t\t}\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil {\n\t\t\t\treturn PatchFeatureRequest{}, err\n\t\t\t}\n\t\t\treturn convertPatchRequestToDomain(ns, featureID, body)\n\t\t},\n\t\tfunc(ctx context.Context, req PatchFeatureRequest) (PatchFeatureResponse, error) {\n\t\t\tupdated, err := h.connector.PatchFeature(ctx, req)\n\t\t\tif err != nil {\n\t\t\t\treturn PatchFeatureResponse{}, err\n\t\t\t}\n\t\t\treturn convertFeatureToAPI(updated)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[PatchFeatureResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(\n\t\t\th.options,\n\t\t\thttptransport.WithOperationName(\"patch-feature\"),\n\t\t\thttptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n\t\t\thttptransport.WithErrorEncoder(errorEncoder()),\n\t\t)...,\n\t)\n}"
+        "scenario": "Adding a new CRUD operation (e.g. ArchiveFeature) following the per-operation file pattern",
+        "code": "// archive.go\npackage features\n\nimport (\n  \"context\"\n  \"net/http\"\n\n  \"github.com/openmeterio/openmeter/api/v3/apierrors\"\n  \"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n  \"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n  \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype (\n  ArchiveFeatureRequest = models.NamespacedID\n  ArchiveFeatureResponse = interface{}\n  ArchiveFeatureParams = string\n  ArchiveFeatureHandler httptransport.HandlerWithArgs[ArchiveFeatureRequest, ArchiveFeatureResponse, ArchiveFeatureParams]\n)\n\nfunc (h *handler) ArchiveFeature() ArchiveFeatureHandler {\n  return httptransport.NewHandlerWithArgs(\n    func(ctx context.Context, r *http.Request, featureID ArchiveFeatureParams) (ArchiveFeatureRequest, error) {\n      ns, err := h.resolveNamespace(ctx)\n      if err != nil { return ArchiveFeatureRequest{}, err }\n      return ArchiveFeatureRequest{Namespace: ns, ID: featureID}, nil\n    },\n    func(ctx context.Context, req ArchiveFeatureRequest) (ArchiveFeatureResponse, error) {\n      return nil, h.connector.ArchiveFeature(ctx, req)\n    },\n    commonhttp.EmptyResponseEncoder[ArchiveFeatureResponse](http.StatusNoContent),\n    httptransport.AppendOptions(h.options,\n      httptransport.WithOperationName(\"archive-feature\"),\n      httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n      httptransport.WithErrorEncoder(errorEncoder()),\n    )...,\n  )\n}"
       }
     ]
   },
@@ -152,18 +174,23 @@
       },
       {
         "name": "Source mapping: internal vs API enum",
-        "description": "Internal PriceSourceManual maps to api.LLMCostPriceSourceManual; everything else maps to api.LLMCostPriceSourceSystem. This is a one-directional mapping (reads only expose system/manual).",
+        "description": "Internal PriceSourceManual maps to api.LLMCostPriceSourceManual; everything else maps to api.LLMCostPriceSourceSystem. One-directional mapping (reads only expose system/manual).",
         "example": "source := api.LLMCostPriceSourceSystem; if p.Source == llmcost.PriceSourceManual { source = api.LLMCostPriceSourceManual }"
       },
       {
         "name": "Sort field allowlist validation",
         "description": "Validate sort fields against an explicit allowlist (validPriceSortField) before passing to the service. Return apierrors.NewBadRequestError with a descriptive Reason listing all valid fields.",
-        "example": "if !validPriceSortField(sort.Field) { return req, apierrors.NewBadRequestError(...) }"
+        "example": "if !validPriceSortField(sort.Field) { return req, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{Field: \"sort\", Reason: \"unsupported sort field, must be one of: id, provider.id, model.id, effective_from, effective_to\"}}) }"
       },
       {
         "name": "Nil pointer optional pricing fields",
         "description": "Optional pricing fields (CacheReadPerToken, CacheWritePerToken, ReasoningPerToken) are *alpacadecimal.Decimal in domain and *string in API; use lo.ToPtr(d.String()) for non-nil values.",
         "example": "if p.CacheReadPerToken != nil { out.CacheReadPerToken = lo.ToPtr(p.CacheReadPerToken.String()) }"
+      },
+      {
+        "name": "No sort support for list_overrides",
+        "description": "Overrides do not support sort \u2014 do not add sort without first updating the service layer. list_prices.go supports sort; list_overrides.go does not \u2014 they are deliberately asymmetric.",
+        "example": "// list_overrides.go has no sort params block \u2014 intentionally omitted"
       }
     ],
     "key_file_guides": [
@@ -175,12 +202,12 @@
       {
         "file": "convert.go",
         "role": "All domain<->API conversions including domainPriceToAPI, apiPricingToDomain, apiCreateOverrideToDomain, provider display name formatting, and validPriceSortField.",
-        "watch_for": "decimalFromString wraps validation error; callers must propagate the error, not ignore it."
+        "watch_for": "decimalFromString wraps validation error; callers must propagate the error, not ignore it. Adding a new provider to providerDisplayNames requires updating the static map."
       },
       {
         "file": "list_prices.go",
         "role": "Handles pagination, sort (with field allowlist), and filters (provider, model_id, model_name, currency, source) for the global price catalog.",
-        "watch_for": "Source filter uses filters.FromAPIFilterString, same as other string fields \u2014 not an enum filter."
+        "watch_for": "Source filter uses filters.FromAPIFilterString, same as other string fields \u2014 not an enum filter. Sort field must pass validPriceSortField check."
       },
       {
         "file": "list_overrides.go",
@@ -189,83 +216,34 @@
       }
     ],
     "anti_patterns": [
-      "Hardcoding provider display names in handler response logic instead of using formatProviderName",
-      "Accepting decimal strings without using decimalFromString \u2014 bypasses validation error wrapping",
-      "Exposing internal PriceSource values directly to API instead of mapping through the source enum"
+      "Hardcoding provider display names in handler response logic instead of using formatProviderName from convert.go",
+      "Accepting decimal strings without using decimalFromString \u2014 bypasses validation error wrapping with models.NewGenericValidationError",
+      "Exposing internal PriceSource values directly to API instead of mapping through the source enum (system/manual)",
+      "Adding sort to list_overrides without updating the service layer to support it"
     ],
     "decisions": [
       {
         "decision": "Provider display names in a static map with title-case fallback",
         "rationale": "API consumers need human-readable provider names; a central map avoids scatter while the fallback handles new/unknown providers without code changes."
+      },
+      {
+        "decision": "list_prices supports sort; list_overrides does not",
+        "rationale": "Overrides are per-namespace and typically small; adding sort complexity would require service-layer changes not yet needed."
       }
     ],
-    "code_examples": []
-  },
-  "api/v3/handlers/subscriptions": {
-    "purpose": "v3 HTTP handler package for billing subscription lifecycle: list, get, create (from plan), cancel, unschedule cancellation, and change-plan. Delegates to plansubscription.PlanSubscriptionService for create/change and subscription.Service for get/list/cancel/continue.",
-    "patterns": [
+    "code_examples": [
       {
-        "name": "Pre-validation of referenced entities in decoder",
-        "description": "Resolve and validate customer and plan references inside the request decoder (first func). Use apierrors.NewBadRequestError with InvalidParameters for missing required fields (plan.id/plan.key, customer.id/customer.key).",
-        "example": "if body.Plan.Id == nil && body.Plan.Key == nil { return ..., apierrors.NewBadRequestError(ctx, errors.New(reason), []apierrors.InvalidParameter{{Field: \"plan.id\", ...}, {Field: \"plan.key\", ...}}) }"
-      },
-      {
-        "name": "Helper methods for ID-or-key entity lookup",
-        "description": "getCustomerByIDOrKey and getPlanByIDOrKey are private handler methods. They accept namespace + optional ID + optional Key pointers and return the entity. TODO comments note these should eventually move to the service layer.",
-        "example": "customerEntity, err := h.getCustomerByIDOrKey(ctx, ns, body.Customer.Id, body.Customer.Key)"
-      },
-      {
-        "name": "Timing union type decoding: datetime before enum",
-        "description": "FromAPIBillingSubscriptionEditTiming tries AsDateTime() first (RFC3339) before AsBillingSubscriptionEditTimingEnum(). This order is critical \u2014 datetime strings also match as strings, so enum fallback must be second.",
-        "example": "if custom, err := t.AsDateTime(); err == nil { return subscription.Timing{Custom: &custom}, nil }"
-      },
-      {
-        "name": "PlanInput via FromRef",
-        "description": "Always construct plansubscription.PlanInput via planInput.FromRef(&PlanRefInput{Key: ..., Version: ...}) after resolving the concrete plan. Never set PlanInput fields directly.",
-        "example": "planInput.FromRef(&plansubscription.PlanRefInput{Key: planEntity.Key, Version: &planEntity.Version})"
+        "scenario": "Converting a domain Price to API response with optional pricing fields",
+        "code": "func domainPriceToAPI(p llmcost.Price) api.LLMCostPrice {\n  source := api.LLMCostPriceSourceSystem\n  if p.Source == llmcost.PriceSourceManual { source = api.LLMCostPriceSourceManual }\n  providerID := string(p.Provider)\n  out := api.LLMCostPrice{\n    Id: p.ID,\n    Provider: api.LLMCostProvider{Id: providerID, Name: formatProviderName(providerID)},\n    Model: api.LLMCostModel{Id: p.ModelID, Name: p.ModelName},\n    Currency: p.Currency,\n    Source: source,\n    Pricing: domainPricingToAPI(p.Pricing),\n  }\n  return out\n}\n\nfunc domainPricingToAPI(p llmcost.ModelPricing) api.LLMCostModelPricing {\n  out := api.LLMCostModelPricing{\n    InputPerToken:  p.InputPerToken.String(),\n    OutputPerToken: p.OutputPerToken.String(),\n  }\n  if p.CacheReadPerToken != nil { out.CacheReadPerToken = lo.ToPtr(p.CacheReadPerToken.String()) }\n  if p.CacheWritePerToken != nil { out.CacheWritePerToken = lo.ToPtr(p.CacheWritePerToken.String()) }\n  if p.ReasoningPerToken != nil { out.ReasoningPerToken = lo.ToPtr(p.ReasoningPerToken.String()) }\n  return out\n}"
       }
-    ],
-    "key_file_guides": [
-      {
-        "file": "handler.go",
-        "role": "Handler interface (6 methods) and handler struct: resolveNamespace, customerService, planService, planSubscriptionService, subscriptionService.",
-        "watch_for": "Two distinct subscription services: planSubscriptionService (create/change) vs subscriptionService (get/list/cancel/continue). Using the wrong one silently changes workflow semantics."
-      },
-      {
-        "file": "create.go",
-        "role": "Creates subscription from plan; validates customer and plan exist, builds PlanInput via FromRef, calls planSubscriptionService.Create.",
-        "watch_for": "getCustomerByIDOrKey and getPlanByIDOrKey are defined here as private handler methods."
-      },
-      {
-        "file": "change.go",
-        "role": "Changes running subscription to a new plan; fetches current subscription for name/desc/metadata defaults, builds ChangeSubscriptionWorkflowInput, calls planSubscriptionService.Change.",
-        "watch_for": "Response is BillingSubscriptionChangeResponse{Current, Next} \u2014 not a single subscription."
-      },
-      {
-        "file": "convert.go",
-        "role": "ToAPIBillingSubscription, FromAPIBillingSubscriptionEditTiming, FromAPIBillingSubscriptionCreate. Timing decode order (datetime before enum) is load-bearing.",
-        "watch_for": "clock.Now() is used for GetStatusAt \u2014 tests must mock clock if status assertions are needed."
-      }
-    ],
-    "anti_patterns": [
-      "Swapping planSubscriptionService and subscriptionService calls \u2014 Create/Change must go through plan service for billing sync hooks",
-      "Checking plan.Key/Version after planSubscriptionService.Create instead of before \u2014 plan must be validated and resolved pre-call",
-      "Reversing timing decode order (enum before datetime) \u2014 datetime strings will be misidentified as enum values"
-    ],
-    "decisions": [
-      {
-        "decision": "Two separate subscription services (plan-aware and base)",
-        "rationale": "plansubscription.PlanSubscriptionService orchestrates billing sync and plan versioning on top of the core subscription.Service; the split keeps billing-coupling out of the generic subscription lifecycle."
-      }
-    ],
-    "code_examples": []
+    ]
   },
   "api/v3/handlers/taxcodes": {
-    "purpose": "Full CRUD v3 HTTP handler package for billing tax codes (list, get, create, update/upsert, delete). Uses Goverter-generated conversions (convert.gen.go) driven by annotated convert.go; includes custom AppType mapping (external_invoicing \u2194 custom_invoicing) for backwards compatibility.",
+    "purpose": "Full CRUD v3 HTTP handler package for billing tax codes (list, get, create, update/upsert, delete) plus organization-default tax code management. Uses Goverter-generated conversions (convert.gen.go) driven by annotated convert.go; includes custom AppType mapping (external_invoicing <-> custom_invoicing) for backwards compatibility.",
     "patterns": [
       {
         "name": "Goverter variables pattern for conversions",
-        "description": "convert.go declares package-level var functions annotated with goverter directives. convert.gen.go is generated and must never be hand-edited. The //go:generate directive at the top of convert.go regenerates it.",
+        "description": "convert.go declares package-level var functions annotated with goverter directives. convert.gen.go is generated and must never be hand-edited. The //go:generate directive at the top of convert.go regenerates it via 'make generate'.",
         "example": "// goverter:variables\nvar FromAPICreateTaxCodeRequest func(namespace string, createTaxCodeRequest api.CreateTaxCodeRequest) (taxcode.CreateTaxCodeInput, error)"
       },
       {
@@ -280,36 +258,42 @@
       },
       {
         "name": "Goverter context for namespace injection",
-        "description": "Use goverter:context to pass namespace/namespacedID into generated converters. Implement NamespaceFromContext and ResolveNamespacedIDFromContext as context extractor functions.",
+        "description": "Use goverter:context to pass namespace/namespacedID into generated converters. Implement NamespaceFromContext and ResolveNamespacedIDFromContext as context extractor functions referenced by goverter:map directives.",
         "example": "// goverter:context namespace\n// goverter:map Namespace | NamespaceFromContext\nvar FromAPICreateTaxCodeRequest func(namespace string, ...) (...)"
+      },
+      {
+        "name": "Upsert semantics for update endpoint",
+        "description": "update.go uses UpsertTaxCodeRequest (not UpdateTaxCodeRequest) as the API body type \u2014 the endpoint is an upsert, not a partial update. Operation name is 'upsert-tax-code' not 'update-tax-code'.",
+        "example": "httptransport.WithOperationName(\"upsert-tax-code\")"
       }
     ],
     "key_file_guides": [
       {
         "file": "convert.go",
-        "role": "Source-of-truth for Goverter conversion declarations. Contains //go:generate directive, var declarations with goverter annotations, and hand-written helper functions (AppType mapping, nil-safe app mappings).",
+        "role": "Source-of-truth for Goverter conversion declarations. Contains //go:generate directive, var declarations with goverter annotations, and hand-written helper functions (AppType mapping, nil-safe app mappings, reference ID extraction).",
         "watch_for": "Editing annotations here requires running 'make generate' to regenerate convert.gen.go. Do NOT edit convert.gen.go directly."
       },
       {
         "file": "convert.gen.go",
-        "role": "Generated by Goverter from convert.go. DO NOT EDIT \u2014 has '// Code generated by github.com/jmattheis/goverter, DO NOT EDIT.' header.",
-        "watch_for": "If this file is out of sync with convert.go, builds will produce stale or incorrect conversions."
+        "role": "Generated by Goverter from convert.go. Has '// Code generated by github.com/jmattheis/goverter, DO NOT EDIT.' header.",
+        "watch_for": "If this file is out of sync with convert.go annotations, builds produce stale/incorrect conversions. Regenerate with 'make generate'."
       },
       {
         "file": "handler.go",
-        "role": "Handler interface (5 methods) and handler struct with resolveNamespace and taxcode.Service only \u2014 minimal dependencies.",
-        "watch_for": "No secondary service needed; taxcode.Service handles all CRUD."
+        "role": "Handler interface (7 methods including organization default tax code ops) and handler struct with resolveNamespace and taxcode.Service only.",
+        "watch_for": "No secondary service needed; taxcode.Service handles all CRUD including organization defaults."
       },
       {
         "file": "update.go",
-        "role": "Uses UpsertTaxCodeRequest (not UpdateTaxCodeRequest) as the API body type \u2014 the endpoint is an upsert, not a partial update.",
-        "watch_for": "Operation name is 'upsert-tax-code' not 'update-tax-code' \u2014 keep consistent with TypeSpec."
+        "role": "Uses UpsertTaxCodeRequest as the API body type \u2014 the endpoint is an upsert. Passes models.NamespacedID to FromAPIUpsertTaxCodeRequest.",
+        "watch_for": "Operation name must match TypeSpec: 'upsert-tax-code'. Using api.UpdateTaxCodeRequest instead of api.UpsertTaxCodeRequest will break JSON deserialization."
       }
     ],
     "anti_patterns": [
-      "Editing convert.gen.go directly \u2014 regenerate via 'make generate' instead",
-      "Forgetting the AppType backwards-compat mapping \u2014 'external_invoicing' must round-trip correctly",
-      "Returning nil for AppMappings instead of empty slice \u2014 causes JSON null which breaks API contract"
+      "Editing convert.gen.go directly \u2014 regenerate via 'make generate' after modifying goverter annotations in convert.go",
+      "Forgetting the AppType backwards-compat mapping \u2014 'external_invoicing' must round-trip correctly through both FromAPIBillingAppType and ToAPIBillingAppType",
+      "Returning nil for AppMappings instead of empty slice \u2014 causes JSON null which breaks API contract for clients expecting an array",
+      "Adding a new goverter:extend function in convert.go without also registering it in the global goverter:extend block at the top"
     ],
     "decisions": [
       {
@@ -317,10 +301,15 @@
         "rationale": "Tax code conversion is straightforward field mapping without discriminated unions; Goverter reduces boilerplate while the context mechanism cleanly injects namespace."
       },
       {
-        "decision": "'external_invoicing' \u2194 'custom_invoicing' mapping in both directions",
+        "decision": "'external_invoicing' <-> 'custom_invoicing' mapping in both directions",
         "rationale": "The domain type was renamed from external_invoicing to custom_invoicing; the API preserves the old name for backwards compatibility with existing clients."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Adding a new Goverter conversion for a new request type following existing pattern",
+        "code": "// In convert.go \u2014 add a new goverter:variables entry:\n// goverter:context namespace\n// goverter:map Namespace | NamespaceFromContext\n// goverter:map Labels Metadata\n// goverter:ignore Annotations\nvar FromAPINewTaxCodeRequest func(namespace string, req api.NewTaxCodeRequest) (taxcode.NewTaxCodeInput, error)\n\n// Then run: make generate\n// This regenerates convert.gen.go with the new converter function.\n// In the operation file:\nreq, err := FromAPINewTaxCodeRequest(ns, body)\nif err != nil { return Request{}, err }"
+      }
+    ]
   }
 }

@@ -2,7 +2,7 @@
 
 <!-- archie:ai-start -->
 
-> Computes feature cost by querying ClickHouse meter usage via streaming.Connector and resolving per-unit costs from feature configuration (manual or LLM-based). Thin two-layer domain: adapter owns ClickHouse queries and cost resolution; service owns input validation and delegation.
+> Computes feature cost by querying ClickHouse meter usage via streaming.Connector and resolving per-unit costs from feature configuration (manual or LLM-based). Two-layer domain: adapter/ owns ClickHouse queries and cost resolution; service/ owns input validation and delegation.
 
 ## Patterns
 

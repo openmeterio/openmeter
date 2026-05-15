@@ -1,20 +1,15 @@
 {
   "api/v3/apierrors": {
-    "purpose": "Provides the RFC 7807-style error type system for the v3 API: a single BaseAPIError struct, typed constructors for every HTTP status, and a GenericErrorEncoder that maps domain errors to HTTP responses. All v3 error responses must flow through this package.",
+    "purpose": "Provides the RFC 7807-style error type system for all v3 API responses: a single BaseAPIError struct, typed constructors for every HTTP status, and a GenericErrorEncoder that maps domain errors to HTTP responses. Every v3 error response must flow through this package.",
     "patterns": [
       {
-        "name": "BaseAPIError as the single error wire type",
-        "description": "All v3 HTTP error responses are produced by constructing a *BaseAPIError and calling HandleAPIError(w, r). Never write raw http.Error or json.Marshal in a handler \u2014 always go through this type.",
-        "example": "apierrors.NewNotFoundError(ctx, err, \"customer\").HandleAPIError(w, r)"
-      },
-      {
-        "name": "Named constructors for every status",
-        "description": "Each HTTP error status has a dedicated constructor in errors_ctors.go (NewInternalError, NewNotFoundError, NewBadRequestError, NewForbiddenError, etc.). Use the correct constructor \u2014 never set Status manually on a BaseAPIError you build by hand.",
+        "name": "BaseAPIError via named constructors only",
+        "description": "All v3 HTTP error responses are produced by a named constructor in errors_ctors.go (NewInternalError, NewNotFoundError, NewBadRequestError, NewForbiddenError, NewConflictError, etc.). Never set Status or Type manually on a hand-constructed BaseAPIError struct.",
         "example": "return apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{Field: \"name\", Rule: \"required\", Reason: \"is required\", Source: apierrors.InvalidParamSourceBody}})"
       },
       {
-        "name": "GenericErrorEncoder chain integration",
-        "description": "GenericErrorEncoder() checks for *BaseAPIError first (via lo.ErrorsAs), then falls through to commonhttp.HandleErrorIfTypeMatches for domain-specific errors, then commonhttp.HandleIssueIfHTTPStatusKnown. Register it as the first ErrorEncoder when building httptransport.Handler instances for v3.",
+        "name": "GenericErrorEncoder as first ErrorEncoder for all v3 handlers",
+        "description": "Register apierrors.GenericErrorEncoder() as the ErrorEncoder when building httptransport.Handler instances. It checks *BaseAPIError first via lo.ErrorsAs, then falls through to commonhttp handlers for feature/meter not-found errors and ValidationIssues with HTTP status attributes.",
         "example": "httptransport.NewHandler(op, dec, enc, httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))"
       },
       {
@@ -23,44 +18,44 @@
         "example": "api.HandlerWithOptions(srv, api.ChiServerOptions{ErrorHandlerFunc: apierrors.NewV3ErrorHandlerFunc(logger)})"
       },
       {
-        "name": "InvalidParameters for field-level validation errors",
-        "description": "When input fields fail validation, populate InvalidParameters ([]InvalidParameter) with Field, Rule, Reason, and Source fields before passing to NewBadRequestError. The Source must be one of the four InvalidParameterSource constants.",
-        "example": "apierrors.InvalidParameters{{Field: \"page.size\", Rule: \"max_value\", Reason: \"must be <= 1000\", Source: apierrors.InvalidParamSourceQuery}}"
+        "name": "Always pass request context to constructors",
+        "description": "The instance() helper extracts chi middleware.GetReqID(ctx) to populate the Instance field as 'urn:request:<id>'. Passing context.Background() silently omits the correlation ID.",
+        "example": "return apierrors.NewInternalError(r.Context(), err)"
       },
       {
-        "name": "instance() sets the urn:request: correlation field",
-        "description": "The Instance field is populated from chi middleware.GetReqID(ctx) via the package-private instance() helper. Always pass the request context (not context.Background()) to constructors so the correlation ID is present.",
-        "example": "apierrors.NewInternalError(r.Context(), err)"
+        "name": "InvalidParameters for field-level validation errors",
+        "description": "When input fields fail validation, populate InvalidParameters ([]InvalidParameter) with Field, Rule, Reason, and Source before passing to NewBadRequestError. Source must be one of the four InvalidParameterSource constants (InvalidParamSourcePath, InvalidParamSourceQuery, InvalidParamSourceBody, InvalidParamSourceHeader).",
+        "example": "apierrors.InvalidParameters{{Field: \"page.size\", Rule: \"max_value\", Reason: \"must be <= 1000\", Source: apierrors.InvalidParamSourceQuery}}"
       }
     ],
     "key_file_guides": [
       {
         "file": "errors.go",
-        "role": "Defines BaseAPIError struct, InvalidParameter/InvalidParameters types, and the HandleAPIError write method. The source of the wire type.",
-        "watch_for": "UnderlyingError is excluded from JSON (json:\"-\") \u2014 it is for logging only, never returned to clients."
+        "role": "Defines BaseAPIError struct, InvalidParameter/InvalidParameters types, and HandleAPIError write method. UnderlyingError is the underlying error stack for logging \u2014 it is excluded from JSON (json:\"-\") and must never appear in Detail.",
+        "watch_for": "UnderlyingError is json:\"-\" \u2014 never copy it into Detail or any response field visible to callers."
       },
       {
         "file": "errors_ctors.go",
-        "role": "All public constructors plus URL constants for error types. Add new constructors here when new HTTP status codes are needed.",
-        "watch_for": "NewEmptySetResponse uses Status 200 with a synthetic Type \u2014 it is not an error but is modeled as BaseAPIError for uniform rendering."
+        "role": "All public constructors plus Type URL constants (InternalType, NotFoundType, BadRequestType, etc.). Add new constructors here when new HTTP status codes are needed.",
+        "watch_for": "NewEmptySetResponse uses Status 200 with a synthetic Type \u2014 it is not an error but modeled as BaseAPIError for uniform rendering."
       },
       {
         "file": "encoder.go",
-        "role": "GenericErrorEncoder: the httptransport ErrorEncoder that bridges domain errors to HTTP responses. Must remain the chain entry point for all v3 handlers.",
-        "watch_for": "Order matters: *BaseAPIError checked first; then feature/meter not-found; then ValidationIssue with HTTP status attribute."
+        "role": "GenericErrorEncoder: the httptransport ErrorEncoder bridging domain errors to HTTP responses. *BaseAPIError checked first; then feature/meter not-found; then ValidationIssue with HTTP status attribute.",
+        "watch_for": "Order of checks in the encoder matters \u2014 *BaseAPIError must be first so custom v3 errors short-circuit before domain error matching."
       },
       {
         "file": "handler.go",
-        "role": "NewV3ErrorHandlerFunc: the oapi-codegen ChiServerOptions.ErrorHandlerFunc implementation. Translates generated router binding errors to InvalidParameters.",
-        "watch_for": "enrichFieldFromBindError extracts sub-field paths from deepObject bind errors \u2014 preserve this behavior when updating parameter parsing."
+        "role": "NewV3ErrorHandlerFunc: translates oapi-codegen generated router binding errors (InvalidParamFormatError, RequiredParamError, TooManyValuesForParamError, etc.) to InvalidParameters with correct Source fields.",
+        "watch_for": "enrichFieldFromBindError extracts sub-field paths from deepObject bind errors (e.g. 'page.sizee' from 'page') \u2014 preserve this behavior when updating parameter parsing."
       }
     ],
     "anti_patterns": [
       "Writing http.Error or calling w.WriteHeader directly in a v3 handler instead of BaseAPIError.HandleAPIError",
-      "Constructing BaseAPIError literals with Status set by hand instead of using a named constructor",
-      "Passing context.Background() to constructors \u2014 the instance (correlation ID) will be missing",
+      "Constructing BaseAPIError struct literals with Status set by hand instead of using a named constructor",
+      "Passing context.Background() to constructors \u2014 the instance correlation ID will be missing",
       "Adding new error types outside this package and bypassing GenericErrorEncoder",
-      "Returning UnderlyingError content in the Detail field \u2014 it is for logs only"
+      "Returning UnderlyingError content in the Detail field \u2014 it is for logs only, never clients"
     ],
     "decisions": [
       {
@@ -80,56 +75,57 @@
     ]
   },
   "api/v3/filters": {
-    "purpose": "Provides AIP-style filter[field][op]=value query-parameter parsing and conversion to the pkg/filter domain filter types used by service List methods. Two concerns: filter.go defines the API-layer filter structs; parse.go parses url.Values into them; convert.go converts them to pkg/filter types.",
+    "purpose": "Provides AIP-style filter[field][op]=value query-parameter parsing and conversion to the pkg/filter domain filter types used by service List methods. Three concerns: filter.go defines the API-layer filter structs; parse.go parses url.Values into them via reflection; convert.go converts them to pkg/filter types.",
     "patterns": [
       {
         "name": "filters.Parse for URL \u2192 API filter struct",
-        "description": "Call filters.Parse(r.URL.Query(), &myFilter) in the request decoder to populate a typed filter struct. The target must be a pointer to a struct whose fields are *FilterString, *FilterStringExact, *FilterULID, *FilterNumeric, *FilterDateTime, *FilterBoolean, FilterLabels, or *string \u2014 field names come from json struct tags.",
+        "description": "Call filters.Parse(r.URL.Query(), &myFilter) in the request decoder to populate a typed filter struct. The target must be a pointer to a struct (or *struct for lazy allocation) whose fields are *FilterString, *FilterStringExact, *FilterULID, *FilterNumeric, *FilterDateTime, *FilterBoolean, FilterLabels, or *string \u2014 field names come from json struct tags.",
         "example": "var f MyFilters\nif err := filters.Parse(r.URL.Query(), &f); err != nil { return err }"
       },
       {
         "name": "FromAPI* converters for API filter \u2192 pkg/filter",
-        "description": "After parsing, convert each API filter field to the pkg/filter equivalent using the FromAPI* functions (FromAPIFilterString, FromAPIFilterULID, FromAPIFilterNumeric, FromAPIFilterDateTime, FromAPIFilterBoolean, FromAPIFilterLabels). These normalize multi-operator combinations into And nodes automatically.",
+        "description": "After parsing, convert each filter field to pkg/filter equivalents using FromAPIFilterString, FromAPIFilterULID, FromAPIFilterNumeric, FromAPIFilterDateTime, FromAPIFilterBoolean, FromAPIFilterLabels. Multi-operator combinations (e.g. Gt+Lte) are normalized into And-of-single-op leaf nodes. Each returns (nil, nil) when input is nil \u2014 callers must treat nil as 'no filter applied'.",
         "example": "pf, err := filters.FromAPIFilterString(f.Name)\nif err != nil { return err }\ninput.NameFilter = pf"
       },
       {
         "name": "filter[field][op]=value URL parameter convention",
-        "description": "All filter params use the bracket syntax: filter[name][eq]=foo, filter[created_at][gte]=2024-01-01T00:00:00Z. Label fields use dot-notation: filter[labels.env][eq]=prod. A bare filter[field]=value is equivalent to filter[field][eq]=value.",
+        "description": "All filter params use bracket syntax: filter[name][eq]=foo, filter[created_at][gte]=2024-01-01T00:00:00Z. Label fields use dot-notation: filter[labels.env][eq]=prod. A bare filter[field]=value is equivalent to filter[field][eq]=value.",
         "example": "filter[status][oeq]=active,pending&filter[labels.region][contains]=us"
       },
       {
-        "name": "Pointer-to-pointer target allocates lazily",
-        "description": "If the target is **MyFilters, Parse allocates the inner struct only when at least one filter key is present in the query string. Use this pattern in handlers where filters are optional.",
-        "example": "var f *MyFilters\nif err := filters.Parse(r.URL.Query(), &f); err != nil { return err }\n// f is nil if no filter keys were provided"
+        "name": "Unknown filter fields are rejected by Parse",
+        "description": "Parse validates that every filter[x] key matches a json-tagged field in the target struct. Unrecognised field names return an error. This enforces strict API contracts.",
+        "example": "// filter[typo][eq]=x \u2192 error: unknown filter field(s): typo"
       },
       {
-        "name": "Unknown filter fields are rejected",
-        "description": "Parse validates that every filter[x] key matches a json-tagged field in the target struct. Unrecognised field names return an error. This enforces strict API contracts and prevents silent misuse.",
-        "example": "// filter[typo][eq]=x \u2192 error: unknown filter field(s): typo"
+        "name": "Pointer-to-pointer target allocates the inner struct lazily",
+        "description": "If the target is **MyFilters, Parse allocates the inner struct only when at least one filter key is present in the query string. Use for optional filter parameters.",
+        "example": "var f *MyFilters\nif err := filters.Parse(r.URL.Query(), &f); err != nil { return err }\n// f is nil if no filter keys were provided"
       }
     ],
     "key_file_guides": [
       {
         "file": "filter.go",
-        "role": "API-layer filter struct definitions. Add new filter types here if pkg/filter gains new base types.",
+        "role": "API-layer filter struct definitions (FilterString, FilterStringExact, FilterULID, FilterNumeric, FilterDateTime, FilterBoolean, FilterLabel, FilterLabels). Add new filter types here if pkg/filter gains new base types.",
         "watch_for": "FilterLabels is defined as a type alias (map[string]FilterLabel), not a pointer-to-struct \u2014 it is handled separately in parseFiltersValue via filterLabelsType reflection check."
       },
       {
         "file": "parse.go",
-        "role": "Reflection-driven URL query parser. Dispatches on field types via reflect.TypeFor constants. maxCommaSeparatedItems=50 and maxFilterValueLength=1024 are the hard limits.",
+        "role": "Reflection-driven URL query parser. Dispatches on field types via reflect.TypeFor constants. maxCommaSeparatedItems=50 and maxFilterValueLength=1024 are hard limits.",
         "watch_for": "FilterULIDType is exported (capital F) while other type vars are unexported \u2014 required for external callers using the reflection type in switch statements."
       },
       {
         "file": "convert.go",
-        "role": "Converts API filter structs to pkg/filter equivalents. Multi-operator combinations (e.g. Gt+Lte) are normalized into And-of-single-op leaf nodes.",
-        "watch_for": "Each FromAPI* function returns (nil, nil) when the input pointer is nil \u2014 callers must handle nil output as 'no filter applied'."
+        "role": "Converts API filter structs to pkg/filter equivalents. Multi-operator combinations are normalized into And-of-single-op leaf nodes.",
+        "watch_for": "Each FromAPI* function returns (nil, nil) when the input pointer is nil \u2014 callers must handle nil output as 'no filter applied'. FromAPIStatusFilter is a generic helper for enum-typed status fields that validates each status value via Validate()."
       }
     ],
     "anti_patterns": [
       "Parsing filter query params manually with r.URL.Query().Get() instead of filters.Parse",
-      "Passing the pkg/filter types directly as API response fields \u2014 they are internal types, not wire types",
+      "Passing pkg/filter types directly as API response fields \u2014 they are internal types, not wire types",
       "Adding new operator strings to parse.go without corresponding handling in convert.go",
-      "Using filterLabelsType for anything other than the FilterLabels field \u2014 dot-notation parsing is special-cased"
+      "Using filterLabelsType for anything other than the FilterLabels field \u2014 dot-notation parsing is special-cased",
+      "Skipping FromAPI* conversion and passing FilterString structs directly to domain service inputs"
     ],
     "decisions": [
       {
@@ -144,12 +140,12 @@
     "code_examples": [
       {
         "scenario": "Parsing and converting filters in a v3 list handler decoder",
-        "code": "import (\n    \"github.com/openmeterio/openmeter/api/v3/filters\"\n    \"github.com/openmeterio/openmeter/pkg/filter\"\n)\n\ntype MyListFilters struct {\n    Name   *filters.FilterString `json:\"name,omitempty\"`\n    Status *filters.FilterStringExact `json:\"status,omitempty\"`\n}\n\nfunc decodeRequest(r *http.Request) (MyListInput, error) {\n    var f MyListFilters\n    if err := filters.Parse(r.URL.Query(), &f); err != nil {\n        return MyListInput{}, err\n    }\n    nameFilter, err := filters.FromAPIFilterString(f.Name)\n    if err != nil { return MyListInput{}, err }\n    return MyListInput{NameFilter: nameFilter}, nil\n}"
+        "code": "import (\n    \"github.com/openmeterio/openmeter/api/v3/filters\"\n)\n\ntype MyListFilters struct {\n    Name   *filters.FilterString      `json:\"name,omitempty\"`\n    Status *filters.FilterStringExact `json:\"status,omitempty\"`\n}\n\nfunc decodeRequest(r *http.Request) (MyListInput, error) {\n    var f MyListFilters\n    if err := filters.Parse(r.URL.Query(), &f); err != nil {\n        return MyListInput{}, err\n    }\n    name, err := filters.FromAPIFilterString(f.Name)\n    if err != nil { return MyListInput{}, err }\n    return MyListInput{NameFilter: name}, nil\n}"
       }
     ]
   },
   "api/v3/labels": {
-    "purpose": "Bridges the api.Labels wire type (map[string]string) to the domain models.Metadata and models.Annotations types, enforcing key/value format rules and the 'openmeter_' annotation prefix convention. All v3 endpoints that accept or return labels must route through this package.",
+    "purpose": "Bridges the api.Labels wire type (map[string]string) to domain models.Metadata and models.Annotations, enforcing key/value format rules and the 'openmeter_' annotation prefix convention. All v3 endpoints that accept or return labels must route through this package.",
     "patterns": [
       {
         "name": "ToMetadataAnnotations for inbound label conversion",
@@ -158,12 +154,12 @@
       },
       {
         "name": "FromMetadataAnnotations for outbound label conversion",
-        "description": "When building a v3 response from a domain entity, call labels.FromMetadataAnnotations(entity.Metadata, entity.Annotations) to produce *api.Labels. Annotation keys are re-prefixed with 'openmeter_'; invalid keys are silently skipped.",
+        "description": "When building a v3 response from a domain entity, call labels.FromMetadataAnnotations(entity.Metadata, entity.Annotations) to produce *api.Labels. Annotation keys are re-prefixed with 'openmeter_'; annotation values that are not string/Stringer/TextMarshaler are silently skipped.",
         "example": "resp.Labels = labels.FromMetadataAnnotations(entity.Metadata, entity.Annotations)"
       },
       {
         "name": "ValidateLabel / ValidateLabels for pre-write validation",
-        "description": "Call ValidateLabel(k, v) or ValidateLabels(labels) to check format (^[a-zA-Z0-9][...]{1,63}$) and reserved prefixes (_,kong,konnect,insomnia,mesh,kic,kuma,openmeter). Returns models.ValidationIssue errors with http.StatusBadRequest attribute so they propagate through the error encoder.",
+        "description": "Call ValidateLabel(k, v) or ValidateLabels(labels) to check format (^[a-zA-Z0-9][...]{1,63}$) and reserved prefixes. Returns models.ValidationIssue errors with http.StatusBadRequest attribute so they propagate through the error encoder.",
         "example": "if err := labels.ValidateLabels(*req.Labels); err != nil { return err }"
       },
       {
@@ -176,7 +172,7 @@
       {
         "file": "convert.go",
         "role": "ToMetadataAnnotations (inbound) and FromMetadataAnnotations (outbound) converters plus simpler FromMetadata and ToMetadata helpers for entities that only use Metadata.",
-        "watch_for": "FromMetadataAnnotations handles Stringer, encoding.TextMarshaler, and string annotation values; types that don't implement any of these are silently skipped."
+        "watch_for": "FromMetadataAnnotations handles Stringer, encoding.TextMarshaler, and string annotation values; types that don't implement any of these are silently skipped \u2014 no error is returned."
       },
       {
         "file": "validate.go",
@@ -199,7 +195,7 @@
     "code_examples": [
       {
         "scenario": "Converting inbound labels in a create handler and outbound in a response mapper",
-        "code": "import (\n    apiLabels \"github.com/openmeterio/openmeter/api/v3/labels\"\n)\n\n// Decode\nma, err := apiLabels.ToMetadataAnnotations(req.Body.Labels)\nif err != nil { return err }\ninput := CreateInput{Metadata: ma.Metadata, Annotations: ma.Annotations}\n\n// Encode\nresp.Labels = apiLabels.FromMetadataAnnotations(entity.Metadata, entity.Annotations)"
+        "code": "import apiLabels \"github.com/openmeterio/openmeter/api/v3/labels\"\n\n// Decode\nma, err := apiLabels.ToMetadataAnnotations(req.Body.Labels)\nif err != nil { return err }\ninput := CreateInput{Metadata: ma.Metadata, Annotations: ma.Annotations}\n\n// Encode\nresp.Labels = apiLabels.FromMetadataAnnotations(entity.Metadata, entity.Annotations)"
       }
     ]
   },
@@ -208,40 +204,35 @@
     "patterns": [
       {
         "name": "ValidateRequest middleware with hook functions",
-        "description": "Instantiate ValidateRequest(router, ValidateRequestOption{RouteNotFoundHook: OasRouteNotFoundErrorHook, RouteValidationErrorHook: adapted hook}) and mount it in the Chi middleware stack before the generated server handler. OasValidationErrorHook converts OAS errors to AIP 400/404 responses.",
+        "description": "Instantiate ValidateRequest(router, ValidateRequestOption{RouteNotFoundHook, RouteValidationErrorHook}) and mount it before the generated server handler. OasRouteNotFoundErrorHook returns 404; OasValidationErrorHook converts OAS errors to AIP 400/404 responses and returns true to stop the request.",
         "example": "r.Use(oasmiddleware.ValidateRequest(validationRouter, oasmiddleware.ValidateRequestOption{\n    RouteNotFoundHook: oasmiddleware.OasRouteNotFoundErrorHook,\n    RouteValidationErrorHook: func(err error, w http.ResponseWriter, r *http.Request) bool {\n        return oasmiddleware.OasValidationErrorHook(r.Context(), err, w, r)\n    },\n}))"
       },
       {
         "name": "NewValidationRouter for spec-backed route matching",
-        "description": "Call NewValidationRouter(ctx, doc, &ValidationRouterOpts{DeleteServers: true}) to build the kin-openapi gorillamux router from the parsed openapi3.T. DeleteServers=true removes server entries so the router matches paths regardless of host prefix.",
+        "description": "Call NewValidationRouter(ctx, doc, &ValidationRouterOpts{DeleteServers: true}) once at startup to build the kin-openapi gorillamux router from the parsed openapi3.T. DeleteServers=true removes server entries so the router matches paths regardless of host prefix.",
         "example": "router, err := oasmiddleware.NewValidationRouter(ctx, doc, nil)"
       },
       {
         "name": "ToAipError for OAS \u2192 InvalidParameter conversion",
-        "description": "Convert openapi3.MultiError to []apierrors.InvalidParameter using ToAipError. OAS schema fields are mapped to AIP rule names via oasRuleToAip (e.g. 'minLength' \u2192 'min_length'). Path parameter errors map to 404, body/query errors map to 400.",
+        "description": "Convert openapi3.MultiError to []apierrors.InvalidParameter using ToAipError. OAS schema fields are mapped to AIP rule names via oasRuleToAip (e.g. 'minLength' \u2192 'min_length'). Path parameter errors map to 404; body/query errors map to 400.",
         "example": "params := oasmiddleware.ToAipError(multiErr)\napierrors.NewBadRequestError(ctx, err, params).HandleAPIError(w, r)"
       },
       {
         "name": "SanitizeSensitiveFieldValues scrubs x-sensitive fields",
         "description": "Before passing an OAS validation error to the client, wrap it with SanitizeSensitiveFieldValues to replace the .Value of any schema field marked 'x-sensitive: true' with '********'.",
         "example": "apierrors.NewBadRequestError(ctx, oasmiddleware.SanitizeSensitiveFieldValues(err), params).HandleAPIError(w, r)"
-      },
-      {
-        "name": "ResponseWriterWrapper for response body capture",
-        "description": "Use NewResponseWriterWrapper(w) in ValidateResponse to buffer the written body for post-handler OAS response validation without breaking the normal write path.",
-        "example": "rww := oasmiddleware.NewResponseWriterWrapper(w)\nh.ServeHTTP(rww, r)\n// rww.Body() contains the full response body"
       }
     ],
     "key_file_guides": [
       {
         "file": "validator.go",
-        "role": "ValidateRequest and ValidateResponse Chi middleware factories. The hook functions receive errors and decide whether to short-circuit the handler.",
+        "role": "ValidateRequest and ValidateResponse Chi middleware factories. Hook functions receive errors and decide whether to short-circuit the handler \u2014 returning true stops request processing.",
         "watch_for": "If RouteNotFoundHook returns false, the request continues to the handler \u2014 ensure 404 hooks always return true."
       },
       {
         "file": "hook.go",
-        "role": "OasRouteNotFoundErrorHook and OasValidationErrorHook: the two standard hooks for path-not-found (404) and validation failure (400/404 depending on parameter source).",
-        "watch_for": "OasValidationErrorHook maps path-parameter validation errors to 404 (not 400) \u2014 this matches AIP semantics where a bad path ID means resource not found."
+        "role": "OasRouteNotFoundErrorHook (404 on missing route) and OasValidationErrorHook (400/404 on parameter/body violations). Path-parameter validation errors map to 404 \u2014 AIP semantics for bad path IDs.",
+        "watch_for": "OasValidationErrorHook checks Source==InvalidParamSourcePath to return 404 instead of 400 \u2014 critical for correct REST semantics."
       },
       {
         "file": "error.go",
@@ -250,13 +241,13 @@
       },
       {
         "file": "router.go",
-        "role": "NewValidationRouter: wraps openapi3.T doc validation and gorillamux router construction. Must be called once at startup.",
-        "watch_for": "DeleteServers mutates doc.Servers in place; if the doc is shared across multiple router instantiations, strip servers before the first call."
+        "role": "NewValidationRouter wraps openapi3.T doc validation and gorillamux router construction. Must be called once at startup and reused across requests.",
+        "watch_for": "DeleteServers mutates doc.Servers in place; if the doc is shared, strip servers before the first call."
       },
       {
         "file": "decoder.go",
-        "role": "JsonBodyDecoder: registers json.NewDecoder with UseNumber() for custom vendor content types so numeric fields are not silently truncated to float64.",
-        "watch_for": "Must be registered via openapi3filter.RegisterBodyDecoder for each custom content-type at startup."
+        "role": "JsonBodyDecoder registers json.NewDecoder with UseNumber() for custom vendor content types so numeric fields are not silently truncated to float64.",
+        "watch_for": "Must be registered via openapi3filter.RegisterBodyDecoder for each custom content-type at startup \u2014 missing registration causes numeric precision loss."
       }
     ],
     "anti_patterns": [
@@ -274,7 +265,7 @@
     "code_examples": [
       {
         "scenario": "Wiring OAS request validation middleware in the v3 Chi router",
-        "code": "import (\n    \"github.com/openmeterio/openmeter/api/v3/oasmiddleware\"\n)\n\nvalidationRouter, err := oasmiddleware.NewValidationRouter(ctx, doc, nil)\nif err != nil { return err }\n\nr.Use(oasmiddleware.ValidateRequest(validationRouter, oasmiddleware.ValidateRequestOption{\n    RouteNotFoundHook: oasmiddleware.OasRouteNotFoundErrorHook,\n    RouteValidationErrorHook: func(err error, w http.ResponseWriter, r *http.Request) bool {\n        return oasmiddleware.OasValidationErrorHook(r.Context(), err, w, r)\n    },\n    FilterOptions: &openapi3filter.Options{AuthenticationFunc: openapi3filter.NoopAuthenticationFunc},\n}))"
+        "code": "import \"github.com/openmeterio/openmeter/api/v3/oasmiddleware\"\n\nvalidationRouter, err := oasmiddleware.NewValidationRouter(ctx, doc, nil)\nif err != nil { return err }\n\nr.Use(oasmiddleware.ValidateRequest(validationRouter, oasmiddleware.ValidateRequestOption{\n    RouteNotFoundHook: oasmiddleware.OasRouteNotFoundErrorHook,\n    RouteValidationErrorHook: func(err error, w http.ResponseWriter, r *http.Request) bool {\n        return oasmiddleware.OasValidationErrorHook(r.Context(), err, w, r)\n    },\n    FilterOptions: &openapi3filter.Options{AuthenticationFunc: openapi3filter.NoopAuthenticationFunc},\n}))"
       }
     ]
   },
@@ -283,7 +274,7 @@
     "patterns": [
       {
         "name": "RenderJSON for all v3 JSON responses",
-        "description": "Call render.RenderJSON(w, payload, opts...) to write a JSON response. The helper sets Content-Type to application/json if not already set, calls WriteHeader with the configured status, then writes json.Marshal output.",
+        "description": "Call render.RenderJSON(w, payload, opts...) to write a JSON response. The helper sets Content-Type to application/json if not already set, then calls WriteHeader with the configured status, then writes json.Marshal output.",
         "example": "return render.RenderJSON(w, resp, render.WithStatus(http.StatusCreated))"
       },
       {

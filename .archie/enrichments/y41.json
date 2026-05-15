@@ -1,0 +1,81 @@
+{
+  "pkg/kafka/metrics": {
+    "purpose": "Public facade for librdkafka OTel metrics: wraps internal domain-specific Int64Gauge structs (broker, topic, consumer group) behind a single Metrics type whose Add method fans out stats to all enabled sub-metric registries. Primary constraint: all metrics are point-in-time gauges derived from librdkafka's rolling-window JSON stats snapshot \u2014 never counters or histograms.",
+    "patterns": [
+      {
+        "name": "Functional options for sub-metric gating",
+        "description": "Sub-metric categories are toggled via Option funcs (WithBrokerMetricsDisabled, WithTopicMetricsDisabled, WithConsumerGroupMetricsDisabled, WithExtendedMetrics) applied to an Options struct in New. Nil pointer guards in Add skip disabled categories.",
+        "example": "m, err := metrics.New(meter, metrics.WithExtendedMetrics(), metrics.WithBrokerMetricsDisabled())"
+      },
+      {
+        "name": "Sequential fail-fast error returns in New",
+        "description": "New allocates each Int64Gauge sequentially with an immediate err != nil check and wraps with fmt.Errorf. Sub-metric structs (internal.NewBrokerMetrics etc.) are constructed before top-level gauges.",
+        "example": "m.Age, err = meter.Int64Gauge(\"kafka.age_microseconds\", ...); if err != nil { return nil, fmt.Errorf(\"failed to create metric: kafka.age: %w\", err) }"
+      },
+      {
+        "name": "Nil guard at top of Add",
+        "description": "Add returns immediately if stats == nil before touching any field, matching the internal sub-metric pattern where a nil pointer check precedes all field reads.",
+        "example": "func (m *Metrics) Add(ctx context.Context, stats *stats.Stats, attrs ...attribute.KeyValue) { if stats == nil { return } }"
+      },
+      {
+        "name": "Attribute append before delegation",
+        "description": "Top-level client attributes (name, client_id, type) are appended to attrs before calling sub-metric Add methods. Sub-metrics append their own domain attributes inside their own Add. The attrs slice is mutated \u2014 callers must not reuse the slice after passing it.",
+        "example": "attrs = append(attrs, attribute.String(\"name\", stats.Name), attribute.String(\"client_id\", stats.ClientID), attribute.String(\"type\", stats.Type))"
+      },
+      {
+        "name": "Skip negative-ID nodes in loops",
+        "description": "The broker loop in Add skips brokers with NodeID < 0 (bootstrap/internal nodes). The internal partition layer similarly skips negative partition IDs.",
+        "example": "for _, broker := range stats.Brokers { if broker.NodeID < 0 { continue } }"
+      },
+      {
+        "name": "All metrics are Int64Gauge",
+        "description": "Every metric in this package uses metric.Int64Gauge. librdkafka stats are point-in-time rolling-window snapshots, not cumulative increments \u2014 Int64Counter or Histogram would double-count across poll intervals.",
+        "example": "m.Age, err = meter.Int64Gauge(\"kafka.age_microseconds\", metric.WithDescription(...), metric.WithUnit(...))"
+      },
+      {
+        "name": "Test via embedded stats.json with noop meter",
+        "description": "Tests unmarshal the canonical stats/testdata/stats.json fixture and call Add against noop.NewMeterProvider().Meter to verify no panic/error for all option combinations. Uses t.Context() not context.Background().",
+        "example": "//go:embed stats/testdata/stats.json; testMeter := noop.NewMeterProvider().Meter(\"test\"); kafkaMetrics.Add(t.Context(), testStats)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "metrics.go",
+        "role": "Public API: Metrics struct, New factory with functional options, Add fan-out to sub-metrics. Entry point for all callers.",
+        "watch_for": "Do not change metric types from Int64Gauge; do not add aggregation logic in Add; attrs slice is appended in-place \u2014 sub-metric Add calls must not retain or mutate the slice after returning."
+      },
+      {
+        "file": "metrics_test.go",
+        "role": "Smoke tests for all option combos using noop meter and embedded stats fixture. Catches nil-deref regressions across Add paths.",
+        "watch_for": "Uses t.Context() not context.Background(); embeds stats/testdata/stats.json directly \u2014 keep the embed path in sync if testdata moves."
+      }
+    ],
+    "anti_patterns": [
+      "Using Int64Counter or Float64Histogram for any metric \u2014 librdkafka stats are point-in-time snapshots, not cumulative deltas",
+      "Accessing stats fields in Add without the nil guard at the top \u2014 librdkafka JSON can omit entire sections",
+      "Adding business logic or aggregation inside Add \u2014 it must only translate stats fields to OTel Record calls",
+      "Constructing internal sub-metric structs outside the disabled-flag guard in New \u2014 optional sub-metrics must stay behind their disable option",
+      "Retaining or mutating the attrs variadic slice after passing it to a sub-metric Add \u2014 the method appends to it, corrupting the caller's slice in a loop"
+    ],
+    "decisions": [
+      {
+        "decision": "Int64Gauge for all metrics rather than counters or histograms",
+        "rationale": "librdkafka emits rolling-window JSON snapshots, not incrementing counters; Gauge semantics correctly represent the current point-in-time value without double-counting across poll intervals."
+      },
+      {
+        "decision": "Separate internal/ and stats/ sub-packages with a thin public facade",
+        "rationale": "stats/ owns JSON unmarshalling and enum semantics; internal/ owns OTel instrument construction per domain; the public package composes them, keeping each layer independently testable without exposing instrument construction to callers."
+      },
+      {
+        "decision": "Functional options pattern for sub-metric categories",
+        "rationale": "Different Kafka client roles (producer vs consumer) expose different stat sections; disabling irrelevant categories avoids registering metrics that will never be recorded, reducing OTel cardinality overhead."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Construct Metrics with extended broker data disabled and record a stats snapshot",
+        "code": "import (\n\t\"context\"\n\t\"encoding/json\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/pkg/kafka/metrics\"\n\t\"github.com/openmeterio/openmeter/pkg/kafka/metrics/stats\"\n\t\"go.opentelemetry.io/otel/attribute\"\n)\n\nm, err := metrics.New(meter, metrics.WithExtendedMetrics(), metrics.WithBrokerMetricsDisabled())\nif err != nil {\n\treturn fmt.Errorf(\"kafka metrics: %w\", err)\n}\n// On each librdkafka stats callback:\nvar s stats.Stats\nif err := json.Unmarshal(statsJSON, &s); err == nil {\n\tm.Add(ctx, &s, attribute.String(\"environment\", \"production\"))\n}"
+      }
+    ]
+  }
+}

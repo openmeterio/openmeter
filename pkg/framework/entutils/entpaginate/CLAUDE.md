@@ -2,7 +2,7 @@
 
 <!-- archie:ai-start -->
 
-> Ent code-generation extension that attaches a `Paginate(ctx, pagination.Page)` method to every Ent query type, providing offset-based pagination with an automatic COUNT(*) and guaranteed non-nil Items slice.
+> Ent code-generation extension that attaches a `Paginate(ctx, pagination.Page)` method to every Ent query type, providing offset-based pagination with an automatic COUNT(*) and guaranteed non-nil Items slice. Generated for ALL entity types unconditionally (unlike entcursor which gates on `created_at`).
 
 ## Patterns
 
@@ -17,7 +17,7 @@
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `paginate.tpl` | Generates `Paginate(ctx, pagination.Page)` on every Ent query type. The two-query pattern (COUNT + data) means N+1 DB round trips per paginated call — acceptable for OLTP page sizes. | Ordering applied before `.Paginate()` is preserved for data query but stripped for COUNT. Callers must apply ordering before calling Paginate, not after. |
+| `paginate.tpl` | Generates `Paginate(ctx, pagination.Page)` on every Ent query type. The two-query pattern (COUNT + data) means 2 DB round trips per paginated call. | Ordering applied before `.Paginate()` is preserved for data query but stripped for COUNT. Callers must apply ordering before calling Paginate, not after. |
 | `paginate.go` | Extension registration only. | Must be registered in `openmeter/ent/entc.go` alongside the other entutils extensions. |
 | `paginate_test.go` | Integration tests covering first page, ordering, filtering, multi-page, empty page, and zero-page (return all) scenarios against real Postgres. | Uses `testutils.InitPostgresDB` — requires `POSTGRES_HOST=127.0.0.1` and `-tags=dynamic`. |
 

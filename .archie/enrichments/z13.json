@@ -1,0 +1,106 @@
+{
+  "openmeter/billing/charges/usagebased/service": {
+    "purpose": "Implements the usagebased.Service interface \u2014 charge creation, state-machine-driven advancement, patch triggering, real-time usage queries, and billing.LineEngine integration. It composes two sub-packages (rating for ClickHouse queries, run for realization mechanics) and dispatches each charge to the correct settlement-mode state machine (CreditsOnly or CreditThenInvoice).",
+    "patterns": [
+      {
+        "name": "Config-struct constructor with Validate()",
+        "description": "Every exported constructor (New, newStateMachineBase, NewCreditsOnlyStateMachine, NewCreditThenInvoiceStateMachine) accepts a typed Config/StateMachineConfig and calls config.Validate() via errors.Join before allocating. Missing deps produce a joined error list.",
+        "example": "func New(config Config) (usagebased.Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "withLockedCharge wraps every mutating operation",
+        "description": "AdvanceCharge and TriggerPatch always call withLockedCharge which opens a transaction via transaction.Run, acquires a pg advisory lock via s.locker.LockForTX using charges.NewLockKeyForCharge, then fetches the charge with ExpandRealizations before delegating to the callback. Never mutate charge state outside this wrapper.",
+        "example": "return s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge usagebased.Charge) (*usagebased.Charge, error) { ... })"
+      },
+      {
+        "name": "Settlement-mode dispatch in newStateMachine",
+        "description": "triggers.go newStateMachine switches on charge.Intent.SettlementMode: CreditOnlySettlementMode \u2192 CreditsOnlyStateMachine, CreditThenInvoiceSettlementMode \u2192 CreditThenInvoiceStateMachine; unsupported modes return models.NewGenericNotImplementedError.",
+        "example": "switch config.Charge.Intent.SettlementMode { case productcatalog.CreditOnlySettlementMode: ... case productcatalog.CreditThenInvoiceSettlementMode: ... default: return nil, models.NewGenericNotImplementedError(...) }"
+      },
+      {
+        "name": "FireAndActivate + AdvanceUntilStateStable bookend in LineEngine hooks",
+        "description": "LineEngine hooks (OnStandardInvoiceCreated, OnCollectionCompleted, OnInvoiceIssued) always call AdvanceUntilStateStable before firing the invoice trigger and again after so all auto-transitions complete before reading the run result.",
+        "example": "stateMachine.AdvanceUntilStateStable(ctx); stateMachine.FireAndActivate(ctx, trigger, input); stateMachine.AdvanceUntilStateStable(ctx)"
+      },
+      {
+        "name": "GetLineEngine() is the sole LineEngine construction path",
+        "description": "service.go exposes GetLineEngine() returning &LineEngine{service: s}. Callers (billing.Service) register this engine via RegisterLineEngine(billing.LineEngineTypeChargeUsageBased, ...). LineEngine must not be constructed directly \u2014 it requires access to rater, runs, adapter, and locker all owned by service.",
+        "example": "func (s *service) GetLineEngine() billing.LineEngine { return &LineEngine{service: s} }"
+      },
+      {
+        "name": "Parallel rating with semaphore in expandChargesUsage",
+        "description": "get.go uses semaphore.NewWeighted(defaultMaxParallelRatingsPerRequest=5) + sync.WaitGroup for concurrent ClickHouse rating across multiple charges, with panic recovery per goroutine and errors.Join on all channel errors.",
+        "example": "sem := semaphore.NewWeighted(int64(defaultMaxParallelRatingsPerRequest)); sem.Acquire(ctx,1); ... defer sem.Release(1)"
+      },
+      {
+        "name": "populateUsageBasedStandardLineFromRun \u2014 totals must match after projection",
+        "description": "linemapper.go populateUsageBasedStandardLineFromRun projects run DetailedLines onto stdLine and verifies stdLine.Totals equals run.Totals after RoundToPrecision; mismatch is a fatal error. Always call runs.MapToBillingMeteredQuantity and mutator.ApplyUsageDiscount before computing quantities.",
+        "example": "if !stdLine.Totals.Equal(expectedTotals) { return fmt.Errorf(\"projected line totals do not match run totals ...\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Constructor and struct definition. Composes usagebasedrating.Service and usagebasedrun.Service (constructed internally). Exposes GetLineEngine(). All Config fields are required.",
+        "watch_for": "Do not add business logic here. All Config fields must be non-nil or Validate() returns a joined error \u2014 add new fields with a matching nil check in Validate()."
+      },
+      {
+        "file": "triggers.go",
+        "role": "AdvanceCharge and TriggerPatch entry points. withLockedCharge helper (transaction + advisory lock + re-fetch). newStateMachine settlement-mode dispatch. getStateMachineConfigForPatch re-fetches customerOverride + featureMeter.",
+        "watch_for": "Every mutating path must go through withLockedCharge. getStateMachineConfigForPatch re-fetches customer and feature on every call \u2014 avoid calling it in hot loops."
+      },
+      {
+        "file": "statemachine.go",
+        "role": "Base stateMachine struct embedding chargestatemachine.Machine. Shared guards (IsInsideServicePeriod, IsAfterServicePeriod, IsAfterCollectionPeriod). AdvanceAfter setters. ensureDetailedLinesLoadedForRating.",
+        "watch_for": "IsAfterCollectionPeriod silently returns false on error (logging only) \u2014 do not rely on it for critical decisions. ensureDetailedLinesLoadedForRating mutates s.Charge in place."
+      },
+      {
+        "file": "creditheninvoice.go",
+        "role": "CreditThenInvoiceStateMachine: full partial+final invoice state graph, StartPartialInvoiceRun, StartFinalInvoiceRun, SnapshotInvoiceUsage, FinalizeInvoiceRun, Extend/Shrink/Delete patch handlers.",
+        "watch_for": "SnapshotInvoiceUsage reads CurrentRealizationRunID \u2014 fail fast if nil. FinalizeInvoiceRun clears CurrentRealizationRunID and AdvanceAfter after BookAccruedInvoiceUsage. Extend/Shrink in issuing/completed states return GenericPreConditionFailedError."
+      },
+      {
+        "file": "creditsonly.go",
+        "role": "CreditsOnlyStateMachine: simpler graph with no invoice steps, final realization only. DeleteCharge corrects credits on CreditRefundPolicyCorrect. Uses CreditAllocationExact.",
+        "watch_for": "storedAtLT is clock.Now() minus InternalCollectionPeriod. CreditAllocationExact (not CreditAllocationAvailable) for credits-only charges."
+      },
+      {
+        "file": "lineengine.go",
+        "role": "billing.LineEngine implementation: SplitGatheringLine, BuildStandardInvoiceLines, OnStandardInvoiceCreated, OnCollectionCompleted, OnInvoiceIssued, OnPaymentAuthorized, OnPaymentSettled, OnMutableStandardLinesDeleted.",
+        "watch_for": "SplitGatheringLine clears ChildUniqueReferenceID on both halves. OnStandardInvoiceCreated checks for existing CurrentRealizationRunID and returns billing.ValidationError if one exists. OnMutableStandardLinesDeleted requires run not to have Payment or InvoiceUsage already set."
+      },
+      {
+        "file": "linemapper.go",
+        "role": "populateUsageBasedStandardLineFromRun and helpers: maps RealizationRun to billing.StandardLine fields including MeteredQuantity, Quantity (post-discount), CreditsApplied, DetailedLines, Totals.",
+        "watch_for": "Requires run.DetailedLines to be expanded (mo.Some); returns error otherwise. Projected totals must equal run.Totals after rounding \u2014 test this invariant when modifying credit application logic."
+      }
+    ],
+    "anti_patterns": [
+      "Calling Adapter methods or state-machine actions directly without going through withLockedCharge \u2014 mutating charge state outside the lock+transaction window risks partial writes and lost realizations.",
+      "Adding DB/Ent adapter calls inside the rating or run sub-packages \u2014 persistence is exclusively the caller's (this package's) responsibility.",
+      "Constructing StateMachineConfig without calling Validate() first \u2014 missing CurrencyCalculator or unexpanded Customer will panic at runtime during rating or credit allocation.",
+      "Firing a trigger without calling AdvanceUntilStateStable afterward in LineEngine hooks \u2014 the charge may remain in a transient state when the run result is read by populateUsageBasedStandardLineFromRun.",
+      "Calling getStateMachineConfigForPatch in hot loops \u2014 it re-fetches customerOverride and featureMeters from the DB on every call; batch or cache these in callers that process multiple charges."
+    ],
+    "decisions": [
+      {
+        "decision": "Settlement mode selects the entire state graph at construction time via newStateMachine.",
+        "rationale": "CreditOnly and CreditThenInvoice have incompatible state graphs; a single unified machine would require complex conditional branches that are harder to test and reason about independently."
+      },
+      {
+        "decision": "withLockedCharge always re-fetches the charge with ExpandRealizations inside the advisory lock.",
+        "rationale": "Realizations are the primary mutable state during advancement; stale data without the lock would produce incorrect credit allocation and duplicate run creation under concurrency."
+      },
+      {
+        "decision": "LineEngine is a thin adapter struct over the service rather than a separate top-level type.",
+        "rationale": "It needs access to rater, runs, adapter, and locker \u2014 all owned by service \u2014 so embedding via GetLineEngine() avoids duplicating dependency wiring and keeps the LineEngine construction path singular."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Advancing a usage-based charge through its state machine with locking and settlement-mode dispatch (triggers.go pattern)",
+        "code": "func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceChargeInput) (*usagebased.Charge, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn nil, fmt.Errorf(\"validate: %w\", err)\n\t}\n\treturn s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge usagebased.Charge) (*usagebased.Charge, error) {\n\t\tfeatureMeter, err := charge.ResolveFeatureMeter(input.FeatureMeters)\n\t\tif err != nil { return nil, fmt.Errorf(\"get feature meter: %w\", err) }\n\t\tcurrencyCalculator, err := charge.Intent.Currency.Calculator()\n\t\tif err != nil { return nil, fmt.Errorf(\"get currency calculator: %w\", err) }\n\t\tstateMachine, err := s.newStateMachine(StateMachineConfig{\n\t\t\tCharge: charge, Adapter: s.adapter, Rater: s.rater, Runs: s.runs,\n\t\t\tCustomerOverride: input.CustomerOverride, FeatureMeter: featureMeter,\n\t\t\tCurrencyCalculator: currencyCalculator,\n\t\t})\n\t\tif err != nil { return nil, fmt.Errorf(\"new state machine: %w\", err) }\n\t\treturn stateMachine.AdvanceUntilStateStable(ctx)\n\t})\n}"
+      }
+    ]
+  }
+}

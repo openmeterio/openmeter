@@ -2,30 +2,52 @@
 
 <!-- archie:ai-start -->
 
-> HTTP handlers (v1 creditdriver) for grant operations (ListGrants, VoidGrant, ListGrantsV2) mounted on the v1 Chi router. Adapts between HTTP request/response and credit.GrantConnector + grant.Repo.
+> v1 HTTP handlers (creditdriver) for grant operations (ListGrants, VoidGrant, ListGrantsV2) mounted on the v1 Chi router; adapts between HTTP request/response types and credit.GrantConnector + grant.Repo. This is a pure translation layer — no business logic.
 
 ## Patterns
 
-**httptransport.HandlerWithArgs pattern for all endpoints** — Each handler is defined as a type alias httptransport.HandlerWithArgs[Request, Response, Params] and returned from a method on grantHandler. The three-argument form is used when URL params or query params must be decoded separately from the body. (`type ListGrantsHandler httptransport.HandlerWithArgs[ListGrantsHandlerRequest, ListGrantsHandlerResponse, ListGrantsHandlerParams]`)
-**Namespace resolved via namespaceDecoder, never from request body** — Every handler calls h.resolveNamespace(ctx) using the injected NamespaceDecoder. If resolution fails it returns 500. The namespace is never read from query params or path in this driver. (`ns, err := h.resolveNamespace(ctx); if !ok { return commonhttp.NewHTTPError(http.StatusInternalServerError, ...) }`)
-**Dual pagination: both page/pageSize and limit/offset supported** — ListGrants and ListGrantsV2 support both cursor-based (Page/PageSize) and legacy limit/offset pagination. When Page.IsZero(), Option1 (plain array) is returned; otherwise Option2 (paginated result) is returned for ListGrants. (`if request.params.Page.IsZero() { response.Option1 = &apiGrants } else { response.Option2 = &pagination.Result{...} }`)
-**Per-handler error encoder appended to shared options** — Domain errors (GenericValidationError, GrantNotFoundError, pagination.InvalidError) are mapped to HTTP status codes inside each handler's error encoder via httptransport.AppendOptions. The shared h.options provide cross-cutting concerns (logging, tracing). (`httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(func(...) bool { ... }))`)
+**httptransport.HandlerWithArgs for all endpoints** — Each handler is defined as a type alias of httptransport.HandlerWithArgs[Request, Response, Params] and returned from a method on grantHandler. The three-argument form separates URL/query params from body decoding. (`type ListGrantsHandler httptransport.HandlerWithArgs[ListGrantsHandlerRequest, ListGrantsHandlerResponse, ListGrantsHandlerParams]`)
+**Namespace resolved via namespaceDecoder, never from request body** — Every handler calls h.resolveNamespace(ctx) using the injected NamespaceDecoder. If resolution fails it returns 500. Namespace is never read from query params or path. (`ns, err := h.resolveNamespace(ctx); if err != nil { return ListGrantsHandlerRequest{}, err }`)
+**Dual pagination: array OR paginated result for backward compatibility** — ListGrants returns commonhttp.Union[[]api.EntitlementGrant, pagination.Result[api.EntitlementGrant]]: when Page.IsZero() returns Option1 (plain array), otherwise Option2 (paginated result). ListGrantsV2 always returns a paginated result. (`if request.params.Page.IsZero() { response.Option1 = &apiGrants } else { response.Option2 = &pagination.Result{...} }`)
+**Per-handler error encoder appended to shared options** — Domain errors are mapped to HTTP status codes inside each handler's error encoder via httptransport.AppendOptions. Shared h.options provide cross-cutting concerns. (`httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(func(...) bool { return commonhttp.HandleErrorIfTypeMatches[*pagination.InvalidError](ctx, http.StatusBadRequest, err, w) }))`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `grant.go` | Defines GrantHandler interface + grantHandler implementation with ListGrants, VoidGrant, ListGrantsV2. Uses both grantRepo (for read path) and grantConnector (for VoidGrant mutation). | ListGrantsV2 resolves customer IDOrKey to ID by calling customerService.GetCustomer — this is a cross-domain call. Deleted customers are silently skipped. The v2 response type is api.GrantV2PaginatedResponse (always paginated, no dual format). |
+| `grant.go` | Defines GrantHandler interface + grantHandler implementation with ListGrants, VoidGrant, ListGrantsV2. Uses both grantRepo (for read path) and grantConnector (for VoidGrant mutation). | ListGrantsV2 resolves customer IDOrKey to ID by calling customerService.GetCustomer (cross-domain call). Deleted customers are silently skipped. The v2 response type is api.GrantV2PaginatedResponse (always paginated, no dual format). v2 uses api.EntitlementGrantV2 via entitlement_httpdriverv2.MapEntitlementGrantToAPIV2. |
 
 ## Anti-Patterns
 
 - Adding business logic here — the driver only translates HTTP to domain types.
 - Reading namespace from HTTP query params instead of namespaceDecoder.
 - Returning raw Ent errors from the error encoder — convert to commonhttp.NewHTTPError first.
-- Using the v1 api.EntitlementGrant type in a v2 endpoint — v2 uses api.EntitlementGrantV2 via entitlement_httpdriverv2.MapEntitlementGrantToAPIV2.
+- Using the v1 api.EntitlementGrant type in a v2 endpoint — v2 uses api.EntitlementGrantV2.
+- Implementing a new endpoint here without first adding it to the TypeSpec source in api/spec/.
 
 ## Decisions
 
-- **ListGrants returns a union type (array OR paginated result) for backward compatibility; ListGrantsV2 always returns a paginated result.** — The v1 API predates pagination; existing clients expect a plain array when no page parameters are provided. The v2 endpoint was designed with pagination from the start.
+- **ListGrants returns a union type (array OR paginated result) while ListGrantsV2 always returns a paginated result.** — The v1 API predates pagination; existing clients expect a plain array when no page parameters are provided. v2 was designed with pagination from the start.
+
+## Example: Adding a new v1 grant handler following the existing pattern
+
+```
+type MyGrantHandlerRequest struct{ id models.NamespacedID }
+type MyGrantHandlerResponse = interface{}
+type MyGrantHandlerParams struct{ ID string }
+type MyGrantHandler httptransport.HandlerWithArgs[MyGrantHandlerRequest, MyGrantHandlerResponse, MyGrantHandlerParams]
+
+func (h *grantHandler) MyGrant() MyGrantHandler {
+	return httptransport.NewHandlerWithArgs[MyGrantHandlerRequest, MyGrantHandlerResponse, MyGrantHandlerParams](
+		func(ctx context.Context, r *http.Request, p MyGrantHandlerParams) (MyGrantHandlerRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil { return MyGrantHandlerRequest{}, err }
+			return MyGrantHandlerRequest{id: models.NamespacedID{Namespace: ns, ID: p.ID}}, nil
+		},
+		func(ctx context.Context, req MyGrantHandlerRequest) (interface{}, error) {
+			return nil, h.grantConnector.MyOperation(ctx, req.id)
+		},
+// ...
+```
 
 <!-- archie:ai-end -->

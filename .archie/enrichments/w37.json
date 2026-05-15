@@ -1,126 +1,224 @@
 {
-  "cmd/jobs/ledger/backfillaccounts": {
-    "purpose": "Cobra sub-command that backfills missing ledger accounts (business and customer) for a namespace. Intentionally bypasses the DI-wired account resolver to access CreateCustomerAccounts, which is not exposed via the public Wire surface.",
+  "cmd/jobs/billing/advance": {
+    "purpose": "Cobra sub-command package for invoice advance operations (list, advance single invoice, advance all). All service access flows exclusively through the `internal.App.BillingAutoAdvancer` singleton wired by app/common; no local service construction is permitted.",
     "patterns": [
       {
-        "name": "Bypass DI for concrete ledger stack",
-        "description": "Because app/common wires ledger services to noops when credits are disabled, and the public resolver surface omits CreateCustomerAccounts, this command constructs accountRepo, accountSvc, resolverRepo, and accountResolver directly from internal.App.EntClient. Do not use the wired resolver from app/common here.",
-        "example": "accountRepo := accountadapter.NewRepo(internal.App.EntClient); accountSvc := accountservice.New(accountRepo, ledgeraccount.AccountLiveServices{Locker: locker, Querier: ledgernoop.Ledger{}})"
+        "name": "internal.App singleton access",
+        "description": "All service calls go through `internal.App.<Field>`, never construct services locally. The singleton is populated by Wire before Cobra executes.",
+        "example": "internal.App.BillingAutoAdvancer.ListInvoicesToAdvance(cmd.Context(), ns, nil)"
       },
       {
-        "name": "Flags in init(), logic in RunE",
-        "description": "All flag vars are package-level, registered in init() with Cmd.Flags(). RunE constructs the service, resolves inputs from flags, calls service.Run, prints the summary, then checks FailureCount for a non-zero exit.",
-        "example": "func init() { Cmd.Flags().StringVar(&createdBefore, \"created-before\", \"\", \"...\") }"
+        "name": "cmd.Context() for context propagation",
+        "description": "Always pass `cmd.Context()` to service calls \u2014 never `context.Background()` \u2014 so cancellation and deadlines from Cobra's context chain are respected.",
+        "example": "internal.App.BillingAutoAdvancer.AdvanceInvoice(cmd.Context(), billing.InvoiceID{Namespace: namespace, ID: invoiceID})"
       },
       {
-        "name": "RFC3339 time parsing for flag values",
-        "description": "Time-valued flags are passed as strings and parsed with time.Parse(time.RFC3339, ...) in RunE, not in flag.Value; always normalize to UTC.",
-        "example": "parsed, parseErr := time.Parse(time.RFC3339, createdBefore); parsed = parsed.UTC()"
+        "name": "Sub-command factory functions",
+        "description": "Each sub-command is a `var <Name>Cmd = func() *cobra.Command { ... }` factory, not a top-level var. Allows deferred flag registration and avoids init-order issues.",
+        "example": "var ListCmd = func() *cobra.Command { cmd := &cobra.Command{Use: \"list\", ...}; return cmd }"
       },
       {
-        "name": "Print summary before returning error",
-        "description": "printSummary is called before any error return so partial results are always visible even on failure.",
-        "example": "if err != nil { printSummary(output); return err }; printSummary(output)"
+        "name": "PersistentFlags on parent Cmd",
+        "description": "Flags shared across sub-commands (e.g. `--namespace`) are registered on the parent `Cmd` via `Cmd.PersistentFlags()` in `init()`, not on individual sub-commands.",
+        "example": "Cmd.PersistentFlags().StringVar(&namespace, \"namespace\", \"\", \"namespace the operation should be performed\")"
+      },
+      {
+        "name": "Nil slice for optional namespace filter",
+        "description": "Namespace filter is a `[]string`; build it conditionally so the service receives nil (unfiltered) when no namespace is specified, not an empty slice.",
+        "example": "var ns []string; if namespace != \"\" { ns = append(ns, namespace) }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "backfillaccounts.go",
-        "role": "Single-file Cobra command: flag definitions, newService constructor that bypasses DI, and RunE wiring.",
-        "watch_for": "internal.App is the global shared app struct from cmd/jobs/internal; do not import app/common wired services here \u2014 the wired accountResolver is a noop when credits are disabled."
+        "file": "advance.go",
+        "role": "Defines parent Cmd plus ListCmd, InvoiceCmd, AllCmd factory functions for invoice advance operations.",
+        "watch_for": "InvoiceCmd validates namespace is non-empty before calling AdvanceInvoice \u2014 replicate this guard on any new sub-command that requires a scoped namespace; omitting it produces a runtime error with no stack trace."
       }
     ],
     "anti_patterns": [
-      "Using the Wire-provided ledger account resolver from app/common \u2014 it is a noop when credits.enabled=false",
-      "Omitting lockr.NewLocker \u2014 the accountservice requires a Locker for CreateCustomerAccounts",
-      "Parsing time flags outside RunE or omitting UTC normalization",
-      "Returning an error before printSummary \u2014 partial results become invisible"
+      "Constructing billing services locally instead of using internal.App",
+      "Using context.Background() instead of cmd.Context()",
+      "Registering sub-command-specific flags on the parent Cmd (causes flag pollution across siblings)",
+      "Hardcoding namespace strings instead of accepting them via --namespace flag",
+      "Calling AdvanceInvoice without first validating that namespace is non-empty"
     ],
     "decisions": [
       {
-        "decision": "Build concrete ledger adapters directly instead of using DI outputs",
-        "rationale": "The AGENTS.md explicitly states: 'When writing a backfill that genuinely needs ledger writes, build the concrete adapters directly instead of relying on DI defaults (they are noops).'"
-      }
-    ],
-    "code_examples": []
-  },
-  "cmd/jobs/ledger/service": {
-    "purpose": "Pure-Go backfill orchestration service (no Cobra, no Ent import in service.go) that pages through customers and provisions missing ledger accounts. Separated from the command to allow unit testing without a real database.",
-    "patterns": [
-      {
-        "name": "Interface-driven dependencies",
-        "description": "Service depends on customerLister and accountProvisioner interfaces (unexported), not concrete types. EntCustomerLister and the real resolver are injected from the command layer.",
-        "example": "type customerLister interface { ListCustomers(ctx context.Context, input ListCustomersInput) (ListCustomersResult, error) }"
-      },
-      {
-        "name": "Config struct with Validate + constructor",
-        "description": "All dependencies are bundled in Config, validated in Config.Validate(), and the constructor returns (*Service, error). Do not add optional fields \u2014 add them to Config and validate.",
-        "example": "func NewService(cfg Config) (*Service, error) { if err := cfg.Validate(); err != nil { return nil, fmt.Errorf(...) } ... }"
-      },
-      {
-        "name": "RunInput.normalized() for defaults",
-        "description": "Caller-visible defaults (e.g. CustomerPageSize=0 \u2192 DefaultCustomerPageSize) are applied by a private normalized() method inside Run, not in the command layer or constructor.",
-        "example": "func (i RunInput) normalized() RunInput { if out.CustomerPageSize == 0 { out.CustomerPageSize = DefaultCustomerPageSize } ... }"
-      },
-      {
-        "name": "paginationv2.MAX_SAFE_ITER guard on cursor loop",
-        "description": "All cursor-paginated loops must check against paginationv2.MAX_SAFE_ITER and return an error if exhausted, preventing infinite loops on bad cursors.",
-        "example": "for iter := 0; iter < paginationv2.MAX_SAFE_ITER; iter++ { ... if !completed { return result, fmt.Errorf(\"max safe iter reached\") } }"
-      },
-      {
-        "name": "Idempotent provisioning via Get-then-Create",
-        "description": "Always call GetCustomerAccounts / GetBusinessAccounts first. Only provision when the error carries ledger.ErrCodeCustomerAccountMissing / ErrCodeBusinessAccountMissing; other errors go through recordFailure. This makes the backfill re-runnable.",
-        "example": "if !hasValidationIssueCode(err, ledger.ErrCodeCustomerAccountMissing) { return s.recordFailure(...) }"
-      },
-      {
-        "name": "DryRun increments WouldProvision counters only",
-        "description": "When input.DryRun is true, the service increments BusinessWouldProvision / CustomersWouldProvision and returns without calling EnsureBusinessAccounts / CreateCustomerAccounts.",
-        "example": "if input.DryRun { result.CustomersWouldProvision++; return nil }"
-      },
-      {
-        "name": "recordFailure increments FailureCount and logs",
-        "description": "All errors go through recordFailure which increments result.FailureCount, logs via slog.Warn, and returns a wrapped error. ContinueOnError is checked in the caller loop, not inside recordFailure.",
-        "example": "func (s *Service) recordFailure(result *NamespaceResult, stage, customerID string, err error) error { result.FailureCount++; s.logger.Warn(...); return fmt.Errorf(...) }"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "service.go",
-        "role": "Core orchestration: Config/Service types, Run/runNamespace, ensureBusinessAccounts, ensureCustomerAccounts, recordFailure, hasValidationIssueCode.",
-        "watch_for": "No direct Ent imports \u2014 keep this file free of *entdb.Client so tests stay pure Go. Do not add new ledger error codes without updating hasValidationIssueCode."
-      },
-      {
-        "file": "customer_lister_ent.go",
-        "role": "EntCustomerLister implements customerLister using Ent cursor queries with namespace + deleted-at + createdAt filters.",
-        "watch_for": "Uses query.Cursor(ctx, input.Cursor) \u2014 Ent cursor pagination, not offset. IncludeDeleted=false filters via DeletedAtIsNil OR DeletedAtGTE(now) to handle soft-deletes correctly."
-      },
-      {
-        "file": "service_test.go",
-        "role": "Unit tests using fakeCustomerLister and fakeAccountProvisioner. Tests cover dry-run, cursor pagination, created-before cutoff, and continue-on-error.",
-        "watch_for": "Uses t.Context() not context.Background(). fakeCustomerLister implements cursor pagination manually \u2014 keep it consistent with real cursor semantics when adding tests."
-      }
-    ],
-    "anti_patterns": [
-      "Importing *entdb.Client directly in service.go \u2014 breaks unit testability",
-      "Checking ContinueOnError inside recordFailure \u2014 callers own that decision",
-      "Skipping the MAX_SAFE_ITER guard in new paginated loops",
-      "Using offset pagination instead of cursor (paginationv2.Cursor) for large customer sets",
-      "Using context.Background() in tests instead of t.Context()"
-    ],
-    "decisions": [
-      {
-        "decision": "Separate service package from Cobra command",
-        "rationale": "Enables pure-Go unit tests (no Ent, no Cobra, no real DB) covering dry-run, cursor paging, cutoff filtering, and error continuation without integration overhead."
-      },
-      {
-        "decision": "Detect missing-account condition via ValidationIssue error codes, not nil checks",
-        "rationale": "ledger.ErrCodeCustomerAccountMissing / ErrCodeBusinessAccountMissing are structured error codes on ValidationIssue; treating any non-nil error as 'missing' would mask real failures."
+        "decision": "Thin Cobra wrappers delegating to internal.App service fields",
+        "rationale": "Keeps cmd/* free of business logic; all wiring happens in app/common via Wire so each sub-command is independently testable and the DI graph is compile-time verified."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Cursor-paginated provisioning loop with DryRun and ContinueOnError",
-        "code": "for iter := 0; iter < paginationv2.MAX_SAFE_ITER; iter++ {\n\tres, err := s.customerLister.ListCustomers(ctx, ListCustomersInput{...Cursor: cursor})\n\tif err != nil {\n\t\tfailure := s.recordFailure(&result, \"list_customers\", \"\", err)\n\t\tif input.ContinueOnError { return result, nil }\n\t\treturn result, failure\n\t}\n\tfor _, item := range res.Items {\n\t\tif err := s.ensureCustomerAccounts(ctx, input, &result, ...); err != nil {\n\t\t\tif !input.ContinueOnError { return result, err }\n\t\t}\n\t}\n\tif res.NextCursor == nil { completed = true; break }\n\tcursor = res.NextCursor\n}"
+        "scenario": "Adding a new advance sub-command that advances invoices for a specific customer",
+        "code": "var CustomerCmd = func() *cobra.Command {\n\tcmd := &cobra.Command{\n\t\tUse:   \"customer [CUSTOMER_ID]\",\n\t\tShort: \"Advance invoices for a customer\",\n\t\tArgs:  cobra.ExactArgs(1),\n\t\tRunE: func(cmd *cobra.Command, args []string) error {\n\t\t\tif namespace == \"\" {\n\t\t\t\treturn fmt.Errorf(\"namespace is required\")\n\t\t\t}\n\t\t\t_, err := internal.App.BillingAutoAdvancer.AdvanceInvoice(cmd.Context(), billing.InvoiceID{\n\t\t\t\tNamespace: namespace,\n\t\t\t\tID:        args[0],\n\t\t\t})\n\t\t\treturn err\n\t\t},\n\t}\n\treturn cmd\n}"
+      }
+    ]
+  },
+  "cmd/jobs/billing/advancecharges": {
+    "purpose": "Cobra sub-command package for charge advance operations (list customers with pending charges, advance a single customer, advance all). Guards every execution path against `internal.App.ChargesAutoAdvancer == nil` because charges are an optional, conditionally-wired feature.",
+    "patterns": [
+      {
+        "name": "Nil guard for optional features",
+        "description": "Check `internal.App.ChargesAutoAdvancer == nil` at the start of every RunE; return a descriptive error instead of allowing a nil pointer panic. The field is nil when charges are disabled in config.",
+        "example": "if internal.App.ChargesAutoAdvancer == nil { return fmt.Errorf(\"charges are not enabled\") }"
+      },
+      {
+        "name": "internal.App singleton access",
+        "description": "All service calls go through `internal.App.<Field>`; never construct adapters locally.",
+        "example": "internal.App.ChargesAutoAdvancer.ListCustomersToAdvance(cmd.Context(), ns)"
+      },
+      {
+        "name": "cmd.Context() for context propagation",
+        "description": "Pass `cmd.Context()` to every service call; never substitute `context.Background()`.",
+        "example": "internal.App.ChargesAutoAdvancer.AdvanceCharges(cmd.Context(), customer.CustomerID{Namespace: namespace, ID: args[0]})"
+      },
+      {
+        "name": "Sub-command factory functions",
+        "description": "Each sub-command is a `var <Name>Cmd = func() *cobra.Command` factory registered in `init()` via `Cmd.AddCommand()`.",
+        "example": "var AllCmd = func() *cobra.Command { cmd := &cobra.Command{Use: \"all\", ...}; return cmd }"
+      },
+      {
+        "name": "PersistentFlags on parent Cmd for shared filters",
+        "description": "--namespace is registered on the parent Cmd so all sub-commands inherit it without re-registration.",
+        "example": "Cmd.PersistentFlags().StringVar(&namespace, \"namespace\", \"\", \"namespace the operation should be performed\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "advancecharges.go",
+        "role": "Defines parent Cmd plus ListCmd, CustomerCmd, AllCmd for charge advancement. CustomerCmd requires --namespace and exactly one CUSTOMER_ID arg.",
+        "watch_for": "Every RunE must check `ChargesAutoAdvancer != nil` first \u2014 the field is nil when billing charges are disabled in config. Missing this guard causes a panic with no user-friendly message."
+      }
+    ],
+    "anti_patterns": [
+      "Omitting the nil check on ChargesAutoAdvancer \u2014 causes panic when charges feature is disabled",
+      "Constructing charges services locally instead of using internal.App",
+      "Using context.Background() instead of cmd.Context()",
+      "Registering --namespace as a persistent flag on a sub-command instead of the parent Cmd"
+    ],
+    "decisions": [
+      {
+        "decision": "Explicit nil check for optional ChargesAutoAdvancer field at every RunE entry",
+        "rationale": "Charges are a conditionally-wired feature; Wire produces a nil pointer when disabled. A nil guard yields a clear user-facing error instead of a runtime panic, keeping CLI UX consistent with other optional features."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new charge sub-command that requires the optional ChargesAutoAdvancer",
+        "code": "var NewCmd = func() *cobra.Command {\n\tcmd := &cobra.Command{\n\t\tUse:  \"new-op\",\n\t\tRunE: func(cmd *cobra.Command, args []string) error {\n\t\t\tif internal.App.ChargesAutoAdvancer == nil {\n\t\t\t\treturn fmt.Errorf(\"charges are not enabled\")\n\t\t\t}\n\t\t\tif namespace == \"\" {\n\t\t\t\treturn fmt.Errorf(\"namespace is required\")\n\t\t\t}\n\t\t\treturn internal.App.ChargesAutoAdvancer.AdvanceCharges(cmd.Context(), customer.CustomerID{\n\t\t\t\tNamespace: namespace,\n\t\t\t\tID:        args[0],\n\t\t\t})\n\t\t},\n\t}\n\treturn cmd\n}"
+      }
+    ]
+  },
+  "cmd/jobs/billing/collect": {
+    "purpose": "Cobra sub-command package for invoice collection operations (list collectable gathering invoices, collect for a specific customer, collect all). Uses structured input types from `billingworkercollect` rather than positional primitives to keep the CLI compatible with service API evolution.",
+    "patterns": [
+      {
+        "name": "Structured input types from domain packages",
+        "description": "Pass `billingworkercollect.ListCollectableInvoicesInput` and `CollectCustomerInvoiceInput` structs rather than inline primitives; the compiler enforces required fields and the CLI stays compatible when the service signature evolves.",
+        "example": "internal.App.BillingCollector.ListCollectableInvoices(cmd.Context(), billingworkercollect.ListCollectableInvoicesInput{Namespaces: namespaces, CollectionAt: time.Now()})"
+      },
+      {
+        "name": "time.Now() as default AsOf/CollectionAt",
+        "description": "Collection operations default to `time.Now()` for the temporal boundary. Expose a flag only if callers need to override.",
+        "example": "AsOf: time.Now()"
+      },
+      {
+        "name": "StringSliceVar for multi-value filters",
+        "description": "Multi-value filters (namespaces, customerIDs, invoiceIDs) use `cmd.PersistentFlags().StringSliceVar`, accepting comma-separated or repeated flag values.",
+        "example": "cmd.PersistentFlags().StringSliceVar(&namespaces, \"n\", nil, \"filter by namespaces\")"
+      },
+      {
+        "name": "cmd.Context() for context propagation",
+        "description": "Always pass `cmd.Context()` to service calls; never substitute `context.Background()`.",
+        "example": "internal.App.BillingCollector.CollectCustomerInvoice(cmd.Context(), billingworkercollect.CollectCustomerInvoiceInput{...})"
+      },
+      {
+        "name": "Sub-command factory functions",
+        "description": "Each sub-command is a factory var registered in `init()` via `Cmd.AddCommand()`; flags are registered inside the factory body.",
+        "example": "var AllCmd = func() *cobra.Command { cmd := &cobra.Command{Use: \"all\", ...}; cmd.PersistentFlags()...; return cmd }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "collect.go",
+        "role": "Defines parent Cmd plus ListCmd, InvoiceCmd, AllCmd for gathering invoice collection.",
+        "watch_for": "InvoiceCmd hardcodes `Namespace: \"default\"` for CustomerID \u2014 a known tech debt. If multi-namespace support is needed, add a --namespace flag and thread it through the input struct. Do not replicate this pattern in new sub-commands."
+      }
+    ],
+    "anti_patterns": [
+      "Hardcoding namespace strings \u2014 InvoiceCmd already has this debt; do not replicate it in new commands",
+      "Using context.Background() instead of cmd.Context()",
+      "Constructing billing service instances locally instead of using internal.App",
+      "Passing nil CollectionAt \u2014 always supply time.Now() or a flag-driven value",
+      "Registering multi-value filter flags as StringVar instead of StringSliceVar"
+    ],
+    "decisions": [
+      {
+        "decision": "Use billingworkercollect input structs rather than individual parameters",
+        "rationale": "Input structs evolve independently of the CLI; adding new fields to the struct does not require changing every call site in this package."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new collect sub-command with namespace and customer filters",
+        "code": "var ByCustomerCmd = func() *cobra.Command {\n\tvar ns, cids []string\n\tcmd := &cobra.Command{\n\t\tUse:  \"by-customer\",\n\t\tRunE: func(cmd *cobra.Command, args []string) error {\n\t\t\treturn internal.App.BillingCollector.All(cmd.Context(), ns, cids, 0)\n\t\t},\n\t}\n\tcmd.PersistentFlags().StringSliceVar(&ns, \"n\", nil, \"filter by namespaces\")\n\tcmd.PersistentFlags().StringSliceVar(&cids, \"c\", nil, \"filter by customer ids\")\n\treturn cmd\n}"
+      }
+    ]
+  },
+  "cmd/jobs/billing/subscriptionsync": {
+    "purpose": "Cobra sub-command package for subscription-to-invoice sync reconciliation (list syncable subscriptions, sync all). Delegates entirely to `internal.App.BillingSubscriptionReconciler` using typed input structs from the `reconciler` package; provides the manual recovery path for missed billing-worker Kafka events.",
+    "patterns": [
+      {
+        "name": "Typed reconciler input structs with embedding",
+        "description": "Use `reconciler.ReconcilerListSubscriptionsInput` and embed it inside `reconciler.ReconcilerAllInput` so list and all-run filters stay structurally identical and CLI flags are reusable.",
+        "example": "internal.App.BillingSubscriptionReconciler.All(cmd.Context(), reconciler.ReconcilerAllInput{ReconcilerListSubscriptionsInput: reconciler.ReconcilerListSubscriptionsInput{Namespaces: namespaces, Customers: customerIDs, Lookback: lookback}, Force: force})"
+      },
+      {
+        "name": "Default lookback constant",
+        "description": "Define a `defaultLookback` constant (`24 * time.Hour`) and use it as the flag default so behavior is explicit and consistent across sub-commands.",
+        "example": "const defaultLookback = 24 * time.Hour; cmd.PersistentFlags().DurationVar(&lookback, \"l\", defaultLookback, \"lookback period\")"
+      },
+      {
+        "name": "Force flag for idempotent re-runs",
+        "description": "AllCmd exposes a `--force` (`-f`) bool flag mapped to `ReconcilerAllInput.Force` to bypass sync-state checks for manual crash recovery runs.",
+        "example": "cmd.PersistentFlags().BoolVar(&force, \"f\", false, \"force reconciliation (even if the sync state would not necessarily require it)\")"
+      },
+      {
+        "name": "Per-sub-command flag registration",
+        "description": "Filter flags (namespaces, customerIDs, lookback) are registered on each sub-command individually via `cmd.PersistentFlags()`, not on the parent Cmd, because they are not universally needed.",
+        "example": "cmd.PersistentFlags().StringSliceVar(&namespaces, \"n\", nil, \"filter by namespaces\")"
+      },
+      {
+        "name": "cmd.Context() for context propagation",
+        "description": "Pass `cmd.Context()` to all reconciler calls; never substitute `context.Background()`.",
+        "example": "internal.App.BillingSubscriptionReconciler.ListSubscriptions(cmd.Context(), reconciler.ReconcilerListSubscriptionsInput{...})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "sync.go",
+        "role": "Defines parent Cmd plus ListCmd and AllCmd for subscription sync. AllCmd is the primary recovery tool for missed billing-worker events.",
+        "watch_for": "Package-level vars for filters are shared across sub-commands; registering the same flag on both sub-commands means the last flag-parse wins during a single invocation \u2014 avoid duplicate registration of the same var on both ListCmd and AllCmd if they execute in the same process run."
+      }
+    ],
+    "anti_patterns": [
+      "Calling reconciler methods without a lookback filter \u2014 results in scanning all historical subscriptions",
+      "Using context.Background() instead of cmd.Context()",
+      "Constructing a reconciler instance locally instead of using internal.App.BillingSubscriptionReconciler",
+      "Omitting the --force flag on AllCmd \u2014 manual recovery runs need it to bypass sync-state guards",
+      "Passing primitives directly to reconciler instead of using the typed input structs"
+    ],
+    "decisions": [
+      {
+        "decision": "Embed ReconcilerListSubscriptionsInput inside ReconcilerAllInput",
+        "rationale": "Keeps list and all-run filter structs structurally identical so the CLI flags are reusable and the reconciler API stays DRY. Adding a new filter field to the list input automatically becomes available to the all-run command."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new subscription-sync sub-command with namespace and customer filters using the reconciler pattern",
+        "code": "var DryRunCmd = func() *cobra.Command {\n\tvar ns, cids []string\n\tvar lb time.Duration\n\tcmd := &cobra.Command{\n\t\tUse:  \"dryrun\",\n\t\tRunE: func(cmd *cobra.Command, args []string) error {\n\t\t\tsubs, err := internal.App.BillingSubscriptionReconciler.ListSubscriptions(\n\t\t\t\tcmd.Context(),\n\t\t\t\treconciler.ReconcilerListSubscriptionsInput{\n\t\t\t\t\tNamespaces: ns,\n\t\t\t\t\tCustomers:  cids,\n\t\t\t\t\tLookback:   lb,\n\t\t\t\t})\n\t\t\tif err != nil {\n\t\t\t\treturn err\n\t\t\t}\n\t\t\tfmt.Printf(\"%d subscriptions would be synced\\n\", len(subs))\n\t\t\treturn nil\n\t\t},\n\t}\n\tcmd.PersistentFlags().StringSliceVar(&ns, \"n\", nil, \"filter by namespaces\")\n\tcmd.PersistentFlags().StringSliceVar(&cids, \"c\", nil, \"filter by customer ids\")\n\tcmd.PersistentFlags().DurationVar(&lb, \"l\", defaultLookback, \"lookback period\")\n\treturn cmd\n}"
       }
     ]
   }

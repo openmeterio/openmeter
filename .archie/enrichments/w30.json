@@ -1,36 +1,36 @@
 {
   "api/v3/handlers/meters/query": {
-    "purpose": "Shared query-parameter translation sub-package for the v3 meter query endpoint. Converts api.MeterQueryRequest fields into streaming.QueryParams, validates dimensions/filters against meter definitions, and resolves customer IDs \u2014 insulating the HTTP handler from all domain-mapping logic.",
+    "purpose": "Shared query-parameter translation sub-package for the v3 meter query endpoint. Converts api.MeterQueryRequest fields into streaming.QueryParams, validates dimensions and filters against meter definitions, and resolves customer IDs \u2014 insulating the HTTP handler from all domain-mapping logic.",
     "patterns": [
       {
         "name": "ValidationIssue error factory",
-        "description": "Every domain error is a package-level var of type models.ValidationIssue constructed with models.NewValidationIssue(...) plus WithFieldString / WithCriticalSeverity / commonhttp.WithHTTPStatusCodeAttribute. Public constructors like NewInvalidWindowSizeError attach runtime values via .WithAttr or .WithPathString.",
+        "description": "Every user-facing validation error is a package-level var of type models.ValidationIssue constructed with models.NewValidationIssue + WithFieldString/WithCriticalSeverity/commonhttp.WithHTTPStatusCodeAttribute. Public constructors (e.g. NewInvalidWindowSizeError) attach runtime values via .WithAttr or .WithPathString.",
         "example": "var ErrInvalidWindowSize = models.NewValidationIssue(ErrCodeInvalidWindowSize, \"...\", models.WithFieldString(\"granularity\"), models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))\nfunc NewInvalidWindowSizeError(duration string) error { return ErrInvalidWindowSize.WithAttr(\"value\", duration) }"
       },
       {
         "name": "Whitelist-only filter operator extraction",
-        "description": "ExtractStringsFromQueryFilter / ExtractStringsFromQueryFilterMapItem explicitly reject every operator except eq and in by checking non-nil fields (Neq, Nin, Contains, Ncontains, And, Or, Exists) and returning NewUnsupportedFilterOperatorError. Do not add permissive pass-through paths.",
+        "description": "ExtractStringsFromQueryFilter and ExtractStringsFromQueryFilterMapItem explicitly reject every operator except eq and in by checking non-nil fields (Neq, Nin, Contains, Ncontains, And, Or, Exists) and returning NewUnsupportedFilterOperatorError. No permissive pass-through paths.",
         "example": "if f.Neq != nil || f.Nin != nil || f.Contains != nil { return nil, NewUnsupportedFilterOperatorError(fieldPath...) }"
       },
       {
         "name": "Reserved-dimension switch in BuildQueryParams",
-        "description": "The dimensions loop in BuildQueryParams uses a switch on the key: case DimensionSubject, case DimensionCustomerID, default (meter GroupBy lookup). New reserved dimensions must be added as a case here and to IsReservedDimension in dimensions.go.",
+        "description": "The dimensions loop in BuildQueryParams uses a switch on the key: case DimensionSubject, case DimensionCustomerID, default (meter GroupBy lookup). New reserved dimensions must be added as a case here AND to IsReservedDimension in dimensions.go.",
         "example": "switch k { case DimensionSubject: ... case DimensionCustomerID: ... default: if _, ok := m.GroupBy[k]; !ok { return params, NewInvalidDimensionFilterError(k) } }"
       },
       {
         "name": "Deduplication of GroupBy entries via slices.Contains",
-        "description": "Every code path that appends to params.GroupBy (subject filter, customer filter, explicit GroupByDimensions) first calls slices.Contains to prevent duplicates. Always guard with this check before appending.",
+        "description": "Every code path that appends to params.GroupBy (subject filter, customer filter, explicit GroupByDimensions) first calls slices.Contains to prevent duplicates.",
         "example": "if !slices.Contains(params.GroupBy, DimensionSubject) { params.GroupBy = append(params.GroupBy, DimensionSubject) }"
       },
       {
         "name": "CustomerResolverFunc dependency injection",
-        "description": "Customer lookup is injected as CustomerResolverFunc (a function type), not as a direct service reference. BuildQueryParams receives it as a parameter so callers (HTTP handler) control the resolver \u2014 enabling noop injection in tests.",
+        "description": "Customer lookup is injected as CustomerResolverFunc (a function type), not as a direct service reference. BuildQueryParams receives it as a parameter so callers control the resolver \u2014 enabling noop injection in tests.",
         "example": "func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryRequest, resolveCustomers CustomerResolverFunc) (streaming.QueryParams, error)"
       },
       {
-        "name": "ISO 8601 \u2194 WindowSize via lookup tables",
-        "description": "Bidirectional conversion is done through package-level maps (iso8601ToWindowSize, windowSizeToISO8601). Adding a new window size requires updating both maps and the error message string in ErrInvalidWindowSize.",
-        "example": "var iso8601ToWindowSize = map[string]meter.WindowSize{\"PT1M\": meter.WindowSizeMinute, ...}"
+        "name": "ISO 8601 <-> WindowSize via lookup tables",
+        "description": "Bidirectional conversion uses package-level maps (iso8601ToWindowSize, windowSizeToISO8601). Adding a new window size requires updating both maps and the error message string in ErrInvalidWindowSize.",
+        "example": "var iso8601ToWindowSize = map[string]meter.WindowSize{\"PT1M\": meter.WindowSizeMinute, \"PT1H\": meter.WindowSizeHour, \"P1D\": meter.WindowSizeDay, \"P1M\": meter.WindowSizeMonth}"
       },
       {
         "name": "Filter complexity depth cap",
@@ -42,12 +42,12 @@
       {
         "file": "params.go",
         "role": "Core translation function BuildQueryParams \u2014 the single entry point for converting MeterQueryRequest to streaming.QueryParams with full validation.",
-        "watch_for": "The dimensions map iteration order is non-deterministic in Go; GroupBy slice order may vary across calls \u2014 tests must not assert exact ordering."
+        "watch_for": "Map iteration order is non-deterministic in Go; GroupBy slice order may vary across calls \u2014 tests must not assert exact ordering."
       },
       {
         "file": "errors.go",
         "role": "All typed validation errors for this package. Each error has a package-level sentinel var and a constructor that attaches runtime context via WithAttr/WithPathString.",
-        "watch_for": "HTTP status codes are embedded via commonhttp.WithHTTPStatusCodeAttribute \u2014 do not return raw fmt.Errorf for user-facing errors; use or extend these sentinels."
+        "watch_for": "HTTP status codes are embedded via commonhttp.WithHTTPStatusCodeAttribute \u2014 never return raw fmt.Errorf for user-facing errors; use or extend these sentinels."
       },
       {
         "file": "convert.go",
@@ -89,7 +89,7 @@
     "code_examples": [
       {
         "scenario": "Adding a new reserved dimension (e.g. 'workspace_id') that resolves like customer_id",
-        "code": "// dimensions.go \u2014 add constant and update IsReservedDimension\nconst DimensionWorkspaceID = \"workspace_id\"\nfunc IsReservedDimension(dimension string) bool {\n    switch dimension {\n    case DimensionSubject, DimensionCustomerID, DimensionWorkspaceID:\n        return true\n    }\n    return false\n}\n\n// errors.go \u2014 add typed error\nvar ErrWorkspaceNotFound = models.NewValidationIssue(\n    \"workspace_not_found\", \"workspace not found\",\n    models.WithFieldString(\"filters\", \"dimensions\", DimensionWorkspaceID),\n    models.WithCriticalSeverity(),\n    commonhttp.WithHTTPStatusCodeAttribute(http.StatusNotFound),\n)\nfunc NewWorkspaceNotFoundError(id string) error { return ErrWorkspaceNotFound.WithAttr(DimensionWorkspaceID, id) }\n\n// params.go \u2014 add case in dimensions switch\ncase DimensionWorkspaceID:\n    ids, err := ExtractStringsFromQueryFilterMapItem(&v, \"dimensions\", DimensionWorkspaceID)\n    if err != nil { return params, err }\n    // resolve + set params field, then dedup GroupBy\n    if !slices.Contains(params.GroupBy, DimensionWorkspaceID) {\n        params.GroupBy = append(params.GroupBy, DimensionWorkspaceID)\n    }"
+        "code": "// dimensions.go \u2014 add constant and update IsReservedDimension\nconst DimensionWorkspaceID = \"workspace_id\"\nfunc IsReservedDimension(dimension string) bool {\n    switch dimension {\n    case DimensionSubject, DimensionCustomerID, DimensionWorkspaceID:\n        return true\n    }\n    return false\n}\n\n// errors.go \u2014 add typed error\nvar ErrWorkspaceNotFound = models.NewValidationIssue(\n    \"workspace_not_found\", \"workspace not found\",\n    models.WithFieldString(\"filters\", \"dimensions\", DimensionWorkspaceID),\n    models.WithCriticalSeverity(),\n    commonhttp.WithHTTPStatusCodeAttribute(http.StatusNotFound),\n)\nfunc NewWorkspaceNotFoundError(id string) error { return ErrWorkspaceNotFound.WithAttr(DimensionWorkspaceID, id) }\n\n// params.go \u2014 add case in the dimensions switch\ncase DimensionWorkspaceID:\n    workspaceIDs, err := ExtractStringsFromQueryFilterMapItem(&v, \"dimensions\", DimensionWorkspaceID)\n    if err != nil {\n        return params, err\n    }\n    // resolve and attach, guard GroupBy with slices.Contains\n    if !slices.Contains(params.GroupBy, DimensionWorkspaceID) {\n        params.GroupBy = append(params.GroupBy, DimensionWorkspaceID)\n    }"
       }
     ]
   }

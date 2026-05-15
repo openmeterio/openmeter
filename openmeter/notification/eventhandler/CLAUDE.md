@@ -2,43 +2,43 @@
 
 <!-- archie:ai-start -->
 
-> Implements the notification.EventHandler interface: dispatches events asynchronously to webhook channels via Svix and runs a periodic reconciliation loop that re-drives any in-flight or stuck delivery statuses (Pending/Sending/Resending) to terminal states.
+> Implements notification.EventHandler: dispatches domain events asynchronously to Svix webhook channels (fire-and-forget goroutine) and runs a pg-advisory-lock-gated periodic reconciliation loop that drives stuck delivery statuses (Pending/Sending/Resending) to terminal states via a per-status state machine in webhook.go.
 
 ## Patterns
 
-**Compile-time interface assertion** — handler.go declares `var _ notification.EventHandler = (*Handler)(nil)` to catch interface drift at compile time. (`var _ notification.EventHandler = (*Handler)(nil)`)
-**Config struct with Validate()** — All constructor dependencies are collected in a `Config` struct. `Config.Validate()` is called first in `New()` and returns `models.NewNillableGenericValidationError` so missing fields surface before any goroutine is started. (`func New(config Config) (*Handler, error) { if err := config.Validate(); err != nil { return nil, err } ... }`)
-**Dispatch fires a detached goroutine with panic recovery** — Dispatch() always returns nil immediately; the actual work runs in a goroutine that captures the OTel span link from the caller's context, creates a fresh context.WithTimeout(context.Background(), notification.DefaultDispatchTimeout), and wraps panics with recover() + stack logging. (`go func() { defer recover(); ctx, cancel := context.WithTimeout(context.Background(), notification.DefaultDispatchTimeout); defer cancel(); tracex.StartWithNoValue(ctx, h.tracer, "event_handler.dispatch", ...).Wrap(fn) }()`)
-**Reconcile loop uses pg advisory lock via lockr** — Reconcile() calls transaction.RunWithNoValue then h.lockr.LockForTXWithScopes(ctx, reconcileLockKey) so only one pod reconciles at a time. ErrLockTimeout is treated as a non-error (skip silently). (`if err := h.lockr.LockForTXWithScopes(ctx, reconcileLockKey); err != nil { if errors.Is(err, lockr.ErrLockTimeout) { return nil } }`)
-**Paginated scan in Reconcile with NextAttemptBefore filter** — Reconcile scans delivery statuses with a page loop (PageSize 50, incrementing PageNumber) filtering on states Pending/Sending/Resending and `NextAttemptBefore = clock.Now()-nextAttemptDelay` to give downstream providers time to settle. (`for { out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{Page: page, DeliveryStatusStates: [...], NextAttemptBefore: clock.Now().Add(-nextAttemptDelay)}); ...; page.PageNumber++ }`)
-**Delivery status state machine in reconcileWebhookEvent** — webhook.go drives per-status state transitions: Pending→send or timeout, Resending→resend+set Sending, Sending→read provider state or fail on timeout. Errors are classified as unrecoverable (fail), retryable (reschedule via RetryableError.RetryAfter()), or transient (use h.reconcileInterval). (`switch status.State { case Pending: ...; case Resending: ...; case Sending: ... }`)
-**Stop channel closed via sync.OnceFunc** — stopCh is a plain chan struct{}; stopChClose is wrapped with sync.OnceFunc so Close() is idempotent and Start() safely stops on signal. (`stopChClose := sync.OnceFunc(func() { close(stopCh) })`)
+**Compile-time interface assertion** — handler.go declares `var _ notification.EventHandler = (*Handler)(nil)` to catch interface drift at compile time. Any new method added to notification.EventHandler without a matching implementation here fails the build. (`var _ notification.EventHandler = (*Handler)(nil)`)
+**Config struct with Validate() before construction** — All constructor dependencies are collected in Config. Config.Validate() is called first in New() and returns models.NewNillableGenericValidationError so missing fields surface before any goroutine is started. (`func New(config Config) (*Handler, error) { if err := config.Validate(); err != nil { return nil, err } ... }`)
+**Dispatch fires a detached goroutine with panic recovery and fresh root span** — Dispatch() captures the OTel span link from the caller's context, launches a goroutine with context.WithTimeout(context.Background(), notification.DefaultDispatchTimeout), and always returns nil. Errors are only logged — callers must not rely on the return value for delivery confirmation. (`go func() { defer recover(); ctx, cancel := context.WithTimeout(context.Background(), notification.DefaultDispatchTimeout); defer cancel(); tracex.StartWithNoValue(ctx, h.tracer, "event_handler.dispatch", trace.WithNewRoot(), trace.WithLinks(spanLink)).Wrap(fn) }()`)
+**pg advisory lock via pglock.Client.Do for leader-election in Start()** — Start() calls h.lockClient.Do(ctx, reconcilerLeaderLockKey, ...) so only one replica runs the reconcile ticker. pglock.ErrNotAcquired is treated as a non-error — the pod silently waits and retries the lock acquisition in a loop. (`err := h.lockClient.Do(ctx, reconcilerLeaderLockKey, func(rCtx context.Context, _ *pglock.Lock) error { ticker := time.NewTicker(h.reconcileInterval); ... })`)
+**Paginated scan in Reconcile with nextAttemptDelay filter** — Reconcile paginates delivery statuses (PageSize 50, incrementing PageNumber) filtered to Pending/Sending/Resending states and NextAttemptBefore = clock.Now()-10s to let Svix async state settle before re-querying. Never remove the 10s jitter. (`nextAttemptBefore := clock.Now().Add(-1 * nextAttemptDelay); for { out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{Page: page, DeliveryStatusStates: [...], NextAttemptBefore: nextAttemptBefore}); ...; page.PageNumber++ }`)
+**Delivery status state machine in reconcileWebhookEvent** — webhook.go drives Pending→send/timeout, Resending→resend+Sending, Sending→read-provider-state/fail-on-timeout transitions. All terminal failure reasons are defined as sentinel error vars in webhook.go — never introduce new terminal reason strings outside that file. (`switch status.State { case notification.EventDeliveryStatusStatePending: ...; case notification.EventDeliveryStatusStateResending: ...; case notification.EventDeliveryStatusStateSending: ... }`)
+**sync.OnceFunc for idempotent Close()** — stopCh is a plain chan struct{}; stopChClose is wrapped with sync.OnceFunc so Close() is safe to call multiple times and Start() stops reliably on signal. (`stopChClose := sync.OnceFunc(func() { close(stopCh) })`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `handler.go` | Handler struct definition, Config validation, New() constructor, Start()/Close() lifecycle. Start() runs a ticker loop calling Reconcile(); panic in Start() closes the stopCh. | ReconcileInterval, PendingTimeout, and SendingTimeout default to package-level constants if zero — never pass zero intentionally expecting a no-op. |
-| `dispatch.go` | Dispatch() goroutine launcher. Captures OTel span link before the goroutine, then opens a fresh root span inside the goroutine. | Dispatch always returns nil; real errors are only logged. Do not check the return value for dispatch success. |
-| `reconcile.go` | Reconcile() acquires advisory lock, paginates pending events, and calls reconcileEvent per item. reconcileEvent fans out to reconcileWebhookEvent by channel type. | nextAttemptDelay jitter (10s) must remain to avoid racing Svix async state updates; removing it causes spurious missing-status false-positives. |
-| `webhook.go` | reconcileWebhookEvent drives the per-delivery-status state machine against the Svix webhook provider. Defines all sentinel error vars (ErrUser*, ErrSystem*). | The six sentinel errors are the canonical human-readable failure reasons stored in the DB. Do not introduce new terminal-state strings outside this file. |
-| `deliverystatus.go` | Pure helpers: filterActiveDeliveryStatusesByChannelType removes terminal and channel-type-mismatched statuses; sortDeliveryStatusStateByPriority orders by priority map. | These are stateless functions with no side effects — keep them that way. |
+| `handler.go` | Handler struct definition, Config validation, New() constructor, Start()/Close() lifecycle. Start() runs pglock.Do loop calling Reconcile() on a ticker. | ReconcileInterval, PendingTimeout, and SendingTimeout default to package-level constants if zero — never pass zero expecting a no-op. atomic.Bool running guards against double-Start. |
+| `dispatch.go` | Dispatch() goroutine launcher. Captures OTel span link before launching, then opens a fresh root span inside the goroutine with context.WithTimeout. | Dispatch always returns nil; real errors are only logged. Do NOT check the return value for dispatch success — the reconcile loop is the recovery path. |
+| `reconcile.go` | Reconcile() paginates pending events and fans out to reconcileEvent per item using a semaphore-bounded worker pool (workerPoolSize). reconcileEvent dispatches to reconcileWebhookEvent by channel type. | nextAttemptDelay (10s) must remain to avoid racing Svix async state updates. Worker goroutines each have their own panic recovery. |
+| `webhook.go` | reconcileWebhookEvent drives the per-delivery-status state machine against the Svix webhook provider. Defines all six sentinel error vars (ErrUser*, ErrSystem*) that are stored verbatim as DB failure reasons. | The six sentinel errors are the canonical human-readable failure reasons. Do not introduce new terminal-state strings outside this file. RetryableError.RetryAfter() controls the next-attempt delay for transient errors. |
+| `deliverystatus.go` | Pure stateless helpers: filterActiveDeliveryStatusesByChannelType and sortDeliveryStatusStateByPriority. No side effects. | Keep these functions pure — no logger, tracer, or DB calls. Priority map order (Pending=0, Resending=1, Sending=2) determines which status is reconciled first within an event. |
 
 ## Anti-Patterns
 
-- Calling reconcileEvent synchronously from Dispatch (breaks the fire-and-forget contract; callers must not block).
+- Calling reconcileEvent synchronously from Dispatch — breaks the fire-and-forget contract; Watermill consumers must not block on webhook delivery.
 - Using context.Background() inside reconcileEvent or reconcileWebhookEvent instead of the received ctx — OTel spans and transaction bindings would be lost.
-- Adding new terminal delivery status reason strings outside webhook.go sentinel error vars — creates inconsistent DB state.
-- Skipping lockr.LockForTXWithScopes in Reconcile — multiple pods would double-reconcile events and produce duplicate Svix sends.
-- Making Handler a value receiver for Start/Close — stopCh and stopChClose are pointer-receiver state; mixing receivers causes data races.
+- Adding new terminal delivery status reason strings outside webhook.go sentinel error vars — creates inconsistent DB state across reconcile iterations.
+- Skipping the pglock.Do leader-election in Start() — multiple pods would double-reconcile events and produce duplicate Svix sends.
+- Making Handler methods value receivers for Start/Close — stopCh and stopChClose are pointer-receiver state; mixing receivers causes data races.
 
 ## Decisions
 
 - **Dispatch fires a goroutine and always returns nil** — Callers (Watermill consumers) must not block on webhook delivery; failures are non-fatal to the consumer pipeline and are recovered by the reconcile loop.
-- **Reconcile holds a pg advisory lock for its entire transaction** — Prevents multiple notification-service replicas from sending duplicate Svix messages when the same pending event is visible to all of them.
-- **nextAttemptDelay jitter before re-querying Svix state** — Svix processes messages asynchronously; querying immediately after dispatch yields stale 'not found' states and causes unnecessary retries.
+- **Start() uses pglock.Client.Do for leader-election rather than application-level lockr advisory locks** — The reconcile loop must survive transaction boundaries — pglock holds a connection-scoped lock across multiple reconcile ticks, whereas pg_advisory_xact_lock releases on each transaction commit.
+- **nextAttemptDelay jitter (10s) before re-querying Svix state** — Svix processes messages asynchronously; querying immediately after dispatch yields stale 'not found' states and causes unnecessary retries and false-positive failure transitions.
 
-## Example: Adding a new channel type handler inside reconcileEvent
+## Example: Adding a new channel type handler inside reconcileEvent (reconcile.go)
 
 ```
 // In reconcile.go, extend the switch in reconcileEvent:

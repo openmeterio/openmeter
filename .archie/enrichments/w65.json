@@ -1,67 +1,277 @@
 {
-  "openmeter/billing/creditgrant/service": {
-    "purpose": "Implements the creditgrant.Service interface \u2014 a facade that orchestrates credit grant creation, retrieval, listing, and external settlement transitions by delegating to charges.Service and creditpurchase.Service. It owns no direct DB access; all persistence flows through charges.Service.",
+  "openmeter/billing/charges/usagebased/service/rating/delta": {
+    "purpose": "Implements the production delta rating engine for usage-based charges: rates the current cumulative meter snapshot via billingrating.Service, subtracts all already-billed DetailedLines, and books the remaining delta on the current run's service period. Every output line is stamped to the current period \u2014 corrections are not attributed back to their originating period.",
     "patterns": [
       {
-        "name": "Config struct with Validate() + New()",
-        "description": "All dependencies are declared in a Config struct. New() calls Config.Validate() before constructing the service, returning an error if any required dependency is nil.",
-        "example": "func New(config Config) (creditgrant.Service, error) { if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid config: %w\", err) } ... }"
+        "name": "Cumulative-snapshot subtraction",
+        "description": "Engine.Rate always calls ratingService.GenerateDetailedLines on the full cumulative quantity, then calls subtract.SubtractRatedRunDetails to remove what was already billed. Never compute deltas at the meter-query level.",
+        "example": "billingDetailedLines, err := e.ratingService.GenerateDetailedLines(usagebased.RateableIntent{...}); remainingDetailedLines, err := subtract.SubtractRatedRunDetails(currentDetailedLines, alreadyBilledDetailedLines, uniqueReferenceIDGenerator{})"
       },
       {
-        "name": "Input.Validate() called at top of every method",
-        "description": "Every public service method calls input.Validate() as its first statement and wraps the error with fmt.Errorf before returning.",
-        "example": "func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (...) { if err := input.Validate(); err != nil { return ..., fmt.Errorf(\"invalid input: %w\", err) } }"
+        "name": "Credit stripping before subtraction",
+        "description": "Strip CreditsApplied and CreditsTotal from alreadyBilledDetailedLines before passing to SubtractRatedRunDetails so credit-allocation changes do not appear as usage or pricing changes.",
+        "example": "line.CreditsApplied = nil; line.Totals.CreditsTotal = alpacadecimal.Zero; line.Totals.Total = line.Totals.CalculateTotal()"
       },
       {
-        "name": "Delegate to charges.Service, never touch Ent directly",
-        "description": "The service layer has no entdb import and performs no Ent queries. All data mutations go through chargesService.Create / GetByID / HandleCreditPurchaseExternalPaymentStateTransition.",
-        "example": "result, err := s.chargesService.Create(ctx, charges.CreateInput{Namespace: input.Namespace, Intents: charges.ChargeIntents{charges.NewChargeIntent(intent)}})"
+        "name": "Minimum commitment deferred to final period",
+        "description": "Pass billingrating.WithMinimumCommitmentIgnored() to GenerateDetailedLines whenever CurrentPeriod.ServicePeriod.To is before Intent.ServicePeriod.To. Minimum commitment is only applied on the final service-period snapshot.",
+        "example": "if in.CurrentPeriod.ServicePeriod.To.Before(in.Intent.ServicePeriod.To) { opts = append(opts, billingrating.WithMinimumCommitmentIgnored()) }"
       },
       {
-        "name": "Ownership check before returning a charge",
-        "description": "Get() verifies cpCharge.Intent.CustomerID == input.CustomerID and returns models.NewGenericNotFoundError if there is a mismatch, preventing cross-tenant data leaks.",
-        "example": "if cpCharge.Intent.CustomerID != input.CustomerID { return ..., models.NewGenericNotFoundError(...) }"
+        "name": "All delta lines stamped to current period",
+        "description": "After subtraction, set every remaining line's ServicePeriod to CurrentPeriod.ServicePeriod and clear CorrectsRunID. Delta rating does not preserve the originating period of corrections.",
+        "example": "remainingDetailedLines[idx].ServicePeriod = in.CurrentPeriod.ServicePeriod; remainingDetailedLines[idx].CorrectsRunID = nil"
       },
       {
-        "name": "ValidationIssue for business-rule rejections",
-        "description": "Business-rule violations (e.g. wrong settlement type) use models.NewValidationIssue with commonhttp.WithHTTPStatusCodeAttribute to carry an explicit HTTP status code to the encoder.",
-        "example": "return ..., models.NewValidationIssue(\"credit_grant_external_settlement_not_supported\", \"credit grant is not externally funded\", models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest), ...)"
+        "name": "Dense index assignment after Sort",
+        "description": "Call remainingDetailedLines.Sort() before assigning Index values. Indexes are part of the detailed-line persistence contract and must be assigned after sorting.",
+        "example": "remainingDetailedLines.Sort(); for idx := range remainingDetailedLines { index := idx; remainingDetailedLines[idx].Index = &index }"
       },
       {
-        "name": "toIntent / toSettlement conversion helpers are private",
-        "description": "Mapping from CreateInput to creditpurchase.Intent is isolated in package-private toIntent() and toSettlement() functions, keeping the service methods clean.",
-        "example": "intent := toIntent(input); result, err := s.chargesService.Create(ctx, charges.CreateInput{..., Intents: charges.ChargeIntents{charges.NewChargeIntent(intent)}})"
+        "name": "Duplicate ChildUniqueReferenceID validation",
+        "description": "After index assignment, validate that all ChildUniqueReferenceID values in the output are unique. Return an error if duplicates exist.",
+        "example": "childUniqueReferenceIDs := lo.GroupBy(remainingDetailedLines, ...); if len(lines) > 1 { return Result{}, fmt.Errorf(\"duplicate child unique reference id: %s\", id) }"
+      },
+      {
+        "name": "PreviousOnlyReversal requires a persisted line ID",
+        "description": "uniqueReferenceIDGenerator.PreviousOnlyReversal errors if line.ID is empty because the correction child reference must be stable and deterministic. Always ensure already-billed lines carry their persisted ID.",
+        "example": "func (uniqueReferenceIDGenerator) PreviousOnlyReversal(line usagebased.DetailedLine) (string, error) { if line.ID == \"\" { return \"\", fmt.Errorf(\"detailed line id is required\") }; return fmt.Sprintf(\"%s#correction:detailed_line_id=%s\", line.PricerReferenceID, line.ID), nil }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "service.go",
-        "role": "Single file implementing creditgrant.Service. Wraps charges.Service and creditpurchase.Service; performs customer existence check, ownership assertion, and settlement-type validation before delegating.",
-        "watch_for": "toIntent() hardcodes clock.Now() for ServicePeriod/BillingPeriod/FullServicePeriod with a TODO \u2014 real period derivation is not yet implemented. Do not rely on these values being meaningful."
+        "file": "engine.go",
+        "role": "The single public entry point Engine.Rate. Owns the full delta-rating pipeline: validate input, call billing rating, convert to usagebased.DetailedLines, strip credits, subtract, stamp periods, sort, assign indexes, validate uniqueness.",
+        "watch_for": "Credits must be stripped before SubtractRatedRunDetails is called; omitting this makes credit changes appear as usage changes. WithCreditsMutatorDisabled() must also be passed to GenerateDetailedLines."
+      },
+      {
+        "file": "uniquereferenceid.go",
+        "role": "Implements subtract.UniqueReferenceIDGenerator for the delta engine. CurrentOnly and MatchedDelta pass through the generated ChildUniqueReferenceID unchanged; PreviousOnlyReversal generates a deterministic correction reference using the persisted line ID.",
+        "watch_for": "PreviousOnlyReversal panics if line.ID is empty. The correction format is '<PricerReferenceID>#correction:detailed_line_id=<ID>' \u2014 do not change this format without updating downstream parsers."
+      },
+      {
+        "file": "base_test.go",
+        "role": "Defines deltaRatingTestCase / deltaRatingPhase table-driven test harness. runDeltaRatingTestCase simulates multi-phase billing by passing booked lines from earlier phases as AlreadyBilledDetailedLines to later phases.",
+        "watch_for": "detailedLinesBookedForDeltaTest assigns synthetic IDs ('phase-N-line-M') so PreviousOnlyReversal can generate stable correction references. Tests that omit line IDs will fail when reversals are expected."
+      },
+      {
+        "file": "engine_test.go",
+        "role": "Unit tests for Engine.Rate that use a stubRatingService to control billing-rating output precisely. Covers credit stripping, partial-run minimum-commitment suppression, subtraction, and correction reference generation.",
+        "watch_for": "stubRatingService.lastOpts lets tests assert that IgnoreMinimumCommitment and DisableCreditsMutator were set correctly \u2014 check these assertions when modifying option logic."
       }
     ],
     "anti_patterns": [
-      "Importing openmeter/ent/db or calling Ent builders directly \u2014 all DB access must go through charges.Service or creditpurchase.Service",
-      "Skipping input.Validate() at the top of a new method \u2014 every public method must validate before acting",
-      "Returning a charge without verifying CustomerID ownership \u2014 always assert cpCharge.Intent.CustomerID == input.CustomerID in Get-style methods",
-      "Using context.Background() instead of the caller-supplied ctx",
-      "Adding business logic inside toIntent()/toSettlement() beyond pure field mapping \u2014 keep them as dumb converters"
+      "Do not pass credits-inclusive AlreadyBilledDetailedLines to SubtractRatedRunDetails without first zeroing CreditsApplied and CreditsTotal \u2014 credit changes will appear as spurious usage deltas.",
+      "Do not assign Index values before calling Sort \u2014 indexes are persistence keys and must reflect final sort order.",
+      "Do not set CorrectsRunID on output lines \u2014 delta rating intentionally books all corrections on the current run period; CorrectsRunID is for period-preserving rating only.",
+      "Do not apply minimum commitment on partial runs \u2014 call WithMinimumCommitmentIgnored() whenever CurrentPeriod.ServicePeriod.To < Intent.ServicePeriod.To.",
+      "Do not construct Engine without a non-nil billingrating.Service \u2014 billing rating is the source of the cumulative line list that subtraction operates on."
     ],
     "decisions": [
       {
-        "decision": "Service delegates entirely to charges.Service rather than holding its own adapter",
-        "rationale": "Credit grants are a specialised view of creditpurchase.Charge; all lifecycle state (advance, realizations, ledger writes) is already managed by the charges pipeline, so duplicating persistence here would create divergent write paths."
+        "decision": "Delta engine books all corrections on the current run's service period rather than the originating period.",
+        "rationale": "Downstream invoicing only handles 'current invoice period only' line shapes. Period-preserving corrections require separate invoice-compatible correction handling that is not yet finished."
       },
       {
-        "decision": "Ownership check done in the service layer (not in charges.Service)",
-        "rationale": "charges.Service is namespace-scoped but not customer-scoped; the creditgrant service is the API boundary that adds per-customer access control without polluting the generic charges layer."
+        "decision": "Credits are stripped from already-billed lines before subtraction, not before billing rating.",
+        "rationale": "Credit allocation happens after rating and varies independently of usage or pricing. Subtracting credit-inclusive lines would make credit changes appear as usage changes and produce incorrect deltas."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Creating a credit grant \u2014 full path from CreateInput to creditpurchase.Charge",
-        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/billing/charges\"\n    \"github.com/openmeterio/openmeter/openmeter/billing/charges/meta\"\n    \"github.com/openmeterio/openmeter/openmeter/billing/creditgrant\"\n)\n\nfunc (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (creditpurchase.Charge, error) {\n    if err := input.Validate(); err != nil {\n        return creditpurchase.Charge{}, fmt.Errorf(\"invalid input: %w\", err)\n    }\n    _, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput{CustomerID: &customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID}})\n    if err != nil {\n        return creditpurchase.Charge{}, fmt.Errorf(\"get customer: %w\", err)\n    }\n    intent := toIntent(input)\n    result, err := s.chargesService.Create(ctx, charges.CreateInput{\n        Namespace: input.Namespace,\n        Intents:   charges.ChargeIntents{charges.NewChargeIntent(intent)},\n    })\n    if err != nil {\n        return creditpurchase.Charge{}, fmt.Errorf(\"create credit grant charge: %w\", err)\n    }\n    createdChargeID, _ := result[0].GetChargeID()\n    charge, _ := s.chargesService.GetByID(ctx, charges.GetByIDInput{ChargeID: createdChargeID, Expands: meta.Expands{meta.ExpandRealizations}})\n    return charge.AsCreditPurchaseCharge()\n}"
+        "scenario": "Add a new price type to the delta engine test harness",
+        "code": "runDeltaRatingTestCase(t, deltaRatingTestCase{\n    price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(10)}),\n    phases: []deltaRatingPhase{\n        {\n            period:          periods.period1,\n            meteredQuantity: 5,\n            expectedDetailedLines: []ratingtestutils.ExpectedDetailedLine{\n                {\n                    ChildUniqueReferenceID: billingrating.UnitPriceUsageChildUniqueReferenceID,\n                    Category:              stddetailedline.CategoryRegular,\n                    ServicePeriod:         lo.ToPtr(periods.period1),\n                    PerUnitAmount:         10, Quantity: 5,\n                    Totals: ratingtestutils.ExpectedTotals{Amount: 50, Total: 50},\n                },\n            },\n            expectedTotals: ratingtestutils.ExpectedTotals{Amount: 50, Total: 50},\n        },\n    },\n})"
       }
     ]
+  },
+  "openmeter/billing/charges/usagebased/service/rating/periodpreserving": {
+    "purpose": "Implements the period-preserving rating engine for usage-based charges: rates cumulative meter snapshots for the current period and all prior periods with the current stored-at cutoff, subtracts already-billed detailed lines per period, and emits corrections that keep their source service period and CorrectsRunID. NOT safe for production invoice use until invoice-compatible correction handling is finished (see README warning).",
+    "patterns": [
+      {
+        "name": "Epoch-based cumulative rating",
+        "description": "Build rating epochs from sorted prior periods plus the current period. For each epoch, call billingrating.Service.GenerateDetailedLines for the cumulative quantity up to that epoch's end. Subtract all earlier-epoch generated lines to isolate new lines attributable to that epoch.",
+        "example": "For each epoch: billingDetailedLines = ratingService.GenerateDetailedLines(RateableIntent{...MeterValue: cumulativeUpToEpoch}); epochLines = SubtractRatedRunDetails(epochCumulative, priorEpochCumulative, generatedUniqueReferenceIDGenerator{}, WithUniqueReferenceIDValidationIgnored())"
+      },
+      {
+        "name": "Period-stamped ChildUniqueReferenceID",
+        "description": "Before returning output lines, stamp each line's ChildUniqueReferenceID with the source service period using the format '<id>@[<from>..<to>]'. This makes child references unique within a run when the same rating component appears across multiple periods.",
+        "example": "FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, periods.period1) == 'unit-price-usage@[2025-01-01T00:00:00Z..2025-01-10T00:00:00Z]'"
+      },
+      {
+        "name": "CorrectsRunID on prior-period corrections",
+        "description": "When subtracting already-billed lines for a prior period, set CorrectsRunID on output correction lines to the corrected realization run ID. Current-period lines leave CorrectsRunID nil.",
+        "example": "for _, priorPeriod := range sortedPriorPeriods { corrections := subtractAlreadyBilledForPeriod(...); for i := range corrections { corrections[i].CorrectsRunID = lo.ToPtr(priorPeriod.RunID) } }"
+      },
+      {
+        "name": "Non-overlapping prior period validation",
+        "description": "Validate that prior periods do not overlap each other or the current period before rating. Overlapping buckets produce the same period-stamped identity twice, causing duplicate ChildUniqueReferenceID errors.",
+        "example": "if err := i.CurrentPeriod.ServicePeriod.Validate(); err != nil { ... }; // also check all priorPeriods against each other"
+      },
+      {
+        "name": "Intermediate subtraction with validation ignored",
+        "description": "Epoch-to-epoch subtraction for building expected lines per epoch must pass WithUniqueReferenceIDValidationIgnored() because intermediate lines are not persisted and may have duplicate references before period stamping.",
+        "example": "subtract.SubtractRatedRunDetails(currentEpoch, previousEpoch, generatedUniqueReferenceIDGenerator{}, subtract.WithUniqueReferenceIDValidationIgnored())"
+      },
+      {
+        "name": "Credit stripping from already-billed lines",
+        "description": "Same as delta engine \u2014 strip CreditsApplied and CreditsTotal from already-billed lines before subtraction arithmetic so credit-allocation changes do not appear as usage changes.",
+        "example": "line.CreditsApplied = nil; line.Totals.CreditsTotal = alpacadecimal.Zero; line.Totals.Total = line.Totals.CalculateTotal()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "engine.go",
+        "role": "Engine.Rate orchestrates the multi-epoch pipeline: validates input, sorts prior periods, builds epochs, generates cumulative lines per epoch, does epoch-to-epoch subtraction, strips credits and subtracts already-billed per prior period, stamps output with period suffixes, sorts, assigns indexes.",
+        "watch_for": "The intermediate epoch subtraction ignores unique-ID validation (WithUniqueReferenceIDValidationIgnored) \u2014 only the final stamped output gets uniqueness validation. Do not accidentally validate intermediate lines."
+      },
+      {
+        "file": "uniquereferenceid.go",
+        "role": "Provides two generators: generatedUniqueReferenceIDGenerator (all three methods pass through ChildUniqueReferenceID for intermediate epoch arithmetic) and bookedCorrectionUniqueReferenceIDGenerator (PreviousOnlyReversal generates '<PricerReferenceID>#correction:detailed_line_id=<ID>' for already-billed corrections).",
+        "watch_for": "bookedCorrectionUniqueReferenceIDGenerator.PreviousOnlyReversal requires line.ID \u2014 it errors if the already-billed line has no persisted ID. generatedUniqueReferenceIDGenerator is safe to use with empty IDs."
+      },
+      {
+        "file": "engine_test.go",
+        "role": "Comprehensive late-event and repricing scenarios using a lateEventRatingTestCase / lateEventRatingPhase harness. Each phase provides usagePerPhaseCumulative (per-snapshot cumulative quantities per period) so the test engine can simulate meter snapshots arriving across multiple runs.",
+        "watch_for": "The README warns this engine is NOT production-ready for invoices. All tests exercise internal correctness but invoice-level correction handling (negative commitment/discount lines) is unfinished."
+      }
+    ],
+    "anti_patterns": [
+      "Do not use this engine as the invoice-facing rater \u2014 minimum commitments, maximum commitments, usage discounts, and percentage discounts can emit negative commitment/discount lines that downstream invoice systems cannot handle.",
+      "Do not validate ChildUniqueReferenceID uniqueness on intermediate epoch-subtraction outputs \u2014 call WithUniqueReferenceIDValidationIgnored() for intermediate steps and only validate the final period-stamped output.",
+      "Do not allow overlapping prior periods \u2014 period stamping produces the same identity for overlapping buckets, causing duplicate ChildUniqueReferenceID errors.",
+      "Do not set CorrectsRunID on current-period lines \u2014 only prior-period correction output gets CorrectsRunID set to the corrected run ID.",
+      "Do not skip credit stripping before already-billed subtraction \u2014 credit allocation changes will produce spurious usage or pricing deltas."
+    ],
+    "decisions": [
+      {
+        "decision": "Corrections keep their originating service period and CorrectsRunID instead of being rolled into the current run period.",
+        "rationale": "Late-arriving usage must be attributed to the period where the usage occurred. Invoice clients need period-accurate correction lines to show customers where their usage was revised."
+      },
+      {
+        "decision": "Engine is explicitly marked not production-ready for invoice use in README.",
+        "rationale": "Post-rating mutations (min/max commitment, discounts) can produce mathematically correct but invoice-incompatible negative lines. Invoice-compatible correction handling must be added before this engine faces customers."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/billing/charges/usagebased/service/rating/subtract": {
+    "purpose": "Pure arithmetic primitive: subtracts previously-rated DetailedLines from currently-rated DetailedLines and returns the remaining lines. Does not query meters, call billing rating, allocate credits, or decide invoice periods. Used as the shared subtraction backend by both the delta and period-preserving rating engines.",
+    "patterns": [
+      {
+        "name": "Matching by calculation key, not ChildUniqueReferenceID",
+        "description": "Lines are matched by the (PricerReferenceID, Category, PaymentTerm) key. Within a key, matching is by PerUnitAmount using decimal equality. ChildUniqueReferenceID is a persistence identity assigned by the caller-supplied UniqueReferenceIDGenerator, not used for matching.",
+        "example": "key := detailedLineKey{ReferenceID: line.PricerReferenceID, Category: line.Category, PaymentTerm: line.PaymentTerm}"
+      },
+      {
+        "name": "Repricing via PerUnitAmount mismatch",
+        "description": "When current and previous lines share the same calculation key but differ in PerUnitAmount, the current line is emitted as CurrentOnly and the previous line as PreviousOnlyReversal (negative). This represents a price change, not a quantity delta.",
+        "example": "findDetailedLineByPerUnitAmount scans with decimal equality; if not found, generator.CurrentOnly is called for the current line and unmatched previous lines become PreviousOnlyReversal"
+      },
+      {
+        "name": "Three generator callbacks for output identity",
+        "description": "Callers implement UniqueReferenceIDGenerator with three methods: CurrentOnly (no matching previous), MatchedDelta (quantity delta of a matched pair), PreviousOnlyReversal (previous line absent from current). Each method determines the ChildUniqueReferenceID for its output line.",
+        "example": "type UniqueReferenceIDGenerator interface { CurrentOnly(line) (string, error); MatchedDelta(current, previous line) (string, error); PreviousOnlyReversal(line) (string, error) }"
+      },
+      {
+        "name": "Zero-total line suppression",
+        "description": "Lines whose Totals.IsZero() are silently dropped from output. This includes matched deltas where current and previous are identical and correction reversals that net to zero.",
+        "example": "func isZeroDetailedLine(line usagebased.DetailedLine) bool { return line.Totals.IsZero() }"
+      },
+      {
+        "name": "WithUniqueReferenceIDValidationIgnored for intermediate use",
+        "description": "Pass WithUniqueReferenceIDValidationIgnored() when SubtractRatedRunDetails is used for intermediate epoch arithmetic (period-preserving engine). Final output must always have validation enabled.",
+        "example": "subtract.SubtractRatedRunDetails(curr, prev, gen, subtract.WithUniqueReferenceIDValidationIgnored())"
+      },
+      {
+        "name": "Deterministic key ordering in output",
+        "description": "Keys are sorted (by ReferenceID, Category, PaymentTerm) before iteration so output order is stable across runs. Within a key, lines are sorted by PerUnitAmount ascending.",
+        "example": "sort.Slice(keys, func(i, j int) bool { if keys[i].ReferenceID != keys[j].ReferenceID { return keys[i].ReferenceID < keys[j].ReferenceID } ... })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "subtract.go",
+        "role": "The single exported function SubtractRatedRunDetails. Validates inputs, groups by calculation key, matches by PerUnitAmount within key, delegates to UniqueReferenceIDGenerator for output identity, optionally validates ChildUniqueReferenceID uniqueness.",
+        "watch_for": "Negative quantities in input lines are accepted and valid (they represent existing reversals). Validation clones lines and negates quantity before calling Validate() so negative inputs pass. Do not add a sign check to inputs."
+      },
+      {
+        "file": "uniquereferenceid.go",
+        "role": "Defines the UniqueReferenceIDGenerator interface. Implementations are in the consuming engines (delta/uniquereferenceid.go, periodpreserving/uniquereferenceid.go).",
+        "watch_for": "This file only defines the interface; implementations live in the engine packages. The interface must stay stable because both engines depend on it."
+      },
+      {
+        "file": "subtract_test.go",
+        "role": "Table-driven unit tests covering unit price, tiered, and volume price subtraction scenarios including rounding correction, no-delta suppression, and currency mismatch validation.",
+        "watch_for": "Tests construct AlreadyBilledDetailedLines manually and call billingratingservice.New() to generate current lines \u2014 this exercises the real billing-rating service, not a stub. Changes to billing-rating output shapes will break these tests."
+      }
+    ],
+    "anti_patterns": [
+      "Do not use ChildUniqueReferenceID as the arithmetic matching key \u2014 it is a persistence identity assigned by the generator, not a semantic matching criterion.",
+      "Do not compare PerUnitAmount as a string map key \u2014 use decimal equality (Equal) to avoid unsafe comparisons that treat 1.0 and 1.00 as different.",
+      "Do not use SubtractRatedRunDetails as a standalone invoice rating algorithm \u2014 it is a low-level arithmetic primitive; callers must supply the correct cumulative context and credit-stripped inputs.",
+      "Do not suppress zero-quantity lines without calling isZeroDetailedLine (which checks Totals.IsZero()) \u2014 a line can have zero quantity but non-zero totals (e.g., discount-only lines).",
+      "Do not skip WithUniqueReferenceIDValidationIgnored() for intermediate epoch arithmetic \u2014 the period-preserving engine produces duplicate intermediate references that are valid before period stamping."
+    ],
+    "decisions": [
+      {
+        "decision": "Match on (PricerReferenceID, Category, PaymentTerm) + PerUnitAmount, not ChildUniqueReferenceID.",
+        "rationale": "ChildUniqueReferenceID is the output identity, not the arithmetic identity. Matching by it would prevent the engine from detecting repricing (same semantic line, different price) as a price change."
+      },
+      {
+        "decision": "UniqueReferenceIDGenerator is a caller-supplied strategy rather than a fixed function.",
+        "rationale": "Delta and period-preserving engines need different ChildUniqueReferenceID schemes for corrections. The strategy pattern keeps subtract.go free of engine-specific ID formatting logic."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implement a UniqueReferenceIDGenerator for a new engine",
+        "code": "type myGenerator struct{}\nfunc (myGenerator) CurrentOnly(line usagebased.DetailedLine) (string, error) {\n    return line.ChildUniqueReferenceID, nil\n}\nfunc (myGenerator) MatchedDelta(current, _ usagebased.DetailedLine) (string, error) {\n    return current.ChildUniqueReferenceID, nil\n}\nfunc (myGenerator) PreviousOnlyReversal(line usagebased.DetailedLine) (string, error) {\n    if line.ID == \"\" { return \"\", fmt.Errorf(\"line id required for correction\") }\n    return fmt.Sprintf(\"%s#correction:detailed_line_id=%s\", line.PricerReferenceID, line.ID), nil\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/usagebased/service/rating/testutils": {
+    "purpose": "Test utility package providing shared fixtures, type converters, and intent constructors for usage-based rating engine tests (delta, periodpreserving, subtract). Converts internal usagebased.DetailedLine and totals.Totals types to float64-based ExpectedDetailedLine / ExpectedTotals structs for readable require.Equal assertions.",
+    "patterns": [
+      {
+        "name": "ExpectedDetailedLine for assertion",
+        "description": "Use ToExpectedDetailedLinesWithServicePeriod to convert engine output to []ExpectedDetailedLine before passing to require.Equal. All decimal values are converted to InexactFloat64() so assertions are readable without decimal constructor calls.",
+        "example": "require.Equal(t, []ratingtestutils.ExpectedDetailedLine{{ChildUniqueReferenceID: billingrating.UnitPriceUsageChildUniqueReferenceID, PerUnitAmount: 10, Quantity: 5, Totals: ratingtestutils.ExpectedTotals{Amount: 50, Total: 50}}}, ratingtestutils.ToExpectedDetailedLinesWithServicePeriod(out.DetailedLines))"
+      },
+      {
+        "name": "FormatDetailedLineChildUniqueReferenceID for period-stamped IDs",
+        "description": "Use FormatDetailedLineChildUniqueReferenceID(id, period) to construct the expected period-stamped ChildUniqueReferenceID strings in period-preserving engine tests. Format is '<id>@[<from RFC3339>..<to RFC3339>]'.",
+        "example": "ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, periods.period1)"
+      },
+      {
+        "name": "NewIntentForTest for standard intent construction",
+        "description": "Use NewIntentForTest(t, servicePeriod, price, discounts) to construct a valid usagebased.Intent for tests. It sets canonical test values (customer-1, USD, feature-1, CreditThenInvoiceSettlementMode) and calls require.NoError(intent.Validate()).",
+        "example": "intent := ratingtestutils.NewIntentForTest(t, servicePeriod, *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(10)}), productcatalog.Discounts{})"
+      },
+      {
+        "name": "NewUnitPriceIntentForTest shortcut",
+        "description": "Use NewUnitPriceIntentForTest(t, servicePeriod, amount) when the test only needs a unit price intent \u2014 it calls NewIntentForTest with empty discounts.",
+        "example": "intent := ratingtestutils.NewUnitPriceIntentForTest(t, servicePeriod, alpacadecimal.NewFromInt(3))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "testutils.go",
+        "role": "All test utilities are in this single file. Exports ExpectedDetailedLine, ExpectedTotals, ToExpectedDetailedLinesWithServicePeriod, ToExpectedTotals, FormatDetailedLineChildUniqueReferenceID, NewIntentForTest, NewUnitPriceIntentForTest.",
+        "watch_for": "ToExpectedDetailedLinesWithServicePeriod always includes ServicePeriod in the expected struct. If your engine output has nil ServicePeriod, use a custom mapping instead of this helper. CorrectsRunID is also included \u2014 period-preserving tests must set it on expected lines for corrections."
+      }
+    ],
+    "anti_patterns": [
+      "Do not import app/common from this test utility package \u2014 test dependencies must be built from underlying package constructors to avoid import cycles.",
+      "Do not use InexactFloat64() comparisons for currency-precision values outside tests \u2014 float64 representation can differ from alpacadecimal rounding; these helpers are test-only.",
+      "Do not add production code to this package \u2014 it is exclusively for test fixtures and converters.",
+      "Do not construct usagebased.Intent manually in engine tests \u2014 always use NewIntentForTest or NewUnitPriceIntentForTest to ensure the intent passes Validate()."
+    ],
+    "decisions": [
+      {
+        "decision": "All decimal values are converted to InexactFloat64() in expected structs rather than using alpacadecimal.Decimal in assertions.",
+        "rationale": "Float64 values make test case literals readable without alpacadecimal.NewFromFloat(...) calls throughout test files. Engine tests operate on currency-scale amounts where float64 precision is sufficient for assertion purposes."
+      }
+    ],
+    "code_examples": []
   }
 }

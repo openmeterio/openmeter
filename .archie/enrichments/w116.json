@@ -1,95 +1,61 @@
 {
-  "openmeter/server/router": {
-    "purpose": "Thin v1 HTTP routing layer that implements api.ServerInterface by delegating every endpoint to a typed domain handler retrieved from router.Config. It owns no business logic \u2014 its sole constraint is that every method body must terminate with a single handler call ending in .ServeHTTP(w, r).",
+  "openmeter/registry/builder": {
+    "purpose": "Single-function package providing GetEntitlementRegistry, a non-Wire factory that wires all entitlement-domain adapters, connectors, and services into *registry.Entitlement. Used by balance-worker and test suites that need entitlement infrastructure without importing app/common.",
     "patterns": [
       {
-        "name": "Handler delegation via .With().ServeHTTP()",
-        "description": "Every Router method unpacks path/query params into a typed Params struct, calls the handler's named method (e.g. a.billingHandler.GetInvoice()), chains .With(params) when params exist, and ends with .ServeHTTP(w, r). No business logic lives here.",
-        "example": "a.billingHandler.GetInvoice().With(httpdriver.GetInvoiceParams{InvoiceID: invoiceId, Expand: lo.FromPtr(params.Expand)}).ServeHTTP(w, r)"
+        "name": "Options struct as constructor input",
+        "description": "All external dependencies are grouped into EntitlementOptions (DatabaseClient, StreamingConnector, Logger, MeterService, CustomerService, Publisher, Tracer, Locker, EntitlementsConfiguration). New parameters must be added to this struct, not as direct function arguments.",
+        "example": "GetEntitlementRegistry(EntitlementOptions{DatabaseClient: db, StreamingConnector: conn, ...})"
       },
       {
-        "name": "Config aggregates all domain service interfaces",
-        "description": "router.Config holds every domain service (billing.Service, customer.Service, etc.) and config flags. NewRouter constructs all domain handlers from Config fields, injecting staticNamespaceDecoder and httptransport.WithErrorHandler(config.ErrorHandler) into every handler constructor.",
-        "example": "router.customerHandler = customerhttpdriver.New(staticNamespaceDecoder, config.Customer, config.SubscriptionService, config.EntitlementConnector, httptransport.WithErrorHandler(config.ErrorHandler))"
+        "name": "Bottom-up adapter initialisation order",
+        "description": "DB adapters (featureDBAdapter, entitlementDBAdapter, grantDBAdapter, balanceSnapshotDBAdapter) are created first, then connectors that depend on them, then the top-level entitlement service. Never create a connector before its adapter dependencies.",
+        "example": "featureDBAdapter -> featureConnector -> meteredEntitlementConnector -> entitlementConnector"
       },
       {
-        "name": "StaticNamespaceDecoder injected universally",
-        "description": "All multi-tenant handlers receive namespacedriver.StaticNamespaceDecoder(config.NamespaceManager.GetDefaultNamespace()) as their first argument so namespace is resolved once at construction time for self-hosted deployments.",
-        "example": "staticNamespaceDecoder := namespacedriver.StaticNamespaceDecoder(config.NamespaceManager.GetDefaultNamespace())"
+        "name": "Register hooks immediately after connector construction",
+        "description": "RegisterHooks is called immediately after each connector is constructed \u2014 not inline, not deferred. Both meteredEntitlementConnector and entitlementConnector each get their own RegisterHooks call.",
+        "example": "meteredEntitlementConnector.RegisterHooks(meteredentitlement.ConvertHook(entitlementsubscriptionhook.NewEntitlementSubscriptionHook(...)))"
       },
       {
-        "name": "One file per domain resource",
-        "description": "Each resource area has its own file (billing.go, customer.go, meter.go, etc.) containing only the Router methods for that domain. router.go contains Config, Router struct, NewRouter, and init().",
-        "example": "billing.go holds all /api/v1/billing/* methods; meter.go holds all /api/v1/meters/* methods"
+        "name": "Return fully populated registry struct by pointer",
+        "description": "GetEntitlementRegistry returns *registry.Entitlement with every field explicitly populated. Any new connector or adapter added to registry.Entitlement must be assigned here or callers will get nil fields and runtime panics.",
+        "example": "return &registry.Entitlement{Feature: featureConnector, GrantRepo: grantDBAdapter, MeteredEntitlement: meteredEntitlementConnector, Entitlement: entitlementConnector, ...}"
       },
       {
-        "name": "Stub unimplemented endpoints with 501",
-        "description": "Methods that are not yet implemented return w.WriteHeader(http.StatusNotImplemented) directly rather than delegating. noop.go validates the Router still satisfies api.ServerInterface via var unimplemented api.ServerInterface = api.Unimplemented{}.",
-        "example": "func (a *Router) VoidInvoiceAction(w http.ResponseWriter, r *http.Request, invoiceId string) { w.WriteHeader(http.StatusNotImplemented) }"
-      },
-      {
-        "name": "Pre-handler body reads for non-standard content",
-        "description": "When a handler needs raw bytes before delegation (e.g. Stripe webhook payload, CloudEvents), the Router method reads/limits the body itself and passes it via a Params struct. Only do this for content that cannot be decoded by the httpdriver.",
-        "example": "r.Body = http.MaxBytesReader(w, r.Body, MaxBodyBytes); payload, err := io.ReadAll(r.Body); ... .With(AppStripeWebhookParams{Payload: payload}).ServeHTTP(w, r)"
-      },
-      {
-        "name": "Media-type dispatch within one endpoint",
-        "description": "QueryMeter and QueryMeterPost use commonhttp.GetMediaType to choose between JSON and CSV handler variants on the same route. All other routes use a single handler.",
-        "example": "if mediatype == \"text/csv\" { a.meterHandler.QueryMeterCSV().With(handlerParams).ServeHTTP(w, r); return }; a.meterHandler.QueryMeter().With(handlerParams).ServeHTTP(w, r)"
+        "name": "transactionManager via enttx.NewCreator",
+        "description": "The Ent transaction manager is created with enttx.NewCreator(opts.DatabaseClient) and passed into CreditConnectorConfig.TransactionManager. Never pass the raw *db.Client as a transaction manager.",
+        "example": "transactionManager := enttx.NewCreator(opts.DatabaseClient)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "router.go",
-        "role": "Defines Config (all injected services), Router struct (all handler fields), NewRouter constructor that wires handlers, and init() that registers CloudEvents body decoders for kin-openapi.",
-        "watch_for": "Config.Validate() panics if any required service is nil \u2014 always add new fields here AND add a nil check in Validate. The compile-time assertion var _ api.ServerInterface = (*Router)(nil) will catch missing method implementations."
-      },
-      {
-        "file": "noop.go",
-        "role": "Declares var unimplemented api.ServerInterface = api.Unimplemented{} to ensure the generated Unimplemented type is valid; does not contain real stubs.",
-        "watch_for": "Do not remove; it anchors the contract check for the generated fallback type."
-      },
-      {
-        "file": "portal.go",
-        "role": "QueryPortalMeter is a legacy handler that manually extracts the authenticated subject and re-dispatches to QueryMeter. It does not use the httpdriver pattern.",
-        "watch_for": "This is the only Router method that contains conditional auth logic and context manipulation \u2014 do not replicate this pattern for new endpoints."
-      },
-      {
-        "file": "meter.go",
-        "role": "Contains the only media-type dispatch (JSON vs CSV) via commonhttp.GetMediaType. All other domain files are pure delegation.",
-        "watch_for": "Logging the media-type parse error at Debug level is intentional \u2014 it is non-fatal and falls through to JSON default."
-      },
-      {
-        "file": "billing.go",
-        "role": "Invoice progress actions (advance, approve, retry, snapshot-quantities) all use the same ProgressInvoice handler with an action discriminator argument rather than separate handlers.",
-        "watch_for": "httpdriver.InvoiceProgressActionAdvance etc. are typed constants \u2014 pass the correct constant, not a string literal."
+        "file": "entitlement.go",
+        "role": "The only file in this package. Defines EntitlementOptions and GetEntitlementRegistry. Owns the full wiring sequence for entitlement-domain infrastructure.",
+        "watch_for": "Adding a new adapter/connector requires: (1) constructing it in the correct bottom-up order, (2) passing it to downstream constructors that depend on it, (3) assigning it to the returned registry struct. Skipping step 3 leaves callers with nil fields and runtime panics."
       }
     ],
     "anti_patterns": [
-      "Adding business logic, error handling, or database calls directly in a Router method \u2014 all logic belongs in the domain httpdriver package.",
-      "Reading r.Body in a Router method unless the httpdriver cannot decode it (e.g. raw webhook bytes) \u2014 let the handler's RequestDecoder own body parsing.",
-      "Skipping Config.Validate() nil check when adding a new service field \u2014 will cause a nil-pointer panic at handler construction time.",
-      "Creating a new file in this package for non-HTTP concerns (e.g. middleware, auth) \u2014 middleware belongs in openmeter/server/server.go, not the router package.",
-      "Bypassing the .With().ServeHTTP() chain by writing an inline http.Handler or calling w.WriteHeader/w.Write for anything other than stubs \u2014 breaks the uniform error encoding contract."
+      "Importing app/common from this package \u2014 it must remain independent to avoid import cycles with test suites",
+      "Skipping hook registration after connector construction \u2014 entitlementsubscriptionhook and credithook are mandatory for correct credit burn-down and subscription sync",
+      "Passing opts.DatabaseClient directly as a TxCreator \u2014 always wrap with enttx.NewCreator",
+      "Adding business logic or conditional wiring inside GetEntitlementRegistry \u2014 this is a pure factory; conditionals belong in the caller",
+      "Returning a partially populated *registry.Entitlement \u2014 every field must be set or downstream nil-dereferences will occur at runtime"
     ],
     "decisions": [
       {
-        "decision": "Router is a pure delegation layer with no business logic",
-        "rationale": "Keeps the generated api.ServerInterface boundary thin so the TypeSpec \u2192 OpenAPI \u2192 oapi-codegen pipeline can be re-run without touching any business logic. All logic lives in testable httpdriver packages."
+        "decision": "Single-function package instead of Wire provider set",
+        "rationale": "balance-worker and test suites need entitlement infrastructure without importing app/common Wire sets; a plain constructor avoids import cycles while still giving a fully wired registry"
       },
       {
-        "decision": "Config aggregates every domain service and config flag into a single validated struct",
-        "rationale": "NewRouter is the single wiring point for all ~25 domain handlers; a nil check at construction time surfaces missing dependencies before the server starts rather than at first request."
-      },
-      {
-        "decision": "One domain file per resource group",
-        "rationale": "Mirrors the TypeSpec package split (billing, customer, entitlement, etc.) so contributors can find the delegation for any endpoint without grepping the entire file."
+        "decision": "EntitlementOptions flat struct over variadic functional options",
+        "rationale": "All dependencies are mandatory; a flat struct makes missing fields a compile error (zero-value pointers panic early) and avoids the indirection of option functions"
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new v1 endpoint for a domain that already has a handler in Config",
-        "code": "// In the appropriate domain file (e.g. billing.go):\nfunc (a *Router) GetMyNewResource(w http.ResponseWriter, r *http.Request, id string, params api.GetMyNewResourceParams) {\n\ta.billingHandler.GetMyNewResource().With(httpdriver.GetMyNewResourceParams{\n\t\tID:     id,\n\t\tExpand: lo.FromPtr(params.Expand),\n\t}).ServeHTTP(w, r)\n}\n// No other changes needed in this package \u2014 the httpdriver method and TypeSpec \u2192 gen-api step are the real work."
+        "scenario": "Constructing the entitlement registry for a worker or test",
+        "code": "import (\n\tregistrybuilder \"github.com/openmeterio/openmeter/openmeter/registry/builder\"\n\t\"github.com/openmeterio/openmeter/openmeter/registry\"\n)\n\nfunc buildRegistry(db *entdb.Client, streamingConn streaming.Connector, meterSvc meter.Service, customerSvc customer.Service, publisher eventbus.Publisher, tracer trace.Tracer, locker *lockr.Locker, cfg config.EntitlementsConfiguration, logger *slog.Logger) *registry.Entitlement {\n\treturn registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{\n\t\tDatabaseClient:            db,\n\t\tEntitlementsConfiguration: cfg,\n\t\tStreamingConnector:        streamingConn,\n\t\tLogger:                    logger,\n\t\tMeterService:              meterSvc,\n\t\tCustomerService:           customerSvc,\n\t\tPublisher:                 publisher,\n\t\tTracer:                    tracer,\n\t\tLocker:                    locker,\n\t})\n}"
       }
     ]
   }

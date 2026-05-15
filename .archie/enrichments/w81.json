@@ -1,114 +1,86 @@
 {
-  "openmeter/dedupe/memorydedupe": {
-    "purpose": "In-memory LRU-backed deduplication for CloudEvents, used as the no-dependency fallback when Redis is unavailable. Implements the dedupe.Deduplicator interface using a fixed-size hashicorp/golang-lru cache keyed by dedupe.Item.Key().",
+  "openmeter/customer/service/hooks": {
+    "purpose": "Lifecycle hook implementations for the customer domain \u2014 entitlement validation pre-delete guard (entitlementvalidator.go) and subject-to-customer auto-provisioning (subjectcustomer.go). New hooks integrate with models.ServiceHook[T] registry without coupling the customer package to callers.",
     "patterns": [
       {
-        "name": "LRU-cache keyed by dedupe.Item.Key()",
-        "description": "All dedup checks use item.Key() (a composite of Namespace+ID+Source) as the LRU map key with nil values; never store event payloads.",
-        "example": "isContained, _ := d.store.ContainsOrAdd(item.Key(), nil)"
+        "name": "ServiceHook type alias pair",
+        "description": "Each hook file declares a public type alias for the interface and a Noop alias. The concrete struct embeds the Noop so only overridden methods need implementing.",
+        "example": "type EntitlementValidatorHook = models.ServiceHook[customer.Customer]\ntype NoopEntitlementValidatorHook = models.NoopServiceHook[customer.Customer]\nvar _ models.ServiceHook[customer.Customer] = (*entitlementValidatorHook)(nil)"
       },
       {
-        "name": "Implement all dedupe.Deduplicator methods",
-        "description": "Must implement IsUnique, CheckUnique, Set, Close, and CheckUniqueBatch to satisfy the dedupe.Deduplicator interface.",
-        "example": "func (d *Deduplicator) CheckUniqueBatch(ctx context.Context, items []dedupe.Item) (dedupe.CheckUniqueBatchResult, error)"
+        "name": "Config struct + Validate() + constructor",
+        "description": "Every hook is constructed via a Config struct with a Validate() error method. Constructor calls Validate() first, nil-dependency checks are mandatory inside Validate.",
+        "example": "func NewEntitlementValidatorHook(config EntitlementValidatorHookConfig) (EntitlementValidatorHook, error) {\n  if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid ... config: %w\", err) }\n  return &entitlementValidatorHook{...}, nil\n}"
       },
       {
-        "name": "CheckUniqueBatch returns split result sets",
-        "description": "Always initialise both UniqueItems and AlreadyProcessedItems in CheckUniqueBatchResult with pre-allocated ItemSet maps before ranging over items.",
-        "example": "result := dedupe.CheckUniqueBatchResult{UniqueItems: make(dedupe.ItemSet, len(items)), AlreadyProcessedItems: make(dedupe.ItemSet, len(items))}"
+        "name": "Compile-time interface assertion",
+        "description": "Every concrete hook struct declares a package-level var _ assertion to verify interface satisfaction at compile time.",
+        "example": "var _ models.ServiceHook[customer.Customer] = (*entitlementValidatorHook)(nil)"
+      },
+      {
+        "name": "OTel tracing in hook methods",
+        "description": "Non-trivial hook methods start a span via tracer.Start, record errors with span.RecordError + span.SetStatus, and defer span.End. The tracer is injected through the Config struct.",
+        "example": "func (s subjectCustomerHook) PostCreate(ctx context.Context, sub *subject.Subject) error {\n  ctx, span := s.tracer.Start(ctx, \"subject_customer_hook.post_create\")\n  defer span.End()\n  ...\n}"
+      },
+      {
+        "name": "Loop-prevention via context key",
+        "description": "When a hook calls back into customer.Service (UpdateCustomer/CreateCustomer), it wraps ctx with subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx) to break re-entrant hook cycles.",
+        "example": "cus, err = p.customer.UpdateCustomer(\n  subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx),\n  customer.UpdateCustomerInput{...})"
+      },
+      {
+        "name": "models.GenericError types for domain errors",
+        "description": "Validation failures return models.NewGenericValidationError; not-found returns models.NewGenericNotFoundError; conflicts return models.NewGenericConflictError; precondition failures return models.NewGenericPreConditionFailedError. Never return raw errors for domain conditions.",
+        "example": "return models.NewGenericValidationError(fmt.Errorf(\"customer has entitlements, please remove them before deleting the customer\"))"
+      },
+      {
+        "name": "Test env built from package constructors (no app/common)",
+        "description": "Tests wire adapters and services directly (customeradapter.New, customerservice.New, subjectadapter.New) without importing app/common. testutils.InitPostgresDB provides the Ent client; eventbus.NewMock provides the publisher.",
+        "example": "db := testutils.InitPostgresDB(t)\ncustomerAdapter, _ := customeradapter.New(customeradapter.Config{Client: db.EntDriver.Client(), Logger: logger})\ncustomerService, _ := customerservice.New(customerservice.Config{Adapter: customerAdapter, Publisher: publisher})"
       }
     ],
     "key_file_guides": [
       {
-        "file": "memorydedupe.go",
-        "role": "Single-file implementation of the in-memory Deduplicator; NewDeduplicator(size) is the only constructor.",
-        "watch_for": "defaultSize=1024 is the fallback when size<1; callers must choose a meaningful size to avoid premature eviction causing false-unique results."
+        "file": "entitlementvalidator.go",
+        "role": "PreDelete hook for customer.Customer \u2014 blocks deletion when active entitlements exist. Minimal hook overriding only one method; all others fall through to the embedded Noop.",
+        "watch_for": "Uses clock.Now() for entitlement snapshot time; always pass the caller's ctx, never context.Background()."
       },
       {
-        "file": "memorydedupe_test.go",
-        "role": "Validates IsUnique atomically adds to the cache (second call returns false) and that CheckUnique+Set are separate read/write operations.",
-        "watch_for": "Tests use context.Background() \u2014 acceptable in tests but not in production code."
+        "file": "subjectcustomer.go",
+        "role": "PostCreate/PostUpdate/PostDelete hook for subject.Subject \u2014 auto-provisions or updates a matching Customer. Houses CustomerProvisioner (reusable create/update logic) and EnsureStripeCustomer (billing override sync).",
+        "watch_for": "getCustomerForSubject tries both usage-attribution lookup and key lookup. EnsureCustomer handles keyConflict by omitting the key on create. CmpSubjectCustomer determines whether an update is needed \u2014 extend carefully to avoid spurious updates."
+      },
+      {
+        "file": "subjectcustomer_test.go",
+        "role": "Integration tests for CustomerProvisioner \u2014 exercises create, update, and conflict scenarios against a real Postgres instance via testutils.InitPostgresDB.",
+        "watch_for": "TestEnv is local to this package and independent from app/common. Tests call env.DBSchemaMigrate(t) before using the DB. Use t.Context(), not context.Background()."
       }
     ],
     "anti_patterns": [
-      "Storing event payload data in the LRU cache (only nil values, keyed by item.Key())",
-      "Skipping Close() implementation \u2014 even if it's a no-op it must exist to satisfy the interface",
-      "Using context.Background() in production implementation code (only in tests)"
+      "Calling customer.Service from a hook without subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx) \u2014 causes infinite re-entrant hook invocations.",
+      "Returning raw fmt.Errorf for domain conditions (not-found, conflict, validation) \u2014 callers and HTTP encoders depend on models.Generic* error types.",
+      "Importing app/common in test files \u2014 breaks isolation and can introduce import cycles; build test deps from package constructors directly.",
+      "Embedding a non-Noop base struct \u2014 hooks must embed the Noop alias so future interface method additions don't break compilation.",
+      "Using context.Background() or context.TODO() inside hook methods \u2014 always propagate the caller's ctx to maintain tracing and cancellation."
     ],
     "decisions": [
       {
-        "decision": "LRU eviction over unbounded growth",
-        "rationale": "Bounded memory footprint for long-running sink workers; evicted entries can cause duplicate events to slip through, which is acceptable for the in-memory fallback."
+        "decision": "Hooks embed models.NoopServiceHook[T] rather than implementing all methods.",
+        "rationale": "The ServiceHook interface grows as new lifecycle events are added; embedding Noop provides safe defaults so existing hooks don't break on interface expansion."
       },
       {
-        "decision": "IsUnique atomically checks-and-sets via ContainsOrAdd",
-        "rationale": "A single LRU call avoids a check-then-set race under concurrent ingest goroutines."
+        "decision": "CustomerProvisioner is a separate struct from the hook.",
+        "rationale": "EnsureCustomer and EnsureStripeCustomer are reused from outside the hook (e.g. app/stripe provisioning flows), so extracting them into a standalone CustomerProvisioner avoids duplication without tying the logic to the subject lifecycle."
+      },
+      {
+        "decision": "IgnoreErrors flag on subjectCustomerHook.",
+        "rationale": "Subject creation/update should not fail if customer provisioning is non-critical in some deployment modes; the flag lets the caller degrade gracefully (warn + continue) rather than surfacing the error."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Implement a new Deduplicator backed by a different store",
-        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/dedupe\"\n)\n\ntype MyDeduplicator struct{ /* store */ }\n\nfunc (d *MyDeduplicator) IsUnique(ctx context.Context, namespace string, ev event.Event) (bool, error) {\n\titem := dedupe.Item{Namespace: namespace, ID: ev.ID(), Source: ev.Source()}\n\t// check-and-set item.Key()\n}\nfunc (d *MyDeduplicator) CheckUniqueBatch(ctx context.Context, items []dedupe.Item) (dedupe.CheckUniqueBatchResult, error) {\n\tresult := dedupe.CheckUniqueBatchResult{\n\t\tUniqueItems:           make(dedupe.ItemSet, len(items)),\n\t\tAlreadyProcessedItems: make(dedupe.ItemSet, len(items)),\n\t}\n\t// populate result\n\treturn result, nil\n}"
+        "scenario": "Adding a new PreDelete hook that checks billing conditions before customer deletion",
+        "code": "package hooks\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n\t\"github.com/openmeterio/openmeter/openmeter/customer\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype (\n\tBillingValidatorHook     = models.ServiceHook[customer.Customer]\n\tNoopBillingValidatorHook = models.NoopServiceHook[customer.Customer]\n)\n\nvar _ models.ServiceHook[customer.Customer] = (*billingValidatorHook)(nil)\n\ntype billingValidatorHook struct {\n\tNoopBillingValidatorHook\n\tbillingService billing.Service\n}\n\ntype BillingValidatorHookConfig struct {\n\tBillingService billing.Service\n}\n\nfunc (c BillingValidatorHookConfig) Validate() error {\n\tif c.BillingService == nil {\n\t\treturn fmt.Errorf(\"billing service is required\")\n\t}\n\treturn nil\n}\n\nfunc NewBillingValidatorHook(config BillingValidatorHookConfig) (BillingValidatorHook, error) {\n\tif err := config.Validate(); err != nil {\n\t\treturn nil, fmt.Errorf(\"invalid billing validator hook config: %w\", err)\n\t}\n\treturn &billingValidatorHook{billingService: config.BillingService}, nil\n}\n\nfunc (h *billingValidatorHook) PreDelete(ctx context.Context, cus *customer.Customer) error {\n\t// Check for open invoices via billing service\n\t// Return models.NewGenericValidationError if conditions not met\n\treturn nil\n}"
       }
     ]
-  },
-  "openmeter/dedupe/redisdedupe": {
-    "purpose": "Redis-backed deduplication for CloudEvents in the sink worker. Supports three key-format modes (rawkey, keyhash, keyhash-migration) and exposes the same dedupe.Deduplicator interface as memorydedupe, but with TTL-based expiry and pipeline batch operations.",
-    "patterns": [
-      {
-        "name": "Mode-switch on every key operation",
-        "description": "Every method (IsUnique, CheckUnique, Set, CheckUniqueBatch) switches on d.Mode to determine the Redis key format; never assume a single format.",
-        "example": "switch d.Mode {\ncase DedupeModeRawKey: keys = append(keys, item.Key())\ncase DedupeModeKeyHash, DedupeModeKeyHashMigration: keys = append(keys, GetKeyHash(item.Key()))\n}"
-      },
-      {
-        "name": "SetArgs with NX + TTL for atomic set-if-not-exists",
-        "description": "Use redis.SetArgs{TTL: d.Expiration, Mode: \"nx\"} for all uniqueness writes; interpret redis.Nil return as duplicate (key already existed).",
-        "example": "status, err := d.Redis.SetArgs(ctx, key, \"\", redis.SetArgs{TTL: d.Expiration, Mode: \"nx\"}).Result()"
-      },
-      {
-        "name": "Pipelined batch writes",
-        "description": "Set() pipelines multiple SetArgs calls; inspect per-command errors (redis.Nil = already existed) to build the returned existingItems slice.",
-        "example": "cmds, err := d.Redis.Pipelined(ctx, func(pipe redis.Pipeliner) error { ... })"
-      },
-      {
-        "name": "xxh3 128-bit hash \u2192 base64url key",
-        "description": "GetKeyHash() uses xxh3.HashString128 + base64.RawURLEncoding to shrink keys by ~57% in Redis memory versus the raw composite key.",
-        "example": "hashBytes := xxh3.HashString128(itemKey).Bytes(); b64 := base64.RawURLEncoding.EncodeToString(hashBytes[:])"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "redisdedupe.go",
-        "role": "Full Redis Deduplicator implementation; DedupeMode type and its three constants are the API extension point for key-format migration.",
-        "watch_for": "keyhash-migration mode checks both old rawkey and new keyhash Redis keys to prevent false-unique events during rolling deploy; do not simplify without coordinating a cutover."
-      },
-      {
-        "file": "keyhash.go",
-        "role": "Standalone hashing helper; must not be changed without re-hashing all existing Redis keys.",
-        "watch_for": "Changing the hash algorithm or encoding invalidates all keys currently in Redis and will cause a flood of duplicate events."
-      }
-    ],
-    "anti_patterns": [
-      "Calling Redis without checking d.Redis != nil (IsUnique already guards this, replicate the guard in new methods)",
-      "Using SET without NX \u2014 allows overwriting existing keys and defeats deduplication",
-      "Adding a new DedupeMode without updating every method's switch statement",
-      "Ignoring redis.Nil in pipeline results \u2014 it signals a pre-existing key, not an error",
-      "Changing GetKeyHash algorithm without a migration mode and Redis key rotation plan"
-    ],
-    "decisions": [
-      {
-        "decision": "Three-mode key format with explicit migration mode",
-        "rationale": "Allows a rolling upgrade from rawkey to keyhash without a big-bang cutover; migration mode checks both formats so no events are incorrectly classified as unique during the transition window."
-      },
-      {
-        "decision": "xxh3-128 + base64url over SHA-224 or raw composite strings",
-        "rationale": "22-char base64url keys use 57% less Redis memory than the ~77-char raw composite key while maintaining collision probability ~1e-30 at 300M events/day."
-      },
-      {
-        "decision": "TTL-based expiry instead of unbounded growth",
-        "rationale": "Ingest events are only deduplicated within a recent window; expired keys free memory automatically without a separate purge job."
-      }
-    ],
-    "code_examples": []
   }
 }

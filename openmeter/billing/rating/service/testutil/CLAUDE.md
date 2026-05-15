@@ -7,21 +7,22 @@
 ## Patterns
 
 **RunCalculationTestCase as the single test entry point** — All pricer/mutator tests call testutil.RunCalculationTestCase(t, CalculationTestCase{...}) — never instantiate service.New() directly in test files. (`testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{Price: ..., LineMode: testutil.SinglePerPeriodLineMode, Usage: ..., Expect: ...})`)
-**LineMode enum for split-line scenarios** — Use the TestLineMode constants (SinglePerPeriodLineMode, MidPeriodSplitLineMode, LastInPeriodSplitLineMode) to control whether the test line has a SplitLineGroupID and how its period is positioned within TestFullPeriod. (`LineMode: testutil.LastInPeriodSplitLineMode`)
-**JSON equality assertion** — RunCalculationTestCase uses require.JSONEq on marshalled slices to avoid nil-vs-empty-slice false failures and to give readable diffs on mismatches. (`require.JSONEq(t, string(expectJSON), string(resJSON))`)
+**TestLineMode enum for split-line scenarios** — Use the TestLineMode constants (SinglePerPeriodLineMode, MidPeriodSplitLineMode, LastInPeriodSplitLineMode) to control whether the test line has a SplitLineGroupID and how its period is positioned within TestFullPeriod. (`LineMode: testutil.LastInPeriodSplitLineMode`)
+**JSON equality assertion for DetailedLines** — RunCalculationTestCase uses require.JSONEq on marshalled slices to avoid nil-vs-empty-slice false failures and to give readable diffs. Do not use require.Equal on DetailedLines slices directly. (`require.JSONEq(t, string(expectJSON), string(resJSON))`)
 **PreviousBilledAmount for progressive billing tests** — Set CalculationTestCase.PreviousBilledAmount to simulate already-billed amounts in previous split lines; the harness inserts a fake prior line with that Totals.Amount. (`PreviousBilledAmount: alpacadecimal.NewFromFloat(90)`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `ubptest.go` | Single file: defines CalculationTestCase, FeatureUsageResponse, TestLineMode, TestFullPeriod constant, and RunCalculationTestCase. Imports service.New() to run a real pipeline. | The harness always sets line name to 'feature'; expected DetailedLine.Name values in tests must match that prefix (e.g. 'feature: usage in period'). |
+| `ubptest.go` | Single file: defines CalculationTestCase, FeatureUsageResponse, TestLineMode, TestFullPeriod constant, and RunCalculationTestCase. Imports service.New() to run a real pipeline. | The harness always sets line name to 'feature'; expected DetailedLine.Name values in tests must match that prefix (e.g. 'feature: usage in period', 'feature: minimum spend'). |
 
 ## Anti-Patterns
 
 - Instantiating service.New() directly in *_test.go files — use RunCalculationTestCase instead
-- Constructing billing.StandardLine manually in tests outside this package — use the harness to avoid missing SplitLineHierarchy setup
-- Using require.Equal for DetailedLines slices — use RunCalculationTestCase which does JSON equality to handle nil/empty slice equivalence
+- Constructing billing.StandardLine manually in test files outside this package — use the harness to avoid missing SplitLineHierarchy setup
+- Using require.Equal for DetailedLines slices — use RunCalculationTestCase which normalises nil/empty via JSON equality
+- Adding test helper state to ubptest.go beyond CalculationTestCase fields — tests should use CalculationTestCase.Options for pricer-level overrides
 
 ## Decisions
 

@@ -2,13 +2,13 @@
 
 <!-- archie:ai-start -->
 
-> HTTP handlers for listing and getting installed billing apps (Stripe, Sandbox, CustomInvoicing) in the v3 API; performs polymorphic type-assertion to map each app.App concrete type to the BillingApp union.
+> HTTP handlers for listing and getting installed billing apps (Stripe, Sandbox, CustomInvoicing) in the v3 API; performs polymorphic type-assertion on app.App to map each concrete type to the BillingApp union discriminated type.
 
 ## Patterns
 
 **Polymorphic app mapping via type-assertion switch** — ToAPIBillingApp in convert.go switches on item.GetType(), type-asserts to the concrete app (appstripe.App, appsandbox.App, appcustominvoicing.App), and calls From* on api.BillingApp union. (`billingApp := api.BillingApp{}; if err := billingApp.FromBillingAppStripe(billingAppStripe); err != nil { ... }`)
-**Goverter for simple struct conversions, manual code for discriminated unions** — convert.go carries goverter:variables annotations; convert.gen.go is generated. Simple field-to-field mappings (AppPagePaginatedResponse, BillingAppCatalogItem) are goverter-generated; the polymorphic ToAPIBillingApp is hand-written. (`//go:generate go run github.com/jmattheis/goverter/cmd/goverter gen ./`)
-**handler struct holds appService app.Service** — Unlike other handlers that hold a domain-specific service, the apps handler holds app.Service (the top-level app registry service). (`type handler struct { resolveNamespace ...; appService app.Service; options ... }`)
+**Goverter for simple struct conversions, manual code for discriminated unions** — convert.go carries goverter:variables annotations; convert.gen.go is generated. Simple field-to-field mappings are goverter-generated; the polymorphic ToAPIBillingApp is hand-written. (`//go:generate go run github.com/jmattheis/goverter/cmd/goverter gen ./`)
+**handler struct holds app.Service (not a domain-specific service)** — Unlike other handlers that hold a domain-specific service, the apps handler holds app.Service (the top-level app registry service). (`type handler struct { resolveNamespace ...; appService app.Service; options ... }`)
 **var _ Handler = (*handler)(nil) compile-time check** — handler.go includes an explicit interface satisfaction check to catch missing method implementations at compile time. (`var _ Handler = (*handler)(nil)`)
 
 ## Key Files
@@ -30,5 +30,26 @@
 
 - **BillingApp is a oneOf union; mapping requires app.App interface → concrete type assertion → From* call on the union.** — The v3 OpenAPI union type requires calling the generated From* discriminator method; no generic field copy works across different concrete types.
 - **Goverter is used only for struct-level mappings (PagePaginatedResponse, BillingAppCatalogItem); the discriminated union is hand-coded.** — Goverter cannot handle interface type-switches or oneOf union encoding.
+
+## Example: Add a new billing app type mapping
+
+```
+// In convert.go ToAPIBillingApp switch:
+case app.AppTypeNewProvider:
+	newApp, ok := item.(appnewprovider.App)
+	if !ok {
+		return api.BillingApp{}, fmt.Errorf("expected new-provider app, got %T", item)
+	}
+	billingAppNew, err := toAPIBillingAppNewProvider(newApp.Meta)
+	if err != nil {
+		return api.BillingApp{}, fmt.Errorf("failed to map new-provider app to API: %w", err)
+	}
+	billingApp := api.BillingApp{}
+	if err := billingApp.FromBillingAppNewProvider(billingAppNew); err != nil {
+		return billingApp, err
+	}
+	return billingApp, nil
+// ...
+```
 
 <!-- archie:ai-end -->

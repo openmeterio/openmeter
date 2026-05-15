@@ -1,234 +1,122 @@
 {
-  "openmeter/billing/models/creditsapplied": {
-    "purpose": "Defines the CreditsApplied slice type and CreditApplied value type representing credits applied to a billing line item. Enforces that all credit amounts are positive and provides currency-precision-aware summation.",
+  "openmeter/billing/charges/worker/advance": {
+    "purpose": "Batch auto-advance worker that iterates all customers with eligible charges and calls charges.Service.AdvanceCharges for each; errors are accumulated and joined so one failing customer does not block others.",
     "patterns": [
       {
-        "name": "models.Validator interface compliance",
-        "description": "Both CreditsApplied and CreditApplied implement models.Validator via a Validate() error method. All new types here must do the same and be verified with a compile-time assertion: var _ models.Validator = (*T)(nil).",
-        "example": "var _ models.Validator = (*CreditsApplied)(nil)"
+        "name": "Fan-out with error accumulation",
+        "description": "Loop over all customers, append errors to a slice, return errors.Join(errs...) \u2014 never return on first failure.",
+        "example": "var errs []error\nfor _, cust := range customers {\n    if err := a.AdvanceCharges(ctx, cust); err != nil {\n        errs = append(errs, fmt.Errorf(\"[namespace=%s customer=%s]: %w\", cust.Namespace, cust.ID, err))\n    }\n}\nreturn errors.Join(errs...)"
       },
       {
-        "name": "models.Clonable interface compliance",
-        "description": "CreditsApplied implements models.Clonable[CreditsApplied] with a Clone() method using lo.Map for safe copy. Any slice or pointer field added to this package must be deep-copied in Clone.",
-        "example": "func (c CreditsApplied) Clone() CreditsApplied { return lo.Map(c, func(item CreditApplied, _ int) CreditApplied { return item }) }"
+        "name": "Pagination via CollectAll",
+        "description": "Use pagination.CollectAll with pagination.NewPaginator to page through all eligible customers without a manual page loop.",
+        "example": "pagination.CollectAll(ctx, pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[customer.CustomerID], error) {\n    return a.chargesService.ListCustomersToAdvance(ctx, charges.ListCustomersToAdvanceInput{Page: page, Namespaces: namespaces, AdvanceAfterLTE: now})\n}), defaultPageSize)"
       },
       {
-        "name": "Currency-aware summation",
-        "description": "SumAmount rounds each item via currencyx.Calculator.RoundToPrecision before accumulating. New aggregation helpers must use the calculator for rounding, not raw Add.",
-        "example": "sum = sum.Add(currency.RoundToPrecision(item.Amount))"
+        "name": "Config struct + constructor validation",
+        "description": "All dependencies passed via a Config struct; NewAdvancer validates non-nil fields before constructing the struct.",
+        "example": "func NewAdvancer(config Config) (*AutoAdvancer, error) {\n    if config.ChargesService == nil { return nil, fmt.Errorf(\"charges service is required\") }\n    if config.Logger == nil { return nil, fmt.Errorf(\"logger is required\") }\n    return &AutoAdvancer{chargesService: config.ChargesService, logger: config.Logger}, nil\n}"
+      },
+      {
+        "name": "Advance via service interface only",
+        "description": "All charge advancement is driven through charges.ChargeService.AdvanceCharges \u2014 never call adapters or Ent directly.",
+        "example": "a.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: customerID})"
+      },
+      {
+        "name": "Stable now captured once per batch",
+        "description": "Capture time.Now() once at the start of ListCustomersToAdvance and pass it as AdvanceAfterLTE to the entire batch, preventing per-customer clock races.",
+        "example": "now := time.Now()\n// pass now to ListCustomersToAdvance, not time.Now() inside the paginator closure"
+      },
+      {
+        "name": "Structured logging with slog",
+        "description": "Use slog.InfoContext/DebugContext/ErrorContext/WarnContext with named slog.String key-value pairs for all log statements.",
+        "example": "a.logger.ErrorContext(ctx, \"failed to auto-advance charges\",\n    slog.String(\"namespace\", cust.Namespace),\n    slog.String(\"customer_id\", cust.ID),\n    slog.String(\"error\", err.Error()),\n)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "model.go",
-        "role": "Single source of all types in this package. Defines CreditsApplied, CreditApplied, and all methods.",
-        "watch_for": "CreditApplied.Amount must remain positive (validated). Adding nullable fields requires updating Clone and Validate."
+        "file": "advance.go",
+        "role": "Sole file; defines AutoAdvancer struct, All/ListCustomersToAdvance/AdvanceCharges methods, Config struct, and NewAdvancer constructor.",
+        "watch_for": "defaultPageSize=10_000 caps single-page fetches; `now` is captured once at the start of ListCustomersToAdvance to give a stable cutoff for the entire batch run."
       }
     ],
     "anti_patterns": [
-      "Storing negative credit amounts \u2014 Validate() enforces positivity; bypassing it causes billing arithmetic errors.",
-      "Accumulating amounts without RoundToPrecision \u2014 causes currency precision drift across line items.",
-      "Adding DB/Ent concerns to this package \u2014 it is a pure domain model with no persistence code."
+      "Returning on first customer error \u2014 must accumulate and join all errors",
+      "Calling Ent/adapter code directly instead of going through charges.ChargeService",
+      "Introducing context.Background() \u2014 always propagate the caller's ctx",
+      "Hard-coding namespaces instead of accepting them as a parameter",
+      "Capturing time.Now() inside the paginator closure rather than once before it"
     ],
     "decisions": [
       {
-        "decision": "CreditsApplied is a named slice type rather than a struct with a slice field.",
-        "rationale": "Allows direct iteration, len checks, and method attachment without wrapping, matching the pattern used by other billing model collections."
-      }
-    ],
-    "code_examples": []
-  },
-  "openmeter/billing/models/externalid": {
-    "purpose": "Defines external-ID model types (InvoiceExternalIDs, LineExternalIDs) and generic Ent mixin/helper functions for reading, writing, and mapping external app IDs (invoicing, payment) on invoice and line Ent entities.",
-    "patterns": [
-      {
-        "name": "Typed Creator/Updater/Getter generic interfaces",
-        "description": "Each Ent operation (create, update, map-from-DB) has a corresponding generic interface (LineExternalIDCreator[T], LineExternalIDUpdater[T], LineExternalIDGetter). Adapters must use the provided helpers (CreateLineExternalID, UpdateLineExternalID, MapLineExternalIDFromDB) rather than calling Set* methods directly.",
-        "example": "func CreateLineExternalID[T LineExternalIDCreator[T]](creator LineExternalIDCreator[T], ids LineExternalIDs) T"
+        "decision": "Error accumulation instead of early return",
+        "rationale": "A single customer failure should not prevent advancing charges for all other customers in the batch; errors.Join collects all failures for a complete failure report."
       },
       {
-        "name": "lo.EmptyableToPtr for optional string fields",
-        "description": "Empty strings are converted to nil pointers using lo.EmptyableToPtr when writing to Ent. New external-ID fields must follow this pattern to avoid storing empty strings in nullable DB columns.",
-        "example": "creator.SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(ids.Invoicing))"
-      },
-      {
-        "name": "Ent mixin for schema fields",
-        "description": "LineMixin and InvoiceMixin embed mixin.Schema and declare optional/nillable string fields. Add new external-ID fields to the correct mixin (LineMixin vs InvoiceMixin), then add corresponding getter/setter to the typed interfaces.",
-        "example": "field.String(\"invoicing_app_external_id\").Optional().Nillable()"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "mixin.go",
-        "role": "Ent mixin schema definitions and generic helper functions for CRUD operations on external IDs.",
-        "watch_for": "Adding a new external-ID field requires updating: (1) the Mixin Fields(), (2) the Creator/Updater/Getter interfaces, (3) the Create/Update/Map helpers, and (4) the model.go struct."
-      },
-      {
-        "file": "model.go",
-        "role": "Pure domain structs InvoiceExternalIDs and LineExternalIDs with nil-safe accessor methods and equality check.",
-        "watch_for": "LineExternalIDs.Equal must be updated when new fields are added."
-      }
-    ],
-    "anti_patterns": [
-      "Storing empty strings in nullable external-ID columns \u2014 always use lo.EmptyableToPtr.",
-      "Calling Set* Ent methods directly in adapters instead of using the typed helpers \u2014 breaks consistency when fields are added.",
-      "Adding business logic to this package \u2014 it is purely a model/mixin utility layer."
-    ],
-    "decisions": [
-      {
-        "decision": "Generic interfaces (Creator[T], Updater[T], Getter) rather than concrete Ent types.",
-        "rationale": "Both invoice and line Ent entities share the same external-ID fields; generics allow a single helper to work across both entity types without duplication."
-      }
-    ],
-    "code_examples": []
-  },
-  "openmeter/billing/models/stddetailedline": {
-    "purpose": "Defines the Base struct for standard detailed billing line items, along with Ent mixin, DB mapping helpers, generic Creator interface for Ent mutations, and goderive-generated equality. This is the shared schema/model layer consumed by both Ent adapters and domain services for flat-fee and usage-based detailed lines.",
-    "patterns": [
-      {
-        "name": "Composite Ent mixin via entutils.RecursiveMixin",
-        "description": "Mixin embeds entutils.RecursiveMixin[mixinBase] which composes entutils.AnnotationsMixin, entutils.ResourceMixin, and totals.Mixin. New fields must be added to mixinBase.Fields(), not directly to entity schemas.",
-        "example": "type Mixin struct { entutils.RecursiveMixin[mixinBase] }"
-      },
-      {
-        "name": "Generic Creator interface for Ent mutations",
-        "description": "Creator[T] composes externalid.LineExternalIDCreator[T], billingtotals.Setter[T], and all primitive Set* methods. The Create[T] function uses this to atomically populate all fields. New fields require updating both Creator[T] and the Create function.",
-        "example": "func Create[T Creator[T]](creator Creator[T], line Base) T"
-      },
-      {
-        "name": "DBGetter interface for DB-to-domain mapping",
-        "description": "FromDB[T DBGetter] reads all fields from a generic DB entity through the DBGetter interface. Adding a field to Base requires adding the corresponding getter to DBGetter and updating FromDB.",
-        "example": "func FromDB[T DBGetter](dbEntity T, taxConfig *productcatalog.TaxConfig) Base"
-      },
-      {
-        "name": "goderive equality generation",
-        "description": "Base.Equal delegates to deriveEqualBase generated by goderive. After adding fields to Base, run `go generate` in this package to regenerate derived.gen.go. Never hand-edit derived.gen.go.",
-        "example": "func (l Base) Equal(other Base) bool { return deriveEqualBase(&l, &other) }"
-      },
-      {
-        "name": "models.Validator on enums and structs",
-        "description": "Category implements models.Validator and uses slices.Contains against Category(\"\").Values(). New enum types must follow the same Values()/Validate() pattern with compile-time assertion.",
-        "example": "var _ models.Validator = (*Category)(nil)"
-      },
-      {
-        "name": "Deep clone for pointer/slice fields",
-        "description": "Base.Clone explicitly deep-copies TaxConfig pointer and CreditsApplied slice. Any new pointer or slice field added to Base must be deep-copied in Clone.",
-        "example": "if l.TaxConfig != nil { taxConfig := *l.TaxConfig; l.TaxConfig = &taxConfig }"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "model.go",
-        "role": "Canonical Base struct, Category enum, Comparable interface, Compare function, and BackfillTaxConfig helper.",
-        "watch_for": "Adding fields to Base requires updating: Clone, Equal (via goderive regen), DBGetter, Creator[T], FromDB, and mixin.go Fields()."
-      },
-      {
-        "file": "mixin.go",
-        "role": "Ent schema mixin providing all DB fields for stddetailedline entities. Also declares SQL CHECK constraints and indexes.",
-        "watch_for": "child_unique_reference_id has a NOT EMPTY SQL CHECK \u2014 never allow it to be optional. credits_applied is jsonb-optional."
-      },
-      {
-        "file": "create.go",
-        "role": "Generic Create[T] function for populating Ent create mutations from a Base value.",
-        "watch_for": "Must stay in sync with all Base fields; missing a field here silently omits it from DB writes."
-      },
-      {
-        "file": "mapping.go",
-        "role": "DBGetter interface and FromDB generic mapping function from DB rows to Base.",
-        "watch_for": "time.UTC normalization must be applied to all time fields via .In(time.UTC)."
-      },
-      {
-        "file": "derived.gen.go",
-        "role": "Goderive-generated equality helpers. DO NOT EDIT \u2014 regenerate with go generate.",
-        "watch_for": "If Base gains fields with custom equality semantics (e.g. decimal), the generated code uses .Equal() if available, otherwise == \u2014 verify correctness after regen."
-      },
-      {
-        "file": "generate.go",
-        "role": "go:generate directive for goderive.",
-        "watch_for": "Run after any change to Base struct to keep derived.gen.go in sync."
-      }
-    ],
-    "anti_patterns": [
-      "Hand-editing derived.gen.go \u2014 always regenerate via go generate after Base changes.",
-      "Adding DB/Ent logic directly to model.go or domain logic to mixin.go \u2014 keep the layers separate.",
-      "Omitting time.UTC normalization in FromDB for time.Time fields \u2014 causes timezone-dependent test failures.",
-      "Forgetting to update Creator[T] and DBGetter when adding a new field to Base \u2014 silently omits the field from writes/reads.",
-      "Making child_unique_reference_id optional \u2014 it has a DB CHECK constraint and is required for line upsert identity."
-    ],
-    "decisions": [
-      {
-        "decision": "Base struct lives in the same package as the Ent mixin rather than in a separate domain package.",
-        "rationale": "Both the Ent schema definition and the domain model must stay in lock-step; co-locating them makes drift immediately visible and allows the Creator/DBGetter interfaces to share the same package-level types."
-      },
-      {
-        "decision": "goderive for equality rather than hand-written Equal methods.",
-        "rationale": "Base contains alpacadecimal.Decimal fields that require .Equal() not ==; goderive generates correct field-by-field equality automatically and stays in sync with struct changes via go generate."
+        "decision": "Time captured once per All() call",
+        "rationale": "Using a single `now` for the entire batch ensures consistent cutoff semantics; per-customer clock calls could admit races where newly eligible charges slip into or out of the window mid-run."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new field to Base and wire it through all layers",
-        "code": "// 1. model.go: add field\ntype Base struct {\n    // ... existing fields\n    NewField string `json:\"newField\"`\n}\n\n// 2. mixin.go: add DB field\nfield.String(\"new_field\").NotEmpty()\n\n// 3. create.go: add to Creator[T] and Create[T]\ntype Creator[T any] interface {\n    // ... existing\n    SetNewField(string) T\n}\nfunc Create[T Creator[T]](creator Creator[T], line Base) T {\n    return creator. /* chain */ .SetNewField(line.NewField)\n}\n\n// 4. mapping.go: add to DBGetter and FromDB\ntype DBGetter interface {\n    // ... existing\n    GetNewField() string\n}\nfunc FromDB[T DBGetter](dbEntity T, taxConfig *productcatalog.TaxConfig) Base {\n    return Base{/* ... */ NewField: dbEntity.GetNewField()}\n}\n\n// 5. Run: go generate ./openmeter/billing/models/stddetailedline/..."
+        "scenario": "Full batch advance entry point",
+        "code": "func (a *AutoAdvancer) All(ctx context.Context, namespaces []string) error {\n    customers, err := a.ListCustomersToAdvance(ctx, namespaces)\n    if err != nil {\n        return fmt.Errorf(\"failed to list customers to advance charges: %w\", err)\n    }\n    var errs []error\n    for _, cust := range customers {\n        if err := a.AdvanceCharges(ctx, cust); err != nil {\n            errs = append(errs, fmt.Errorf(\"[namespace=%s customer=%s]: %w\", cust.Namespace, cust.ID, err))\n        }\n    }\n    return errors.Join(errs...)\n}"
       }
     ]
   },
-  "openmeter/billing/models/totals": {
-    "purpose": "Defines the Totals struct representing a billing line's financial breakdown (amount, taxes, charges, discounts, credits, total) with currency-precision rounding, additive aggregation, and an Ent mixin for persisting all fields as PostgreSQL numeric columns.",
+  "openmeter/billing/charges/worker/asyncadvance": {
+    "purpose": "Event-driven (async) handler that advances charges for a single customer in response to a charges.AdvanceChargesEvent; intended to be wired as a Watermill message handler for the billing-worker.",
     "patterns": [
       {
-        "name": "Ent mixin with typed Setter/Getter interfaces",
-        "description": "totals.Mixin declares all 8 numeric DB fields. totals.Setter[T] and totals.TotalsGetter provide typed interfaces for Ent create/update mutations and DB reads. Use Set[T](mut, totals) and FromDB(e) for all Ent interactions \u2014 never call individual Set*/Get* methods directly.",
-        "example": "func Set[T Setter[T]](mut Setter[T], totals Totals) T { return mut.SetAmount(totals.Amount). /* chain all 8 fields */ }"
+        "name": "Config.Validate() before construction",
+        "description": "Config struct carries a Validate() error method that checks all required fields; New calls it before constructing the Handler.",
+        "example": "func New(c Config) (*Handler, error) {\n    if err := c.Validate(); err != nil { return nil, err }\n    return &Handler{chargesService: c.ChargesService, logger: c.Logger}, nil\n}"
       },
       {
-        "name": "Currency-precision rounding via currencyx.Calculator",
-        "description": "RoundToPrecision applies calculator.RoundToPrecision to every field atomically. Always call this before persisting or comparing totals across currencies.",
-        "example": "func (t Totals) RoundToPrecision(calc currencyx.Calculator) Totals"
+        "name": "Single-responsibility Handle method",
+        "description": "Handler exposes exactly one Handle(ctx, *AdvanceChargesEvent) error method; no batch logic, no pagination \u2014 those live in the advance package.",
+        "example": "func (h *Handler) Handle(ctx context.Context, event *charges.AdvanceChargesEvent) error {\n    _, err := h.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: customer.CustomerID{Namespace: event.Namespace, ID: event.CustomerID}})\n    return err\n}"
       },
       {
-        "name": "Additive aggregation via Add/Sum",
-        "description": "Totals.Add accumulates multiple Totals values field-by-field. Use Sum(...) to aggregate a variadic list. Do not accumulate individual fields outside these helpers.",
-        "example": "func Sum(others ...Totals) Totals { return Totals{}.Add(others...) }"
+        "name": "CustomerID constructed from event fields",
+        "description": "Build customer.CustomerID{Namespace: event.Namespace, ID: event.CustomerID} inline from the event \u2014 no helper, no global state.",
+        "example": "charges.AdvanceChargesInput{Customer: customer.CustomerID{Namespace: event.Namespace, ID: event.CustomerID}}"
       },
       {
-        "name": "Validate enforces non-negative invariants",
-        "description": "All 8 fields must be non-negative. Validate() is called in the billing domain before persistence. New fields added to Totals must have a corresponding non-negative check in Validate.",
-        "example": "if t.Amount.IsNegative() { return errors.New(\"amount is negative\") }"
+        "name": "Warn-then-return on service error",
+        "description": "Log a WarnContext entry with namespace/customer_id/error keys before returning the error so the upstream Watermill router can apply retry/dead-letter logic.",
+        "example": "h.logger.WarnContext(ctx, \"failed to advance charges\",\n    slog.String(\"namespace\", event.Namespace),\n    slog.String(\"customer_id\", event.CustomerID),\n    slog.String(\"error\", err.Error()),\n)\nreturn err"
       }
     ],
     "key_file_guides": [
       {
-        "file": "model.go",
-        "role": "Totals struct with Validate, Add, Sum, RoundToPrecision, and CalculateTotal methods.",
-        "watch_for": "CalculateTotal formula: Amount + ChargesTotal + TaxesExclusiveTotal - DiscountsTotal - CreditsTotal. Adding a new field requires updating Add, RoundToPrecision, Validate, and CalculateTotal as appropriate."
-      },
-      {
-        "file": "mixin.go",
-        "role": "Ent mixin (Mixin struct) + Setter[T]/TotalsGetter interfaces + Set[T] and FromDB helpers.",
-        "watch_for": "All 8 fields use dialect.Postgres: 'numeric'. Adding a field requires updating Fields(), Setter[T], TotalsGetter, Set[T], and FromDB in lockstep."
-      },
-      {
-        "file": "model_test.go",
-        "role": "Unit test for RoundToPrecision with USD half-up rounding semantics.",
-        "watch_for": "Tests use exact string comparison on rounded decimals \u2014 update expected values if precision logic changes."
+        "file": "asyncadvance.go",
+        "role": "Sole file; defines Handler, Config (with Validate), New constructor, and Handle method.",
+        "watch_for": "Handler must not swallow errors \u2014 always return them so the message bus can apply retry/dead-letter logic. Never add batch or pagination logic here."
       }
     ],
     "anti_patterns": [
-      "Directly calling individual Set*/Get* Ent methods for totals fields \u2014 always use Set[T] and FromDB helpers for consistency.",
-      "Accumulating totals outside Add/Sum \u2014 leads to fields being missed.",
-      "Skipping RoundToPrecision before persistence \u2014 causes numeric precision drift in multi-currency invoices.",
-      "Adding a field to Totals without updating Add, RoundToPrecision, Validate, mixin Fields(), Setter[T], TotalsGetter, Set[T], and FromDB."
+      "Adding batch/pagination logic here \u2014 that belongs in the advance package",
+      "Calling Ent or adapter code directly instead of going through charges.ChargeService",
+      "Returning nil on service error to suppress retries",
+      "Introducing context.Background() instead of propagating the event's ctx",
+      "Accumulating errors across multiple events \u2014 this handler processes one event per call"
     ],
     "decisions": [
       {
-        "decision": "All totals fields use alpacadecimal.Decimal stored as PostgreSQL numeric.",
-        "rationale": "Billing requires exact decimal arithmetic; float64 SQL types would introduce rounding errors at the storage layer."
+        "decision": "Separate package from synchronous advance",
+        "rationale": "Async (event-driven, single-customer) and sync (batch, all-customers) advancement have different error-handling and retry contracts; keeping them in separate packages avoids conflating them."
       },
       {
-        "decision": "Mixin and domain model co-located in the same package.",
-        "rationale": "Ensures the Setter/Getter interfaces stay in sync with the Totals struct fields without cross-package indirection."
+        "decision": "Errors returned, not swallowed",
+        "rationale": "Watermill's router applies retry and dead-letter semantics based on the handler's return value; swallowing errors would silently drop failed advancements."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Handle a single AdvanceChargesEvent from the event bus",
+        "code": "import (\n    \"context\"\n    \"log/slog\"\n\n    \"github.com/openmeterio/openmeter/openmeter/billing/charges\"\n    \"github.com/openmeterio/openmeter/openmeter/customer\"\n)\n\nfunc (h *Handler) Handle(ctx context.Context, event *charges.AdvanceChargesEvent) error {\n    _, err := h.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{\n        Customer: customer.CustomerID{\n            Namespace: event.Namespace,\n            ID:        event.CustomerID,\n        },\n    })\n    if err != nil {\n        h.logger.WarnContext(ctx, \"failed to advance charges\",\n            slog.String(\"namespace\", event.Namespace),\n            slog.String(\"customer_id\", event.CustomerID),\n            slog.String(\"error\", err.Error()),\n        )\n        return err\n    }\n    return nil\n}"
+      }
+    ]
   }
 }

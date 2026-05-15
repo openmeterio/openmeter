@@ -2,57 +2,55 @@
 
 <!-- archie:ai-start -->
 
-> Business logic layer for the notification domain, implementing notification.Service by composing notification.Repository (Ent adapter) with webhook.Handler (Svix). Orchestrates channel/rule/event lifecycle, validates cross-entity constraints (rule channels must exist in same namespace), and maintains Svix webhook registrations in sync with DB state.
+> Concrete implementation of notification.Service, orchestrating channel and rule lifecycle against both the notification.Repository (Ent/PostgreSQL) and the webhook.Handler (Svix). All multi-step mutations use transaction.Run / transaction.RunWithNoValue; Svix webhook operations are performed inside the same transaction scope as adapter writes.
 
 ## Patterns
 
-**params.Validate() before any adapter call** — Every service method calls params.Validate() (or the equivalent domain input validator) at the top before entering a transaction or calling the adapter. (`if err := params.Validate(); err != nil { return nil, fmt.Errorf("invalid params: %w", err) }`)
-**transaction.Run for multi-step mutations** — Channel and rule create/update/delete use transaction.Run(ctx, s.adapter, fn) to wrap adapter calls + Svix webhook calls in a single transaction. Read-only methods call adapter directly. (`return transaction.Run(ctx, s.adapter, fn)`)
-**ValidateRuleChannels generic validator** — ValidateRuleChannels[I notification.CreateRuleInput | notification.UpdateRuleInput] is a generic function that validates all channel IDs exist in the namespace before create/update. Called via params.ValidateWith(...). (`err = params.ValidateWith(ValidateRuleChannels[notification.CreateRuleInput](ctx, s))`)
-**Svix webhook sync on channel/rule mutations** — CreateChannel calls s.webhook.CreateWebhook; UpdateChannel calls s.webhook.UpdateWebhook. CreateRule/UpdateRule call s.webhook.UpdateWebhookChannels for each channel in the rule. Svix calls happen inside the same transaction.Run fn as the adapter calls. (`s.webhook.CreateWebhook(ctx, webhook.CreateWebhookInput{Namespace: params.Namespace, ID: &channel.ID, URL: channel.Config.WebHook.URL, ...})`)
-**ChannelIDMetadataKey constant for Svix metadata** — Svix webhooks are tagged with Metadata{ChannelIDMetadataKey: channel.ID} to allow reverse lookup. Always set this when creating a webhook. (`Metadata: map[string]string{ChannelIDMetadataKey: channel.ID}`)
+**transaction.Run wraps all multi-step mutations** — CreateChannel, DeleteChannel, UpdateChannel, CreateRule, DeleteRule, and UpdateRule all wrap their bodies in transaction.Run(ctx, s.adapter, fn) or transaction.RunWithNoValue so adapter calls and webhook calls share a transaction context. (`return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*notification.Channel, error) { channel, _ := s.adapter.CreateChannel(ctx, params); _, _ = s.webhook.CreateWebhook(ctx, ...); return channel, nil })`)
+**params.Validate() called before every mutation** — Every Service method calls params.Validate() (or params.ValidateWith(...)) before any adapter or webhook call. Returns fmt.Errorf wrapping the validation error without touching the DB. (`if err := params.Validate(); err != nil { return nil, fmt.Errorf("invalid params: %w", err) }`)
+**Webhook adapter kept in sync with channel/rule lifecycle** — CreateChannel calls webhook.CreateWebhook then adapter.UpdateChannel (to store SigningSecret). DeleteChannel calls webhook.DeleteWebhook before adapter.DeleteChannel. CreateRule calls webhook.UpdateWebhookChannels(AddChannels) per channel; DeleteRule calls UpdateWebhookChannels(RemoveChannels). (`wb, err = s.webhook.CreateWebhook(ctx, webhook.CreateWebhookInput{Namespace: params.Namespace, ID: &channel.ID, ...}); updateIn.Config.WebHook.SigningSecret = wb.Secret; channel, err = s.adapter.UpdateChannel(ctx, updateIn)`)
+**ValidateRuleChannels generic constraint** — ValidateRuleChannels[T] is a generic validator used in CreateRule and UpdateRule that calls s.adapter.ListChannels to verify referenced channels exist in the namespace before saving. (`err = params.ValidateWith(ValidateRuleChannels[notification.CreateRuleInput](ctx, s))`)
+**ChannelIDsDifference for minimal webhook updates on UpdateRule** — UpdateRule computes channelIDsDiff := notification.NewChannelIDsDifference(params.Channels, oldChannelIDs) and only calls webhook.UpdateWebhookChannels for channels in Additions or Removals — skips unchanged channels. (`channelIDsDiff := notification.NewChannelIDsDifference(params.Channels, oldChannelIDs); if !channelIDsDiff.HasChanged() { return s.adapter.UpdateRule(ctx, params) }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `service.go` | Service struct definition, Config, New() constructor, ListFeature() implementation. Holds adapter (notification.Repository), webhook (webhook.Handler), feature (feature.FeatureConnector). | All three dependencies are required; nil check is in New(). New service methods must satisfy notification.Service interface (var _ notification.Service = (*Service)(nil) compile check). |
-| `channel.go` | Channel CRUD. CreateChannel: DB create + Svix create. UpdateChannel: DB update + Svix update. DeleteChannel: soft-delete DB + Svix disable. All inside transaction.Run. | DeleteChannel disables the webhook in Svix — the webhook ID matches the channel ID. |
-| `rule.go` | Rule CRUD with ValidateRuleChannels and Svix channel registration. ValidateRuleConfigWithFeatures called to check feature references in rule config. | webhook.MaxChannelsPerWebhook is enforced in UpdateRule; exceeding it returns a specific error that must be mapped in the HTTP layer. |
-| `event.go` | ListEvents, GetEvent, CreateEvent, ResendEvent. CreateEvent also calls s.webhook.SendWebhookMessage to dispatch via Svix. | ResendEvent re-dispatches an existing event through the webhook — it does not create a new DB record. |
-| `deliverystatus.go` | Thin pass-through to adapter for delivery status list/get/update operations. | No webhook calls here — delivery status is purely a DB tracking concern. |
+| `service.go` | Defines Service struct (adapter, webhook, feature, logger), Config, New() constructor, and ListFeature delegating to feature.FeatureConnector. | New dependencies must be added to Config and validated in New(). Service satisfies notification.Service via var _ notification.Service = (*Service)(nil) compile-time assertion. |
+| `channel.go (within service package)` | Implements ChannelService methods. CreateChannel stores the channel first, then creates the Svix webhook and updates SigningSecret back into the DB. | DeleteChannel blocks deletion if the channel is assigned to any rule — returns models.NewGenericValidationError with rule IDs. UpdateChannel validates type change is not attempted. |
+| `rule.go (within service package)` | Implements RuleService methods. UpdateRule computes channel diffs and calls webhook.UpdateWebhookChannels only for changed channel assignments. | webhook.IsMaxChannelsPerWebhookExceededError must be checked after UpdateWebhookChannels; if hit, return models.NewGenericValidationError (not a 500). |
 
 ## Anti-Patterns
 
-- Calling adapter methods without wrapping multi-step mutations in transaction.Run
-- Skipping params.Validate() before adapter/webhook calls
-- Creating a Svix webhook outside the transaction.Run fn (Svix call and DB call must be atomic)
-- Calling s.webhook.CreateWebhook without setting ChannelIDMetadataKey in Metadata
-- Adding business logic to the adapter layer instead of the service layer
+- Calling adapter methods for multi-step mutations outside transaction.Run — partial writes if webhook call fails mid-transaction
+- Skipping params.Validate() before adapter calls — invalid inputs reach the DB
+- Calling webhook.DeleteWebhook after adapter.DeleteChannel — leaves a dangling Svix webhook if DB delete succeeds but webhook delete fails
+- Deleting a channel without checking for assigned rules first — leaves rules with references to a deleted channel
+- Calling webhook.UpdateWebhookChannels for all channels on UpdateRule instead of only the diff — causes spurious Svix API calls
 
 ## Decisions
 
-- **Svix webhook operations co-located with DB mutations inside transaction.Run** — Channel state (enabled/disabled, URL, signing secret) must stay in sync between PostgreSQL and Svix; running both inside the same logical transaction prevents divergence on partial failure.
-- **Generic ValidateRuleChannels[I] validator** — Both CreateRule and UpdateRule share identical channel-existence validation logic; the generic constraint avoids duplication while keeping type safety.
+- **Webhook operations performed inside the same transaction.Run as adapter writes** — Channel and rule lifecycle must stay consistent with Svix state; wrapping both in the same transaction scope means a webhook API failure rolls back the DB change rather than leaving them out of sync.
+- **ChannelIDsDifference for minimal Svix calls on UpdateRule** — Svix enforces a MaxChannelsPerWebhook limit; calling UpdateWebhookChannels for every channel on every rule update would hit the limit unnecessarily and cause spurious validation errors.
 
-## Example: Add a new service method that mutates both DB and Svix
+## Example: Create a new rule with webhook channel sync inside a transaction
 
 ```
-func (s Service) NewMutation(ctx context.Context, params notification.NewMutationInput) (*notification.Channel, error) {
-	if err := params.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid params: %w", err)
-	}
-	fn := func(ctx context.Context) (*notification.Channel, error) {
-		result, err := s.adapter.SomeAdapterMethod(ctx, params)
-		if err != nil {
-			return nil, fmt.Errorf("failed to ...: %w", err)
+func (s Service) CreateRule(ctx context.Context, params notification.CreateRuleInput) (*notification.Rule, error) {
+	if err := params.Validate(); err != nil { return nil, fmt.Errorf("invalid params: %w", err) }
+	fn := func(ctx context.Context) (*notification.Rule, error) {
+		if err := params.ValidateWith(ValidateRuleChannels[notification.CreateRuleInput](ctx, s)); err != nil {
+			return nil, fmt.Errorf("invalid channels: %w", err)
 		}
-		_, err = s.webhook.UpdateWebhook(ctx, webhook.UpdateWebhookInput{...})
-		if err != nil {
-			return nil, fmt.Errorf("failed to update webhook: %w", err)
-		}
-		return result, nil
-	}
+		rule, err := s.adapter.CreateRule(ctx, params)
+		if err != nil { return nil, fmt.Errorf("failed to create rule: %w", err) }
+		for _, channel := range rule.Channels {
+			_, err = s.webhook.UpdateWebhookChannels(ctx, webhook.UpdateWebhookChannelsInput{
+				Namespace: params.Namespace, ID: channel.ID, AddChannels: []string{rule.ID},
+			})
+			if err != nil {
+				if webhook.IsMaxChannelsPerWebhookExceededError(err) {
+					return nil, models.NewGenericValidationError(fmt.Errorf("max rules per webhook exceeded"))
 // ...
 ```
 

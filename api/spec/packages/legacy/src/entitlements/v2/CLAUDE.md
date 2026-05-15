@@ -2,30 +2,34 @@
 
 <!-- archie:ai-start -->
 
-> TypeSpec definitions for the v2 entitlements and grants API surface under `/api/v2/`. Extends and reshapes v1 entitlement/grant models (via OmitProperties + new fields) to expose customer-scoped CRUD, value/history/reset sub-routes, and admin list endpoints — all compiled into api/openapi.yaml Go server stubs and SDKs.
+> TypeSpec definitions for the v2 entitlements and grants API surface under /api/v2/. Composes V1 entitlement/grant models via OmitProperties spreads to expose customer-scoped CRUD, value/history/reset sub-routes, and admin list endpoints — all compiled into api/openapi.yaml Go server stubs and SDKs.
 
 ## Patterns
 
-**Discriminated union for polymorphic entitlement types** — Union types with `@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })` and a `type` literal field on each variant. Both response unions (EntitlementV2) and input unions (EntitlementV2CreateInputs) follow this shape. (`@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+**Discriminated union for polymorphic entitlement types** — Union types use @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" }) with a literal `type` field on each variant. Both response (EntitlementV2) and input (EntitlementV2CreateInputs) unions follow this shape. (`@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union EntitlementV2 { metered: EntitlementMeteredV2, static: EntitlementStaticV2, boolean: EntitlementBooleanV2 }`)
-**OmitProperties for model composition** — New V2 models reuse existing V1 models via `OmitProperties<Base, "field1" | "field2">` spreads rather than copy-pasting fields. Deprecated fields are kept on the create-input model with `#deprecated` annotations. (`model EntitlementMeteredV2 { ...OmitProperties<EntitlementMeteredV2CreateInputs, "type" | "grants">; ...EntitlementCustomerFields; }`)
-**Interface-per-route-group with @route + @tag** — Each logical URL prefix gets its own `interface` decorated with `@route`, `@tag`, and `@friendlyName`. Sub-routes use `@route` on individual operations. Never mix URL prefixes inside one interface. (`@route("/api/v2/customers/{customerIdOrKey}/entitlements")
+**OmitProperties for model composition** — V2 models reuse V1 models via OmitProperties<Base, "field1" | "field2"> spreads instead of copy-pasting fields. Deprecated fields are kept on create-input models with #deprecated annotations. (`model EntitlementMeteredV2 {
+  ...OmitProperties<EntitlementMeteredV2CreateInputs, "type" | "measureUsageFrom" | "grants">;
+  ...EntitlementCustomerFields;
+}`)
+**Interface-per-route-group with @route + @tag** — Each distinct URL prefix gets its own interface decorated with @route, @tag, and @friendlyName. Sub-routes use @route on individual operations. Never mix URL prefixes inside one interface. (`@route("/api/v2/customers/{customerIdOrKey}/entitlements")
 @tag("Entitlements")
+@friendlyName("CustomerEntitlementsV2")
 interface CustomerEntitlementsV2Endpoints { ... }`)
-**Explicit operationId on every operation** — Every operation carries `@operationId("verbNounV2")` with a camelCase V2 suffix so generated SDK method names are stable and distinct from V1 counterparts. (`@operationId("createCustomerEntitlementV2")`)
-**PaginatedResponse wrapper with QueryPagination/QueryOrdering spreads** — List operations return `PaginatedResponse<T>` and spread `...QueryPagination`, `...QueryLimitOffset`, and `...QueryOrdering<OrderByEnum>` for consistent pagination params across all list endpoints. (`list(...QueryPagination, ...QueryLimitOffset, ...QueryOrdering<EntitlementOrderBy>): PaginatedResponse<EntitlementV2> | CommonErrors`)
-**Version suffix naming (V2) on all public symbols** — Every model, union, and interface name exported from this package ends with `V2` (e.g. EntitlementV2, GrantV2, GrantCreateInputV2). main.tsp documents this as mandatory for versioned packages to avoid SDK symbol collisions. (`model GrantV2 { ... }  // NOT Grant or EntitlementGrant`)
-**CommonErrors + typed error union on every operation** — Every operation returns `| CommonErrors` at minimum, plus `| NotFoundError`, `| ConflictError` where applicable. Never return a bare error or omit error unions. (`get(...): EntitlementV2 | CommonErrors | NotFoundError`)
+**Explicit operationId with V2 suffix** — Every operation carries @operationId("verbNounV2") in camelCase with a V2 suffix to produce stable SDK method names distinct from V1 counterparts. (`@operationId("createCustomerEntitlementV2")`)
+**PaginatedResponse with QueryPagination/QueryOrdering spreads** — All list operations return PaginatedResponse<T> and spread ...QueryPagination, ...QueryLimitOffset, and ...QueryOrdering<OrderByEnum> for consistent pagination params. (`list(...QueryPagination, ...QueryLimitOffset, ...QueryOrdering<EntitlementOrderBy>): PaginatedResponse<EntitlementV2> | CommonErrors;`)
+**V2 suffix on all exported symbols** — Every model, union, and interface name exported from this package ends with V2 (e.g. EntitlementV2, GrantV2, GrantCreateInputV2) to avoid SDK symbol collisions with V1. (`model GrantV2 { ... }  // NOT Grant or EntitlementGrant`)
+**CommonErrors + typed error union on every operation** — Every operation returns | CommonErrors at minimum, plus | NotFoundError, | ConflictError where applicable. Never omit error unions. (`get(...): EntitlementV2 | CommonErrors | NotFoundError;`)
 
 ## Key Files
 
-| File               | Role                                                                                                                                                                                 | Watch For                                                                                                                                                                           |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `main.tsp`         | Package entry point: imports all sibling .tsp files and the parent namespace. Declares no models — only wires the package together.                                                  | All new .tsp files in this folder must be imported here; forgetting breaks compilation silently.                                                                                    |
-| `entitlements.tsp` | Defines admin list/get endpoints at /api/v2/entitlements and the core discriminated union models (EntitlementV2, EntitlementV2CreateInputs) plus all three variant models.           | EntitlementV2 and EntitlementV2CreateInputs are the canonical union types — adding a new entitlement sub-type requires updating both unions here.                                   |
-| `customer.tsp`     | Customer-scoped CRUD plus value/history/reset/grants sub-routes. Also defines EntitlementValueV2 response model and EntitlementMeteredV2CreateInputs with deprecated field bridging. | Two separate interfaces for the two URL prefixes; the second interface (CustomerEntitlementV2Endpoints) owns all sub-resource routes — don't add sub-routes to the first interface. |
-| `grant.tsp`        | Defines GrantV2 response model and GrantCreateInputV2 create-input model; imported by customer.tsp and grants.tsp. No HTTP routes here — pure model file.                            | Does NOT use `using TypeSpec.Http` — adding HTTP decorators here requires adding the import and using declaration first.                                                            |
-| `grants.tsp`       | Admin list endpoint at /api/v2/grants. Intentionally thin — no per-grant routes.                                                                                                     | Uses both `QueryPagination` and `QueryLimitOffset` spread params; all new list endpoints in this package should do the same.                                                        |
+| File | Role | Watch For |
+|------|------|-----------|
+| `main.tsp` | Package entry point: imports all sibling .tsp files and the parent namespace. Declares no models — only wires the package together. | All new .tsp files added to this folder must be imported here; forgetting breaks compilation silently. |
+| `entitlements.tsp` | Defines admin list/get endpoints at /api/v2/entitlements and the canonical discriminated union models (EntitlementV2, EntitlementV2CreateInputs) plus all three variant models (Metered, Boolean, Static). | Adding a new entitlement sub-type requires updating both EntitlementV2 and EntitlementV2CreateInputs union definitions here. |
+| `customer.tsp` | Customer-scoped CRUD plus value/history/reset/grants sub-routes split across two interfaces for two URL prefixes. Defines EntitlementValueV2 response model. | Two separate interfaces for the two URL prefixes; sub-resource routes (/grants, /value, /history, /reset) belong in CustomerEntitlementV2Endpoints (the second interface), not the first. |
+| `grant.tsp` | Pure model file defining GrantV2 response model and GrantCreateInputV2 create-input model. No HTTP routes. | Does NOT use `using TypeSpec.Http` — adding HTTP decorators here requires adding the import and using declaration first. |
+| `grants.tsp` | Admin list endpoint at /api/v2/grants. Intentionally thin — no per-grant routes. | Uses both QueryPagination and QueryLimitOffset spread params; all new list endpoints in this package must do the same. |
 
 ## Anti-Patterns
 

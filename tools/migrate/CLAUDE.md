@@ -2,14 +2,14 @@
 
 <!-- archie:ai-start -->
 
-> Migration toolchain for the OpenMeter database: embeds Atlas-generated SQL files (tools/migrate/migrations/), wraps golang-migrate for use at app startup, and hosts the viewgen sub-tool that generates ClickHouse view DDL separately from Atlas. Primary constraint: SQL files and atlas.sum are Atlas-owned and must never be hand-edited.
+> Migration toolchain for the OpenMeter database: embeds Atlas-generated SQL files (tools/migrate/migrations/), wraps golang-migrate for startup-time application, and hosts the viewgen sub-tool that generates ClickHouse view DDL separately from Atlas. Primary constraint: SQL files and atlas.sum are Atlas-owned and must never be hand-edited.
 
 ## Patterns
 
 **SourceWrapper for migration:ignore filtering** — All migration file access goes through SourceWrapper (fs.go), which skips files containing '-- migration:ignore' on any line. This is the only supported way to exclude a migration file from the chain. (`fs := migrate.NewSourceWrapper(options.Migrations.FS); sourceDriver, _ := iofs.New(fs, path)`)
 **OMMigrationsConfig as canonical config** — migrate.OMMigrationsConfig is the single pre-built MigrationsConfig for the embedded migrations/ directory with StateTableName = 'schema_om'. All callers (app/common, cmd/jobs, tests) use this constant; never construct ad-hoc MigrationsConfig pointing at the same embed. (`migrator, err := migrate.New(migrate.MigrateOptions{Migrations: migrate.OMMigrationsConfig, ...})`)
 **Migration stop tests via runner / stops pattern** — Data-migration tests use the runner{stops: stops{...}}.Test(t) harness (migrate_test.go). Each stop specifies a version, direction (directionUp / directionDown), and an action func(t, *sql.DB). The harness runs stops in version order, calls migrator.Migrate(version), then runs action with the raw *sql.DB — never through an ORM. (`runner{stops: stops{{version: 20250926145930, direction: directionUp, action: func(t *testing.T, db *sql.DB){...}}}}.Test(t)`)
-**purgeDB between up and down passes** — runner.Test truncates all non-schema_om tables between the up-stop sequence and the down-stop sequence using TRUNCATE ... CASCADE. This is required because data migration tests may leave rows whose schema is incompatible with the down path. (`// inside runner.Test: r.purgeDB(t, testDB) is called after all up stops and before down stops`)
+**purgeDB between up and down passes** — runner.Test truncates all non-schema_om tables between the up-stop sequence and the down-stop sequence using TRUNCATE ... CASCADE. Required because data migration tests may leave rows whose schema is incompatible with the down path. (`// inside runner.Test: r.purgeDB(t, testDB) is called after all up stops and before down stops`)
 **View parity enforced by TestViewDefinitionsMatchGeneratedSchemaSQL** — view_parity_test.go runs the full migration suite on two databases — one applying migrations as-is (including view DDL), one stripping all CREATE/DROP VIEW statements and re-applying views from viewgen.GenerateSQL. Both resulting view definitions must match exactly. Any view changed in openmeter/ent/schema must be re-generated with 'make generate-view-sql'. (`sql, _ := viewgen.GenerateSQL("../../openmeter/ent/schema"); applyGeneratedViews(t, db)`)
 **WaitForMigrationJob for deferred migration startup** — Migrate.WaitForMigrationJob polls until db version >= LatestVersion() from the source driver. Used by binaries that do not run migrations themselves but must wait for a migration job to finish before starting. (`if err := migrator.WaitForMigrationJob(migrate.WithMaxRetries(60)); err != nil { return err }`)
 
@@ -21,7 +21,7 @@
 | `tools/migrate/fs.go` | SourceWrapper filters out migration files containing '-- migration:ignore' from directory listings, enabling selective exclusion without deleting files from the embed. | IgnoreMarker must appear at the start of a line (strings.HasPrefix). SourceWrapper.ReadDir recurses into sub-directories and flattens them — the embedded migrations/ directory must remain flat. |
 | `tools/migrate/migrate_test.go` | Defines the runner/stops harness used by all migration stop tests. TestUpDownUp is the baseline that runs the full migration chain up, then down, then up again. | stops.ups() sorts ascending by version; stops.downs() sorts descending. purgeDB skips the schema_om table. Any new migration test file must be in package migrate_test and use the runner pattern. |
 | `tools/migrate/view_parity_test.go` | Validates that view DDL in migration files matches what viewgen.GenerateSQL produces from openmeter/ent/schema. Runs two parallel migrated databases to compare pg_get_viewdef output. | stripViewStatements splits on semicolons — view SQL embedded in migrations must end with semicolons. buildMigrationsWithoutViews excludes entire migration files whose only content is view statements. |
-| `tools/migrate/views.sql` | Generated output of viewgen; contains CREATE VIEW DDL for all ent.View schemas. Header '-- Code generated by viewgen, DO NOT EDIT.' enforces no manual edits. | Regenerate with 'make generate-view-sql'. The file is a UNION ALL query over charge tables (charges_search_v1s). Adding a new ent.View schema requires re-running viewgen. |
+| `tools/migrate/views.sql` | Generated output of viewgen; contains CREATE VIEW DDL for all ent.View schemas. Header '-- Code generated by viewgen, DO NOT EDIT.' enforces no manual edits. | Regenerate with 'make generate-view-sql'. Adding a new ent.View schema requires re-running viewgen. |
 
 ## Anti-Patterns
 
@@ -51,7 +51,7 @@ import (
 )
 
 func TestMyDataMigration(t *testing.T) {
-	rowID := ulid.Make()
+	rowID := ulid.Make().String()
 
 	runner{
 		stops: stops{

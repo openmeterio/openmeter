@@ -2,29 +2,30 @@
 
 <!-- archie:ai-start -->
 
-> Boolean entitlement sub-type: implements entitlement.SubTypeConnector for on/off access entitlements that carry no balance or usage tracking. Single responsibility: validate creation inputs and always return HasAccess=true.
+> Boolean entitlement sub-type implementing entitlement.SubTypeConnector for on/off access entitlements that carry no balance or usage tracking — always returns HasAccess=true.
 
 ## Patterns
 
-**SubTypeConnector implementation** — Implement entitlement.SubTypeConnector (GetValue, BeforeCreate, AfterCreate). BeforeCreate validates that no metered fields (MeasureUsageFrom, IssueAfterReset, IsSoftLimit, Config) are set and returns CreateEntitlementRepoInputs. (`func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feature feature.Feature) (*entitlement.CreateEntitlementRepoInputs, error) { ... }`)
-**ParseFromGenericEntitlement type guard** — ParseFromGenericEntitlement checks EntitlementType == EntitlementTypeBoolean and returns WrongTypeError if not. Always call this at the top of GetValue. (`_, err := ParseFromGenericEntitlement(entitlement); if err != nil { return nil, err }`)
-**AfterCreate no-op** — AfterCreate returns nil immediately — boolean entitlements require no post-creation side effects (no default grant, no balance snapshot). (`func (c *connector) AfterCreate(ctx context.Context, entitlement *entitlement.Entitlement) error { return nil }`)
+**SubTypeConnector interface implementation** — Implement all three methods of entitlement.SubTypeConnector: GetValue, BeforeCreate (validates inputs and returns CreateEntitlementRepoInputs), AfterCreate (no-op for boolean). Do not add a fourth method. (`func (c *connector) AfterCreate(ctx context.Context, entitlement *entitlement.Entitlement) error { return nil }`)
+**ParseFromGenericEntitlement type guard at top of GetValue** — Call ParseFromGenericEntitlement immediately in GetValue. It checks EntitlementType == EntitlementTypeBoolean and returns WrongTypeError if not. Skip this and type misrouting is silently swallowed. (`_, err := ParseFromGenericEntitlement(entitlement); if err != nil { return nil, err }`)
+**BeforeCreate computes currentUsagePeriod if UsagePeriod is set** — Boolean entitlements do support UsagePeriod for scheduling. BeforeCreate must calculate currentUsagePeriod via usagePeriod.GetValue().GetPeriodAt(clock.Now()) when UsagePeriod is non-nil. (`if model.UsagePeriod != nil { calculatedPeriod, err := usagePeriod.GetValue().GetPeriodAt(clock.Now()); currentUsagePeriod = &calculatedPeriod }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `connector.go` | Full SubTypeConnector implementation: GetValue always returns BooleanEntitlementValue{HasAccess: true}; BeforeCreate rejects metered-only fields. | UsagePeriod IS allowed for boolean entitlements — BeforeCreate computes currentUsagePeriod if UsagePeriod is set. |
-| `entitlement.go` | Defines Entitlement struct (embeds GenericProperties) and ParseFromGenericEntitlement type-narrowing function. | Struct has no extra fields beyond GenericProperties — do not add balance fields here. |
+| `connector.go` | Full SubTypeConnector implementation. GetValue always returns BooleanEntitlementValue{HasAccess: true}. BeforeCreate rejects metered-only fields (MeasureUsageFrom, IssueAfterReset, IsSoftLimit, Config). | UsagePeriod IS allowed for boolean entitlements. Do not add it to the rejection list in BeforeCreate. |
+| `entitlement.go` | Defines the Entitlement struct (embeds GenericProperties only) and ParseFromGenericEntitlement type-narrowing function. | Do not add balance or usage fields here — the struct is intentionally empty beyond GenericProperties. |
 
 ## Anti-Patterns
 
 - Adding balance or usage fields to the boolean Entitlement struct.
 - Returning HasAccess=false from BooleanEntitlementValue — boolean access is always true.
-- Calling the credit engine from AfterCreate — boolean entitlements have no grants.
+- Calling a credit engine or grant repo from AfterCreate — boolean entitlements have no grants.
+- Adding MeasureUsageFrom or IssueAfterReset validation to BeforeCreate acceptance list.
 
 ## Decisions
 
-- **Boolean entitlement always returns HasAccess=true without any credit computation.** — Boolean entitlements are pure feature flags; there is no concept of credit burn-down, so the value is always true as long as the entitlement exists and is active.
+- **Boolean entitlement always returns HasAccess=true without credit computation.** — Boolean entitlements are pure feature flags — there is no concept of credit burn-down, so the value is always true as long as the entitlement exists and is active.
 
 <!-- archie:ai-end -->

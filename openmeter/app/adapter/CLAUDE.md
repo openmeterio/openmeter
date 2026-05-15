@@ -2,57 +2,51 @@
 
 <!-- archie:ai-start -->
 
-> Ent/PostgreSQL adapter implementing app.Adapter — persists installed apps, app-customer relationships, and routes marketplace registry lookups. The in-memory registry map[AppType]RegistryItem is the only non-Ent state; all mutations go through TransactingRepo.
+> Ent/PostgreSQL adapter implementing app.Adapter — persists installed apps and app-customer relationships, and holds the in-memory marketplace registry map[AppType]RegistryItem that every DB read (mapAppFromDB) consults to construct concrete app.App instances via the registered factory.
 
 ## Patterns
 
-**TransactingRepo wrapping** — Every multi-step write (CreateApp, UpdateApp, UninstallApp, EnsureCustomer) is wrapped in transaction.Run + entutils.TransactingRepo so the ctx-bound Ent transaction is honoured. Read-only queries (ListApps, GetApp) use TransactingRepo without a prior transaction.Run. (`return transaction.Run(ctx, a, func(ctx context.Context) (app.App, error) { return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (app.App, error) { ... }) })`)
-**WithTx + Self pattern** — adapter implements entutils.TxCreator via Tx(), WithTx(), and Self() so entutils.TransactingRepo can rebind the adapter to any transaction driver found in ctx. (`func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), registry: a.registry} }`)
-**Registry held on adapter struct** — The marketplace registry is an in-memory map[app.AppType]RegistryItem on the adapter. RegisterMarketplaceListing mutates it directly (value receiver, so pointer receiver must be used in practice — note the adapter's pointer is shared). GetMarketplaceListing returns models.GenericNotFoundError when the type is absent. (`a.registry[input.Listing.Type] = input`)
-**Soft-delete via DeletedAt** — Apps and app-customer rows are never hard-deleted. UninstallApp sets DeletedAt on the App row; DeleteCustomer sets DeletedAt on AppCustomer. ListApps filters out deleted rows by default unless IncludeDeleted is true. (`query = query.Where(appdb.DeletedAtIsNil())`)
-**mapAppFromDB delegates to factory** — mapAppFromDB calls registryItem.Factory.NewApp(ctx, appBase) to produce the concrete app.App; the adapter never type-switches on AppType itself for construction. (`app, err := registryItem.Factory.NewApp(ctx, appBase)`)
-**EnsureCustomer upsert pattern** — AppCustomer rows are upserted with OnConflictColumns targeting (namespace, app_id, customer_id) and UpdateDeletedAt to restore soft-deleted rows. Workaround for ent issue #1821 where DoNothing() can return 'sql: no rows in result set'. (`OnConflictColumns(appcustomerdb.FieldNamespace, appcustomerdb.FieldAppID, appcustomerdb.FieldCustomerID).UpdateDeletedAt().Exec(ctx)`)
+**TransactingRepo on every mutating method** — All state-changing methods (CreateApp, UpdateApp, UninstallApp, EnsureCustomer) wrap their Ent calls in transaction.Run + entutils.TransactingRepo. Read-only methods (ListApps, GetApp) use TransactingRepo alone without transaction.Run. (`return transaction.Run(ctx, a, func(ctx context.Context) (app.AppBase, error) { return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (app.AppBase, error) { ... }) })`)
+**TxCreator + TxUser triad** — adapter implements Tx() via HijackTx+NewTxDriver, WithTx() via NewTxClientFromRawConfig, and Self(). All three are required for TransactingRepo to rebind to any ctx-carried transaction. (`func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), registry: a.registry} }`)
+**mapAppFromDB delegates construction to factory** — mapAppFromDB never type-switches on AppType itself. It calls registryItem.Factory.NewApp(ctx, appBase) to produce the concrete app.App, keeping the adapter type-agnostic. (`app, err := registryItem.Factory.NewApp(ctx, appBase)`)
+**Soft-delete via DeletedAt** — Neither apps nor app-customer rows are hard-deleted. UninstallApp sets DeletedAt on the App row; DeleteCustomer sets DeletedAt on AppCustomer. ListApps filters deleted rows unless IncludeDeleted is true. (`query = query.Where(appdb.DeletedAtIsNil())`)
+**EnsureCustomer upsert with OnConflictColumns** — AppCustomer rows are upserted targeting (namespace, app_id, customer_id). UpdateDeletedAt restores soft-deleted rows. The 'sql: no rows in result set' error string is a known Ent issue #1821 and is silently ignored. (`OnConflictColumns(appcustomerdb.FieldNamespace, appcustomerdb.FieldAppID, appcustomerdb.FieldCustomerID).UpdateDeletedAt().Exec(ctx)`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `adapter.go` | Struct definition, Config/New constructor, Tx/WithTx/Self for TransactingRepo, compile-time interface assertion var _ app.Adapter = (*adapter)(nil). | registry map is value-initialised to empty map in New(); adding new registry access must go through pointer receiver or the map is shared correctly via pointer. |
-| `app.go` | CreateApp, GetApp, ListApps, UpdateApp, UninstallApp, UpdateAppStatus, and the two private mappers (mapAppBaseFromDB, mapAppFromDB). | UpdateAppStatus does NOT use TransactingRepo — it updates directly on a.db, bypassing any active ctx transaction. This is intentional (status is idempotent) but notable. |
-| `customer.go` | ListCustomerData (delegates to ListApps + per-app GetCustomerData), EnsureCustomer (upsert), DeleteCustomer (soft-delete by appID and/or customerID). | ListCustomerData calls GetCustomerData on each App instance — this may trigger further Ent queries per app type. Namespace is derived from AppID or CustomerID; both nil => validation error. |
-| `marketplace.go` | In-memory registry CRUD: RegisterMarketplaceListing, GetMarketplaceListing, ListMarketplaceListings, InstallMarketplaceListingWithAPIKey, InstallMarketplaceListing. OAuth2 methods return 'not implemented'. | RegisterMarketplaceListing panics on duplicate key (returns error but callers at startup must handle it). InstallMarketplaceListing type-asserts Factory to AppFactoryInstall — missing capability returns GenericValidationError. |
+| `adapter.go` | Struct definition, Config/New constructor, Tx/WithTx/Self for TransactingRepo, compile-time interface assertion `var _ app.Adapter = (*adapter)(nil)`. | registry map is value-initialised to empty map in New(); pointer receiver is essential so the registry is shared across all TransactingRepo-derived adapter copies. |
+| `app.go` | CreateApp, GetApp, ListApps, UpdateApp, UninstallApp, UpdateAppStatus, and the two private mappers mapAppBaseFromDB and mapAppFromDB. | UpdateAppStatus uses TransactingRepo directly (no transaction.Run) — it's intentionally idempotent and not wrapped in a top-level transaction. |
+| `customer.go` | ListCustomerData (delegates to ListApps + per-app GetCustomerData), EnsureCustomer (upsert), DeleteCustomer (soft-delete). | ListCustomerData calls GetCustomerData on each App instance which may trigger additional Ent queries per app type. Namespace is derived from AppID or CustomerID; both nil => validation error. |
+| `marketplace.go` | In-memory registry CRUD: RegisterMarketplaceListing, GetMarketplaceListing, ListMarketplaceListings, InstallMarketplaceListingWithAPIKey, InstallMarketplaceListing. | RegisterMarketplaceListing returns GenericConflictError on duplicate key. InstallMarketplaceListing type-asserts Factory to AppFactoryInstall — missing capability returns GenericValidationError. OAuth2 methods return GenericNotImplementedError. |
 
 ## Anti-Patterns
 
-- Calling a.db directly inside a method that may already be inside a transaction — always go through entutils.TransactingRepo to rebind to the ctx-bound tx.
-- Importing app-type-specific packages (appstripe, appsandbox) in this adapter — construction is delegated to the factory, keeping the adapter type-agnostic.
+- Calling a.db directly in a method body that may be inside a caller-supplied transaction — always use entutils.TransactingRepo to rebind.
+- Importing app-type-specific packages (appstripe, appsandbox, appcustominvoicing) in this adapter — construction is delegated to factory, keeping the adapter type-agnostic.
 - Hard-deleting app or app-customer rows — the pattern is soft-delete via DeletedAt.
-- Adding business logic to this adapter beyond persistence — service-layer orchestration belongs in openmeter/app/service.
+- Adding business logic beyond persistence here — service-layer orchestration belongs in openmeter/app/service.
 
 ## Decisions
 
-- **Registry lives on the adapter (not a separate service layer)** — The marketplace registry must be consulted on every DB read (mapAppFromDB needs the factory) so co-locating it with the Ent client avoids a second dependency injection and keeps ListApps/GetApp atomic within one struct.
-- **OAuth2 methods return 'not implemented'** — OAuth2 app installation is not yet supported; stubbing here keeps the adapter interface complete without forcing callers to handle nil adapters.
+- **In-memory registry lives on the adapter struct (not a separate layer)** — mapAppFromDB must consult the factory registry on every DB read; co-locating it with the Ent client keeps ListApps/GetApp atomic within one struct and avoids a second DI dependency.
+- **OAuth2 methods return GenericNotImplementedError stubs** — OAuth2 app installation is not yet supported; stubbing here keeps the adapter interface complete without forcing callers to handle nil adapters.
 
-## Example: Creating a new app inside a transaction
+## Example: Creating a new app inside a transaction with registry lookup
 
 ```
 func (a *adapter) CreateApp(ctx context.Context, input app.CreateAppInput) (app.AppBase, error) {
 	return transaction.Run(ctx, a, func(ctx context.Context) (app.AppBase, error) {
-		return entutils.TransactingRepo(
-			ctx, a,
-			func(ctx context.Context, repo *adapter) (app.AppBase, error) {
-				dbApp, err := repo.db.App.Create().
-					SetNamespace(input.Namespace).
-					SetName(input.Name).
-					SetType(input.Type).
-					SetStatus(app.AppStatusReady).
-					Save(ctx)
-				if err != nil { return app.AppBase{}, err }
-				registryItem, _ := repo.GetMarketplaceListing(ctx, app.MarketplaceGetInput{Type: dbApp.Type})
-				return mapAppBaseFromDB(dbApp, registryItem), nil
-			})
-// ...
+		return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (app.AppBase, error) {
+			dbApp, err := repo.db.App.Create().SetNamespace(input.Namespace).SetName(input.Name).SetType(input.Type).SetStatus(app.AppStatusReady).Save(ctx)
+			if err != nil { return app.AppBase{}, err }
+			registryItem, err := repo.GetMarketplaceListing(ctx, app.MarketplaceGetInput{Type: dbApp.Type})
+			if err != nil { return app.AppBase{}, err }
+			return mapAppBaseFromDB(dbApp, registryItem), nil
+		})
+	})
+}
 ```
 
 <!-- archie:ai-end -->

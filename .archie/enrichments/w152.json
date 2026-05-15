@@ -1,0 +1,166 @@
+{
+  "test/app/custominvoicing": {
+    "purpose": "Integration tests for the custom invoicing app validating the async sync protocol (draft\u2192issuing\u2192payment) and invoice event JSON marshaling against a real Postgres DB via billingtest.BaseSuite. Primary constraint: all service interactions must go through BillingService and CustomInvoicingService \u2014 never adapter or Ent directly.",
+    "patterns": [
+      {
+        "name": "Embed billingtest.BaseSuite",
+        "description": "All test suites embed billingtest.BaseSuite (not app/common wiring) to get BillingService, CustomerService, AppService, MockStreamingConnector wired from raw package constructors.",
+        "example": "type CustomInvoicingTestSuite struct { billingtest.BaseSuite }"
+      },
+      {
+        "name": "setupDefaultBillingProfile helper",
+        "description": "Each test scenario calls s.setupDefaultBillingProfile(ctx, namespace, config) to install the custom invoicing app, configure it, and provision the billing profile before any invoice operations. DraftPeriod is set to P0D so lines immediately become invoiceable.",
+        "example": "s.setupDefaultBillingProfile(ctx, namespace, appcustominvoicing.Configuration{EnableDraftSyncHook: true, EnableIssuingSyncHook: true})"
+      },
+      {
+        "name": "Drive state machine via service layer only",
+        "description": "Invoice lifecycle is driven exclusively through s.BillingService and s.CustomInvoicingService (SyncDraftInvoice, SyncIssuingInvoice, HandlePaymentTrigger) \u2014 never through adapter or Ent directly.",
+        "example": "s.CustomInvoicingService.SyncDraftInvoice(ctx, appcustominvoicing.SyncDraftInvoiceInput{InvoiceID: invoice.GetInvoiceID(), UpsertInvoiceResults: upsertResults})"
+      },
+      {
+        "name": "Unique namespace per test function",
+        "description": "Every test function uses a unique string literal namespace to avoid cross-test DB contamination without teardown.",
+        "example": "namespace := \"ns-custom-invoicing-flow\""
+      },
+      {
+        "name": "MockStreamingConnector with deferred Reset",
+        "description": "Usage data injected via s.MockStreamingConnector.AddSimpleEvent before invoicing; always defer s.MockStreamingConnector.Reset() to prevent stale events bleeding into subsequent tests.",
+        "example": "s.MockStreamingConnector.AddSimpleEvent(\"test\", 100, periodStart.Add(time.Minute)); defer s.MockStreamingConnector.Reset()"
+      },
+      {
+        "name": "Suite.Run for sub-scenarios",
+        "description": "Related invoice lifecycle steps grouped with s.Run('description', func(){}) to share invoice state between steps and produce hierarchical test output.",
+        "example": "s.Run(\"invoice can be created\", func() { invoices, err := s.BillingService.InvoicePendingLines(...) })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "invocing_test.go",
+        "role": "Main integration test covering full invoice flow (hooks enabled) and payment-status-only flow (hooks disabled); also provides setupDefaultBillingProfile helper used by event_test.go.",
+        "watch_for": "DraftPeriod is set to P0D in setupDefaultBillingProfile so lines immediately become invoiceable \u2014 changing this requires adjusting AsOf in InvoicePendingLines or assertions will fail. The two test functions cover two distinct state machine paths: hooks-enabled produces draft.syncing; hooks-disabled produces payment_processing.pending directly."
+      },
+      {
+        "file": "event_test.go",
+        "role": "Unit-level JSON round-trip test for billing.StandardInvoiceCreatedEvent \u2014 validates that app bases and appcustominvoicing.Meta survive marshal/unmarshal intact.",
+        "watch_for": "Uses context.Background() rather than t.Context() \u2014 acceptable here since no cancellation semantics are tested; new tests should prefer t.Context()."
+      }
+    ],
+    "anti_patterns": [
+      "Calling adapter or Ent methods directly instead of going through BillingService / CustomInvoicingService",
+      "Importing app/common wiring into test setup \u2014 use raw package constructors like billingtest.BaseSuite",
+      "Sharing namespace strings across test functions \u2014 always use a unique namespace per top-level test",
+      "Forgetting defer s.MockStreamingConnector.Reset() \u2014 stale events bleed into subsequent tests",
+      "Setting DraftPeriod to a non-zero duration without adjusting AsOf \u2014 lines won't be invoiceable"
+    ],
+    "decisions": [
+      {
+        "decision": "Tests embed billingtest.BaseSuite instead of constructing services manually",
+        "rationale": "Keeps test setup DRY and independent from app/common to avoid import cycles; BaseSuite provides all shared services from underlying constructors."
+      },
+      {
+        "decision": "Both EnableDraftSyncHook=true and EnableDraftSyncHook=false flows are exercised in separate test functions",
+        "rationale": "Custom invoicing has two distinct state machine paths: full async sync (draft\u2192issuing sync hooks) and payment-status-only (skips sync hooks, goes directly to payment_processing.pending); both paths need explicit coverage."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Full invoice lifecycle with sync hooks enabled",
+        "code": "import (\n  appcustominvoicing \"github.com/openmeterio/openmeter/openmeter/app/custominvoicing\"\n  \"github.com/openmeterio/openmeter/openmeter/billing\"\n  billingtest \"github.com/openmeterio/openmeter/test/billing\"\n)\n\ntype MyTestSuite struct { billingtest.BaseSuite }\n\nfunc (s *MyTestSuite) TestFlow() {\n  ctx := context.Background()\n  namespace := \"ns-my-unique-test\"\n  s.setupDefaultBillingProfile(ctx, namespace, appcustominvoicing.Configuration{EnableDraftSyncHook: true})\n  invoices, _ := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{...})\n  s.Equal(billing.StandardInvoiceStatusDraftSyncing, invoices[0].Status)\n  synced, _ := s.CustomInvoicingService.SyncDraftInvoice(ctx, appcustominvoicing.SyncDraftInvoiceInput{InvoiceID: invoices[0].GetInvoiceID()})\n}"
+      }
+    ]
+  },
+  "test/app/stripe": {
+    "purpose": "Integration and unit tests for the Stripe app covering app install/get/update/uninstall lifecycle, customer data CRUD, invoice sync to Stripe, and session creation \u2014 all using mock Stripe clients to avoid real API calls. Primary constraint: never import app/common; wire all services manually from raw package constructors.",
+    "patterns": [
+      {
+        "name": "TestEnv interface for app lifecycle tests",
+        "description": "app_test.go and appstripe.go use a TestEnv interface (App, AppStripe, Billing, Customer, Fixture, Secret, StripeClient, StripeAppClient, Close) provisioned by NewTestEnv \u2014 services wired manually without app/common.",
+        "example": "env, err := NewTestEnv(t, ctx); env.App().InstallMarketplaceListingWithAPIKey(...)"
+      },
+      {
+        "name": "StripeClientMock / StripeAppClientMock with Restore()",
+        "description": "Mock expectations are set per-test with .On(...).Return(...); always defer Restore() after each setup to clear ExpectedCalls[:0] without recreating the mock.",
+        "example": "s.Env.StripeClient().On(\"GetAccount\").Return(stripeclient.StripeAccount{...}, nil); defer s.Env.StripeClient().Restore()"
+      },
+      {
+        "name": "Embed billingtest.BaseSuite for invoice tests",
+        "description": "StripeInvoiceTestSuite embeds billingtest.BaseSuite and builds extra services (SecretService, AppStripeService, Charges, LedgerResolver) in SetupSuite using raw constructors, not app/common wiring.",
+        "example": "type StripeInvoiceTestSuite struct { billingtest.BaseSuite; AppStripeService appstripe.Service; Fixture *Fixture; StripeAppClient *StripeAppClientMock; Charges charges.Service }"
+      },
+      {
+        "name": "Fixture for shared setup sequences",
+        "description": "fixture.go provides setupApp, setupCustomer, setupAppWithCustomer to avoid duplicating Stripe mock setup and app installation across tests. setupApp calls Restore() via defer after each setup.",
+        "example": "testApp, customer, customerData, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)"
+      },
+      {
+        "name": "Unique namespace per test via setupNamespace(t)",
+        "description": "Each test in AppHandlerTestSuite calls s.setupNamespace(t) which sets s.namespace = ulid.Make().String() to guarantee isolation.",
+        "example": "func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) { s.setupNamespace(t); ... }"
+      },
+      {
+        "name": "StableSortInvoiceItemParams for deterministic line matching",
+        "description": "StripeAppClientMock.AddInvoiceLines calls StableSortInvoiceItemParams to sort line items by Description before mock matching, making assertions order-independent.",
+        "example": "func (c *StripeAppClientMock) AddInvoiceLines(ctx context.Context, input stripeclient.AddInvoiceLinesInput) ... { c.StableSortInvoiceItemParams(input.Lines); args := c.Called(input) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "testenv.go",
+        "role": "Constructs the complete test dependency graph for app_test.go: Postgres via testutils.InitPostgresDB, customer/app/secret/stripe services wired manually, closerFunc for cleanup.",
+        "watch_for": "New services added to the stripe test env must be added to both the testEnv struct and the TestEnv interface. Uses context.Background() in NewTestEnv \u2014 acceptable for env setup."
+      },
+      {
+        "file": "stripe_mock.go",
+        "role": "Implements stripeclient.StripeClient and stripeclient.StripeAppClient with testify/mock; includes StableSortInvoiceItemParams/StableSortStripeInvoiceItemWithID to normalize line item order.",
+        "watch_for": "Restore() clears c.ExpectedCalls[:0] \u2014 forgetting to call it leaks expectations across tests causing spurious failures in subsequent tests."
+      },
+      {
+        "file": "invoice_test.go",
+        "role": "Deep invoice sync tests with StripeInvoiceTestSuite embedding billingtest.BaseSuite; builds Stripe mock call sequences for CreateInvoice/AddInvoiceLines/FinalizeInvoice and verifies exact Stripe API call shapes.",
+        "watch_for": "Stripe mock calls must match exact input structs including sorted line items \u2014 use expectStripeInvoiceAddLines helper which matches by Description key rather than index order. Ledger-backed tests (invoice_credits_test.go) require createStripeLedgerBackedCustomer which calls EnsureBusinessAccounts and CreateCustomerAccounts before any charge creation."
+      },
+      {
+        "file": "invoice_credits_test.go",
+        "role": "Tests progressive billing with credit allocation, covering full credit-then-invoice settlement mode across partial and final invoices synced to Stripe.",
+        "watch_for": "Uses charges.NewChargeIntent (not struct literal Charge{}) and mustSettleExternalCreditPurchase to advance credit purchase through Authorized\u2192Settled states before usage charges are created. clock.FreezeTime must be set appropriately for each invoice advancement step."
+      },
+      {
+        "file": "fixture.go",
+        "role": "Shared setup helpers for Stripe app install, customer creation, and customer data attachment. getStripeAccountId generates a random account ID each call.",
+        "watch_for": "Tests calling setupApp twice in the same test will get different Stripe account IDs \u2014 configure mock to handle both or use a single setupAppWithCustomer call."
+      },
+      {
+        "file": "secret_mock.go",
+        "role": "MockSecretService wraps real secretservice with optional mock interception; mockEnabled=false (passthrough) by default.",
+        "watch_for": "var _ secret.SecretService = (*MockSecretService)(nil) compile check enforces interface completeness \u2014 add new methods to MockSecretService when secret.Service interface gains new methods."
+      }
+    ],
+    "anti_patterns": [
+      "Calling Stripe client methods directly in tests instead of going through app.Service or appstripe.Service",
+      "Forgetting defer stripeClient.Restore() / stripeAppClient.Restore() \u2014 leftover mock expectations cause subsequent tests to fail",
+      "Importing app/common in test env construction \u2014 always wire from raw package constructors (appadapter.New, appservice.New, etc.)",
+      "Reusing the same namespace across multiple test functions in AppHandlerTestSuite \u2014 always call setupNamespace(t) at the start of each test method",
+      "Adding invoice line assertions without stable-sorting lines \u2014 use expectStripeInvoiceAddLines or StableSortInvoiceItemParams before setting mock expectations on AddInvoiceLines"
+    ],
+    "decisions": [
+      {
+        "decision": "Two parallel test architectures: TestEnv interface (app_test.go) vs billingtest.BaseSuite embedding (invoice_test.go)",
+        "rationale": "App lifecycle tests need a narrow env without the full billing stack; invoice tests need BaseSuite for BillingService, MockStreamingConnector, and meter setup \u2014 different scopes justified different setups."
+      },
+      {
+        "decision": "MockSecretService wraps real secretservice with Enable/Disable toggle rather than pure mock",
+        "rationale": "Most tests need real secret persistence (storing Stripe API keys); only error-path tests need mock control, so passthrough-by-default avoids brittle expectation setup in the happy path."
+      },
+      {
+        "decision": "Stripe client mock sorts invoice line items before matching",
+        "rationale": "Billing line generation order is non-deterministic; stable sorting in the mock (StableSortInvoiceItemParams) makes test assertions order-independent without requiring production code to sort."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Install a Stripe app and verify it can be retrieved",
+        "code": "import (\n  \"github.com/openmeterio/openmeter/openmeter/app\"\n  stripeclient \"github.com/openmeterio/openmeter/openmeter/app/stripe/client\"\n)\n\nfunc (s *AppHandlerTestSuite) TestGet(ctx context.Context, t *testing.T) {\n  s.setupNamespace(t)\n  testApp, err := s.Env.Fixture().setupApp(ctx, s.namespace)\n  require.NoError(t, err)\n  getApp, err := s.Env.App().GetApp(ctx, testApp.GetID())\n  require.NoError(t, err)\n  require.Equal(t, testApp.GetID(), getApp.GetID())\n  // 404 path:\n  _, err = s.Env.App().GetApp(ctx, app.AppID{Namespace: s.namespace, ID: \"not_found\"})\n  require.True(t, app.IsAppNotFoundError(err))\n}"
+      }
+    ]
+  }
+}

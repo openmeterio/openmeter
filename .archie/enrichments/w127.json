@@ -1,181 +1,141 @@
 {
-  "openmeter/taxcode/adapter": {
-    "purpose": "Ent/PostgreSQL adapter implementing taxcode.Repository. Owns all DB reads and writes for TaxCode entities including a raw JSONB containment query for app-mapping lookups.",
+  "openmeter/subscription/validators/customer": {
+    "purpose": "Implements customer.RequestValidator to enforce subscription-aware pre-conditions on customer mutations \u2014 blocks deletes when active subscriptions exist and prevents subject-key changes when a customer has active subscriptions. Registered at wiring time via app/common to avoid circular imports.",
     "patterns": [
       {
-        "name": "TransactingRepo on every write",
-        "description": "Every mutating method (Create, Update, Delete) wraps its body in entutils.TransactingRepo or TransactingRepoWithNoValue so the ctx-bound Ent transaction is honored.",
-        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) { ... })"
+        "name": "NoopRequestValidator embedding",
+        "description": "Embed customer.NoopRequestValidator so only the overridden methods need implementation; unimplemented lifecycle methods default to no-op.",
+        "example": "type Validator struct { customer.NoopRequestValidator; subscriptionService subscription.Service; customerService customer.Service }"
       },
       {
-        "name": "Soft-delete via SetDeletedAt",
-        "description": "DeleteTaxCode sets deleted_at to clock.Now() rather than issuing a hard DELETE; read queries filter with Where(taxcodedb.DeletedAtIsNil()).",
-        "example": "a.db.TaxCode.UpdateOneID(input.ID).SetDeletedAt(clock.Now()).Exec(ctx)"
+        "name": "Interface assertion at package level",
+        "description": "Declare var _ customer.RequestValidator = (*Validator)(nil) at package top for compile-time interface satisfaction proof.",
+        "example": "var _ customer.RequestValidator = (*Validator)(nil)"
       },
       {
-        "name": "WithTx/Self/Tx triad for transaction rebinding",
-        "description": "adapter implements Tx(ctx), WithTx(ctx, tx *TxDriver) *adapter, and Self() *adapter to satisfy entutils.TransactingRepo's TxCreator contract.",
-        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), logger: a.logger} }"
+        "name": "Constructor nil-guard",
+        "description": "NewValidator returns (*Validator, error) and validates every dependency is non-nil before construction.",
+        "example": "if subscriptionService == nil { return nil, fmt.Errorf(\"subscription service is required\") }"
       },
       {
-        "name": "Input.Validate() called before any DB access",
-        "description": "Every exported method calls input.Validate() as its first statement and returns early on error.",
-        "example": "if err := input.Validate(); err != nil { return taxcode.TaxCode{}, err }"
+        "name": "Use clock.Now() for time-sensitive queries",
+        "description": "Pass lo.ToPtr(clock.Now()) to subscription.ListSubscriptionsInput.ActiveAt so tests can control time via the clock package.",
+        "example": "ActiveAt: lo.ToPtr(clock.Now())"
       },
       {
-        "name": "JSONB containment query via raw sql.Selector",
-        "description": "GetTaxCodeByAppMapping uses a raw sql.P predicate (app_mappings @> '...') because Ent has no native JSONB containment operator.",
-        "example": "s.Where(sql.P(func(b *sql.Builder) { b.Ident(taxcodedb.FieldAppMappings).WriteString(\" @> \").Arg(string(pattern)) }))"
-      },
-      {
-        "name": "Constraint error mapped to GenericConflictError",
-        "description": "db.IsConstraintError(err) on create maps to models.NewGenericConflictError; db.IsNotFound maps to domain-specific NewTaxCodeNotFoundError.",
-        "example": "if db.IsConstraintError(err) { return taxcode.TaxCode{}, models.NewGenericConflictError(...) }"
-      },
-      {
-        "name": "Config struct with models.Validator compile-time assertion",
-        "description": "Config implements models.Validator via var _ models.Validator = (*Config)(nil); New() calls config.Validate() before constructing the adapter.",
-        "example": "var _ models.Validator = (*Config)(nil)"
+        "name": "Delegate input validation to input type",
+        "description": "Call input.Validate() first inside each handler before any domain queries to keep validation self-contained.",
+        "example": "if err := input.Validate(); err != nil { return err }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "adapter.go",
-        "role": "Adapter constructor, Config validation, Tx/WithTx/Self triad.",
-        "watch_for": "Must implement all three transaction rebinding methods or entutils.TransactingRepo will fail to compile."
-      },
-      {
-        "file": "taxcode.go",
-        "role": "All five CRUD operations plus GetTaxCodeByAppMapping implementing taxcode.Repository.",
-        "watch_for": "GetTaxCodeByAppMapping uses a raw JSONB @> predicate; if the taxcode.TaxCodeAppMapping struct fields change the marshal output must stay compatible with the stored column format."
-      },
-      {
-        "file": "mapping.go",
-        "role": "Single MapTaxCodeFromEntity function translating *db.TaxCode to taxcode.TaxCode domain type.",
-        "watch_for": "lo.FromPtr(entity.AppMappings) silently returns a zero-value slice when the column is NULL \u2014 ensure new nullable fields get the same nil-safe treatment."
+        "file": "validator.go",
+        "role": "Single file implementing the customer.RequestValidator interface with ValidateUpdateCustomer and ValidateDeleteCustomer logic.",
+        "watch_for": "ValidateUpdateCustomer fetches the current customer only when UsageAttribution.SubjectKeys is non-nil \u2014 skipping this branch for other mutations is intentional. Error types must use models.NewGenericNotFoundError / models.NewGenericPreConditionFailedError for correct HTTP status mapping."
       }
     ],
     "anti_patterns": [
-      "Calling a.db.TaxCode.* directly in a helper without wrapping in entutils.TransactingRepo \u2014 the helper falls off the ctx-bound transaction.",
-      "Hard-deleting rows with .Remove() instead of setting deleted_at via SetDeletedAt.",
-      "Adding raw SQL outside a sql.P / sql.Selector wrapper \u2014 bypasses Ent's query builder and breaks dialect portability.",
-      "Returning a non-domain error (e.g. raw ent error) without mapping via db.IsNotFound / db.IsConstraintError.",
-      "Skipping input.Validate() to save a round-trip \u2014 callers in the service layer also validate, but the adapter is the last defense before the DB."
+      "Returning plain fmt.Errorf for not-found or pre-condition errors \u2014 must use models.NewGenericNotFoundError / models.NewGenericPreConditionFailedError so HTTP mapping works correctly",
+      "Using context.Background() instead of the caller-supplied ctx",
+      "Calling billing or other non-subscription services from this validator \u2014 would create import cycles",
+      "Checking active subscriptions without the ActiveAt filter \u2014 would return already-cancelled subscriptions",
+      "Registering the validator inside the subscription or customer package constructors \u2014 must be done in app/common to avoid circular imports"
     ],
     "decisions": [
       {
-        "decision": "entutils.TransactingRepo used on every write, not only explicit tx callers.",
-        "rationale": "Ent transactions are carried implicitly in ctx; any helper that holds a raw *entdb.Client falls off the transaction unless it rebinds via TransactingRepo."
+        "decision": "Validator is registered via customer.Service.RegisterRequestValidator() in app/common wiring, not hardcoded in the customer package.",
+        "rationale": "Avoids circular import between subscription and customer packages; subscription registers the constraint at startup through the registry pattern."
       },
       {
-        "decision": "JSONB containment query via raw sql.Selector for GetTaxCodeByAppMapping.",
-        "rationale": "Ent has no built-in @> operator for JSONB array containment; the raw predicate is the only way to express 'find rows whose app_mappings array contains this element'."
+        "decision": "Only ValidateUpdateCustomer and ValidateDeleteCustomer are overridden; ValidateCreateCustomer remains a no-op via embedding.",
+        "rationale": "Customer creation has no subscription pre-conditions; embedding NoopRequestValidator avoids boilerplate."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new mutating Repository method following the existing pattern.",
-        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/ent/db\"\n\ttaxcodedb \"github.com/openmeterio/openmeter/openmeter/ent/db/taxcode\"\n\t\"github.com/openmeterio/openmeter/openmeter/taxcode\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) ArchiveTaxCode(ctx context.Context, input taxcode.ArchiveTaxCodeInput) (taxcode.TaxCode, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn taxcode.TaxCode{}, err\n\t}\n\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {\n\t\tentity, err := a.db.TaxCode.UpdateOneID(input.ID).\n\t\t\tWhere(taxcodedb.NamespaceEQ(input.Namespace)).\n\t\t\tWhere(taxcodedb.DeletedAtIsNil()).\n\t\t\tSetArchivedAt(clock.Now()).\n\t\t\tSave(ctx)\n\t\tif err != nil {\n\t\t\tif db.IsNotFound(err) {\n\t\t\t\treturn taxcode.TaxCode{}, taxcode.NewTaxCodeNotFoundError(input.ID)\n\t\t\t}\n\t\t\treturn taxcode.TaxCode{}, fmt.Errorf(\"failed to archive tax code: %w\", err)\n\t\t}\n\t\treturn MapTaxCodeFromEntity(entity)\n\t})\n}"
+        "scenario": "Register the validator during app wiring (app/common)",
+        "code": "import customer \"github.com/openmeterio/openmeter/openmeter/subscription/validators/customer\"\n\nv, err := customer.NewValidator(subscriptionService, customerService)\nif err != nil { return err }\ncustomerService.RegisterRequestValidator(v)"
       }
     ]
   },
-  "openmeter/taxcode/service": {
-    "purpose": "Business-logic layer for tax codes implementing taxcode.Service; enforces system-managed protection, upsert-on-conflict for app mappings, and wraps all adapter calls in transaction.Run.",
+  "openmeter/subscription/validators/subscription": {
+    "purpose": "Implements subscription.SubscriptionCommandHook to enforce the unique-constraint invariant: no two active subscriptions for the same customer may overlap in time or cover the same features. Registered at wiring time via app/common; feature-flag-gated for multi-subscription support.",
     "patterns": [
       {
-        "name": "transaction.Run wraps every adapter call",
-        "description": "Every service method wraps its adapter delegation in transaction.Run (or transaction.RunWithNoValue for void returns) so the operation is atomic even when called outside an existing tx.",
-        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) { return s.adapter.CreateTaxCode(ctx, input) })"
+        "name": "NoOpSubscriptionCommandHook embedding",
+        "description": "Embed subscription.NoOpSubscriptionCommandHook so only the overridden Before*/After* methods need implementation.",
+        "example": "type SubscriptionUniqueConstraintValidator struct { subscription.NoOpSubscriptionCommandHook; Config SubscriptionUniqueConstraintValidatorConfig }"
       },
       {
-        "name": "IsManagedBySystem guard before mutations",
-        "description": "UpdateTaxCode and DeleteTaxCode fetch the existing record first and return models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem) if IsManagedBySystem() is true and input.AllowAnnotations is false.",
-        "example": "if existing.IsManagedBySystem() && !input.AllowAnnotations { return taxcode.TaxCode{}, models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem) }"
+        "name": "Config struct with Validate()",
+        "description": "Group all dependencies in a Config struct with its own Validate() method; the constructor calls config.Validate() and returns an error if any dependency is missing.",
+        "example": "func (c SubscriptionUniqueConstraintValidatorConfig) Validate() error { if c.FeatureFlags == nil { return fmt.Errorf(\"feature flags is required\") } ... }"
       },
       {
-        "name": "GetOrCreate with conflict retry",
-        "description": "GetOrCreateByAppMapping handles a create\u2192conflict race by catching models.IsGenericConflictError and retrying with GetTaxCodeByAppMapping.",
-        "example": "if models.IsGenericConflictError(err) { return s.adapter.GetTaxCodeByAppMapping(ctx, ...) }"
+        "name": "Pipeline composition through small component methods",
+        "description": "Split validation into named steps (collectCustomerSubscriptionsStarting, mapSubsToViews, mapViewsToSpecs, validateUniqueConstraint, includeSubSpec) in components.go and compose them in validator.go; each step returns (result, error).",
+        "example": "subs, _ := v.collectCustomerSubscriptionsStarting(...); views, _ := v.mapSubsToViews(ctx, subs); specs, _ := v.mapViewsToSpecs(views); _, err = v.validateUniqueConstraint(ctx, specs)"
       },
       {
-        "name": "input.Validate() at service entry",
-        "description": "Every exported method validates input before any adapter call, returning early on error.",
-        "example": "if err := input.Validate(); err != nil { return taxcode.TaxCode{}, err }"
+        "name": "Feature-flag-gated validation path",
+        "description": "Check ffx.Service.IsFeatureEnabled for subscription.MultiSubscriptionEnabledFF before choosing which validation path to run; BeforeUpdate skips all validation when multi-subscription is disabled.",
+        "example": "multiSubscriptionEnabled, err := v.Config.FeatureFlags.IsFeatureEnabled(ctx, subscription.MultiSubscriptionEnabledFF)"
       },
       {
-        "name": "Key derivation convention for auto-created tax codes",
-        "description": "GetOrCreateByAppMapping derives the key as '<AppType>_<TaxCode>' when auto-creating a new record from an app mapping.",
-        "example": "key := fmt.Sprintf(\"%s_%s\", input.AppType, input.TaxCode)"
+        "name": "pagination.CollectAll for unbounded list queries",
+        "description": "Use pagination.CollectAll + pagination.NewPaginator when fetching all customer subscriptions to avoid silently missing subscriptions beyond the first page.",
+        "example": "return pagination.CollectAll(ctx, pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[subscription.Subscription], error) { return v.Config.QueryService.List(ctx, ...) }), 1000)"
+      },
+      {
+        "name": "Exclude current subscription before re-inserting updated spec",
+        "description": "In BeforeUpdate, filter out the subscription being updated (by ID) from the existing set before appending the target spec so the old version does not conflict with the new one.",
+        "example": "views, err = v.filterSubViews(func(v subscription.SubscriptionView) bool { return v.Subscription.ID != currentId.ID }, views)"
+      },
+      {
+        "name": "pipelineAfter reuse across post-mutation hooks",
+        "description": "AfterCreate, AfterUpdate, AfterCancel, AfterContinue, and BeforeDelete all delegate to the single pipelineAfter method; use includeSubViewUnique (lo.UniqBy) to prevent double-counting.",
+        "example": "func (v SubscriptionUniqueConstraintValidator) AfterCreate(ctx context.Context, view subscription.SubscriptionView) error { return v.pipelineAfter(ctx, view) }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "taxcode.go",
-        "role": "Sole service implementation; all methods delegate to taxcode.Repository after validation and system-managed checks.",
-        "watch_for": "The get-then-mutate pattern inside transaction.Run is not atomic at the DB level without the adapter's underlying transaction \u2014 ensure the adapter's TransactingRepo rebinds correctly or concurrent requests can bypass the system-managed guard."
+        "file": "validator.go",
+        "role": "Implements all Before*/After* hook methods; each method builds a collect\u2192map\u2192validate\u2192include pipeline.",
+        "watch_for": "pipelineAfter is reused for AfterCreate, AfterUpdate, AfterCancel, AfterContinue, and BeforeDelete \u2014 any change to post-mutation validation affects all five hooks simultaneously."
       },
       {
-        "file": "taxcode_test.go",
-        "role": "Integration tests covering system-managed block/bypass and user-managed CRUD paths using taxcodetestutils.NewTestEnv.",
-        "watch_for": "Tests call t.Context() (not context.Background()); follow this for any new tests. The test bootstraps via env.DBSchemaMigrate(t) before first use."
+        "file": "components.go",
+        "role": "Low-level pipeline building blocks (collect, map, filter, include) used by validator.go; no business rules live here.",
+        "watch_for": "includeSubViewUnique uses lo.UniqBy by subscription ID to prevent double-counting the same subscription; removing that dedup causes false-positive uniqueness errors."
       }
     ],
     "anti_patterns": [
-      "Calling adapter methods outside transaction.Run \u2014 loses atomicity for multi-step operations like get-then-update.",
-      "Skipping IsManagedBySystem check in new mutating methods \u2014 allows external callers to overwrite system-synced records.",
-      "Using context.Background() instead of t.Context() in tests.",
-      "Implementing business logic (key derivation, conflict retry) inside the adapter instead of the service layer.",
-      "Adding adapter dependencies other than taxcode.Repository \u2014 the service must stay decoupled from Ent directly."
+      "Querying subscriptions without the ActiveInPeriod filter \u2014 returns all-time subscriptions and breaks the uniqueness check",
+      "Calling subscription.Service write methods from within a hook \u2014 creates re-entrant hook calls",
+      "Using context.Background() instead of the caller-supplied ctx",
+      "Bypassing pagination.CollectAll for large customer subscription lists \u2014 silently misses subscriptions beyond the first page",
+      "Adding business logic directly into components.go \u2014 it is a pure utility file; keep domain decisions in validator.go"
     ],
     "decisions": [
       {
-        "decision": "transaction.Run at the service layer in addition to entutils.TransactingRepo in the adapter.",
-        "rationale": "Multi-step flows (get + mutate) must be atomic; starting the transaction at the service layer ensures both the guard read and the write share the same transaction."
+        "decision": "Components are separated into components.go to keep validator.go focused on the validation pipeline logic.",
+        "rationale": "Improves readability and testability of each pipeline step in isolation."
       },
       {
-        "decision": "AllowAnnotations flag on UpdateTaxCodeInput/DeleteTaxCodeInput to bypass system-managed protection.",
-        "rationale": "The LLM cost sync job needs to update system-managed records; a flag is safer than removing the guard entirely or exposing a separate internal method."
-      }
-    ],
-    "code_examples": []
-  },
-  "openmeter/taxcode/testutils": {
-    "purpose": "Self-contained test environment for taxcode integration tests: wires a real Postgres DB, Ent client, adapter, and service without importing app/common.",
-    "patterns": [
-      {
-        "name": "NewTestEnv constructs the full stack from primitives",
-        "description": "TestEnv builds testutils.TestDB \u2192 entdb.Client \u2192 taxcodeadapter \u2192 taxcodeservice.New without touching app/common Wire providers, avoiding import cycles.",
-        "example": "adapter, err := taxcodeadapter.New(taxcodeadapter.Config{Client: client, Logger: logger}); env.Service = taxcodeservice.New(adapter, logger)"
+        "decision": "Feature flag subscription.MultiSubscriptionEnabledFF selects between per-subscription and per-feature uniqueness checks.",
+        "rationale": "Allows gradual rollout of multi-subscription support without breaking existing single-subscription customers."
       },
       {
-        "name": "sync.Once for safe Close",
-        "description": "TestEnv.Close uses sync.Once to prevent double-close when both t.Cleanup and explicit calls race.",
-        "example": "e.close.Do(func() { ... })"
-      },
-      {
-        "name": "DBSchemaMigrate called explicitly in each test",
-        "description": "Tests call env.DBSchemaMigrate(t) before first DB access; this runs client.Schema.Create(t.Context()) to ensure the schema is up-to-date for the isolated pgtestdb database.",
-        "example": "env.DBSchemaMigrate(t)"
+        "decision": "Hook is registered via subscription.Service.RegisterHook() at wiring time in app/common, not inside the subscription package itself.",
+        "rationale": "Keeps the uniqueness constraint out of the core subscription package to avoid tight coupling and import cycles."
       }
     ],
-    "key_file_guides": [
+    "code_examples": [
       {
-        "file": "env.go",
-        "role": "Sole file; exports NewTestEnv and TestEnv with Logger, Service, Client fields.",
-        "watch_for": "Close must close both EntDriver and PGDriver in order; omitting either leaks the pgtestdb template database."
+        "scenario": "Register the validator during app wiring (app/common)",
+        "code": "import subval \"github.com/openmeterio/openmeter/openmeter/subscription/validators/subscription\"\n\nhook, err := subval.NewSubscriptionUniqueConstraintValidator(subval.SubscriptionUniqueConstraintValidatorConfig{\n    FeatureFlags:    featureFlagService,\n    QueryService:    subscriptionService,\n    CustomerService: customerService,\n})\nif err != nil { return err }\nsubscriptionService.RegisterHook(hook)"
       }
-    ],
-    "anti_patterns": [
-      "Importing app/common in testutils \u2014 creates import cycles and couples test setup to the full DI graph.",
-      "Calling env.Close before DBSchemaMigrate \u2014 schema won't exist for the test.",
-      "Using context.Background() instead of t.Context() in DBSchemaMigrate or service calls."
-    ],
-    "decisions": [
-      {
-        "decision": "Build adapter and service directly from constructors rather than via Wire.",
-        "rationale": "Keeps test helpers independent from app/common so unrelated wiring changes don't create test-only import cycles."
-      }
-    ],
-    "code_examples": []
+    ]
   }
 }

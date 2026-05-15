@@ -1,56 +1,120 @@
 {
-  "openmeter/credit/hook": {
-    "purpose": "Provides lifecycle hook implementations that bridge the credit/grant domain into the entitlement service hook registry. Currently contains a single PreDelete hook that cleans up all grants owned by a metered entitlement before the entitlement is deleted.",
+  "openmeter/cost/adapter": {
+    "purpose": "Implements cost.Adapter by querying ClickHouse meter data via streaming.Connector and resolving per-unit costs from feature configuration (manual or LLM-based). No Ent/PostgreSQL access \u2014 all persistence goes through streaming.Connector and injected domain services.",
     "patterns": [
       {
-        "name": "Embed NoopHook for unimplemented lifecycle methods",
-        "description": "Every hook struct must embed models.NoopServiceHook[entitlement.Entitlement] so only the relevant lifecycle methods need to be overridden. This satisfies the full models.ServiceHook interface without boilerplate.",
-        "example": "type entitlementHook struct { NoopHook; grantRepo grant.Repo }"
+        "name": "Interface compliance assertion",
+        "description": "var _ cost.Adapter = (*adapter)(nil) at package level enforces compile-time interface satisfaction.",
+        "example": "var _ cost.Adapter = (*adapter)(nil)"
       },
       {
-        "name": "Type-alias EntitlementHook and NoopHook at package boundary",
-        "description": "Package exposes typed aliases (EntitlementHook, NoopHook) that parameterise models.ServiceHook and models.NoopServiceHook with entitlement.Entitlement, keeping callers decoupled from the generic type parameter.",
-        "example": "type EntitlementHook = models.ServiceHook[entitlement.Entitlement]"
+        "name": "Pre-resolve and cache expensive lookups",
+        "description": "getLLMPrices scans all meter rows first to collect unique (provider, model) pairs and resolves prices once into a map[llmPriceKey]llmPriceResult. Never call llmcostService.ResolvePrice inside the per-row loop.",
+        "example": "priceCache := a.getLLMPrices(ctx, feat, rows)"
       },
       {
-        "name": "Guard on nil and type before acting",
-        "description": "PreDelete (and any future hook method) must nil-check the entity and type-assert to the specific sub-type via the domain helper before executing domain logic. Unknown sub-types must return nil (silent no-op), never an error.",
-        "example": "if ent == nil { return nil }; meteredEnt, err := meteredentitlement.ParseFromGenericEntitlement(ent); if err != nil { return nil }"
+        "name": "Internal group-by key injection and post-aggregation stripping",
+        "description": "addLLMGroupByKeys appends LLM dimension properties to streaming.QueryParams.GroupBy when not already present, returns the injected keys so computeCostRows can strip them from output rows and aggregate across them.",
+        "example": "internalGroupByKeys := addLLMGroupByKeys(feat, &params)"
       },
       {
-        "name": "Constructor returns the interface type, not the concrete struct",
-        "description": "NewEntitlementHook returns EntitlementHook (interface alias), not *entitlementHook. Constructors in this package must always return the interface so callers cannot depend on the concrete type.",
-        "example": "func NewEntitlementHook(grantRepo grant.Repo) EntitlementHook { return &entitlementHook{...} }"
+        "name": "costResolverFunc abstraction separates cost resolution from aggregation",
+        "description": "computeCostRows accepts a costResolverFunc instead of calling adapter methods directly; makeCostResolver produces the closure that converts GenericNotFoundError into non-fatal detail strings rather than hard errors.",
+        "example": "costRows, currency, err := computeCostRows(rows, internalGroupByKeys, a.makeCostResolver(ctx, feat, priceCache))"
+      },
+      {
+        "name": "GenericValidationError / GenericNotFoundError for domain errors",
+        "description": "Use models.NewGenericValidationError for missing feature configuration and models.NewGenericNotFoundError for unavailable pricing \u2014 these map to 400/404 in the HTTP layer.",
+        "example": "return nil, models.NewGenericValidationError(fmt.Errorf(\"feature %s has no meter associated\", feat.Key))"
+      },
+      {
+        "name": "Defensive slice/map cloning before mutation",
+        "description": "Always slices.Clone GroupBy and build a new merged map for FilterGroupBy before mutating \u2014 never mutate the caller's streaming.QueryParams in place.",
+        "example": "params.GroupBy = slices.Clone(params.GroupBy)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "entitlement_hook.go",
-        "role": "Sole file in the package; defines the EntitlementHook type alias, NoopHook alias, the concrete entitlementHook struct, and its constructor. Wired into entitlement.Service via RegisterHooks at startup.",
-        "watch_for": "Adding hook methods that call grantRepo without nil-checking the entity or without type-asserting to meteredentitlement first will panic or corrupt non-metered entitlement deletes."
+        "file": "adapter.go",
+        "role": "Primary QueryFeatureCost implementation: resolves feature + meter, injects LLM group-by keys, pre-resolves prices, delegates computation to computeCostRows.",
+        "watch_for": "llmcostService nil-check in resolveLLMUnitCost is required \u2014 service is optional. Don't add Ent/DB access; this adapter is ClickHouse-only via streaming.Connector."
+      },
+      {
+        "file": "compute.go",
+        "role": "Pure computation layer: costResolverFunc type, costRowAccumulator, computeCostRows, filterGroupBy, buildDirectCostRow, costPerTokenForType, buildCacheKey \u2014 no I/O.",
+        "watch_for": "computeCostRows preserves insertion order via aggregationKeys []string; don't replace with map iteration as that randomises output. Output is sorted by cost descending after aggregation."
+      },
+      {
+        "file": "compute_test.go",
+        "role": "Table-driven unit tests for computeCostRows covering aggregation, stripping, window separation, partial pricing, and mixed resolved/unresolved rows.",
+        "watch_for": "Tests are in package adapter (not adapter_test) to access unexported helpers. Use alpacadecimal.Decimal.Equal for cost comparisons, not == or assert.Equal on the raw struct."
       }
     ],
     "anti_patterns": [
-      "Returning an error for an unrecognised entitlement sub-type \u2014 unknown sub-types must silently return nil",
-      "Adding business logic that reaches outside credit/grant (e.g. calling balance or engine packages directly) \u2014 this hook owns only grant cleanup",
-      "Implementing PostCreate/PostUpdate without also embedding NoopHook \u2014 always embed NoopHook to satisfy the full interface",
-      "Registering this hook against a non-metered service hook registry \u2014 the hook is parameterised on entitlement.Entitlement and must only be registered via entitlement.Service.RegisterHooks"
+      "Calling llmcostService.ResolvePrice inside the per-row cost loop \u2014 always pre-resolve via getLLMPrices first.",
+      "Passing *entdb.Client or touching Ent directly \u2014 this adapter is ClickHouse-only via streaming.Connector.",
+      "Mutating the caller's streaming.QueryParams.GroupBy or FilterGroupBy slices/maps in place \u2014 always slices.Clone and build a new merged map.",
+      "Returning a hard error for pricing-not-found in costResolverFunc \u2014 convert via models.IsGenericNotFoundError to a detail string so the row is still emitted.",
+      "Adding new cost resolution types without a corresponding branch in resolveUnitCost's switch and a costPerTokenForType case if token-type based."
     ],
     "decisions": [
       {
-        "decision": "Use models.NoopServiceHook embedding instead of a full interface implementation",
-        "rationale": "The hook only needs PreDelete; embedding NoopHook provides all other methods as no-ops and prevents future interface additions from breaking the build."
+        "decision": "Price cache keyed on (provider, model) not (provider, model, token_type)",
+        "rationale": "llmcostService.ResolvePrice only depends on provider+model; token_type is resolved from ModelPricing after the lookup, avoiding redundant network calls when a model has multiple token types."
       },
       {
-        "decision": "Type assertions to meteredentitlement rather than a switch on entitlement type field",
-        "rationale": "ParseFromGenericEntitlement encapsulates the sub-type detection logic in the metered package, keeping the hook free of entitlement kind constants and resilient to new entitlement types."
+        "decision": "Internal group-by keys injected into query params and stripped from output",
+        "rationale": "ClickHouse must group by LLM dimensions to produce per-token-type rows needed for accurate cost resolution, but if the caller didn't request those dimensions the output must aggregate across them."
+      },
+      {
+        "decision": "costResolverFunc is a function type rather than an interface",
+        "rationale": "Allows makeCostResolver to close over feat and priceCache without a new struct, keeping compute.go free of I/O dependencies and trivially testable with makeResolver in compute_test.go."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new lifecycle method (e.g. PostCreate) to clean up on creation failure",
-        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/credit/grant\"\n\t\"github.com/openmeterio/openmeter/openmeter/entitlement\"\n\tmeteredentitlement \"github.com/openmeterio/openmeter/openmeter/entitlement/metered\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (h *entitlementHook) PostCreate(ctx context.Context, ent *entitlement.Entitlement) error {\n\tif ent == nil {\n\t\treturn nil\n\t}\n\tmeteredEnt, err := meteredentitlement.ParseFromGenericEntitlement(ent)\n\tif err != nil {\n\t\treturn nil // not a metered entitlement \u2014 silent no-op\n\t}\n\t// credit/grant-scoped logic only\n\t_ = meteredEnt\n\treturn nil\n}"
+        "scenario": "Adding a new unit cost type to resolveUnitCost",
+        "code": "// In adapter.go resolveUnitCost switch:\ncase feature.UnitCostTypeCustom:\n    if feat.UnitCost.Custom == nil {\n        return nil, fmt.Errorf(\"feature %s has custom unit cost type but no custom configuration\", feat.Key)\n    }\n    return &cost.ResolvedUnitCost{\n        Amount:   feat.UnitCost.Custom.Amount,\n        Currency: currencyx.Code(globlCurrency.USD),\n    }, nil"
       }
     ]
+  },
+  "openmeter/cost/service": {
+    "purpose": "Thin orchestration layer implementing cost.Service: validates input via input.Validate() then delegates to cost.Adapter.QueryFeatureCost. Contains no business logic \u2014 exists solely to enforce layered architecture and provide a stable DI interface.",
+    "patterns": [
+      {
+        "name": "Config struct with Validate()",
+        "description": "Constructor accepts a Config struct with a Validate() method; New returns (*Service, error) and rejects invalid config at wiring time rather than at runtime.",
+        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "Interface compliance assertion",
+        "description": "var _ cost.Service = (*Service)(nil) at package level ensures the struct satisfies the interface at compile time.",
+        "example": "var _ cost.Service = (*Service)(nil)"
+      },
+      {
+        "name": "Input validation before delegation",
+        "description": "Every service method calls input.Validate() before forwarding to the adapter, keeping validation centralized at the service boundary.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Sole file: defines Service struct, Config, New constructor, and QueryFeatureCost \u2014 the only cost.Service method.",
+        "watch_for": "Do not add business logic or data access here; all computation belongs in the adapter. New methods on cost.Service must follow the same validate-then-delegate pattern."
+      }
+    ],
+    "anti_patterns": [
+      "Adding computation or data access directly in service methods \u2014 delegate to cost.Adapter.",
+      "Skipping input.Validate() before calling the adapter.",
+      "Accepting adapter as a bare interface parameter instead of through Config.Adapter with nil-check in Validate()."
+    ],
+    "decisions": [
+      {
+        "decision": "Service is a pass-through with only input validation",
+        "rationale": "cost domain has a single query operation with no cross-cutting concerns (transactions, hooks, locking); the service layer exists solely to enforce the layered pattern and provide a stable interface for DI."
+      }
+    ],
+    "code_examples": []
   }
 }

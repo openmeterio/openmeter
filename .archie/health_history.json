@@ -25,5 +25,14 @@
     "verbosity": 0.0588,
     "total_loc": 351752,
     "scan_type": "deep"
+  },
+  {
+    "timestamp": "2026-05-14T20:00:40.921693+00:00",
+    "erosion": 0.4453,
+    "gini": 0.6957,
+    "top20_share": 0.7378,
+    "verbosity": 0.0609,
+    "total_loc": 379517,
+    "scan_type": "deep"
   }
 ]

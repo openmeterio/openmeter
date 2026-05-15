@@ -1,226 +1,71 @@
 {
-  "openmeter/billing/rating/service/mutator": {
-    "purpose": "Post- and pre-calculation mutation pipeline that transforms rating.DetailedLines after (or PricerCalculateInput before) a pricer runs. Each mutator applies one concern \u2014 min/max spend commitments, credits allocation, percentage discounts, usage-quantity discounts \u2014 keeping pricing logic composable and isolated.",
+  "openmeter/billing/creditgrant/service": {
+    "purpose": "Implements creditgrant.Service as a facade that orchestrates credit grant creation, retrieval, listing, and external settlement transitions by delegating entirely to charges.Service and creditpurchase.Service. Owns no direct DB access \u2014 all persistence flows through the charges pipeline.",
     "patterns": [
       {
-        "name": "Interface segregation by phase",
-        "description": "Implement PostCalculationMutator (signature: Mutate(rate.PricerCalculateInput, rating.DetailedLines) (rating.DetailedLines, error)) for post-calculation changes, or PreCalculationMutator (Mutate(rate.PricerCalculateInput) (rate.PricerCalculateInput, error)) for pre-calculation input changes. Never conflate the two.",
-        "example": "var _ PostCalculationMutator = (*MinAmountCommitment)(nil)"
+        "name": "Config struct with Validate() + New()",
+        "description": "All dependencies declared in a Config struct. New() calls Config.Validate() before constructing the service; returns an error if any required dependency is nil.",
+        "example": "func New(config Config) (creditgrant.Service, error) { if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid config: %w\", err) } ... }"
       },
       {
-        "name": "Compile-time interface assertion",
-        "description": "Every mutator struct must have a blank-identifier assertion against its interface (var _ PostCalculationMutator = (*MyMutator)(nil)) immediately after the type declaration.",
-        "example": "var _ PostCalculationMutator = (*Credits)(nil)"
+        "name": "input.Validate() as the first statement in every public method",
+        "description": "Every public method calls input.Validate() before any logic and wraps the error with fmt.Errorf before returning.",
+        "example": "func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (...) { if err := input.Validate(); err != nil { return ..., fmt.Errorf(\"invalid input: %w\", err) } }"
       },
       {
-        "name": "ChildUniqueReferenceID for deduplication",
-        "description": "Every DetailedLine appended by a mutator must set ChildUniqueReferenceID using the constants in the rating package (rating.MinSpendChildUniqueReferenceID, rating.RateCardDiscountChildUniqueReferenceID, etc.) to allow idempotent re-calculation.",
-        "example": "ChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID"
+        "name": "Delegate to charges.Service \u2014 no Ent imports",
+        "description": "The service has no openmeter/ent/db import. All mutations go through chargesService.Create, GetByID, or HandleCreditPurchaseExternalPaymentStateTransition.",
+        "example": "result, err := s.chargesService.Create(ctx, charges.CreateInput{Namespace: input.Namespace, Intents: charges.ChargeIntents{charges.NewChargeIntent(intent)}})"
       },
       {
-        "name": "IsLastInPeriod / IsFirstInPeriod guards",
-        "description": "Commitment and discount mutators that apply only once per billing period must guard on i.IsLastInPeriod() or i.IsFirstInPeriod() to avoid double-billing in progressive billing split-line scenarios.",
-        "example": "if !i.IsLastInPeriod() { return pricerResult, nil }"
+        "name": "Ownership check before returning a charge",
+        "description": "Get-style methods verify cpCharge.Intent.CustomerID == input.CustomerID and return models.NewGenericNotFoundError on mismatch to prevent cross-tenant leaks.",
+        "example": "if cpCharge.Intent.CustomerID != input.CustomerID { return creditpurchase.Charge{}, fmt.Errorf(\"get charge: %w\", models.NewGenericNotFoundError(...)) }"
       },
       {
-        "name": "CurrencyCalculator for rounding",
-        "description": "All monetary arithmetic must use i.CurrencyCalculator.RoundToPrecision(...) rather than raw alpacadecimal operations to respect the invoice currency precision.",
-        "example": "minimumSpendAmount := i.CurrencyCalculator.RoundToPrecision(commitments.MinimumAmount.Sub(totalBilledAmount))"
+        "name": "ValidationIssue with HTTP status for business-rule rejections",
+        "description": "Business-rule violations (e.g. wrong settlement type) use models.NewValidationIssue with commonhttp.WithHTTPStatusCodeAttribute to carry an explicit HTTP status to the encoder.",
+        "example": "return ..., models.NewValidationIssue(\"credit_grant_external_settlement_not_supported\", \"credit grant is not externally funded\", models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))"
       },
       {
-        "name": "Error sentinel for over-allocated credits",
-        "description": "If credits are not fully consumed after iterating all lines, return billing.ErrInvoiceLineCreditsNotConsumedFully \u2014 never silently discard the remaining credit value.",
-        "example": "return pricerResult, billing.ErrInvoiceLineCreditsNotConsumedFully"
-      },
-      {
-        "name": "Usage discount idempotency via MergeDiscountsByChildUniqueReferenceID",
-        "description": "DiscountUsage (PreCalculationMutator) rewrites the line's StandardLineDiscounts.Usage using MergeDiscountsByChildUniqueReferenceID so reruns stay idempotent; it always calls removeUsageDiscounts first to strip stale entries.",
-        "example": "l.StandardLineDiscounts.Usage = l.StandardLineDiscounts.Usage.MergeDiscountsByChildUniqueReferenceID(...)"
+        "name": "Private toIntent/toSettlement converters for CreateInput mapping",
+        "description": "Mapping from CreateInput to creditpurchase.Intent is isolated in package-private toIntent() and toSettlement() functions; keep them as pure field mappers with no business logic.",
+        "example": "intent := toIntent(input); result, err := s.chargesService.Create(ctx, charges.CreateInput{..., Intents: charges.ChargeIntents{charges.NewChargeIntent(intent)}})"
       }
     ],
     "key_file_guides": [
       {
-        "file": "types.go",
-        "role": "Defines the two mutator interfaces (PostCalculationMutator, PreCalculationMutator). All other files implement one of these.",
-        "watch_for": "Do not add methods to either interface without updating every implementor."
-      },
-      {
-        "file": "commitments.go",
-        "role": "MinAmountCommitment and MaxAmountCommitment post-mutators. MinAmount appends a commitment DetailedLine; MaxAmount iterates lines and calls AddDiscountForOverage.",
-        "watch_for": "MinAmountCommitment reads i.GetPreviouslyBilledAmount() \u2014 the period coverage for the new line must span the full service period when progressively billed (i.FullProgressivelyBilledServicePeriod)."
-      },
-      {
-        "file": "credits.go",
-        "role": "Allocates pre-computed CreditsApplied across DetailedLines in order, appending CreditApplied entries per line.",
-        "watch_for": "Credits must be fully consumed; any positive remainder triggers ErrInvoiceLineCreditsNotConsumedFully."
-      },
-      {
-        "file": "discountpercentage.go",
-        "role": "Applies a rate-card percentage discount to every line's TotalAmount as an AmountLineDiscountManaged entry. Requires a non-empty CorrelationID on the discount.",
-        "watch_for": "ChildUniqueReferenceID is built from rating.RateCardDiscountChildUniqueReferenceID format string \u2014 correlationID must be present or the function returns an error."
-      },
-      {
-        "file": "discountusage.go",
-        "role": "Pre-mutator that reduces usage quantity based on rate-card usage discount. Not idempotent on the raw line \u2014 always strips old usage discounts before reapplying.",
-        "watch_for": "DiscountUsage manipulates PricerCalculateInput.Usage.Quantity directly; PreLinePeriodQuantity must be adjusted for already-consumed discount from earlier split lines."
+        "file": "service.go",
+        "role": "Single file implementing creditgrant.Service. Wraps charges.Service and creditpurchase.Service; performs customer existence check, ownership assertion, and settlement-type validation before delegating.",
+        "watch_for": "toIntent() hardcodes clock.Now() for ServicePeriod/BillingPeriod/FullServicePeriod with a TODO \u2014 real period derivation is not yet implemented. Do not rely on these values being meaningful. After Create(), the service does a second chargesService.GetByID call to fetch the realizations; this is a deliberate two-step fetch, not a bug."
       }
     ],
     "anti_patterns": [
-      "Adding state to mutator structs \u2014 all mutators are stateless value types; context must flow through PricerCalculateInput",
-      "Skipping ChildUniqueReferenceID on appended DetailedLines \u2014 breaks idempotent recalculation",
-      "Doing currency rounding with raw alpacadecimal arithmetic instead of CurrencyCalculator.RoundToPrecision",
-      "Applying min/max commitments outside of IsLastInPeriod guard \u2014 causes double-billing on progressive billing",
-      "Implementing both PreCalculationMutator and PostCalculationMutator in the same struct \u2014 keeps phase semantics clear"
+      "Importing openmeter/ent/db or calling Ent builders directly \u2014 all DB access must go through charges.Service or creditpurchase.Service",
+      "Skipping input.Validate() at the top of a new method \u2014 every public method must validate before acting",
+      "Returning a charge without verifying CustomerID ownership \u2014 always assert cpCharge.Intent.CustomerID == input.CustomerID in Get-style methods",
+      "Using context.Background() instead of the caller-supplied ctx",
+      "Adding business logic inside toIntent()/toSettlement() beyond pure field mapping \u2014 keep them as dumb converters"
     ],
     "decisions": [
       {
-        "decision": "Two separate interfaces (Pre vs Post) rather than a single pipeline step",
-        "rationale": "Pre-mutators modify usage quantity before pricing (changing what gets priced), post-mutators modify resulting DetailedLines. Conflating them would force every mutator to understand both the pricer input and output shapes."
+        "decision": "Service delegates entirely to charges.Service rather than holding its own adapter",
+        "rationale": "Credit grants are a specialised view of creditpurchase.Charge; all lifecycle state (advance, realizations, ledger writes) is already managed by the charges pipeline, so duplicating persistence here would create divergent write paths."
       },
       {
-        "decision": "Stateless value-type mutators with no constructor",
-        "rationale": "All needed context is in PricerCalculateInput; stateless types allow safe reuse across concurrent calculations and require no DI wiring."
+        "decision": "Ownership check done in the service layer, not in charges.Service",
+        "rationale": "charges.Service is namespace-scoped but not customer-scoped; the creditgrant service is the API boundary that adds per-customer access control without polluting the generic charges layer."
+      },
+      {
+        "decision": "charges.NewChargeIntent used instead of struct-literal ChargeIntent{}",
+        "rationale": "The Charge tagged-union has a private discriminator field set only by NewCharge[T]/NewChargeIntent; struct-literal construction leaves the discriminator zero-valued and all type-switch accessors return errors."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new PostCalculationMutator that caps line amounts",
-        "code": "package mutator\n\nimport (\n\t\"github.com/openmeterio/openmeter/openmeter/billing/rating\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/rating/service/rate\"\n)\n\ntype MyCap struct{}\n\nvar _ PostCalculationMutator = (*MyCap)(nil)\n\nfunc (m *MyCap) Mutate(i rate.PricerCalculateInput, lines rating.DetailedLines) (rating.DetailedLines, error) {\n\tif !i.IsLastInPeriod() {\n\t\treturn lines, nil\n\t}\n\tfor idx := range lines {\n\t\t// use i.CurrencyCalculator.RoundToPrecision for all math\n\t}\n\treturn lines, nil\n}"
+        "scenario": "Creating a credit grant \u2014 full path from CreateInput to creditpurchase.Charge",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/billing/charges\"\n    \"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase\"\n    \"github.com/openmeterio/openmeter/openmeter/billing/creditgrant\"\n    \"github.com/openmeterio/openmeter/openmeter/customer\"\n)\n\nfunc (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (creditpurchase.Charge, error) {\n    if err := input.Validate(); err != nil {\n        return creditpurchase.Charge{}, fmt.Errorf(\"invalid input: %w\", err)\n    }\n    _, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput{\n        CustomerID: &customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID},\n    })\n    if err != nil {\n        return creditpurchase.Charge{}, fmt.Errorf(\"get customer: %w\", err)\n    }\n    intent := toIntent(input)\n    result, err := s.chargesService.Create(ctx, charges.CreateInput{\n        Namespace: input.Namespace,\n        Intents:   charges.ChargeIntents{charges.NewChargeIntent(intent)},\n    })\n    if err != nil {\n        return creditpurchase.Charge{}, fmt.Errorf(\"create credit grant charge: %w\", err)\n    }\n    // ... fetch with realizations expand and return cpCharge\n}"
       }
     ]
-  },
-  "openmeter/billing/rating/service/rate": {
-    "purpose": "Concrete Pricer implementations \u2014 one per productcatalog price type (Flat, Unit, Dynamic, Package, Tiered/Graduated, Tiered/Volume) \u2014 plus shared billable-period resolution helpers. Each pricer converts a PricerCalculateInput into rating.DetailedLines and determines whether a line is billable at a given point in time.",
-    "patterns": [
-      {
-        "name": "Pricer interface implementation with compile-time assertion",
-        "description": "Every pricer struct must satisfy the Pricer interface (GenerateDetailedLines + ResolveBillablePeriod) and declare var _ Pricer = (*MyPricer)(nil) after the type.",
-        "example": "var _ Pricer = (*Unit)(nil)"
-      },
-      {
-        "name": "Embed base pricers for period resolution",
-        "description": "Usage-based pricers that support progressive billing embed ProgressiveBillingMeteredPricer; pricers that never support split lines embed NonProgressiveBillingPricer. This provides the ResolveBillablePeriod method. Flat embeds neither and implements ResolveBillablePeriod directly.",
-        "example": "type Dynamic struct { ProgressiveBillingMeteredPricer }"
-      },
-      {
-        "name": "ChildUniqueReferenceID constants from rating package",
-        "description": "All DetailedLine entries must set ChildUniqueReferenceID using constants defined in the parent rating package: rating.UsageChildUniqueReferenceID, rating.FlatPriceChildUniqueReferenceID, rating.GraduatedTieredPriceUsageChildUniqueReferenceID, etc.",
-        "example": "ChildUniqueReferenceID: rating.UsageChildUniqueReferenceID"
-      },
-      {
-        "name": "IsLastInPeriod / IsFirstInPeriod for payment term gating",
-        "description": "InAdvance lines are emitted only when l.IsFirstInPeriod() is true; InArrears lines only when l.IsLastInPeriod() is true (or always for usage lines). This prevents duplicate billing across progressive split lines.",
-        "example": "case flatPrice.PaymentTerm == productcatalog.InAdvancePaymentTerm && l.IsFirstInPeriod():"
-      },
-      {
-        "name": "TieredPriceCalculatorInput for graduated tier math",
-        "description": "Graduated tiered calculations use GraduatedTiered.TieredPriceCalculator with a TieredPriceCalculatorInput struct; the TierCallbackFn receives TierCallbackInput per tier boundary. Do not reimplement the range-splitting logic inline.",
-        "example": "p.TieredPriceCalculator(TieredPriceCalculatorInput{TieredPrice: price, FromQty: usage.PreLinePeriodQuantity, ToQty: ..., TierCallbackFn: func(in TierCallbackInput) error {...}})"
-      },
-      {
-        "name": "billing.ValidationError for invariant violations",
-        "description": "Return billing.ValidationError{Err: ...} (not fmt.Errorf) when a line configuration violates an invariant (e.g. progressive billing on a flat-price line, unsupported payment term).",
-        "example": "return nil, billing.ValidationError{Err: billing.ErrInvoiceProgressiveBillingNotSupported}"
-      },
-      {
-        "name": "Tiered router delegates to volume/graduated sub-pricers",
-        "description": "The Tiered struct is a router that inspects price.Mode and delegates to its volume or graduated sub-pricer. New tiered modes must be added to the switch in both GenerateDetailedLines and ResolveBillablePeriod.",
-        "example": "case productcatalog.GraduatedTieredPrice: return p.graduated.GenerateDetailedLines(l)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "types.go",
-        "role": "Defines Pricer interface and PricerCalculateInput (embeds rating.StandardLineAccessor + CurrencyCalculator + Usage + StandardLineDiscounts). IsLastInPeriod / IsFirstInPeriod helpers live here.",
-        "watch_for": "PricerCalculateInput.Usage is a pointer; call GetUsage() to get a safe copy \u2014 do not dereference directly."
-      },
-      {
-        "file": "base.go",
-        "role": "ProgressiveBillingMeteredPricer and NonProgressiveBillingPricer \u2014 shared ResolveBillablePeriod logic. Progressive truncates asOf to streaming.MinimumWindowSizeDuration.",
-        "watch_for": "NonProgressiveBillingPricer rejects lines with a SplitLineGroupID; embedding it in a new pricer type blocks progressive billing for that price type."
-      },
-      {
-        "file": "tieredgraduated.go",
-        "role": "GraduatedTiered and TieredPriceCalculator. splitTierRangeAtBoundary handles the edge case where FromQty/ToQty cut across tier boundaries for progressive billing.",
-        "watch_for": "TieredPriceCalculatorInput.Validate() must pass before calling TieredPriceCalculator; both FromQty and ToQty must be non-negative and FromQty <= ToQty."
-      },
-      {
-        "file": "tiered.go",
-        "role": "Router that dispatches to volume/graduated based on price.Mode. Only entry point for external callers of tiered pricing.",
-        "watch_for": "Adding a new tiered mode requires updates to both switch blocks."
-      },
-      {
-        "file": "flat.go",
-        "role": "FlatPrice pricer with custom ResolveBillablePeriod that uses line.InvoiceAt instead of period end. Does not support progressive billing.",
-        "watch_for": "Flat prices check invoiceAt vs asOf (both truncated); InAdvance emits only on IsFirstInPeriod, InArrears only on IsLastInPeriod."
-      }
-    ],
-    "anti_patterns": [
-      "Reimplementing tier-boundary range splitting outside TieredPriceCalculator",
-      "Returning fmt.Errorf for billing invariant violations \u2014 use billing.ValidationError{Err: ...}",
-      "Setting ChildUniqueReferenceID as a raw string literal instead of using rating package constants",
-      "Adding progressive-billing support to a pricer that embeds NonProgressiveBillingPricer without switching the base",
-      "Calling PricerCalculateInput.Usage directly instead of GetUsage() \u2014 panics when Usage is nil"
-    ],
-    "decisions": [
-      {
-        "decision": "Separate structs per price type rather than a single switch-heavy function",
-        "rationale": "Each price type has distinct period-resolution semantics and line structure; separate structs allow independent testing and embedding of the correct base pricer."
-      },
-      {
-        "decision": "TieredPriceCalculator as a reusable callback-driven algorithm",
-        "rationale": "Graduated tiered pricing requires range splitting across FromQty/ToQty boundaries; centralising the algorithm with TierCallbackFn avoids duplicating the range logic in both volume and graduated pricers."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Adding a new usage-based pricer for a hypothetical 'stepped' price type",
-        "code": "package rate\n\nimport (\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing/rating\"\n\t\"github.com/openmeterio/openmeter/openmeter/productcatalog\"\n)\n\ntype Stepped struct {\n\tProgressiveBillingMeteredPricer\n}\n\nvar _ Pricer = (*Stepped)(nil)\n\nfunc (p Stepped) GenerateDetailedLines(l PricerCalculateInput) (rating.DetailedLines, error) {\n\tusage, err := l.GetUsage()\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tsteppedPrice, err := l.GetPrice().AsStepped()\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"converting price to stepped price: %w\", err)\n\t}\n\tif usage.Quantity.IsZero() {\n\t\treturn nil, nil\n\t}\n\treturn rating.DetailedLines{{\n\t\tName:                   fmt.Sprintf(\"%s: usage in period\", l.GetName()),\n\t\tQuantity:               usage.Quantity,\n\t\tPerUnitAmount:          steppedPrice.Amount,\n\t\tChildUniqueReferenceID: rating.UsageChildUniqueReferenceID,\n\t\tPaymentTerm:            productcatalog.InArrearsPaymentTerm,\n\t}}, nil\n}"
-      }
-    ]
-  },
-  "openmeter/billing/rating/service/testutil": {
-    "purpose": "Test harness for pricer and mutator unit tests. Provides CalculationTestCase, line-mode factories (single-period, mid-period split, last-in-period), and RunCalculationTestCase which wires a real service.New() and compares JSON-serialised DetailedLines output.",
-    "patterns": [
-      {
-        "name": "RunCalculationTestCase as the single test entry point",
-        "description": "All pricer/mutator tests call testutil.RunCalculationTestCase(t, CalculationTestCase{...}) \u2014 never instantiate service.New() directly in test files.",
-        "example": "testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{Price: ..., LineMode: testutil.SinglePerPeriodLineMode, Usage: ..., Expect: ...})"
-      },
-      {
-        "name": "LineMode enum for split-line scenarios",
-        "description": "Use the TestLineMode constants (SinglePerPeriodLineMode, MidPeriodSplitLineMode, LastInPeriodSplitLineMode) to control whether the test line has a SplitLineGroupID and how its period is positioned within TestFullPeriod.",
-        "example": "LineMode: testutil.LastInPeriodSplitLineMode"
-      },
-      {
-        "name": "JSON equality assertion",
-        "description": "RunCalculationTestCase uses require.JSONEq on marshalled slices to avoid nil-vs-empty-slice false failures and to give readable diffs on mismatches.",
-        "example": "require.JSONEq(t, string(expectJSON), string(resJSON))"
-      },
-      {
-        "name": "PreviousBilledAmount for progressive billing tests",
-        "description": "Set CalculationTestCase.PreviousBilledAmount to simulate already-billed amounts in previous split lines; the harness inserts a fake prior line with that Totals.Amount.",
-        "example": "PreviousBilledAmount: alpacadecimal.NewFromFloat(90)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "ubptest.go",
-        "role": "Single file: defines CalculationTestCase, FeatureUsageResponse, TestLineMode, TestFullPeriod constant, and RunCalculationTestCase. Imports service.New() to run a real pipeline.",
-        "watch_for": "The harness always sets line name to 'feature'; expected DetailedLine.Name values in tests must match that prefix (e.g. 'feature: usage in period')."
-      }
-    ],
-    "anti_patterns": [
-      "Instantiating service.New() directly in *_test.go files \u2014 use RunCalculationTestCase instead",
-      "Constructing billing.StandardLine manually in tests outside this package \u2014 use the harness to avoid missing SplitLineHierarchy setup",
-      "Using require.Equal for DetailedLines slices \u2014 use RunCalculationTestCase which does JSON equality to handle nil/empty slice equivalence"
-    ],
-    "decisions": [
-      {
-        "decision": "JSON equality rather than deep-equal for DetailedLines",
-        "rationale": "DetailedLines contains alpacadecimal.Decimal fields whose zero values may differ between nil and empty; JSON normalises these and produces legible diffs in test output."
-      }
-    ],
-    "code_examples": []
   }
 }

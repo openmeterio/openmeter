@@ -1,0 +1,56 @@
+{
+  "pkg/framework/transport": {
+    "purpose": "Namespace-only organisational folder owning the HTTP transport layer for all domain httpdriver and api/v3/handlers packages. Its sole child (httptransport) provides the single generic Handler[Request,Response] decode\u2192operation\u2192encode pipeline that every v1 and v3 endpoint in the monorepo is built on \u2014 no source files live here directly.",
+    "patterns": [
+      {
+        "name": "Child-delegated architecture",
+        "description": "All source code lives in pkg/framework/transport/httptransport; this folder is a namespace wrapper only. New transport sub-packages (e.g. grpctransport) would sit here as siblings.",
+        "example": "import \"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "httptransport/handler.go",
+        "role": "Defines Handler[Request,Response] value type and NewHandler triple constructor (RequestDecoder, Operation, ResponseEncoder). Contains the last-resort 500 fallback ErrorEncoder that must not be replicated elsewhere.",
+        "watch_for": "Do not instantiate handler{} struct directly \u2014 always use NewHandler; it attaches defaultHandlerOptions including GenericErrorEncoder."
+      },
+      {
+        "file": "httptransport/argshandler.go",
+        "role": "HandlerWithArgs variant for path-param injection; value type cloned by With()/Chain() so adding pointer fields would race.",
+        "watch_for": "Never add mutable state (mutex, cache) to HandlerWithArgs \u2014 value semantics mean each With()/Chain() call produces a shallow copy."
+      },
+      {
+        "file": "httptransport/options.go",
+        "role": "HandlerOption and AppendOptions helpers; controls ErrorEncoder chain construction.",
+        "watch_for": "ErrorEncoder chain is first-match-wins; ordering of options matters."
+      },
+      {
+        "file": "httptransport/encoder/encoder.go",
+        "role": "ResponseEncoder and ErrorEncoder function type definitions shared across all handler packages.",
+        "watch_for": "SelfEncodingError escape hatch is for infrastructure types only \u2014 do not implement it on domain errors."
+      }
+    ],
+    "anti_patterns": [
+      "Placing source .go files directly in pkg/framework/transport/ \u2014 all code belongs in named sub-packages",
+      "Adding a second child package that duplicates the decode/operate/encode pipeline instead of reusing httptransport.Handler",
+      "Importing pkg/framework/transport directly (no Go files here); always import the named sub-package",
+      "Calling context.Background() inside a RequestDecoder \u2014 always use the ctx passed from ServeHTTP",
+      "Writing to http.ResponseWriter inside a RequestDecoder on error \u2014 return the error and let the ErrorEncoder chain handle it"
+    ],
+    "decisions": [
+      {
+        "decision": "Single child package rather than a flat file set",
+        "rationale": "Keeps the transport abstraction extensible (future grpc/websocket siblings) while letting all current consumers import a stable sub-package path (httptransport) without churn."
+      },
+      {
+        "decision": "Value-receiver handler with copy-on-With/Chain semantics",
+        "rationale": "Prevents accidental shared state across middleware chains; each Chain() call returns a new handler copy, making the pipeline composable without races."
+      },
+      {
+        "decision": "Last-resort 500 fallback lives in handler.go, not in GenericErrorEncoder",
+        "rationale": "Keeps GenericErrorEncoder focused on typed domain-error matching; the transport layer owns the final safety net so domain packages never need to handle unrecognised error types themselves."
+      }
+    ],
+    "code_examples": []
+  }
+}

@@ -2,42 +2,42 @@
 
 <!-- archie:ai-start -->
 
-> v3 HTTP handler package for all meter CRUD and query operations. Bridges the generated api/v3 request/response types to meter.ManageService and streaming.Connector via the httptransport.Handler pattern. Also owns the query/ sub-package for translating MeterQueryRequest fields into streaming.QueryParams.
+> v3 HTTP handler package for all meter CRUD and query operations; bridges generated api/v3 request/response types to meter.ManageService and streaming.Connector via the httptransport.Handler pipeline, and owns the query/ sub-package for translating MeterQueryRequest fields into streaming.QueryParams.
 
 ## Patterns
 
-**Type-alias triplets per operation** — Each operation file declares three type aliases: <Op>Request, <Op>Response, <Op>Handler. Request/Response alias domain input/output types directly; Handler aliases httptransport.Handler or HandlerWithArgs. (`type CreateMeterRequest = meter.CreateMeterInput; type CreateMeterResponse = api.Meter; type CreateMeterHandler httptransport.Handler[CreateMeterRequest, CreateMeterResponse]`)
-**httptransport.NewHandlerWithArgs for path-param endpoints** — Use NewHandlerWithArgs when the endpoint has a path parameter (meterID string). Use NewHandler only for endpoints without path params (e.g. CreateMeter). (`httptransport.NewHandlerWithArgs(decoderFunc, operationFunc, commonhttp.JSONResponseEncoderWithStatus[Response](http.StatusOK), opts...)`)
-**Namespace always resolved in decoder** — h.resolveNamespace(ctx) is called in the decoder closure (first argument), never in the operation closure. Errors from resolveNamespace are returned immediately. (`ns, err := h.resolveNamespace(ctx); if err != nil { return Request{}, err }`)
-**apierrors.GenericErrorEncoder on every handler** — Every httptransport.NewHandler / NewHandlerWithArgs call appends httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) in the options block via httptransport.AppendOptions(h.options, ...). (`httptransport.AppendOptions(h.options, httptransport.WithOperationName("get-meter"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))...`)
-**Reserved dimension validation in decoder** — For Create and Update, call validateDimensionsWithoutReserved(*body.Dimensions) in the decoder before constructing the domain input. This calls query.IsReservedDimension per dimension key. (`if body.Dimensions != nil { if err := validateDimensionsWithoutReserved(*body.Dimensions); err != nil { return Request{}, err } }`)
-**Query path delegates to query.BuildQueryParams** — Both QueryMeter and QueryMeterCSV call query.BuildQueryParams(ctx, m, req.Body, query.NewCustomerResolver(h.customerService)) — never inline the param-building logic in the handler. (`params, err := query.BuildQueryParams(ctx, m, req.Body, query.NewCustomerResolver(h.customerService))`)
-**Goverter-generated conversion functions initialized in init()** — convert.gen.go sets package-level var functions (FromAPICreateMeterRequest, ToAPIMeter, etc.) in init(). Never call these before init runs; never hand-edit convert.gen.go. (`var FromAPICreateMeterRequest func(namespace string, req api.CreateMeterRequest) (meter.CreateMeterInput, error)`)
+**Type-alias triplets per operation file** — Each operation file declares three type aliases: <Op>Request, <Op>Response, <Op>Handler. Request/Response alias domain input/output types directly; Handler aliases httptransport.Handler or HandlerWithArgs. (`type CreateMeterRequest = meter.CreateMeterInput; type CreateMeterResponse = api.Meter; type CreateMeterHandler httptransport.Handler[CreateMeterRequest, CreateMeterResponse]`)
+**NewHandlerWithArgs for path-param endpoints; NewHandler for no-param** — Endpoints with a meterID path param use httptransport.NewHandlerWithArgs. Endpoints without path params (e.g. CreateMeter) use httptransport.NewHandler. (`httptransport.NewHandlerWithArgs(decoderFunc, operationFunc, commonhttp.JSONResponseEncoderWithStatus[Response](http.StatusOK), opts...)`)
+**Namespace resolved in decoder, never in operation** — h.resolveNamespace(ctx) is always called inside the decoder closure (first argument); errors from it are returned immediately without entering the operation. (`ns, err := h.resolveNamespace(ctx); if err != nil { return Request{}, err }`)
+**apierrors.GenericErrorEncoder on every handler** — Every httptransport.NewHandler / NewHandlerWithArgs call must append httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) inside httptransport.AppendOptions. (`httptransport.AppendOptions(h.options, httptransport.WithOperationName("get-meter"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))...`)
+**Reserved dimension validation in decoder** — For Create and Update, call validateDimensionsWithoutReserved(*body.Dimensions) in the decoder before constructing the domain input; this delegates to query.IsReservedDimension per key. (`if body.Dimensions != nil { if err := validateDimensionsWithoutReserved(*body.Dimensions); err != nil { return Request{}, err } }`)
+**Query endpoints delegate to query.BuildQueryParams** — Both QueryMeter and QueryMeterCSV call query.BuildQueryParams(ctx, m, req.Body, query.NewCustomerResolver(h.customerService)) — never inline param-building logic in the handler files. (`params, err := query.BuildQueryParams(ctx, m, req.Body, query.NewCustomerResolver(h.customerService))`)
+**Goverter-generated conversion vars initialized in init()** — convert.gen.go sets package-level var functions (FromAPICreateMeterRequest, ToAPIMeter, etc.) inside init(). Never call them before init runs and never hand-edit convert.gen.go. (`var FromAPICreateMeterRequest func(namespace string, req api.CreateMeterRequest) (meter.CreateMeterInput, error)`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `handler.go` | Defines Handler interface (all 7 method signatures) and handler struct with resolveNamespace, service, streaming, customerService, options. New() constructor injects all dependencies. | Do not add domain service calls directly to handler struct methods; those belong in per-operation files. |
-| `convert.go` | Hand-written conversion helpers (ToAPIMeterAggregation, FromAPIMeterAggregation, ToAPIMeterQueryRow, ToAPIMeterQueryResult, FromAPIUpdateMeterRequest) and Goverter annotations that drive convert.gen.go generation. | Goverter var declarations (FromAPICreateMeterRequest, ToAPIMeter) must not be called manually — they are wired in init() by convert.gen.go. |
-| `convert.gen.go` | Generated by Goverter. DO NOT EDIT. Contains init() that sets all package-level conversion function vars. | Any hand-edit will be overwritten by 'go generate ./...'. Re-run make generate after changing convert.go annotations. |
-| `errors.go` | Declares ErrCodeReservedDimension ErrorCode constant and ErrReservedDimension ValidationIssue sentinel with HTTP 400 attribute. NewReservedDimensionError adds path and value attrs. | All new validation errors in this package must follow the same pattern: package-level sentinel + constructor that calls .WithPathString/.WithAttr. |
-| `dimensions.go` | validateDimensionsWithoutReserved — iterates a map and returns NewReservedDimensionError if any key matches query.IsReservedDimension. | New reserved dimensions must be added in query/dimensions.go (IsReservedDimension), not here. |
-| `query_csv.go` | QueryMeterCSV handler plus queryMeterCSVResult type implementing commonhttp.CSVResponse. Column order: from, to, [subject,] [customer_id, customer_key, customer_name,] <other dims...>, value. | Customer enrichment (key/name) is done post-query via ListCustomers; any new reserved dimension column must be added to both the header and the record-building loop. |
-| `query/` | Sub-package owning BuildQueryParams, IsReservedDimension, CustomerResolverFunc, filter operator extraction, and ISO 8601 ↔ WindowSize lookup. All query-building logic lives here. | Do not inline query parameter translation in the parent handlers; always delegate to BuildQueryParams. |
+| `handler.go` | Defines the Handler interface (all 7 method signatures) and the handler struct with resolveNamespace, service, streaming, customerService, options. New() injects all dependencies. | Do not add domain service calls to handler struct methods directly; those belong in per-operation files. |
+| `convert.go` | Hand-written helpers (ToAPIMeterAggregation, FromAPIMeterAggregation, ToAPIMeterQueryRow, ToAPIMeterQueryResult, FromAPIUpdateMeterRequest) plus Goverter annotations driving convert.gen.go generation. | Goverter var declarations (FromAPICreateMeterRequest, ToAPIMeter) must not be called manually before init(); they are set in convert.gen.go's init(). |
+| `convert.gen.go` | Generated by Goverter — DO NOT EDIT. Contains init() that sets all package-level conversion function vars. | Any hand-edit is overwritten by 'go generate ./...'. Re-run make generate after changing convert.go annotations. |
+| `errors.go` | Declares ErrCodeReservedDimension ErrorCode constant and ErrReservedDimension ValidationIssue sentinel with HTTP 400 attribute. NewReservedDimensionError adds path and value attributes. | All new validation errors in this package must follow the same pattern: package-level sentinel + constructor that calls .WithPathString/.WithAttr. |
+| `dimensions.go` | validateDimensionsWithoutReserved iterates a map and returns NewReservedDimensionError if any key matches query.IsReservedDimension. | New reserved dimensions must be added in query/dimensions.go (IsReservedDimension), not here. |
+| `query_csv.go` | QueryMeterCSV handler plus queryMeterCSVResult implementing commonhttp.CSVResponse. Column order: from, to, [subject,] [customer_id, customer_key, customer_name,] <other dims>, value. Customer enrichment via ListCustomers post-query. | Any new reserved dimension column must be added to both the header slice and the record-building loop in Records(). |
+| `query/` | Sub-package owning BuildQueryParams, IsReservedDimension, CustomerResolverFunc, filter operator extraction, and ISO 8601 to WindowSize lookup. | Do not inline query parameter translation in the parent handler files; always delegate to BuildQueryParams. |
 
 ## Anti-Patterns
 
 - Using httptransport.NewHandler instead of NewHandlerWithArgs when the endpoint takes a path parameter (meterID).
 - Calling h.resolveNamespace in the operation closure instead of the decoder closure.
-- Adding a new dimension key directly in the meters package instead of updating query.IsReservedDimension in query/dimensions.go.
+- Adding a new reserved dimension key directly in this package instead of updating query.IsReservedDimension in query/dimensions.go.
 - Hand-editing convert.gen.go — it is overwritten by go generate.
 - Omitting httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) from the options block, which breaks domain-error-to-HTTP-status mapping.
 
 ## Decisions
 
-- **query/ is a separate sub-package rather than inline code in query.go** — Isolates all MeterQueryRequest → streaming.QueryParams translation (dimension validation, filter extraction, customer resolution, window-size mapping) so handlers stay thin and the logic is independently testable without wiring an HTTP context.
-- **Conversion functions are Goverter-generated vars (not methods)** — Goverter generates type-safe mapping code at build time; package-level vars initialized in init() allow the generated code to live in a separate file while being callable from hand-written handlers without any receiver.
+- **query/ is a separate sub-package rather than inline code in query.go** — Isolates all MeterQueryRequest to streaming.QueryParams translation (dimension validation, filter extraction, customer resolution, window-size mapping) so handlers stay thin and the logic is independently testable without an HTTP context.
+- **Conversion functions are Goverter-generated vars initialized in init(), not methods** — Goverter generates type-safe mapping code at build time; package-level vars set in init() let the generated code live in a separate file while being callable from hand-written handlers without a receiver.
 - **ValidationIssue package-level sentinel + WithPathString/WithAttr constructors** — Pre-building the base issue (ErrReservedDimension) as a sentinel lets the HTTP error encoder read the embedded HTTP status code attribute, while per-call constructors add field-specific path/value context without duplicating the base message.
 
 ## Example: Add a new CRUD endpoint (e.g. CloneMeter) following the established handler pattern
@@ -55,9 +55,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type (
 // ...
 ```
 

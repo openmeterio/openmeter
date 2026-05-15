@@ -1,0 +1,166 @@
+{
+  "collector/benthos": {
+    "purpose": "Orchestration layer for the Benthos/Redpanda Connect collector binary: wires together custom BatchInput plugins (input/), Bloblang functions (bloblang/), shared utilities (internal/), leader-election infrastructure (services/), and deployable YAML pipeline presets (presets/). No Go source lives here directly \u2014 this folder defines the full plugin surface and runtime config that cmd/benthos-collector blank-imports to activate.",
+    "patterns": [
+      {
+        "name": "Blank-import activation",
+        "description": "All plugin packages (input/, bloblang/) register themselves via Go init(). cmd/benthos-collector must blank-import each package; forgetting an import silently omits the plugin at runtime with no error.",
+        "example": "import _ \"github.com/openmeterio/openmeter/collector/benthos/input\""
+      },
+      {
+        "name": "Sub-package per concern",
+        "description": "input/ = BatchInput plugins only, bloblang/ = Bloblang function registrations only, internal/ = shared utilities (no plugin logic), services/ = cross-cutting infrastructure (leader election), presets/ = pure YAML configs. Do not mix concerns across these boundaries.",
+        "example": "// new input plugin: collector/benthos/input/myplugin.go; new Bloblang fn: collector/benthos/bloblang/myfn.go"
+      },
+      {
+        "name": "Leader-election gate on replicated work",
+        "description": "Inputs that must run on only one replica poll leaderelection.IsLeader(res) from service.Resources in Connect/ReadBatch. Absent key defaults to true so single-replica deployments need no election service.",
+        "example": "if !leaderelection.IsLeader(res) { return nil, component.ErrNotConnected }"
+      },
+      {
+        "name": "init()-based plugin registration",
+        "description": "Every plugin file calls service.RegisterBatchInput (or the Bloblang equivalent) inside an init() function. Registration must happen before process start; calling outside init() causes the plugin to be unavailable at pipeline construction time.",
+        "example": "func init() { _ = service.RegisterBatchInput(\"my_plugin\", MyInputConfig(), newMyInput) }"
+      },
+      {
+        "name": "Environment-variable substitution in YAML presets",
+        "description": "All secrets and endpoint URLs in presets/ use ${ENV_VAR} Benthos interpolation \u2014 never hardcoded values. This allows config files to be shipped without recompiling the binary.",
+        "example": "url: ${OPENMETER_URL}/api/v1/events"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "collector/benthos/input/*.go",
+        "role": "One BatchInput plugin per file; each registered in init() via service.RegisterBatchInput. Provides Connect/ReadBatch/Close lifecycle.",
+        "watch_for": "Holding in.mu across network calls; returning errors from ReadBatch for transient per-resource failures (halts pipeline); omitting a dedicated XxxInputConfig() factory function."
+      },
+      {
+        "file": "collector/benthos/bloblang/parse_resource.go",
+        "role": "Registers custom Bloblang functions via init(); must be blank-imported to activate. Side-effect-only \u2014 exports nothing.",
+        "watch_for": "Registering duplicate function names across files (startup panic); performing I/O inside the returned closure (run on every invocation); exporting any symbols."
+      },
+      {
+        "file": "collector/benthos/internal/shutdown/signaller.go",
+        "role": "Two-tier graceful shutdown primitive (CloseAtLeisure / CloseNow) used by all plugins.",
+        "watch_for": "Forgetting ShutdownComplete() in a component goroutine \u2014 orchestrators block on HasClosedChan indefinitely."
+      },
+      {
+        "file": "collector/benthos/internal/message/transaction.go",
+        "role": "Delivery-guaranteed message routing via Transaction/Ack pattern; buffered chan<-error (cap 1) for ack path.",
+        "watch_for": "Calling Ack more than once \u2014 buffered channel send is not idempotent and will block or panic."
+      },
+      {
+        "file": "collector/benthos/services/leaderelection/service.go",
+        "role": "Kubernetes lease-based leader election; exposes state via service.Resources generic map under IsLeaderKey.",
+        "watch_for": "Reusing a LeaderElector instance across election cycles (single-use in client-go); calling Start with context.Background() (breaks shutdown cancellation)."
+      },
+      {
+        "file": "collector/benthos/presets/http-server/config.yaml",
+        "role": "Receive-validate-forward CloudEvent ingestion pipeline preset; no transformation logic.",
+        "watch_for": "Adding enrichment logic here; using generic http_client output instead of the custom openmeter plugin."
+      },
+      {
+        "file": "collector/benthos/presets/kubernetes-pod-exec-time/config.yaml",
+        "role": "Kubernetes billing pipeline deriving duration_seconds from schedule_interval metadata at mapping time.",
+        "watch_for": "Omitting .number(0) on resource_quantity() calls \u2014 pods without resource requests produce nil mapping errors."
+      }
+    ],
+    "anti_patterns": [
+      "Registering a plugin outside init() \u2014 Benthos requires init-time registration before the process starts",
+      "Adding business logic or plugin registrations to internal/ \u2014 it is a pure utilities layer with no plugin surface",
+      "Reading IsLeaderKey directly via res.GetGeneric instead of using leaderelection.IsLeader(res) \u2014 misses the absent-key=true default for single-replica deployments",
+      "Exporting symbols from collector/benthos/bloblang \u2014 this package is side-effect-only and must export nothing",
+      "Returning a hard error from ReadBatch for transient per-resource failures \u2014 non-fatal errors must be logged and skipped; a returned error halts the entire Benthos pipeline"
+    ],
+    "decisions": [
+      {
+        "decision": "Sub-package per concern (input, bloblang, internal, services, presets) rather than a flat package",
+        "rationale": "Keeps plugin registration, shared utilities, infrastructure services, and YAML configs independently evolvable and prevents accidental coupling between Benthos plugin lifecycle and utility code."
+      },
+      {
+        "decision": "Leader state stored in service.Resources generic map with absent-key defaulting to true",
+        "rationale": "Single-replica deployments work without configuring a leader-election service; service.Resources is the only cross-plugin shared-state mechanism Benthos exposes, so no alternative channel is available."
+      },
+      {
+        "decision": "Presets are pure YAML with no Go code",
+        "rationale": "Pipeline configs can be updated and shipped without recompiling the binary; environment-variable substitution handles all deployment-specific values."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Registering a new BatchInput plugin that gates work on leader election",
+        "code": "// collector/benthos/input/myplugin.go\npackage input\n\nimport (\n\t\"context\"\n\n\t\"github.com/redpanda-data/benthos/v4/public/service\"\n\t\"github.com/openmeterio/openmeter/collector/benthos/services/leaderelection\"\n)\n\nfunc init() {\n\terr := service.RegisterBatchInput(\"my_plugin\", MyPluginInputConfig(),\n\t\tfunc(conf *service.ParsedConfig, res *service.Resources) (service.BatchInput, error) {\n\t\t\treturn newMyPluginInput(conf, res)\n\t\t})\n\tif err != nil {\n\t\tpanic(err)\n\t}\n}\n\ntype myPluginInput struct{ res *service.Resources }\n\nfunc newMyPluginInput(conf *service.ParsedConfig, res *service.Resources) (*myPluginInput, error) {\n\treturn &myPluginInput{res: res}, nil\n}\n\nfunc (p *myPluginInput) Connect(ctx context.Context) error {\n\tif !leaderelection.IsLeader(p.res) {\n\t\treturn service.ErrNotConnected\n\t}\n\treturn nil\n}\n\nfunc (p *myPluginInput) ReadBatch(ctx context.Context) (service.MessageBatch, service.AckFunc, error) {\n\t// ... fetch and return messages\n\treturn nil, nil, service.ErrNotConnected\n}\n\nfunc (p *myPluginInput) Close(ctx context.Context) error { return nil }"
+      }
+    ]
+  },
+  "collector/quickstart": {
+    "purpose": "Local demo environment for the Benthos collector: a Docker Compose stack that runs openmeter, the custom-plugin collector, and a synthetic CloudEvent seeder. Contains only YAML configs and one docker-compose.yaml \u2014 no Go source. Role is quickstart demonstration, not production deployment or reusable pipeline template.",
+    "patterns": [
+      {
+        "name": "Environment-variable-driven configuration",
+        "description": "All URLs, tokens, and tunable parameters use ${ENV_VAR} Benthos interpolation or Docker Compose environment: blocks \u2014 never hardcoded values.",
+        "example": "environment:\n  OPENMETER_URL: http://openmeter:8888"
+      },
+      {
+        "name": "Layered config loading",
+        "description": "The collector service loads config.yaml first (bootstrap: HTTP API, metrics, cache), then overlays resources/*.yaml (shared infrastructure) and streams/*.yaml (processors). Stream processors and cache declarations must NOT go in the top-level config.yaml.",
+        "example": "command: [\"--config\", \"/etc/collector/config.yaml\", \"--resources\", \"/etc/collector/resources/*.yaml\", \"streams\", \"--no-api\", \"/etc/collector/streams/*.yaml\"]"
+      },
+      {
+        "name": "Healthcheck-gated depends_on",
+        "description": "Each service declares a wget healthcheck; downstream services use condition: service_healthy to ensure openmeter is ready before collector starts, and collector before seeder.",
+        "example": "depends_on:\n  openmeter:\n    condition: service_healthy"
+      },
+      {
+        "name": "Switch output with DEBUG stdout branch",
+        "description": "Output configs use a switch with a DEBUG env-var branch that short-circuits to stdout for local inspection without altering the real output path.",
+        "example": "switch:\n  - check: '${SEEDER_LOG:false}' == 'true'\n    output:\n      stdout: {}"
+      },
+      {
+        "name": "Include base stack rather than duplicate",
+        "description": "docker-compose.yaml includes ../../quickstart/docker-compose.yaml and only adds collector and seeder services, reusing the canonical openmeter stack definition.",
+        "example": "include:\n  - ../../quickstart/docker-compose.yaml"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "collector/quickstart/docker-compose.yaml",
+        "role": "Extends ../../quickstart/docker-compose.yaml and adds collector + seeder services with volume mounts binding local YAML configs.",
+        "watch_for": "OPENMETER_TOKEN is absent from the default collector environment \u2014 add it if the target OpenMeter instance requires auth."
+      },
+      {
+        "file": "collector/quickstart/collector/config.yaml",
+        "role": "Bootstrap config only: HTTP management API, Prometheus metrics, optional OTel tracer stub. Stream logic lives in streams/.",
+        "watch_for": "Adding stream processors here \u2014 they belong in streams/; renaming dedupe_cache label without updating all cache: references in stream processors silently bypasses deduplication."
+      },
+      {
+        "file": "collector/quickstart/collector/resources/dedupe-cache.yaml",
+        "role": "In-memory deduplication cache with 1h TTL shared by stream processors via the dedupe_cache label.",
+        "watch_for": "Switching to Redis requires updating both this file and all cache: label references in stream processor configs."
+      },
+      {
+        "file": "collector/quickstart/seeder/config.yaml",
+        "role": "Synthetic CloudEvent generator: generate input \u2192 Bloblang mapping \u2192 http_client output to collector ingest endpoint. Demo-only.",
+        "watch_for": "Removing specversion or id fields from the generated CloudEvent breaks ingest API validation; do not add business logic here."
+      }
+    ],
+    "anti_patterns": [
+      "Hardcoding OPENMETER_URL or OPENMETER_TOKEN instead of environment variable interpolation",
+      "Adding transformation or enrichment logic to seeder/config.yaml \u2014 it is a synthetic demo generator, not a reusable pipeline template",
+      "Adding stream processors or cache declarations to collector/config.yaml top-level instead of streams/ and resources/ sub-files",
+      "Using generic http_client output instead of the custom openmeter output plugin in collector stream output configs",
+      "Enabling debug_endpoints: true outside local development \u2014 exposes internal Benthos state"
+    ],
+    "decisions": [
+      {
+        "decision": "Include ../../quickstart/docker-compose.yaml rather than duplicating service definitions",
+        "rationale": "Reuses the canonical openmeter stack; collector quickstart only adds the collector and seeder services on top, avoiding drift between the two compose files."
+      },
+      {
+        "decision": "In-memory dedupe cache instead of Redis",
+        "rationale": "Reduces quickstart dependencies to zero external services beyond openmeter itself; acceptable for demo volumes where cross-restart deduplication is not required."
+      }
+    ],
+    "code_examples": []
+  }
+}

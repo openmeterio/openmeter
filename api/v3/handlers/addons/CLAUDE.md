@@ -2,7 +2,7 @@
 
 <!-- archie:ai-start -->
 
-> HTTP handlers for the v3 addon CRUD + lifecycle (publish/archive) endpoints, translating between apiv3.Addon wire types and addon.Service domain calls via the httptransport pattern.
+> HTTP handlers for the v3 addon CRUD and lifecycle (publish/archive) endpoints, translating between apiv3.Addon wire types and addon.Service domain calls via the httptransport pipeline. Each operation lives in its own dedicated file.
 
 ## Patterns
 
@@ -21,6 +21,7 @@
 | `handler.go` | Declares the Handler interface listing all endpoint methods and the handler struct with resolveNamespace, service addon.Service, and options []httptransport.HandlerOption. New() constructor. | Adding a new endpoint: add it to the Handler interface here first, then create a dedicated file. |
 | `convert.go` | All bidirectional conversion between apiv3 and productcatalog/addon domain types including rate cards, prices (flat/unit/tiered), tax config, discounts, and labels. | Rate card type switch is exhaustive — adding a new RateCardType requires a new case in both ToAPIBillingRateCard and FromAPIBillingRateCard. |
 | `list.go` | ListAddons with page-pagination using pagination.NewPage defaults (1, 20); validates page before building ListAddonsInput. | Default page size is 20; page validation errors must use apierrors.NewBadRequestError with field='page'. |
+| `archive.go` | ArchiveAddon sets EffectiveTo: clock.Now() in the decoder — the HTTP layer owns wall-clock time, not the domain service. | Lifecycle operations (publish, archive) must set clock.Now() in the decoder, not inside the service call. |
 
 ## Anti-Patterns
 
@@ -38,11 +39,11 @@
 ## Example: Add a new addon lifecycle endpoint (e.g., RestoreAddon)
 
 ```
-// handler.go: add RestoreAddon() RestoreAddonHandler to Handler interface
-// restore.go:
+// restore.go
 package addons
 import (
 	"context"
+	"fmt"
 	"net/http"
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"

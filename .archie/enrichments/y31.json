@@ -1,0 +1,141 @@
+{
+  "openmeter/notification/eventhandler": {
+    "purpose": "Implements notification.EventHandler: dispatches domain events asynchronously to Svix webhook channels (fire-and-forget goroutine) and runs a pg-advisory-lock-gated periodic reconciliation loop that drives stuck delivery statuses (Pending/Sending/Resending) to terminal states via a per-status state machine in webhook.go.",
+    "patterns": [
+      {
+        "name": "Compile-time interface assertion",
+        "description": "handler.go declares `var _ notification.EventHandler = (*Handler)(nil)` to catch interface drift at compile time. Any new method added to notification.EventHandler without a matching implementation here fails the build.",
+        "example": "var _ notification.EventHandler = (*Handler)(nil)"
+      },
+      {
+        "name": "Config struct with Validate() before construction",
+        "description": "All constructor dependencies are collected in Config. Config.Validate() is called first in New() and returns models.NewNillableGenericValidationError so missing fields surface before any goroutine is started.",
+        "example": "func New(config Config) (*Handler, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "Dispatch fires a detached goroutine with panic recovery and fresh root span",
+        "description": "Dispatch() captures the OTel span link from the caller's context, launches a goroutine with context.WithTimeout(context.Background(), notification.DefaultDispatchTimeout), and always returns nil. Errors are only logged \u2014 callers must not rely on the return value for delivery confirmation.",
+        "example": "go func() { defer recover(); ctx, cancel := context.WithTimeout(context.Background(), notification.DefaultDispatchTimeout); defer cancel(); tracex.StartWithNoValue(ctx, h.tracer, \"event_handler.dispatch\", trace.WithNewRoot(), trace.WithLinks(spanLink)).Wrap(fn) }()"
+      },
+      {
+        "name": "pg advisory lock via pglock.Client.Do for leader-election in Start()",
+        "description": "Start() calls h.lockClient.Do(ctx, reconcilerLeaderLockKey, ...) so only one replica runs the reconcile ticker. pglock.ErrNotAcquired is treated as a non-error \u2014 the pod silently waits and retries the lock acquisition in a loop.",
+        "example": "err := h.lockClient.Do(ctx, reconcilerLeaderLockKey, func(rCtx context.Context, _ *pglock.Lock) error { ticker := time.NewTicker(h.reconcileInterval); ... })"
+      },
+      {
+        "name": "Paginated scan in Reconcile with nextAttemptDelay filter",
+        "description": "Reconcile paginates delivery statuses (PageSize 50, incrementing PageNumber) filtered to Pending/Sending/Resending states and NextAttemptBefore = clock.Now()-10s to let Svix async state settle before re-querying. Never remove the 10s jitter.",
+        "example": "nextAttemptBefore := clock.Now().Add(-1 * nextAttemptDelay); for { out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{Page: page, DeliveryStatusStates: [...], NextAttemptBefore: nextAttemptBefore}); ...; page.PageNumber++ }"
+      },
+      {
+        "name": "Delivery status state machine in reconcileWebhookEvent",
+        "description": "webhook.go drives Pending\u2192send/timeout, Resending\u2192resend+Sending, Sending\u2192read-provider-state/fail-on-timeout transitions. All terminal failure reasons are defined as sentinel error vars in webhook.go \u2014 never introduce new terminal reason strings outside that file.",
+        "example": "switch status.State { case notification.EventDeliveryStatusStatePending: ...; case notification.EventDeliveryStatusStateResending: ...; case notification.EventDeliveryStatusStateSending: ... }"
+      },
+      {
+        "name": "sync.OnceFunc for idempotent Close()",
+        "description": "stopCh is a plain chan struct{}; stopChClose is wrapped with sync.OnceFunc so Close() is safe to call multiple times and Start() stops reliably on signal.",
+        "example": "stopChClose := sync.OnceFunc(func() { close(stopCh) })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler struct definition, Config validation, New() constructor, Start()/Close() lifecycle. Start() runs pglock.Do loop calling Reconcile() on a ticker.",
+        "watch_for": "ReconcileInterval, PendingTimeout, and SendingTimeout default to package-level constants if zero \u2014 never pass zero expecting a no-op. atomic.Bool running guards against double-Start."
+      },
+      {
+        "file": "dispatch.go",
+        "role": "Dispatch() goroutine launcher. Captures OTel span link before launching, then opens a fresh root span inside the goroutine with context.WithTimeout.",
+        "watch_for": "Dispatch always returns nil; real errors are only logged. Do NOT check the return value for dispatch success \u2014 the reconcile loop is the recovery path."
+      },
+      {
+        "file": "reconcile.go",
+        "role": "Reconcile() paginates pending events and fans out to reconcileEvent per item using a semaphore-bounded worker pool (workerPoolSize). reconcileEvent dispatches to reconcileWebhookEvent by channel type.",
+        "watch_for": "nextAttemptDelay (10s) must remain to avoid racing Svix async state updates. Worker goroutines each have their own panic recovery."
+      },
+      {
+        "file": "webhook.go",
+        "role": "reconcileWebhookEvent drives the per-delivery-status state machine against the Svix webhook provider. Defines all six sentinel error vars (ErrUser*, ErrSystem*) that are stored verbatim as DB failure reasons.",
+        "watch_for": "The six sentinel errors are the canonical human-readable failure reasons. Do not introduce new terminal-state strings outside this file. RetryableError.RetryAfter() controls the next-attempt delay for transient errors."
+      },
+      {
+        "file": "deliverystatus.go",
+        "role": "Pure stateless helpers: filterActiveDeliveryStatusesByChannelType and sortDeliveryStatusStateByPriority. No side effects.",
+        "watch_for": "Keep these functions pure \u2014 no logger, tracer, or DB calls. Priority map order (Pending=0, Resending=1, Sending=2) determines which status is reconciled first within an event."
+      }
+    ],
+    "anti_patterns": [
+      "Calling reconcileEvent synchronously from Dispatch \u2014 breaks the fire-and-forget contract; Watermill consumers must not block on webhook delivery.",
+      "Using context.Background() inside reconcileEvent or reconcileWebhookEvent instead of the received ctx \u2014 OTel spans and transaction bindings would be lost.",
+      "Adding new terminal delivery status reason strings outside webhook.go sentinel error vars \u2014 creates inconsistent DB state across reconcile iterations.",
+      "Skipping the pglock.Do leader-election in Start() \u2014 multiple pods would double-reconcile events and produce duplicate Svix sends.",
+      "Making Handler methods value receivers for Start/Close \u2014 stopCh and stopChClose are pointer-receiver state; mixing receivers causes data races."
+    ],
+    "decisions": [
+      {
+        "decision": "Dispatch fires a goroutine and always returns nil",
+        "rationale": "Callers (Watermill consumers) must not block on webhook delivery; failures are non-fatal to the consumer pipeline and are recovered by the reconcile loop."
+      },
+      {
+        "decision": "Start() uses pglock.Client.Do for leader-election rather than application-level lockr advisory locks",
+        "rationale": "The reconcile loop must survive transaction boundaries \u2014 pglock holds a connection-scoped lock across multiple reconcile ticks, whereas pg_advisory_xact_lock releases on each transaction commit."
+      },
+      {
+        "decision": "nextAttemptDelay jitter (10s) before re-querying Svix state",
+        "rationale": "Svix processes messages asynchronously; querying immediately after dispatch yields stale 'not found' states and causes unnecessary retries and false-positive failure transitions."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new channel type handler inside reconcileEvent (reconcile.go)",
+        "code": "// In reconcile.go, extend the switch in reconcileEvent:\nfor _, channelType := range channelTypes {\n    switch channelType {\n    case notification.ChannelTypeWebhook:\n        if err := h.reconcileWebhookEvent(ctx, event); err != nil {\n            errs = append(errs, err)\n        }\n    case notification.ChannelTypeSlack: // new type\n        if err := h.reconcileSlackEvent(ctx, event); err != nil {\n            errs = append(errs, err)\n        }\n    default:\n        h.logger.ErrorContext(ctx, \"unsupported channel type\", \"type\", channelType)\n    }\n}"
+      }
+    ]
+  },
+  "openmeter/notification/eventhandler/noop": {
+    "purpose": "No-op implementation of notification.EventHandler used when the notification subsystem is disabled or unconfigured. All methods satisfy the interface contract without performing any real dispatch, reconciliation, or lifecycle work, enabling Wire to inject a safe zero-value implementation instead of a nil pointer.",
+    "patterns": [
+      {
+        "name": "Compile-time interface assertion",
+        "description": "handler.go must declare `var _ notification.EventHandler = (*Handler)(nil)` to catch interface drift. Without it, a new method on notification.EventHandler silently leaves the noop broken.",
+        "example": "var _ notification.EventHandler = (*Handler)(nil)"
+      },
+      {
+        "name": "Zero-value struct with value receivers",
+        "description": "Handler has no fields. All methods are value receivers returning nil. No constructor parameters, no state, no goroutines.",
+        "example": "type Handler struct{}\nfunc (Handler) Start() error { return nil }\nfunc (Handler) Close() error { return nil }\nfunc (Handler) Dispatch(_ context.Context, _ *notification.Event) error { return nil }"
+      },
+      {
+        "name": "Two-value constructor matching Wire expectation",
+        "description": "New() returns (*Handler, error) even though it never fails, so Wire provider function signatures remain consistent with the real eventhandler.New().",
+        "example": "func New() (*Handler, error) { return &Handler{}, nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Sole file: defines Handler struct, compile-time assertion, and all interface method implementations.",
+        "watch_for": "Never add fields, logging, metrics, or side-effects. Returning non-nil errors from any method breaks app/common assumptions that noop always succeeds."
+      }
+    ],
+    "anti_patterns": [
+      "Adding logging, metrics, or side-effects to any method \u2014 this package must remain intentionally inert.",
+      "Removing the compile-time interface assertion \u2014 it is the only guard against interface drift.",
+      "Using context.Background() or context.TODO() instead of blank-identifying the received context parameter.",
+      "Storing any state on Handler \u2014 it must remain a zero-value struct with no fields.",
+      "Returning non-nil errors from any method \u2014 callers in app/common assume noop always succeeds."
+    ],
+    "decisions": [
+      {
+        "decision": "Separate noop sub-package rather than a nil check inside the real handler",
+        "rationale": "Consistent with the project-wide noop pattern (ledger/noop, notification/webhook noop) \u2014 callers receive a real interface and never need nil guards scattered through business logic."
+      },
+      {
+        "decision": "Value receivers for all methods",
+        "rationale": "Handler has no pointer-receiver state (no channels, no atomics), so value receivers are idiomatic and prevent accidental mutation."
+      }
+    ],
+    "code_examples": []
+  }
+}

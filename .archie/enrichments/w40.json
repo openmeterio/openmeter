@@ -1,141 +1,91 @@
 {
-  "collector/benthos/internal/logging": {
-    "purpose": "Adapts Benthos' service.Logger to a logr.LogSink so controller-runtime and klog can route through a single Benthos logger instance. Single file, single type, no business logic.",
+  "collector/benthos/input/runai": {
+    "purpose": "HTTP client library for the Run:ai API providing typed access to workloads, pods, and their metrics via a single resty.Client in service.go with automatic JWT token refresh on every non-token request. All API resource types follow a strict ListX/ListAllX pagination pair plus chunked metric fetching.",
     "patterns": [
       {
-        "name": "Benthos-to-logr bridge",
-        "description": "CtrlLogger wraps *service.Logger and implements logr.LogSink. Level 0 maps to Infof; any other level maps to Debugf. Error always calls Errorf.",
-        "example": "logr.New(&CtrlLogger{logger: logger})"
+        "name": "Service method per API endpoint",
+        "description": "Every API endpoint is a method on *Service. Methods set Accept header, query params via SetQueryParams, and call SetResult with a typed pointer before executing the resty verb, then type-assert resp.Result().",
+        "example": "resp.Result().(*ListPodsResponse)"
       },
       {
-        "name": "klog global setup via SetupKlog",
-        "description": "SetupKlog sets the global klog logger by calling klog.SetLogger with a logr.Logger that carries a 'component=kubernetes' key. Call once at startup.",
-        "example": "logging.SetupKlog(svc.Logger())"
+        "name": "ListX + ListAllX pagination pair",
+        "description": "Each resource has a ListX (single page, max 500 limit enforced) and a ListAllX (loops until resp.Next == 0) pair. ListAllX calls s.resourceTypeMetrics.Set after collecting all pages.",
+        "example": "ListPods / ListAllPods, ListWorkloads / ListAllWorkloads"
       },
       {
-        "name": "No-op WithValues / WithName",
-        "description": "WithValues and WithName return the same receiver unchanged. Structured key-value context is intentionally dropped \u2014 Benthos format strings are unstructured.",
-        "example": "func (l *CtrlLogger) WithValues(keysAndValues ...any) logr.LogSink { return l }"
+        "name": "Metric chunking at max 9 per request",
+        "description": "GetAllWorkloadWithMetrics and GetAllPodWithMetrics chunk MetricType slices with lo.Chunk(params.MetricType, 9) before calling GetWorkloadMetrics/GetPodMetrics to avoid exceeding the Run:ai API undocumented limit.",
+        "example": "for _, metricTypes := range lo.Chunk(params.MetricType, 9) { m, err := s.GetWorkloadMetrics(ctx, workload.ID, MeasurementParams{MetricType: metricTypes, ...}) }"
+      },
+      {
+        "name": "ResourceWithMetrics interface with MarshalJSON discriminator",
+        "description": "WorkloadWithMetrics and PodWithMetrics both implement ResourceWithMetrics (GetType, GetMetrics, json.Marshaler). MarshalJSON injects a resourceType discriminator field via an anonymous struct embed so downstream consumers can distinguish types.",
+        "example": "var _ ResourceWithMetrics = (*WorkloadWithMetrics)(nil)"
+      },
+      {
+        "name": "OnBeforeRequest JWT auto-refresh",
+        "description": "service.go registers an OnBeforeRequest hook that calls service.RefreshToken then SetAuthToken on every non-token request. OnAfterResponse clears token on 401 and records timing metrics with path normalization.",
+        "example": "if request.URL == \"/api/v1/token\" { return nil } // skip token endpoint"
+      },
+      {
+        "name": "Non-fatal per-resource metric errors",
+        "description": "In GetAllWorkloadWithMetrics and GetAllPodWithMetrics, a per-resource metric error is logged (s.logger.Errorf) and the loop continues with continue rather than returning the error \u2014 collection must not abort for all remaining resources.",
+        "example": "s.logger.With(...).Errorf(\"failed to get workload metrics: %w\", err); continue"
       }
     ],
     "key_file_guides": [
       {
-        "file": "logging.go",
-        "role": "Entire package: CtrlLogger struct + NewLogrLogger + SetupKlog",
-        "watch_for": "WithValues/WithName are no-ops \u2014 structured kv pairs from controller-runtime are silently dropped; do not assume they propagate"
+        "file": "service.go",
+        "role": "Constructs *Service with a resty.Client; holds all shared state (logger, client, token, pageSize, resourceTypeMetrics). The single constructor NewService is the only entry point.",
+        "watch_for": "TimingMetrics path normalization uses regex in OnAfterResponse \u2014 add new endpoint path patterns here when adding new API paths, otherwise metrics will be untagged."
+      },
+      {
+        "file": "token.go",
+        "role": "JWT lifecycle: NewToken posts to /api/v1/token, RefreshToken checks expiry via verifyToken (parses without signature verification), SetToken/GetToken are plain field accessors.",
+        "watch_for": "verifyToken uses jwt.WithoutClaimsValidation() \u2014 it only checks expiry, not signature. Token is cleared on 401 by OnAfterResponse in service.go."
+      },
+      {
+        "file": "metrics.go",
+        "role": "Defines MetricType constants for both workload and pod scopes, MeasurementParams/Measurement/MeasurementResponse/Metrics types, and the four public methods: GetWorkloadMetrics, GetAllWorkloadWithMetrics, GetPodMetrics, GetAllPodWithMetrics.",
+        "watch_for": "PodMetricType and WorkloadMetricType share the MetricType string type \u2014 some constant names collide (e.g. CPU_MEMORY_USAGE_BYTES, GPU_UTILIZATION appear in both groups). Don't assume a constant is scoped to one resource type."
+      },
+      {
+        "file": "workloads.go",
+        "role": "Defines Workload struct, ListWorkloads (with filterBy query param excluding non-running phases), and ListAllWorkloads.",
+        "watch_for": "ListWorkloads filters workloads client-side by RunningPods > 0 AFTER the API call in addition to the filterBy query param. Adding new phases to include requires editing both the filteredOutPhases slice and the lo.Filter predicate."
+      },
+      {
+        "file": "pods.go",
+        "role": "Defines Pod struct and ListPods/ListAllPods. ListAllPods calls s.resourceTypeMetrics.Set(int64(len(pods)), \"pod\") after pagination completes.",
+        "watch_for": "ListPods hardcodes completed=false query param \u2014 only running pods are returned. Do not use this to fetch completed pods."
       }
     ],
     "anti_patterns": [
-      "Adding a second logger abstraction \u2014 this package is purely a bridge, not a logging framework",
-      "Implementing WithValues/WithName with real state \u2014 Benthos logger is format-string based and cannot carry structured fields",
-      "Calling SetupKlog more than once \u2014 klog global state is not re-entrant"
+      "Adding a new API resource without providing both a ListX (single page, max 500) and ListAllX (full pagination loop calling resourceTypeMetrics.Set) method pair.",
+      "Calling GetWorkloadMetrics or GetPodMetrics with more than 9 MetricType values in one request \u2014 always chunk with lo.Chunk(..., 9).",
+      "Returning an error from the per-resource metric loop in GetAllWorkloadWithMetrics/GetAllPodWithMetrics \u2014 log and continue instead to avoid aborting collection for all remaining resources.",
+      "Adding timing metrics without normalizing the URL path via the regex block in OnAfterResponse in service.go \u2014 untagged paths produce high-cardinality metric series.",
+      "Modifying verifyToken to verify JWT signature \u2014 the Run:ai JWT is intentionally parsed without signature verification here by design."
     ],
     "decisions": [
       {
-        "decision": "Map logr level 0 \u2192 Info, everything else \u2192 Debug",
-        "rationale": "controller-runtime uses level 0 for normal operational messages; higher levels are verbose debug output that should not appear at Info in production"
+        "decision": "Single *Service struct holds all HTTP state including token and resty.Client",
+        "rationale": "The OnBeforeRequest hook has a closure over *Service, allowing RefreshToken to be called transparently before every request without threading credentials through each method signature."
       },
       {
-        "decision": "Prefix klog entries with component=kubernetes",
-        "rationale": "Distinguishes Kubernetes controller-runtime log lines from Benthos pipeline logs in aggregated log streams"
-      }
-    ],
-    "code_examples": []
-  },
-  "collector/benthos/internal/message": {
-    "purpose": "Provides the Batch type alias (= service.MessageBatch) and Transaction primitive for associating a message batch with its acknowledgement channel. Used internally to route batches through pipeline stages with delivery guarantees.",
-    "patterns": [
-      {
-        "name": "Type alias for Benthos MessageBatch",
-        "description": "Batch is a type alias (not a newtype) for service.MessageBatch. All Benthos MessageBatch methods are available directly on Batch.",
-        "example": "type Batch = service.MessageBatch"
+        "decision": "Metric fetches chunk at 9 MetricType values per request",
+        "rationale": "The Run:ai API has an undocumented maximum on simultaneous metric types; chunking at 9 stays safely under that limit while maps.Copy merges partial results into a single Metrics.Values map."
       },
       {
-        "name": "Transaction carries Payload + ack mechanism",
-        "description": "Transaction holds a Batch and either a responseChan chan<-error or a responseFunc. Call Ack(ctx, err) to acknowledge; nil err = success, non-nil = retry upstream.",
-        "example": "tx := message.NewTransactionFunc(batch, func(ctx context.Context, err error) error { ... })\ntx.Ack(ctx, nil)"
-      },
-      {
-        "name": "WithContext for cancellation",
-        "description": "WithContext returns a shallow copy of the Transaction with a new ctx. Receivers should honor t.Context() cancellation but must still call Ack even when canceled.",
-        "example": "tx = tx.WithContext(ctx)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "batch.go",
-        "role": "Single type alias for service.MessageBatch",
-        "watch_for": "This is an alias (=), not a defined type \u2014 do not add methods to Batch directly"
-      },
-      {
-        "file": "transaction.go",
-        "role": "Transaction struct with NewTransaction (chan-based) and NewTransactionFunc (func-based) constructors",
-        "watch_for": "Exactly one of responseChan or responseFunc will be non-nil; Ack branches on responseFunc != nil first"
-      }
-    ],
-    "anti_patterns": [
-      "Not calling Ack after processing \u2014 the upstream source will stall waiting for acknowledgement",
-      "Calling Ack multiple times on the same Transaction \u2014 chan send and responseFunc are not idempotent",
-      "Ignoring t.Context() cancellation in a long reconnect loop \u2014 can block shutdown"
-    ],
-    "decisions": [
-      {
-        "decision": "Two ack paths: chan<-error vs func(context.Context, error) error",
-        "rationale": "Chan-based ack is simpler for single-consumer paths; func-based ack supports async/contextual delivery confirmation needed by more complex output brokers"
-      },
-      {
-        "decision": "Transaction is its own concept rather than embedding service.Message",
-        "rationale": "Batch expansion (splitting one batch into derived batches) breaks direct message-level ack; Transaction decouples ack from the batch contents so derived transactions can be tracked independently"
+        "decision": "ResourceWithMetrics interface + MarshalJSON discriminator field",
+        "rationale": "Allows the Benthos input plugin to handle both WorkloadWithMetrics and PodWithMetrics polymorphically while producing self-describing JSON with a resourceType field for downstream consumers to distinguish types without schema inspection."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Create and acknowledge a function-based transaction",
-        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/collector/benthos/internal/message\"\n)\n\nfunc process(batch message.Batch) error {\n\ttx := message.NewTransactionFunc(batch, func(ctx context.Context, err error) error {\n\t\t// propagate ack/nack to upstream source\n\t\treturn err\n\t})\n\t// ... pipeline stages ...\n\treturn tx.Ack(context.Background(), nil)\n}"
+        "scenario": "Adding a new resource type (e.g. nodes) with pagination, metric support, and ResourceWithMetrics implementation",
+        "code": "// nodes.go\npackage runai\n\nimport (\n\t\"context\"\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"maps\"\n\t\"net/http\"\n\t\"time\"\n\n\t\"github.com/samber/lo\"\n)\n\ntype Node struct {\n\tID   string `json:\"id\"`\n\tName string `json:\"name\"`\n}\n\ntype ListNodesResponse struct {\n\tNodes []Node `json:\"nodes\"`\n\tNext  int    `json:\"next\"`\n}\n\n// ListNodes lists nodes (single page, max 500).\nfunc (s *Service) ListNodes(ctx context.Context, params ListWorkloadParams) (*ListNodesResponse, error) {\n\tif params.Limit > 500 {\n\t\treturn nil, fmt.Errorf(\"limit must be less than 500\")\n\t}\n\tresp, err := s.client.R().\n\t\tSetContext(ctx).\n\t\tSetHeader(\"Accept\", \"application/json\").\n\t\tSetQueryParams(map[string]string{\n\t\t\t\"limit\":  fmt.Sprintf(\"%d\", params.Limit),\n\t\t\t\"offset\": fmt.Sprintf(\"%d\", params.Offset),\n\t\t}).\n\t\tSetResult(&ListNodesResponse{}).\n\t\tGet(\"/api/v1/nodes\")\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tif resp.StatusCode() != http.StatusOK {\n\t\treturn nil, fmt.Errorf(\"failed to list nodes, status code: %d\", resp.StatusCode())\n\t}\n\treturn resp.Result().(*ListNodesResponse), nil\n}\n\n// ListAllNodes paginates through all nodes and records the count metric.\nfunc (s *Service) ListAllNodes(ctx context.Context) ([]Node, error) {\n\tnodes := make([]Node, 0)\n\tfor {\n\t\tresp, err := s.ListNodes(ctx, ListWorkloadParams{Limit: s.pageSize, Offset: len(nodes)})\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\tnodes = append(nodes, resp.Nodes...)\n\t\tif resp.Next == 0 {\n\t\t\tbreak\n\t\t}\n\t}\n\ts.resourceTypeMetrics.Set(int64(len(nodes)), \"node\")\n\treturn nodes, nil\n}\n\ntype NodeWithMetrics struct {\n\tNode\n\tMetrics Metrics `json:\"metrics\"`\n}\n\nvar _ ResourceWithMetrics = (*NodeWithMetrics)(nil)\n\nfunc (n *NodeWithMetrics) GetType() ResourceType  { return \"node\" }\nfunc (n *NodeWithMetrics) GetMetrics() Metrics     { return n.Metrics }\nfunc (n *NodeWithMetrics) MarshalJSON() ([]byte, error) {\n\treturn json.Marshal(struct {\n\t\tResourceType ResourceType `json:\"resourceType\"`\n\t\tNodeWithMetrics\n\t}{ResourceType: n.GetType(), NodeWithMetrics: *n})\n}\n\n// GetAllNodeWithMetrics collects metrics for all nodes, chunking at 9 metric types per request.\nfunc (s *Service) GetAllNodeWithMetrics(ctx context.Context, params MeasurementParams) ([]NodeWithMetrics, error) {\n\tnodes, err := s.ListAllNodes(ctx)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tresult := make([]NodeWithMetrics, 0, len(nodes))\n\tfor _, node := range nodes {\n\t\tmetrics := Metrics{Timestamp: params.EndTime.UTC(), Values: make(map[MetricType]float64)}\n\t\tfor _, metricTypes := range lo.Chunk(params.MetricType, 9) {\n\t\t\tm, err := s.GetNodeMetrics(ctx, node.ID, MeasurementParams{\n\t\t\t\tMetricType: metricTypes,\n\t\t\t\tStartTime:  params.StartTime.UTC(),\n\t\t\t\tEndTime:    params.EndTime.UTC(),\n\t\t\t})\n\t\t\tif err != nil {\n\t\t\t\t// Non-fatal: log and continue\n\t\t\t\ts.logger.With(\"nodeID\", node.ID).Errorf(\"failed to get node metrics: %w\", err)\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tmaps.Copy(metrics.Values, m.Values)\n\t\t}\n\t\tif len(metrics.Values) > 0 {\n\t\t\tresult = append(result, NodeWithMetrics{Node: node, Metrics: metrics})\n\t\t}\n\t}\n\treturn result, nil\n}"
       }
     ]
-  },
-  "collector/benthos/internal/shutdown": {
-    "purpose": "Provides the Signaller primitive for two-tier graceful shutdown (at-leisure then now) plus a HasClosed signal. Components own a Signaller and external orchestrators call CloseAtLeisure/CloseNow; components call ShutdownComplete when done.",
-    "patterns": [
-      {
-        "name": "Two-tier shutdown: CloseAtLeisure then CloseNow",
-        "description": "CloseAtLeisure closes closeAtLeisureChan (finish current work, no new work). CloseNow also calls CloseAtLeisure then closes closeNowChan (stop immediately). Each is guarded by sync.Once.",
-        "example": "sig.CloseAtLeisure() // soft stop\nsig.CloseNow()       // hard stop"
-      },
-      {
-        "name": "Chan-based and ctx-based wait helpers",
-        "description": "Each tier exposes *Chan() and *Ctx() variants. *Chan() returns a read-only channel suitable for select. *Ctx() wraps it in a context so callers can combine shutdown with other cancellation.",
-        "example": "ctx, cancel := sig.CloseNowCtx(parentCtx)\ndefer cancel()"
-      },
-      {
-        "name": "ShutdownComplete signals component termination",
-        "description": "The component calls sig.ShutdownComplete() once its goroutines have exited. Orchestrators wait on HasClosedChan() or HasClosedCtx() to confirm safe teardown.",
-        "example": "defer sig.ShutdownComplete()"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "signaller.go",
-        "role": "Entire package: Signaller struct with CloseAtLeisure, CloseNow, ShutdownComplete and their *Chan / *Ctx / ShouldClose* accessors",
-        "watch_for": "CloseNow always calls CloseAtLeisure first \u2014 ShouldCloseAtLeisure is true whenever ShouldCloseNow is true; do not check only the Now tier"
-      }
-    ],
-    "anti_patterns": [
-      "Forgetting to call ShutdownComplete \u2014 orchestrators will block forever waiting on HasClosedChan",
-      "Adding a third shutdown tier \u2014 the two-tier model (leisure / now) is the intentional contract",
-      "Using CloseAtLeisureCtx when you need CloseNowCtx \u2014 leisure ctx fires on either tier; now ctx fires only on the urgent tier"
-    ],
-    "decisions": [
-      {
-        "decision": "sync.Once guards each close channel",
-        "rationale": "Closing a closed channel panics; Once makes CloseAtLeisure and CloseNow safe to call multiple times from concurrent goroutines"
-      },
-      {
-        "decision": "Separate Signaller per component rather than a global shutdown signal",
-        "rationale": "Allows fine-grained teardown sequencing \u2014 orchestrator can drain outputs before closing inputs by shutting down Signallers in dependency order"
-      }
-    ],
-    "code_examples": []
   }
 }

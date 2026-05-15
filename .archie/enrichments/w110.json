@@ -1,227 +1,356 @@
 {
-  "openmeter/productcatalog/plan/adapter": {
-    "purpose": "Ent/PostgreSQL adapter implementing plan.Repository for plan lifecycle persistence (CRUD, phase management, rate card bulk creation). Primary constraint: all mutations must wrap Ent calls in entutils.TransactingRepo to honor ctx-carried transactions.",
+  "openmeter/productcatalog/adapter": {
+    "purpose": "Ent/PostgreSQL adapter for the feature entity: implements feature.FeatureRepo (CRUD + archive + list) against openmeter/ent/db and exposes Tx/WithTx/Self for transaction propagation. Primary constraint: every query that returns a Feature must load the Meter edge for MeterSlug backward compat.",
     "patterns": [
       {
-        "name": "TransactingRepo wrapping",
-        "description": "Every adapter method body must be a closure passed to entutils.TransactingRepo[T, *adapter](ctx, a, fn) so the call rebinds to any transaction already in ctx.",
-        "example": "return entutils.TransactingRepo[*plan.Plan, *adapter](ctx, a, fn)"
+        "name": "TransactingRepo on every method",
+        "description": "Every adapter method must wrap its body with entutils.TransactingRepo or TransactingRepoWithNoValue so it rebinds to the ctx-bound Ent transaction instead of using the raw client.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *featureDBAdapter) (feature.Feature, error) { return toDomain(tx.db.Feature.Create()...Save(ctx)) })"
       },
       {
-        "name": "Config.Validate() on construction",
-        "description": "Constructor New(Config) calls config.Validate() first and returns error if Client or Logger are nil; Config implements models.Validator.",
-        "example": "var _ models.Validator = (*Config)(nil)"
+        "name": "WithMeter edge on every Feature query",
+        "description": "All queries returning Feature rows must call .WithMeter(func(mq *db.MeterQuery) { mq.Select(dbmeter.FieldID, dbmeter.FieldKey) }) \u2014 omitting this breaks MeterSlug for v1 API callers.",
+        "example": "query.WithMeter(func(mq *db.MeterQuery) { mq.Select(dbmeter.FieldID, dbmeter.FieldKey) })"
       },
       {
-        "name": "WithTx / Self pattern",
-        "description": "adapter implements WithTx(ctx, *TxDriver) *adapter and Self() *adapter so entutils.TransactingRepo can rebind the db field to a tx-scoped client.",
-        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), logger: a.logger} }"
+        "name": "UnitCost type-switch with opposite-column clear",
+        "description": "When writing UnitCost, always clear the other type's DB columns to handle type switches cleanly. MapFeatureEntity applies the same switch on read.",
+        "example": "case feature.UnitCostTypeManual: query = query.ClearUnitCostLlmProviderProperty().ClearUnitCostLlmProvider()...SetUnitCostType(...)"
       },
       {
-        "name": "Eager load with typed helper vars",
-        "description": "Reusable query modifier vars (planPhaseEagerLoadRateCardsFn, rateCardEagerLoadFeaturesFn, rateCardEagerLoadTaxCodesFn, planEagerLoadActiveAddons) compose WithRatecards/WithFeatures/WithTaxCode so every query loads the full graph consistently.",
-        "example": "query = query.WithPhases(planPhaseIncludeDeleted(false), planPhaseEagerLoadRateCardsFn)"
+        "name": "Dual MeterGroupByFilters column write",
+        "description": "On write, populate both AdvancedMeterGroupByFilters (typed) and MeterGroupByFilters (legacy map[string]string) for backward compat. On read in MapFeatureEntity, prefer AdvancedMeterGroupByFilters if non-empty.",
+        "example": "query.SetAdvancedMeterGroupByFilters(feat.MeterGroupByFilters).SetMeterGroupByFilters(feature.ConvertMeterGroupByFiltersToMapString(feat.MeterGroupByFilters))"
       },
       {
-        "name": "Soft-delete via DeletedAt",
-        "description": "DeletePlan sets DeletedAt timestamp; phases are intentionally NOT soft-deleted so state before deletion remains inspectable. Queries filter with plandb.DeletedAtIsNil() unless IncludeDeleted is true.",
-        "example": "err = a.db.Plan.UpdateOneID(p.ID).Where(plandb.Namespace(p.Namespace)).SetDeletedAt(deletedAt).Exec(ctx)"
+        "name": "ArchiveFeature cross-checks active plan and subscription references",
+        "description": "Before setting ArchivedAt, query active plans and active subscriptions that reference the feature; return ForbiddenError if any reference exists.",
+        "example": "planReferencesIt, err := c.db.Plan.Query().Where(dbplan.EffectiveFromNotNil(), dbplan.HasPhasesWith(...)).Exist(ctx)"
       },
       {
-        "name": "Status filtering via clock.Now()",
-        "description": "ListPlans maps PlanStatus enum values to EffectiveFrom/EffectiveTo predicates using clock.Now().UTC() so tests can override time via clock.SetTime.",
-        "example": "now := clock.Now().UTC(); predicates = append(predicates, plandb.And(plandb.EffectiveFromLTE(now), plandb.Or(plandb.EffectiveToGTE(now), plandb.EffectiveToIsNil())))"
-      },
-      {
-        "name": "Bulk rate card create then re-query",
-        "description": "After CreateBulk for rate cards, the phase row is re-fetched with eager loads (WithRatecards+WithFeatures+WithTaxCode) to return a fully populated struct instead of relying on in-memory assembly.",
-        "example": "planPhaseRow, err = a.db.PlanPhase.Query().Where(...).WithRatecards(rateCardEagerLoadFeaturesFn, rateCardEagerLoadTaxCodesFn).First(ctx)"
+        "name": "TxCreator + TxUser triad in transaction.go",
+        "description": "transaction.go implements Tx() via HijackTx + NewTxDriver, WithTx() via db.NewTxClientFromRawConfig + NewPostgresFeatureRepo, and Self() returning self \u2014 never add business logic here.",
+        "example": "func (e *featureDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) feature.FeatureRepo { txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return NewPostgresFeatureRepo(txClient.Client(), e.logger) }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "adapter.go",
-        "role": "Config, constructor, Tx/WithTx/Self methods \u2014 the transaction rebinding plumbing lives here.",
-        "watch_for": "Never store a tx-scoped client on the struct permanently; WithTx returns a new *adapter."
+        "file": "feature.go",
+        "role": "All feature CRUD: CreateFeature, UpdateFeature, GetByIdOrKey, ArchiveFeature, HasActiveFeatureForMeter, ListFeatures, MapFeatureEntity.",
+        "watch_for": "Missing WithMeter edge on any new query returns broken MeterSlug; failing to clear the opposite UnitCost type's columns on update corrupts stored cost; FIXME note says use models.NewGenericNotFoundError instead of feature.FeatureNotFoundError in new code."
       },
       {
-        "file": "plan.go",
-        "role": "ListPlans, CreatePlan, GetPlan, UpdatePlan, DeletePlan \u2014 all core CRUD wrapped in TransactingRepo.",
-        "watch_for": "UpdatePlan phase replacement uses delete-all + re-create, not an incremental diff; callers must supply the full phase set."
+        "file": "transaction.go",
+        "role": "Implements entutils.TxCreator and entutils.TxUser[FeatureRepo] via HijackTx and NewTxClientFromRawConfig.",
+        "watch_for": "Never add business logic here; this file must remain pure transaction plumbing."
       },
       {
-        "file": "phase.go",
-        "role": "createPhase helper and rateCardBulkCreate \u2014 internal helpers used by CreatePlan and UpdatePlan.",
-        "watch_for": "rateCardBulkCreate accepts raw *entdb.PlanRateCardClient; ensure it is always called from within a TransactingRepo closure so it inherits the tx."
-      },
-      {
-        "file": "mapping.go",
-        "role": "FromPlanRow, FromPlanPhaseRow, fromPlanRateCardRow, asPlanRateCardRow \u2014 bidirectional Ent\u2194domain conversion. Checks Edges.AddonsOrErr() to distinguish 'not loaded' (nil) from 'loaded empty slice'.",
-        "watch_for": "New plan fields added to the Ent schema must be mapped here in both directions; missing field silently drops data."
+        "file": "feature_test.go",
+        "role": "Integration tests using testutils.InitPostgresDB and dbClient.Schema.Create; tests run in parallel behind a sync.Mutex.",
+        "watch_for": "Tests must create a real meter row first to satisfy FK constraints on Feature.MeterID; skipping this step causes save to fail."
       }
     ],
     "anti_patterns": [
-      "Calling a.db directly outside a TransactingRepo closure \u2014 bypasses ctx-carried transaction.",
-      "Assembling plan.Plan from in-memory state after CreateBulk instead of re-querying with eager loads.",
-      "Using entdb.IsNotFound without wrapping in plan.NewNotFoundError \u2014 callers expect domain errors.",
-      "Soft-deleting phases on plan deletion \u2014 breaks ability to inspect pre-deletion plan state (see comment in DeletePlan).",
-      "Directly editing openmeter/ent/db/ generated files \u2014 always regenerate with make generate."
+      "Using c.db directly in a helper that accepts *db.Client without calling entutils.TransactingRepo \u2014 bypasses ctx transaction.",
+      "Omitting WithMeter edge on a new query returning Feature \u2014 breaks MeterSlug for v1 callers.",
+      "Adding business logic (validation, event publishing) inside the adapter \u2014 that belongs in featureConnector.",
+      "Returning feature.FeatureNotFoundError in new code \u2014 use models.NewGenericNotFoundError instead.",
+      "Editing files under openmeter/ent/db/ \u2014 generated code, regenerate with make generate."
     ],
     "decisions": [
       {
-        "decision": "All methods wrap Ent access in entutils.TransactingRepo even for reads.",
-        "rationale": "Ent transactions propagate via ctx; not rebinding causes a helper to fall off the caller's transaction, risking partial writes."
+        "decision": "Dual MeterGroupByFilters columns (legacy map[string]string + advanced typed filters)",
+        "rationale": "v1 API predates typed filter support; both columns are maintained for backward compatibility while new code uses the advanced column."
       },
       {
-        "decision": "Phases are deleted and re-created wholesale on UpdatePlan when params.Phases != nil.",
-        "rationale": "Simplifies correctness over incremental diffing; callers that only change plan metadata pass nil Phases to skip phase reconciliation."
-      },
-      {
-        "decision": "Status filtering built from clock predicates at query time rather than a stored status column.",
-        "rationale": "Plan status is a derived function of EffectiveFrom/EffectiveTo; no separate status field avoids dual-write consistency bugs."
+        "decision": "TxCreator/TxUser embedded in the adapter via a separate transaction.go",
+        "rationale": "Ent transactions propagate implicitly via ctx; Tx/WithTx/Self lets callers use entutils.TransactingRepo without leaking transaction types into domain interfaces."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new adapter method that reads and writes inside the caller's transaction",
-        "code": "func (a *adapter) MyMethod(ctx context.Context, params plan.MyInput) (*plan.Plan, error) {\n\tfn := func(ctx context.Context, a *adapter) (*plan.Plan, error) {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid params: %w\", err)\n\t\t}\n\t\trow, err := a.db.Plan.Query().Where(plandb.Namespace(params.Namespace), plandb.ID(params.ID)).\n\t\t\tWithPhases(planPhaseIncludeDeleted(false), planPhaseEagerLoadRateCardsFn).\n\t\t\tFirst(ctx)\n\t\tif err != nil {\n\t\t\tif entdb.IsNotFound(err) {\n\t\t\t\treturn nil, plan.NewNotFoundError(plan.NotFoundErrorParams{Namespace: params.Namespace, ID: params.ID})\n\t\t\t}\n\t\t\treturn nil, fmt.Errorf(\"failed to get Plan: %w\", err)\n\t\t}\n\t\treturn FromPlanRow(*row)\n\t}\n\treturn entutils.TransactingRepo[*plan.Plan, *adapter](ctx, a, fn)\n}"
+        "scenario": "Add a new field to Feature: write on create, clear on update, read in MapFeatureEntity",
+        "code": "// CreateFeature: query = query.SetMyField(feat.MyField)\n// UpdateFeature (clear opposite type if applicable): query = query.ClearMyField() // or .SetMyField(...)\n// MapFeatureEntity: f.MyField = entity.MyField"
       }
     ]
   },
-  "openmeter/productcatalog/plan/httpdriver": {
-    "purpose": "v1 HTTP handler layer for plan lifecycle endpoints, translating between api.* types and plan.Service calls via httptransport.Handler. Primary constraint: never call Ent or adapters directly \u2014 all persistence goes through plan.Service.",
+  "openmeter/productcatalog/driver": {
+    "purpose": "v1 HTTP handler package for the feature sub-domain of productcatalog: implements FeatureHandler (GetFeature, CreateFeature, ListFeatures, DeleteFeature) using the httptransport pattern, response mapping, and error encoding. Primary constraint: MeterSlug-to-MeterID resolution must happen in the HTTP decoder, not in the connector.",
     "patterns": [
       {
-        "name": "httptransport.NewHandler / NewHandlerWithArgs",
-        "description": "Each endpoint method returns a typed handler alias (e.g. ListPlansHandler = httptransport.HandlerWithArgs[Req,Resp,Params]). The handler is built with a decoder closure, an operation closure delegating to h.service, a response encoder, and AppendOptions for operationName + ValidationErrorEncoder.",
-        "example": "return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusOK), httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listPlans\"), httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan)))...)"
+        "name": "httptransport.Handler per operation with typed aliases",
+        "description": "Each operation returns a typed alias (e.g. GetFeatureHandler = httptransport.HandlerWithArgs[Req,Resp,Params]). Decoder, operation func, and encoder injected at construction; never implement ServeHTTP directly.",
+        "example": "return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoder, httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(getErrorEncoder()), httptransport.WithOperationName(\"getFeature\"))...)"
       },
       {
-        "name": "Namespace decoded from context",
-        "description": "h.resolveNamespace(ctx) is called in every decoder; failure returns commonhttp.NewHTTPError(500) since the namespace must always be set by middleware.",
-        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return Req{}, fmt.Errorf(\"failed to resolve namespace: %w\", err) }"
+        "name": "Namespace resolution before any connector call",
+        "description": "All handlers call h.resolveNamespace(ctx) which delegates to namespacedriver.NamespaceDecoder.GetNamespace; failure returns 500. Never skip or hardcode namespace resolution.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return models.NamespacedID{}, err }"
       },
       {
-        "name": "credits.Enabled guard in decoder",
-        "description": "CreditOnlySettlementMode is rejected in CreatePlan and UpdatePlan decoders when h.credits.Enabled is false, producing models.NewGenericValidationError.",
-        "example": "if !h.credits.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode { return CreatePlanRequest{}, models.NewGenericValidationError(...) }"
+        "name": "Centralised error encoder via getErrorEncoder()",
+        "description": "errors.go defines getErrorEncoder() chaining commonhttp.HandleErrorIfTypeMatches for each domain error type. Always pass httptransport.WithErrorEncoder(getErrorEncoder()) in handler options; unregistered errors fall to 500.",
+        "example": "commonhttp.HandleErrorIfTypeMatches[*feature.FeatureNotFoundError](ctx, http.StatusNotFound, err, w) || commonhttp.HandleErrorIfTypeMatches[*feature.ForbiddenError](ctx, http.StatusBadRequest, err, w) || ..."
       },
       {
-        "name": "Type alias pattern for request/response/handler",
-        "description": "Each endpoint declares three type aliases (XxxRequest, XxxResponse, XxxHandler) at package level so the interface method signature is self-documenting.",
-        "example": "type (ListPlansRequest = plan.ListPlansInput; ListPlansResponse = api.PlanPaginatedResponse; ListPlansHandler httptransport.HandlerWithArgs[...])"
+        "name": "MeterSlug-to-MeterID resolution in decoder",
+        "description": "In CreateFeature decoder, if parsedBody.MeterSlug != nil, call meterService.GetMeterByIDOrSlug before calling MapFeatureCreateInputsRequest. The connector works with MeterID only.",
+        "example": "m, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{Namespace: ns, IDOrSlug: *parsedBody.MeterSlug}); meterID = &m.ID"
       },
       {
-        "name": "ref.ParseIDOrKey for dual ID/Key routing",
-        "description": "GetPlan and NextPlan use ref.ParseIDOrKey to distinguish ULID IDs from string keys without separate endpoints.",
-        "example": "idOrKey := ref.ParseIDOrKey(params.IDOrKey); return GetPlanRequest{NamespacedID: models.NamespacedID{Namespace: ns, ID: idOrKey.ID}, Key: idOrKey.Key, ...}"
+        "name": "LLM pricing post-enrichment on GetFeature",
+        "description": "After calling connector.GetFeature, if feat.UnitCost.Type == UnitCostTypeLLM, call resolveLLMPricing and enrichFeatureResponseWithPricing. New handlers with LLM features must follow this post-enrichment pattern.",
+        "example": "if feat.UnitCost != nil && feat.UnitCost.Type == feature.UnitCostTypeLLM { pricing := resolveLLMPricing(ctx, h.llmcostService, feat); enrichFeatureResponseWithPricing(&resp, pricing) }"
+      },
+      {
+        "name": "Union response for paginated vs flat list",
+        "description": "ListFeatures returns commonhttp.Union[[]api.Feature, pagination.Result[api.Feature]] \u2014 Option1 for flat list when page.IsZero(), Option2 for paginated.",
+        "example": "if params.Page.IsZero() { response.Option1 = &mapped } else { response.Option2 = &pagination.Result[api.Feature]{Items: mapped, TotalCount: paged.TotalCount} }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "driver.go",
-        "role": "Handler/PlanHandler interface declaration, handler struct, New constructor. Credits config injected here for settlement mode guards.",
-        "watch_for": "credits appconfig.CreditsConfiguration must be passed to New; omitting it silently allows CreditOnly plans when credits are off."
+        "file": "feature.go",
+        "role": "FeatureHandler interface and featureHandlers struct with GetFeature, CreateFeature, ListFeatures, DeleteFeature implementations.",
+        "watch_for": "MeterSlug-to-MeterID must be resolved in the decoder before connector call; LLM pricing enrichment only fires when llmcostService is non-nil."
       },
       {
-        "file": "plan.go",
-        "role": "All endpoint implementations (ListPlans, CreatePlan, UpdatePlan, DeletePlan, GetPlan, PublishPlan, ArchivePlan, NextPlan).",
-        "watch_for": "IgnoreNonCriticalIssues=true is set in Create and Update decoders \u2014 do not remove, plans may have non-critical validation issues."
+        "file": "errors.go",
+        "role": "getErrorEncoder chains feature and meter domain errors to HTTP status codes.",
+        "watch_for": "New domain error types must be registered here; unregistered errors fall through to 500 Internal Server Error."
       },
       {
-        "file": "mapping.go",
-        "role": "FromPlan, FromPlanPhase, AsCreatePlanRequest, AsUpdatePlanRequest, AsPlanPhase \u2014 api\u2194domain conversion. Calls http.FromRateCard/AsRateCards for rate card mapping.",
-        "watch_for": "New plan fields must be mapped in both FromPlan and AsCreatePlanRequest/AsUpdatePlanRequest or the API silently ignores them."
+        "file": "parser.go",
+        "role": "MapFeatureToResponse, MapFeatureCreateInputsRequest, domainUnitCostToAPI, apiUnitCostToDomain, resolveLLMPricing, enrichFeatureResponseWithPricing.",
+        "watch_for": "apiUnitCostToDomain uses u.Discriminator() to dispatch; adding a new UnitCostType requires a new case here and in the domain type-switch."
       }
     ],
     "anti_patterns": [
-      "Importing entdb or calling plan.Repository directly from httpdriver \u2014 all access must go through plan.Service.",
-      "Hardcoding namespace strings instead of calling h.resolveNamespace(ctx).",
-      "Omitting httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(...)) \u2014 plan validation errors won't map to proper HTTP status codes.",
-      "Adding credits guard logic outside the decoder closure \u2014 guards belong in request decoding, not in the operation."
+      "Calling connector methods before namespace resolution \u2014 namespace context must be established first.",
+      "Returning namespace errors with status other than 500 \u2014 internal server error is the correct code.",
+      "Implementing ServeHTTP directly rather than using httptransport.NewHandler/NewHandlerWithArgs.",
+      "Omitting httptransport.WithOperationName \u2014 breaks OTel span naming.",
+      "Hardcoding page size limit without reusing commonhttp constants."
     ],
     "decisions": [
       {
-        "decision": "Credits feature guard duplicated in both CreatePlan and UpdatePlan decoders.",
-        "rationale": "credits.enabled must be enforced at the HTTP boundary; service layer does not know about deployment config."
+        "decision": "MeterSlug-to-MeterID translation in the HTTP decoder, not the connector",
+        "rationale": "The v1 API accepts meterSlug for backward compat; the domain works with MeterID. Translation at the boundary keeps the connector clean and independent of API versioning concerns."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new v1 feature operation with LLM pricing enrichment",
+        "code": "func (h *featureHandlers) MyOp() MyOpHandler {\n    return httptransport.NewHandlerWithArgs(\n        func(ctx context.Context, r *http.Request, id string) (MyOpRequest, error) {\n            ns, err := h.resolveNamespace(ctx)\n            if err != nil { return MyOpRequest{}, err }\n            return MyOpRequest{Namespace: ns, ID: id}, nil\n        },\n        func(ctx context.Context, req MyOpRequest) (api.Feature, error) {\n            feat, err := h.connector.GetFeature(ctx, req.Namespace, req.ID, feature.IncludeArchivedFeatureFalse)\n            if err != nil { return api.Feature{}, err }\n            resp, err := MapFeatureToResponse(*feat)\n            if err != nil { return api.Feature{}, err }\n            if feat.UnitCost != nil && feat.UnitCost.Type == feature.UnitCostTypeLLM {\n                if pricing := resolveLLMPricing(ctx, h.llmcostService, feat); pricing != nil {\n                    enrichFeatureResponseWithPricing(&resp, pricing)\n                }\n            }\n            return resp, nil\n        },\n        commonhttp.JSONResponseEncoder,\n        httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(getErrorEncoder()), httptransport.WithOperationName(\"myOp\"))...,\n    )\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/feature": {
+    "purpose": "Domain package for feature entities: defines FeatureConnector (service with validation and event publishing), FeatureRepo (repository interface), Feature struct, UnitCost tagged types, MeterGroupByFilters, Watermill events, and FeatureMeters resolution. Primary constraint: all business logic and validation must live in featureConnector, never in the adapter.",
+    "patterns": [
+      {
+        "name": "FeatureConnector over FeatureRepo",
+        "description": "External callers always go through FeatureConnector (meter validation, key uniqueness, event publishing). Never call FeatureRepo directly from outside this package.",
+        "example": "feature.NewFeatureConnector(featureRepo, meterService, publisher)"
       },
       {
-        "decision": "EffectivePeriod is zeroed in UpdatePlan service call; Publish/Archive are the only paths that change it.",
-        "rationale": "Prevents callers from setting plan status directly via update; status transitions are gated through explicit PublishPlan/ArchivePlan operations."
+        "name": "Input validation before repo delegation",
+        "description": "All connector methods validate inputs (meter aggregation check, ULID key guard, UnitCost.Validate(), UnitCost.ValidateWithMeter()) before delegating to featureRepo.",
+        "example": "if _, err := ulid.Parse(feature.Key); err == nil { return Feature{}, models.NewGenericValidationError(fmt.Errorf(\"Feature key cannot be a valid ULID\")) }"
+      },
+      {
+        "name": "Event publishing after successful repo mutation",
+        "description": "CreateFeature, UpdateFeature, and ArchiveFeature each publish a typed event (FeatureCreateEvent, FeatureUpdateEvent, FeatureArchiveEvent) after the repo write succeeds. Events implement EventName() and EventMetadata() for Watermill.",
+        "example": "featureCreatedEvent := NewFeatureCreateEvent(ctx, &createdFeature); if err := c.publisher.Publish(ctx, featureCreatedEvent); err != nil { return createdFeature, fmt.Errorf(\"failed to publish: %w\", err) }"
+      },
+      {
+        "name": "nullable.Nullable[UnitCost] for partial updates",
+        "description": "UpdateFeatureInputs.UnitCost uses oapi-codegen/nullable.Nullable to distinguish unset (validation error), null (clear), and value (update). Check IsSpecified/IsNull/Get accordingly.",
+        "example": "if !i.UnitCost.IsSpecified() { errs = append(errs, errors.New(\"unitCost is required\")) }\nif input.UnitCost.IsNull() { /* clear */ } else if v, _ := input.UnitCost.Get(); v != nil { /* update */ }"
+      },
+      {
+        "name": "FeatureMeterCollection dual-index resolution",
+        "description": "ResolveFeatureMeters returns ByKey (latest non-archived per key) and ByID (all requested IDs). Key lookup always resolves to the latest active feature; explicit IDs remain addressable even if archived.",
+        "example": "out.ByKey[featureKey] = out.ByID[latestFeat.ID]"
+      },
+      {
+        "name": "UnitCost mutual-exclusion validation",
+        "description": "UnitCost.Validate() enforces that for LLM type, each dimension (provider, model, token_type) has exactly one of property OR static value \u2014 never both. Adding a new dimension requires updating both Validate() and ValidateWithMeter().",
+        "example": "if u.LLM.ProviderProperty != \"\" && u.LLM.Provider != \"\" { errs = append(errs, errors.New(\"provider and providerProperty are mutually exclusive\")) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "connector.go",
+        "role": "featureConnector implements FeatureConnector with all domain validation logic and event publishing; also defines input types CreateFeatureInputs, UpdateFeatureInputs, ListFeaturesParams.",
+        "watch_for": "TODO comment says refactor to Service pattern \u2014 do not add more methods to FeatureConnector without considering that future refactor direction."
+      },
+      {
+        "file": "repository.go",
+        "role": "Defines FeatureRepo interface (CRUD + entutils.TxCreator + entutils.TxUser[FeatureRepo]) and ArchiveFeatureInput.",
+        "watch_for": "FeatureRepo embeds TxCreator and TxUser \u2014 any new adapter must implement Tx(), WithTx(), Self()."
+      },
+      {
+        "file": "unitcost.go",
+        "role": "UnitCost, ManualUnitCost, LLMUnitCost types; Validate() and ValidateWithMeter(); LLMTokenType constants.",
+        "watch_for": "New token types must be added to the validTypes map inside Validate(); new dimensions require updating both Validate and ValidateWithMeter."
+      },
+      {
+        "file": "featuremeter.go",
+        "role": "ResolveFeatureMeters, FeatureMeterCollection, resolveFeatureMeters, getLastFeatures, latestEntity generic.",
+        "watch_for": "getLastFeatures prefers non-archived; if all are archived, returns the most recently archived \u2014 callers must handle archived features being resolved."
+      },
+      {
+        "file": "event.go",
+        "role": "Watermill event structs for create/update/archive; each implements EventName() (subsystem + name + version) and EventMetadata().",
+        "watch_for": "Event version is hardcoded as 'v1' \u2014 bump version as a new constant if the event payload changes to avoid breaking consumers."
+      },
+      {
+        "file": "feature.go",
+        "role": "Feature struct, domain error types (FeatureNotFoundError, FeatureInvalidFiltersError, FeatureWithNameAlreadyExistsError, ForbiddenError), MeterGroupByFilters with Validate and conversion helpers.",
+        "watch_for": "FIXME note: use models.NewGenericNotFoundError instead of FeatureNotFoundError in new code."
+      }
+    ],
+    "anti_patterns": [
+      "Calling featureRepo directly from outside the feature package \u2014 always go through FeatureConnector.",
+      "Publishing events before the repo write succeeds \u2014 always publish after successful persistence.",
+      "Setting UnitCost without calling Validate() and ValidateWithMeter() for LLM type.",
+      "Using context.Background() instead of the passed ctx in connector methods.",
+      "Adding a new UnitCostType without updating the validTypes map in Validate() and adding cases in adapter MapFeatureEntity and driver parser."
+    ],
+    "decisions": [
+      {
+        "decision": "FeatureConnector wraps FeatureRepo to keep validation and event publishing in the domain layer",
+        "rationale": "Adapters are pure persistence; validation (meter aggregation, ULID key guard, unit cost mutual exclusion) and side-effects (Watermill events) belong in the connector so they run regardless of which adapter is used."
+      },
+      {
+        "decision": "Features support key-based versioning via archive: same key can have multiple archived versions plus one active",
+        "rationale": "Plans and subscriptions reference features by key; archiving without replacement allows existing references to resolve to the most recent version via getLastFeatures."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new UnitCostType 'fixed_fee' end-to-end",
+        "code": "// unitcost.go: const UnitCostTypeFixedFee UnitCostType = \"fixed_fee\"\n// Add FixedFeeUnitCost struct and UnitCost.FixedFee field\n// Add case in UnitCost.Validate()\n// adapter/feature.go: add case in CreateFeature query builder and MapFeatureEntity\n// driver/parser.go: add case in domainUnitCostToAPI and apiUnitCostToDomain"
+      }
+    ]
+  },
+  "openmeter/productcatalog/http": {
+    "purpose": "Shared HTTP utilities for the productcatalog domain: ValidationErrorEncoder (wraps ValidationIssues into problem+json extension), bidirectional API\u2194domain mapping for RateCards/Prices/EntitlementTemplates/Discounts, and ResourceKind constants. Consumed by plan, addon, and subscription HTTP handlers to avoid duplication.",
+    "patterns": [
+      {
+        "name": "ValidationErrorEncoder with ResourceKind",
+        "description": "ValidationErrorEncoder(kind ResourceKind) converts []models.ValidationIssue into a validationErrors extension on the problem+json 400 response. Attach per-resource-kind in handler options.",
+        "example": "httptransport.WithErrorEncoder(http.ValidationErrorEncoder(http.ResourceKindPlan))"
+      },
+      {
+        "name": "Discriminator-based RateCard mapping",
+        "description": "AsRateCard uses r.Discriminator() to dispatch to AsFlatFeeRateCard or AsUsageBasedRateCard. FromRateCard uses r.Type() switch. New RateCard types require cases in both directions.",
+        "example": "rType, _ := r.Discriminator(); switch rType { case string(productcatalog.FlatFeeRateCardType): return AsFlatFeeRateCard(r) }"
+      },
+      {
+        "name": "Price type dispatch via price.Type()",
+        "description": "FromRateCardUsageBasedPrice dispatches on price.Type() (Flat, Unit, Tiered, Dynamic, Package). New price models require a new case in both FromRateCardUsageBasedPrice and AsRateCard.",
+        "example": "switch price.Type() { case productcatalog.FlatPriceType: ... case productcatalog.TieredPriceType: ... }"
+      },
+      {
+        "name": "UsageBasedRateCard requires non-nil BillingCadence",
+        "description": "In FromRateCard for UsageBasedRateCardType, check billingCadence != nil and return an error if nil. FlatFeeRateCard BillingCadence is optional.",
+        "example": "if billingCadence == nil { return resp, errors.New(\"invalid UsageBasedRateCard: billing cadence must be set\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "mapping.go",
+        "role": "FromRateCard, AsRateCard, AsFlatFeeRateCard, AsUsageBasedRateCard, FromRateCardUsageBasedPrice, FromTaxConfig, FromEntitlementTemplate, FromDiscounts and their inverses.",
+        "watch_for": "UsageBasedRateCard requires non-nil BillingCadence; returns error if nil. All functions must remain pure conversions with no side-effects."
+      },
+      {
+        "file": "errors.go",
+        "role": "ValidationErrorEncoder and private validationError type with AsErrorExtension serialization.",
+        "watch_for": "Returns false (not handled) if models.AsValidationIssues returns no issues \u2014 falls through to the generic encoder."
+      },
+      {
+        "file": "resource.go",
+        "role": "ResourceKind string type with ResourceKindPlan and ResourceKindAddon constants.",
+        "watch_for": "Add new ResourceKind constants here when adding new top-level productcatalog resources."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic or side-effects to mapping functions \u2014 they must be pure bidirectional conversions.",
+      "Skipping error return from FromRateCard or AsRateCard \u2014 both can return errors on unsupported types.",
+      "Importing this package from outside productcatalog without knowing it imports api (v1) types directly."
+    ],
+    "decisions": [
+      {
+        "decision": "Separate http package for shared productcatalog HTTP utilities rather than embedding in each sub-package",
+        "rationale": "RateCard and price mappings are reused across plan, addon, and subscription HTTP handlers; centralising avoids duplication and keeps conversion logic in one reviewable place."
       }
     ],
     "code_examples": []
   },
-  "openmeter/productcatalog/plan/service": {
-    "purpose": "Business-logic service implementing plan.Service: validates inputs, resolves feature/taxcode references, enforces status-based mutation guards, delegates to plan.Repository, and publishes domain events. Primary constraint: state transitions (publish/archive/next) are separate operations; UpdatePlan only modifies metadata and phases on Draft/Scheduled plans.",
+  "openmeter/productcatalog/testutils": {
+    "purpose": "Test helpers for productcatalog integration tests: TestEnv wires all productcatalog services (feature, plan, planaddon, addon, taxcode) against a real Postgres DB using raw adapter constructors, and factory helpers (NewTestFeature, NewTestPlan, NewTestAddon, NewTestMeters) produce Create*Input fixtures. Primary constraint: never import app/common \u2014 wire from raw constructors to avoid import cycles.",
     "patterns": [
       {
-        "name": "transaction.Run wrapping for mutations",
-        "description": "All mutating methods wrap their closure in transaction.Run(ctx, s.adapter, fn) to ensure atomicity across adapter calls and event publishing.",
-        "example": "return transaction.Run(ctx, s.adapter, fn)"
+        "name": "TestEnv with DBSchemaMigrate + Close lifecycle",
+        "description": "NewTestEnv(t) creates the DB and wires all services; always call env.DBSchemaMigrate(t) before any write; env.Close(t) uses sync.Once so it is safe to defer multiple times.",
+        "example": "env := testutils.NewTestEnv(t); env.DBSchemaMigrate(t); defer env.Close(t)"
       },
       {
-        "name": "resolveFeatures before adapter calls",
-        "description": "Before CreatePlan/UpdatePlan hits the adapter, s.resolveFeatures populates FeatureKey\u2194FeatureID cross-references by querying feature.FeatureConnector; missing features are converted to GenericValidationError.",
-        "example": "if err = s.resolveFeatures(ctx, params.Namespace, &phase.RateCards); err != nil { if models.IsGenericNotFoundError(err) { err = models.NewGenericValidationError(err) }; return nil, ... }"
+        "name": "eventbus.NewMock for event assertions",
+        "description": "TestEnv injects eventbus.NewMock(t) as the Watermill publisher so tests can assert events were published without a real Kafka broker.",
+        "example": "publisher := eventbus.NewMock(t)"
       },
       {
-        "name": "Publish domain events after adapter write",
-        "description": "Create/Update/Delete/Publish/Archive/Next all call s.publisher.Publish(ctx, plan.NewPlanXxxEvent(ctx, p)) after the adapter mutation succeeds, inside the transaction closure.",
-        "example": "event := plan.NewPlanCreateEvent(ctx, p); if err := s.publisher.Publish(ctx, event); err != nil { return nil, fmt.Errorf(\"failed to publish plan created event: %w\", err) }"
+        "name": "Factory helpers return input types, not domain entities",
+        "description": "NewTestFeature, NewTestPlan, NewTestAddon, NewTestFeatureFromMeter return Create*Input structs; the caller must call the service to actually persist the entity.",
+        "example": "input := testutils.NewTestFeature(t, ns); feat, err := env.Feature.CreateFeature(ctx, input)"
       },
       {
-        "name": "Status-guard before mutations",
-        "description": "UpdatePlan, DeletePlan, PublishPlan, ArchivePlan each check allowed statuses via lo.Contains before delegating to adapter; violations return models.NewGenericValidationError.",
-        "example": "allowedPlanStatuses := []productcatalog.PlanStatus{productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled}; if !lo.Contains(allowedPlanStatuses, planStatus) { return nil, models.NewGenericValidationError(...) }"
-      },
-      {
-        "name": "Config-based constructor with nil checks",
-        "description": "New(Config) validates all dependencies (Adapter, Feature, TaxCode, Logger, Publisher) are non-nil before returning the service.",
-        "example": "var _ plan.Service = (*service)(nil)"
+        "name": "meteradapter.TestAdapter as meter service",
+        "description": "TestEnv uses meteradapter.TestAdapter (SetDBClient(client)) instead of real meter.Service; tests must add meters to the DB client directly to satisfy FK constraints.",
+        "example": "meterAdapter, _ := meteradapter.New(nil); _ = meterAdapter.SetDBClient(client)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "service.go",
-        "role": "Config struct, New constructor, service struct definition. All dependency fields (adapter, feature, taxCode, logger, publisher) are private.",
-        "watch_for": "Adding a new dependency requires updating Config, New validation, and service struct \u2014 all three must stay in sync."
+        "file": "env.go",
+        "role": "TestEnv struct and NewTestEnv factory wiring all productcatalog services; DBSchemaMigrate and Close lifecycle.",
+        "watch_for": "env.Close uses sync.Once \u2014 safe to defer multiple times. Do not close Client or db externally."
       },
       {
         "file": "plan.go",
-        "role": "All plan.Service method implementations. resolveFeatures and resolveTaxCodes are private helpers called before adapter writes.",
-        "watch_for": "CreatePlan auto-increments version based on existing versions; callers should not pass a Version in CreatePlanInput."
+        "role": "NewTestPlan with BillingCadence P1M, USD currency, ProRating enabled, CreditThenInvoice settlement.",
+        "watch_for": "Default plan has no phases \u2014 pass phases as variadic args if rate cards are needed."
       },
       {
-        "file": "service_test.go",
-        "role": "Integration tests using pctestutils.NewTestEnv which wires the full stack (adapter + service). Tests drive behavior through env.Plan (service) not env.PlanRepository (adapter).",
-        "watch_for": "Tests use context.Background() \u2014 in new tests prefer t.Context() per project convention."
+        "file": "feature.go",
+        "role": "NewTestFeature (no meter) and NewTestFeatureFromMeter (meter-backed with eq filters from meter.GroupBy).",
+        "watch_for": "NewTestFeatureFromMeter uses ConvertMapStringToMeterGroupByFilters \u2014 only creates eq filters, not advanced typed filters."
+      },
+      {
+        "file": "meters.go",
+        "role": "NewTestMeters returns three canonical meters: api_requests_total (count), tokens_total (sum), workload_runtime_duration_seconds (sum).",
+        "watch_for": "IDs generated with NewTestULID(t) \u2014 unique per test run; do not hardcode IDs when using these meters."
       }
     ],
     "anti_patterns": [
-      "Calling s.adapter directly for mutations without wrapping in transaction.Run \u2014 breaks atomicity with event publishing.",
-      "Allowing EffectivePeriod to be set via UpdatePlan \u2014 it is explicitly zeroed to prevent direct status manipulation.",
-      "Skipping resolveFeatures before CreatePlan/UpdatePlan \u2014 rate cards with FeatureKey-only or FeatureID-only refs will have incomplete cross-references in the DB.",
-      "Publishing events outside the transaction closure \u2014 if the DB write succeeds but the event publish fails, the transaction rolls back only if both are inside transaction.Run."
+      "Importing app/common \u2014 use raw adapter constructors as done in NewTestEnv to avoid import cycles.",
+      "Calling env services before DBSchemaMigrate \u2014 Ent schema must be applied before any write.",
+      "Sharing a TestEnv across parallel tests without synchronisation \u2014 each parallel test should create its own TestEnv.",
+      "Assuming factory helpers persist entities \u2014 they return input structs that must be passed to the corresponding service."
     ],
     "decisions": [
       {
-        "decision": "Feature and TaxCode resolution is done in service layer, not in the adapter.",
-        "rationale": "Adapter only handles persistence; cross-entity lookups (feature by key/ID, tax code by stripe code) are orchestration concerns belonging in the service."
-      },
-      {
-        "decision": "Version is auto-incremented from existing versions; callers cannot set it directly.",
-        "rationale": "Prevents version gaps and ensures monotonically increasing versions per key across create calls."
-      },
-      {
-        "decision": "Default settlement mode CreditThenInvoice is applied in service, not in the HTTP handler.",
-        "rationale": "Keeps the default a domain invariant independent of the transport layer."
+        "decision": "Wire services from raw constructors (not app/common Wire sets)",
+        "rationale": "Importing app/common from domain testutils creates import cycles and couples tests to unrelated wiring changes in other domains."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new mutating service method that calls the adapter and publishes an event",
-        "code": "func (s service) MyMutation(ctx context.Context, params plan.MyInput) (*plan.Plan, error) {\n\tfn := func(ctx context.Context) (*plan.Plan, error) {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid params: %w\", err)\n\t\t}\n\t\tp, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{NamespacedID: params.NamespacedID})\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"failed to get Plan: %w\", err)\n\t\t}\n\t\tif !lo.Contains([]productcatalog.PlanStatus{productcatalog.PlanStatusDraft}, p.Status()) {\n\t\t\treturn nil, models.NewGenericValidationError(fmt.Errorf(\"plan must be in draft status\"))\n\t\t}\n\t\tp, err = s.adapter.UpdatePlan(ctx, plan.UpdatePlanInput{NamespacedID: params.NamespacedID})\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"failed to update Plan: %w\", err)\n\t\t}\n\t\tevent := plan.NewPlanUpdateEvent(ctx, p)\n\t\tif err := s.publisher.Publish(ctx, event); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"failed to publish event: %w\", err)\n\t\t}\n\t\treturn p, nil\n\t}\n\treturn transaction.Run(ctx, s.adapter, fn)\n}"
+        "scenario": "Set up a productcatalog integration test with a meter-backed feature",
+        "code": "env := testutils.NewTestEnv(t)\nenv.DBSchemaMigrate(t)\ndefer env.Close(t)\n\nmeters := testutils.NewTestMeters(t, ns)\n// insert meters via env.Client.Meter.Create()...\nfeatureInput := testutils.NewTestFeatureFromMeter(t, ns, meters.ApiRequestsTotal)\nfeat, err := env.Feature.CreateFeature(t.Context(), featureInput)\nrequire.NoError(t, err)"
       }
     ]
   }

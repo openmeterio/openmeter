@@ -1,216 +1,184 @@
 {
-  "pkg/ffx": {
-    "purpose": "Provides a minimal feature flag service with three implementations (static, context-based, test hybrid). The primary constraint is that all feature-flag reads go through the Service interface so callers are decoupled from the backing store.",
+  "pkg/clock": {
+    "purpose": "Process-global test clock that replaces time.Now() with a controllable time source backed by atomic drift/freeze vars. All production code must call clock.Now() so tests can freeze or shift time deterministically without any interface injection.",
     "patterns": [
       {
-        "name": "Service interface for all reads",
-        "description": "All consumers call Service.IsFeatureEnabled(ctx, Feature) \u2014 never inspect AccessConfig directly outside this package.",
-        "example": "svc := ffx.NewStaticService(ffx.AccessConfig{MyFeature: true})\nenabled, err := svc.IsFeatureEnabled(ctx, MyFeature)"
+        "name": "clock.Now() everywhere",
+        "description": "Production code must call clock.Now() instead of time.Now(). The package uses package-level atomics so no interface injection is needed.",
+        "example": "import \"github.com/openmeterio/openmeter/pkg/clock\"; t := clock.Now()"
       },
       {
-        "name": "Context-carried access config",
-        "description": "At request time, SetAccessOnContext injects an AccessConfig into ctx; NewContextService reads it back via GetAccessFromContext. Missing key returns ErrContextMissing, not false.",
-        "example": "ctx = ffx.SetAccessOnContext(ctx, ffx.AccessConfig{ffx.Feature(\"beta\"): true})"
+        "name": "FreezeTime/UnFreeze in tests",
+        "description": "Tests freeze the clock with clock.FreezeTime(t) and restore with defer clock.UnFreeze() or defer clock.ResetTime().",
+        "example": "clock.FreezeTime(testutils.GetRFC3339Time(t, \"2024-06-30T15:39:00Z\")); defer clock.UnFreeze()"
       },
       {
-        "name": "Test hybrid service falls back to static",
-        "description": "NewTestContextService tries ctx first, then falls back to the provided static defaults \u2014 lets tests override individual flags without rebuilding context per case.",
-        "example": "svc := ffx.NewTestContextService(ffx.AccessConfig{ffx.Feature(\"x\"): false})"
-      },
-      {
-        "name": "Feature typed as string alias",
-        "description": "Feature is type Feature string \u2014 always declare named Feature constants, never pass raw strings to IsFeatureEnabled.",
-        "example": "const MyFeature ffx.Feature = \"my-feature\""
+        "name": "Monotonic clock stripped",
+        "description": "clock.Now() always calls .Round(0) to strip the monotonic reading, preventing subtle comparison bugs when storing/comparing times.",
+        "example": "return time.Now().Add(-driftDuration).Round(0)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "featureflag.go",
-        "role": "Declares Feature, AccessConfig, and the Service interface. Single source of truth for the package contract.",
-        "watch_for": "AccessConfig.Merge mutates the receiver \u2014 always pass a fresh copy if merging should not modify the original."
-      },
-      {
-        "file": "context.go",
-        "role": "SetAccessOnContext/GetAccessFromContext + contextService + testContextService. ErrContextMissing is the sentinel for missing ctx key.",
-        "watch_for": "contextService returns an error if the feature key is absent from the config; callers must handle that error, not just check the bool."
-      },
-      {
-        "file": "static.go",
-        "role": "staticService backed by an in-process AccessConfig map. Used for server startup wiring and test defaults.",
-        "watch_for": "Returns error (not false) for unknown features \u2014 do not assume unknown == disabled."
+        "file": "clock.go",
+        "role": "Entire package: atomic drift int64 for SetTime, atomic frozen int32 + atomic.Value for FreezeTime. SetTime computes drift as time.Since(t).Nanoseconds().",
+        "watch_for": "drift is the offset subtracted from wall time, not an absolute time value. FreezeTime and SetTime are two independent mechanisms \u2014 FreezeTime short-circuits drift entirely."
       }
     ],
     "anti_patterns": [
-      "Bypassing Service by reading AccessConfig maps directly outside this package",
-      "Using raw string literals instead of typed Feature constants",
-      "Ignoring the error return from IsFeatureEnabled (unknown feature != false)",
-      "Storing AccessConfig in a global variable instead of in context or Wire-injected service"
+      "Calling time.Now() directly in production code \u2014 always use clock.Now()",
+      "Forgetting defer clock.ResetTime() or defer clock.UnFreeze() in tests, which leaks frozen/drifted state across test cases",
+      "Adding a context parameter or Clock interface \u2014 the global atomic design is intentional for zero-overhead usage across the codebase"
     ],
     "decisions": [
       {
-        "decision": "Three separate service implementations (static, context, test hybrid) rather than a single configurable one.",
-        "rationale": "Static is safe for server startup; context-based serves per-request tenant flags; the test hybrid lets unit tests override without rebuilding context, all without introducing nil checks or type switches in callers."
+        "decision": "Package-level atomics instead of an injected Clock interface",
+        "rationale": "Zero call-site changes needed across the codebase; atomic ops are lock-free and safe for concurrent test use."
       }
     ],
-    "code_examples": [
-      {
-        "scenario": "Wire a static service at startup and use it in a handler",
-        "code": "import \"github.com/openmeterio/openmeter/pkg/ffx\"\n\nconst FeatureBetaBilling ffx.Feature = \"beta-billing\"\n\n// At wiring time:\nsvc := ffx.NewStaticService(ffx.AccessConfig{FeatureBetaBilling: cfg.BillingEnabled})\n\n// In handler:\nenabled, err := svc.IsFeatureEnabled(ctx, FeatureBetaBilling)\nif err != nil {\n    return fmt.Errorf(\"feature flag: %w\", err)\n}\nif enabled {\n    // use new billing path\n}"
-      }
-    ]
+    "code_examples": []
   },
-  "pkg/filter": {
-    "purpose": "Provides typed, composable query filters (string, integer, float, time, boolean, ULID) that compile to both Ent selector predicates and go-sqlbuilder WHERE expressions. The primary constraint is that every filter type implements the Filter interface and enforces single-operator-per-node validation.",
+  "pkg/cmpx": {
+    "purpose": "Single-file package exposing a Comparable[T] constraint and a Compare[T] generic function for deterministic ordering of domain types. Used wherever two values need to be ordered without boilerplate type assertions.",
     "patterns": [
       {
-        "name": "Filter interface dual output",
-        "description": "Every filter type implements both Select(field string) func(*sql.Selector) for Ent queries and SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string for ClickHouse/raw SQL. New filter types must implement both.",
-        "example": "predicate := myFilter.Select(\"name\")  // -> func(*sql.Selector)\nexpr := myFilter.SelectWhereExpr(\"name\", q)  // -> string"
-      },
-      {
-        "name": "Single-operator validation",
-        "description": "validateSingleOperator(f) uses reflection to count non-nil fields; Validate() wraps the result in models.NewNillableGenericValidationError. Public Validate/ValidateWithComplexity always wrap exactly once.",
-        "example": "if err := f.Validate(); err != nil { /* err is models.GenericValidationError */ }"
-      },
-      {
-        "name": "Recursive And/Or with depth limit",
-        "description": "Each filter type carries *[]FilterT And and *[]FilterT Or fields. validateWithComplexity(maxDepth) recurses and returns ErrFilterComplexityExceeded when maxDepth <= 0.",
-        "example": "if err := f.ValidateWithComplexity(3); errors.Is(err, filter.ErrFilterComplexityExceeded) { ... }"
-      },
-      {
-        "name": "IsEmpty guards nil return from Select",
-        "description": "Select returns nil for empty filters. Callers and implementations must check IsEmpty or nil before applying the predicate to an Ent selector.",
-        "example": "if p := f.Select(\"field\"); p != nil { query.Where(p) }"
-      },
-      {
-        "name": "Contains uses ILIKE with escaped LIKE metacharacters",
-        "description": "$contains and $ncontains wrap the value with EscapeLikePattern + ContainsPattern before passing to ILIKE/NOT ILIKE. Raw $like/$ilike operators pass values unescaped.",
-        "example": "// Contains auto-escapes: filter.FilterString{Contains: lo.ToPtr(\"50%\")} -> ILIKE '%50\\%%'"
+        "name": "Implement Comparable[T] on domain types",
+        "description": "Any type that needs ordering must implement Compare(T) int. The generic Compare[T] function dispatches to left.Compare(right).",
+        "example": "func (a MyType) Compare(b MyType) int { return cmpx.Compare(a, b) }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "filter.go",
-        "role": "All filter struct types plus the Filter interface. EscapeLikePattern, ContainsPattern, and ReverseContainsPattern are the LIKE-safety helpers.",
-        "watch_for": "FilterString has both $like (caller-controlled pattern) and $contains (auto-escaped plain substring). Do not double-escape by passing an already-percent-wrapped value to $contains."
-      },
-      {
-        "file": "filter_test.go",
-        "role": "Dual-path tests: SelectWhereExpr (go-sqlbuilder) and Select (Ent) branches are validated side by side for every operator variant.",
-        "watch_for": "Test SQL strings differ between backends (? vs $1 placeholders, quoted identifiers). Use newSelectBuilder() for Ent assertions."
+        "file": "compare.go",
+        "role": "Defines Comparable[T] interface and Compare[T] generic helper. No dependencies other than stdlib.",
+        "watch_for": "The package is intentionally minimal \u2014 do not add non-ordering utilities here."
       }
     ],
     "anti_patterns": [
-      "Setting multiple operator fields on the same filter node (Validate returns ErrFilterMultipleOperators)",
-      "Applying Select() predicate without nil check \u2014 empty filter returns nil and will panic on the selector",
-      "Passing pre-escaped LIKE patterns to $contains/$ncontains \u2014 they will be double-escaped",
-      "Adding a new filter type without implementing both Select and SelectWhereExpr",
-      "Wrapping Validate() result in a second models.GenericValidationError \u2014 validateWithComplexity returns raw sentinels intentionally"
-    ],
-    "decisions": [
-      {
-        "decision": "Dual output (Ent selector + go-sqlbuilder expression) on a single Filter type.",
-        "rationale": "Domain adapters use Ent for Postgres and go-sqlbuilder for ClickHouse; one filter struct drives both backends without separate translation layers."
-      },
-      {
-        "decision": "Validation wraps errors in models.GenericValidationError exactly once at the public boundary.",
-        "rationale": "Domain services call Validate() and forward the result directly to HTTP encoders that map GenericValidationError to 400; double-wrapping would break errors.Is checks."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Apply a validated FilterString to an Ent query and a ClickHouse sqlbuilder query",
-        "code": "import (\n    \"github.com/openmeterio/openmeter/pkg/filter\"\n    \"github.com/samber/lo\"\n)\n\nf := filter.FilterString{Contains: lo.ToPtr(\"acme\")}\nif err := f.Validate(); err != nil {\n    return nil, err\n}\n\n// Ent path:\nif pred := f.Select(\"display_name\"); pred != nil {\n    query = query.Where(pred)\n}\n\n// ClickHouse / go-sqlbuilder path:\nq := sqlbuilder.Select(\"*\").From(\"events\")\nif expr := f.SelectWhereExpr(\"display_name\", q); expr != \"\" {\n    q.Where(expr)\n}"
-      }
-    ]
-  },
-  "pkg/gosundheit": {
-    "purpose": "Thin adapter that bridges the go-sundheit health check library to OpenMeter's structured slog logger. It implements health.CheckListener so health check lifecycle events (register, start, complete) emit structured log lines at appropriate levels.",
-    "patterns": [
-      {
-        "name": "Implement health.CheckListener via unexported struct",
-        "description": "checkListener is unexported; consumers receive a health.CheckListener interface from NewLogger. Do not expose the concrete type.",
-        "example": "listener := gosundheit.NewLogger(logger)\nhealthSvc.WithCheckListener(listener)"
-      },
-      {
-        "name": "Warn on error, Debug on success",
-        "description": "OnCheckRegistered and OnCheckCompleted log at slog.Warn when result.Error != nil and at slog.Debug otherwise. Maintain this severity split for any new listener methods.",
-        "example": "// Error path -> logger.Warn(\"health check failed\", slog.String(\"check\", name), slog.Any(\"error\", result.Error))"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "logger.go",
-        "role": "Sole file; declares checkListener and NewLogger. Only health.CheckListener interface is implemented.",
-        "watch_for": "go-sundheit's CheckListener interface may add methods in future versions \u2014 breaking the compile if not updated here."
-      }
-    ],
-    "anti_patterns": [
-      "Logging at Error level for health check failures \u2014 the library handles alerting; Warn is intentional to avoid log-level escalation",
-      "Storing state in checkListener \u2014 it is a pure pass-through to the logger"
+      "Adding any logic beyond comparison ordering to this package",
+      "Using reflect.DeepEqual or sort.Slice comparisons in callers instead of implementing Comparable[T]"
     ],
     "decisions": [],
     "code_examples": []
   },
-  "pkg/hasher": {
-    "purpose": "Minimal hashing utility package: defines a Hash type alias (uint64), a Hasher interface, and a single xxhash-backed implementation. Used wherever a fast, non-cryptographic content hash is needed (e.g. lock key derivation in pkg/framework/lockr).",
+  "pkg/contextx": {
+    "purpose": "Context-keyed key-value store (via peterbourgon/ctxdata) and a slog.Handler adapter that auto-attaches stored attributes to every log record emitted within a request context. Used to propagate structured log fields through service layers without threading explicit logger parameters.",
     "patterns": [
       {
-        "name": "Hash = uint64 type alias",
-        "description": "Hash is a type alias, not a named type \u2014 it is interchangeable with uint64 at the call site. Consumers that need nominal typing should define their own wrapper.",
-        "example": "var h hasher.Hash = hasher.NewHash([]byte(\"key\"))"
+        "name": "WithAttr / WithAttrs to annotate context",
+        "description": "Call contextx.WithAttr(ctx, key, value) or contextx.WithAttrs(ctx, map) to attach structured data. A ctxdata bag is lazily created if absent.",
+        "example": "ctx = contextx.WithAttr(ctx, \"customer_id\", customerID)"
       },
       {
-        "name": "Hasher interface for injectable hashing",
-        "description": "Structs that need to hash themselves implement Hasher by returning a Hash from Hash(). Inject via the interface, not via direct xxhash calls.",
-        "example": "type myKey struct{ ... }\nfunc (k myKey) Hash() hasher.Hash { return hasher.NewHash([]byte(k.id)) }"
+        "name": "NewLogHandler wraps existing slog.Handler",
+        "description": "Wrap any slog.Handler with contextx.NewLogHandler to automatically add all context attributes to every log record. Install at logger construction time, not per-request.",
+        "example": "slog.New(contextx.NewLogHandler(slog.NewJSONHandler(os.Stdout, nil)))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "hasher.go",
-        "role": "Defines Hash type and Hasher interface. Source of truth for the contract.",
-        "watch_for": "Hash is a type alias \u2014 changing it to a named type would be a breaking change for all callers assigning uint64 literals."
+        "file": "attr.go",
+        "role": "WithAttr and WithAttrs write to ctxdata bag; both silently ignore Set errors. Creates a new bag via ctxdata.New if none exists.",
+        "watch_for": "ctxdata.From returns nil if no bag exists \u2014 always handle the nil case (the helpers do this, but raw ctxdata callers must too)."
       },
       {
-        "file": "xxhash.go",
-        "role": "NewHash([]byte) is the only concrete hash function. Uses cespare/xxhash v2.",
-        "watch_for": "xxhash is non-cryptographic \u2014 never use for security-sensitive hashing."
+        "file": "log.go",
+        "role": "Handler wraps slog.Handler; Handle reads ctxdata.GetAllMap and appends all entries as slog.Any attributes before delegating.",
+        "watch_for": "WithAttrs and WithGroup must re-wrap the inner handler in a new Handler struct to preserve the contextx behaviour on derived loggers."
       }
     ],
     "anti_patterns": [
-      "Using hasher.NewHash for cryptographic purposes (passwords, signatures) \u2014 use crypto/sha256 or similar instead",
-      "Importing xxhash directly in domain packages instead of going through hasher.NewHash"
+      "Using context.WithValue directly for structured log fields instead of contextx.WithAttr",
+      "Installing contextx.NewLogHandler more than once in a handler chain \u2014 double-attaches the same attributes to every record"
+    ],
+    "decisions": [
+      {
+        "decision": "peterbourgon/ctxdata as the context bag instead of custom context keys",
+        "rationale": "Provides a typed map API accessible from any layer without defining package-private key types everywhere."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/convert": {
+    "purpose": "Nil-safe generic pointer and type conversion helpers used throughout the codebase to eliminate repetitive nil-guard boilerplate when mapping between domain types, API types, and Ent-generated types.",
+    "patterns": [
+      {
+        "name": "ToPointer for value-to-pointer",
+        "description": "Use convert.ToPointer[T](value) instead of taking the address of a local variable directly.",
+        "example": "convert.ToPointer(\"some-string\")"
+      },
+      {
+        "name": "MapToPointer / SliceToPointer return nil on empty",
+        "description": "Both return nil (not a pointer to empty collection) when the input is empty. Prefer over lo.EmptyableToPtr for maps and slices.",
+        "example": "convert.MapToPointer(myMap) // returns nil if len==0"
+      },
+      {
+        "name": "SafeDeRef for nil-safe pointer transformation",
+        "description": "Applies a mapping function only if the pointer is non-nil; returns nil otherwise. Replaces repetitive if ptr != nil blocks in converter files.",
+        "example": "convert.SafeDeRef(req.StartTime, func(t time.Time) *time.Time { return convert.ToPointer(t.UTC()) })"
+      },
+      {
+        "name": "ToStringLike for type-aliased string conversions",
+        "description": "Converts *Source to *Dest where both are ~string kind, avoiding unsafe casts.",
+        "example": "convert.ToStringLike[api.CurrencyCode, currencyx.Code](req.Currency)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ptr.go",
+        "role": "All pointer/type helpers including DerefHeaderPtr for *map and *slice dereferencing. Also StringerPtrToStringPtr for fmt.Stringer types.",
+        "watch_for": "lo.EmptyableToPtr is explicitly avoided for maps/slices \u2014 always use MapToPointer/SliceToPointer instead to get nil-on-empty semantics."
+      },
+      {
+        "file": "time.go",
+        "role": "TimePtrIn converts *time.Time to a given location, nil-safe. Returns a new pointer; does not mutate in place.",
+        "watch_for": "Returns nil when input is nil \u2014 callers must not assume a non-nil result."
+      }
+    ],
+    "anti_patterns": [
+      "Using lo.EmptyableToPtr on maps or slices \u2014 it does not treat empty collections as nil",
+      "Adding domain-specific conversion logic here \u2014 this package is for generic pointer/type mechanics only",
+      "Taking the address of a local variable instead of convert.ToPointer when the intent is nil-safety"
     ],
     "decisions": [],
     "code_examples": []
   },
-  "pkg/idempotency": {
-    "purpose": "Single-purpose package that generates UUIDv7 idempotency keys for external API calls (e.g., Stripe). UUIDv7 provides monotonic, time-ordered keys that are safe to use as idempotency tokens without a shared counter.",
+  "pkg/currencyx": {
+    "purpose": "Thin ISO 4217 currency wrapper on invopop/gobl/currency that adds a Calculator type for currency-precision decimal rounding. Used across billing and subscription for all monetary arithmetic to ensure correct subunit rounding per currency.",
     "patterns": [
       {
-        "name": "Use Key() in production, MustKey() in tests/init",
-        "description": "Key() returns (string, error) and should be used in application code paths. MustKey() panics on failure and is only appropriate in test setup or package-level init.",
-        "example": "key, err := idempotency.Key()\nif err != nil {\n    return fmt.Errorf(\"idempotency key: %w\", err)\n}"
+        "name": "Validate before Calculator",
+        "description": "Always call Code.Validate() or obtain a Calculator via Code.Calculator() which validates internally. Never use a Code value without validation.",
+        "example": "calc, err := currencyx.Code(\"USD\").Calculator(); if err != nil { return err }"
+      },
+      {
+        "name": "Calculator.RoundToPrecision for monetary amounts",
+        "description": "Round alpacadecimal.Decimal to the correct subunit count for the currency. Never hardcode decimal places.",
+        "example": "rounded := calc.RoundToPrecision(amount) // USD -> 2 places, JPY -> 0 places"
       }
     ],
     "key_file_guides": [
       {
-        "file": "key.go",
-        "role": "Exports Key() and MustKey(). The entire package is this one file.",
-        "watch_for": "uuid.NewV7() can fail in environments with broken entropy sources \u2014 always handle the error in production paths."
+        "file": "currency.go",
+        "role": "Code type (alias of currency.Code), Validate, Calculator constructor, RoundToPrecision using Def.Subunits, IsRoundedToPrecision.",
+        "watch_for": "RoundToPrecision uses Def.Subunits (not smallestDenomination) \u2014 correct for online payments, but physical-cash rounding may differ."
       }
     ],
     "anti_patterns": [
-      "Using MustKey() in request-handling code paths \u2014 prefer Key() and propagate errors",
-      "Reusing the same key across multiple requests \u2014 each call to Key() must produce a fresh key"
+      "Rounding monetary amounts with a fixed precision constant instead of Calculator.RoundToPrecision",
+      "Using currency.Code (gobl) directly instead of currencyx.Code \u2014 the wrapper adds Validate() and Calculator()"
     ],
     "decisions": [
       {
-        "decision": "UUIDv7 instead of UUIDv4 for idempotency keys.",
-        "rationale": "UUIDv7 is time-ordered, making keys sortable and slightly more cache-friendly in database indexes while still being globally unique."
+        "decision": "Wraps gobl/currency rather than implementing ISO 4217 from scratch",
+        "rationale": "GOBL is already a transitive dependency for invoicing; reusing its currency definitions avoids a duplicate definition table."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Round a billing amount to currency precision",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/pkg/currencyx\"\n\t\"github.com/alpacahq/alpacadecimal\"\n)\n\ncalc, err := currencyx.Code(\"USD\").Calculator()\nif err != nil {\n\treturn err\n}\nrounded := calc.RoundToPrecision(alpacadecimal.NewFromFloat(1.23456)) // -> 1.23"
+      }
+    ]
   }
 }

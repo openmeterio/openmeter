@@ -2,23 +2,23 @@
 
 <!-- archie:ai-start -->
 
-> Defines the Serializer interface and its JSON implementation for converting CloudEvents into Kafka key/value byte pairs. The key encodes a dedupe.Item (namespace+source+id) to enable downstream deduplication; the value encodes a flat CloudEventsKafkaPayload struct with unix-timestamp time.
+> Defines the Serializer interface and its JSON implementation for converting CloudEvents into Kafka key/value byte pairs. The key encodes a dedupe.Item (namespace+source+id) for sink-worker Redis deduplication; the value encodes a flat CloudEventsKafkaPayload with unix-timestamp time.
 
 ## Patterns
 
-**Serializer interface contract** — Every serializer must implement SerializeKey(topic, namespace, event), SerializeValue(topic, event), GetFormat(), GetKeySchemaId(), GetValueSchemaId(). Schema IDs return -1 for JSON (no schema registry). (`var _ Serializer = JSONSerializer{}`)
-**Key encodes dedupe.Item** — SerializeKey must produce []byte(dedupeItem.Key()) where dedupeItem = dedupe.Item{Namespace, ID, Source}. The sink worker relies on this exact key format for Redis deduplication. (`dedupeItem := dedupe.Item{Namespace: namespace, ID: ev.ID(), Source: ev.Source()}; return []byte(dedupeItem.Key()), nil`)
-**CloudEventsKafkaPayload wire format** — Value serialization must go through toCloudEventsKafkaPayload → json.Marshal producing {id, type, source, subject, time (unix int64), data (JSON string)}. Time precision is intentionally truncated to seconds; timezone is lost. (`payload.Time = ev.Time().Unix()`)
-**Optional data field handling** — When ev.Data() is empty, Data field is left as empty string. When present, data is parsed via ev.DataAs(&data) then re-marshaled to JSON string. A parse failure returns an error — never silently drops data. (`if len(ev.Data()) > 0 { ev.DataAs(&data); json.Marshal(data) }`)
-**Compile-time interface assertion** — Use var _ Serializer = (*ConcreteType)(nil) to assert implementation at compile time. (`var _ Serializer = JSONSerializer{}`)
+**Serializer interface contract** — Every serializer must implement SerializeKey(topic, namespace, event), SerializeValue(topic, event), GetFormat(), GetKeySchemaId(), GetValueSchemaId(). JSON serializer returns -1 for schema IDs (no registry). (`var _ Serializer = JSONSerializer{}`)
+**Key encodes dedupe.Item** — SerializeKey must produce []byte(dedupe.Item{Namespace, ID, Source}.Key()). The sink worker's Redis deduplication depends on this exact format — changing it breaks deduplication. (`dedupeItem := dedupe.Item{Namespace: namespace, ID: ev.ID(), Source: ev.Source()}; return []byte(dedupeItem.Key()), nil`)
+**CloudEventsKafkaPayload wire format** — SerializeValue must go through toCloudEventsKafkaPayload then json.Marshal. Time is unix int64 (seconds, timezone lost). Data is a JSON string. FromKafkaPayloadToCloudEvents is the inverse — used by the sink worker. (`payload.Time = ev.Time().Unix()`)
+**Optional data field handling** — When ev.Data() is empty, Data field is left as empty string. When present, parse via ev.DataAs(&data) then re-marshal to JSON string. Parse failures must return an error — never silently drop. (`if len(ev.Data()) > 0 { ev.DataAs(&data); payloadData, _ = json.Marshal(data) }`)
+**Compile-time interface assertion** — Use var _ Serializer = ConcreteType{} at package level to assert implementation at compile time. (`var _ Serializer = JSONSerializer{}`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `serializer.go` | Defines the Serializer interface, CloudEventsKafkaPayload wire struct, toCloudEventsKafkaPayload (event→payload), FromKafkaPayloadToCloudEvents (payload→event), and ValidateKafkaPayloadToCloudEvent. These are shared by both producer (serializer) and consumer (sink) paths. | FromKafkaPayloadToCloudEvents is consumed by the sink worker — changing field names or unix-timestamp semantics here breaks deserialization on the other side. |
-| `json.go` | Concrete JSONSerializer implementation. No schema registry, GetKeySchemaId/GetValueSchemaId return -1. | Key format must match dedupe.Item.Key() output exactly — the sink worker's Redis deduplication depends on it. |
-| `serializer_test.go` | Table-driven tests for round-trip fidelity (toCloudEventsKafkaPayload, FromKafkaPayloadToCloudEvents) and key format assertion. | TestSerializeKey asserts key = 'namespace-source-id'; any dedupe.Item.Key() format change must be reflected here. |
+| `serializer.go` | Defines Serializer interface, CloudEventsKafkaPayload wire struct, toCloudEventsKafkaPayload, FromKafkaPayloadToCloudEvents, and ValidateKafkaPayloadToCloudEvent. Shared by producer and sink consumer paths. | FromKafkaPayloadToCloudEvents is consumed by the sink worker — changing field names or unix-timestamp semantics breaks deserialization on the consumer side. |
+| `json.go` | Concrete JSONSerializer: no schema registry, GetKeySchemaId/GetValueSchemaId return -1, key derived from dedupe.Item. | Key format must match dedupe.Item.Key() output exactly ('namespace-source-id') — the sink worker Redis deduplication depends on it. |
+| `serializer_test.go` | Table-driven round-trip tests for toCloudEventsKafkaPayload, FromKafkaPayloadToCloudEvents, and SerializeKey format assertion. | TestSerializeKey asserts key = 'namespace-source-id'; any dedupe.Item.Key() format change must be reflected here. |
 
 ## Anti-Patterns
 
@@ -30,8 +30,8 @@
 
 ## Decisions
 
-- **Key is derived from dedupe.Item (namespace+source+id) rather than event ID alone** — Guarantees global uniqueness across namespaces for Redis-backed deduplication in the sink worker
-- **Data is stored as a JSON string inside CloudEventsKafkaPayload rather than raw bytes** — CloudEvents data is JSON-only in this system; string encoding avoids base64 overhead and keeps the payload human-readable in Kafka
+- **Key derived from dedupe.Item (namespace+source+id) rather than event ID alone** — Guarantees global uniqueness across namespaces for Redis-backed deduplication in the sink worker
+- **Data stored as JSON string inside CloudEventsKafkaPayload rather than raw bytes** — CloudEvents data is JSON-only in this system; string encoding avoids base64 overhead and keeps the payload human-readable in Kafka
 
 ## Example: Implementing a new Serializer (e.g. Avro) following the existing pattern
 

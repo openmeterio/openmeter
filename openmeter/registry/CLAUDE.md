@@ -17,6 +17,7 @@
 | File | Role | Watch For |
 |------|------|-----------|
 | `openmeter/registry/builder/entitlement.go` | The sole factory function GetEntitlementRegistry that wires every entitlement sub-service. | Missing hook registrations after connector construction; partial population of the returned struct causing nil-dereferences downstream. |
+| `openmeter/registry/entitlement.go` | Defines the Entitlement registry struct holding all entitlement sub-service fields (Feature, FeatureRepo, EntitlementOwner, CreditBalance, Grant, GrantRepo, MeteredEntitlement, Entitlement, EntitlementRepo). | Adding a new service field here without populating it in builder/entitlement.go causes nil-dereferences at runtime. |
 
 ## Anti-Patterns
 

@@ -1,0 +1,106 @@
+{
+  "openmeter/notification/webhook/svix": {
+    "purpose": "Svix-backed implementation of webhook.Handler: manages Svix applications (one per namespace), webhook endpoints (channels), event type registration, message delivery, and delivery status polling. All Svix API calls are encapsulated here; callers interact only via the webhook.Handler interface.",
+    "patterns": [
+      {
+        "name": "tracex span wrapping on every method",
+        "description": "Every exported svixHandler method wraps its body in a closure passed to tracex.Start[T] or tracex.StartWithNoValue, producing a named OTel span using 'svix.<operation>' convention.",
+        "example": "return tracex.Start[*webhook.Webhook](ctx, h.tracer, \"svix.create_webhook\").Wrap(fn)"
+      },
+      {
+        "name": "internal.WrapSvixError on every Svix API call",
+        "description": "Every h.client.* call result is immediately reassigned through internal.WrapSvixError(err). Never propagate *svix.Error directly; always wrap before returning or branching.",
+        "example": "if err = internal.WrapSvixError(err); err != nil { return nil, fmt.Errorf(\"...: %w\", err) }"
+      },
+      {
+        "name": "Idempotency key on every mutating Svix call",
+        "description": "CreateApplication, SendMessage, CreateWebhook, ResendMessage, and RotateSecret each generate a fresh idempotency key via idempotency.Key() and pass it to the Svix API options struct.",
+        "example": "idempotencyKey, err := idempotency.Key(); h.client.Message.Create(ctx, ns, input, &svix.MessageCreateOptions{IdempotencyKey: &idempotencyKey})"
+      },
+      {
+        "name": "NullChannel sentinel for unfiltered endpoint prevention",
+        "description": "When creating or updating a webhook with no channels or event types, inject NullChannel ('__null_channel') so the endpoint never receives unintended messages.",
+        "example": "if len(params.Channels) == 0 { params.Channels = []string{NullChannel} }"
+      },
+      {
+        "name": "Namespace maps 1:1 to Svix application UID",
+        "description": "The namespace string is used as both the Svix application name and UID. CreateApplication uses GetOrCreate with Uid=namespace to ensure idempotent provisioning.",
+        "example": "input := svix.ApplicationIn{Name: id, Uid: &id}; h.client.Application.GetOrCreate(ctx, input, ...)"
+      },
+      {
+        "name": "Cursor-based pagination with rate-limit sleep",
+        "description": "ListWebhooks, getDeliveryStatus, and ListAttemptedDestinations iterate Svix pages using Done/Iterator; a 100ms sleep is inserted between pages to respect rate limits.",
+        "example": "if !out.Done { opts.Iterator = out.Iterator; time.Sleep(100 * time.Millisecond); continue }"
+      },
+      {
+        "name": "Annotation constants for OTel span attributes",
+        "description": "All OTel span attributes use the typed constants from annotations.go (AnnotationApplicationUID, AnnotationEndpointUID, etc.) rather than inline strings.",
+        "example": "attribute.String(AnnotationApplicationUID, params.Namespace)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "svix.go",
+        "role": "Package entry point: defines SvixConfig, Config, Error type alias, New() constructor (registers event types on startup), NewHandler(), and the svixHandler struct. New() registers event types; NewHandler is the bare constructor.",
+        "watch_for": "New() uses context.Background() with a timeout for event type registration \u2014 this is the one sanctioned context.Background() usage in this package. Do not replicate this pattern elsewhere."
+      },
+      {
+        "file": "webhook.go",
+        "role": "Implements CreateWebhook, UpdateWebhook, UpdateWebhookChannels, DeleteWebhook, GetWebhook, ListWebhooks \u2014 the core CRUD surface. CreateWebhook auto-generates a ULID endpoint UID and signing secret when not supplied.",
+        "watch_for": "UpdateWebhookChannels is a read-modify-write on channels (GetWebhook then UpdateWebhook) \u2014 not atomic. Concurrent updates can race."
+      },
+      {
+        "file": "message.go",
+        "role": "Implements SendMessage, GetMessage, ResendMessage, and the internal getDeliveryStatus cursor-loop. SendMessage maps HTTP 409 Conflict from Svix to webhook.NewMessageAlreadyExistsError.",
+        "watch_for": "getDeliveryStatus makes two separate paginated calls (ListByMsg for attempts, ListAttemptedDestinations for per-endpoint status) and merges them by Svix endpoint ID \u2014 not by OpenMeter channel ID."
+      },
+      {
+        "file": "application.go",
+        "role": "Implements CreateApplication which is called before every webhook or message operation to ensure the Svix application exists for the namespace via GetOrCreate.",
+        "watch_for": "CreateApplication is called defensively in CreateWebhook and UpdateWebhook; it is not cached \u2014 each call makes a Svix network round-trip."
+      },
+      {
+        "file": "event.go",
+        "role": "Implements RegisterEventTypes using Svix EventType.Update (upsert) for each type \u2014 idempotent, safe to call repeatedly.",
+        "watch_for": "Uses EventType.Update (not Create) so existing event types are updated in place, not duplicated."
+      },
+      {
+        "file": "annotations.go",
+        "role": "Defines all OTel span attribute key constants used across the package.",
+        "watch_for": "Add new constants here; never use raw strings for span attributes."
+      },
+      {
+        "file": "internal/",
+        "role": "Single-responsibility error translation: maps *svix.Error HTTP status codes to typed SvixError categories (retryable, unrecoverable, not-found, validation). Entry point is WrapSvixError.",
+        "watch_for": "Never add business logic or Svix API calls here. Never return *svix.Error outside this package."
+      }
+    ],
+    "anti_patterns": [
+      "Returning *svix.Error directly to callers \u2014 always pass through internal.WrapSvixError first",
+      "Skipping idempotency key generation on mutating Svix calls (Create, Rotate, Resend)",
+      "Creating or updating an endpoint with empty channels and no event types without injecting NullChannel",
+      "Adding Svix API logic inside internal/ \u2014 it is error-mapping only",
+      "Using context.Background() in new methods \u2014 propagate the caller's ctx through the full call path"
+    ],
+    "decisions": [
+      {
+        "decision": "NullChannel sentinel prevents unintended message fan-out",
+        "rationale": "Svix delivers all messages to endpoints without channel or event-type filters. NullChannel is injected as a dummy filter so newly created endpoints receive nothing until explicitly subscribed to real channels."
+      },
+      {
+        "decision": "internal sub-package isolates Svix error HTTP-status mapping",
+        "rationale": "HTTP status codes (429 retry, 422 validation, 404 not-found) drive retry vs unrecoverable classification; centralising this prevents scattered type assertions against *svix.Error across the package."
+      },
+      {
+        "decision": "Every method body is wrapped in a tracex span closure",
+        "rationale": "Uniform OTel tracing with named spans ('svix.*') ensures every Svix call is observable in distributed traces without manual span management at each call site."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new svixHandler method that calls a Svix API",
+        "code": "func (h svixHandler) PauseEndpoint(ctx context.Context, params webhook.PauseWebhookInput) error {\n\tfn := func(ctx context.Context) error {\n\t\tspan := trace.SpanFromContext(ctx)\n\t\tspanAttrs := []attribute.KeyValue{\n\t\t\tattribute.String(AnnotationApplicationUID, params.Namespace),\n\t\t\tattribute.String(AnnotationEndpointUID, params.ID),\n\t\t}\n\t\tspan.AddEvent(\"pausing endpoint\", trace.WithAttributes(spanAttrs...))\n\n\t\tidempotencyKey, err := idempotency.Key()\n\t\tif err != nil {\n\t\t\treturn fmt.Errorf(\"failed to generate idempotency key: %w\", err)\n\t\t}\n\t\terr = h.client.Endpoint.Pause(ctx, params.Namespace, params.ID, &svix.EndpointPauseOptions{\n\t\t\tIdempotencyKey: &idempotencyKey,\n\t\t})\n\t\tif err = internal.WrapSvixError(err); err != nil {\n\t\t\treturn fmt.Errorf(\"failed to pause Svix endpoint: %w\", err)\n\t\t}\n\t\treturn nil\n\t}\n\treturn tracex.StartWithNoValue(ctx, h.tracer, \"svix.pause_endpoint\").Wrap(fn)\n}"
+      }
+    ]
+  }
+}

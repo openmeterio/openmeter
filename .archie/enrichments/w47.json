@@ -1,119 +1,106 @@
 {
-  "docs/decisions": {
-    "purpose": "Architecture Decision Records (ADRs) documenting why OpenMeter chose its core infrastructure stack (Kafka, CloudEvents, ClickHouse, partitioning strategy, idempotency). These are historical records \u2014 they explain constraints that are now baked into the codebase and must not be reversed without a new ADR.",
+  "deploy/charts/openmeter/templates": {
+    "purpose": "Helm templates for deploying all OpenMeter binaries (api, balance-worker, billing-worker, sink-worker, notification-service) plus optional dependencies (Svix, ClickHouse) as Kubernetes workloads. Every template shares a single ConfigMap-mounted config.yaml and the same image tag, enforcing homogeneous deployment across all binaries.",
     "patterns": [
       {
-        "name": "ADR sequential numbering",
-        "description": "Files are named 000N-<slug>.md with a zero-padded sequence number. Each document follows the structure: Context/Problem Statement, Considered Options, Decision Outcome, Consequences.",
-        "example": "0001-event-streaming-platform.md, 0005-clickhouse.md"
+        "name": "componentName for all resource names",
+        "description": "Every resource name must use `include \"openmeter.componentName\" (list . \"<component>\")` \u2014 never `.Release.Name` directly. The helper truncates to 63 chars minus component length for DNS compliance.",
+        "example": "name: {{ include \"openmeter.componentName\" (list . \"billing-worker\") }}"
       },
       {
-        "name": "Decision recorded with tradeoffs",
-        "description": "Every ADR must document both Pros and Cons of the chosen option AND the rejected alternatives. Omitting the Cons section would make the ADR incomplete.",
-        "example": "0003-idempotency.md lists Redis key-expiration and bloom-filter alternatives with explicit cons before explaining the ksqlDB windowed-table choice."
+        "name": "componentLabels / componentSelectorLabels for all label blocks",
+        "description": "All metadata.labels use `openmeter.componentLabels`, all selector.matchLabels use `openmeter.componentSelectorLabels` with the component string. Never write app.kubernetes.io labels inline.",
+        "example": "labels:\n  {{- include \"openmeter.componentLabels\" (list . \"sink-worker\") | nindent 4 }}"
+      },
+      {
+        "name": "checksum/config annotation on every workload pod template",
+        "description": "Every Deployment and CronJob pod template must carry `checksum/config: {{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}` to force pod rollout on config changes.",
+        "example": "annotations:\n  checksum/config: {{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}"
+      },
+      {
+        "name": "initContainers gated on *.enabled flags via named templates",
+        "description": "Init containers are only emitted when `Values.postgresql.enabled` or `Values.clickhouse.enabled` is true, using `openmeter.init.postgres` / `openmeter.init.clickhouse` named templates from _helpers.tpl. Never inline the readiness-check logic.",
+        "example": "{{ if or .Values.postgresql.enabled .Values.clickhouse.enabled -}}\ninitContainers:\n  {{- if .Values.postgresql.enabled -}}\n  {{- include \"openmeter.init.postgres\" (list .) | nindent 8 }}\n  {{- end }}"
+      },
+      {
+        "name": "Shared image tag across all OpenMeter Deployments",
+        "description": "All OpenMeter binary containers use `{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}`. Never pin a different image per component. Svix is the only exception \u2014 it uses `Values.svix.image`.",
+        "example": "image: \"{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}\""
+      },
+      {
+        "name": "Config via ConfigMap volume mount at /etc/openmeter",
+        "description": "Every workload mounts the `openmeter.fullname` ConfigMap at `/etc/openmeter` and passes `--config /etc/openmeter/config.yaml` as an arg. CA certificates are conditionally mounted at `/usr/local/share/ca-certificates` when `Values.caRootCertificates` is non-empty.",
+        "example": "volumeMounts:\n  - name: config\n    mountPath: /etc/openmeter\nvolumes:\n  - name: config\n    configMap:\n      name: {{ include \"openmeter.fullname\" . }}"
+      },
+      {
+        "name": "Optional-dependency resources wrapped in enabled guards",
+        "description": "Files for optional services (clickhouse.yaml, svix.yaml) wrap their entire content in `{{- if .Values.<service>.enabled -}}`. New optional dependencies must follow this pattern and also add an override block in configmap.yaml's helmValuesConfig template.",
+        "example": "{{- if .Values.svix.enabled -}}\napiVersion: apps/v1\nkind: Deployment\n...\n{{- end }}"
       }
     ],
     "key_file_guides": [
       {
-        "file": "0001-event-streaming-platform.md",
-        "role": "Documents why Kafka was chosen as the event streaming backbone. The decision to 'keep interfaces generic' is why streaming.Connector is an abstraction in openmeter/streaming/connector.go.",
-        "watch_for": "The ksqlDB choice here is superseded by 0005-clickhouse.md \u2014 do not treat ksqlDB as the current processor."
+        "file": "_helpers.tpl",
+        "role": "Defines all named templates: openmeter.fullname, openmeter.componentName, openmeter.labels, openmeter.selectorLabels, openmeter.componentLabels, openmeter.componentSelectorLabels, openmeter.serviceAccountName, and init-container helpers (openmeter.init.netcat, openmeter.init.postgres, openmeter.init.clickhouse, openmeter.init.redis). All other templates depend on these.",
+        "watch_for": "openmeter.componentName uses list syntax `(list . \"component\")` \u2014 passing a plain string will break. The name is truncated at `62 - len(component)` chars; long component names silently truncate. openmeter.init.redis uses a PING loop unlike netcat-based postgres/clickhouse init containers."
       },
       {
-        "file": "0002-event-format.md",
-        "role": "Explains why CloudEvents is the ingest wire format. All ingest code in openmeter/ingest/ and openmeter/sink/ works with CloudEvents structs.",
-        "watch_for": "CloudEvents are unique by ID + Source \u2014 this uniqueness contract underlies the deduplication logic in openmeter/dedupe/."
+        "file": "configmap.yaml",
+        "role": "Produces the config.yaml ConfigMap by deep-merging `Values.config` with auto-generated overrides for self-hosted Kafka/ClickHouse/Postgres/Svix via `mergeOverwrite`. Also emits a separate ca-certificates ConfigMap when `Values.caRootCertificates` is set.",
+        "watch_for": "The `helmValuesConfig` define block uses `fromYaml`/`mergeOverwrite` \u2014 whitespace inside the define block matters for YAML validity. Adding a new self-hosted dependency requires a new `if .Values.<dep>.enabled` block here mirroring the override keys from config.example.yaml."
       },
       {
-        "file": "0003-idempotency.md",
-        "role": "Establishes the 32-day deduplication window and ID+Source uniqueness key. These constants appear in openmeter/sink/ and openmeter/dedupe/.",
-        "watch_for": "The ksqlDB deduplication described here is superseded by the Redis/in-memory deduplicator in openmeter/dedupe/ \u2014 the window (32 days) is the enduring constraint."
+        "file": "deployment.yaml",
+        "role": "Defines five Deployments: api, balance-worker, notification-service, sink-worker, billing-worker. Each uses its own `.Values.<component>.replicaCount` and passes a binary-specific entrypoint command to `/entrypoint.sh`.",
+        "watch_for": "Health probes hit `/healthz/live` and `/healthz/ready` on port `telemetry-http` (10000), not the API port (80). The api Deployment additionally exposes port 80 (http). All five Deployments must carry the checksum/config annotation."
       },
       {
-        "file": "0004-partitioning.md",
-        "role": "Explains why subject is the Kafka partition key and why the default partition count is 100.",
-        "watch_for": "Co-partitioning requirements constrain ksqlDB join operations \u2014 relevant if adding new Kafka topics."
+        "file": "jobs.yaml",
+        "role": "Defines three CronJobs: subscription-sync, billing-collect-invoices, billing-advance-invoices. All use `concurrencyPolicy: Forbid` and `restartPolicy: Never`. Schedules come from `Values.jobs.<job>.schedule`.",
+        "watch_for": "New CronJobs must set `concurrencyPolicy: Forbid` to prevent overlapping runs. The job command invokes `openmeter-jobs` binary with subcommand args (e.g. `billing advance all`), not a long-running server. checksum/config must appear at both jobTemplate.metadata and template.metadata levels."
       },
       {
-        "file": "0005-clickhouse.md",
-        "role": "Documents the replacement of ksqlDB with ClickHouse + Kafka Connect. The AggregatingMergeTree + MaterializedView pre-aggregation strategy is why meter queries in openmeter/streaming/clickhouse/ use those table types.",
-        "watch_for": "This ADR supersedes parts of 0001 and 0003 \u2014 ClickHouse is now the analytics store, not ksqlDB."
+        "file": "svix.yaml",
+        "role": "Conditionally deploys Svix as a Deployment + Service, gated on `Values.svix.enabled`. Svix config is injected via environment variables (SVIX_REDIS_DSN, SVIX_DB_DSN, SVIX_JWT_SECRET), not the shared ConfigMap.",
+        "watch_for": "Svix uses its own image (`Values.svix.image`) and its own resources field (`Values.svix.resources`), not the shared `Values.image` or `Values.resources`. Init containers check postgres and redis readiness, not clickhouse."
+      },
+      {
+        "file": "clickhouse.yaml",
+        "role": "Deploys a ClickHouseInstallation CRD (Altinity operator) only when `Values.clickhouse.enabled`. Requires the clickhouse-operator to be installed in the cluster.",
+        "watch_for": "This is a custom CRD (`clickhouse.altinity.com/v1`), not a standard Deployment \u2014 helm lint will fail without the CRD present. Storage sizes (3Gi data, 1Gi log) are hardcoded in volumeClaimTemplates, not values-driven."
+      },
+      {
+        "file": "ingress.yaml",
+        "role": "Standard Kubernetes Ingress for the api Service only. Supports multi-Kube-version API version selection via `semverCompare` (>=1.19-0 uses networking.k8s.io/v1, >=1.14-0 uses v1beta1, otherwise extensions/v1beta1).",
+        "watch_for": "Ingress always targets the api component Service via `openmeter.componentName` with \"api\". Only workers have no Ingress. Only emitted when `Values.ingress.enabled`."
       }
     ],
     "anti_patterns": [
-      "Editing existing ADR files to change the recorded decision \u2014 create a new numbered ADR instead",
-      "Skipping the 'Considered Options' section when writing a new ADR",
-      "Using this folder for operational runbooks or migration guides \u2014 those belong in docs/migration-guides"
+      "Writing app.kubernetes.io/* labels inline instead of using openmeter.componentLabels / openmeter.componentSelectorLabels helpers",
+      "Hardcoding resource names with .Release.Name directly instead of openmeter.componentName or openmeter.fullname",
+      "Adding a new Deployment or CronJob without a checksum/config annotation on the pod template \u2014 config changes won't trigger rollouts",
+      "Adding optional infrastructure without both an `{{- if .Values.<service>.enabled -}}` guard in the resource file AND a corresponding override block in configmap.yaml's helmValuesConfig",
+      "Using different image fields per OpenMeter binary \u2014 all binaries share Values.image.repository and Values.image.tag; only Svix is exempt with Values.svix.image"
     ],
     "decisions": [
       {
-        "decision": "CloudEvents as the universal event format",
-        "rationale": "Enables integration with cloud infrastructure, multi-language SDKs, and provides built-in uniqueness via ID+Source without a custom format."
+        "decision": "Single shared ConfigMap for all workloads, merged at render time from Values.config plus per-flag overrides",
+        "rationale": "All OpenMeter binaries share the same config.yaml schema. Merging at Helm render time via mergeOverwrite avoids per-binary ConfigMaps while still allowing self-hosted dependency addresses to be injected automatically when *.enabled flags are set."
       },
       {
-        "decision": "ClickHouse replaces ksqlDB for analytics",
-        "rationale": "ksqlDB had scaling limitations for small-to-medium producers and lacked clusterization; ClickHouse with AggregatingMergeTree handles pre-aggregation more efficiently."
+        "decision": "CronJobs use concurrencyPolicy: Forbid and restartPolicy: Never",
+        "rationale": "Billing advance, collect, and subscription-sync jobs are not idempotent under concurrent execution; Forbid prevents overlap. Never restart policy means the next scheduled run handles recovery rather than restarting a failed pod indefinitely."
+      },
+      {
+        "decision": "Init containers generated from named templates in _helpers.tpl rather than inline YAML",
+        "rationale": "The same readiness-check logic (nc -z for postgres/clickhouse, PING loop for redis) is reused across all five Deployments and three CronJobs. Centralizing in _helpers.tpl ensures consistent busybox image tag and address derivation from openmeter.fullname."
       }
     ],
-    "code_examples": []
-  },
-  "docs/migration-guides": {
-    "purpose": "User-facing migration guides for breaking changes between OpenMeter versions. Each file covers a specific breaking change: what changed, SQL/API migration steps, and a deprecation timeline. These documents are operator-facing, not developer patterns.",
-    "patterns": [
+    "code_examples": [
       {
-        "name": "Date-prefixed filename",
-        "description": "Files are named YYYY-MM-DD-<slug>.md where the date is the release date of the breaking change, not the writing date.",
-        "example": "2025-06-26-subscription-alignment.md, 2025-08-12-subject-customer-consolidation.md"
-      },
-      {
-        "name": "SQL migration scripts included inline",
-        "description": "Guides that require database changes embed the SQL directly in fenced code blocks (```sql) so operators can run them against their Postgres instance. Scripts are read-only SELECTs first, then UPDATE statements.",
-        "example": "2025-06-26-subscription-alignment.md provides SELECT COUNT(*) audit queries before the UPDATE plans SET billables_must_align = true statement."
-      },
-      {
-        "name": "Before/After API examples for SDK migrations",
-        "description": "API-level changes show TypeScript before/after code blocks using the @openmeter/sdk client so SDK consumers can update their integration code directly.",
-        "example": "2025-08-12-subject-customer-consolidation.md shows openmeter.subjects.createEntitlement \u2192 openmeter.customers.createEntitlement."
-      },
-      {
-        "name": "Deprecation timeline table",
-        "description": "Guides with phased deprecations include a Markdown table with Date and Change columns documenting when deprecated APIs are removed.",
-        "example": "2025-08-12-subject-customer-consolidation.md: September 01, 2025 (deprecated) \u2192 November 01, 2025 (removed)."
+        "scenario": "Adding a new worker Deployment (e.g. charges-worker)",
+        "code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: {{ include \"openmeter.componentName\" (list . \"charges-worker\") }}\n  labels:\n    {{- include \"openmeter.componentLabels\" (list . \"charges-worker\") | nindent 4 }}\nspec:\n  replicas: {{ .Values.chargesWorker.replicaCount }}\n  selector:\n    matchLabels:\n    {{- include \"openmeter.componentSelectorLabels\" (list . \"charges-worker\") | nindent 6 }}\n  template:\n    metadata:\n      annotations:\n        checksum/config: {{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}\n      labels:\n        {{- include \"openmeter.componentLabels\" (list . \"charges-worker\") | nindent 8 }}\n    spec:\n      {{ if or .Values.postgresql.enabled .Values.clickhouse.enabled -}}\n      initContainers:\n        {{- if .Values.postgresql.enabled -}}\n        {{- include \"openmeter.init.postgres\" (list .) | nindent 8 }}\n        {{- end }}\n      {{- end }}\n      containers:\n        - name: {{ .Chart.Name }}\n          image: \"{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}\"\n          command: [\"/entrypoint.sh\", \"openmeter-charges-worker\"]\n          args: [\"--telemetry-address\", \"0.0.0.0:10000\", \"--config\", \"/etc/openmeter/config.yaml\"]\n          ports:\n            - name: telemetry-http\n              containerPort: 10000\n          livenessProbe:\n            httpGet:\n              path: /healthz/live\n              port: telemetry-http\n          readinessProbe:\n            httpGet:\n              path: /healthz/ready\n              port: telemetry-http\n          volumeMounts:\n            - name: config\n              mountPath: /etc/openmeter\n      volumes:\n        - name: config\n          configMap:\n            name: {{ include \"openmeter.fullname\" . }}"
       }
-    ],
-    "key_file_guides": [
-      {
-        "file": "2025-06-26-subscription-alignment.md",
-        "role": "Migration from unaligned to aligned subscriptions (billables_must_align flag). References openmeter/productcatalog/errors.go#L411 and alignment.go#L22 for the validation logic.",
-        "watch_for": "The SQL targets plans and subscriptions tables directly \u2014 the billables_must_align column must still exist in the schema for these queries to work."
-      },
-      {
-        "file": "2025-08-12-subject-customer-consolidation.md",
-        "role": "Documents the consolidation of subject and customer entities \u2014 subjects are deprecated as primary billing entities in favor of customers. Explains automatic usage attribution by customer ID/Key.",
-        "watch_for": "The usageAttribution.subjects field is now optional; code that assumes it is required will need updating. Subject APIs targeted for removal November 2025."
-      },
-      {
-        "file": "2025-11-04-entitlement-events-v1.md",
-        "role": "Removal notice for V1 entitlement events. V2 events replaced V1 after commit 85f7ec90. Operators must drain V1 events before upgrading.",
-        "watch_for": "If adding new entitlement event versions, follow the same pattern: introduce V(N+1), stop producing VN, drain VN, then remove VN in a later release."
-      }
-    ],
-    "anti_patterns": [
-      "Writing a migration guide without audit SELECT queries before destructive UPDATE/DELETE statements",
-      "Referencing internal Go file paths without also explaining the user-visible behavior change",
-      "Combining multiple unrelated breaking changes into a single guide file \u2014 one breaking change per file",
-      "Using these files as ADRs for architectural decisions \u2014 those belong in docs/decisions"
-    ],
-    "decisions": [
-      {
-        "decision": "SQL scripts embedded directly in migration guides rather than as separate .sql files",
-        "rationale": "Keeps the migration context (what, why, SQL) together in one document operators read linearly; separate files risk being run in wrong order or without context."
-      },
-      {
-        "decision": "Phased deprecation timeline with explicit removal dates",
-        "rationale": "API consumers need advance notice; a two-phase approach (deprecate then remove) gives them time to migrate without blocking the internal codebase cleanup."
-      }
-    ],
-    "code_examples": []
+    ]
   }
 }

@@ -1,0 +1,195 @@
+{
+  "deploy/charts/benthos-collector": {
+    "purpose": "Helm chart packaging the benthos-collector binary as a Kubernetes StatefulSet. Primary constraints: stable pod identity for leader election (StatefulSet), credentials protected in Secrets not ConfigMaps, and config-source exclusivity enforced by the benthos-collector.args helper in _helpers.tpl.",
+    "patterns": [
+      {
+        "name": "All resource names via helpers",
+        "description": "Every resource name must use `benthos-collector.fullname` or `benthos-collector.componentName` from templates/_helpers.tpl. Never string-concat `.Release.Name` directly.",
+        "example": "name: {{ include \"benthos-collector.fullname\" . }}"
+      },
+      {
+        "name": "Config stored in Secret not ConfigMap",
+        "description": "The Benthos config.yaml is always rendered into templates/secret.yaml as a base64-encoded Secret to protect embedded credentials. A parallel ConfigMap for the same data is forbidden.",
+        "example": "kind: Secret\ndata:\n  config.yaml: {{ .Values.config | toYaml | b64enc }}"
+      },
+      {
+        "name": "Args routed through benthos-collector.args helper only",
+        "description": "Container startup args must come exclusively from the `benthos-collector.args` helper defined in _helpers.tpl, which validates config-source exclusivity (config vs configFile vs preset). Never add args inline to statefulset.yaml.",
+        "example": "args: {{- include \"benthos-collector.args\" . | nindent 12 }}"
+      },
+      {
+        "name": "Checksum annotation triggers pod rollout on config change",
+        "description": "The pod template must carry a `checksum/config` annotation derived from secret.yaml so StatefulSet pods roll when the config Secret changes.",
+        "example": "annotations:\n  checksum/config: {{ include (print $.Template.BasePath \"/secret.yaml\") . | sha256sum }}"
+      },
+      {
+        "name": "Downward-API env vars injected unconditionally",
+        "description": "K8S_POD_NAME, K8S_POD_UID, and K8S_NAMESPACE are injected from the Downward API in statefulset.yaml unconditionally. New env vars must not conflict with these reserved names.",
+        "example": "- name: K8S_POD_NAME\n  valueFrom:\n    fieldRef:\n      fieldPath: metadata.name"
+      },
+      {
+        "name": "RBAC gated on rbac.create",
+        "description": "Role and RoleBinding in templates/rbac.yaml are wrapped in `{{- if .Values.rbac.create }}` so operators managing RBAC externally can opt out.",
+        "example": "{{- if .Values.rbac.create }}\napiVersion: rbac.authorization.k8s.io/v1\nkind: Role\n{{- end }}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "templates/_helpers.tpl",
+        "role": "Defines all naming, label, and args helpers. Source of truth for benthos-collector.fullname, benthos-collector.args, and common label blocks.",
+        "watch_for": "benthos-collector.args validates config-source exclusivity (config > configFile > preset); adding a new config source requires updating this helper, not statefulset.yaml."
+      },
+      {
+        "file": "templates/statefulset.yaml",
+        "role": "Core workload. Mounts the Secret as a volume, injects Downward-API env vars, and references the args helper.",
+        "watch_for": "Must keep checksum/config annotation; must not inline args; must not reference ConfigMap for config data."
+      },
+      {
+        "file": "templates/secret.yaml",
+        "role": "Renders the Benthos config.yaml as a base64-encoded Secret. Always rendered even when config is empty.",
+        "watch_for": "This is the only acceptable storage for Benthos config \u2014 do not create a parallel ConfigMap."
+      },
+      {
+        "file": "templates/rbac.yaml",
+        "role": "Creates Role and RoleBinding for leader election; guarded by .Values.rbac.create.",
+        "watch_for": "Leader election requires lease/get/update permissions on coordination.k8s.io; missing rules fail silently at runtime."
+      },
+      {
+        "file": "values.yaml",
+        "role": "Defines the three mutually exclusive config sources (config, configFile, preset) and leaderElection, storage, and RBAC toggles.",
+        "watch_for": "config takes precedence over configFile which takes precedence over preset \u2014 precedence is enforced in benthos-collector.args, not values.yaml itself."
+      }
+    ],
+    "anti_patterns": [
+      "Hardcoding release or chart name strings instead of using `benthos-collector.fullname` / `benthos-collector.componentName`",
+      "Storing the Benthos config.yaml in a ConfigMap \u2014 it must always be a Secret to protect embedded credentials",
+      "Adding container args directly in statefulset.yaml instead of routing through the `benthos-collector.args` helper in _helpers.tpl",
+      "Adding new env vars without checking for conflicts with the mandatory Downward-API set (K8S_POD_NAME, K8S_NAMESPACE, K8S_POD_UID)",
+      "Using a Deployment instead of StatefulSet \u2014 stable pod identity is required for leader election and per-pod PVC volumeClaimTemplates"
+    ],
+    "decisions": [
+      {
+        "decision": "StatefulSet over Deployment",
+        "rationale": "Leader election requires stable pod identity (hostname-based); volumeClaimTemplates also needs StatefulSet for per-pod persistent storage when storage.enabled=true."
+      },
+      {
+        "decision": "Config stored in Secret, not ConfigMap",
+        "rationale": "The Benthos config may embed API tokens or credentials; Secret provides base64 encoding and Kubernetes RBAC access-control semantics that ConfigMap does not."
+      },
+      {
+        "decision": "Checksum annotation on pod template",
+        "rationale": "StatefulSets do not automatically restart on Secret changes; the sha256sum annotation on the pod template forces a rollout whenever the config Secret content changes."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new optional feature toggle that injects env vars and CLI args",
+        "code": "# In statefulset.yaml env section:\n{{- if .Values.myFeature.enabled }}\n- name: MY_FEATURE_URL\n  value: {{ .Values.myFeature.url | quote }}\n{{- end }}\n\n# In _helpers.tpl, extend benthos-collector.args to pass --my-feature-flag\n# when .Values.myFeature.enabled is true \u2014 keep all arg logic in the helper."
+      }
+    ]
+  },
+  "deploy/charts/openmeter": {
+    "purpose": "Helm chart deploying all OpenMeter binaries (api, balance-worker, billing-worker, sink-worker, notification-service) plus optional bundled dependencies (Kafka, ClickHouse, PostgreSQL, Redis, Svix) as Kubernetes workloads. Primary constraint: all binaries share a single ConfigMap-mounted config.yaml and a common image tag to prevent version skew across the mono-repo image.",
+    "patterns": [
+      {
+        "name": "Component names via openmeter.componentName helper",
+        "description": "Every resource name must be produced by `openmeter.componentName` (or `openmeter.fullname`) from _helpers.tpl. Hardcoding `.Release.Name` directly breaks multi-release isolation.",
+        "example": "name: {{ include \"openmeter.componentName\" (list . \"api\") }}"
+      },
+      {
+        "name": "Labels via componentLabels / componentSelectorLabels helpers",
+        "description": "All label blocks on Deployments and Services must use `openmeter.componentLabels` and `openmeter.componentSelectorLabels` from _helpers.tpl so label selectors stay consistent.",
+        "example": "labels: {{- include \"openmeter.componentLabels\" (list . \"sink-worker\") | nindent 4 }}"
+      },
+      {
+        "name": "Checksum/config annotation on every workload pod template",
+        "description": "Each Deployment's pod template must carry `checksum/config` derived from configmap.yaml so config changes trigger rollouts for all binaries simultaneously.",
+        "example": "annotations:\n  checksum/config: {{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}"
+      },
+      {
+        "name": "Single shared image tag across all OpenMeter binaries",
+        "description": "All Deployment containers use `Values.image.repository` and `Values.image.tag` (defaulting to `.Chart.AppVersion`). Never introduce per-component image overrides \u2014 all binaries ship in the same Docker image.",
+        "example": "image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+      },
+      {
+        "name": "Optional infrastructure wrapped in enabled guards in both resource and configmap",
+        "description": "Resources for bundled dependencies (Svix, ClickHouse, Kafka, Redis, PostgreSQL) must be wrapped in `{{- if .Values.<service>.enabled }}`. The configmap.yaml must also guard its corresponding connection-string override block for the same flag.",
+        "example": "{{- if .Values.svix.enabled }}\n# resource definition\n{{- end }}"
+      },
+      {
+        "name": "CronJobs use Forbid concurrency and Never restart policy",
+        "description": "All CronJob entries in jobs.yaml must set `concurrencyPolicy: Forbid` and `restartPolicy: Never` to prevent duplicate billing runs when a previous job is still running.",
+        "example": "concurrencyPolicy: Forbid\njobTemplate:\n  spec:\n    template:\n      spec:\n        restartPolicy: Never"
+      },
+      {
+        "name": "Config via single ConfigMap volume mounted at /etc/openmeter",
+        "description": "All workloads mount the same ConfigMap at /etc/openmeter/config.yaml. Per-component ConfigMaps must not be created \u2014 configuration differences are expressed through the single shared config block in configmap.yaml.",
+        "example": "volumeMounts:\n  - name: config\n    mountPath: /etc/openmeter"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "templates/_helpers.tpl",
+        "role": "Defines openmeter.fullname, openmeter.componentName, openmeter.componentLabels, openmeter.componentSelectorLabels, and init-container named templates.",
+        "watch_for": "Init container logic is defined as named templates here, not inline in deployment.yaml \u2014 extend here when adding new init containers."
+      },
+      {
+        "file": "templates/configmap.yaml",
+        "role": "Merges .Values.config with auto-derived connection strings for Kafka, ClickHouse, Redis, PostgreSQL, and Svix based on enabled flags. Single source of runtime config for all workloads.",
+        "watch_for": "Values defined in .Values.config are silently overwritten by chart-derived values; document this in values.yaml comments when adding new override blocks."
+      },
+      {
+        "file": "templates/deployment.yaml",
+        "role": "Renders Deployments for api, balance-worker, billing-worker, sink-worker, notification-service. Each component gets its own replicaCount from Values.<component>.replicaCount.",
+        "watch_for": "Each Deployment must have checksum/config annotation; all use the same image tag; binary entrypoint differs per component via the `args` field."
+      },
+      {
+        "file": "templates/jobs.yaml",
+        "role": "Defines CronJobs for subscriptionSync, billingCollectInvoices, and billingAdvanceInvoices. All use the shared config volume and same image.",
+        "watch_for": "Schedules come from .Values.jobs.<job>.schedule; must use concurrencyPolicy: Forbid to prevent parallel billing runs."
+      },
+      {
+        "file": "templates/svix.yaml",
+        "role": "Renders Svix server Deployment and Service, guarded by .Values.svix.enabled. Injects signing secret and DSN from Values.",
+        "watch_for": "Svix is the only dependency with its own image field (.Values.svix.image) \u2014 all other OpenMeter binaries must use the shared .Values.image fields."
+      },
+      {
+        "file": "values.yaml",
+        "role": "Defines replicaCount per component, all infrastructure enabled/disabled toggles, job schedules, and the config passthrough block.",
+        "watch_for": "The `config` block is a passthrough \u2014 chart-derived values overwrite matching keys at render time; warn users with a comment when adding new overridable keys."
+      },
+      {
+        "file": "Chart.yaml",
+        "role": "Declares Bitnami Kafka, PostgreSQL, Redis, and Altinity ClickHouse operator as conditional subchart dependencies.",
+        "watch_for": "All subchart conditions use `.Values.<name>.enabled`; new subcharts must follow the same pattern and update Chart.lock."
+      }
+    ],
+    "anti_patterns": [
+      "Writing app.kubernetes.io/* labels inline instead of using openmeter.componentLabels / openmeter.componentSelectorLabels helpers",
+      "Hardcoding resource names with .Release.Name directly instead of openmeter.componentName or openmeter.fullname",
+      "Adding a new Deployment or CronJob without a checksum/config annotation on the pod template \u2014 config changes won't trigger rollouts",
+      "Adding optional infrastructure without both a `{{- if .Values.<service>.enabled -}}` guard in the resource file AND a corresponding override block in configmap.yaml",
+      "Using different image fields per OpenMeter binary \u2014 all OpenMeter binaries share Values.image.repository and Values.image.tag; only Svix is exempt with its own Values.svix.image"
+    ],
+    "decisions": [
+      {
+        "decision": "Single shared ConfigMap for all workloads, merged at render time",
+        "rationale": "All OpenMeter binaries read the same config.yaml format; a single ConfigMap avoids config drift between components and lets the checksum annotation trigger all workloads on any config change."
+      },
+      {
+        "decision": "CronJobs use concurrencyPolicy: Forbid",
+        "rationale": "Billing and subscription-sync jobs must not run concurrently \u2014 duplicate runs would produce double-billing or race conditions in invoice advancement."
+      },
+      {
+        "decision": "All OpenMeter binaries share one image and tag",
+        "rationale": "The mono-repo produces a single Docker image containing all binaries; per-component image overrides would allow version skew between components that share domain package types compiled from the same source."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new OpenMeter binary worker Deployment",
+        "code": "# In deployment.yaml, follow the existing component block pattern:\n- name: {{ include \"openmeter.componentName\" (list . \"my-worker\") }}\n  replicas: {{ .Values.myWorker.replicaCount }}\n  template:\n    metadata:\n      annotations:\n        checksum/config: {{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}\n      labels: {{- include \"openmeter.componentLabels\" (list . \"my-worker\") | nindent 8 }}\n    spec:\n      containers:\n        - image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}\n          args: [\"my-worker\"]\n          volumeMounts:\n            - name: config\n              mountPath: /etc/openmeter\n# Add myWorker.replicaCount: 1 in values.yaml"
+      }
+    ]
+  }
+}

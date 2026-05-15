@@ -2,7 +2,7 @@
 
 <!-- archie:ai-start -->
 
-> Structural container for shared billing domain model sub-packages: creditsapplied (credit slice type with currency-aware summation), externalid (invoice/line external-ID types and Ent mixin helpers), stddetailedline (detailed line base struct with Ent mixin and goderive equality), and totals (financial breakdown struct with Ent mixin and currency-precision rounding). No source files live here directly.
+> Organisational container for shared billing domain model sub-packages: creditsapplied (credit slice with currency-aware summation), externalid (invoice/line external-ID types and Ent mixin helpers), stddetailedline (detailed line base struct with Ent mixin and goderive equality), and totals (financial breakdown struct with Ent mixin and currency-precision rounding). No source files live directly in this folder.
 
 ## Patterns
 
@@ -21,6 +21,7 @@
 | `openmeter/billing/models/externalid/mixin.go` | Ent mixin adding invoicing/payment external ID columns; generic Creator/Updater/Getter interfaces for type-safe Ent mutations. | Always use lo.EmptyableToPtr for nullable string columns — never store empty strings. |
 | `openmeter/billing/models/stddetailedline/model.go` | Base struct for flat-fee and usage-based detailed lines. child_unique_reference_id is required (DB CHECK constraint). | child_unique_reference_id has a DB CHECK constraint — it is required for upsert identity; never make it optional. |
 | `openmeter/billing/models/creditsapplied/model.go` | CreditsApplied slice with Validate (positivity) and currency-aware Sum. | Accumulating amounts without RoundToPrecision causes precision drift. |
+| `openmeter/billing/models/stddetailedline/derived.gen.go` | Goderive-generated equality for stddetailedline.Base — never hand-edit. | Regenerate via go generate after any Base struct field change. |
 
 ## Anti-Patterns
 

@@ -19,12 +19,12 @@
 
 ## Anti-Patterns
 
-- Using fmt.Errorf("%s: %w", prefix, joinedErr) instead of WithPrefix — loses per-leaf prefix propagation in joined errors.
-- Returning *warnError directly — always use NewWarnError which handles nil safely.
-- Using NopHandler in production HTTP handlers — silently swallows all transport errors.
+- Using fmt.Errorf("%s: %w", prefix, joinedErr) instead of WithPrefix — loses per-leaf prefix propagation in joined errors
+- Returning *warnError directly — always use NewWarnError which handles nil safely
+- Using NopHandler in production HTTP handlers — silently swallows all transport errors
 
 ## Decisions
 
-- **WithPrefix recurses through Unwrap() []error (joined errors) but stops at single-Unwrap wrappers.** — Only top-level joins should be expanded; wrapping a join with fmt.Errorf is an intentional barrier that should not be silently penetrated.
+- **WithPrefix recurses through Unwrap() []error (joined errors) but stops at single-Unwrap wrappers** — Only top-level joins should be expanded; wrapping a join with fmt.Errorf is an intentional barrier that should not be silently penetrated.
 
 <!-- archie:ai-end -->

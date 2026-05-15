@@ -1,0 +1,598 @@
+{
+  "pkg": {
+    "purpose": "Shared infrastructure and utility leaf layer for the entire monorepo \u2014 provides generic HTTP transport (pkg/framework/httptransport), Ent transaction management (pkg/framework/entutils), domain primitives (pkg/models), time/billing utilities (pkg/timeutil, pkg/datetime), Kafka plumbing (pkg/kafka), pagination (pkg/pagination), filters (pkg/filter), and dozens of small focused packages. Primary constraint: pkg/ must never import openmeter/* domain packages \u2014 it is a pure leaf dependency used by all seven binaries and their domains.",
+    "patterns": [
+      {
+        "name": "pkg/framework as universal infrastructure layer",
+        "description": "All domain adapter code depends on pkg/framework/entutils for TransactingRepo, pkg/framework/httptransport for the HTTP handler pipeline, pkg/framework/lockr for advisory locks, and pkg/framework/commonhttp for RFC 7807 error encoding. Never bypass these abstractions by calling Ent, net/http, or Postgres APIs directly from domain code.",
+        "example": "entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*Entity, error) { ... })"
+      },
+      {
+        "name": "pkg/models as the foundational domain primitive \u2014 zero openmeter/* imports",
+        "description": "pkg/models provides ValidationIssue, NamespacedID, ServiceHookRegistry, RFC 7807 Problem, typed error sentinels, and CadencedModel. It must import nothing from openmeter/* \u2014 violations create circular deps that break the entire type system.",
+        "example": "return nil, models.NewGenericNotFoundError(models.NamespacedID{Namespace: ns, ID: id})"
+      },
+      {
+        "name": "clock.Now() everywhere in production code",
+        "description": "All time reads in production code must use pkg/clock.Now() not time.Now(). Tests use clock.FreezeTime / clock.UnFreeze for deterministic billing period calculations. Forgetting defer clock.UnFreeze() leaks frozen state across test cases.",
+        "example": "import \"github.com/openmeterio/openmeter/pkg/clock\"; t := clock.Now()"
+      },
+      {
+        "name": "Typed errors via models.Generic* sentinels",
+        "description": "Domain service and adapter methods must return typed errors (models.GenericNotFoundError, models.GenericConflictError, models.GenericValidationError, etc.) not raw fmt.Errorf \u2014 the GenericErrorEncoder maps these to correct HTTP status codes via type matching.",
+        "example": "return nil, models.NewGenericConflictError(models.NamespacedID{Namespace: ns, ID: id})"
+      },
+      {
+        "name": "pkg/datetime for all calendar arithmetic",
+        "description": "Month/year duration arithmetic must use pkg/datetime.DateTime.Add(ISODuration) not time.Duration arithmetic \u2014 month lengths vary and naive Duration math produces wrong billing period boundaries.",
+        "example": "next := start.Add(datetime.DurationMonth)"
+      },
+      {
+        "name": "pkg/filter dual-output filter types",
+        "description": "Query filters must implement both Ent selector predicates and go-sqlbuilder WHERE expressions via the pkg/filter.Filter interface. Single-operator validation via Validate() must be called before applying filters to queries.",
+        "example": "filter.FilterString{In: []string{\"a\", \"b\"}}.Select(predicate)"
+      },
+      {
+        "name": "pkg/pagination Page/Result contract for all list operations",
+        "description": "All domain List methods must accept pagination.Page and return pagination.Result[T]. Never compute SQL OFFSET or LIMIT directly; use Page.Offset() and Page.Limit(). Construct results via MapResult/MapResultErr to avoid missed TotalCount assignments.",
+        "example": "return pagination.MapResult(page, items, func(i Item) APIItem { return toAPI(i) })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "pkg/framework/entutils/transaction.go",
+        "role": "TransactingRepo / TransactingRepoWithNoValue \u2014 reads and rebinds the ctx-bound Ent transaction; central to all adapter DB access",
+        "watch_for": "Never call creator.Tx() directly or store *entdb.Tx on adapter structs \u2014 use TransactingRepo so helpers rebind to the caller's ctx transaction"
+      },
+      {
+        "file": "pkg/framework/transport/httptransport/handler.go",
+        "role": "Generic Handler[Request,Response] decode/operate/encode pipeline with chained ErrorEncoders \u2014 every domain HTTP handler uses this",
+        "watch_for": "Chain adds middleware; AppendOptions appends error encoders \u2014 do not replace h.options entirely; GenericErrorEncoder is always appended via defaultHandlerOptions"
+      },
+      {
+        "file": "pkg/framework/lockr/locker.go",
+        "role": "pg_advisory_xact_lock distributed lock \u2014 requires active Postgres transaction in ctx before LockForTX is called",
+        "watch_for": "Locker returns an error if no tx is in ctx; use SessionLocker (session.go) for connection-scoped locks that outlive transactions"
+      },
+      {
+        "file": "pkg/models/validationissue.go",
+        "role": "Immutable ValidationIssue value type with With* copy-on-write builder; carries field paths, component names, severity, and HTTP status attributes",
+        "watch_for": "Never mutate a ValidationIssue struct field directly \u2014 always use With* methods which clone; direct mutation corrupts shared instances in multi-layer error propagation"
+      },
+      {
+        "file": "pkg/models/servicehook.go",
+        "role": "Generic ServiceHookRegistry[T] for cross-domain lifecycle callbacks with re-entrancy prevention via pointer-identity context key",
+        "watch_for": "Loop-prevention uses fmt.Sprintf('%p', r) \u2014 do not copy the registry value; RegisterHooks is called at Wire time in app/common, not in domain constructors"
+      },
+      {
+        "file": "pkg/timeutil/recurrence.go",
+        "role": "Anchor-based billing period recurrence (Recurrence, NewRecurrence, NewRecurrenceFromISODuration) for subscription and metering cadences",
+        "watch_for": "Always construct via NewRecurrence \u2014 struct literal skips Validate(); use ISODuration for month/year intervals not time.Duration; Overlaps and OverlapsInclusive differ for touching periods"
+      },
+      {
+        "file": "pkg/kafka/config.go",
+        "role": "Typed Kafka config structs producing kafka.ConfigMap with sequential fail-fast validation and localhost IPv4 auto-fix",
+        "watch_for": "Never set kafka.ConfigMap keys directly \u2014 bypasses validation; metadata.max.age.ms must always be 3\u00d7 TopicMetadataRefreshInterval"
+      },
+      {
+        "file": "pkg/pagination/page.go",
+        "role": "Page/Result[T] contract for all domain List methods; Result.MarshalJSON flattens Page fields into the JSON root",
+        "watch_for": "Use MapResult/MapResultErr \u2014 manual Result construction misses TotalCount and Page echo; CollectAll caps at 10,000 pages and returns nil on any page error"
+      }
+    ],
+    "anti_patterns": [
+      "Importing openmeter/* domain packages from any pkg/ sub-package \u2014 creates circular dependencies; pkg/ is a pure leaf that all domains depend on",
+      "Using time.Now() instead of clock.Now() in any pkg/ or openmeter/ production code \u2014 breaks test determinism for billing period calculations",
+      "Returning plain fmt.Errorf from service/adapter code where models.Generic* typed errors are expected \u2014 the GenericErrorEncoder falls through to 500 Internal Server Error",
+      "Using time.Duration arithmetic for month/year periods instead of pkg/datetime ISODuration \u2014 month lengths vary and produce wrong billing period boundaries",
+      "Calling entutils.TransactingRepo with a raw *entdb.Client in a helper invoked inside a transaction \u2014 must still wrap so the ctx-bound transaction is honored"
+    ],
+    "decisions": [
+      {
+        "decision": "pkg/ has zero imports from openmeter/* domain packages",
+        "rationale": "Prevents circular dependency; all seven domain binaries and their test suites depend on pkg/ \u2014 any openmeter/* import would create an unresolvable cycle"
+      },
+      {
+        "decision": "pkg/framework/entutils.TransactingRepo reads transaction from ctx rather than accepting *entdb.Tx as a parameter",
+        "rationale": "Ent transactions propagate implicitly via ctx; parameter-passing would leak tx plumbing into every adapter call site and make nested transaction participation impossible"
+      },
+      {
+        "decision": "pkg/models.ValidationIssue uses a private constructor and With* copy-on-write pattern rather than a mutable builder",
+        "rationale": "Immutability prevents accidental mutation as issues propagate through service \u2192 adapter \u2192 HTTP encoder chain; multiple service layers can annotate the same issue safely"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Domain adapter method using TransactingRepo with typed error sentinel",
+        "code": "import (\n    entdb \"github.com/openmeterio/openmeter/openmeter/ent/db\"\n    \"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (a *adapter) GetByID(ctx context.Context, ns, id string) (*Entity, error) {\n    return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*Entity, error) {\n        row, err := tx.db.Entity.Query().\n            Where(entity.Namespace(ns), entity.ID(id)).\n            Only(ctx)\n        if entdb.IsNotFound(err) {\n            return nil, models.NewGenericNotFoundError(models.NamespacedID{Namespace: ns, ID: id})\n        }\n        return toDomain(row), err\n    })\n}"
+      }
+    ]
+  },
+  "pkg/framework": {
+    "purpose": "Shared low-level infrastructure layer providing the generic HTTP transport pipeline (httptransport), Ent transaction management (entutils), distributed locks (lockr), RFC 7807 error encoding (commonhttp), OTel instrumentation helpers (tracex), and pgx pool wiring (pgdriver). All domain packages under openmeter/ depend on this layer; it must never import them.",
+    "patterns": [
+      {
+        "name": "httptransport decode/operate/encode pipeline",
+        "description": "Every HTTP handler uses httptransport.NewHandler[Request,Response] with a RequestDecoder, an Operation function, and a ResponseEncoder. Error encoders are chained via AppendOptions; the GenericErrorEncoder is always appended last via defaultHandlerOptions.",
+        "example": "httptransport.NewHandler(decode, operate, encode, httptransport.AppendOptions(commonhttp.GenericErrorEncoder()))"
+      },
+      {
+        "name": "TxCreator + TxUser[T] triad on every adapter",
+        "description": "Every domain adapter must implement Tx() (via HijackTx + NewTxDriver), WithTx() (via NewTxClientFromRawConfig), and Self(). TransactingRepo reads *TxDriver from ctx and calls WithTx; if none it calls Self(). All three methods are required.",
+        "example": "func (a *adapter) Self() *adapter { return a }\nfunc (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {\n    return &adapter{db: entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()}\n}"
+      },
+      {
+        "name": "TransactingRepo on every adapter method body",
+        "description": "Every public adapter method body must be wrapped in entutils.TransactingRepo (or TransactingRepoWithNoValue for void returns). This rebinds the Ent client to the active ctx transaction. Helpers called from within a transaction must also wrap \u2014 TransactingRepo silently falls back to Self() if no tx is in ctx.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*Entity, error) {\n    return tx.db.Entity.Create().Save(ctx)\n})"
+      },
+      {
+        "name": "GenericErrorEncoder chain \u2014 bool-returning, first-match wins",
+        "description": "Error encoders in commonhttp return bool; the first to return true short-circuits the chain. GenericErrorEncoder maps models.Generic* sentinels via HandleErrorIfTypeMatches. Custom encoders passed before it take precedence.",
+        "example": "commonhttp.GenericErrorEncoder() // always append last; custom encoders go first"
+      },
+      {
+        "name": "LockForTX inside active Ent transaction",
+        "description": "lockr.Locker.LockForTX must be called inside an entutils.TransactingRepo callback where the Ent tx is already in ctx. Calling outside a transaction returns an error. Lock releases on tx commit/rollback automatically.",
+        "example": "return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n    return locker.LockForTX(ctx, key)\n})"
+      },
+      {
+        "name": "tracex.Start + Wrap for OTel span lifecycle",
+        "description": "Use tracex.Start or tracex.Wrap instead of tracer.Start directly \u2014 tracex records errors, sets span status, and recovers panics automatically. Pass the span's ctx to all downstream calls.",
+        "example": "return tracex.Start(ctx, s.tracer, \"svc.DoWork\", func(span *tracex.Span[any]) (any, error) {\n    return nil, span.Wrap(s.adapter.Write(span.Ctx(), id))\n}).Err()"
+      },
+      {
+        "name": "Standard mixin composition on all Ent entity schemas",
+        "description": "Every new Ent entity schema in openmeter/ent/schema/ must include entutils.IDMixin{}, entutils.NamespaceMixin{}, entutils.TimeMixin{} in its Mixin() slice. Omitting any breaks multi-tenancy queries or soft-delete semantics.",
+        "example": "func (E) Mixin() []ent.Mixin {\n    return []ent.Mixin{entutils.IDMixin{}, entutils.NamespaceMixin{}, entutils.TimeMixin{}}\n}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "pkg/framework/entutils/transaction.go",
+        "role": "TransactingRepo and TransactingRepoWithNoValue \u2014 read *TxDriver from ctx, call WithTx if found or Self() if not; the sole mechanism for ctx-propagated Ent transactions",
+        "watch_for": "Never call creator.Tx() directly in adapter method bodies \u2014 use TransactingRepo; helpers that take a raw *entdb.Client must still wrap to rebind to ctx tx"
+      },
+      {
+        "file": "pkg/framework/entutils/mixins.go",
+        "role": "IDMixin (ULID char(26) PK), NamespaceMixin (namespace field), TimeMixin (created_at/updated_at/deleted_at), MetadataMixin \u2014 standard ent.Mixin implementations",
+        "watch_for": "All three standard mixins are required on every new entity; omitting NamespaceMixin makes the entity invisible to namespace-scoped queries"
+      },
+      {
+        "file": "pkg/framework/commonhttp/errors.go",
+        "role": "GenericErrorEncoder \u2014 chains HandleErrorIfTypeMatches for each models.Generic* type; HandleIssueIfHTTPStatusKnown for ValidationIssue with HTTP status attribute",
+        "watch_for": "Always append GenericErrorEncoder last; custom encoders added after it will never fire because bool-returning chain short-circuits on first true"
+      },
+      {
+        "file": "pkg/framework/lockr/locker.go",
+        "role": "pg_advisory_xact_lock via CRC64 hash of lock key; requires *TxDriver in ctx via entutils.GetDriverFromContext",
+        "watch_for": "Returns error if no tx in ctx; do not use context.WithTimeout around LockForTX \u2014 use pgdriver.WithLockTimeout instead to avoid pgx connection cancellation"
+      },
+      {
+        "file": "pkg/framework/lockr/session.go",
+        "role": "SessionLocker \u2014 connection-scoped advisory lock (pg_advisory_lock) for admin flows that need locks to outlive individual transactions",
+        "watch_for": "Not goroutine-safe under high contention; always defer sl.Close() to release the dedicated connection; never share across goroutines"
+      },
+      {
+        "file": "pkg/framework/transport/httptransport/handler.go",
+        "role": "Handler[Request,Response] generic struct \u2014 ServeHTTP runs decode \u2192 operation \u2192 encode; Chain adds operation.Middleware; AppendOptions adds error encoders",
+        "watch_for": "defaultHandlerOptions always appends GenericErrorEncoder \u2014 do not duplicate it; implement decode/encode as pure functions, not methods with side effects"
+      },
+      {
+        "file": "pkg/framework/tracex/tracex.go",
+        "role": "tracex.Start/Wrap wrappers that automatically record errors, set span status, and recover panics \u2014 preferred over raw tracer.Start",
+        "watch_for": "Always use span.Ctx() (not the outer ctx) for downstream calls inside the tracex callback so the span is in the propagated context"
+      },
+      {
+        "file": "pkg/framework/pgdriver/driver.go",
+        "role": "pgx pool construction, WithLockTimeout context helper, and pgx TLS configuration for PostgreSQL connections",
+        "watch_for": "Use pgdriver.WithLockTimeout instead of context.WithTimeout for advisory lock waits; context cancellation destroys the pgx connection rather than just aborting the wait"
+      }
+    ],
+    "anti_patterns": [
+      "Importing openmeter/* domain packages from any pkg/framework sub-package \u2014 creates import cycles; this layer must be a leaf dependency with no domain imports",
+      "Using context.Background() or context.TODO() inside adapter TransactingRepo callbacks \u2014 always propagate the caller's ctx to maintain transaction and OTel span linkage",
+      "Calling creator.Tx() directly or storing *entdb.Tx on adapter structs instead of using TransactingRepo \u2014 falls off the ctx-bound transaction and produces partial writes under concurrency",
+      "Adding ORDER BY clauses on Ent queries before calling .Cursor() \u2014 entcursor appends (created_at ASC, id ASC) and combined ordering becomes undefined",
+      "Implementing business logic inside operation.Middleware \u2014 middleware is for cross-cutting concerns (auth, logging, tracing) only; business logic belongs in the Operation function"
+    ],
+    "decisions": [
+      {
+        "decision": "TransactingRepo reads *TxDriver from ctx rather than accepting *entdb.Tx as a parameter",
+        "rationale": "Ent transactions propagate implicitly via ctx; a *entdb.Tx parameter would require threading it through every adapter call site and prevent nested participation via savepoints"
+      },
+      {
+        "decision": "Two advisory lock types: Locker (tx-scoped via pg_advisory_xact_lock) and SessionLocker (connection-scoped via pg_advisory_lock)",
+        "rationale": "Tx-scoped locks release on commit/rollback without explicit cleanup; connection-scoped locks are needed for admin operations (e.g., Atlas migrations) that span multiple transactions"
+      },
+      {
+        "decision": "httptransport.Handler[Request,Response] generic pipeline separates decode/operate/encode with chained ErrorEncoders",
+        "rationale": "Separation of concerns ensures decode errors, domain errors, and encoding errors each flow through the same encoder chain and produce RFC 7807 Problem Details without boilerplate per-handler"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Domain adapter implementing the TxCreator + TxUser triad and using TransactingRepo",
+        "code": "import (\n    \"context\"\n    \"database/sql\"\n    entdb \"github.com/openmeterio/openmeter/openmeter/ent/db\"\n    \"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n    \"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\ntype adapter struct{ db *entdb.Client }\n\nfunc (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {\n    txCtx, cfg, drv, err := a.db.HijackTx(ctx, &sql.TxOptions{})\n    if err != nil { return nil, nil, err }\n    return txCtx, entutils.NewTxDriver(drv, cfg), nil\n}\nfunc (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {\n    return &adapter{db: entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()}\n}\nfunc (a *adapter) Self() *adapter { return a }\n\nfunc (a *adapter) Create(ctx context.Context, ns, name string) error {\n    return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n        return tx.db.Entity.Create().SetNamespace(ns).SetName(name).Exec(ctx)\n    })\n}"
+      }
+    ]
+  },
+  "pkg/clock": {
+    "purpose": "Process-global test clock that replaces time.Now() with a controllable time source backed by atomic drift/freeze variables. All production code must call clock.Now() so tests can freeze or shift time deterministically without any interface injection.",
+    "patterns": [
+      {
+        "name": "clock.Now() everywhere in production code",
+        "description": "Replace every time.Now() call in production code with clock.Now(). The global atomic design means no interface injection is needed \u2014 a single import replaces all time sources.",
+        "example": "import \"github.com/openmeterio/openmeter/pkg/clock\"\nt := clock.Now()"
+      },
+      {
+        "name": "FreezeTime / UnFreeze in tests with defer",
+        "description": "Tests that need deterministic time use clock.FreezeTime(t) to pin the clock and must always defer clock.UnFreeze() or defer clock.ResetTime() to prevent frozen state leaking across test cases.",
+        "example": "clock.FreezeTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))\ndefer clock.UnFreeze()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "clock.go",
+        "role": "Package-level atomic drift and freeze vars; Now() reads current time with optional frozen override; SetTime/FreezeTime/UnFreeze/ResetTime control test state",
+        "watch_for": "Forgetting defer clock.UnFreeze() or defer clock.ResetTime() leaks state across parallel test cases; Monotonic clock is stripped from all returned times"
+      }
+    ],
+    "anti_patterns": [
+      "Calling time.Now() directly in production code \u2014 always use clock.Now()",
+      "Forgetting defer clock.ResetTime() or defer clock.UnFreeze() in tests, which leaks frozen/drifted state across test cases",
+      "Adding a context parameter or Clock interface \u2014 the global atomic design is intentional for zero-overhead usage across the codebase"
+    ],
+    "decisions": [
+      {
+        "decision": "Package-level atomics instead of an injected Clock interface",
+        "rationale": "Zero-overhead clock reads in hot paths (ingest, balance calculation); no interface injection required across hundreds of call sites"
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/models": {
+    "purpose": "Foundational domain primitive library shared by all openmeter/* and api/* packages \u2014 provides typed error sentinels, immutable ValidationIssue builder, ServiceHookRegistry with re-entrancy prevention, RFC 7807 StatusProblem, FieldDescriptor trees for structured field paths, and time-bounded CadencedModel helpers. Zero imports from openmeter/* domain packages \u2014 this package must remain a pure leaf.",
+    "patterns": [
+      {
+        "name": "Generic typed error sentinels",
+        "description": "Service and adapter methods must return models.Generic* typed errors (GenericNotFoundError, GenericConflictError, GenericValidationError, GenericForbiddenError, etc.) so the GenericErrorEncoder chain maps them to correct HTTP status codes via HandleErrorIfTypeMatches.",
+        "example": "return nil, models.NewGenericNotFoundError(models.NamespacedID{Namespace: ns, ID: id})"
+      },
+      {
+        "name": "ValidationIssue immutable with-chain builder",
+        "description": "Construct ValidationIssue via NewValidationIssue/NewValidationError/NewValidationWarning then chain With* methods (WithPathString, WithComponent, WithSeverity). Never assign struct fields directly \u2014 all With* methods return clones.",
+        "example": "err := models.NewValidationIssue(\"invalid_amount\", \"must be positive\").\n    WithPathString(\"amount\").\n    WithComponent(\"charges\")"
+      },
+      {
+        "name": "ServiceHookRegistry cross-domain lifecycle callbacks",
+        "description": "ServiceHookRegistry[T] fans out PreCreate/PostCreate/PreUpdate/PostUpdate/PreDelete/PostDelete to all registered hooks. Loop prevention uses pointer-identity context key \u2014 do not copy the registry value. Register hooks in app/common, not in domain constructors.",
+        "example": "svc.RegisterHooks(ledgerHook, subjectHook) // called in app/common provider, not constructor"
+      },
+      {
+        "name": "RFC 7807 StatusProblem for HTTP error responses",
+        "description": "models.NewStatusProblem reads request-id from Chi context, maps 'context canceled' to 408, suppresses Detail on 500, and serializes to application/problem+json. Use this for all error responses, never write raw JSON error objects.",
+        "example": "models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)"
+      },
+      {
+        "name": "Validator interface on input types",
+        "description": "All service input types (CreateXxxInput, ListXxxInput) must implement models.Validator (Validate() error) so validation runs at service entry before adapter access.",
+        "example": "func (i CreateCustomerInput) Validate() error { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "pkg/models/errors.go",
+        "role": "Typed error sentinel constructors: NewGenericNotFoundError, NewGenericConflictError, NewGenericValidationError, etc.; Is* predicate helpers for type matching",
+        "watch_for": "Return these typed sentinels from service/adapter code \u2014 never plain fmt.Errorf where HTTP status mapping is needed; Is* predicates use errors.As not == comparison"
+      },
+      {
+        "file": "pkg/models/validationissue.go",
+        "role": "Immutable ValidationIssue value type with private constructor and With* copy-on-write builder; AsValidationIssues traverses error trees",
+        "watch_for": "Never mutate a ValidationIssue struct field directly; AsValidationIssues only extracts ValidationIssue nodes \u2014 plain errors are invisible to it"
+      },
+      {
+        "file": "pkg/models/servicehook.go",
+        "role": "Generic ServiceHookRegistry[T] with re-entrancy prevention via pointer-identity context key (fmt.Sprintf('%p', r)); thread-safe fan-out via errors.Join",
+        "watch_for": "Register hooks in app/common provider functions \u2014 registering inside domain constructors creates circular imports; do not copy the registry value (loop key is pointer-based)"
+      },
+      {
+        "file": "pkg/models/fielddescriptor.go",
+        "role": "FieldDescriptor tree (via pkg/treex) for structured field paths in validation errors \u2014 richer than dot-delimited strings",
+        "watch_for": "FieldDescriptor forms a tree not a flat path \u2014 use AppendToPath for chaining, not string concatenation"
+      },
+      {
+        "file": "pkg/models/model.go",
+        "role": "NamespacedID, NamespacedKey, ManagedModel, CadencedModel base structs used throughout domain types",
+        "watch_for": "CadencedModel uses half-open [ActiveFrom, ActiveTo) interval \u2014 do not use closed intervals for cadence queries"
+      }
+    ],
+    "anti_patterns": [
+      "Importing from openmeter/* domain packages \u2014 pkg/models must remain a leaf with zero openmeter/* imports",
+      "Mutating a ValidationIssue in place \u2014 all With* methods clone; direct struct field assignment bypasses the immutability contract and corrupts shared instances",
+      "Returning plain errors.New() from a service layer where ValidationIssue is expected \u2014 AsValidationIssues cannot extract raw errors, only ValidationIssue nodes",
+      "Using reflect.DeepEqual for Annotations or ValidationIssue equality \u2014 use the provided Equal() methods which handle nil and non-comparable values",
+      "Constructing StatusProblem with Detail set for 500 responses \u2014 NewStatusProblem intentionally suppresses detail on 500 to prevent internal stack trace leak"
+    ],
+    "decisions": [
+      {
+        "decision": "ValidationIssue uses a private constructor and copy-on-write With* methods instead of a mutable builder",
+        "rationale": "Immutability prevents accidental mutation as issues propagate through service \u2192 adapter \u2192 HTTP encoder chain; multiple service layers can annotate the same issue independently"
+      },
+      {
+        "decision": "ServiceHookRegistry uses a pointer-identity-based context key (loopKey from fmt.Sprintf('%p', r)) to prevent re-entrant hook invocations",
+        "rationale": "Hooks can themselves trigger operations that fire hooks; without loop prevention a billing hook on customer update could trigger infinite re-entrancy"
+      },
+      {
+        "decision": "FieldDescriptor forms a tree (via pkg/treex) rather than a simple dot-delimited string",
+        "rationale": "Tree structure allows typed traversal and structured path components with semantic meaning (array index, map key, struct field) rather than opaque string splitting"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Service method returning typed error sentinels and ValidationIssue",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/models\"\n\nfunc (s *service) Create(ctx context.Context, input CreateInput) (*Entity, error) {\n    if err := input.Validate(); err != nil {\n        return nil, err // Validate() returns ValidationIssue via models.NewValidationError\n    }\n    entity, err := s.adapter.GetByKey(ctx, input.Namespace, input.Key)\n    if err == nil {\n        return nil, models.NewGenericConflictError(models.NamespacedID{Namespace: input.Namespace})\n    }\n    if !models.IsGenericNotFoundError(err) {\n        return nil, err\n    }\n    return s.adapter.Create(ctx, input)\n}"
+      }
+    ]
+  },
+  "pkg/pagination": {
+    "purpose": "Offset-based pagination primitives (Page, Result[T], Paginator[T], CollectAll) used by all domain service List methods, plus a cursor-based v2 sub-package for time+ID keyset pagination. Primary constraint: all list queries must use these types \u2014 never compute SQL OFFSET or LIMIT directly in handlers or adapters.",
+    "patterns": [
+      {
+        "name": "Page/Result contract for all list services",
+        "description": "All List service methods accept pagination.Page and return pagination.Result[T] and error. Page.Offset() and Page.Limit() provide the SQL OFFSET and LIMIT values. Result[T].MarshalJSON flattens Page fields into the JSON root.",
+        "example": "func (s *service) List(ctx context.Context, in ListInput) (pagination.Result[Entity], error)"
+      },
+      {
+        "name": "MapResult/MapResultErr for safe result construction",
+        "description": "Use pagination.MapResult or pagination.MapResultErr to transform domain slices into API slices while preserving TotalCount and Page echo. Never construct pagination.Result manually \u2014 the Page and TotalCount assignments are easy to get wrong.",
+        "example": "return pagination.MapResult(result, func(e Entity) APIEntity { return toAPI(e) }), nil"
+      },
+      {
+        "name": "NewPaginator for CollectAll pagination",
+        "description": "Wrap a list function with NewPaginator to get a CollectAll-compatible Paginator[T]. CollectAll caps at MAX_SAFE_ITER = 10,000 pages and returns (nil, error) on any page error \u2014 always check the error return.",
+        "example": "p := pagination.NewPaginator(func(page pagination.Page) (pagination.Result[E], error) {\n    return svc.List(ctx, ListInput{Page: page})\n})\nitems, err := pagination.CollectAll(ctx, p)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "pkg/pagination/page.go",
+        "role": "Page struct with Offset() and Limit() methods; PageNumber and PageSize with defaults",
+        "watch_for": "Page.Offset() is (PageNumber-1)*PageSize \u2014 page numbers are 1-indexed; passing page 0 produces negative offset"
+      },
+      {
+        "file": "pkg/pagination/result.go",
+        "role": "Result[T] generic struct with Items, TotalCount, Page; MarshalJSON flattens Page fields into JSON root",
+        "watch_for": "Use MapResult/MapResultErr \u2014 manual Result construction misses TotalCount and Page echo; Result.MarshalJSON flattening means Page sub-fields appear at root level in API responses"
+      },
+      {
+        "file": "pkg/pagination/collect.go",
+        "role": "CollectAll iterates a Paginator[T] up to MAX_SAFE_ITER (10,000) pages; returns nil items on any page error",
+        "watch_for": "Always check the error return from CollectAll \u2014 it returns nil items on error, so checking only len(items) silently loses data"
+      }
+    ],
+    "anti_patterns": [
+      "Computing SQL OFFSET or LIMIT directly in handlers or service code \u2014 always use Page.Offset() and Page.Limit()",
+      "Constructing pagination.Result manually instead of using MapResult/MapResultErr \u2014 easy to miss TotalCount assignment",
+      "Ignoring the error return from CollectAll \u2014 returns nil items on error",
+      "Implementing a custom Paginator[T] type instead of using NewPaginator",
+      "Using cursor-based v2 logic in contexts expecting offset Page/Result \u2014 the two contracts are incompatible; choose one per endpoint"
+    ],
+    "decisions": [
+      {
+        "decision": "Result[T] flattens Page into the JSON root rather than nesting it under a 'page' key",
+        "rationale": "Matches the TypeSpec-generated API response shape where pagination fields appear at root level alongside 'items'"
+      },
+      {
+        "decision": "CollectAll caps at MAX_SAFE_ITER = 10,000 pages and returns (nil, error) rather than partial results on any page error",
+        "rationale": "Unbounded collection can exhaust memory; returning nil on error prevents callers from silently processing incomplete data"
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/filter": {
+    "purpose": "Typed, composable query filters (string, integer, float, time, boolean, ULID) that compile to both Ent selector predicates (func(*sql.Selector)) and go-sqlbuilder WHERE expressions. Every filter type implements the Filter interface and enforces single-operator-per-node validation via Validate().",
+    "patterns": [
+      {
+        "name": "Dual output \u2014 Ent selector and go-sqlbuilder expression",
+        "description": "Every filter type implements both Select(predicate) for Ent queries and SelectWhereExpr for go-sqlbuilder ClickHouse queries. Adding a new filter type requires implementing both methods.",
+        "example": "f := filter.FilterString{In: []string{\"a\", \"b\"}}\nentPredicate := f.Select(predicate) // for Ent WHERE clause\nexpr, args := f.SelectWhereExpr(col) // for go-sqlbuilder"
+      },
+      {
+        "name": "Single-operator validation",
+        "description": "Each filter node must have at most one operator field set. Validate() returns ErrFilterMultipleOperators if multiple fields are set. Always call Validate() before applying the predicate.",
+        "example": "if err := f.Validate(); err != nil { return models.NewGenericValidationError(err) }"
+      },
+      {
+        "name": "IsEmpty / nil guard before applying predicate",
+        "description": "A nil or empty Filter returns nil from Select() \u2014 applying a nil predicate to an Ent query panics. Always check IsEmpty() or nil before calling Select().",
+        "example": "if !f.IsEmpty() { query = query.Where(f.Select(entity.FieldX)) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "filter.go",
+        "role": "Filter interface definition and all concrete filter types (FilterString, FilterInt, FilterFloat, FilterTime, FilterBool, FilterULID) with And/Or combinators",
+        "watch_for": "Contains uses ILIKE with auto-escaped metacharacters \u2014 do not pre-escape patterns; Validate() wraps once in models.GenericValidationError at the public boundary"
+      }
+    ],
+    "anti_patterns": [
+      "Setting multiple operator fields on the same filter node \u2014 Validate returns ErrFilterMultipleOperators",
+      "Applying Select() predicate without nil/IsEmpty check \u2014 empty filter returns nil predicate which panics on Ent query",
+      "Passing pre-escaped LIKE patterns to $contains/$ncontains \u2014 they will be double-escaped",
+      "Adding a new filter type without implementing both Select and SelectWhereExpr",
+      "Wrapping Validate() result in a second models.GenericValidationError \u2014 public Validate() wraps once; internal validateWithComplexity returns raw sentinels"
+    ],
+    "decisions": [
+      {
+        "decision": "Dual output (Ent selector + go-sqlbuilder expression) on a single Filter type",
+        "rationale": "Billing and metering queries target two different backends (PostgreSQL via Ent, ClickHouse via go-sqlbuilder) \u2014 a single filter type eliminates dual maintenance"
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/timeutil": {
+    "purpose": "Shared time-interval primitives (ClosedPeriod, OpenPeriod, StartBoundedPeriod, Recurrence, Timeline) used throughout billing, subscription, entitlement, and metering to reason about billable windows, recurrence schedules, and event timelines with explicit boundary semantics.",
+    "patterns": [
+      {
+        "name": "Three Contains variants \u2014 pick the correct boundary semantics",
+        "description": "Contains uses half-open [from, to) semantics. ContainsInclusive uses [from, to]. ContainsExclusive uses (from, to). For sequential billing periods, use Contains to avoid double-counting at period boundaries.",
+        "example": "// For billing period membership:\nif period.Contains(eventTime) { /* charge this event */ }"
+      },
+      {
+        "name": "Recurrence via NewRecurrence \u2014 never struct literal",
+        "description": "Always construct Recurrence via NewRecurrence or NewRecurrenceFromISODuration which call Validate() to reject zero anchor or non-positive interval. Struct literals bypass validation and silently produce wrong period boundaries.",
+        "example": "r, err := timeutil.NewRecurrence(timeutil.RecurrenceConfig{\n    Anchor: anchorTime,\n    Period: datetime.DurationMonth,\n})"
+      },
+      {
+        "name": "ISODuration for month/year recurrences",
+        "description": "Use datetime.ISODuration (not time.Duration) for month/year recurrences in Recurrence and OpenPeriod \u2014 month lengths vary and time.Duration arithmetic produces wrong billing period ends.",
+        "example": "period: datetime.ISODuration{Period: period.NewOf(0, 1, 0)} // 1 month"
+      },
+      {
+        "name": "OpenPeriod \u2014 nil To means unbounded",
+        "description": "OpenPeriod uses *time.Time for From and To \u2014 nil means the period is open/unbounded in that direction. Touching periods do NOT overlap (Overlaps returns false); use OverlapsInclusive for inclusive-boundary overlap.",
+        "example": "p := timeutil.OpenPeriod{From: &start, To: nil} // [start, \u221e)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "pkg/timeutil/recurrence.go",
+        "role": "Anchor-based Recurrence with iteration via NextAfter/PreviousBefore; Boundary enum controls inclusive/exclusive edge of iteration",
+        "watch_for": "Always use NewRecurrence \u2014 struct literal skips Validate(); sub-millisecond drift in anchor produces off-by-nanosecond period boundaries"
+      },
+      {
+        "file": "pkg/timeutil/period.go",
+        "role": "ClosedPeriod and OpenPeriod with Contains, Overlaps, Intersection, Duration helpers",
+        "watch_for": "Overlaps and OverlapsInclusive are NOT interchangeable \u2014 sequential billing periods must use Overlaps (returns false for touching) to avoid double-counting"
+      },
+      {
+        "file": "pkg/timeutil/timeline.go",
+        "role": "Timeline type for ordered sequence of time-bounded entities; used by subscription and entitlement for historical views",
+        "watch_for": "Timeline assumes items are ordered by start time \u2014 inserting out-of-order produces incorrect ActiveAt results"
+      }
+    ],
+    "anti_patterns": [
+      "Using time.Duration arithmetic instead of ISODuration for month/year recurrences \u2014 month lengths vary and Duration math produces wrong billing period ends",
+      "Constructing Recurrence{} struct literal without calling NewRecurrence \u2014 skips Validate(), allowing zero anchor or non-positive interval",
+      "Assuming Overlaps and OverlapsInclusive are interchangeable \u2014 sequential billing periods must use Overlaps to avoid double-counting at boundaries",
+      "Constructing OpenPeriod{From: &t, To: &t} expecting a valid point interval \u2014 Intersection treats same-start-and-end as zero-length and returns nil"
+    ],
+    "decisions": [
+      {
+        "decision": "Contains uses half-open [from, to) semantics as the default",
+        "rationale": "Half-open intervals compose without overlap for sequential billing periods \u2014 adjacent periods [t1,t2) and [t2,t3) never double-count an event at t2"
+      },
+      {
+        "decision": "Recurrence iterates from a floating anchor rather than an epoch",
+        "rationale": "Subscription billing periods anchor to the subscription start date, not a global epoch \u2014 anchor-based iteration produces correct period starts regardless of when subscription began"
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/datetime": {
+    "purpose": "Billing-safe datetime and ISO 8601 duration library. DateTime wraps time.Time with RFC 9557 timezone-annotated formatting/parsing; ISODuration wraps rickb777/period with no-overflow month/year arithmetic and DivisibleBy for subscription cadence validation. Primary constraint: all date/calendar arithmetic in billing and subscription must go through this package.",
+    "patterns": [
+      {
+        "name": "Parse for all datetime inputs",
+        "description": "All user-supplied timestamps must go through datetime.Parse (not time.Parse) for RFC 9557 support and timezone annotation preservation.",
+        "example": "dt, err := datetime.Parse(\"2024-01-15T00:00:00Z\")"
+      },
+      {
+        "name": "ISODurationString.Parse() for duration inputs",
+        "description": "Duration strings from API inputs must go through ISODurationString.Parse() which validates ISO 8601 format and rejects overflow-prone values.",
+        "example": "dur, err := datetime.ISODurationString(\"P1M\").Parse()"
+      },
+      {
+        "name": "DateTime.Add(ISODuration) for calendar arithmetic",
+        "description": "Use DateTime.Add(ISODuration) for all calendar arithmetic \u2014 not time.Time.Add(duration). Month-end clamping is handled by the underlying period library.",
+        "example": "next := start.Add(datetime.DurationMonth) // correct month boundary handling"
+      },
+      {
+        "name": "ISODuration.DivisibleBy for cadence validation",
+        "description": "Validate that a subscription billing cadence is an exact multiple of a meter aggregation period using ISODuration.DivisibleBy before creating rate cards.",
+        "example": "if !billingPeriod.DivisibleBy(meterPeriod) { return models.NewGenericValidationError(...) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "datetime.go",
+        "role": "DateTime wrapper around time.Time with RFC9557Layout formatting and Add(ISODuration) calendar arithmetic",
+        "watch_for": "DateTime.Format must use RFC9557Layout when the Location has a named timezone \u2014 plain RFC3339 loses the IANA zone annotation"
+      },
+      {
+        "file": "duration.go",
+        "role": "ISODuration with no-overflow AddTo, DivisibleBy, and pre-defined DurationXxx constants (DurationDay, DurationWeek, DurationMonth, DurationYear)",
+        "watch_for": "Do not compare ISODuration with == \u2014 use ISODuration.Equal(*ISODuration) which normalises the string form; Constructing period.Period directly bypasses no-overflow arithmetic"
+      }
+    ],
+    "anti_patterns": [
+      "Using time.Time.Add(30 * 24 * time.Hour) for 'one month' \u2014 use DateTime.Add(DurationMonth) to handle month-end clamping",
+      "Calling time.Parse directly for user-supplied timestamps \u2014 always go through datetime.Parse for RFC 9557 support",
+      "Comparing ISODuration values with == \u2014 use ISODuration.Equal(*ISODuration) which normalises string form",
+      "Constructing period.Period directly instead of ISODuration \u2014 bypasses no-overflow arithmetic in AddTo"
+    ],
+    "decisions": [
+      {
+        "decision": "Custom shiftClockTo for all date arithmetic instead of time.AddDate",
+        "rationale": "time.AddDate can overflow month boundaries (Jan 31 + 1 month = Mar 3); shiftClockTo implements correct month-end clamping for billing period boundaries"
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/kafka": {
+    "purpose": "Shared low-level Kafka infrastructure: typed config structs that compile to kafka.ConfigMap, a TopicProvisioner with LRU cache, librdkafka log bridging to slog, and an OTel metrics sub-package. Primary constraint: pure infrastructure plumbing \u2014 no domain or business logic.",
+    "patterns": [
+      {
+        "name": "ConfigMapper + ConfigValidator interfaces for typed config",
+        "description": "Kafka config structs implement ConfigMapper (AsConfigMap() kafka.ConfigMap) and ConfigValidator (Validate() error). Never set kafka.ConfigMap keys directly \u2014 always go through AsConfigMap/mergeConfigsToMap which applies the localhost IPv4 auto-fix.",
+        "example": "cfg := kafka.CommonConfigParams{Brokers: \"localhost:9092\"}\ncm, err := kafka.MergeConfigsToMap(cfg, consumerCfg)"
+      },
+      {
+        "name": "TimeDurationMilliSeconds for *.ms keys",
+        "description": "Use TimeDurationMilliSeconds wrapper for all Kafka config keys that expect millisecond integer strings \u2014 never pass raw time.Duration values.",
+        "example": "kafka.TimeDurationMilliSeconds(30 * time.Second) // renders as \"30000\""
+      },
+      {
+        "name": "TopicProvisioner LRU cache",
+        "description": "TopicProvisioner caches provisioned topic names in an expirable LRU so duplicate Ingest calls for the same topic skip admin API calls. The cache key is the topic name; expiry is configurable.",
+        "example": "// TopicProvisioner is constructed once in app/common and injected via Wire\n// domain code calls Provision(ctx, topicName) \u2014 noop if already cached"
+      },
+      {
+        "name": "metadata.max.age.ms always 3\u00d7 TopicMetadataRefreshInterval",
+        "description": "When setting TopicMetadataRefreshInterval, always set metadata.max.age.ms to exactly 3\u00d7 that value. This prevents premature metadata cache expiry between refreshes.",
+        "example": "cfg[\"metadata.max.age.ms\"] = kafka.TimeDurationMilliSeconds(3 * refreshInterval)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "config.go",
+        "role": "CommonConfigParams, ProducerConfigParams, ConsumerConfigParams structs with Validate() and AsConfigMap(). configValue interface for string enum validation.",
+        "watch_for": "Validate is sequential fail-fast \u2014 first error wins; localhost IPv4 auto-fix is applied in CommonConfigParams.AsConfigMap not in mergeConfigsToMap"
+      },
+      {
+        "file": "topicprovisioner.go",
+        "role": "TopicProvisioner wraps the Kafka admin client with an expirable LRU cache keyed by topic name; noop guard prevents re-provisioning",
+        "watch_for": "Provisioner is constructed in app/common via KafkaTopicProvisioner; domain code must never call Kafka admin APIs directly"
+      }
+    ],
+    "anti_patterns": [
+      "Setting kafka.ConfigMap keys directly instead of through AsConfigMap/mergeConfigsToMap \u2014 bypasses validation and the localhost IPv4 auto-fix",
+      "Using Int64Counter or Histogram for librdkafka-derived stats \u2014 they are rolling-window point-in-time snapshots; only Int64Gauge is correct",
+      "Passing raw time.Duration as a kafka.ConfigMap value for *.ms keys \u2014 must use TimeDurationMilliSeconds which renders as millisecond integer string",
+      "Setting metadata.max.age.ms independently without tying it to 3\u00d7TopicMetadataRefreshInterval",
+      "Mixing cooperative and eager PartitionAssignmentStrategy values in ConsumerConfigParams \u2014 Validate() explicitly rejects this combination"
+    ],
+    "decisions": [
+      {
+        "decision": "ConfigMapper + ConfigValidator split into separate interfaces implemented by value receivers",
+        "rationale": "Allows composing multiple config structs via mergeConfigsToMap without requiring a single monolithic config type per binary"
+      },
+      {
+        "decision": "TopicProvisioner uses an expirable LRU cache keyed by topic name",
+        "rationale": "High-throughput ingest calls Ingest() per event \u2014 hitting Kafka admin API on every call would be prohibitively slow; LRU cache with TTL amortizes admin API overhead"
+      }
+    ],
+    "code_examples": []
+  }
+}

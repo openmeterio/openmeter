@@ -1,0 +1,344 @@
+{
+  "app": {
+    "purpose": "Organizational root split into two children: app/common (Google Wire DI provider sets assembling all domain services into binary-specific run graphs) and app/config (single shared Viper configuration struct used by all seven binaries). Contains zero business logic; nothing in openmeter/* or pkg/* may import either child.",
+    "patterns": [
+      {
+        "name": "Leaf-node import direction",
+        "description": "app/common depends on all openmeter/* and pkg/* packages; the reverse import direction is forbidden and causes import cycles. app/config is imported only by app/common and cmd/*.",
+        "example": "// OK: app/common/billing.go imports openmeter/billing\n// NEVER: openmeter/billing imports app/common"
+      },
+      {
+        "name": "One child per concern",
+        "description": "app/common owns runtime wiring (Wire provider sets, hook/validator registration, noop fallbacks for optional integrations); app/config owns pure data structs with Validate() and SetViperDefaults. The two concerns must not bleed into each other.",
+        "example": "// app/config/billing.go: type BillingConfig struct { ... }; func (c BillingConfig) Validate() error\n// app/common/billing.go: func NewBillingService(adapter billing.Adapter, ...) billing.Service { return billing.New(adapter) }"
+      },
+      {
+        "name": "Credits feature guard at every ledger-touching provider",
+        "description": "Any provider in app/common that wires ledger-backed features must independently check creditsConfig.Enabled and return a noop implementation when false. A single centralized guard is insufficient because credits cross-cuts multiple independent call graphs.",
+        "example": "func NewLedgerAccountService(cfg config.CreditsConfiguration, db *entdb.Client) ledger.AccountService {\n    if !cfg.Enabled {\n        return ledgernoop.AccountService{}\n    }\n    return ledgeraccount.New(db)\n}"
+      },
+      {
+        "name": "Registry structs for multi-service domains",
+        "description": "Cohesive services are grouped into typed registry structs (BillingRegistry, AppRegistry, ChargesRegistry) with nil-safe accessor methods (ChargesServiceOrNil()) rather than individual injection into router.Config.",
+        "example": "svc := registry.ChargesServiceOrNil()\nif svc == nil {\n    return nil // credits disabled\n}"
+      },
+      {
+        "name": "Hook and validator registration as Wire provider side-effects",
+        "description": "Cross-domain hooks (billing\u2192customer, ledger\u2192customer) and request validators are registered inside app/common provider functions as side-effects to avoid circular imports between domain packages.",
+        "example": "func NewCustomerService(adapter customer.Adapter, ledgerHook CustomerLedgerHook) customer.Service {\n    svc := customer.New(adapter)\n    svc.RegisterHooks(ledgerHook) // side-effect \u2014 not in domain constructor\n    return svc\n}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "app/common/billing.go",
+        "role": "Wire provider set for billing domain; constructs billing.Service and BillingRegistry including charges adapters",
+        "watch_for": "Adding business logic or state mutation inside providers; accessing BillingRegistry.Charges directly instead of ChargesServiceOrNil()"
+      },
+      {
+        "file": "app/common/ledger.go",
+        "role": "Wires ledger services; returns noop implementations when credits.enabled=false at every provider independently",
+        "watch_for": "Any new ledger-touching provider that lacks a creditsConfig.Enabled guard returning a noop type"
+      },
+      {
+        "file": "app/common/customer.go",
+        "role": "Registers customer service hooks and request validators from billing and ledger packages as Wire provider side-effects",
+        "watch_for": "Calling RegisterHooks or RegisterRequestValidator from domain packages instead of here \u2014 causes circular imports"
+      },
+      {
+        "file": "app/config/config.go",
+        "role": "Root config.Configuration struct used by all seven binaries; assembles all sub-configs; SetViperDefaults is the single Viper registration point",
+        "watch_for": "Adding config fields without a corresponding Validate() check and Configure* default registration"
+      },
+      {
+        "file": "app/common/charges.go",
+        "role": "Registers charge type line engines with billing.Service.RegisterLineEngine() as Wire provider side-effects",
+        "watch_for": "Calling RegisterLineEngine from domain packages or cmd/* \u2014 must happen here to avoid circular imports"
+      },
+      {
+        "file": "app/common/openmeter_billingworker.go",
+        "role": "Defines the BillingWorker Wire set composing provider sets needed by cmd/billing-worker",
+        "watch_for": "Missing hook providers that register silently \u2014 Wire sees only types, not side-effects; omitting a hook provider drops that hook with no compile error"
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common from any openmeter/* or pkg/* package \u2014 reverses the leaf-node import direction and creates import cycles",
+      "Adding business logic (validation, computation, state mutation) inside app/common provider functions \u2014 providers must only construct and wire",
+      "Creating a ledger-backed provider without a creditsConfig.Enabled guard returning a noop \u2014 credits cross-cuts multiple call graphs",
+      "Calling customerService.RegisterHooks or RegisterRequestValidator from domain package constructors instead of app/common providers",
+      "Accessing BillingRegistry.Charges directly without ChargesServiceOrNil() \u2014 panics at runtime when credits are disabled"
+    ],
+    "decisions": [
+      {
+        "decision": "All DI wiring concentrated in app/common with plain constructors in domain packages",
+        "rationale": "Wire produces compile-time-verified dependency graphs; single edit point to add a provider to any binary without duplicating constructor chains in each cmd/*"
+      },
+      {
+        "decision": "Credits feature guarded independently in each ledger-touching provider in app/common rather than a single choke point",
+        "rationale": "Credits cross-cuts HTTP handlers, customer hooks, namespace provisioning, and charge creation \u2014 no single injection point dominates all call graphs that can reach ledger writes"
+      },
+      {
+        "decision": "Registry structs (BillingRegistry, AppRegistry) instead of individual service injection into router.Config",
+        "rationale": "Nil-safe accessor methods (ChargesServiceOrNil) encapsulate the credits-disabled nil case; individual field access would require nil checks scattered throughout callers"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new ledger-backed provider in app/common that respects the credits feature flag",
+        "code": "// app/common/ledger.go\nimport (\n    ledgernoop \"github.com/openmeterio/openmeter/openmeter/ledger/noop\"\n    \"github.com/openmeterio/openmeter/app/config\"\n    entdb \"github.com/openmeterio/openmeter/openmeter/ent/db\"\n)\n\nfunc NewLedgerTransactionService(\n    creditsConfig config.CreditsConfiguration,\n    db *entdb.Client,\n) ledger.TransactionService {\n    if !creditsConfig.Enabled {\n        return ledgernoop.TransactionService{} // noop when credits disabled\n    }\n    return ledgertx.New(db)\n}"
+      }
+    ]
+  },
+  "docs": {
+    "purpose": "Documentation-only root split into ADRs (docs/decisions/) recording immutable architectural choices and user-facing migration guides (docs/migration-guides/) for breaking changes between versions. Contains no Go source; changes here affect operator understanding and historical record, not compile-time behavior.",
+    "patterns": [
+      {
+        "name": "ADR immutability",
+        "description": "Existing ADR files in docs/decisions/ record a past decision and must never be edited to change that decision. Create a new sequentially numbered ADR to supersede.",
+        "example": "// 0005-clickhouse.md documents the switch from ksqlDB\n// A reversal requires creating 0006-revert-to-ksqldb.md \u2014 never edit 0005"
+      },
+      {
+        "name": "One migration guide per breaking change",
+        "description": "Each file in docs/migration-guides/ covers exactly one breaking change with SQL audit queries before any destructive statements, Before/After API examples, and a deprecation timeline table.",
+        "example": "// 2025-08-12-subject-customer-consolidation.md covers only the subject\u2192customer consolidation\n// SQL: SELECT count(*) FROM subjects WHERE ... (audit before DELETE)"
+      },
+      {
+        "name": "Audit queries before destructive SQL",
+        "description": "Migration guides that include SQL must show a SELECT audit query before any UPDATE/DELETE statement so operators can verify scope before executing.",
+        "example": "-- Audit first:\nSELECT id, key FROM subjects WHERE customer_id IS NULL;\n-- Then migrate:\nUPDATE subjects SET customer_id = ... WHERE ..."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "docs/decisions/0001-event-streaming-platform.md",
+        "role": "ADR: choice of Kafka as the event streaming platform",
+        "watch_for": "Do not edit to reflect a different decision; create a new 000N-*.md ADR to supersede"
+      },
+      {
+        "file": "docs/decisions/0005-clickhouse.md",
+        "role": "ADR: ClickHouse replaces ksqlDB for analytics \u2014 authoritative source for why ClickHouse is the analytics store",
+        "watch_for": "Any ClickHouse architectural change requires a new superseding ADR, not an edit here"
+      },
+      {
+        "file": "docs/database-migration.md",
+        "role": "Operator guide covering autoMigrate modes (ent, migration, false) and the Atlas workflow",
+        "watch_for": "Keep in sync with actual atlas.hcl and Makefile targets when migration commands change"
+      },
+      {
+        "file": "docs/event-ingestion.md",
+        "role": "User-facing explanation of CloudEvents format, JSONPath meter configuration, and deduplication semantics",
+        "watch_for": "Any change to ingest API contract or deduplication window must be reflected here"
+      },
+      {
+        "file": "docs/stripe-dev.md",
+        "role": "Developer guide for working against a Stripe test account including webhook setup and psql commands",
+        "watch_for": "Keep webhook URL patterns in sync with actual API routes; update psql column names if Ent schema changes"
+      }
+    ],
+    "anti_patterns": [
+      "Editing existing ADR files to change the recorded decision \u2014 always create a new sequentially numbered ADR",
+      "Combining multiple unrelated breaking changes in a single migration guide file \u2014 one breaking change per file",
+      "Writing a migration guide without audit SELECT queries before destructive UPDATE/DELETE statements",
+      "Using docs/decisions for operational runbooks or migration SQL \u2014 those belong in docs/migration-guides",
+      "Omitting the 'Considered Options' and 'Cons' sections when writing a new ADR \u2014 every decision must document its tradeoffs"
+    ],
+    "decisions": [
+      {
+        "decision": "ADRs in docs/decisions/ are append-only historical records",
+        "rationale": "Immutable records prevent revisionist history and provide an auditable trail of why the current architecture exists; developers can trace constraints back to their original context"
+      },
+      {
+        "decision": "SQL migration scripts embedded directly in docs/migration-guides/ rather than as separate .sql files",
+        "rationale": "Self-contained guides are easier for operators to follow without cross-referencing separate files; the inline context explains what each statement does and why"
+      }
+    ],
+    "code_examples": []
+  },
+  "e2e": {
+    "purpose": "End-to-end test suite that runs against a live OpenMeter stack bootstrapped via Docker Compose. Tests call the real HTTP API through the generated Go client (v1) and a hand-rolled v3Client (v3), asserting full-stack behavior including async Kafka\u2192ClickHouse pipelines. No internal domain packages are imported \u2014 only HTTP clients and public type definitions.",
+    "patterns": [
+      {
+        "name": "OPENMETER_ADDRESS env-gate",
+        "description": "Every test file calls initClient(t) or newV3Client(t), both of which call t.Skip when OPENMETER_ADDRESS env var is not set. New tests must never bypass this guard.",
+        "example": "address := os.Getenv(\"OPENMETER_ADDRESS\"); if address == \"\" { t.Skip(\"OPENMETER_ADDRESS not set\") }"
+      },
+      {
+        "name": "assert.EventuallyWithT for async pipeline assertions",
+        "description": "Any assertion on ClickHouse data (meter queries, entitlement balances) must use assert.EventuallyWithT with a 1-minute timeout and 1-second interval. Kafka\u2192sink-worker\u2192ClickHouse is async; never assert synchronously after ingest.",
+        "example": "assert.EventuallyWithT(t, func(t *assert.CollectT) { resp, _ := client.QueryMeterWithResponse(...) }, time.Minute, time.Second)"
+      },
+      {
+        "name": "v3Client typed wrapper (status, body, problem) triple",
+        "description": "v3 API tests use *v3Client from v3helpers_test.go, not the generated SDK. Methods return (statusCode, *T, *v3Problem). Assertions check statusCode first, then the typed body. New v3 tests must follow the same triple pattern.",
+        "example": "status, plan, problem := c.CreatePlan(body); require.Equal(t, http.StatusCreated, status, \"problem: %+v\", problem)"
+      },
+      {
+        "name": "Unique keys via timestamp/ULID to avoid shared-DB collisions",
+        "description": "Feature keys, plan keys, addon keys, and customer keys use a timestamp or ULID suffix (via uniqueKey() helper). Never use hardcoded keys for entities that cannot be idempotently re-created.",
+        "example": "randKey := fmt.Sprintf(\"entitlement_uc_test_feature_%d\", time.Now().Unix())"
+      },
+      {
+        "name": "shouldRunSlowTests guard for minute-resolution assertions",
+        "description": "Tests that sleep >5s (waiting for a new minute for entitlement reset or credit granularity) must be gated behind shouldRunSlowTests(t), which checks RUN_SLOW_TESTS env var.",
+        "example": "if !shouldRunSlowTests(t) { t.Skip(\"Skipping slow test...\") }"
+      },
+      {
+        "name": "assertProblemDetail / assertValidationCode / assertInvalidParameterRule for error paths",
+        "description": "Negative-path tests must use the v3helpers assertion helpers. assertValidationCode checks extensions.validationErrors[].code; assertInvalidParameterRule checks schema-layer invalid_parameters[].rule; assertProblemDetail checks a substring in Detail.",
+        "example": "assertValidationCode(t, problem, \"plan_phase_duplicated_key\")"
+      },
+      {
+        "name": "Meter definitions in e2e/config.yaml before test ingest",
+        "description": "Every event type ingested by tests must have a corresponding meter slug defined in e2e/config.yaml. The sink-worker validates events against known meters and silently drops events to unknown meters.",
+        "example": "meters:\\n  - slug: plan_meter\\n    eventType: plan_meter\\n    aggregation: SUM"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "setup_test.go",
+        "role": "Provides initClient (v1 SDK client) and shouldRunSlowTests. Single source of truth for test bootstrapping and env-var guards.",
+        "watch_for": "Adding test setup logic here that skips rather than fails will silently ignore tests in CI when the env var is missing."
+      },
+      {
+        "file": "v3helpers_test.go",
+        "role": "Defines *v3Client (raw HTTP), v3Problem (RFC 7807 parse), decodeTyped generic, all typed CRUD wrappers for plans/addons/planaddons, validXxx fixture builders, and assertion helpers.",
+        "watch_for": "v3Client.do uses t.Context() timeout (v3RequestTimeout). Do not bypass with context.Background(). uniqueKey() helper is defined here \u2014 use it for all entity keys."
+      },
+      {
+        "file": "helpers.go",
+        "role": "CreateCustomerWithSubject (creates customer then upserts subject), GetMeterIDBySlug, QueryMeterV3 (raw HTTP v3 meter query). Shared cross-test helpers.",
+        "watch_for": "QueryMeterV3 uses raw http.DefaultClient and reads OPENMETER_ADDRESS directly \u2014 it will skip if the address is empty. Do not inline these helpers in test files."
+      },
+      {
+        "file": "config.yaml",
+        "role": "OpenMeter config injected into the Docker Compose stack. credits.enabled=false \u2014 tests in productcatalog_test.go (TestSettlementMode) depend on this being false.",
+        "watch_for": "Adding a new meter slug in a test without adding the corresponding meter definition here causes the sink-worker to silently drop events. credits.enabled=false is a deliberate test contract \u2014 do not change without updating tests."
+      },
+      {
+        "file": "Makefile",
+        "role": "test-local target: tears down, brings up compose stack, waits for sink-worker /healthz on port 30000, then runs go test with TZ=UTC OPENMETER_ADDRESS=http://localhost:38888.",
+        "watch_for": "TZ=UTC is essential for deterministic time-window assertions. Port 38888 is the openmeter API; port 30000 is the sink-worker healthz endpoint."
+      },
+      {
+        "file": "docker-compose.openmeter-local.yaml",
+        "role": "Overrides image: with build: .. so local tests use the locally built binary, not a released image.",
+        "watch_for": "docker-compose.openmeter-latest.yaml uses the published GHCR image for CI \u2014 do not merge the two approaches."
+      },
+      {
+        "file": "ledger_backfill_test.go",
+        "role": "Tests the openmeter-jobs ledger backfill-accounts command via docker compose exec and verifies ledger_customer_accounts rows via direct pgxpool queries.",
+        "watch_for": "ensureLocalComposeBackfillSupport skips when OPENMETER_ADDRESS is not the localhost:38888 compose stack \u2014 this test cannot run against remote envs."
+      }
+    ],
+    "anti_patterns": [
+      "Asserting meter query results synchronously after ingest without assert.EventuallyWithT \u2014 data flows async through Kafka and ClickHouse.",
+      "Using hardcoded feature/plan/customer keys shared across test functions \u2014 causes 409 or silent state pollution in a shared persistent DB.",
+      "Importing app/common, Wire provider packages, or Ent adapters \u2014 e2e tests must only use the HTTP clients and public type constants.",
+      "Adding new meters to tests without a corresponding entry in e2e/config.yaml \u2014 the sink-worker silently drops events to unknown meters.",
+      "Using port numbers in the 30000 range for new services without verifying they do not conflict with the root docker-compose.yaml or quickstart (40000 range)."
+    ],
+    "decisions": [
+      {
+        "decision": "Two client layers: generated api.ClientWithResponses for v1 and a hand-rolled v3Client for v3.",
+        "rationale": "The v3 API was still evolving when these tests were written. A thin hand-rolled wrapper returning (status, *T, *v3Problem) gives tests direct control over HTTP-level assertions without fighting the generated SDK's union-type machinery."
+      },
+      {
+        "decision": "credits.enabled=false in e2e/config.yaml.",
+        "rationale": "E2e tests for settlement-mode validation (TestSettlementMode in productcatalog_test.go) depend on credits being off to assert that credit_only settlement mode is rejected. This is a deliberate, documented contract."
+      },
+      {
+        "decision": "Separate docker-compose.openmeter-local.yaml overriding image: with build: for local runs.",
+        "rationale": "Makes 'make test-local' always test the locally built binary while CI can swap in a published image via docker-compose.openmeter-latest.yaml without changing test code."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Writing a new v3 resource lifecycle test (create \u2192 assert status \u2192 use resource ID in subsequent steps)",
+        "code": "func TestV3MyResource(t *testing.T) {\n\tc := newV3Client(t) // skips if OPENMETER_ADDRESS not set\n\n\tvar resourceID string\n\n\tt.Run(\"Should create the resource\", func(t *testing.T) {\n\t\tbody := validMyResourceRequest(uniqueKey(\"test_key\"))\n\t\tstatus, res, problem := c.CreateMyResource(body)\n\t\trequire.Equal(t, http.StatusCreated, status, \"problem: %+v\", problem)\n\t\trequire.NotNil(t, res)\n\t\tresourceID = res.Id\n\t})\n\n\tt.Run(\"Should get the resource\", func(t *testing.T) {\n\t\trequire.NotEmpty(t, resourceID)\n\t\tstatus, res, problem := c.GetMyResource(resourceID)\n\t\trequire.Equal(t, http.StatusOK, status, \"problem: %+v\", problem)\n\t\trequire.NotNil(t, res)\n\t})\n}"
+      }
+    ]
+  },
+  "quickstart": {
+    "purpose": "Self-contained demo environment that boots all OpenMeter services (openmeter, sink-worker, balance-worker, notification-service, billing-worker, openmeter-jobs) via Docker Compose and validates end-to-end ingest\u2192query behavior with quickstart_test.go. Uses port range 40000\u201349999 to avoid conflicts with the root dev environment and the e2e suite (30000 range).",
+    "patterns": [
+      {
+        "name": "OPENMETER_ADDRESS env-gate on tests",
+        "description": "Both initClient and openmeterAddress check OPENMETER_ADDRESS and call t.Skip if unset. Tests are never run against an embedded server, only against a live Docker Compose stack.",
+        "example": "address := os.Getenv(\"OPENMETER_ADDRESS\"); if address == \"\" { t.Skip(\"OPENMETER_ADDRESS not set\") }"
+      },
+      {
+        "name": "assert.EventuallyWithT for async ingest assertions",
+        "description": "All ingest-then-query assertions use assert.EventuallyWithT with a 30-second timeout and 1-second tick to tolerate Kafka/ClickHouse propagation latency.",
+        "example": "assert.EventuallyWithT(t, func(t *assert.CollectT) { resp := queryMeterV3(...); require.Len(t, resp.Data, 2) }, 30*time.Second, time.Second)"
+      },
+      {
+        "name": "Port range 40000\u201349999",
+        "description": "All Docker Compose service ports in this folder use the 40000 range to avoid collisions with the root dev docker-compose.yaml and the e2e suite (30000 range). Application ports: openmeter=48888, sink-worker=40000, balance-worker=40001, notification-service=40002, billing-worker=40003.",
+        "example": "ports:\\n  - \"127.0.0.1:48888:8888\"  # openmeter API\\n  - \"127.0.0.1:40000:10000\" # sink-worker healthz"
+      },
+      {
+        "name": "Separate docker-compose.debug-ports.yaml overlay",
+        "description": "docker-compose.debug-ports.yaml adds host port bindings for Kafka/ClickHouse/Redis/Postgres/Svix only when debugging. The base docker-compose.yaml exposes only application-level ports. make test-local merges both files.",
+        "example": "docker compose -f docker-compose.yaml -f docker-compose.debug-ports.yaml up -d"
+      },
+      {
+        "name": "Unique meter slugs per test run via timestamp suffix",
+        "description": "quickstart_test.go generates v1MeterSlug and v3MeterKey with a UnixNano suffix to avoid collisions on shared persistent DB state across runs.",
+        "example": "suffix := fmt.Sprintf(\"%d\", time.Now().UnixNano()); v1MeterSlug := \"quickstart_v1_\" + suffix"
+      },
+      {
+        "name": "autoMigrate: migration in config.yaml",
+        "description": "Uses the Atlas SQL migration path (autoMigrate: migration), not the development-only ent schema create (autoMigrate: ent). This exercises the real production migration pipeline.",
+        "example": "postgres:\\n  autoMigrate: migration"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "quickstart_test.go",
+        "role": "End-to-end smoke test: creates meters via v1 and v3 APIs, ingests CloudEvents with fixed IDs (00001/00002/00003), asserts meter query values for both API versions using EventuallyWithT.",
+        "watch_for": "Uses context.Background() in helper functions \u2014 acceptable here as integration test, not application code. Meter IDs and event IDs are intentionally fixed (not random) since the test expects specific count values (2 + 1 window split)."
+      },
+      {
+        "file": "docker-compose.yaml",
+        "role": "Full-stack compose: all five OpenMeter binaries plus infra (Kafka, ClickHouse, Redis, Postgres, Svix). References docker-compose.base.yaml services via extends.",
+        "watch_for": "New binaries added to the main stack must also be added here with matching command, config volume mount, and depends_on health checks. openmeter-jobs runs 'quickstart cron' (not a long-running server) \u2014 do not add a healthcheck to it."
+      },
+      {
+        "file": "config.yaml",
+        "role": "Minimal production-like config: three sample meters (api_requests_total, api_requests_duration, tokens_total), Svix configured, portal enabled with tokenSecret, autoMigrate: migration.",
+        "watch_for": "If new required config fields are added to app/config, this file must be updated or the quickstart stack silently fails to start. The Svix apiKey is a test JWT \u2014 not sensitive."
+      },
+      {
+        "file": "Makefile",
+        "role": "test-local: spin up stack (both compose files), health-check sink-worker port 40000, run tests with OPENMETER_ADDRESS=http://localhost:48888, tear down.",
+        "watch_for": "Health check hits sink-worker port 40000 (not the openmeter API port 48888). TZ is not set here (unlike e2e) \u2014 tests use fixed UTC timestamps in the event data instead."
+      }
+    ],
+    "anti_patterns": [
+      "Using port numbers outside the 40000 range \u2014 they conflict with the root docker-compose.yaml dev environment or the e2e suite.",
+      "Running quickstart_test.go without a live Docker Compose stack \u2014 tests must guard with t.Skip on missing OPENMETER_ADDRESS.",
+      "Hardcoding event IDs or meter slugs without a unique suffix \u2014 the test uses fixed event IDs (00001/00002/00003) intentionally; new tests must use unique suffixes.",
+      "Omitting depends_on health checks when adding a new service to docker-compose.yaml \u2014 services start before dependencies are ready.",
+      "Setting autoMigrate to 'ent' instead of 'migration' \u2014 this bypasses the Atlas migration pipeline and hides migration regressions."
+    ],
+    "decisions": [
+      {
+        "decision": "quickstart_test.go uses the generated Go SDK (api/client/go) for v1 but raw HTTP helpers for v3.",
+        "rationale": "Demonstrates the intended SDK usage for v1 to new users while covering the v3 API surface that lacks a fully generated client helper matching the test's assertion patterns."
+      },
+      {
+        "decision": "All five OpenMeter binaries (openmeter, sink-worker, balance-worker, notification-service, billing-worker) plus openmeter-jobs are declared in docker-compose.yaml.",
+        "rationale": "Quickstart is the canonical smoke-test for new operators; it must demonstrate the full production deployment topology, not a reduced subset."
+      },
+      {
+        "decision": "Port range 40000\u201349999 reserved exclusively for quickstart.",
+        "rationale": "Avoids conflicts with both the root dev environment (standard ports) and the e2e suite (30000 range), allowing all three environments to run simultaneously on the same machine."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Assert meter query value after async ingest using EventuallyWithT (the core test pattern)",
+        "code": "assert.EventuallyWithT(t, func(t *assert.CollectT) {\n\twindowSize := meter.WindowSizeHour\n\tresp, err := client.QueryMeterWithResponse(context.Background(), v1MeterSlug, &api.QueryMeterParams{\n\t\tWindowSize: lo.ToPtr(api.WindowSize(windowSize)),\n\t})\n\trequire.NoError(t, err)\n\trequire.Equal(t, http.StatusOK, resp.StatusCode())\n\trequire.Len(t, resp.JSON200.Data, 2)\n\tassert.Equal(t, float64(2), resp.JSON200.Data[0].Value)\n}, 30*time.Second, time.Second)"
+      }
+    ]
+  }
+}

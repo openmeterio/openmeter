@@ -1,0 +1,175 @@
+{
+  "pkg/kafka/metrics/internal": {
+    "purpose": "OTel metric instrument registry for librdkafka statistics: each domain struct (BrokerMetrics, TopicMetrics, PartitionMetrics, ConsumerGroupMetrics) owns one metric.Int64Gauge per stat field and records point-in-time values from the corresponding stats sub-structs with context-propagated OTel attributes. All metrics are Int64Gauge reflecting librdkafka's rolling-window snapshot semantics.",
+    "patterns": [
+      {
+        "name": "Metric struct per stats domain with optional sub-structs",
+        "description": "Each Kafka stats domain gets its own *Metrics struct with one metric.Int64Gauge per measurable stat. Sub-categories (latency, throttle, message, offset, batch) are private pointer fields initialized only when extended=true; nil-guarded in Add. TopicMetrics always creates PartitionMetrics \u2014 only batchMetrics is extended-gated.",
+        "example": "type BrokerMetrics struct { latencyMetrics *BrokerLatencyMetrics; throttleMetrics *BrokerThrottleMetrics; Source metric.Int64Gauge; ... }"
+      },
+      {
+        "name": "NewXxxMetrics factory with sequential fail-fast error returns",
+        "description": "Constructors call meter.Int64Gauge for each field sequentially, wrapping every error with fmt.Errorf('failed to create metric: <name>: %w', err) and returning on first failure. Extended sub-metrics are constructed before core metrics inside the extended=true branch.",
+        "example": "m.Source, err = meter.Int64Gauge(\"kafka.broker.source\", ...); if err != nil { return nil, fmt.Errorf(\"failed to create metric: kafka.broker.source: %w\", err) }"
+      },
+      {
+        "name": "Add method: nil guard, inject domain attrs, Record each gauge, delegate to sub-metrics",
+        "description": "Every *Metrics.Add starts with 'if stats == nil { return }', appends domain-specific OTel attributes to the caller-supplied attrs slice (node_name/node_id for brokers, partition for partitions, topic for topics), records each gauge, then nil-guards calls to sub-metric Add methods passing the now-augmented attrs slice.",
+        "example": "func (m *BrokerMetrics) Add(ctx context.Context, stats *stats.BrokerStats, attrs ...attribute.KeyValue) { if stats == nil { return }; attrs = append(attrs, attribute.String(\"node_name\", stats.NodeName), ...); m.Source.Record(ctx, stats.Source.Int64(), metric.WithAttributes(attrs...)); if m.latencyMetrics != nil { m.latencyMetrics.Add(ctx, stats, attrs...) } }"
+      },
+      {
+        "name": "Metric naming: kafka.<domain>.<stat> with OTel semantic units",
+        "description": "All metric names follow dot-separated kafka.<domain>.<stat> (e.g. kafka.broker.latency_min, kafka.partition.consumer_lag, kafka.topic.batch_size_p99). Units use OTel brace notation: {microsecond}, {byte}, {message}, {partition}, {broker}.",
+        "example": "meter.Int64Gauge(\"kafka.broker.latency_p99\", metric.WithUnit(\"{microsecond}\"))"
+      },
+      {
+        "name": "Extended flag gates sub-metric construction, not core counters",
+        "description": "NewBrokerMetrics, NewPartitionMetrics, and NewTopicMetrics accept 'extended bool'; latency/throttle (broker) and message/offset (partition) sub-structs are only constructed and called when extended=true. NewTopicMetrics always constructs PartitionMetrics but gates batchMetrics behind extended.",
+        "example": "if extended { m.latencyMetrics, err = NewBrokerLatencyMetrics(meter); ... } // core gauges always registered below"
+      },
+      {
+        "name": "Internal partition skip in TopicMetrics.Add",
+        "description": "TopicMetrics.Add loops over stats.Partitions and skips entries where partition.Partition < 0 (librdkafka UA/UnAssigned internal partition). The skip guard lives in TopicMetrics.Add, not in PartitionMetrics.Add.",
+        "example": "for _, partition := range stats.Partitions { if partition.Partition < 0 { continue }; m.partitionMetrics.Add(ctx, &partition, attrs...) }"
+      },
+      {
+        "name": "attrs slice is mutated in Add \u2014 callers must not reuse after the call",
+        "description": "Each Add method appends domain-specific attributes to the variadic attrs slice via append, which may or may not reallocate. Callers iterating over collections (brokers, partitions) and reusing the original attrs slice after an Add call will see corrupted attribute sets.",
+        "example": "attrs = append(attrs, attribute.String(\"node_name\", stats.NodeName), attribute.Int64(\"node_id\", stats.NodeID))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "broker.go",
+        "role": "Defines BrokerLatencyMetrics (11 latency percentile gauges), BrokerThrottleMetrics (11 throttle percentile gauges), and BrokerMetrics (19 core gauges + optional sub-structs). Both sub-structs are private fields initialized only when extended=true.",
+        "watch_for": "Pre-existing bug: the error message for m.Source ('failed to create metric: kafka.broker.state') duplicates the message for m.State \u2014 do not copy this pattern to new gauges. Use the actual metric name in the error string."
+      },
+      {
+        "file": "partition.go",
+        "role": "Defines PartitionMessageMetrics (8 queue/inflight message gauges), PartitionOffsetMetrics (9 offset gauges), and PartitionMetrics (8 core gauges + optional sub-structs). Both sub-structs gated by extended=true.",
+        "watch_for": "Partition attrs (attribute.Int64('partition', stats.Partition)) are appended inside each Add method on the stats.Partition struct \u2014 both PartitionMessageMetrics.Add and PartitionOffsetMetrics.Add append partition attrs independently, so the caller-supplied attrs slice accumulates partition twice if both run."
+      },
+      {
+        "file": "topic.go",
+        "role": "Defines TopicBatchMetrics (22 batch size/count percentile gauges) and TopicMetrics (2 core gauges + unconditional PartitionMetrics + extended-gated batchMetrics). Internal partition guard (Partition < 0) lives here.",
+        "watch_for": "TopicMetrics always constructs PartitionMetrics regardless of extended flag \u2014 only batchMetrics is extended-gated. Do not move PartitionMetrics construction inside the extended block."
+      },
+      {
+        "file": "consumergroup.go",
+        "role": "Defines ConsumerGroupMetrics for 6 consumer group rebalance/state gauges. No sub-structs, no extended flag.",
+        "watch_for": "ConsumerGroupMetrics.Add does not append any domain-specific attributes \u2014 it records with the caller-supplied attrs only (no group-id attribute injected here). Consistent with design: callers are responsible for group-id attribution."
+      }
+    ],
+    "anti_patterns": [
+      "Using Int64Counter or Float64Histogram for any stat \u2014 all librdkafka stats are point-in-time rolling-window snapshots; only Int64Gauge correctly represents them without accumulation",
+      "Accessing stats fields in Add without the 'if stats == nil { return }' nil guard at the top \u2014 librdkafka JSON can omit entire sections",
+      "Adding business logic, aggregation, or conditional branching inside Add methods \u2014 they must only translate stats fields to metric.Record calls",
+      "Constructing sub-metric structs (latency, throttle, message, offset, batch) outside the extended=true branch in factory functions",
+      "Reusing or capturing the attrs slice passed into Add after the call returns \u2014 append may have mutated the backing array"
+    ],
+    "decisions": [
+      {
+        "decision": "Int64Gauge for all metrics rather than counters or histograms",
+        "rationale": "librdkafka exposes rolling-window snapshots, not monotonic counters; gauges correctly represent instantaneous values and avoid double-counting when the stats callback fires repeatedly at configurable intervals."
+      },
+      {
+        "decision": "Extended flag separates core from verbose metrics",
+        "rationale": "Latency percentile distributions (11 gauges each for latency and throttle) and detailed offset/message metrics are costly to register and record; extended=false lets operators skip dozens of unused instruments in production without losing the most operationally critical gauges."
+      },
+      {
+        "decision": "Domain-specific attributes appended inside Add rather than by callers",
+        "rationale": "Callers iterate over collections (brokers, topics, partitions) and should not need to know the attribute schema per entity type; centralizing node_name/node_id/topic/partition injection in each Add simplifies collection loops and prevents attribute schema drift."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new Int64Gauge to BrokerMetrics and record it in Add",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\t\"go.opentelemetry.io/otel/attribute\"\n\t\"go.opentelemetry.io/otel/metric\"\n\t\"github.com/openmeterio/openmeter/pkg/kafka/metrics/stats\"\n)\n\n// 1. Add field to struct:\ntype BrokerMetrics struct {\n\t// ... existing fields ...\n\tNewGauge metric.Int64Gauge\n}\n\n// 2. Register in NewBrokerMetrics (after other core gauges):\nm.NewGauge, err = meter.Int64Gauge(\n\t\"kafka.broker.new_gauge\",\n\tmetric.WithDescription(\"Description of the new gauge\"),\n\tmetric.WithUnit(\"{unit}\"),\n)\nif err != nil {\n\treturn nil, fmt.Errorf(\"failed to create metric: kafka.broker.new_gauge: %w\", err)\n}\n\n// 3. Record in Add (after attrs are appended):\nm.NewGauge.Record(ctx, stats.NewField, metric.WithAttributes(attrs...))"
+      }
+    ]
+  },
+  "pkg/kafka/metrics/stats": {
+    "purpose": "Typed Go representations of librdkafka's JSON statistics payload (https://github.com/confluentinc/librdkafka/blob/v2.4.0/STATISTICS.md), providing JSON unmarshalling only \u2014 no OTel dependency. String-enum fields implement custom UnmarshalJSON + Int64() so the internal metrics layer can record them as numeric gauges without string parsing at record time.",
+    "patterns": [
+      {
+        "name": "String enum type with UnmarshalJSON + Int64()",
+        "description": "Each librdkafka string-enum field is a named string type with: (a) package-level const block of all variants plus an Unknown sentinel, (b) *T UnmarshalJSON that lower-cases+trims the JSON string and switches to assign the typed constant defaulting to Unknown, (c) T.Int64() that returns a numeric index with Unknown mapping to -1.",
+        "example": "type BrokerState string\nfunc (s *BrokerState) UnmarshalJSON(data []byte) error { var value string; json.Unmarshal(data, &value); switch strings.ToLower(strings.TrimSpace(value)) { case \"up\": *s = BrokerStateUp; default: *s = BrokerStateUnknown }; return nil }\nfunc (s BrokerState) Int64() int64 { switch s { case BrokerStateUp: return 6; default: return -1 } }"
+      },
+      {
+        "name": "Struct fields tagged with exact librdkafka JSON keys",
+        "description": "All struct fields use json tags matching exact librdkafka statistics JSON field names (snake_case as documented in STATISTICS.md). Go field names are idiomatic PascalCase; the json tag bridges to the librdkafka name. Deviation silently produces zero values.",
+        "example": "type BrokerStats struct { RequestsAwaitingTransmission int64 `json:\"outbuf_cnt\"`; StateAge int64 `json:\"stateage\"` }"
+      },
+      {
+        "name": "WindowStats embedded by value for rolling-window histogram data",
+        "description": "WindowStats (min/max/avg/sum/count/stddev/p50/p75/p90/p95/p99/p9999) is reused across BrokerStats (Latency='rtt', Throttle='throttle') and TopicStats (BatchSize='batch_size', BatchCount='batch_count') by value embedding, not pointer. P9999 maps to json tag 'p99_99' not 'p9999'.",
+        "example": "type BrokerStats struct { Latency WindowStats `json:\"rtt\"`; Throttle WindowStats `json:\"throttle\"` }\ntype WindowStats struct { P9999 int64 `json:\"p99_99\"` } // NOTE: tag is p99_99 not p9999"
+      },
+      {
+        "name": "Partitions as map[string]Partition with numeric Partition field",
+        "description": "TopicStats.Partitions is map[string]Partition (string key is the string partition ID from librdkafka JSON). The Partition struct has a Partition int64 field for the numeric id. Negative values (e.g. -1) indicate the internal UA/UnAssigned partition; callers in the internal package must skip them.",
+        "example": "type TopicStats struct { Partitions map[string]Partition `json:\"partitions\"` }\ntype Partition struct { Partition int64 `json:\"partition\"` } // negative = internal UA partition"
+      },
+      {
+        "name": "Test via embedded testdata/stats.json fixture",
+        "description": "stats_test.go embeds testdata/stats.json via //go:embed and unmarshals into Stats to verify field mapping. Tests assert on specific known field values (ClientID, MessageCount, broker RequestsSent, partition StoredOffset=-1001). Adding a new struct field should include a corresponding assertion.",
+        "example": "//go:embed testdata/stats.json\nvar statsJSON []byte\nfunc TestStats(t *testing.T) { var stats Stats; json.Unmarshal(statsJSON, &stats); assert.Equal(t, \"rdkafka\", stats.ClientID) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "stats.go",
+        "role": "Top-level Stats struct (root of librdkafka JSON payload) and shared WindowStats. Stats.Brokers and Stats.Topics are maps[string] keyed by broker name and topic name respectively. ConsumerGroup is embedded by value.",
+        "watch_for": "WindowStats.P9999 uses json tag 'p99_99' (matching librdkafka's field name), not 'p9999' \u2014 a common copy-paste mistake from field naming."
+      },
+      {
+        "file": "broker.go",
+        "role": "BrokerStats struct (all broker-level metrics), BrokerSource and BrokerState string enums with full UnmarshalJSON/Int64 implementations, and BrokerTopicPartition. Latency='rtt' and Throttle='throttle' are WindowStats embedded by value.",
+        "watch_for": "BrokerStats.TopicPartitions is map[string]BrokerTopicPartition where the key is '<topic>-<partition>' in librdkafka output. BrokerStats.Wakeups field exists in the struct but is not recorded by the internal metrics layer \u2014 intentional omission."
+      },
+      {
+        "file": "topic.go",
+        "role": "TopicStats struct and Partition struct. Partition contains both consumer-side fields (CommittedOffset, ConsumerLag) and producer-side fields (MessagesSent) in the same struct \u2014 librdkafka outputs a unified partition object.",
+        "watch_for": "StoredOffset sentinel value -1001 indicates 'no stored offset' in librdkafka; the test asserts this explicitly. ConsumerLag = -1 when there is no committed offset. These are not error conditions."
+      },
+      {
+        "file": "consumergroup.go",
+        "role": "ConsumerGroupStats struct, ConsumerGroupState (7 states, 0-6) and ConsumerGroupJoinState (9 states, 0-8) enums, both with UnmarshalJSON/Int64. Unknown sentinel returns -1 in both.",
+        "watch_for": "ConsumerGroupJoinState has 9 variants (indices 0-8) versus ConsumerGroupState's 7 (0-6) \u2014 do not assume they share the same cardinality when adding new variants."
+      },
+      {
+        "file": "stats_test.go",
+        "role": "White-box integration test (package stats) that unmarshals testdata/stats.json and validates key field values including StoredOffset=-1001 and ConsumerLag=-1 sentinels. Must be updated when adding new fields to stats structs.",
+        "watch_for": "testdata/stats.json must stay in sync with the librdkafka version pinned in go.mod. A wrong json tag causes silent zero values in assertions \u2014 always verify new fields produce non-zero test assertions."
+      }
+    ],
+    "anti_patterns": [
+      "Int64() returning 0 for Unknown variants instead of -1 \u2014 the internal metrics layer uses -1 as the sentinel for 'unknown' to distinguish from valid index 0",
+      "Embedding WindowStats by pointer \u2014 it is always present in the librdkafka JSON and must be embedded by value to avoid nil dereference in the internal metrics layer",
+      "Changing json tags without updating testdata/stats.json assertions \u2014 the test silently passes with zero values when a tag is wrong",
+      "Treating Partition.Partition < 0 as an unmarshal error \u2014 negative partition IDs are valid internal librdkafka sentinels that callers must skip",
+      "Adding OTel imports or metric registration to this package \u2014 stats is a pure data/unmarshalling package; OTel instrumentation belongs exclusively in pkg/kafka/metrics/internal"
+    ],
+    "decisions": [
+      {
+        "decision": "String-typed enums with custom UnmarshalJSON rather than iota int enums",
+        "rationale": "librdkafka serializes enum fields as human-readable strings ('up', 'auth-handshake'); typed string constants preserve debuggability in logs and error messages while Int64() provides the numeric form needed by OTel gauges without re-parsing at record time."
+      },
+      {
+        "decision": "Unknown enum sentinel returns -1 from Int64()",
+        "rationale": "OTel Int64Gauge records these as numeric values; -1 cleanly signals 'unrecognized state' in dashboards without colliding with any valid state index (which start at 0), enabling alert rules to distinguish missing data from known states."
+      },
+      {
+        "decision": "Separate stats and internal packages with no cross-dependency from stats to internal",
+        "rationale": "stats holds pure data types with only stdlib dependencies (encoding/json, strings, fmt); internal holds OTel instrument registration. Keeping them separate lets the data model be tested and inspected independently and prevents OTel from leaking into callers who only need to inspect stats field values."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new string enum field to a stats struct",
+        "code": "// In stats/broker.go (or appropriate file):\nconst (\n\tMyEnumUnknown MyEnum = \"unknown\"\n\tMyEnumFoo     MyEnum = \"foo\"\n\tMyEnumBar     MyEnum = \"bar\"\n)\n\ntype MyEnum string\n\nfunc (s *MyEnum) UnmarshalJSON(data []byte) error {\n\tvar value string\n\tif err := json.Unmarshal(data, &value); err != nil {\n\t\treturn fmt.Errorf(\"failed to unmarshal value: %s\", data)\n\t}\n\tswitch strings.ToLower(strings.TrimSpace(value)) {\n\tcase \"foo\":\n\t\t*s = MyEnumFoo\n\tcase \"bar\":\n\t\t*s = MyEnumBar\n\tdefault:\n\t\t*s = MyEnumUnknown\n\t}\n\treturn nil\n}\n\nfunc (s MyEnum) Int64() int64 {\n\tswitch s {\n\tcase MyEnumFoo:\n\t\treturn 0\n\tcase MyEnumBar:\n\t\treturn 1\n\tdefault:\n\t\treturn -1 // Unknown must be -1, never 0\n\t}\n}\n\n// Add to struct with exact librdkafka json tag:\ntype BrokerStats struct {\n\tMyField MyEnum `json:\"my_librdkafka_field_name\"`\n}"
+      }
+    ]
+  }
+}

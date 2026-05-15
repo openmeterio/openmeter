@@ -2,27 +2,48 @@
 
 <!-- archie:ai-start -->
 
-> Provides the NamespaceDecoder abstraction for extracting namespace context from HTTP requests. The only implementation is StaticNamespaceDecoder, which always returns a fixed string — used in self-hosted deployments where every request belongs to the default namespace.
+> Provides the NamespaceDecoder abstraction for extracting namespace context from HTTP requests. The sole implementation, StaticNamespaceDecoder, always returns a fixed string — used in self-hosted single-tenant deployments where every request belongs to the default namespace.
 
 ## Patterns
 
-**NamespaceDecoder interface** — New namespace-resolution strategies must implement GetNamespace(ctx context.Context) (string, bool) — returning false signals 'namespace not found' and lets callers reject the request. (`type StaticNamespaceDecoder string
+**NamespaceDecoder interface contract** — All namespace-resolution strategies must implement GetNamespace(ctx context.Context) (string, bool). Returning false signals 'namespace not found'; callers must reject the request. Returning true with an empty string is a bug — callers treat empty namespace as valid. (`type StaticNamespaceDecoder string
 func (d StaticNamespaceDecoder) GetNamespace(ctx context.Context) (string, bool) { return string(d), true }`)
+**Named string type for zero-boilerplate decoders** — StaticNamespaceDecoder is a plain named string type so config values can be cast directly without a constructor. New decoders that require state should be structs; pure-string resolvers should follow the same named-type pattern. (`decoder := namespacedriver.StaticNamespaceDecoder(cfg.Namespace)`)
+**Zero-import leaf package** — decoder.go imports only 'context'. This package sits at the infrastructure/transport boundary and must remain free of openmeter domain imports to avoid import cycles with callers such as openmeter/server/router. (`import "context" // only stdlib allowed here`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `decoder.go` | Defines NamespaceDecoder interface and its sole StaticNamespaceDecoder implementation. Entire package is a single file — keep it that way unless adding a dynamic decoder. | Do not add business logic or imports of openmeter domain packages here; this file must remain import-free to avoid cycles with callers like openmeter/server/router. |
+| `decoder.go` | Defines the NamespaceDecoder interface and the StaticNamespaceDecoder implementation. The entire package is a single file — keep it that way unless a second decoder strategy with its own logic is added. | Do not add business logic, state, or domain package imports. Do not return true with an empty string from any GetNamespace implementation. |
 
 ## Anti-Patterns
 
-- Importing domain packages (billing, customer, entitlement) — this package sits at the infrastructure/transport boundary and must stay dependency-free
-- Adding state or initialization logic to StaticNamespaceDecoder — it is intentionally a plain string type
-- Returning true with an empty string from GetNamespace — callers treat empty namespace as valid and will silently scope queries to an unintended tenant
+- Importing openmeter domain packages (billing, customer, entitlement, meter) — creates import cycles with callers
+- Adding initialization logic or fields to StaticNamespaceDecoder — it is intentionally a plain named string
+- Returning (true, "") from GetNamespace — callers treat an empty namespace as valid and will silently misscope queries
+- Placing multi-tenant namespace resolution logic here — dynamic namespace lookup belongs in a separate decoder implementation, not in this file
+- Adding HTTP middleware or Chi handler code — request plumbing belongs in openmeter/server, not in this package
 
 ## Decisions
 
-- **StaticNamespaceDecoder is a named string type rather than a struct** — Avoids constructor boilerplate for the common case where the namespace is a config value; the string itself IS the decoder.
+- **StaticNamespaceDecoder is a named string type rather than a struct** — Avoids constructor boilerplate for the common self-hosted case where the namespace is a plain config string; the string value itself is the decoder.
+- **NamespaceDecoder returns (string, bool) rather than (string, error)** — Namespace absence is a routing concern, not an error condition; bool cleanly signals 'not found' without forcing callers to inspect error types.
+
+## Example: Implementing a new static namespace decoder from a config value
+
+```
+import "github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+
+// Cast the config string directly — no constructor needed.
+decoder := namespacedriver.StaticNamespaceDecoder(conf.Namespace.Default)
+
+// Callers use the interface:
+ns, ok := decoder.GetNamespace(ctx)
+if !ok {
+    http.Error(w, "namespace not found", http.StatusUnauthorized)
+    return
+}
+```
 
 <!-- archie:ai-end -->

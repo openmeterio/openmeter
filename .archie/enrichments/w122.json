@@ -1,324 +1,206 @@
 {
-  "openmeter/subscription/entitlement": {
-    "purpose": "Bridge adapter between the subscription domain and the entitlement domain. Implements subscription.EntitlementAdapter to schedule, query, and delete entitlements on behalf of subscription items, wrapping every write in a transaction.Creator.",
+  "openmeter/subject/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing subject.Adapter \u2014 sole persistence layer for subjects with soft-delete semantics, ctx-propagated transaction support via entutils.TransactingRepo, and mapped domain errors. Every method must honor the ctx-carried Ent transaction.",
     "patterns": [
       {
-        "name": "Interface compliance assertion",
-        "description": "Every exported struct asserts the target interface with a blank var _ check at file top.",
-        "example": "var _ subscription.EntitlementAdapter = &EntitlementSubscriptionAdapter{}"
+        "name": "TransactingRepo wrapping on every method",
+        "description": "Every public method wraps its Ent queries in entutils.TransactingRepo (returning value) or entutils.TransactingRepoWithNoValue (no return value). Never call tx.db.* directly outside this wrapper.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) { return mapEntity(tx.db.Subject.Query()...First(ctx)) })"
       },
       {
-        "name": "Transaction wrapping via transaction.Run",
-        "description": "All writes call transaction.Run(ctx, a.txCreator, ...) so they rebind to any tx already in ctx.",
-        "example": "return transaction.Run(ctx, a.txCreator, func(ctx context.Context) (*subscription.SubscriptionEntitlement, error) { ... })"
+        "name": "TxUser[*adapter] triad in adapter.go",
+        "description": "adapter implements entutils.TxUser[*adapter] via Tx (HijackTx + NewTxDriver), WithTx (NewTxClientFromRawConfig), and Self(). These three methods live only in adapter.go; subject.go adds no tx infrastructure.",
+        "example": "var _ entutils.TxUser[*adapter] = (*adapter)(nil)"
       },
       {
-        "name": "Annotation merging on schedule",
-        "description": "ScheduleEntitlement merges caller-supplied annotations into CreateEntitlementInputs.Annotations before delegating to entitlement.Service.ScheduleEntitlement.",
-        "example": "for k, v := range annotations { input.CreateEntitlementInputs.Annotations[k] = v }"
+        "name": "Soft-delete via DeletedAt filter",
+        "description": "Delete sets DeletedAt=now rather than removing the row. List/GetByKey queries must filter with subjectdb.Or(subjectdb.DeletedAtIsNil(), subjectdb.DeletedAtGTE(now)). GetById skips this filter intentionally.",
+        "example": "subjectdb.Or(subjectdb.DeletedAtIsNil(), subjectdb.DeletedAtGTE(now))"
       },
       {
-        "name": "SubscriptionManaged flag",
-        "description": "Sets CreateEntitlementInputs.SubscriptionManaged = true so the entitlement layer knows it is lifecycle-managed by the subscription.",
-        "example": "input.CreateEntitlementInputs.SubscriptionManaged = true"
+        "name": "Ent error mapping to models.Generic*Error",
+        "description": "db.IsNotFound \u2192 models.NewGenericNotFoundError; db.IsConstraintError \u2192 models.NewGenericConflictError; validation failures \u2192 models.NewGenericValidationError. Never return raw Ent errors.",
+        "example": "if db.IsNotFound(err) { return subject.Subject{}, models.NewGenericNotFoundError(fmt.Errorf(\"subject not found [namespace=%s id=%s]\", ...)) }"
+      },
+      {
+        "name": "Input validation before DB access",
+        "description": "Every write method calls input.Validate() (or key/id.Validate()) and wraps failures in models.NewGenericValidationError before entering the TransactingRepo closure.",
+        "example": "if err := input.Validate(); err != nil { return subject.Subject{}, fmt.Errorf(\"invalid input: %w\", models.NewGenericValidationError(err)) }"
+      },
+      {
+        "name": "OptionalNullable[T] patch pattern in Update",
+        "description": "subject.OptionalNullable[T]{IsSet, Value} distinguishes JSON field absent vs. null. When IsSet=true and Value=nil call ClearField(); when IsSet=true and Value!=nil call SetField(*Value); skip when IsSet=false.",
+        "example": "if input.DisplayName.IsSet { if input.DisplayName.Value != nil { query.SetDisplayName(*input.DisplayName.Value) } else { query.ClearDisplayName() } }"
+      },
+      {
+        "name": "mapEntity as the sole domain mapper",
+        "description": "All *db.Subject \u2192 subject.Subject conversions go through the package-private mapEntity function. Nil metadata is normalised to an empty map inside mapEntity; do not add mapping logic elsewhere.",
+        "example": "return pagination.MapResult(result, mapEntity), nil"
       }
     ],
     "key_file_guides": [
       {
         "file": "adapter.go",
-        "role": "Concrete implementation of subscription.EntitlementAdapter: ScheduleEntitlement, GetForSubscriptionsAt, DeleteByItemID.",
-        "watch_for": "GetForSubscriptionsAt issues a bulk entitlement list with zero-value pagination.Page to fetch all; callers must not pass filtered pages."
+        "role": "Defines adapter struct, New constructor (nil-db guard), and the three TxUser methods (Tx, WithTx, Self). All transaction infrastructure lives here.",
+        "watch_for": "Do not add Ent query code here; keep queries in subject.go. Never skip the nil-db guard in New."
       },
       {
-        "file": "errors.go",
-        "role": "Defines NotFoundError for missing entitlement on a subscription item.",
-        "watch_for": "At field on NotFoundError is optional; check for IsZero before rendering."
+        "file": "subject.go",
+        "role": "Implements all subject.Adapter methods: Create, Update, GetByKey, GetById, GetByIdOrKey, List, Delete, and mapEntity.",
+        "watch_for": "Update calls GetById at the end to return the refreshed entity \u2014 never return the stale pre-update row. Delete is idempotent: returns nil if already deleted. GetById omits the soft-delete filter intentionally."
       }
     ],
     "anti_patterns": [
-      "Calling entitlement.Service directly from subscription service code instead of going through EntitlementSubscriptionAdapter.",
-      "Omitting transaction.Run around entitlement writes \u2014 falls off the caller's tx.",
-      "Setting SubscriptionManaged = false on subscription-owned entitlements."
+      "Calling tx.db.* directly outside a TransactingRepo/TransactingRepoWithNoValue closure",
+      "Returning raw Ent errors instead of mapping to models.Generic*Error types",
+      "Adding business logic or event publishing inside adapter methods",
+      "Querying without the soft-delete filter (DeletedAtIsNil / DeletedAtGTE) in list/get-by-key operations",
+      "Editing openmeter/ent/db/ generated files instead of openmeter/ent/schema/"
     ],
     "decisions": [
       {
-        "decision": "Separate package for entitlement bridging rather than inline in subscription/service.",
-        "rationale": "Keeps the subscription.Service free of direct entitlement.Service imports; the adapter interface boundary allows independent testing and mocking."
+        "decision": "OptionalNullable[T] instead of pointer-pointer for nullable patch fields",
+        "rationale": "Ent cannot distinguish a JSON field being absent vs. explicitly null from a *T alone; the IsSet flag makes the distinction explicit without a second raw-body parse at the adapter layer."
+      },
+      {
+        "decision": "Soft-delete (SetDeletedAt) rather than hard-delete",
+        "rationale": "Subjects are referenced by usage events in ClickHouse; hard-deleting would break historical query attribution. Soft-delete preserves the row while making it invisible to active queries."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Schedule an entitlement for a new subscription item inside a transaction",
-        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/entitlement\"\n\t\"github.com/openmeterio/openmeter/openmeter/subscription\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\nreturn transaction.Run(ctx, a.txCreator, func(ctx context.Context) (*subscription.SubscriptionEntitlement, error) {\n\tinput.CreateEntitlementInputs.SubscriptionManaged = true\n\tif input.CreateEntitlementInputs.Annotations == nil {\n\t\tinput.CreateEntitlementInputs.Annotations = models.Annotations{}\n\t}\n\tfor k, v := range annotations {\n\t\tinput.CreateEntitlementInputs.Annotations[k] = v\n\t}\n\tent, err := a.entitlementConnector.ScheduleEntitlement(ctx, input.CreateEntitlementInputs)\n\t...\n})"
+        "scenario": "Adding a new write method to the subject adapter",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\tsubjectdb \"github.com/openmeterio/openmeter/openmeter/ent/db/subject\"\n\t\"github.com/openmeterio/openmeter/openmeter/subject\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (a *adapter) Deactivate(ctx context.Context, id models.NamespacedID) (subject.Subject, error) {\n\tif err := id.Validate(); err != nil {\n\t\treturn subject.Subject{}, fmt.Errorf(\"invalid id: %w\", models.NewGenericValidationError(err))\n\t}\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) {\n\t\t_, err := tx.db.Subject.Update().\n\t\t\tWhere(subjectdb.Namespace(id.Namespace), subjectdb.ID(id.ID)).\n\t\t\tSetSomeField(value).\n\t\t\tSave(ctx)\n\t\tif err != nil {\n\t\t\treturn subject.Subject{}, fmt.Errorf(\"failed to deactivate subject: %w\", err)\n\t\t}\n\t\treturn tx.GetById(ctx, id)\n\t})\n}"
       }
     ]
   },
-  "openmeter/subscription/patch": {
-    "purpose": "Provides concrete Patch implementations (PatchAddItem, PatchRemoveItem, PatchAddPhase, PatchRemovePhase, PatchStretchPhase, PatchUnscheduleEdit) that mutate a *SubscriptionSpec in-memory. These are the only authorised mutation primitives for subscription specs; business rules (past-phase guard, current-time semantics, item versioning) are encoded here.",
+  "openmeter/subject/httphandler": {
+    "purpose": "v1 HTTP handler layer for the subject domain, translating Chi HTTP requests into subject.Service calls and encoding domain types to api.Subject responses. Package name is httpdriver despite the directory being named httphandler.",
     "patterns": [
       {
-        "name": "Patch interface compliance assertion",
-        "description": "Each concrete patch asserts subscription.Patch or subscription.ValuePatch[T] via blank var _ at file bottom.",
-        "example": "var _ subscription.ValuePatch[subscription.SubscriptionItemSpec] = PatchAddItem{}"
+        "name": "httptransport.NewHandler / NewHandlerWithArgs per endpoint",
+        "description": "Every endpoint is a separate method returning a typed handler alias. Use NewHandler for path-param-free endpoints and NewHandlerWithArgs when a path param is needed. Never implement http.Handler directly.",
+        "example": "func (h *handler) GetSubject() GetSubjectHandler { return httptransport.NewHandlerWithArgs(decoder, operation, encoder, opts...) }"
       },
       {
-        "name": "ApplyTo operates on *SubscriptionSpec",
-        "description": "Every patch implements ApplyTo(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error and is the sole mutation point for the spec.",
-        "example": "func (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error { ... }"
+        "name": "Per-endpoint type block with Request/Params/Response/Handler aliases",
+        "description": "Each endpoint defines its own *Request struct and a type() block declaring *Params, *Response, and *Handler type aliases immediately above the method.",
+        "example": "type (\n\tGetSubjectParams   = string\n\tGetSubjectResponse = api.Subject\n\tGetSubjectHandler  httptransport.HandlerWithArgs[GetSubjectRequest, GetSubjectResponse, GetSubjectParams]\n)"
       },
       {
-        "name": "Temporal guard: no past-phase mutations",
-        "description": "All add/remove/stretch patches return PatchForbiddenError if the target phase starts before the current phase computed from actx.CurrentTime.",
-        "example": "if phaseStartTime.Before(currentPhaseStartTime) { return &subscription.PatchForbiddenError{...} }"
+        "name": "Namespace resolution as first step in every decoder",
+        "description": "All decoders call h.resolveNamespace(ctx) as the first step. On failure it returns HTTP 500. Never skip or hardcode namespace.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return GetSubjectRequest{}, err }"
       },
       {
-        "name": "Current-phase item versioning: close then append",
-        "description": "When adding or removing items in the current phase, the existing item is soft-closed (ActiveToOverrideRelativeToPhaseStart set) and a new spec entry appended \u2014 never deleted \u2014 to preserve audit history.",
-        "example": "itemToClose.ActiveToOverrideRelativeToPhaseStart = a.CreateInput.ActiveFromOverrideRelativeToPhaseStart\nphase.ItemsByKey[a.ItemKey] = append(phase.ItemsByKey[a.ItemKey], &a.CreateInput)"
+        "name": "httptransport.AppendOptions with WithOperationName",
+        "description": "Every handler passes httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"camelCaseName\")) as options to enable OTel span naming and middleware chaining.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"getSubject\"))..."
       },
       {
-        "name": "ISO duration arithmetic for phase spacing",
-        "description": "AddPhase and StretchPhase compute phase spacing adjustments using datetime.ISODuration.Add/Subtract to preserve relative gaps, not wall-clock arithmetic.",
-        "example": "sa, err := p.StartAfter.Add(diff)\nsortedPhases[i].StartAfter = sa"
+        "name": "Domain-to-API mapping via FromSubject in mapping.go",
+        "description": "All subject.Subject \u2192 api.Subject conversions go through FromSubject in mapping.go. Never inline field mappings inside operation closures.",
+        "example": "return FromSubject(sub), nil"
       },
       {
-        "name": "Test suite pattern: testsuite[T] + testcase[T]",
-        "description": "All patch tests use a generic testsuite[T subscription.AppliesToSpec] with GetSpec / GetExpectedSpec lambdas; call suite.Run(t) to iterate cases.",
-        "example": "suite := testsuite[patch.PatchAddItem]{TT: []testcase[patch.PatchAddItem]{...}}\nsuite.Run(t)"
+        "name": "Double-body-read for optional nullable fields in UpsertSubject",
+        "description": "UpsertSubject reads the body twice: once into []api.SubjectUpsert and once into []map[string]interface{} to detect absent vs. null fields, because oapi-codegen cannot distinguish them.",
+        "example": "bodyBytes, _ := io.ReadAll(r.Body); r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)); json.Unmarshal(bodyBytes, &rawPayloads)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "additem.go",
-        "role": "PatchAddItem: adds a new item version to a phase; handles current-phase auto-close and ActiveFromOverrideRelativeToPhaseStart defaulting to now.",
-        "watch_for": "If ActiveFromOverrideRelativeToPhaseStart is nil when adding to the current phase, the patch auto-computes it from phaseStart to actx.CurrentTime \u2014 callers need not pre-fill it."
+        "file": "handler.go",
+        "role": "Defines Handler and SubjectHandler interfaces, handler struct with all dependencies (namespaceDecoder, subjectService, entitlementConnector, logger, options), New constructor, and resolveNamespace helper.",
+        "watch_for": "New dependencies must be added to both the handler struct and the New constructor signature. entitlementConnector is injected but used only in delete flows \u2014 verify before removing."
       },
       {
-        "file": "removeitem.go",
-        "role": "PatchRemoveItem: soft-removes last item version in current phase or hard-deletes from future phase.",
-        "watch_for": "Future-phase removal deletes the entry; current-phase removal only sets ActiveTo. Both cases leave prior versions intact."
-      },
-      {
-        "file": "addphase.go",
-        "role": "PatchAddPhase: inserts a new future phase and shifts all later phases by the new phase's duration.",
-        "watch_for": "Duration field on CreateSubscriptionPhaseInput drives the shift; omitting it leaves no gap before the next phase."
-      },
-      {
-        "file": "removephase.go",
-        "role": "PatchRemovePhase: deletes a future phase with Shift=Next (compress) or Shift=Prev (leave gap) semantics.",
-        "watch_for": "Only future phases can be removed; current or past phases return PatchForbiddenError."
-      },
-      {
-        "file": "stretchphase.go",
-        "role": "PatchStretchPhase: shifts all phases after the target by a signed ISO duration.",
-        "watch_for": "Negative durations are allowed (shrink); guard checks that no phase is compressed to zero length."
-      },
-      {
-        "file": "unscheduleedit.go",
-        "role": "PatchUnscheduleEdit: removes all future scheduled item versions from the current phase, leaving only the currently active version.",
-        "watch_for": "Operates only on the current phase; no-ops gracefully if no future edits exist."
-      },
-      {
-        "file": "patch_test.go",
-        "role": "Shared test infrastructure: testsuite/testcase generics, getDefaultSpec helper, TestRemoveAdd integration.",
-        "watch_for": "getDefaultSpec calls subscriptiontestutils.GetExamplePlanInput; tests assume the default plan has at least 3 phases named test_phase_1/2/3."
-      }
-    ],
-    "anti_patterns": [
-      "Mutating spec.Phases directly outside an ApplyTo method \u2014 bypass the temporal and versioning guards.",
-      "Using wall-clock time.Duration arithmetic instead of datetime.ISODuration for phase spacing adjustments.",
-      "Returning a plain error instead of PatchValidationError/PatchForbiddenError/PatchConflictError \u2014 callers distinguish these types.",
-      "Hard-deleting items from the current phase instead of soft-closing them."
-    ],
-    "decisions": [
-      {
-        "decision": "Items in the current phase are soft-closed rather than deleted.",
-        "rationale": "Cannot falsify history; billing sync reads item cadences to determine billable periods, so deleting would lose the active window."
-      },
-      {
-        "decision": "Phase spacing adjustments use ISO duration arithmetic, not absolute timestamps.",
-        "rationale": "Subscription phases use relative StartAfter durations from subscription.ActiveFrom; preserving them as ISO durations avoids DST and calendar edge cases."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Apply a sequence of remove-then-add patches atomically to a spec",
-        "code": "import (\n\t\"github.com/samber/lo\"\n\t\"github.com/openmeterio/openmeter/openmeter/subscription\"\n\t\"github.com/openmeterio/openmeter/openmeter/subscription/patch\"\n)\n\npatches := []subscription.Patch{\n\t&patch.PatchRemoveItem{PhaseKey: \"phase-1\", ItemKey: \"feature-key\"},\n\t&patch.PatchAddItem{PhaseKey: \"phase-1\", ItemKey: \"feature-key\", CreateInput: newSpec},\n}\nerr := spec.ApplyMany(\n\tlo.Map(patches, subscription.ToApplies),\n\tsubscription.ApplyContext{CurrentTime: clock.Now()},\n)"
-      }
-    ]
-  },
-  "openmeter/subscription/repo": {
-    "purpose": "Ent/PostgreSQL persistence layer for subscriptions, phases, and items. Implements subscription.SubscriptionRepository, SubscriptionPhaseRepository, and SubscriptionItemRepository. All three repos share the same TransactingRepo + transaction.go Tx/WithTx/Self pattern.",
-    "patterns": [
-      {
-        "name": "entutils.TransactingRepo wrapping on every method",
-        "description": "Every public repo method body is wrapped in entutils.TransactingRepo (or TransactingRepoWithNoValue) so the method rebinds to any transaction already in ctx.",
-        "example": "func (r *subscriptionItemRepo) GetByID(ctx context.Context, id models.NamespacedID) (subscription.SubscriptionItem, error) {\n\treturn entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionItemRepo) (subscription.SubscriptionItem, error) { ... })\n}"
-      },
-      {
-        "name": "Tx / Self / WithTx triad in transaction.go",
-        "description": "Each repo implements Tx() to start a new tx, Self() to return itself, and WithTx() to re-create the repo bound to a tx client. Required by entutils.TransactingRepo contract.",
-        "example": "func (r *subscriptionRepo) WithTx(ctx context.Context, tx *entutils.TxDriver) *subscriptionRepo {\n\ttxClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())\n\treturn NewSubscriptionRepo(txClient.Client())\n}"
-      },
-      {
-        "name": "Soft-delete via SetDeletedAt(clock.Now())",
-        "description": "Deletes set DeletedAt rather than removing rows. Queries filter with DeletedAtIsNil() OR DeletedAtGT(now) to exclude soft-deleted records.",
-        "example": "err := repo.db.SubscriptionItem.UpdateOneID(input.ID).SetDeletedAt(at).Exec(ctx)"
-      },
-      {
-        "name": "DB error mapping to domain errors",
-        "description": "db.IsNotFound(err) is checked after every query and mapped to domain-specific not-found errors (subscription.NewItemNotFoundError, NewPhaseNotFoundError, NewSubscriptionNotFoundError).",
-        "example": "if db.IsNotFound(err) { return subscription.SubscriptionItem{}, subscription.NewItemNotFoundError(id.ID) }"
-      },
-      {
-        "name": "MapDB* functions for Ent\u2192domain conversion",
-        "description": "mapping.go contains MapDBSubscription, MapDBSubscripitonPhase, MapDBSubscriptionItem. All repo reads must go through these \u2014 never inline Ent\u2192domain field mapping.",
-        "example": "return pagination.MapResultErr(paged, MapDBSubscription)"
-      },
-      {
-        "name": "Predicate helper functions in utils.go",
-        "description": "SubscriptionActiveAt, SubscriptionActiveInPeriod, SubscriptionNotDeletedAt return []predicate.Subscription slices; compose them with Where(preds...) in queries.",
-        "example": "query.Where(SubscriptionNotDeletedAt(now)...).Where(SubscriptionActiveAt(at)...)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "subscriptionrepo.go",
-        "role": "CRUD + List for Subscription entity; List supports filtering by customer, status, active period, and pagination.",
-        "watch_for": "Status filtering (Active/Canceled/Inactive/Scheduled) builds OR predicate blocks \u2014 adding a new status requires a new predicate branch."
-      },
-      {
-        "file": "subscriptionphaserepo.go",
-        "role": "CRUD for SubscriptionPhase; GetForSubscriptionsAt accepts a batch of inputs for bulk loading.",
-        "watch_for": "Phase queries do NOT eager-load items; item loading is done separately by subscriptionItemRepo."
-      },
-      {
-        "file": "subscriptionitemrepo.go",
-        "role": "CRUD for SubscriptionItem; Create maps rate card fields (price, discounts, tax config) manually due to custom Ent value scanners.",
-        "watch_for": "EntitlementTemplate and TaxConfig fields use custom value scanners and must be set conditionally (nil-check before Set)."
+        "file": "subject.go",
+        "role": "All four endpoint implementations: GetSubject, ListSubjects, UpsertSubject, DeleteSubject. Upsert create-or-update logic lives here.",
+        "watch_for": "Upsert does N individual Create/Update calls in a loop \u2014 not batched at DB level. DeleteSubject resolves the subject by key first, then deletes by ID."
       },
       {
         "file": "mapping.go",
-        "role": "Converts Ent DB rows to domain types; MapDBSubscriptionItem requires eager-loaded Phase edge (PhaseOrErr).",
-        "watch_for": "Always call WithPhase() on item queries; missing edge causes MapDBSubscriptionItem to error."
-      },
-      {
-        "file": "transaction.go",
-        "role": "Implements Tx/Self/WithTx for all three repo types using db.HijackTx + entutils.NewTxDriver.",
-        "watch_for": "All three repo types must implement this triad; omitting WithTx causes TransactingRepo to fall back to a new transaction instead of joining the caller's."
-      },
-      {
-        "file": "utils.go",
-        "role": "Shared Ent predicate builders for subscription time-range queries.",
-        "watch_for": "SubscriptionActiveInPeriod uses StartBoundedPeriod (open end); To==nil means no upper bound."
+        "role": "Single FromSubject function mapping domain type to API type. All field mapping logic must stay here.",
+        "watch_for": "Metadata is always copied into a new map to avoid sharing a reference with the domain model."
       }
     ],
     "anti_patterns": [
-      "Omitting entutils.TransactingRepo wrapper \u2014 the method will bypass any caller-supplied transaction.",
-      "Querying items without WithPhase() eager-load \u2014 MapDBSubscriptionItem will fail at runtime.",
-      "Inlining Ent\u2192domain conversion instead of using MapDB* functions.",
-      "Hard-deleting rows instead of soft-deleting via SetDeletedAt."
+      "Implementing http.Handler directly instead of using httptransport.NewHandler/NewHandlerWithArgs",
+      "Calling subject.Service methods outside the operation closure (second argument to NewHandler)",
+      "Inlining domain-to-API field mapping instead of using FromSubject in mapping.go",
+      "Skipping httptransport.WithOperationName \u2014 breaks OTel tracing and middleware",
+      "Adding business logic (create-or-update decisions) outside the operation closure"
     ],
     "decisions": [
       {
-        "decision": "Soft delete via DeletedAt timestamp for all three entity types.",
-        "rationale": "Billing sync reads historical item cadences; permanent deletion would lose the window data needed for invoice line generation."
+        "decision": "Package named httpdriver despite directory being named httphandler",
+        "rationale": "Follows the openmeter convention that HTTP handler packages are named httpdriver; the directory name is a legacy inconsistency."
+      },
+      {
+        "decision": "entitlementConnector injected into handler at construction",
+        "rationale": "DeleteSubject may need to validate or clean up entitlements; injecting at construction avoids circular imports and keeps the handler self-contained."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new query method with transaction support",
-        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/ent/db\"\n\tdbsubscription \"github.com/openmeterio/openmeter/openmeter/ent/db/subscription\"\n\t\"github.com/openmeterio/openmeter/openmeter/subscription\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (r *subscriptionRepo) GetByCustomerID(ctx context.Context, ns, customerID string) ([]subscription.Subscription, error) {\n\treturn entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) ([]subscription.Subscription, error) {\n\t\trows, err := repo.db.Subscription.Query().\n\t\t\tWithPlan().\n\t\t\tWhere(dbsubscription.Namespace(ns), dbsubscription.CustomerID(customerID)).\n\t\t\tWhere(SubscriptionNotDeletedAt(clock.Now())...).\n\t\t\tAll(ctx)\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\treturn slicesx.MapWithErr(rows, MapDBSubscription)\n\t})\n}"
+        "scenario": "Adding a new endpoint (e.g. BulkDeleteSubjects) following the existing pattern",
+        "code": "type (\n\tBulkDeleteSubjectsResponse = interface{}\n\tBulkDeleteSubjectsHandler  httptransport.Handler[BulkDeleteSubjectsRequest, BulkDeleteSubjectsResponse]\n)\n\ntype BulkDeleteSubjectsRequest struct {\n\tnamespace string\n\tids       []string\n}\n\nfunc (h *handler) BulkDeleteSubjects() BulkDeleteSubjectsHandler {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (BulkDeleteSubjectsRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil {\n\t\t\t\treturn BulkDeleteSubjectsRequest{}, err\n\t\t\t}\n\t\t\tvar body []string\n\t\t\tif err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {\n\t\t\t\treturn BulkDeleteSubjectsRequest{}, err\n\t\t\t}\n\t\t\treturn BulkDeleteSubjectsRequest{namespace: ns, ids: body}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req BulkDeleteSubjectsRequest) (BulkDeleteSubjectsResponse, error) {\n\t\t\t// call h.subjectService\n\t\t\treturn nil, nil\n\t\t},\n\t\tcommonhttp.EmptyResponseEncoder[BulkDeleteSubjectsResponse](http.StatusNoContent),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"bulkDeleteSubjects\"))...,\n\t)\n}"
       }
     ]
   },
-  "openmeter/subscription/service": {
-    "purpose": "Core implementation of subscription.Service: orchestrates Create/Update/Delete/Cancel/Continue/GetView/List/ExpandViews by coordinating SubscriptionRepo, SubscriptionPhaseRepo, SubscriptionItemRepo, EntitlementAdapter, CustomerService, and event publishing, all inside pg-advisory-locked transactions.",
+  "openmeter/subject/testutils": {
+    "purpose": "Test environment factory for the subject domain \u2014 wires subject, customer, entitlement, and feature services directly from package constructors (no app/common) so test suites have a fully functional dependency graph without import cycles.",
     "patterns": [
       {
-        "name": "NewSubscriptionOperationContext on every public method",
-        "description": "Every exported Service method calls ctx = subscription.NewSubscriptionOperationContext(ctx) before any operation to set a context key that prevents hook re-entrancy.",
-        "example": "func (s *service) Create(ctx context.Context, ...) {\n\tctx = subscription.NewSubscriptionOperationContext(ctx)\n\t..."
+        "name": "NewTestEnv constructs the full graph from package constructors",
+        "description": "Each service is built by calling its own adapter/service constructor (e.g. subjectadapter.New, subjectservice.New) rather than importing app/common, preventing test-only import cycles.",
+        "example": "subjectAdapter, _ := subjectadapter.New(client); subjectService, _ := subjectservice.New(subjectAdapter)"
       },
       {
-        "name": "pg-advisory lock per customer before mutations",
-        "description": "Create and Cancel acquire a per-customer advisory lock via s.lockCustomer(ctx, customerId) inside the transaction to serialise concurrent mutations.",
-        "example": "return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {\n\tif err := s.lockCustomer(ctx, spec.CustomerId); err != nil { return def, err }\n\t..."
+        "name": "eventbus.NewMock as event publisher",
+        "description": "Tests use eventbus.NewMock(t) instead of a real Kafka publisher. All services that accept a Publisher receive this mock.",
+        "example": "publisher := eventbus.NewMock(t)"
       },
       {
-        "name": "Hook fan-out with errors.Join",
-        "description": "BeforeCreate/AfterCreate (and equivalent Before/After* for Update/Delete/Cancel/Continue) are fanned out to all registered SubscriptionCommandHooks using errors.Join(lo.Map(s.Hooks, ...)).",
-        "example": "err = errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error {\n\treturn v.BeforeCreate(ctx, namespace, spec)\n})...)"
+        "name": "testutils.InitPostgresDB for real DB access",
+        "description": "Tests spin up a real Postgres instance via openmeter/testutils.InitPostgresDB(t). Call env.DBSchemaMigrate(t) before the first DB operation in each test.",
+        "example": "db := testutils.InitPostgresDB(t); client := db.EntDriver.Client()"
       },
       {
-        "name": "sync() as the universal diff-apply engine",
-        "description": "Update, Cancel, and Continue all build a new spec and call s.sync(ctx, currentView, newSpec) \u2014 never manipulate entities directly. sync.go contains the diff logic.",
-        "example": "spec.ActiveTo = lo.ToPtr(cancelTime)\nsub, err := s.sync(ctx, view, spec)"
+        "name": "sync.Once in Close to prevent double-close panics",
+        "description": "TestEnv.Close wraps driver cleanup in sync.Once. Always call t.Cleanup(func() { env.Close(t) }) at test start.",
+        "example": "e.close.Do(func() { e.db.EntDriver.Close(); e.db.PGDriver.Close() })"
       },
       {
-        "name": "State machine transition guard before mutations",
-        "description": "Delete and Cancel check subscription.NewStateMachine(status).CanTransitionOrErr() before entering the transaction.",
-        "example": "if err := subscription.NewStateMachine(view.Subscription.GetStatusAt(currentTime)).CanTransitionOrErr(ctx, subscription.SubscriptionActionDelete); err != nil { return err }"
-      },
-      {
-        "name": "Publish event after every mutation",
-        "description": "After each successful mutation, the service publishes a domain event (subscription.NewCreatedEvent, NewUpdatedEvent, NewCancelledEvent, etc.) via s.Publisher.",
-        "example": "err = s.Publisher.Publish(ctx, subscription.NewCreatedEvent(ctx, view))"
-      },
-      {
-        "name": "ServiceConfig constructor injection",
-        "description": "New(ServiceConfig) accepts all dependencies as fields in a config struct; the UniqueConstraintValidator is self-registered via RegisterHook inside New().",
-        "example": "func New(conf ServiceConfig) (subscription.Service, error) {\n\tsvc := &service{ServiceConfig: conf}\n\tval, _ := subscriptionvalidators.NewSubscriptionUniqueConstraintValidator(...)\n\tsvc.RegisterHook(val)\n\treturn svc, nil\n}"
+        "name": "NewTestULID / NewTestNamespace for collision-free identifiers",
+        "description": "Generate collision-free namespace and ID strings using NewTestULID(t). NewTestNamespace is an alias for the same function.",
+        "example": "ns := testutils.NewTestNamespace(t)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "service.go",
-        "role": "Main service implementation: Create, Update, Delete, Cancel, Continue, Get, GetView, List, ExpandViews, UpdateAnnotations, RegisterHook.",
-        "watch_for": "ExpandViews requires all subs to share the same customer ID; panics otherwise."
-      },
-      {
-        "file": "servicevalidation.go",
-        "role": "validateCreate/validateUpdate/validateCancel/validateContinue \u2014 pure validation helpers that check state machine transitions, currency consistency, and timing constraints.",
-        "watch_for": "validateCreate checks customer.Currency vs spec.Currency only when spec.HasBillables() is true."
-      },
-      {
-        "file": "sync.go",
-        "role": "sync() and helpers: diffs current view against new spec and issues create/delete/update calls on repos and EntitlementAdapter.",
-        "watch_for": "sync() is the single authorised path for spec\u2192DB reconciliation; do not call repo methods directly from service mutators."
-      },
-      {
-        "file": "synchelpers.go",
-        "role": "createPhase, deletePhase, createItem, deleteItem \u2014 building-blocks called by sync().",
-        "watch_for": "createItem calls EntitlementAdapter.ScheduleEntitlement for items with entitlement templates; missing EntitlementAdapter wiring causes runtime nil-deref."
-      },
-      {
-        "file": "service_test.go",
-        "role": "Integration tests requiring a live Postgres DB; set up via subscriptiontestutils.SetupDBDeps + NewService.",
-        "watch_for": "Tests use context.WithCancel(context.Background()) \u2014 prefer t.Context() for new tests per AGENTS.md."
+        "file": "env.go",
+        "role": "Defines TestEnv struct and NewTestEnv factory. Exports SubjectService, CustomerService, EntitlementAdapter, FeatureService, Client for direct test use.",
+        "watch_for": "meteradapter.New(nil) creates a mock meter adapter with no backing store \u2014 do not use for tests requiring real meter queries. DBSchemaMigrate must be called before any DB writes. Each test should create its own TestEnv instance to avoid cross-test state."
       }
     ],
     "anti_patterns": [
-      "Calling repo methods directly from service methods instead of routing through sync().",
-      "Adding a new mutation operation without calling NewSubscriptionOperationContext(ctx) at entry.",
-      "Omitting the customer advisory lock for operations that write subscription or item rows.",
-      "Adding a new hook without using errors.Join fan-out (partial hook failure would be silently swallowed).",
-      "Publishing events before the transaction commits \u2014 event must be emitted after transaction.Run succeeds."
+      "Importing app/common inside testutils \u2014 creates circular imports and couples tests to binary wiring",
+      "Using context.Background() instead of t.Context() in test helper functions",
+      "Skipping env.Close(t) \u2014 leaves DB connections open across test runs",
+      "Sharing a single TestEnv across parallel tests without isolation"
     ],
     "decisions": [
       {
-        "decision": "Cancel and Continue reuse sync() by building a new spec with modified ActiveTo.",
-        "rationale": "sync() is the single truth for spec\u2192DB reconciliation; duplicating logic in Cancel/Continue would cause drift and introduce partial-write bugs."
-      },
-      {
-        "decision": "pg-advisory lock per customer ID acquired inside the transaction.",
-        "rationale": "Concurrent subscription mutations for the same customer must be serialised to prevent double-active or conflicting phase timelines; advisory lock releases automatically on tx commit/rollback."
+        "decision": "Wire all dependencies from package constructors rather than app/common DI",
+        "rationale": "Keeps testutils independent of the application wiring layer; unrelated changes to app/common cannot break domain tests and import cycles are impossible."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Wire up a new subscription.Service using ServiceConfig",
-        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/subscription/service\"\n\t\"github.com/openmeterio/openmeter/openmeter/subscription/repo\"\n)\n\nsvc, err := service.New(service.ServiceConfig{\n\tSubscriptionRepo:      repo.NewSubscriptionRepo(dbClient),\n\tSubscriptionPhaseRepo: repo.NewSubscriptionPhaseRepo(dbClient),\n\tSubscriptionItemRepo:  repo.NewSubscriptionItemRepo(dbClient),\n\tCustomerService:       customerSvc,\n\tFeatureService:        featureSvc,\n\tEntitlementAdapter:    entitlementAdapter,\n\tTransactionManager:    dbClient,\n\tPublisher:             eventbusPublisher,\n\tLockr:                 locker,\n\tFeatureFlags:          ffxSvc,\n\tTaxCode:               taxcodeSvc,\n})"
+        "scenario": "Standard test setup using TestEnv",
+        "code": "func TestSubjectCreate(t *testing.T) {\n\tenv := testutils.NewTestEnv(t)\n\tt.Cleanup(func() { env.Close(t) })\n\tenv.DBSchemaMigrate(t)\n\n\tns := testutils.NewTestNamespace(t)\n\tsub, err := env.SubjectService.Create(t.Context(), subject.CreateInput{\n\t\tNamespace: ns,\n\t\tKey:       \"test-subject\",\n\t})\n\trequire.NoError(t, err)\n\trequire.Equal(t, \"test-subject\", sub.Key)\n}"
       }
     ]
   }

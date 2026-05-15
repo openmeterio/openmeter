@@ -1,0 +1,181 @@
+{
+  "test/notification": {
+    "purpose": "Integration test suite for the notification domain: channels, rules, events, delivery status, webhook delivery via Svix, and balance-threshold consumer handler. Wires the full notification stack including a real Svix client from environment variables via TestEnv.",
+    "patterns": [
+      {
+        "name": "TestEnv interface for service access",
+        "description": "All test suites receive a TestEnv value and call env.Notification(), env.NotificationRepo(), env.Feature(), env.Meter(), env.NotificationWebhook() instead of accessing service structs directly. TestEnv is created via NewTestEnv(t, ctx, namespace) and must be closed via env.Close().",
+        "example": "env, err := NewTestEnv(t, ctx, namespace); service := env.Notification()"
+      },
+      {
+        "name": "Sub-suite structs with Setup + named test methods",
+        "description": "Test behaviour is split into XxxTestSuite structs (ChannelTestSuite, RuleTestSuite, EventTestSuite, RepositoryTestSuite, WebhookTestSuite, BalanceNotificaiontHandlerTestSuite) each with an optional Setup method. The top-level TestNotification function constructs, sets up, and runs subtests.",
+        "example": "testSuite := ChannelTestSuite{Env: env}; t.Run(\"Create\", func(t *testing.T) { testSuite.TestCreate(ctx, t) })"
+      },
+      {
+        "name": "Svix from SVIX_HOST env var",
+        "description": "testenv.go reads SVIX_HOST (defaults to 127.0.0.1) and SVIX_JWT_SECRET to connect to a real Svix instance. Webhook delivery assertions require docker compose up -d svix or SVIX_HOST set.",
+        "example": "svixHost := defaultx.IfZero(os.Getenv(\"SVIX_HOST\"), DefaultSvixHost)"
+      },
+      {
+        "name": "NewBalanceSnapshotEvent for balance consumer tests",
+        "description": "BalanceNotificaiontHandlerTestSuite uses NewBalanceSnapshotEvent(BalanceSnapshotEventInput{Feature, Value, Namespace}) to construct synthetic snapshot.SnapshotEvent values passed to handler.Handle(ctx, event).",
+        "example": "snapshotEvent := NewBalanceSnapshotEvent(BalanceSnapshotEventInput{Feature: s.feature, Value: snapshot.EntitlementValue{Balance: convert.ToPointer(50.0)}, Namespace: s.namespace})"
+      },
+      {
+        "name": "setupNamespace for isolated balance handler tests",
+        "description": "BalanceNotificaiontHandlerTestSuite.setupNamespace creates a fresh ULID namespace, replaces meters, creates feature/channel/rule, and constructs consumer.EntitlementSnapshotHandler. Called inside each TestXxx method, not a shared Setup.",
+        "example": "s.setupNamespace(ctx, t); err := s.handler.Handle(ctx, snapshotEvent)"
+      },
+      {
+        "name": "eventHandler started as goroutine, closed via env.Close()",
+        "description": "testenv.go starts eventHandler.Start() in a goroutine inside NewTestEnv. The closerFunc calls eventHandler.Close() then closes Ent and PG drivers. Always defer env.Close() or use t.Cleanup.",
+        "example": "go func() { _ = eventHandler.Start() }(); t.Cleanup(func() { env.Close() })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "testenv.go",
+        "role": "Boots the full notification stack: Ent adapter, Svix webhook handler (real Svix client), pglockx lock client, notification event handler goroutine, notification service, feature connector, and meter mock adapter. Returns closerFunc for cleanup.",
+        "watch_for": "eventHandler.Start() runs in a goroutine \u2014 must call env.Close(). Svix connectivity is required for webhook delivery tests. TestEnv fields are set only after NewTestEnv returns."
+      },
+      {
+        "file": "consumer_balance.go",
+        "role": "BalanceNotificaiontHandlerTestSuite and helpers. Tests multi-step threshold crossing and reset deduplication logic of the balance consumer handler via direct handler.Handle calls (not Kafka).",
+        "watch_for": "TestEntitlementCurrentUsagePeriod is a package-level var computed at init (time.Now()); tests depending on exact period boundaries may be flaky near boundaries."
+      },
+      {
+        "file": "notification_test.go",
+        "role": "Top-level TestNotification entry point: creates one TestEnv, constructs all sub-suites, calls Setup on those that need it, runs subtests.",
+        "watch_for": "All sub-suites share the same TestEnv and namespace \u2014 test data created in one suite is visible to others. Use distinct IDs/names."
+      },
+      {
+        "file": "repository.go",
+        "role": "RepositoryTestSuite tests repo-layer filter methods (ListEvents with Features/Subjects filters). Calls repo directly via env.NotificationRepo() to bypass service layer for precise filter testing.",
+        "watch_for": "Uses context.Background() in TestFilterEventByFeature/TestFilterEventBySubject \u2014 acceptable here since these are pure repo-filter tests without Ent tx propagation needs."
+      },
+      {
+        "file": "helpers.go",
+        "role": "Stateless helpers: NewSvixAuthToken (generates HS256 JWT for Svix API auth) and NewClickhouseClient (present but currently unused by notification tests).",
+        "watch_for": "NewClickhouseClient exists for potential future use; notification tests do not currently use ClickHouse directly."
+      }
+    ],
+    "anti_patterns": [
+      "Running webhook delivery assertions without a live Svix instance \u2014 tests fail if SVIX_HOST is unset and assertions hit Svix API.",
+      "Creating a second TestEnv inside a test method \u2014 each TestEnv starts a goroutine and opens DB connections; always reuse the suite-level env.",
+      "Forgetting defer env.Close() \u2014 leaves the eventHandler goroutine and DB/Ent connections open.",
+      "Using package-level time vars (TestEntitlementCurrentUsagePeriod) as exact assertion values in time-sensitive tests \u2014 value is computed at package init.",
+      "Calling env.Notification() or env.NotificationRepo() before NewTestEnv completes \u2014 testEnv fields are only set after NewTestEnv returns."
+    ],
+    "decisions": [
+      {
+        "decision": "TestEnv interface rather than exposing service structs directly to test suites.",
+        "rationale": "Decouples suites from concrete wiring in testenv.go; allows swapping Svix for a mock without modifying every test file."
+      },
+      {
+        "decision": "Wire a real Svix client (not a mock) in testenv.go.",
+        "rationale": "Notification correctness depends on Svix application/endpoint/message creation semantics that a mock cannot catch; gated by SVIX_HOST availability."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new balance-consumer test step to BalanceNotificaiontHandlerTestSuite",
+        "code": "func (s *BalanceNotificaiontHandlerTestSuite) TestMyFlow(ctx context.Context, t *testing.T) {\n\ts.setupNamespace(ctx, t)\n\tservice := s.Env.Notification()\n\n\tsnapshotEvent := NewBalanceSnapshotEvent(BalanceSnapshotEventInput{\n\t\tFeature: s.feature,\n\t\tValue:   snapshot.EntitlementValue{Balance: convert.ToPointer(50.0)},\n\t\tNamespace: s.namespace,\n\t})\n\trequire.NoError(t, s.handler.Handle(ctx, snapshotEvent))\n\n\tevents, err := service.ListEvents(ctx, notification.ListEventsInput{Namespaces: []string{s.namespace}})\n\trequire.NoError(t, err)\n\trequire.Empty(t, events.Items)\n}"
+      }
+    ]
+  },
+  "test/subscription": {
+    "purpose": "Integration test suite for subscription lifecycle scenarios \u2014 verifying the full billing+sync stack (plan creation, subscription create/edit/cancel, billing sync, invoice line generation) against a real PostgreSQL database via pgtestdb. Tests are scenario-based and exercise cross-domain flows that unit tests cannot cover.",
+    "patterns": [
+      {
+        "name": "Single shared setup() function via testDeps",
+        "description": "All tests call setup(t, setupConfig{}) which wires every dependency from scratch using direct constructors (no app/common imports). The returned testDeps struct embeds subscriptiontestutils.SubscriptionDependencies and adds billing, sync, and app services. Always defer tDeps.cleanup(t).",
+        "example": "tDeps := setup(t, setupConfig{}); defer tDeps.cleanup(t)"
+      },
+      {
+        "name": "clock.SetTime for deterministic time control",
+        "description": "Tests set a fixed start time via testutils.GetRFC3339Time then advance with clock.SetTime(currentTime.Add(...)). All services use pkg/clock so this controls all time-dependent billing logic.",
+        "example": "currentTime := testutils.GetRFC3339Time(t, \"2025-01-20T13:11:07Z\"); clock.SetTime(currentTime)"
+      },
+      {
+        "name": "Numbered step comments for scenario readability",
+        "description": "Test bodies use numbered comments (// 1st, // 2nd, etc.) documenting the causal sequence: feature \u2192 plan \u2192 publish \u2192 customer \u2192 subscription \u2192 mutations \u2192 assertions.",
+        "example": "// 1st, let's create the features ... // 2nd, let's create the plan ... // 4th, let's create the subscription"
+      },
+      {
+        "name": "Plan published before subscription creation",
+        "description": "Every scenario calls PlanService.PublishPlan with EffectiveFrom before creating a subscription via pcSubscriptionService.Create. An unpublished plan causes subscription creation to fail.",
+        "example": "p, err = tDeps.PlanService.PublishPlan(ctx, plan.PublishPlanInput{NamespacedID: p.NamespacedID, EffectivePeriod: productcatalog.EffectivePeriod{EffectiveFrom: lo.ToPtr(currentTime)}})"
+      },
+      {
+        "name": "minimalCreateProfileInputTemplate for billing profile setup",
+        "description": "Tests that exercise billing call minimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID()) (defined in framework_test.go) to get a baseline billing profile with AlignmentKindSubscription and PT0S collection interval. Override fields before calling billingService.CreateProfile.",
+        "example": "profInput := minimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID()); _, err := tDeps.billingService.CreateProfile(ctx, profInput)"
+      },
+      {
+        "name": "Hardcoded test-namespace",
+        "description": "All tests use namespace := \"test-namespace\" \u2014 hardcoded in subscriptiontestutils.SetupDBDeps. Do not use any other namespace string.",
+        "example": "namespace := \"test-namespace\""
+      },
+      {
+        "name": "Direct constructor wiring, no app/common imports",
+        "description": "framework_test.go builds billingservice, billingadapter, subscriptionsyncservice, appservice, etc. by calling their New(Config{...}) constructors directly. Importing app/common creates import cycles.",
+        "example": "billingService, err := billingservice.New(billingservice.Config{Adapter: billingAdapter, CustomerService: deps.CustomerService, ...})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "framework_test.go",
+        "role": "Defines testDeps struct, setup() function, and minimalCreateProfileInputTemplate. All scenario files share this single test package (package subscription_test). Registers appsandbox.NewMockableFactory as side-effect before billing service use.",
+        "watch_for": "Adding a new service to setup() requires matching field in testDeps; forgetting cleanup(t) leaks the pgtestdb database; sandbox app must be registered via appsandbox.NewMockableFactory before billing wiring."
+      },
+      {
+        "file": "scenario_editaligned_test.go",
+        "role": "Tests that editing a running subscription preserves the metered entitlement's current usage period boundaries after a PatchRemoveItem + PatchAddItem.",
+        "watch_for": "Assertions compare sView.Phases[0].ItemsByKey[key][0] (old/expired) vs sUpdated.Phases[0].ItemsByKey[key][1] (new replacement) \u2014 index 1 is the replacement entitlement."
+      },
+      {
+        "file": "scenario_editcancel_test.go",
+        "role": "Tests editing then immediately canceling a subscription; also stress-tests with 10 parallel customers to surface concurrency issues.",
+        "watch_for": "Extra customers use unique subject keys (subject_2..subject_11); ensure all subject keys are unique per customer or customer service rejects duplicates."
+      },
+      {
+        "file": "scenario_entinnextphase_test.go",
+        "role": "Regression test for subscription creation with a metered entitlement in the second phase (not the first). Does NOT create a billing profile \u2014 tests subscription correctness only.",
+        "watch_for": "'THIS IS THE TEST, it used to fail' comment marks the key assertion. Do not add billing assertions here without first creating a profile."
+      },
+      {
+        "file": "scenario_firstofmonth_test.go",
+        "role": "Tests billing anchor alignment: in-arrears usage, in-advance flat fee, and daily cadence ratecards align to first-of-month. Calls subscriptionSyncService.SynchronizeSubscription directly.",
+        "watch_for": "Line count depends on days between startOfSub and endOfMonth. Assertions group lines via lo.GroupBy and sort by period start \u2014 fragile to date changes in GetRFC3339Time values."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common or any Wire provider set \u2014 creates import cycles with domain testutils packages.",
+      "Using context.Background() where t.Context() is available \u2014 test harness lifecycle must own context cancellation.",
+      "Using a namespace other than 'test-namespace' \u2014 hardcoded in SetupDBDeps infrastructure.",
+      "Calling subscriptionSyncService or billingService without first creating a billing profile \u2014 profile is required for invoice generation.",
+      "Mutating clock.Now() via clock.SetTime without restoring it after the test \u2014 leaked global clock state affects parallel tests."
+    ],
+    "decisions": [
+      {
+        "decision": "Scenario files rather than table-driven tests.",
+        "rationale": "Each scenario exercises a different causal sequence of domain operations varying in setup, timing, and assertions; table-driven structure would obscure the temporal flow central to billing correctness."
+      },
+      {
+        "decision": "All wiring done via direct constructors in framework_test.go instead of app/common Wire sets.",
+        "rationale": "Avoids import cycles between domain testutils and the application wiring layer; keeps test dependencies minimal and explicit."
+      },
+      {
+        "decision": "Shared testDeps with embedded SubscriptionDependencies rather than per-test setup structs.",
+        "rationale": "Each test calls setup() independently (fresh pgtestdb DB), but the struct shape is shared so scenario files can access all services without re-declaring them."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Standard scenario: setup deps, control clock, create feature+plan+customer, subscribe, advance time, assert",
+        "code": "func TestMyScenario(t *testing.T) {\n\tnamespace := \"test-namespace\"\n\tcurrentTime := testutils.GetRFC3339Time(t, \"2025-06-15T12:00:00Z\")\n\tctx, cancel := context.WithCancel(t.Context())\n\tdefer cancel()\n\n\ttDeps := setup(t, setupConfig{})\n\tdefer tDeps.cleanup(t)\n\tclock.SetTime(currentTime)\n\n\t// Billing profile required for invoice generation\n\t_, err := tDeps.billingService.CreateProfile(ctx, minimalCreateProfileInputTemplate(tDeps.sandboxApp.GetID()))\n\trequire.NoError(t, err)\n\n\t// 1st, create feature\n\tf, err := tDeps.FeatureConnector.CreateFeature(ctx, feature.CreateFeatureInputs{Name: \"F\", Key: \"f\", Namespace: namespace, MeterID: lo.ToPtr(tDeps.ExampleMeterID)})\n\trequire.NoError(t, err)\n\n\t// 2nd, create and publish plan ... 3rd customer ... 4th subscription ...\n}"
+      }
+    ]
+  }
+}

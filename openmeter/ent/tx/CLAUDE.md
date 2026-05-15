@@ -2,7 +2,7 @@
 
 <!-- archie:ai-start -->
 
-> Thin adapter that bridges the Ent ORM transaction API to the pkg/framework/transaction.Creator interface, allowing domain services to start Postgres transactions without importing ent internals directly.
+> Thin bridge that adapts the Ent ORM transaction API to the pkg/framework/transaction.Creator interface, allowing domain adapters and services to start Postgres transactions without importing ent internals directly.
 
 ## Patterns
 

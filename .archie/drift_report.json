@@ -1932,7 +1932,7 @@
     {
       "type": "structural_outlier",
       "folder": "e2e",
-      "message": "Has 21 files \u2014 significantly more than sibling average (4). May be a god-folder that should be split.",
+      "message": "Has 22 files \u2014 significantly more than sibling average (4). May be a god-folder that should be split.",
       "severity": "info"
     },
     {
@@ -1998,7 +1998,7 @@
     {
       "type": "structural_outlier",
       "folder": "openmeter/billing",
-      "message": "Has 39 files \u2014 significantly more than sibling average (8). May be a god-folder that should be split.",
+      "message": "Has 41 files \u2014 significantly more than sibling average (8). May be a god-folder that should be split.",
       "severity": "info"
     },
     {
@@ -2010,8 +2010,8 @@
   ],
   "antipattern_clusters": [],
   "summary": {
-    "total_findings": 102,
-    "warnings": 89,
+    "total_findings": 103,
+    "warnings": 81,
     "informational": 13,
     "checks_run": [
       "pattern_divergences",
@@ -2020,114 +2020,90 @@
       "structural_outliers",
       "antipattern_clusters"
     ],
-    "timestamp": "2026-05-04T10:09:36.813721+00:00",
-    "deep_findings": 8
+    "timestamp": "2026-05-14T20:00:41.051273+00:00",
+    "deep_findings": 9
   },
   "deep_findings": [
     {
-      "id": "deep-001",
-      "category": "trade_off_undermined",
-      "severity": "warn",
-      "title": "time.Now() in billing advance worker breaks clock-frozen test determinism",
-      "description": "openmeter/billing/worker/advance/advance.go uses raw time.Now() at lines 82 and 97 for DraftUntilLTE and CollectionAtLTE cutoff queries. The project mandates pkg/clock.Now() for all production code so tests can freeze time (clock.FreezeTime) and produce deterministic billing cutoff behaviour. Using time.Now() means the advance-worker filter window is always wall-clock-anchored and cannot be controlled in integration tests.",
-      "file": "openmeter/billing/worker/advance/advance.go",
-      "lines": [
-        82,
-        97
-      ],
-      "decision_ref": "Ent ORM + Atlas migrations as the schema pipeline; deterministic billing correctness",
-      "fix_direction": "Replace time.Now() with clock.Now() and add \"github.com/openmeterio/openmeter/pkg/clock\" import. Ensure the clock package is injected or used as a package-level import consistent with stdinvoicestate.go which already uses clock.Now() correctly."
+      "folder": "api/v3/handlers/addons",
+      "file": "convert.go",
+      "type": "semantic_duplication",
+      "severity": "high",
+      "decision_or_pattern": "convert.go owns all domain-API mappings per resource package \u2014 per handlers/CLAUDE.md. The productcatalog RateCard/Price hierarchy conversion is the canonical complex mapping that should live in one authoritative place.",
+      "evidence": "api/v3/handlers/addons/convert.go defines ToAPIBillingRateCard, ToAPIBillingPrice, ToAPIBillingPriceTiers, ToAPIBillingSpendCommitments, ToAPIBillingRateCardTaxConfig, ToAPIBillingRateCardDiscounts, FromAPIBillingRateCard, FromAPIBillingPrice, FromAPIBillingPriceTiers, FromAPIBillingRateCardTaxConfig, FromAPIBillingRateCardDiscounts \u2014 the same set of functions as api/v3/handlers/plans/convert.go \u2014 with independently maintained implementations. customers/charges/convert.go adds a third private implementation toAPIBillingPrice / toAPIBillingPriceTier. None of these packages imports the others; the logic is copy-evolved.",
+      "message": "The full productcatalog.RateCard \u2194 api.BillingRateCard and productcatalog.Price \u2194 api.BillingPrice bidirectional conversion hierarchy is independently duplicated in three packages: plans/convert.go, addons/convert.go, and customers/charges/convert.go. Because they share the same domain types (productcatalog.Price, productcatalog.RateCard) and the same output API types (api.BillingPrice, api.BillingRateCard), adding a new price type (e.g., PackagePrice support) requires parallel changes to all three packages; omitting one silently produces 500s or missing fields in that API surface. The CLAUDE.md for handlers explicitly states 'convert.go owns all domain\u2194API mappings' but allows no shared convert package, forcing this duplication. A shared api/v3/handlers/productcatalogconvert/ or api/v3/handlers/convert/ package exposing the canonical price/ratecard mappings would eliminate this drift surface."
     },
     {
-      "id": "deep-002",
-      "category": "trade_off_undermined",
-      "severity": "warn",
-      "title": "time.Now() in billing worker event handlers breaks clock-frozen test determinism",
-      "description": "openmeter/billing/worker/worker.go passes time.Now() as the asOf argument to subscriptionSync.SynchronizeSubscriptionAndInvoiceCustomer (lines 158, 172, 179). The subscription sync service uses this timestamp to anchor billing period calculations; using wall-clock time makes these calls non-deterministic in tests and misaligned with clock.FreezeTime-based integration scenarios that exercise the rest of the billing pipeline.",
-      "file": "openmeter/billing/worker/worker.go",
-      "lines": [
-        158,
-        172,
-        179
-      ],
-      "decision_ref": "Deterministic billing correctness; pkg/clock.Now() mandated for all production code",
-      "fix_direction": "Import pkg/clock and replace time.Now() with clock.Now() in all three event handler closures. The Clock dependency can be injected into the Worker struct to allow test overrides."
+      "folder": "api/v3/handlers/addons",
+      "file": "convert.go",
+      "type": "pattern_erosion",
+      "severity": "high",
+      "decision_or_pattern": "plans/convert.go CLAUDE.md: 'DynamicPriceType and PackagePriceType return GenericConflictError (409) in ToAPIBillingPrice \u2014 The v3 API does not yet have a wire format for these price types; returning a conflict error surfaces the limitation clearly to callers rather than silently dropping data.' This decision was made because 409 via models.GenericConflictError routes through GenericErrorEncoder to a structured RFC 7807 problem response.",
+      "evidence": "api/v3/handlers/plans/convert.go line 238-241: case productcatalog.DynamicPriceType: return result, models.NewGenericConflictError(fmt.Errorf(\"dynamic price is not supported in v3 API\")). api/v3/handlers/addons/convert.go line 385: return apiPrice, nil, nil, fmt.Errorf(\"unsupported price type for v3: %s\", price.Type()). The addons package uses a plain fmt.Errorf for the identical unsupported-price-type condition that plans handles with models.NewGenericConflictError.",
+      "message": "When ToAPIBillingPrice in addons/convert.go encounters DynamicPriceType or PackagePriceType, it returns a plain fmt.Errorf rather than models.NewGenericConflictError as plans/convert.go does. The plain error is not matched by GenericErrorEncoder (which only handles models.Generic* typed sentinels) and falls through to a 500 Internal Server Error. Plans callers receive a 409 Conflict with a meaningful message; addons callers receive an opaque 500. This is a behavioral inconsistency for the same unsupported-price-type condition across sibling packages and violates the error-mapping contract in the handlers error-encoding architecture."
     },
     {
-      "id": "deep-003",
-      "category": "trade_off_undermined",
-      "severity": "warn",
-      "title": "time.Now() in billing collect worker breaks clock-frozen test determinism",
-      "description": "openmeter/billing/worker/collect/collect.go uses time.Now() at lines 146 and 192 for payment collection cutoff windows. Like the advance worker, this anchors the collection pass to wall-clock time, preventing tests from exercising past-due collection scenarios by freezing the clock.",
-      "file": "openmeter/billing/worker/collect/collect.go",
-      "lines": [
-        146,
-        192
-      ],
-      "decision_ref": "Deterministic billing correctness; pkg/clock.Now() mandated for all production code",
-      "fix_direction": "Import pkg/clock and replace time.Now() with clock.Now(). If collect.go currently has no Clock field, add one to its config struct and wire it in app/common/billing.go consistent with other billing service constructors."
+      "folder": "api/v3/handlers/addons",
+      "file": "convert.go",
+      "type": "pattern_erosion",
+      "severity": "medium",
+      "decision_or_pattern": "plans/CLAUDE.md: 'Adding a new price type requires updating both ToAPIBillingPrice and FromAPIBillingPrice and the unsupportedV3PriceTypes map.' plans/convert.go has a hasUnsupportedV3Price filter in list.go that silently skips plans with dynamic/package prices. addons/list.go has no equivalent filter.",
+      "evidence": "api/v3/handlers/plans/convert.go lines 18-33 define unsupportedV3PriceTypes map and hasUnsupportedV3Price(). api/v3/handlers/plans/list.go line 115 calls hasUnsupportedV3Price to skip unsupported plans. api/v3/handlers/addons/list.go has no equivalent filter. If an addon is created with a DynamicPriceType rate card, the ListAddons response will error at serialization time for that addon rather than silently omitting it.",
+      "message": "plans/list.go filters out plans containing DynamicPriceType or PackagePriceType before serialization via hasUnsupportedV3Price. addons/list.go has no equivalent guard, so any addon containing a DynamicPrice or PackagePrice rate card will cause the entire ListAddons response to fail at the ToAPIBillingPrice call site. This asymmetric handling of the same unsupported price types across sibling packages (plans vs addons) means the invariant 'list never returns an error due to unsupported price types' holds for plans but not for addons."
     },
     {
-      "id": "deep-004",
-      "category": "trade_off_undermined",
-      "severity": "warn",
-      "title": "time.Now() in subscription sync reconciler \u2014 explicitly documented as anti-pattern in reconciler's own CLAUDE.md",
-      "description": "openmeter/billing/worker/subscriptionsync/reconciler/reconciler.go line 184 passes time.Now() as the asOf argument to SynchronizeSubscription. The reconciler's own CLAUDE.md lists 'Using time.Now() instead of clock.Now() \u2014 breaks time-based tests' as an explicit anti-pattern, making this a self-acknowledged violation. The reconciler is the crash-recovery idempotent re-sync path; its time anchor must match what the main event handler uses to avoid gaps or double-billing.",
-      "file": "openmeter/billing/worker/subscriptionsync/reconciler/reconciler.go",
-      "lines": [
-        184
-      ],
-      "decision_ref": "Subscription sync reconciler idempotency; pkg/clock.Now() mandated; reconciler CLAUDE.md anti-pattern list",
-      "fix_direction": "Import pkg/clock and replace time.Now() with clock.Now(). The reconciler config already has other injected dependencies \u2014 add a clock.Clock field and wire it in app/common alongside the subscriptionsync service wiring."
+      "folder": "api/v3/handlers/addons",
+      "file": "convert.go",
+      "type": "semantic_duplication",
+      "severity": "medium",
+      "decision_or_pattern": "plans/CLAUDE.md: 'ToAPIBillingRateCardTaxConfig \u2014 takes *taxcode.TaxCode additional param.' addons/convert.go defines ToAPIBillingRateCardTaxConfig with a different signature, dropping the taxcode resolution entirely.",
+      "evidence": "plans/convert.go: func ToAPIBillingRateCardTaxConfig(c *productcatalog.TaxConfig, tc *taxcode.TaxCode) *api.BillingRateCardTaxConfig \u2014 guards on c == nil || tc == nil, requiring both a TaxConfig and a resolved TaxCode. addons/convert.go: func ToAPIBillingRateCardTaxConfig(tc *productcatalog.TaxConfig) *apiv3.BillingRateCardTaxConfig \u2014 no taxcode parameter at all. The two functions map the same domain type to the same API type but with different input arity.",
+      "message": "The ToAPIBillingRateCardTaxConfig function is defined independently in both plans/convert.go and addons/convert.go with incompatible signatures. The plans version requires a resolved *taxcode.TaxCode and gates output on both arguments being non-nil. The addons version omits the taxcode entirely. This means addons rate cards are serialized without the taxcode's metadata that plans rate cards include, producing structurally different API outputs for the same field despite targeting the same api.BillingRateCardTaxConfig type. No test enforces parity."
     },
     {
-      "id": "deep-005",
-      "category": "trade_off_undermined",
-      "severity": "warn",
-      "title": "time.Now() in subscription sync service sync.go breaks billing period anchor",
-      "description": "openmeter/billing/worker/subscriptionsync/service/sync.go line 63 passes time.Now() as asOf when resolving which billing period to sync. This is the innermost synchronisation logic \u2014 the billing period anchor must be deterministically controllable for tests. When the billing worker event handler (deep-002) is fixed to pass clock.Now(), this internal call also needs to be corrected or the anchor inconsistency reappears one level deeper.",
-      "file": "openmeter/billing/worker/subscriptionsync/service/sync.go",
-      "lines": [
-        63
-      ],
-      "decision_ref": "Deterministic billing correctness; pkg/clock.Now() mandated for all production code",
-      "fix_direction": "Thread the clock through the sync service config struct and replace time.Now() with the injected clock's Now() call. Align with how stdinvoicestate.go uses clock.Now() as the canonical reference."
+      "folder": "api/v3/handlers",
+      "file": "addons/handler.go, plans/handler.go, customers/handler.go, meters/handler.go, billingprofiles/handler.go, currencies/handler.go, events/handler.go, features/handler.go, llmcost/handler.go, subscriptions/handler.go, plans/planaddons/handler.go, customers/billing/handler.go, customers/charges/handler.go, customers/credits/handler.go, customers/entitlementaccess/handler.go, featurecost/handler.go",
+      "type": "pattern_erosion",
+      "severity": "medium",
+      "decision_or_pattern": "handlers/CLAUDE.md Key Files table: 'var _ Handler = (*handler)(nil) compile-time check is required.' apps/handler.go is the only package in the entire api/v3/handlers tree that includes this check.",
+      "evidence": "grep -rn 'var _ Handler' api/v3/handlers/ returns only api/v3/handlers/apps/handler.go:16:var _ Handler = (*handler)(nil). All 16 other handler.go files across the tree are missing this compile-time interface satisfaction assertion.",
+      "message": "The handlers/CLAUDE.md mandates 'var _ Handler = (*handler)(nil) compile-time check is required' in every handler.go. Of 17 handler packages under api/v3/handlers/, only apps/handler.go includes this check. The remaining 16 packages (addons, plans, customers, meters, billingprofiles, currencies, events, features, llmcost, subscriptions, plans/planaddons, customers/billing, customers/charges, customers/credits, customers/entitlementaccess, featurecost) have no compile-time guard. If a new method is added to the Handler interface but its implementation is accidentally omitted in a handler struct, the omission only surfaces at runtime (typically as a nil method call or a server-wiring compilation error in the api/v3/server package, which is distant from the failure site) rather than at the package level."
     },
     {
-      "id": "deep-006",
-      "category": "trade_off_undermined",
-      "severity": "warn",
-      "title": "time.Now() in invoicecalc/gatheringrealtime.go stamps synthetic DetailedLine timestamps with wall time",
-      "description": "openmeter/billing/service/invoicecalc/gatheringrealtime.go lines 23 and 27 use time.Now() to backfill CreatedAt and UpdatedAt on in-memory DetailedLines that were never persisted. This is inside the core invoice calculation pipeline. The gathering-invoice CLAUDE.md states the step is safe to call multiple times without stomping existing values, but the initial stamp is non-deterministic, causing flaky assertions in tests that compare invoice line timestamps after clock.FreezeTime.",
-      "file": "openmeter/billing/service/invoicecalc/gatheringrealtime.go",
-      "lines": [
-        23,
-        27
-      ],
-      "decision_ref": "invoicecalc pipeline is stateless and pure; pkg/clock.Now() mandated for all production code",
-      "fix_direction": "Pass a clock.Clock (or time.Time snapshot) through GatheringInvoiceCalculatorDependencies, consistent with how other deps are injected, and replace time.Now() with that value. Alternatively, accept a Now func() time.Time parameter following the pkg/clock pattern."
+      "folder": "api/v3/handlers/customers/billing",
+      "file": "get_billing.go",
+      "type": "pattern_erosion",
+      "severity": "medium",
+      "decision_or_pattern": "customers/billing/CLAUDE.md pattern 'Deleted-customer guard in decoder': 'Every mutation decoder calls h.customerService.GetCustomer and checks cus.IsDeleted(), returning apierrors.NewGoneError if true.' The CLAUDE also says 'Skip this and deleted-customer writes go undetected.'",
+      "evidence": "update_billing.go decoder (line 48): cus, err := h.customerService.GetCustomer(ctx, ...) followed by if cus.IsDeleted() check at line 58. update_billing_app_data.go decoder (line 47): same guard. create_customer_stripe_checkout_session.go decoder (line 44): same guard. get_billing.go decoder: calls h.resolveNamespace and returns GetCustomerBillingRequest immediately with no GetCustomer call and no IsDeleted check anywhere in the decoder.",
+      "message": "GetCustomerBilling does not call h.customerService.GetCustomer and does not check cus.IsDeleted() in its decoder, while all three mutation handlers in the same package (update_billing.go, update_billing_app_data.go, create_customer_stripe_checkout_session.go) do. For a GET endpoint this is lower severity since it doesn't write data, but the CLAUDE states the guard applies to decoders, and GetCustomerBilling will return a successful response for a soft-deleted customer. This is inconsistent with the package contract that all operations validate customer liveness before calling billing domain services."
     },
     {
-      "id": "deep-007",
-      "category": "pattern_erosion",
-      "severity": "warn",
-      "title": "Structural hack in NewLedgerHistoricalLedger: second accountservice instance with nil Querier to break circular dependency",
-      "description": "app/common/ledger.go's NewLedgerHistoricalLedger constructs a second accountservice.New with a nil Querier field (acknowledged with a // TODO: this is a hack comment) solely to avoid a package boundary circular dependency between the account and historical-ledger sub-packages. This means the historical ledger has an accountService dependency whose Querier is deliberately nil, silently restricting which accountService methods can be called from within the historical ledger. Any future code that calls a Querier-dependent method on that injected service will panic at runtime with no compile-time warning. The hack also means two accountservice instances exist for the same ledger, with different capabilities, which undermines the single-service-instance-per-domain pattern.",
-      "file": "app/common/ledger.go",
-      "lines": [],
-      "decision_ref": "Layered Domain Service/Adapter/Repository pattern; no nil fields in injected dependencies; credits.enabled guarded at four independent wiring layers",
-      "fix_direction": "Resolve the package boundary issue structurally: extract the interface that historical.Ledger needs from accountservice into a narrow interface (e.g. ledgeraccount.AccountQuerier) defined in the ledger domain package, and satisfy it from the single real accountservice instance. Remove the second accountservice.New call and the // TODO hack comment."
+      "folder": "api/v3/handlers/customers/charges",
+      "file": "convert.go",
+      "type": "semantic_duplication",
+      "severity": "medium",
+      "decision_or_pattern": "charges/CLAUDE.md: 'Exported converters are shared; changing their signatures affects callers in sibling packages (e.g., customerscredits).' However toAPIBillingPrice (private) in charges/convert.go independently reimplements the same productcatalog.Price \u2192 api.BillingPrice mapping also in plans/convert.go and addons/convert.go.",
+      "evidence": "charges/convert.go line 189: func toAPIBillingPrice(p productcatalog.Price) (api.BillingPrice, error) \u2014 private, not exported. plans/convert.go line 169: func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) \u2014 exported, pointer receiver. addons/convert.go line 317: func ToAPIBillingPrice(price productcatalog.Price) (apiv3.BillingPrice, *apiv3.BillingSpendCommitments, *apiv3.BillingPricePaymentTerm, error) \u2014 exported, different return arity. All three implement FlatFee, Unit, TieredGraduated, TieredVolume, Free price type switches independently.",
+      "message": "charges/convert.go contains a private toAPIBillingPrice that is the third independent implementation of the productcatalog.Price \u2192 api.BillingPrice conversion. Unlike the plans and addons versions, this one returns plain fmt.Errorf for unsupported price types (line 243: 'unsupported price type: %s') rather than models.NewGenericConflictError, and it cannot reuse the plans version without creating an import from charges to plans (which would be a responsibility leak). The private scope means it cannot be called from outside charges, forcing future price-type additions to be made in three places. This is the same semantic duplication as the plans/addons pair but also cuts through package visibility boundaries."
     },
     {
-      "id": "deep-008",
-      "category": "pitfall_triggered",
-      "severity": "warn",
-      "title": "Silent hook registration side-effects in app/common/customer.go: three separate Wire providers each register hooks, omitting any one drops that hook with no compile error",
-      "description": "app/common/customer.go registers customer lifecycle hooks across three independent Wire provider functions: NewCustomerLedgerServiceHook (registers ledger hook), NewCustomerSubjectServiceHook (registers subject hook), and NewCustomerEntitlementValidatorServiceHook (registers entitlement validator hook). Each calls customerService.RegisterHooks(h) or customerService.RegisterRequestValidator(v) as a constructor side-effect. Wire only tracks return types, not side-effects. If any of these three provider functions is omitted from a binary's wire.Build (e.g. a new worker binary in app/common/openmeter_<worker>.go), that hook silently drops with no compile error and no runtime warning \u2014 exactly the pitfall documented in the architecture blueprint (pf_0003). The billing worker and balance worker binaries are each at risk if their Wire sets do not pull all three hook providers.",
-      "file": "app/common/customer.go",
-      "lines": [],
-      "decision_ref": "Cross-domain hooks and request validators must be registered inside app/common provider functions; hook side-effect registration pitfall (pf_0003)",
-      "fix_direction": "Bundle all three hook provider results into a named CustomerHookBundle struct that is returned as a single Wire output. Add a compile-time assertion (e.g. a customerHooksBundleRegistered marker) that each binary's Wire set must include. Alternatively, register all hooks inside a single NewCustomerHooks provider that is explicitly required in every binary's wire.Build, making an omission a Wire graph error rather than a silent runtime gap."
+      "folder": "api/v3/handlers/customers/billing",
+      "file": "error_encoder.go",
+      "type": "pattern_erosion",
+      "severity": "low",
+      "decision_or_pattern": "customers/billing/CLAUDE.md: 'Domain-specific error encoder chained after generic \u2014 error_encoder.go returns a func that matches billing.NotFoundError \u2192 404, billing.ValidationError \u2192 400, billing.UpdateAfterDeleteError \u2192 409, billing.AppError \u2192 400. It is always appended after apierrors.GenericErrorEncoder() in httptransport.AppendOptions.' The billing package error_encoder.go handles billing.ValidationIssue at line 5 but the CLAUDE's documented list does not include billing.ValidationIssue.",
+      "evidence": "error_encoder.go line 5: commonhttp.HandleErrorIfTypeMatches[billing.ValidationIssue](ctx, http.StatusBadRequest, err, w, billing.EncodeValidationIssues). The customers/billing/CLAUDE.md key files section for error_encoder.go lists: NotFoundError \u2192 404, ValidationError \u2192 400, UpdateAfterDeleteError \u2192 409, AppError \u2192 400. billing.ValidationIssue is not in the documented list, suggesting it was added after the CLAUDE was written without documentation update.",
+      "message": "The error_encoder.go for customers/billing handles billing.ValidationIssue (\u2192 400) in addition to the four error types documented in CLAUDE.md. This is not a functional bug \u2014 handling the extra error type provides more correct status codes \u2014 but it represents CLAUDE documentation drift: the contract documentation in the per-folder CLAUDE.md does not match the code, making the package description unreliable as a reference for what error types are mapped. If a developer relies on the CLAUDE to enumerate handled errors, they may not know billing.ValidationIssue is caught here and may add it again or route around it."
+    },
+    {
+      "folder": "api/v3/handlers/addons",
+      "file": "convert.go",
+      "type": "responsibility_leak",
+      "severity": "medium",
+      "decision_or_pattern": "The handlers/CLAUDE.md states: 'Each resource lives in its own sub-package under api/v3/handlers/ rather than a single flat handlers package.' The plans/CLAUDE.md states addons/convert.go and plans/convert.go must be kept in sync: 'Both files share identical app-type switch logic; keep them in sync when adding a new app type.' This creates a hidden cross-package coupling where addons silently takes responsibility for maintaining a parallel implementation of logic that belongs to plans.",
+      "evidence": "ToAPIBillingSpendCommitments in plans/convert.go takes productcatalog.Commitments. ToAPIBillingSpendCommitments in addons/convert.go takes (*alpacadecimal.Decimal, *alpacadecimal.Decimal) \u2014 two separate decimal pointers. These signatures reflect different internal assumptions about how commitments are represented at the call site, meaning the two packages have diverged in their mental model of the same domain object despite producing the same API output type.",
+      "message": "plans/convert.go and addons/convert.go have independently evolved ToAPIBillingSpendCommitments with incompatible signatures: plans takes a productcatalog.Commitments value while addons takes two separate *alpacadecimal.Decimal pointers. This divergence in input representation for the same domain concept (spend commitments) means developers have made different assumptions about how commitments reach the serialization layer in each package. The two implementations cannot be unified without a judgment call about which representation is canonical. This is a responsibility leak: the addons package has absorbed a view of the commitments model that differs from plans, without a shared canonical source."
     }
   ]
 }

@@ -2,35 +2,35 @@
 
 <!-- archie:ai-start -->
 
-> Provides thin bidirectional conversion helpers between internal domain model types (models.Annotations, models.Metadata) and their generated API wire types (api.Annotations, api.Metadata). Acts as a translation boundary layer so domain packages never import the generated api package directly.
+> Thin bidirectional conversion layer between internal domain model types (models.Annotations, models.Metadata) and their generated API wire types (api.Annotations, api.Metadata). Acts as an isolated translation boundary so no domain package ever imports the generated api package directly.
 
 ## Patterns
 
-**Direct type-cast conversion** — Internal and API types share the same underlying map type, so conversions are simple Go type assertions wrapped with nil-guards for pointer inputs. No field mapping or transformation logic belongs here. (`return (models.Annotations)(*annotations)`)
-**Pointer wrapping with lo.ToPtr for outbound direction** — FromX functions (domain -> API) return a pointer to the converted value using lo.ToPtr, matching the optional/nullable pointer semantics used in the generated API types. (`return lo.ToPtr((api.Annotations)(annotations))`)
-**Nil-guard on inbound pointer conversion** — AsX functions (API -> domain) check for nil before dereferencing the pointer and return nil domain value when the API field is absent. (`if annotations == nil { return nil }`)
+**Direct Go type-cast conversion** — Internal and API types share the same underlying map type; conversions are pure Go type assertions, never field-by-field copies. Zero transformation logic lives here. (`return (models.Annotations)(*annotations)`)
+**Pointer wrapping with lo.ToPtr for outbound direction** — FromX functions (domain -> API) return *api.T via lo.ToPtr to match optional/nullable pointer semantics in generated API types. (`func FromAnnotations(annotations models.Annotations) *api.Annotations { return lo.ToPtr((api.Annotations)(annotations)) }`)
+**Nil-guard on inbound pointer conversion** — AsX functions (API -> domain) always check for nil before dereferencing the input pointer and return a nil domain value when the API field is absent. (`func AsAnnotations(annotations *api.Annotations) models.Annotations { if annotations == nil { return nil }; return (models.Annotations)(*annotations) }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `annotation.go` | Converts models.Annotations <-> *api.Annotations; FromAnnotations wraps outbound, AsAnnotations unwraps inbound. | api.Annotations and models.Annotations are both map[string]interface{} aliases — do not add transformation logic; keep as pure casts. |
-| `metadata.go` | Identical pattern to annotation.go for models.Metadata <-> *api.Metadata. | Same alias-cast pattern; any structural divergence between api.Metadata and models.Metadata would silently break here at runtime. |
+| `annotation.go` | Converts models.Annotations <-> *api.Annotations. FromAnnotations wraps outbound; AsAnnotations unwraps inbound with nil-guard. | api.Annotations and models.Annotations are both map[string]interface{} aliases — any structural divergence between them would silently break the cast at runtime without a compile error. |
+| `metadata.go` | Identical alias-cast pattern to annotation.go for models.Metadata <-> *api.Metadata. | Do not add transformation logic; if api.Metadata and models.Metadata ever diverge structurally, the cast will panic at runtime, not at compile time. |
 
 ## Anti-Patterns
 
-- Adding business logic or field validation inside these conversion helpers — they are pure structural translations.
-- Importing from openmeter/* domain packages other than pkg/models — this package must stay a leaf with minimal imports.
-- Returning a non-pointer (value type) from FromX helpers — callers expect *api.T to match generated optional fields.
+- Adding business logic, field validation, or data transformation inside these helpers — they are pure structural casts.
+- Importing from openmeter/* domain packages other than pkg/models — this package must remain a leaf with minimal imports.
+- Returning a non-pointer value type from FromX helpers — callers expect *api.T to match generated optional fields.
 - Skipping the nil check in AsX helpers — dereferencing a nil *api.T panics at runtime.
-- Adding new types here that are not simple alias casts of the same underlying Go type.
+- Adding new types here that are not simple alias casts of the same underlying Go type — non-alias conversions belong in dedicated converter packages (e.g., Goverter-generated convert.gen.go).
 
 ## Decisions
 
-- **Separate http sub-package under pkg/models instead of inline helpers in each httpdriver** — Centralises the api <-> models boundary in one place so all httpdriver packages share the same conversion, preventing drift between packages that handle annotations or metadata.
-- **Use direct Go type casts instead of field-by-field mapping** — api.Annotations and models.Annotations are intentionally the same underlying map type; a cast is safer than a copy because it will fail to compile if the underlying types diverge.
+- **Separate http sub-package under pkg/models instead of inline helpers in each httpdriver package** — Centralises the api <-> models translation boundary so all httpdriver packages share the same conversion, preventing drift between packages that handle annotations or metadata independently.
+- **Use direct Go type casts instead of field-by-field mapping** — api.Annotations and models.Annotations are intentionally the same underlying map type; a cast fails at compile time if types diverge, whereas a copy would silently succeed with stale fields.
 
-## Example: Adding a new shared model <-> API conversion helper for a new alias type
+## Example: Adding a new shared alias-cast conversion helper (e.g., models.Labels <-> *api.Labels)
 
 ```
 package http
@@ -42,12 +42,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// FromLabels converts a domain Labels to an API-wire pointer (outbound).
 func FromLabels(labels models.Labels) *api.Labels {
 	return lo.ToPtr((api.Labels)(labels))
 }
 
-func AsLabels(labels *api.Labels) models.Labels {
-	if labels == nil {
+// AsLabels converts an API-wire pointer to a domain Labels (inbound).
 // ...
 ```
 

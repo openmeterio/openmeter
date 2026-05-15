@@ -1,237 +1,190 @@
 {
-  "openmeter/productcatalog/addon/adapter": {
-    "purpose": "Ent/PostgreSQL adapter implementing addon.Repository: CRUD + list for add-ons and their rate cards. All operations wrap adapter methods with entutils.TransactingRepo so the ctx-bound transaction is always honored.",
+  "openmeter/portal/adapter": {
+    "purpose": "JWT-backed stateless implementation of portal.Service that issues and validates short-lived HS256 tokens scoped to namespace, subject, and optional meter slug allowlist. ListTokens and InvalidateToken are intentionally unimplemented stubs returning GenericNotImplementedError \u2014 no database backing exists by design.",
     "patterns": [
       {
-        "name": "TransactingRepo wrapping",
-        "description": "Every exported adapter method wraps its body in entutils.TransactingRepo[T, *adapter](ctx, a, fn) to rebind to any caller-supplied Ent transaction carried in ctx.",
-        "example": "return entutils.TransactingRepo[*addon.Addon, *adapter](ctx, a, fn)"
+        "name": "Config-validated constructor",
+        "description": "New(Config) validates all fields via Config.Validate() before constructing the adapter; always return (portal.Service, error) \u2014 never panic on bad config.",
+        "example": "func New(config Config) (portal.Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
       },
       {
-        "name": "Tx / WithTx / Self trio",
-        "description": "adapter implements transaction.Driver via Tx() (HijackTx), WithTx() (returns new *adapter bound to txClient), and Self() \u2014 required by entutils.TransactingRepo.",
-        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), ...} }"
+        "name": "Interface compliance assertion",
+        "description": "var _ portal.Service = (*adapter)(nil) at package level \u2014 compile-time proof the struct satisfies the interface.",
+        "example": "var _ portal.Service = (*adapter)(nil)"
       },
       {
-        "name": "Config + Validate constructor",
-        "description": "New(Config) validates all required fields (Client, Logger) before constructing. Config implements models.Validator.",
-        "example": "var _ models.Validator = (*Config)(nil)"
+        "name": "JWT claims struct embeds jwt.RegisteredClaims",
+        "description": "JTWPortalTokenClaims embeds jwt.RegisteredClaims and adds domain fields (Namespace, Id, AllowedMeterSlugs). Always parse with ParseWithClaims into this type, never into map[string]interface{}.",
+        "example": "type JTWPortalTokenClaims struct { jwt.RegisteredClaims; Namespace string; AllowedMeterSlugs []string }"
       },
       {
-        "name": "Eager loading via WithRatecards",
-        "description": "All queries that return an Addon call query.WithRatecards(AddonEagerLoadRateCardsFn) so rate cards are always populated; PlanAddons are loaded only when Expand.PlanAddons is true.",
-        "example": "query = query.WithRatecards(AddonEagerLoadRateCardsFn)"
+        "name": "Strict JWT parse options \u2014 never relax",
+        "description": "Validate uses WithStrictDecoding, WithExpirationRequired, WithIssuer, and WithValidMethods. Do not remove any of these options when extending validation.",
+        "example": "opts := []jwt.ParserOption{jwt.WithStrictDecoding(), jwt.WithExpirationRequired(), jwt.WithIssuer(PortalTokenIssuer), jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name})}"
       },
       {
-        "name": "mapping.go: FromAddonRow converts Ent row to domain type",
-        "description": "All type conversions live in mapping.go (FromAddonRow, FromAddonRateCardRow, FromPlanAddonRow, asAddonRateCardRow). Do not embed conversion logic inside CRUD methods.",
-        "example": "add, err := FromAddonRow(*addonRow)"
-      },
-      {
-        "name": "Soft delete via DeletedAt",
-        "description": "DeleteAddon sets DeletedAt to time.Now().UTC() via UpdateOneID; ListAddons excludes deleted rows with addondb.DeletedAtIsNil() unless IncludeDeleted is set.",
-        "example": "err = a.db.Addon.UpdateOneID(add.ID).SetDeletedAt(deletedAt).Exec(ctx)"
-      },
-      {
-        "name": "Status filtering via time predicates",
-        "description": "AddonStatus is derived from EffectiveFrom/EffectiveTo columns at query time: active = EffectiveFrom<=now AND (EffectiveTo>=now OR nil), draft = both nil, archived = EffectiveTo<now.",
-        "example": "predicates = append(predicates, addondb.And(addondb.EffectiveFromLTE(now), addondb.Or(addondb.EffectiveToGTE(now), addondb.EffectiveToIsNil())))"
+        "name": "Noop adapter for disabled/test contexts",
+        "description": "NewNoop() returns a full no-op portal.Service where every method returns models.NewGenericNotImplementedError \u2014 not nil error. Use in Wire when portal is disabled.",
+        "example": "func (a *noopAdapter) CreateToken(ctx context.Context, input portal.CreateTokenInput) (*portal.PortalToken, error) { return nil, models.NewGenericNotImplementedError(fmt.Errorf(\"noop adapter\")) }"
       }
     ],
     "key_file_guides": [
       {
         "file": "adapter.go",
-        "role": "Config struct, New constructor, adapter struct, Tx/WithTx/Self transaction plumbing.",
-        "watch_for": "Never remove Tx/WithTx/Self \u2014 they are required by entutils.TransactingRepo. Always validate Config before constructing."
+        "role": "Config struct, Validate(), New() constructor, adapter struct definition",
+        "watch_for": "Secret must be []byte internally; Config.Secret is string \u2014 conversion happens in New(). Expire=0 is rejected by Validate(). Always call New() and check the returned error."
       },
       {
-        "file": "addon.go",
-        "role": "All CRUD + list methods for add-ons and their rate cards. Contains rateCardBulkCreate helper and addonEagerLoadActivePlans closure.",
-        "watch_for": "Every method must wrap its fn body with TransactingRepo. UpdateAddon replaces all rate cards by delete+bulk-create; partial updates on individual cards are not supported."
+        "file": "token.go",
+        "role": "CreateToken (JWT sign) and Validate (JWT parse + claims extraction); ListTokens and InvalidateToken stub out with NotImplemented",
+        "watch_for": "Token field is intentionally NOT populated in toAPIPortalToken \u2014 the raw token string is only exposed in CreateToken response. Adding it elsewhere is a security risk."
       },
       {
-        "file": "mapping.go",
-        "role": "Bidirectional mapping between Ent rows and domain types: FromAddonRow, FromAddonRateCardRow, FromPlanAddonRow, asAddonRateCardRow, plus helpers that reuse plan/phase/ratecard converters from the plan adapter.",
-        "watch_for": "TaxConfig.BackfillTaxConfig must be called after mapping TaxCode edge to ensure legacy field compatibility. BillingCadence uses ISOString parse/stringify, never raw string."
-      },
-      {
-        "file": "adapter_test.go",
-        "role": "Integration tests against a real Postgres DB using pctestutils.NewTestEnv. Tests cover create/get/list/update/delete and status-filter logic.",
-        "watch_for": "Tests use context.WithCancel \u2014 prefer t.Context() for new tests. TestEnv is closed in t.Cleanup."
+        "file": "noop.go",
+        "role": "Full no-op portal.Service for tests and disabled-portal wiring",
+        "watch_for": "All methods must return models.NewGenericNotImplementedError, not nil error \u2014 callers distinguish 'not implemented' from success. Never add business logic here."
       }
     ],
     "anti_patterns": [
-      "Accepting *entdb.Client directly in helper functions without wrapping the body with entutils.TransactingRepo \u2014 this bypasses the ctx-bound transaction.",
-      "Embedding type-conversion logic inside CRUD methods instead of mapping.go.",
-      "Querying add-ons without WithRatecards eager load \u2014 callers expect rate cards always populated.",
-      "Hard-deleting rows instead of setting DeletedAt for soft delete.",
-      "Building raw SQL predicates for status filtering instead of using the established EffectiveFrom/EffectiveTo Ent predicates."
+      "Storing token state in a database here \u2014 this adapter is intentionally stateless; persistence belongs in a future DB-backed adapter",
+      "Relaxing JWT validation options (removing WithExpirationRequired, WithStrictDecoding, WithValidMethods, or WithIssuer)",
+      "Populating the Token field inside toAPIPortalToken \u2014 token string must only appear in CreateToken response",
+      "Calling New() without checking the returned error",
+      "Adding business logic to the noop adapter \u2014 it must remain a pure stub returning NotImplementedError"
     ],
     "decisions": [
       {
-        "decision": "TransactingRepo wraps every adapter method rather than passing *entdb.Tx explicitly.",
-        "rationale": "Ent transactions are carried implicitly in ctx; explicit tx parameters leak plumbing to every call site and make helpers harder to compose."
+        "decision": "Stateless JWT tokens with no DB persistence for ListTokens/InvalidateToken",
+        "rationale": "Short-lived portal tokens for metering access do not require revocation in the current design; unimplemented methods return NotImplemented to make gaps explicit rather than silently succeeding."
       },
       {
-        "decision": "Rate card updates replace all existing cards (delete + bulk-create) rather than diffing.",
-        "rationale": "Simplifies consistency guarantees \u2014 no partial state can exist after an update, and ordering/key uniqueness is enforced atomically."
+        "decision": "HS256 with a shared secret rather than asymmetric signing",
+        "rationale": "Portal tokens are validated by the same server that issues them, so symmetric signing is sufficient and avoids key distribution complexity."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new adapter method for an addon sub-resource",
-        "code": "func (a *adapter) GetAddonFoo(ctx context.Context, params addon.GetFooInput) (*addon.Foo, error) {\n\tfn := func(ctx context.Context, a *adapter) (*addon.Foo, error) {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid params: %w\", err)\n\t\t}\n\t\trow, err := a.db.AddonFoo.Query().Where(...).WithRatecards(AddonEagerLoadRateCardsFn).First(ctx)\n\t\tif err != nil {\n\t\t\tif entdb.IsNotFound(err) { return nil, addon.NewNotFoundError(...) }\n\t\t\treturn nil, fmt.Errorf(\"failed to get foo: %w\", err)\n\t\t}\n\t\treturn FromAddonFooRow(*row)\n\t}\n\treturn entutils.TransactingRepo[*addon.Foo, *adapter](ctx, a, fn)\n}"
+        "scenario": "Creating and validating a portal token",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/portal/adapter\"\n\t\"github.com/openmeterio/openmeter/openmeter/portal\"\n)\n\nsvc, err := adapter.New(adapter.Config{Secret: \"s3cr3t\", Expire: 24 * time.Hour})\nif err != nil { ... }\n\ntoken, err := svc.CreateToken(ctx, portal.CreateTokenInput{\n\tNamespace: \"ns\",\n\tSubject:   \"user-1\",\n})\n// token.Token contains the raw JWT string\n\nclaims, err := svc.Validate(ctx, *token.Token)"
       }
     ]
   },
-  "openmeter/productcatalog/addon/httpdriver": {
-    "purpose": "HTTP handler layer for the addon domain, adapting addon.Service to HTTP request/response using the generic httptransport.Handler pattern. Exposes a Handler interface consumed by the v1 Chi router.",
+  "openmeter/portal/authenticator": {
+    "purpose": "Chi middleware that authenticates HTTP requests against v1 OpenAPI security requirements, dispatching to verifyPortalToken for PortalTokenAuth-scoped routes and injecting the validated subject into context via a typed context key.",
     "patterns": [
       {
-        "name": "httptransport.NewHandler / NewHandlerWithArgs",
-        "description": "Each operation returns a typed handler constructed with httptransport.NewHandler (no path params) or NewHandlerWithArgs (with path params). Three closures: decoder, operation, encoder.",
-        "example": "return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusOK), opts...)"
+        "name": "OpenAPI-driven security dispatch",
+        "description": "getSecurityRequirements reads per-operation security from the swagger spec, falling back to global; validateSecurityRequirements iterates alternatives and returns on first success \u2014 mirrors OpenAPI OR semantics.",
+        "example": "for _, sr := range securityRequirements { r, err = a.validateSecurityRequirement(sr, w, r); if err == nil { return r, nil } }"
       },
       {
-        "name": "Request/Response type aliases",
-        "description": "Each handler declares type aliases for Request, Response, and Handler at the top of the function block, mapping to domain input/output types and api.* generated types.",
-        "example": "type (\\n\\tListAddonsRequest  = addon.ListAddonsInput\\n\\tListAddonsResponse = api.AddonPaginatedResponse\\n\\tListAddonsHandler  httptransport.HandlerWithArgs[ListAddonsRequest, ListAddonsResponse, ListAddonsParams]\\n)"
+        "name": "Subject injected via typed context key",
+        "description": "Authenticated subject is stored under AuthenticatorSubjectSessionKey (typed AuthenticatorContextKey string). Retrieve with GetAuthenticatedSubject(ctx) \u2014 never use raw string key.",
+        "example": "r = r.WithContext(context.WithValue(r.Context(), AuthenticatorSubjectSessionKey, claims.Subject))"
       },
       {
-        "name": "Namespace resolved from context",
-        "description": "Every decoder calls h.resolveNamespace(ctx) via namespacedriver.NamespaceDecoder.GetNamespace; failure returns 500 internal server error.",
-        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ..., err }"
+        "name": "Security scheme name matched by prefix split",
+        "description": "getAuthenticatorFunc splits api.PortalTokenAuthScopes on '.' and matches by first segment. Adding a new auth scheme requires a new case in this switch.",
+        "example": "case strings.Split(string(api.PortalTokenAuthScopes), \".\")[0]: return a.verifyPortalToken"
       },
       {
-        "name": "ValidationErrorEncoder per resource kind",
-        "description": "Every handler appends httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)) so domain validation errors map to correct HTTP status codes.",
-        "example": "httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon))"
-      },
-      {
-        "name": "Mapping in mapping.go only",
-        "description": "All api<->domain conversions (FromAddon, AsCreateAddonRequest, AsUpdateAddonRequest) live in mapping.go. Handler closures call these helpers, never inline-convert.",
-        "example": "return FromAddon(*a)"
-      },
-      {
-        "name": "Handler interface composed from sub-interfaces",
-        "description": "Handler interface in driver.go embeds AddonHandler which lists all operation handler methods. Compile-time assertion var _ Handler = (*handler)(nil) ensures implementation.",
-        "example": "var _ Handler = (*handler)(nil)"
+        "name": "Nil security requirement means unauthenticated route",
+        "description": "If getSecurityRequirements returns nil (no matching route/operation), the middleware calls next directly without authentication.",
+        "example": "if sr == nil { next.ServeHTTP(w, r); return }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "driver.go",
-        "role": "Handler + AddonHandler interface definition, handler struct, New constructor, resolveNamespace helper.",
-        "watch_for": "New operations must be added to both the AddonHandler interface and the handler struct. resolveNamespace must not be bypassed."
-      },
-      {
-        "file": "addon.go",
-        "role": "One function per HTTP operation (ListAddons, CreateAddon, UpdateAddon, DeleteAddon, GetAddon, PublishAddon, ArchiveAddon), each returning its typed handler.",
-        "watch_for": "IgnoreNonCriticalIssues=true is set on create/update requests \u2014 preserve this for non-breaking validation. Delete returns http.StatusNoContent with EmptyResponseEncoder."
-      },
-      {
-        "file": "mapping.go",
-        "role": "api<->domain type conversion: FromAddon (domain->api), AsCreateAddonRequest / AsUpdateAddonRequest (api->domain). Currency validation happens here.",
-        "watch_for": "Currency.Validate() must be called after assignment. RateCards mapped via productcatalog/http package helpers (http.AsRateCards, http.FromRateCard)."
+        "file": "authenticator.go",
+        "role": "Entire authenticator: struct, constructor, Chi middleware factory, portal token verification, OpenAPI security resolution",
+        "watch_for": "verifyPortalToken extracts meterSlug from chi.URLParam \u2014 if the route param name changes this check silently stops enforcing slug allowlists. AllowedMeterSlugs check uses slices.Contains; empty slice means all slugs allowed. Auth failures must always be 401 via models.NewStatusProblem."
       }
     ],
     "anti_patterns": [
-      "Calling domain services directly in decoder functions \u2014 decoders must only parse/validate HTTP input and return a domain input type.",
-      "Inline type conversion in handler closures instead of using mapping.go helpers.",
-      "Omitting WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(...)) \u2014 validation errors will not map to 400.",
-      "Adding new handler methods to handler struct without adding them to the Handler/AddonHandler interface.",
-      "Using context.Background() inside handler closures instead of the ctx passed to the operation closure."
+      "Adding new security schemes by hardcoding names as plain strings instead of using api.* constants split on '.'",
+      "Calling portal.Validate outside verifyPortalToken \u2014 token validation must flow through the middleware, not ad hoc",
+      "Skipping the AllowedMeterSlugs check when meterSlug is empty or the route has no slug param",
+      "Returning 200 or 500 for auth failures \u2014 unauthorized must always be 401 via models.NewStatusProblem"
     ],
     "decisions": [
       {
-        "decision": "Handler methods return typed handler values rather than implementing http.Handler directly.",
-        "rationale": "The httptransport.Handler[Req,Resp] pattern separates decoding, operation, and encoding, making each independently testable and composable with middleware via Chain."
+        "decision": "Security requirements read from swagger spec at request time rather than compiled into route handlers",
+        "rationale": "Keeps auth policy co-located with the OpenAPI spec; new endpoints automatically inherit security without changing middleware code."
       }
     ],
-    "code_examples": [
-      {
-        "scenario": "Add a new addon sub-resource HTTP operation",
-        "code": "type (\\n\\tCloneAddonRequest  = addon.CloneAddonInput\\n\\tCloneAddonResponse = api.Addon\\n\\tCloneAddonHandler  httptransport.HandlerWithArgs[CloneAddonRequest, CloneAddonResponse, string]\\n)\\n\\nfunc (h *handler) CloneAddon() CloneAddonHandler {\\n\\treturn httptransport.NewHandlerWithArgs(\\n\\t\\tfunc(ctx context.Context, r *http.Request, addonID string) (CloneAddonRequest, error) {\\n\\t\\t\\tns, err := h.resolveNamespace(ctx)\\n\\t\\t\\tif err != nil { return CloneAddonRequest{}, err }\\n\\t\\t\\treturn CloneAddonRequest{NamespacedID: models.NamespacedID{Namespace: ns, ID: addonID}}, nil\\n\\t\\t},\\n\\t\\tfunc(ctx context.Context, request CloneAddonRequest) (CloneAddonResponse, error) {\\n\\t\\t\\ta, err := h.service.CloneAddon(ctx, request)\\n\\t\\t\\tif err != nil { return CloneAddonResponse{}, err }\\n\\t\\t\\treturn FromAddon(*a)\\n\\t\\t},\\n\\t\\tcommonhttp.JSONResponseEncoderWithStatus[CloneAddonResponse](http.StatusOK),\\n\\t\\thttptransport.AppendOptions(h.options,\\n\\t\\t\\thttptransport.WithOperationName(\"cloneAddon\"),\\n\\t\\t\\thttptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),\\n\\t\\t)...,\\n\\t)\\n}"
-      }
-    ]
+    "code_examples": []
   },
-  "openmeter/productcatalog/addon/service": {
-    "purpose": "Business logic layer implementing addon.Service: versioned add-on lifecycle (create/update/delete/publish/archive), feature and tax code resolution for rate cards, and event publishing via Watermill.",
+  "openmeter/portal/httphandler": {
+    "purpose": "v1 HTTP handler package (package httpdriver) for portal token endpoints \u2014 implements the httptransport.Handler pattern for CreateToken, ListTokens, and InvalidateToken, delegating to portal.Service and meter.Service for cross-domain meter slug validation.",
     "patterns": [
       {
-        "name": "transaction.Run wrapping for mutating operations",
-        "description": "Create, Delete, Publish, Archive, and UpdateAddon (when rate cards change) wrap their fn in transaction.Run(ctx, s.adapter, fn) to ensure atomicity across adapter calls + event publish.",
-        "example": "return transaction.Run(ctx, s.adapter, fn)"
+        "name": "Composite Handler interface with sub-interfaces",
+        "description": "Top-level Handler embeds TokenHandler sub-interface; each operation returns a typed handler alias. var _ Handler = (*handler)(nil) enforces compile-time compliance.",
+        "example": "type Handler interface { TokenHandler }\ntype TokenHandler interface { CreateToken() CreateTokenHandler; ListTokens() ListTokensHandler; InvalidateToken() InvalidateTokenHandler }"
       },
       {
-        "name": "resolveFeatures before persisting rate cards",
-        "description": "CreateAddon and UpdateAddon call s.resolveFeatures(ctx, ns, &params.RateCards) to bi-directionally populate missing FeatureKey/FeatureID from the feature connector before saving.",
-        "example": "if err = s.resolveFeatures(ctx, params.Namespace, &params.RateCards); err != nil { ... }"
+        "name": "httptransport.NewHandler / NewHandlerWithArgs per endpoint",
+        "description": "Each endpoint is a closure pair: decoder func + operation func + ResponseEncoder + options. Params-bearing endpoints use NewHandlerWithArgs; param-less use NewHandler.",
+        "example": "return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[T](http.StatusOK), opts...)"
       },
       {
-        "name": "resolveTaxCodes before persisting rate cards",
-        "description": "After resolveFeatures, s.resolveTaxCodes populates TaxConfig.TaxCodeID by calling taxCode.GetOrCreateByAppMapping for each rate card with a Stripe code.",
-        "example": "if err = s.resolveTaxCodes(ctx, params.Namespace, &params.RateCards); err != nil { ... }"
+        "name": "Namespace resolved at the start of every decoder",
+        "description": "resolveNamespace(ctx) wraps namespaceDecoder.GetNamespace; returns HTTP 500 on failure. Always call this at the very start of every decoder func before any other logic.",
+        "example": "ns, err := h.resolveNamespace(ctx)\nif err != nil { return ..., err }"
       },
       {
-        "name": "addonVersions collection for version management",
-        "description": "getAddonVersions fetches all versions (including deleted) and returns addonVersions slice. HasDraft() guards against multiple concurrent draft versions. Latest() drives auto-increment of params.Version.",
-        "example": "params.Version = lo.FromPtr(versions.Latest()).Version + 1"
+        "name": "Domain input type as request type alias",
+        "description": "Request types reuse domain input structs directly (CreateTokenRequest = portal.CreateTokenInput) rather than duplicating fields, keeping the handler thin.",
+        "example": "type CreateTokenRequest = portal.CreateTokenInput"
       },
       {
-        "name": "Event publishing after every mutation",
-        "description": "Every mutating operation publishes a typed domain event (NewAddonCreateEvent, NewAddonDeleteEvent, etc.) via s.publisher.Publish(ctx, event) inside the transaction fn.",
-        "example": "event := addon.NewAddonCreateEvent(ctx, aa); if err = s.publisher.Publish(ctx, event); err != nil { ... }"
+        "name": "Token field added post-mapping in CreateToken operation only",
+        "description": "toAPIPortalToken deliberately omits the raw JWT token string; CreateToken operation manually sets portalToken.Token = token.Token after calling the mapping helper.",
+        "example": "portalToken := toAPIPortalToken(token)\nportalToken.Token = token.Token"
       },
       {
-        "name": "Config struct with validation in New constructor",
-        "description": "service.New(Config) validates all required dependencies (Adapter, Feature, TaxCode, Logger, Publisher) before constructing the service. Returns addon.Service interface.",
-        "example": "var _ addon.Service = (*service)(nil)"
+        "name": "WithOperationName appended on every handler",
+        "description": "httptransport.AppendOptions always appends WithOperationName (e.g. 'createPortalToken') for OTel span naming \u2014 never omit this.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listPortalTokens\"))..."
       }
     ],
     "key_file_guides": [
       {
-        "file": "service.go",
-        "role": "Config struct, New constructor, service struct definition. All dependencies injected at construction time.",
-        "watch_for": "All five dependencies are required \u2014 never make them optional without explicit noop fallbacks."
+        "file": "handler.go",
+        "role": "Handler/TokenHandler interfaces, handler struct, New() constructor, resolveNamespace helper",
+        "watch_for": "New() takes variadic HandlerOption \u2014 callers pass error handler and tracer options here; forgetting them silences errors and breaks OTel tracing."
       },
       {
-        "file": "addon.go",
-        "role": "All addon.Service method implementations. Contains resolveFeatures, resolveTaxCodes, addonVersions helper type, and getAddonVersions.",
-        "watch_for": "resolveFeatures converts GenericNotFoundError to GenericValidationError (feature not found = invalid input). Only draft add-ons can be updated; active/archived add-ons reject changes via ValidateAddonWithStatus."
+        "file": "portal.go",
+        "role": "All three endpoint implementations: ListTokens, CreateToken, InvalidateToken",
+        "watch_for": "CreateToken validates AllowedMeterSlugs against live meter list via meterService.ListMeters in the operation phase, not decode phase. InvalidateToken returns 204 (EmptyResponseEncoder), not 200."
       },
       {
-        "file": "service_test.go",
-        "role": "Integration tests for full add-on lifecycle: create\u2192publish\u2192v2 create\u2192publish\u2192archive. Uses pctestutils.NewTestEnv.",
-        "watch_for": "Tests verify single-draft enforcement (HasDraft), version auto-increment, and status transition correctness."
-      },
-      {
-        "file": "taxcode_test.go",
-        "role": "Dedicated tests for tax code dual-write (TaxConfig.TaxCodeID population) covering create/update/remove scenarios.",
-        "watch_for": "assertAddonRCDBCols directly queries the DB to verify dedicated tax_code_id and tax_behavior columns \u2014 use this pattern to verify low-level persistence in future tax-related changes."
+        "file": "mapping.go",
+        "role": "toAPIPortalToken maps portal.PortalToken to api.PortalToken; sets Expired flag if ExpiresAt is in the past",
+        "watch_for": "Token field is intentionally NOT mapped here \u2014 always set it explicitly in CreateToken after calling toAPIPortalToken. Adding it here would be a security risk."
       }
     ],
     "anti_patterns": [
-      "Calling s.adapter methods directly without transaction.Run for operations that combine multiple writes or event publishing.",
-      "Skipping resolveFeatures/resolveTaxCodes when accepting rate cards from callers \u2014 FeatureKey/FeatureID and TaxCodeID must be resolved before persisting.",
-      "Allowing multiple non-deleted draft versions for the same key \u2014 HasDraft() guard must be checked before creating.",
-      "Publishing domain events outside the transaction fn \u2014 event publish failure should roll back the DB write.",
-      "Using context.Background() instead of the passed ctx in service methods."
+      "Returning the raw JWT token string via toAPIPortalToken \u2014 it must be set manually only in CreateToken operation",
+      "Adding database calls directly in handlers \u2014 delegate to portal.Service or meter.Service",
+      "Omitting WithOperationName from AppendOptions \u2014 breaks OTel tracing span names",
+      "Using context.Background() instead of the request context in decoder or operation closures"
     ],
     "decisions": [
       {
-        "decision": "Version auto-increment is computed from existing versions rather than relying on a DB sequence.",
-        "rationale": "Enables multi-version branching (draft on top of active) with explicit version semantics visible in the domain model, and avoids coupling version numbering to DB identity."
+        "decision": "Meter slug validation in CreateToken operation rather than inside portal.Service",
+        "rationale": "portal.Service is JWT-only and has no knowledge of meters; cross-domain validation belongs in the HTTP handler layer which has access to both services."
       },
       {
-        "decision": "Tax code resolution (GetOrCreateByAppMapping) is performed at the service layer, not the adapter layer.",
-        "rationale": "Tax code entity creation is a side effect that requires cross-domain coordination (taxcode.Service); the adapter layer must stay focused on Ent persistence of what it receives."
+        "decision": "Request type aliases to domain input structs",
+        "rationale": "Avoids duplicating field definitions; keeps the handler thin and the domain type as the single source of truth for input shape."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new addon mutating operation following the established pattern",
-        "code": "func (s service) CloneAddon(ctx context.Context, params addon.CloneAddonInput) (*addon.Addon, error) {\n\tfn := func(ctx context.Context) (*addon.Addon, error) {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid clone add-on params: %w\", err)\n\t\t}\n\t\tsrc, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{NamespacedID: params.NamespacedID})\n\t\tif err != nil { return nil, err }\n\t\t// ... build CreateAddonInput from src ...\n\t\tcloned, err := s.adapter.CreateAddon(ctx, createInput)\n\t\tif err != nil { return nil, err }\n\t\tevent := addon.NewAddonCreateEvent(ctx, cloned)\n\t\tif err = s.publisher.Publish(ctx, event); err != nil { return nil, err }\n\t\treturn cloned, nil\n\t}\n\treturn transaction.Run(ctx, s.adapter, fn)\n}"
+        "scenario": "Adding a new portal endpoint following the existing handler pattern",
+        "code": "// In handler.go \u2014 add to TokenHandler interface:\nGetToken() GetTokenHandler\n\n// In portal.go:\ntype (\n\tGetTokenRequest  struct { namespace, id string }\n\tGetTokenResponse = *api.PortalToken\n\tGetTokenHandler  httptransport.Handler[GetTokenRequest, GetTokenResponse]\n)\n\nfunc (h *handler) GetToken() GetTokenHandler {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (GetTokenRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return GetTokenRequest{}, err }\n\t\t\treturn GetTokenRequest{namespace: ns, id: chi.URLParam(r, \"tokenId\")}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request GetTokenRequest) (GetTokenResponse, error) {\n\t\t\ttoken, err := h.portalService.GetToken(ctx, portal.GetTokenInput{Namespace: request.namespace, ID: request.id})\n\t\t\tif err != nil { return nil, err }\n\t\t\tres := toAPIPortalToken(token)\n\t\t\treturn &res, nil\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[GetTokenResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"getPortalToken\"))...,\n\t)\n}"
       }
     ]
   }

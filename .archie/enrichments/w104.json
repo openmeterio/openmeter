@@ -1,50 +1,51 @@
 {
-  "openmeter/notification/eventhandler/noop": {
-    "purpose": "No-op implementation of notification.EventHandler used when the notification subsystem is disabled or unconfigured. All methods return nil, satisfying the interface contract without performing any real dispatch, reconciliation, or lifecycle work.",
+  "openmeter/namespace/namespacedriver": {
+    "purpose": "Provides the NamespaceDecoder abstraction for extracting namespace context from HTTP requests. The sole implementation, StaticNamespaceDecoder, always returns a fixed string \u2014 used in self-hosted single-tenant deployments where every request belongs to the default namespace.",
     "patterns": [
       {
-        "name": "Interface compliance assertion",
-        "description": "The file-level var _ notification.EventHandler = (*Handler)(nil) ensures compile-time verification that Handler fully implements the interface.",
-        "example": "var _ notification.EventHandler = (*Handler)(nil)"
+        "name": "NamespaceDecoder interface contract",
+        "description": "All namespace-resolution strategies must implement GetNamespace(ctx context.Context) (string, bool). Returning false signals 'namespace not found'; callers must reject the request. Returning true with an empty string is a bug \u2014 callers treat empty namespace as valid.",
+        "example": "type StaticNamespaceDecoder string\nfunc (d StaticNamespaceDecoder) GetNamespace(ctx context.Context) (string, bool) { return string(d), true }"
       },
       {
-        "name": "No-op method bodies",
-        "description": "Every method accepts all parameters (using blank identifiers) and returns nil \u2014 never logs, never panics, never mutates state.",
-        "example": "func (h Handler) Dispatch(_ context.Context, _ *notification.Event) error { return nil }"
+        "name": "Named string type for zero-boilerplate decoders",
+        "description": "StaticNamespaceDecoder is a plain named string type so config values can be cast directly without a constructor. New decoders that require state should be structs; pure-string resolvers should follow the same named-type pattern.",
+        "example": "decoder := namespacedriver.StaticNamespaceDecoder(cfg.Namespace)"
       },
       {
-        "name": "Constructor returns (*Handler, error)",
-        "description": "New() follows the standard two-value constructor signature matching the Wire provider expectation, even though no error can occur.",
-        "example": "func New() (*Handler, error) { return &Handler{}, nil }"
+        "name": "Zero-import leaf package",
+        "description": "decoder.go imports only 'context'. This package sits at the infrastructure/transport boundary and must remain free of openmeter domain imports to avoid import cycles with callers such as openmeter/server/router.",
+        "example": "import \"context\" // only stdlib allowed here"
       }
     ],
     "key_file_guides": [
       {
-        "file": "handler.go",
-        "role": "Single-file package that provides the noop EventHandler; wired by app/common when notification is disabled.",
-        "watch_for": "If notification.EventHandler gains new methods, this file will fail to compile \u2014 add matching no-op stubs immediately."
+        "file": "decoder.go",
+        "role": "Defines the NamespaceDecoder interface and the StaticNamespaceDecoder implementation. The entire package is a single file \u2014 keep it that way unless a second decoder strategy with its own logic is added.",
+        "watch_for": "Do not add business logic, state, or domain package imports. Do not return true with an empty string from any GetNamespace implementation."
       }
     ],
     "anti_patterns": [
-      "Adding logging, metrics, or side-effects to any method \u2014 this is intentionally inert.",
-      "Removing the compile-time interface assertion (var _ ...) \u2014 it is the only guard against interface drift.",
-      "Using context.Background() instead of the received context parameter \u2014 blank-identify it instead.",
-      "Storing any state on Handler \u2014 it must remain a zero-value struct."
+      "Importing openmeter domain packages (billing, customer, entitlement, meter) \u2014 creates import cycles with callers",
+      "Adding initialization logic or fields to StaticNamespaceDecoder \u2014 it is intentionally a plain named string",
+      "Returning (true, \"\") from GetNamespace \u2014 callers treat an empty namespace as valid and will silently misscope queries",
+      "Placing multi-tenant namespace resolution logic here \u2014 dynamic namespace lookup belongs in a separate decoder implementation, not in this file",
+      "Adding HTTP middleware or Chi handler code \u2014 request plumbing belongs in openmeter/server, not in this package"
     ],
     "decisions": [
       {
-        "decision": "Value receiver on Handler, not pointer receiver for most methods",
-        "rationale": "Handler holds no state; value receivers avoid unnecessary heap allocation and communicate that the struct is safe to copy."
+        "decision": "StaticNamespaceDecoder is a named string type rather than a struct",
+        "rationale": "Avoids constructor boilerplate for the common self-hosted case where the namespace is a plain config string; the string value itself is the decoder."
       },
       {
-        "decision": "Separate noop sub-package rather than a nil check inside the real handler",
-        "rationale": "Matches the broader noop pattern used across openmeter (ledgernoop, webhooknoop) \u2014 Wire wires the concrete noop type so call sites need no nil guards at runtime."
+        "decision": "NamespaceDecoder returns (string, bool) rather than (string, error)",
+        "rationale": "Namespace absence is a routing concern, not an error condition; bool cleanly signals 'not found' without forcing callers to inspect error types."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new method required by notification.EventHandler after an interface change",
-        "code": "// handler.go \u2014 add the method with blank-identifier params and nil return\nfunc (h Handler) NewMethod(_ context.Context, _ *notification.SomeInput) error {\n\treturn nil\n}"
+        "scenario": "Implementing a new static namespace decoder from a config value",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver\"\n\n// Cast the config string directly \u2014 no constructor needed.\ndecoder := namespacedriver.StaticNamespaceDecoder(conf.Namespace.Default)\n\n// Callers use the interface:\nns, ok := decoder.GetNamespace(ctx)\nif !ok {\n    http.Error(w, \"namespace not found\", http.StatusUnauthorized)\n    return\n}"
       }
     ]
   }

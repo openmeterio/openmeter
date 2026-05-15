@@ -1,185 +1,110 @@
 {
-  "openmeter/billing/charges/usagebased/service/rating": {
-    "purpose": "Stateless computation sub-package that snapshots metered usage from ClickHouse and converts it into rated detailed lines or totals via the parent billing rating service. No DB writes \u2014 all persistence is handled by callers.",
+  "openmeter/billing/charges/usagebased/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing usagebased.Adapter for the usage-based charge lifecycle. Persists charges, realization runs, credit allocations, invoiced usage, payments, and detailed lines \u2014 all within context-propagated Ent transactions via entutils.TransactingRepo.",
     "patterns": [
       {
-        "name": "Config-struct constructor with Validate()",
-        "description": "New(Config) validates all required fields before returning a Service. Every exported input type also implements Validate().",
-        "example": "func New(config Config) (Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+        "name": "TransactingRepo on every mutating method",
+        "description": "Every public method that writes to DB wraps its body with entutils.TransactingRepo (returns value) or entutils.TransactingRepoWithNoValue (void). Never call a.db.X directly in a method body \u2014 always go through the tx-rebound client inside the closure.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.ChargeBase, error) { return MapChargeBaseFromDB(tx.db.ChargeUsageBased.UpdateOneID(id).Save(ctx)) })"
       },
       {
-        "name": "StoredAtOffset cutoff in meter queries",
-        "description": "All ClickHouse queries use FilterStoredAt.Lt = &StoredAtOffset so usage is bounded to a deterministic point in time, enabling idempotent re-rating.",
-        "example": "FilterStoredAt: &filter.FilterTimeUnix{FilterTime: filter.FilterTime{Lt: &in.StoredAtOffset}}"
+        "name": "Validate inputs before opening a transaction",
+        "description": "Every public method calls input.Validate() (or charge.Validate(), runID.Validate(), etc.) before the TransactingRepo call. Validation errors escape without starting a DB transaction.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }\nreturn entutils.TransactingRepo(ctx, a, func(...) { ... })"
       },
       {
-        "name": "Service-period-scoped ChildUniqueReferenceID",
-        "description": "After rating, every DetailedLine.ChildUniqueReferenceID is suffixed with the UTC service period via withServicePeriodInDetailedLineChildUniqueReferenceIDs to guarantee global uniqueness across reruns.",
-        "example": "\"unit-price-usage@[2025-01-01T00:00:00Z..2025-02-01T00:00:00Z]\""
+        "name": "Tx/WithTx/Self triad for ctx-propagated transactions",
+        "description": "adapter implements Tx() (HijackTx + NewTxDriver), WithTx() (NewTxClientFromRawConfig), and Self(). All three must stay in sync with every field on the adapter struct \u2014 if a new field is added to adapter, WithTx must copy it to the tx-rebound copy.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client(), logger: a.logger, metaAdapter: a.metaAdapter} }"
       },
       {
-        "name": "Prefer GetTotalsForUsage over GetDetailedLinesForUsage when only totals needed",
-        "description": "GetTotalsForUsage skips detailed-line construction, making it faster. Both methods share the same snapshotQuantity helper.",
-        "example": "totals, err := svc.GetTotalsForUsage(ctx, GetTotalsForUsageInput{...})"
+        "name": "Compile-time interface assertions per file",
+        "description": "Each file declares a blank var assertion for the sub-interface it implements (e.g. var _ usagebased.ChargeAdapter = (*adapter)(nil)). Add one per file when implementing a new sub-interface.",
+        "example": "var _ usagebased.RealizationRunPaymentAdapter = (*adapter)(nil)"
       },
       {
-        "name": "PriorRuns must have DetailedLines expanded before rating",
-        "description": "GetDetailedLinesForUsageInput.Validate() checks that all PriorRuns have DetailedLines.IsPresent(); callers must pre-fetch via adapter.FetchDetailedLines.",
-        "example": "if !run.DetailedLines.IsPresent() { return fmt.Errorf(\"prior runs[%d]: detailed lines must be expanded\") }"
+        "name": "Config struct + Validate() + New() constructor",
+        "description": "The adapter is always constructed via New(Config) which calls config.Validate() before returning. All dependencies live in Config. Never instantiate &adapter{} directly from outside the package.",
+        "example": "func New(config Config) (usagebased.Adapter, error) { if err := config.Validate(); err != nil { return nil, err }; return &adapter{...}, nil }"
+      },
+      {
+        "name": "Mapper functions in mapper.go, not inline",
+        "description": "All DB\u2192domain conversions are delegated to named functions in mapper.go (MapChargeFromDB, MapChargeBaseFromDB, MapRealizationRunFromDB, MapRealizationRunBaseFromDB). Methods call these functions; they do not map inline.",
+        "example": "return MapChargeBaseFromDB(dbUpdatedChargeBase), nil"
+      },
+      {
+        "name": "Soft-delete via DeletedAt + namespace filter on all queries",
+        "description": "Deletions set DeletedAt rather than hard-deleting rows; active-record queries must filter DeletedAtIsNil(). Every Ent query also scopes by Namespace to enforce multi-tenancy.",
+        "example": "Where(dbchargeusagebasedrundetailedline.DeletedAtIsNil()).Where(dbchargeusagebasedrundetailedline.NamespaceEQ(ns))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "service.go",
-        "role": "Defines the Service interface (GetTotalsForUsage, GetDetailedLinesForUsage), Config struct, and New constructor.",
-        "watch_for": "This is a pure computation service \u2014 no Ent/DB dependency; never add adapter or tx logic here."
+        "file": "adapter.go",
+        "role": "Struct definition, Config/Validate/New constructor, and the Tx/WithTx/Self transaction plumbing \u2014 the core scaffolding every other file depends on.",
+        "watch_for": "Adding a field to the adapter struct without updating WithTx to copy it: the tx-rebound copy will silently lose the dependency and cause nil-pointer panics under concurrent charge advancement."
       },
       {
-        "file": "details.go",
-        "role": "Implements GetDetailedLinesForUsage: snapshots quantity, calls ratingService.GenerateDetailedLines, rewrites ChildUniqueReferenceIDs.",
-        "watch_for": "IgnoreMinimumCommitment flag must be threaded as a billingrating.WithMinimumCommitmentIgnored() option \u2014 not a conditional branch."
+        "file": "charge.go",
+        "role": "CRUD for ChargeUsageBased rows: CreateCharges, GetByID, GetByIDs, UpdateCharge, DeleteCharge.",
+        "watch_for": "expandRealizations builds the WithRuns eager-load chain; if a new run-level sub-entity is added to the schema, add its WithX() edge here and its OrErr() check + mapping in mapper.go."
       },
       {
-        "file": "totals.go",
-        "role": "Implements GetTotalsForUsage: same snapshot + rating path but extracts only ratingResult.Totals.",
-        "watch_for": "Does NOT suffix ChildUniqueReferenceIDs \u2014 do not add that logic here."
-      },
-      {
-        "file": "quantitysnapshot.go",
-        "role": "Private snapshotQuantity helper that queries ClickHouse via streaming.Connector.QueryMeter and sums all rows.",
-        "watch_for": "Validation error wrapped as billing.ValidationError{Err: err} \u2014 use the same pattern for new validations."
-      },
-      {
-        "file": "uniqueref.go",
-        "role": "formatDetailedLineChildUniqueReferenceID and withServicePeriodInDetailedLineChildUniqueReferenceIDs \u2014 pure string transformations.",
-        "watch_for": "Timestamps formatted with time.RFC3339 in UTC; changing format breaks deduplication of existing persisted lines."
-      },
-      {
-        "file": "service_test.go",
-        "role": "Unit tests using streamingtestutils.NewMockStreamingConnector and a stub ratingService \u2014 no DB required.",
-        "watch_for": "Tests use t.Context(); never substitute context.Background()."
-      }
-    ],
-    "anti_patterns": [
-      "Adding Ent/DB adapter calls inside this package \u2014 all persistence is handled by callers in the run package.",
-      "Calling streaming.Connector with a nil StoredAtOffset \u2014 every query must respect the stored-at cutoff.",
-      "Skipping ChildUniqueReferenceID suffixing when adding new detailed-line paths \u2014 persisted lines will collide across reruns.",
-      "Returning mutable slices from snapshotQuantity without copying \u2014 summarizeMeterQueryRow already returns a new value, keep it immutable.",
-      "Bypassing Config.Validate() or input.Validate() before use \u2014 all constructors/methods must validate first."
-    ],
-    "decisions": [
-      {
-        "decision": "Stateless package with no DB dependency",
-        "rationale": "Rating is a pure computation: snapshot usage + apply rate card. Keeping it DB-free makes it trivially testable with mock connectors and reusable from multiple callers without transaction concerns."
-      },
-      {
-        "decision": "Service-period suffix on ChildUniqueReferenceID",
-        "rationale": "The same rate-card key (e.g. 'unit-price-usage') is reused across multiple billing periods. Appending the UTC period in RFC3339 makes each child reference globally unique so upsert logic in the run package can safely idempotently re-persist lines."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Rate a usage-based charge and retrieve detailed lines with the stored-at cutoff",
-        "code": "import (\n    usagebasedrating \"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating\"\n    billingrating \"github.com/openmeterio/openmeter/openmeter/billing/rating\"\n    \"github.com/openmeterio/openmeter/openmeter/streaming\"\n)\n\nsvc, err := usagebasedrating.New(usagebasedrating.Config{\n    StreamingConnector: streamingConnector,\n    RatingService:      ratingService,\n})\nif err != nil { return err }\n\nresult, err := svc.GetDetailedLinesForUsage(ctx, usagebasedrating.GetDetailedLinesForUsageInput{\n    Charge:          charge,\n    PriorRuns:       charge.Realizations, // must have DetailedLines expanded\n    Customer:        customerOverride,\n    FeatureMeter:    featureMeter,\n    StoredAtOffset:  asOf,\n    IgnoreMinimumCommitment: false,\n})\n// result.DetailedLines[i].ChildUniqueReferenceID is already period-scoped\n// result.Quantity is the raw metered value used for the rating"
-      }
-    ]
-  },
-  "openmeter/billing/charges/usagebased/service/run": {
-    "purpose": "Owns the mechanics of usage-based realization runs: creating rated runs, persisting detailed lines, allocating/correcting credits, booking invoice usage, and recording payments. Deliberately excludes state-machine decisions \u2014 it executes run operations but never decides which state to enter.",
-    "patterns": [
-      {
-        "name": "Config-struct constructor with Validate()",
-        "description": "New(Config) validates all four required dependencies (Adapter, Rater, Handler, Lineage) before returning *Service.",
-        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
-      },
-      {
-        "name": "Every exported method validates its input struct first",
-        "description": "All exported methods call in.Validate() as their first action. Input structs implement Validate() and validate sub-fields recursively with wrapped error messages.",
-        "example": "func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (...) { if err := in.Validate(); err != nil { return ..., err } }"
-      },
-      {
-        "name": "CreditAllocationMode enum controls credit allocation behaviour",
-        "description": "CreditAllocationNone/Exact/Available passed into CreateRatedRun determines whether credits are allocated, and whether exact-match is required.",
-        "example": "CreditAllocation: CreditAllocationExact // allocates exact run total; error if ledger cannot satisfy"
-      },
-      {
-        "name": "Lineage created immediately after credit realizations",
-        "description": "createRunCreditRealizations always calls lineage.CreateInitialLineages and lineage.PersistCorrectionLineageSegments right after adapter.CreateRunCreditRealization \u2014 never split these calls.",
-        "example": "s.adapter.CreateRunCreditRealization(...); s.lineage.CreateInitialLineages(...); s.lineage.PersistCorrectionLineageSegments(...)"
-      },
-      {
-        "name": "Handler callbacks for ledger side-effects",
-        "description": "Ledger writes (credit allocation, payment authorization, settlement, invoice usage accrual) go through usagebased.Handler callbacks (OnCreditsOnlyUsageAccrued, OnInvoiceUsageAccrued, OnPaymentAuthorized, OnPaymentSettled) \u2014 never call ledger directly.",
-        "example": "ledgerRef, err := s.handler.OnInvoiceUsageAccrued(ctx, usagebased.OnInvoiceUsageAccruedInput{...})"
-      },
-      {
-        "name": "ensureDetailedLinesLoadedForRating before creating a new run",
-        "description": "CreateRatedRun calls ensureDetailedLinesLoadedForRating to lazy-fetch prior run detailed lines from the adapter if any run lacks them \u2014 required by the rating package's PriorRuns validation.",
-        "example": "chargeWithDetailedLines, err := s.ensureDetailedLinesLoadedForRating(ctx, in.Charge)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "service.go",
-        "role": "Defines Service struct, Config, New constructor, and CreditAllocationMode enum.",
-        "watch_for": "Service intentionally has no state-machine logic \u2014 never add status transition decisions here."
-      },
-      {
-        "file": "create.go",
-        "role": "CreateRatedRun: full run creation flow \u2014 rate, validate totals, persist run, persist detailed lines, optionally allocate credits.",
-        "watch_for": "runTotals must be rounded with CurrencyCalculator before negative-total check and before UpdateRealizationRun."
-      },
-      {
-        "file": "correct.go",
-        "role": "ReconcileCredits (delta allocation/correction) and CorrectAllCredits for zeroing out run credits. Uses lineage.LoadActiveSegmentsByRealizationID before generating corrections.",
-        "watch_for": "ReconcileCredits rounds TargetAmount and currentAmount before computing delta \u2014 never compare unrounded decimals."
-      },
-      {
-        "file": "credits.go",
-        "role": "Private allocate() helper and createRunCreditRealizations() that pairs credit creation with lineage writes.",
-        "watch_for": "Never call adapter.CreateRunCreditRealization without the two subsequent lineage calls \u2014 they must be atomic from a business logic standpoint."
-      },
-      {
-        "file": "invoice.go",
-        "role": "BookAccruedInvoiceUsage: books the invoice usage accrual via handler then persists AccruedUsage. Short-circuits on zero-total lines.",
-        "watch_for": "Empty TransactionGroupID from handler is an error \u2014 enforce this check before persisting."
-      },
-      {
-        "file": "payment.go",
-        "role": "BookInvoicedPaymentAuthorized and SettleInvoicedPayment: authorize/settle payment via handler then persist via adapter.",
-        "watch_for": "State guards in Validate() (payment already authorized, mismatched line ID, already settled) must be preserved in any new payment methods."
+        "file": "mapper.go",
+        "role": "Pure DB\u2192domain mapping functions with no Ent queries \u2014 the single source of mapping truth for this package.",
+        "watch_for": "MapRealizationRunFromDB uses OrErr() on every edge; if expandRealizations adds a new edge, this function must add the corresponding OrErr() check or it will silently return an error on every run expansion."
       },
       {
         "file": "detailedline.go",
-        "role": "mapRatingResultToRunDetailedLines (rating->domain mapping) and PersistRunDetailedLines (upsert to adapter).",
-        "watch_for": "TaxConfig must be cloned via cfg.Clone() \u2014 never assign the charge pointer directly or mutations will bleed across runs."
+        "role": "UpsertRunDetailedLines (soft-delete existing lines then bulk-create with ON CONFLICT) and FetchDetailedLines.",
+        "watch_for": "The ON CONFLICT clause lists specific columns; if the schema gains new upsertable fields, add the corresponding UpdateX() call in the Exec chain. FetchDetailedLines uses the DetailedLinesPresent flag as the authority \u2014 never infer presence from row count alone."
+      },
+      {
+        "file": "realizationrun.go",
+        "role": "CreateRealizationRun and UpdateRealizationRun for ChargeUsageBasedRuns rows.",
+        "watch_for": "UpdateRealizationRunInput uses mo.Option (IsPresent/OrEmpty) for partial updates \u2014 only set fields that are present to avoid overwriting with zero values; new fields must follow this pattern."
+      },
+      {
+        "file": "payment.go",
+        "role": "CreateRunPayment and UpdateRunPayment for ChargeUsageBasedRunPayment rows.",
+        "watch_for": "Explicit namespace mismatch check between runID.Namespace and payment.InvoicedCreate.Namespace is a hard error before TransactingRepo \u2014 preserve this guard for any new methods."
+      },
+      {
+        "file": "creditallocation.go",
+        "role": "CreateRunCreditRealization \u2014 bulk-creates credit allocation rows for a realization run using lo.Map + CreateBulk.",
+        "watch_for": "All rows share the runID's namespace; validate runID first and ensure new bulk builders inherit the same namespace."
+      },
+      {
+        "file": "detailedline_test.go",
+        "role": "Integration test suite for UpsertRunDetailedLines upsert/soft-delete semantics, using testutils.InitPostgresDB and real Atlas migrations.",
+        "watch_for": "Tests bootstrap metaadapter.New directly (not app/common) to avoid import cycles \u2014 follow this pattern for any new test suites added here."
       }
     ],
     "anti_patterns": [
-      "Making state-machine decisions (status transitions, trigger selection) inside this package \u2014 those belong in the usagebased charge service layer above.",
-      "Calling ledger adapters directly \u2014 all ledger side-effects must flow through usagebased.Handler callbacks.",
-      "Splitting createRunCreditRealizations from its lineage calls \u2014 CreateInitialLineages and PersistCorrectionLineageSegments must always follow credit creation.",
-      "Comparing alpacadecimal.Decimal values before rounding with CurrencyCalculator \u2014 rounding order matters for billing correctness.",
-      "Assigning charge.Intent.TaxConfig pointer directly into DetailedLine \u2014 always clone with cfg.Clone() to prevent mutation across run boundaries."
+      "Calling a.db.X directly inside a method body without TransactingRepo \u2014 bypasses the ctx-carried Ent transaction and causes partial writes under concurrent charge advancement.",
+      "Mapping DB rows inline inside query methods instead of delegating to named functions in mapper.go.",
+      "Hard-deleting rows \u2014 this package uses soft-delete (SetDeletedAt) everywhere for audit trail and idempotent realization runs.",
+      "Adding a field to the adapter struct without updating WithTx to propagate it to the tx-rebound copy.",
+      "Omitting namespace filter on any Ent query \u2014 breaks multi-tenancy isolation between customers."
     ],
     "decisions": [
       {
-        "decision": "Service owns run mechanics but not state-machine decisions",
-        "rationale": "Separating the 'how to execute a run' (rating, persistence, credit math) from 'when to execute a run' (state transitions) keeps this package testable without a full state machine and prevents accidental coupling of lifecycle logic to run mechanics."
+        "decision": "entutils.TransactingRepo wraps every write, even helpers that operate on a raw *entdb.Client",
+        "rationale": "Ent transactions propagate implicitly via ctx; bypassing rebinding causes partial writes in the multi-step AdvanceCharges / ApplyPatches flows (documented pitfall ctx-002)."
       },
       {
-        "decision": "Handler interface for all ledger side-effects",
-        "rationale": "Ledger calls (credit allocation, payment, invoice accrual) are externally provided via usagebased.Handler so this package compiles and tests without a real ledger implementation, and the ledger integration point is a single seam per operation type."
+        "decision": "Soft-delete with DeletedAt + metaAdapter.DeleteRegisteredCharge instead of hard DELETE",
+        "rationale": "Audit trail and idempotent realization reruns require historical charge state to remain queryable; hard deletes would break the realization run history."
       },
       {
-        "decision": "CreditAllocationMode enum instead of boolean flags",
-        "rationale": "Three distinct allocation semantics (none, exact, available) cannot be expressed cleanly with a boolean; an enum with Validate() catches invalid values at construction time and self-documents caller intent."
+        "decision": "UpsertRunDetailedLines uses ON CONFLICT keyed on (namespace, chargeID, runID, ChildUniqueReferenceID) with DeletedAt IS NULL partial index",
+        "rationale": "Rating reruns must replace existing detailed lines for the same logical line ID without creating duplicates, while selectively soft-deleting lines that no longer appear in the new set."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Create a final realization run with exact credit allocation",
-        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run\"\n    usagebasedrating \"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating\"\n)\n\nrunSvc, err := run.New(run.Config{\n    Adapter: usagebasedAdapter,\n    Rater:   ratingService,\n    Handler: usagebasedHandler,\n    Lineage: lineageService,\n})\nif err != nil { return err }\n\nresult, err := runSvc.CreateRatedRun(ctx, run.CreateRatedRunInput{\n    Charge:                  charge,\n    CustomerOverride:        customerOverride,\n    FeatureMeter:            featureMeter,\n    Type:                    usagebased.RealizationRunTypeFinalRealization,\n    AsOf:                    now,\n    CollectionEnd:           collectionEnd,\n    LineID:                  &lineID,\n    IgnoreMinimumCommitment: false,\n    CreditAllocation:        run.CreditAllocationExact,\n    CurrencyCalculator:      currencyCalc,\n})\n// result.Charge has updated State.CurrentRealizationRunID\n// result.Run has DetailedLines and CreditsAllocated populated"
+        "scenario": "Add a new mutation method following TransactingRepo discipline",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) SetRunResult(ctx context.Context, runID usagebased.RealizationRunID, result usagebased.RunResult) error {\n\tif err := runID.Validate(); err != nil {\n\t\treturn err\n\t}\n\tif err := result.Validate(); err != nil {\n\t\treturn err\n\t}\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n\t\t_, err := tx.db.ChargeUsageBasedRuns.UpdateOneID(runID.ID).\n\t\t\tWhere(dbchargeusagebasedruns.NamespaceEQ(runID.Namespace)).\n\t\t\tSetSomeField(result.Field).\n\t\t\tSave(ctx)\n\t\treturn err\n\t})\n}"
       }
     ]
   }

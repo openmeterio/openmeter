@@ -2,33 +2,55 @@
 
 <!-- archie:ai-start -->
 
-> Implements FBO-to-accrued credit collection and its correction (reversal) as a standalone service used by chargeadapter's flat-fee and usage-based handlers. Encapsulates the plan-then-execute pattern for multi-step accrual corrections with lineage-aware unwinding.
+> Implements FBO-to-accrued credit collection and lineage-aware correction (reversal) as a standalone service consumed by chargeadapter's flat-fee and usage-based handlers. Encapsulates advance shortfall issuance for CreditOnly mode and plan-then-execute merging for multi-step accrual corrections.
 
 ## Patterns
 
-**Service interface with two operations** — collector.Service exposes exactly CollectToAccrued and CorrectCollectedAccrued; implementation delegates to private accrualCollector and accrualCorrector structs. Constructor is NewService(Config). (`func NewService(config Config) Service { return &service{collector: &accrualCollector{...}, corrector: &accrualCorrector{...}} }`)
-**Plan-then-execute for corrections** — accrualCorrector.correct first builds a []plannedAction slice (plannedTransactionCorrection or plannedDirectInputs) for each correction item, then merges overlapping corrections by transaction ID, then calls transactions.CorrectTransaction for each merged plan in correctionOrder. (`actions := planCorrection(...); resolvedInputs := resolvePlannedInputs(...); c.ledger.CommitGroup(ctx, transactions.GroupInputs(...))`)
-**Advance shortfall issuance in collect** — After resolving FBO→accrued templates, collect checks if settlement mode is CreditOnly and FBO didn't cover the full amount; if so it resolves IssueCustomerReceivable + TransferCustomerFBOAdvanceToAccrued for the shortfall and appends those to the same group. (`if shortfall := input.Amount.Sub(collectedFBOAmount); c.shouldAdvanceShortfall(input, shortfall) { advanceInputs, _ := c.resolveAdvanceInputs(ctx, input, shortfall); inputs = append(inputs, advanceInputs...) }`)
-**Credit realization rows from FBO debits** — toCreditRealizations scans resolved inputs and creates one creditrealization.CreateAllocationInput per entry that debits AccountTypeCustomerFBO (negative amount on FBO). SortHint position in the slice maps corrections back to originals. (`for _, entry := range input.EntryInputs() { if entry.Amount().IsNegative() && entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO { out = append(out, CreateAllocationInput{Amount: entry.Amount().Abs(), ...}) } }`)
-**Lineage-aware segment correction** — When correction lineage segments are present, planCorrection dispatches to planSegmentCorrection based on segment.State (RealCredit, AdvanceUncovered, AdvanceBackfilled). Backfilled advances require unwinding the backing credit-purchase group too. (`switch segment.State { case LineageSegmentStateRealCredit: return plannedSourceCorrectionActions(source, amount, false) ... }`)
+**Service interface with two operations only** — collector.Service exposes exactly CollectToAccrued and CorrectCollectedAccrued. Implementation delegates to private accrualCollector (collect.go) and accrualCorrector (correct.go) structs constructed in NewService(Config). (`func NewService(config Config) Service { return &service{collector: &accrualCollector{ledger: config.Ledger, deps: config.Dependencies}, corrector: &accrualCorrector{...}} }`)
+**Advance shortfall issuance in collect (CreditOnly only)** — After resolving FBO→accrued templates, collect checks if settlement mode is CreditOnly and FBO didn't cover the full amount; if so it appends IssueCustomerReceivable + TransferCustomerFBOAdvanceToAccrued for the shortfall to the same group. CreditThenInvoice shortfall is never issued as advance. (`if shortfall := input.Amount.Sub(collectedFBOAmount); c.shouldAdvanceShortfall(input, shortfall) { advanceInputs, _ := c.resolveAdvanceInputs(ctx, input, shortfall); inputs = append(inputs, advanceInputs...) }`)
+**Credit realization rows from FBO debits** — toCreditRealizations scans resolved inputs and creates one creditrealization.CreateAllocationInput per entry that debits AccountTypeCustomerFBO (negative amount on FBO sub-account). The transactionGroupID is shared across all realizations in the same group. (`for _, entry := range input.EntryInputs() { if entry.Amount().IsNegative() && entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO { out = append(out, creditrealization.CreateAllocationInput{Amount: entry.Amount().Abs(), LedgerTransaction: ledgertransaction.GroupReference{TransactionGroupID: transactionGroupID}}) } }`)
+**Plan-then-execute with per-transaction merging for corrections** — accrualCorrector.correct builds []plannedAction per correction item, merges overlapping corrections by transaction ID (to produce one aggregated amount per original transaction), then calls transactions.CorrectTransaction for each in correctionOrder. Changing execution order breaks the merging invariant. (`actions := planCorrection(...); mergedByTx := mergeByTransactionID(actions); for _, txID := range correctionOrder { c.ledger.CommitGroup(ctx, mergedByTx[txID]) }`)
+**Lineage-aware segment dispatch in planCorrection** — When LineageSegmentsByRealization is present, planCorrection dispatches per segment.State: RealCredit → planSourceCorrectionActions, AdvanceUncovered → planAdvanceCorrection, AdvanceBackfilled → planBackfilledCorrection (which re-issues to FBO rather than immediately redirecting). (`switch segment.State { case LineageSegmentStateRealCredit: return plannedSourceCorrectionActions(source, amount, false) ... }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `service.go` | Public interface Service, Config, CollectToAccruedInput, CorrectCollectedAccruedInput, and NewService constructor. All external callers use this file. | CollectToAccruedInput.Annotations is optional; if nil, ChargeAnnotations is synthesized from Namespace+ChargeID. CorrectCollectedAccruedInput.LineageSegmentsByRealization may be empty for legacy data. |
-| `collect.go` | accrualCollector — collects FBO→accrued. Returns creditrealization.CreateAllocationInputs (one row per FBO debit). Private, used only by service.go. | shouldAdvanceShortfall only returns true for CreditOnlySettlementMode; CreditThenInvoice shortfall is not issued as advance. |
-| `correct.go` | accrualCorrector — reverses prior collections using lineage-aware planning. Most complex file; plan/execute split prevents double-counting when multiple corrections touch the same source transaction. | reissueBackfilledCredit re-issues purchased credits back to FBO without triggering a new backfill sweep (intentional design). |
+| `service.go` | Public interface Service, Config, CollectToAccruedInput, CorrectCollectedAccruedInput, and NewService constructor. All external callers (chargeadapter flat-fee and usage-based handlers) use this file. | CollectToAccruedInput.Annotations is optional; if nil, ChargeAnnotations is synthesized from Namespace+ChargeID inside collect.go. CorrectCollectedAccruedInput.LineageSegmentsByRealization may be empty for legacy data — the corrector must handle this gracefully. |
+| `collect.go` | accrualCollector — drives the FBO→accrued collection path and advance shortfall issuance. Returns creditrealization.CreateAllocationInputs (one per FBO debit). | shouldAdvanceShortfall only returns true for CreditOnlySettlementMode; never issue advances for CreditThenInvoice. |
+| `correct.go` | accrualCorrector — reverses prior collections using lineage-aware planning. Most complex file; plan/execute split prevents double-counting when multiple corrections reference the same source transaction. | reissueBackfilledCredit re-issues purchased credits back to FBO without triggering a new backfill sweep — this is intentional; do not replace with a recursive advance correction. |
+| `collection_fbo.go` | collectCustomerFBO — sorts and drains FBO sub-accounts in ascending creditPriority order to produce fboCollectionSource slices consumed by resolveCollectedInputs. | Priority ordering is ascending (lower priority number = drained first); changing cmp logic here breaks priority-ordered credit consumption. |
 
 ## Anti-Patterns
 
 - Calling ledger.CommitGroup directly from charge handlers for FBO collection instead of routing through collector.Service
-- Modifying the correction plan execution order (correctionOrder preserves insertion order; changing it breaks merging logic)
+- Modifying the correction plan execution order (correctionOrder preserves insertion order; reordering breaks per-transaction merging)
 - Assuming CorrectCollectedAccrued is idempotent — it must only be called once per correction batch
+- Issuing advance shortfall for CreditThenInvoice mode (shouldAdvanceShortfall is CreditOnly-only)
 
 ## Decisions
 
-- **Correction uses plan-then-execute with merged per-transaction amounts.** — Multiple realization corrections may reference the same original ledger transaction; merging before execution ensures the correction template receives one aggregated amount and produces a single well-formed correction entry per original transaction.
-- **Backfilled advance corrections re-issue to FBO rather than immediately redirecting to another uncovered advance.** — Prevents correction from triggering a cascading backfill pass that could affect other outstanding advances unpredictably.
+- **Correction uses plan-then-execute with merged per-transaction amounts.** — Multiple realization corrections may reference the same original ledger transaction; merging before execution ensures one aggregated correction entry per original transaction, preventing over-correction.
+- **Backfilled advance corrections re-issue to FBO rather than immediately redirecting to another uncovered advance.** — Prevents correction from triggering a cascading backfill pass that could unpredictably affect other outstanding advances.
+
+## Example: Calling collector.Service from a charge handler to collect FBO credits
+
+```
+// In chargeadapter/flatfee.go or usagebased.go
+realizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{
+    Namespace:      input.Charge.Namespace,
+    ChargeID:       input.Charge.ID,
+    CustomerID:     input.Charge.Intent.CustomerID,
+    Annotations:    chargeAnnotationsForFlatFeeCharge(input.Charge),
+    At:             input.Charge.Intent.InvoiceAt,
+    Currency:       input.Charge.Intent.Currency,
+    SettlementMode: input.Charge.Intent.SettlementMode,
+    ServicePeriod:  input.ServicePeriod,
+    Amount:         input.PreTaxTotalAmount,
+})
+if err != nil { return nil, err }
+if len(realizations) == 0 { return nil, nil }
+return realizations, nil
+```
 
 <!-- archie:ai-end -->

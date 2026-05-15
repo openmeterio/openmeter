@@ -2,46 +2,46 @@
 
 <!-- archie:ai-start -->
 
-> Core business logic monorepo root: organises all domain packages (billing, customer, entitlement, subscription, meter, ingest, sink, notification, ledger, etc.) each following a strict service/adapter/httpdriver layering. No direct source files live here — all code is in sub-packages. The architectural constraint is that domain packages must not import app/common or cmd/* to remain independently testable and wirable.
+> Core business logic monorepo root: organises all domain packages (billing, customer, entitlement, subscription, meter, ingest, sink, notification, ledger, watermill, etc.) each following a strict service/adapter/httpdriver layering. No direct source files live here — all code is in sub-packages. Primary constraint: domain packages must not import app/common or cmd/* to remain independently testable and wirable.
 
 ## Patterns
 
-**Layered service/adapter split per domain** — Every domain exposes a Service interface (openmeter/<domain>/service.go) implemented in <domain>/service/, an Adapter interface implemented in <domain>/adapter/, and HTTP handlers in <domain>/httpdriver/ or <domain>/httphandler/. Business logic lives in service/, persistence in adapter/, routing in httpdriver/. (`openmeter/billing/service.go → openmeter/billing/service/service.go + openmeter/billing/adapter/adapter.go`)
-**TransactingRepo for all Ent adapter writes** — Every Ent adapter method body wraps DB access with entutils.TransactingRepo / TransactingRepoWithNoValue so the ctx-bound Ent transaction is honored. Raw *entdb.Client helpers must also wrap. (`return entutils.TransactingRepo(ctx, a.client, func(tx *entdb.Tx) (*Domain, error) { ... })`)
+**Layered service/adapter/httpdriver split per domain** — Every domain exposes a Service interface at the package root (service.go), a concrete implementation in service/, an Adapter interface at root, an Ent/PostgreSQL implementation in adapter/, and HTTP handlers in httpdriver/ or httphandler/. Business logic in service/, persistence in adapter/, HTTP in httpdriver/. (`openmeter/billing/service.go (interface) → openmeter/billing/service/service.go (impl) + openmeter/billing/adapter/adapter.go (Ent)`)
+**TransactingRepo for all Ent adapter writes** — Every Ent adapter method body wraps DB access with entutils.TransactingRepo / TransactingRepoWithNoValue so the ctx-bound Ent transaction is honored. Raw *entdb.Client helpers must also wrap. (`return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*Entity, error) { return toDomain(tx.db.Entity.Create().Save(ctx)) })`)
 **Input.Validate() at every service boundary** — All input types crossing a service boundary implement Validate() and are called before any business logic. Validation errors are returned as models.Generic* types or ValidationIssue sentinels. (`if err := input.Validate(); err != nil { return nil, err }`)
-**ServiceHooks / RequestValidatorRegistry for cross-domain callbacks** — Cross-domain lifecycle reactions (billing hooking customer lifecycle, ledger hooking customer creation) must register via ServiceHooks or RequestValidatorRegistry — never via direct import of the other domain's service. (`customerService.RegisterHooks(billingCustomerHook)`)
-**credits.enabled guarded at multiple independent layers** — When credits.enabled=false, app/common must wire noop ledger implementations AND customer ledger hooks AND v3 credit handlers AND namespace default-account provisioning must all independently skip — no single guard suffices. (`if cfg.Credits.Enabled { hooks = append(hooks, ledgerHook(ledgerSvc)) }`)
-**Domain test helpers isolated from app/common** — Test fixtures under openmeter/<domain>/testutils/ must build deps from package constructors, never importing app/common — avoids import cycles. (`openmeter/billing/testutils/, openmeter/customer/testutils/`)
-**clock.Now() everywhere, never time.Now()** — All production code must call clock.Now() so tests can use FreezeTime/UnFreeze for deterministic time-dependent billing calculations. (`import "github.com/openmeterio/openmeter/pkg/clock"; clock.Now()`)
+**ServiceHooks and RequestValidatorRegistry for cross-domain callbacks** — Cross-domain lifecycle reactions (billing hooking customer lifecycle, ledger hooking customer creation) must register via ServiceHooks or RequestValidatorRegistry in app/common, never via direct import of the other domain's service. (`customerService.RegisterHooks(billingCustomerHook) // called inside app/common provider function`)
+**credits.enabled guarded at four independent wiring layers** — When credits.enabled=false, each of these must independently skip: (1) ledger services in app/common/ledger.go, (2) customer ledger hooks in app/common/customer.go, (3) ChargesRegistry in app/common/billing.go, (4) v3 credit handlers in api/v3/server. No single guard suffices. (`if !creditsConfig.Enabled { return ledgernoop.AccountService{}, nil }`)
+**clock.Now() everywhere, never time.Now()** — All production code must call clock.Now() (import github.com/openmeterio/openmeter/pkg/clock) so tests can use FreezeTime/UnFreeze for deterministic time-dependent billing calculations. (`import "github.com/openmeterio/openmeter/pkg/clock"; now := clock.Now()`)
+**Domain test helpers isolated from app/common** — Test fixtures under openmeter/<domain>/testutils/ must build deps from package constructors, never importing app/common — avoids import cycles. Use openmeter/testutils for shared infrastructure helpers. (`// openmeter/billing/testutils — builds from billing.New, adapter.New directly, never app/common`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `openmeter/billing/service.go` | Composite billing.Service interface contract — no business logic here | Add methods to the interface; implementation goes in billing/service/ |
-| `openmeter/ent/entc.go` | Single codegen driver for all Ent-generated code in openmeter/ent/db/ | Never edit openmeter/ent/db/ — it is fully generated by make generate |
-| `openmeter/watermill/eventbus/eventbus.go` | Single Publisher facade routing events to ingest/system/balance-worker Kafka topics by event-name prefix | Always publish via eventbus.Publisher, never to raw topic strings |
-| `openmeter/customer/requestvalidator.go` | RequestValidatorRegistry for pre-mutation cross-domain validation guards | Billing validators register here to enforce pre-condition checks without a circular import |
-| `openmeter/namespace/namespace.go` | Manager fans out CreateNamespace/DeleteNamespace to all registered Handlers | Register namespace Handlers BEFORE CreateDefaultNamespace is called at startup |
-| `openmeter/sink/sink.go` | Kafka→ClickHouse sink worker with exactly-once flush ordering | Flush order must be: ClickHouse insert → Kafka offset commit → Redis dedupe |
-| `openmeter/ledger/noop/noop.go` | Zero-value noop implementations of all ledger interfaces — used when credits.enabled=false | Wire noop here when credits disabled; do NOT use a nil interface |
-| `openmeter/testutils/pg_driver.go` | Shared Postgres test database provisioning via pgtestdb — skips when POSTGRES_HOST unset | Must never import app/common |
+| `openmeter/billing/service.go` | Composite billing.Service interface contract — no business logic here; implementation in billing/service/ | Add new methods to the interface here; implementation goes in billing/service/service.go |
+| `openmeter/ent/entc.go` | Single codegen driver for all Ent-generated code in openmeter/ent/db/ | Never edit openmeter/ent/db/ — it is fully generated by make generate; edit schemas in openmeter/ent/schema/ |
+| `openmeter/watermill/eventbus/eventbus.go` | Single Publisher facade routing events to ingest/system/balance-worker Kafka topics by event-name prefix (EventVersionSubsystem constant) | Always publish via eventbus.Publisher, never to raw topic strings; unknown prefixes silently route to SystemEventsTopic |
+| `openmeter/customer/requestvalidator.go` | RequestValidatorRegistry for pre-mutation cross-domain validation guards (billing, entitlement → customer) | Validators registered here in app/common; post-mutation side-effects belong in ServiceHooks, not here |
+| `openmeter/namespace/namespace.go` | Manager fans out CreateNamespace/DeleteNamespace to all registered Handlers | Register namespace Handlers BEFORE CreateDefaultNamespace is called at startup in cmd/server/main.go |
+| `openmeter/sink/sink.go` | Kafka→ClickHouse sink worker with exactly-once flush ordering | Flush order must be: ClickHouse BatchInsert → Kafka offset commit → Redis dedupe; FlushEventHandler must run in a goroutine, never synchronously |
+| `openmeter/ledger/noop/noop.go` | Zero-value noop implementations of all ledger interfaces used when credits.enabled=false | Wire noop here when credits disabled; do NOT wire nil to a ledger interface — panics at call sites |
+| `openmeter/testutils/pg_driver.go` | Shared Postgres test database provisioning via pgtestdb — skips when POSTGRES_HOST unset | Must never import app/common; always use t.Context() not context.Background() in helpers |
 
 ## Anti-Patterns
 
-- Importing app/common from any openmeter/<domain>/ or openmeter/testutils/ package — creates import cycles
-- Using time.Now() instead of clock.Now() in production code — breaks test time freezing
+- Importing app/common from any openmeter/<domain>/ or openmeter/testutils/ package — creates import cycles that Wire cannot resolve
+- Using time.Now() instead of clock.Now() in production code — breaks test time freezing for billing calculations
 - Adding business logic or DB queries directly to service.go or adapter.go interface files — logic belongs in service/ and adapter/ sub-packages
-- Calling sub-type connectors (metered entitlement, charge adapter) directly from HTTP handlers — always go through the top-level Service interface
-- Registering ledger namespace handlers or customer ledger hooks when credits.enabled=false — must use noop implementations
+- Calling sub-type connectors or adapters directly from HTTP handlers — always go through the top-level Service interface
+- Registering ledger namespace handlers or customer ledger hooks when credits.enabled=false — must use noop implementations to avoid real DB writes
 
 ## Decisions
 
-- **Domain packages have no dependency on cmd/* or app/common** — Keeps domain packages independently testable and prevents wire graph complexity from leaking into business logic
-- **ServiceHook / RequestValidatorRegistry pattern for cross-domain callbacks** — Avoids circular imports between billing, customer, ledger, and entitlement while still allowing lifecycle reactions
-- **credits.enabled guarded at four independent wiring layers rather than one central check** — Credits touches HTTP handlers, customer hooks, namespace provisioning, and charge creation — no single choke point controls all write paths
+- **Domain packages have no dependency on cmd/* or app/common** — Keeps domain packages independently testable and prevents Wire graph complexity from leaking into business logic; hooks are registered via app/common provider side-effects to avoid circular imports
+- **ServiceHook / RequestValidatorRegistry pattern for cross-domain callbacks** — Avoids circular imports between billing, customer, ledger, and entitlement while still allowing lifecycle reactions; registrations happen as side-effects in app/common Wire providers
+- **credits.enabled guarded at four independent wiring layers rather than one central check** — Credits touches HTTP handlers, customer hooks, namespace provisioning, and charge creation across unrelated call graphs — no single choke point controls all write paths
 
-## Example: New domain adapter method with transaction awareness
+## Example: New domain adapter method with full TransactingRepo transaction awareness
 
 ```
 // openmeter/<domain>/adapter/adapter.go
@@ -51,8 +51,8 @@ import (
 )
 
 func (a *adapter) Create(ctx context.Context, in domain.CreateInput) (*domain.Entity, error) {
-    return entutils.TransactingRepo(ctx, a.client, func(tx *entdb.Tx) (*domain.Entity, error) {
-        row, err := tx.Entity.Create().
+    return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*domain.Entity, error) {
+        row, err := tx.db.Entity.Create().
             SetNamespace(in.Namespace).
             SetName(in.Name).
             Save(ctx)

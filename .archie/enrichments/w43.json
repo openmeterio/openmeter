@@ -1,51 +1,81 @@
 {
-  "collector/quickstart/seeder": {
-    "purpose": "Benthos/Redpanda Connect pipeline config that generates synthetic CloudEvents and POSTs them to the OpenMeter ingest API. Used exclusively for local quickstart demos \u2014 not production code.",
+  "collector/benthos/services/leaderelection": {
+    "purpose": "Implements Kubernetes lease-based leader election for the Benthos collector, ensuring only one replica acts as the active leader at a time. Exposes leader state via service.Resources generic key so plugins can gate work behind IsLeader().",
     "patterns": [
       {
-        "name": "Environment-variable-driven configuration",
-        "description": "Every runtime-variable value uses Benthos interpolation syntax `${VAR:default}`. Adding new tunables must follow this pattern \u2014 no hardcoded values.",
-        "example": "count: ${SEEDER_COUNT:0}  interval: \"${SEEDER_INTERVAL:50ms}\""
+        "name": "CLI flags declared as package-level constants",
+        "description": "Every tunable is a package-level const string (e.g. leaderElectionEnabledFlag) used in both flag definitions and ctx.Bool/String/Duration reads. Never use raw string literals in two places.",
+        "example": "const leaderElectionEnabledFlag = \"leader-election\"; ctx.Bool(leaderElectionEnabledFlag)"
       },
       {
-        "name": "CloudEvents 1.0 envelope",
-        "description": "The generate mapping must produce a root object with id, specversion, type, source, subject, time, and data fields to be accepted by the OpenMeter /api/v1/events endpoint.",
-        "example": "root = {\"id\": uuid_v4(), \"specversion\": \"1.0\", \"type\": $event_type, \"source\": $source, \"subject\": $subject, \"time\": $time, \"data\": {...}}"
+        "name": "Config struct as the sole handoff between CLI and Service",
+        "description": "CLIOptCustomRunFlags callback populates a local Config value; CLIOptOnConfigParse passes it to NewService. The service never reads cli.Context directly.",
+        "example": "leaderElectionConfig = Config{Enabled: ctx.Bool(leaderElectionEnabledFlag), ...}; NewService(conf.Resources(), leaderElectionConfig)"
       },
       {
-        "name": "Switch output for optional stdout logging",
-        "description": "The output.switch pattern with a SEEDER_LOG guard is the canonical way to add optional debug output without a second process. Any new output target must be added as an additional case, not a replacement.",
-        "example": "- check: '\"${SEEDER_LOG:false}\" == \"true\"'\n  output:\n    stdout:\n      codec: lines"
+        "name": "IsLeaderKey context-free state via service.Resources generic",
+        "description": "Leader state is communicated to other plugins through res.SetGeneric(IsLeaderKey, bool) \u2014 not via channel or context value. Plugins check with IsLeader(res). Absent key returns true (leader election disabled = always leader).",
+        "example": "res.SetGeneric(IsLeaderKey, true) // in OnStartedLeading callback"
       },
       {
-        "name": "Bearer token auth on HTTP output",
-        "description": "Authorization header must use Bearer scheme with the OPENMETER_TOKEN env var. Do not embed tokens directly.",
-        "example": "Authorization: \"Bearer ${OPENMETER_TOKEN:}\""
+        "name": "Start/Stop with mutex-guarded started flag",
+        "description": "Service.Start stores cancel func and sets started=true under mu.Lock; Stop calls cancel and resets started=false. Prevents double-start and ensures clean teardown.",
+        "example": "s.mu.Lock(); defer s.mu.Unlock(); if s.started { return fmt.Errorf(\"already started\") }"
+      },
+      {
+        "name": "Infinite retry loop re-creates LeaderElector per cycle",
+        "description": "The goroutine in Start re-creates LeaderElector after each le.Run returns (lease lost or error) and re-tries after LeaseRetryPeriod unless ctx is cancelled. LeaderElector is not reusable after Run returns \u2014 this is mandated by client-go.",
+        "example": "for { le, _ := leaderelection.NewLeaderElector(lec); le.Run(ctx); if ctx.Err() != nil { return }; time.After(cfg.LeaseRetryPeriod) }"
+      },
+      {
+        "name": "klog routed through Benthos logger at construction time",
+        "description": "NewService calls logging.SetupKlog(logger) immediately so all client-go internal logs flow through the Benthos structured logger. Every new service using client-go must do the same.",
+        "example": "logging.SetupKlog(res.Logger().With(\"component\", \"leader election\"))"
+      },
+      {
+        "name": "Default leaseHealthCheckTimeout derived from LeaseDuration when zero",
+        "description": "If LeaseHealthCheckTimeout is 0, it is set to LeaseDuration * 1.5 before constructing HealthzAdaptor. New code must not pass 0 to NewLeaderHealthzAdaptor.",
+        "example": "if leaseHealthCheckTimeout == 0 { leaseHealthCheckTimeout = cfg.LeaseDuration + cfg.LeaseDuration/2 }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "config.yaml",
-        "role": "Single Benthos pipeline definition: generate input \u2192 CloudEvent mapping \u2192 HTTP POST output with optional stdout logging.",
-        "watch_for": "SEEDER_COUNT=0 means generate forever; set a non-zero value to cap output. time field is backdated up to 3 days using Bloblang ts_sub_iso8601 to spread events across a window \u2014 changing this affects meter aggregation windows in demos."
+        "file": "flags.go",
+        "role": "Declares all CLI flag name constants and the leaderElectionCLIFlags slice passed to service.CLIOptCustomRunFlags. Only place flag names are defined.",
+        "watch_for": "Adding a new tunable requires a const here AND a matching field in Config in service.go \u2014 missing either silently drops the value."
+      },
+      {
+        "file": "service.go",
+        "role": "Contains Config, Service struct, NewService constructor, Start/Stop lifecycle, GetLeaderElectionCLIOpts wiring function, and IsLeader helper. All public API lives here.",
+        "watch_for": "IsLeader returns true when the key is absent (leader election disabled path) \u2014 do not change this semantic without updating every caller that relies on the no-leader-election=always-leader assumption."
       }
     ],
     "anti_patterns": [
-      "Hardcoding OPENMETER_URL or OPENMETER_TOKEN instead of using env-var interpolation",
-      "Removing the specversion or id fields from the generated CloudEvent \u2014 the ingest API will reject the event",
-      "Adding business logic or data transformations beyond synthetic seeding \u2014 this config is demo-only, not a reusable pipeline template",
-      "Setting max_in_flight > 1 on the http_client output without understanding back-pressure implications against a local server"
+      "Reading cli.Context flags by raw string literals instead of the declared const in flags.go",
+      "Calling leaderelection.NewLeaderElector outside the retry loop in Start \u2014 the elector must be re-created on each lease cycle",
+      "Using context.Background() instead of the ctx passed into Start/GetLeaderElectionCLIOpts \u2014 breaks cancellation on shutdown",
+      "Skipping logging.SetupKlog when adding another client-go-based service \u2014 klog will bypass the structured logger",
+      "Checking leader state by reading IsLeaderKey directly via res.GetGeneric instead of using IsLeader(res) \u2014 misses the absent-key=true default"
     ],
     "decisions": [
       {
-        "decision": "Use Benthos generate input with Bloblang mapping rather than a separate Go seed program",
-        "rationale": "Keeps the quickstart self-contained with no extra binary; Benthos is already a project dependency (benthos-collector) so no new toolchain is introduced"
+        "decision": "Leader state stored in service.Resources generic map rather than a dedicated channel or atomic",
+        "rationale": "Benthos plugins receive *service.Resources from the framework; using SetGeneric/GetGeneric avoids threading a custom context or global variable through every plugin constructor."
       },
       {
-        "decision": "Backdate event time by up to 3 days with random spread",
-        "rationale": "Produces realistic historical usage data in meter aggregation windows immediately on first run, avoiding an empty dashboard on quickstart"
+        "decision": "ReleaseOnCancel: true in LeaderElectionConfig",
+        "rationale": "Ensures the Kubernetes lease is actively released when the context is cancelled (graceful shutdown), preventing other replicas from waiting out the full LeaseDuration."
+      },
+      {
+        "decision": "Infinite retry loop re-creates LeaderElector per cycle",
+        "rationale": "LeaderElector is not reusable after Run returns; re-creating it on each cycle is the pattern mandated by client-go to correctly resume after a lost lease."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Wire leader election into a Benthos CLI application and gate a plugin on leadership",
+        "code": "import (\n    \"context\"\n    \"github.com/openmeterio/openmeter/collector/benthos/services/leaderelection\"\n    \"github.com/redpanda-data/benthos/v4/public/service\"\n)\n\nfunc main() {\n    ctx := context.Background()\n    opts := leaderelection.GetLeaderElectionCLIOpts(ctx)\n    svc := service.NewCLI(opts...)\n    svc.Run()\n}\n\n// Inside a plugin handler:\nfunc (p *myPlugin) Process(ctx context.Context, msg *service.Message) ([]*service.Message, error) {\n    if !leaderelection.IsLeader(p.res) {\n        return nil, nil // skip work when not the leader\n    }\n    // ... perform leader-only work\n}"
+      }
+    ]
   }
 }

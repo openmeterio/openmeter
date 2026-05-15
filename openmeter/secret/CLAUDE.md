@@ -2,12 +2,12 @@
 
 <!-- archie:ai-start -->
 
-> Manages encrypted secrets (e.g., Stripe API keys) for installed marketplace apps. The root package owns the Service and Adapter interfaces; sub-packages provide the stub plaintext adapter, pure domain types (entity/), and the thin validation-only service implementation (service/).
+> Manages encrypted secrets (e.g., Stripe API keys) for installed marketplace apps. The root package owns the Service and Adapter interfaces; sub-packages provide the stub plaintext adapter (adapter/), pure domain types (entity/), and the thin validation-only service implementation (service/).
 
 ## Patterns
 
 **Interface segregation: Adapter embeds SecretAdapter** — secret.Adapter embeds secret.SecretAdapter; new storage operations must be added to SecretAdapter, not directly to Adapter. (`type Adapter interface { SecretAdapter }`)
-**Validate-then-delegate in every method** — service/ calls input.Validate() unconditionally before delegating to the adapter — the adapter is a stub and won't catch bad inputs. (`if err := input.Validate(); err != nil { return secretentity.SecretID{}, err }; return s.adapter.CreateAppSecret(ctx, input)`)
+**Validate-then-delegate in every method** — service/ calls input.Validate() unconditionally before delegating to the adapter — the stub adapter will not catch bad inputs. (`if err := input.Validate(); err != nil { return secretentity.SecretID{}, err }; return s.adapter.CreateAppSecret(ctx, input)`)
 **Config struct constructor with Validate()** — service.New accepts a Config struct and calls Validate() immediately — the only nil-safety gate before storing the adapter. (`func New(cfg Config) (Service, error) { if err := cfg.Validate(); err != nil { return nil, err }; return &service{adapter: cfg.Adapter}, nil }`)
 **Pure domain types in entity/ sub-package** — All input structs, SecretID, Secret, and SecretNotFoundError live in openmeter/secret/entity — no persistence logic or Ent imports. (`import secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"`)
 **SecretID encodes plaintext value (stub adapter)** — The plaintext adapter stores the raw secret value as the ID field of SecretID — a known stub convention until a real secret store is wired. (`return secretentity.SecretID{ID: input.Value}, nil`)
@@ -53,7 +53,6 @@ func (a *adapter) CreateAppSecret(ctx context.Context, input secretentity.Create
 	}
 	// ... store and return ID
 }
-// ...
 ```
 
 <!-- archie:ai-end -->

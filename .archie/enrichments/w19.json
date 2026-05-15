@@ -1,170 +1,184 @@
 {
   "api/spec/packages/aip/src/customers/charges": {
-    "purpose": "TypeSpec definitions for customer charge API (flat-fee and usage-based charge types). Defines the discriminated union `Charge`, its models, enums, list-operation with filter/sort/expand, and compiles into the v3 OpenAPI spec and generated SDKs.",
+    "purpose": "TypeSpec definitions for the customer charges API \u2014 defines the `Charge` discriminated union (flat_fee, usage_based), shared `ChargeBase<T>` generic model, charge enums, and the list operation with filter/sort/expand. Compiles into v3 OpenAPI spec and generated SDKs; types live in charges.tsp, HTTP operations in operations.tsp.",
     "patterns": [
       {
-        "name": "Generic ChargeBase spread",
-        "description": "Charge type models spread `ChargeBase<T>` (itself spreading `Shared.Resource`) to inherit all shared fields. Type-specific fields are added directly on the concrete model.",
-        "example": "model FlatFeeCharge { ...ChargeBase<ChargeType.FlatFee>; payment_term: ...; }"
+        "name": "ChargeBase<T> spread for concrete models",
+        "description": "All concrete charge models (FlatFeeCharge, UsageBasedCharge) spread `ChargeBase<ChargeType.X>` to inherit shared read-only fields. Type-specific fields are added only on the concrete model, never on ChargeBase itself.",
+        "example": "model FlatFeeCharge { ...ChargeBase<ChargeType.FlatFee>; payment_term: ProductCatalog.PricePaymentTerm; }"
       },
       {
-        "name": "Discriminated union via @discriminated",
-        "description": "`Charge` is a `union` with `@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })`. Variants are named by their discriminator value (`flat_fee`, `usage_based`).",
+        "name": "Discriminated union with envelope:none",
+        "description": "`Charge` is a `union` with `@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })`. Variant keys match enum values verbatim (flat_fee, usage_based). New charge types require adding to both ChargeType enum and the union.",
         "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union Charge { flat_fee: FlatFeeCharge, usage_based: UsageBasedCharge }"
       },
       {
-        "name": "@visibility(Lifecycle.Read) for all response-only fields",
-        "description": "Fields only returned in responses (status, invoice_at, customer, etc.) carry `@visibility(Lifecycle.Read)`. Fields writeable on create carry `@visibility(Lifecycle.Read, Lifecycle.Create)`.",
-        "example": "@visibility(Lifecycle.Read) status: ChargeStatus;"
+        "name": "@visibility(Lifecycle.Read) for response-only, Lifecycle.Create for writable fields",
+        "description": "All fields on ChargeBase are `@visibility(Lifecycle.Read)` \u2014 they are computed/server-assigned. Fields that can be set on creation use `@visibility(Lifecycle.Read, Lifecycle.Create)`. No Update visibility \u2014 charges have no PATCH operation.",
+        "example": "@visibility(Lifecycle.Read) status: ChargeStatus;  @visibility(Lifecycle.Read, Lifecycle.Create) payment_term: ProductCatalog.PricePaymentTerm;"
       },
       {
-        "name": "@friendlyName on every model and enum",
-        "description": "All models and enums carry `@friendlyName(\"Billing<Name>\")` so generator-level names are stable and prefixed with `Billing`.",
-        "example": "@friendlyName(\"BillingChargeType\") enum ChargeType { ... }"
+        "name": "@friendlyName(\"Billing<Name>\") on all models and enums",
+        "description": "Every exported model and enum must carry `@friendlyName(\"Billing<PascalCase>\")` so the generated SDK name is stable and prefixed with Billing.",
+        "example": "@friendlyName(\"BillingChargeType\") enum ChargeType { FlatFee: \"flat_fee\", UsageBased: \"usage_based\" }"
       },
       {
-        "name": "Operations file owns @get interface, imports HTTP decorators",
-        "description": "`operations.tsp` imports `@typespec/http`, `@typespec/openapi`, declares `using TypeSpec.Http; using TypeSpec.OpenAPI;`, defines filter models and the operations interface. Types stay in `charges.tsp`.",
-        "example": "interface CustomerChargesOperations { @get @operationId(\"list-customer-charges\") list(...): Shared.PagePaginatedResponse<Charge> | ...; }"
+        "name": "HTTP decorators and operations belong only in operations.tsp",
+        "description": "charges.tsp holds types only. operations.tsp imports `@typespec/http`, declares `using TypeSpec.Http; using TypeSpec.OpenAPI;`, and owns `@get`, `@path`, `@query`, `@operationId` usage.",
+        "example": "// operations.tsp only: @get @operationId(\"list-customer-charges\") list(...): Shared.PagePaginatedResponse<Charge>"
       },
       {
         "name": "deepObject explode for filter query params",
         "description": "Filter query params use `@query(#{ style: \"deepObject\", explode: true })` to support bracket-style filters like `filter[status][oeq]=created`.",
         "example": "@query(#{ style: \"deepObject\", explode: true }) filter?: ListCustomerChargesParamsFilter"
+      },
+      {
+        "name": "index.tsp re-exports all sibling files",
+        "description": "Every .tsp file added to this folder must be imported in index.tsp in dependency order or it is invisible to the compiler.",
+        "example": "import \"./charges.tsp\";\nimport \"./operations.tsp\";"
       }
     ],
     "key_file_guides": [
       {
         "file": "charges.tsp",
-        "role": "Defines all charge models and enums (`ChargeType`, `ChargeStatus`, `ChargeBase<T>`, `FlatFeeCharge`, `UsageBasedCharge`, `Charge` union, `ChargesExpand`).",
-        "watch_for": "Do not add HTTP decorators here; those belong in operations.tsp. Concrete models must spread `ChargeBase<T>` \u2014 do not duplicate shared fields."
+        "role": "Defines all charge models (ChargeBase<T>, FlatFeeCharge, UsageBasedCharge, ChargeTotals), enums (ChargeType, ChargeStatus), the Charge discriminated union, and ChargesExpand enum.",
+        "watch_for": "Do not add HTTP decorators here. Concrete models must spread ChargeBase<T> \u2014 do not duplicate shared fields. Do not use Lifecycle.Update."
       },
       {
         "file": "operations.tsp",
-        "role": "Declares `CustomerChargesOperations` interface with `list` operation, filter/sort/expand query params, and pagination response type.",
-        "watch_for": "Must import `@typespec/http` and declare `using TypeSpec.Http;` \u2014 otherwise `@get`, `@path`, `@query` decorators are unknown. Response type must use `Shared.PagePaginatedResponse<Charge>` not a raw array."
+        "role": "Declares CustomerChargesOperations interface with the list operation, filter/sort/expand params, and PagePaginatedResponse return type.",
+        "watch_for": "Must import @typespec/http and declare `using TypeSpec.Http;`. Response must use Shared.PagePaginatedResponse<Charge>, not a raw array. @path customerId is required."
       },
       {
         "file": "index.tsp",
-        "role": "Re-exports charges.tsp and operations.tsp in order; consumed by the parent package index.",
-        "watch_for": "New .tsp files added to this folder must be imported here or they are invisible to the compiler."
+        "role": "Re-exports charges.tsp then operations.tsp in order; consumed by parent package index.",
+        "watch_for": "New .tsp files must be added here in dependency order or the compiler will not see them."
       }
     ],
     "anti_patterns": [
       "Adding HTTP decorators (@get, @post, @path, @query) in charges.tsp \u2014 they belong only in operations.tsp",
-      "Defining type-specific fields directly on ChargeBase instead of on FlatFeeCharge / UsageBasedCharge",
+      "Defining type-specific fields on ChargeBase instead of on FlatFeeCharge / UsageBasedCharge",
       "Omitting @friendlyName on new models or enums \u2014 the generated SDK name will be unstable",
-      "Hand-editing api/v3/api.gen.go or api/v3/openapi.yaml \u2014 always regenerate via `make gen-api`",
-      "Using @visibility(Lifecycle.Update) \u2014 charges have no update operation; use Read or Create only"
+      "Using @visibility(Lifecycle.Update) \u2014 charges have no PATCH operation",
+      "Hand-editing api/v3/api.gen.go or api/v3/openapi.yaml instead of running `make gen-api`"
     ],
     "decisions": [
       {
         "decision": "Discriminated union with envelope:none and discriminatorPropertyName:type",
-        "rationale": "Keeps the wire format flat (no extra wrapper object) while still allowing the OpenAPI discriminator to route deserialization to the correct model."
+        "rationale": "Keeps the wire format flat (no extra wrapper object) while still allowing the OpenAPI discriminator to route deserialization to the correct concrete model."
       },
       {
         "decision": "ChargeBase<T extends ChargeType> generic model",
         "rationale": "Avoids duplicating the large set of shared read-only fields across FlatFeeCharge and UsageBasedCharge while keeping the type parameter visible in the generated schema."
+      },
+      {
+        "decision": "No update operation and no Lifecycle.Update visibility",
+        "rationale": "Charges are managed by the billing engine lifecycle; callers cannot freely PATCH them. This is intentional and mirrors the Go charges.Service interface which has no general Update method."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new charge type (e.g. credit_purchase)",
-        "code": "// In charges.tsp\nenum ChargeType { ..., CreditPurchase: \"credit_purchase\" }\n\n@friendlyName(\"BillingCreditPurchaseCharge\")\n@summary(\"Credit purchase charge\")\nmodel CreditPurchaseCharge {\n  ...ChargeBase<ChargeType.CreditPurchase>;\n  // type-specific fields here\n  @visibility(Lifecycle.Read, Lifecycle.Create)\n  amount: Shared.Numeric;\n}\n\n// Update the union in charges.tsp\nunion Charge {\n  flat_fee: FlatFeeCharge,\n  usage_based: UsageBasedCharge,\n  credit_purchase: CreditPurchaseCharge,\n}"
+        "scenario": "Adding a new charge type (e.g. credit_purchase) \u2014 changes required in charges.tsp only",
+        "code": "// charges.tsp\n@friendlyName(\"BillingChargeType\")\nenum ChargeType {\n  FlatFee: \"flat_fee\",\n  UsageBased: \"usage_based\",\n  CreditPurchase: \"credit_purchase\",  // add here\n}\n\n@friendlyName(\"BillingCreditPurchaseCharge\")\n@summary(\"Credit purchase charge\")\nmodel CreditPurchaseCharge {\n  ...ChargeBase<ChargeType.CreditPurchase>;\n  @visibility(Lifecycle.Read, Lifecycle.Create)\n  @summary(\"Purchase amount\")\n  amount: Shared.Numeric;\n}\n\n@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })\nunion Charge {\n  flat_fee: FlatFeeCharge,\n  usage_based: UsageBasedCharge,\n  credit_purchase: CreditPurchaseCharge,  // add here\n}\n// Then: make gen-api && make generate"
       }
     ]
   },
   "api/spec/packages/aip/src/customers/credits": {
-    "purpose": "TypeSpec definitions for the customer credits API: credit grants (allocation, funding methods, lifecycle), credit balances, credit transactions (ledger), and credit adjustments. Compiles into v3 OpenAPI spec; gated behind credits.enabled in Go wiring.",
+    "purpose": "TypeSpec definitions for the customer credits API: credit grants (allocation, funding methods, lifecycle), credit balances (per-currency aggregates), credit transactions (immutable ledger entries), and credit adjustments. Compiles into v3 OpenAPI; the corresponding Go handlers are gated behind credits.enabled in api/v3/server.",
     "patterns": [
       {
-        "name": "Shared.Resource spread for mutable resources, Shared.ResourceImmutable for transactions",
-        "description": "`CreditGrant` spreads `Shared.Resource` (mutable); `CreditTransaction` spreads `Shared.ResourceImmutable` to signal no updates are allowed.",
-        "example": "model CreditGrant { ...Shared.Resource; ... }  model CreditTransaction { ...Shared.ResourceImmutable; ... }"
+        "name": "Shared.Resource for mutable entities, Shared.ResourceImmutable for ledger entries",
+        "description": "CreditGrant spreads Shared.Resource (mutable, has id/created_at/updated_at). CreditTransaction spreads Shared.ResourceImmutable to signal no updates are ever allowed. Balance models do not spread Resource at all \u2014 they are computed aggregates.",
+        "example": "model CreditGrant { ...Shared.Resource; ... }\nmodel CreditTransaction { ...Shared.ResourceImmutable; ... }\nmodel CreditBalances { retrieved_at: Shared.DateTime; balances: CreditBalance[]; }  // no Resource spread"
       },
       {
-        "name": "Nested anonymous object literals for compound fields",
-        "description": "Tightly related sub-fields use inline anonymous objects (`purchase?: { currency: ...; amount: ...; }`) instead of named models, unless the sub-type needs to be referenced elsewhere.",
-        "example": "purchase?: { currency: Shared.CurrencyCode; per_unit_cost_basis?: Shared.Numeric; amount: Shared.Numeric; };"
-      },
-      {
-        "name": "@friendlyName(\"Billing<Name>\") on every exported model/enum",
-        "description": "All exported symbols carry `@friendlyName(\"Billing<PascalCase>\")` for stable generated SDK names.",
-        "example": "@friendlyName(\"BillingCreditGrant\") model CreditGrant { ... }"
+        "name": "@friendlyName(\"Billing<Name>\") on all exported models and enums",
+        "description": "Every exported symbol carries @friendlyName(\"Billing<PascalCase>\") for stable generated SDK names. Exception: CreditBalance (non-billing-prefixed) is intentional for the inner model.",
+        "example": "@friendlyName(\"BillingCreditGrant\") model CreditGrant { ... }\n@friendlyName(\"BillingCreditFundingMethod\") enum CreditFundingMethod { ... }"
       },
       {
         "name": "Separate interfaces per resource in operations.tsp",
-        "description": "Operations are split into fine-grained interfaces: `CustomerCreditGrantsOperations`, `CustomerCreditBalancesOperations`, `CustomerCreditTransactionOperations`, `CustomerCreditAdjustmentsOperations`. No omnibus interface.",
-        "example": "interface CustomerCreditGrantsOperations { create(...); get(...); list(...); }"
+        "description": "Operations are split into fine-grained interfaces: CustomerCreditGrantsOperations, CustomerCreditGrantExternalSettlementOperations, CustomerCreditBalancesOperations, CustomerCreditTransactionOperations, CustomerCreditAdjustmentsOperations. No omnibus interface.",
+        "example": "interface CustomerCreditGrantsOperations { create(...); get(...); list(...); }\ninterface CustomerCreditBalancesOperations { get(...); }"
       },
       {
-        "name": "Cursor pagination for transactions, page pagination for grants",
-        "description": "`CreditTransaction` list uses `...Common.CursorPaginationQuery` + `Shared.CursorPaginatedResponse<T>`. `CreditGrant` list uses `...Common.PagePaginationQuery` + `Shared.PagePaginatedResponse<T>`.",
-        "example": "list(...Common.CursorPaginationQuery, ...): Shared.CursorPaginatedResponse<CreditTransaction>"
+        "name": "Cursor pagination for transactions, page pagination for grants/adjustments",
+        "description": "CreditTransaction list uses ...Common.CursorPaginationQuery + Shared.CursorPaginatedResponse<T>. CreditGrant list uses ...Common.PagePaginationQuery + Shared.PagePaginatedResponse<T>.",
+        "example": "list(...Common.CursorPaginationQuery, ...): Shared.CursorPaginatedResponse<CreditTransaction>  // transactions\nlist(...Common.PagePaginationQuery, ...): Shared.PagePaginatedResponse<CreditGrant>  // grants"
       },
       {
-        "name": "@visibility(Lifecycle.Read, Lifecycle.Create) \u2014 no Update visibility",
-        "description": "No field uses Lifecycle.Update because credits do not have a general PATCH operation; grants have only a targeted `updateExternalSettlement` action.",
-        "example": "@visibility(Lifecycle.Read, Lifecycle.Create) funding_method: CreditFundingMethod;"
+        "name": "@visibility(Lifecycle.Read, Lifecycle.Create) only \u2014 no Update",
+        "description": "No field uses Lifecycle.Update because credits have no general PATCH operation; grants have only targeted action endpoints (updateExternalSettlement). Read-only computed fields use Lifecycle.Read alone.",
+        "example": "@visibility(Lifecycle.Read, Lifecycle.Create) funding_method: CreditFundingMethod;\n@visibility(Lifecycle.Read) status: CreditGrantStatus;"
+      },
+      {
+        "name": "Nested anonymous object literals for compound fields",
+        "description": "Tightly related sub-fields use inline anonymous objects (purchase, invoice, filters, available_balance) instead of named models, unless the sub-type needs to be referenced standalone.",
+        "example": "purchase?: { currency: Shared.CurrencyCode; per_unit_cost_basis?: Shared.Numeric; amount: Shared.Numeric; availability_policy?: CreditAvailabilityPolicy; };"
+      },
+      {
+        "name": "Commented-out stubs for unimplemented features",
+        "description": "Future fields (effective_at, expires_after, expires_at, OnAuthorization/OnSettlement variants) and entire interfaces (void-grant) are fully commented out. Do not uncomment without a matching Go implementation.",
+        "example": "// @visibility(Lifecycle.Create, Lifecycle.Read)\n// effective_at?: Shared.DateTime;"
       }
     ],
     "key_file_guides": [
       {
         "file": "grant.tsp",
-        "role": "Defines `CreditGrant` model, `CreditFundingMethod`, `CreditAvailabilityPolicy`, `CreditGrantStatus`, `CreditGrantTaxConfig`, and `CreditPurchasePaymentSettlementStatus` enums.",
-        "watch_for": "Several commented-out fields exist (effective_at, expires_after, expires_at, OnAuthorization/OnSettlement enum variants) \u2014 these are intentional stubs for future features; do not uncomment without a corresponding Go implementation."
+        "role": "Defines CreditGrant model, CreditFundingMethod, CreditAvailabilityPolicy, CreditGrantStatus, CreditGrantTaxConfig, CreditPurchasePaymentSettlementStatus enums.",
+        "watch_for": "Several commented-out fields are intentional stubs for future features \u2014 do not uncomment without a matching Go charges.Service implementation. `purchase` is an anonymous nested object, not a named model."
       },
       {
         "file": "operations.tsp",
-        "role": "Declares all CRUD and action interfaces for grants, balance, transactions, and adjustments. Imports all sub-type files.",
-        "watch_for": "Must import `@typespec/http` and declare `using TypeSpec.Http; using TypeSpec.OpenAPI;`. The void-grant interface is entirely commented out \u2014 do not expose it until the Go service implements the void lifecycle."
+        "role": "Declares all CRUD and action interfaces for grants, balance, transactions, and adjustments. Imports all sub-type files directly.",
+        "watch_for": "Must import @typespec/http and declare `using TypeSpec.Http; using TypeSpec.OpenAPI;`. The void-grant interface is entirely commented out \u2014 do not expose it until Go service implements void lifecycle. balance.tsp and adjustment.tsp are imported here, not in index.tsp."
       },
       {
         "file": "balance.tsp",
-        "role": "Defines `CreditBalances` (list of per-currency `CreditBalance`) returned by the balance GET endpoint.",
+        "role": "Defines CreditBalances (list of per-currency CreditBalance) returned by the balance GET endpoint.",
         "watch_for": "Does not spread Shared.Resource \u2014 it is a computed read-only aggregate, not a stored entity. Do not add id/created_at."
       },
       {
         "file": "ledger.tsp",
-        "role": "Defines `CreditTransaction` (immutable ledger entry) and `CreditTransactionType` enum. Also has commented-out actor model for future attribution.",
-        "watch_for": "`CreditTransaction` spreads `Shared.ResourceImmutable` \u2014 do not add any mutable or Create-visible fields here."
+        "role": "Defines CreditTransaction (immutable ledger entry spreading Shared.ResourceImmutable) and CreditTransactionType enum.",
+        "watch_for": "CreditTransaction spreads Shared.ResourceImmutable \u2014 do not add any mutable or Create-visible fields. Actor model is fully commented out for future use."
       },
       {
         "file": "adjustment.tsp",
-        "role": "Defines `CreditAdjustment` for manual balance corrections. Spreads a subset of Shared.Resource fields via `PickProperties`.",
+        "role": "Defines CreditAdjustment for manual balance corrections using PickProperties<Shared.Resource> for selective field inheritance.",
         "watch_for": "Only Create-visible fields are present; no Read-only state fields. Currency is @visibility(Lifecycle.Create) only."
       },
       {
         "file": "index.tsp",
-        "role": "Re-exports grant, ledger, and operations in order. Note: balance.tsp and adjustment.tsp are NOT re-exported from index.tsp \u2014 they are imported directly in operations.tsp.",
-        "watch_for": "New type files must be imported either in index.tsp or directly in operations.tsp before they become available to the compiler."
+        "role": "Re-exports grant.tsp, ledger.tsp, and operations.tsp. Note: balance.tsp and adjustment.tsp are imported directly in operations.tsp, not here.",
+        "watch_for": "New type files must be imported either in index.tsp or directly in operations.tsp before they are visible to the compiler."
       }
     ],
     "anti_patterns": [
       "Uncommenting void-grant or external-payment-initial-settlement-status stubs without a matching Go charges.Service implementation",
-      "Adding @visibility(Lifecycle.Update) \u2014 no general update operation exists for credit resources",
-      "Spreading Shared.Resource into balance.tsp models \u2014 balance is a computed aggregate, not a stored entity",
-      "Mixing pagination types: transactions must use cursor pagination, grants/adjustments use page pagination",
+      "Adding @visibility(Lifecycle.Update) \u2014 no general update operation exists for any credit resource",
+      "Spreading Shared.Resource into balance.tsp models \u2014 CreditBalances is a computed aggregate, not a stored entity",
+      "Using page pagination for credit transactions \u2014 they must use cursor pagination (CursorPaginationQuery + CursorPaginatedResponse)",
       "Hand-editing api/v3/api.gen.go or api/v3/openapi.yaml instead of running `make gen-api`"
     ],
     "decisions": [
       {
         "decision": "Cursor pagination for credit transactions, page pagination for grants",
-        "rationale": "Transactions are append-only and high-volume; cursor pagination is stable under concurrent inserts. Grants are low-cardinality and need offset-based navigation."
+        "rationale": "Transactions are append-only and high-volume; cursor pagination is stable under concurrent inserts. Grants are low-cardinality and need offset-based navigation for admin UIs."
       },
       {
         "decision": "Separate operations interfaces per resource sub-type",
         "rationale": "Matches the Go side where each resource maps to a distinct service method group, and makes it easy to enable/disable individual endpoint groups (e.g. void-grant is fully commented out until implemented)."
       },
       {
-        "decision": "credits API gated at wiring layer, not at TypeSpec level",
-        "rationale": "The TypeSpec spec is always compiled; the credits.enabled flag disables Go handler registration in api/v3/server and noop-wires ledger services in app/common. This keeps the spec complete while the feature is in progress."
+        "decision": "Credits API compiled in TypeSpec but gated at Go wiring layer, not at TypeSpec level",
+        "rationale": "The spec is always compiled; credits.enabled disables Go handler registration in api/v3/server and noop-wires ledger services in app/common. This keeps the spec complete while the feature is in progress."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new filtered list operation for credit grants by feature",
-        "code": "// In operations.tsp \u2014 extend ListCreditGrantsParamsFilter\n@friendlyName(\"ListCreditGrantsParamsFilter\")\nmodel ListCreditGrantsParamsFilter {\n  status?: CreditGrantStatus;\n  currency?: Shared.CurrencyCode;\n  // New field:\n  feature?: Shared.ResourceKey;\n}\n// No changes needed in grant.tsp or index.tsp.\n// Run: make gen-api && make generate"
+        "scenario": "Adding a new filter field to credit grant listing \u2014 only operations.tsp changes needed",
+        "code": "// operations.tsp \u2014 extend ListCreditGrantsParamsFilter\n@friendlyName(\"ListCreditGrantsParamsFilter\")\nmodel ListCreditGrantsParamsFilter {\n  status?: CreditGrantStatus;\n  currency?: Shared.CurrencyCode;\n  // New field:\n  feature?: Shared.ResourceKey;  // filter by feature key\n}\n// No changes needed in grant.tsp or index.tsp.\n// Then: make gen-api && make generate"
       }
     ]
   }

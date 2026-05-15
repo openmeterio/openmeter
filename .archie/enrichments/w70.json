@@ -1,164 +1,110 @@
 {
-  "openmeter/billing/worker/advance": {
-    "purpose": "Batch auto-advance loop for StandardInvoices: lists invoices in DraftWaitingAutoApproval, DraftWaitingForCollection, and stuck-advanceable states, then fans out parallel goroutines (batched) to call billing.Service.AdvanceInvoice. Acts as the scheduled/polling counterpart to the event-driven asyncadvance handler.",
+  "openmeter/billing/service/invoicecalc": {
+    "purpose": "Pure, stateless invoice calculation pipeline that applies ordered sequences of transformation functions to StandardInvoice and GatheringInvoice objects to compute derived fields (collection dates, draft/due dates, service periods, discount correlation IDs, detailed line totals, and tax config snapshots) without touching the database. All external data must be pre-resolved and injected via dependency structs before the pipeline runs.",
     "patterns": [
       {
-        "name": "Config struct constructor with validation",
-        "description": "NewAdvancer accepts a Config struct; returns error if BillingService or Logger is nil. All new workers in this package must follow this pattern.",
-        "example": "func NewAdvancer(config Config) (*AutoAdvancer, error) { if config.BillingService == nil { return nil, fmt.Errorf(...) } }"
+        "name": "Typed calculation function signatures",
+        "description": "Every calculation step is a function matching StandardInvoiceCalculation = func(*billing.StandardInvoice, StandardInvoiceCalculatorDependencies) error or GatheringInvoiceCalculation = func(*billing.GatheringInvoice, GatheringInvoiceCalculatorDependencies) error. New calculations must match one of these two signatures.",
+        "example": "func MyCalc(inv *billing.StandardInvoice, deps StandardInvoiceCalculatorDependencies) error { ... }"
       },
       {
-        "name": "Batched parallel fan-out with errChan + sync.WaitGroup",
-        "description": "lo.Chunk splits work into batches; each batch spawns goroutines writing to a buffered errChan. sync.OnceFunc closes the channel after all batches complete. errors.Join collects all failures.",
-        "example": "errChan := make(chan error, len(invoices)); closeErrChan := sync.OnceFunc(func() { close(errChan) }); defer closeErrChan()"
+        "name": "Register calculations in InvoiceCalculations registry",
+        "description": "All active calculation steps are registered in the InvoiceCalculations package-level var in calculator.go under the correct slice: Invoice, GatheringInvoice, or GatheringInvoiceWithLiveData. Steps run in declaration order; ordering matters for dependent computations (CollectionAt must precede DraftUntil which must precede DueAt).",
+        "example": "InvoiceCalculations.Invoice = []StandardInvoiceCalculation{ WithNoDependencies(StandardInvoiceCollectionAt), WithNoDependencies(CalculateDraftUntil), RecalculateDetailedLinesAndTotals, SnapshotTaxConfigIntoLines }"
       },
       {
-        "name": "ErrInvoiceCannotAdvance is a non-fatal sentinel",
-        "description": "When AdvanceInvoice returns billing.ErrInvoiceCannotAdvance, log a warning with invoice details and return nil \u2014 do not propagate as an error.",
-        "example": "if errors.Is(err, billing.ErrInvoiceCannotAdvance) { a.logger.WarnContext(ctx, ...) ; return invoice, nil }"
+        "name": "WithNoDependencies / WithNoGatheringDependencies wrappers",
+        "description": "Use WithNoDependencies to wrap a func(*billing.StandardInvoice) error into a StandardInvoiceCalculation when the step does not need StandardInvoiceCalculatorDependencies. Use WithNoGatheringDependencies for the gathering counterpart. Do not accept and ignore the deps parameter in a raw function \u2014 wrap it instead.",
+        "example": "WithNoDependencies(CalculateDraftUntil)"
       },
       {
-        "name": "List consolidation with lo.UniqBy",
-        "description": "ListInvoicesToAdvance merges three separate list calls and deduplicates by invoice ID using lo.UniqBy before batching.",
-        "example": "return lo.UniqBy(allInvoices, func(i billing.StandardInvoice) string { return i.ID }), nil"
+        "name": "Error aggregation via MergeValidationIssues",
+        "description": "In applyCalculations, all step errors are joined with errors.Join and funnelled through invoice.MergeValidationIssues(billing.ValidationWithComponent(...), component). New StandardInvoice calculation steps must return plain errors; the pipeline wraps them. GatheringInvoice calculations return raw joined errors because GatheringInvoice has no ValidationIssues field.",
+        "example": "return invoice.MergeValidationIssues(billing.ValidationWithComponent(billing.ValidationComponentOpenMeter, outErr), billing.ValidationComponentOpenMeter)"
       },
       {
-        "name": "Context with cancel for batch runs",
-        "description": "All() immediately creates a cancellable child context so in-flight goroutines can be cancelled if the parent is cancelled.",
-        "example": "ctx, cancel := context.WithCancel(ctx); defer cancel()"
+        "name": "Guard with Lines.IsPresent() before iterating lines",
+        "description": "Every calculation that iterates lines must guard with i.Lines.IsPresent() and return an explicit error when absent. Never silently skip or operate on an absent Lines optional.",
+        "example": "if !i.Lines.IsPresent() { return errors.New(\"lines must be expanded\") }"
+      },
+      {
+        "name": "LineEngine dispatch via LineEngineResolver",
+        "description": "RecalculateDetailedLinesAndTotals groups lines by line.Engine and calls deps.LineEngines.Get(lineEngineType) to dispatch to the correct engine. Engines that do not implement billing.LineCalculator are skipped. ValidateStandardLineIDsMatchExactly enforces that engines return exactly the same line IDs they received.",
+        "example": "lineEngine, err := deps.LineEngines.Get(lineEngineType); updatedLines, err := lineEngine.CalculateLines(input)"
+      },
+      {
+        "name": "TaxCodes pre-resolved map pattern",
+        "description": "SnapshotTaxConfigIntoLines reads from deps.TaxCodes TaxCodes (a map[string]taxcode.TaxCode keyed by Stripe code) that must be pre-populated before the calculator runs. New tax-related calculations must read from this pre-resolved map, not query the DB directly. TaxCodeID is preserved if already set; TaxCode entity is always stamped if found.",
+        "example": "tc, ok := deps.TaxCodes.Get(line.TaxConfig.Stripe.Code)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "advance.go",
-        "role": "Entire package \u2014 AutoAdvancer struct with All(), ListInvoicesToAdvance(), ListInvoicesPendingAutoAdvance(), ListInvoicesPendingCollection(), ListStuckInvoicesNeedingAdvance(), AdvanceInvoice(), and NewAdvancer().",
-        "watch_for": "batchSize=0 means single batch (all invoices in one pass). errChan capacity must equal len(invoices), not len(batches), or sends will block. ErrInvoiceCannotAdvance must remain a warning, not an error."
+        "file": "calculator.go",
+        "role": "Defines Calculator interface, invoiceCalculatorsByType registry, StandardInvoiceCalculatorDependencies, GatheringInvoiceCalculatorDependencies, LineEngineResolver, TaxCodes, and New(). Entry point for callers. applyCalculations is the internal loop that runs all steps and merges errors.",
+        "watch_for": "Step registration order in InvoiceCalculations matters \u2014 CollectionAt must precede DraftUntil which must precede DueAt. Adding a step without checking ordering can silently produce wrong derived fields."
+      },
+      {
+        "file": "details.go",
+        "role": "Contains RecalculateDetailedLinesAndTotals (engine dispatch + totals rollup) and MergeGeneratedDetailedLines (materialises rating.GenerateDetailedLinesResult into a parent StandardLine). Called by the calculator pipeline and by the rating integration.",
+        "watch_for": "ValidateStandardLineIDsMatchExactly enforces that engines return exactly the same line IDs they received. Engines that create or drop lines will cause a hard error here."
+      },
+      {
+        "file": "collectionat.go",
+        "role": "Computes CollectionAt for StandardInvoice and NextCollectionAt for GatheringInvoice. Handles subscription-aligned and anchored-aligned collection configs using timeutil.NewRecurrenceFromISODuration.",
+        "watch_for": "Only metered lines (those where line.DependsOnMeteredQuantity() is true) contribute to StandardInvoice collection time; flat-fee lines are explicitly excluded. Deleted lines are excluded via nil-check on DeletedAt. OverrideCollectionPeriodEnd on a line overrides the default interval-based calculation for that line."
+      },
+      {
+        "file": "taxconfig.go",
+        "role": "Merges invoice.Workflow.Config.Invoicing.DefaultTaxConfig into each line via productcatalog.MergeTaxConfigs, then stamps resolved TaxCode entity and TaxCodeID from the pre-resolved deps.TaxCodes map.",
+        "watch_for": "Is a no-op for gathering invoices (status == StandardInvoiceStatusGathering returns nil immediately). Does not overwrite an existing TaxCodeID \u2014 preserves caller-set IDs \u2014 but always stamps TaxCode entity if found."
+      },
+      {
+        "file": "mock.go",
+        "role": "Provides MockableInvoiceCalculator (wraps real Calculator + optional mockCalculator) for test injection. EnableMock() returns a *mockCalculator on which callers set OnCalculate(err) expectations. DisableMock(t) asserts all expectations were consumed.",
+        "watch_for": "Mock Calculate still calls invoice.MergeValidationIssues to mirror the real pipeline \u2014 this is intentional. AssertExpectations only fires if the option was Set (mo.Some); un-set options are not checked."
+      },
+      {
+        "file": "draftuntil.go",
+        "role": "Sets DraftUntil from max(CollectionAt, CreatedAt) + DraftPeriod. Must run after StandardInvoiceCollectionAt.",
+        "watch_for": "When AutoAdvance=false, sets DraftUntil = nil unconditionally."
+      },
+      {
+        "file": "dueat.go",
+        "role": "Sets DueAt relative to DraftUntil (auto-advance) or IssuedAt (manual). Must run after CalculateDraftUntil. Truncates to second precision for Stripe compatibility.",
+        "watch_for": "Returns nil (no error) when prerequisite fields are absent rather than returning an error \u2014 callers must not rely on DueAt being set after a single pass."
+      },
+      {
+        "file": "gatheringrealtime.go",
+        "role": "Used only in the GatheringInvoiceWithLiveData pass to backfill synthetic IDs and timestamps on in-memory DetailedLines that were never persisted to the DB.",
+        "watch_for": "Only generates IDs/timestamps when fields are zero-valued, so it is safe to call multiple times without stomping existing values."
       }
     ],
     "anti_patterns": [
-      "Calling billing.Adapter directly \u2014 all DB access must go through billing.Service",
-      "Propagating billing.ErrInvoiceCannotAdvance as an error return from AdvanceInvoice",
-      "Forgetting to deduplicate the merged invoice list before batching, causing double-advances",
-      "Using context.Background() instead of the caller-supplied ctx in goroutines"
+      "Adding DB queries inside a calculation function \u2014 all external data must be injected via StandardInvoiceCalculatorDependencies or GatheringInvoiceCalculatorDependencies before the pipeline runs.",
+      "Adding a calculation step that is not registered in InvoiceCalculations \u2014 unregistered steps are never called by the Calculator.",
+      "Modifying the InvoiceCalculations slice at runtime (e.g. in init() or constructors) \u2014 the registry is a package-level var meant to be read-only after package init.",
+      "Directly calling individual step functions (e.g. CalculateDraftUntil(inv)) from outside the package instead of going through Calculator.Calculate \u2014 bypasses ordering guarantees and error aggregation.",
+      "Returning a nil error from a calculation when lines are not expanded \u2014 all calculations must validate preconditions and return explicit errors so callers know the output is invalid."
     ],
     "decisions": [
       {
-        "decision": "Three separate list queries merged with deduplication instead of a single compound query",
-        "rationale": "Waiting-auto-approval, waiting-for-collection, and stuck invoices have distinct filter shapes in billing.ListStandardInvoicesInput; merging at the query level would require OR semantics the adapter does not support cleanly."
+        "decision": "Stateless function-per-concern design with a central ordered registry",
+        "rationale": "Invoice calculations have ordering dependencies (collection \u2192 draft \u2192 due) but are otherwise independent concerns. A flat ordered slice makes the sequence explicit and testable in isolation; each function can be unit-tested without constructing the full Calculator."
       },
       {
-        "decision": "Batched parallel goroutines rather than sequential advance",
-        "rationale": "Invoice advancement is per-invoice and independent; parallelism is safe and reduces wall-clock time for large namespaces."
+        "decision": "Dependencies injected as structs rather than interfaces per function",
+        "rationale": "StandardInvoiceCalculatorDependencies groups all external inputs (FeatureMeters, RatingService, TaxCodes, LineEngines) that calculation steps may need. This avoids threading many parameters through every function signature and makes it cheap to add a new dependency without changing every step signature."
+      },
+      {
+        "decision": "Separate calculation passes for GatheringInvoice vs StandardInvoice",
+        "rationale": "GatheringInvoice only needs scheduling fields (NextCollectionAt, ServicePeriod, discount IDs); it does not carry ValidationIssues. StandardInvoice needs the full set including detailed-line recalculation and tax snapshotting. The three-slice registry (Invoice, GatheringInvoice, GatheringInvoiceWithLiveData) makes these distinct without conditional branching inside step functions."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Advance all eligible invoices in batches of 50",
-        "code": "advancer, _ := billingworkeradvance.NewAdvancer(billingworkeradvance.Config{\n    BillingService: svc,\n    Logger:         logger,\n})\nif err := advancer.All(ctx, []string{\"default\"}, 50); err != nil {\n    return err\n}"
-      }
-    ]
-  },
-  "openmeter/billing/worker/asyncadvance": {
-    "purpose": "Watermill event handler for async invoice advancement: receives a billing.AdvanceStandardInvoiceEvent from the system Kafka topic and calls billing.Service.AdvanceInvoice once, treating ErrInvoiceCannotAdvance as a benign late-message condition. Requires billing service configured with ForegroundAdvancementStrategy to prevent infinite retry loops.",
-    "patterns": [
-      {
-        "name": "Config.Validate() guards strategy mismatch",
-        "description": "New() calls c.Validate() which rejects any BillingService not using ForegroundAdvancementStrategy \u2014 prevents infinite event loops where background advancement re-emits the same advance event.",
-        "example": "if c.BillingService.GetAdvancementStrategy() != billing.ForegroundAdvancementStrategy { return errors.New(\"billing service must have foreground advancement strategy...\") }"
-      },
-      {
-        "name": "Handle() has a single-event signature",
-        "description": "Handler.Handle(ctx, *billing.AdvanceStandardInvoiceEvent) is the only exported method beyond New() \u2014 matches the Watermill NoPublisherHandler closure signature expected by the worker router.",
-        "example": "func (h *Handler) Handle(ctx context.Context, event *billing.AdvanceStandardInvoiceEvent) error"
-      },
-      {
-        "name": "ErrInvoiceCannotAdvance \u2192 warn + nil return",
-        "description": "Late Kafka messages for already-advanced invoices must log a warning and return nil (no requeue); all other errors propagate normally.",
-        "example": "if errors.Is(err, billing.ErrInvoiceCannotAdvance) { h.logger.WarnContext(...); return nil }"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "asyncadvance.go",
-        "role": "Entire package \u2014 Config, Config.Validate(), New(), Handler.Handle(). No other files.",
-        "watch_for": "Forgetting the strategy validation in Validate() creates an infinite loop: background strategy re-emits advance events, which this handler re-processes forever."
-      }
-    ],
-    "anti_patterns": [
-      "Wiring this handler with a BillingService that has BackgroundAdvancementStrategy \u2014 Validate() will catch it at startup, not at runtime",
-      "Returning ErrInvoiceCannotAdvance from Handle() \u2014 it will cause Watermill to nack and potentially requeue",
-      "Adding state to Handler \u2014 the struct is intentionally stateless beyond service + logger"
-    ],
-    "decisions": [
-      {
-        "decision": "Strategy guard in Config.Validate() rather than a runtime check inside Handle()",
-        "rationale": "Misconfiguration (background strategy + this handler) creates an infinite loop that is hard to detect at runtime; failing fast at construction time is safer."
-      }
-    ],
-    "code_examples": []
-  },
-  "openmeter/billing/worker/collect": {
-    "purpose": "Batch invoice collection loop: lists GatheringInvoices whose NextCollectionAt is due, deduplicates by customer, and fans out parallel CollectCustomerInvoice calls that trigger billing.Service.InvoicePendingLines. Handles namespace locking, empty-line recalculation, and locked namespace exclusion.",
-    "patterns": [
-      {
-        "name": "Config struct constructor with nil checks",
-        "description": "NewInvoiceCollector validates GatheringInvoiceService, BillingService, and Logger are non-nil before constructing the struct.",
-        "example": "func NewInvoiceCollector(config Config) (*InvoiceCollector, error)"
-      },
-      {
-        "name": "Input types with Validate() method",
-        "description": "ListCollectableInvoicesInput and CollectCustomerInvoiceInput each carry a Validate() error method checked at the top of their callers.",
-        "example": "if err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid input: %w\", err) }"
-      },
-      {
-        "name": "Sentinel errors drive recovery, not failure",
-        "description": "ErrNamespaceLocked \u2192 warn + return nil. ErrInvoiceCreateNoLines \u2192 warn + RecalculateGatheringInvoices + return nil. Only unknown errors propagate.",
-        "example": "if errors.Is(err, billing.ErrNamespaceLocked) { a.logger.WarnContext(...); return nil, nil }"
-      },
-      {
-        "name": "Collection uses WithPartialInvoiceLinesDisabled option",
-        "description": "System-initiated collection must always call InvoicePendingLines with billing.WithPartialInvoiceLinesDisabled() to disable progressive billing.",
-        "example": "a.billingService.InvoicePendingLines(ctx, ..., billing.WithPartialInvoiceLinesDisabled())"
-      },
-      {
-        "name": "Locked namespace exclusion before fan-out",
-        "description": "All() filters customer IDs whose namespace appears in a.lockedNamespaces (slices.Contains) before building batches \u2014 prevents wasted goroutine launches.",
-        "example": "customerIDs = lo.Filter(..., func(id customer.CustomerID, _ int) bool { return !slices.Contains(a.lockedNamespaces, id.Namespace) })"
-      },
-      {
-        "name": "Batched parallel fan-out with errChan + sync.WaitGroup",
-        "description": "Same pattern as advance package: lo.Chunk, goroutines per batch item, buffered errChan sized to total customer count, sync.OnceFunc closer, errors.Join.",
-        "example": "errChan := make(chan error, len(customerIDs)); closeErrChan := sync.OnceFunc(func() { close(errChan) }); defer closeErrChan()"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "collect.go",
-        "role": "Entire package \u2014 InvoiceCollector with All(), ListCollectableInvoices(), CollectCustomerInvoice(), and NewInvoiceCollector(). GatheringInvoiceService and BillingService are held as separate fields for targeted use.",
-        "watch_for": "ListCollectableInvoices uses a filter.FilterTime OR clause to include invoices with nil NextCollectionAt \u2014 removing the nil branch would silently skip legacy invoices. errChan must be sized to len(customerIDs) not len(batches)."
-      }
-    ],
-    "anti_patterns": [
-      "Calling InvoicePendingLines without billing.WithPartialInvoiceLinesDisabled() \u2014 allows progressive billing in system-initiated collection, which is explicitly forbidden",
-      "Treating ErrNamespaceLocked or ErrInvoiceCreateNoLines as hard errors \u2014 both have defined recovery paths (skip and recalculate respectively)",
-      "Skipping the locked namespace filter before fan-out \u2014 causes redundant errors for every customer in a locked namespace",
-      "Using context.Background() inside goroutines instead of the parent ctx",
-      "Forgetting lo.Uniq on customerIDs before batching \u2014 a customer with multiple gathering invoices would be collected twice"
-    ],
-    "decisions": [
-      {
-        "decision": "Collect at customer granularity, not invoice granularity",
-        "rationale": "InvoicePendingLines operates per-customer and may merge multiple pending lines into one invoice; iterating by invoice ID would cause double-collect races."
-      },
-      {
-        "decision": "ErrInvoiceCreateNoLines triggers RecalculateGatheringInvoices instead of failing",
-        "rationale": "This state indicates stale gathering invoice state (possible data inconsistency); a recalculation heals it without surfacing an error to the caller."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Collect all due invoices for a namespace in batches of 100",
-        "code": "collector, _ := billingworkercollect.NewInvoiceCollector(billingworkercollect.Config{\n    GatheringInvoiceService: billingSvc,\n    BillingService:          billingSvc,\n    Logger:                  logger,\n    LockedNamespaces:        lockedNS,\n})\nif err := collector.All(ctx, []string{\"default\"}, nil, 100); err != nil {\n    return err\n}"
+        "scenario": "Add a new StandardInvoice calculation step that requires no external dependencies",
+        "code": "// In a new file, e.g. myfield.go:\npackage invoicecalc\n\nimport (\n\t\"errors\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n)\n\nfunc CalculateMyField(i *billing.StandardInvoice) error {\n\tif !i.Lines.IsPresent() {\n\t\treturn errors.New(\"lines must be expanded\")\n\t}\n\t// ... compute and assign i.MyField\n\treturn nil\n}\n\n// In calculator.go, append to InvoiceCalculations.Invoice:\nvar InvoiceCalculations = invoiceCalculatorsByType{\n\tInvoice: []StandardInvoiceCalculation{\n\t\t// ... existing steps ...\n\t\tWithNoDependencies(CalculateMyField), // add after any steps it depends on\n\t},\n}"
       }
     ]
   }

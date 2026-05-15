@@ -2,27 +2,26 @@
 
 <!-- archie:ai-start -->
 
-> Structural grouping for shared data-model sub-packages used by all charge types (flatfee, usagebased, creditpurchase). Sub-packages provide: chargemeta (Ent mixin + generic Create/Update/MapFromDB), creditrealization (allocation/correction ledger records), invoicedusage (accrued usage snapshots), ledgertransaction (GroupReference/TimedGroupReference value types), and payment (External/Invoiced payment models with Ent mixin). No direct source files live here.
+> Structural grouping for shared data-model sub-packages used by all charge types (flatfee, usagebased, creditpurchase). Sub-packages provide: chargemeta (Ent mixin + generic Create/Update/MapFromDB), creditrealization (allocation/correction ledger records), invoicedusage (accrued usage snapshots), ledgertransaction (GroupReference/TimedGroupReference), and payment (External/Invoiced payment models with Ent mixins). No direct source files live here.
 
 ## Patterns
 
-**chargemeta.Mixin embedding** — All charge Ent schemas must embed chargemeta.Mixin via ent.Mixin() to get standard charge fields (customer_id, periods, status, currency, managed_by, subscription refs, advance_after). Never re-define these fields per charge type. (`func (CreditPurchaseCharge) Mixin() []ent.Mixin { return []ent.Mixin{chargemeta.Mixin{}, ...} }`)
+**chargemeta.Mixin embedding in all charge Ent schemas** — All charge Ent schemas must embed chargemeta.Mixin via Mixin() to get standard charge fields (customer_id, periods, status, currency, managed_by, subscription refs, advance_after). Never re-define these fields per charge type. (`func (CreditPurchaseCharge) Mixin() []ent.Mixin { return []ent.Mixin{chargemeta.Mixin{}, ...} }`)
 **creditrealization.Mixin + SelfReferenceType** — Charge entities that hold credit realizations must use creditrealization.Mixin with SelfReferenceType set to the entity's own type for self-referencing correction edges. (`creditrealization.Mixin{SelfReferenceType: entschema.CreditPurchaseRealization{}}`)
-**totals.Mixin composition in invoicedusage** — AccruedUsage totals fields must be added via totals.Mixin, not inline field definitions, and read/written via totals.Set/totals.FromDB. (`type AccruedUsageMixin struct { ent.Schema }
-func (AccruedUsageMixin) Mixin() []ent.Mixin { return []ent.Mixin{totals.Mixin{}} }`)
-**payment.Base → External/Invoiced hierarchy** — Payment entities share a common Base (status, currency, amount, authorized/settled refs) via payment.Mixin. Invoiced adds line_id/invoice_id (Immutable). Never embed Base fields directly in a new payment variant. (`type ExternalPayment struct { payment.Base; ... }`)
-**ValidationIssue sentinels in payment/errors.go** — All payment domain errors are defined as package-level var ValidationIssue with HTTP status codes, not fmt.Errorf. Use errors.Is to match them. (`var ErrAlreadyAuthorized = models.NewValidationIssue(..., commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict))`)
+**payment.Base hierarchy for new payment variants** — Payment entities share a common Base (status, currency, amount, authorized/settled refs) via payment.Mixin. Invoiced adds Immutable line_id/invoice_id. Never embed Base fields directly in a new payment variant. (`type ExternalPayment struct { payment.Base; ... }`)
+**ValidationIssue sentinels in payment/errors.go** — All payment domain errors are defined as package-level var ValidationIssue with HTTP status codes, not fmt.Errorf. Use errors.Is to match them. (`var ErrAlreadyAuthorized = models.NewValidationIssue(ErrCodeAlreadyAuthorized, "...", commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict))`)
+**ledgertransaction.GroupReference nil-safe helpers** — Use GetIDOrNull() for SetNillable Ent field methods; call Validate() before accessing TransactionGroupID directly. (`creator.SetNillableTransactionGroupID(ref.GetIDOrNull())`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `chargemeta/mixin.go` | Ent mixin providing all standard charge columns + generic Create/Update/MapFromDB. | intent.Normalized() + meta.NormalizeOptionalTimestamp are called at the top of Create/Update; never skip these. |
-| `creditrealization/models.go` | Realization, Realizations, InitialLineageSpec types. | SortHint must be set to non-zero unique values per batch for deterministic correction ordering. |
-| `creditrealization/realizations.go` | Realizations.Correct() correction planning; amounts must be rounded via currencyx.Calculator before calling. | Never manually set CorrectsRealizationID; use Realizations.Correct() which handles ID linking and remaining-amount calculation. |
-| `ledgertransaction/ledger.go` | GroupReference (TransactionGroupID) and TimedGroupReference. Nil-safe GetIDOrNull(). | Validate() before accessing TransactionGroupID; use GetIDOrNull() for SetNillable Ent fields. |
-| `payment/models.go` | Status enum, Base type, CreateInput/UpdateInput interfaces. | StatusSettled requires AuthorizedAt to be non-nil; enforced in Base.Validate(). |
-| `payment/invoiced.go` | Invoiced type with Immutable LineID/InvoiceID. | LineID and InvoiceID must not be mutated after creation; use UpdateInvoicedPayment only for status/transaction group fields. |
+| `chargemeta/mixin.go` | Ent mixin providing all standard charge columns and generic Create/Update/MapFromDB type-parameterized helpers. | intent.Normalized() and meta.NormalizeOptionalTimestamp are called at the top of Create/Update — never skip these; SortHint must be unique per batch. |
+| `creditrealization/models.go` | Realization, Realizations, InitialLineageSpec types; allocation/correction duality enforced in CreateInput.Validate(). | SortHint must be non-zero unique values per batch for deterministic correction ordering. |
+| `creditrealization/realizations.go` | Realizations.Correct() correction planning — must be used instead of manually constructing correction records. | Round amounts via currencyx.Calculator.RoundToPrecision before calling Correct(); never manually set CorrectsRealizationID. |
+| `ledgertransaction/ledger.go` | GroupReference and TimedGroupReference value types. GetIDOrNull() for nil-safe Ent SetNillable methods. | Constructing TimedGroupReference with a zero Time value — Validate() will reject it. |
+| `payment/invoiced.go` | Invoiced type with Immutable LineID/InvoiceID fields. | LineID and InvoiceID must not be mutated after creation; UpdateInvoicedPayment only for status/transaction group fields. |
+| `payment/errors.go` | Domain error sentinels as ValidationIssue with HTTP status codes. | Use errors.Is; do not create new errors for conditions already covered by these sentinels. |
 
 ## Anti-Patterns
 

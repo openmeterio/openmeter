@@ -1,6 +1,32 @@
 {
-  "new": [],
-  "resolved": [],
+  "new": [
+    {
+      "type": "structural_outlier",
+      "folder": "e2e",
+      "message": "Has 22 files \u2014 significantly more than sibling average (4). May be a god-folder that should be split.",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "openmeter/billing",
+      "message": "Has 41 files \u2014 significantly more than sibling average (8). May be a god-folder that should be split.",
+      "severity": "info"
+    }
+  ],
+  "resolved": [
+    {
+      "type": "structural_outlier",
+      "folder": "e2e",
+      "message": "Has 21 files \u2014 significantly more than sibling average (4). May be a god-folder that should be split.",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "openmeter/billing",
+      "message": "Has 39 files \u2014 significantly more than sibling average (8). May be a god-folder that should be split.",
+      "severity": "info"
+    }
+  ],
   "persisting": [
     {
       "type": "pattern_divergence",
@@ -1978,19 +2004,7 @@
     {
       "type": "structural_outlier",
       "folder": "e2e",
-      "message": "Has 21 files \u2014 significantly more than sibling average (4). May be a god-folder that should be split.",
-      "severity": "info"
-    },
-    {
-      "type": "structural_outlier",
-      "folder": "e2e",
       "message": "Uses [.go, .yaml] while siblings mostly use [.md]",
-      "severity": "info"
-    },
-    {
-      "type": "structural_outlier",
-      "folder": "openmeter/billing",
-      "message": "Has 39 files \u2014 significantly more than sibling average (8). May be a god-folder that should be split.",
       "severity": "info"
     },
     {
@@ -2007,12 +2021,12 @@
     }
   ],
   "summary": {
-    "previous_timestamp": "2026-04-28T18:42:14.487957+00:00",
-    "current_timestamp": "2026-05-04T10:09:36.813721+00:00",
+    "previous_timestamp": "2026-05-04T10:09:36.813721+00:00",
+    "current_timestamp": "2026-05-14T20:00:41.051273+00:00",
     "previous_total": 94,
     "current_total": 94,
-    "new_findings": 0,
-    "resolved_findings": 0,
-    "persisting_findings": 94
+    "new_findings": 2,
+    "resolved_findings": 2,
+    "persisting_findings": 92
   }
 }

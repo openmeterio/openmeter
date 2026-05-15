@@ -2,7 +2,7 @@
 
 <!-- archie:ai-start -->
 
-> Ent code-generation extension that attaches a `Cursor(ctx, *pagination.Cursor)` method to every Ent query type whose schema has a `created_at` field, enabling cursor-based pagination ordered by `(created_at ASC, id ASC)`.
+> Ent code-generation extension that attaches a `Cursor(ctx, *pagination.Cursor)` method to every Ent query type whose schema has a `created_at` field, enabling stable cursor-based pagination ordered by `(created_at ASC, id ASC)`. The extension is registered in `openmeter/ent/entc.go` and takes effect only after `make generate`.
 
 ## Patterns
 

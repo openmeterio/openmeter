@@ -1,61 +1,95 @@
 {
-  "openmeter/sink/flushhandler/ingestnotification/events": {
-    "purpose": "Defines the EventBatchedIngest domain event struct published to Watermill's balance topic after a successful ClickHouse flush, carrying the namespace, subject key, affected meter slugs, raw CloudEvents payloads, and a StoredAt timestamp so downstream balance-worker consumers can recalculate entitlement burn-down.",
+  "openmeter/server/router": {
+    "purpose": "Pure v1 HTTP delegation layer implementing api.ServerInterface: every Router method unpacks path/query params and ends with a single typed handler call via .With(params).ServeHTTP(w, r). Owns no business logic \u2014 its only constraint is that every method body terminates with one handler dispatch.",
     "patterns": [
       {
-        "name": "marshaler.Event interface compliance",
-        "description": "Every event struct must implement marshaler.Event via EventName() string and EventMetadata() metadata.EventMetadata. A blank var _ marshaler.Event = EventBatchedIngest{} compile-time assertion enforces this.",
-        "example": "var _ marshaler.Event = EventBatchedIngest{}"
+        "name": "Handler delegation via .With().ServeHTTP()",
+        "description": "Every Router method unpacks path/query params into a typed Params struct, calls the domain handler's named method (e.g. a.billingHandler.GetInvoice()), optionally chains .With(params), and ends with .ServeHTTP(w, r). No business logic lives here.",
+        "example": "a.billingHandler.GetInvoice().With(httpdriver.GetInvoiceParams{InvoiceID: invoiceId, Expand: lo.FromPtr(params.Expand)}).ServeHTTP(w, r)"
       },
       {
-        "name": "Versioned event type via metadata.EventType",
-        "description": "Event identity is declared as a metadata.EventType{Subsystem, Name, Version} constant; EventName() returns metadata.GetEventName(type) \u2014 never a bare string literal.",
-        "example": "batchIngestEventType = metadata.EventType{Subsystem: EventSubsystem, Name: \"events.ingested\", Version: \"v2\"}"
+        "name": "Config aggregates all domain service interfaces with nil validation",
+        "description": "router.Config holds every domain service (~40 interface fields). NewRouter calls config.Validate() before constructing handlers; each required field has an explicit nil check that returns an error at startup, not at first request.",
+        "example": "if c.NamespaceManager == nil { return errors.New(\"namespace manager is required\") }"
       },
       {
-        "name": "EventMetadata uses metadata.ComposeResourcePath helpers",
-        "description": "EventMetadata() returns source via ComposeResourcePathRaw and subject via ComposeResourcePath(namespaceID, entityKind, key) \u2014 never hand-rolled path strings.",
-        "example": "Subject: metadata.ComposeResourcePath(b.Namespace.ID, metadata.EntitySubjectKey, b.SubjectKey)"
+        "name": "StaticNamespaceDecoder injected universally into every handler constructor",
+        "description": "All multi-tenant handlers receive namespacedriver.StaticNamespaceDecoder(config.NamespaceManager.GetDefaultNamespace()) as their first argument so namespace resolution happens once at construction time for self-hosted single-namespace deployments.",
+        "example": "staticNamespaceDecoder := namespacedriver.StaticNamespaceDecoder(config.NamespaceManager.GetDefaultNamespace())\nrouter.customerHandler = customerhttpdriver.New(staticNamespaceDecoder, config.Customer, ...)"
       },
       {
-        "name": "MeterSlugs not MeterIDs",
-        "description": "Downstream consumers must reference meters by slug, not by internal ID, because meter IDs are absent in the open-source build. New fields referencing meters must use slugs.",
-        "example": "MeterSlugs []string `json:\"meterSlugs\"`"
+        "name": "One domain file per resource group",
+        "description": "Each resource area has its own file (billing.go, customer.go, meter.go, entitlement.go, etc.) containing only the Router methods for that domain. router.go contains Config, Router struct, NewRouter, and init().",
+        "example": "billing.go holds all /api/v1/billing/* methods; meter.go holds all /api/v1/meters/* methods"
       },
       {
-        "name": "Validate() returns combined error",
-        "description": "Validate() delegates to embedded types (Namespace.Validate()) and checks required scalar fields. Return a descriptive errors.New string, never silently skip validation.",
-        "example": "if b.SubjectKey == \"\" { return errors.New(\"subjectKey must be set\") }"
+        "name": "Stub unimplemented endpoints with w.WriteHeader(501)",
+        "description": "Methods not yet implemented return w.WriteHeader(http.StatusNotImplemented) directly. noop.go validates the Router still satisfies api.ServerInterface via var unimplemented api.ServerInterface = api.Unimplemented{}.",
+        "example": "func (a *Router) VoidInvoiceAction(w http.ResponseWriter, r *http.Request, invoiceId string) { w.WriteHeader(http.StatusNotImplemented) }"
+      },
+      {
+        "name": "Pre-handler body read for non-standard content only",
+        "description": "Router methods read r.Body themselves only when the httpdriver cannot decode the content (e.g. raw Stripe webhook bytes). The body is limited via http.MaxBytesReader then passed via a Params struct.",
+        "example": "r.Body = http.MaxBytesReader(w, r.Body, MaxBodyBytes); payload, err := io.ReadAll(r.Body); ... .With(AppStripeWebhookParams{AppID: appID, Payload: payload}).ServeHTTP(w, r)"
+      },
+      {
+        "name": "Media-type dispatch on same route (QueryMeter only)",
+        "description": "QueryMeter and QueryMeterPost use commonhttp.GetMediaType to choose between JSON and CSV handler variants on the same route. The media-type parse error is logged at Debug level (non-fatal, falls through to JSON default). All other routes use a single handler.",
+        "example": "mediatype, _ := commonhttp.GetMediaType(r); if mediatype == \"text/csv\" { a.meterHandler.QueryMeterCSV().With(handlerParams).ServeHTTP(w, r); return }; a.meterHandler.QueryMeter().With(handlerParams).ServeHTTP(w, r)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "events.go",
-        "role": "Single file defining EventBatchedIngest, its event-name constants, EventVersionSubsystem export, and the marshaler.Event compile-time assertion.",
-        "watch_for": "Adding a new event type requires a new EventType constant, a GetEventName call, a matching EventVersionSubsystem export, and a fresh var _ marshaler.Event assertion. Forgetting any of these causes silent routing failure in the Watermill router."
+        "file": "router.go",
+        "role": "Defines Config (all injected services + feature flags), Router struct (all handler fields), NewRouter constructor that validates and wires ~25 handlers, and init() that registers CloudEvents body decoders (application/cloudevents+json, application/cloudevents-batch+json) for kin-openapi request validation.",
+        "watch_for": "Adding a new service to Config requires: (1) a field in Config, (2) a nil check in Config.Validate(), (3) a handler field in Router struct, and (4) handler construction in NewRouter. Missing any step causes a nil-pointer panic at first request. The compile-time assertion var _ api.ServerInterface = (*Router)(nil) catches missing method implementations."
+      },
+      {
+        "file": "noop.go",
+        "role": "Declares var unimplemented api.ServerInterface = api.Unimplemented{} to ensure the generated Unimplemented type remains valid. Contains no real stubs.",
+        "watch_for": "Do not remove \u2014 it anchors the compile-time check for the generated fallback type. If the generated api.Unimplemented{} diverges from api.ServerInterface after gen-api, this line fails to compile."
+      },
+      {
+        "file": "portal.go",
+        "role": "QueryPortalMeter is the only Router method with conditional auth logic: it extracts the authenticated subject from ctx via authenticator.GetAuthenticatedSubject, injects it as a filter, and re-dispatches to QueryMeter. All other portal methods are pure delegation.",
+        "watch_for": "This is the only Router method that manipulates ctx and contains conditional logic. Do not replicate this pattern for new endpoints \u2014 it should eventually be migrated to an httpdriver handler."
+      },
+      {
+        "file": "billing.go",
+        "role": "Invoice progress actions (advance, approve, retry, snapshot-quantities) all use the same ProgressInvoice handler with a typed action constant argument instead of separate handlers.",
+        "watch_for": "Pass httpdriver.InvoiceProgressActionAdvance / InvoiceProgressActionApprove / InvoiceProgressActionRetry / InvoiceProgressActionSnapshotQuantities constants \u2014 do not pass string literals or magic values."
+      },
+      {
+        "file": "appstripe.go",
+        "role": "Contains the canonical example of pre-handler body reading: reads raw Stripe webhook payload with MaxBytesReader(65536) before passing to appStripeHandler.",
+        "watch_for": "If a new webhook endpoint needs raw bytes, follow this pattern (MaxBytesReader + io.ReadAll + pass bytes in Params). Do not call io.ReadAll in any other Router method."
       }
     ],
     "anti_patterns": [
-      "Using meter IDs instead of meter slugs in event payloads \u2014 IDs are unavailable in open-source consumers",
-      "Hand-coding event name strings instead of using metadata.GetEventName(eventType)",
-      "Omitting the var _ marshaler.Event compile-time assertion when adding a new event struct",
-      "Introducing context.Background() or context.TODO() \u2014 events are value types; context is not needed here",
-      "Storing mutable state in the event struct \u2014 it must remain a pure value type for safe marshaling"
+      "Adding business logic, error handling, or database calls directly in a Router method \u2014 all logic belongs in the domain httpdriver package.",
+      "Reading r.Body in a Router method unless the httpdriver cannot decode it (e.g. raw webhook bytes) \u2014 let the handler's RequestDecoder own body parsing.",
+      "Skipping the Config.Validate() nil check when adding a new required service field \u2014 causes nil-pointer panic at handler construction or first request.",
+      "Creating a new file in this package for non-HTTP concerns (middleware, auth, telemetry) \u2014 middleware belongs in openmeter/server/server.go, not the router package.",
+      "Bypassing the .With().ServeHTTP() chain by writing an inline http.Handler or calling w.WriteHeader/w.Write for anything other than 501 stubs \u2014 breaks the uniform error encoding contract and OTel tracing."
     ],
     "decisions": [
       {
-        "decision": "EventVersionSubsystem is exported so the balance-worker consumer can subscribe by subsystem prefix without importing internal metadata helpers.",
-        "rationale": "Decouples producer and consumer versioning; consumers match on VersionSubsystem, not on the full event name, so a version bump is isolated to the producer side."
+        "decision": "Router is a pure delegation layer with no business logic",
+        "rationale": "Keeps the generated api.ServerInterface boundary thin so the TypeSpec \u2192 OpenAPI \u2192 oapi-codegen pipeline can be re-run without touching any business logic. All logic lives in testable httpdriver packages that can be unit-tested without an HTTP server."
       },
       {
-        "decision": "RawEvents embeds the full serializer.CloudEventsKafkaPayload slice rather than derived fields.",
-        "rationale": "Avoids re-querying ClickHouse in the balance-worker; the worker has all usage data it needs to recalculate grant burn-down without an additional read path."
+        "decision": "Config aggregates every domain service and config flag into a single validated struct",
+        "rationale": "NewRouter is the single wiring point for all ~25 domain handlers; nil-checking at construction time surfaces missing dependencies before the server starts rather than at first request, making startup failures deterministic."
+      },
+      {
+        "decision": "One domain file per resource group mirrors TypeSpec package split",
+        "rationale": "Contributors can locate the delegation for any endpoint without grepping the whole file, and the file boundaries align with the TypeSpec aip/legacy package organization (billing, customer, entitlement, meter, etc.)."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new ingest notification event type",
-        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/event/metadata\"\n\t\"github.com/openmeterio/openmeter/openmeter/event/models\"\n\t\"github.com/openmeterio/openmeter/openmeter/watermill/marshaler\"\n)\n\nvar (\n\t_ marshaler.Event = EventNewIngest{}\n\tnewIngestEventType = metadata.EventType{\n\t\tSubsystem: EventSubsystem,\n\t\tName:      \"events.new\",\n\t\tVersion:   \"v1\",\n\t}\n\tnewIngestEventName    = metadata.GetEventName(newIngestEventType)\n\tNewIngestVersionSubsystem = newIngestEventType.VersionSubsystem()\n)\n\ntype EventNewIngest struct {\n\tNamespace  models.NamespaceID `json:\"namespace\"`\n\tMeterSlugs []string           `json:\"meterSlugs\"`\n}\n\nfunc (e EventNewIngest) EventName() string { return newIngestEventName }\nfunc (e EventNewIngest) Validate() error   { return e.Namespace.Validate() }\nfunc (e EventNewIngest) EventMetadata() metadata.EventMetadata {\n\treturn metadata.EventMetadata{\n\t\tSource: metadata.ComposeResourcePathRaw(string(EventSubsystem)),\n\t}\n}"
+        "scenario": "Adding a new v1 endpoint for a domain that already has a handler in Config",
+        "code": "// 1. Edit TypeSpec in api/spec/packages/legacy/ to add the operation\n// 2. Run: make gen-api && make generate\n// 3. Add the Router method in the appropriate domain file (e.g. billing.go):\nfunc (a *Router) GetMyNewResource(w http.ResponseWriter, r *http.Request, id string, params api.GetMyNewResourceParams) {\n    a.billingHandler.GetMyNewResource().With(httpdriver.GetMyNewResourceParams{\n        ID:     id,\n        Expand: lo.FromPtr(params.Expand),\n    }).ServeHTTP(w, r)\n}\n// No other changes in this package \u2014 the httpdriver method is the real work."
       }
     ]
   }

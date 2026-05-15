@@ -6,7 +6,7 @@
 
 ## Patterns
 
-**RenderJSON for all v3 JSON responses** — Call render.RenderJSON(w, payload, opts...) to write a JSON response. The helper sets Content-Type to application/json if not already set, calls WriteHeader with the configured status, then writes json.Marshal output. (`return render.RenderJSON(w, resp, render.WithStatus(http.StatusCreated))`)
+**RenderJSON for all v3 JSON responses** — Call render.RenderJSON(w, payload, opts...) to write a JSON response. The helper sets Content-Type to application/json if not already set, then calls WriteHeader with the configured status, then writes json.Marshal output. (`return render.RenderJSON(w, resp, render.WithStatus(http.StatusCreated))`)
 **Option pattern for status and headers** — Use render.WithStatus(code), render.WithContentType(ct), and render.WithHeader(k,v) to configure the response before writing. Options are applied in order and headers must be set before WriteHeader is called. (`render.RenderJSON(w, errBody, render.WithContentType(apierrors.ContentTypeProblemValue), render.WithStatus(http.StatusBadRequest))`)
 
 ## Key Files

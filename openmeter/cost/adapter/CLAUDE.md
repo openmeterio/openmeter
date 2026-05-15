@@ -2,24 +2,24 @@
 
 <!-- archie:ai-start -->
 
-> Implements cost.Adapter by querying ClickHouse meter data via streaming.Connector and resolving per-unit costs from feature configuration (manual or LLM-based). Single exported constructor New() returns the concrete adapter bound to four injected dependencies.
+> Implements cost.Adapter by querying ClickHouse meter data via streaming.Connector and resolving per-unit costs from feature configuration (manual or LLM-based). No Ent/PostgreSQL access — all persistence goes through streaming.Connector and injected domain services.
 
 ## Patterns
 
-**Interface compliance assertion** — var _ cost.Adapter = (*adapter)(nil) at package level ensures the struct satisfies the interface at compile time. (`var _ cost.Adapter = (*adapter)(nil)`)
-**Pre-resolve and cache expensive lookups** — getLLMPrices scans all meter rows first to collect unique (provider, model) pairs and resolves prices once into a map[llmPriceKey]llmPriceResult before per-row cost computation. Never call llmcostService.ResolvePrice inside the per-row loop. (`priceCache := a.getLLMPrices(ctx, feat, rows)`)
+**Interface compliance assertion** — var _ cost.Adapter = (*adapter)(nil) at package level enforces compile-time interface satisfaction. (`var _ cost.Adapter = (*adapter)(nil)`)
+**Pre-resolve and cache expensive lookups** — getLLMPrices scans all meter rows first to collect unique (provider, model) pairs and resolves prices once into a map[llmPriceKey]llmPriceResult. Never call llmcostService.ResolvePrice inside the per-row loop. (`priceCache := a.getLLMPrices(ctx, feat, rows)`)
 **Internal group-by key injection and post-aggregation stripping** — addLLMGroupByKeys appends LLM dimension properties to streaming.QueryParams.GroupBy when not already present, returns the injected keys so computeCostRows can strip them from output rows and aggregate across them. (`internalGroupByKeys := addLLMGroupByKeys(feat, &params)`)
 **costResolverFunc abstraction separates cost resolution from aggregation** — computeCostRows accepts a costResolverFunc instead of calling adapter methods directly; makeCostResolver produces the closure that converts GenericNotFoundError into non-fatal detail strings rather than hard errors. (`costRows, currency, err := computeCostRows(rows, internalGroupByKeys, a.makeCostResolver(ctx, feat, priceCache))`)
-**GenericValidationError / GenericNotFoundError for domain errors** — Use models.NewGenericValidationError for missing feature configuration and models.NewGenericNotFoundError (via models.IsGenericNotFoundError check) for unavailable pricing — these map to 400/404 in the HTTP layer. (`return nil, models.NewGenericValidationError(fmt.Errorf("feature %s has no meter associated", feat.Key))`)
-**Feature MeterGroupByFilters merged with precedence** — Feature-level filters are merged into params.FilterGroupBy after copying user-supplied values; feature values overwrite caller values to prevent scope escape. (`for k, v := range feat.MeterGroupByFilters { merged[k] = v }`)
+**GenericValidationError / GenericNotFoundError for domain errors** — Use models.NewGenericValidationError for missing feature configuration and models.NewGenericNotFoundError for unavailable pricing — these map to 400/404 in the HTTP layer. (`return nil, models.NewGenericValidationError(fmt.Errorf("feature %s has no meter associated", feat.Key))`)
+**Defensive slice/map cloning before mutation** — Always slices.Clone GroupBy and build a new merged map for FilterGroupBy before mutating — never mutate the caller's streaming.QueryParams in place. (`params.GroupBy = slices.Clone(params.GroupBy)`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `adapter.go` | Primary QueryFeatureCost implementation: resolves feature + meter, injects LLM group-by keys, pre-resolves prices, delegates computation to computeCostRows. | llmcostService nil-check in resolveLLMUnitCost is required — the service is injected as an optional dependency. Don't add DB access here; this adapter uses streaming.Connector only. |
-| `compute.go` | Pure computation layer: costResolverFunc type, costRowAccumulator, computeCostRows, filterGroupBy, buildDirectCostRow, costPerTokenForType, buildCacheKey — no I/O. | computeCostRows preserves insertion order of aggregation keys via aggregationKeys []string; don't replace with map iteration as that would randomise output order. Output is sorted by cost descending after aggregation. |
-| `compute_test.go` | Table-driven unit tests for computeCostRows covering aggregation, stripping, window separation, partial pricing, and mixed resolved/unresolved rows. | Tests are in package adapter (not adapter_test) so they access unexported helpers. Use alpacadecimal.Decimal.Equal for cost comparisons, not == or assert.Equal on the raw struct. |
+| `adapter.go` | Primary QueryFeatureCost implementation: resolves feature + meter, injects LLM group-by keys, pre-resolves prices, delegates computation to computeCostRows. | llmcostService nil-check in resolveLLMUnitCost is required — service is optional. Don't add Ent/DB access; this adapter is ClickHouse-only via streaming.Connector. |
+| `compute.go` | Pure computation layer: costResolverFunc type, costRowAccumulator, computeCostRows, filterGroupBy, buildDirectCostRow, costPerTokenForType, buildCacheKey — no I/O. | computeCostRows preserves insertion order via aggregationKeys []string; don't replace with map iteration as that randomises output. Output is sorted by cost descending after aggregation. |
+| `compute_test.go` | Table-driven unit tests for computeCostRows covering aggregation, stripping, window separation, partial pricing, and mixed resolved/unresolved rows. | Tests are in package adapter (not adapter_test) to access unexported helpers. Use alpacadecimal.Decimal.Equal for cost comparisons, not == or assert.Equal on the raw struct. |
 
 ## Anti-Patterns
 

@@ -2,7 +2,7 @@
 
 <!-- archie:ai-start -->
 
-> Provides concrete Patch implementations (PatchAddItem, PatchRemoveItem, PatchAddPhase, PatchRemovePhase, PatchStretchPhase, PatchUnscheduleEdit) that mutate a *SubscriptionSpec in-memory. These are the only authorised mutation primitives for subscription specs; business rules (past-phase guard, current-time semantics, item versioning) are encoded here.
+> Provides concrete Patch implementations (PatchAddItem, PatchRemoveItem, PatchAddPhase, PatchRemovePhase, PatchStretchPhase, PatchUnscheduleEdit) that mutate a *SubscriptionSpec in-memory. These are the only authorised mutation primitives for subscription specs.
 
 ## Patterns
 
@@ -30,7 +30,7 @@ suite.Run(t)`)
 
 ## Anti-Patterns
 
-- Mutating spec.Phases directly outside an ApplyTo method — bypass the temporal and versioning guards.
+- Mutating spec.Phases directly outside an ApplyTo method — bypasses the temporal and versioning guards.
 - Using wall-clock time.Duration arithmetic instead of datetime.ISODuration for phase spacing adjustments.
 - Returning a plain error instead of PatchValidationError/PatchForbiddenError/PatchConflictError — callers distinguish these types.
 - Hard-deleting items from the current phase instead of soft-closing them.

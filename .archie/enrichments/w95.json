@@ -1,90 +1,159 @@
 {
-  "openmeter/ledger/historical/adapter": {
-    "purpose": "Ent/PostgreSQL implementation of ledgerhistorical.Repo: books double-entry transactions (LedgerTransaction + LedgerEntry rows), manages transaction groups, sums entries, and lists transactions with cursor-based pagination. All reads must eagerly load SubAccount\u2192Account\u2192Route edges via WithSubAccount(WithAccount, WithRoute) to hydrate domain objects without N+1 queries.",
+  "openmeter/ledger/routingrules": {
+    "purpose": "Pure validation layer for double-entry ledger transactions: defines the RoutingRule interface, composable Validator, and DefaultValidator encoding all permitted account-type pairings and route-field constraints. No DB access \u2014 validates []ledger.EntryInput before any persistence call.",
     "patterns": [
       {
-        "name": "Interface compliance assertion",
-        "description": "repo.go declares `var _ ledgerhistorical.Repo = (*repo)(nil)` at package level. Every new adapter struct must include this compile-time guard.",
-        "example": "var _ ledgerhistorical.Repo = (*repo)(nil)"
+        "name": "RoutingRule interface + Validator composition",
+        "description": "Each constraint is a named struct implementing RoutingRule{Validate(TxView) error}. Validator.ValidateEntries runs them sequentially, fail-fast on first error. New rules are appended to DefaultValidator.Rules in defaults.go \u2014 never create ad-hoc Validator instances in application code.",
+        "example": "type AllowedAccountSetsRule struct { Sets [][]ledger.AccountType }\nfunc (r AllowedAccountSetsRule) Validate(tx TxView) error { ... }"
       },
       {
-        "name": "Eager edge loading on every query",
-        "description": "Every query that returns a hydrated Transaction must call WithEntries(func(eq){eq.WithSubAccount(func(sq){sq.WithAccount(); sq.WithRoute()})}) or hydrateHistoricalTransaction will error on missing edges.",
-        "example": "q.WithEntries(func(eq *db.LedgerEntryQuery) { eq.WithSubAccount(func(sq *db.LedgerSubAccountQuery) { sq.WithAccount(); sq.WithRoute() }) })"
+        "name": "TxView as the rule's only input",
+        "description": "NewTxView converts []ledger.EntryInput into []EntryView (with pre-decoded Route via entry.PostingAddress().Route().Route()), exposing AccountTypes(), EntriesOf(accountType), HasAccountTypes(...). Rules must use TxView \u2014 never the raw EntryInput slice.",
+        "example": "view, err := NewTxView(entries)\nfor _, rule := range v.Rules { rule.Validate(view) }"
       },
       {
-        "name": "hydrateHistoricalTransaction for domain reconstruction",
-        "description": "All DB rows are converted to domain objects via hydrateHistoricalTransaction, which calls ledgerhistorical.NewTransactionFromData. Never map DB structs to domain objects inline; always go through this function.",
-        "example": "items, err := slicesx.MapWithErr(dbItems, func(tx *db.LedgerTransaction) (*ledgerhistorical.Transaction, error) { return hydrateHistoricalTransaction(tx) })"
+        "name": "HasAccountTypes guard before rule logic",
+        "description": "Every rule that targets specific account types checks tx.HasAccountTypes(r.From, r.To) first and returns nil when those types are absent. Omitting the guard causes false positives on unrelated transactions.",
+        "example": "func (r RequireFlowDirectionRule) Validate(tx TxView) error {\n    if !tx.HasAccountTypes(r.From, r.To) { return nil }\n    // ... enforcement logic\n}"
       },
       {
-        "name": "Tri-tuple cursor pagination (bookedAt, createdAt, ID)",
-        "description": "Pagination uses a three-field (BookedAt DESC, CreatedAt DESC, ID DESC) ordering with SQL predicate-based cursors. Both forward (Cursor) and backward (Before) directions are supported; Before results are slices.Reverse'd after fetch. NextCursor always points to the last returned item.",
-        "example": "ledgerTransactionAfterCursorPredicate / ledgerTransactionBeforeCursorPredicate in ledger.go"
+        "name": "RequireSameRouteRule for cross-account field consistency",
+        "description": "Ensures entries on two different account types share the same RouteField values (currency, tax_code, features, cost_basis). Declared as Left/Right/Fields triplets in DefaultValidator. Use requireMatchingRouteFields helper internally.",
+        "example": "RequireSameRouteRule{Left: ledger.AccountTypeCustomerFBO, Right: ledger.AccountTypeCustomerReceivable, Fields: []RouteField{RouteFieldCurrency, RouteFieldTaxCode}}"
       },
       {
-        "name": "sumEntriesQuery builder for aggregation",
-        "description": "SumEntries delegates to sumEntriesQuery.Build(client) which assembles entry predicates from ledger.Query. Add new filter dimensions by extending entryPredicates() and subAccountPredicates() in sumentries_query.go, not inline in repo methods.",
-        "example": "q := sumEntriesQuery{query: query}; entryQuery, err := q.Build(r.db)"
+        "name": "FuncRule for test-only rules",
+        "description": "FuncRule wraps a plain function as a RoutingRule for test-only validation scenarios without defining a named struct. Never use FuncRule in production code.",
+        "example": "FuncRule(func(tx TxView) error { return nil })"
       },
       {
-        "name": "Tx via HijackTx + entutils.NewTxDriver",
-        "description": "repo.Tx hijacks the connection via r.db.HijackTx and wraps it with entutils.NewTxDriver. Do not use db.BeginTx or manual transaction management; callers use pkg/framework/transaction.Driver.",
-        "example": "txCtx, rawConfig, eDriver, err := r.db.HijackTx(ctx, &stdsql.TxOptions{ReadOnly: false}); return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil"
-      },
-      {
-        "name": "Bulk entry creation after transaction row",
-        "description": "BookTransaction first saves the LedgerTransaction row, then calls CreateBulk for all LedgerEntry rows in a single batch. Never insert entries one-by-one in a loop.",
-        "example": "createdEntries, err = r.db.LedgerEntry.CreateBulk(createInputs...).Save(ctx)"
+        "name": "ErrRoutingRuleViolated with WithAttrs for all errors",
+        "description": "All rule violations return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{...}) with a 'reason' key and relevant context. Never return plain fmt.Errorf from a RoutingRule.",
+        "example": "return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{\"reason\": \"account_type_combination_not_allowed\", \"account_types\": present})"
       }
     ],
     "key_file_guides": [
       {
-        "file": "repo.go",
-        "role": "Defines the repo struct holding *db.Client, the NewRepo constructor, the Tx method, and the interface compliance assertion. Start here when adding new repo methods.",
-        "watch_for": "Do not store additional state on repo beyond *db.Client; inject dependencies via constructor."
+        "file": "routingrules.go",
+        "role": "Core types: RoutingRule interface, Validator (implements ledger.RoutingValidator), FuncRule, and all concrete rule structs (AllowedAccountSetsRule, RequireFlowDirectionRule, RequireSameRouteRule, RequireAccountAuthorizationStatusRule, RequireReceivableAuthorizationStageRule, RequireAccruedCostBasisTranslationRule, RequireFBOCostBasisTranslationRule, RequireUniqueSubAccountsRule).",
+        "watch_for": "All rules skip gracefully when the relevant account types are absent (HasAccountTypes check first) \u2014 this is intentional permissive-when-unrelated behaviour. Do not remove these guards."
       },
       {
-        "file": "ledger.go",
-        "role": "Contains BookTransaction, CreateTransactionGroup, GetTransactionGroup, SumEntries, ListTransactions, and all cursor/ordering helpers. Core read/write operations live here.",
-        "watch_for": "hydrateHistoricalTransaction panics if SubAccount\u2192Account or SubAccount\u2192Route edges are not loaded; always eager-load them in every query."
+        "file": "view.go",
+        "role": "EntryView (wraps EntryInput + pre-decoded Route), TxView (slice of EntryView with projection methods AccountTypes/EntriesOf/HasAccountTypes/HasAccountType), and optional field comparators (optionalStringEqual, optionalDecimalEqual, etc.).",
+        "watch_for": "EntryView.Route() returns the decoded ledger.Route from entry.PostingAddress().Route().Route() \u2014 use this for route field comparisons, not the raw SubAccountRoute."
       },
       {
-        "file": "sumentries_query.go",
-        "role": "Encapsulates the sumEntriesQuery builder with entryPredicates() and subAccountPredicates(). Also exposes SQL() for raw SQL output (used in view generation tooling).",
-        "watch_for": "Route filters call b.query.Filters.Route.Normalize() \u2014 normalization errors must propagate as ledger.ErrLedgerQueryInvalid, not a raw error."
+        "file": "defaults.go",
+        "role": "DefaultValidator \u2014 the canonical production validator with all 12+ rules pre-composed in order. This is the single Validator used by historical.Ledger.CommitGroup in production.",
+        "watch_for": "Adding a new rule here affects every CommitGroup call in production. Test bidirectionally with TestDefaultValidator_* cases in routingrules_test.go."
       },
       {
-        "file": "ledger_test.go",
-        "role": "In-package DB integration tests using NewTestEnv(t) + env.DBSchemaMigrate(t). Tests cover pagination (forward, backward, no-overlap), filters (currency, creditMovement, annotations), and BookTransaction invariants.",
-        "watch_for": "Tests call time.Sleep between transactions to ensure distinct CreatedAt timestamps for ordering \u2014 do not remove these sleeps."
+        "file": "routingrules_test.go",
+        "role": "Table of acceptance/rejection scenarios for DefaultValidator. Helper addressForRoute constructs PostingAddress from route via ledger.BuildRoutingKey + ledgeraccount.NewAddressFromData.",
+        "watch_for": "New tests must use the addressForRoute helper and require.ErrorContains(t, err, 'ledger routing rule violated') for rejection cases."
       }
     ],
     "anti_patterns": [
-      "Loading edges lazily or omitting WithSubAccount/WithAccount/WithRoute \u2014 hydrateHistoricalTransaction will return an error on missing edges",
-      "Inline DB-to-domain mapping instead of routing through hydrateHistoricalTransaction",
-      "Using context.Background() instead of the caller-provided ctx in any repo method",
-      "Inserting LedgerEntry rows one-by-one instead of using CreateBulk",
-      "Adding filter logic directly inside ListTransactions or SumEntries instead of extending sumEntriesQuery or a dedicated predicate builder"
+      "Accessing ledger.EntryInput.PostingAddress().Route().Route() directly in rule code instead of using EntryView.Route() \u2014 bypasses the pre-decoded projection.",
+      "Creating a new Validator with a subset of rules instead of extending DefaultValidator.Rules \u2014 silently removes production constraints.",
+      "Adding DB calls, external I/O, or mutable state inside RoutingRule.Validate \u2014 rules must be pure functions of TxView.",
+      "Skipping the HasAccountTypes guard in a rule \u2014 causes false positives when the rule's relevant accounts are absent from the transaction.",
+      "Returning plain fmt.Errorf from a RoutingRule instead of ledger.ErrRoutingRuleViolated.WithAttrs \u2014 breaks the error-type contract used by callers."
     ],
     "decisions": [
       {
-        "decision": "Cursor uses three fields (bookedAt, createdAt, ID) rather than a single auto-increment offset",
-        "rationale": "BookedAt is the user-visible ordering field and can repeat; tie-breaking on createdAt+ID makes pagination stable across concurrent inserts without requiring a serial primary key."
+        "decision": "Rules are applied sequentially and fail-fast (first error returned) rather than collecting all violations.",
+        "rationale": "Routing violations are programmer errors or abuse, not user-facing validation flows that need full error accumulation. Fail-fast simplifies rule logic."
       },
       {
-        "decision": "sumEntriesQuery is a separate struct with a Build method and a SQL() method",
-        "rationale": "Isolates filter predicate logic from repo methods and enables the viewgen tool to extract raw SQL without executing a query."
+        "decision": "TxView pre-decodes the Route from SubAccountRoute.Route() at construction time.",
+        "rationale": "Avoids repeated decode calls inside each rule and makes field-comparison helpers in requireMatchingRouteFields straightforward."
       },
       {
-        "decision": "Tx uses HijackTx + entutils.NewTxDriver instead of db.BeginTx",
-        "rationale": "Aligns with the project-wide entutils.TransactingRepo pattern so callers can bind the transaction via ctx; avoids leaking raw *sql.Tx across package boundaries."
+        "decision": "DefaultValidator is a package-level var, not a constructor function.",
+        "rationale": "Rules are stateless structs; a single shared instance is safe and avoids repeated allocation on every CommitGroup call."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new filtered query method that sums entries scoped by a new dimension",
-        "code": "// In sumentries_query.go, extend subAccountPredicates:\nif b.query.Filters.SomeDimension != nil {\n    routePredicates = append(routePredicates, ledgersubaccountroutedb.SomeDimension(*b.query.Filters.SomeDimension))\n}\n// In ledger.go, the repo method delegates unchanged:\nfunc (r *repo) SumEntriesByDimension(ctx context.Context, query ledger.Query) (alpacadecimal.Decimal, error) {\n    q := sumEntriesQuery{query: query}\n    entryQuery, err := q.Build(r.db)\n    if err != nil {\n        return alpacadecimal.Decimal{}, err\n    }\n    var rows []struct{ SumAmount stdsql.NullString `json:\"sum_amount,omitempty\"` }\n    err = entryQuery.Aggregate(db.As(db.Sum(ledgerentrydb.FieldAmount), \"sum_amount\")).Scan(ctx, &rows)\n    // ... parse and return\n}"
+        "scenario": "Validate entries before booking a transaction (production usage pattern)",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/ledger\"\n\t\"github.com/openmeterio/openmeter/openmeter/ledger/routingrules\"\n)\n\n// In historical.Ledger.CommitGroup:\nif err := ledger.ValidateTransactionInputWith(ctx, txInput, routingrules.DefaultValidator); err != nil {\n\treturn nil, fmt.Errorf(\"invalid transaction: %w\", err)\n}"
+      }
+    ]
+  },
+  "openmeter/ledger/testutils": {
+    "purpose": "Provides reusable test fixtures for ledger integration tests: Deps wires concrete account/resolver/historical-ledger adapters directly (no app/common), and IntegrationEnv spins up a real Postgres DB, runs migrations, creates a test customer, provisions all account types, and exposes typed sub-account helpers.",
+    "patterns": [
+      {
+        "name": "Build deps from constructors, not Wire",
+        "description": "InitDeps wires accountadapter.NewRepo, accountservice.New, historicaladapter.NewRepo, resolversadapter.NewRepo, and resolvers.NewAccountResolver directly \u2014 never via app/common \u2014 to avoid import cycles. Two accountservice.New calls are intentional (see decisions).",
+        "example": "repo := accountadapter.NewRepo(db)\naccountService := accountservice.New(repo, locker)\nhistoricalLedger := historical.NewLedger(historicalRepo, accountService, accountService, routingrules.DefaultValidator)"
+      },
+      {
+        "name": "IntegrationEnv as the single test harness entry point",
+        "description": "All ledger integration tests call NewIntegrationEnv(t, namespacePrefix) to get a fully provisioned namespace, customer, and account set. Never replicate DB setup, migration, or account provisioning inline.",
+        "example": "env := testutils.NewIntegrationEnv(t, \"my-feature\")\nfbo := env.FBOSubAccount(t, 1)"
+      },
+      {
+        "name": "Use t.Context() throughout",
+        "description": "Every Ent call and every service method in IntegrationEnv and Deps passes t.Context(), not context.Background(). This ties cancellation and DB connections to the test harness.",
+        "example": "db.Customer.Create().SetNamespace(namespace).SetID(customerID.ID).SetName(\"Test Customer\").Save(t.Context())"
+      },
+      {
+        "name": "Freeze clock in NewIntegrationEnv",
+        "description": "Time is frozen with clock.FreezeTime(now) and unfrozen with t.Cleanup(clock.UnFreeze) so temporal ledger queries (balance snapshots, period windows) are deterministic.",
+        "example": "clock.FreezeTime(now)\nt.Cleanup(clock.UnFreeze)"
+      },
+      {
+        "name": "Typed sub-account helpers per account type",
+        "description": "FBOSubAccount, ReceivableSubAccount, AccruedSubAccount, WashSubAccount, EarningsSubAccount, BrokerageSubAccount call GetSubAccountForRoute with the correct typed params (CustomerFBORouteParams, CustomerReceivableRouteParams, BusinessRouteParams). Never construct SubAccount directly.",
+        "example": "func (e *IntegrationEnv) FBOSubAccount(t *testing.T, priority int) ledger.SubAccount {\n    subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{Currency: e.Currency, CreditPriority: priority})\n    require.NoError(t, err)\n    return subAccount\n}"
+      },
+      {
+        "name": "SumBalance reads settled balance only",
+        "description": "SumBalance calls HistoricalLedger.GetSubAccountBalance and returns .Settled(). Tests that need pending/unsettled components must call GetSubAccountBalance directly.",
+        "example": "sum := env.SumBalance(t, fboSubAccount) // alpacadecimal.Decimal of settled balance"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "deps.go",
+        "role": "Wires the three concrete ledger services (AccountService, ResolversService, HistoricalLedger) from a raw *entdb.Client and *slog.Logger. Exported Deps struct exposes all three for tests to call directly.",
+        "watch_for": "The single accountservice.New call (without Querier) before historicalLedger construction is load-bearing \u2014 historical.NewLedger requires an accountService to be passed as both the internal service and the Querier. Do not collapse or reorder these calls."
+      },
+      {
+        "file": "integration.go",
+        "role": "Full integration harness: DB provisioning via omtestutils.InitPostgresDB, migrations via migrate.New+Up, customer row insertion via raw Ent (not customer.Service), account provisioning via ResolversService.CreateCustomerAccounts and EnsureBusinessAccounts.",
+        "watch_for": "Customer row is inserted directly via Ent because the test package must stay independent of app/common and customer/service to avoid import cycles. Do not switch to customer.Service calls here."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common or any Wire provider set \u2014 causes import cycles and couples test helpers to the full DI graph.",
+      "Constructing ledger.SubAccount literals directly instead of calling the typed IntegrationEnv helper methods.",
+      "Using context.Background() instead of t.Context() in test helpers \u2014 leaks connections and severs cancellation.",
+      "Skipping clock.FreezeTime in tests that depend on temporal ledger queries \u2014 produces non-deterministic balance windows.",
+      "Calling migrate.Up more than once per IntegrationEnv instance \u2014 wasteful; always reuse the single env per test."
+    ],
+    "decisions": [
+      {
+        "decision": "Single accountservice.New call before historicalLedger construction (no two-phase pattern).",
+        "rationale": "historical.NewLedger receives accountService as both its internal service and Querier. Constructing one instance and passing it twice is correct and avoids a circular dependency."
+      },
+      {
+        "decision": "Direct Ent customer row insertion instead of customer.Service in NewIntegrationEnv.",
+        "rationale": "Keeps testutils independent from app/common and customer/service packages, preventing import cycles in test-only code per the test-003 enforcement rule."
+      },
+      {
+        "decision": "Typed sub-account helper methods per account type (FBOSubAccount, ReceivableSubAccount, etc.).",
+        "rationale": "Wrapping GetSubAccountForRoute in named helpers ensures routing-rule params are always correct for each account class and makes tests readable without duplicating route param construction."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Set up and use a full ledger integration test",
+        "code": "import (\n\tledgertestutils \"github.com/openmeterio/openmeter/openmeter/ledger/testutils\"\n)\n\nfunc TestMyLedgerFeature(t *testing.T) {\n\tenv := ledgertestutils.NewIntegrationEnv(t, \"my-feature\")\n\tfbo := env.FBOSubAccount(t, 1)\n\trecv := env.ReceivableSubAccount(t)\n\t// post transactions via env.Deps.HistoricalLedger ...\n\tbal := env.SumBalance(t, fbo)\n\trequire.Equal(t, expectedDecimal, bal)\n}"
       }
     ]
   }

@@ -1,115 +1,153 @@
 {
-  "collector/benthos/presets/http-server": {
-    "purpose": "Benthos pipeline preset that receives CloudEvents via HTTP, validates them against the CloudEvents JSON schema, buffers to SQLite, and forwards batches to the OpenMeter ingest API. It is a self-contained operational config \u2014 no Go code, only YAML.",
+  "collector/benthos/internal/logging": {
+    "purpose": "Single-file bridge package that adapts Benthos' service.Logger to logr.LogSink, enabling controller-runtime and klog to route through the same Benthos logger instance. No business logic \u2014 purely a logging adapter.",
     "patterns": [
       {
-        "name": "sync_response via metadata",
-        "description": "HTTP status code and Content-Type for the synchronous response are set via Bloblang metadata assignments (`meta http_status_code`, `meta content_type`) before calling `sync_response: {}`. Never hardcode status in the sync_response block.",
-        "example": "mapping: |\n  meta http_status_code = \"400\"\n  meta content_type = \"application/problem+json\""
+        "name": "Benthos-to-logr bridge via CtrlLogger",
+        "description": "CtrlLogger implements logr.LogSink by wrapping *service.Logger. Level 0 maps to Infof; any other level maps to Debugf. Error always calls Errorf. Construct via logr.New(&CtrlLogger{logger: logger}).",
+        "example": "logr.New(&CtrlLogger{logger: svc.Logger()})"
       },
       {
-        "name": "catch-log-delete for validation failures",
-        "description": "After json_schema validation, a `catch` block logs the error, sends a 400 sync_response with RFC-7807 problem+json body, then drops the message with `root = deleted()`. All three steps must be present.",
-        "example": "- catch:\n  - log: ...\n  - mapping: root = { \"type\": \"about:blank\", ... }\n  - sync_response: {}\n  - mapping: root = deleted()"
+        "name": "SetupKlog called once at startup",
+        "description": "SetupKlog sets the global klog logger via klog.SetLogger with a logr.Logger carrying component=kubernetes key. Must be called exactly once \u2014 klog global state is not re-entrant.",
+        "example": "logging.SetupKlog(svc.Logger())"
       },
       {
-        "name": "SQLite buffer with post-processor split",
-        "description": "The buffer is always SQLite with a `split` post-processor capped at 100 to prevent oversized batches from reaching the output. Changing buffer type breaks the durability guarantee.",
-        "example": "buffer:\n  sqlite:\n    path: \"${BUFFER_PATH:./buffer.db}\"\n    post_processors:\n      - split:\n          size: 100"
-      },
-      {
-        "name": "drop_on 400 at output",
-        "description": "The http_client output wraps with `drop_on` to discard permanently-invalid events (HTTP 400) rather than retrying them infinitely. This mirrors the input-side validation behaviour.",
-        "example": "drop_on:\n  - 400"
-      },
-      {
-        "name": "counter metrics at input and output",
-        "description": "A `metric` processor increments `openmeter_event_received` on every ingested message and `openmeter_events_sent` inside the output batching processors. Both counters must be kept in sync when the pipeline is modified.",
-        "example": "- metric:\n    type: counter\n    name: openmeter_event_received\n    value: 1"
+        "name": "WithValues and WithName are intentional no-ops",
+        "description": "Both methods return the same receiver unchanged. Benthos uses format strings \u2014 structured kv pairs from controller-runtime are silently dropped by design.",
+        "example": "func (l *CtrlLogger) WithValues(keysAndValues ...any) logr.LogSink { return l }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "config.yaml",
-        "role": "Complete self-contained Benthos pipeline: input (HTTP server), CloudEvents schema validation, SQLite buffer, batched HTTP output to OpenMeter.",
-        "watch_for": "All configuration values are env-var substitutions with defaults (e.g. `${OPENMETER_URL:https://openmeter.cloud}`). Removing defaults will break deployments that rely on them. The `sync_response` in the input MUST come after the 204 meta assignment or callers receive no response."
+        "file": "logging.go",
+        "role": "Entire package: CtrlLogger struct, NewLogrLogger factory, SetupKlog global initializer.",
+        "watch_for": "WithValues/WithName are no-ops \u2014 structured kv pairs from controller-runtime are silently dropped; do not add state to them."
       }
     ],
     "anti_patterns": [
-      "Adding business logic (transformation, enrichment) inside the http-server preset \u2014 it is a receive-validate-forward pipeline only",
-      "Using a non-SQLite buffer type without updating the post-processor split",
-      "Hardcoding the OpenMeter URL or token instead of using environment variable substitution",
-      "Removing the catch block after json_schema validation \u2014 unhandled validation errors will stall the pipeline"
+      "Adding a second logger abstraction \u2014 this package is purely a bridge, not a logging framework",
+      "Implementing WithValues/WithName with real state \u2014 Benthos logger is format-string based and cannot carry structured fields",
+      "Calling SetupKlog more than once \u2014 klog global state is not re-entrant"
     ],
     "decisions": [
       {
-        "decision": "SQLite buffer for durability",
-        "rationale": "Ensures events are not lost if the output is temporarily unavailable, matching the at-least-once delivery guarantee of the broader OpenMeter ingest path."
+        "decision": "Map logr level 0 to Info, all other levels to Debug",
+        "rationale": "controller-runtime uses level 0 for normal operational messages; higher levels are verbose debug output that should not appear at Info in production"
       },
       {
-        "decision": "Synchronous HTTP response before buffering",
-        "rationale": "Clients get immediate 204/400 feedback from the collector; the async buffer+forward path is invisible to the producer, keeping the ingest API contract intact."
+        "decision": "Prefix klog entries with component=kubernetes",
+        "rationale": "Distinguishes Kubernetes controller-runtime log lines from Benthos pipeline logs in aggregated log streams"
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Wire Benthos logger into controller-runtime and klog",
+        "code": "import \"github.com/openmeterio/openmeter/collector/benthos/internal/logging\"\n\nlogging.SetupKlog(svc.Logger())\nlogrLogger := logging.NewLogrLogger(svc.Logger())"
+      }
+    ]
   },
-  "collector/benthos/presets/kubernetes-pod-exec-time": {
-    "purpose": "Benthos pipeline preset that periodically scrapes Kubernetes pod resources, maps each pod into a CloudEvents-shaped usage event (with CPU/memory/GPU metrics derived from pod spec), validates against CloudEvents schema, and forwards to OpenMeter. Designed for billing pod execution time.",
+  "collector/benthos/internal/message": {
+    "purpose": "Provides the Batch type alias (= service.MessageBatch) and the Transaction primitive that associates a batch with its acknowledgement mechanism, enabling delivery guarantees as batches flow through pipeline stages.",
     "patterns": [
       {
-        "name": "schedule + kubernetes_resources input",
-        "description": "Input combines `schedule` (wrapping `kubernetes_resources`) so the poll interval is controlled by `SCRAPE_INTERVAL`. The `label_selector` and `namespaces` fields filter which pods are scraped.",
-        "example": "input:\n  schedule:\n    input:\n      kubernetes_resources:\n        namespaces:\n          - ${SCRAPE_NAMESPACE:}\n        label_selector: \"app=seed\"\n    interval: \"${SCRAPE_INTERVAL:15s}\""
+        "name": "Batch is a type alias, not a newtype",
+        "description": "type Batch = service.MessageBatch \u2014 all Benthos MessageBatch methods are available directly. Do not add methods to Batch; it is purely a transparent alias.",
+        "example": "type Batch = service.MessageBatch"
       },
       {
-        "name": "Bloblang mapping to CloudEvents structure",
-        "description": "The pipeline mapping must produce a CloudEvents-compliant object with `id`, `specversion`, `type`, `source`, `time`, `subject`, and `data`. Subject is read from the `openmeter.io/subject` annotation, falling back to pod name.",
-        "example": "root = {\n  \"id\": uuid_v4(),\n  \"specversion\": \"1.0\",\n  \"subject\": this.metadata.annotations.\"openmeter.io/subject\".or(this.metadata.name),\n  ...\n}"
+        "name": "Transaction pairs Payload with ack mechanism",
+        "description": "Transaction holds a Batch and either a responseChan chan<-error or a responseFunc. Use NewTransaction for chan-based ack, NewTransactionFunc for func-based ack. Call Ack(ctx, nil) for success, Ack(ctx, err) to trigger retry upstream.",
+        "example": "tx := message.NewTransactionFunc(batch, func(ctx context.Context, err error) error { return err })\nreturn tx.Ack(context.Background(), nil)"
       },
       {
-        "name": "data.openmeter.io/ annotation passthrough",
-        "description": "Arbitrary pod annotations prefixed with `data.openmeter.io/` are stripped of the prefix and merged into the CloudEvent `data` map. This lets operators inject custom dimensions without changing the pipeline.",
-        "example": "this.metadata.annotations.filter(item -> item.key.has_prefix(\"data.openmeter.io/\")).map_each_key(key -> key.trim_prefix(\"data.openmeter.io/\"))"
-      },
-      {
-        "name": "resource_quantity Bloblang function",
-        "description": "CPU/memory/GPU values from pod spec are converted via the custom `resource_quantity(...).number(0)` Bloblang function (provided by the benthos-collector binary). Always call `.number(0)` to default missing fields to zero.",
-        "example": "\"cpu_request_millicores\": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.cpu).number(0)).sum()"
-      },
-      {
-        "name": "switch output with DEBUG stdout branch",
-        "description": "Output uses `switch` with two cases: first unconditionally sends to the `openmeter` output (continue: true), second sends to stdout when `DEBUG=true`. The openmeter case must always be first and have `continue: true`.",
-        "example": "output:\n  switch:\n    cases:\n      - check: \"\"\n        continue: true\n        output:\n          openmeter: ...\n      - check: '\"${DEBUG:false}\" == \"true\"'\n        output:\n          stdout: ..."
-      },
-      {
-        "name": "per-second rate metrics",
-        "description": "Each raw resource count is accompanied by a `*_per_second` field computed by dividing by `$duration_seconds` (the schedule interval in seconds). Both the raw and per-second fields must be emitted together.",
-        "example": "\"cpu_request_millicores_per_second\": .../  $duration_seconds"
+        "name": "WithContext for cancellation propagation",
+        "description": "WithContext returns a shallow copy of the Transaction with the new ctx. Receivers should honor t.Context() cancellation but must still call Ack even when canceled, passing t.Context().Err().",
+        "example": "tx = tx.WithContext(ctx)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "config.yaml",
-        "role": "Full Benthos pipeline: scheduled Kubernetes scrape, pod-to-CloudEvent mapping with resource_quantity functions, CloudEvents schema validation, openmeter output with optional DEBUG stdout.",
-        "watch_for": "`$duration_seconds` is derived from `meta(\"schedule_interval\")` and is used as the divisor for per-second metrics \u2014 if `SCRAPE_INTERVAL` is changed, per-second values change proportionally. The `openmeter` output type is a custom Benthos plugin registered by the benthos-collector binary; it is not a standard Benthos output."
+        "file": "batch.go",
+        "role": "Single type alias for service.MessageBatch.",
+        "watch_for": "This is an alias (=), not a defined type \u2014 do not add methods to Batch directly."
+      },
+      {
+        "file": "transaction.go",
+        "role": "Transaction struct with NewTransaction (chan-based) and NewTransactionFunc (func-based) constructors plus Ack and WithContext.",
+        "watch_for": "Exactly one of responseChan or responseFunc is non-nil; Ack branches on responseFunc != nil first. Calling Ack multiple times is not idempotent."
       }
     ],
     "anti_patterns": [
-      "Using the standard `http_client` output instead of the custom `openmeter` output plugin \u2014 the plugin handles batching and auth internally",
-      "Reordering the switch cases so stdout appears before the openmeter case \u2014 events will be dropped from the real output when DEBUG is true",
-      "Omitting `.number(0)` on `resource_quantity()` calls \u2014 nil fields will cause mapping errors for pods without resource requests/limits",
-      "Computing duration_seconds outside Bloblang (e.g., as a static env var) \u2014 it must be derived from the actual schedule_interval metadata so interval changes are reflected automatically"
+      "Not calling Ack after processing \u2014 the upstream source will stall waiting for acknowledgement",
+      "Calling Ack multiple times on the same Transaction \u2014 chan send and responseFunc are not idempotent",
+      "Ignoring t.Context() cancellation in a long reconnect loop \u2014 can block shutdown",
+      "Adding methods to Batch \u2014 it is a type alias and must remain a transparent pass-through"
     ],
     "decisions": [
       {
-        "decision": "Derive duration_seconds from schedule interval metadata",
-        "rationale": "Makes per-second normalisation automatic and correct when operators change SCRAPE_INTERVAL without touching the pipeline mapping."
+        "decision": "Two ack paths: chan<-error vs func(context.Context, error) error",
+        "rationale": "Chan-based ack is simpler for single-consumer paths; func-based ack supports async/contextual delivery confirmation needed by more complex output brokers"
       },
       {
-        "decision": "Annotation-driven subject and custom data dimensions",
-        "rationale": "Avoids hardcoding tenant/subject identity in the pipeline; operators annotate pods with openmeter.io/subject and data.openmeter.io/* to control metering attribution at the Kubernetes level."
+        "decision": "Transaction is its own concept rather than embedding service.Message",
+        "rationale": "Batch expansion (splitting one batch into derived batches) breaks direct message-level ack; Transaction decouples ack from batch contents so derivative transactions can be tracked independently"
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Create and acknowledge a function-based transaction",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/collector/benthos/internal/message\"\n)\n\nfunc process(batch message.Batch) error {\n\ttx := message.NewTransactionFunc(batch, func(ctx context.Context, err error) error {\n\t\treturn err\n\t})\n\t// ... pipeline stages ...\n\treturn tx.Ack(context.Background(), nil)\n}"
+      }
+    ]
+  },
+  "collector/benthos/internal/shutdown": {
+    "purpose": "Provides the Signaller primitive for two-tier graceful shutdown (at-leisure then now) plus a HasClosed signal. Components own a Signaller; orchestrators call CloseAtLeisure/CloseNow; components call ShutdownComplete when done.",
+    "patterns": [
+      {
+        "name": "Two-tier shutdown: CloseAtLeisure then CloseNow",
+        "description": "CloseAtLeisure closes closeAtLeisureChan (finish current work, start no new work). CloseNow calls CloseAtLeisure first then closes closeNowChan (stop immediately). Each is guarded by sync.Once so concurrent calls are safe.",
+        "example": "sig.CloseAtLeisure() // soft stop\nsig.CloseNow()       // hard stop \u2014 always calls CloseAtLeisure first"
+      },
+      {
+        "name": "Chan-based and ctx-based wait helpers per tier",
+        "description": "Each tier exposes *Chan() returning a read-only channel for select, and *Ctx() wrapping it in a context. Use *Ctx() when combining shutdown with other cancellation sources.",
+        "example": "ctx, cancel := sig.CloseNowCtx(parentCtx)\ndefer cancel()"
+      },
+      {
+        "name": "ShutdownComplete signals component termination",
+        "description": "The component calls sig.ShutdownComplete() once its goroutines have exited. Orchestrators wait on HasClosedChan() or HasClosedCtx() to confirm safe teardown. Forgetting this call blocks the orchestrator forever.",
+        "example": "defer sig.ShutdownComplete()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "signaler.go",
+        "role": "Entire package: Signaller struct with CloseAtLeisure, CloseNow, ShutdownComplete and their *Chan/*Ctx/ShouldClose* accessors.",
+        "watch_for": "CloseNow always calls CloseAtLeisure first \u2014 ShouldCloseAtLeisure is true whenever ShouldCloseNow is true; checking only the Now tier misses the leisure signal."
+      }
+    ],
+    "anti_patterns": [
+      "Forgetting to call ShutdownComplete \u2014 orchestrators block forever waiting on HasClosedChan",
+      "Adding a third shutdown tier \u2014 the two-tier model (leisure / now) is the intentional contract",
+      "Using CloseAtLeisureCtx when CloseNowCtx is needed \u2014 leisure ctx fires on either tier; now ctx fires only on the urgent tier",
+      "Closing shutdown channels directly \u2014 always call CloseAtLeisure/CloseNow; direct close panics on repeat calls"
+    ],
+    "decisions": [
+      {
+        "decision": "sync.Once guards each close channel",
+        "rationale": "Closing a closed channel panics; Once makes CloseAtLeisure and CloseNow safe to call multiple times from concurrent goroutines"
+      },
+      {
+        "decision": "Separate Signaller per component rather than a global shutdown signal",
+        "rationale": "Allows fine-grained teardown sequencing \u2014 orchestrator can drain outputs before closing inputs by shutting down Signallers in dependency order"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Component using Signaller for graceful shutdown",
+        "code": "import \"github.com/openmeterio/openmeter/collector/benthos/internal/shutdown\"\n\nsig := shutdown.NewSignaller()\ngo func() {\n\tdefer sig.ShutdownComplete()\n\tfor {\n\t\tselect {\n\t\tcase <-sig.CloseAtLeisureChan():\n\t\t\t// finish in-flight work, then return\n\t\t\treturn\n\t\t}\n\t}\n}()\n// orchestrator triggers and waits\nsig.CloseNow()\n<-sig.HasClosedChan()"
+      }
+    ]
   }
 }

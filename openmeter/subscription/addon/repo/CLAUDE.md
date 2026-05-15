@@ -2,29 +2,47 @@
 
 <!-- archie:ai-start -->
 
-> Ent-backed PostgreSQL repository for subscription addons (subscriptionaddon.SubscriptionAddonRepository) and their quantity timeline (SubscriptionAddonQuantityRepository). Implements the entutils.TransactingRepo pattern so all mutations participate in caller-supplied transactions.
+> Ent-backed PostgreSQL repository for subscription addons and their quantity timeline, implementing entutils.TransactingRepo so all mutations participate in caller-supplied transactions. Quantities are append-only.
 
 ## Patterns
 
-**TransactingRepo wrapping all mutations** — Every method body is wrapped in entutils.TransactingRepo(ctx, r, func(ctx, repo) ...) so the repo rebinds to the transaction already in ctx, or starts its own. Never call repo.db directly inside a method body. (`func (r *subscriptionAddonRepo) Create(ctx, ns, input) (*models.NamespacedID, error) { return entutils.TransactingRepo(ctx, r, func(ctx, repo) (*models.NamespacedID, error) { ... }) }`)
-**Tx / Self / WithTx transaction trinity** — Each repo struct implements Tx() (hijack), Self() (identity), and WithTx() (rebind to tx client) so entutils.TransactingRepo can correctly compose transactions. Both subscriptionAddonRepo and subscriptionAddonQuantityRepo have their own transaction.go block. (`func (r *subscriptionAddonRepo) WithTx(ctx, tx *entutils.TxDriver) *subscriptionAddonRepo { txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return NewSubscriptionAddonRepo(txClient.Client()) }`)
-**Eager-load via querySubscriptionAddon helper** — All Get/List queries go through querySubscriptionAddon() which WithAddon (including Ratecards->Features, Ratecards->TaxCode) and WithQuantities (ordered by ActiveFrom asc, CreatedAt asc). Adding a new edge requires updating this helper. (`query.WithAddon(func(aq *db.AddonQuery) { aq.WithRatecards(func(arq *db.AddonRateCardQuery) { arq.WithFeatures(); arq.WithTaxCode() }) }).WithQuantities(...)`)
-**Quantities ordered timeline** — SubscriptionAddonQuantities are always fetched ordered ASC by ActiveFrom then CreatedAt; mapping constructs a timeutil.Timeline from the sorted slice to power GetInstanceAt/GetInstances logic. (`saqq.Order(db.Asc(dbsubscriptionaddonquantity.FieldActiveFrom), db.Asc(dbsubscriptionaddonquantity.FieldCreatedAt))`)
-**Paginate or return all** — List returns all results without pagination when filter.Page.IsZero(); otherwise uses Ent's Paginate helper and entutils.MapPagedWithErr. (`if filter.Page.IsZero() { entities, _ := query.All(ctx); ... } else { paged, _ := query.Paginate(ctx, filter.Page); return entutils.MapPagedWithErr(paged, MapSubscriptionAddon) }`)
+**TransactingRepo wrapping all mutations** — Every method body is wrapped in entutils.TransactingRepo(ctx, r, func(ctx, repo) ...) so the repo rebinds to the transaction already in ctx, or starts its own via Self(). Never call repo.db directly inside a method body. (`func (r *subscriptionAddonRepo) Create(ctx context.Context, ns string, input ...) (*models.NamespacedID, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionAddonRepo) (*models.NamespacedID, error) {
+		entity, err := repo.db.SubscriptionAddon.Create()...Save(ctx)
+		return &models.NamespacedID{ID: entity.ID, Namespace: entity.Namespace}, err
+	})
+}`)
+**Tx/Self/WithTx transaction trinity** — Each repo struct implements Tx() (hijack via HijackTx + NewTxDriver), Self() (identity), and WithTx() (rebind to tx client via NewTxClientFromRawConfig). Both subscriptionAddonRepo and subscriptionAddonQuantityRepo have their own block in transaction.go. (`func (r *subscriptionAddonRepo) WithTx(ctx context.Context, tx *entutils.TxDriver) *subscriptionAddonRepo {
+	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
+	return NewSubscriptionAddonRepo(txClient.Client())
+}`)
+**Eager-load via querySubscriptionAddon helper** — All Get/List queries go through querySubscriptionAddon() which loads WithAddon (including Ratecards->Features, Ratecards->TaxCode) and WithQuantities ordered by ActiveFrom asc, CreatedAt asc. Never add a bare db.SubscriptionAddon.Query() without the helper. (`query.WithAddon(func(aq *db.AddonQuery) {
+	aq.WithRatecards(func(arq *db.AddonRateCardQuery) { arq.WithFeatures(); arq.WithTaxCode() })
+}).WithQuantities(func(saqq *db.SubscriptionAddonQuantityQuery) {
+	saqq.Order(db.Asc(dbsubscriptionaddonquantity.FieldActiveFrom), db.Asc(dbsubscriptionaddonquantity.FieldCreatedAt))
+})`)
+**Paginate-or-return-all for List** — List returns all results without pagination when filter.Page.IsZero(); otherwise uses Ent's Paginate helper and entutils.MapPagedWithErr. (`if filter.Page.IsZero() {
+	entities, _ := query.All(ctx)
+	// wrap and return
+} else {
+	paged, _ := query.Paginate(ctx, filter.Page)
+	return entutils.MapPagedWithErr(paged, MapSubscriptionAddon)
+}`)
+**Quantities are append-only** — SubscriptionAddonQuantityRepository has only Create — no Update or Delete. The quantity timeline is an audit-safe ledger; changes are new records with a later ActiveFrom. (`// Only Create is defined — no Update/Delete methods exist on subscriptionAddonQuantityRepo`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `subscriptionaddon.go` | Create, Get, List for SubscriptionAddon. Get wraps NotFound in models.NewGenericNotFoundError. | All queries use querySubscriptionAddon() to eager-load edges — never add a bare db.SubscriptionAddon.Query() without the helper. |
-| `subscriptionaddonquantity.go` | Create only — quantities are append-only. No update or delete. | Namespace comes from the parent subscriptionAddonID.Namespace, not from a separate input field. |
-| `mapping.go` | MapSubscriptionAddon and MapSubscriptionAddons convert db rows to domain types, delegating RateCard mapping to addonrepo.FromAddonRateCardRow. | MapSubscriptionAddon returns an error if Edges.Addon is nil for rate card mapping — ensure the edge is always loaded. |
-| `transaction.go` | Tx/Self/WithTx implementations for both repo types. | Both repos use db.HijackTx independently — if you add a third repo type here, it needs its own block. |
+| `subscriptionaddon.go` | Create, Get, List for SubscriptionAddon. Get wraps db.IsNotFound in models.NewGenericNotFoundError. | All queries must use querySubscriptionAddon() — bare queries miss eager-loaded RateCard/Quantity edges. |
+| `subscriptionaddonquantity.go` | Append-only Create for SubscriptionAddonQuantity. Namespace comes from parent subscriptionAddonID.Namespace. | No Update or Delete methods exist by design — do not add them. |
+| `mapping.go` | MapSubscriptionAddon and MapSubscriptionAddons convert db rows to domain types, delegating RateCard mapping to addonrepo.FromAddonRateCardRow. | MapSubscriptionAddon returns error if Edges.Addon is nil for rate card mapping — the edge must always be loaded via querySubscriptionAddon. |
+| `transaction.go` | Tx/Self/WithTx implementations for both subscriptionAddonRepo and subscriptionAddonQuantityRepo. | Both repos use db.HijackTx independently — if a third repo type is added here, it needs its own Tx/Self/WithTx block. |
 
 ## Anti-Patterns
 
-- Calling repo.db methods directly inside Create/Get/List without TransactingRepo wrapping
-- Fetching SubscriptionAddon without querySubscriptionAddon() helper, which would miss eager-loaded RateCard/Quantity edges
+- Calling repo.db methods directly inside Create/Get/List without TransactingRepo wrapping — bypasses ctx-bound transaction
+- Fetching SubscriptionAddon without querySubscriptionAddon() helper — misses eager-loaded RateCard/Quantity edges
 - Updating or deleting SubscriptionAddonQuantity rows — quantities are immutable append-only records
 - Using a raw db.Client in WithTx instead of db.NewTxClientFromRawConfig
 
@@ -37,7 +55,6 @@
 ```
 import (
 	subscriptionaddonrepo "github.com/openmeterio/openmeter/openmeter/subscription/addon/repo"
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
 )
 
 repo := subscriptionaddonrepo.NewSubscriptionAddonRepo(dbClient)

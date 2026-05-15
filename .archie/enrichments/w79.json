@@ -1,85 +1,136 @@
 {
-  "openmeter/customer/service/hooks": {
-    "purpose": "Lifecycle hook implementations for the customer domain \u2014 entitlement validation pre-delete guard and subject-to-customer auto-provisioning. New hooks here integrate with the models.ServiceHook[T] registry without coupling the customer package to callers.",
+  "openmeter/currencies/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing currencies.Adapter for custom currencies and cost bases. All DB access is transaction-aware via entutils.TransactingRepo; the adapter struct implements the TxCreator+TxUser triad required by entutils.TransactingRepo to start or join caller-supplied transactions.",
     "patterns": [
       {
-        "name": "ServiceHook type alias pair",
-        "description": "Each hook file declares a public type alias for the interface (e.g. EntitlementValidatorHook = models.ServiceHook[customer.Customer]) and a Noop alias (NoopEntitlementValidatorHook = models.NoopServiceHook[customer.Customer]). The concrete struct embeds the Noop so only overridden methods need implementing.",
-        "example": "type EntitlementValidatorHook = models.ServiceHook[customer.Customer]\ntype NoopEntitlementValidatorHook = models.NoopServiceHook[customer.Customer]\nvar _ models.ServiceHook[customer.Customer] = (*entitlementValidatorHook)(nil)"
+        "name": "TransactingRepo wrapping every method",
+        "description": "Every public adapter method body is wrapped with entutils.TransactingRepo(ctx, a, func(ctx, tx) ...) \u2014 never call a.db directly without this wrapper so the ctx-bound Ent transaction is honoured.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.Currency, error) { curr, err := tx.db.CustomCurrency.Create()... })"
       },
       {
-        "name": "Config struct + Validate() + constructor",
-        "description": "Every hook is constructed via a Config struct with a Validate() error method. The constructor calls Validate() and returns (Hook, error). Nil-dependency checks are mandatory inside Validate.",
-        "example": "func NewEntitlementValidatorHook(config EntitlementValidatorHookConfig) (EntitlementValidatorHook, error) {\n  if err := config.Validate(); err != nil { return nil, fmt.Errorf(...) }\n  return &entitlementValidatorHook{...}, nil\n}"
+        "name": "Tx / WithTx / Self triad",
+        "description": "The adapter implements TxCreator: Tx() hijacks a new pg transaction via a.db.HijackTx, WithTx() rebinds the adapter to an existing TxDriver using entdb.NewTxClientFromRawConfig, Self() returns itself. All three are required for TransactingRepo.",
+        "example": "func (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) { txCtx, rawConfig, eDriver, err := a.db.HijackTx(ctx, &sql.TxOptions{ReadOnly: false}); return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil }"
+      },
+      {
+        "name": "Config struct + Validate + New constructor",
+        "description": "Adapter is constructed via New(Config) with Config.Validate() guard; callers never instantiate the adapter struct directly.",
+        "example": "func New(config Config) (currencies.Adapter, error) { if err := config.Validate(); err != nil { return nil, err }; return &adapter{db: config.Client}, nil }"
       },
       {
         "name": "Compile-time interface assertion",
-        "description": "Every concrete hook struct declares a package-level var _ assertion to verify interface satisfaction at compile time.",
-        "example": "var _ models.ServiceHook[customer.Customer] = (*entitlementValidatorHook)(nil)"
+        "description": "Declare var _ currencies.Adapter = (*adapter)(nil) in both adapter.go and currencies.go to catch interface drift at compile time.",
+        "example": "var _ currencies.Adapter = (*adapter)(nil)"
       },
       {
-        "name": "OTel tracing in hook methods",
-        "description": "Non-trivial hook methods (PostCreate, PostUpdate, PostDelete) start a span via tracer.Start, record errors with span.RecordError + span.SetStatus, and defer span.End. The tracer is injected through the Config struct.",
-        "example": "func (s subjectCustomerHook) PostCreate(ctx context.Context, sub *subject.Subject) error {\n  ctx, span := s.tracer.Start(ctx, \"subject_customer_hook.post_create\")\n  defer span.End()\n  ...\n}"
+        "name": "entdb.IsConstraintError \u2192 GenericConflictError",
+        "description": "On Ent constraint violations wrap with models.NewGenericConflictError so the HTTP layer maps it to 409 automatically.",
+        "example": "if entdb.IsConstraintError(err) { return currencies.Currency{}, models.NewGenericConflictError(fmt.Errorf(\"currency with code %s already exists\", params.Code)) }"
       },
       {
-        "name": "Loop-prevention via context key (NewContextWithSkipSubjectCustomer)",
-        "description": "When a hook calls back into the customer service (UpdateCustomer/CreateCustomer), it wraps ctx with subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx) to break the re-entrant hook cycle. Any new hook that calls customer.Service must use the same guard.",
-        "example": "cus, err = p.customer.UpdateCustomer(\n  subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx),\n  customer.UpdateCustomerInput{...})"
-      },
-      {
-        "name": "models.GenericError types for domain errors",
-        "description": "Validation failures return models.NewGenericValidationError, not-found returns models.NewGenericNotFoundError, key conflicts return models.NewGenericConflictError, precondition failures return models.NewGenericPreConditionFailedError. Never return raw errors for domain conditions.",
-        "example": "return models.NewGenericValidationError(fmt.Errorf(\"customer has entitlements, please remove them before deleting the customer\"))"
-      },
-      {
-        "name": "Test environment built from package constructors (no app/common)",
-        "description": "Tests use NewTestEnv which wires adapters and services directly (customeradapter.New, customerservice.New, subjectadapter.New, subjectservice.New) without importing app/common. testutils.InitPostgresDB provides the Ent client; eventbus.NewMock provides the publisher.",
-        "example": "db := testutils.InitPostgresDB(t)\ncustomerAdapter, _ := customeradapter.New(customeradapter.Config{Client: db.EntDriver.Client(), Logger: logger})\ncustomerService, _ := customerservice.New(customerservice.Config{Adapter: customerAdapter, Publisher: publisher})"
+        "name": "mapXFromDB mapper functions",
+        "description": "DB row \u2192 domain type conversion is always in package-level mapXFromDB functions (mapCurrencyFromDB, mapCostBasisFromDB); never inline struct construction in query handlers.",
+        "example": "func mapCurrencyFromDB(c *entdb.CustomCurrency) currencies.Currency { return currencies.Currency{NamespacedID: models.NamespacedID{ID: c.ID, Namespace: c.Namespace}, Code: c.Code, ...} }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "entitlementvalidator.go",
-        "role": "PreDelete hook for customer.Customer \u2014 blocks deletion when active entitlements exist. Minimal hook that only overrides one method; all others fall through to Noop.",
-        "watch_for": "Uses clock.Now() for entitlement snapshot time; always pass the caller's ctx, never context.Background()."
+        "file": "adapter.go",
+        "role": "Defines Config, New constructor, the adapter struct, and the Tx/WithTx/Self transaction plumbing \u2014 the skeleton every new adapter method depends on.",
+        "watch_for": "Do not add business logic here; it is strictly wiring. If Self() or WithTx() is removed or signature changes, TransactingRepo breaks silently."
       },
       {
-        "file": "subjectcustomer.go",
-        "role": "PostCreate/PostUpdate/PostDelete hook for subject.Subject \u2014 auto-provisions or updates a matching Customer. Also houses CustomerProvisioner (reusable create/update logic) and EnsureStripeCustomer (billing override sync).",
-        "watch_for": "getCustomerForSubject tries both usage-attribution lookup and key lookup; EnsureCustomer handles keyConflict by omitting the key on create. CmpSubjectCustomer determines whether an update is needed \u2014 extend carefully to avoid spurious updates."
-      },
-      {
-        "file": "subjectcustomer_test.go",
-        "role": "Integration tests for CustomerProvisioner \u2014 exercises create, update, and conflict scenarios against a real Postgres instance provisioned by testutils.InitPostgresDB.",
-        "watch_for": "TestEnv is local to this package and independent from app/common. Tests call env.DBSchemaMigrate(t) before using the DB. Use t.Context(), not context.Background()."
+        "file": "currencies.go",
+        "role": "Implements all currencies.Adapter methods (ListCustomCurrencies, CreateCurrency, CreateCostBasis, ListCostBases) plus the DB\u2192domain mappers.",
+        "watch_for": "ListCustomCurrencies uses manual Offset/Limit pagination; ListCostBases uses the generated q.Paginate helper \u2014 keep both consistent when extending. Mapper functions must normalize time to UTC (c.EffectiveFrom.In(time.UTC))."
       }
     ],
     "anti_patterns": [
-      "Calling customer.Service from a hook without NewContextWithSkipSubjectCustomer(ctx) \u2014 causes infinite re-entrant hook invocations.",
-      "Returning raw fmt.Errorf for domain conditions (not-found, conflict, validation) \u2014 callers and HTTP encoders depend on models.Generic* error types.",
-      "Importing app/common in test files \u2014 breaks isolation and can introduce import cycles; build test deps from package constructors directly.",
-      "Embedding a non-Noop base struct \u2014 hooks must embed the Noop alias so future interface method additions don't break compilation.",
-      "Using context.Background() or context.TODO() inside hook methods \u2014 always propagate the caller's ctx to maintain tracing and cancellation."
+      "Calling a.db.X directly inside a method body without entutils.TransactingRepo \u2014 bypasses the ctx-bound Ent transaction and produces partial writes",
+      "Adding service-layer validation or business logic inside the adapter \u2014 belongs in openmeter/currencies/service",
+      "Constructing *adapter directly instead of calling New(Config)",
+      "Returning raw Ent errors to callers \u2014 always wrap or map to models.Generic* errors",
+      "Storing *entdb.Tx as a struct field instead of using the TxDriver/TransactingRepo pattern"
     ],
     "decisions": [
       {
-        "decision": "Hooks embed models.NoopServiceHook[T] rather than implementing all methods.",
-        "rationale": "The ServiceHook interface grows as new lifecycle events are added; embedding Noop provides safe defaults so existing hooks don't break on interface expansion."
+        "decision": "Tx/WithTx/Self triad inlined on the adapter struct rather than a separate TxWrapper type",
+        "rationale": "entutils.TransactingRepo requires the repository itself to implement TxCreator; inlining the triad avoids an extra indirection layer and matches the pattern used across all other domain adapters."
       },
       {
-        "decision": "CustomerProvisioner is a separate struct from the hook.",
-        "rationale": "EnsureCustomer and EnsureStripeCustomer are reused from outside the hook (e.g. app/stripe provisioning flows), so extracting them into a standalone CustomerProvisioner avoids duplication without tying the logic to the subject lifecycle."
-      },
-      {
-        "decision": "IgnoreErrors flag on subjectCustomerHook.",
-        "rationale": "Subject creation/update should not fail if customer provisioning is non-critical in some deployment modes; the flag lets the caller degrade gracefully (warn + continue) rather than surfacing the error."
+        "decision": "Separate mapper functions (mapCurrencyFromDB, mapCostBasisFromDB) rather than methods on Ent types",
+        "rationale": "Keeps generated Ent types isolated from domain types; changes to Ent schema only require updating the mapper, not every call site."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new PreDelete hook that checks billing conditions before customer deletion",
-        "code": "package hooks\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n\t\"github.com/openmeterio/openmeter/openmeter/customer\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype (\n\tBillingValidatorHook     = models.ServiceHook[customer.Customer]\n\tNoopBillingValidatorHook = models.NoopServiceHook[customer.Customer]\n)\n\nvar _ models.ServiceHook[customer.Customer] = (*billingValidatorHook)(nil)\n\ntype billingValidatorHook struct {\n\tNoopBillingValidatorHook\n\tbillingService billing.Service\n}\n\ntype BillingValidatorHookConfig struct {\n\tBillingService billing.Service\n}\n\nfunc (c BillingValidatorHookConfig) Validate() error {\n\tif c.BillingService == nil {\n\t\treturn fmt.Errorf(\"billing service is required\")\n\t}\n\treturn nil\n}\n\nfunc NewBillingValidatorHook(config BillingValidatorHookConfig) (BillingValidatorHook, error) {\n\tif err := config.Validate(); err != nil {\n\t\treturn nil, fmt.Errorf(\"invalid billing validator hook config: %w\", err)\n\t}\n\treturn &billingValidatorHook{billingService: config.BillingService}, nil\n}\n\nfunc (h *billingValidatorHook) PreDelete(ctx context.Context, c *customer.Customer) error {\n\t// check billing pre-conditions via h.billingService ...\n\treturn models.NewGenericValidationError(fmt.Errorf(\"customer has open invoices\"))\n}"
+        "scenario": "Adding a new adapter method that writes to the DB",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/currencies\"\n\tentdb \"github.com/openmeterio/openmeter/openmeter/ent/db\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (a *adapter) UpdateCurrency(ctx context.Context, params currencies.UpdateCurrencyInput) (currencies.Currency, error) {\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.Currency, error) {\n\t\tcurr, err := tx.db.CustomCurrency.UpdateOneID(params.ID).\n\t\t\tSetName(params.Name).\n\t\t\tSave(ctx)\n\t\tif err != nil {\n\t\t\tif entdb.IsConstraintError(err) {\n\t\t\t\treturn currencies.Currency{}, models.NewGenericConflictError(fmt.Errorf(\"conflict: %w\", err))\n\t\t\t}\n\t\t\treturn currencies.Currency{}, fmt.Errorf(\"update currency: %w\", err)\n\t\t}\n\t\treturn mapCurrencyFromDB(curr), nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/currencies/service": {
+    "purpose": "Business-logic layer for currencies and cost bases. Validates inputs, resolves fiat vs. custom currency enumeration in-memory from GOBL, and delegates persistence to currencies.Adapter via transaction.Run.",
+    "patterns": [
+      {
+        "name": "Input validation before transaction",
+        "description": "Every public method calls params.Validate() and returns models.NewGenericValidationError if it fails \u2014 before opening a transaction.",
+        "example": "if params.Validate() != nil { return pagination.Result[currencies.Currency]{}, models.NewGenericValidationError(fmt.Errorf(\"invalid input parameters: %w\", params.Validate())) }"
+      },
+      {
+        "name": "transaction.Run wrapping adapter calls",
+        "description": "All adapter interactions are wrapped in transaction.Run(ctx, s.adapter, func(ctx) ...) so the service participates in caller-supplied transactions.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (currencies.Currency, error) { return s.adapter.CreateCurrency(ctx, params) })"
+      },
+      {
+        "name": "In-memory fiat enumeration via GOBL",
+        "description": "Fiat currencies come from currency.Definitions() (invopop/gobl) filtered to ISO-numeric-only; custom currencies come from the adapter. Combined listing merges both slices and applies manual pagination in-memory.",
+        "example": "filteredMatchCode, err := lo.FilterErr(currency.Definitions(), func(def *currency.Def, _ int) (bool, error) { if def.ISONumeric == \"\" { return false, nil }; return matchCode(def.ISOCode.String(), 0) })"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "var _ currencies.CurrencyService = (*Service)(nil) at package top ensures Service always satisfies the interface.",
+        "example": "var _ currencies.CurrencyService = (*Service)(nil)"
+      },
+      {
+        "name": "Business-logic only \u2014 no Ent imports",
+        "description": "The service package must not import openmeter/ent/db; all DB access must flow through currencies.Adapter to preserve the layer boundary.",
+        "example": "// service.go imports only: currencies, transaction, models, pagination, gobl, samber/lo \u2014 never openmeter/ent/db"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Single file implementing currencies.CurrencyService: ListCurrencies (merges fiat+custom in-memory), CreateCurrency, CreateCostBasis (enforces future-only EffectiveFrom with default to time.Now()), ListCostBases.",
+        "watch_for": "ListCurrencies has two distinct pagination paths \u2014 DB-level (custom-only fast path) vs. in-memory (fiat or combined); adding a third filter type must handle both correctly. EffectiveFrom defaulting to time.Now() when nil is service-layer business logic, not adapter logic."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Unit tests using a fakeAdapter (implements currencies.Adapter with in-memory slice) and noopDriver (transaction.Driver no-op). Tests cover combined/custom-only listing paths, filter operators (Eq, In, Ne), sort order, and validation errors.",
+        "watch_for": "Tests use t.Context() (not context.Background()). fakeAdapter.ListCustomCurrencies applies Code filter to simulate DB-level filtering \u2014 new adapter methods added to the interface must be added as panicking stubs here."
+      }
+    ],
+    "anti_patterns": [
+      "Importing openmeter/ent/db directly \u2014 all DB access must go through the currencies.Adapter interface",
+      "Skipping params.Validate() before calling the adapter \u2014 constraint errors from the DB are harder to diagnose than early validation errors",
+      "Applying pagination logic inside the adapter for combined fiat+custom queries \u2014 the adapter only handles DB rows; in-memory merging and pagination belong here",
+      "Using context.Background() instead of propagating the caller's ctx through transaction.Run",
+      "Adding temporal business rules (future-date enforcement, defaulting) inside the adapter \u2014 belongs in the service"
+    ],
+    "decisions": [
+      {
+        "decision": "Fiat currency list sourced in-memory from GOBL, not stored in the DB",
+        "rationale": "ISO fiat currencies are stable and exhaustive in the GOBL library; storing them in Postgres would require synchronisation and add write paths with no benefit."
+      },
+      {
+        "decision": "EffectiveFrom defaulting and future-date validation lives in the service, not the adapter",
+        "rationale": "Adapter is a pure persistence layer; temporal business rules must be enforced regardless of which code path calls the adapter, so they belong in the service."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new service method that validates input and delegates to the adapter inside a transaction",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/currencies\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (s *Service) DeleteCurrency(ctx context.Context, params currencies.DeleteCurrencyInput) error {\n\tif params.Validate() != nil {\n\t\treturn models.NewGenericValidationError(fmt.Errorf(\"invalid input: %w\", params.Validate()))\n\t}\n\t_, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (struct{}, error) {\n\t\treturn struct{}{}, s.adapter.DeleteCurrency(ctx, params)\n\t})\n\treturn err\n}"
       }
     ]
   }

@@ -1,0 +1,190 @@
+{
+  "cmd/jobs/billing": {
+    "purpose": "Cobra parent command that aggregates four billing sub-commands (advance, advancecharges, collect, subscriptionsync) under a single 'billing' namespace. Acts as a pure aggregator \u2014 contains no business logic itself; all service access flows through internal.App fields wired by app/common.",
+    "patterns": [
+      {
+        "name": "Aggregator-only parent command",
+        "description": "billing.go registers sub-commands in init() and exposes a single Cmd var. No RunE, no flags, no logic.",
+        "example": "func init() { Cmd.AddCommand(advance.Cmd); Cmd.AddCommand(collect.Cmd) }"
+      },
+      {
+        "name": "Sub-commands in separate packages",
+        "description": "Each sub-command (advance, advancecharges, collect, subscriptionsync) lives in its own sub-package imported and registered in billing.go's init().",
+        "example": "import \"github.com/openmeterio/openmeter/cmd/jobs/billing/advance\""
+      },
+      {
+        "name": "internal.App singleton for service access",
+        "description": "All sub-commands access billing services exclusively through internal.App fields (BillingAutoAdvancer, ChargesAutoAdvancer, BillingSubscriptionReconciler) \u2014 never construct services locally.",
+        "example": "app := internal.MustGetApp(cmd.Context()); app.BillingAutoAdvancer.AdvanceInvoices(cmd.Context(), input)"
+      },
+      {
+        "name": "cmd.Context() for context propagation",
+        "description": "Every RunE uses cmd.Context() \u2014 never context.Background() or context.TODO().",
+        "example": "func(cmd *cobra.Command, args []string) error { return svc.Do(cmd.Context(), ...) }"
+      },
+      {
+        "name": "Nil guard for optional features",
+        "description": "advancecharges guards every execution path against app.ChargesAutoAdvancer == nil because charges are optional and wired conditionally.",
+        "example": "if app.ChargesAutoAdvancer == nil { return errors.New(\"charges feature disabled\") }"
+      },
+      {
+        "name": "PersistentFlags on owning Cmd for shared filters",
+        "description": "Shared flags like --namespace belong on the sub-command that owns them, never duplicated across siblings or pushed up to the billing parent Cmd.",
+        "example": "advanceCmd.PersistentFlags().StringVar(&namespace, \"namespace\", \"\", \"namespace filter\")"
+      },
+      {
+        "name": "Structured input types from domain packages",
+        "description": "Sub-commands (collect, subscriptionsync) use typed input structs from domain packages rather than loose primitives to stay compatible with service API evolution.",
+        "example": "input := billingworkercollect.CollectInput{AsOf: time.Now(), Namespace: ns}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "billing.go",
+        "role": "Pure aggregator \u2014 registers the four sub-commands in init() and exposes Cmd for the parent jobs command to mount.",
+        "watch_for": "Never add RunE, flags, or business logic here; this file must remain a zero-logic aggregator."
+      },
+      {
+        "file": "advance/advance.go",
+        "role": "List, advance-single, and advance-all sub-commands via BillingAutoAdvancer.",
+        "watch_for": "Uses nil slice (not empty string) for optional namespace filter \u2014 do not default to empty string."
+      },
+      {
+        "file": "advancecharges/advancecharges.go",
+        "role": "Charge advance sub-commands; nil-guards ChargesAutoAdvancer before every call.",
+        "watch_for": "Omitting the nil guard causes a panic when the charges feature is disabled (credits.enabled=false)."
+      },
+      {
+        "file": "collect/collect.go",
+        "role": "Invoice collection sub-commands using billingworkercollect structured input types.",
+        "watch_for": "Always supply time.Now() for CollectionAt \u2014 passing nil is a known debt in InvoiceCmd, do not replicate it."
+      },
+      {
+        "file": "subscriptionsync/sync.go",
+        "role": "Subscription-to-invoice sync reconciliation sub-commands via BillingSubscriptionReconciler.",
+        "watch_for": "Always apply a lookback filter; omitting it scans all historical subscriptions and is extremely slow."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing billing or charges service instances locally instead of using internal.App fields",
+      "Using context.Background() or context.TODO() instead of cmd.Context() in any RunE",
+      "Registering flags on the billing parent Cmd that belong only to a specific sub-command (causes flag pollution)",
+      "Hardcoding namespace strings instead of accepting them via a --namespace flag",
+      "Omitting the nil guard on app.ChargesAutoAdvancer \u2014 panics when the charges feature is disabled"
+    ],
+    "decisions": [
+      {
+        "decision": "billing.go is a pure aggregator with no logic",
+        "rationale": "Keeps sub-command concerns isolated; billing.go only wires them together so each can evolve independently without touching siblings."
+      },
+      {
+        "decision": "All service access goes through internal.App",
+        "rationale": "Prevents duplicate wiring and ensures the same Wire-provisioned instances (with correct feature flags, including credits.enabled guard) are used in all sub-commands."
+      },
+      {
+        "decision": "Each sub-command lives in its own package",
+        "rationale": "Allows independent flag registration, testability, and import without pulling in unrelated Cobra command state from siblings."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new billing sub-command with optional feature guard",
+        "code": "// billing.go init():\nimport \"github.com/openmeterio/openmeter/cmd/jobs/billing/mynewcmd\"\nfunc init() { Cmd.AddCommand(mynewcmd.Cmd) }\n\n// billing/mynewcmd/mynewcmd.go:\nvar Cmd = &cobra.Command{\n    Use:   \"my-new-cmd\",\n    Short: \"Does X\",\n    RunE: func(cmd *cobra.Command, args []string) error {\n        app := internal.MustGetApp(cmd.Context())\n        if app.ChargesAutoAdvancer == nil {\n            return errors.New(\"charges feature disabled\")\n        }\n        return app.ChargesAutoAdvancer.DoX(cmd.Context(), input)\n    },\n}"
+      }
+    ]
+  },
+  "cmd/jobs/ledger": {
+    "purpose": "Cobra parent command grouping ledger administrative sub-commands (currently only backfillaccounts). Owns the ledger namespace in the jobs CLI and coordinates sub-packages that intentionally bypass Wire DI to construct concrete ledger adapters when credits.enabled=false would otherwise produce noop implementations.",
+    "patterns": [
+      {
+        "name": "Aggregator-only parent command",
+        "description": "ledger.go registers sub-commands in init() and exposes Cmd \u2014 no RunE, no flags, no logic.",
+        "example": "func init() { Cmd.AddCommand(backfillaccounts.Cmd) }"
+      },
+      {
+        "name": "Bypass DI for concrete ledger stack",
+        "description": "Sub-commands build concrete ledger adapters directly (not via app/common Wire outputs) because the Wire-provided resolver is a noop when credits.enabled=false.",
+        "example": "accountSvc := ledgeraccountservice.New(ledgeraccountadapter.New(app.DB), lockr.NewLocker(app.DB))"
+      },
+      {
+        "name": "Flags in init(), logic in RunE",
+        "description": "All flag bindings go in init(); RunE contains all execution logic including time flag parsing.",
+        "example": "func init() { Cmd.Flags().StringVar(&namespace, \"namespace\", \"\", \"...\") }"
+      },
+      {
+        "name": "RFC3339 time parsing with UTC normalization",
+        "description": "Time-valued flags are parsed from RFC3339 strings inside RunE and explicitly normalized to UTC.",
+        "example": "t, err := time.Parse(time.RFC3339, flagVal); t = t.UTC()"
+      },
+      {
+        "name": "Print summary before returning error",
+        "description": "Backfill commands print a result summary (processed/failed counts) before returning any error so partial results remain visible to operators.",
+        "example": "printSummary(result); return firstErr"
+      },
+      {
+        "name": "Interface-driven service in separate service package",
+        "description": "Backfill orchestration logic lives in a separate service sub-package with interface-driven dependencies, enabling unit testing without a real database or Cobra context.",
+        "example": "import \"github.com/openmeterio/openmeter/cmd/jobs/ledger/backfillaccounts/service\""
+      },
+      {
+        "name": "Cursor pagination with MAX_SAFE_ITER guard",
+        "description": "All paginated loops in the service package use paginationv2.Cursor and enforce the MAX_SAFE_ITER limit to prevent infinite loops on large customer datasets.",
+        "example": "for iter := 0; cursor != nil && iter < paginationv2.MAX_SAFE_ITER; iter++ { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ledger.go",
+        "role": "Pure aggregator \u2014 registers backfillaccounts.Cmd in init() and exposes Cmd for the parent jobs command.",
+        "watch_for": "Never add RunE, flags, or business logic to ledger.go."
+      },
+      {
+        "file": "backfillaccounts/backfillaccounts.go",
+        "role": "Cobra command file: flag binding in init(), concrete adapter construction and RunE execution logic.",
+        "watch_for": "Must build lockr.NewLocker \u2014 accountservice.New requires a Locker for CreateCustomerAccounts. Do not use the Wire-provided ledger resolver (it is noop when credits.enabled=false)."
+      },
+      {
+        "file": "backfillaccounts/service/service.go",
+        "role": "Pure Go backfill orchestration with no Cobra or Ent imports; interface-driven for unit testability.",
+        "watch_for": "Use ValidationIssue error codes to detect missing-account condition \u2014 not nil checks. DryRun must only increment WouldProvision counters, never write."
+      },
+      {
+        "file": "backfillaccounts/service/customer_lister_ent.go",
+        "role": "Ent-backed implementation of the CustomerLister interface used by the service.",
+        "watch_for": "Must use cursor pagination \u2014 not offset \u2014 to handle large customer sets safely."
+      },
+      {
+        "file": "backfillaccounts/service/service_test.go",
+        "role": "Unit tests for the backfill service using mock/fake implementations of CustomerLister and account service.",
+        "watch_for": "Use t.Context() \u2014 not context.Background() \u2014 so cancellation is tied to the test harness."
+      }
+    ],
+    "anti_patterns": [
+      "Using the Wire-provided ledger account resolver from app/common \u2014 it is a noop when credits.enabled=false",
+      "Omitting lockr.NewLocker when constructing the account service \u2014 causes a panic at CreateCustomerAccounts",
+      "Using offset pagination instead of cursor pagination in large customer loops",
+      "Returning an error from RunE before calling printSummary \u2014 partial results become invisible to operators",
+      "Importing *entdb.Client directly in service.go \u2014 breaks unit testability"
+    ],
+    "decisions": [
+      {
+        "decision": "Build concrete ledger adapters directly instead of using DI outputs",
+        "rationale": "app/common wires ledger services to noops when credits.enabled=false; backfill jobs genuinely need real ledger writes, so they must construct the concrete stack themselves."
+      },
+      {
+        "decision": "Separate service package from Cobra command",
+        "rationale": "Isolates orchestration logic from CLI plumbing, enabling unit tests that do not require a real database or Cobra context."
+      },
+      {
+        "decision": "Detect missing-account condition via ValidationIssue error codes, not nil checks",
+        "rationale": "Ledger adapters return typed ValidationIssue errors for missing accounts; nil-checking Get results is unreliable and breaks idempotency of the backfill."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new ledger sub-command that requires concrete adapter construction",
+        "code": "// ledger.go init():\nimport \"github.com/openmeterio/openmeter/cmd/jobs/ledger/mynewcmd\"\nfunc init() { Cmd.AddCommand(mynewcmd.Cmd) }\n\n// ledger/mynewcmd/mynewcmd.go:\nvar Cmd = &cobra.Command{\n    Use: \"my-new-cmd\",\n    RunE: func(cmd *cobra.Command, args []string) error {\n        app := internal.MustGetApp(cmd.Context())\n        locker := lockr.NewLocker(app.DB)\n        accountAdapter := ledgeraccountadapter.New(app.DB)\n        accountSvc := ledgeraccountservice.New(accountAdapter, locker)\n        result, err := service.Run(cmd.Context(), service.RunInput{Namespace: ns}, accountSvc)\n        printSummary(result)\n        return err\n    },\n}"
+      }
+    ]
+  }
+}

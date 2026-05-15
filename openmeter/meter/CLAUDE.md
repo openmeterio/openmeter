@@ -6,7 +6,7 @@
 
 ## Patterns
 
-**Service/ManageService interface split** — Callers that only need reads depend on meter.Service; callers needing mutations depend on meter.ManageService (which embeds Service). Wire providers inject ManageService where mutation is needed. (`type ManageService interface { Service; CreateMeter(...); UpdateMeter(...); DeleteMeter(...); RegisterPreUpdateMeterHook(...) }`)
+**Service/ManageService interface split** — Callers that only need reads depend on meter.Service; callers needing mutations depend on meter.ManageService (which embeds Service). Wire providers inject ManageService where mutation is needed. (`type ManageService interface { Service; CreateMeter(...); UpdateMeter(...); DeleteMeter(...); RegisterHooks(...) }`)
 **Validate() on every input type** — All input types (CreateMeterInput, UpdateMeterInput, DeleteMeterInput, GetMeterInput, ListMetersParams) have explicit Validate() methods called before any adapter or service logic runs. (`func (i CreateMeterInput) Validate() error { ... return models.NewNillableGenericValidationError(errors.Join(errs...)) }`)
 **models.GenericError wrapping for domain errors** — MeterNotFoundError wraps models.NewGenericNotFoundError and implements models.GenericError. Use IsMeterNotFoundError(err) for type-checked error inspection. (`return &MeterNotFoundError{err: models.NewGenericNotFoundError(fmt.Errorf("meter not found: %s", id))}`)
 **Watermill event publishing after mutations** — Service layer publishes domain events (MeterCreateEvent, MeterUpdateEvent, MeterDeleteEvent) after successful adapter writes using metadata.EventType triple and ComposeResourcePath. (`NewMeterCreateEvent(ctx, &meter) // implements EventName()+EventMetadata() for Watermill routing`)
@@ -29,7 +29,7 @@
 ## Anti-Patterns
 
 - Passing empty Namespace to ListMeters without WithoutNamespace=true — silently returns no results or errors.
-- Using float64 for MeterQueryRow.Value instead of the typed field — NaN/Inf are explicitly rejected in ParseEvent.
+- Using float64 for MeterQueryRow.Value in places where NaN/Inf are possible — explicitly rejected in ParseEvent.
 - Adding DB queries directly in service/manage.go — all persistence must go through the adapter interface.
 - Skipping validateJSONPaths (streaming.Connector) before CreateMeter/UpdateMeter — invalid paths fail silently until query time.
 - Hard-deleting meter rows instead of setting DeletedAt — breaks FK integrity and idempotent delete semantics.

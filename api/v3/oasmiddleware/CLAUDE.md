@@ -6,29 +6,26 @@
 
 ## Patterns
 
-**ValidateRequest middleware with hook functions** — Instantiate ValidateRequest(router, ValidateRequestOption{RouteNotFoundHook: OasRouteNotFoundErrorHook, RouteValidationErrorHook: adapted hook}) and mount it in the Chi middleware stack before the generated server handler. OasValidationErrorHook converts OAS errors to AIP 400/404 responses. (`r.Use(oasmiddleware.ValidateRequest(validationRouter, oasmiddleware.ValidateRequestOption{
+**ValidateRequest middleware with hook functions** — Instantiate ValidateRequest(router, ValidateRequestOption{RouteNotFoundHook, RouteValidationErrorHook}) and mount it before the generated server handler. OasRouteNotFoundErrorHook returns 404; OasValidationErrorHook converts OAS errors to AIP 400/404 responses and returns true to stop the request. (`r.Use(oasmiddleware.ValidateRequest(validationRouter, oasmiddleware.ValidateRequestOption{
     RouteNotFoundHook: oasmiddleware.OasRouteNotFoundErrorHook,
     RouteValidationErrorHook: func(err error, w http.ResponseWriter, r *http.Request) bool {
         return oasmiddleware.OasValidationErrorHook(r.Context(), err, w, r)
     },
 }))`)
-**NewValidationRouter for spec-backed route matching** — Call NewValidationRouter(ctx, doc, &ValidationRouterOpts{DeleteServers: true}) to build the kin-openapi gorillamux router from the parsed openapi3.T. DeleteServers=true removes server entries so the router matches paths regardless of host prefix. (`router, err := oasmiddleware.NewValidationRouter(ctx, doc, nil)`)
-**ToAipError for OAS → InvalidParameter conversion** — Convert openapi3.MultiError to []apierrors.InvalidParameter using ToAipError. OAS schema fields are mapped to AIP rule names via oasRuleToAip (e.g. 'minLength' → 'min_length'). Path parameter errors map to 404, body/query errors map to 400. (`params := oasmiddleware.ToAipError(multiErr)
+**NewValidationRouter for spec-backed route matching** — Call NewValidationRouter(ctx, doc, &ValidationRouterOpts{DeleteServers: true}) once at startup to build the kin-openapi gorillamux router from the parsed openapi3.T. DeleteServers=true removes server entries so the router matches paths regardless of host prefix. (`router, err := oasmiddleware.NewValidationRouter(ctx, doc, nil)`)
+**ToAipError for OAS → InvalidParameter conversion** — Convert openapi3.MultiError to []apierrors.InvalidParameter using ToAipError. OAS schema fields are mapped to AIP rule names via oasRuleToAip (e.g. 'minLength' → 'min_length'). Path parameter errors map to 404; body/query errors map to 400. (`params := oasmiddleware.ToAipError(multiErr)
 apierrors.NewBadRequestError(ctx, err, params).HandleAPIError(w, r)`)
 **SanitizeSensitiveFieldValues scrubs x-sensitive fields** — Before passing an OAS validation error to the client, wrap it with SanitizeSensitiveFieldValues to replace the .Value of any schema field marked 'x-sensitive: true' with '********'. (`apierrors.NewBadRequestError(ctx, oasmiddleware.SanitizeSensitiveFieldValues(err), params).HandleAPIError(w, r)`)
-**ResponseWriterWrapper for response body capture** — Use NewResponseWriterWrapper(w) in ValidateResponse to buffer the written body for post-handler OAS response validation without breaking the normal write path. (`rww := oasmiddleware.NewResponseWriterWrapper(w)
-h.ServeHTTP(rww, r)
-// rww.Body() contains the full response body`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `validator.go` | ValidateRequest and ValidateResponse Chi middleware factories. The hook functions receive errors and decide whether to short-circuit the handler. | If RouteNotFoundHook returns false, the request continues to the handler — ensure 404 hooks always return true. |
-| `hook.go` | OasRouteNotFoundErrorHook and OasValidationErrorHook: the two standard hooks for path-not-found (404) and validation failure (400/404 depending on parameter source). | OasValidationErrorHook maps path-parameter validation errors to 404 (not 400) — this matches AIP semantics where a bad path ID means resource not found. |
+| `validator.go` | ValidateRequest and ValidateResponse Chi middleware factories. Hook functions receive errors and decide whether to short-circuit the handler — returning true stops request processing. | If RouteNotFoundHook returns false, the request continues to the handler — ensure 404 hooks always return true. |
+| `hook.go` | OasRouteNotFoundErrorHook (404 on missing route) and OasValidationErrorHook (400/404 on parameter/body violations). Path-parameter validation errors map to 404 — AIP semantics for bad path IDs. | OasValidationErrorHook checks Source==InvalidParamSourcePath to return 404 instead of 400 — critical for correct REST semantics. |
 | `error.go` | aipMapper recursively converts openapi3.MultiError trees to []InvalidParameter. unwrapOriginError handles nested oneOf schema errors. | The recursive aipMapper shares a parent *InvalidParameter across children — mutations to parent inside the loop affect subsequent iterations. |
-| `router.go` | NewValidationRouter: wraps openapi3.T doc validation and gorillamux router construction. Must be called once at startup. | DeleteServers mutates doc.Servers in place; if the doc is shared across multiple router instantiations, strip servers before the first call. |
-| `decoder.go` | JsonBodyDecoder: registers json.NewDecoder with UseNumber() for custom vendor content types so numeric fields are not silently truncated to float64. | Must be registered via openapi3filter.RegisterBodyDecoder for each custom content-type at startup. |
+| `router.go` | NewValidationRouter wraps openapi3.T doc validation and gorillamux router construction. Must be called once at startup and reused across requests. | DeleteServers mutates doc.Servers in place; if the doc is shared, strip servers before the first call. |
+| `decoder.go` | JsonBodyDecoder registers json.NewDecoder with UseNumber() for custom vendor content types so numeric fields are not silently truncated to float64. | Must be registered via openapi3filter.RegisterBodyDecoder for each custom content-type at startup — missing registration causes numeric precision loss. |
 
 ## Anti-Patterns
 
@@ -44,9 +41,7 @@ h.ServeHTTP(rww, r)
 ## Example: Wiring OAS request validation middleware in the v3 Chi router
 
 ```
-import (
-    "github.com/openmeterio/openmeter/api/v3/oasmiddleware"
-)
+import "github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 
 validationRouter, err := oasmiddleware.NewValidationRouter(ctx, doc, nil)
 if err != nil { return err }

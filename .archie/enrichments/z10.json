@@ -1,0 +1,185 @@
+{
+  "openmeter/subject": {
+    "purpose": "Domain package for subject lifecycle (create, update, get, list, delete) \u2014 subjects are the usage measurement keys (analogous to users or devices). Backed by an Ent adapter and exposes ServiceHooks for lifecycle events consumed by entitlement/balanceworker. Primary constraint: all mutations go through the Service interface with validated Input types.",
+    "patterns": [
+      {
+        "name": "Service interface with <Verb>Input types",
+        "description": "All mutating operations accept typed input structs (CreateInput, UpdateInput) that implement Validate(). Service methods call input.Validate() before delegating to the adapter.",
+        "example": "type CreateInput struct { Namespace string; Key string; DisplayName *string }; func (i CreateInput) Validate() error { ... }"
+      },
+      {
+        "name": "OptionalNullable[T] for partial updates (legacy, do not replicate)",
+        "description": "UpdateInput fields use OptionalNullable[T]{Value *T; IsSet bool} to distinguish 'not provided' from 'explicitly set to null'. This pattern is unique to this package \u2014 new packages use pkg/nullable instead.",
+        "example": "UpdateInput.DisplayName OptionalNullable[string] \u2014 IsSet=false means keep existing, IsSet=true+Value=nil means clear."
+      },
+      {
+        "name": "ServiceHooks registry for cross-domain callbacks",
+        "description": "Subject.Service embeds models.ServiceHooks[Subject], allowing other packages (entitlement/balanceworker) to subscribe to lifecycle events without import cycles. Register hooks in app/common, not inside domain constructors.",
+        "example": "Service.RegisterHooks(hooks SubjectServiceHooks) \u2014 called from app/common, not from subject package constructor."
+      },
+      {
+        "name": "Namespace-scoped operations",
+        "description": "Every operation requires a non-empty Namespace field. GetByIdOrKey supports both ID and key lookup within a namespace.",
+        "example": "GetByIdOrKey(ctx, models.NamespacedID{Namespace: ns, ID: id}) or GetByKey(ctx, ns, key)."
+      },
+      {
+        "name": "Subject has both Id and Key \u2014 never conflate them",
+        "description": "Key is the user-facing stable identifier (e.g. user email or device ID); Id is the internal ULID primary key. GetByIdOrKey accepts either form.",
+        "example": "subject.Key is used in entitlement events to reduce payload size (SubjectKey struct); subject.Id is the DB primary key."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/subject/service.go",
+        "role": "Defines the Service interface, CreateInput, UpdateInput, ListParams, ListSortBy, and the OptionalNullable helper.",
+        "watch_for": "OptionalNullable is explicitly marked FIXME as unique to this adapter \u2014 do not replicate. New update inputs should use nullable.Nullable from pkg/nullable."
+      },
+      {
+        "file": "openmeter/subject/adapter.go",
+        "role": "Defines the Adapter interface including entutils.TxCreator embedding \u2014 all adapter implementations must provide the full TxCreator triad.",
+        "watch_for": "Adapter embeds entutils.TxCreator; concrete implementation in adapter/ sub-package must provide Tx/WithTx/Self."
+      },
+      {
+        "file": "openmeter/subject/subject.go",
+        "role": "Defines the Subject domain type (Id, Key, Namespace, DisplayName, Metadata) and SubjectKey (key-only payload for events).",
+        "watch_for": "StripeCustomerId is deprecated \u2014 use customer application entity instead. SubjectKey is used in events to reduce payload size."
+      }
+    ],
+    "anti_patterns": [
+      "Using context.Background() instead of the caller's ctx in service or adapter methods \u2014 drops Ent transaction driver and OTel spans.",
+      "Bypassing the Service interface to call adapter methods directly from outside the subject package.",
+      "Importing app/common in subject testutils \u2014 build test deps from raw constructors (subjecttestutils.NewTestEnv) to avoid import cycles.",
+      "Adding new update fields as plain pointer types instead of using OptionalNullable or pkg/nullable when partial-null semantics are needed.",
+      "Registering cross-domain hooks inside the subject package constructor \u2014 always register in app/common provider functions."
+    ],
+    "decisions": [
+      {
+        "decision": "OptionalNullable[T] for UpdateInput instead of nullable.Nullable",
+        "rationale": "Historical decision predating pkg/nullable; the code comment explicitly marks it as unique to this adapter and not to be replicated."
+      },
+      {
+        "decision": "ServiceHooks for cross-domain lifecycle callbacks via models.ServiceHooks[Subject]",
+        "rationale": "Prevents circular imports between subject and entitlement/balanceworker by using the generic hook registry from pkg/models."
+      },
+      {
+        "decision": "Service interface at package root (service.go), concrete implementation in service/ sub-package, Ent adapter in adapter/ sub-package",
+        "rationale": "Standard three-layer pattern used across all openmeter/* domains \u2014 keeps persistence separate from orchestration and HTTP translation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Creating a subject via Service with validated input",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/subject\"\n)\n\ninput := subject.CreateInput{\n    Namespace:   ns,\n    Key:         \"user@example.com\",\n    DisplayName: lo.ToPtr(\"Alice\"),\n}\nif err := input.Validate(); err != nil {\n    return nil, err\n}\nresult, err := svc.Create(ctx, input)"
+      }
+    ]
+  },
+  "openmeter/subscription": {
+    "purpose": "Core subscription domain: defines SubscriptionSpec (the mutable in-memory spec driving phase/item/RateCard layout), the AppliesToSpec patch system (the only authorised mutation path), uniqueness validation, annotation helpers, lifecycle events, and the Service interface. Primary constraint: all spec mutations go through the patch system \u2014 never direct field writes to SubscriptionSpec.Phases.",
+    "patterns": [
+      {
+        "name": "AppliesToSpec patch interface \u2014 only authorised mutation path",
+        "description": "All mutations implement AppliesToSpec with ApplyTo(spec *SubscriptionSpec, actx ApplyContext). Must only be invoked through SubscriptionSpec.Apply/ApplyX wrappers, never directly \u2014 subsequent validation and ordering logic runs in the wrapper.",
+        "example": "type AppliesToSpec interface { ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error }; spec.Apply(patch, ApplyContext{CurrentTime: now})"
+      },
+      {
+        "name": "GetSortedPhases for ordered phase iteration",
+        "description": "SubscriptionSpec.Phases is a map[string]*SubscriptionPhaseSpec keyed by phase key. Direct map iteration gives undefined order. Always call GetSortedPhases() which returns phases sorted by StartAfter.",
+        "example": "for _, phase := range spec.GetSortedPhases() { /* ordered by StartAfter */ }"
+      },
+      {
+        "name": "pg_advisory_lock per customer via GetCustomerLock",
+        "description": "Per-customer serialization uses lockr.Key from GetCustomerLock(customerId). Lock must be acquired inside an active Postgres transaction before any subscription write.",
+        "example": "key, err := subscription.GetCustomerLock(customerID); locker.LockForTX(ctx, key)"
+      },
+      {
+        "name": "ValidateUniqueConstraintByFeatures before persisting",
+        "description": "Before persisting a new or updated subscription, call ValidateUniqueConstraintByFeatures with all active+new subscriptions for the customer to prevent two overlapping billable subscriptions from covering the same feature+customer simultaneously.",
+        "example": "subscription.ValidateUniqueConstraintByFeatures(append(allSpecs, newSpec))"
+      },
+      {
+        "name": "AnnotationParser for all annotation map access",
+        "description": "Subscription-level metadata (PreviousSubscriptionID, SupersedingSubscriptionID, BooleanEntitlementCount, OwnerSubSystem) is stored in models.Annotations. Always use subscription.AnnotationParser getter/setter methods \u2014 never read raw annotation map keys by string literal.",
+        "example": "subscription.AnnotationParser.GetPreviousSubscriptionID(annotations); subscription.AnnotationParser.SetSupersedingSubscriptionID(annotations, subID)"
+      },
+      {
+        "name": "NewSubscriptionOperationContext on every Service method entry",
+        "description": "Every public Service method calls NewSubscriptionOperationContext(ctx) at entry to mark the ctx as inside a subscription operation. IsSubscriptionOperation(ctx) lets validators and hooks detect re-entrant calls.",
+        "example": "ctx = subscription.NewSubscriptionOperationContext(ctx); // then acquire lock and begin transaction"
+      },
+      {
+        "name": "Typed error constructors \u2014 never plain fmt.Errorf for domain errors",
+        "description": "Use NewSubscriptionNotFoundError, NewPhaseNotFoundError, NewItemNotFoundError, ErrOnlySingleSubscriptionAllowed (ValidationIssue), and models.NewGenericPreConditionFailedError for HTTP-mappable errors.",
+        "example": "return subscription.NewSubscriptionNotFoundError(id) // wraps models.GenericNotFoundError \u2192 404"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/subscription/apply.go",
+        "role": "Defines AppliesToSpec interface, ApplyContext, NewAppliesToSpec helper, and NewAggregateAppliesToSpec for batching patches.",
+        "watch_for": "FIXME comment: ApplyTo should be private but isn't \u2014 never call patch.ApplyTo directly; always route through SubscriptionSpec.Apply wrappers."
+      },
+      {
+        "file": "openmeter/subscription/errors.go",
+        "role": "All subscription domain errors as ValidationIssue sentinels (with ErrorCode constants and IsXxx predicates) and typed NotFound errors.",
+        "watch_for": "ValidationIssue errors use commonhttp.WithHTTPStatusCodeAttribute for HTTP status mapping. Use IsSubscriptionNotFoundError/IsPhaseNotFoundError/IsItemNotFoundError for type-safe detection."
+      },
+      {
+        "file": "openmeter/subscription/annotations.go",
+        "role": "Typed annotation getter/setter helpers for PreviousSubscriptionID, SupersedingSubscriptionID, BooleanEntitlementCount, OwnerSubSystem. Exported as subscription.AnnotationParser.",
+        "watch_for": "Never read annotation map keys by string literal \u2014 always use AnnotationParser methods to avoid key typos and type assertion errors."
+      },
+      {
+        "file": "openmeter/subscription/hook.go",
+        "role": "Defines SubscriptionCommandHook interface (Before/AfterCreate, BeforeUpdate, BeforeDelete, AfterCancel, AfterContinue) and NoOpSubscriptionCommandHook base struct.",
+        "watch_for": "All hook implementations must embed NoOpSubscriptionCommandHook to avoid implementing all methods manually. Hook methods must never call subscription.Service write methods (re-entrant hook calls)."
+      },
+      {
+        "file": "openmeter/subscription/locks.go",
+        "role": "Provides GetCustomerLock(customerId) returning lockr.Key for pg_advisory_lock key construction.",
+        "watch_for": "Lock must be used inside an active Postgres transaction (inside entutils.TransactingRepo). Calling LockForTX outside a transaction fails."
+      },
+      {
+        "file": "openmeter/subscription/uniqueness.go",
+        "role": "Implements ValidateUniqueConstraintByFeatures for cross-subscription overlap detection on billable features.",
+        "watch_for": "Must be called with ALL active+new specs for a customer \u2014 passing only the two being compared misses partial overlap cases."
+      },
+      {
+        "file": "openmeter/subscription/events.go",
+        "role": "All subscription lifecycle events (CreatedEvent, UpdatedEvent, CancelledEvent, ContinuedEvent, SubscriptionSyncEvent) with EventName() and EventMetadata().",
+        "watch_for": "All events use metadata.GetEventName with EventSubsystem prefix \u2014 ensures correct Kafka topic routing via eventbus.GeneratePublishTopic."
+      },
+      {
+        "file": "openmeter/subscription/item.go",
+        "role": "SubscriptionItem domain type with custom JSON unmarshaller for RateCard polymorphism (FlatFeeRateCard vs UsageBasedRateCard discriminated by type field).",
+        "watch_for": "UnmarshalJSON must handle both RateCard types \u2014 adding a new RateCard type requires updating the switch case here."
+      }
+    ],
+    "anti_patterns": [
+      "Calling patch.ApplyTo(spec, actx) directly \u2014 always route through SubscriptionSpec.Apply/ApplyX wrappers so subsequent validation runs.",
+      "Iterating over SubscriptionSpec.Phases map directly \u2014 always call GetSortedPhases() for deterministic phase order.",
+      "Reading or writing annotation map keys as raw strings instead of using subscription.AnnotationParser methods.",
+      "Calling subscription.Service write methods from inside a SubscriptionCommandHook \u2014 creates re-entrant hook invocations.",
+      "Skipping ValidateUniqueConstraintByFeatures before persisting a new or updated subscription covering a billable feature."
+    ],
+    "decisions": [
+      {
+        "decision": "Patch system (AppliesToSpec) as the only mutation path for SubscriptionSpec",
+        "rationale": "Ensures all changes go through a validated, ordered application pipeline so SubscriptionSpec invariants (phase ordering, feature uniqueness, billing cadence alignment) are always checked after every mutation."
+      },
+      {
+        "decision": "SubscriptionSpec as an in-memory spec object separate from the persisted Subscription",
+        "rationale": "Allows the service layer to build, validate, and diff specs before writing to the DB \u2014 supports EditRunning and ChangeToPlan which need to compute diffs against the current live state."
+      },
+      {
+        "decision": "pg_advisory_lock per customer for subscription serialization",
+        "rationale": "Prevents concurrent subscription creates/edits for the same customer from producing conflicting billing line items or overlapping entitlement grants."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Applying a patch to a SubscriptionSpec and validating cross-subscription uniqueness before persisting",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/subscription\"\n)\n\n// Mark context as inside a subscription operation\nctx = subscription.NewSubscriptionOperationContext(ctx)\n\n// Acquire per-customer advisory lock inside transaction\nkey, err := subscription.GetCustomerLock(customerID)\nif err != nil { return err }\n// (locker.LockForTX called inside entutils.TransactingRepo)\n\n// Apply patch through spec wrapper \u2014 never call patch.ApplyTo directly\nif err := spec.Apply(patch, subscription.ApplyContext{CurrentTime: now}); err != nil {\n    return err\n}\n\n// Validate cross-subscription uniqueness\nallSpecs, err := svc.repo.ListSpecsForCustomer(ctx, customerID)\nif err != nil { return err }\nif err := subscription.ValidateUniqueConstraintByFeatures(append(allSpecs, spec)); err != nil {\n    return err\n}\n// Then persist..."
+      }
+    ]
+  }
+}

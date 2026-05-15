@@ -2,35 +2,38 @@
 
 <!-- archie:ai-start -->
 
-> Thin extension layer on top of samber/lo providing error-aware map, diff, and iteration helpers that lo omits; all functions are generic and pure (no side effects, no domain imports).
+> Thin extension layer on top of samber/lo providing error-aware map, diff, and early-exit iteration helpers that lo omits; all functions are generic and pure with no side effects or domain imports.
 
 ## Patterns
 
-**MapWithErr collects all errors before returning** — MapWithErr uses errors.Join to accumulate errors across all elements and returns nil slice + joined error if any mapping fails; it does NOT short-circuit on first error. (`results, err := slicesx.MapWithErr(items, func(i Item) (Out, error) { return convert(i) })`)
-**Nil-in nil-out contract** — Map and MapWithErr both return nil (not an empty slice) when given a nil input — callers relying on non-nil output must pass an initialized slice. (`slicesx.Map(nil, f) // returns nil, not []S{}`)
-**NewDiff wraps lo.Difference with O(1) membership lookup** — NewDiff(base, new) builds index maps for both additions and removals so Has/InAdditions/InRemovals are O(1). (`d := slicesx.NewDiff(oldIDs, newIDs); if d.InAdditions(id) { ... }`)
-**Prefer lo for standard operations** — Functions that lo already covers (Filter, Contains, Keys, etc.) should NOT be re-implemented here; add to slicesx only for patterns lo explicitly lacks. (`// Use lo.Filter, not a custom slicesx.Filter`)
+**MapWithErr accumulates all errors before returning** — MapWithErr uses errors.Join to collect errors from every element — it does NOT short-circuit on first failure. The result slice omits erroring elements; count may be less than input. (`results, err := slicesx.MapWithErr(items, func(i Item) (Out, error) { return convert(i) })`)
+**Nil-in nil-out contract** — Map and MapWithErr both return nil (not an empty slice) when given a nil input. Callers that require a non-nil empty slice must initialize the input first. (`slicesx.Map(nil, f) // returns nil, not []S{}`)
+**NewDiff argument order: base then new** — NewDiff(base, new) wraps lo.Difference — additions are items in base not in new; removals are items in new not in base. Swapping arguments silently inverts additions and removals. (`d := slicesx.NewDiff(oldIDs, newIDs); if d.InAdditions(id) { /* id was removed from new set */ }`)
+**ForEachUntilWithErr breaks on true, errors on err — these are independent signals** — Callback returning (true, nil) breaks the loop without error; (false, err) stops with error. Both stop iteration but are semantically distinct. (`slicesx.ForEachUntilWithErr(items, func(v Item, i int) (bool, error) { return v.Done, nil })`)
+**Prefer lo for operations it already covers** — Functions like Filter, Contains, Uniq, Keys are already in samber/lo and must not be re-implemented in slicesx. Add here only when lo explicitly lacks the pattern. (`// Use lo.Filter, lo.Contains — not a new slicesx.Filter`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `diff.go` | Diff[T,S] value type for comparing two slices; additions = items in base not in new, removals = items in new not in base (mirrors lo.Difference semantics). | Diff argument order: NewDiff(base, new) — swapping them inverts additions/removals. |
-| `map.go` | Map (no-error) and MapWithErr (error-accumulating) generic slice transforms. | MapWithErr skips erroring elements and continues — the result slice omits them; check for this when order or count matters. |
-| `empty.go` | EmptyAsNil normalises zero-length slices to nil for struct equality in tests. | Only use in tests or assertion helpers; calling it in production can hide unintended empty-slice semantics. |
-| `each.go` | ForEachUntilWithErr iterates with early-exit support via a bool return from the callback. | Callback returning (true, nil) breaks the loop without error; returning (false, err) stops with error — these are independent signals. |
+| `diff.go` | Diff[T,S] value type wrapping lo.Difference with O(1) index maps for InAdditions/InRemovals/Has and HasChanged convenience method. | NewDiff argument order: first arg is base (source of additions), second arg is new (source of removals). Swapping inverts semantics. |
+| `map.go` | Map (no-error transform) and MapWithErr (error-accumulating transform) generic slice helpers. | MapWithErr skips erroring elements and continues — result slice may have fewer elements than input; returned error is errors.Join of all failures. |
+| `empty.go` | EmptyAsNil normalises zero-length slices to nil for struct equality assertions. | Only intended for test code — using in production code can hide unintended empty-slice semantics. |
+| `each.go` | ForEachUntilWithErr iterates with early-exit via (breaks bool, err error) return from callback. | breaks and err are independent — (true, nil) breaks cleanly; (false, err) stops with error. Never assume breaks==true implies no error. |
+| `groupby.go` | UniqueGroupBy groups a collection and asserts uniqueness — returns (nil, false) if any key maps to more than one element. | Returns (nil, false) on collision rather than an error — callers must check the bool. |
 
 ## Anti-Patterns
 
 - Duplicating lo functions (Filter, Contains, Uniq) here — use lo directly
-- Using EmptyAsNil in production code paths — it is intended for test assertion normalisation only
-- Adding stateful or side-effectful helpers — all functions here must be pure transforms
+- Using EmptyAsNil in production code — it is intended for test assertion normalisation only
+- Adding stateful or side-effectful helpers — all functions must be pure transforms
+- Assuming MapWithErr returns a result slice of the same length as input when errors occur — erroring elements are skipped
 
 ## Decisions
 
-- **Wrap lo rather than replace it** — lo covers ~90% of slice operations; slicesx fills the gaps (error-returning maps, diff with index, early-exit iteration) without duplicating the rest.
+- **Wrap lo rather than replace it** — lo covers ~90% of slice operations; slicesx fills only the gaps (error-returning maps, diff with O(1) index, early-exit iteration) without duplicating the rest.
 
-## Example: Convert a slice of domain entities to API types, collecting all conversion errors
+## Example: Convert a slice of domain entities to API types, collecting all conversion errors before returning
 
 ```
 import "github.com/openmeterio/openmeter/pkg/slicesx"

@@ -2,32 +2,32 @@
 
 <!-- archie:ai-start -->
 
-> V3 HTTP handler package for the customer resource and all customer-scoped sub-resources (billing overrides, charges, credits, entitlement access). Each sub-package owns one resource slice; the parent package owns core CRUD (list, create, get, delete, upsert) and is the entry point wired by api/v3/server.
+> v3 HTTP handler package for core customer CRUD (list, create, get, delete, upsert) and the entry point wired by api/v3/server. Sub-packages (billing/, charges/, credits/, entitlementaccess/) own customer-scoped resource slices with distinct service dependencies.
 
 ## Patterns
 
-**Handler interface + unexported handler struct** — Declare a public Handler interface listing every operation method, and a private handler struct holding resolveNamespace, service, and options. Expose a New() constructor returning Handler. (`type Handler interface { ListCustomers() ListCustomersHandler; ... }; type handler struct { resolveNamespace func(ctx context.Context) (string, error); service customer.Service; options []httptransport.HandlerOption }; func New(resolveNamespace ..., service ..., options ...httptransport.HandlerOption) Handler`)
-**httptransport.NewHandlerWithArgs for path-param operations** — Operations that take a path parameter (customerID, etc.) use httptransport.NewHandlerWithArgs[Req, Resp, Params]; plain POST/LIST operations use httptransport.NewHandler. (`func (h *handler) DeleteCustomer() DeleteCustomerHandler { return httptransport.NewHandlerWithArgs(decoder, operation, commonhttp.EmptyResponseEncoder[...](http.StatusNoContent), httptransport.AppendOptions(h.options, httptransport.WithOperationName(...), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))...) }`)
-**Namespace resolved via injected resolver, never from request params** — Call h.resolveNamespace(ctx) in the decoder; never extract namespace from URL/query params directly. (`ns, err := h.resolveNamespace(ctx); if err != nil { return ..., err }`)
-**Request/Response type aliases in each operation file** — Each operation file defines package-level type aliases XxxRequest, XxxResponse, XxxParams, XxxHandler before the method body for discoverability. (`type ( CreateCustomerRequest = customer.CreateCustomerInput; CreateCustomerResponse = api.BillingCustomer; CreateCustomerHandler httptransport.Handler[CreateCustomerRequest, CreateCustomerResponse] )`)
-**Goverter for API↔domain struct conversion** — Declare conversion functions as vars with goverter annotations in convert.go; regenerate convert.gen.go with go generate. Never hand-edit convert.gen.go. (`//go:generate go run github.com/jmattheis/goverter/cmd/goverter gen ./
+**Public Handler interface + unexported handler struct** — Declare a public Handler interface listing every operation method returning a typed handler alias; back it with an unexported handler struct. Expose a New() constructor. (`type Handler interface { ListCustomers() ListCustomersHandler; CreateCustomer() CreateCustomerHandler; ... }; type handler struct { resolveNamespace func(ctx context.Context) (string, error); service customer.Service; options []httptransport.HandlerOption }`)
+**httptransport.NewHandlerWithArgs for path-param operations** — Operations with path parameters (customerID) use NewHandlerWithArgs[Req, Resp, Params]; plain POST/LIST operations use NewHandler. (`httptransport.NewHandlerWithArgs(decoder, operation, commonhttp.EmptyResponseEncoder[...](http.StatusNoContent), httptransport.AppendOptions(h.options, httptransport.WithOperationName(...), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))...)`)
+**Namespace resolved via injected resolver, never from request params** — Always call h.resolveNamespace(ctx) in the decoder; never extract namespace from URL or query params directly. (`ns, err := h.resolveNamespace(ctx); if err != nil { return ..., err }`)
+**Per-operation type aliases before method body** — Each operation file defines package-level type aliases XxxRequest, XxxResponse, XxxParams, XxxHandler before the method body for discoverability and compile-time verification. (`type ( CreateCustomerRequest = customer.CreateCustomerInput; CreateCustomerResponse = api.BillingCustomer; CreateCustomerHandler httptransport.Handler[CreateCustomerRequest, CreateCustomerResponse] )`)
+**Goverter for API-to-domain struct conversion** — Declare conversion function vars with goverter annotations in convert.go; regenerate convert.gen.go with go generate. The generated file carries //go:build !goverter and must never be hand-edited. (`//go:generate go run github.com/jmattheis/goverter/cmd/goverter gen ./
 // goverter:variables
 var ToAPIBillingCustomer func(customer.Customer) api.BillingCustomer`)
-**apierrors.GenericErrorEncoder always appended last** — Every httptransport.AppendOptions call must include httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) so domain errors map to correct HTTP status codes. Sub-package-specific error encoders are prepended before it. (`httptransport.AppendOptions(h.options, httptransport.WithOperationName("create-customer"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))`)
-**Deleted-customer guard before mutations** — Any operation that mutates an existing customer must fetch it first and return apierrors.NewGoneError when cus.IsDeleted() is true. (`if cus.IsDeleted() { return ..., apierrors.NewGoneError(ctx, errors.New("customer is deleted")) }`)
+**apierrors.GenericErrorEncoder always appended last** — Every httptransport.AppendOptions call must include httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) so domain errors map to correct HTTP status codes. Sub-package error encoders are prepended before it. (`httptransport.AppendOptions(h.options, httptransport.WithOperationName("create-customer"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))`)
+**Deleted-customer guard before mutations** — Any operation mutating an existing customer must fetch it first and return apierrors.NewGoneError when cus.IsDeleted() is true. (`cus, err := h.service.GetCustomer(ctx, ...); if cus.IsDeleted() { return ..., apierrors.NewGoneError(ctx, errors.New("customer is deleted")) }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `handler.go` | Defines the Handler interface and New() constructor; lists every operation the package exposes. Add new operation methods here first. | Missing operation in the Handler interface causes a compile error when the v3 server tries to call it. |
-| `convert.go` | Goverter annotation source for API↔domain struct conversions. Edit annotations here and regenerate; never touch convert.gen.go. | Forgetting //go:generate header or goverter:variables block breaks regeneration silently. |
+| `handler.go` | Defines the Handler interface and New() constructor; lists every operation the package exposes. Add new operation methods here first. | Missing an operation in the Handler interface causes a compile error when api/v3/server tries to call it. |
+| `convert.go` | Goverter annotation source for API-to-domain struct conversions. Edit annotations here and run make generate; never touch convert.gen.go. | Forgetting //go:generate header or goverter:variables block breaks regeneration silently. |
 | `convert.gen.go` | Generated by Goverter — DO NOT EDIT. Has !goverter build tag so it is excluded when goverter itself runs. | Hand-editing this file causes drift that will be overwritten on the next make generate. |
-| `list.go` | ListCustomers handler with pagination (page number/size), sort parsing via request.ParseSortBy, and filter parsing via filters.FromAPIFilterString. | Pagination defaults (1, 20) and page.Validate() must stay; dropping validation silently accepts invalid page sizes. |
-| `upsert.go` | UpsertCustomer handler; performs a pre-fetch to preserve the immutable Key field before calling service.UpdateCustomer. | If the pre-fetch/key-backfill is removed, UpdateCustomer will wipe the customer key in the DB. |
-| `billing/handler.go` | Sub-package handler for customer-scoped billing profile overrides and Stripe session endpoints. | Stripe session endpoints (checkout, portal) share the same handler; ensure billing profile is resolved before calling Stripe app. |
-| `credits/handler.go` | Sub-package handler gated by credits.enabled; injected services may be noops when credits are off. | Do not assume ledger or accountResolver are real; the handler must be safe to wire with noop implementations. |
-| `charges/list.go` | Lists flat-fee and usage-based charges; explicitly excludes meta.ChargeTypeCreditPurchase. | Including credit-purchase charges here would expose them on the wrong API surface. |
+| `list.go` | ListCustomers handler with pagination (page number/size defaulting to 1/20), sort parsing via request.ParseSortBy, and filter parsing via filters.FromAPIFilterString. | Dropping page.Validate() silently accepts invalid page sizes; omitting filter fields produces incomplete filtering. |
+| `upsert.go` | UpsertCustomer handler; performs a pre-fetch to preserve the immutable Key field before calling service.UpdateCustomer. | If the pre-fetch and key-backfill is removed, service.UpdateCustomer will wipe the customer key in the DB. |
+| `billing/handler.go` | Sub-package handler for customer-scoped billing profile overrides and Stripe session endpoints. | Stripe session endpoints (checkout, portal) share the same handler; billing profile must be resolved before calling Stripe app. |
+| `credits/handler.go` | Sub-package handler gated by credits.enabled; injected services may be noops when credits are off. | Do not assume ledger or accountResolver are real implementations when credits.enabled=false. |
+| `charges/list.go` | Lists flat-fee and usage-based charges; explicitly excludes meta.ChargeTypeCreditPurchase. | Including credit-purchase charges here exposes them on the wrong API surface. |
 
 ## Anti-Patterns
 
@@ -39,11 +39,11 @@ var ToAPIBillingCustomer func(customer.Customer) api.BillingCustomer`)
 
 ## Decisions
 
-- **One operation per file (create.go, delete.go, get.go, list.go, upsert.go)** — Keeps each handler independently reviewable and avoids a single file growing unbounded as new operations are added.
+- **One operation per file (create.go, delete.go, get.go, list.go, upsert.go)** — Keeps each handler independently reviewable and prevents a single file growing unbounded as new operations are added.
 - **Goverter-generated struct mapping instead of hand-written conversion helpers** — Compile-time checked field mapping eliminates silent drift between API types and domain types as either evolves.
 - **Sub-packages (billing/, credits/, charges/, entitlementaccess/) own their operation slices** — Customer-scoped resources have distinct service dependencies and error-encoding needs; co-locating them in the parent handler.go would couple unrelated services and error encoders.
 
-## Example: Add a new customer operation (e.g. ArchiveCustomer) following the package conventions
+## Example: Add a new customer operation (e.g. ArchiveCustomer) following package conventions
 
 ```
 // archive.go
@@ -53,6 +53,7 @@ import (
 	"context"
 	"net/http"
 
+	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	customer "github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -60,7 +61,6 @@ import (
 )
 
 type (
-	ArchiveCustomerRequest  = customer.ArchiveCustomerInput
 // ...
 ```
 

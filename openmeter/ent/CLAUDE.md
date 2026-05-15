@@ -7,7 +7,7 @@
 ## Patterns
 
 **Schema-first generation** — All database shapes live in openmeter/ent/schema/*.go. Run `make generate` after any schema change; never edit openmeter/ent/db/. (`go run -mod=readonly entc.go  // triggered by go:generate in generate.go`)
-**Extension-driven codegen** — entc.go registers five custom extensions (entcursor, entexpose, entmixinaccessor, entpaginate, entsetorclear) plus FeatureVersionedMigration, FeatureLock, FeatureUpsert, FeatureExecQuery. Any new Ent feature must be added here, not inline. (`entc.Extensions(entcursor.New(), entpaginate.New(), ...)`)
+**Extension-driven codegen** — entc.go registers five custom extensions (entcursor, entexpose, entmixinaccessor, entpaginate, entsetorclear) plus FeatureVersionedMigration, FeatureLock, FeatureUpsert, FeatureExecQuery. Any new Ent feature must be added here, not inline. (`entc.Extensions(entcursor.New(), entpaginate.New(), entexpose.New(), entmixinaccessor.New(), entsetorclear.New())`)
 **View SQL side-output** — entc.go calls viewgen.GenerateFile after Ent codegen to produce tools/migrate/views.sql. View DDL is not in atlas migrations — it is regenerated separately. (`viewgen.GenerateFile("./schema", "../../tools/migrate/views.sql")`)
 **Transaction bridging via openmeter/ent/tx** — Domain adapters must obtain transactions through the transaction.Creator interface (implemented in openmeter/ent/tx) rather than calling db.Tx(ctx) directly, so pkg/framework/entutils.TransactingRepo can rebind the ctx-carried transaction. (`enttx.New(db) // returns transaction.Creator backed by db.HijackTx`)
 

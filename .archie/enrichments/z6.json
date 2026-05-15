@@ -1,0 +1,106 @@
+{
+  "cmd/jobs": {
+    "purpose": "Cobra CLI binary grouping administrative one-off jobs (billing advance/collect, entitlement recalculation, ledger backfill, LLM cost sync, DB migration, quickstart cron). The entire application is wired once via PersistentPreRunE before any sub-command runs; sub-commands source all services from internal.App globals.",
+    "patterns": [
+      {
+        "name": "PersistentPreRunE DI bootstrap",
+        "description": "rootCmd.PersistentPreRunE calls internal.InitializeApplication(ctx, configFileName) before every sub-command. Sub-commands must never initialise services themselves.",
+        "example": "PersistentPreRunE: func(cmd *cobra.Command, args []string) error { return internal.InitializeApplication(ctx, configFileName) }"
+      },
+      {
+        "name": "internal.App as the single service registry",
+        "description": "All sub-commands access domain services exclusively via package-level globals internal.App and internal.Config \u2014 never by constructing services inline.",
+        "example": "internal.App.BillingService.AdvanceInvoices(cmd.Context(), billing.AdvanceInvoicesInput{...})"
+      },
+      {
+        "name": "cmd.Context() for context propagation",
+        "description": "Every RunE uses cmd.Context() (signal-aware root context) \u2014 never context.Background() or context.TODO().",
+        "example": "RunE: func(cmd *cobra.Command, args []string) error { return doWork(cmd.Context()) }"
+      },
+      {
+        "name": "Sub-command registration via init() or RootCommand()",
+        "description": "Each sub-package exports either a package-level Cmd var registered in init() or a RootCommand() factory. main.go adds them with rootCmd.AddCommand(...).",
+        "example": "rootCmd.AddCommand(billing.Cmd); rootCmd.AddCommand(entitlement.RootCommand())"
+      },
+      {
+        "name": "Nil-guard optional app services before use",
+        "description": "Optional features (e.g. ChargesAutoAdvancer) may be nil when the feature is disabled. Always nil-check before calling.",
+        "example": "if internal.App.ChargesAutoAdvancer != nil { scheduler.NewJob(...) }"
+      },
+      {
+        "name": "Deferred AppShutdown in main",
+        "description": "main.go defers internal.AppShutdown() to release resources regardless of execution path, including early-exit error paths.",
+        "example": "defer func() { if internal.AppShutdown != nil { internal.AppShutdown() } }()"
+      },
+      {
+        "name": "Ledger backfill bypasses Wire DI for concrete adapters",
+        "description": "When credits.enabled=false Wire provides noop ledger resolvers. The ledger backfill sub-command must construct concrete adapters directly (including lockr.Locker) to write real rows.",
+        "example": "// cmd/jobs/ledger/backfillaccounts/service/service.go builds lockr.NewLocker and concrete ledger adapters, not the Wire-injected noops"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.go",
+        "role": "Binary entry point: signal-aware context, Cobra root, PersistentPreRunE DI bootstrap, sub-command registration, deferred shutdown.",
+        "watch_for": "PersistentPreRunE runs before every sub-command \u2014 side-effects here affect all commands. AppShutdown must be deferred or resources leak."
+      },
+      {
+        "file": "version.go",
+        "role": "Minimal version sub-command; delegates to internal.Version() for ldflags-injected build metadata.",
+        "watch_for": "internal.Version() reads ldflags variables \u2014 keep in sync with the build toolchain."
+      },
+      {
+        "file": "cmd/jobs/internal/wire.go",
+        "role": "Wire provider sets and initializeApplication declaration; source of truth for the DI graph.",
+        "watch_for": "Adding a new Application field requires a matching provider in wire.Build. Never edit wire_gen.go directly \u2014 regenerate with 'make generate'."
+      },
+      {
+        "file": "cmd/jobs/internal/globals.go",
+        "role": "Package-level App, AppShutdown, Config globals consumed by all sub-packages.",
+        "watch_for": "Intentionally global (nolint:gochecknoglobals). Do not introduce a second App construction path."
+      },
+      {
+        "file": "cmd/jobs/billing/billing.go",
+        "role": "Pure aggregator \u2014 registers advance, advancecharges, collect, subscriptionsync sub-commands with no logic.",
+        "watch_for": "No business logic belongs here; keep it as a pure AddCommand aggregator. Each sub-command lives in its own package."
+      },
+      {
+        "file": "cmd/jobs/ledger/backfillaccounts/service/service.go",
+        "role": "Concrete ledger adapter construction that bypasses DI noops when credits.enabled=false; uses cursor pagination with MAX_SAFE_ITER guard.",
+        "watch_for": "Must build lockr.Locker and concrete ledger adapters directly. Using Wire-provided noop resolvers silently skips all writes."
+      },
+      {
+        "file": "cmd/jobs/quickstart/cronjobs.go",
+        "role": "gocron-based polling loops for quickstart/demo environments only.",
+        "watch_for": "Not for production workers \u2014 production uses Kafka/Watermill. Nil-check all optional services before scheduling."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing domain services (billing, charges, ledger) directly inside RunE instead of sourcing from internal.App",
+      "Using context.Background() or context.TODO() in RunE \u2014 always use cmd.Context()",
+      "Registering sub-command-specific flags on a parent aggregator Cmd (pollutes sibling flag sets)",
+      "Calling tools/migrate DDL or data transforms inline in migrate.go \u2014 those belong in tools/migrate/migrations/",
+      "Using quickstart gocron polling patterns in production workers \u2014 production billing flows use Kafka/Watermill"
+    ],
+    "decisions": [
+      {
+        "decision": "PersistentPreRunE wires the entire application once before any sub-command runs",
+        "rationale": "Centralises DI bootstrap in main.go so every sub-command automatically gets a fully-wired app without duplicating initialisation logic across sub-packages."
+      },
+      {
+        "decision": "internal.App package-level globals rather than Cobra context injection",
+        "rationale": "Simpler sub-package access pattern; avoids type-assertion boilerplate across many independent sub-packages that each need to pull services from the context."
+      },
+      {
+        "decision": "Ledger backfill bypasses Wire DI to construct concrete adapters",
+        "rationale": "When credits.enabled=false, Wire provides noop ledger resolvers; the backfill job must write real rows so it builds lockr.Locker and concrete adapters directly."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new administrative sub-command that uses a domain service from internal.App",
+        "code": "// cmd/jobs/myfeature/myfeature.go\npackage myfeature\n\nimport (\n\t\"github.com/spf13/cobra\"\n\t\"github.com/openmeterio/openmeter/cmd/jobs/internal\"\n)\n\nvar Cmd = &cobra.Command{\n\tUse:   \"myfeature\",\n\tShort: \"Run myfeature job\",\n\tRunE: func(cmd *cobra.Command, args []string) error {\n\t\t// Always use cmd.Context(), never context.Background()\n\t\t// Always source services from internal.App\n\t\tif internal.App.MyService == nil {\n\t\t\treturn nil // nil-guard optional features\n\t\t}\n\t\treturn internal.App.MyService.DoWork(cmd.Context())\n\t},\n}\n\n// Register in main.go: rootCmd.AddCommand(myfeature.Cmd)"
+      }
+    ]
+  }
+}

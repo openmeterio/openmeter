@@ -2,23 +2,23 @@
 
 <!-- archie:ai-start -->
 
-> V2 HTTP driver for the entitlement domain — adapts entitlement.Service and meteredentitlement.Connector to HTTP handlers using the httptransport.HandlerWithArgs pattern, always scoped to a resolved customer (ID or key). All endpoints include customerId/customerKey fields in responses, distinguishing this layer from the v1 subject-keyed driver.
+> V2 HTTP driver for the entitlement domain — adapts entitlement.Service and meteredentitlement.Connector to customer-scoped HTTP handlers using httptransport.HandlerWithArgs, always resolving a customer (by ID or key) before any entitlement operation. Distinguishes from v1 by returning customerId/customerKey in all responses.
 
 ## Patterns
 
 **HandlerWithArgs typed triplet** — Every endpoint declares three type aliases — Request, Response, Params — then aliases the handler type as `httptransport.HandlerWithArgs[Req, Resp, Params]`. The method on entitlementHandler returns that alias type. (`type CreateCustomerEntitlementHandler httptransport.HandlerWithArgs[CreateCustomerEntitlementHandlerRequest, CreateCustomerEntitlementHandlerResponse, CreateCustomerEntitlementHandlerParams]`)
-**Customer resolution before entitlement ops** — Every mutating or read handler resolves the customer via h.customerService.GetCustomer with CustomerIDOrKey first, then checks cus.IsDeleted() returning models.NewGenericPreConditionFailedError before any entitlement call. (`cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{CustomerIDOrKey: &customer.CustomerIDOrKey{Namespace: ns, IDOrKey: req.CustomerIDOrKey}}); if cus.IsDeleted() { return ..., models.NewGenericPreConditionFailedError(...) }`)
-**Namespace resolved from context via namespaceDecoder** — All handlers call h.resolveNamespace(ctx) as the first step; it delegates to h.namespaceDecoder.GetNamespace(ctx). If not found, returns a 500 HTTP error. Never accept namespace from URL params. (`ns, err := h.resolveNamespace(ctx); if err != nil { return def, err }`)
-**ParserV2.ToAPIGenericV2 for all entitlement responses** — All handlers returning an entitlement call ParserV2.ToAPIGenericV2(ent, cust.ID, cust.Key) — never inline the mapping. This dispatches by EntitlementType to ToMeteredV2/ToStaticV2/ToBooleanV2. (`return ParserV2.ToAPIGenericV2(ent, cust.ID, cust.Key)`)
-**Error encoder chains v1 then generic** — getErrorEncoder() composes entitlementdriver.GetErrorEncoder() (v1 errors) with commonhttp.GenericErrorEncoder() so v2 error codes stay consistent with v1. (`httptransport.WithErrorEncoder(getErrorEncoder())`)
+**Customer resolution before entitlement ops** — Every mutating or read handler resolves the customer via h.customerService.GetCustomer with CustomerIDOrKey first, then checks cus.IsDeleted() returning models.NewGenericPreConditionFailedError before any entitlement call. (`cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{CustomerIDOrKey: &customer.CustomerIDOrKey{Namespace: ns, IDOrKey: req.CustomerIDOrKey}}); if cus != nil && cus.IsDeleted() { return ..., models.NewGenericPreConditionFailedError(...) }`)
+**Namespace resolved from context via namespaceDecoder** — All handlers call h.resolveNamespace(ctx) as the first step; it delegates to h.namespaceDecoder.GetNamespace(ctx). Returns HTTP 500 if not found. Never accept namespace from URL params. (`ns, err := h.resolveNamespace(ctx); if err != nil { return def, err }`)
+**ParserV2.ToAPIGenericV2 for all entitlement responses** — All handlers returning an entitlement call ParserV2.ToAPIGenericV2(ent, cust.ID, cust.Key) — never inline the mapping. Dispatches by EntitlementType to ToMeteredV2/ToStaticV2/ToBooleanV2 and calls res.FromEntitlementMeteredV2/FromEntitlementStaticV2/FromEntitlementBooleanV2. (`v2, err := ParserV2.ToAPIGenericV2(ent, cus.ID, cus.Key); if err != nil { return api.EntitlementV2{}, err }; return *v2, nil`)
+**Error encoder chains v1 then generic** — getErrorEncoder() in errors.go composes entitlementdriver.GetErrorEncoder() (v1 errors) with commonhttp.GenericErrorEncoder() so v2 error codes stay consistent with v1. (`httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(getErrorEncoder()))`)
 **ParseAPICreateInputV2 for create/override input parsing** — Mapping API create inputs uses ParseAPICreateInputV2(inp, ns, cus.GetUsageAttribution()) — never inline the discriminator logic. It handles metered/static/boolean variants and enforces mutual exclusion of issueAfterReset vs grants. (`createInp, grantsInp, err := ParseAPICreateInputV2(request.APIInput, request.Namespace, cus.GetUsageAttribution())`)
-**Separate connector fields for base and metered ops** — entitlementHandler has two separate service fields: connector (entitlement.Service) for generic entitlement CRUD, and balanceConnector (meteredentitlement.Connector) for grant/history/reset ops. Do not collapse them. (`h.connector.CreateEntitlement(...) vs h.balanceConnector.CreateGrant(...)`)
+**Separate connector fields for base and metered ops** — entitlementHandler has two service fields: connector (entitlement.Service) for generic entitlement CRUD, and balanceConnector (meteredentitlement.Connector) for grant/history/reset ops. Do not collapse them. (`h.connector.CreateEntitlement(...) vs h.balanceConnector.CreateGrant(...)`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `handler.go` | Defines EntitlementHandler interface listing all V2 methods plus entitlementHandler struct and NewEntitlementHandler constructor. This is the sole DI entry point — all dependencies are injected here. | Adding new handler methods requires adding to EntitlementHandler interface; failing to do so breaks the compile-time contract. |
+| `handler.go` | Defines EntitlementHandler interface listing all V2 methods plus entitlementHandler struct and NewEntitlementHandler constructor. Sole DI entry point — all dependencies injected here. | Adding new handler methods requires adding to EntitlementHandler interface; missing interface method breaks the compile-time contract. |
 | `customer.go` | Handlers for customer-scoped CRUD entitlement endpoints (create, list, get, delete, override). All follow the resolve-customer-first pattern. | Must always check cus.IsDeleted() before proceeding; omitting this lets soft-deleted customer operations succeed. |
 | `customer_metered.go` | Handlers for metered-specific endpoints (grants CRUD, balance history, usage reset) routed through h.balanceConnector. | Resolves entitlement via h.connector.GetEntitlementOfCustomerAt before using the returned ent.ID for balance calls — do not pass featureKey directly to balanceConnector. |
 | `entitlement.go` | Namespace-level entitlement list and get-by-ID handlers (not customer-scoped). ListEntitlements uses ListEntitlementsWithCustomer to return customer context in results. | OrderBy values must go through strcase.CamelToSnake before comparison against ListEntitlementsOrderBy.StrValues(); skipping this causes silent invalid orderby acceptance. |
@@ -37,12 +37,12 @@
 
 - **V2 driver is customer-ID-centric rather than subject-key-centric like v1.** — The v2 API surface is customer-first; entitlements are always queried and returned with customerId/customerKey to align with the customer-scoped billing model.
 - **Error encoding delegates to v1 entitlementdriver.GetErrorEncoder() first.** — Reusing v1 error codes prevents behavior divergence between API versions for the same domain errors.
-- **Customer resolution (including deleted check) happens in the request decoder closure, not the operation closure.** — Fail-fast on bad customer before hitting the entitlement service; also means the resolved cus is available in the decoder for building the domain input (e.g. GetUsageAttribution).
+- **Customer resolution (including deleted check) happens in the operation closure, not deferred to domain service.** — Fail-fast on bad customer before hitting the entitlement service; the resolved cus is also needed to obtain GetUsageAttribution() for building domain input.
 
-## Example: Adding a new customer-scoped entitlement endpoint (e.g. GetCustomerEntitlementValue)
+## Example: Adding a new customer-scoped entitlement endpoint following the v2 pattern
 
 ```
-// 1. Declare types in a new file or customer.go
+// 1. Declare typed triplet
 type (
 	GetCustomerEntitlementValueHandlerParams struct {
 		CustomerIDOrKey           string

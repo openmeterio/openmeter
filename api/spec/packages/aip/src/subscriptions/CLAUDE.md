@@ -2,38 +2,45 @@
 
 <!-- archie:ai-start -->
 
-> TypeSpec definitions for the Subscriptions v3 API domain: subscription lifecycle model, CRUD+action operations (create, list, get, cancel, unschedule-cancelation, change), and cross-domain reference type. All @friendlyName values are prefixed `Billing` to distinguish them in the generated Go/JS types.
+> TypeSpec definitions for the Subscriptions v3 API domain: subscription lifecycle model, CRUD+action operations (create, list, get, cancel, unschedule-cancelation, change), subscription addon model, and cross-domain SubscriptionReference type. All model and enum @friendlyName values are prefixed 'Billing' to avoid SDK type collisions.
 
 ## Patterns
 
-**BillingXxx friendlyName prefix on all models and enums** — Every model, enum, and union in this namespace carries @friendlyName("BillingXxx") — the generated SDK type names are prefixed Billing to avoid collisions with identically-named types in other namespaces. (`@friendlyName("BillingSubscription") model Subscription { ... }`)
-**Action operations use @route suffix + @post, not nested interfaces** — Non-CRUD actions (cancel, unschedule-cancelation, change) are declared as methods on the same interface with an explicit @route("/{subscriptionId}/action-name") decorator rather than nested interface hierarchies. (`@post @route("/{subscriptionId}/cancel") cancel(@path subscriptionId: Shared.ULID, @body body: SubscriptionCancel): ...`)
-**OmitProperties<> to derive create/change request shapes from read model** — Request bodies are derived from the read model by omitting server-assigned fields (id, status, billing_anchor) with OmitProperties<>, then adding explicit Create/Update-only fields inline. (`model SubscriptionCreate { ...Shared.CreateRequest<OmitProperties<Subscription, "customer_id" | "plan_id" | "billing_anchor">>; customer: { id?: ULID; key?: ExternalResourceKey; }; }`)
-**Union type for timing — enum or custom DateTime** — SubscriptionEditTiming is declared as a @oneOf union of the enum (immediate/next_billing_cycle) and a raw DateTime to allow both shorthand and explicit scheduling. (`@oneOf union SubscriptionEditTiming { Enum: SubscriptionEditTimingEnum, Custom: Shared.DateTime, }`)
-**Dual-response for change operation** — The change operation returns a SubscriptionChangeResponse with both `current` and `next` Subscription fields — not just the resulting resource. (`model SubscriptionChangeResponse { current: Subscription; next: Subscription; }`)
-**Namespace-scoped index.tsp barrel** — index.tsp imports subscription.tsp, then operations.tsp, then reference.tsp in dependency order. operations.tsp must come after subscription.tsp because it references its types. (`import "./subscription.tsp"; import "./operations.tsp"; import "./reference.tsp";`)
+**BillingXxx friendlyName prefix on all models and enums** — Every model, enum, and union carries @friendlyName("BillingXxx") — required to avoid SDK type name collisions with identically-named types in other namespaces (billing, productcatalog). Any new type added here must follow this prefix. (`@friendlyName("BillingSubscription") model Subscription { ... }
+@friendlyName("BillingSubscriptionStatus") enum SubscriptionStatus { ... }`)
+**Action operations as @route-decorated methods on the same interface** — Non-CRUD actions (cancel, unschedule-cancelation, change) are declared as methods on SubscriptionsOperations with an explicit @route("/{subscriptionId}/action-name") decorator, not as nested interfaces or separate interface extensions. (`@post @route("/{subscriptionId}/cancel") @operationId("cancel-subscription")
+cancel(@path subscriptionId: Shared.ULID, @body body: SubscriptionCancel): Shared.UpdateResponse<Subscription> | ...`)
+**OmitProperties<> to derive create/change shapes from the read model** — Request bodies are derived from the read model by omitting server-assigned fields (billing_anchor, status) with OmitProperties<Subscription, ...>, then adding explicit Create-only fields (customer, plan references) inline in the request model. (`model SubscriptionCreate {
+  ...Shared.CreateRequest<OmitProperties<Subscription, "customer_id" | "plan_id" | "billing_anchor">>;
+  customer: { id?: Shared.ULID; key?: Shared.ExternalResourceKey; };
+}`)
+**@oneOf union for flexible timing parameters** — SubscriptionEditTiming is a @oneOf union of an enum (immediate/next_billing_cycle) and a raw DateTime, allowing callers to use convenient shorthand or an explicit timestamp without a separate discriminator field. (`@oneOf @friendlyName("BillingSubscriptionEditTiming")
+union SubscriptionEditTiming { Enum: SubscriptionEditTimingEnum, Custom: Shared.DateTime, }`)
+**Dual-subscription response for change operation** — The change operation returns SubscriptionChangeResponse with both `current` and `next` Subscription fields — not wrapped in Shared.UpdateResponse<T> — because it has a two-subscription payload. (`@friendlyName("BillingSubscriptionChangeResponse")
+model SubscriptionChangeResponse { current: Subscription; next: Subscription; }`)
 
 ## Key Files
 
-| File               | Role                                                                                                                                                          | Watch For                                                                                                                                                      |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `subscription.tsp` | Core domain model: Subscription read model, SubscriptionCreate, SubscriptionStatus enum, SubscriptionEditTiming union, SubscriptionEditTimingEnum enum.       | Subscription spreads ...OmitProperties<Shared.Resource, "name"                                                                                                 | "description"> — name/description are intentionally absent. Do not add them back. |
-| `operations.tsp`   | SubscriptionsOperations interface with all HTTP operations including action routes. Declares SubscriptionCancel and SubscriptionChange request models inline. | The change operation returns raw SubscriptionChangeResponse (not wrapped in Shared.UpdateResponse) because it has a two-subscription payload — do not wrap it. |
-| `reference.tsp`    | SubscriptionReference cross-domain reference type for use when other domains (billing lines) need to point to a subscription item.                            | Reference type is deeply nested (subscription → phase → item) — all inner structs are anonymous inline models, not named types.                                |
+| File | Role | Watch For |
+|------|------|-----------|
+| `subscription.tsp` | Core domain model: Subscription (read model), SubscriptionCreate, SubscriptionStatus enum, SubscriptionEditTiming union, SubscriptionEditTimingEnum enum. | Subscription spreads ...OmitProperties<Shared.Resource, "name" | "description"> — name and description are intentionally absent. Do not add them back. |
+| `operations.tsp` | SubscriptionsOperations interface with all HTTP operations including action routes. SubscriptionCancel and SubscriptionChange request models are declared inline in this file. | The change operation returns raw SubscriptionChangeResponse (not wrapped in Shared.UpdateResponse) — do not wrap it. The response has its own @Http.statusCode baked in. |
+| `reference.tsp` | SubscriptionReference cross-domain reference type for when billing line items need to point to a specific subscription phase+item. | Reference type is deeply nested (subscription → phase → item) using anonymous inline structs, not named types. Do not extract the inner structs into separate named models. |
+| `subscriptionaddon.tsp` | SubscriptionAddon model: addon reference, quantity, quantity_at, active_from/active_to lifecycle times. | quantity_at is Read-only (server resolves it). active_from/active_to are Read-only temporal fields. |
 
 ## Anti-Patterns
 
-- Omitting @friendlyName("BillingXxx") from a new model/enum — generated SDK types would collide with same-named types in other namespaces
+- Omitting @friendlyName("BillingXxx") from a new model or enum — generated SDK types would collide with same-named types in other namespaces
 - Wrapping the change operation response in Shared.UpdateResponse<T> — its two-subscription payload is intentional and incompatible with the single-body envelope
-- Adding name or description fields to the Subscription model — they are explicitly omitted via OmitProperties and not part of this domain resource
+- Adding name or description fields to the Subscription model — explicitly omitted via OmitProperties
 - Defining a new action endpoint as a separate interface instead of a @route-decorated method on SubscriptionsOperations
 
 ## Decisions
 
-- **Billing-prefixed friendlyName on all types** — Multiple aip/ namespaces (subscriptions, billing, plans) expose similarly-named types; the Billing prefix makes generated Go and JS SDK types unambiguous without requiring Go package-qualified names.
-- **Union type for SubscriptionEditTiming instead of separate fields** — Allows callers to use the convenient enum values (immediate, next_billing_cycle) or an explicit timestamp without an extra discriminator field or separate endpoint variants.
+- **Billing-prefixed @friendlyName on all types** — Multiple aip/ namespaces (subscriptions, billing, productcatalog) expose similarly-named types; the Billing prefix makes generated Go and JS SDK types unambiguous without requiring Go package-qualified names.
+- **@oneOf union for SubscriptionEditTiming instead of separate fields** — Allows callers to use the convenient enum values (immediate, next_billing_cycle) or an explicit timestamp without an extra discriminator field or separate endpoint variants.
 
-## Example: Adding a new action endpoint (e.g. pause) to SubscriptionsOperations following existing patterns
+## Example: Adding a new action endpoint (e.g. pause) following existing patterns
 
 ```
 // In operations.tsp, inside interface SubscriptionsOperations:

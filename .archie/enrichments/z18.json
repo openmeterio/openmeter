@@ -1,0 +1,46 @@
+{
+  "openmeter/watermill/driver": {
+    "purpose": "Organisational layer housing the two concrete Watermill driver implementations \u2014 kafka/ (IBM Sarama-backed, production) and noop/ (zero-value, disabled-feature paths). No driver logic lives directly here; all code belongs in the two sub-packages.",
+    "patterns": [
+      {
+        "name": "Driver selection via Wire flag",
+        "description": "app/common selects kafka/ or noop/ at wiring time based on config flags. The driver folder contains no selection logic \u2014 the choice lives entirely in Wire provider functions in app/common.",
+        "example": "// app/common/watermill.go\nif cfg.Credits.Enabled {\n    return kafka.NewPublisher(brokerOpts)\n}\nreturn &noop.Publisher{}, nil"
+      },
+      {
+        "name": "No source files in driver/ root",
+        "description": "All driver code belongs exclusively in kafka/ or noop/ sub-packages. Adding .go files directly under openmeter/watermill/driver/ breaks the organisational contract.",
+        "example": "// BAD: openmeter/watermill/driver/mypublisher.go\n// GOOD: openmeter/watermill/driver/kafka/publisher.go"
+      },
+      {
+        "name": "Each driver sub-package needs a noop counterpart",
+        "description": "Any new driver sub-package must have a matching noop fallback so disabled-feature Wire paths can substitute it without nil checks or conditional branches at call sites.",
+        "example": "// New driver added:\n// openmeter/watermill/driver/redis/publisher.go\n// Must be paired with:\n// openmeter/watermill/driver/noop/publisher.go (already exists, satisfies interface)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "CLAUDE.md",
+        "role": "Archie-generated intent layer describing the organisational role of this folder and the two child sub-packages.",
+        "watch_for": "Do not delete the archie:ai-start/archie:ai-end markers \u2014 they are used by the Archie toolchain for drift detection and regeneration."
+      }
+    ],
+    "anti_patterns": [
+      "Adding .go source files directly under openmeter/watermill/driver/ \u2014 all code belongs in kafka/ or noop/ children",
+      "Adding a third driver sub-package without a corresponding noop fallback for disabled-feature Wire paths",
+      "Placing driver selection logic (config flag checks) inside this folder \u2014 selection belongs exclusively in app/common Wire provider functions",
+      "Importing openmeter/watermill/driver directly from domain packages \u2014 domain code must go through the eventbus.Publisher interface, not the concrete driver"
+    ],
+    "decisions": [
+      {
+        "decision": "Split into kafka/ and noop/ sub-packages rather than a single driver with a runtime mode flag",
+        "rationale": "Zero-value noop.Publisher{} is safe to use in disabled-feature wiring without any conditional branches at call sites; kafka/ keeps all Sarama/OTel/SASL complexity isolated from the no-op path."
+      },
+      {
+        "decision": "No code lives directly in the driver/ root folder",
+        "rationale": "Organisational folders with only child sub-packages make the architecture navigable \u2014 a developer opening driver/ immediately sees the two choices (kafka, noop) without scrolling through mixed source files."
+      }
+    ],
+    "code_examples": []
+  }
+}

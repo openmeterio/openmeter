@@ -2,7 +2,7 @@
 
 <!-- archie:ai-start -->
 
-> Shared test fixtures and dependency builders for the subscription domain. Provides SubscriptionDependencies (a fully wired set of real services built from Ent adapters), example entities (ExampleRateCard1–5, ExampleAddonRateCard1–6, ExampleFeatureKey*), comparison helpers (ValidateSpecAndView, SpecsEqual, SubscriptionAddonsEqual), and mocks (MockService, MockWorkflowService, TestPatch). Must NOT import app/common to avoid import cycles.
+> Shared test fixtures and dependency builders for the subscription domain. Provides SubscriptionDependencies (a fully wired set of real services from Ent adapters), example entities, comparison helpers, and mocks. Must NOT import app/common to avoid import cycles.
 
 ## Patterns
 
@@ -10,8 +10,8 @@
 **SetupDBDeps provisions a real Postgres DB with full migration** — SetupDBDeps(t) calls testutils.InitPostgresDB, runs migrate.Up(), and returns DBDeps{DBClient, EntDriver, PGDriver}. Tests must call deps.Cleanup(t) via t.Cleanup. (`dbDeps := subscriptiontestutils.SetupDBDeps(t)
 t.Cleanup(func() { dbDeps.Cleanup(t) })`)
 **Example* vars as canonical test data** — ExampleRateCard1–5, ExampleAddonRateCard1–6, ExampleFeatureKey/2/3, ExampleNamespace, ISOMonth are package-level vars. Always clone rate cards before using as plan/subscription input to avoid test-to-test mutation. (`b.AddPhase(lo.ToPtr(ISOMonth), ExampleRateCard1.Clone())`)
-**testAddonService wraps addon.Service with CreateTestAddon helper** — CreateTestAddon creates and immediately publishes the addon, which is the required two-step flow. Use deps.AddonService.CreateTestAddon(t, inp) in tests rather than calling service.CreateAddon then PublishAddon separately. (`add := deps.AddonService.CreateTestAddon(t, addonInp)`)
-**MockService and MockWorkflowService for unit tests** — MockService satisfies subscription.Service; MockWorkflowService satisfies subscriptionworkflow.Service (without Restore/AddAddon/ChangeAddonQuantity). Wire Fn fields for the methods under test; leave others nil to get panics on unexpected calls. (`svc := &subscriptiontestutils.MockService{GetViewFn: func(...) {...}}`)
+**testAddonService wraps addon.Service with CreateTestAddon helper** — CreateTestAddon creates and immediately publishes the addon, which is the required two-step flow. Use deps.AddonService.CreateTestAddon(t, inp) rather than calling service.CreateAddon then PublishAddon separately. (`add := deps.AddonService.CreateTestAddon(t, addonInp)`)
+**MockService and MockWorkflowService for unit tests** — MockService satisfies subscription.Service; MockWorkflowService satisfies subscriptionworkflow.Service. Wire Fn fields for the methods under test; leave others nil to get panics on unexpected calls. (`svc := &subscriptiontestutils.MockService{GetViewFn: func(...) {...}}`)
 
 ## Key Files
 
@@ -34,8 +34,8 @@ t.Cleanup(func() { dbDeps.Cleanup(t) })`)
 
 ## Decisions
 
-- **All services built from package constructors, not app/common Wire providers** — Prevents import cycles; keeps test wiring independent from production DI changes.
-- **ValidateSpecAndView validates entitlement alignment against billingAnchor** — Entitlement UsagePeriod must be anchored to subscription BillingAnchor — this is a billing correctness invariant that tests must enforce.
+- **All services built from package constructors, not app/common Wire providers.** — Prevents import cycles; keeps test wiring independent from production DI changes.
+- **ValidateSpecAndView validates entitlement alignment against billingAnchor.** — Entitlement UsagePeriod must be anchored to subscription BillingAnchor — this is a billing correctness invariant that tests must enforce.
 
 ## Example: Set up a full subscription integration test with plan and addon
 
@@ -43,16 +43,16 @@ t.Cleanup(func() { dbDeps.Cleanup(t) })`)
 import subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 
 func TestMyFeature(t *testing.T) {
-    dbDeps := subscriptiontestutils.SetupDBDeps(t)
-    t.Cleanup(func() { dbDeps.Cleanup(t) })
-    deps := subscriptiontestutils.NewService(t, dbDeps)
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+	t.Cleanup(func() { dbDeps.Cleanup(t) })
+	deps := subscriptiontestutils.NewService(t, dbDeps)
 
-    plan, addon := subscriptiontestutils.CreatePlanWithAddon(t, deps,
-        subscriptiontestutils.GetExamplePlanInput(t),
-        subscriptiontestutils.GetExampleAddonInput(t, period),
-    )
-    subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, plan, clock.Now())
-    subscriptiontestutils.ValidateSpecAndView(t, expectedSpec, subView)
+	plan, addon := subscriptiontestutils.CreatePlanWithAddon(t, deps,
+		subscriptiontestutils.GetExamplePlanInput(t),
+		subscriptiontestutils.GetExampleAddonInput(t, period),
+	)
+	subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, plan, clock.Now())
+	subscriptiontestutils.ValidateSpecAndView(t, expectedSpec, subView)
 }
 ```
 

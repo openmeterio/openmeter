@@ -1,0 +1,280 @@
+{
+  "openmeter/subscription/addon": {
+    "purpose": "Domain package for subscription addon lifecycle: core types (SubscriptionAddon, SubscriptionAddonInstance, SubscriptionAddonQuantity), the Service interface, domain events, and the Apply/Restore RateCard mutation logic. Primary constraint: quantities are an append-only timeline; instances are derived by pairing adjacent open periods.",
+    "patterns": [
+      {
+        "name": "Append-only quantity timeline",
+        "description": "SubscriptionAddonQuantity rows are never updated or deleted. GetInstances() derives SubscriptionAddonInstance values by pairing adjacent open periods from the Timeline after filtering by DeletedAt.",
+        "example": "sa.Quantities = timeutil.NewTimeline([]timeutil.Timed[subscriptionaddon.SubscriptionAddonQuantity]{q1.AsTimed(), q2.AsTimed()})"
+      },
+      {
+        "name": "Apply/Restore RateCard mutation",
+        "description": "SubscriptionAddonRateCard.Apply adds price/entitlement/discount deltas to a target RateCard pointer; Restore subtracts them. Both require a non-nil pointer target and non-nil annotations map.",
+        "example": "rc.Apply(targetRateCardPtr, annotations) // target must be *productcatalog.FlatFeeRateCard or *UsageBasedRateCard"
+      },
+      {
+        "name": "Input type Validate() pattern",
+        "description": "All input structs implement Validate() returning errors.Join result. CreateSubscriptionAddonInput.Validate() rejects quantity==0; CreateSubscriptionAddonQuantityInput.Validate() allows 0.",
+        "example": "if err := inp.InitialQuantity.Validate(); err != nil { return fmt.Errorf(\"initialQuantity: %w\", err) }"
+      },
+      {
+        "name": "Event construction via constructor functions",
+        "description": "Domain events implement marshaler.Event. Use NewCreatedEvent/NewChangeQuantityEvent constructors to capture session.UserID from ctx; never construct CreatedEvent{} directly.",
+        "example": "event := subscriptionaddon.NewCreatedEvent(ctx, customer, subscriptionAddon)"
+      },
+      {
+        "name": "GetInstances DeletedAt truncation",
+        "description": "If SubscriptionAddon.DeletedAt is set, GetInstances() filters quantities via timeline.Before(*deletedAt) before pairing periods \u2014 ensuring soft-deleted addons only surface active instances.",
+        "example": "if a.DeletedAt != nil { quantities = quantities.Before(*a.DeletedAt) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "addon.go",
+        "role": "Core domain types (SubscriptionAddon, CreateSubscriptionAddonInput) and GetInstances()/GetInstanceAt() derivation logic.",
+        "watch_for": "GetInstances() skips the zeroth sentinel period (periods = periods[1:]); any Timeline semantics change breaks instance derivation."
+      },
+      {
+        "file": "extend.go",
+        "role": "Apply and Restore methods on SubscriptionAddonRateCard \u2014 additive/subtractive price, entitlement, and discount mutations.",
+        "watch_for": "Restore checks instanceType to nil out SingleInstance price; Apply/Restore both validate target is a non-nil pointer with matching key/cadence/entitlement type."
+      },
+      {
+        "file": "quantity.go",
+        "role": "SubscriptionAddonQuantity type and CreateSubscriptionAddonQuantityInput with Validate().",
+        "watch_for": "Quantity 0 is valid for CreateSubscriptionAddonQuantityInput (signals removal) but CreateSubscriptionAddonInput rejects quantity==0 for initial creation."
+      },
+      {
+        "file": "events.go",
+        "role": "CreatedEvent and ChangeQuantityEvent implementing marshaler.Event.",
+        "watch_for": "EventName constants must stay stable \u2014 they are Watermill routing keys. EventSubsystem = 'subscriptionaddon' routes to SystemEventsTopic."
+      },
+      {
+        "file": "repository.go",
+        "role": "SubscriptionAddonRepository (Create/Get/List) and SubscriptionAddonQuantityRepository (Create-only) interfaces.",
+        "watch_for": "SubscriptionAddonQuantityRepository has no Update or Delete method by design \u2014 quantities are immutable."
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface: Create, Get, List, ChangeQuantity and ListSubscriptionAddonsInput with Validate().",
+        "watch_for": "ChangeQuantity appends a new quantity row; it does not update the previous one."
+      },
+      {
+        "file": "instance.go",
+        "role": "SubscriptionAddonInstance: the virtual derived view merging addon+quantity for a time period.",
+        "watch_for": "Instance is purely derived; never persist it directly."
+      }
+    ],
+    "anti_patterns": [
+      "Calling SubscriptionAddonRateCard.Apply or Restore with a nil target or nil annotations \u2014 both return explicit errors.",
+      "Mutating SubscriptionAddonQuantity rows after creation \u2014 they are immutable append-only records.",
+      "Setting Quantity=0 on CreateSubscriptionAddonInput.InitialQuantity \u2014 Validate() returns an error; 0-quantity is only valid for subsequent ChangeQuantity calls.",
+      "Deriving instance periods manually instead of using GetInstances() \u2014 the DeletedAt truncation logic is non-trivial.",
+      "Reading or writing annotation map keys by string literal instead of via subscription.AnnotationParser."
+    ],
+    "decisions": [
+      {
+        "decision": "Quantities stored as append-only timeline",
+        "rationale": "Preserves full audit history of quantity changes and enables point-in-time instance derivation without mutable state."
+      },
+      {
+        "decision": "Apply/Restore separated from diff sub-package",
+        "rationale": "extend.go owns single-RateCard mutation semantics; diff/ orchestrates multi-item spec-level application, preventing the pure in-memory diff layer from gaining business-logic dependencies."
+      },
+      {
+        "decision": "Events published inside transaction (in service sub-package)",
+        "rationale": "Ensures DB write and event publish are consistent; rollback prevents orphaned events."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Apply a boolean-entitlement addon rate card to a target rate card",
+        "code": "import (\n    subscriptionaddon \"github.com/openmeterio/openmeter/openmeter/subscription/addon\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nrc := subscriptionaddon.SubscriptionAddonRateCard{AddonRateCard: addonRC}\nannotations := models.Annotations{}\nif err := rc.Apply(targetRateCardPtr, annotations); err != nil {\n    return fmt.Errorf(\"apply addon rate card: %w\", err)\n}"
+      }
+    ]
+  },
+  "openmeter/subscription/hooks": {
+    "purpose": "Organisational folder grouping SubscriptionCommandHook implementations that maintain subscription invariants across lifecycle events. Currently contains hooks/annotations which repairs doubly-linked chain annotations on subscription deletion. Hooks here must never import subscription.Service (write path) to avoid re-entrant hook calls.",
+    "patterns": [
+      {
+        "name": "Embed NoOpSubscriptionCommandHook",
+        "description": "All hook implementations embed subscription.NoOpSubscriptionCommandHook so only the overridden methods (e.g. BeforeDelete) need to be implemented. Prevents future interface changes from breaking existing hooks.",
+        "example": "type AnnotationCleanupHook struct { subscription.NoOpSubscriptionCommandHook; ... }"
+      },
+      {
+        "name": "Use SubscriptionRepository for writes, not Service",
+        "description": "Hook implementations call subscription.SubscriptionRepository.UpdateAnnotations directly rather than subscription.Service to avoid re-entrant hook invocations.",
+        "example": "h.subRepo.UpdateAnnotations(ctx, id, annotations)"
+      },
+      {
+        "name": "Soft-skip NotFound, hard-error on others",
+        "description": "When a linked subscription is not found during annotation cleanup, log and skip (expected concurrent-delete race). Any other error is returned as a hard failure.",
+        "example": "if subscription.IsSubscriptionNotFoundError(err) { logger.Warn(...); return nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "hooks/annotations/hook.go",
+        "role": "Implements BeforeDelete to clean up previous/superseding subscription ID annotations on chain-linked subscriptions.",
+        "watch_for": "Must clone annotations before mutating; must nil-out empty maps after key removal to avoid storing empty annotation maps."
+      }
+    ],
+    "anti_patterns": [
+      "Calling subscription.Service write methods from inside a hook \u2014 creates re-entrant hook invocations.",
+      "Mutating annotation maps in-place without cloning first.",
+      "Not embedding NoOpSubscriptionCommandHook \u2014 forces explicit implementation of all hook methods.",
+      "Returning an error on subscription.IsSubscriptionNotFoundError \u2014 these are expected concurrent-delete races and must be logged and skipped."
+    ],
+    "decisions": [
+      {
+        "decision": "Hooks placed in a dedicated sub-package rather than inline in subscription/service",
+        "rationale": "Prevents circular imports between the service and cross-cutting lifecycle concerns like annotation chain repair."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/subscription/validators": {
+    "purpose": "Organisational folder for cross-domain validators that enforce subscription pre-conditions on other domain mutations. Contains validators/customer (blocks customer delete/update when active subscriptions exist) and validators/subscription (unique-subscription-per-customer invariant as a SubscriptionCommandHook). Both are registered via their respective service's RegisterHook/RegisterRequestValidator in app/common wiring.",
+    "patterns": [
+      {
+        "name": "Embed noop base types",
+        "description": "Both validators embed their respective noop base (NoopRequestValidator / NoOpSubscriptionCommandHook) so only the relevant methods are overridden; future interface additions don't break compilation.",
+        "example": "type customerValidator struct { customer.NoopRequestValidator; subSvc subscription.Service }"
+      },
+      {
+        "name": "Register in app/common, not in domain package",
+        "description": "Validators are registered via customer.Service.RegisterRequestValidator() and subscription.Service.RegisterHook() in app/common wiring, keeping circular-import boundaries clean.",
+        "example": "customerSvc.RegisterRequestValidator(subscriptionvalidators.NewCustomerValidator(subSvc))"
+      },
+      {
+        "name": "Use models.NewGeneric* errors for HTTP mapping",
+        "description": "All validator errors use models.NewGenericPreConditionFailedError or models.NewGenericNotFoundError so the HTTP layer maps them to 412 or 404 correctly.",
+        "example": "return models.NewGenericPreConditionFailedError(fmt.Errorf(\"customer has active subscriptions\"))"
+      },
+      {
+        "name": "Use ActiveAt/ActiveInPeriod filter for subscription queries",
+        "description": "Subscription queries inside validators must include ActiveAt or ActiveInPeriod to exclude already-cancelled subscriptions; omitting the filter returns all-time subscriptions and breaks the uniqueness/pre-condition check.",
+        "example": "subscription.ListSubscriptionsInput{CustomerID: id, ActiveAt: &now}"
+      },
+      {
+        "name": "pagination.CollectAll for unbounded list queries",
+        "description": "When checking uniqueness or active subscriptions for a customer, use pagination.CollectAll to avoid silently missing subscriptions beyond the first page.",
+        "example": "subs, err := pagination.CollectAll(func(page pagination.Page) (pagination.Result[subscription.Subscription], error) { return svc.List(ctx, ...) })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "validators/customer/validator.go",
+        "role": "Blocks customer delete/subject-key update when active subscriptions exist. Uses clock.Now() for ActiveAt filter.",
+        "watch_for": "Must filter by ActiveAt \u2014 without it, cancelled subscriptions are returned and block valid deletes."
+      },
+      {
+        "file": "validators/subscription/validator.go",
+        "role": "Enforces unique-subscription invariant before Create/Update. Feature-flag-gated between per-subscription and per-feature uniqueness.",
+        "watch_for": "Must exclude the current subscription ID when checking uniqueness on Update; must use pagination.CollectAll to avoid silently missing subscriptions beyond first page."
+      },
+      {
+        "file": "validators/subscription/components.go",
+        "role": "Pure utility functions for subscription period and feature overlap checks.",
+        "watch_for": "Business logic decisions belong in validator.go, not components.go."
+      }
+    ],
+    "anti_patterns": [
+      "Calling subscription.Service write methods from within a SubscriptionCommandHook \u2014 creates re-entrant hook calls.",
+      "Using context.Background() instead of the caller-supplied ctx.",
+      "Returning plain fmt.Errorf instead of models.NewGenericPreConditionFailedError \u2014 breaks HTTP status code mapping.",
+      "Querying subscriptions without the ActiveAt/ActiveInPeriod filter \u2014 returns all-time subscriptions and breaks the uniqueness/pre-condition check.",
+      "Registering the validator inside the subscription or customer package constructors \u2014 must be done in app/common to avoid circular imports."
+    ],
+    "decisions": [
+      {
+        "decision": "Validators placed in a dedicated validators/ sub-folder",
+        "rationale": "Avoids circular imports: subscription depends on customer, so subscription validators of customer cannot live in the subscription package root."
+      },
+      {
+        "decision": "Feature flag selects uniqueness semantics",
+        "rationale": "MultiSubscriptionEnabledFF allows per-feature rather than per-subscription uniqueness checking for tenants that need multiple concurrent subscriptions."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/subscription/workflow": {
+    "purpose": "Public interface package for the subscription workflow layer. Defines the Service interface (CreateFromPlan, EditRunning, ChangeToPlan, Restore, AddAddon, ChangeAddonQuantity), input/output types, AnnotationParser for workflow-scoped annotations, and MapSubscriptionErrors for converting spec validation errors to HTTP-mappable generic errors. The concrete implementation lives in workflow/service/.",
+    "patterns": [
+      {
+        "name": "MapSubscriptionErrors wraps spec errors",
+        "description": "All workflow operations must wrap spec-level errors through MapSubscriptionErrors before returning \u2014 SpecValidationError becomes GenericValidationError (400) and AlignmentError becomes GenericConflictError (409).",
+        "example": "return subscriptionworkflow.MapSubscriptionErrors(err)"
+      },
+      {
+        "name": "AnnotationParser for workflow annotations",
+        "description": "subscriptionworkflow.AnnotationParser.SetUniquePatchID stamps a ULID on annotations to identify an edit operation. Always use AnnotationParser instead of writing annotation keys by string literal.",
+        "example": "annotations = subscriptionworkflow.AnnotationParser.SetUniquePatchID(annotations)"
+      },
+      {
+        "name": "Input types with Validate()",
+        "description": "AddAddonWorkflowInput and ChangeAddonQuantityWorkflowInput implement Validate(). Call Validate() before passing to service methods.",
+        "example": "if err := inp.Validate(); err != nil { return models.NewGenericValidationError(err) }"
+      },
+      {
+        "name": "lockCustomer before any customer-scoped write",
+        "description": "The concrete workflow/service/ implementation acquires a per-customer advisory lock before entering any transaction that creates or modifies subscriptions.",
+        "example": "if err := s.lockCustomer(ctx, customerID); err != nil { return err }"
+      },
+      {
+        "name": "Addon sync via restore+apply diff cycle",
+        "description": "When updating a subscription with active addons, the workflow service always runs a full restore-then-apply diff cycle (syncWithAddons) rather than incremental patching to keep addon-extended spec in sync.",
+        "example": "return s.syncWithAddons(ctx, sub, patches)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service interface and all input/output types. Single source of truth for the workflow API surface.",
+        "watch_for": "EditRunning signature includes a Timing parameter \u2014 callers that omit it use zero-value Timing which resolves to clock.Now()."
+      },
+      {
+        "file": "errors.go",
+        "role": "MapSubscriptionErrors \u2014 must be called on every error returned from a workflow operation.",
+        "watch_for": "Only SpecValidationError and AlignmentError are remapped; all other errors pass through unchanged."
+      },
+      {
+        "file": "annotations.go",
+        "role": "AnnotationParser with SetUniquePatchID for stamping edit operations.",
+        "watch_for": "AnnotationEditUniqueKey constant must stay stable \u2014 it is persisted in the DB."
+      },
+      {
+        "file": "workflow/service/service.go",
+        "role": "Concrete Service implementation with transaction.Run, lockCustomer, syncWithAddons, and compile-time interface assertion.",
+        "watch_for": "New mutating methods must call lockCustomer before entering transaction.Run; skipping it causes concurrent subscription races per customer."
+      }
+    ],
+    "anti_patterns": [
+      "Returning spec errors without wrapping via MapSubscriptionErrors \u2014 SpecValidationError will not map to 400 and AlignmentError will not map to 409.",
+      "Writing annotation keys by string literal instead of using AnnotationParser.",
+      "Calling s.Service.Update directly without the restore+apply diff cycle when addons are present \u2014 always use syncWithAddons for addon-aware spec updates.",
+      "Skipping lockCustomer in new mutating workflow methods \u2014 concurrent subscription mutations for the same customer produce race conditions.",
+      "Returning raw fmt.Errorf for validation, conflict, or forbidden errors \u2014 always use models.NewGenericValidationError/NewGenericConflictError/NewGenericForbiddenError."
+    ],
+    "decisions": [
+      {
+        "decision": "Workflow interface separated from subscription.Service",
+        "rationale": "Workflow operations are multi-step (lock+tx+addon sync+spec update) and compose core service methods; combining them would violate single responsibility and make the core service untestable in isolation."
+      },
+      {
+        "decision": "MapSubscriptionErrors in workflow package rather than service package",
+        "rationale": "The workflow layer is the HTTP-facing boundary; mapping domain errors to HTTP status codes at this boundary keeps the core service pure."
+      },
+      {
+        "decision": "Addon sync uses full restore-then-apply diff cycle",
+        "rationale": "Ensures the addon-extended spec is always coherent after any spec update, avoiding partial or inconsistent addon state that incremental patching could produce."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Call EditRunning and map spec errors to HTTP status codes",
+        "code": "import subscriptionworkflow \"github.com/openmeterio/openmeter/openmeter/subscription/workflow\"\n\nview, err := h.workflowSvc.EditRunning(ctx, subID, patches, subscription.Timing{Custom: &now})\nif err != nil {\n    return nil, subscriptionworkflow.MapSubscriptionErrors(err)\n}"
+      }
+    ]
+  }
+}

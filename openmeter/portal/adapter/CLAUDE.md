@@ -2,31 +2,31 @@
 
 <!-- archie:ai-start -->
 
-> JWT-backed implementation of portal.Service that issues and validates short-lived HS256 tokens scoped to a namespace, subject, and optional meter slug allowlist. No database — tokens are stateless JWTs; ListTokens and InvalidateToken are intentionally unimplemented (return GenericNotImplementedError).
+> JWT-backed stateless implementation of portal.Service that issues and validates short-lived HS256 tokens scoped to namespace, subject, and optional meter slug allowlist. ListTokens and InvalidateToken are intentionally unimplemented stubs returning GenericNotImplementedError — no database backing exists by design.
 
 ## Patterns
 
-**Config-validated constructor** — New(Config) validates all fields via Config.Validate() before constructing the adapter; return (portal.Service, error) — never panic on bad config. (`func New(config Config) (portal.Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }`)
+**Config-validated constructor** — New(Config) validates all fields via Config.Validate() before constructing the adapter; always return (portal.Service, error) — never panic on bad config. (`func New(config Config) (portal.Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }`)
 **Interface compliance assertion** — var _ portal.Service = (*adapter)(nil) at package level — compile-time proof the struct satisfies the interface. (`var _ portal.Service = (*adapter)(nil)`)
-**Noop for disabled/unimplemented methods** — Methods not yet backed by persistent storage return models.NewGenericNotImplementedError; noop.go provides a full no-op implementation for test/disabled contexts via NewNoop(). (`func (a *adapter) ListTokens(...) (pagination.Result[*portal.PortalToken], error) { return ..., models.NewGenericNotImplementedError(fmt.Errorf("listing tokens")) }`)
-**JWT claims struct embeds jwt.RegisteredClaims** — JTWPortalTokenClaims embeds jwt.RegisteredClaims and adds domain fields (Namespace, Id, AllowedMeterSlugs). Parse with ParseWithClaims into this type, not into map[string]interface{}. (`type JTWPortalTokenClaims struct { jwt.RegisteredClaims; Namespace string; AllowedMeterSlugs []string }`)
-**Strict JWT parse options** — Validate uses WithStrictDecoding, WithExpirationRequired, WithIssuer, and WithValidMethods — never relax these constraints when extending validation. (`opts := []jwt.ParserOption{jwt.WithStrictDecoding(), jwt.WithExpirationRequired(), jwt.WithIssuer(PortalTokenIssuer), jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name})}`)
+**JWT claims struct embeds jwt.RegisteredClaims** — JTWPortalTokenClaims embeds jwt.RegisteredClaims and adds domain fields (Namespace, Id, AllowedMeterSlugs). Always parse with ParseWithClaims into this type, never into map[string]interface{}. (`type JTWPortalTokenClaims struct { jwt.RegisteredClaims; Namespace string; AllowedMeterSlugs []string }`)
+**Strict JWT parse options — never relax** — Validate uses WithStrictDecoding, WithExpirationRequired, WithIssuer, and WithValidMethods. Do not remove any of these options when extending validation. (`opts := []jwt.ParserOption{jwt.WithStrictDecoding(), jwt.WithExpirationRequired(), jwt.WithIssuer(PortalTokenIssuer), jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name})}`)
+**Noop adapter for disabled/test contexts** — NewNoop() returns a full no-op portal.Service where every method returns models.NewGenericNotImplementedError — not nil error. Use in Wire when portal is disabled. (`func (a *noopAdapter) CreateToken(ctx context.Context, input portal.CreateTokenInput) (*portal.PortalToken, error) { return nil, models.NewGenericNotImplementedError(fmt.Errorf("noop adapter")) }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `adapter.go` | Config struct, Validate(), New() constructor, adapter struct definition | Secret must be []byte internally; Config.Secret is string — conversion happens in New(). Expire=0 is rejected. |
-| `token.go` | CreateToken (JWT sign) and Validate (JWT parse + claims extraction); ListTokens and InvalidateToken stub out with NotImplemented | Token field is intentionally NOT populated in toAPIPortalToken mapping — the raw token string is only exposed in CreateToken response. Adding it elsewhere is a security risk. |
-| `noop.go` | Full no-op portal.Service for tests and disabled-portal wiring | All methods must return models.NewGenericNotImplementedError, not nil error — callers distinguish 'not implemented' from success. |
+| `adapter.go` | Config struct, Validate(), New() constructor, adapter struct definition | Secret must be []byte internally; Config.Secret is string — conversion happens in New(). Expire=0 is rejected by Validate(). Always call New() and check the returned error. |
+| `token.go` | CreateToken (JWT sign) and Validate (JWT parse + claims extraction); ListTokens and InvalidateToken stub out with NotImplemented | Token field is intentionally NOT populated in toAPIPortalToken — the raw token string is only exposed in CreateToken response. Adding it elsewhere is a security risk. |
+| `noop.go` | Full no-op portal.Service for tests and disabled-portal wiring | All methods must return models.NewGenericNotImplementedError, not nil error — callers distinguish 'not implemented' from success. Never add business logic here. |
 
 ## Anti-Patterns
 
 - Storing token state in a database here — this adapter is intentionally stateless; persistence belongs in a future DB-backed adapter
-- Relaxing JWT validation options (removing WithExpirationRequired, WithStrictDecoding, etc.)
+- Relaxing JWT validation options (removing WithExpirationRequired, WithStrictDecoding, WithValidMethods, or WithIssuer)
 - Populating the Token field inside toAPIPortalToken — token string must only appear in CreateToken response
 - Calling New() without checking the returned error
-- Adding business logic to the noop adapter — it must remain a pure stub
+- Adding business logic to the noop adapter — it must remain a pure stub returning NotImplementedError
 
 ## Decisions
 

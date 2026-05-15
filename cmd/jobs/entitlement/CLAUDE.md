@@ -2,20 +2,20 @@
 
 <!-- archie:ai-start -->
 
-> Cobra sub-command group for entitlement administrative jobs; currently owns one job (recalculate-balance-snapshots) that recalculates metered entitlement balance snapshots and publishes results to the event bus via balanceworker.Recalculator.
+> Cobra sub-command group for entitlement administrative jobs; exposes recalculate-balance-snapshots which drives balanceworker.Recalculator to recompute metered entitlement balance snapshots and publish results to the event bus. All dependencies come exclusively from internal.App.
 
 ## Patterns
 
-**Access app state via internal.App global** — All job commands read dependencies (EntitlementRegistry, EventPublisher, NotificationService, Customer, Subject, Meter, Logger) from the package-level internal.App struct, never constructing services themselves. (`balanceworker.NewRecalculator(balanceworker.RecalculatorOptions{Entitlement: internal.App.EntitlementRegistry, EventBus: internal.App.EventPublisher, ...})`)
-**Root + sub-command structure** — root.go defines RootCommand() returning a parent cobra.Command with Use='entitlement', and each job file adds a sub-command via cmd.AddCommand in RootCommand. (`cmd.AddCommand(NewRecalculateBalanceSnapshotsCommand())`)
-**Use cmd.Context() for context propagation** — RunE closures pass cmd.Context() to domain calls, never context.Background(). (`recalculator.Recalculate(cmd.Context(), "default", time.Now())`)
+**Source all services from internal.App** — Commands must never construct domain services locally. All dependencies (EntitlementRegistry, EventPublisher, NotificationService, Customer, Subject, Meter, Logger) are read from the package-level internal.App global. (`balanceworker.NewRecalculator(balanceworker.RecalculatorOptions{Entitlement: internal.App.EntitlementRegistry, EventBus: internal.App.EventPublisher, ...})`)
+**Root + sub-command via cmd.AddCommand in RootCommand()** — root.go defines RootCommand() returning a parent cobra.Command with Use='entitlement'; each job file registers itself via cmd.AddCommand(NewXxxCommand()) inside RootCommand(). (`cmd.AddCommand(NewRecalculateBalanceSnapshotsCommand())`)
+**Use cmd.Context() for context propagation** — RunE closures must pass cmd.Context() to all domain calls, never context.Background(). (`return recalculator.Recalculate(cmd.Context(), "default", time.Now())`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `root.go` | Defines the 'entitlement' parent Cobra command and registers all sub-commands. | New jobs must be added via cmd.AddCommand here to be reachable. |
-| `recalculatesnapshots.go` | Implements recalculate-balance-snapshots job using balanceworker.NewRecalculator; canonical example of job structure. | All RecalculatorOptions fields come from internal.App — adding a dependency requires updating internal/wire.go Application struct first. |
+| `root.go` | Defines the 'entitlement' parent Cobra command and registers all sub-commands via cmd.AddCommand. | New jobs must be added via cmd.AddCommand here to be reachable from the CLI. |
+| `recalculatesnapshots.go` | Canonical job implementation: constructs balanceworker.Recalculator from internal.App fields and invokes Recalculate(cmd.Context(), ...). | All RecalculatorOptions fields come from internal.App — adding a dependency requires updating cmd/jobs/internal/wire.go Application struct first and regenerating. |
 
 ## Anti-Patterns
 

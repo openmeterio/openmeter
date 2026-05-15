@@ -1,61 +1,66 @@
 {
-  "openmeter/info/httpdriver": {
-    "purpose": "HTTP handler layer for the info domain, exposing stateless endpoints (e.g. currency list) via the httptransport pattern. No service dependency \u2014 data comes from external library calls (gobl/currency) or static definitions, so no adapter or Wire provider is needed.",
+  "openmeter/entitlement/validators/customer": {
+    "purpose": "Implements customer.RequestValidator to block deletion of customers that still have active entitlements. Single-file bridge between the entitlement and customer domains that avoids circular imports by depending on entitlement.EntitlementRepo instead of entitlement.Service.",
     "patterns": [
       {
-        "name": "httptransport.NewHandler triple",
-        "description": "Every endpoint is a dedicated named handler type (e.g. ListCurrenciesHandler) defined as httptransport.Handler[Req, Resp] and constructed via httptransport.NewHandler with a decoder func, an operation func, and a response encoder.",
-        "example": "type ListCurrenciesHandler httptransport.Handler[ListCurrenciesRequest, ListCurrenciesResponse]\nreturn httptransport.NewHandler(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[...](http.StatusOK), opts...)"
+        "name": "Compile-time interface assertion",
+        "description": "Always declare `var _ customer.RequestValidator = (*Validator)(nil)` at package level so drift from the interface is caught at compile time, not at runtime.",
+        "example": "var _ customer.RequestValidator = (*Validator)(nil)"
       },
       {
-        "name": "Handler interface + private handler struct",
-        "description": "driver.go defines a public Handler interface listing all endpoint methods, and a private handler struct carrying shared options. New handlers are added as methods on *handler and listed in the Handler interface.",
-        "example": "type Handler interface { ListCurrencies() ListCurrenciesHandler }\ntype handler struct { options []httptransport.HandlerOption }\nfunc New(options ...httptransport.HandlerOption) Handler { return &handler{options: options} }"
+        "name": "Embed NoopRequestValidator for default methods",
+        "description": "Embed customer.NoopRequestValidator in the Validator struct to get safe no-op defaults for any RequestValidator methods not explicitly overridden. Prevents breakage when the interface adds new methods.",
+        "example": "type Validator struct {\n    customer.NoopRequestValidator\n    entitlementRepo entitlement.EntitlementRepo\n}"
       },
       {
-        "name": "Options forwarded via httptransport.AppendOptions",
-        "description": "Handler-level options (e.g. WithOperationName) are appended to h.options using httptransport.AppendOptions so cross-cutting concerns (tracing, error handling) from the caller propagate correctly.",
-        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listCurrencies\"))..."
+        "name": "Constructor nil-guard returning error",
+        "description": "NewValidator returns (*Validator, error) and rejects nil dependencies with a descriptive error before constructing the struct.",
+        "example": "if entitlementRepo == nil {\n    return nil, fmt.Errorf(\"entitlement repository is required\")\n}"
       },
       {
-        "name": "No-op request decoder for parameterless endpoints",
-        "description": "When an endpoint has no path/query parameters, the decoder simply returns an empty request struct and nil error.",
-        "example": "func(ctx context.Context, r *http.Request) (ListCurrenciesRequest, error) { return ListCurrenciesRequest{}, nil }"
+        "name": "GenericConflictError for blocked deletions",
+        "description": "Return models.NewGenericConflictError when a customer cannot be deleted due to active dependents; the HTTP GenericErrorEncoder maps this to HTTP 409.",
+        "example": "return models.NewGenericConflictError(fmt.Errorf(\"customer %s still has active entitlements\", input.ID))"
+      },
+      {
+        "name": "clock.Now() for testable time",
+        "description": "Use clock.Now() (not time.Now()) when computing the current time for ActiveAt filtering so tests can inject a fake clock.",
+        "example": "now := clock.Now()\nActiveAt: lo.ToPtr(now),\nIncludeDeletedAfter: now,"
+      },
+      {
+        "name": "Depend on EntitlementRepo, not entitlement.Service",
+        "description": "Use entitlement.EntitlementRepo (low-level repo interface) to avoid a heavy dependency on the full service graph and prevent import cycles with the customer domain.",
+        "example": "entitlementRepo entitlement.EntitlementRepo"
       }
     ],
     "key_file_guides": [
       {
-        "file": "driver.go",
-        "role": "Defines the Handler interface and New constructor \u2014 the only public API of this package. Add new handler method signatures here when adding endpoints.",
-        "watch_for": "Do not add business logic here; driver.go is pure wiring."
-      },
-      {
-        "file": "currencies.go",
-        "role": "Implements ListCurrencies using gobl/currency.Definitions() filtered to ISO currencies. Representative template for all future handlers in this package.",
-        "watch_for": "The ISONumeric != '' filter intentionally excludes crypto/non-ISO currencies \u2014 do not remove it without understanding the API contract."
+        "file": "validator.go",
+        "role": "Only file in the package. Defines Validator, its constructor, and the ValidateDeleteCustomer pre-mutation guard. All future RequestValidator methods (ValidateCreateCustomer, ValidateUpdateCustomer) would be added here.",
+        "watch_for": "Do not call entitlement.Service \u2014 only entitlement.EntitlementRepo. Always embed NoopRequestValidator. Return models.GenericConflictError (not GenericValidationError) for 'has active dependents' conditions."
       }
     ],
     "anti_patterns": [
-      "Injecting a domain service or adapter into handler struct when data comes from a static library \u2014 keep stateless handlers dependency-free",
-      "Returning raw error from operation func without using domain error types \u2014 breaks the generic error encoder chain",
-      "Defining handler types outside this package or in driver.go \u2014 each handler belongs in its own file",
-      "Hand-editing generated API types in api/ instead of regenerating via make gen-api",
-      "Adding request validation logic inside the decoder instead of returning a models.GenericValidationError from the operation func"
+      "Importing entitlement.Service instead of entitlement.EntitlementRepo \u2014 creates import cycles and a heavier dependency graph",
+      "Returning a non-GenericConflictError type for 'has active entitlements' \u2014 the HTTP error encoder maps only GenericConflictError to 409",
+      "Using time.Now() instead of clock.Now() \u2014 makes tests non-deterministic",
+      "Adding state-transition or post-mutation logic here \u2014 this package is exclusively for pre-mutation blocking guards (RequestValidator)",
+      "Omitting the compile-time interface assertion \u2014 silent breakage if customer.RequestValidator gains new methods"
     ],
     "decisions": [
       {
-        "decision": "No domain service dependency \u2014 data sourced directly from gobl/currency library",
-        "rationale": "Currency definitions are static ISO data; introducing a service/adapter layer would add unnecessary indirection and wiring cost."
+        "decision": "Depend on entitlement.EntitlementRepo rather than entitlement.Service",
+        "rationale": "entitlement.Service transitively imports customer, creating a circular dependency. The repo interface is a lower-level dependency that satisfies the validation need without pulling in the full service graph."
       },
       {
-        "decision": "httptransport.Handler[Req, Resp] generic over plain http.HandlerFunc",
-        "rationale": "Keeps decoder, operation, and encoder as separate typed functions, enabling independent testing of each phase and reuse of shared error encoders."
+        "decision": "Embed customer.NoopRequestValidator instead of implementing all methods",
+        "rationale": "Provides safe no-op defaults for all RequestValidator methods not yet implemented, so adding a new method to the interface does not silently break this validator until it needs a real implementation."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new stateless info endpoint (e.g. ListTimezones)",
-        "code": "// timezones.go\npackage httpdriver\n\nimport (\n\t\"context\"\n\t\"net/http\"\n\n\t\"github.com/openmeterio/openmeter/api\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n)\n\ntype (\n\tListTimezonesRequest  struct{}\n\tListTimezonesResponse []api.Timezone\n\tListTimezonesHandler  httptransport.Handler[ListTimezonesRequest, ListTimezonesResponse]\n)\n\nfunc (h *handler) ListTimezones() ListTimezonesHandler {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (ListTimezonesRequest, error) {\n\t\t\treturn ListTimezonesRequest{}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request ListTimezonesRequest) (ListTimezonesResponse, error) {\n\t\t\t// populate from static data\n\t\t\treturn ListTimezonesResponse{}, nil\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ListTimezonesResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listTimezones\"))...,\n\t)\n}\n// Then add ListTimezones() ListTimezonesHandler to the Handler interface in driver.go"
+        "scenario": "Adding ValidateUpdateCustomer that blocks updates when active entitlements exist",
+        "code": "import (\n    \"context\"\n    \"fmt\"\n\n    \"github.com/samber/lo\"\n    \"github.com/openmeterio/openmeter/openmeter/customer\"\n    \"github.com/openmeterio/openmeter/openmeter/entitlement\"\n    \"github.com/openmeterio/openmeter/pkg/clock\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (v *Validator) ValidateUpdateCustomer(ctx context.Context, input customer.UpdateCustomerInput) error {\n    if err := input.Validate(); err != nil {\n        return err\n    }\n    now := clock.Now()\n    entitlements, err := v.entitlementRepo.ListEntitlements(ctx, entitlement.ListEntitlementsParams{\n        CustomerIDs:         []string{input.ID},\n        Namespaces:          []string{input.Namespace},\n        ActiveAt:            lo.ToPtr(now),\n        IncludeDeleted:      true,\n        IncludeDeletedAfter: now,\n    })\n    if err != nil {\n        return fmt.Errorf(\"failed to list customer entitlements: %w\", err)\n    }\n    if len(entitlements.Items) > 0 {\n        return models.NewGenericConflictError(fmt.Errorf(\"customer %s still has active entitlements\", input.ID))\n    }\n    return nil\n}"
       }
     ]
   }

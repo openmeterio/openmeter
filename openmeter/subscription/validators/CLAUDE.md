@@ -2,13 +2,15 @@
 
 <!-- archie:ai-start -->
 
-> Organisational folder for cross-domain validators that enforce subscription pre-conditions on other domain mutations. Contains two sub-packages: validators/customer (blocks customer delete/update when active subscriptions exist) and validators/subscription (unique-subscription-per-customer invariant as a SubscriptionCommandHook). Both are registered via their respective service's RegisterHook/RegisterRequestValidator in app/common wiring.
+> Organisational folder for cross-domain validators that enforce subscription pre-conditions on other domain mutations. Contains validators/customer (blocks customer delete/update when active subscriptions exist) and validators/subscription (unique-subscription-per-customer invariant as a SubscriptionCommandHook). Both are registered via their respective service's RegisterHook/RegisterRequestValidator in app/common wiring.
 
 ## Patterns
 
-**Embed noop base types** — Both validators embed their respective noop base (NoopRequestValidator / NoOpSubscriptionCommandHook) so only the relevant methods are overridden, future interface additions don't break compilation. (`type customerValidator struct { customer.NoopRequestValidator; subSvc subscription.Service }`)
+**Embed noop base types** — Both validators embed their respective noop base (NoopRequestValidator / NoOpSubscriptionCommandHook) so only the relevant methods are overridden; future interface additions don't break compilation. (`type customerValidator struct { customer.NoopRequestValidator; subSvc subscription.Service }`)
 **Register in app/common, not in domain package** — Validators are registered via customer.Service.RegisterRequestValidator() and subscription.Service.RegisterHook() in app/common wiring, keeping circular-import boundaries clean. (`customerSvc.RegisterRequestValidator(subscriptionvalidators.NewCustomerValidator(subSvc))`)
 **Use models.NewGeneric* errors for HTTP mapping** — All validator errors use models.NewGenericPreConditionFailedError or models.NewGenericNotFoundError so the HTTP layer maps them to 412 or 404 correctly. (`return models.NewGenericPreConditionFailedError(fmt.Errorf("customer has active subscriptions"))`)
+**Use ActiveAt/ActiveInPeriod filter for subscription queries** — Subscription queries inside validators must include ActiveAt or ActiveInPeriod to exclude already-cancelled subscriptions; omitting the filter returns all-time subscriptions and breaks the uniqueness/pre-condition check. (`subscription.ListSubscriptionsInput{CustomerID: id, ActiveAt: &now}`)
+**pagination.CollectAll for unbounded list queries** — When checking uniqueness or active subscriptions for a customer, use pagination.CollectAll to avoid silently missing subscriptions beyond the first page. (`subs, err := pagination.CollectAll(func(page pagination.Page) (pagination.Result[subscription.Subscription], error) { return svc.List(ctx, ...) })`)
 
 ## Key Files
 
@@ -23,7 +25,8 @@
 - Calling subscription.Service write methods from within a SubscriptionCommandHook — creates re-entrant hook calls.
 - Using context.Background() instead of the caller-supplied ctx.
 - Returning plain fmt.Errorf instead of models.NewGenericPreConditionFailedError — breaks HTTP status code mapping.
-- Querying subscriptions without the ActiveAt / ActiveInPeriod filter — returns all-time subscriptions and breaks uniqueness check.
+- Querying subscriptions without the ActiveAt/ActiveInPeriod filter — returns all-time subscriptions and breaks the uniqueness/pre-condition check.
+- Registering the validator inside the subscription or customer package constructors — must be done in app/common to avoid circular imports.
 
 ## Decisions
 

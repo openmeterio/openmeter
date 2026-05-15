@@ -6,35 +6,36 @@
 
 ## Patterns
 
-**httptransport.NewHandlerWithArgs per endpoint** — Each endpoint is a method returning a typed HandlerWithArgs[Request, Response, Params]. The method inlines the decoder func (namespace extraction + body decode), operation func (validate + delegate to service), and encoder. (`return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusOK), httptransport.AppendOptions(h.options, httptransport.WithOperationName("X"), httptransport.WithErrorEncoder(errorEncoder()))...)`)
-**Type aliases for Request/Response/Params/Handler** — Each endpoint declares four type aliases at the top of its block: *Request = domain input, *Response = api type, *Params = path/query params struct, *Handler = typed handler alias. (`type DraftSyncronizedRequest = appcustominvoicing.SyncDraftInvoiceInput; type DraftSyncronizedHandler httptransport.HandlerWithArgs[DraftSyncronizedRequest, DraftSyncronizedResponse, DraftSyncronizedParams]`)
+**httptransport.NewHandlerWithArgs per endpoint** — Each endpoint is a method returning a typed HandlerWithArgs[Request, Response, Params] with inline decoder, operation, and encoder functions. (`return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusOK), httptransport.AppendOptions(h.options, httptransport.WithOperationName("X"), httptransport.WithErrorEncoder(errorEncoder()))...)`)
+**Four type aliases per endpoint** — Each endpoint block declares four type aliases: *Request (domain input), *Response (api type), *Params (path/query params), *Handler (typed handler alias). (`type DraftSyncronizedRequest = appcustominvoicing.SyncDraftInvoiceInput; type DraftSyncronizedResponse = api.Invoice; type DraftSyncronizedParams = struct{ InvoiceID string }; type DraftSyncronizedHandler httptransport.HandlerWithArgs[...]`)
 **Namespace resolved from context in decoder** — Every decoder calls h.resolveNamespace(ctx) first; on failure it returns an empty request and wraps the error. (`namespace, err := h.resolveNamespace(ctx); if err != nil { return DraftSyncronizedRequest{}, fmt.Errorf("failed to resolve namespace: %w", err) }`)
-**Input.Validate() called at the start of the operation func** — The operation function validates the decoded request before calling the service — not inside the decoder. (`func(ctx context.Context, request DraftSyncronizedRequest) (DraftSyncronizedResponse, error) { if err := request.Validate(); err != nil { return DraftSyncronizedResponse{}, err } ... }`)
-**Domain-specific error encoder chain** — errors.go defines errorEncoder() returning a chain of commonhttp.HandleErrorIfTypeMatches calls covering billing.NotFoundError, ValidationError, UpdateAfterDeleteError, ValidationIssue, AppError — attached to every handler via httptransport.WithErrorEncoder. (`return commonhttp.HandleErrorIfTypeMatches[billing.NotFoundError](ctx, http.StatusNotFound, err, w, billing.EncodeValidationIssues) || ...`)
+**input.Validate() at operation func entry** — The operation function validates the decoded request before calling the service — not inside the decoder. (`func(ctx context.Context, request DraftSyncronizedRequest) (DraftSyncronizedResponse, error) { if err := request.Validate(); err != nil { return DraftSyncronizedResponse{}, err } ... }`)
+**Shared errorEncoder() attached to every handler** — errors.go defines errorEncoder() with a chain of HandleErrorIfTypeMatches covering all billing error types; attached via httptransport.WithErrorEncoder(errorEncoder()). (`commonhttp.HandleErrorIfTypeMatches[billing.NotFoundError](ctx, http.StatusNotFound, err, w, billing.EncodeValidationIssues) || commonhttp.HandleErrorIfTypeMatches[billing.ValidationError](...)`)
 **Response mapped via billinghttpdriver.MapStandardInvoiceToAPI** — All three endpoints return api.Invoice by delegating to billinghttpdriver.MapStandardInvoiceToAPI — never inline-constructing the API type. (`return billinghttpdriver.MapStandardInvoiceToAPI(invoice)`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `handler.go` | Handler interface definition, handler struct, New() constructor, and resolveNamespace helper. Entry point for wiring. | SyncService is the only service dependency — do not inject billing.Service directly here; access billing through SyncService. |
+| `handler.go` | Handler interface definition, handler struct, New() constructor, and resolveNamespace helper. Entry point for wiring. | SyncService is the only service dependency — do not inject billing.Service directly here. |
 | `custominvoicing.go` | Three endpoint handler methods: DraftSyncronized, IssuingSyncronized, UpdatePaymentStatus. | Each method returns a new handler instance on every call — they are not cached on the struct. |
-| `errors.go` | Centralized error encoder shared by all three handlers. | New billing error types must be added here to get correct HTTP status codes — missing an error type causes 500s. |
-| `mapper.go` | API ↔ domain type conversions: mapUpsertStandardInvoiceResultFromAPI, mapFinalizeStandardInvoiceResultFromAPI, mapPaymentTriggerFromAPI. | mapPaymentTriggerFromAPI uses a switch with a default that returns GenericValidationError — new API trigger values must be added here. |
+| `errors.go` | Centralized error encoder shared by all three handlers. | New billing error types must be added here — missing an error type causes 500s instead of correct status codes. |
+| `mapper.go` | API to domain type conversions: mapUpsertStandardInvoiceResultFromAPI, mapFinalizeStandardInvoiceResultFromAPI, mapPaymentTriggerFromAPI. | mapPaymentTriggerFromAPI uses a switch with a default returning GenericValidationError — new API trigger values must be added to this switch. |
 
 ## Anti-Patterns
 
 - Injecting billing.Service directly into handler — use SyncService as the single dependency
 - Inline-constructing api.Invoice in operation functions — always delegate to billinghttpdriver.MapStandardInvoiceToAPI
 - Skipping request.Validate() in the operation function
-- Adding new error types to the billing domain without updating errorEncoder() in errors.go
+- Adding new billing error types without updating errorEncoder() in errors.go
+- Caching handler instances on the struct — each endpoint method must return a new handler
 
 ## Decisions
 
-- **SyncService as the sole handler dependency** — Keeps the HTTP layer thin — all business logic (app type validation, billing triggers) lives in the service layer.
+- **SyncService as the sole handler dependency** — Keeps the HTTP layer thin — all business logic lives in the service layer, not the handler.
 - **Shared errorEncoder() instead of per-handler error mapping** — All three endpoints expose the same billing error surface; centralising avoids divergence.
 
-## Example: Add a new endpoint GetInvoiceStatus that decodes an invoiceId param and returns api.Invoice
+## Example: Add a new endpoint GetInvoiceStatus that decodes an invoiceId path param and returns api.Invoice
 
 ```
 type (

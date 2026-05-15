@@ -2,11 +2,11 @@
 
 <!-- archie:ai-start -->
 
-> Provides NewPublisher and NewSubscriber factories over IBM Sarama + watermill-kafka, with SASL/SSL auth, OTel tracing, partition-key routing, and OTel metrics bridging. All Sarama internals are hidden behind these two constructors; callers receive a watermill.Publisher or message.Subscriber.
+> Provides NewPublisher and NewSubscriber factories over IBM Sarama + watermill-kafka with SASL/SSL auth, OTel tracing, partition-key routing, and OTel metrics bridging. All Sarama internals are hidden behind these two constructors; callers receive a watermill.Publisher or message.Subscriber.
 
 ## Patterns
 
-**BrokerOptions as shared config root** — Both PublisherOptions and SubscriberOptions embed BrokerOptions. Call Validate() before any construction — it checks ClientID, Logger, and MetricMeter are non-nil. (`opts.Broker.Validate() is called at the top of both NewPublisher and NewSubscriber.`)
+**BrokerOptions as shared config root** — Both PublisherOptions and SubscriberOptions embed BrokerOptions. Call Validate() before any construction — it checks ClientID, Logger, and MetricMeter are non-nil. (`if err := o.Broker.Validate(); err != nil { return nil, err }`)
 **Role suffix on ClientID** — createKafkaConfig(role) appends the role string ('publisher' or 'subscriber') to ClientID so Kafka broker logs distinguish producers from consumers. (`config.ClientID = fmt.Sprintf("%s-%s", o.ClientID, role)`)
 **OTel tracing via kafka.NewOTELSaramaTracer()** — PublisherConfig always sets Tracer: kafka.NewOTELSaramaTracer(). Relies on the global trace provider; do not pass a custom tracer. (`wmConfig.Tracer = kafka.NewOTELSaramaTracer()`)
 **Partition-key routing via marshalerWithPartitionKey** — Publisher always uses marshalerWithPartitionKey{} (wraps DefaultMarshaler). Set msg.Metadata[PartitionKeyMetadataKey] = subject to route to a partition. Subscriber uses DefaultMarshaler. (`wmConfig.Marshaler = marshalerWithPartitionKey{}`)
@@ -19,10 +19,11 @@
 |------|------|-----------|
 | `broker.go` | Defines BrokerOptions and createKafkaConfig — the shared sarama.Config builder. All SASL/TLS, metric registry, and ClientID logic lives here. | MetricMeter must not be nil — metrics.NewRegistry returns an error if it is. createKafkaConfig always sets config.ApiVersionsRequest = false to suppress log spam. |
 | `publisher.go` | NewPublisher: validates options, calls createKafkaConfig("publisher"), provisions topics, then constructs kafka.Publisher. | Always use marshalerWithPartitionKey{} — using kafka.DefaultMarshaler{} silently breaks partition routing. |
-| `subscriber.go` | NewSubscriber: validates options, calls createKafkaConfig("subscriber"), sets defaultMaxProcessingTime (5 min), constructs kafka.Subscriber. | Subscriber uses kafka.DefaultMarshaler{} (not marshalerWithPartitionKey) — that is intentional. |
+| `subscriber.go` | NewSubscriber: validates options, calls createKafkaConfig("subscriber"), sets defaultMaxProcessingTime (5 min), constructs kafka.Subscriber. | Subscriber uses kafka.DefaultMarshaler{} (not marshalerWithPartitionKey) — that is intentional. ConsumerGroupName must not be empty. |
 | `marshaler.go` | marshalerWithPartitionKey wraps DefaultMarshaler to promote PartitionKeyMetadataKey from message metadata to sarama.ProducerMessage.Key. AddPartitionKeyFromSubject is the helper to set the metadata. | The metadata key is stripped from Kafka headers after promotion to avoid double-encoding. |
 | `metrics.go` | SaramaMetricRenamer returns a TransformMetricsNameToOtel function that drops per-broker/topic metrics and prefixes survivors with 'sarama.'. | Per-broker and per-topic metric names are dropped unconditionally — do not rely on them for observability. |
 | `saslscram.go` | XDGSCRAMClient implements sarama.SCRAMClient for SCRAM-SHA-256/512 SASL mechanisms. | Only used when SecurityProtocol == SASL_SSL and SaslMechanisms is SCRAM-SHA-256 or SCRAM-SHA-512. |
+| `logger.go` | SaramaLoggerAdaptor bridges sarama's Logger interface to slog — both sarama.Logger and sarama.DebugLogger are set inside createKafkaConfig. | These are global sarama variables; setting them affects all sarama clients in the process. |
 
 ## Anti-Patterns
 
@@ -54,7 +55,7 @@ pub, err := kafkadriver.NewPublisher(ctx, kafkadriver.PublisherOptions{
         Logger:      logger,
         MetricMeter: meter,
     },
-    ProvisionTopics:  []pkgkafka.TopicConfig{{Name: "system-events", ...}},
+    ProvisionTopics:  []pkgkafka.TopicConfig{{Name: "system-events"}},
     TopicProvisioner: provisioner,
 // ...
 ```

@@ -2,11 +2,11 @@
 
 <!-- archie:ai-start -->
 
-> Ent code-generation extension that generates typed `GetXxx()` getter methods for every field (including the ID) that was added to an entity schema via a mixin, enabling interface-based access to mixin fields without reflection.
+> Ent code-generation extension that generates typed `GetXxx()` getter methods for every field (including the ID) that was added to an entity schema via a mixin, enabling interface-based access to mixin fields (namespace, timestamps, ID) without reflection or direct struct field access.
 
 ## Patterns
 
-**Ent Extension + embedded template** — Same shape as all other entutils extensions: `entmixinaccessor.go` registers `mixinaccessor.tpl` via `entc.DefaultExtension` + `Templates()`. Register in `openmeter/ent/entc.go`. (`func New() *Extension { return &Extension{} }`)
+**Ent Extension + embedded template** — `entmixinaccessor.go` registers `mixinaccessor.tpl` via `entc.DefaultExtension` + `Templates()`. Register in `openmeter/ent/entc.go`. (`func New() *Extension { return &Extension{} }`)
 **MixedIn position gate** — Getters are only generated for fields where `$f.Position.MixedIn` is true, i.e., fields contributed by a mixin. Fields defined directly on the schema do not get generated getters. (`{{- if and $f.Position $f.Position.MixedIn }}`)
 **Nillable fields get pointer return type** — If a mixin field is `Nillable`, the getter returns `*<Type>` matching the struct field's actual type. (`func (e *{{ $n.Name }}) Get{{ $f.StructField }}() {{ if $f.Nillable }}*{{ end }}{{ $f.Type }} { return e.{{ $f.StructField }} }`)
 **ID getter is templated separately** — The ID field is not in `$n.Fields`; it is accessed via `$n.ID` and gets its own `GetID()` getter only when `$n.ID.Position.MixedIn` is true. (`{{- if and $n.ID $n.ID.Position $n.ID.Position.MixedIn }} func (e *{{ $n.Name }}) GetID() {{ $n.ID.Type }} { return e.ID } {{- end }}`)

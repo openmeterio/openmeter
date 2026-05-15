@@ -2,11 +2,11 @@
 
 <!-- archie:ai-start -->
 
-> Ent code-generation extension that injects `GetConfig()`, `HijackTx()`, and `NewTxClientFromRawConfig()` into each generated `db` package, enabling the shared cross-client transaction mechanism used by `entutils.TransactingRepo`.
+> Ent code-generation extension that injects `GetConfig()`, `HijackTx()`, and `NewTxClientFromRawConfig()` into each generated `db` package, enabling the shared cross-client transaction mechanism used by `entutils.TransactingRepo`. This is the foundation of the ctx-propagated transaction pattern throughout all domain adapters.
 
 ## Patterns
 
-**Ent Extension + embedded template (same shape as entcursor/entpaginate)** — `entexpose.go` implements `entc.Extension` with `Templates()` returning a `gen.MustParse`-d template from `expose.tpl`. Must be registered in `openmeter/ent/entc.go`. (`func New() *Extension { return &Extension{} }`)
+**Ent Extension + embedded template** — `entexpose.go` implements `entc.Extension` with `Templates()` returning a `gen.MustParse`-d template from `expose.tpl`. Must be registered in `openmeter/ent/entc.go`. (`func New() *Extension { return &Extension{} }`)
 **HijackTx for cross-client transaction sharing** — `HijackTx(ctx, opts)` starts a SQL transaction on the client's underlying driver and returns `(ctx, *RawEntConfig, *ExposedTxDriver, error)`. The `RawEntConfig` is passed to `NewTxClientFromRawConfig` in a second client to bind it to the same transaction. (`ctx, cfg, txDriver, err := client.HijackTx(ctx, &sql.TxOptions{})`)
 **ExposedTxDriver implements Transactable with savepoints** — `ExposedTxDriver` exposes `Rollback`, `Commit`, `SavePoint`, `RollbackTo`, and `Release` — all SAVEPOINT SQL is issued via `ExecContext` on the `txDriver`. This is the mechanism that lets `entutils.TransactingRepo` nest transactions. (`var _ entutils.Transactable = (*ExposedTxDriver)(nil)`)
 **NewTxClientFromRawConfig reconstructs a Tx with empty hooks/inters** — Deliberately creates a `Tx` with empty `hooks` and `inters` structs — the TODO comment notes this means on-rollback/on-commit hooks are ignored for shared transactions. (`config := config{driver: cfg.Driver, debug: cfg.Debug, log: cfg.Log, hooks: &hooks{}, inters: &inters{}}`)

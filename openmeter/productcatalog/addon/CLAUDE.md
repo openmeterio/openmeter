@@ -2,28 +2,29 @@
 
 <!-- archie:ai-start -->
 
-> Domain package for add-on lifecycle management: defines the Addon aggregate (with RateCards), domain types (Plan, RateCard, RateCards), typed errors, domain events, and the Service + Repository interfaces. Primary constraint: domain types must always carry both productcatalog.* base types and managed fields (NamespacedID, ManagedModel).
+> Domain package for add-on lifecycle management: defines the Addon aggregate (with RateCards), typed errors, domain events, and the Service + Repository interfaces. Primary constraint: domain types always carry both productcatalog.* base types and managed identity fields (NamespacedID, ManagedModel).
 
 ## Patterns
 
-**Addon aggregate embeds productcatalog.AddonMeta + RateCards** — Addon struct embeds models.NamespacedID, models.ManagedModel, productcatalog.AddonMeta, and addon.RateCards. RateCard wraps productcatalog.RateCard with RateCardManagedFields (AddonID field). (`type Addon struct { models.NamespacedID; models.ManagedModel; productcatalog.AddonMeta; RateCards RateCards }`)
-**Typed domain errors wrapping models.NewGenericNotFoundError** — NotFoundError wraps models.NewGenericNotFoundError via Unwrap chain. Always use NewNotFoundError(NotFoundErrorParams{...}) and IsNotFound() — never return raw Ent not-found errors. (`return nil, addon.NewNotFoundError(addon.NotFoundErrorParams{Namespace: ns, ID: id})`)
-**Domain events implement metadata.EventName / EventMetadata / Validate** — Each lifecycle event (Create, Update, Delete, Publish, Archive) is a struct with Addon *Addon + UserID *string, implementing EventName(), EventMetadata(), and Validate(). EventName uses metadata.GetEventName with subsystem + name + version. (`func (e AddonCreateEvent) EventName() string { return metadata.GetEventName(metadata.EventType{Subsystem: AddonEventSubsystem, Name: AddonCreateEventName, Version: "v1"}) }`)
-**Input types implement models.Validator; IgnoreNonCriticalIssues for partial validation** — CreateAddonInput and UpdateAddonInput embed inputOptions{IgnoreNonCriticalIssues bool}. Validate() calls models.AsValidationIssues and filters by ErrorSeverityCritical when set. (`issues, err := models.AsValidationIssues(errors.Join(errs...)); if i.IgnoreNonCriticalIssues { issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical) }`)
-**RateCards uses AsProductCatalogRateCards() for cross-type conversion** — addon.RateCards.AsProductCatalogRateCards() returns productcatalog.RateCards; used in assert helpers and Addon.AsProductCatalogAddon(). Never directly cast the slice. (`func (c RateCards) AsProductCatalogRateCards() productcatalog.RateCards { ... }`)
-**ValidatorFunc[Addon] pattern for status/deletion guards** — validators.go exposes IsAddonDeleted and HasAddonStatus as models.ValidatorFunc[Addon] closures, composed via addon.Validate() via ValidateWith. (`func HasAddonStatus(statuses ...productcatalog.AddonStatus) models.ValidatorFunc[Addon] { return func(a Addon) error { ... } }`)
+**Addon aggregate embedding pattern** — Addon embeds models.NamespacedID, models.ManagedModel, productcatalog.AddonMeta, and RateCards. RateCard wraps productcatalog.RateCard with RateCardManagedFields (AddonID field). Never use struct literals missing these fields. (`type Addon struct { models.NamespacedID; models.ManagedModel; productcatalog.AddonMeta; RateCards RateCards }`)
+**Typed NotFoundError wrapping models.NewGenericNotFoundError** — Always return addon.NewNotFoundError(NotFoundErrorParams{...}) from adapters. Never surface raw entdb.IsNotFound. Use IsNotFound() for errors.As detection at service boundaries. (`return nil, addon.NewNotFoundError(addon.NotFoundErrorParams{Namespace: ns, ID: id})`)
+**Domain events implement EventName / EventMetadata / Validate** — Each lifecycle event (Create, Update, Delete, Publish, Archive) is a struct with Addon *Addon + UserID *string sourced from session.GetSessionUserID(ctx). EventName uses metadata.GetEventName with subsystem='addon', name, version='v1'. (`func (e AddonCreateEvent) EventName() string { return metadata.GetEventName(metadata.EventType{Subsystem: AddonEventSubsystem, Name: AddonCreateEventName, Version: "v1"}) }`)
+**inputOptions.IgnoreNonCriticalIssues for draft validation** — CreateAddonInput and UpdateAddonInput embed inputOptions{IgnoreNonCriticalIssues bool}. Validate() calls models.AsValidationIssues and filters with WithSeverityOrHigher(ErrorSeverityCritical) when set. Allows draft addons with non-critical issues. (`issues, err := models.AsValidationIssues(errors.Join(errs...)); if i.IgnoreNonCriticalIssues { issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical) }`)
+**RateCards.AsProductCatalogRateCards() for cross-type conversion** — Never directly cast addon.RateCards to productcatalog.RateCards. Always call RateCards.AsProductCatalogRateCards() which iterates and extracts the inner productcatalog.RateCard from each RateCard wrapper. (`func (c RateCards) AsProductCatalogRateCards() productcatalog.RateCards { var rcs productcatalog.RateCards; for _, rc := range c { rcs = append(rcs, rc.RateCard) }; return rcs }`)
+**ValidatorFunc[Addon] for status/deletion guards** — validators.go exposes IsAddonDeleted and HasAddonStatus as models.ValidatorFunc[Addon] closures. Compose them via Addon.ValidateWith() instead of inline status checks in service methods. (`if err := addon.ValidateWith(addon.HasAddonStatus(productcatalog.AddonStatusDraft)); err != nil { return nil, err }`)
+**RateCard custom MarshalJSON/UnmarshalJSON on type discriminator** — RateCard.UnmarshalJSON reads productcatalog.RateCardSerde.Type first, then switches on FlatFeeRateCardType vs UsageBasedRateCardType to pick the concrete struct. Any new rate card type requires a new case here. (`switch s.Type { case productcatalog.FlatFeeRateCardType: serde.RateCard = &productcatalog.FlatFeeRateCard{} }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `service.go` | Defines Service interface (ListAddons, CreateAddon, DeleteAddon, GetAddon, UpdateAddon, PublishAddon, ArchiveAddon, NextAddon), all input types, and their Validate() methods. | PublishAddonInput.Validate() enforces EffectiveFrom not in the past with a 30s jitter; clock.Now() is used — do not substitute time.Now(). |
-| `addon.go` | Addon aggregate type with Validate(), ValidateWith(), and AsProductCatalogAddon(). | Plans field is *[]Plan — optional; only populated on expand. |
-| `ratecard.go` | RateCard wraps productcatalog.RateCard with RateCardManagedFields; custom MarshalJSON/UnmarshalJSON dispatches on productcatalog.RateCardSerde.Type. | UnmarshalJSON must switch on FlatFeeRateCardType vs UsageBasedRateCardType — any new type needs a case here. |
-| `errors.go` | NotFoundError type wrapping models.NewGenericNotFoundError; IsNotFound() for errors.As detection. | Never return raw entdb.IsNotFound — always wrap via NewNotFoundError. |
-| `event.go` | All five lifecycle event structs; UserID sourced from session.GetSessionUserID(ctx). | AddonDeleteEvent.Validate() asserts Addon.DeletedAt != nil; ensure soft-delete is applied before publishing. |
-| `repository.go` | Repository interface extends entutils.TxCreator — required for TransactingRepo in adapter. | TxCreator embedding is mandatory; adapters without it cannot participate in ctx-bound transactions. |
-| `validators.go` | IsAddonDeleted and HasAddonStatus validator funcs for use in service-layer guards. | Use these funcs via Addon.ValidateWith() instead of inline status checks. |
+| `service.go` | Service interface (ListAddons, CreateAddon, DeleteAddon, GetAddon, UpdateAddon, PublishAddon, ArchiveAddon, NextAddon) and all input types with Validate(). | PublishAddonInput.Validate() uses a 30s jitter via clock.Now() for EffectiveFrom — do not substitute time.Now(). |
+| `addon.go` | Addon aggregate type with Validate(), ValidateWith(), and AsProductCatalogAddon(). | Plans field is *[]Plan — only populated on expand; never assume non-nil. |
+| `ratecard.go` | RateCard wraps productcatalog.RateCard with RateCardManagedFields; custom MarshalJSON/UnmarshalJSON dispatches on RateCardSerde.Type. | New rate card types require a case in UnmarshalJSON switch and the ratecard test. |
+| `errors.go` | NotFoundError wrapping models.NewGenericNotFoundError; IsNotFound() for errors.As detection. | Never return raw entdb.IsNotFound — always wrap via NewNotFoundError. |
+| `event.go` | All five lifecycle event structs; UserID sourced from session.GetSessionUserID(ctx). | AddonDeleteEvent.Validate() asserts Addon.DeletedAt != nil — soft-delete must be applied before constructing the event. |
+| `repository.go` | Repository interface extends entutils.TxCreator — mandatory for TransactingRepo in the adapter layer. | TxCreator embedding is required; adapters without it cannot participate in ctx-bound transactions. |
+| `validators.go` | IsAddonDeleted and HasAddonStatus validator funcs for use in service-layer guards. | Use via Addon.ValidateWith() instead of inline status checks. |
 
 ## Anti-Patterns
 
@@ -36,25 +37,26 @@
 ## Decisions
 
 - **RateCard is a separate managed type wrapping productcatalog.RateCard with AddonID** — Each rate card needs its own DB identity (NamespacedID) and foreign-key reference (AddonID) separate from the base productcatalog.RateCard so Ent can persist and eager-load them independently.
-- **inputOptions.IgnoreNonCriticalIssues enables partial validation for draft addons** — Draft addons can be created with non-critical issues (e.g. missing features not yet registered), so callers can opt into a relaxed validation that only fails on ErrorSeverityCritical.
+- **inputOptions.IgnoreNonCriticalIssues enables partial validation for draft addons** — Draft addons can be created with non-critical issues (e.g. missing features not yet registered); callers can opt into relaxed validation that only fails on ErrorSeverityCritical.
 - **Domain events carry the full Addon pointer + UserID from session context** — Downstream Watermill consumers need the full entity for side-effects; UserID supports audit trails without requiring a separate lookup.
 
-## Example: Creating and publishing a domain event after a successful adapter write
+## Example: Creating and publishing a domain event after a successful adapter write inside a transaction
 
 ```
 import (
     "github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
-    "github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+    "github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-// inside service mutation:
-created, err := s.adapter.CreateAddon(ctx, params)
-if err != nil { return nil, err }
-event := addon.NewAddonCreateEvent(ctx, created)
-if err := s.publisher.Publish(ctx, eventbus.SystemTopic, event); err != nil {
-    return nil, fmt.Errorf("publish addon created event: %w", err)
-}
-return created, nil
+return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*addon.Addon, error) {
+    created, err := s.adapter.CreateAddon(ctx, params)
+    if err != nil { return nil, err }
+    event := addon.NewAddonCreateEvent(ctx, created)
+    if err := s.publisher.Publish(ctx, event); err != nil {
+        return nil, fmt.Errorf("publish addon created event: %w", err)
+    }
+    return created, nil
+})
 ```
 
 <!-- archie:ai-end -->

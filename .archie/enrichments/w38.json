@@ -1,55 +1,141 @@
 {
-  "collector/benthos/bloblang": {
-    "purpose": "Registers custom Bloblang functions as Benthos/Redpanda Connect plugins via Go init(). Each file in this package adds one or more named functions that become available in Benthos pipeline configs; the package must be blank-imported to activate the registrations.",
+  "cmd/jobs/ledger/backfillaccounts": {
+    "purpose": "Single-file Cobra sub-command that backfills missing ledger accounts (business and customer) for a namespace. Intentionally bypasses the Wire DI surface to construct concrete ledger adapters directly, because the wired accountResolver is a noop when credits.enabled=false.",
     "patterns": [
       {
-        "name": "init-based plugin registration",
-        "description": "Every custom function is registered inside an init() function using bloblang.RegisterFunctionV2. The package has no exported symbols; activation is achieved by blank-importing the package.",
-        "example": "func init() { err := bloblang.RegisterFunctionV2(\"resource_quantity\", spec, factory); if err != nil { panic(err) } }"
+        "name": "Bypass DI for concrete ledger stack",
+        "description": "Construct accountRepo, accountSvc, resolverRepo, and accountResolver directly from internal.App.EntClient. Never use the wired resolver from app/common \u2014 it is a noop when credits are disabled.",
+        "example": "accountRepo := accountadapter.NewRepo(internal.App.EntClient); accountSvc := accountservice.New(accountRepo, locker); resolverRepo := resolversadapter.NewRepo(internal.App.EntClient); accountResolver := resolvers.NewAccountResolver(...)"
       },
       {
-        "name": "PluginSpec + typed params",
-        "description": "Use bloblang.NewPluginSpec() with explicit Param declarations (bloblang.NewStringParam, etc.) so callers get typed argument extraction via args.GetString / args.GetInt64.",
-        "example": "spec := bloblang.NewPluginSpec().Description(\"...\").Param(bloblang.NewStringParam(\"value\").Description(\"...\"))"
+        "name": "Flags in init(), logic in RunE",
+        "description": "All flag vars are package-level, registered in init() with Cmd.Flags(). RunE constructs the service, resolves inputs from flags, calls service.Run, prints the summary, then checks FailureCount for a non-zero exit.",
+        "example": "func init() { Cmd.Flags().StringVar(&createdBefore, \"created-before\", \"\", \"...\") }"
       },
       {
-        "name": "Lazy-closure return",
-        "description": "The factory passed to RegisterFunctionV2 evaluates arguments once and returns a func() (any, error) closure for repeated invocation \u2014 heavy parsing (e.g. resource.ParseQuantity) happens in the factory, not in the closure.",
-        "example": "return func(args *bloblang.ParsedParams) (bloblang.Function, error) { qty := parse(args); return func() (any, error) { return qty.String(), nil }, nil }"
+        "name": "RFC3339 time parsing for flag values",
+        "description": "Time-valued flags are passed as strings and parsed with time.Parse(time.RFC3339, ...) in RunE, not in flag.Value; always normalize to UTC.",
+        "example": "parsed, parseErr := time.Parse(time.RFC3339, createdBefore); parsed = parsed.UTC(); createdBeforeTime = &parsed"
       },
       {
-        "name": "Empty-value guard before parsing",
-        "description": "Check for empty string before delegating to external parsers; return a zero value (0, not an error) on empty input to let pipelines handle optional fields gracefully.",
-        "example": "if value == \"\" { return func() (any, error) { return 0, nil }, nil }"
+        "name": "Print summary before returning error",
+        "description": "printSummary is always called before any error return so partial results are visible even on failure.",
+        "example": "if err != nil { printSummary(output); return err }; printSummary(output)"
+      },
+      {
+        "name": "Non-zero exit on FailureCount",
+        "description": "After printing the summary, check output.Result.FailureCount and return a descriptive error so the process exits non-zero when any customer provisioning failed.",
+        "example": "if output.Result.FailureCount > 0 { return fmt.Errorf(\"backfill completed with %d failures\", output.Result.FailureCount) }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "parse_resource.go",
-        "role": "Registers the 'resource_quantity' Bloblang function that converts Kubernetes resource.Quantity strings to decimal strings.",
-        "watch_for": "Panics on RegisterFunctionV2 error \u2014 any registration name collision or bad spec causes a startup panic. Ensure function names are globally unique within the binary."
+        "file": "backfillaccounts.go",
+        "role": "Single-file Cobra command: package-level flag vars, init() registration, newService() that builds concrete adapters, RunE wiring, and printSummary.",
+        "watch_for": "internal.App is the global app struct from cmd/jobs/internal. Do not import app/common wired services \u2014 the wired accountResolver is a noop when credits.enabled=false. lockr.NewLocker must be created here and passed to accountservice.New."
       }
     ],
     "anti_patterns": [
-      "Exporting functions or types from this package \u2014 it is a side-effect-only plugin package and should have no exported API.",
-      "Performing heavy I/O or network calls inside the returned closure \u2014 parse and validate in the factory, not on every invocation.",
-      "Returning hard errors for empty/zero input \u2014 prefer returning a zero value to keep pipelines tolerant of missing fields.",
-      "Registering the same function name in multiple files \u2014 init() order is undefined and the second registration will panic."
+      "Using the Wire-provided ledger account resolver from app/common (it is a noop when credits.enabled=false)",
+      "Omitting lockr.NewLocker \u2014 accountservice.New requires a Locker for CreateCustomerAccounts",
+      "Parsing time flags outside RunE or omitting UTC normalization",
+      "Returning an error before printSummary (partial results become invisible)",
+      "Adding business logic inside RunE beyond input construction, service.Run invocation, and summary printing"
     ],
     "decisions": [
       {
-        "decision": "Use init() for auto-registration instead of an explicit Register() call",
-        "rationale": "Benthos plugin packages are designed for blank-import activation; a central Register() call would require the collector binary to enumerate every plugin, coupling it to this package's internals."
+        "decision": "Build concrete ledger adapters directly instead of using DI outputs",
+        "rationale": "AGENTS.md explicitly states: 'When writing a backfill that genuinely needs ledger writes, build the concrete adapters directly instead of relying on DI defaults (they are noops when credits.enabled=false).'"
       },
       {
-        "decision": "Depend on k8s.io/apimachinery resource.ParseQuantity for Kubernetes resource parsing",
-        "rationale": "Kubernetes resource strings (e.g. '100m', '2Gi') have complex SI/binary suffix rules; reusing the authoritative parser avoids reimplementing that logic."
+        "decision": "Delegate all pagination and provisioning logic to cmd/jobs/ledger/service",
+        "rationale": "Keeps the Cobra command thin and testable: the service package contains pure-Go logic with no Cobra/Ent imports, enabling unit tests without a real database."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new Bloblang function 'parse_duration' that converts a Go duration string to milliseconds",
-        "code": "package bloblang\n\nimport (\n\t\"time\"\n\n\t\"github.com/redpanda-data/benthos/v4/public/bloblang\"\n)\n\nfunc init() {\n\tspec := bloblang.NewPluginSpec().\n\t\tDescription(\"Parse a Go duration string and return its value in milliseconds.\").\n\t\tParam(bloblang.NewStringParam(\"value\").Description(\"The duration string to parse, e.g. '1h30m'.\"))\n\n\terr := bloblang.RegisterFunctionV2(\"parse_duration\", spec, func(args *bloblang.ParsedParams) (bloblang.Function, error) {\n\t\tvalue, err := args.GetString(\"value\")\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\tif value == \"\" {\n\t\t\treturn func() (any, error) { return int64(0), nil }, nil\n\t\t}\n\t\td, err := time.ParseDuration(value)\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\tms := d.Milliseconds()\n\t\treturn func() (any, error) { return ms, nil }, nil\n\t})\n\tif err != nil {\n\t\tpanic(err)\n\t}\n}"
+        "scenario": "Construct the concrete ledger stack and run the backfill from RunE",
+        "code": "import (\n\taccountadapter \"github.com/openmeterio/openmeter/openmeter/ledger/account/adapter\"\n\taccountservice \"github.com/openmeterio/openmeter/openmeter/ledger/account/service\"\n\t\"github.com/openmeterio/openmeter/openmeter/ledger/resolvers\"\n\tresolversadapter \"github.com/openmeterio/openmeter/openmeter/ledger/resolvers/adapter\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/lockr\"\n)\n\nfunc newService() (*ledgerbackfillservice.Service, error) {\n\tlocker, err := lockr.NewLocker(&lockr.LockerConfig{Logger: internal.App.Logger})\n\tif err != nil { return nil, fmt.Errorf(\"create locker: %w\", err) }\n\taccountRepo := accountadapter.NewRepo(internal.App.EntClient)\n\taccountSvc := accountservice.New(accountRepo, locker)\n\tresolverRepo := resolversadapter.NewRepo(internal.App.EntClient)\n\taccountResolver := resolvers.NewAccountResolver(resolvers.AccountResolverConfig{\n\t\tAccountService: accountSvc, Repo: resolverRepo, Locker: locker,\n\t})\n\treturn ledgerbackfillservice.NewService(ledgerbackfillservice.Config{\n\t\tCustomerLister:     ledgerbackfillservice.NewEntCustomerLister(internal.App.EntClient),\n\t\tAccountProvisioner: accountResolver,\n\t\tLogger:             internal.App.Logger,\n\t})\n}"
+      }
+    ]
+  },
+  "cmd/jobs/ledger/service": {
+    "purpose": "Pure-Go backfill orchestration service (no Cobra, no direct Ent import in service.go) that pages through customers and provisions missing ledger accounts. Separated from the command layer to allow unit testing without a real database.",
+    "patterns": [
+      {
+        "name": "Interface-driven dependencies, no Ent in service.go",
+        "description": "Service depends on unexported customerLister and accountProvisioner interfaces. Concrete implementations (EntCustomerLister, real resolver) are injected from the command layer. Never import *entdb.Client in service.go.",
+        "example": "type customerLister interface { ListCustomers(ctx context.Context, input ListCustomersInput) (ListCustomersResult, error) }"
+      },
+      {
+        "name": "Config struct with Validate() and constructor returning error",
+        "description": "All dependencies bundled in Config, validated in Config.Validate(), constructor returns (*Service, error). Add new dependencies to Config and validate them; never add optional fields with zero-value fallback.",
+        "example": "func NewService(cfg Config) (*Service, error) { if err := cfg.Validate(); err != nil { return nil, fmt.Errorf(\"invalid backfill config: %w\", err) }; return &Service{...}, nil }"
+      },
+      {
+        "name": "RunInput.normalized() for caller-visible defaults",
+        "description": "Input defaults (CustomerPageSize=0 \u2192 DefaultCustomerPageSize, CreatedBefore UTC normalization) are applied by a private normalized() method inside Run, not in the command layer or constructor.",
+        "example": "func (i RunInput) normalized() RunInput { out := i; if out.CustomerPageSize == 0 { out.CustomerPageSize = DefaultCustomerPageSize }; return out }"
+      },
+      {
+        "name": "paginationv2.MAX_SAFE_ITER guard on all cursor loops",
+        "description": "All cursor-paginated loops must check against paginationv2.MAX_SAFE_ITER and call recordFailure + return error when exhausted, preventing infinite loops on bad cursors.",
+        "example": "for iter := 0; iter < paginationv2.MAX_SAFE_ITER; iter++ { ...; if !completed { return result, s.recordFailure(&result, \"paginate_customers\", \"\", fmt.Errorf(\"max safe iter reached\")) } }"
+      },
+      {
+        "name": "Idempotent Get-then-Create provisioning with ValidationIssue code detection",
+        "description": "Always call GetCustomerAccounts / GetBusinessAccounts first. Only provision when the error carries ledger.ErrCodeCustomerAccountMissing / ErrCodeBusinessAccountMissing via hasValidationIssueCode; other errors go through recordFailure. Makes the backfill safely re-runnable.",
+        "example": "if !hasValidationIssueCode(err, ledger.ErrCodeCustomerAccountMissing) { return s.recordFailure(result, \"get_customer_accounts\", customerID.ID, err) }"
+      },
+      {
+        "name": "DryRun increments WouldProvision counters only",
+        "description": "When input.DryRun is true, increment BusinessWouldProvision / CustomersWouldProvision and return without calling EnsureBusinessAccounts / CreateCustomerAccounts.",
+        "example": "if input.DryRun { result.CustomersWouldProvision++; return nil }"
+      },
+      {
+        "name": "recordFailure owns FailureCount increment and slog.Warn; ContinueOnError checked in caller",
+        "description": "recordFailure always increments result.FailureCount and logs via slog.Warn. Callers check input.ContinueOnError to decide whether to return the error or continue.",
+        "example": "failure := s.recordFailure(&result, \"list_customers\", \"\", err); if input.ContinueOnError { return result, nil }; return result, failure"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Core orchestration: Config/Service types, customerLister/accountProvisioner interfaces, Run/runNamespace/ensureBusinessAccounts/ensureCustomerAccounts/recordFailure/hasValidationIssueCode.",
+        "watch_for": "No direct Ent imports \u2014 keep this file free of *entdb.Client. Do not add new ledger error codes without updating hasValidationIssueCode. ContinueOnError must be checked by callers of recordFailure, not inside recordFailure itself."
+      },
+      {
+        "file": "customer_lister_ent.go",
+        "role": "EntCustomerLister implements customerLister using Ent cursor queries (query.Cursor) with namespace + DeletedAt + CreatedAt filters.",
+        "watch_for": "Uses query.Cursor(ctx, input.Cursor) \u2014 Ent cursor pagination, not offset. IncludeDeleted=false filters via customerdb.Or(DeletedAtIsNil(), DeletedAtGTE(now)) for correct soft-delete semantics. CreatedBefore filter uses CreatedAtLT with UTC normalization."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Unit tests using fakeCustomerLister and fakeAccountProvisioner covering dry-run, cursor pagination, created-before cutoff, and continue-on-error.",
+        "watch_for": "Uses t.Context() not context.Background(). fakeCustomerLister implements cursor pagination manually \u2014 keep consistent with real cursor semantics (time+ID ordering) when adding tests. fakeAccountProvisioner uses ledger.ErrCustomerAccountMissing.WithAttrs(...) to emit real ValidationIssue codes."
+      }
+    ],
+    "anti_patterns": [
+      "Importing *entdb.Client directly in service.go \u2014 breaks unit testability",
+      "Checking ContinueOnError inside recordFailure \u2014 callers own that decision",
+      "Skipping the MAX_SAFE_ITER guard in any new paginated loop",
+      "Using offset pagination instead of paginationv2.Cursor for customer iteration",
+      "Using context.Background() in tests instead of t.Context()"
+    ],
+    "decisions": [
+      {
+        "decision": "Separate service package from Cobra command",
+        "rationale": "Enables pure-Go unit tests (no Ent, no Cobra, no real DB) covering dry-run, cursor paging, cutoff filtering, and error continuation without integration overhead."
+      },
+      {
+        "decision": "Detect missing-account condition via ValidationIssue error codes, not nil checks",
+        "rationale": "ledger.ErrCodeCustomerAccountMissing / ErrCodeBusinessAccountMissing are structured error codes on ValidationIssue; treating any non-nil error as 'missing' would mask real failures from DB or network errors."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Cursor-paginated customer provisioning loop with DryRun and ContinueOnError",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/ledger\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n\tpaginationv2 \"github.com/openmeterio/openmeter/pkg/pagination/v2\"\n)\n\nvar cursor *paginationv2.Cursor\ncompleted := false\nfor iter := 0; iter < paginationv2.MAX_SAFE_ITER; iter++ {\n\tres, err := s.customerLister.ListCustomers(ctx, ListCustomersInput{Namespace: namespace, PageSize: input.CustomerPageSize, Cursor: cursor})\n\tif err != nil {\n\t\tfailure := s.recordFailure(&result, \"list_customers\", \"\", err)\n\t\tif input.ContinueOnError { return result, nil }\n\t\treturn result, failure\n\t}\n\tfor _, item := range res.Items {\n\t\tresult.CustomersScanned++\n\t\tif err := s.ensureCustomerAccounts(ctx, input, &result, customer.CustomerID{Namespace: namespace, ID: item.ID}); err != nil {\n\t\t\tif !input.ContinueOnError { return result, err }\n\t\t}\n\t}\n\tif res.NextCursor == nil { completed = true; break }\n\tcursor = res.NextCursor\n}\nif !completed {\n\treturn result, s.recordFailure(&result, \"paginate_customers\", \"\", fmt.Errorf(\"max safe iter reached: %d\", paginationv2.MAX_SAFE_ITER))\n}"
       }
     ]
   }

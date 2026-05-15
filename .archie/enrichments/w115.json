@@ -1,147 +1,197 @@
 {
-  "openmeter/secret/adapter": {
-    "purpose": "Plaintext (no-op) implementation of secret.Adapter \u2014 stores secrets as their raw value in the SecretID itself. This is a stub implementation; a production deployment would replace it with a real secret store (Vault, AWS Secrets Manager, etc.).",
+  "openmeter/progressmanager/adapter": {
+    "purpose": "Redis-backed implementation of progressmanager.Adapter that stores/retrieves TTL-bound progress data as JSON; also provides adapterNoop (silent no-op) and MockProgressManager (testify mock for Service) in the same package.",
     "patterns": [
       {
-        "name": "Interface compliance assertion",
-        "description": "Every adapter file must declare `var _ secret.Adapter = (*adapter)(nil)` at the top to catch interface drift at compile time.",
-        "example": "var _ secret.Adapter = (*adapter)(nil)"
+        "name": "Config.Validate() before construction",
+        "description": "New() calls config.Validate() first and returns (Adapter, error). Required fields: non-nil Redis client, non-nil Logger, Expiration > 0. Never relax these guards.",
+        "example": "func New(config Config) (progressmanager.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
       },
       {
-        "name": "Stateless adapter struct",
-        "description": "The adapter struct holds no fields because secrets are encoded into SecretID. If a real backend is added, inject the client via New() and store it on the struct.",
-        "example": "type adapter struct{}"
+        "name": "Compile-time interface assertion",
+        "description": "Both adapter and adapterNoop assert interface compliance via blank-identifier assignment at package level.",
+        "example": "var _ progressmanager.Adapter = (*adapter)(nil)\nvar _ progressmanager.Adapter = (*adapterNoop)(nil)"
       },
       {
-        "name": "No Ent dependency in this implementation",
-        "description": "Despite the component description mentioning Ent, this adapter uses only secretentity types \u2014 no *entdb.Client. A future real adapter would receive a client via New().",
-        "example": "func New() secret.Adapter { return &adapter{} }"
+        "name": "Namespaced Redis key via getKey()",
+        "description": "All Redis operations must route through getKey(id ProgressID) which produces '<keyPrefix>:progress:<namespace>:<id>' (or without prefix when keyPrefix is empty). Never construct keys inline.",
+        "example": "fmt.Sprintf(\"%s:%s:%s:%s\", a.keyPrefix, staticKeyPrefix, id.Namespace, id.ID)"
+      },
+      {
+        "name": "redis.Nil mapped to GenericNotFoundError",
+        "description": "When redis.Get returns redis.Nil, return models.NewGenericNotFoundError(...) \u2014 not the raw redis error \u2014 so the HTTP layer maps it to 404.",
+        "example": "if cmd.Err() == redis.Nil { return nil, models.NewGenericNotFoundError(fmt.Errorf(\"progress not found for id: %s\", input.ProgressID.ID)) }"
+      },
+      {
+        "name": "Input validation before Redis operations",
+        "description": "Both GetProgress and UpsertProgress call input.Validate() and wrap the error before any Redis call.",
+        "example": "if err := input.Validate(); err != nil { return nil, fmt.Errorf(\"validate get progress input: %w\", err) }"
+      },
+      {
+        "name": "Noop asymmetry: writes succeed, reads return not-found",
+        "description": "adapterNoop.UpsertProgress returns nil (writes discarded silently); adapterNoop.GetProgress returns GenericNotFoundError. This asymmetry is intentional \u2014 callers treat noop writes as safe to ignore.",
+        "example": "func (a *adapterNoop) UpsertProgress(...) error { return nil }"
+      },
+      {
+        "name": "Mock implements Service not Adapter",
+        "description": "MockProgressManager satisfies progressmanager.Service (including DeleteProgressByRuntimeID), not progressmanager.Adapter. Keep in sync when Service interface gains new methods.",
+        "example": "var _ progressmanager.Service = &MockProgressManager{}"
       }
     ],
     "key_file_guides": [
       {
         "file": "adapter.go",
-        "role": "Constructor and compile-time interface assertion. Wire calls New() to obtain a secret.Adapter.",
-        "watch_for": "If secret.Adapter gains new methods, the compile-time assertion will fail here first \u2014 add the method to secret.go."
+        "role": "Config struct, New() constructor, adapter and adapterNoop type definitions. Entry point for wiring in app/common.",
+        "watch_for": "Config.Validate() must reject nil Redis client and zero Expiration \u2014 never relax these guards."
       },
       {
-        "file": "secret.go",
-        "role": "All four CRUD methods: CreateAppSecret, UpdateAppSecret, GetAppSecret, DeleteAppSecret. All are no-ops that encode the value into the SecretID.",
-        "watch_for": "CreateAppSecret and UpdateAppSecret return secretentity.NewSecretID(input.AppID, input.Value, input.Key) \u2014 the ID IS the plaintext value. A real implementation must never do this."
+        "file": "progress.go",
+        "role": "GetProgress and UpsertProgress implementations using Redis GET/SET with JSON marshaling and TTL.",
+        "watch_for": "getKey() is the sole key-format authority; changing the format orphans all existing in-flight Redis records."
+      },
+      {
+        "file": "noop.go",
+        "role": "No-op adapter for disabled progress tracking. GetProgress always returns not-found; UpsertProgress is silent.",
+        "watch_for": "Do not make UpsertProgress return a non-nil error \u2014 callers rely on noop writes being safe no-ops."
+      },
+      {
+        "file": "mock.go",
+        "role": "Testify mock for progressmanager.Service used in unit tests.",
+        "watch_for": "Mock is for Service (not Adapter); must be updated when Service interface adds new methods."
       }
     ],
     "anti_patterns": [
-      "Storing state on the adapter struct without injecting a client through New()",
-      "Returning errors from DeleteAppSecret or CreateAppSecret in the stub \u2014 callers expect these to always succeed",
-      "Importing openmeter/ent/db in this package \u2014 this stub has no DB dependency; Ent belongs in a future real adapter sub-package",
-      "Adding business logic here \u2014 validation belongs in secretservice, not the adapter"
+      "Storing progress keys without namespace prefix \u2014 breaks multi-tenant isolation",
+      "Returning raw redis errors instead of models.GenericNotFoundError for redis.Nil \u2014 breaks HTTP 404 mapping",
+      "Calling Redis operations without first calling input.Validate() \u2014 bypasses domain invariant checks",
+      "Editing the key format in getKey() without a migration plan \u2014 orphans all existing in-flight progress records",
+      "Making adapterNoop.UpsertProgress return an error \u2014 callers rely on noop writes being safe no-ops"
     ],
     "decisions": [
       {
-        "decision": "SecretID encodes the plaintext value as the ID field",
-        "rationale": "Simplest possible stub that satisfies the Adapter interface without an external secret store; callers reconstruct the value from GetAppSecret by reading input.ID directly."
+        "decision": "Redis (not PostgreSQL/Ent) as the backing store",
+        "rationale": "Progress data is transient and TTL-bound; Redis SET with expiration avoids schema migrations and naturally garbage-collects stale progress without a cleanup job."
+      },
+      {
+        "decision": "Noop adapter co-located with the real adapter in the same package",
+        "rationale": "Keeps the disabled-feature code path trivially discoverable without a separate package; follows the broader project pattern of noop implementations per optional feature."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Wire the Redis adapter in app/common",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/progressmanager/adapter\"\n)\n\nfunc ProvideProgressAdapter(redisClient *redis.Client, logger *slog.Logger) (progressmanager.Adapter, error) {\n    return adapter.New(adapter.Config{\n        Expiration: 24 * time.Hour,\n        Redis:      redisClient,\n        Logger:     logger,\n        KeyPrefix:  \"om\",\n    })\n}"
+      }
+    ]
   },
-  "openmeter/secret/entity": {
-    "purpose": "Pure domain types for the secret package: SecretID (namespaced composite key), Secret (ID + value), all input structs, and the SecretNotFoundError sentinel. No persistence logic lives here.",
+  "openmeter/progressmanager/entity": {
+    "purpose": "Pure domain types for the progressmanager domain: ProgressID, Progress, GetProgressInput, UpsertProgressInput. No persistence logic \u2014 every type implements Validate() with errors.Join for multi-error aggregation.",
     "patterns": [
       {
-        "name": "Validate() on every input type",
-        "description": "All input structs (CreateAppSecretInput, UpdateAppSecretInput) expose a Validate() error method that wraps field errors in models.NewGenericValidationError. Service layer calls Validate() before delegating to the adapter.",
-        "example": "func (i CreateAppSecretInput) Validate() error { if i.Key == \"\" { return models.NewGenericValidationError(errors.New(\"key is required\")) }; return nil }"
+        "name": "Validate() collects all errors via errors.Join",
+        "description": "Each Validate() method appends all failures into a []error slice and returns errors.Join(...). Never return early on first error.",
+        "example": "var errs []error\nif a.ID == \"\" { errs = append(errs, errors.New(\"id is required\")) }\nreturn errors.Join(errs...)"
       },
       {
-        "name": "Embed models.NamespacedID in identity types",
-        "description": "SecretID embeds models.NamespacedID so it carries both Namespace and ID and can reuse NamespacedID.Validate().",
-        "example": "type SecretID struct { models.NamespacedID; AppID app.AppID; Key string }"
+        "name": "Delegate validation to embedded types",
+        "description": "Composite types call Validate() on embedded structs first and wrap with fmt.Errorf for context before appending to errs.",
+        "example": "if err := a.ProgressID.Validate(); err != nil { errs = append(errs, fmt.Errorf(\"progress id: %w\", err)) }"
       },
       {
-        "name": "Error wraps models.GenericNotFoundError",
-        "description": "SecretNotFoundError wraps models.NewGenericNotFoundError so the HTTP encoder maps it to 404 automatically. Add `var _ models.GenericError = (*SecretNotFoundError)(nil)` for compile-time verification.",
-        "example": "var _ models.GenericError = (*SecretNotFoundError)(nil)"
+        "name": "Business invariants enforced in Progress.Validate()",
+        "description": "Progress.Validate() enforces: Success+Failed <= Total, and non-zero counts require non-zero Total, and UpdatedAt must not be zero.",
+        "example": "if a.Success+a.Failed > a.Total { errs = append(errs, errors.New(\"success and failed must be less than or equal to total\")) }"
       },
       {
-        "name": "Type aliases for symmetric input types",
-        "description": "GetAppSecretInput and DeleteAppSecretInput are type aliases for SecretID, avoiding redundant wrapper structs when the input is just an identifier.",
-        "example": "type GetAppSecretInput = SecretID"
+        "name": "Input types embed domain types directly",
+        "description": "GetProgressInput embeds ProgressID; UpsertProgressInput embeds Progress. Input types are thin validation wrappers \u2014 no extra fields.",
+        "example": "type GetProgressInput struct { ProgressID }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "secret.go",
-        "role": "SecretID and Secret domain types plus NewSecretID constructor and Validate methods.",
-        "watch_for": "SecretID.Validate() chains NamespacedID.Validate() \u2192 AppID.Validate() \u2192 Key check; all must pass. Skipping AppID.Validate() lets invalid IDs reach the adapter."
-      },
-      {
-        "file": "input.go",
-        "role": "All four input structs. GetAppSecretInput and DeleteAppSecretInput are aliases, not new types.",
-        "watch_for": "UpdateAppSecretInput has both AppID and SecretID \u2014 Validate() calls both. New fields must be validated here, not in the service."
-      },
-      {
-        "file": "errors.go",
-        "role": "SecretNotFoundError sentinel and IsSecretNotFoundError helper.",
-        "watch_for": "Always use models.NewGenericNotFoundError as the inner error so the HTTP layer maps it to 404 without special-casing."
+        "file": "progressmanager.go",
+        "role": "Single file containing all entity types: ProgressID, Progress, GetProgressInput, UpsertProgressInput. Source of truth for domain invariants.",
+        "watch_for": "Adding new fields to Progress requires updating Validate() to enforce any new invariants; JSON tags must match the generated API schema."
       }
     ],
     "anti_patterns": [
-      "Adding persistence logic or Ent imports to this package \u2014 it must remain a pure domain type package",
-      "Returning raw errors instead of models.NewGenericValidationError from Validate() \u2014 breaks HTTP status code mapping",
-      "Creating new input structs without a Validate() method \u2014 service layer calls Validate() unconditionally",
-      "Duplicating validation logic in the adapter that already exists in input Validate() methods"
+      "Returning on first validation error instead of collecting all errors with errors.Join",
+      "Adding persistence, Redis, or HTTP logic to entity types \u2014 this package is pure domain types only",
+      "Omitting UpdatedAt zero-check in Progress.Validate() \u2014 callers rely on this guard before persisting",
+      "Embedding extra adapter-specific fields into entity types \u2014 keep entity types decoupled from storage details"
     ],
     "decisions": [
       {
-        "decision": "Input types live in a separate entity sub-package rather than in the root secret package",
-        "rationale": "Breaks the import cycle: input.go imports openmeter/app for AppID, while openmeter/app imports openmeter/secret \u2014 placing types in a sub-package (secretentity) lets both import it without a cycle."
+        "decision": "Entity types in a separate sub-package (entity/) rather than the root progressmanager package",
+        "rationale": "Avoids import cycles: adapter and httpdriver both need the entity types but neither should import the other; a shared entity sub-package breaks the cycle cleanly."
       }
     ],
     "code_examples": []
   },
-  "openmeter/secret/service": {
-    "purpose": "Concrete implementation of secret.Service that validates inputs then delegates all persistence to the injected secret.Adapter. Contains no business logic beyond validation.",
+  "openmeter/progressmanager/httpdriver": {
+    "purpose": "HTTP handler layer for the progressmanager domain, implementing a single GetProgress endpoint using the httptransport.Handler pipeline with namespace resolution from request context.",
     "patterns": [
       {
-        "name": "Config struct constructor with Validate()",
-        "description": "New(config Config) (*Service, error) validates config before constructing. Config.Validate() checks that required fields (Adapter) are non-nil. This is the standard service constructor pattern in this repo.",
-        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err }; return &Service{adapter: config.Adapter}, nil }"
+        "name": "Handler interface composes sub-interfaces",
+        "description": "The top-level Handler interface embeds ProgressHandler (which exposes GetProgress()). New endpoint groups add a new sub-interface and embed it in Handler.",
+        "example": "type Handler interface { ProgressHandler }\ntype ProgressHandler interface { GetProgress() GetProgressHandler }"
       },
       {
-        "name": "Double interface assertion",
-        "description": "service.go asserts `var _ secret.Service = (*Service)(nil)` and secret.go asserts `var _ secret.SecretService = (*Service)(nil)` \u2014 both must be kept in sync when secret.Service changes.",
-        "example": "var _ secret.Service = (*Service)(nil)"
+        "name": "Compile-time interface assertion",
+        "description": "var _ Handler = (*handler)(nil) ensures the concrete struct satisfies the Handler interface at package level.",
+        "example": "var _ Handler = (*handler)(nil)"
       },
       {
-        "name": "Validate-then-delegate in every method",
-        "description": "Each service method calls input.Validate() and wraps any error in models.NewGenericValidationError before calling the adapter. No logic beyond validation.",
-        "example": "func (s *Service) CreateAppSecret(ctx context.Context, input secretentity.CreateAppSecretInput) (secretentity.SecretID, error) { if err := input.Validate(); err != nil { return secretentity.SecretID{}, models.NewGenericValidationError(fmt.Errorf(\"error create app secret: %w\", err)) }; return s.adapter.CreateAppSecret(ctx, input) }"
+        "name": "Namespace resolved via namespacedriver.NamespaceDecoder",
+        "description": "All handlers call h.resolveNamespace(ctx) which reads the namespace from request context via NamespaceDecoder. Returns HTTP 500 if namespace is missing \u2014 intentional for self-hosted single-namespace deployments.",
+        "example": "ns, ok := h.namespaceDecoder.GetNamespace(ctx)\nif !ok { return \"\", commonhttp.NewHTTPError(http.StatusInternalServerError, errors.New(\"internal server error\")) }"
+      },
+      {
+        "name": "httptransport.NewHandlerWithArgs for path-parameter endpoints",
+        "description": "Endpoints with URL path arguments use httptransport.NewHandlerWithArgs[Req, Resp, Arg]. The first func decodes (ctx, *http.Request, arg) -> (Req, error); the second func is the operation.",
+        "example": "httptransport.NewHandlerWithArgs(\n    func(ctx context.Context, r *http.Request, progressID string) (GetProgressRequest, error) { ... },\n    func(ctx context.Context, request GetProgressRequest) (GetProgressResponse, error) { ... },\n    commonhttp.JSONResponseEncoderWithStatus[GetProgressResponse](http.StatusOK),\n    ...options,\n)"
+      },
+      {
+        "name": "Response type aliased from generated api package",
+        "description": "GetProgressResponse is aliased to api.Progress (the generated OpenAPI type), not a local struct. Conversion from domain type is done via a local progressToAPI() pure-mapping helper.",
+        "example": "type GetProgressResponse = api.Progress\nfunc progressToAPI(p entity.Progress) api.Progress { ... }"
+      },
+      {
+        "name": "HandlerOption propagation via httptransport.AppendOptions",
+        "description": "Handler-level options are propagated to each endpoint via httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"...\")).",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"getProgress\"))..."
       }
     ],
     "key_file_guides": [
       {
-        "file": "service.go",
-        "role": "Service struct, Config struct, New() constructor. Only field is adapter secret.Adapter.",
-        "watch_for": "Config.Validate() only checks Adapter != nil. If new required dependencies are added to Service, add them to Config and Validate() here."
+        "file": "handler.go",
+        "role": "Defines Handler/ProgressHandler interfaces, handler struct, New() constructor, and resolveNamespace helper.",
+        "watch_for": "resolveNamespace returns HTTP 500 (not 401/403) when namespace is missing \u2014 this is intentional for StaticNamespaceDecoder in self-hosted deployments."
       },
       {
-        "file": "secret.go",
-        "role": "All four method implementations (Create, Update, Get, Delete). Each wraps adapter call with validation.",
-        "watch_for": "UpdateAppSecret returns input.SecretID (not zero value) on validation error \u2014 intentional to return the original ID. Other methods return zero values on error."
+        "file": "progress.go",
+        "role": "Implements GetProgress endpoint: decoding, operation (calls service.GetProgress), response encoding, and progressToAPI() conversion helper.",
+        "watch_for": "A nil progress after a successful service call is treated as an internal error (not not-found) \u2014 the nil guard prevents silent data loss to callers."
       }
     ],
     "anti_patterns": [
-      "Adding business logic or cross-domain calls to this service \u2014 it is a thin validation+delegation layer only",
-      "Calling the adapter without first calling input.Validate() \u2014 adapter is a stub and won't catch bad inputs",
-      "Injecting *entdb.Client directly into Service \u2014 persistence is the adapter's concern; Service only holds secret.Adapter",
-      "Bypassing the Config struct and constructing Service{} directly \u2014 Validate() in New() is the only nil-safety gate"
+      "Calling the domain service from the decoder function \u2014 decode must only extract request fields; the operation func calls the service",
+      "Returning domain entity types directly as HTTP responses \u2014 always convert via progressToAPI() using generated api package types",
+      "Hardcoding the namespace string instead of calling h.resolveNamespace(ctx)",
+      "Adding business logic to progressToAPI() \u2014 it must be a pure field mapping with no validation or computation"
     ],
     "decisions": [
       {
-        "decision": "Service is a thin pass-through with validation only",
-        "rationale": "The secret domain has no business rules beyond ensuring inputs are structurally valid before reaching the adapter; all complexity lives in the adapter implementation (real or stub)."
+        "decision": "GetProgressResponse aliased to api.Progress rather than a new struct",
+        "rationale": "The generated api.Progress is the contract-stable OpenAPI type; aliasing avoids a redundant intermediate struct and ensures the HTTP response always matches the spec."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Register the GetProgress handler in the v1 router",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/progressmanager/httpdriver\"\n)\n\nhandler := httpdriver.New(namespaceDecoder, progressSvc, options...)\nrouter.Get(\"/api/v1/progress/{progressID}\", handler.GetProgress().ServeHTTP)"
+      }
+    ]
   }
 }

@@ -2,36 +2,37 @@
 
 <!-- archie:ai-start -->
 
-> Single-file package implementing a models.ServiceHook[entitlement.Entitlement] that guards subscription-managed entitlements from direct mutation or deletion. It enforces that entitlements annotated with subscription metadata can only be modified through subscription operations, preventing bypassing of subscription lifecycle constraints.
+> Single-file package implementing a models.ServiceHook[entitlement.Entitlement] that guards subscription-managed entitlements from direct mutation or deletion. Prevents bypassing subscription lifecycle constraints by blocking PreDelete and PreUpdate on entitlements annotated with subscription metadata.
 
 ## Patterns
 
-**Embed NoopServiceHook, override only needed methods** — The hook struct embeds NoopEntitlementSubscriptionHook (alias for models.NoopServiceHook[entitlement.Entitlement]) so unimplemented hook methods are no-ops by default. Only PreDelete and PreUpdate are overridden. (`type hook struct { NoopEntitlementSubscriptionHook }`)
-**subscription.IsSubscriptionOperation(ctx) gate** — Every guarded hook method must first check subscription.IsSubscriptionOperation(ctx) and return nil early if true. This allows the subscription package itself to mutate subscription-managed entitlements. (`if subscription.IsSubscriptionOperation(ctx) { return nil }`)
-**subscription.AnnotationParser.HasSubscription annotation check** — After the context gate, check ent.Annotations with subscription.AnnotationParser.HasSubscription to detect subscription ownership. Return models.NewGenericForbiddenError if the annotation is present. (`if subscription.AnnotationParser.HasSubscription(ent.Annotations) { return models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription")) }`)
-**Interface compliance assertion at package level** — A blank-identifier var declaration asserts at compile time that *hook satisfies models.ServiceHook[entitlement.Entitlement]. (`var _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil)`)
-**Constructor accepts typed config struct** — NewEntitlementSubscriptionHook accepts an EntitlementSubscriptionHookConfig (currently empty) so future config fields can be added without a signature change. (`func NewEntitlementSubscriptionHook(_ EntitlementSubscriptionHookConfig) EntitlementSubscriptionHook { ... }`)
+**Embed NoopServiceHook, override only needed methods** — The hook struct embeds NoopEntitlementSubscriptionHook (alias for models.NoopServiceHook[entitlement.Entitlement]) so unimplemented lifecycle methods are no-ops by default. Only PreDelete and PreUpdate are overridden. (`type hook struct { NoopEntitlementSubscriptionHook }`)
+**Two-step gate: IsSubscriptionOperation then HasSubscription** — Every guarded hook method must first check subscription.IsSubscriptionOperation(ctx) and return nil if true (allows subscription package self-management), then check subscription.AnnotationParser.HasSubscription(ent.Annotations) and return GenericForbiddenError if annotated. (`if subscription.IsSubscriptionOperation(ctx) { return nil }
+if subscription.AnnotationParser.HasSubscription(ent.Annotations) { return models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription")) }`)
+**Compile-time interface assertion** — A package-level blank-identifier var asserts *hook satisfies models.ServiceHook[entitlement.Entitlement] at compile time. (`var _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil)`)
+**Constructor accepts typed config struct** — NewEntitlementSubscriptionHook accepts EntitlementSubscriptionHookConfig (currently empty) so future config fields can be added without a signature change. (`func NewEntitlementSubscriptionHook(_ EntitlementSubscriptionHookConfig) EntitlementSubscriptionHook { return &hook{} }`)
+**Return GenericForbiddenError (not other error types) for annotation guard** — The annotation guard must return models.NewGenericForbiddenError so the HTTP error encoder maps it to 403 Forbidden via GenericErrorEncoder. (`return models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `hook.go` | Entire package implementation: defines hook struct, type aliases for the hook and noop base, constructor, and PreDelete/PreUpdate guards. | Both PreDelete and PreUpdate must apply the same two-step gate (IsSubscriptionOperation then HasSubscription). Adding a new hook method that skips either step will silently allow direct mutation of subscription-managed entitlements. |
+| `hook.go` | Entire package implementation: defines hook struct, type aliases for the hook and noop base, constructor, and PreDelete/PreUpdate guards. | Both PreDelete and PreUpdate must apply the identical two-step gate (IsSubscriptionOperation then HasSubscription). Adding a new hook method that skips either step silently allows direct mutation of subscription-managed entitlements. |
 
 ## Anti-Patterns
 
-- Calling PreDelete or PreUpdate logic without first checking subscription.IsSubscriptionOperation(ctx) — breaks subscription self-management
+- Implementing a new hook method (e.g. PreCreate) without the IsSubscriptionOperation check — breaks subscription self-management
+- Returning any error type other than GenericForbiddenError for the annotation guard — callers expect 403 HTTP status mapping
+- Adding DB calls or business logic inside hook methods — hooks must be pure guards with no I/O
 - Removing the compile-time interface assertion var _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil)
-- Returning a non-GenericForbiddenError for the subscription-annotation guard — callers expect 403 status mapping
-- Adding business logic outside the annotation guard pattern (e.g. DB calls) in hook methods
-- Implementing PostCreate/PostUpdate/PostDelete with side effects without verifying it won't create import cycles with subscription or entitlement packages
+- Implementing PostCreate/PostUpdate/PostDelete with side effects that import entitlement or subscription packages — risks import cycles
 
 ## Decisions
 
-- **Hook lives in a separate sub-package (hooks/subscription) rather than inline in the entitlement service** — Avoids a circular import between openmeter/entitlement and openmeter/subscription; the hook depends on both but neither depends on it.
-- **Use models.NoopServiceHook embed rather than implementing all ServiceHook methods manually** — ServiceHook has multiple lifecycle methods; embedding the noop ensures new methods added to the interface are automatically no-ops, preventing accidental breakage.
+- **Package lives in hooks/subscription sub-package rather than inline in the entitlement service** — Avoids a circular import between openmeter/entitlement and openmeter/subscription; the hook depends on both but neither depends on it.
+- **Embed models.NoopServiceHook rather than implementing all ServiceHook methods manually** — ServiceHook has multiple lifecycle methods; embedding the noop ensures new interface methods are automatically no-ops, preventing accidental breakage when the interface evolves.
 
-## Example: Adding a new hook method (e.g. PreUpdate guard) following the existing pattern
+## Example: Adding a new guarded hook method following the established two-step gate pattern
 
 ```
 import (

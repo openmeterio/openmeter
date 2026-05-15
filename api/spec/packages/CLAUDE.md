@@ -13,16 +13,16 @@
 
 ## Key Files
 
-| File                            | Role                                                                                             | Watch For                                                                                                                        |
-| ------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| `aip/src/openmeter.tsp`         | v3 composition root: imports domain index barrels, binds @route/@tag, declares @tagMetadata      | Every new domain import in openmeter.tsp needs a matching @tagMetadata declaration; missing it causes undeclared tag lint errors |
-| `aip/src/konnect.tsp`           | Second v3 entry point for the Konnect variant; same routing conventions as openmeter.tsp         | New domain ops added to openmeter.tsp may need mirroring in konnect.tsp if they belong in the Konnect surface                    |
-| `aip/scripts/flatten-allof.mjs` | Post-compile OpenAPI transformation that flattens allOf schemas for SDK generator compatibility  | Runs after tsp compile; if it fails silently the output YAML contains nested allOf that breaks some SDK generators               |
-| `legacy/src/main.tsp`           | v1 composition root: imports all domain sub-folders and registers operations                     | New sub-domain .tsp files must be imported here AND in legacy/src/cloud/main.tsp or they are excluded from the cloud variant     |
-| `legacy/src/types.tsp`          | Shared primitive types (ULID, DateTime, Key, Resource base models) for the entire legacy package | Re-declaring these primitives in sub-domain files causes duplicate schema definitions and inconsistent SDK types                 |
-| `legacy/src/errors.tsp`         | Defines the OpenMeterError union used on every operation's error branch                          | Using `extends Error` without @error decorator breaks OpenAPI error schema generation                                            |
-| `aip/lib/rules/utils.js`        | Shared utilities for aip linter rules including pascalCaseExceptions list                        | New accepted PascalCase acronym exceptions must be added here, not inline in individual rules                                    |
-| `aip/tspconfig.yaml`            | TypeSpec compiler config for the v3 package; sets omit-unreachable-types: true and output paths  | omit-unreachable-types: true means types not reachable from any declared operation are silently dropped from the output YAML     |
+| File | Role | Watch For |
+|------|------|-----------|
+| `aip/src/openmeter.tsp` | v3 composition root: imports domain index barrels, binds @route/@tag, declares @tagMetadata | Every new domain import needs a matching @tagMetadata declaration; missing it causes undeclared tag lint errors |
+| `aip/src/konnect.tsp` | Second v3 entry point for the Konnect variant; same routing conventions as openmeter.tsp | New domain ops added to openmeter.tsp may need mirroring in konnect.tsp if they belong in the Konnect surface |
+| `aip/scripts/flatten-allof.mjs` | Post-compile OpenAPI transformation that flattens allOf schemas for SDK generator compatibility | Runs after tsp compile; if it fails silently the output YAML contains nested allOf that breaks some SDK generators |
+| `legacy/src/main.tsp` | v1 composition root: imports all domain sub-folders and registers operations | New sub-domain .tsp files must be imported here AND in legacy/src/cloud/main.tsp or they are excluded from the cloud variant |
+| `legacy/src/types.tsp` | Shared primitive types (ULID, DateTime, Key, Resource base models) for the entire legacy package | Re-declaring these primitives in sub-domain files causes duplicate schema definitions and inconsistent SDK types |
+| `legacy/src/errors.tsp` | Defines the OpenMeterError union used on every operation's error branch | Using `extends Error` without @error decorator breaks OpenAPI error schema generation |
+| `aip/lib/rules/utils.js` | Shared utilities for aip linter rules including pascalCaseExceptions list | New accepted PascalCase acronym exceptions must be added here, not inline in individual rules |
+| `aip/tspconfig.yaml` | TypeSpec compiler config for the v3 package; sets omit-unreachable-types: true and output paths | omit-unreachable-types: true means types not reachable from any declared operation are silently dropped from the output YAML |
 
 ## Anti-Patterns
 

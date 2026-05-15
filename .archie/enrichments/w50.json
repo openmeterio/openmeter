@@ -1,196 +1,71 @@
 {
-  "openmeter/apiconverter": {
-    "purpose": "Thin translation layer that converts v1 API filter/pagination types (api.Filter*) into internal pkg/filter and pkg/pagination/v2 types. All converter functions are Goverter-generated variables; manual code is limited to cursor decoding and the goverter directive file.",
+  "etc/seed/streams": {
+    "purpose": "Benthos/Redpanda Connect pipeline YAML configs that generate synthetic CloudEvents and POST them to OpenMeter's ingest API at /api/v1/events. Each file is a self-contained, infinitely-running stream definition parameterised entirely through environment variables.",
     "patterns": [
       {
-        "name": "Goverter variable declarations in filter.go",
-        "description": "Converter functions are declared as package-level var of function type with goverter directive comments. Never implement conversion logic by hand \u2014 add a new var entry with the appropriate goverter:ignore annotations and let `go generate` produce filter.gen.go.",
-        "example": "var ConvertString func(api.FilterString) filter.FilterString"
+        "name": "CloudEvents 1.0 envelope",
+        "description": "Every generated event must include id (uuid_v4()), specversion (\"1.0\"), type, source, subject, and time at the root level. Domain-specific fields go inside data: {}.",
+        "example": "root = {\"id\": uuid_v4(), \"specversion\": \"1.0\", \"type\": $event_type, \"source\": $source, \"subject\": $subject, \"time\": $time, \"data\": {...}}"
       },
       {
-        "name": "goverter:ignore for API-internal type mismatches",
-        "description": "When the internal filter type has fields not present in the v1 API type (e.g. Exists, Contains, Ncontains), add a `// goverter:ignore <Field>` directive above the var declaration. Remove the ignore when the v1 API grows the field.",
-        "example": "// goverter:ignore Exists Contains Ncontains\nvar ConvertString func(api.FilterString) filter.FilterString"
+        "name": "Environment-variable parameterisation with defaults",
+        "description": "All tuneable values use ${ENV_VAR:default} syntax \u2014 never hardcode intervals, counts, URLs, or tokens. Standard vars: SEEDER_INTERVAL (default 100ms), SEEDER_SUBJECT_COUNT (default 1000), OPENMETER_BASE_URL, OPENMETER_TOKEN.",
+        "example": "interval: \"${SEEDER_INTERVAL:100ms}\""
       },
       {
-        "name": "Nil-safe pointer wrappers",
-        "description": "For every converter there is a *Ptr variant (e.g. ConvertStringPtr) that handles nil input. Always expose both forms so callers never need nil-checks inline.",
-        "example": "ConvertStringPtr func(*api.FilterString) *filter.FilterString"
+        "name": "Subject pool via modulo randomisation",
+        "description": "Subjects are selected by random_int(seed: timestamp_unix_nano()) % $subject_count, formatted as \"demo-subject-%d\". Produces a bounded, repeatable subject space driven by SEEDER_SUBJECT_COUNT.",
+        "example": "let subject = \"demo-subject-%d\".format(random_int(seed: timestamp_unix_nano()) % $subject_count)"
       },
       {
-        "name": "Cursor conversion delegates to pagination.DecodeCursor",
-        "description": "ConvertCursor and ConvertCursorPtr in cursor.go are hand-written thin wrappers over pagination.DecodeCursor. Keep cursor logic here, not in httpdriver packages.",
-        "example": "func ConvertCursor(s api.CursorPaginationCursor) (*pagination.Cursor, error) { return pagination.DecodeCursor(s) }"
+        "name": "Dual-output switch: HTTP primary + optional stdout log",
+        "description": "Output is always a switch with two cases: (1) unconditional http_client POST to /api/v1/events with Content-Type: application/cloudevents+json and Bearer auth, continue: true; (2) conditional stdout when SEEDER_LOG=true.",
+        "example": "output:\n  switch:\n    cases:\n      - check: \"\"\n        continue: true\n        output:\n          http_client: ...\n      - check: '\"${SEEDER_LOG:false}\" == \"true\"'\n        output:\n          stdout: ..."
+      },
+      {
+        "name": "Infinite generation with count: 0",
+        "description": "All streams use count: 0 (run forever) under input.generate. Never set a finite count for seed streams.",
+        "example": "input:\n  generate:\n    count: 0"
       }
     ],
     "key_file_guides": [
       {
-        "file": "filter.go",
-        "role": "Source of truth for all converter declarations; contains only var declarations and goverter directives. Run `go generate ./` here to regenerate filter.gen.go.",
-        "watch_for": "Adding hand-written conversion logic here \u2014 all logic must live in the generated file."
+        "file": "api-requests.yaml",
+        "role": "Generates HTTP-request events (type: \"request\") with method and path data fields. Minimal CloudEvents + data structure reference.",
+        "watch_for": "data fields are method and path \u2014 meter definitions consuming this stream must match those exact field names."
       },
       {
-        "file": "filter.gen.go",
-        "role": "Goverter-generated converter implementations. DO NOT EDIT \u2014 header says `Code generated by github.com/jmattheis/goverter, DO NOT EDIT.`",
-        "watch_for": "Manual edits; they will be overwritten on next `go generate`."
+        "file": "prompt-tokens.yaml",
+        "role": "Generates LLM token events (type: \"prompt\") with tokens, model, and type (input/output) data fields.",
+        "watch_for": "Model strings are compared against llmcost price records; mismatches silently produce unresolved costs. Keep model list aligned with llmcost price definitions."
       },
       {
-        "file": "cursor.go",
-        "role": "Hand-written cursor conversion using pagination.DecodeCursor.",
-        "watch_for": "Duplicating cursor decoding logic elsewhere in httpdriver packages."
+        "file": "workload-runtime.yaml",
+        "role": "Generates compute-workload events (type: \"workload\") with duration_seconds, region, zone, and instance_type data fields.",
+        "watch_for": "zone is constructed as region+suffix (e.g. \"us-east-1a\"), not an independent random pick \u2014 meter group-by on zone implicitly includes region."
       }
     ],
     "anti_patterns": [
-      "Hand-writing conversion logic in filter.go instead of declaring a goverter var and regenerating",
-      "Editing filter.gen.go directly \u2014 it is fully generated",
-      "Adding domain business logic here; this package is a pure type-translation boundary",
-      "Forgetting to add goverter:ignore for fields that exist on internal types but not on the v1 API type",
-      "Adding v3 API types here \u2014 v3 has its own converter layer"
+      "Hardcoding OPENMETER_TOKEN or OPENMETER_BASE_URL \u2014 always use ${VAR:default}",
+      "Adding a non-CloudEvents-1.0 envelope (missing specversion, id, or time at root)",
+      "Setting count > 0 \u2014 seed streams must run indefinitely",
+      "Putting dimensional attributes outside the data: {} block (they belong in data, not at CloudEvent root)",
+      "Using a fixed random seed instead of timestamp_unix_nano() \u2014 produces non-random sequences"
     ],
     "decisions": [
       {
-        "decision": "Use Goverter variable-style converters instead of methods or standalone functions",
-        "rationale": "Variable-style converters allow recursive references (e.g. ConvertString calling itself for And/Or slices) and are initialized in a single init() block, keeping the generated code self-contained."
+        "decision": "All three files share identical input.generate + output.switch structure with only the mapping body varying.",
+        "rationale": "Uniformity lets the seed.yaml orchestrator run them identically; operators only need to learn one config shape."
       },
       {
-        "decision": "Keep cursor conversion hand-written rather than Goverter-generated",
-        "rationale": "pagination.DecodeCursor performs base64 decoding and cannot be mechanically derived by field mapping, so it must stay hand-written."
+        "decision": "Subject space is bounded by SEEDER_SUBJECT_COUNT rather than fully random UUIDs.",
+        "rationale": "Bounded subjects produce realistic per-subject meter aggregations in ClickHouse and allow demo dashboards to show meaningful per-customer breakdowns."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new filter type converter for a hypothetical FilterEnum API type",
-        "code": "// In filter.go \u2014 add a new var with directives:\n// goverter:ignoreMissing\nvar ConvertEnum    func(api.FilterEnum) filter.FilterEnum\nvar ConvertEnumPtr func(*api.FilterEnum) *filter.FilterEnum\n\n// Then run: go generate ./\n// This regenerates filter.gen.go with the new ConvertEnum and ConvertEnumPtr implementations."
-      }
-    ]
-  },
-  "openmeter/session": {
-    "purpose": "Provides context-scoped authentication session storage and retrieval for the cloud/managed-hosting auth layer. Stores AuthenticationSession (org ID, role, permissions, user ID) in context under a typed key; used by auth middleware to propagate identity through request handlers.",
-    "patterns": [
-      {
-        "name": "Typed context key to avoid collisions",
-        "description": "AuthenticatorContextKey is a named string type; the constant AuthenticationSessionKey is of that type. Never use a plain string as a context key in this package.",
-        "example": "type AuthenticatorContextKey string\nconst AuthenticationSessionKey AuthenticatorContextKey = \"active_organization_id\""
-      },
-      {
-        "name": "GetActiveSession returns nil on missing/wrong type",
-        "description": "Use a type assertion with ok-check (`ctx.Value(key).(*AuthenticationSession)`) and return nil instead of panicking. Callers must nil-check before using the session.",
-        "example": "if c, ok := ctx.Value(AuthenticationSessionKey).(*AuthenticationSession); ok { return c }\nreturn nil"
-      },
-      {
-        "name": "Validate on construction",
-        "description": "NewAuthenticationSession calls session.Validate() before returning; invalid sessions are rejected at construction time, not at read time.",
-        "example": "session, err := NewAuthenticationSession(orgID, orgSlug, orgRole, userID, perms)\n// err non-nil if OrgID empty or both OrgRole and OrgPermissions empty"
-      },
-      {
-        "name": "WithLogger enriches slog with session fields",
-        "description": "Use AuthenticationSession.WithLogger(logger) to add orgId, userId, orgSlug, orgRole, orgPermissions as structured log fields instead of repeating slog.String(...) calls.",
-        "example": "logger = session.WithLogger(logger)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "session.go",
-        "role": "Single file containing the entire package: context key, AuthenticationSession struct, constructor, validator, context getter helpers, and logger enrichment.",
-        "watch_for": "Storing the session by value (not pointer) in context \u2014 the getter type-asserts to *AuthenticationSession, so storing a value type will always return nil."
-      }
-    ],
-    "anti_patterns": [
-      "Storing AuthenticationSession by value in context (must be pointer *AuthenticationSession)",
-      "Using a plain string context key instead of the typed AuthenticatorContextKey constant",
-      "Calling ctx.Value(AuthenticationSessionKey) outside of GetActiveSession \u2014 always use the helper",
-      "Adding business logic (authorization checks, permission resolution) to this package \u2014 it is purely a session carrier"
-    ],
-    "decisions": [
-      {
-        "decision": "OrgRole OR OrgPermissions must be non-empty, not both required",
-        "rationale": "Different auth flows supply either a role string or a fine-grained permission list; requiring only one of them keeps the session compatible with both."
-      }
-    ],
-    "code_examples": []
-  },
-  "openmeter/testutils": {
-    "purpose": "Shared, app/common-independent test helpers for the entire openmeter/ tree: Postgres test database provisioning via pgtestdb, async assertion helpers, deterministic name generation, logger factories, and time utilities. Must never import app/common to avoid import cycles.",
-    "patterns": [
-      {
-        "name": "InitPostgresDB skips when POSTGRES_HOST unset",
-        "description": "InitPostgresDB reads os.Getenv(\"POSTGRES_HOST\") and calls t.Skip() if empty. Tests that call this will be silently skipped in environments without Postgres rather than failing.",
-        "example": "db := testutils.InitPostgresDB(t) // skips if POSTGRES_HOST not set"
-      },
-      {
-        "name": "TestDB bundles EntDriver + PGDriver + URL",
-        "description": "InitPostgresDB returns a *TestDB with both the Ent driver (EntPostgresDriver) and raw pgdriver.Driver for tests that need either. Call db.Close(t) in t.Cleanup to release both.",
-        "example": "db := testutils.InitPostgresDB(t)\nt.Cleanup(func() { db.Close(t) })\nclient := db.EntDriver.Client()"
-      },
-      {
-        "name": "NoopMigrator for schema-less test databases",
-        "description": "The default migrator is NoopMigrator (no-op Hash/Migrate/Prepare/Verify). Pass WithMigrator(myMigrator) to apply real schema migrations; otherwise pgtestdb clones a blank template.",
-        "example": "db := testutils.InitPostgresDB(t, testutils.WithMigrator(&myMigrator{}))"
-      },
-      {
-        "name": "NameGenerator produces Key + Name pairs",
-        "description": "testutils.NameGenerator.Generate() returns a GeneratedName with a slug Key (lowercase, hyphen-separated) and a Title-case Name. Use Key for database identifiers, Name for display values.",
-        "example": "n := testutils.NameGenerator.Generate()\n// n.Key = \"happy-tiger\", n.Name = \"Happy Tiger\""
-      },
-      {
-        "name": "t.Context() throughout \u2014 no context.Background()",
-        "description": "All helpers use t.Context() (e.g. pgdriver.NewPostgresDriver(t.Context(), ...)) so test cancellation propagates correctly. Never substitute context.Background() in new test helpers.",
-        "example": "postgresDriver, err := pgdriver.NewPostgresDriver(t.Context(), dbConf.URL())"
-      },
-      {
-        "name": "EventuallyWithTf wraps require.EventuallyWithTf with error capture",
-        "description": "Use EventuallyWithTf when the polling function needs to report its last error on final failure. Pass a saveErr closure to record the error; it is surfaced as the EventuallyWithTf format argument.",
-        "example": "testutils.EventuallyWithTf(t, func(c *assert.CollectT, saveErr func(err any)) {\n    saveErr(doCheck(c))\n}, 5*time.Second, 100*time.Millisecond)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "pg_driver.go",
-        "role": "Core Postgres test provisioning: InitPostgresDB, TestDB struct, option types. The most-imported file in the package.",
-        "watch_for": "Importing app/common here \u2014 this would create an import cycle. Build Ent clients directly from entdriver.NewEntPostgresDriver(pgDriver.DB())."
-      },
-      {
-        "file": "namegen.go",
-        "role": "Deterministic (per-run) human-readable name generator seeded at package init time.",
-        "watch_for": "Using NameGenerator across parallel tests without locking \u2014 the underlying generator is not goroutine-safe if multiple goroutines call Generate() concurrently; prefer one call per test."
-      },
-      {
-        "file": "async.go",
-        "role": "EventuallyWithTf helper for async assertions that need last-error capture.",
-        "watch_for": "Using plain require.Eventually when the polling body produces a meaningful error \u2014 EventuallyWithTf surfaces that error on failure."
-      },
-      {
-        "file": "logger.go",
-        "role": "NewLogger (slog.Default) and NewDiscardLogger (no-op) factories. NewDiscardLogger uses an inline discardHandler to work with Go versions before 1.24.",
-        "watch_for": "Using slog.New(slog.NewTextHandler(os.Stdout, nil)) inline in tests \u2014 use NewLogger(t) instead for consistency."
-      },
-      {
-        "file": "time.go",
-        "role": "GetRFC3339Time (fatal on parse error) and TimeEqualsApproximately for time comparison with tolerance.",
-        "watch_for": "Using time.Parse directly in tests \u2014 GetRFC3339Time calls t.Fatalf on error, keeping test code clean."
-      }
-    ],
-    "anti_patterns": [
-      "Importing app/common or any Wire provider from this package \u2014 breaks the test-helper isolation rule",
-      "Using context.Background() in helper functions \u2014 always use t.Context()",
-      "Skipping db.Close(t) in test teardown \u2014 leaks Ent and PG connections",
-      "Implementing domain-specific test logic here \u2014 domain test fixtures belong in openmeter/<domain>/testutils/",
-      "Editing pg_driver.go to add real schema migration by default \u2014 use WithMigrator option to keep the base helper schema-agnostic"
-    ],
-    "decisions": [
-      {
-        "decision": "NoopMigrator as default migrator in InitPostgresDB",
-        "rationale": "Most test suites manage their own schema (via Ent auto-migrate or explicit DDL); a no-op default avoids coupling this shared helper to the Atlas migration chain."
-      },
-      {
-        "decision": "TestDB bundles both EntDriver and PGDriver",
-        "rationale": "Some tests need the Ent typed client; others need the raw pgx pool (e.g. for direct SQL assertions). Providing both avoids callers re-constructing drivers from the URL."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Standard Postgres-backed unit test setup",
-        "code": "import (\n    \"testing\"\n    \"github.com/openmeterio/openmeter/openmeter/testutils\"\n)\n\nfunc TestSomething(t *testing.T) {\n    db := testutils.InitPostgresDB(t) // skips if POSTGRES_HOST unset\n    t.Cleanup(func() { db.Close(t) })\n\n    entClient := db.EntDriver.Client()\n    // use entClient for domain adapter construction\n}"
+        "scenario": "Add a new seed stream for storage events",
+        "code": "input:\n  generate:\n    count: 0\n    interval: \"${SEEDER_INTERVAL:100ms}\"\n    mapping: |\n      let subject_count = ${SEEDER_SUBJECT_COUNT:1000}\n      let event_type = \"storage\"\n      let source = \"demo-org-seeder\"\n      let subject = \"demo-subject-%d\".format(random_int(seed: timestamp_unix_nano()) % $subject_count)\n      let time = now()\n      let bytes = random_int(seed: timestamp_unix_nano(), min: 1024, max: 1048576)\n      root = {\n        \"id\": uuid_v4(),\n        \"specversion\": \"1.0\",\n        \"type\": $event_type,\n        \"source\": $source,\n        \"subject\": $subject,\n        \"time\": $time,\n        \"data\": {\n          \"bytes\": $bytes,\n        },\n      }\noutput:\n  switch:\n    cases:\n      - check: \"\"\n        continue: true\n        output:\n          http_client:\n            url: ${OPENMETER_BASE_URL:http://127.0.0.1:8888}/api/v1/events\n            verb: POST\n            headers:\n              Content-Type: application/cloudevents+json\n              Authorization: \"Bearer ${OPENMETER_TOKEN:}\"\n            max_in_flight: 256\n      - check: '\"${SEEDER_LOG:false}\" == \"true\"'\n        output:\n          stdout:\n            codec: lines"
       }
     ]
   }

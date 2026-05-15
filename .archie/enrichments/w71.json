@@ -1,127 +1,122 @@
 {
-  "openmeter/billing/worker/subscriptionsync/adapter": {
-    "purpose": "Ent/PostgreSQL adapter implementing subscriptionsync.Adapter and SyncStateAdapter interfaces. Manages persistence of SubscriptionBillingSyncState records (upsert, get, invalidate) with full ctx-bound transaction support via entutils.TransactingRepo.",
+  "openmeter/billing/validators/customer": {
+    "purpose": "Implements customer.RequestValidator to enforce billing pre-conditions before customer deletion \u2014 blocks removal of customers with non-final standard invoices or active (non-soft-deleted) gathering invoices. It is the cross-domain guard preventing customer removal from leaving orphaned billing state.",
     "patterns": [
       {
-        "name": "TransactingRepo wrapping all DB writes",
-        "description": "Every method that touches the DB must call entutils.TransactingRepo or TransactingRepoWithNoValue so the ctx-bound transaction is honored rather than falling off to the raw client.",
-        "example": "entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error { return tx.db.SubscriptionBillingSyncState.Delete()... })"
+        "name": "Embed NoopRequestValidator",
+        "description": "Validator embeds customer.NoopRequestValidator so only ValidateDeleteCustomer needs implementation; all other RequestValidator methods default to no-op without breaking the interface.",
+        "example": "type Validator struct { customer.NoopRequestValidator; billingService billing.Service; syncService subscriptionsync.Service; subscriptionService subscription.Service }"
       },
       {
-        "name": "Config + Validate constructor pattern",
-        "description": "Constructor takes a Config struct, calls config.Validate() which accumulates errors with errors.Join, and returns (Interface, error).",
-        "example": "func New(config Config) (subscriptionsync.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+        "name": "Compile-time interface assertion",
+        "description": "var _ customer.RequestValidator = (*Validator)(nil) at package level ensures the struct satisfies the interface at compile time.",
+        "example": "var _ customer.RequestValidator = (*Validator)(nil)"
       },
       {
-        "name": "Tx / WithTx / Self triad",
-        "description": "adapter implements TxCreator by providing Tx() (starts a new hijacked tx), WithTx() (rebinds adapter to a given TxDriver), and Self() (returns self for non-tx case). This triad is required for entutils.TransactingRepo to work.",
-        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client()} }"
+        "name": "Sync-before-validate pattern",
+        "description": "ValidateDeleteCustomer syncs active subscriptions via SynchronizeSubscription before checking invoice state, ensuring pending charges are reflected before the gate check.",
+        "example": "v.syncService.SynchronizeSubscription(ctx, view, time.Now())"
       },
       {
-        "name": "Interface compliance assertion",
-        "description": "Compile-time assertion var _ subscriptionsync.SyncStateAdapter = (*adapter)(nil) placed at the top of each implementation file.",
-        "example": "var _ subscriptionsync.SyncStateAdapter = (*adapter)(nil)"
+        "name": "Nil-guard constructors",
+        "description": "NewValidator returns an error if any required service dependency is nil, enforcing required deps at construction time rather than at call time.",
+        "example": "if billingService == nil { return nil, fmt.Errorf(\"billing service is required\") }"
       },
       {
-        "name": "UTC normalization on time fields",
-        "description": "All time values read from or written to the DB are normalized to UTC via .UTC() or lo.ToPtr(t.UTC()) to prevent timezone drift in stored timestamps.",
-        "example": "nextSyncAfter = lo.ToPtr(nextSyncAfter.UTC())"
-      },
-      {
-        "name": "Upsert with OnConflictColumns",
-        "description": "Upsert operations use Ent's OnConflictColumns(...).UpdateXxx() pattern keyed on (subscription_id, namespace) to make UpsertSyncState idempotent.",
-        "example": ".OnConflictColumns(subscriptionbillingsyncstate.FieldSubscriptionID, subscriptionbillingsyncstate.FieldNamespace).UpdateHasBillables().UpdateSyncedAt().UpdateNextSyncAfter()"
+        "name": "errors.Join for multi-invoice failures",
+        "description": "All invoice validation failures accumulate into a slice and are joined with errors.Join so the caller receives all blocking invoices at once.",
+        "example": "errs = append(errs, fmt.Errorf(\"invoice %s is not in final state\", stdInvoice.ID)); return errors.Join(errs...)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "adapter.go",
-        "role": "Defines Config, adapter struct, New constructor, and the Tx/WithTx/Self transaction triad. Entry point for all adapter construction.",
-        "watch_for": "Adding business logic here; all logic belongs in syncstate.go or equivalent domain files."
-      },
-      {
-        "file": "syncstate.go",
-        "role": "Implements SyncStateAdapter: InvalidateSyncState, GetSyncStates, UpsertSyncState. Uses Ent SubscriptionBillingSyncState entity.",
-        "watch_for": "Forgetting TransactingRepo wrapper \u2014 raw tx.db calls outside a TransactingRepo will bypass ctx-bound transactions. Missing UTC() normalization on time fields."
+        "file": "customer.go",
+        "role": "Single-file package: defines Validator struct, NewValidator constructor, and ValidateDeleteCustomer \u2014 the only override of NoopRequestValidator.",
+        "watch_for": "The 24-hour watermark (time.Now().Add(-24 * time.Hour)) is an embedded business rule for active subscription detection. Gathering invoices with non-nil DeletedAt are skipped (soft-deleted). Standard invoices must have IsFinal() == true. All reads go through billing.Service and subscription.Service \u2014 never the adapters directly."
       }
     ],
     "anti_patterns": [
-      "Calling tx.db directly in a method body without wrapping in entutils.TransactingRepo/TransactingRepoWithNoValue",
-      "Storing or returning time values without .UTC() normalization",
-      "Adding domain or sync orchestration logic into the adapter (belongs in subscriptionsync service layer)",
-      "Skipping the compile-time interface assertion var _ Interface = (*adapter)(nil)",
-      "Constructing adapter without Config.Validate() call"
+      "Adding ValidateCreateCustomer or ValidateUpdateCustomer overrides without a billing-domain reason \u2014 this package only guards billing pre-conditions on delete.",
+      "Calling billing adapter or Ent directly instead of going through billing.Service \u2014 all reads must go through the service interface.",
+      "Skipping the SynchronizeSubscription step before invoice validation \u2014 without it, pending subscription charges may not be reflected and the gate check will be incorrect.",
+      "Using context.Background() instead of propagating the incoming ctx parameter.",
+      "Returning a plain error for billing blocks instead of letting errors.Join accumulate all failures \u2014 callers need all blocking invoices at once."
     ],
     "decisions": [
       {
-        "decision": "Adapter is scoped exclusively to SubscriptionBillingSyncState persistence; no subscription or invoice business logic lives here.",
-        "rationale": "Separation of concerns: the service layer in subscriptionsync owns orchestration; the adapter owns only data access, keeping it independently testable."
+        "decision": "Validator registers with customer.Service.RegisterRequestValidator() at wiring time in app/common, not via direct import.",
+        "rationale": "Billing depends on customer; customer cannot import billing. Registration at wire time inverts the dependency without an import cycle."
       },
       {
-        "decision": "TransactingRepo is used even for single-statement operations.",
-        "rationale": "Callers may already have a transaction in ctx; rebinding ensures atomicity with surrounding operations and prevents partial writes."
+        "decision": "Subscription sync is driven inside the validator rather than as a pre-hook in the subscription service.",
+        "rationale": "The validator needs a billing-consistent snapshot of invoices; syncing at validation time ensures the check is atomic with respect to the delete."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new adapter method that writes to DB",
-        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) SetFoo(ctx context.Context, input subscriptionsync.SetFooInput) error {\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n\t\treturn tx.db.SubscriptionBillingSyncState.Update().\n\t\t\tSetFoo(input.Foo).\n\t\t\tWhere(subscriptionbillingsyncstate.SubscriptionID(input.ID)).\n\t\t\tExec(ctx)\n\t})\n}"
+        "scenario": "Adding a new pre-delete billing check (e.g., block deletion if open credit notes exist)",
+        "code": "// In customer.go, extend ValidateDeleteCustomer after the existing invoice loop:\ncreditNotes, err := v.billingService.ListCreditNotes(ctx, billing.ListCreditNotesInput{\n    Namespaces: []string{input.Namespace},\n    Customers:  []string{input.ID},\n})\nif err != nil {\n    return err\n}\nfor _, cn := range creditNotes.Items {\n    if !cn.Status.IsFinal() {\n        errs = append(errs, fmt.Errorf(\"credit note %s is not final\", cn.ID))\n    }\n}\nreturn errors.Join(errs...)"
       }
     ]
   },
-  "openmeter/billing/worker/subscriptionsync/reconciler": {
-    "purpose": "Crash-recovery reconciler that periodically re-drives subscription-to-billing sync for subscriptions that may have missed event-driven processing. Iterates active subscriptions in paginated windows and calls SynchronizeSubscription for each eligible entry.",
+  "openmeter/billing/validators/subscription": {
+    "purpose": "Implements subscription.SubscriptionCommandHook to validate that a customer's billing app setup is valid whenever a subscription with billable items is created or updated \u2014 blocks subscription lifecycle transitions when the invoicing app cannot handle tax calculation, invoicing, or payment collection.",
     "patterns": [
       {
-        "name": "Config struct with Validate + named constructor",
-        "description": "ReconcilerConfig holds all dependencies; Validate() checks each for nil; NewReconciler calls Validate before constructing and returns (*Reconciler, error).",
-        "example": "func NewReconciler(config ReconcilerConfig) (*Reconciler, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+        "name": "Embed NoOpSubscriptionCommandHook",
+        "description": "Validator embeds subscription.NoOpSubscriptionCommandHook so only AfterCreate and AfterUpdate need implementation; all other hook methods default to no-op.",
+        "example": "type Validator struct { subscription.NoOpSubscriptionCommandHook; billingService billing.Service }"
       },
       {
-        "name": "Paginated window scan with defaultWindowSize",
-        "description": "ListSubscriptions iterates pages of 10,000 subscriptions using pagination.Page{PageNumber, PageSize} until an empty page is returned, preventing unbounded memory usage.",
-        "example": "for { subscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{Page: pagination.Page{PageNumber: pageIndex, PageSize: defaultWindowSize}}); if len(subscriptions.Items) == 0 { break }; pageIndex++ }"
+        "name": "Early-exit on non-billable subscription",
+        "description": "hasBillableItems checks whether any rate card in the subscription has a non-nil Price before calling the billing service, avoiding unnecessary network calls for free-tier subscriptions.",
+        "example": "if !v.hasBillableItems(view) { return nil }"
       },
       {
-        "name": "SyncState-gated skipping logic",
-        "description": "All.ReconcileSubscription skips subscriptions where SyncState.HasBillables is false or NextSyncAfter is nil or in the future, avoiding unnecessary re-sync when the state machine is quiescent.",
-        "example": "if !in.Force && subscription.SyncState != nil { if !subscription.SyncState.HasBillables { continue } ... }"
+        "name": "models.NewGenericConflictError wrapping",
+        "description": "Billing validation failures are wrapped in models.NewGenericConflictError, which maps to HTTP 409 in the error encoder chain.",
+        "example": "return models.NewGenericConflictError(fmt.Errorf(\"invalid billing setup: %w\", err))"
       },
       {
-        "name": "Errors.Join for non-fatal per-item errors",
-        "description": "All() uses errors.Join to accumulate per-subscription reconciliation errors, logging each but continuing to process remaining subscriptions so one failure does not abort the batch.",
-        "example": "outErr = errors.Join(outErr, fmt.Errorf(\"failed to reconcile subscription: %w\", err))"
+        "name": "Return interface not concrete type from constructor",
+        "description": "NewValidator returns subscription.SubscriptionCommandHook (interface), not *Validator, so callers depend on the interface, not the concrete type.",
+        "example": "func NewValidator(billingService billing.Service) (subscription.SubscriptionCommandHook, error)"
       },
       {
-        "name": "clock.Now() for testable time references",
-        "description": "Use clock.Now() instead of time.Now() when computing lookback windows and comparing NextSyncAfter to enable clock injection in tests.",
-        "example": "ActiveInPeriod: &timeutil.StartBoundedPeriod{From: clock.Now().Add(-in.Lookback), To: lo.ToPtr(clock.Now())}"
+        "name": "Capability slice validation",
+        "description": "Required app capabilities are passed as a slice to ValidateCustomer, keeping validation app-agnostic and easy to extend without changing control flow.",
+        "example": "customerApp.ValidateCustomer(ctx, customerProfile.Customer, []app.CapabilityType{app.CapabilityTypeCalculateTax, app.CapabilityTypeInvoiceCustomers, app.CapabilityTypeCollectPayments})"
       }
     ],
     "key_file_guides": [
       {
-        "file": "reconciler.go",
-        "role": "Entire reconciler: config, ListSubscriptions (paginated), ReconcileSubscription (single), All (batch with skip logic). No DB access \u2014 delegates to subscriptionsync.Service and subscription.Service.",
-        "watch_for": "Calling time.Now() directly instead of clock.Now(); adding DB access (route through services); missing deleted-customer guard in ReconcileSubscription."
+        "file": "validator.go",
+        "role": "Single-file package: Validator struct, NewValidator, AfterCreate, AfterUpdate, validateBillingSetup, hasBillableItems. Both AfterCreate and AfterUpdate delegate to validateBillingSetup, keeping the logic DRY.",
+        "watch_for": "customerapp.AsCustomerApp type-asserts the app base to a customer-app interface \u2014 if the app type changes, this assertion fails at runtime. The Expand field in GetCustomerOverrideInput must include both Apps: true and Customer: true; missing either causes a nil-dereference or incomplete check."
       }
     ],
     "anti_patterns": [
-      "Using time.Now() instead of clock.Now() \u2014 breaks time-based tests",
-      "Loading all subscriptions into memory without pagination (defaultWindowSize must be respected)",
-      "Aborting the entire batch on a single reconciliation error instead of accumulating with errors.Join",
-      "Adding Ent/DB imports \u2014 this layer must remain service-interface-only with no direct persistence calls",
-      "Removing the deleted-customer guard in ReconcileSubscription without replacing with equivalent behaviour"
+      "Overriding BeforeCreate/BeforeDelete without strong justification \u2014 post-create/post-update validation is intentional so the billing check runs against the fully persisted subscription view.",
+      "Returning a plain error instead of models.NewGenericConflictError for billing setup failures \u2014 the HTTP layer expects a 409 error type.",
+      "Calling subscription service or Ent adapters directly \u2014 all billing state reads must go through billing.Service.",
+      "Adding app-type-specific branching (e.g., 'if Stripe do X') \u2014 capability validation is intentionally app-agnostic via the CapabilityType slice.",
+      "Using context.Background() instead of propagating the incoming ctx."
     ],
     "decisions": [
       {
-        "decision": "Reconciler does not own a DB adapter; it orchestrates exclusively through service interfaces (subscriptionsync.Service, subscription.Service, customer.Service).",
-        "rationale": "Keeps the reconciler testable with mocks and decoupled from persistence; transactionality is managed by the service layer."
+        "decision": "Validator is registered with subscription.Service.RegisterHook() at wiring time in app/common, not via direct import.",
+        "rationale": "Billing imports subscription; subscription cannot import billing. The hook registration at wire time inverts the dependency without an import cycle."
       },
       {
-        "decision": "Force flag bypasses SyncState-based skipping to support manual or admin-triggered full re-sync without altering stored state.",
-        "rationale": "Operational requirement: administrators need to force reconciliation during incident recovery without clearing sync state first."
+        "decision": "Validation runs after create/update (AfterCreate, AfterUpdate) rather than before.",
+        "rationale": "The billing service needs the fully persisted subscription view (with all phases and items resolved) to evaluate billability; a before-hook would not have this complete view."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Adding a new required billing capability check (e.g., require CapabilityTypeRefundPayments)",
+        "code": "// In validator.go, extend the capability slice in validateBillingSetup:\nreturn customerApp.ValidateCustomer(ctx, customerProfile.Customer, []app.CapabilityType{\n    app.CapabilityTypeCalculateTax,\n    app.CapabilityTypeInvoiceCustomers,\n    app.CapabilityTypeCollectPayments,\n    app.CapabilityTypeRefundPayments, // new capability\n})"
+      }
+    ]
   }
 }

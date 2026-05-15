@@ -2,11 +2,11 @@
 
 <!-- archie:ai-start -->
 
-> Public SDK surface for OpenMeter — organises generated and hand-authored client code for Go, JavaScript (npm @openmeter/sdk), and Python. The primary constraint is that all business logic and API types originate from generated artefacts; this folder only wires them into stable, externally-importable packages.
+> Public SDK surface for OpenMeter — organises generated and hand-authored client code for Go (api/client/go), JavaScript npm package @openmeter/sdk (api/client/javascript), and Python (api/client/python). All business logic and API types originate from generated artefacts; this folder only wires them into stable, externally-importable packages. api/client/node and api/client/web are deprecated tombstones.
 
 ## Patterns
 
-**Generated-first, wrapper-second** — All API types, request/response structs, and operation methods live in generated files (client.gen.go, src/client/schemas.ts, openmeter/_generated/). Hand-authored files (client.go, src/client/index.ts, openmeter/_client.py) add ergonomic wrappers and auth helpers only. (`client.go adds WithAPIKey() and ergonomic List* helpers atop the generated ClientWithResponses — never adds new types.`)
+**Generated-first, wrapper-second** — All API types, request/response structs, and operation methods live in generated files. Hand-authored files add ergonomic wrappers and auth helpers only. (`client.go adds WithAPIKey() and ergonomic List* helpers atop the generated ClientWithResponses — never adds new types.`)
 **Regeneration via make gen-api only** — client.gen.go, src/client/schemas.ts, and openmeter/_generated/ are overwritten on every `make gen-api` run. No manual edits survive. (`codegen.yaml drives oapi-codegen for Go; scripts/generate.ts drives openapi-typescript + orval for JS.`)
 **Auth via RequestEditorFn / ClientOption (Go)** — Authentication tokens are injected via the RequestEditorFn / ClientOption pattern in client.go, never embedded inside generated operation methods. (`WithAPIKey(token string) ClientOption wraps the generated client with a bearer-token RequestEditorFn.`)
 
@@ -28,11 +28,12 @@
 - Adding new API types or request/response structs to the hand-authored wrapper files instead of api/spec/ TypeSpec
 - Importing app-internal monorepo packages into Go or Python SDK — must remain externally importable
 - Adding new SDK code to api/client/node or api/client/web — both are deprecated tombstones
+- Writing tests that bypass httptest.NewServer and make live HTTP calls (Go) or run scripts/generate.ts from outside the package root (JS)
 
 ## Decisions
 
 - **Go SDK generated from api/openapi.cloud.yaml (not openapi.yaml)** — Cloud spec includes cloud-specific auth and endpoint variants; SDK consumers target the hosted service.
 - **Python client subclasses generated OpenMeterClient rather than wrapping it** — Allows _patch_sdk() to augment generated methods cleanly while keeping the public API surface identical to the generated class.
-- **Four named JS sub-package exports instead of a single entry** — Lets consumers tree-shake; portal client is intentionally scoped to portal-token operations.
+- **Four named JS sub-package exports instead of a single entry** — Lets consumers tree-shake; portal client is intentionally scoped to portal-token operations only.
 
 <!-- archie:ai-end -->

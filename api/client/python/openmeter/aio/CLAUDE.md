@@ -2,18 +2,18 @@
 
 <!-- archie:ai-start -->
 
-> Public async namespace for the OpenMeter Python SDK — exposes the async Client class and re-exports async operation symbols from the auto-generated Azure SDK layer (_generated/aio). Acts as a thin public shim: no business logic, only wiring the generated internals to a stable import surface.
+> Public async namespace shim for the OpenMeter Python SDK — exposes the async Client class and re-exports async operation symbols from the auto-generated Azure SDK layer (_generated/aio). No business logic lives here; this folder only wires generated internals to a stable import surface.
 
 ## Patterns
 
-**Thin shim over _generated** — This package contains only __init__.py and _client.py. All async operation types come from _generated/aio; this folder's job is to re-export them under the public openmeter.aio namespace. (`from .._generated.aio._client import OpenMeterClient  # in _client.py`)
-**Client subclasses OpenMeterClient** — Client in _client.py extends the generated OpenMeterClient, injecting Bearer-token auth via ServiceKeyCredential + ServiceKeyCredentialPolicy when a token kwarg is supplied, and forwarding all other kwargs to super().__init__. (`class Client(OpenMeterClient):
+**Thin shim over _generated** — All async operation types come from _generated/aio. This folder re-exports them under the public openmeter.aio namespace via wildcard import. Never define operation classes here. (`from .._generated.aio._client import OpenMeterClient  # in _client.py`)
+**Client subclasses generated OpenMeterClient** — Client in _client.py extends OpenMeterClient, injecting Bearer-token auth via ServiceKeyCredential + ServiceKeyCredentialPolicy when a token kwarg is supplied. All other kwargs are forwarded to super().__init__. (`class Client(OpenMeterClient):
     def __init__(self, endpoint='https://openmeter.cloud', token=None, **kwargs):
         if token and not kwargs.get('authentication_policy'):
             credential = ServiceKeyCredential(token)
             kwargs['authentication_policy'] = policies.ServiceKeyCredentialPolicy(credential, 'Authorization', prefix='Bearer')
         super().__init__(endpoint=endpoint, **kwargs)`)
-**_patch_sdk() call at module end** — __init__.py must call _patch_sdk() as the last statement so runtime monkey-patches from _generated/aio/_patch.py are applied after all imports. (`_patch_sdk()  # last line of __init__.py`)
+**_patch_sdk() call at module end** — __init__.py must call _patch_sdk() as the last statement so runtime monkey-patches from _generated/aio/_patch.py are applied after all imports. Reordering breaks runtime patches. (`_patch_sdk()  # last line of __init__.py`)
 **Graceful _patch ImportError guard** — _patch symbols are imported inside a try/except ImportError block so the package remains importable even if _patch.py is absent (e.g. before code-gen runs). (`try:
     from .._generated.aio._patch import __all__ as _patch_all
     from .._generated.aio._patch import *

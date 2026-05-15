@@ -1,195 +1,239 @@
 {
-  "openmeter/progressmanager/adapter": {
-    "purpose": "Redis-backed implementation of progressmanager.Adapter that stores/retrieves progress data as JSON with TTL expiration. Also provides a noop implementation (adapterNoop) and a testify-based mock (MockProgressManager) in the same package.",
+  "openmeter/productcatalog/planaddon/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing planaddon.Repository \u2014 the persistence layer for plan-to-addon assignment records. Owns all SQL queries, soft-delete logic, and eager-loading of related plan and addon entities via the Tx/WithTx/Self triad required by entutils.TransactingRepo.",
     "patterns": [
       {
-        "name": "Config struct with Validate() before construction",
-        "description": "All required fields (Redis client, Logger, Expiration > 0) are validated in Config.Validate() before the adapter is constructed. New() returns (Adapter, error) and calls Validate() first.",
-        "example": "func New(config Config) (progressmanager.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+        "name": "TransactingRepo wrapping every method",
+        "description": "Every exported adapter method wraps its body in entutils.TransactingRepo[T, *adapter](ctx, a, fn). The fn closure receives a tx-rebound *adapter; never call a.db directly outside this closure.",
+        "example": "return entutils.TransactingRepo[*planaddon.PlanAddon, *adapter](ctx, a, fn)"
       },
       {
-        "name": "Interface compliance assertion",
-        "description": "Both adapter structs assert interface compliance at compile time via blank identifier assignment.",
-        "example": "var _ progressmanager.Adapter = (*adapter)(nil)\nvar _ progressmanager.Adapter = (*adapterNoop)(nil)"
+        "name": "Tx/WithTx/Self triad",
+        "description": "adapter implements Tx (via a.db.HijackTx + entutils.NewTxDriver), WithTx (via entdb.NewTxClientFromRawConfig), and Self (returns a). All three are required for TransactingRepo to rebind to caller-supplied transactions.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), logger: a.logger} }"
       },
       {
-        "name": "Namespaced Redis key format",
-        "description": "Keys follow the format '<keyPrefix>:progress:<namespace>:<id>' (or 'progress:<namespace>:<id>' when keyPrefix is empty). Never store progress without namespace isolation.",
-        "example": "fmt.Sprintf(\"%s:%s:%s:%s\", a.keyPrefix, staticKeyPrefix, id.Namespace, id.ID)"
+        "name": "Post-create/update refetch with eager loads",
+        "description": "After Save() or Update(), re-query with WithPlan(PlanEagerLoadPhasesWithRateCardsWithFeaturesFn).WithAddon(AddonEagerLoadRateCardsWithFeaturesFn) because Ent Save() does not populate edges.",
+        "example": "planAddonRow, err = a.db.PlanAddon.Query().Where(...).WithPlan(PlanEagerLoadPhasesWithRateCardsWithFeaturesFn).WithAddon(AddonEagerLoadRateCardsWithFeaturesFn).First(ctx)"
       },
       {
-        "name": "redis.Nil sentinel mapped to GenericNotFoundError",
-        "description": "When redis.Get returns redis.Nil, return models.NewGenericNotFoundError(...) \u2014 not a raw error \u2014 so the HTTP layer maps it to 404.",
-        "example": "if cmd.Err() == redis.Nil { return nil, models.NewGenericNotFoundError(...) }"
+        "name": "Soft-delete via SetDeletedAt + clock.Now()",
+        "description": "Delete sets DeletedAt to clock.Now().UTC() via UpdateOneID, never hard-deletes. List/Get queries add planaddondb.DeletedAtIsNil() unless IncludeDeleted is set.",
+        "example": "a.db.PlanAddon.UpdateOneID(planAddon.ID).Where(planaddondb.Namespace(...)).SetDeletedAt(clock.Now().UTC()).Exec(ctx)"
       },
       {
-        "name": "Input validation before Redis ops",
-        "description": "Both GetProgress and UpsertProgress call input.Validate() and wrap the error before touching Redis.",
-        "example": "if err := input.Validate(); err != nil { return nil, fmt.Errorf(\"validate get progress input: %w\", err) }"
+        "name": "Typed NotFoundError wrapping",
+        "description": "entdb.IsNotFound(err) must be caught and re-wrapped as planaddon.NewNotFoundError(NotFoundErrorParams{...}) so callers receive a domain-typed error instead of a raw Ent error.",
+        "example": "if entdb.IsNotFound(err) { return nil, planaddon.NewNotFoundError(planaddon.NotFoundErrorParams{Namespace: params.Namespace, ID: params.ID}) }"
       },
       {
-        "name": "Noop UpsertProgress silently succeeds",
-        "description": "adapterNoop.UpsertProgress returns nil (no-op), but adapterNoop.GetProgress returns GenericNotFoundError. This asymmetry is intentional \u2014 writes are discarded, reads report not-found.",
-        "example": "func (a *adapterNoop) UpsertProgress(...) error { return nil }"
+        "name": "Shared package-level eager-load vars",
+        "description": "PlanEagerLoadPhasesWithRateCardsWithFeaturesFn and AddonEagerLoadRateCardsWithFeaturesFn are package-level vars reused across all queries to keep edge loading consistent across methods.",
+        "example": "var PlanEagerLoadPhasesWithRateCardsWithFeaturesFn = func(pq *entdb.PlanQuery) { pq.WithPhases(func(ppq *entdb.PlanPhaseQuery) { ppq.WithRatecards(func(prq *entdb.PlanRateCardQuery) { prq.WithFeatures() }) }) }"
       },
       {
-        "name": "Mock implements Service not Adapter",
-        "description": "MockProgressManager implements progressmanager.Service (not Adapter), covering the full service surface including DeleteProgressByRuntimeID.",
-        "example": "var _ progressmanager.Service = &MockProgressManager{}"
+        "name": "Validated Config constructor",
+        "description": "New(Config) validates required fields (Client, Logger) via Config.Validate() \u2014 returns an error rather than panicking if any field is nil. var _ models.Validator = (*Config)(nil) enforces the interface at compile time.",
+        "example": "var _ models.Validator = (*Config)(nil)"
       }
     ],
     "key_file_guides": [
       {
         "file": "adapter.go",
-        "role": "Defines Config struct, New() constructor, adapter struct, and adapterNoop stub. Entry point for wiring.",
-        "watch_for": "Config.Validate() must reject nil Redis client and zero Expiration \u2014 never relax these guards."
+        "role": "Defines Config, constructor New, and the adapter struct with Tx/WithTx/Self. No query logic lives here.",
+        "watch_for": "Must implement the full TxCreator+TxUser triad exactly or TransactingRepo will fail to rebind. var _ planaddon.Repository = (*adapter)(nil) compile-check must pass."
       },
       {
-        "file": "progress.go",
-        "role": "Implements GetProgress and UpsertProgress on the real adapter using Redis GET/SET with JSON marshaling.",
-        "watch_for": "getKey() is the sole key-format authority; if key format changes, all existing Redis data becomes unreachable."
+        "file": "planaddon.go",
+        "role": "All CRUD method implementations. Each method closure is passed to entutils.TransactingRepo.",
+        "watch_for": "Avoid calling a.db directly outside a TransactingRepo closure \u2014 always use the closure's rebound *adapter. For DeletePlanAddon, get-then-soft-delete pattern must stay consistent."
       },
       {
-        "file": "noop.go",
-        "role": "No-op implementation for disabled progress tracking; GetProgress always returns not-found, UpsertProgress is silent.",
-        "watch_for": "Do not make noop methods return non-nil errors for UpsertProgress \u2014 callers treat the noop as safe to ignore."
+        "file": "mapping.go",
+        "role": "FromPlanAddonRow converts entdb.PlanAddon to planaddon.PlanAddon, delegating plan/addon edge mapping to planadapter.FromPlanRow and addonadapter.FromAddonRow.",
+        "watch_for": "Edges are optional \u2014 always guard with `if a.Edges.Plan != nil` and `if a.Edges.Addon != nil` before dereferencing."
       },
       {
-        "file": "mock.go",
-        "role": "Testify mock for progressmanager.Service used in unit tests.",
-        "watch_for": "Mock implements Service, not Adapter \u2014 keep in sync if Service interface gains new methods."
+        "file": "adapter_test.go",
+        "role": "Integration tests against a real Postgres schema using pctestutils.NewTestEnv. Tests cover Create/Get/List/Update/Delete via env.PlanAddonRepository.",
+        "watch_for": "env.DBSchemaMigrate(t) must be called before any query. Tests use context.Background() (pre-t.Context() era) \u2014 keep consistent with existing style."
       }
     ],
     "anti_patterns": [
-      "Storing progress keys without namespace prefix \u2014 breaks multi-tenant isolation",
-      "Returning raw redis errors instead of models.GenericNotFoundError for redis.Nil \u2014 breaks HTTP 404 mapping",
-      "Calling redis operations without first calling input.Validate() \u2014 bypasses invariant checks",
-      "Editing the key format in getKey() without a migration plan \u2014 orphans all existing in-flight progress records",
-      "Making adapterNoop.UpsertProgress return an error \u2014 callers rely on noop writes being safe no-ops"
+      "Calling a.db directly in a method body without wrapping in entutils.TransactingRepo \u2014 bypasses ctx-bound transaction.",
+      "Hard-deleting rows via Delete() instead of soft-deleting via SetDeletedAt.",
+      "Returning raw entdb.IsNotFound errors \u2014 always wrap in planaddon.NewNotFoundError.",
+      "Adding business-logic validation (plan status checks, conflict detection) inside the adapter \u2014 those belong in the service layer.",
+      "Skipping eager-load function vars when re-fetching after create/update \u2014 callers expect fully populated Plan and Addon edges."
     ],
     "decisions": [
       {
-        "decision": "Redis (not PostgreSQL/Ent) as the backing store",
-        "rationale": "Progress data is transient and TTL-bound; Redis SET with expiration avoids schema migrations and naturally garbage-collects stale progress without a cleanup job."
+        "decision": "TransactingRepo pattern for every method",
+        "rationale": "Ent transactions propagate implicitly in ctx; using the raw *entdb.Client falls off a caller-supplied transaction and causes partial writes under concurrency."
       },
       {
-        "decision": "Noop adapter co-located with the real adapter in the same package",
-        "rationale": "Keeps the disabled-feature code path trivially discoverable without a separate package; follows the broader project pattern of noop implementations per optional feature."
+        "decision": "Post-create refetch instead of using Save() return value",
+        "rationale": "Ent's Save() does not populate relation edges; a separate query with WithPlan/WithAddon is the only way to return a fully hydrated domain object."
+      },
+      {
+        "decision": "Soft-delete over hard-delete",
+        "rationale": "Plan-addon assignments must remain queryable (with IncludeDeleted) for audit and reconciliation after removal."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Wire the Redis adapter in app/common",
-        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/progressmanager/adapter\"\n)\n\nfunc ProvideProgressAdapter(redis *redis.Client, logger *slog.Logger) (progressmanager.Adapter, error) {\n    return adapter.New(adapter.Config{\n        Expiration: 24 * time.Hour,\n        Redis:      redis,\n        Logger:     logger,\n        KeyPrefix:  \"om\",\n    })\n}"
+        "scenario": "Add a new mutation method following the established adapter pattern",
+        "code": "func (a *adapter) SomeMutation(ctx context.Context, params planaddon.SomeMutationInput) (*planaddon.PlanAddon, error) {\n\tfn := func(ctx context.Context, a *adapter) (*planaddon.PlanAddon, error) {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid params: %w\", err)\n\t\t}\n\t\trow, err := a.db.PlanAddon.UpdateOneID(params.ID).\n\t\t\tWhere(planaddondb.Namespace(params.Namespace)).\n\t\t\tSetSomeField(params.SomeField).\n\t\t\tSave(ctx)\n\t\tif err != nil {\n\t\t\tif entdb.IsNotFound(err) {\n\t\t\t\treturn nil, planaddon.NewNotFoundError(planaddon.NotFoundErrorParams{Namespace: params.Namespace, ID: params.ID})\n\t\t\t}\n\t\t\treturn nil, fmt.Errorf(\"failed to mutate: %w\", err)\n\t\t}\n\t\t// refetch with eager loads...\n\t\t_ = row\n\t\treturn a.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{NamespacedModel: models.NamespacedModel{Namespace: params.Namespace}, ID: params.ID})\n\t}\n\treturn entutils.TransactingRepo[*planaddon.PlanAddon, *adapter](ctx, a, fn)\n}"
       }
     ]
   },
-  "openmeter/progressmanager/entity": {
-    "purpose": "Defines all value types and input structs for the progressmanager domain: ProgressID, Progress, GetProgressInput, and UpsertProgressInput. Every type implements Validate() with errors.Join for multi-error aggregation.",
+  "openmeter/productcatalog/planaddon/httpdriver": {
+    "purpose": "HTTP handler layer for plan-addon assignment CRUD endpoints, bridging the v1 REST API (api.PlanAddon*) to planaddon.Service via the httptransport.HandlerWithArgs generic pattern. Owns request decoding, response mapping, and error encoding only \u2014 no business logic.",
     "patterns": [
       {
-        "name": "Validate() on every domain type using errors.Join",
-        "description": "Each struct has a Validate() method that collects all validation failures into a []error slice and returns errors.Join(...). Never return on first error.",
-        "example": "var errs []error\nif a.ID == \"\" { errs = append(errs, errors.New(\"id is required\")) }\nreturn errors.Join(errs...)"
+        "name": "httptransport.NewHandlerWithArgs for every endpoint",
+        "description": "Each handler method returns a typed HandlerWithArgs[Request, Response, Params] constructed inline with a decoder closure, an operation closure, and a ResponseEncoder. Never implement ServeHTTP directly.",
+        "example": "return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[T](http.StatusOK), ...options)"
       },
       {
-        "name": "Delegate validation to embedded types",
-        "description": "Composite types call Validate() on embedded structs first, wrapping with fmt.Errorf for context. ProgressID validates NamespacedModel; GetProgressInput delegates to ProgressID.",
-        "example": "if err := a.ProgressID.Validate(); err != nil { errs = append(errs, fmt.Errorf(\"progress id: %w\", err)) }"
+        "name": "Namespace resolved via h.resolveNamespace(ctx)",
+        "description": "All decoders call h.resolveNamespace(ctx) which delegates to h.namespaceDecoder.GetNamespace(ctx). Never read namespace from URL params or request headers directly.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ..., err }"
       },
       {
-        "name": "Invariant enforcement in Progress.Validate()",
-        "description": "Progress enforces business invariants: Success+Failed <= Total, and non-zero counts require non-zero Total.",
-        "example": "if a.Success+a.Failed > a.Total { errs = append(errs, errors.New(\"success and failed must be less than or equal to total\")) }"
+        "name": "ValidationErrorEncoder per operation",
+        "description": "Every operation appends httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)) so domain validation errors are encoded as RFC 7807 Problem Details.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"createPlanAddon\"), httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)))..."
       },
       {
-        "name": "Input types embed domain types directly",
-        "description": "GetProgressInput embeds ProgressID; UpsertProgressInput embeds Progress. Input types are thin validation wrappers, not separate structs.",
-        "example": "type GetProgressInput struct { ProgressID }"
+        "name": "Local type aliases in planaddon.go",
+        "description": "Each endpoint declares local type aliases (e.g. CreatePlanAddonRequest = planaddon.CreatePlanAddonInput) next to the handler type declaration for self-documentation.",
+        "example": "type (CreatePlanAddonRequest = planaddon.CreatePlanAddonInput; CreatePlanAddonResponse = api.PlanAddon; CreatePlanAddonHandler httptransport.HandlerWithArgs[...])"
+      },
+      {
+        "name": "Handler interface embeds sub-interfaces",
+        "description": "Handler interface embeds PlanAddonHandler, which declares one factory method per endpoint returning typed handler values. var _ Handler = (*handler)(nil) enforces compile-time interface satisfaction.",
+        "example": "type Handler interface { PlanAddonHandler }; type PlanAddonHandler interface { ListPlanAddons() ListPlanAddonsHandler; ... }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "progressmanager.go",
-        "role": "Single file for all entity types: ProgressID, Progress, GetProgressInput, UpsertProgressInput. Source of truth for domain invariants.",
-        "watch_for": "Adding new fields to Progress requires updating Validate() to enforce any new invariants; JSON tags must match the API schema."
+        "file": "driver.go",
+        "role": "Defines Handler and PlanAddonHandler interfaces, handler struct, New constructor, and resolveNamespace helper.",
+        "watch_for": "All new endpoint methods must appear in both the PlanAddonHandler interface and the handler struct for var _ Handler = (*handler)(nil) to pass. resolveNamespace returns 500 (not 400) on missing namespace."
+      },
+      {
+        "file": "planaddon.go",
+        "role": "One function per HTTP operation; each builds and returns a HandlerWithArgs using inline decoder/operation closures.",
+        "watch_for": "Status codes must match API spec: 200 for list/get/update, 201 for create, 204 (EmptyResponseEncoder) for delete. Do not add business logic here."
+      },
+      {
+        "file": "mapping.go",
+        "role": "FromPlanAddon converts domain planaddon.PlanAddon to api.PlanAddon. AsCreatePlanAddonRequest/AsUpdatePlanAddonRequest convert API body types to domain input types.",
+        "watch_for": "FromPlanAddon calls a.AsProductCatalogPlanAddon().ValidationErrors() \u2014 validation issues must always be propagated to the response ValidationErrors field, never swallowed."
       }
     ],
     "anti_patterns": [
-      "Returning on first validation error instead of collecting all errors with errors.Join",
-      "Adding persistence or Redis logic to entity types \u2014 this package is pure domain types only",
-      "Omitting UpdatedAt zero-check in Progress.Validate() \u2014 callers rely on this guard before persisting"
+      "Implementing net/http.Handler directly on handler methods \u2014 always use httptransport.NewHandlerWithArgs.",
+      "Resolving namespace from URL path parameters instead of h.resolveNamespace(ctx).",
+      "Omitting WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(...)) from an operation's options \u2014 validation errors will not serialize correctly.",
+      "Adding business logic (plan/addon status checks, conflict detection) in decoder or mapping layer \u2014 decoders parse only.",
+      "Returning raw domain errors without letting the error encoder chain handle them."
     ],
     "decisions": [
       {
-        "decision": "Entity types in a separate sub-package (entity/) rather than the root progressmanager package",
-        "rationale": "Avoids import cycles: adapter and httpdriver both need the entity types but neither should import the other; a shared entity sub-package breaks the cycle."
-      }
-    ],
-    "code_examples": []
-  },
-  "openmeter/progressmanager/httpdriver": {
-    "purpose": "HTTP handler layer for the progressmanager domain, implementing a single GetProgress endpoint. Follows the httptransport.Handler[Req, Resp] pattern with namespace resolution from context.",
-    "patterns": [
-      {
-        "name": "Handler interface composes sub-interfaces",
-        "description": "The top-level Handler interface embeds ProgressHandler (which exposes GetProgress()). New types of endpoints add a new sub-interface and embed it in Handler.",
-        "example": "type Handler interface { ProgressHandler }\ntype ProgressHandler interface { GetProgress() GetProgressHandler }"
+        "decision": "httptransport.HandlerWithArgs generic pattern for all operations",
+        "rationale": "Separates HTTP concerns (decode, encode, error handling) from business logic and enables consistent middleware chaining (OTel, error encoding) across all endpoints without boilerplate."
       },
       {
-        "name": "Compile-time interface assertion on handler struct",
-        "description": "var _ Handler = (*handler)(nil) ensures the concrete struct satisfies the Handler interface at compile time.",
-        "example": "var _ Handler = (*handler)(nil)"
-      },
-      {
-        "name": "Namespace resolved via namespacedriver.NamespaceDecoder",
-        "description": "All handlers call h.resolveNamespace(ctx) which reads the namespace from the request context via NamespaceDecoder. Returns HTTP 500 if namespace is missing.",
-        "example": "ns, ok := h.namespaceDecoder.GetNamespace(ctx)\nif !ok { return \"\", commonhttp.NewHTTPError(http.StatusInternalServerError, ...) }"
-      },
-      {
-        "name": "httptransport.NewHandlerWithArgs for path-parameter endpoints",
-        "description": "Endpoints with URL path arguments use httptransport.NewHandlerWithArgs[Req, Resp, Arg]. The first func decodes (ctx, *http.Request, arg) -> (Req, error); the second is the operation.",
-        "example": "return httptransport.NewHandlerWithArgs(\n    func(ctx context.Context, r *http.Request, progressID string) (GetProgressRequest, error) { ... },\n    func(ctx context.Context, request GetProgressRequest) (GetProgressResponse, error) { ... },\n    commonhttp.JSONResponseEncoderWithStatus[GetProgressResponse](http.StatusOK),\n    ...options,\n)"
-      },
-      {
-        "name": "Response type aliased from api package",
-        "description": "GetProgressResponse is aliased to api.Progress (the generated OpenAPI type), not a local struct. Conversion from domain type is done via a local progressToAPI() helper.",
-        "example": "type GetProgressResponse = api.Progress\nfunc progressToAPI(p entity.Progress) api.Progress { ... }"
-      },
-      {
-        "name": "HandlerOption propagation with httptransport.AppendOptions",
-        "description": "Handler-level options (e.g., error encoders) are propagated to each endpoint via httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"...\")).",
-        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"getProgress\"))..."
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "handler.go",
-        "role": "Defines the Handler/ProgressHandler interfaces, the handler struct, New() constructor, and resolveNamespace helper.",
-        "watch_for": "resolveNamespace returns HTTP 500 (not 401/403) when namespace is missing \u2014 this is intentional for self-hosted deployments using StaticNamespaceDecoder."
-      },
-      {
-        "file": "progress.go",
-        "role": "Implements GetProgress endpoint: decoding, operation (calls service.GetProgress), and response encoding. Contains the progressToAPI() conversion helper.",
-        "watch_for": "nil progress after a successful service call is treated as an internal error (not not-found) \u2014 the guard prevents silent data loss."
-      }
-    ],
-    "anti_patterns": [
-      "Calling the domain service directly from the decoder function \u2014 decode must only extract request fields, the operation func calls the service",
-      "Returning domain entity types directly as HTTP responses \u2014 always convert via a local toAPI() helper using the generated api package types",
-      "Hardcoding the namespace string instead of using h.resolveNamespace(ctx)",
-      "Adding business logic to progressToAPI() \u2014 it must be a pure field mapping with no validation or computation"
-    ],
-    "decisions": [
-      {
-        "decision": "GetProgressResponse aliased to api.Progress rather than a new struct",
-        "rationale": "The generated api.Progress is the contract-stable API type; aliasing avoids a redundant intermediate struct and ensures the HTTP response always matches the OpenAPI spec."
+        "decision": "Namespace injected via NamespaceDecoder rather than path/query param",
+        "rationale": "Self-hosted deployments use a static default namespace; the decoder abstraction allows both self-hosted (static) and multi-tenant (header/JWT) resolvers without changing handler code."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Register the handler in the v1 router",
-        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/progressmanager/httpdriver\"\n)\n\nhandler := httpdriver.New(namespaceDecoder, progressSvc, options...)\nrouter.Get(\"/api/v1/progress/{progressID}\", handler.GetProgress().ServeHTTP)"
+        "scenario": "Add a new read-only endpoint following the httpdriver pattern",
+        "code": "type (\n\tMyNewRequest  = planaddon.MyNewInput\n\tMyNewResponse = api.PlanAddon\n\tMyNewParams   struct{ PlanIDOrKey string }\n\tMyNewHandler  httptransport.HandlerWithArgs[MyNewRequest, MyNewResponse, MyNewParams]\n)\n\nfunc (h *handler) MyNew() MyNewHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, params MyNewParams) (MyNewRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil {\n\t\t\t\treturn MyNewRequest{}, err\n\t\t\t}\n\t\t\treturn MyNewRequest{NamespacedModel: models.NamespacedModel{Namespace: ns}, PlanIDOrKey: params.PlanIDOrKey}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request MyNewRequest) (MyNewResponse, error) {\n\t\t\ta, err := h.service.MyNew(ctx, request)\n\t\t\tif err != nil {\n\t\t\t\treturn MyNewResponse{}, err\n\t\t\t}\n\t\t\treturn FromPlanAddon(*a)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[MyNewResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(\n\t\t\th.options,\n\t\t\thttptransport.WithOperationName(\"myNew\"),\n\t\t\thttptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),\n\t\t)...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/planaddon/service": {
+    "purpose": "Business-logic layer implementing planaddon.Service \u2014 validates inputs, enforces plan/addon state constraints (status, deleted checks), delegates persistence to planaddon.Repository, and publishes domain events after every mutation. No Ent or SQL imports allowed here.",
+    "patterns": [
+      {
+        "name": "transaction.Run / RunWithNoValue for write operations",
+        "description": "Mutating methods (CreatePlanAddon, DeletePlanAddon, UpdatePlanAddon) wrap their fn closure in transaction.Run(ctx, s.adapter, fn) or transaction.RunWithNoValue to ensure atomicity across adapter calls and event publishing.",
+        "example": "return transaction.Run(ctx, s.adapter, fn)"
+      },
+      {
+        "name": "Validate params first, then cross-entity checks",
+        "description": "Every method calls params.Validate() immediately on entry, then fetches related entities (plan, addon) to enforce business rules (status, deleted state) before calling the adapter.",
+        "example": "if err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid ...: %w\", err) }"
+      },
+      {
+        "name": "Domain-specific errors wrapped as models.Generic* errors",
+        "description": "plan.NotFoundError, addon.NotFoundError, planaddon.NotFoundError are caught via errors.As and re-wrapped as models.NewGenericNotFoundError. Validation failures use models.NewGenericValidationError. Duplicates use models.NewGenericConflictError.",
+        "example": "if notFound := &(plan.NotFoundError{}); errors.As(err, &notFound) { return nil, models.NewGenericNotFoundError(err) }"
+      },
+      {
+        "name": "Publish domain event after every successful mutation",
+        "description": "After successful create/update/delete, publish a typed event (planaddon.NewPlanAddonCreateEvent, UpdateEvent, DeleteEvent) via s.publisher inside the transaction closure \u2014 failure rolls back the DB change.",
+        "example": "event := planaddon.NewPlanAddonCreateEvent(ctx, planAddon); if err = s.publisher.Publish(ctx, event); err != nil { return nil, err }"
+      },
+      {
+        "name": "Config struct with required-field nil-checks in New()",
+        "description": "service.New(Config) checks Adapter, Plan, Addon, Logger, Publisher for nil and returns an error, enforcing complete wiring at construction time. var _ planaddon.Service = (*service)(nil) enforces compile-time interface satisfaction.",
+        "example": "if config.Adapter == nil { return nil, errors.New(\"add-on assignment adapter is required\") }"
+      },
+      {
+        "name": "Patch-field merge rules mirrored and documented between service and adapter",
+        "description": "UpdatePlanAddon builds a merged draft PlanAddon for Validate() before calling the adapter. Merge rules (MaxQuantity always replaced via SetOrClearMaxQuantity; FromPlanPhase/Metadata/Annotations only written when non-nil) must exactly match the adapter's behaviour.",
+        "example": "// MaxQuantity is always replaced via SetOrClearMaxQuantity, so nil clears the column \u2014 use params.MaxQuantity as-is."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines Config, New constructor, and service struct. No method logic lives here.",
+        "watch_for": "var _ planaddon.Service = (*service)(nil) compile-check \u2014 add new interface methods here before implementing them in planaddon.go."
+      },
+      {
+        "file": "planaddon.go",
+        "role": "All planaddon.Service method implementations. Read methods call fn(ctx) directly; write methods use transaction.Run / RunWithNoValue.",
+        "watch_for": "DeletePlanAddon re-fetches the record after deletion to get the DeletedAt timestamp for the event payload \u2014 do not skip this refetch. Always publish the event inside the transaction closure."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Integration tests exercising the full service+adapter+DB stack via pctestutils.NewTestEnv. Covers invalid-state transitions (e.g. published plan rejects new plan-addon).",
+        "watch_for": "Tests create meters, features, plans, and addons as prerequisites \u2014 reuse pctestutils helpers rather than duplicating fixture code."
+      }
+    ],
+    "anti_patterns": [
+      "Calling s.adapter methods outside a transaction.Run closure for write paths \u2014 risks partial writes if publisher.Publish fails.",
+      "Returning adapter-level errors (planaddon.NotFoundError) directly without wrapping in models.Generic* \u2014 breaks the HTTP error encoder chain.",
+      "Checking plan/addon status inside the adapter \u2014 status validation belongs exclusively in the service layer.",
+      "Omitting event publishing after a successful mutation \u2014 downstream systems depend on these events for sync.",
+      "Using context.Background() instead of the passed ctx \u2014 breaks tracing and cancellation."
+    ],
+    "decisions": [
+      {
+        "decision": "transaction.Run wraps all write operations",
+        "rationale": "Create/Update/Delete each call the adapter multiple times (get-then-mutate pattern) and publish an event; all must be atomic so a publish failure rolls back the DB change."
+      },
+      {
+        "decision": "Cross-entity validation (plan status, addon status) in the service not the adapter",
+        "rationale": "Adapters are pure persistence; business rules about which states allow assignment creation/deletion must be in the service to stay testable without a DB."
+      },
+      {
+        "decision": "Patch-field merge logic mirrored and documented between service and adapter",
+        "rationale": "UpdatePlanAddon builds a draft merged state for Validate() before calling the adapter; the merge rules must exactly match the adapter's SetOrClear/conditional-set behaviour to avoid silent divergence."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new write service method with transaction, validation, and event publishing",
+        "code": "func (s service) SomeMutation(ctx context.Context, params planaddon.SomeMutationInput) (*planaddon.PlanAddon, error) {\n\tfn := func(ctx context.Context) (*planaddon.PlanAddon, error) {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid params: %w\", err)\n\t\t}\n\t\tpa, err := s.adapter.SomeMutation(ctx, params)\n\t\tif err != nil {\n\t\t\tif notFound := &(planaddon.NotFoundError{}); errors.As(err, &notFound) {\n\t\t\t\treturn nil, models.NewGenericNotFoundError(err)\n\t\t\t}\n\t\t\treturn nil, fmt.Errorf(\"failed to mutate: %w\", err)\n\t\t}\n\t\tevent := planaddon.NewPlanAddonUpdateEvent(ctx, pa)\n\t\tif err = s.publisher.Publish(ctx, event); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"failed to publish event: %w\", err)\n\t\t}\n\t\treturn pa, nil\n\t}\n\treturn transaction.Run(ctx, s.adapter, fn)\n}"
       }
     ]
   }

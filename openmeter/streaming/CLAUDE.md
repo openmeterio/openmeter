@@ -54,7 +54,6 @@ if err := params.Validate(); err != nil {
 	return nil, err
 }
 rows, err := connector.QueryMeter(ctx, namespace, meter, params)
-
 ```
 
 <!-- archie:ai-end -->

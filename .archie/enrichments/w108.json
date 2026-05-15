@@ -1,334 +1,57 @@
 {
-  "openmeter/productcatalog/adapter": {
-    "purpose": "Ent/PostgreSQL adapter for the feature entity: implements feature.FeatureRepo (CRUD + archive + list) against the openmeter/ent/db schema and exposes Tx/WithTx/Self for transaction propagation.",
+  "openmeter/notification/webhook/svix/internal": {
+    "purpose": "Internal Svix error translation layer that converts raw *svix.Error HTTP responses into typed domain webhook error categories (retryable, unrecoverable, not-found, validation). Single-responsibility package \u2014 error mapping only, no Svix API calls.",
     "patterns": [
       {
-        "name": "FeatureRepo constructor",
-        "description": "NewPostgresFeatureRepo(db *db.Client, logger *slog.Logger) returns feature.FeatureRepo; always inject *db.Client from Wire, never construct inline.",
-        "example": "featureAdapter := adapter.NewPostgresFeatureRepo(client, logger)"
+        "name": "WrapSvixError is the sole entry-point",
+        "description": "All Svix API call sites must pass errors through WrapSvixError(err), which type-asserts to *svix.Error via lo.ErrorsAs and dispatches to status-specific JSON unmarshal + SvixError construction. Never construct SvixError directly from outside this package.",
+        "example": "if err := internal.WrapSvixError(svixAPIErr); err != nil { return err }"
       },
       {
-        "name": "TxCreator + TxUser implementation",
-        "description": "transaction.go implements Tx(), WithTx(), Self() on featureDBAdapter so callers can use entutils.TransactingRepo without bypassing the ctx-bound transaction.",
-        "example": "func (e *featureDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) feature.FeatureRepo { ... }"
+        "name": "SvixError.Wrap() maps HTTP status to domain error type",
+        "description": "4xx statuses (400, 409, 422) \u2192 webhook.NewUnrecoverableError; 404 \u2192 webhook.NewNotFoundError; 429 and 5xx \u2192 webhook.NewRetryableError with RetryAfter. Unrecognized statuses return the raw SvixError. Always call .Wrap() after constructing SvixError.",
+        "example": "return SvixError{HTTPStatus: svixErr.Status(), Code: &body.Code, Details: []string{body.Detail}}.Wrap()"
       },
       {
-        "name": "WithMeter edge for MeterSlug backward compat",
-        "description": "Every query that returns a Feature must WithMeter(mq.Select(dbmeter.FieldID, dbmeter.FieldKey)) to populate the deprecated MeterSlug field for v1 API compatibility.",
-        "example": "query.WithMeter(func(mq *db.MeterQuery) { mq.Select(dbmeter.FieldID, dbmeter.FieldKey) })"
+        "name": "422 uses SvixValidationErrorBody, all others use SvixErrorBody",
+        "description": "HTTP 422 responses carry a detail array of SvixValidationError structs; all other statuses carry a flat SvixErrorBody with code + detail string. The unmarshal branch in WrapSvixError must stay in sync with Svix's actual response shapes.",
+        "example": "case http.StatusUnprocessableEntity: var body SvixValidationErrorBody; json.Unmarshal(svixErr.Body(), &body)"
       },
       {
-        "name": "Dual-column MeterGroupByFilters storage",
-        "description": "On write, store advanced filters in AdvancedMeterGroupByFilters and legacy equality-only in MeterGroupByFilters; on read, prefer AdvancedMeterGroupByFilters if non-empty.",
-        "example": "if len(entity.AdvancedMeterGroupByFilters) > 0 { f.MeterGroupByFilters = entity.AdvancedMeterGroupByFilters } else { ... }"
-      },
-      {
-        "name": "Archive guard cross-checks plan and subscription references",
-        "description": "ArchiveFeature queries active plans and active subscriptions referencing the feature before setting ArchivedAt; return ForbiddenError if any active reference exists.",
-        "example": "planReferencesIt, err := c.db.Plan.Query()...Exist(ctx)"
-      },
-      {
-        "name": "UnitCost type-switch on read and write",
-        "description": "All UnitCost mutations must clear the other type's DB columns (e.g. when switching manual\u2192llm, clear UnitCostManualAmount). MapFeatureEntity applies the same type-switch on read.",
-        "example": "case feature.UnitCostTypeManual: query = query.ClearUnitCostLlmProviderProperty()..."
+        "name": "Rate-limit carries RetryAfter duration",
+        "description": "429 Too Many Requests and 5xx server errors are wrapped as webhook.NewRetryableError(e, e.RetryAfter). The RetryAfter field must be populated by callers parsing the Retry-After response header before constructing SvixError.",
+        "example": "case http.StatusTooManyRequests: return webhook.NewRetryableError(e, e.RetryAfter)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "feature.go",
-        "role": "All feature CRUD: CreateFeature, UpdateFeature, GetByIdOrKey, ArchiveFeature, HasActiveFeatureForMeter, ListFeatures, MapFeatureEntity.",
-        "watch_for": "Missing WithMeter edge on any new query returns broken MeterSlug; failing to clear opposite type's columns on UnitCost update corrupts the stored cost."
-      },
-      {
-        "file": "transaction.go",
-        "role": "Implements entutils.TxCreator and entutils.TxUser[FeatureRepo] via HijackTx + db.NewTxClientFromRawConfig.",
-        "watch_for": "Do not add business logic here; this file must remain pure transaction plumbing."
-      },
-      {
-        "file": "feature_test.go",
-        "role": "Integration tests using testutils.InitPostgresDB and dbClient.Schema.Create; tests run in parallel behind a sync.Mutex.",
-        "watch_for": "Tests create a real meter row first to satisfy FK constraints; skip this and inserts will fail."
+        "file": "error.go",
+        "role": "Defines SvixError value type, its Wrap() HTTP-status-to-domain-error mapping, JSON body structs (SvixErrorBody, SvixValidationErrorBody, SvixValidationError), and the WrapSvixError public entry-point.",
+        "watch_for": "Adding a new HTTP status mapping requires a new case in both SvixError.Wrap() and WrapSvixError's switch. Missing a status silently returns the raw SvixError without domain wrapping, bypassing retry/unrecoverable classification."
       }
     ],
     "anti_patterns": [
-      "Using c.db directly in a helper function that accepts *db.Client instead of calling entutils.TransactingRepo \u2014 bypasses ctx transaction.",
-      "Omitting WithMeter edge on a new query returning Feature \u2014 breaks MeterSlug for v1 callers.",
-      "Editing files under openmeter/ent/db/ \u2014 generated code, never edit manually.",
-      "Returning feature.FeatureNotFoundError instead of models.NewGenericNotFoundError \u2014 noted as FIXME in code but new code should use generic errors."
+      "Returning *svix.Error directly to callers outside this package \u2014 always go through WrapSvixError",
+      "Adding business logic or Svix API calls to this package \u2014 it is error-mapping only",
+      "Unmarshaling Svix response body outside this package and duplicating the JSON struct definitions",
+      "Treating all Svix errors as retryable \u2014 4xx validation errors must be wrapped as unrecoverable to avoid infinite retry loops",
+      "Constructing SvixError{} struct literals from outside this package \u2014 use WrapSvixError exclusively"
     ],
     "decisions": [
       {
-        "decision": "Dual MeterGroupByFilters columns (legacy map[string]string + advanced typed filters)",
-        "rationale": "v1 API predates typed filter support; both columns are maintained for backward compatibility while new code uses the advanced column."
+        "decision": "Separate internal package for Svix error translation",
+        "rationale": "Keeps *svix.Error (an SDK type) from leaking into the domain webhook package. The internal boundary enforces that callers only see webhook.RetryableError / webhook.UnrecoverableError / webhook.NotFoundError \u2014 domain-portable error types independent of the Svix SDK."
       },
       {
-        "decision": "TxCreator/TxUser embedded in the adapter",
-        "rationale": "Ent transactions propagate implicitly via ctx; exposing Tx/WithTx/Self lets callers use entutils.TransactingRepo without leaking transaction types into domain interfaces."
+        "decision": "HTTP status drives retry vs unrecoverable classification",
+        "rationale": "Svix 4xx (400, 409, 422) indicate caller-side data problems that will not resolve on retry; 429 and 5xx are transient. Encoding this in Wrap() keeps retry logic out of the notification consumer and centralizes the classification in one place."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new field to Feature: write it on create, clear it on update, read it in MapFeatureEntity",
-        "code": "// In CreateFeature:\nquery = query.SetMyField(feat.MyField)\n// In UpdateFeature (clear opposite):\nquery = query.ClearMyField() // or .SetMyField(...)\n// In MapFeatureEntity:\nf.MyField = entity.MyField"
+        "scenario": "Wrapping a Svix API error at a call site in the svix webhook handler",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix/internal\"\n)\n\n_, err := svixClient.Message.Create(ctx, appID, &svix.MessageIn{...})\nif err != nil {\n    return internal.WrapSvixError(err)\n}"
       }
     ]
-  },
-  "openmeter/productcatalog/driver": {
-    "purpose": "v1 HTTP handlers for the feature sub-domain of productcatalog: implements FeatureHandler (GetFeature, CreateFeature, ListFeatures, DeleteFeature) using the httptransport pattern, plus response mapping and error encoding.",
-    "patterns": [
-      {
-        "name": "httptransport.Handler per operation",
-        "description": "Each operation is returned as a typed alias (e.g. GetFeatureHandler = httptransport.HandlerWithArgs[Req,Resp,Params]). Decoder, operation func, and encoder are injected at construction; never implement ServeHTTP directly.",
-        "example": "return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoder, opts...)"
-      },
-      {
-        "name": "Namespace resolution via namespaceDecoder",
-        "description": "All handlers call h.resolveNamespace(ctx) which delegates to namespacedriver.NamespaceDecoder.GetNamespace; failure returns 500. Never hardcode or skip namespace resolution.",
-        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ... }"
-      },
-      {
-        "name": "Centralised error encoder via getErrorEncoder()",
-        "description": "errors.go defines getErrorEncoder() that chains commonhttp.HandleErrorIfTypeMatches for each domain error type. Always pass httptransport.WithErrorEncoder(getErrorEncoder()) in handler options.",
-        "example": "httptransport.WithErrorEncoder(getErrorEncoder())"
-      },
-      {
-        "name": "LLM pricing enrichment post-operation",
-        "description": "GetFeature checks feat.UnitCost.Type == UnitCostTypeLLM and calls resolveLLMPricing + enrichFeatureResponseWithPricing after the main operation. New handlers with LLM features must follow this post-enrichment pattern.",
-        "example": "if feat.UnitCost != nil && feat.UnitCost.Type == feature.UnitCostTypeLLM { pricing := resolveLLMPricing(...) }"
-      },
-      {
-        "name": "Union response for paginated vs flat list",
-        "description": "ListFeatures returns commonhttp.Union[[]api.Feature, pagination.Result[api.Feature]] \u2014 Option1 for flat list (page.IsZero()), Option2 for paginated. New list handlers must follow this dual-mode pattern.",
-        "example": "if params.Page.IsZero() { response.Option1 = &mapped } else { response.Option2 = &pagination.Result{...} }"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "feature.go",
-        "role": "FeatureHandler interface and featureHandlers struct with all four operation implementations.",
-        "watch_for": "MeterSlug-to-MeterID resolution in CreateFeature decoder \u2014 must call meterService.GetMeterByIDOrSlug before calling connector.CreateFeature."
-      },
-      {
-        "file": "errors.go",
-        "role": "getErrorEncoder chains feature and meter domain errors to HTTP status codes.",
-        "watch_for": "New domain error types must be registered here; unregistered errors fall through to 500."
-      },
-      {
-        "file": "parser.go",
-        "role": "Bidirectional mapping: MapFeatureToResponse, MapFeatureCreateInputsRequest, domainUnitCostToAPI, apiUnitCostToDomain, resolveLLMPricing, enrichFeatureResponseWithPricing.",
-        "watch_for": "apiUnitCostToDomain uses Discriminator() to dispatch; adding a new UnitCostType requires a new case here and in the domain switch."
-      }
-    ],
-    "anti_patterns": [
-      "Returning namespace errors with status other than 500 \u2014 internal server error is the correct code when namespace cannot be resolved.",
-      "Calling connector methods before namespace resolution.",
-      "Omitting httptransport.WithOperationName \u2014 breaks OTel span naming.",
-      "Hardcoding page size limit (1000) without reusing commonhttp constants."
-    ],
-    "decisions": [
-      {
-        "decision": "MeterSlug-to-MeterID translation lives in the HTTP decoder, not the connector",
-        "rationale": "The v1 API accepts meterSlug for backward compat; the domain works with MeterID. Translation at the boundary keeps the connector clean."
-      }
-    ],
-    "code_examples": []
-  },
-  "openmeter/productcatalog/feature": {
-    "purpose": "Domain package for feature entities: defines FeatureConnector (service), FeatureRepo (repository interface), Feature struct, input/output types, UnitCost types, MeterGroupByFilters, Watermill events, and FeatureMeters resolution logic.",
-    "patterns": [
-      {
-        "name": "FeatureConnector over FeatureRepo",
-        "description": "Business logic (meter validation, key uniqueness check, event publishing) lives in featureConnector which wraps FeatureRepo. Never call FeatureRepo directly from outside this package; always go through FeatureConnector.",
-        "example": "feature.NewFeatureConnector(featureRepo, meterService, publisher)"
-      },
-      {
-        "name": "Input validation before repo call",
-        "description": "All connector methods validate inputs (e.g. meter aggregation check, key-is-ULID guard, UnitCost.Validate(), UnitCost.ValidateWithMeter()) before delegating to featureRepo.",
-        "example": "if _, err := ulid.Parse(feature.Key); err == nil { return Feature{}, models.NewGenericValidationError(...) }"
-      },
-      {
-        "name": "Event publishing after successful mutation",
-        "description": "CreateFeature, UpdateFeature, ArchiveFeature each publish a typed event (FeatureCreateEvent, FeatureUpdateEvent, FeatureArchiveEvent) after the repo write. Events implement EventName() and EventMetadata() for Watermill.",
-        "example": "c.publisher.Publish(ctx, NewFeatureCreateEvent(ctx, &createdFeature))"
-      },
-      {
-        "name": "nullable.Nullable[UnitCost] for partial updates",
-        "description": "UpdateFeatureInputs.UnitCost uses oapi-codegen/nullable.Nullable to distinguish unset (validation error), null (clear), and value (update). Check IsSpecified/IsNull/Get accordingly.",
-        "example": "if input.UnitCost.IsNull() { /* clear */ } else if input.UnitCost.IsSpecified() { v, _ := input.UnitCost.Get() }"
-      },
-      {
-        "name": "FeatureMeters dual-index resolution",
-        "description": "ResolveFeatureMeters returns FeatureMeterCollection with ByKey (latest non-archived per key) and ByID (all requested IDs). Key lookup resolves to the latest active feature; explicit IDs remain addressable even if archived.",
-        "example": "out.ByKey[featureKey] = out.ByID[latestFeat.ID]"
-      },
-      {
-        "name": "UnitCost mutual-exclusion validation",
-        "description": "UnitCost.Validate() enforces that for LLM type, each dimension (provider, model, token_type) has exactly one of property OR static value. Adding a new dimension requires adding it to both Validate() and ValidateWithMeter().",
-        "example": "if u.LLM.ProviderProperty != \"\" && u.LLM.Provider != \"\" { errs = append(errs, errors.New(\"mutually exclusive\")) }"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "connector.go",
-        "role": "featureConnector implements FeatureConnector; contains all domain validation logic and event publishing. Also defines input types CreateFeatureInputs, UpdateFeatureInputs, ListFeaturesParams.",
-        "watch_for": "TODO comment says refactor to Service pattern \u2014 do not add more methods to FeatureConnector without following that future refactor direction."
-      },
-      {
-        "file": "repository.go",
-        "role": "Defines FeatureRepo interface (CRUD + entutils.TxCreator + entutils.TxUser[FeatureRepo]) and ArchiveFeatureInput.",
-        "watch_for": "FeatureRepo embeds TxCreator and TxUser \u2014 any new adapter must implement Tx(), WithTx(), Self()."
-      },
-      {
-        "file": "unitcost.go",
-        "role": "UnitCost, ManualUnitCost, LLMUnitCost types; Validate() and ValidateWithMeter(); LLMTokenType constants.",
-        "watch_for": "New token types must be added to the validTypes map inside Validate()."
-      },
-      {
-        "file": "featuremeter.go",
-        "role": "ResolveFeatureMeters, FeatureMeterCollection, resolveFeatureMeters, getLastFeatures, latestEntity generic.",
-        "watch_for": "getLastFeatures prefers non-archived; if all archived, returns most recently archived \u2014 callers must handle archived features being resolved."
-      },
-      {
-        "file": "event.go",
-        "role": "Watermill event structs for create/update/archive; each implements EventName() (subsystem + name + version) and EventMetadata().",
-        "watch_for": "Event version is hardcoded as v1 \u2014 bump version as a new constant if the event payload changes."
-      },
-      {
-        "file": "feature.go",
-        "role": "Feature struct, domain error types (FeatureNotFoundError, FeatureInvalidFiltersError, FeatureWithNameAlreadyExistsError, ForbiddenError), MeterGroupByFilters with Validate and conversion helpers.",
-        "watch_for": "FIXME note: use models.NewGenericNotFoundError instead of FeatureNotFoundError in new code."
-      }
-    ],
-    "anti_patterns": [
-      "Calling featureRepo directly from outside the feature package \u2014 always go through FeatureConnector.",
-      "Setting UnitCost without calling Validate() and ValidateWithMeter() for LLM type.",
-      "Publishing events before the repo write succeeds \u2014 always publish after.",
-      "Using context.Background() instead of the passed ctx in connector methods.",
-      "Adding a new UnitCostType without updating the validTypes map in Validate() and adding cases in adapter MapFeatureEntity."
-    ],
-    "decisions": [
-      {
-        "decision": "FeatureConnector wraps FeatureRepo to keep validation and event publishing in the domain layer, not the adapter",
-        "rationale": "Adapters are pure persistence; validation (meter aggregation, ULID key guard, unit cost) and side-effects (events) belong in the connector so they run regardless of which adapter is used."
-      },
-      {
-        "decision": "Features support key-based versioning via archive: same key can have multiple archived versions plus one active",
-        "rationale": "Plans and subscriptions reference features by key; archiving without replacement allows existing references to resolve to the most-recent version via getLastFeatures."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Add a new UnitCostType 'fixed_fee' with its own sub-struct",
-        "code": "// unitcost.go \u2014 add type constant\nconst UnitCostTypeFixedFee UnitCostType = \"fixed_fee\"\n\n// Add FixedFeeUnitCost struct and populate UnitCost.FixedFee field\n// Add case in UnitCost.Validate()\n// Add case in adapter/feature.go CreateFeature query builder and MapFeatureEntity\n// Add case in driver/parser.go domainUnitCostToAPI and apiUnitCostToDomain"
-      }
-    ]
-  },
-  "openmeter/productcatalog/http": {
-    "purpose": "Shared HTTP utilities for the productcatalog domain: validation error encoding (ValidationErrorEncoder with ValidationIssues extension), bidirectional API\u2194domain mapping for RateCards/EntitlementTemplates/Prices/Discounts, and ResourceKind constants.",
-    "patterns": [
-      {
-        "name": "ValidationErrorEncoder wraps models.ValidationIssues",
-        "description": "ValidationErrorEncoder(kind ResourceKind) converts []models.ValidationIssue into a validationErrors extension field on the problem+json response. Attach per-resource-kind; call with ResourceKindPlan or ResourceKindAddon.",
-        "example": "httptransport.WithErrorEncoder(http.ValidationErrorEncoder(http.ResourceKindPlan))"
-      },
-      {
-        "name": "Discriminator-based RateCard mapping",
-        "description": "AsRateCard uses r.Discriminator() to dispatch to AsFlatFeeRateCard or AsUsageBasedRateCard. FromRateCard uses r.Type() switch. Any new RateCard type requires cases in both directions.",
-        "example": "rType, _ := r.Discriminator(); switch rType { case string(productcatalog.FlatFeeRateCardType): ... }"
-      },
-      {
-        "name": "Price type dispatch via price.Type()",
-        "description": "FromRateCardUsageBasedPrice dispatches on price.Type() (Flat, Unit, Tiered, Dynamic, Package). New price models require a new case in both FromRateCardUsageBasedPrice and AsRateCard.",
-        "example": "switch price.Type() { case productcatalog.FlatPriceType: ... case productcatalog.TieredPriceType: ... }"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "mapping.go",
-        "role": "FromRateCard, AsRateCard, AsFlatFeeRateCard, AsUsageBasedRateCard, FromRateCardUsageBasedPrice, FromTaxConfig, FromEntitlementTemplate, FromDiscounts and inverses.",
-        "watch_for": "UsageBasedRateCard requires non-nil BillingCadence; returns error if nil. FlatFeeRateCard BillingCadence is optional."
-      },
-      {
-        "file": "errors.go",
-        "role": "ValidationErrorEncoder and validationError private type with AsErrorExtension serialization.",
-        "watch_for": "Returns false (not handled) if models.AsValidationIssues returns no issues \u2014 falls through to generic encoder."
-      },
-      {
-        "file": "resource.go",
-        "role": "ResourceKind string type with ResourceKindPlan and ResourceKindAddon constants.",
-        "watch_for": "Add new ResourceKind constants here when adding new top-level resources to the productcatalog."
-      }
-    ],
-    "anti_patterns": [
-      "Adding business logic to mapping functions \u2014 they must be pure conversions with no side-effects.",
-      "Skipping error return from FromRateCard or AsRateCard \u2014 both can return errors on unsupported types.",
-      "Using this package from outside productcatalog without considering that it imports api (v1) types."
-    ],
-    "decisions": [
-      {
-        "decision": "Separate http package for shared productcatalog HTTP utilities rather than embedding in each sub-package",
-        "rationale": "RateCard and price mappings are reused across plan, addon, and subscription HTTP handlers; centralising avoids duplication."
-      }
-    ],
-    "code_examples": []
-  },
-  "openmeter/productcatalog/testutils": {
-    "purpose": "Test helpers for productcatalog integration tests: TestEnv wiring all productcatalog services against a real Postgres DB, and factory helpers for Feature, Plan, Addon, Meter, and Namespace fixtures.",
-    "patterns": [
-      {
-        "name": "TestEnv via NewTestEnv",
-        "description": "NewTestEnv(t) spins up a real Postgres DB via testutils.InitPostgresDB, wires feature/plan/addon/planaddon services from raw adapters (not app/common), and exposes all services. Always call env.DBSchemaMigrate(t) before use.",
-        "example": "env := testutils.NewTestEnv(t); env.DBSchemaMigrate(t); defer env.Close(t)"
-      },
-      {
-        "name": "eventbus.NewMock for event assertions",
-        "description": "TestEnv uses eventbus.NewMock(t) as the publisher so tests can assert Watermill events were published without needing a real Kafka.",
-        "example": "publisher := eventbus.NewMock(t)"
-      },
-      {
-        "name": "Factory helpers return input types not domain types",
-        "description": "NewTestFeature, NewTestPlan, NewTestAddon, NewTestFeatureFromMeter return Create*Input structs, not the created entities \u2014 caller must call the service to persist.",
-        "example": "input := testutils.NewTestFeature(t, ns); feat, err := env.Feature.CreateFeature(ctx, input)"
-      },
-      {
-        "name": "meteradapter.TestAdapter as meter service",
-        "description": "TestEnv uses meteradapter.TestAdapter (SetDBClient(client)) instead of real meter.Service; tests must add meters to the DB client directly.",
-        "example": "meterAdapter, _ := meteradapter.New(nil); _ = meterAdapter.SetDBClient(client)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "env.go",
-        "role": "TestEnv struct and NewTestEnv factory that wires all productcatalog services; DBSchemaMigrate and Close lifecycle.",
-        "watch_for": "env.Close uses sync.Once \u2014 safe to defer multiple times. Client and db are both closed; do not close them externally."
-      },
-      {
-        "file": "plan.go",
-        "role": "NewTestPlan with BillingCadence P1M, USD currency, ProRating enabled, CreditThenInvoice settlement.",
-        "watch_for": "Default plan has no phases \u2014 pass phases as variadic args if rate cards are needed."
-      },
-      {
-        "file": "feature.go",
-        "role": "NewTestFeature (no meter) and NewTestFeatureFromMeter (meter-backed).",
-        "watch_for": "NewTestFeatureFromMeter uses ConvertMapStringToMeterGroupByFilters on meter.GroupBy \u2014 only creates eq filters."
-      },
-      {
-        "file": "meters.go",
-        "role": "NewTestMeters returns three canonical meters: api_requests_total (count), tokens_total (sum), workload_runtime_duration_seconds (sum).",
-        "watch_for": "IDs are generated with NewTestULID(t) \u2014 unique per test run, do not hardcode IDs when using these."
-      }
-    ],
-    "anti_patterns": [
-      "Importing app/common in tests \u2014 use raw adapter constructors as done in NewTestEnv to avoid import cycles.",
-      "Calling env services before DBSchemaMigrate \u2014 Ent schema must be applied before any write.",
-      "Sharing a TestEnv across parallel tests without a mutex \u2014 each parallel test should create its own TestEnv."
-    ],
-    "decisions": [
-      {
-        "decision": "Wire services from raw constructors (not app/common Wire sets)",
-        "rationale": "Importing app/common from domain testutils creates import cycles and couples tests to unrelated wiring changes."
-      }
-    ],
-    "code_examples": []
   }
 }

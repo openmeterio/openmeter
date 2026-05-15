@@ -21,10 +21,12 @@
       "billing-008-charge-intent-constructor",
       "wm-006-balance-worker-topic-isolation",
       "billing-003",
-      "billing-005"
+      "billing-005",
+      "billing-010-split-line-group"
     ],
     "openmeter/sink/**/*.go": [
-      "sink-002-flush-handler-async"
+      "sink-002-flush-handler-async",
+      "meter-001"
     ],
     "openmeter/billing/validators/**/*.go": [
       "customer-001-requestvalidator-pre-mutation-only"
@@ -197,6 +199,21 @@
     ],
     "api/v3/": [
       "api-v3-001"
+    ],
+    "openmeter/portal/**/*.go": [
+      "portal-001"
+    ],
+    "openmeter/ingest/**/*.go": [
+      "meter-001"
+    ],
+    "openmeter/credit/**/*.go": [
+      "credit-001"
+    ],
+    "openmeter/entitlement/**/*.go": [
+      "credit-001"
+    ],
+    "openmeter/entitlement/balanceworker/**/*.go": [
+      "balance-001"
     ]
   },
   "by_code_shape": [
@@ -676,6 +693,71 @@
           "billing\\.InvoiceLine\\{"
         ]
       }
+    },
+    {
+      "rule_id": "portal-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "meter\\.Service|meter\\.GetMeter"
+        ],
+        "must_not_match": [
+          "// meter validation",
+          "httpdriver",
+          "httphandler"
+        ]
+      }
+    },
+    {
+      "rule_id": "meter-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "jsonpath|gjson\\.Get|json\\.Path"
+        ],
+        "must_not_match": [
+          "meter\\.ParseEvent",
+          "ParseEvent"
+        ]
+      }
+    },
+    {
+      "rule_id": "credit-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "CreateGrant|EffectiveAt"
+        ],
+        "must_not_match": [
+          "Truncate\\(time\\.Minute\\)",
+          "\\.Truncate\\("
+        ]
+      }
+    },
+    {
+      "rule_id": "balance-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "QueryMeter|GetBalanceAt|handleEntitlementEvent"
+        ],
+        "must_not_match": [
+          "highWatermark|HighWatermark|watermark"
+        ]
+      }
+    },
+    {
+      "rule_id": "billing-010-split-line-group",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "SplitLineGroupID\\s*="
+        ],
+        "must_not_match": [
+          "SplitLineGroupService",
+          "// adapter"
+        ]
+      }
     }
   ],
   "for_classifier": [
@@ -764,6 +846,14 @@
     "http-002",
     "servicehook-001",
     "lock-001",
+    "portal-001",
+    "ingest-001",
+    "meter-001",
+    "credit-001",
+    "entitlement-001",
+    "balance-001",
+    "dedupe-001",
+    "billing-010-split-line-group",
     "android-layer-viewmodel-context",
     "android-layer-fragment-network",
     "android-layer-fragment-db",

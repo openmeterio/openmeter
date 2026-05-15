@@ -2,12 +2,12 @@
 
 <!-- archie:ai-start -->
 
-> Manages custom currencies and fiat-exchange cost bases for billing namespaces. Two-layer domain: adapter owns Ent/PostgreSQL persistence with full TransactingRepo discipline; service merges in-memory GOBL fiat enumeration with DB-stored custom currencies.
+> Manages custom currencies and fiat-exchange cost bases for billing namespaces. Two-layer domain: adapter/ owns Ent/PostgreSQL persistence with full TransactingRepo discipline; service/ merges in-memory GOBL fiat enumeration with DB-stored custom currencies.
 
 ## Patterns
 
-**TransactingRepo wrapping every DB method** — Every adapter method body is wrapped with entutils.TransactingRepo or TransactingRepoWithNoValue to honor the ctx-bound transaction. (`return entutils.TransactingRepo(ctx, a.db, func(tx *entdb.Tx) (Currency, error) { row, err := tx.Currency.Create()...; return mapCurrencyFromDB(row), err })`)
-**Tx / WithTx / Self triad on adapter** — adapter implements entutils.TxCreator (Tx method), TxUser[Adapter] (WithTx + Self) so callers can join or start transactions uniformly. (`func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { return &adapter{db: tx.Client()} }`)
+**TransactingRepo wrapping every DB method** — Every adapter method body is wrapped with entutils.TransactingRepo or TransactingRepoWithNoValue to honor the ctx-bound transaction. (`return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (Currency, error) { row, err := tx.db.Currency.Create()...; return mapCurrencyFromDB(row), err })`)
+**Tx / WithTx / Self triad on adapter** — adapter implements entutils.TxCreator (Tx method) and TxUser[*adapter] (WithTx + Self) so callers can join or start transactions uniformly. (`func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { return &adapter{db: entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()} }`)
 **Input Validate() before transaction.Run** — Service calls params.Validate() before calling transaction.Run; constraint errors from the DB are a last resort, not the primary validation gate. (`if err := params.Validate(); err != nil { return Currency{}, err }; return transaction.Run(ctx, s.adapter, func(ctx context.Context) (Currency, error) { return s.adapter.CreateCurrency(ctx, params) })`)
 **entdb.IsConstraintError → GenericConflictError** — Adapter maps Ent constraint violations to models.NewGenericConflictError, not raw Ent errors. (`if entdb.IsConstraintError(err) { return Currency{}, models.NewGenericConflictError(err) }`)
 **mapXFromDB mapper functions** — Separate top-level mapper functions (mapCurrencyFromDB, mapCostBasisFromDB) convert Ent rows to domain types — not methods on Ent types. (`func mapCurrencyFromDB(row *entdb.Currency) Currency { return Currency{Code: row.Code, ...} }`)
@@ -33,7 +33,7 @@
 
 ## Decisions
 
-- **Fiat currency list sourced in-memory from GOBL, not stored in DB.** — Fiat currencies are a stable enumeration; storing them would require migrations on standard updates and drift risk.
+- **Fiat currency list sourced in-memory from GOBL, not stored in DB.** — Fiat currencies are a stable enumeration; storing them would require migrations on standard updates and create drift risk.
 - **Tx/WithTx/Self triad on the adapter struct, not a shared TxWrapper type.** — Currencies is a small domain; a single adapter file is simpler and mirrors the pattern used across other small domain adapters.
 - **EffectiveFrom defaulting and future-date validation in service, not adapter.** — Business rules around time-validity belong in the service layer; the adapter only persists what it is given.
 
@@ -44,17 +44,17 @@ import (
 	"context"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (a *adapter) CreateFoo(ctx context.Context, params currencies.CreateFooInput) (currencies.Foo, error) {
-	return entutils.TransactingRepo(ctx, a.db, func(tx *entdb.Tx) (currencies.Foo, error) {
-		row, err := tx.Foo.Create().SetNamespace(params.Namespace).SetCode(params.Code).Save(ctx)
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.Foo, error) {
+		row, err := tx.db.Foo.Create().SetNamespace(params.Namespace).SetCode(params.Code).Save(ctx)
 		if err != nil {
 			if entdb.IsConstraintError(err) {
 				return currencies.Foo{}, models.NewGenericConflictError(err)
 			}
 			return currencies.Foo{}, err
-		}
 // ...
 ```
 

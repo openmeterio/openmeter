@@ -1,70 +1,110 @@
 {
-  "openmeter/billing/charges/flatfee/service/realizations": {
-    "purpose": "Owns flat-fee credit allocation and correction mechanics: persisting credit realization records and their lineage segments. It must not make state-machine decisions \u2014 all charge lifecycle transitions happen in the parent charges.Service layer.",
+  "openmeter/billing/charges/flatfee/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing the flatfee.Adapter interface for flat-fee charge persistence. It is the sole owner of ChargeFlatFee, ChargeFlatFeeRun, ChargeFlatFeeRunDetailedLine, ChargeFlatFeeRunCreditAllocations, ChargeFlatFeeRunPayment, and ChargeFlatFeeRunInvoicedUsage Ent entities; all reads and writes must go through this package.",
     "patterns": [
       {
-        "name": "Config struct with Validate() before construction",
-        "description": "All dependencies are declared in a Config struct; Config.Validate() collects all nil-check errors via errors.Join before New() returns a *Service. Never construct Service directly.",
-        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+        "name": "TransactingRepo wrapping on every method body",
+        "description": "Every exported method wraps its body with entutils.TransactingRepo (returning value) or entutils.TransactingRepoWithNoValue (void). Inside the closure, use tx.db \u2014 never a.db \u2014 so the method rebinds to the ctx-carried transaction. This applies even to read methods that do not open a new transaction.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.Charge, error) { row, err := tx.db.ChargeFlatFee.Query()... })"
       },
       {
-        "name": "Input structs carry a Validate() method",
-        "description": "Each method input (AllocateCreditsOnlyInput, CorrectAllCreditRealizationsInput) has a Validate() that checks zero-values and negative amounts before any adapter call. Call Validate() at the top of every service method.",
-        "example": "if err := in.Validate(); err != nil { return AllocateCreditsOnlyResult{}, err }"
+        "name": "Tx / WithTx / Self triad",
+        "description": "adapter must implement all three methods required by entutils.TransactingRepo: Tx(ctx) hijacks via HijackTx + NewTxDriver, WithTx(ctx, tx) reconstructs adapter with entdb.NewTxClientFromRawConfig, Self() returns itself. Never store *entdb.Tx as a field.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client(), logger: a.logger, metaAdapter: a.metaAdapter} }"
       },
       {
-        "name": "Currency rounding before validation",
-        "description": "RoundToPrecision is called on monetary amounts before Validate() to avoid false negatives from floating-point comparisons. Pattern: round first, then validate, then assert sum equality.",
-        "example": "in.Amount = in.CurrencyCalculator.RoundToPrecision(in.Amount); if err := in.Validate(); err != nil { ... }"
+        "name": "Config struct + Validate() + New() constructor with compile-time assertion",
+        "description": "Every adapter is constructed via a Config struct with a Validate() method that returns errors for each missing field, followed by New(Config) returning the interface and error. The var _ flatfee.Adapter = (*adapter)(nil) compile-time assertion must be present in adapter.go.",
+        "example": "func New(config Config) (flatfee.Adapter, error) { if err := config.Validate(); err != nil { return nil, err }; return &adapter{db: config.Client, logger: config.Logger, metaAdapter: config.MetaAdapter}, nil }"
       },
       {
-        "name": "Lineage persistence is always paired with adapter writes",
-        "description": "CreateCreditAllocations calls adapter.CreateCreditAllocations, then lineage.CreateInitialLineages, then lineage.PersistCorrectionLineageSegments \u2014 all three must succeed or the caller's transaction rolls back. Never skip lineage steps.",
-        "example": "realizations, err := s.adapter.CreateCreditAllocations(...); ... s.lineage.CreateInitialLineages(...); s.lineage.PersistCorrectionLineageSegments(...)"
+        "name": "Input.Validate() as the first statement before any DB access",
+        "description": "Every exported method calls input.Validate() (or charge.Validate()) as the first statement and returns the error immediately, before opening a TransactingRepo block. This prevents invalid inputs from reaching the DB.",
+        "example": "func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInput) ([]flatfee.Charge, error) { if err := in.Validate(); err != nil { return nil, err }; return entutils.TransactingRepo(ctx, a, func(...) { ... }) }"
       },
       {
-        "name": "Handler delegates external credit allocation decisions",
-        "description": "The Service does not compute how credits are split \u2014 it delegates to flatfee.Handler.OnCreditsOnlyUsageAccrued / OnCreditsOnlyUsageAccruedCorrection. Service only validates sum equality after the fact.",
-        "example": "creditAllocations, err := s.handler.OnCreditsOnlyUsageAccrued(ctx, input)"
+        "name": "All DB\u2194domain conversions isolated in mapper.go",
+        "description": "MapChargeFlatFeeFromDB, MapChargeBaseFromDB, mapRunDetailedLineFromDB, mapRealizationsFromDB, proRatingConfigFromDB/ToDB, and all other conversion helpers live exclusively in mapper.go. No conversion logic is permitted inside charge.go, credits.go, payment.go, usage.go, or realizationrun.go.",
+        "example": "charge, err := MapChargeFlatFeeFromDB(entity, input.Expands)"
       },
       {
-        "name": "Sum equality assertion after allocation",
-        "description": "After handler returns allocations, the sum is re-rounded and checked against the original amount. Mismatch returns models.NewGenericValidationError, not an internal error.",
-        "example": "if !allocated.Equal(in.Amount) { return ..., models.NewGenericValidationError(fmt.Errorf(\"credit allocations do not match total ...\")) }"
+        "name": "Soft-delete via DeletedAt field \u2014 never hard DELETE",
+        "description": "Records are never removed with Ent .Delete() or .DeleteOne(). DeleteCharge sets clock.Now() on DeletedAt and updates Status to StatusDeleted. UpsertDetailedLines bulk-marks superseded rows deleted with SetDeletedAt before re-inserting replacements.",
+        "example": "charge.DeletedAt = lo.ToPtr(clock.Now()); charge.Status = flatfee.StatusDeleted; update = update.SetStatusDetailed(charge.Status)"
+      },
+      {
+        "name": "Expand flags gate edge eager-loading",
+        "description": "Edges (CreditAllocations, Payment, InvoicedUsage, DetailedLines) are loaded only when the corresponding meta.Expands flag is present. The expandRealizations() helper adds WithCreditAllocations/WithInvoicedUsage/WithPayment. Accessing an unloaded edge returns NotLoadedError which is treated as a programming error.",
+        "example": "if input.Expands.Has(meta.ExpandRealizations) { query = expandRealizations(query) }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "service.go",
-        "role": "The entire package is this single file. Defines Service struct, Config, all input/result types, and three exported methods: CreateCreditAllocations, AllocateCreditsOnly, CorrectAllCredits.",
-        "watch_for": "Adding state-machine logic here violates the layer contract \u2014 state transitions belong in the parent charges service. Also watch for missing lineage.PersistCorrectionLineageSegments calls after adapter writes."
+        "file": "adapter.go",
+        "role": "Declares Config, New constructor, and the Tx/WithTx/Self transaction triad. Only file that touches entdb.Client directly for transaction setup.",
+        "watch_for": "Never store *entdb.Tx as a struct field; always reconstruct the client via entdb.NewTxClientFromRawConfig so it is tx-scoped."
+      },
+      {
+        "file": "charge.go",
+        "role": "CRUD for ChargeFlatFee rows. CreateCharges also calls metaAdapter.RegisterCharges within the same TransactingRepo closure to register IDs in the meta registry.",
+        "watch_for": "metaAdapter.RegisterCharges must be inside the TransactingRepo closure so a failure rolls back both charge rows and meta registration atomically."
+      },
+      {
+        "file": "detailedline.go",
+        "role": "Upsert (soft-delete superseded rows + ON CONFLICT bulk insert) for ChargeFlatFeeRunDetailedLine, keyed on (namespace, run_id, child_unique_reference_id) WHERE deleted_at IS NULL.",
+        "watch_for": "ON CONFLICT must SetIgnore(FieldCreatedAt) and SetIgnore(FieldID) \u2014 omitting these would overwrite immutable fields on conflict resolution."
+      },
+      {
+        "file": "mapper.go",
+        "role": "All DB\u2194domain type conversions. MapChargeFlatFeeFromDB gates edge mapping behind expands flags; edges accessed without loading cause NotLoadedError.",
+        "watch_for": "When adding a new Ent edge, add a corresponding meta.Expands constant and gate the mapping behind it \u2014 silently returning empty data is worse than a clear error."
+      },
+      {
+        "file": "realizationrun.go",
+        "role": "Creates and updates ChargeFlatFeeRun rows (current run lifecycle: CreateCurrentRun, UpdateRealizationRun, DetachCurrentRun).",
+        "watch_for": "CreateCurrentRun issues a ForUpdate() lock on the charge row before creating the run to prevent duplicate current runs under concurrency."
+      },
+      {
+        "file": "credits.go",
+        "role": "Bulk-creates ChargeFlatFeeRunCreditAllocations rows within the run's namespace using creditrealization.Create helper.",
+        "watch_for": "Namespace enforcement comes from the parent run row; chargeID.Namespace is passed explicitly to creditrealization.Create \u2014 do not derive it from other fields."
+      },
+      {
+        "file": "payment.go",
+        "role": "Creates and updates ChargeFlatFeeRunPayment (one payment row per run). UpdatePayment filters by namespace via chargeflatfeerunpayment.Namespace predicate.",
+        "watch_for": "The namespace predicate on UpdatePayment is mandatory \u2014 omitting it allows cross-namespace updates."
+      },
+      {
+        "file": "usage.go",
+        "role": "Creates a single ChargeFlatFeeRunInvoicedUsage row per run. Also updates the run's LineID and InvoiceID in the same transaction.",
+        "watch_for": "No update path exists \u2014 invoiced usage is append-only. Adding an Update method would break charge finality invariants."
       }
     ],
     "anti_patterns": [
-      "Making state-machine decisions (charge status transitions) inside this package \u2014 it must remain a pure realization mechanics layer",
-      "Calling adapter.CreateCreditAllocations without following up with both lineage.CreateInitialLineages and lineage.PersistCorrectionLineageSegments",
-      "Skipping Validate() on input structs before adapter calls",
-      "Performing currency arithmetic without rounding via CurrencyCalculator.RoundToPrecision first",
-      "Returning a raw internal error instead of models.NewGenericValidationError when allocation sums don't match"
+      "Using a.db directly inside a method body instead of tx.db inside a TransactingRepo closure \u2014 breaks transaction propagation from ctx.",
+      "Hard-deleting rows with Ent .Delete() / .DeleteOne() \u2014 all deletes must set DeletedAt to preserve soft-delete semantics.",
+      "Accessing Ent edge fields (e.g. entity.Edges.Payment) without loading them via WithPayment() \u2014 causes NotLoadedError treated as a programming bug.",
+      "Adding DB\u2194domain conversion logic inside charge.go / credits.go / payment.go / usage.go / realizationrun.go instead of mapper.go.",
+      "Calling metaAdapter.RegisterCharges or metaAdapter.DeleteRegisteredCharge outside the TransactingRepo closure \u2014 breaks atomicity with the charge row mutation."
     ],
     "decisions": [
       {
-        "decision": "Service delegates allocation-splitting to flatfee.Handler rather than computing it internally",
-        "rationale": "Different flat-fee billing strategies (immediate full allocation vs. pro-rated) need to vary the split logic without touching realization persistence code."
+        "decision": "Every method wraps with entutils.TransactingRepo even if the caller already holds a transaction.",
+        "rationale": "TransactingRepo rebinds to the existing ctx-carried transaction if one is present and falls back to Self() otherwise, making helpers independently callable and safely nestable without leaking transaction concerns upward."
       },
       {
-        "decision": "Lineage persistence is mandatory and co-located in CreateCreditAllocations",
-        "rationale": "Realization records without lineage segments break correction lookups in CorrectAllCredits; coupling the two writes in one method makes it impossible to forget lineage."
+        "decision": "UpsertDetailedLines uses soft-delete of superseded rows + ON CONFLICT bulk insert rather than diff-and-patch.",
+        "rationale": "The caller provides a full replacement set keyed by ChildUniqueReferenceID; a full-replace upsert is simpler and idempotent \u2014 re-running the same input produces the same DB state, which is safe under the charge realization retry pattern."
       },
       {
-        "decision": "Config+Validate pattern instead of variadic options",
-        "rationale": "Consistent with the broader billing/charges constructor pattern; makes missing-dependency errors surface at startup rather than at first call."
+        "decision": "Edge loading (realizations, detailed lines) is gated behind explicit meta.Expands flags.",
+        "rationale": "Many call sites (state machine transitions, status checks) only need ChargeBase fields; eager-loading all edges would issue unnecessary JOINs on every read, degrading performance on the hot AdvanceCharges path."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Allocate credits for a flat-fee charge amount, persist realizations and lineage",
-        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations\"\n\t\"github.com/openmeterio/openmeter/pkg/currencyx\"\n)\n\nsvc, _ := realizations.New(realizations.Config{\n\tAdapter: adapter,\n\tHandler: handler,\n\tLineage: lineageSvc,\n})\n\nresult, err := svc.AllocateCreditsOnly(ctx, realizations.AllocateCreditsOnlyInput{\n\tCharge:             charge,\n\tAmount:             amount,\n\tCurrencyCalculator: calc,\n})\n// result.Realizations holds persisted credit realization records"
+        "scenario": "Adding a new write method that patches a single charge field",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee\"\n\tdbchargeflatfee \"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) PatchChargeFoo(ctx context.Context, id flatfee.ChargeID, value string) error {\n\tif err := id.Validate(); err != nil {\n\t\treturn err\n\t}\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n\t\t_, err := tx.db.ChargeFlatFee.UpdateOneID(id.ID).\n\t\t\tWhere(dbchargeflatfee.NamespaceEQ(id.Namespace)).\n\t\t\tSetFoo(value).\n\t\t\tSave(ctx)\n\t\treturn err\n\t})\n}"
       }
     ]
   }

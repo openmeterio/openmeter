@@ -1,0 +1,330 @@
+{
+  "openmeter/billing/creditgrant": {
+    "purpose": "Credit-grant-centric facade over the charges layer exposing Create, Get, List, and UpdateExternalSettlement for creditpurchase.Charge values. Owns input validation and customer-ownership checks but holds no Ent client \u2014 all persistence flows through the injected charges.Service.",
+    "patterns": [
+      {
+        "name": "Config+Validate/New constructor",
+        "description": "Every concrete implementation uses a Config struct with a Validate() method; New() calls Validate() before returning the service.",
+        "example": "func New(c Config) (Service, error) { if err := c.Validate(); err != nil { return nil, err }; return &service{chargesService: c.ChargesService}, nil }"
+      },
+      {
+        "name": "input.Validate() called at top of every method",
+        "description": "Each public service method calls input.Validate() before any business logic and wraps errors in models.NewNillableGenericValidationError.",
+        "example": "func (s *service) Get(ctx context.Context, input GetInput) (creditpurchase.Charge, error) { if err := input.Validate(); err != nil { return creditpurchase.Charge{}, err }; ... }"
+      },
+      {
+        "name": "Delegate all persistence to charges.Service",
+        "description": "No Ent imports appear here; all DB access flows through charges.Service or creditpurchase.Service injected via Config.",
+        "example": "charge, err := s.chargesService.GetByID(ctx, charges.GetByIDInput{ID: input.ChargeID})"
+      },
+      {
+        "name": "Customer ownership check in service layer",
+        "description": "Get-style methods assert cpCharge.Intent.CustomerID == input.CustomerID after fetching; not enforced by charges.Service.",
+        "example": "if charge.Intent.CustomerID != input.CustomerID { return creditpurchase.Charge{}, models.NewGenericForbiddenError(fmt.Errorf(\"charge does not belong to customer\")) }"
+      },
+      {
+        "name": "NoopService compile-time guard",
+        "description": "noop.go provides NoopService{} with var _ Service = NoopService{} ensuring interface compliance without business logic.",
+        "example": "var _ Service = NoopService{}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/billing/creditgrant/service.go",
+        "role": "Defines the Service interface, all Input types with Validate(), FundingMethod enum, PurchaseTerms, GrantFilters, and the concrete service struct with New constructor.",
+        "watch_for": "Input.Validate() must call models.NewNillableGenericValidationError(errors.Join(errs...)) \u2014 never return raw errors from validation. FundingMethod.Validate() must be called inside CreateInput.Validate()."
+      },
+      {
+        "file": "openmeter/billing/creditgrant/noop.go",
+        "role": "No-op implementation used when credit grants are disabled; returns zero-values with nil errors for all methods.",
+        "watch_for": "Must stay in sync with the Service interface; update when new methods are added."
+      }
+    ],
+    "anti_patterns": [
+      "Importing openmeter/ent/db or calling Ent builders directly \u2014 all DB access must flow through charges.Service",
+      "Skipping input.Validate() at the top of a new method",
+      "Returning a charge without verifying CustomerID ownership in Get-style methods",
+      "Using context.Background() instead of the caller-supplied ctx",
+      "Adding business logic inside toIntent()/toSettlement() conversion helpers beyond pure field mapping"
+    ],
+    "decisions": [
+      {
+        "decision": "Service delegates entirely to charges.Service rather than holding its own adapter",
+        "rationale": "Keeps a single authoritative write path for credit-purchase charges; avoids parallel DB access patterns that could bypass transaction discipline."
+      },
+      {
+        "decision": "Ownership check done in the service layer, not in charges.Service",
+        "rationale": "charges.Service is a generic multi-customer service; customer scoping is a caller responsibility enforced here."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new service method with input validation, ownership check, and delegation",
+        "code": "func (s *service) Cancel(ctx context.Context, input CancelInput) (creditpurchase.Charge, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn creditpurchase.Charge{}, err\n\t}\n\tcharge, err := s.chargesService.GetByID(ctx, charges.GetByIDInput{ID: input.ChargeID})\n\tif err != nil {\n\t\treturn creditpurchase.Charge{}, err\n\t}\n\tif charge.Intent.CustomerID != input.CustomerID {\n\t\treturn creditpurchase.Charge{}, models.NewGenericForbiddenError(fmt.Errorf(\"charge does not belong to customer\"))\n\t}\n\treturn s.chargesService.ApplyPatches(ctx, ...)\n}"
+      }
+    ]
+  },
+  "openmeter/billing/models": {
+    "purpose": "Organisational container for shared billing domain model sub-packages: creditsapplied (credit slice with currency-aware summation), externalid (invoice/line external-ID types and Ent mixin helpers), stddetailedline (detailed line base struct with Ent mixin and goderive equality), and totals (financial breakdown struct with Ent mixin and currency-precision rounding). No source files live directly in this folder.",
+    "patterns": [
+      {
+        "name": "Ent mixin co-located with domain model",
+        "description": "Each sub-package defines both the Go domain struct (model.go) and the corresponding Ent mixin (mixin.go) in the same package to keep schema and type in sync.",
+        "example": "// model.go: type Totals struct { ... }\n// mixin.go: func (Mixin) Fields() []ent.Field { ... }"
+      },
+      {
+        "name": "Typed Setter/Getter generic interfaces over raw Ent mutations",
+        "description": "externalid and totals expose generic Creator[T]/Setter[T]/Getter interfaces so adapters never call individual Set* Ent methods directly.",
+        "example": "type Setter[T any] interface { SetTotals(T) *T }; func Set[T any](s Setter[T], t Totals) { ... }"
+      },
+      {
+        "name": "Currency-precision rounding before persistence",
+        "description": "Totals.RoundToPrecision(currency) must be called before any DB write to prevent numeric precision drift.",
+        "example": "t = t.RoundToPrecision(currencyx.Calculator{Currency: currency})"
+      },
+      {
+        "name": "models.Validator on enums and structs",
+        "description": "All enum types and structs in this package implement Validate() error conforming to models.Validator.",
+        "example": "func (s Status) Validate() error { switch s { case ...: return nil; default: return fmt.Errorf(\"invalid status: %s\", s) } }"
+      },
+      {
+        "name": "goderive for equality on stddetailedline.Base",
+        "description": "derived.gen.go is generated by goderive from annotations in generate.go; never hand-edit the generated file.",
+        "example": "//go:generate go run github.com/awalterschulze/goderive . in generate.go"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/billing/models/totals/model.go",
+        "role": "Totals struct with Add, Sum, RoundToPrecision, Validate. Validate enforces non-negative invariants.",
+        "watch_for": "Adding a field to Totals requires updating Add, RoundToPrecision, Validate, mixin Fields(), Setter[T], TotalsGetter, Set[T], and FromDB."
+      },
+      {
+        "file": "openmeter/billing/models/externalid/mixin.go",
+        "role": "Ent mixin adding invoicing/payment external ID columns; generic Creator/Updater/Getter interfaces for type-safe Ent mutations.",
+        "watch_for": "Always use lo.EmptyableToPtr for nullable string columns \u2014 never store empty strings."
+      },
+      {
+        "file": "openmeter/billing/models/stddetailedline/model.go",
+        "role": "Base struct for flat-fee and usage-based detailed lines. child_unique_reference_id is required (DB CHECK constraint).",
+        "watch_for": "child_unique_reference_id has a DB CHECK constraint \u2014 it is required for upsert identity; never make it optional."
+      },
+      {
+        "file": "openmeter/billing/models/creditsapplied/model.go",
+        "role": "CreditsApplied slice with Validate (positivity) and currency-aware Sum.",
+        "watch_for": "Accumulating amounts without RoundToPrecision causes precision drift."
+      },
+      {
+        "file": "openmeter/billing/models/stddetailedline/derived.gen.go",
+        "role": "Goderive-generated equality for stddetailedline.Base \u2014 never hand-edit.",
+        "watch_for": "Regenerate via go generate after any Base struct field change."
+      }
+    ],
+    "anti_patterns": [
+      "Adding DB/Ent logic to model.go or domain logic to mixin.go \u2014 keep layers strictly separated",
+      "Hand-editing derived.gen.go \u2014 always regenerate via go generate",
+      "Skipping RoundToPrecision before persisting Totals",
+      "Storing empty strings in nullable external-ID columns instead of using lo.EmptyableToPtr",
+      "Adding a new Totals field without updating all companion methods (Add, RoundToPrecision, Validate, mixin, Set, FromDB)"
+    ],
+    "decisions": [
+      {
+        "decision": "Mixin and domain model co-located in the same sub-package rather than in a shared mixin layer",
+        "rationale": "Keeps schema and domain type in sync; a single file change updates both the DB column and its Go representation."
+      },
+      {
+        "decision": "goderive for equality rather than hand-written Equal methods on stddetailedline.Base",
+        "rationale": "Base has deeply nested pointer/slice fields; generated equality is complete and removes maintenance burden."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/billing/service": {
+    "purpose": "Concrete implementation of billing.Service \u2014 the central orchestrator for profiles, customer overrides, gathering and standard invoices, invoice lines, sequences, app resolution, lock acquisition, and the stateless-based invoice state machine. All DB access is delegated to billing.Adapter via entutils transactions.",
+    "patterns": [
+      {
+        "name": "transactionForInvoiceManipulation wraps all customer-mutating operations",
+        "description": "All methods that create/update invoices or lines call transactionForInvoiceManipulation which first UpsertCustomerLock (outside tx) then starts a transaction and calls LockCustomerForUpdate inside it.",
+        "example": "return transactionForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) (T, error) { ... })"
+      },
+      {
+        "name": "transaction.Run / transaction.RunWithNoValue for all adapter calls",
+        "description": "Service methods wrap adapter access in transaction.Run or RunWithNoValue so Ent's ctx-bound transaction is propagated correctly.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.X, error) { return s.adapter.GetX(ctx, ...) })"
+      },
+      {
+        "name": "InvoiceStateMachine + sync.Pool for state machine reuse",
+        "description": "stdinvoicestate.go allocates InvoiceStateMachine instances from invoiceStateMachineCache (sync.Pool); external storage binds the state machine to the in-memory Invoice struct.",
+        "example": "sm := invoiceStateMachineCache.Get().(*InvoiceStateMachine); defer invoiceStateMachineCache.Put(sm)"
+      },
+      {
+        "name": "advancementStrategy switches between inline and queued advancement",
+        "description": "advanceUntilStateStable checks s.advancementStrategy: QueuedAdvancementStrategy publishes an AdvanceStandardInvoiceEvent; otherwise runs sm.AdvanceUntilStateStable inline.",
+        "example": "if s.advancementStrategy == billing.QueuedAdvancementStrategy { return s.publisher.Publish(ctx, billing.AdvanceStandardInvoiceEvent{...}) }"
+      },
+      {
+        "name": "Config struct validation + New() constructor with RegisterLineEngine",
+        "description": "service.go uses Config with Validate(); New() creates the service, instantiates billinglineengine.Engine internally, and calls RegisterLineEngine so the invoice engine is always pre-registered.",
+        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err }; svc := &Service{...}; invoiceEngine, _ := billinglineengine.New(...); svc.RegisterLineEngine(invoiceEngine); return svc, nil }"
+      },
+      {
+        "name": "resolveTaxCodes with ReadOnly flag",
+        "description": "taxcode.go's resolveTaxCodes uses ReadOnly=true for simulate/preview flows and ReadOnly=false for real invoice state machine transitions.",
+        "example": "taxCodes, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{Namespace: ns, Invoice: out, ReadOnly: true})"
+      },
+      {
+        "name": "featureMetersErrorWrapper converts not-found to ErrSnapshotInvalidDatabaseState",
+        "description": "resolveFeatureMeters wraps the returned FeatureMeters so downstream callers receive ErrSnapshotInvalidDatabaseState instead of generic not-found for billing consistency.",
+        "example": "return featureMetersErrorWrapper{featureMeters}, nil"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/billing/service/service.go",
+        "role": "Service struct definition, Config validation, New constructor, transactionForInvoiceManipulation helper, WithAdvancementStrategy/WithLockedNamespaces options, RegisterStandardInvoiceHooks.",
+        "watch_for": "All invoice-mutating helpers must call transactionForInvoiceManipulation; never start a raw transaction without the customer lock sequence."
+      },
+      {
+        "file": "openmeter/billing/service/stdinvoicestate.go",
+        "role": "InvoiceStateMachine with full state graph: draft \u2192 issuing \u2192 issued \u2192 payment states \u2192 paid/overdue/uncollectible/voided, plus delete and updating substates.",
+        "watch_for": "New states must be added to both allocateStateMachine() (Configure calls) and the StatusDetails resolver; the sync.Pool means the state machine is reused \u2014 always reset Invoice before use."
+      },
+      {
+        "file": "openmeter/billing/service/gatheringinvoicependinglines.go",
+        "role": "InvoicePendingLines and prepareBillableLines \u2014 the core invoice-creation flow including progressive billing line splitting, collection cutoff resolution, and per-currency invoice creation.",
+        "watch_for": "resolvePendingLineCollectionCutoff has three alignment modes (bypass, subscription, anchored) \u2014 new alignment kinds must be added here."
+      },
+      {
+        "file": "openmeter/billing/service/quantitysnapshot.go",
+        "role": "SnapshotLineQuantities, snapshotLineQuantitiesInParallel (semaphore-bounded), getFeatureUsage.",
+        "watch_for": "Avg/Min meter aggregations are not supported for split lines \u2014 validate in getFeatureUsage.Validate(); semaphore size is maxParallelQuantitySnapshots from Config."
+      },
+      {
+        "file": "openmeter/billing/service/invoicecalc",
+        "role": "Pure stateless calculation pipeline (sub-package); injected as invoicecalc.Calculator into Service; mockable via WithInvoiceCalculator.",
+        "watch_for": "All dependency data (FeatureMeters, TaxCodes, RatingService) must be resolved before calling Calculator.Calculate \u2014 the pipeline is stateless and cannot perform I/O."
+      },
+      {
+        "file": "openmeter/billing/service/profile.go",
+        "role": "Profile CRUD, ProvisionDefaultBillingProfile, demoteDefaultProfile, handleDefaultProfileChange.",
+        "watch_for": "Changing the default profile triggers customer re-pinning logic in handleDefaultProfileChange; all apps in a profile must have the same AppID (enforced by lo.Uniq check)."
+      },
+      {
+        "file": "openmeter/billing/service/taxcode.go",
+        "role": "resolveTaxCodes: collects unique tax codes from invoice lines and DefaultTaxConfig, looks them up or creates them via taxCodeService.",
+        "watch_for": "ReadOnly=true silently skips missing codes (for simulate); ReadOnly=false creates codes (for real flows) \u2014 never use ReadOnly=false from simulate paths."
+      },
+      {
+        "file": "openmeter/billing/service/stdinvoiceline.go",
+        "role": "CreatePendingInvoiceLines: validates lines, resolves/upserts gathering invoice, normalizes and upserts lines, publishes GatheringInvoiceCreated event.",
+        "watch_for": "Lines with ChargeID set must have Engine explicitly set \u2014 validation enforces this; engine routing is done via lineEngines.populateGatheringLineEngine."
+      }
+    ],
+    "anti_patterns": [
+      "Calling billing.Adapter methods directly without transaction.Run/RunWithNoValue \u2014 bypasses Ent ctx-bound transaction",
+      "Mutating customer invoices without calling transactionForInvoiceManipulation \u2014 omits advisory lock and leaves race conditions",
+      "Calling resolveTaxCodes with ReadOnly=false from simulate or preview code paths \u2014 creates tax code rows unexpectedly",
+      "Adding a new StandardInvoiceStatus without configuring it in allocateStateMachine() \u2014 state machine panics on unknown state",
+      "Importing billinglineengine from outside billingservice for direct line computation \u2014 always go through billing.Service.RegisterLineEngine and the LineEngine interface"
+    ],
+    "decisions": [
+      {
+        "decision": "sync.Pool for InvoiceStateMachine to reduce GC pressure on high-frequency invoice advancement",
+        "rationale": "Invoice state machines are large structs with closure-bound state graphs; pooling avoids repeated allocation on the hot billing-worker path."
+      },
+      {
+        "decision": "transactionForInvoiceManipulation UpsertCustomerLock outside the transaction then LockCustomerForUpdate inside",
+        "rationale": "The advisory lock row must exist before the SELECT FOR UPDATE can acquire it; the two-step pattern prevents deadlocks when concurrent invoice creation races."
+      },
+      {
+        "decision": "advancementStrategy allows queued vs inline state machine advancement",
+        "rationale": "Production uses queued advancement via billing-worker Kafka events to avoid holding long transactions; tests use inline advancement for determinism."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new invoice mutation method that must use the customer lock",
+        "code": "func (s *Service) CancelInvoice(ctx context.Context, input billing.CancelInvoiceInput) (billing.StandardInvoice, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn billing.StandardInvoice{}, billing.ValidationError{Err: err}\n\t}\n\treturn transactionForInvoiceManipulation(ctx, s, input.CustomerID, func(ctx context.Context) (billing.StandardInvoice, error) {\n\t\treturn s.executeTriggerOnInvoice(ctx, input.Invoice, billing.TriggerVoid)\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/billing/validators": {
+    "purpose": "Organisational package grouping cross-domain billing guard validators that register pre/post-mutation hooks into customer.Service and subscription.Service, enforcing billing pre-conditions without introducing circular imports between the billing, customer, and subscription packages.",
+    "patterns": [
+      {
+        "name": "Registration at wiring time, not compile time",
+        "description": "Each validator is constructed in app/common and registered via customerService.RegisterRequestValidator() or subscriptionService.RegisterHook(). Neither child imports the other domain's package at the call site \u2014 the coupling is in the DI layer only.",
+        "example": "// app/common: NewValidator(...) then customerService.RegisterRequestValidator(v) or subscriptionService.RegisterHook(v)"
+      },
+      {
+        "name": "Embed noop base structs",
+        "description": "Validators embed customer.NoopRequestValidator or subscription.NoOpSubscriptionCommandHook so they only override the specific lifecycle methods they need.",
+        "example": "type Validator struct { customer.NoopRequestValidator; billingService billing.Service; ... }"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "Each validator file uses var _ Interface = (*Validator)(nil) to assert compliance at compile time.",
+        "example": "var _ customer.RequestValidator = (*Validator)(nil)"
+      },
+      {
+        "name": "Nil-guard constructors returning error",
+        "description": "Both NewValidator functions check each injected service for nil and return an error, catching misconfigured wiring at startup.",
+        "example": "if billingService == nil { return nil, fmt.Errorf(\"billing service is required\") }"
+      },
+      {
+        "name": "models.NewGenericConflictError for billing setup failures",
+        "description": "subscription/validator.go wraps validation errors in models.NewGenericConflictError so the HTTP layer renders a 409.",
+        "example": "return models.NewGenericConflictError(fmt.Errorf(\"invalid billing setup: %w\", err))"
+      },
+      {
+        "name": "Sync-before-validate in customer deletion",
+        "description": "customer/customer.go calls syncService.SynchronizeSubscription before listing invoices so pending subscription charges are reflected in the invoice state before the gate check runs.",
+        "example": "v.syncService.SynchronizeSubscription(ctx, view, time.Now()) // must precede ListInvoices"
+      },
+      {
+        "name": "errors.Join for multi-entity validation errors",
+        "description": "customer/customer.go collects per-invoice errors into a slice and returns errors.Join(errs...) so the caller sees all blocking invoices at once.",
+        "example": "errs = append(errs, fmt.Errorf(\"invoice %s not in final state\", id)); return errors.Join(errs...)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/billing/validators/customer/customer.go",
+        "role": "Implements customer.RequestValidator. ValidateDeleteCustomer syncs pending subscriptions then blocks deletion when non-final standard invoices or active gathering invoices exist.",
+        "watch_for": "Skipping the SynchronizeSubscription call before ListInvoices will cause false-negative gate checks; subscriptionService field is intentionally nullable \u2014 do not add nil guard without checking app/common wiring."
+      },
+      {
+        "file": "openmeter/billing/validators/subscription/validator.go",
+        "role": "Implements subscription.SubscriptionCommandHook via AfterCreate/AfterUpdate. Validates that the customer's installed billing app supports tax calculation, invoicing, and payment collection before a subscription with priced ratecards becomes active.",
+        "watch_for": "hasBillableItems short-circuits validation for free subscriptions \u2014 ensure this exit is still correct for new ratecard types; capability slice is hardcoded to three app.CapabilityType values."
+      }
+    ],
+    "anti_patterns": [
+      "Adding ValidateCreateCustomer or ValidateUpdateCustomer in the customer validator without a billing-domain reason \u2014 general lifecycle belongs in the customer package",
+      "Calling billing.Adapter or Ent directly from either validator \u2014 all reads must go through billing.Service",
+      "Returning a plain error instead of models.NewGenericConflictError for billing setup failures in the subscription validator",
+      "Adding app-type-specific branching (e.g., 'if Stripe do X') in the subscription validator \u2014 capability validation is intentionally app-agnostic",
+      "Using context.Background() instead of propagating the incoming ctx parameter"
+    ],
+    "decisions": [
+      {
+        "decision": "Validators live under billing/validators/ rather than inside customer/ or subscription/",
+        "rationale": "Billing has dependency edges to both customer and subscription; placing validators here avoids import cycles by keeping billing-domain logic in billing's own package tree."
+      },
+      {
+        "decision": "Subscription sync driven inside the customer deletion validator rather than as a pre-hook in the subscription service",
+        "rationale": "The sync ensures invoice state is up-to-date at the moment of deletion validation. Doing it inside the billing validator keeps the customer package free of billing concerns."
+      },
+      {
+        "decision": "Post-create/post-update (AfterCreate/AfterUpdate) hooks for subscription validation rather than pre-create",
+        "rationale": "Billing setup validation checks state that only exists after the subscription is persisted (e.g. customer override profile, app assignment); a pre-create check would race against incomplete state."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new billing validator (embed noop, nil-guard constructor, compile-time assertion, wrap errors in GenericConflictError)",
+        "code": "package myentity\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n\t\"github.com/openmeterio/openmeter/openmeter/myentity\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nvar _ myentity.RequestValidator = (*Validator)(nil)\n\ntype Validator struct {\n\tmyentity.NoopRequestValidator\n\tbillingService billing.Service\n}\n\nfunc NewValidator(billingService billing.Service) (*Validator, error) {\n\tif billingService == nil {\n\t\treturn nil, fmt.Errorf(\"billing service is required\")\n\t}\n\treturn &Validator{billingService: billingService}, nil\n}\n\nfunc (v *Validator) ValidateDeleteMyEntity(ctx context.Context, id string) error {\n\t// billing pre-condition check\n\tif err := v.billingService.CheckSomeCondition(ctx, id); err != nil {\n\t\treturn models.NewGenericConflictError(fmt.Errorf(\"billing pre-condition failed: %w\", err))\n\t}\n\treturn nil\n}"
+      }
+    ]
+  }
+}

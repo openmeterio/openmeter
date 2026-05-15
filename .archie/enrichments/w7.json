@@ -1,45 +1,46 @@
 {
   "api/client/python/openmeter/models": {
-    "purpose": "Public re-export facade for all generated Python SDK model types (dataclasses and enums). Delegates entirely to _generated/models \u2014 no hand-written model code lives here.",
+    "purpose": "Public re-export facade for all generated Python SDK model types (dataclasses and enums). Delegates entirely to _generated/models \u2014 no hand-written model code lives here; stable import path for consumers regardless of generator internals.",
     "patterns": [
       {
         "name": "Wildcard re-export from generated layer",
-        "description": "Re-export `_models` and `_enums` via `from .._generated.models._models import *` and `from .._generated.models._enums import *`. Never define or duplicate types here.",
-        "example": "from .._generated.models._models import *  # noqa: F401, F403"
+        "description": "Re-export _models and _enums via wildcard imports from _generated.models. Never define or duplicate types in this package.",
+        "example": "from .._generated.models._models import *  # noqa: F401, F403\nfrom .._generated.models._enums import *  # noqa: F401, F403"
       },
       {
         "name": "Optional _patch overlay",
-        "description": "Try-import `_generated.models._patch` and merge its `__all__` into the module's `__all__`. Patch symbols extend (not replace) the generated set.",
+        "description": "Try-import _generated.models._patch and merge its __all__ into the module __all__. Patch symbols extend (never replace) the generated set.",
         "example": "try:\n    from .._generated.models._patch import __all__ as _patch_all\nexcept ImportError:\n    _patch_all = []"
       },
       {
         "name": "TYPE_CHECKING guard for patch stubs",
-        "description": "Import `_patch` under `if TYPE_CHECKING:` for IDE type-narrowing without runtime cost.",
+        "description": "Import _patch under `if TYPE_CHECKING:` for IDE type-narrowing without runtime cost.",
         "example": "if TYPE_CHECKING:\n    from .._generated.models._patch import *"
       },
       {
-        "name": "Call patch_sdk() at module load",
-        "description": "Always call `_patch_sdk()` after all re-exports to apply any monkey-patches from the generated layer.",
+        "name": "Call _patch_sdk() at module load",
+        "description": "Always call _patch_sdk() after all re-exports to apply monkey-patches from the generated layer.",
         "example": "_patch_sdk()"
       },
       {
         "name": "__all__ propagation",
-        "description": "Set `__all__ = __all__` from the generated module, then extend with patch symbols so consumers get a complete, non-redundant export list.",
+        "description": "Derive __all__ from the generated module, then extend with patch-only symbols to provide a complete, non-redundant export list.",
         "example": "__all__ = __all__\n__all__.extend([p for p in _patch_all if p not in __all__])"
       }
     ],
     "key_file_guides": [
       {
         "file": "__init__.py",
-        "role": "Sole file in the package; thin facade that merges generated models + patch overrides into one importable namespace.",
-        "watch_for": "Do not add hand-written model classes here; they will be clobbered on the next `make gen-api` run."
+        "role": "Sole file in the package; thin facade that merges generated models + patch overrides into one importable namespace (openmeter.models.*).",
+        "watch_for": "Do not add hand-written model classes here \u2014 they will be clobbered on the next `make gen-api` run. Do not import deeper than _models/_enums/_patch from _generated internals."
       }
     ],
     "anti_patterns": [
       "Defining or modifying model classes directly in this package instead of using the _patch mechanism",
       "Importing from _generated internals deeper than _models/_enums/_patch",
       "Removing the _patch_sdk() call \u2014 patch hooks will silently not apply",
-      "Manually maintaining __all__ instead of deriving it from the generated module"
+      "Manually maintaining __all__ instead of deriving it from the generated module",
+      "Duplicating generated types here \u2014 they drift immediately on next codegen run"
     ],
     "decisions": [
       {
@@ -47,56 +48,67 @@
         "rationale": "All model types are generated from TypeSpec via `make gen-api`; any hand-written copy would drift immediately. The facade gives a stable import path (openmeter.models.*) regardless of generator internals."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Full __init__.py structure \u2014 the only valid pattern for this package",
+        "code": "from typing import TYPE_CHECKING\n\nif TYPE_CHECKING:\n    from .._generated.models._patch import *\n\nfrom .._generated.models._models import *  # noqa: F401, F403\nfrom .._generated.models._enums import *  # noqa: F401, F403\n\ntry:\n    from .._generated.models._patch import __all__ as _patch_all\n    from .._generated.models._patch import *  # noqa: F401, F403\nexcept ImportError:\n    _patch_all = []\nfrom .._generated.models._patch import patch_sdk as _patch_sdk\n\nfrom .._generated.models import __all__\n__all__ = __all__\n__all__.extend([p for p in _patch_all if p not in __all__])\n\n_patch_sdk()"
+      }
+    ]
   },
   "api/client/python/openmeter/operations": {
-    "purpose": "Public re-export facade for all generated Python SDK operation classes (API call builders). Mirrors the same pattern as openmeter/models but for _generated/operations.",
+    "purpose": "Public re-export facade for all generated Python SDK operation classes (API call builders). Mirrors the exact same facade pattern as openmeter/models but for _generated/operations \u2014 no operation logic is hand-written here.",
     "patterns": [
       {
         "name": "Wildcard re-export from generated operations",
-        "description": "Re-export `_operations` via `from .._generated.operations._operations import *`. Never define operation methods here.",
+        "description": "Re-export _operations via wildcard import from _generated.operations. Never implement API call logic in this package.",
         "example": "from .._generated.operations._operations import *  # noqa: F401, F403"
       },
       {
         "name": "Optional _patch overlay",
-        "description": "Try-import `_generated.operations._patch` and merge its `__all__`. Patch symbols extend the generated set non-destructively.",
+        "description": "Try-import _generated.operations._patch and merge its __all__. Patch symbols extend the generated set non-destructively.",
         "example": "try:\n    from .._generated.operations._patch import __all__ as _patch_all\nexcept ImportError:\n    _patch_all = []"
       },
       {
         "name": "TYPE_CHECKING guard for patch stubs",
-        "description": "Import `_patch` under `if TYPE_CHECKING:` for IDE support only.",
+        "description": "Import _patch under `if TYPE_CHECKING:` for IDE support without runtime cost.",
         "example": "if TYPE_CHECKING:\n    from .._generated.operations._patch import *"
       },
       {
-        "name": "Call patch_sdk() at module load",
-        "description": "Always call `_patch_sdk()` after all re-exports.",
+        "name": "Call _patch_sdk() at module load",
+        "description": "Always call _patch_sdk() after all re-exports to apply operation-level monkey-patches.",
         "example": "_patch_sdk()"
       },
       {
         "name": "__all__ propagation",
-        "description": "Derive `__all__` from the generated module and extend with patch-only symbols.",
+        "description": "Derive __all__ from the generated operations module and extend with patch-only symbols.",
         "example": "__all__ = __all__\n__all__.extend([p for p in _patch_all if p not in __all__])"
       }
     ],
     "key_file_guides": [
       {
         "file": "__init__.py",
-        "role": "Sole file; thin facade merging generated operation classes + patch overrides into one importable namespace.",
-        "watch_for": "Do not implement API call logic here; operations are generated. Adding code here breaks on next `make gen-api`."
+        "role": "Sole file; thin facade merging generated operation classes + patch overrides into one importable namespace (openmeter.operations.*).",
+        "watch_for": "Do not implement request/response logic here \u2014 operations are generated. Any code added here is overwritten on the next `make gen-api` run. Do not import deeper than _operations/_patch from _generated internals."
       }
     ],
     "anti_patterns": [
-      "Implementing operation/request logic directly in this package",
+      "Implementing operation or request logic directly in this package \u2014 belongs in _generated/operations",
       "Importing deeper than _operations/_patch from _generated internals",
-      "Removing the _patch_sdk() call",
-      "Manually curating __all__ instead of delegating to the generated module"
+      "Removing the _patch_sdk() call \u2014 patch hooks silently will not apply",
+      "Manually curating __all__ instead of delegating to the generated module",
+      "Adding hand-written operation classes that duplicate generated ones and drift on codegen"
     ],
     "decisions": [
       {
         "decision": "Stable public import path via facade over generated internals",
-        "rationale": "Generated operation classes live under _generated and may be reorganised by the generator; the facade decouples consumer imports from generator layout."
+        "rationale": "Generated operation classes live under _generated and may be reorganised by the generator; the facade decouples consumer imports from generator layout, providing a stable openmeter.operations.* surface."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Full __init__.py structure \u2014 the only valid pattern for this package",
+        "code": "from typing import TYPE_CHECKING\n\nif TYPE_CHECKING:\n    from .._generated.operations._patch import *\n\nfrom .._generated.operations._operations import *  # noqa: F401, F403\n\ntry:\n    from .._generated.operations._patch import __all__ as _patch_all\n    from .._generated.operations._patch import *  # noqa: F401, F403\nexcept ImportError:\n    _patch_all = []\nfrom .._generated.operations._patch import patch_sdk as _patch_sdk\n\nfrom .._generated.operations import __all__\n__all__ = __all__\n__all__.extend([p for p in _patch_all if p not in __all__])\n\n_patch_sdk()"
+      }
+    ]
   }
 }

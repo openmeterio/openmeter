@@ -2,7 +2,7 @@
 
 <!-- archie:ai-start -->
 
-> Exposes a single ClickHouse-backed debug metrics endpoint that returns per-subject event counts in OpenMetrics (Prometheus) format. Minimal domain: one connector interface, one httpdriver handler.
+> Exposes a single ClickHouse-backed debug metrics endpoint returning per-subject event counts in OpenMetrics (Prometheus) format. Minimal two-file domain: debug.go owns the DebugConnector interface and implementation wrapping streaming.Connector; httpdriver/ translates HTTP to domain calls.
 
 ## Patterns
 
@@ -15,7 +15,7 @@
 | File | Role | Watch For |
 |------|------|-----------|
 | `openmeter/debug/debug.go` | Defines DebugConnector interface and debugConnector implementation that queries streaming.CountEvents and formats Prometheus OpenMetrics output. | GetDebugMetrics queries from start-of-day UTC — hardcoded time window; any new metrics methods should document their query window clearly. |
-| `openmeter/debug/httpdriver/metrics.go` | HTTP handler for the GetMetrics endpoint using httptransport.NewHandlerWithArgs. | Handler returns plain text, not JSON; do not add JSON encoder without also updating the Content-Type handling. |
+| `openmeter/debug/httpdriver/metrics.go` | HTTP handler for the GetMetrics endpoint using httptransport.NewHandlerWithArgs. | Handler returns plain text (OpenMetrics), not JSON; do not add JSON encoder without also updating the Content-Type handling. |
 
 ## Anti-Patterns
 

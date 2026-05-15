@@ -1,0 +1,111 @@
+{
+  "openmeter/billing/charges/usagebased": {
+    "purpose": "Public domain contract package for usage-based charges: declares domain types (Charge, ChargeBase, Intent, State, Status, RealizationRun, DetailedLines, Expands), the Adapter interface (composed of five sub-interfaces + entutils.TxCreator), the Service interface, the Handler interface for ledger callbacks, and structured ValidationIssue error sentinels. It is the boundary consumed by usagebased/service and usagebased/adapter \u2014 no Ent or persistence imports belong here.",
+    "patterns": [
+      {
+        "name": "Input.Validate() gates every cross-boundary call",
+        "description": "Every Input struct implements Validate() that collects errors via errors.Join and wraps with models.NewNillableGenericValidationError. Callers must call Validate() before passing to service or adapter methods.",
+        "example": "func (i AdvanceChargeInput) Validate() error { var errs []error; if i.CustomerOverride.Customer == nil { errs = append(errs, errors.New(\"expanded customer is required\")) }; return models.NewNillableGenericValidationError(errors.Join(errs...)) }"
+      },
+      {
+        "name": "Adapter composed of five fine-grained sub-interfaces + TxCreator",
+        "description": "Adapter embeds RealizationRunAdapter, RealizationRunCreditAllocationAdapter, RealizationRunInvoiceUsageAdapter, RealizationRunPaymentAdapter, ChargeAdapter, and entutils.TxCreator. New DB operations must be added to the matching sub-interface, not directly to Adapter.",
+        "example": "type Adapter interface { RealizationRunAdapter; ChargeAdapter; entutils.TxCreator }"
+      },
+      {
+        "name": "Dot-separated Status sub-states with ToMetaChargeStatus()",
+        "description": "Status constants use dot notation for sub-states (e.g. StatusActivePartialInvoiceStarted = \"active.partial_invoice.started\"). ToMetaChargeStatus splits on the first dot to extract the canonical meta.ChargeStatus. New sub-states must be added to Values().",
+        "example": "split := strings.SplitN(string(s), \".\", 2); metaStatus := meta.ChargeStatus(split[0])"
+      },
+      {
+        "name": "Expand dependency validation enforced in validateExpands",
+        "description": "validateExpands (unexported) enforces that ExpandDetailedLines requires ExpandRealizations, and ExpandDeletedRealizations requires ExpandRealizations. All input types that accept Expands must call validateExpands.",
+        "example": "if expands.Has(meta.ExpandDetailedLines) && !expands.Has(meta.ExpandRealizations) { return fmt.Errorf(\"%q requires %q\", meta.ExpandDetailedLines, meta.ExpandRealizations) }"
+      },
+      {
+        "name": "ValidationIssue sentinels with HTTP status codes in errors.go",
+        "description": "Domain-specific business-rule violations are declared as package-level models.ValidationIssue vars with commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest). Use these sentinels instead of fmt.Errorf to get correct 4xx responses at the HTTP boundary.",
+        "example": "var ErrChargeTotalIsNegative = models.NewValidationIssue(ErrCodeChargeTotalIsNegative, \"charge total is negative\", models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))"
+      },
+      {
+        "name": "UnimplementedHandler for compile-time interface coverage",
+        "description": "UnimplementedHandler implements Handler returning errors.New(\"not implemented\") for every method. Partial handler implementations embed UnimplementedHandler so new Handler methods don't break compilation of existing partial implementations.",
+        "example": "var _ Handler = (*UnimplementedHandler)(nil)"
+      },
+      {
+        "name": "RealizationRuns.WithoutVoidedBillingHistory() before aggregation",
+        "description": "Deleted runs (DeletedAt != nil) and runs with Type=RealizationRunTypeInvalidDueToUnsupportedCreditNote are voided billing history. Always call WithoutVoidedBillingHistory() before Sum(), MapToBillingMeteredQuantity(), or BisectByTimestamp() to exclude them.",
+        "example": "func (r RealizationRuns) Sum() totals.Totals { return totals.Sum(lo.Map(r.WithoutVoidedBillingHistory(), ...)) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Declares the Adapter interface and its five sub-interfaces. New DB operations must go into the matching sub-interface (ChargeAdapter, RealizationRunAdapter, etc.), never directly on Adapter.",
+        "watch_for": "Adding a method directly to Adapter instead of the appropriate sub-interface breaks callers that embed only the narrower interface."
+      },
+      {
+        "file": "charge.go",
+        "role": "Core domain types: ChargeBase, Charge, Intent, State, Expands. GetFeatureKeyOrID has status-aware dispatch: created\u2192key, deleted prefers ID then falls back to key, all other states use ID.",
+        "watch_for": "GetFeatureKeyOrID status dispatch must stay in sync with usagebased/service feature resolution \u2014 silent mismatch causes feature lookup failures."
+      },
+      {
+        "file": "service.go",
+        "role": "Declares Service (= UsageBasedService + GetLineEngine), all Input/Output types, and validateExpands. AdvanceChargeInput requires both expanded Customer and MergedProfile.",
+        "watch_for": "Omitting Customer or MergedProfile in AdvanceChargeInput passes Validate() but panics at runtime inside the state machine."
+      },
+      {
+        "file": "statemachine.go",
+        "role": "Status type, all status constants including dot-separated sub-states, Values(), Validate(), ToMetaChargeStatus(). IsMutableFinalRealizationStatus and IsMutableInvoiceBackedRealizationStatus classify which states own mutable invoice lines.",
+        "watch_for": "New sub-states must be added to Values() and the dot-split logic in ToMetaChargeStatus must remain correct."
+      },
+      {
+        "file": "realizationrun.go",
+        "role": "RealizationRun, RealizationRunBase, RealizationRuns with BisectByTimestamp, MapToBillingMeteredQuantity, Sum. UpdateRealizationRunInput uses mo.Option fields.",
+        "watch_for": "UpdateRealizationRunInput fields must be set via mo.Some(...) \u2014 absent options are silently no-op'd by the adapter. RealizationRunTypeInvalidDueToUnsupportedCreditNote cannot be used as InitialType."
+      },
+      {
+        "file": "errors.go",
+        "role": "Package-level ValidationIssue sentinels with HTTP status codes. Use these instead of fmt.Errorf for domain business-rule violations.",
+        "watch_for": "Generic fmt.Errorf returns for business violations produce 500 instead of 400 at the HTTP boundary."
+      },
+      {
+        "file": "handler.go",
+        "role": "Handler interface for ledger callbacks (OnInvoiceUsageAccrued, OnPaymentAuthorized, OnPaymentSettled, OnCreditsOnlyUsageAccrued, OnCreditsOnlyUsageAccruedCorrection) and UnimplementedHandler base.",
+        "watch_for": "New Handler methods must be added to UnimplementedHandler or partial implementations will fail to compile."
+      },
+      {
+        "file": "rating.go",
+        "role": "RateableIntent wraps Intent for rating.Service consumption. IsProgressivelyBilled always returns false; GetPreviouslyBilledAmount always returns zero \u2014 charges are never progressively billed.",
+        "watch_for": "Adding progressive-billing logic here breaks the rating invariant; charges do not support progressive billing."
+      }
+    ],
+    "anti_patterns": [
+      "Adding Ent or persistence imports to this package \u2014 it is a pure domain contract package; all DB access belongs in usagebased/adapter.",
+      "Using fmt.Errorf for domain business-rule violations that have a ValidationIssue sentinel in errors.go \u2014 callers rely on error type assertions for HTTP status mapping.",
+      "Setting UpdateRealizationRunInput fields directly without mo.Some() \u2014 absent options are treated as no-op updates by the adapter.",
+      "Changing GetFeatureKeyOrID status dispatch without updating usagebased/service feature resolution to match \u2014 feature lookups will silently use the wrong ref type.",
+      "Adding a method directly to Adapter instead of the appropriate fine-grained sub-interface (ChargeAdapter, RealizationRunAdapter, etc.) \u2014 breaks callers that embed only the narrower interface."
+    ],
+    "decisions": [
+      {
+        "decision": "Dot-separated Status sub-states (e.g. active.partial_invoice.started) instead of a flat enum.",
+        "rationale": "ToMetaChargeStatus extracts the canonical top-level status by splitting on the first dot, keeping the meta layer stable while the usagebased state graph evolves independently."
+      },
+      {
+        "decision": "ValidationIssue sentinels with WithHTTPStatusCodeAttribute declared in errors.go.",
+        "rationale": "Domain errors carry their HTTP status so the commonhttp encoder produces correct 4xx responses without bespoke error-type switches in HTTP handler layers."
+      },
+      {
+        "decision": "RealizationRunTypeInvalidDueToUnsupportedCreditNote is a voided billing history marker retained for audit, never used as InitialType.",
+        "rationale": "Audit trail requires the run to persist after the invoice line is removed; IsVoidedBillingHistory() excludes it from future rating and balance calculations without hard-deleting it."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new service-layer input type for a usage-based charge operation",
+        "code": "import (\n\t\"errors\"\n\t\"fmt\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/meta\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype SnapshotUsageInput struct {\n\tChargeID meta.ChargeID\n\tAsOf     time.Time\n}\n\nfunc (i SnapshotUsageInput) Validate() error {\n\tvar errs []error\n\tif err := i.ChargeID.Validate(); err != nil {\n\t\terrs = append(errs, fmt.Errorf(\"charge ID: %w\", err))\n\t}\n\tif i.AsOf.IsZero() {\n\t\terrs = append(errs, errors.New(\"as of is required\"))\n\t}\n\treturn models.NewNillableGenericValidationError(errors.Join(errs...))\n}"
+      }
+    ]
+  }
+}

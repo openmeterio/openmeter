@@ -6,10 +6,10 @@
 
 ## Patterns
 
-**Engine.Run drives periods between resets, calling runBetweenResets per segment** — Run builds a timeline from StartingSnapshot.At + reset times + Until, iterates closed periods, calls runBetweenResets for each, then applies reset() between periods. History segments from all periods are merged into a single GrantBurnDownHistory. (`for idx, period := range timeline.GetClosedPeriods() { runRes, _ := e.runBetweenResets(...); if idx != last { snap, _ = e.reset(...) } }`)
-**burnPhase subdivision within a reset-free period** — runBetweenResets further subdivides the period into burnPhases using getPhases(): a new phase starts when grant activity changes (effectiveAt/expiresAt/deletedAt/voidedAt) or a grant recurs. Each phase is burned down independently. (`phases, _ := e.getPhases(grants, period); for _, phase := range phases { ... e.burnDownGrants(...) }`)
-**PrioritizeGrants establishes burn order: priority < expiration < (createdAt, id)** — PrioritizeGrants sorts grants using three stable sorts applied in reverse importance order: createdAt+id (tie-breaker), expiration date (earlier first), then priority value (lower = higher importance). Call this before burnDownGrants and re-call when phase.priorityChange is true. (`PrioritizeGrants(grants) // lower priority number = burned first; earlier expiry = burned first`)
-**alpacadecimal for arithmetic precision** — burnDownGrants uses alpacadecimal.NewFromFloat for all subtraction to avoid float64 rounding errors. Intermediate results are kept as Decimal; only the final value calls InexactFloat64(). (`exactBalance := alpacadecimal.NewFromFloat(grantBalance); if exactBalance.LessThanOrEqual(exactUsage) { ... }`)
+**Engine.Run drives periods between resets via runBetweenResets** — Run builds a timeline from StartingSnapshot.At + reset times + Until, iterates closed periods, calls runBetweenResets for each, then applies reset() between periods. History segments from all periods are merged into a single GrantBurnDownHistory. (`for idx, period := range timeline.GetClosedPeriods() { runRes, _ := e.runBetweenResets(...); if idx != last { snap, _ = e.reset(...) } }`)
+**burnPhase subdivision within a reset-free period** — runBetweenResets further subdivides the period into burnPhases using getPhases(): a new phase starts when grant activity changes (effectiveAt/expiresAt/deletedAt/voidedAt) or a grant recurs. Each phase is burned down independently. (`phases, _ := e.getPhases(grants, period, boundary); for _, phase := range phases { e.burnDownGrants(...) }`)
+**PrioritizeGrants: three-pass stable sort (priority < expiration < createdAt+id)** — PrioritizeGrants applies three stable sorts in reverse importance: createdAt+id (tie-breaker), expiration date (earlier first), then priority value (lower = higher importance). Must be called before burnDownGrants and re-called when phase.priorityChange is true. (`PrioritizeGrants(grants) // lower priority number = burned first; earlier expiry = burned first`)
+**alpacadecimal for arithmetic precision in burnDownGrants** — burnDownGrants uses alpacadecimal.NewFromFloat for all subtraction to avoid float64 rounding errors. Intermediate results are kept as Decimal; only the final value calls InexactFloat64(). (`exactBalance := alpacadecimal.NewFromFloat(grantBalance); if exactBalance.LessThanOrEqual(exactUsage) { ... }`)
 **RunParams.Clone() before storing in RunResult** — Run clones its params at the top (resParams := params.Clone()) so RunResult.RunParams is immutable and independent of the caller's slice. (`resParams := params.Clone(); return RunResult{Snapshot: snapshot, History: history, RunParams: resParams}, nil`)
 **Resets must be strictly after StartingSnapshot.At** — Run validates that no reset time equals the snapshot time and returns an error if it does. Callers must ensure the reset timeline is (snapshot.At, Until]. (`if params.Resets.GetBoundingPeriod().ContainsInclusive(params.StartingSnapshot.At) { return RunResult{}, fmt.Errorf(...) }`)
 
@@ -17,9 +17,9 @@
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `engine.go` | Engine interface, RunParams/RunResult types, NewEngine constructor. QueryUsageFn is the only external I/O dependency. | MeterAggregationLatest causes grant amounts to be treated as limits (balancesAtPhaseStart reset to grant.Amount for every active grant at phase start) — distinct from budget behaviour. |
-| `run.go` | Engine.Run and runBetweenResets implementations. burnDownGrants is the innermost loop. | runBetweenResets validates that grants and balances pair up (ExactlyForGrants) and returns an error if not — callers must ensure the balance map contains exactly the passed grants. |
-| `burnphase.go` | getPhases merges activity-change times and grant-recurrence times into a sorted, deduplicated slice of burnPhase structs. | Times are truncated to minute precision (Truncate(time.Minute)) to avoid sub-minute inconsistencies — preserve this when adding new change-time sources. |
+| `engine.go` | Engine interface, RunParams/RunResult types, QueryUsageFn type, NewEngine constructor. QueryUsageFn is the only external I/O dependency. | MeterAggregationLatest causes grant amounts to be treated as limits (balancesAtPhaseStart reset to grant.Amount for every active grant at phase start) — distinct from budget behaviour. RunResult.TotalAvailableGrantAmountAtLastPeriod() uses lo.Last on history chunks. |
+| `run.go` | Engine.Run and runBetweenResets implementations. burnDownGrants is the innermost loop. | runBetweenResets validates that grants and balances pair up (ExactlyForGrants) and returns an error if not — callers must ensure the balance map contains exactly the passed grants. grants slice is copied inside runBetweenResets before sorting. |
+| `burnphase.go` | getPhases merges activity-change times and grant-recurrence times into a sorted, deduplicated slice of burnPhase structs. | Times are truncated to minute precision (Truncate(time.Minute)) to avoid sub-minute inconsistencies. Preserve this when adding new change-time sources. |
 | `grant.go` | Engine helper methods: getGrantActivityChanges, getGrantRecurrenceTimes, filterRelevantGrants, PrioritizeGrants. | PrioritizeGrants is exported and used externally (reset.go). Its sort is three-pass stable — do not collapse into a single comparator. |
 | `history.go` | GrantBurnDownHistory and GrantBurnDownHistorySegment value types. GetSnapshotAtStartOfSegment reconstructs a Snapshot at any segment boundary. | GrantBurnDownHistory.Overage() assumes at least one segment exists — callers must not call it on an empty history. |
 | `reset.go` | engine.reset() applies rollover rules (RolloverBalance) per grant and optionally burns down carry-over overage. | Grants inactive at reset time are skipped during rollover; their balance is effectively zeroed for the next period. |
@@ -43,7 +43,6 @@
 import (
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
-	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -55,6 +54,7 @@ res, err := eng.Run(ctx, engine.RunParams{
 		Balances: startBalances,
 		At:       periodStart,
 	},
+	Until: periodEnd,
 // ...
 ```
 

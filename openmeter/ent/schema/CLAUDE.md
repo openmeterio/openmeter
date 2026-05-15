@@ -2,13 +2,13 @@
 
 <!-- archie:ai-start -->
 
-> Single source of truth for every PostgreSQL table and view in OpenMeter. Each Go file defines one or more Ent schema structs; Atlas diffs these against the migration history to produce timestamped SQL migrations. Never edit generated output in openmeter/ent/db/ — edit here and regenerate.
+> Single source of truth for every PostgreSQL table and view in OpenMeter — 35+ Ent schema structs that Atlas diffs against migration history to produce timestamped SQL migrations. Never edit generated output in openmeter/ent/db/; edit schemas here and run make generate.
 
 ## Patterns
 
 **Mixin composition for identity and timestamps** — Every entity must embed the appropriate entutils mixins: IDMixin (ULID PK), NamespaceMixin (multi-tenancy), TimeMixin (created_at/updated_at/deleted_at). Use UniqueResourceMixin or ResourceMixin for entities that also need a human-readable key and metadata. Never hand-roll these columns. (`func (Addon) Mixin() []ent.Mixin { return []ent.Mixin{ entutils.UniqueResourceMixin{} } }`)
 **Postgres-typed fields with SchemaType** — Money/decimal columns use field.Other(name, alpacadecimal.Decimal{}) with SchemaType{dialect.Postgres: "numeric"}. ULID FK columns use SchemaType{dialect.Postgres: "char(26)"}. Currency codes use SchemaType{dialect.Postgres: "varchar(3)"}. JSON blobs use SchemaType{dialect.Postgres: "jsonb"}. Omitting SchemaType silently falls back to a less-precise default. (`field.Other("amount", alpacadecimal.Decimal{}).SchemaType(map[string]string{dialect.Postgres: "numeric"})`)
-**GoType + ValueScanner for complex domain types stored as jsonb** — Non-scalar domain types stored in jsonb columns must set .GoType(domainType{}) and .ValueScanner(entutils.JSONStringValueScanner[domainType]()) (or a custom field.ValueScannerFunc). Declare the scanner as a package-level var. Missing ValueScanner causes silent scan errors at runtime. (`var PriceValueScanner = entutils.JSONStringValueScanner[*productcatalog.Price]()
+**GoType + ValueScanner for complex domain types stored as jsonb** — Non-scalar domain types stored in jsonb columns must set .GoType(domainType{}) and .ValueScanner(entutils.JSONStringValueScanner[domainType]()) (or a custom ValueScannerFunc). Declare the scanner as a package-level var. Missing ValueScanner causes silent scan errors at runtime. (`var PriceValueScanner = entutils.JSONStringValueScanner[*productcatalog.Price]()
 field.String("price").GoType(&productcatalog.Price{}).ValueScanner(PriceValueScanner).SchemaType(map[string]string{dialect.Postgres: "jsonb"})`)
 **Partial unique indexes with entsql.IndexWhere for soft-delete safety** — Uniqueness constraints that must ignore deleted rows must use .Annotations(entsql.IndexWhere("deleted_at IS NULL")).Unique(). Do NOT use a plain .Unique() on (namespace, key) columns — it will reject restoring a previously deleted record with the same key. (`index.Fields("namespace", "key", "version").Annotations(entsql.IndexWhere("deleted_at IS NULL")).Unique()`)
 **Cascade deletes via entsql.Annotation on edges** — Owned child entities (e.g. phases cascaded from plan, lines from invoice) must set entsql.Annotation{OnDelete: entsql.Cascade} on the parent's edge.To(...). Without it, deleting the parent leaves orphan rows that break FK constraints. (`edge.To("phases", PlanPhase.Type).Annotations(entsql.Annotation{OnDelete: entsql.Cascade})`)
@@ -43,7 +43,7 @@ func (PlanRateCard) Fields() []ent.Field { fields := RateCard{}.Fields(); fields
 - **Shared mixin structs (TaxMixin, RateCard, chargemeta.Mixin) for repeated field groups** — Multiple charge and catalog entities share identical field sets. Mixins give a single edit point so a field addition propagates correctly to all tables via make generate without manually touching each schema.
 - **Pivot Charge entity with optional FK fields per sub-type** — The three charge types (flat-fee, usage-based, credit-purchase) have divergent schemas; a single union table would be too sparse. The Charge pivot enables a single FK from BillingInvoiceLine to any charge type, while the ChargesSearchV1 view provides a unified search surface.
 
-## Example: Adding a new entity that has a soft-deletable unique key, decimal amount, and a jsonb config blob
+## Example: Adding a new entity with soft-deletable unique key, decimal amount, and jsonb config blob
 
 ```
 package schema
