@@ -39,9 +39,10 @@ func (InvoiceLineManagedBy) Values() []string {
 }
 
 type GetLinesForSubscriptionInput struct {
-	Namespace      string
-	SubscriptionID string
-	CustomerID     string
+	Namespace            string
+	SubscriptionID       string
+	CustomerID           string
+	IncludeChargeManaged bool
 }
 
 func (i GetLinesForSubscriptionInput) Validate() error {

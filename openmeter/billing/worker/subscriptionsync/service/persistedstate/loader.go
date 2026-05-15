@@ -39,19 +39,17 @@ func NewLoader(billingService billingService, chargeService chargeService) Loade
 
 func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subscription) (State, error) {
 	lines, err := l.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
-		Namespace:      subs.Namespace,
-		SubscriptionID: subs.ID,
-		CustomerID:     subs.CustomerId,
+		Namespace:            subs.Namespace,
+		SubscriptionID:       subs.ID,
+		CustomerID:           subs.CustomerId,
+		IncludeChargeManaged: false,
 	})
 	if err != nil {
 		return State{}, fmt.Errorf("getting existing lines: %w", err)
 	}
 
-	lines, err = filterChargeManagedLines(lines)
-	if err != nil {
-		return State{}, fmt.Errorf("filtering charge-managed lines: %w", err)
-	}
-
+	// Charge-managed invoice lines are edited through charge patches, so subscription sync loads the
+	// charge entities instead of reconciling those lines directly.
 	lines, err = slicesx.MapWithErr(lines, normalizePersistedLineOrHierarchy)
 	if err != nil {
 		return State{}, fmt.Errorf("normalizing existing lines: %w", err)
@@ -98,31 +96,6 @@ func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subsc
 		ByUniqueID: byUniqueID,
 		Invoices:   invoices,
 	}, nil
-}
-
-func filterChargeManagedLines(lines []billing.LineOrHierarchy) ([]billing.LineOrHierarchy, error) {
-	out := make([]billing.LineOrHierarchy, 0, len(lines))
-
-	for _, line := range lines {
-		if line.Type() != billing.LineOrHierarchyTypeLine {
-			out = append(out, line)
-			continue
-		}
-
-		genericLine, err := line.AsGenericLine()
-		if err != nil {
-			return nil, fmt.Errorf("getting generic line: %w", err)
-		}
-
-		chargeID := genericLine.GetChargeID()
-		if chargeID != nil && *chargeID != "" {
-			continue
-		}
-
-		out = append(out, line)
-	}
-
-	return out, nil
 }
 
 func (l Loader) loadChargesForSubscription(ctx context.Context, subs subscription.Subscription) (map[string]Item, error) {
