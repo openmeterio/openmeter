@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
@@ -67,24 +68,30 @@ func New(config Config) (flatfee.Service, error) {
 	}
 
 	return &service{
-		adapter:      config.Adapter,
-		handler:      config.Handler,
-		metaAdapter:  config.MetaAdapter,
-		locker:       config.Locker,
-		realizations: realizations,
+		adapter:              config.Adapter,
+		handler:              config.Handler,
+		metaAdapter:          config.MetaAdapter,
+		locker:               config.Locker,
+		realizations:         realizations,
+		creditNotesSupported: charges.CreditNotesSupportedByLineUpdater,
 	}, nil
 }
 
 type service struct {
-	adapter      flatfee.Adapter
-	handler      flatfee.Handler
-	metaAdapter  meta.Adapter
-	locker       *lockr.Locker
-	realizations *flatfeerealizations.Service
+	adapter              flatfee.Adapter
+	handler              flatfee.Handler
+	metaAdapter          meta.Adapter
+	locker               *lockr.Locker
+	realizations         *flatfeerealizations.Service
+	creditNotesSupported bool
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {
 	return &LineEngine{
 		service: s,
 	}
+}
+
+func (s *service) SetCreditNotesSupportedByLineUpdater(supported bool) {
+	s.creditNotesSupported = supported
 }
