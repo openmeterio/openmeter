@@ -555,13 +555,13 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxCon
 	s.NoError(err)
 	s.Require().Len(res, 1)
 
-	var capturedInput flatfee.OnCreditsOnlyUsageAccruedInput
-	s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(_ context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+	var capturedInput flatfee.OnAllocateCreditsInput
+	s.FlatFeeTestHandler.onAllocateCredits = func(_ context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 		capturedInput = input
 		return creditrealization.CreateAllocationInputs{
 			{
 				ServicePeriod: input.Charge.Intent.ServicePeriod,
-				Amount:        input.AmountToAllocate,
+				Amount:        input.PreTaxAmountToAllocate,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: ulid.Make().String(),
 				},
@@ -710,7 +710,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 	})
 	s.NoError(err)
 
-	s.FlatFeeTestHandler.onAssignedToInvoice = func(_ context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
+	s.FlatFeeTestHandler.onAllocateCredits = func(_ context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 		return creditrealization.CreateAllocationInputs{}, nil
 	}
 

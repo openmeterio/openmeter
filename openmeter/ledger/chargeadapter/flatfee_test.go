@@ -33,14 +33,14 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func TestOnFlatFeeAssignedToInvoice(t *testing.T) {
+func TestOnAllocateCredits(t *testing.T) {
 	t.Run("credit_then_invoice single bucket full coverage lands in accrued", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 
 		priorityOne := env.fundPriority(t, 1, 100)
 		input := env.newAssignmentInput(alpacadecimal.NewFromInt(60))
 
-		realizations, err := env.handler.OnAssignedToInvoice(t.Context(), input)
+		realizations, err := env.handler.OnAllocateCredits(t.Context(), input)
 		require.NoError(t, err)
 		require.Len(t, realizations, 1)
 		require.True(t, realizations[0].Amount.Equal(alpacadecimal.NewFromInt(60)))
@@ -62,7 +62,7 @@ func TestOnFlatFeeAssignedToInvoice(t *testing.T) {
 		priorityTwo := env.fundPriority(t, 2, 50)
 		priorityOne := env.fundPriority(t, 1, 30)
 
-		realizations, err := env.handler.OnAssignedToInvoice(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(60)))
+		realizations, err := env.handler.OnAllocateCredits(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(60)))
 		require.NoError(t, err)
 		require.Len(t, realizations, 2)
 		require.True(t, realizations[0].Amount.Equal(alpacadecimal.NewFromInt(30)))
@@ -81,7 +81,7 @@ func TestOnFlatFeeAssignedToInvoice(t *testing.T) {
 		priorityOne := env.fundPriority(t, 1, 10)
 		priorityTwo := env.fundPriority(t, 2, 5)
 
-		realizations, err := env.handler.OnAssignedToInvoice(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(30)))
+		realizations, err := env.handler.OnAllocateCredits(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(30)))
 		require.NoError(t, err)
 		require.Len(t, realizations, 2)
 		require.True(t, realizations[0].Amount.Equal(alpacadecimal.NewFromInt(10)))
@@ -99,30 +99,31 @@ func TestOnFlatFeeAssignedToInvoice(t *testing.T) {
 
 		priorityOne := env.fundPriority(t, 1, 100)
 
-		realizations, err := env.handler.OnAssignedToInvoice(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(0)))
+		realizations, err := env.handler.OnAllocateCredits(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(0)))
 		require.NoError(t, err)
 		require.Nil(t, realizations)
 		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.NewFromInt(100)))
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(0)))
 	})
 
-	t.Run("credit_only returns an error from invoice assignment handler", func(t *testing.T) {
+	t.Run("credit_only settlement mode is accepted", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 
-		realizations, err := env.handler.OnAssignedToInvoice(t.Context(), env.newAssignmentInputWithMode(alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode))
-		require.Error(t, err)
-		require.Nil(t, realizations)
+		realizations, err := env.handler.OnAllocateCredits(t.Context(), env.newAssignmentInputWithMode(alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode))
+		require.NoError(t, err)
+		require.Len(t, realizations, 1)
+		require.True(t, realizations[0].Amount.Equal(alpacadecimal.NewFromInt(30)))
 	})
 }
 
-func TestOnFlatFeeCreditsOnlyUsageAccrued(t *testing.T) {
+func TestOnAllocateCreditsCreditOnly(t *testing.T) {
 	t.Run("credit_only advances uncovered amount", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 
-		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeflatfee.OnCreditsOnlyUsageAccruedInput{
-			Charge:           env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30)),
-			AmountToAllocate: alpacadecimal.NewFromInt(30),
-		})
+		realizations, err := env.handler.OnAllocateCredits(t.Context(), env.newAllocateCreditsInputForCharge(
+			env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30)),
+			alpacadecimal.NewFromInt(30),
+		))
 		require.NoError(t, err)
 		require.Len(t, realizations, 1)
 		require.True(t, realizations[0].Amount.Equal(alpacadecimal.NewFromInt(30)))
@@ -135,35 +136,21 @@ func TestOnFlatFeeCreditsOnlyUsageAccrued(t *testing.T) {
 	t.Run("credit_only zero amount returns no realization", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 
-		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeflatfee.OnCreditsOnlyUsageAccruedInput{
-			Charge:           env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30)),
-			AmountToAllocate: alpacadecimal.Zero,
-		})
+		realizations, err := env.handler.OnAllocateCredits(t.Context(), env.newAllocateCreditsInputForCharge(
+			env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30)),
+			alpacadecimal.Zero,
+		))
 		require.NoError(t, err)
-		require.Nil(t, realizations)
-	})
-
-	t.Run("credit_then_invoice returns an error from credits-only accrual handler", func(t *testing.T) {
-		env := newFlatFeeHandlerTestEnv(t)
-
-		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeflatfee.OnCreditsOnlyUsageAccruedInput{
-			Charge:           env.newBaseCharge(timeutil.ClosedPeriod{From: env.Now().Add(-time.Hour), To: env.Now()}, alpacadecimal.NewFromInt(30)),
-			AmountToAllocate: alpacadecimal.NewFromInt(30),
-		})
-		require.Error(t, err)
 		require.Nil(t, realizations)
 	})
 }
 
-func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
+func TestOnCorrectCreditAllocations(t *testing.T) {
 	t.Run("credit_only reverses advance-backed accrual", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 
 		charge := env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30))
-		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeflatfee.OnCreditsOnlyUsageAccruedInput{
-			Charge:           charge,
-			AmountToAllocate: alpacadecimal.NewFromInt(30),
-		})
+		allocations, err := env.handler.OnAllocateCredits(t.Context(), env.newAllocateCreditsInputForCharge(charge, alpacadecimal.NewFromInt(30)))
 		require.NoError(t, err)
 		require.Len(t, allocations, 1)
 
@@ -176,7 +163,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
 		require.NoError(t, err)
 
-		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
+		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
 			Charge:      chargeWithRealizations,
 			AllocateAt:  env.Now(),
 			Corrections: correctionsRequest,
@@ -197,10 +184,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		priorityOne := env.fundPriority(t, 1, 30)
 
 		charge := env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(50))
-		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeflatfee.OnCreditsOnlyUsageAccruedInput{
-			Charge:           charge,
-			AmountToAllocate: alpacadecimal.NewFromInt(50),
-		})
+		allocations, err := env.handler.OnAllocateCredits(t.Context(), env.newAllocateCreditsInputForCharge(charge, alpacadecimal.NewFromInt(50)))
 		require.NoError(t, err)
 		require.Len(t, allocations, 2)
 
@@ -213,7 +197,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), currencyCalculator)
 		require.NoError(t, err)
 
-		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
+		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
 			Charge:      chargeWithRealizations,
 			AllocateAt:  env.Now(),
 			Corrections: correctionsRequest,
@@ -232,10 +216,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		priorityOne := env.fundPriority(t, 1, 20)
 
 		charge := env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30))
-		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeflatfee.OnCreditsOnlyUsageAccruedInput{
-			Charge:           charge,
-			AmountToAllocate: alpacadecimal.NewFromInt(30),
-		})
+		allocations, err := env.handler.OnAllocateCredits(t.Context(), env.newAllocateCreditsInputForCharge(charge, alpacadecimal.NewFromInt(30)))
 		require.NoError(t, err)
 		require.Len(t, allocations, 2)
 
@@ -248,7 +229,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
 		require.NoError(t, err)
 
-		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
+		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
 			Charge:      chargeWithRealizations,
 			AllocateAt:  env.Now(),
 			Corrections: correctionsRequest,
@@ -267,7 +248,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 		priorityOne := env.fundPriority(t, 1, 30)
 
-		allocations, err := env.handler.OnAssignedToInvoice(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(30)))
+		allocations, err := env.handler.OnAllocateCredits(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(30)))
 		require.NoError(t, err)
 		require.Len(t, allocations, 1)
 
@@ -279,7 +260,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
 		require.NoError(t, err)
 
-		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
+		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
 			Charge:      chargeWithRealizations,
 			AllocateAt:  env.Now(),
 			Corrections: correctionsRequest,
@@ -296,7 +277,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 		priorityOne := env.fundPriority(t, 1, 30)
 
-		allocations, err := env.handler.OnAssignedToInvoice(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(30)))
+		allocations, err := env.handler.OnAllocateCredits(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(30)))
 		require.NoError(t, err)
 		require.Len(t, allocations, 1)
 
@@ -313,7 +294,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
 		require.NoError(t, err)
 
-		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
+		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
 			Charge:                       chargeWithRealizations,
 			AllocateAt:                   env.Now(),
 			Corrections:                  correctionsRequest,
@@ -333,10 +314,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		priorityOne := env.fundPriority(t, 1, 30)
 
 		charge := env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30))
-		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeflatfee.OnCreditsOnlyUsageAccruedInput{
-			Charge:           charge,
-			AmountToAllocate: alpacadecimal.NewFromInt(30),
-		})
+		allocations, err := env.handler.OnAllocateCredits(t.Context(), env.newAllocateCreditsInputForCharge(charge, alpacadecimal.NewFromInt(30)))
 		require.NoError(t, err)
 		require.Len(t, allocations, 1)
 
@@ -354,7 +332,7 @@ func TestOnFlatFeeCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
 		require.NoError(t, err)
 
-		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeflatfee.CreditsOnlyUsageAccruedCorrectionInput{
+		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
 			Charge:                       chargeWithRealizations,
 			AllocateAt:                   env.Now(),
 			Corrections:                  correctionsRequest,
@@ -444,7 +422,7 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 		env.fundPriority(t, 1, 40)
 
 		// FBO → accrued for 40
-		realizations, err := env.handler.OnAssignedToInvoice(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(60)))
+		realizations, err := env.handler.OnAllocateCredits(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(60)))
 		require.NoError(t, err)
 		require.Len(t, realizations, 1)
 		require.True(t, realizations[0].Amount.Equal(alpacadecimal.NewFromInt(40)))
@@ -497,10 +475,10 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 
 		priorityOne := env.fundPriority(t, 1, 40)
 
-		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeflatfee.OnCreditsOnlyUsageAccruedInput{
-			Charge:           env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30)),
-			AmountToAllocate: alpacadecimal.NewFromInt(30),
-		})
+		realizations, err := env.handler.OnAllocateCredits(t.Context(), env.newAllocateCreditsInputForCharge(
+			env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30)),
+			alpacadecimal.NewFromInt(30),
+		))
 		require.NoError(t, err)
 		require.Len(t, realizations, 1)
 
@@ -565,10 +543,10 @@ func TestOnFlatFeePaymentSettled(t *testing.T) {
 
 		env.fundPriority(t, 1, 30)
 
-		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeflatfee.OnCreditsOnlyUsageAccruedInput{
-			Charge:           env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30)),
-			AmountToAllocate: alpacadecimal.NewFromInt(30),
-		})
+		realizations, err := env.handler.OnAllocateCredits(t.Context(), env.newAllocateCreditsInputForCharge(
+			env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30)),
+			alpacadecimal.NewFromInt(30),
+		))
 		require.NoError(t, err)
 
 		charge := env.newChargeWithCreditRealizationsAndAccruedUsage(realizations, alpacadecimal.Zero)
@@ -646,18 +624,26 @@ func newFlatFeeHandlerTestEnv(t *testing.T) *flatFeeHandlerTestEnv {
 	}
 }
 
-func (e *flatFeeHandlerTestEnv) newAssignmentInput(amount alpacadecimal.Decimal) chargeflatfee.OnAssignedToInvoiceInput {
+func (e *flatFeeHandlerTestEnv) newAssignmentInput(amount alpacadecimal.Decimal) chargeflatfee.OnAllocateCreditsInput {
 	return e.newAssignmentInputWithMode(amount, productcatalog.CreditThenInvoiceSettlementMode)
 }
 
-func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.Decimal, mode productcatalog.SettlementMode) chargeflatfee.OnAssignedToInvoiceInput {
+func (e *flatFeeHandlerTestEnv) newAllocateCreditsInputForCharge(charge chargeflatfee.Charge, amount alpacadecimal.Decimal) chargeflatfee.OnAllocateCreditsInput {
+	return chargeflatfee.OnAllocateCreditsInput{
+		Charge:                 charge,
+		ServicePeriod:          charge.Intent.ServicePeriod,
+		PreTaxAmountToAllocate: amount,
+	}
+}
+
+func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.Decimal, mode productcatalog.SettlementMode) chargeflatfee.OnAllocateCreditsInput {
 	now := time.Now().UTC()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: now.Add(-time.Hour),
 		To:   now,
 	}
 
-	return chargeflatfee.OnAssignedToInvoiceInput{
+	return chargeflatfee.OnAllocateCreditsInput{
 		Charge: chargeflatfee.Charge{
 			ChargeBase: chargeflatfee.ChargeBase{
 				ManagedResource: meta.ManagedResource{
@@ -692,8 +678,8 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.
 				Status: chargeflatfee.StatusActive,
 			},
 		},
-		ServicePeriod:     servicePeriod,
-		PreTaxTotalAmount: amount,
+		ServicePeriod:          servicePeriod,
+		PreTaxAmountToAllocate: amount,
 	}
 }
 

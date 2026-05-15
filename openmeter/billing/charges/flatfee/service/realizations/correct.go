@@ -57,7 +57,7 @@ func (s *Service) CorrectAllCredits(ctx context.Context, in CorrectAllCreditReal
 	}
 
 	corrections, err := in.Run.CreditRealizations.CorrectAll(in.CurrencyCalculator, func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
-		return s.handler.OnCreditsOnlyUsageAccruedCorrection(ctx, flatfee.CreditsOnlyUsageAccruedCorrectionInput{
+		return s.handler.OnCorrectCreditAllocations(ctx, flatfee.CorrectCreditAllocationsInput{
 			Charge:                       in.Charge,
 			AllocateAt:                   in.AllocateAt,
 			Corrections:                  req,
