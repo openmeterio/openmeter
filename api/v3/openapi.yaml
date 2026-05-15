@@ -119,10 +119,10 @@ paths:
         modify `P`.
 
         Returns the period transitioned to `closing`. The newly-opened next period can
-        be retrieved by listing with `filter[status]=open`.
+        be retrieved by listing with `filter[status][eq]=open`.
       responses:
-        '201':
-          description: AccountingPeriod created response.
+        '200':
+          description: AccountingPeriod updated response.
           content:
             application/json:
               schema:

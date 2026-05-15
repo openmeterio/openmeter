@@ -105,7 +105,7 @@ interface AccountingPeriodsOperations {
    * modify `P`.
    *
    * Returns the period transitioned to `closing`. The newly-opened next period can
-   * be retrieved by listing with `filter[status]=open`.
+   * be retrieved by listing with `filter[status][eq]=open`.
    */
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
@@ -115,7 +115,7 @@ interface AccountingPeriodsOperations {
   @summary("Close the open accounting period")
   close(
     @body body: CloseAccountingPeriodRequest,
-  ): Shared.CreateResponse<AccountingPeriod> | Common.ErrorResponses;
+  ): Shared.UpdateResponse<AccountingPeriod> | Common.ErrorResponses;
 
   /**
    * Get an accounting period by id.
