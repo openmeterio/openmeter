@@ -58,9 +58,9 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceImmutableProrat
 
 		s.Run(name, func() {
 			flatFeeService := s.Charges.flatFeeService.(interface {
-				SetCreditNotesSupportedByLineUpdater(*testing.T, bool)
+				SetCreditNotesSupportedByLineUpdater(*testing.T, bool) error
 			})
-			flatFeeService.SetCreditNotesSupportedByLineUpdater(s.T(), creditNotesAvailable)
+			s.NoError(flatFeeService.SetCreditNotesSupportedByLineUpdater(s.T(), creditNotesAvailable))
 
 			runFlatFeeCreditThenInvoiceImmutableProrationScenario(&s.BaseSuite, creditNotesAvailable)
 		})
