@@ -222,7 +222,7 @@ Keep helper functions honest and narrow. If a production helper is only called o
 
 Prefer explicit input structs for helpers that combine an aggregate with derived lifecycle values, such as period or timestamp overrides. This makes it clear which fields are construction inputs and which fields are persisted aggregate state.
 
-Use `map` / `mapped` terminology for converting one domain representation to another. Avoid `project` / `projected` for that meaning.
+For files and functions that convert between domain, API, and DB representations, use the `/go-types-conversion` skill. In prose, prefer `map` / `mapped` terminology for domain representation translation and avoid `project` / `projected` for that meaning; function names must still follow the skill's `FromAPI...`, `ToAPI...`, `FromDB...`, and `ToDB...` conventions.
 
 Add a docstring to domain helpers when the name compresses important business semantics that are easy to misread at call sites. Explain the observable business contract and why excluded cases are excluded, not the implementation mechanics.
 
