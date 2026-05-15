@@ -15,6 +15,7 @@ import (
 	appcustominvoicingcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	billingcustomeroverridedb "github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	billingprofiledb "github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
@@ -78,14 +79,13 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		}
 
 		if input.BillingProfileID != nil {
-			if p := filter.SelectPredicate[predicate.BillingCustomerOverride](
-				filter.Filter(*input.BillingProfileID),
-				billingcustomeroverridedb.FieldBillingProfileID,
-			); p != nil {
-				query = query.Where(customerdb.HasBillingCustomerOverrideWith(
-					*p,
-					billingcustomeroverridedb.DeletedAtIsNil(),
-				))
+			defaultProfileID, err := defaultBillingProfileID(ctx, repo.db, input.Namespace)
+			if err != nil {
+				return pagination.Result[customer.Customer]{}, fmt.Errorf("resolving default billing profile id: %w", err)
+			}
+
+			if p := buildBillingProfileIDPredicate(*input.BillingProfileID, defaultProfileID); p != nil {
+				query = query.Where(*p)
 			}
 		}
 
@@ -808,4 +808,78 @@ func activeSubscriptionFilter(at time.Time) []predicate.Subscription {
 		),
 		subscriptiondb.CreatedAtLTE(at),
 	}
+}
+
+// defaultBillingProfileID returns the id of the namespace's default billing
+// profile, or the empty string if no default profile exists.
+func defaultBillingProfileID(ctx context.Context, db *entdb.Client, namespace string) (string, error) {
+	id, err := db.BillingProfile.Query().
+		Where(
+			billingprofiledb.Namespace(namespace),
+			billingprofiledb.Default(true),
+			billingprofiledb.DeletedAtIsNil(),
+		).
+		FirstID(ctx)
+	if err != nil {
+		if entdb.IsNotFound(err) {
+			return "", nil
+		}
+		return "", err
+	}
+	return id, nil
+}
+
+// buildBillingProfileIDPredicate builds a customer predicate that filters on
+// the customer's *effective* billing profile id — i.e.
+// COALESCE(override.billing_profile_id, namespace_default_profile.id).
+//
+// The filter is routed through filter.Select on both
+// billing_customer_override.billing_profile_id (for customers with an explicit
+// live override) and billing_profile.id (via an EXISTS subquery, for customers
+// who resolve to the namespace default).
+func buildBillingProfileIDPredicate(f filter.FilterULID, defaultProfileID string) *predicate.Customer {
+	overrideSelector := f.Select(billingcustomeroverridedb.FieldBillingProfileID)
+	if overrideSelector == nil {
+		return nil
+	}
+
+	preds := []predicate.Customer{
+		customerdb.HasBillingCustomerOverrideWith(
+			billingcustomeroverridedb.DeletedAtIsNil(),
+			predicate.BillingCustomerOverride(overrideSelector),
+		),
+	}
+
+	if defaultProfileID != "" {
+		if defaultSelector := f.Select(billingprofiledb.FieldID); defaultSelector != nil {
+			// Resolves to the default profile: no live override OR a live override
+			// with NULL profile_id.
+			resolvesToDefault := customerdb.Or(
+				customerdb.Not(customerdb.HasBillingCustomerOverrideWith(
+					billingcustomeroverridedb.DeletedAtIsNil(),
+				)),
+				customerdb.HasBillingCustomerOverrideWith(
+					billingcustomeroverridedb.DeletedAtIsNil(),
+					billingcustomeroverridedb.BillingProfileIDIsNil(),
+				),
+			)
+
+			// EXISTS subquery that pins the namespace default profile row by id
+			// and applies the user's filter to that row's id. This lets eq, ne,
+			// in (and the And/Or wrappers) all flow through filter.Select.
+			defaultMatchesFilter := predicate.Customer(func(s *sql.Selector) {
+				bp := sql.Table(billingprofiledb.Table)
+				sub := sql.Select(bp.C(billingprofiledb.FieldID)).
+					From(bp).
+					Where(sql.EQ(bp.C(billingprofiledb.FieldID), defaultProfileID))
+				predicate.BillingProfile(defaultSelector)(sub)
+				s.Where(sql.Exists(sub))
+			})
+
+			preds = append(preds, customerdb.And(resolvesToDefault, defaultMatchesFilter))
+		}
+	}
+
+	p := customerdb.Or(preds...)
+	return &p
 }

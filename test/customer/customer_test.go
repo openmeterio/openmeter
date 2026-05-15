@@ -35,6 +35,10 @@ func TestCustomer(t *testing.T) {
 			testSuite.TestList(ctx, t)
 		})
 
+		t.Run("TestListBillingProfileFilter", func(t *testing.T) {
+			testSuite.TestListBillingProfileFilter(ctx, t)
+		})
+
 		t.Run("TestListCustomerUsageAttributions", func(t *testing.T) {
 			testSuite.TestListCustomerUsageAttributions(ctx, t)
 		})
