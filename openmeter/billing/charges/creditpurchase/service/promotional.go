@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
@@ -33,6 +34,18 @@ func (s *service) onPromotionalCreditPurchase(ctx context.Context, charge credit
 	}
 
 	charge.Realizations.CreditGrantRealization = &grantRealization
+
+	if ledgerTransactionGroupReference.TransactionGroupID != "" {
+		if err := s.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
+			Namespace:                 charge.Namespace,
+			CustomerID:                charge.Intent.CustomerID,
+			Currency:                  charge.Intent.Currency,
+			Amount:                    charge.Intent.CreditAmount,
+			BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+		}); err != nil {
+			return creditpurchase.Charge{}, err
+		}
+	}
 
 	charge.Status = creditpurchase.StatusFinal
 

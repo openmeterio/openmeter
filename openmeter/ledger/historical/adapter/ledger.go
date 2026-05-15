@@ -293,6 +293,10 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 			query = query.Where(ledgertransactiondb.ID(input.TransactionID.ID))
 		}
 
+		if input.AsOf != nil {
+			query = query.Where(ledgertransactiondb.BookedAtLTE(*input.AsOf))
+		}
+
 		// Scope to specific accounts.
 		if len(input.AccountIDs) > 0 {
 			query = query.Where(
@@ -325,9 +329,12 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 
 		// Exclude transactions by annotation key-value matches.
 		for key, value := range input.ExcludeAnnotationFilters {
-			query = query.Where(ledgertransactiondb.Not(func(s *sql.Selector) {
-				s.Where(sqljson.ValueEQ(ledgertransactiondb.FieldAnnotations, value, sqljson.Path(key)))
-			}))
+			query = query.Where(func(s *sql.Selector) {
+				s.Where(sql.Or(
+					sql.Not(sqljson.HasKey(ledgertransactiondb.FieldAnnotations, sqljson.Path(key))),
+					sqljson.ValueNEQ(ledgertransactiondb.FieldAnnotations, value, sqljson.Path(key)),
+				))
+			})
 		}
 
 		if input.CreditMovement != ledger.ListTransactionsCreditMovementUnspecified {

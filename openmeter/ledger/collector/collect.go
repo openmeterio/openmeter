@@ -132,15 +132,16 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 
 	var pending []breakage.PendingRecord
 	if c.breakage != nil {
-		for _, selection := range selections {
+		for idx, selection := range selections {
 			if selection.source.breakagePlan == nil {
 				continue
 			}
 
 			releaseInput, releaseRecord, err := c.breakage.ReleasePlan(ctx, breakage.ReleasePlanInput{
-				Plan:       *selection.source.breakagePlan,
-				Amount:     selection.amount,
-				SourceKind: breakage.SourceKindUsage,
+				Plan:                   *selection.source.breakagePlan,
+				Amount:                 selection.amount,
+				SourceKind:             breakage.SourceKindUsage,
+				SourceEntryIdentityKey: transactions.NewCollectionSourceIdentityKey(idx),
 			})
 			if err != nil {
 				return resolvedCollectedInputs{}, fmt.Errorf("resolve breakage release: %w", err)

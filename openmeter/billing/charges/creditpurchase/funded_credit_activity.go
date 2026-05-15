@@ -54,6 +54,7 @@ type ListFundedCreditActivitiesInput struct {
 	After    *FundedCreditActivityCursor
 	Before   *FundedCreditActivityCursor
 	Currency *currencyx.Code
+	AsOf     *time.Time
 }
 
 func (i ListFundedCreditActivitiesInput) Validate() error {
@@ -87,6 +88,10 @@ func (i ListFundedCreditActivitiesInput) Validate() error {
 		if err := i.Currency.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
+	}
+
+	if i.AsOf != nil && i.AsOf.IsZero() {
+		errs = append(errs, fmt.Errorf("asOf must not be zero"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

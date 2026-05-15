@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -63,6 +64,7 @@ type service struct {
 	UsageBasedService usageBasedTotalsService
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
+	Breakage          ledgerbreakage.Service
 
 	balanceCalculator chargePendingBalanceCalculator
 }
@@ -77,6 +79,7 @@ type Config struct {
 	UsageBasedService usageBasedTotalsService
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
+	Breakage          ledgerbreakage.Service
 }
 
 func (c Config) Validate() error {
@@ -118,6 +121,11 @@ func New(config Config) (*service, error) {
 		return nil, err
 	}
 
+	breakageService := config.Breakage
+	if breakageService == nil {
+		breakageService = ledgerbreakage.NewNoopService()
+	}
+
 	return &service{
 		AccountResolver:   config.AccountResolver,
 		SubAccountService: config.SubAccountService,
@@ -126,6 +134,7 @@ func New(config Config) (*service, error) {
 		UsageBasedService: config.UsageBasedService,
 		Ledger:            config.Ledger,
 		BalanceQuerier:    config.BalanceQuerier,
+		Breakage:          breakageService,
 		balanceCalculator: chargePendingBalanceCalculator{},
 	}, nil
 }

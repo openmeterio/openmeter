@@ -28,6 +28,7 @@ import (
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
@@ -46,11 +47,15 @@ type BaseSuite struct {
 	billingtest.BaseSuite
 
 	Charges              charges.Service
+	CreditPurchaseSvc    creditpurchase.Service
+	UsageBasedSvc        usagebased.Service
+	CustomerBalanceSvc   customerbalance.Service
 	Ledger               ledger.Ledger
 	BalanceQuerier       ledger.BalanceQuerier
 	LedgerAccountService ledgeraccount.Service
 	LedgerResolver       *ledgerresolvers.AccountResolver
 	BreakageService      ledgerbreakage.Service
+	FlatFeeHandler       flatfee.Handler
 	RevenueRecognizer    recognizer.Service
 }
 
@@ -118,6 +123,12 @@ func (s *BaseSuite) SetupSuite() {
 		Breakage:           breakageService,
 		TransactionManager: transactionManager,
 	})
+	flatFeeHandler := ledgerchargeadapter.NewFlatFeeHandler(
+		deps.HistoricalLedger,
+		transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger},
+		collectorService,
+	)
+	s.FlatFeeHandler = flatFeeHandler
 
 	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
 		Client:                s.DBClient,
@@ -125,12 +136,27 @@ func (s *BaseSuite) SetupSuite() {
 		BillingService:        s.BillingService,
 		FeatureService:        s.FeatureService,
 		StreamingConnector:    s.MockStreamingConnector,
-		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger}, collectorService),
+		FlatFeeHandler:        flatFeeHandler,
 		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.HistoricalLedger, deps.ResolversService, deps.AccountService, breakageService, transactionManager),
 		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger}, collectorService),
 	})
 	s.NoError(err)
 	s.Charges = stack.ChargesService
+	s.CreditPurchaseSvc = stack.CreditPurchaseService
+	s.UsageBasedSvc = stack.UsageBasedService
+
+	customerBalanceSvc, err := customerbalance.New(customerbalance.Config{
+		AccountResolver:   deps.ResolversService,
+		SubAccountService: deps.AccountService,
+		ChargesService:    stack.ChargesService,
+		CreditPurchaseSvc: stack.CreditPurchaseService,
+		UsageBasedService: stack.UsageBasedService,
+		Ledger:            deps.HistoricalLedger,
+		BalanceQuerier:    deps.HistoricalLedger,
+		Breakage:          breakageService,
+	})
+	s.NoError(err)
+	s.CustomerBalanceSvc = customerBalanceSvc
 }
 
 func (s *BaseSuite) TearDownTest() {

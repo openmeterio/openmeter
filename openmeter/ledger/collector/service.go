@@ -74,8 +74,10 @@ func NewService(config Config) Service {
 			transactionManager: config.TransactionManager,
 		},
 		corrector: &accrualCorrector{
-			ledger: config.Ledger,
-			deps:   config.Dependencies,
+			ledger:             config.Ledger,
+			deps:               config.Dependencies,
+			breakage:           config.Breakage,
+			transactionManager: config.TransactionManager,
 		},
 	}
 }

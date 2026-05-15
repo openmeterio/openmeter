@@ -193,6 +193,7 @@ type ListTransactionsInput struct {
 	// AccountIDs scopes the query to transactions with entries on these accounts.
 	AccountIDs []string
 	Currency   *currencyx.Code
+	AsOf       *time.Time
 
 	CreditMovement ListTransactionsCreditMovement
 
@@ -260,6 +261,13 @@ func (i ListTransactionsInput) Validate() error {
 				"error":    err,
 			})
 		}
+	}
+
+	if i.AsOf != nil && i.AsOf.IsZero() {
+		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+			"reason": "as_of_invalid",
+			"as_of":  i.AsOf,
+		})
 	}
 
 	switch i.CreditMovement {

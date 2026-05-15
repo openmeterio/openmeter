@@ -80378,6 +80378,7 @@ type LedgerBreakageRecordMutation struct {
 	source_kind                   *ledger.BreakageSourceKind
 	source_transaction_group_id   *string
 	source_transaction_id         *string
+	source_entry_id               *string
 	breakage_transaction_group_id *string
 	breakage_transaction_id       *string
 	fbo_sub_account_id            *string
@@ -81070,6 +81071,55 @@ func (m *LedgerBreakageRecordMutation) ResetSourceTransactionID() {
 	delete(m.clearedFields, ledgerbreakagerecord.FieldSourceTransactionID)
 }
 
+// SetSourceEntryID sets the "source_entry_id" field.
+func (m *LedgerBreakageRecordMutation) SetSourceEntryID(s string) {
+	m.source_entry_id = &s
+}
+
+// SourceEntryID returns the value of the "source_entry_id" field in the mutation.
+func (m *LedgerBreakageRecordMutation) SourceEntryID() (r string, exists bool) {
+	v := m.source_entry_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceEntryID returns the old "source_entry_id" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldSourceEntryID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceEntryID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceEntryID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceEntryID: %w", err)
+	}
+	return oldValue.SourceEntryID, nil
+}
+
+// ClearSourceEntryID clears the value of the "source_entry_id" field.
+func (m *LedgerBreakageRecordMutation) ClearSourceEntryID() {
+	m.source_entry_id = nil
+	m.clearedFields[ledgerbreakagerecord.FieldSourceEntryID] = struct{}{}
+}
+
+// SourceEntryIDCleared returns if the "source_entry_id" field was cleared in this mutation.
+func (m *LedgerBreakageRecordMutation) SourceEntryIDCleared() bool {
+	_, ok := m.clearedFields[ledgerbreakagerecord.FieldSourceEntryID]
+	return ok
+}
+
+// ResetSourceEntryID resets all changes to the "source_entry_id" field.
+func (m *LedgerBreakageRecordMutation) ResetSourceEntryID() {
+	m.source_entry_id = nil
+	delete(m.clearedFields, ledgerbreakagerecord.FieldSourceEntryID)
+}
+
 // SetBreakageTransactionGroupID sets the "breakage_transaction_group_id" field.
 func (m *LedgerBreakageRecordMutation) SetBreakageTransactionGroupID(s string) {
 	m.breakage_transaction_group_id = &s
@@ -81346,7 +81396,7 @@ func (m *LedgerBreakageRecordMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerBreakageRecordMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 21)
 	if m.namespace != nil {
 		fields = append(fields, ledgerbreakagerecord.FieldNamespace)
 	}
@@ -81388,6 +81438,9 @@ func (m *LedgerBreakageRecordMutation) Fields() []string {
 	}
 	if m.source_transaction_id != nil {
 		fields = append(fields, ledgerbreakagerecord.FieldSourceTransactionID)
+	}
+	if m.source_entry_id != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldSourceEntryID)
 	}
 	if m.breakage_transaction_group_id != nil {
 		fields = append(fields, ledgerbreakagerecord.FieldBreakageTransactionGroupID)
@@ -81443,6 +81496,8 @@ func (m *LedgerBreakageRecordMutation) Field(name string) (ent.Value, bool) {
 		return m.SourceTransactionGroupID()
 	case ledgerbreakagerecord.FieldSourceTransactionID:
 		return m.SourceTransactionID()
+	case ledgerbreakagerecord.FieldSourceEntryID:
+		return m.SourceEntryID()
 	case ledgerbreakagerecord.FieldBreakageTransactionGroupID:
 		return m.BreakageTransactionGroupID()
 	case ledgerbreakagerecord.FieldBreakageTransactionID:
@@ -81492,6 +81547,8 @@ func (m *LedgerBreakageRecordMutation) OldField(ctx context.Context, name string
 		return m.OldSourceTransactionGroupID(ctx)
 	case ledgerbreakagerecord.FieldSourceTransactionID:
 		return m.OldSourceTransactionID(ctx)
+	case ledgerbreakagerecord.FieldSourceEntryID:
+		return m.OldSourceEntryID(ctx)
 	case ledgerbreakagerecord.FieldBreakageTransactionGroupID:
 		return m.OldBreakageTransactionGroupID(ctx)
 	case ledgerbreakagerecord.FieldBreakageTransactionID:
@@ -81611,6 +81668,13 @@ func (m *LedgerBreakageRecordMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetSourceTransactionID(v)
 		return nil
+	case ledgerbreakagerecord.FieldSourceEntryID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceEntryID(v)
+		return nil
 	case ledgerbreakagerecord.FieldBreakageTransactionGroupID:
 		v, ok := value.(string)
 		if !ok {
@@ -81710,6 +81774,9 @@ func (m *LedgerBreakageRecordMutation) ClearedFields() []string {
 	if m.FieldCleared(ledgerbreakagerecord.FieldSourceTransactionID) {
 		fields = append(fields, ledgerbreakagerecord.FieldSourceTransactionID)
 	}
+	if m.FieldCleared(ledgerbreakagerecord.FieldSourceEntryID) {
+		fields = append(fields, ledgerbreakagerecord.FieldSourceEntryID)
+	}
 	if m.FieldCleared(ledgerbreakagerecord.FieldPlanID) {
 		fields = append(fields, ledgerbreakagerecord.FieldPlanID)
 	}
@@ -81741,6 +81808,9 @@ func (m *LedgerBreakageRecordMutation) ClearField(name string) error {
 		return nil
 	case ledgerbreakagerecord.FieldSourceTransactionID:
 		m.ClearSourceTransactionID()
+		return nil
+	case ledgerbreakagerecord.FieldSourceEntryID:
+		m.ClearSourceEntryID()
 		return nil
 	case ledgerbreakagerecord.FieldPlanID:
 		m.ClearPlanID()
@@ -81797,6 +81867,9 @@ func (m *LedgerBreakageRecordMutation) ResetField(name string) error {
 		return nil
 	case ledgerbreakagerecord.FieldSourceTransactionID:
 		m.ResetSourceTransactionID()
+		return nil
+	case ledgerbreakagerecord.FieldSourceEntryID:
+		m.ResetSourceEntryID()
 		return nil
 	case ledgerbreakagerecord.FieldBreakageTransactionGroupID:
 		m.ResetBreakageTransactionGroupID()
