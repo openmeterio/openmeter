@@ -2868,7 +2868,6 @@ export const listAddonsParamsFilter = z
 export const listPlanAddonsParamsFilter = z
   .object({
     id: ulidFieldFilter.optional(),
-    plan_id: ulidFieldFilter.optional(),
     plan_key: stringFieldFilter.optional(),
     addon_id: ulidFieldFilter.optional(),
     addon_key: stringFieldFilter.optional(),

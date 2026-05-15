@@ -1754,7 +1754,6 @@ export interface ListAddonsParamsFilter {
 /** Filter options for listing plan add-ons. */
 export interface ListPlanAddonsParamsFilter {
   id?: string | { eq?: string; oeq?: string[]; neq?: string }
-  plan_id?: string | { eq?: string; oeq?: string[]; neq?: string }
   plan_key?:
     | string
     | {
