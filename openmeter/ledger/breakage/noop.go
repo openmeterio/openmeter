@@ -21,7 +21,19 @@ func (NoopService) ReleasePlan(context.Context, ReleasePlanInput) (ledger.Transa
 	return nil, PendingRecord{}, nil
 }
 
+func (NoopService) ReopenRelease(context.Context, ReopenReleaseInput) (ledger.TransactionInput, PendingRecord, error) {
+	return nil, PendingRecord{}, nil
+}
+
 func (NoopService) ListPlans(context.Context, ListPlansInput) ([]Plan, error) {
+	return nil, nil
+}
+
+func (NoopService) ListReleases(context.Context, ListReleasesInput) ([]Release, error) {
+	return nil, nil
+}
+
+func (NoopService) ListExpiredRecords(context.Context, ListExpiredRecordsInput) ([]Record, error) {
 	return nil, nil
 }
 

@@ -68,6 +68,13 @@ func (LedgerBreakageRecord) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Immutable(),
+		field.String("source_entry_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Immutable(),
 		field.String("breakage_transaction_group_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
@@ -115,6 +122,7 @@ func (LedgerBreakageRecord) Indexes() []ent.Index {
 			StorageKey("ledgerbreakagerecord_namespace_customer_id_currency_credit_"),
 		index.Fields("namespace", "plan_id"),
 		index.Fields("namespace", "source_transaction_group_id"),
+		index.Fields("namespace", "source_entry_id"),
 		index.Fields("namespace", "breakage_transaction_group_id"),
 	}
 }

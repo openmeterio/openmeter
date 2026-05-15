@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -22,11 +23,12 @@ type CreditTransactionType string
 const (
 	CreditTransactionTypeFunded   CreditTransactionType = "funded"
 	CreditTransactionTypeConsumed CreditTransactionType = "consumed"
+	CreditTransactionTypeExpired  CreditTransactionType = "expired"
 )
 
 func (t CreditTransactionType) Validate() error {
 	switch t {
-	case CreditTransactionTypeFunded, CreditTransactionTypeConsumed:
+	case CreditTransactionTypeFunded, CreditTransactionTypeConsumed, CreditTransactionTypeExpired:
 		return nil
 	default:
 		return fmt.Errorf("invalid credit transaction type: %s", t)
@@ -41,6 +43,7 @@ type ListCreditTransactionsInput struct {
 
 	Type     *CreditTransactionType
 	Currency *currencyx.Code
+	AsOf     *time.Time
 }
 
 func (i ListCreditTransactionsInput) Validate() error {
@@ -80,6 +83,10 @@ func (i ListCreditTransactionsInput) Validate() error {
 		if err := i.Currency.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
+	}
+
+	if i.AsOf != nil && i.AsOf.IsZero() {
+		errs = append(errs, fmt.Errorf("asOf must not be zero"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -134,6 +141,7 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 		CustomerID: input.CustomerID,
 		AccountID:  accountID,
 		Currency:   input.Currency,
+		AsOf:       creditTransactionsAsOf(input.AsOf),
 	}
 
 	loadedLists := make([][]CreditTransaction, 0, len(loaders))
@@ -199,6 +207,14 @@ func emptyCreditTransactions() ListCreditTransactionsResult {
 	return ListCreditTransactionsResult{
 		Items: []CreditTransaction{},
 	}
+}
+
+func creditTransactionsAsOf(asOf *time.Time) time.Time {
+	if asOf != nil {
+		return *asOf
+	}
+
+	return clock.Now()
 }
 
 func (s *service) customerFBOAccountID(ctx context.Context, customerID customer.CustomerID) (string, error) {

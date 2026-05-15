@@ -28,9 +28,22 @@ type Service interface {
 	// otherwise removed before expiry.
 	ReleasePlan(ctx context.Context, input ReleasePlanInput) (ledger.TransactionInput, PendingRecord, error)
 
+	// ReopenRelease creates a future-dated entry that increases breakage again
+	// because a correction made previously consumed expiring credit unused.
+	ReopenRelease(ctx context.Context, input ReopenReleaseInput) (ledger.TransactionInput, PendingRecord, error)
+
 	// ListPlans returns unreleased planned breakage in the same order the FBO
 	// collector must consume expiring credit.
 	ListPlans(ctx context.Context, input ListPlansInput) ([]Plan, error)
+
+	// ListReleases returns usage releases keyed by the original FBO source entry
+	// ids, with already-reopened amounts removed.
+	ListReleases(ctx context.Context, input ListReleasesInput) ([]Release, error)
+
+	// ListExpiredRecords returns raw breakage rows that have reached expiry.
+	// Consumers must net plan/release/reopen rows before showing customer-facing
+	// expired credit transactions.
+	ListExpiredRecords(ctx context.Context, input ListExpiredRecordsInput) ([]Record, error)
 
 	// PersistCommittedRecords turns pending record metadata into durable
 	// rows after the corresponding breakage ledger transactions have committed.
@@ -136,9 +149,10 @@ func (i PlanIssuanceInput) Validate() error {
 // ReleasePlanInput describes how much of one open plan should be released and
 // which business flow caused the release.
 type ReleasePlanInput struct {
-	Plan       Plan
-	Amount     alpacadecimal.Decimal
-	SourceKind SourceKind
+	Plan                   Plan
+	Amount                 alpacadecimal.Decimal
+	SourceKind             SourceKind
+	SourceEntryIdentityKey string
 }
 
 func (i ReleasePlanInput) Validate() error {
@@ -172,6 +186,54 @@ func (i ReleasePlanInput) Validate() error {
 	case SourceKindUsage, SourceKindUsageCorrection, SourceKindCreditPurchaseCorrection, SourceKindAdvanceBackfill:
 	default:
 		errs = append(errs, fmt.Errorf("invalid release source kind: %s", i.SourceKind))
+	}
+
+	return errors.Join(errs...)
+}
+
+// ReopenReleaseInput describes how much of one released plan should be reopened
+// and which correction flow caused it.
+type ReopenReleaseInput struct {
+	Release    Release
+	Amount     alpacadecimal.Decimal
+	SourceKind SourceKind
+}
+
+func (i ReopenReleaseInput) Validate() error {
+	var errs []error
+
+	if err := i.Release.Record.ValidateForReference(); err != nil {
+		errs = append(errs, fmt.Errorf("release: %w", err))
+	}
+
+	if i.Release.Kind != ledger.BreakageKindRelease {
+		errs = append(errs, errors.New("release record must have kind release"))
+	}
+
+	if i.Release.PlanID == nil || *i.Release.PlanID == "" {
+		errs = append(errs, errors.New("release plan id is required"))
+	}
+
+	if err := ledger.ValidateTransactionAmount(i.Amount); err != nil {
+		errs = append(errs, fmt.Errorf("amount: %w", err))
+	}
+
+	if i.Amount.GreaterThan(i.Release.OpenAmount) {
+		errs = append(errs, errors.New("reopen amount cannot exceed open release amount"))
+	}
+
+	if i.Release.FBOAddress == nil {
+		errs = append(errs, errors.New("release FBO address is required"))
+	}
+
+	if i.Release.BreakageAddress == nil {
+		errs = append(errs, errors.New("release breakage address is required"))
+	}
+
+	switch i.SourceKind {
+	case SourceKindUsageCorrection, SourceKindCreditPurchaseCorrection:
+	default:
+		errs = append(errs, fmt.Errorf("invalid reopen source kind: %s", i.SourceKind))
 	}
 
 	return errors.Join(errs...)
@@ -279,19 +341,22 @@ func (s *service) ReleasePlan(ctx context.Context, input ReleasePlanInput) (ledg
 	releaseID := newRecordID(input.Plan.ID.Namespace)
 	planID := input.Plan.ID.ID
 
-	record := PendingRecord{Record: Record{
-		ID:                   releaseID,
-		Kind:                 ledger.BreakageKindRelease,
-		Amount:               input.Amount,
-		CustomerID:           input.Plan.CustomerID,
-		Currency:             input.Plan.Currency,
-		CreditPriority:       input.Plan.CreditPriority,
-		ExpiresAt:            input.Plan.ExpiresAt,
-		SourceKind:           input.SourceKind,
-		FBOSubAccountID:      input.Plan.FBOSubAccountID,
-		BreakageSubAccountID: input.Plan.BreakageSubAccountID,
-		PlanID:               &planID,
-	}}
+	record := PendingRecord{
+		Record: Record{
+			ID:                   releaseID,
+			Kind:                 ledger.BreakageKindRelease,
+			Amount:               input.Amount,
+			CustomerID:           input.Plan.CustomerID,
+			Currency:             input.Plan.Currency,
+			CreditPriority:       input.Plan.CreditPriority,
+			ExpiresAt:            input.Plan.ExpiresAt,
+			SourceKind:           input.SourceKind,
+			FBOSubAccountID:      input.Plan.FBOSubAccountID,
+			BreakageSubAccountID: input.Plan.BreakageSubAccountID,
+			PlanID:               &planID,
+		},
+		SourceEntryIdentityKey: input.SourceEntryIdentityKey,
+	}
 
 	tx, err := s.resolveBreakageTemplate(ctx, input.Plan.CustomerID, releaseID.ID, &planID, transactions.ReleaseCustomerFBOBreakageTemplate{
 		At:              input.Plan.ExpiresAt,
@@ -301,6 +366,43 @@ func (s *service) ReleasePlan(ctx context.Context, input ReleasePlanInput) (ledg
 	})
 	if err != nil {
 		return nil, PendingRecord{}, fmt.Errorf("resolve breakage release: %w", err)
+	}
+
+	return tx, record, nil
+}
+
+func (s *service) ReopenRelease(ctx context.Context, input ReopenReleaseInput) (ledger.TransactionInput, PendingRecord, error) {
+	if err := input.Validate(); err != nil {
+		return nil, PendingRecord{}, err
+	}
+
+	reopenID := newRecordID(input.Release.ID.Namespace)
+	planID := *input.Release.PlanID
+	releaseID := input.Release.ID.ID
+
+	record := PendingRecord{Record: Record{
+		ID:                   reopenID,
+		Kind:                 ledger.BreakageKindReopen,
+		Amount:               input.Amount,
+		CustomerID:           input.Release.CustomerID,
+		Currency:             input.Release.Currency,
+		CreditPriority:       input.Release.CreditPriority,
+		ExpiresAt:            input.Release.ExpiresAt,
+		SourceKind:           input.SourceKind,
+		FBOSubAccountID:      input.Release.FBOSubAccountID,
+		BreakageSubAccountID: input.Release.BreakageSubAccountID,
+		PlanID:               &planID,
+		ReleaseID:            &releaseID,
+	}}
+
+	tx, err := s.resolveBreakageTemplate(ctx, input.Release.CustomerID, reopenID.ID, &planID, transactions.ReopenCustomerFBOBreakageTemplate{
+		At:              input.Release.ExpiresAt,
+		Amount:          input.Amount,
+		FBOAddress:      input.Release.FBOAddress,
+		BreakageAddress: input.Release.BreakageAddress,
+	})
+	if err != nil {
+		return nil, PendingRecord{}, fmt.Errorf("resolve breakage reopen: %w", err)
 	}
 
 	return tx, record, nil
@@ -363,6 +465,76 @@ func (s *service) ListPlans(ctx context.Context, input ListPlansInput) ([]Plan, 
 	return out, nil
 }
 
+func (s *service) ListReleases(ctx context.Context, input ListReleasesInput) ([]Release, error) {
+	records, err := s.adapter.ListReleaseRecords(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	releasesByID := make(map[string]*Release, len(records))
+	releaseOrder := make([]string, 0, len(records))
+
+	for _, record := range records {
+		if record.Kind != ledger.BreakageKindRelease {
+			continue
+		}
+
+		release := &Release{
+			Record:     record,
+			OpenAmount: record.Amount,
+		}
+		releasesByID[record.ID.ID] = release
+		releaseOrder = append(releaseOrder, record.ID.ID)
+	}
+
+	for _, record := range records {
+		if record.Kind != ledger.BreakageKindReopen || record.ReleaseID == nil {
+			continue
+		}
+
+		release := releasesByID[*record.ReleaseID]
+		if release == nil {
+			continue
+		}
+
+		release.OpenAmount = release.OpenAmount.Sub(record.Amount)
+	}
+
+	out := make([]Release, 0, len(releaseOrder))
+	for _, releaseID := range releaseOrder {
+		release := releasesByID[releaseID]
+		if release == nil || !release.OpenAmount.IsPositive() {
+			continue
+		}
+
+		if err := s.hydrateReleaseAddresses(ctx, release); err != nil {
+			return nil, err
+		}
+
+		out = append(out, *release)
+	}
+
+	return out, nil
+}
+
+func (s *service) ListExpiredRecords(ctx context.Context, input ListExpiredRecordsInput) ([]Record, error) {
+	if err := input.CustomerID.Validate(); err != nil {
+		return nil, fmt.Errorf("customer id: %w", err)
+	}
+
+	if input.Currency != nil {
+		if err := input.Currency.Validate(); err != nil {
+			return nil, fmt.Errorf("currency: %w", err)
+		}
+	}
+
+	if input.AsOf.IsZero() {
+		return nil, errors.New("as of is required")
+	}
+
+	return s.adapter.ListExpiredRecords(ctx, input)
+}
+
 func (s *service) PersistCommittedRecords(ctx context.Context, pending []PendingRecord, group ledger.TransactionGroup) error {
 	if len(pending) == 0 {
 		return nil
@@ -372,10 +544,12 @@ func (s *service) PersistCommittedRecords(ctx context.Context, pending []Pending
 		return errors.New("transaction group is required")
 	}
 
-	pendingByID := make(map[string]Record, len(pending))
+	pendingByID := make(map[string]PendingRecord, len(pending))
 	for _, item := range pending {
-		pendingByID[item.ID.ID] = item.Record
+		pendingByID[item.ID.ID] = item
 	}
+
+	sourceEntriesByIdentity := committedSourceEntriesByIdentity(group)
 
 	records := make([]Record, 0, len(pending))
 	groupID := group.ID().ID
@@ -385,16 +559,28 @@ func (s *service) PersistCommittedRecords(ctx context.Context, pending []Pending
 			continue
 		}
 
-		record, ok := pendingByID[recordID]
+		pendingRecord, ok := pendingByID[recordID]
 		if !ok {
 			return fmt.Errorf("committed breakage transaction %s has unknown record id %s", tx.ID().ID, recordID)
 		}
 
+		record := pendingRecord.Record
 		record.BreakageTransactionGroupID = groupID
 		record.BreakageTransactionID = tx.ID().ID
 		record.Annotations = tx.Annotations()
 		if record.SourceTransactionGroupID == nil {
 			record.SourceTransactionGroupID = &groupID
+		}
+		if pendingRecord.SourceEntryIdentityKey != "" {
+			sourceEntry, ok := sourceEntriesByIdentity[pendingRecord.SourceEntryIdentityKey]
+			if !ok {
+				return fmt.Errorf("source entry with identity key %s not found for breakage record %s", pendingRecord.SourceEntryIdentityKey, recordID)
+			}
+
+			sourceTransactionID := sourceEntry.TransactionID().ID
+			sourceEntryID := sourceEntry.ID().ID
+			record.SourceTransactionID = &sourceTransactionID
+			record.SourceEntryID = &sourceEntryID
 		}
 
 		records = append(records, record)
@@ -406,6 +592,26 @@ func (s *service) PersistCommittedRecords(ctx context.Context, pending []Pending
 	}
 
 	return s.adapter.CreateRecords(ctx, CreateRecordsInput{Records: records})
+}
+
+func committedSourceEntriesByIdentity(group ledger.TransactionGroup) map[string]ledger.Entry {
+	out := make(map[string]ledger.Entry)
+
+	for _, tx := range group.Transactions() {
+		if _, ok := breakageRecordID(tx.Annotations()); ok {
+			continue
+		}
+
+		for _, entry := range tx.Entries() {
+			if entry.IdentityKey() == "" {
+				continue
+			}
+
+			out[entry.IdentityKey()] = entry
+		}
+	}
+
+	return out
 }
 
 func (s *service) resolvePlanAddresses(ctx context.Context, input PlanIssuanceInput) (ledger.PostingAddress, ledger.PostingAddress, error) {
@@ -458,6 +664,29 @@ func (s *service) hydratePlanAddresses(ctx context.Context, plan *Plan) error {
 
 	plan.FBOAddress = fboSubAccount.Address()
 	plan.BreakageAddress = breakageSubAccount.Address()
+
+	return nil
+}
+
+func (s *service) hydrateReleaseAddresses(ctx context.Context, release *Release) error {
+	fboSubAccount, err := s.deps.AccountCatalog.GetSubAccountByID(ctx, models.NamespacedID{
+		Namespace: release.ID.Namespace,
+		ID:        release.FBOSubAccountID,
+	})
+	if err != nil {
+		return fmt.Errorf("get FBO sub-account %s: %w", release.FBOSubAccountID, err)
+	}
+
+	breakageSubAccount, err := s.deps.AccountCatalog.GetSubAccountByID(ctx, models.NamespacedID{
+		Namespace: release.ID.Namespace,
+		ID:        release.BreakageSubAccountID,
+	})
+	if err != nil {
+		return fmt.Errorf("get breakage sub-account %s: %w", release.BreakageSubAccountID, err)
+	}
+
+	release.FBOAddress = fboSubAccount.Address()
+	release.BreakageAddress = breakageSubAccount.Address()
 
 	return nil
 }

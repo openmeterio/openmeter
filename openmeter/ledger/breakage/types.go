@@ -17,9 +17,13 @@ import (
 type SourceKind = ledger.BreakageSourceKind
 
 const (
-	SourceKindCreditPurchase           SourceKind = ledger.BreakageSourceKindCreditPurchase
-	SourceKindUsage                    SourceKind = ledger.BreakageSourceKindUsage
-	SourceKindUsageCorrection          SourceKind = ledger.BreakageSourceKindUsageCorrection
+	SourceKindCreditPurchase  SourceKind = ledger.BreakageSourceKindCreditPurchase
+	SourceKindUsage           SourceKind = ledger.BreakageSourceKindUsage
+	SourceKindUsageCorrection SourceKind = ledger.BreakageSourceKindUsageCorrection
+	// SourceKindCreditPurchaseCorrection is reserved for a future credit-purchase
+	// correction flow. The breakage primitive is clear, but the charge domain does
+	// not yet define correction/delete semantics, source-specific removable amount
+	// checks, or policy for already-consumed purchased credit.
 	SourceKindCreditPurchaseCorrection SourceKind = ledger.BreakageSourceKindCreditPurchaseCorrection
 	SourceKindAdvanceBackfill          SourceKind = ledger.BreakageSourceKindAdvanceBackfill
 )
@@ -48,6 +52,7 @@ type Record struct {
 	SourceKind               SourceKind
 	SourceTransactionGroupID *string
 	SourceTransactionID      *string
+	SourceEntryID            *string
 
 	BreakageTransactionGroupID string
 	BreakageTransactionID      string
@@ -72,11 +77,24 @@ type Plan struct {
 	BreakageAddress ledger.PostingAddress
 }
 
-// PendingRecord is a record row that has been planned before the ledger
-// commit. PersistCommittedRecords fills in the committed ledger transaction
-// ids after CommitGroup succeeds.
+// Release is a breakage release row with the amount that can still be reopened
+// by corrections.
+type Release struct {
+	Record
+
+	OpenAmount      alpacadecimal.Decimal
+	FBOAddress      ledger.PostingAddress
+	BreakageAddress ledger.PostingAddress
+}
+
+// PendingRecord is a record row that has been planned before the ledger commit.
+// PersistCommittedRecords fills in committed ledger ids after CommitGroup
+// succeeds. SourceEntryIdentityKey is transient; it lets usage releases attach
+// to the committed FBO source entry without knowing the entry id before commit.
 type PendingRecord struct {
 	Record
+
+	SourceEntryIdentityKey string
 }
 
 // ListPlansInput selects expiring credit that can still produce breakage as of
@@ -86,6 +104,24 @@ type PendingRecord struct {
 type ListPlansInput struct {
 	CustomerID customer.CustomerID
 	Currency   currencyx.Code
+	AsOf       time.Time
+}
+
+// ListReleasesInput selects usage release rows that may need to be reopened by
+// a correction of the original FBO collection source entries or by unwinding an
+// advance backfill.
+type ListReleasesInput struct {
+	CustomerID               customer.CustomerID
+	SourceEntryID            []string
+	SourceTransactionGroupID []string
+	ReleaseSourceKind        []SourceKind
+}
+
+// ListExpiredRecordsInput selects breakage rows that have reached their
+// expiration timestamp and can be presented as customer-visible expired credit.
+type ListExpiredRecordsInput struct {
+	CustomerID customer.CustomerID
+	Currency   *currencyx.Code
 	AsOf       time.Time
 }
 
@@ -175,4 +211,14 @@ type Adapter interface {
 	// open plans. Implementations should lock returned rows when the caller is in
 	// a transaction so concurrent collectors cannot release the same open amount.
 	ListCandidateRecords(ctx context.Context, input ListPlansInput) ([]Record, error)
+
+	// ListReleaseRecords returns release and reopen rows for the given source
+	// entries. Implementations should lock returned rows when the caller is in a
+	// transaction so concurrent corrections cannot reopen the same release amount.
+	ListReleaseRecords(ctx context.Context, input ListReleasesInput) ([]Record, error)
+
+	// ListExpiredRecords returns breakage rows whose expiry is visible as of the
+	// query time. The caller owns netting plan/release/reopen rows into a
+	// customer-facing expired transaction.
+	ListExpiredRecords(ctx context.Context, input ListExpiredRecordsInput) ([]Record, error)
 }

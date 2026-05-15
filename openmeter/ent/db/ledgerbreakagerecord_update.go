@@ -156,6 +156,9 @@ func (_u *LedgerBreakageRecordUpdate) sqlSave(ctx context.Context) (_node int, e
 	if _u.mutation.SourceTransactionIDCleared() {
 		_spec.ClearField(ledgerbreakagerecord.FieldSourceTransactionID, field.TypeString)
 	}
+	if _u.mutation.SourceEntryIDCleared() {
+		_spec.ClearField(ledgerbreakagerecord.FieldSourceEntryID, field.TypeString)
+	}
 	if _u.mutation.PlanIDCleared() {
 		_spec.ClearField(ledgerbreakagerecord.FieldPlanID, field.TypeString)
 	}
@@ -337,6 +340,9 @@ func (_u *LedgerBreakageRecordUpdateOne) sqlSave(ctx context.Context) (_node *Le
 	}
 	if _u.mutation.SourceTransactionIDCleared() {
 		_spec.ClearField(ledgerbreakagerecord.FieldSourceTransactionID, field.TypeString)
+	}
+	if _u.mutation.SourceEntryIDCleared() {
+		_spec.ClearField(ledgerbreakagerecord.FieldSourceEntryID, field.TypeString)
 	}
 	if _u.mutation.PlanIDCleared() {
 		_spec.ClearField(ledgerbreakagerecord.FieldPlanID, field.TypeString)

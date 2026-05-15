@@ -4520,11 +4520,13 @@ components:
       enum:
         - funded
         - consumed
+        - expired
       description: |-
         The type of the credit transaction.
 
         - `funded`: Credit granted and available for consumption.
         - `consumed`: Credit consumed by usage or fees.
+        - `expired`: Credit removed because it expired before being used.
     BillingCurrency:
       type: object
       oneOf:

@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbledgerbreakagerecord "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -35,6 +36,7 @@ func (a *adapter) CreateRecords(ctx context.Context, input breakage.CreateRecord
 				SetSourceKind(record.SourceKind).
 				SetNillableSourceTransactionGroupID(record.SourceTransactionGroupID).
 				SetNillableSourceTransactionID(record.SourceTransactionID).
+				SetNillableSourceEntryID(record.SourceEntryID).
 				SetBreakageTransactionGroupID(record.BreakageTransactionGroupID).
 				SetBreakageTransactionID(record.BreakageTransactionID).
 				SetFboSubAccountID(record.FBOSubAccountID).
@@ -55,6 +57,108 @@ func (a *adapter) CreateRecords(ctx context.Context, input breakage.CreateRecord
 		}
 
 		return nil
+	})
+}
+
+func (a *adapter) ListReleaseRecords(ctx context.Context, input breakage.ListReleasesInput) ([]breakage.Record, error) {
+	if err := input.CustomerID.Validate(); err != nil {
+		return nil, fmt.Errorf("customer id: %w", err)
+	}
+
+	if len(input.SourceEntryID) == 0 && len(input.SourceTransactionGroupID) == 0 {
+		return nil, nil
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]breakage.Record, error) {
+		releasePredicates := []predicate.LedgerBreakageRecord{
+			dbledgerbreakagerecord.KindEQ(ledger.BreakageKindRelease),
+		}
+		var sourcePredicates []predicate.LedgerBreakageRecord
+		if len(input.SourceEntryID) > 0 {
+			sourcePredicates = append(sourcePredicates, dbledgerbreakagerecord.SourceEntryIDIn(input.SourceEntryID...))
+		}
+		if len(input.SourceTransactionGroupID) > 0 {
+			sourcePredicates = append(sourcePredicates, dbledgerbreakagerecord.SourceTransactionGroupIDIn(input.SourceTransactionGroupID...))
+		}
+		if len(sourcePredicates) == 1 {
+			releasePredicates = append(releasePredicates, sourcePredicates[0])
+		} else {
+			releasePredicates = append(releasePredicates, dbledgerbreakagerecord.Or(sourcePredicates...))
+		}
+		if len(input.ReleaseSourceKind) > 0 {
+			releasePredicates = append(releasePredicates, dbledgerbreakagerecord.SourceKindIn(input.ReleaseSourceKind...))
+		}
+
+		rows, err := tx.db.LedgerBreakageRecord.Query().
+			Where(
+				dbledgerbreakagerecord.NamespaceEQ(input.CustomerID.Namespace),
+				dbledgerbreakagerecord.CustomerIDEQ(input.CustomerID.ID),
+				dbledgerbreakagerecord.DeletedAtIsNil(),
+				dbledgerbreakagerecord.Or(
+					dbledgerbreakagerecord.And(releasePredicates...),
+					dbledgerbreakagerecord.KindEQ(ledger.BreakageKindReopen),
+				),
+			).
+			Order(
+				dbledgerbreakagerecord.BySourceEntryID(sql.OrderAsc()),
+				dbledgerbreakagerecord.ByExpiresAt(sql.OrderAsc()),
+				dbledgerbreakagerecord.ByID(sql.OrderAsc()),
+			).
+			ForUpdate().
+			All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list release breakage records: %w", err)
+		}
+
+		out := make([]breakage.Record, 0, len(rows))
+		for _, row := range rows {
+			out = append(out, mapRecordFromDB(row))
+		}
+
+		return out, nil
+	})
+}
+
+func (a *adapter) ListExpiredRecords(ctx context.Context, input breakage.ListExpiredRecordsInput) ([]breakage.Record, error) {
+	if err := input.CustomerID.Validate(); err != nil {
+		return nil, fmt.Errorf("customer id: %w", err)
+	}
+
+	if input.Currency != nil {
+		if err := input.Currency.Validate(); err != nil {
+			return nil, fmt.Errorf("currency: %w", err)
+		}
+	}
+
+	if input.AsOf.IsZero() {
+		return nil, fmt.Errorf("as of is required")
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]breakage.Record, error) {
+		predicates := []predicate.LedgerBreakageRecord{
+			dbledgerbreakagerecord.NamespaceEQ(input.CustomerID.Namespace),
+			dbledgerbreakagerecord.CustomerIDEQ(input.CustomerID.ID),
+			dbledgerbreakagerecord.DeletedAtIsNil(),
+			dbledgerbreakagerecord.ExpiresAtLTE(input.AsOf),
+		}
+
+		if input.Currency != nil {
+			predicates = append(predicates, dbledgerbreakagerecord.CurrencyEQ(*input.Currency))
+		}
+
+		rows, err := tx.db.LedgerBreakageRecord.Query().
+			Where(predicates...).
+			Order(
+				dbledgerbreakagerecord.ByExpiresAt(sql.OrderDesc()),
+				dbledgerbreakagerecord.ByCreatedAt(sql.OrderDesc()),
+				dbledgerbreakagerecord.ByID(sql.OrderDesc()),
+			).
+			All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list expired breakage records: %w", err)
+		}
+
+		return mapRecords(rows), nil
 	})
 }
 
@@ -122,6 +226,7 @@ func mapRecordFromDB(row *entdb.LedgerBreakageRecord) breakage.Record {
 		SourceKind:                 row.SourceKind,
 		SourceTransactionGroupID:   row.SourceTransactionGroupID,
 		SourceTransactionID:        row.SourceTransactionID,
+		SourceEntryID:              row.SourceEntryID,
 		BreakageTransactionGroupID: row.BreakageTransactionGroupID,
 		BreakageTransactionID:      row.BreakageTransactionID,
 		FBOSubAccountID:            row.FboSubAccountID,
@@ -130,4 +235,13 @@ func mapRecordFromDB(row *entdb.LedgerBreakageRecord) breakage.Record {
 		ReleaseID:                  row.ReleaseID,
 		Annotations:                row.Annotations,
 	}
+}
+
+func mapRecords(rows []*entdb.LedgerBreakageRecord) []breakage.Record {
+	out := make([]breakage.Record, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, mapRecordFromDB(row))
+	}
+
+	return out
 }

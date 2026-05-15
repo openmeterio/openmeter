@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
@@ -74,11 +75,16 @@ func NewChargesCollectorService(
 }
 
 func NewLedgerBreakageService(
+	creditsConfig config.CreditsConfiguration,
 	db *entdb.Client,
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 ) (ledgerbreakage.Service, error) {
+	if !creditsConfig.Enabled {
+		return ledgerbreakage.NewNoopService(), nil
+	}
+
 	breakageAdapter, err := ledgerbreakageadapter.New(ledgerbreakageadapter.Config{
 		Client: db,
 	})
@@ -368,6 +374,7 @@ func newChargesRegistry(
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
+	breakageService ledgerbreakage.Service,
 	fsNamespaceLockdown []string,
 ) (*ChargesRegistry, error) {
 	metaAdapter, err := NewChargesMetaAdapter(db, logger)
@@ -381,11 +388,6 @@ func newChargesRegistry(
 	}
 
 	lineageService, err := NewChargesLineageService(lineageAdapter)
-	if err != nil {
-		return nil, err
-	}
-
-	breakageService, err := NewLedgerBreakageService(db, balanceQuerier, accountResolver, accountService)
 	if err != nil {
 		return nil, err
 	}
