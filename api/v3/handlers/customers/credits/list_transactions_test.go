@@ -23,6 +23,15 @@ func TestFromAPIBillingCreditTransactionType_Funded(t *testing.T) {
 	require.Equal(t, customerbalance.CreditTransactionTypeFunded, *txType)
 }
 
+func TestFromAPIBillingCreditTransactionType_Expired(t *testing.T) {
+	filter := api.BillingCreditTransactionTypeExpired
+
+	txType := fromAPIBillingCreditTransactionType(&filter)
+
+	require.NotNil(t, txType)
+	require.Equal(t, customerbalance.CreditTransactionTypeExpired, *txType)
+}
+
 func TestToAPIBillingCreditTransaction(t *testing.T) {
 	createdAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
 	bookedAt := createdAt.Add(time.Second)
@@ -59,6 +68,22 @@ func TestToAPIBillingCreditTransaction(t *testing.T) {
 	require.Equal(t, description, *tx.Description)
 	require.NotNil(t, tx.Labels)
 	require.Equal(t, "charge-1", (*tx.Labels)["charge_id"])
+}
+
+func TestToAPIBillingCreditTransaction_Expired(t *testing.T) {
+	tx := toAPIBillingCreditTransaction(customerbalance.CreditTransaction{
+		ID: models.NamespacedID{
+			Namespace: "ns",
+			ID:        "tx-1",
+		},
+		CreatedAt: time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC),
+		BookedAt:  time.Date(2026, 4, 11, 9, 0, 0, 0, time.UTC),
+		Type:      customerbalance.CreditTransactionTypeExpired,
+		Currency:  currencyx.Code("USD"),
+		Amount:    alpacadecimal.NewFromInt(-4),
+	})
+
+	require.Equal(t, api.BillingCreditTransactionTypeExpired, tx.Type)
 }
 
 func TestCreditTransactionCursorConversion(t *testing.T) {

@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"sort"
@@ -12,14 +13,18 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type accrualCorrector struct {
-	ledger ledger.Ledger
-	deps   transactions.ResolverDependencies
+	ledger             ledger.Ledger
+	deps               transactions.ResolverDependencies
+	breakage           breakage.Service
+	transactionManager transaction.Creator
 }
 
 // collectedSource is one logical “collection” in the group: the FBO→accrued
@@ -51,71 +56,87 @@ func (plannedTransactionCorrection) isPlannedAction() {}
 // plannedDirectInputs are inputs we already resolved (e.g. reissue); they skip
 // the merge-and-CorrectTransaction path below.
 type plannedDirectInputs struct {
-	inputs []ledger.TransactionInput
+	inputs          []ledger.TransactionInput
+	breakagePending []breakage.PendingRecord
 }
 
 func (plannedDirectInputs) isPlannedAction() {}
 
-func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAccruedInput) (creditrealization.CreateCorrectionInputs, error) {
-	if len(input.Corrections) == 0 {
-		return nil, nil
-	}
+type resolvedCorrectionInputs struct {
+	inputs          []ledger.TransactionInput
+	breakagePending []breakage.PendingRecord
+}
 
-	// Plan first, execute later, so we can merge overlapping corrections cleanly.
-	actions := make([]plannedAction, 0, len(input.Corrections))
-	for _, correction := range input.Corrections {
-		correctionActions, err := c.planCorrection(ctx, input, correction)
+func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAccruedInput) (creditrealization.CreateCorrectionInputs, error) {
+	run := func(ctx context.Context) (creditrealization.CreateCorrectionInputs, error) {
+		if len(input.Corrections) == 0 {
+			return nil, nil
+		}
+
+		// Plan first, execute later, so we can merge overlapping corrections cleanly.
+		actions := make([]plannedAction, 0, len(input.Corrections))
+		for _, correction := range input.Corrections {
+			correctionActions, err := c.planCorrection(ctx, input, correction)
+			if err != nil {
+				return nil, err
+			}
+			actions = append(actions, correctionActions...)
+		}
+
+		resolved, err := c.resolvePlannedInputs(ctx, input, actions)
 		if err != nil {
 			return nil, err
 		}
-		actions = append(actions, correctionActions...)
-	}
-
-	resolvedInputs, err := c.resolvePlannedInputs(ctx, input, actions)
-	if err != nil {
-		return nil, err
-	}
-	if len(resolvedInputs) == 0 {
-		return nil, nil
-	}
-
-	groupAnnotations := input.Annotations
-	if groupAnnotations == nil {
-		groupAnnotations = ledger.ChargeAnnotations(models.NamespacedID{
-			Namespace: input.Namespace,
-			ID:        input.ChargeID,
-		})
-	}
-
-	// Write the whole correction batch as one group and point every new correction
-	// realization at that group.
-	for i, txInput := range resolvedInputs {
-		if txInput != nil {
-			resolvedInputs[i] = transactions.WithAnnotations(txInput, groupAnnotations)
+		if len(resolved.inputs) == 0 {
+			return nil, nil
 		}
+
+		groupAnnotations := input.Annotations
+		if groupAnnotations == nil {
+			groupAnnotations = ledger.ChargeAnnotations(models.NamespacedID{
+				Namespace: input.Namespace,
+				ID:        input.ChargeID,
+			})
+		}
+
+		// Write the whole correction batch as one group and point every new correction
+		// realization at that group.
+		for i, txInput := range resolved.inputs {
+			if txInput != nil {
+				resolved.inputs[i] = transactions.WithAnnotations(txInput, groupAnnotations)
+			}
+		}
+
+		transactionGroup, err := c.ledger.CommitGroup(ctx, transactions.GroupInputs(
+			input.Namespace,
+			groupAnnotations,
+			resolved.inputs...,
+		))
+		if err != nil {
+			return nil, fmt.Errorf("commit correction transaction group: %w", err)
+		}
+
+		if c.breakage != nil {
+			if err := c.breakage.PersistCommittedRecords(ctx, resolved.breakagePending, transactionGroup); err != nil {
+				return nil, fmt.Errorf("persist breakage records: %w", err)
+			}
+		}
+
+		out := make(creditrealization.CreateCorrectionInputs, 0, len(input.Corrections))
+		for _, correction := range input.Corrections {
+			out = append(out, creditrealization.CreateCorrectionInput{
+				LedgerTransaction: ledgertransaction.GroupReference{
+					TransactionGroupID: transactionGroup.ID().ID,
+				},
+				Amount:                correction.Amount,
+				CorrectsRealizationID: correction.Allocation.ID,
+			})
+		}
+
+		return out, nil
 	}
 
-	transactionGroup, err := c.ledger.CommitGroup(ctx, transactions.GroupInputs(
-		input.Namespace,
-		groupAnnotations,
-		resolvedInputs...,
-	))
-	if err != nil {
-		return nil, fmt.Errorf("commit correction transaction group: %w", err)
-	}
-
-	out := make(creditrealization.CreateCorrectionInputs, 0, len(input.Corrections))
-	for _, correction := range input.Corrections {
-		out = append(out, creditrealization.CreateCorrectionInput{
-			LedgerTransaction: ledgertransaction.GroupReference{
-				TransactionGroupID: transactionGroup.ID().ID,
-			},
-			Amount:                correction.Amount,
-			CorrectsRealizationID: correction.Allocation.ID,
-		})
-	}
-
-	return out, nil
+	return transaction.Run(ctx, c.transactionManager, run)
 }
 
 func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectCollectedAccruedInput, correction creditrealization.CorrectionRequestItem) ([]plannedAction, error) {
@@ -275,6 +296,15 @@ func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, inp
 	})
 	actions = append(actions, plannedSourceCorrectionActions(source, amount, true)...)
 
+	reopenInputs, reopenPending, err := c.resolveAdvanceBackfillBreakageReopenInputs(ctx, input, backingGroup, amount)
+	if err != nil {
+		return nil, err
+	}
+	actions = append(actions, plannedDirectInputs{
+		inputs:          reopenInputs,
+		breakagePending: reopenPending,
+	})
+
 	// The purchased-credit-covered part becomes available credit again.
 	// We intentionally re-issue it into FBO and stop there: releasing purchased backing during
 	// correction does not trigger a fresh customer-wide backfill pass against other uncovered advance.
@@ -353,12 +383,13 @@ func plannedSourceCorrectionActions(source collectedSource, amount alpacadecimal
 	return actions
 }
 
-func (c *accrualCorrector) resolvePlannedInputs(ctx context.Context, input CorrectCollectedAccruedInput, actions []plannedAction) ([]ledger.TransactionInput, error) {
+func (c *accrualCorrector) resolvePlannedInputs(ctx context.Context, input CorrectCollectedAccruedInput, actions []plannedAction) (resolvedCorrectionInputs, error) {
 	// Merge by original transaction before executing, so template-specific correction
 	// still sees one aggregated amount per source.
 	mergedCorrections := make(map[string]*transactionCorrectionPlan, len(actions))
 	correctionOrder := make([]string, 0, len(actions))
 	out := make([]ledger.TransactionInput, 0, len(actions))
+	breakagePending := make([]breakage.PendingRecord, 0)
 
 	for _, action := range actions {
 		switch planned := action.(type) {
@@ -377,13 +408,21 @@ func (c *accrualCorrector) resolvePlannedInputs(ctx context.Context, input Corre
 			correctionOrder = append(correctionOrder, key)
 		case plannedDirectInputs:
 			out = append(out, planned.inputs...)
+			breakagePending = append(breakagePending, planned.breakagePending...)
 		default:
-			return nil, fmt.Errorf("unsupported planned action %T", action)
+			return resolvedCorrectionInputs{}, fmt.Errorf("unsupported planned action %T", action)
 		}
 	}
 
 	for _, key := range correctionOrder {
 		transactionPlan := mergedCorrections[key]
+		breakageInputs, pending, err := c.resolveBreakageReopenInputs(ctx, input, *transactionPlan)
+		if err != nil {
+			return resolvedCorrectionInputs{}, err
+		}
+		out = append(out, breakageInputs...)
+		breakagePending = append(breakagePending, pending...)
+
 		correctionInputs, err := transactions.CorrectTransaction(ctx, c.deps, transactions.CorrectionInput{
 			At:                  input.AllocateAt,
 			Amount:              transactionPlan.amount,
@@ -391,12 +430,190 @@ func (c *accrualCorrector) resolvePlannedInputs(ctx context.Context, input Corre
 			OriginalGroup:       transactionPlan.group,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("correct transaction %s: %w", transactionPlan.transaction.ID().ID, err)
+			return resolvedCorrectionInputs{}, fmt.Errorf("correct transaction %s: %w", transactionPlan.transaction.ID().ID, err)
 		}
 		out = append(out, correctionInputs...)
 	}
 
-	return out, nil
+	return resolvedCorrectionInputs{
+		inputs:          out,
+		breakagePending: breakagePending,
+	}, nil
+}
+
+func (c *accrualCorrector) resolveAdvanceBackfillBreakageReopenInputs(ctx context.Context, input CorrectCollectedAccruedInput, backingGroup ledger.TransactionGroup, amount alpacadecimal.Decimal) ([]ledger.TransactionInput, []breakage.PendingRecord, error) {
+	if c.breakage == nil {
+		return nil, nil, nil
+	}
+
+	releases, err := c.breakage.ListReleases(ctx, breakage.ListReleasesInput{
+		CustomerID: customer.CustomerID{
+			Namespace: input.Namespace,
+			ID:        input.CustomerID,
+		},
+		SourceTransactionGroupID: []string{backingGroup.ID().ID},
+		ReleaseSourceKind:        []breakage.SourceKind{breakage.SourceKindAdvanceBackfill},
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("list advance-backfill breakage releases: %w", err)
+	}
+
+	inputs := make([]ledger.TransactionInput, 0, len(releases))
+	pending := make([]breakage.PendingRecord, 0, len(releases))
+	remaining := amount
+	for _, release := range releases {
+		if !remaining.IsPositive() {
+			break
+		}
+
+		reopenAmount := minDecimal(release.OpenAmount, remaining)
+		if !reopenAmount.IsPositive() {
+			continue
+		}
+
+		reopenInput, reopenRecord, err := c.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
+			Release:    release,
+			Amount:     reopenAmount,
+			SourceKind: breakage.SourceKindUsageCorrection,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("resolve advance-backfill breakage reopen: %w", err)
+		}
+
+		inputs = append(inputs, reopenInput)
+		pending = append(pending, reopenRecord)
+		remaining = remaining.Sub(reopenAmount)
+	}
+
+	return inputs, pending, nil
+}
+
+type correctedFBOEntry struct {
+	entry  ledger.Entry
+	amount alpacadecimal.Decimal
+}
+
+func (c *accrualCorrector) resolveBreakageReopenInputs(ctx context.Context, input CorrectCollectedAccruedInput, transactionPlan transactionCorrectionPlan) ([]ledger.TransactionInput, []breakage.PendingRecord, error) {
+	if c.breakage == nil {
+		return nil, nil, nil
+	}
+
+	templateCode, err := ledger.TransactionTemplateCodeFromAnnotations(transactionPlan.transaction.Annotations())
+	if err != nil {
+		return nil, nil, fmt.Errorf("transaction %s template code: %w", transactionPlan.transaction.ID().ID, err)
+	}
+	if templateCode != transactions.TemplateCode(transactions.TransferCustomerFBOToAccruedTemplate{}) {
+		return nil, nil, nil
+	}
+
+	correctedEntries := correctedFBOEntriesForAmount(transactionPlan.transaction, transactionPlan.amount)
+	if len(correctedEntries) == 0 {
+		return nil, nil, nil
+	}
+
+	sourceEntryIDs := make([]string, 0, len(correctedEntries))
+	for _, correctedEntry := range correctedEntries {
+		sourceEntryIDs = append(sourceEntryIDs, correctedEntry.entry.ID().ID)
+	}
+
+	releases, err := c.breakage.ListReleases(ctx, breakage.ListReleasesInput{
+		CustomerID:    customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID},
+		SourceEntryID: sourceEntryIDs,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("list breakage releases: %w", err)
+	}
+
+	releasesBySourceEntryID := make(map[string][]breakage.Release, len(releases))
+	for _, release := range releases {
+		if release.SourceEntryID == nil || *release.SourceEntryID == "" {
+			continue
+		}
+
+		releasesBySourceEntryID[*release.SourceEntryID] = append(releasesBySourceEntryID[*release.SourceEntryID], release)
+	}
+
+	inputs := make([]ledger.TransactionInput, 0, len(releases))
+	pending := make([]breakage.PendingRecord, 0, len(releases))
+	for _, correctedEntry := range correctedEntries {
+		remaining := correctedEntry.amount
+		for _, release := range releasesBySourceEntryID[correctedEntry.entry.ID().ID] {
+			if !remaining.IsPositive() {
+				break
+			}
+
+			amount := minDecimal(release.OpenAmount, remaining)
+			if !amount.IsPositive() {
+				continue
+			}
+
+			reopenInput, reopenRecord, err := c.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
+				Release:    release,
+				Amount:     amount,
+				SourceKind: breakage.SourceKindUsageCorrection,
+			})
+			if err != nil {
+				return nil, nil, fmt.Errorf("resolve breakage reopen: %w", err)
+			}
+
+			inputs = append(inputs, reopenInput)
+			pending = append(pending, reopenRecord)
+			remaining = remaining.Sub(amount)
+		}
+	}
+
+	return inputs, pending, nil
+}
+
+func correctedFBOEntriesForAmount(transaction ledger.Transaction, amount alpacadecimal.Decimal) []correctedFBOEntry {
+	sourceEntries := make([]ledger.Entry, 0)
+	for _, entry := range transaction.Entries() {
+		if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO && entry.Amount().IsNegative() {
+			sourceEntries = append(sourceEntries, entry)
+		}
+	}
+
+	sort.SliceStable(sourceEntries, func(i, j int) bool {
+		return compareCollectedFBOCorrectionSourceEntries(sourceEntries[i], sourceEntries[j]) < 0
+	})
+
+	remaining := amount
+	out := make([]correctedFBOEntry, 0, len(sourceEntries))
+	for idx := len(sourceEntries) - 1; idx >= 0 && remaining.IsPositive(); idx-- {
+		entry := sourceEntries[idx]
+		entryAmount := entry.Amount().Abs()
+		if entryAmount.GreaterThan(remaining) {
+			entryAmount = remaining
+		}
+
+		out = append(out, correctedFBOEntry{
+			entry:  entry,
+			amount: entryAmount,
+		})
+		remaining = remaining.Sub(entryAmount)
+	}
+
+	return out
+}
+
+func compareCollectedFBOCorrectionSourceEntries(left ledger.Entry, right ledger.Entry) int {
+	leftOrder, leftHasOrder := left.Annotations().GetInt(ledger.AnnotationCollectionSourceOrder)
+	rightOrder, rightHasOrder := right.Annotations().GetInt(ledger.AnnotationCollectionSourceOrder)
+	if leftHasOrder && rightHasOrder && leftOrder != rightOrder {
+		return cmp.Compare(leftOrder, rightOrder)
+	}
+
+	leftPriority := customerFBOPriority(left.PostingAddress().Route().Route())
+	rightPriority := customerFBOPriority(right.PostingAddress().Route().Route())
+	if leftPriority != rightPriority {
+		return cmp.Compare(leftPriority, rightPriority)
+	}
+
+	if c := cmp.Compare(left.PostingAddress().SubAccountID(), right.PostingAddress().SubAccountID()); c != 0 {
+		return c
+	}
+
+	return cmp.Compare(left.IdentityKey(), right.IdentityKey())
 }
 
 func (c *accrualCorrector) collectedSourceBySortHint(group ledger.TransactionGroup, sortHint int) (collectedSource, error) {

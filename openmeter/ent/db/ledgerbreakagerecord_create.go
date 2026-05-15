@@ -151,6 +151,20 @@ func (_c *LedgerBreakageRecordCreate) SetNillableSourceTransactionID(v *string) 
 	return _c
 }
 
+// SetSourceEntryID sets the "source_entry_id" field.
+func (_c *LedgerBreakageRecordCreate) SetSourceEntryID(v string) *LedgerBreakageRecordCreate {
+	_c.mutation.SetSourceEntryID(v)
+	return _c
+}
+
+// SetNillableSourceEntryID sets the "source_entry_id" field if the given value is not nil.
+func (_c *LedgerBreakageRecordCreate) SetNillableSourceEntryID(v *string) *LedgerBreakageRecordCreate {
+	if v != nil {
+		_c.SetSourceEntryID(*v)
+	}
+	return _c
+}
+
 // SetBreakageTransactionGroupID sets the "breakage_transaction_group_id" field.
 func (_c *LedgerBreakageRecordCreate) SetBreakageTransactionGroupID(v string) *LedgerBreakageRecordCreate {
 	_c.mutation.SetBreakageTransactionGroupID(v)
@@ -447,6 +461,10 @@ func (_c *LedgerBreakageRecordCreate) createSpec() (*LedgerBreakageRecord, *sqlg
 		_spec.SetField(ledgerbreakagerecord.FieldSourceTransactionID, field.TypeString, value)
 		_node.SourceTransactionID = &value
 	}
+	if value, ok := _c.mutation.SourceEntryID(); ok {
+		_spec.SetField(ledgerbreakagerecord.FieldSourceEntryID, field.TypeString, value)
+		_node.SourceEntryID = &value
+	}
 	if value, ok := _c.mutation.BreakageTransactionGroupID(); ok {
 		_spec.SetField(ledgerbreakagerecord.FieldBreakageTransactionGroupID, field.TypeString, value)
 		_node.BreakageTransactionGroupID = value
@@ -629,6 +647,9 @@ func (u *LedgerBreakageRecordUpsertOne) UpdateNewValues() *LedgerBreakageRecordU
 		}
 		if _, exists := u.create.mutation.SourceTransactionID(); exists {
 			s.SetIgnore(ledgerbreakagerecord.FieldSourceTransactionID)
+		}
+		if _, exists := u.create.mutation.SourceEntryID(); exists {
+			s.SetIgnore(ledgerbreakagerecord.FieldSourceEntryID)
 		}
 		if _, exists := u.create.mutation.BreakageTransactionGroupID(); exists {
 			s.SetIgnore(ledgerbreakagerecord.FieldBreakageTransactionGroupID)
@@ -961,6 +982,9 @@ func (u *LedgerBreakageRecordUpsertBulk) UpdateNewValues() *LedgerBreakageRecord
 			}
 			if _, exists := b.mutation.SourceTransactionID(); exists {
 				s.SetIgnore(ledgerbreakagerecord.FieldSourceTransactionID)
+			}
+			if _, exists := b.mutation.SourceEntryID(); exists {
+				s.SetIgnore(ledgerbreakagerecord.FieldSourceEntryID)
 			}
 			if _, exists := b.mutation.BreakageTransactionGroupID(); exists {
 				s.SetIgnore(ledgerbreakagerecord.FieldBreakageTransactionGroupID)

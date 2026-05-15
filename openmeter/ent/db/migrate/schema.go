@@ -3593,6 +3593,7 @@ var (
 		{Name: "source_kind", Type: field.TypeEnum, Enums: []string{"credit_purchase", "usage", "usage_correction", "credit_purchase_correction", "advance_backfill"}},
 		{Name: "source_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "source_transaction_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "source_entry_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "breakage_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "breakage_transaction_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "fbo_sub_account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3634,7 +3635,7 @@ var (
 			{
 				Name:    "ledgerbreakagerecord_namespace_plan_id",
 				Unique:  false,
-				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[19]},
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[20]},
 			},
 			{
 				Name:    "ledgerbreakagerecord_namespace_source_transaction_group_id",
@@ -3642,9 +3643,14 @@ var (
 				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[13]},
 			},
 			{
-				Name:    "ledgerbreakagerecord_namespace_breakage_transaction_group_id",
+				Name:    "ledgerbreakagerecord_namespace_source_entry_id",
 				Unique:  false,
 				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[15]},
+			},
+			{
+				Name:    "ledgerbreakagerecord_namespace_breakage_transaction_group_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[16]},
 			},
 		},
 	}

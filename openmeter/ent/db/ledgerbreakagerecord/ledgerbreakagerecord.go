@@ -43,6 +43,8 @@ const (
 	FieldSourceTransactionGroupID = "source_transaction_group_id"
 	// FieldSourceTransactionID holds the string denoting the source_transaction_id field in the database.
 	FieldSourceTransactionID = "source_transaction_id"
+	// FieldSourceEntryID holds the string denoting the source_entry_id field in the database.
+	FieldSourceEntryID = "source_entry_id"
 	// FieldBreakageTransactionGroupID holds the string denoting the breakage_transaction_group_id field in the database.
 	FieldBreakageTransactionGroupID = "breakage_transaction_group_id"
 	// FieldBreakageTransactionID holds the string denoting the breakage_transaction_id field in the database.
@@ -76,6 +78,7 @@ var Columns = []string{
 	FieldSourceKind,
 	FieldSourceTransactionGroupID,
 	FieldSourceTransactionID,
+	FieldSourceEntryID,
 	FieldBreakageTransactionGroupID,
 	FieldBreakageTransactionID,
 	FieldFboSubAccountID,
@@ -210,6 +213,11 @@ func BySourceTransactionGroupID(opts ...sql.OrderTermOption) OrderOption {
 // BySourceTransactionID orders the results by the source_transaction_id field.
 func BySourceTransactionID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSourceTransactionID, opts...).ToFunc()
+}
+
+// BySourceEntryID orders the results by the source_entry_id field.
+func BySourceEntryID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSourceEntryID, opts...).ToFunc()
 }
 
 // ByBreakageTransactionGroupID orders the results by the breakage_transaction_group_id field.

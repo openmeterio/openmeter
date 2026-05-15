@@ -123,6 +123,11 @@ func SourceTransactionID(v string) predicate.LedgerBreakageRecord {
 	return predicate.LedgerBreakageRecord(sql.FieldEQ(FieldSourceTransactionID, v))
 }
 
+// SourceEntryID applies equality check predicate on the "source_entry_id" field. It's identical to SourceEntryIDEQ.
+func SourceEntryID(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldEQ(FieldSourceEntryID, v))
+}
+
 // BreakageTransactionGroupID applies equality check predicate on the "breakage_transaction_group_id" field. It's identical to BreakageTransactionGroupIDEQ.
 func BreakageTransactionGroupID(v string) predicate.LedgerBreakageRecord {
 	return predicate.LedgerBreakageRecord(sql.FieldEQ(FieldBreakageTransactionGroupID, v))
@@ -835,6 +840,81 @@ func SourceTransactionIDEqualFold(v string) predicate.LedgerBreakageRecord {
 // SourceTransactionIDContainsFold applies the ContainsFold predicate on the "source_transaction_id" field.
 func SourceTransactionIDContainsFold(v string) predicate.LedgerBreakageRecord {
 	return predicate.LedgerBreakageRecord(sql.FieldContainsFold(FieldSourceTransactionID, v))
+}
+
+// SourceEntryIDEQ applies the EQ predicate on the "source_entry_id" field.
+func SourceEntryIDEQ(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldEQ(FieldSourceEntryID, v))
+}
+
+// SourceEntryIDNEQ applies the NEQ predicate on the "source_entry_id" field.
+func SourceEntryIDNEQ(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldNEQ(FieldSourceEntryID, v))
+}
+
+// SourceEntryIDIn applies the In predicate on the "source_entry_id" field.
+func SourceEntryIDIn(vs ...string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldIn(FieldSourceEntryID, vs...))
+}
+
+// SourceEntryIDNotIn applies the NotIn predicate on the "source_entry_id" field.
+func SourceEntryIDNotIn(vs ...string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldNotIn(FieldSourceEntryID, vs...))
+}
+
+// SourceEntryIDGT applies the GT predicate on the "source_entry_id" field.
+func SourceEntryIDGT(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldGT(FieldSourceEntryID, v))
+}
+
+// SourceEntryIDGTE applies the GTE predicate on the "source_entry_id" field.
+func SourceEntryIDGTE(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldGTE(FieldSourceEntryID, v))
+}
+
+// SourceEntryIDLT applies the LT predicate on the "source_entry_id" field.
+func SourceEntryIDLT(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldLT(FieldSourceEntryID, v))
+}
+
+// SourceEntryIDLTE applies the LTE predicate on the "source_entry_id" field.
+func SourceEntryIDLTE(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldLTE(FieldSourceEntryID, v))
+}
+
+// SourceEntryIDContains applies the Contains predicate on the "source_entry_id" field.
+func SourceEntryIDContains(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldContains(FieldSourceEntryID, v))
+}
+
+// SourceEntryIDHasPrefix applies the HasPrefix predicate on the "source_entry_id" field.
+func SourceEntryIDHasPrefix(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldHasPrefix(FieldSourceEntryID, v))
+}
+
+// SourceEntryIDHasSuffix applies the HasSuffix predicate on the "source_entry_id" field.
+func SourceEntryIDHasSuffix(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldHasSuffix(FieldSourceEntryID, v))
+}
+
+// SourceEntryIDIsNil applies the IsNil predicate on the "source_entry_id" field.
+func SourceEntryIDIsNil() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldIsNull(FieldSourceEntryID))
+}
+
+// SourceEntryIDNotNil applies the NotNil predicate on the "source_entry_id" field.
+func SourceEntryIDNotNil() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldNotNull(FieldSourceEntryID))
+}
+
+// SourceEntryIDEqualFold applies the EqualFold predicate on the "source_entry_id" field.
+func SourceEntryIDEqualFold(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldEqualFold(FieldSourceEntryID, v))
+}
+
+// SourceEntryIDContainsFold applies the ContainsFold predicate on the "source_entry_id" field.
+func SourceEntryIDContainsFold(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldContainsFold(FieldSourceEntryID, v))
 }
 
 // BreakageTransactionGroupIDEQ applies the EQ predicate on the "breakage_transaction_group_id" field.

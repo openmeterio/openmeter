@@ -30,6 +30,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -68,6 +69,7 @@ type ChargesRegistry struct {
 var Billing = wire.NewSet(
 	BillingAdapter,
 	NewBillingRatingService,
+	NewLedgerBreakageService,
 	NewBillingRegistry,
 	NewBillingCustomerOverrideService,
 )
@@ -146,6 +148,7 @@ func NewBillingRegistry(
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
+	breakageService ledgerbreakage.Service,
 ) (BillingRegistry, error) {
 	billingService, err := newBillingService(
 		logger,
@@ -183,6 +186,7 @@ func NewBillingRegistry(
 			balanceQuerier,
 			accountResolver,
 			accountService,
+			breakageService,
 			fsConfig.NamespaceLockdown,
 		)
 		if err != nil {
