@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,7 +17,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -278,7 +282,13 @@ type expectedLine struct {
 	Price            mo.Option[*productcatalog.Price]
 	Periods          []timeutil.ClosedPeriod
 	InvoiceAt        mo.Option[[]time.Time]
+	Charge           mo.Option[chargeExpects]
 	AdditionalChecks func(line billing.GenericInvoiceLine)
+}
+
+type chargeExpects struct {
+	Status         string
+	SettlementMode productcatalog.SettlementMode
 }
 
 func (s *SuiteBase) expectLines(invoice billing.GenericInvoiceReader, subscriptionID string, expectedLines []expectedLine) {
@@ -343,6 +353,207 @@ func (s *SuiteBase) expectLines(invoice billing.GenericInvoiceReader, subscripti
 				expectedLine.AdditionalChecks(line)
 			}
 		}
+	}
+}
+
+func (s *SuiteBase) assertChargesForLines(ctx context.Context, subsView subscription.SubscriptionView, expectedLines []expectedLine) {
+	s.T().Helper()
+
+	flatFeeExpectedLines := make([]expectedLine, 0, len(expectedLines))
+	usageBasedExpectedLines := make([]expectedLine, 0, len(expectedLines))
+
+	for _, expectedLine := range expectedLines {
+		s.Require().True(expectedLine.Price.IsPresent())
+
+		switch expectedLine.Price.OrEmpty().Type() {
+		case productcatalog.FlatPriceType:
+			flatFeeExpectedLines = append(flatFeeExpectedLines, expectedLine)
+		case productcatalog.UnitPriceType:
+			usageBasedExpectedLines = append(usageBasedExpectedLines, expectedLine)
+		default:
+			s.Failf("unsupported charge price", "unsupported charge price type %s", expectedLine.Price.OrEmpty().Type())
+		}
+	}
+
+	s.assertFlatFeeChargesForLines(ctx, subsView, flatFeeExpectedLines)
+	s.assertUsageBasedChargesForLines(ctx, subsView, usageBasedExpectedLines)
+}
+
+func (s *SuiteBase) assertFlatFeeChargesForLines(ctx context.Context, subsView subscription.SubscriptionView, expectedLines []expectedLine) {
+	s.T().Helper()
+
+	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subsView.Subscription.ID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+	})
+	s.NoError(err)
+
+	flatFeeCharges := make([]flatfee.Charge, 0, len(res.Items))
+	for _, charge := range res.Items {
+		flatFeeCharge, err := charge.AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeCharges = append(flatFeeCharges, flatFeeCharge)
+	}
+
+	expectedChargeIDs := lo.Flatten(lo.Map(expectedLines, func(expectedLine expectedLine, _ int) []string {
+		return expectedLine.Matcher.ChildIDs(subsView.Subscription.ID)
+	}))
+	actualChargeIDs := lo.Map(flatFeeCharges, func(charge flatfee.Charge, _ int) string {
+		s.Require().NotNil(charge.Intent.UniqueReferenceID)
+		return lo.FromPtr(charge.Intent.UniqueReferenceID)
+	})
+	s.Len(flatFeeCharges, len(expectedChargeIDs))
+	s.ElementsMatch(expectedChargeIDs, actualChargeIDs)
+
+	expectedItemVersionCounts := map[string]int{}
+	for _, expectedLine := range expectedLines {
+		phaseKey, itemKey, version := s.chargeExpectedLineMatcherParts(expectedLine.Matcher)
+
+		key := fmt.Sprintf("%s/%s", phaseKey, itemKey)
+		expectedItemVersionCounts[key] = max(expectedItemVersionCounts[key], version+1)
+	}
+
+	for key, expectedVersionCount := range expectedItemVersionCounts {
+		parts := strings.Split(key, "/")
+		s.Require().Len(parts, 2)
+
+		phase := s.getPhaseByKey(s.T(), subsView, parts[0])
+		s.Require().Len(phase.ItemsByKey[parts[1]], expectedVersionCount)
+	}
+
+	for _, expectedLine := range expectedLines {
+		phaseKey, itemKey, version := s.chargeExpectedLineMatcherParts(expectedLine.Matcher)
+		phase := s.getPhaseByKey(s.T(), subsView, phaseKey)
+		item := phase.ItemsByKey[itemKey][version]
+
+		s.Require().True(expectedLine.Price.IsPresent())
+		flatPrice, err := expectedLine.Price.OrEmpty().AsFlat()
+		s.NoError(err)
+		catalogFlatPrice, err := item.Spec.RateCard.AsMeta().Price.AsFlat()
+		s.NoError(err)
+		s.Require().True(expectedLine.Charge.IsPresent(), "charge expectations are required")
+		chargeExpects := expectedLine.Charge.OrEmpty()
+		s.Require().NotEmpty(chargeExpects.Status, "charge status expectation is required")
+		s.Require().NotEmpty(chargeExpects.SettlementMode, "charge settlement mode expectation is required")
+
+		for idx, childID := range expectedLine.Matcher.ChildIDs(subsView.Subscription.ID) {
+			charge, found := lo.Find(flatFeeCharges, func(charge flatfee.Charge) bool {
+				return charge.Intent.UniqueReferenceID != nil && *charge.Intent.UniqueReferenceID == childID
+			})
+			s.Require().Truef(found, "flat fee charge not found with child unique reference id %s", childID)
+
+			s.Equal(chargeExpects.Status, string(charge.Status), "%s: status", childID)
+			s.Equal(chargeExpects.SettlementMode, charge.Intent.SettlementMode, "%s: settlement mode", childID)
+			s.Equal(expectedLine.Periods[idx], charge.Intent.ServicePeriod, "%s: service period", childID)
+			if expectedLine.InvoiceAt.IsPresent() {
+				s.Equal(expectedLine.InvoiceAt.OrEmpty()[idx], charge.Intent.InvoiceAt, "%s: invoice at", childID)
+			}
+			s.Equal(s.Customer.ID, charge.Intent.CustomerID, "%s: customer id", childID)
+			s.Equal(string(currency.USD), string(charge.Intent.Currency), "%s: currency", childID)
+			s.Equal(flatPrice.PaymentTerm, charge.Intent.PaymentTerm, "%s: payment term", childID)
+			s.AssertDecimalEqual(catalogFlatPrice.Amount, charge.Intent.AmountBeforeProration, fmt.Sprintf("%s: amount before proration", childID))
+			s.AssertDecimalEqual(flatPrice.Amount, charge.State.AmountAfterProration, fmt.Sprintf("%s: amount after proration", childID))
+			s.Require().NotNil(charge.Intent.Subscription, "%s: subscription", childID)
+			s.Equal(subsView.Subscription.ID, charge.Intent.Subscription.SubscriptionID, "%s: subscription id", childID)
+			s.Equal(phase.SubscriptionPhase.ID, charge.Intent.Subscription.PhaseID, "%s: phase id", childID)
+			s.Equal(item.SubscriptionItem.ID, charge.Intent.Subscription.ItemID, "%s: item id", childID)
+		}
+	}
+}
+
+func (s *SuiteBase) assertUsageBasedChargesForLines(ctx context.Context, subsView subscription.SubscriptionView, expectedLines []expectedLine) {
+	s.T().Helper()
+
+	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subsView.Subscription.ID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+	})
+	s.NoError(err)
+
+	usageBasedCharges := make([]usagebased.Charge, 0, len(res.Items))
+	for _, charge := range res.Items {
+		usageBasedCharge, err := charge.AsUsageBasedCharge()
+		s.NoError(err)
+		usageBasedCharges = append(usageBasedCharges, usageBasedCharge)
+	}
+
+	expectedChargeIDs := lo.Flatten(lo.Map(expectedLines, func(expectedLine expectedLine, _ int) []string {
+		return expectedLine.Matcher.ChildIDs(subsView.Subscription.ID)
+	}))
+	actualChargeIDs := lo.Map(usageBasedCharges, func(charge usagebased.Charge, _ int) string {
+		s.Require().NotNil(charge.Intent.UniqueReferenceID)
+		return lo.FromPtr(charge.Intent.UniqueReferenceID)
+	})
+	s.Len(usageBasedCharges, len(expectedChargeIDs))
+	s.ElementsMatch(expectedChargeIDs, actualChargeIDs)
+
+	expectedItemVersionCounts := map[string]int{}
+	for _, expectedLine := range expectedLines {
+		phaseKey, itemKey, version := s.chargeExpectedLineMatcherParts(expectedLine.Matcher)
+
+		key := fmt.Sprintf("%s/%s", phaseKey, itemKey)
+		expectedItemVersionCounts[key] = max(expectedItemVersionCounts[key], version+1)
+	}
+
+	for key, expectedVersionCount := range expectedItemVersionCounts {
+		parts := strings.Split(key, "/")
+		s.Require().Len(parts, 2)
+
+		phase := s.getPhaseByKey(s.T(), subsView, parts[0])
+		s.Require().Len(phase.ItemsByKey[parts[1]], expectedVersionCount)
+	}
+
+	for _, expectedLine := range expectedLines {
+		phaseKey, itemKey, version := s.chargeExpectedLineMatcherParts(expectedLine.Matcher)
+		phase := s.getPhaseByKey(s.T(), subsView, phaseKey)
+		item := phase.ItemsByKey[itemKey][version]
+
+		s.Require().True(expectedLine.Price.IsPresent())
+		unitPrice, err := expectedLine.Price.OrEmpty().AsUnit()
+		s.NoError(err)
+		s.Require().True(expectedLine.Charge.IsPresent(), "charge expectations are required")
+		chargeExpects := expectedLine.Charge.OrEmpty()
+		s.Require().NotEmpty(chargeExpects.Status, "charge status expectation is required")
+		s.Require().NotEmpty(chargeExpects.SettlementMode, "charge settlement mode expectation is required")
+
+		for idx, childID := range expectedLine.Matcher.ChildIDs(subsView.Subscription.ID) {
+			charge, found := lo.Find(usageBasedCharges, func(charge usagebased.Charge) bool {
+				return charge.Intent.UniqueReferenceID != nil && *charge.Intent.UniqueReferenceID == childID
+			})
+			s.Require().Truef(found, "usage-based charge not found with child unique reference id %s", childID)
+
+			s.Equal(chargeExpects.Status, string(charge.Status), "%s: status", childID)
+			s.Equal(chargeExpects.SettlementMode, charge.Intent.SettlementMode, "%s: settlement mode", childID)
+			s.Equal(expectedLine.Periods[idx], charge.Intent.ServicePeriod, "%s: service period", childID)
+			if expectedLine.InvoiceAt.IsPresent() {
+				s.Equal(expectedLine.InvoiceAt.OrEmpty()[idx], charge.Intent.InvoiceAt, "%s: invoice at", childID)
+			}
+			s.Equal(s.Customer.ID, charge.Intent.CustomerID, "%s: customer id", childID)
+			s.Equal(itemKey, charge.Intent.FeatureKey, "%s: feature key", childID)
+			s.Equal(*productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: unitPrice.Amount}), charge.Intent.Price, "%s: price", childID)
+			s.Require().NotNil(charge.Intent.Subscription, "%s: subscription", childID)
+			s.Equal(subsView.Subscription.ID, charge.Intent.Subscription.SubscriptionID, "%s: subscription id", childID)
+			s.Equal(phase.SubscriptionPhase.ID, charge.Intent.Subscription.PhaseID, "%s: phase id", childID)
+			s.Equal(item.SubscriptionItem.ID, charge.Intent.Subscription.ItemID, "%s: item id", childID)
+			s.Nil(charge.State.CurrentRealizationRunID, "%s: current realization run", childID)
+			s.Nil(charge.State.AdvanceAfter, "%s: advance after", childID)
+		}
+	}
+}
+
+func (s *SuiteBase) chargeExpectedLineMatcherParts(matcher lineMatcher) (string, string, int) {
+	s.T().Helper()
+
+	switch matcher := matcher.(type) {
+	case recurringLineMatcher:
+		return matcher.PhaseKey, matcher.ItemKey, matcher.Version
+	case oneTimeLineMatcher:
+		return matcher.PhaseKey, matcher.ItemKey, matcher.Version
+	default:
+		s.T().Fatalf("charge assertion does not support matcher type %T", matcher)
+		return "", "", 0
 	}
 }
 

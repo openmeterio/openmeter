@@ -219,6 +219,56 @@ func runFlatFeeCreditThenInvoiceImmutableProrationScenario(s *BaseSuite, expectR
 	})
 }
 
+func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountCreatesNoGatheringLine() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-then-invoice-zero-amount")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	created, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(0),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-credit-then-invoice-zero-amount",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "flat-fee-credit-then-invoice-zero-amount",
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Require().Len(created, 1)
+	s.Equal(meta.ChargeTypeFlatFee, created[0].Type())
+
+	flatFeeCharge, err := created[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusCreated, flatFeeCharge.Status)
+	s.Equal(float64(0), flatFeeCharge.State.AmountAfterProration.InexactFloat64())
+	s.Empty(activeGatheringLinesForCharge(&s.BaseSuite, ns, cust.ID, flatFeeCharge.ID))
+}
+
 func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-partial-credit-realizations")
