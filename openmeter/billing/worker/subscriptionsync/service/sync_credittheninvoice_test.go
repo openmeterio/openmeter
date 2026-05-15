@@ -518,7 +518,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 
 	s.Run("subscription cancellation", func() {
 		// given:
-		// - the subscription is cancelled at the end of the current billing period
+		// - the subscription is canceled at the end of the current billing period
 		clock.FreezeTime(s.mustParseTime("2024-02-20T00:00:00Z"))
 
 		cancelAt := s.mustParseTime("2024-03-01T00:00:00.123456Z")
@@ -576,7 +576,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 
 	s.Run("continue subscription", func() {
 		// given:
-		// - the cancelled subscription is continued before the cancellation takes effect
+		// - the canceled subscription is continued before the cancellation takes effect
 		clock.FreezeTime(s.mustParseTime("2024-02-21T00:00:00Z"))
 
 		subs, err := s.SubscriptionService.Continue(ctx, models.NamespacedID{

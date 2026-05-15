@@ -781,7 +781,10 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			WithBillingInvoice()
 
 		if !in.IncludeChargeManaged {
-			query = query.Where(billinginvoiceline.ChargeIDIsNil())
+			query = query.Where(billinginvoiceline.Or(
+				billinginvoiceline.ChargeIDIsNil(),
+				billinginvoiceline.ChargeIDEQ(""),
+			))
 		}
 
 		query = tx.expandLineItems(query)
