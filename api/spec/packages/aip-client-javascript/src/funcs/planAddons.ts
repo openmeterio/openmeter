@@ -22,6 +22,8 @@ export function listPlanAddons(
 ): Promise<Result<ListPlanAddonsResponse>> {
   const searchParams = toURLSearchParams({
     page: req.page,
+    sort: encodeSort(req.sort),
+    filter: req.filter,
   })
   const path = encodePath('openmeter/plans/{planId}/addons', {
     planId: req.planId,

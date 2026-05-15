@@ -2143,6 +2143,29 @@ paths:
           schema:
             $ref: '#/components/schemas/ULID'
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort plan add-ons returned in the response. Supported sort attributes are:
+
+            - `id` (default)
+            - `created_at`
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: Filter plan add-ons returned in the response.
+          schema:
+            $ref: '#/components/schemas/ListPlanAddonsParamsFilter'
+          style: deepObject
       responses:
         '200':
           description: Page paginated response.
@@ -2160,6 +2183,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
+      x-internal: true
       x-unstable: true
     post:
       operationId: create-plan-addon
@@ -8445,6 +8469,25 @@ components:
           description: Filter meters by name.
       additionalProperties: false
       description: Filter options for listing meters.
+    ListPlanAddonsParamsFilter:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        plan_id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        plan_key:
+          $ref: '#/components/schemas/StringFieldFilter'
+        addon_id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        addon_key:
+          $ref: '#/components/schemas/StringFieldFilter'
+        addon_name:
+          $ref: '#/components/schemas/StringFieldFilter'
+        plan_currency:
+          $ref: '#/components/schemas/StringFieldFilter'
+      additionalProperties: false
+      description: Filter options for listing plan add-ons.
     ListPlansParamsFilter:
       type: object
       properties:

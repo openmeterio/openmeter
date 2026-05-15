@@ -1751,6 +1751,69 @@ export interface ListAddonsParamsFilter {
   currency?: string | { eq?: string; oeq?: string[]; neq?: string }
 }
 
+/** Filter options for listing plan add-ons. */
+export interface ListPlanAddonsParamsFilter {
+  id?: string | { eq?: string; oeq?: string[]; neq?: string }
+  plan_id?: string | { eq?: string; oeq?: string[]; neq?: string }
+  plan_key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+  addon_id?: string | { eq?: string; oeq?: string[]; neq?: string }
+  addon_key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+  addon_name?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+  plan_currency?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+}
+
 /** Tax configuration for a credit grant. Tax configuration should be provided to ensure correct revenue recognition, including for externally funded grants. */
 export interface CreateCreditGrantTaxConfig {
   /** Tax behavior applied to the invoice line item. */

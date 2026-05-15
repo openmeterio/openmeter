@@ -274,6 +274,27 @@ interface AddonOperations {
     | Common.NotFound;
 }
 
+/**
+ * Filter options for listing plan add-ons.
+ */
+@friendlyName("ListPlanAddonsParamsFilter")
+model ListPlanAddonsParamsFilter {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  plan_id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  plan_key?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  addon_id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  addon_key?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  addon_name?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  plan_currency?: Common.StringFieldFilter;
+}
+
 interface PlanAddonOperations {
   /**
    * List add-ons associated with a plan.
@@ -282,7 +303,30 @@ interface PlanAddonOperations {
   @operationId("list-plan-addons")
   @summary("List add-ons for plan")
   @extension(Shared.UnstableExtension, true)
-  listPlanAddons(@path planId: Shared.ULID, ...Common.PagePaginationQuery):
+  @extension(Shared.InternalExtension, true)
+  listPlanAddons(
+    @path planId: Shared.ULID,
+    ...Common.PagePaginationQuery,
+
+    /**
+     * Sort plan add-ons returned in the response. Supported sort attributes are:
+     *
+     * - `id` (default)
+     * - `created_at`
+     * - `updated_at`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
+     * Filter plan add-ons returned in the response.
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListPlanAddonsParamsFilter,
+  ):
     | Shared.PagePaginatedResponse<PlanAddon>
     | Common.ErrorResponses
     | Common.NotFound;
