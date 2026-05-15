@@ -20,6 +20,8 @@ type stateMachine struct {
 	Adapter      flatfee.Adapter
 	Realizations *flatfeerealizations.Service
 	Service      *service
+
+	CreditNotesSupported bool
 }
 
 type StateMachine = chargestatemachine.StateMachine[flatfee.Charge]
@@ -30,6 +32,8 @@ type StateMachineConfig struct {
 	Adapter      flatfee.Adapter
 	Realizations *flatfeerealizations.Service
 	Service      *service
+
+	CreditNotesSupported bool
 }
 
 func (c StateMachineConfig) Validate() error {
@@ -60,9 +64,10 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 	}
 
 	out := &stateMachine{
-		Adapter:      config.Adapter,
-		Realizations: config.Realizations,
-		Service:      config.Service,
+		Adapter:              config.Adapter,
+		Realizations:         config.Realizations,
+		Service:              config.Service,
+		CreditNotesSupported: config.CreditNotesSupported,
 	}
 
 	machine, err := chargestatemachine.New(chargestatemachine.Config[flatfee.Charge, flatfee.ChargeBase, flatfee.Status]{
@@ -90,6 +95,18 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 
 func (s *stateMachine) IsInsideServicePeriod() bool {
 	return !clock.Now().Before(s.Charge.Intent.ServicePeriod.From)
+}
+
+func (s *stateMachine) IsInsideServicePeriodAndZeroAmount() bool {
+	return s.IsInsideServicePeriod() && s.Charge.State.AmountAfterProration.IsZero()
+}
+
+func (s *stateMachine) IsInsideServicePeriodAndNonZeroAmount() bool {
+	return s.IsInsideServicePeriod() && !s.Charge.State.AmountAfterProration.IsZero()
+}
+
+func (s *stateMachine) IsZeroAmount() bool {
+	return s.Charge.State.AmountAfterProration.IsZero()
 }
 
 func (s *stateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error {

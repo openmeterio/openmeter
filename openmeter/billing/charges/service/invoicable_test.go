@@ -49,6 +49,223 @@ func (s *InvoicableChargesTestSuite) TearDownTest() {
 	s.BaseSuite.TearDownTest()
 }
 
+func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceImmutableProration() {
+	for _, creditNotesAvailable := range []bool{true, false} {
+		name := "credit notes unavailable"
+		if creditNotesAvailable {
+			name = "credit notes available"
+		}
+
+		s.Run(name, func() {
+			flatFeeService := s.Charges.flatFeeService.(interface {
+				SetCreditNotesSupportedByLineUpdater(*testing.T, bool) error
+			})
+			s.NoError(flatFeeService.SetCreditNotesSupportedByLineUpdater(s.T(), creditNotesAvailable))
+
+			runFlatFeeCreditThenInvoiceImmutableProrationScenario(&s.BaseSuite, creditNotesAvailable)
+		})
+	}
+}
+
+func runFlatFeeCreditThenInvoiceImmutableProrationScenario(s *BaseSuite, expectReplacementGatheringLine bool) {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-then-invoice-immutable-proration")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	shrunkServicePeriodTo := datetime.MustParseTimeInLocation(s.T(), "2026-01-16T00:00:00Z", time.UTC).AsTime()
+
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	var (
+		flatFeeChargeID meta.ChargeID
+		invoice         billing.StandardInvoice
+		lineID          billing.LineID
+	)
+
+	s.Run("given a fully credited immutable flat fee invoice", func() {
+		// given:
+		// - a credit-then-invoice flat fee has a fully credited immutable invoice line
+		s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
+			return creditrealization.CreateAllocationInputs{
+				{
+					ServicePeriod: input.ServicePeriod,
+					Amount:        input.PreTaxAmountToAllocate,
+					LedgerTransaction: ledgertransaction.GroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				},
+			}, nil
+		}
+		defer s.FlatFeeTestHandler.Reset()
+
+		created, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: []charges.ChargeIntent{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       cust.GetID(),
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(31),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					name:              "flat-fee-credit-then-invoice-immutable-proration",
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: "flat-fee-credit-then-invoice-immutable-proration",
+					proRating: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(created, 1)
+
+		flatFeeCharge, err := created[0].AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.From),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		invoice = invoices[0]
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+		lineID = invoice.Lines.OrEmpty()[0].GetLineID()
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.True(invoice.StatusDetails.Immutable)
+
+		charge := mustGetFlatFeeChargeWithExpands(s, flatFeeChargeID, meta.Expands{meta.ExpandRealizations})
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.True(charge.Realizations.CurrentRun.Immutable)
+		s.Equal(lineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+	})
+
+	s.Run("when immutable invoice proration is requested", func() {
+		// when:
+		// - the charge is shrunk to a prorated amount
+		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			NewServicePeriodTo:     shrunkServicePeriodTo,
+			NewFullServicePeriodTo: servicePeriod.To,
+			NewBillingPeriodTo:     shrunkServicePeriodTo,
+			NewInvoiceAt:           servicePeriod.From,
+		})
+		s.NoError(err)
+
+		s.NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: cust.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				flatFeeChargeID.ID: patch,
+			},
+		}))
+
+		// then:
+		// - the immutable invoice is not rewritten and records a warning
+		fetchedInvoice, err := s.BillingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand: billing.InvoiceExpands{
+				billing.InvoiceExpandLines,
+			},
+		})
+		s.NoError(err)
+		standardInvoice, err := fetchedInvoice.AsStandardInvoice()
+		s.NoError(err)
+		line := standardInvoice.Lines.GetByID(lineID.ID)
+		s.Require().NotNil(line)
+		s.Nil(line.DeletedAt)
+		s.Require().Len(standardInvoice.ValidationIssues, 1)
+		s.Equal(billing.ImmutableInvoiceHandlingNotSupportedErrorCode, standardInvoice.ValidationIssues[0].Code)
+		s.Equal(billing.ComponentName("charges.invoiceupdater"), standardInvoice.ValidationIssues[0].Component)
+
+		activeGatheringLines := activeGatheringLinesForCharge(s, ns, cust.ID, flatFeeChargeID.ID)
+
+		if expectReplacementGatheringLine {
+			charge := mustGetFlatFeeChargeWithExpands(s, flatFeeChargeID, meta.Expands{meta.ExpandRealizations})
+			s.Equal(flatfee.StatusCreated, charge.Status)
+			s.Nil(charge.Realizations.CurrentRun)
+			s.Require().Len(activeGatheringLines, 1)
+			s.Equal(servicePeriod.From, activeGatheringLines[0].ServicePeriod.From)
+			s.Equal(shrunkServicePeriodTo, activeGatheringLines[0].ServicePeriod.To)
+			return
+		}
+
+		charge := mustGetFlatFeeChargeWithExpands(s, flatFeeChargeID, meta.Expands{meta.ExpandRealizations})
+		s.Equal(flatfee.StatusFinal, charge.Status)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.Equal(lineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+		s.Empty(activeGatheringLines)
+	})
+}
+
+func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountCreatesNoGatheringLine() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-then-invoice-zero-amount")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	created, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(0),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-credit-then-invoice-zero-amount",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "flat-fee-credit-then-invoice-zero-amount",
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Require().Len(created, 1)
+	s.Equal(meta.ChargeTypeFlatFee, created[0].Type())
+
+	flatFeeCharge, err := created[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusCreated, flatFeeCharge.Status)
+	s.Equal(float64(0), flatFeeCharge.State.AmountAfterProration.InexactFloat64())
+	s.Empty(activeGatheringLinesForCharge(&s.BaseSuite, ns, cust.ID, flatFeeCharge.ID))
+}
+
 func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-partial-credit-realizations")
@@ -2549,6 +2766,47 @@ func (s *InvoicableChargesTestSuite) mustGetFlatFeeChargeByIDWithDetailedLines(c
 	s.NoError(err)
 
 	return flatFeeCharge
+}
+
+func mustGetFlatFeeChargeWithExpands(s *BaseSuite, chargeID meta.ChargeID, expands meta.Expands) flatfee.Charge {
+	s.T().Helper()
+
+	charge, err := s.Charges.GetByID(s.T().Context(), charges.GetByIDInput{
+		ChargeID: chargeID,
+		Expands:  expands,
+	})
+	s.NoError(err)
+
+	flatFeeCharge, err := charge.AsFlatFeeCharge()
+	s.NoError(err)
+
+	return flatFeeCharge
+}
+
+func activeGatheringLinesForCharge(s *BaseSuite, namespace, customerID, chargeID string) []billing.GatheringLine {
+	s.T().Helper()
+
+	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(s.T().Context(), billing.ListGatheringInvoicesInput{
+		Namespaces: []string{namespace},
+		Customers:  []string{customerID},
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+		},
+	})
+	s.NoError(err)
+
+	var lines []billing.GatheringLine
+	for _, invoice := range gatheringInvoices.Items {
+		for _, line := range invoice.Lines.OrEmpty() {
+			if line.DeletedAt != nil || line.ChargeID == nil || *line.ChargeID != chargeID {
+				continue
+			}
+
+			lines = append(lines, line)
+		}
+	}
+
+	return lines
 }
 
 type assertFlatFeeCreditThenInvoiceLineAndRunInput struct {

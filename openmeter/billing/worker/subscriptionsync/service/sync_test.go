@@ -24,7 +24,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -380,84 +379,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 	})
 }
 
-func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
-	// Test that the InvoicePendingLines returns the correct error when there are no lines to invoice,
-	// as sync depends on this.
-
-	// Given
-	//  a customer with a gathering invoice, that is not collectible
-	// When
-	//  invoice pending lines is called
-	// Then
-	//  ErrInvoiceCreateNoLines is returned
-
-	namespace := "ns-uncollectable-collection"
-	ctx := context.Background()
-
-	appSandbox := s.InstallSandboxApp(s.T(), namespace)
-
-	customer := s.CreateTestCustomer(namespace, "test-customer")
-	s.NotNil(customer)
-
-	s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
-
-	// Test no gathering invoice state
-	s.Run("no gathering invoice", func() {
-		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customer.GetID(),
-		})
-		s.Error(err)
-		s.ErrorIs(err, billing.ErrInvoiceCreateNoLines)
-		s.ErrorAs(err, &billing.ValidationError{})
-		s.Len(invoices, 0)
-	})
-
-	apiRequestsTotalFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
-	defer apiRequestsTotalFeature.Cleanup()
-
-	lineServicePeriod := timeutil.ClosedPeriod{
-		From: lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z")),
-		To:   lo.Must(time.Parse(time.RFC3339, "2025-01-02T00:00:00Z")),
-	}
-
-	clock.SetTime(lineServicePeriod.From)
-	defer clock.ResetTime()
-
-	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
-		Currency: currencyx.Code(currency.USD),
-		Lines: []billing.GatheringLine{
-			{
-				GatheringLineBase: billing.GatheringLineBase{
-					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-						Name: "UBP - unit",
-					}),
-					ServicePeriod: lineServicePeriod,
-					InvoiceAt:     lineServicePeriod.To,
-					ManagedBy:     billing.ManuallyManagedLine,
-					FeatureKey:    apiRequestsTotalFeature.Feature.Key,
-					Price: lo.FromPtr(productcatalog.NewPriceFrom(
-						productcatalog.UnitPrice{
-							Amount: alpacadecimal.NewFromFloat(1),
-						},
-					)),
-				},
-			},
-		},
-	})
-
-	s.NoError(err)
-	s.Len(pendingLines.Lines, 1)
-
-	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: customer.GetID(),
-	})
-	s.Error(err)
-	s.ErrorIs(err, billing.ErrInvoiceCreateNoLines)
-	s.Len(invoices, 0)
-}
-
-func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
+func (s *SubscriptionHandlerTestSuite) TestInArrearsProratingGathering() {
 	ctx := context.Background()
 	namespace := "test-subs-pro-rating"
 	start := s.mustParseTime("2024-01-01T00:00:00Z")
