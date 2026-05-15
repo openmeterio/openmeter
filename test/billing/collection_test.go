@@ -66,7 +66,7 @@ func (s *CollectionTestSuite) TestUncollectableCollection() {
 	//  ErrInvoiceCreateNoLines is returned
 
 	namespace := "ns-uncollectable-collection"
-	ctx := context.Background()
+	ctx := s.T().Context()
 
 	appSandbox := s.InstallSandboxApp(s.T(), namespace)
 

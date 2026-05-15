@@ -97,6 +97,18 @@ func (s *stateMachine) IsInsideServicePeriod() bool {
 	return !clock.Now().Before(s.Charge.Intent.ServicePeriod.From)
 }
 
+func (s *stateMachine) IsInsideServicePeriodAndZeroAmount() bool {
+	return s.IsInsideServicePeriod() && s.Charge.State.AmountAfterProration.IsZero()
+}
+
+func (s *stateMachine) IsInsideServicePeriodAndNonZeroAmount() bool {
+	return s.IsInsideServicePeriod() && !s.Charge.State.AmountAfterProration.IsZero()
+}
+
+func (s *stateMachine) IsZeroAmount() bool {
+	return s.Charge.State.AmountAfterProration.IsZero()
+}
+
 func (s *stateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error {
 	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.From))
 	return nil
