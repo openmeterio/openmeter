@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -1947,8 +1948,6 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePror
 }
 
 func (s *CreditThenInvoiceTestSuite) TestDefactoZeroPrices() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
@@ -1959,72 +1958,91 @@ func (s *CreditThenInvoiceTestSuite) TestDefactoZeroPrices() {
 	// Then
 	//  No lines should be invoiced
 
-	// Let's create the initial subscription
-	subView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: s.Namespace,
-		},
-		Plan: productcatalog.Plan{
-			PlanMeta: productcatalog.PlanMeta{
-				Name:           "Test Plan",
-				Key:            "test-plan",
-				Version:        1,
-				Currency:       currency.USD,
-				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
-				ProRatingConfig: productcatalog.ProRatingConfig{
-					Enabled: true,
-					Mode:    productcatalog.ProRatingModeProratePrices,
-				},
+	var subView subscription.SubscriptionView
+
+	s.Run("create subscription", func() {
+		// given:
+		// - the customer has no credit allocations or invoice bookings
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+
+		// when:
+		// - a credit-then-invoice subscription has a zero in-advance flat fee
+		subView = s.createSubscriptionFromPlan(plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
 			},
-			Phases: []productcatalog.Phase{
-				{
-					PhaseMeta: s.phaseMeta("first-phase", ""),
-					RateCards: productcatalog.RateCards{
-						&productcatalog.FlatFeeRateCard{
-							RateCardMeta: productcatalog.RateCardMeta{
-								Key:  "in-advance",
-								Name: "in-advance",
-								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-									Amount:      alpacadecimal.NewFromInt(0),
-									PaymentTerm: productcatalog.InAdvancePaymentTerm,
-								}),
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Test Plan",
+					Key:            "test-plan",
+					Version:        1,
+					Currency:       currency.USD,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				},
+				Phases: []productcatalog.Phase{
+					{
+						PhaseMeta: s.phaseMeta("first-phase", ""),
+						RateCards: productcatalog.RateCards{
+							&productcatalog.FlatFeeRateCard{
+								RateCardMeta: productcatalog.RateCardMeta{
+									Key:  "in-advance",
+									Name: "in-advance",
+									Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+										Amount:      alpacadecimal.NewFromInt(0),
+										PaymentTerm: productcatalog.InAdvancePaymentTerm,
+									}),
+								},
+								BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1D")),
 							},
-							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1D")),
 						},
 					},
 				},
 			},
-		},
+		})
+
+		// then:
+		// - creating the subscription does not affect ledger balances
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 	})
 
 	// Now let's synchronize the subscription
+	s.Run("synchronize subscription", func() {
+		// when:
+		// - subscription sync reaches the zero-priced service periods
+		asOf := s.mustParseTime("2024-01-03T12:00:00Z")
+		s.NoError(s.Service.SynchronizeSubscription(ctx, subView, asOf))
 
-	asOf := s.mustParseTime("2024-01-03T12:00:00Z")
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subView, asOf))
+		// then:
+		// - no gathering invoices are materialized
+		// - no credits or invoice amounts are booked to the ledger
+		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Namespaces: []string{s.Namespace},
+			Customers:  []string{s.Customer.ID},
+			Page: pagination.Page{
+				PageSize:   10,
+				PageNumber: 1,
+			},
+			Expand: billing.InvoiceExpandAll,
+			Statuses: []string{
+				string(billing.StandardInvoiceStatusGathering),
+			},
+		})
+		require.NoError(s.T(), err)
 
-	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Namespaces: []string{s.Namespace},
-		Customers:  []string{s.Customer.ID},
-		Page: pagination.Page{
-			PageSize:   10,
-			PageNumber: 1,
-		},
-		Expand: billing.InvoiceExpandAll,
-		Statuses: []string{
-			string(billing.StandardInvoiceStatusGathering),
-		},
+		require.Len(s.T(), invoices.Items, 0)
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 	})
-	require.NoError(s.T(), err)
-
-	// Now let's assert that there are no lines
-	require.Len(s.T(), invoices.Items, 0)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
 	ctx := s.T().Context()
-	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
 
 	// Given
 	//	a subscription with a single phase with a single item with multiple versions of it
@@ -2034,6 +2052,21 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 	//  in-arrears lines should be invoiced aligned
 	//  in-advance lines should be invoiced immediately aligned
 
+	s.createPromotionalCreditFunding(ctx, createPromotionalCreditFundingInput{
+		Namespace: s.Namespace,
+		Customer:  s.Customer.GetID(),
+		Currency:  currencyx.Code(currency.USD),
+		Amount:    alpacadecimal.NewFromInt(2),
+		At:        start,
+	})
+	startBalances := expectedCreditThenInvoiceBalances{
+		FBOAll:          2,
+		FBOPromotional:  2,
+		WashAll:         -2,
+		WashPromotional: -2,
+	}
+	s.assertCreditThenInvoiceBalances(startBalances)
+
 	// Let's create the initial subscription
 	subView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
@@ -2045,6 +2078,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P4W"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,
@@ -2152,8 +2186,9 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 	s.NoError(s.Service.SynchronizeSubscription(ctx, subView, asOf))
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.assertCreditThenInvoiceBalances(startBalances)
 
-	s.expectLines(gatheringInvoice, subView.Subscription.ID, []expectedLine{
+	expectedLines := []expectedLine{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -2174,6 +2209,10 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -2235,6 +2274,10 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 				s.mustParseTime("2024-01-29T00:00:00Z"),
 				s.mustParseTime("2024-01-29T00:00:00Z"),
 			}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -2256,6 +2299,10 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-29T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -2294,8 +2341,15 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 				s.mustParseTime("2024-01-29T00:00:00Z"),
 				s.mustParseTime("2024-01-29T00:00:00Z"),
 			}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
-	})
+	}
+
+	s.assertFlatFeeChargesForLines(ctx, subView, expectedLines)
+	s.expectLines(gatheringInvoice, subView.Subscription.ID, expectedLines)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionCancellation() {
@@ -2634,10 +2688,9 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProgressiveBillingCa
 }
 
 func (s *CreditThenInvoiceTestSuite) TestInAdvanceOneTimeFeeSyncing() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
 	ctx := s.T().Context()
-	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
 
 	// Given
 	//  we have a subscription with a single phase with a single one-time fee in advance
@@ -2646,29 +2699,65 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 	// Then
 	//  the gathering invoice will contain the generated item
 
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.FlatFeeRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "in-advance",
-						Name: "in-advance",
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      alpacadecimal.NewFromFloat(5),
-							PaymentTerm: productcatalog.InAdvancePaymentTerm,
-						}),
+	s.createPromotionalCreditFunding(ctx, createPromotionalCreditFundingInput{
+		Namespace: s.Namespace,
+		Customer:  s.Customer.GetID(),
+		Currency:  currencyx.Code(currency.USD),
+		Amount:    alpacadecimal.NewFromInt(2),
+		At:        start,
+	})
+	startBalances := expectedCreditThenInvoiceBalances{
+		FBOAll:          2,
+		FBOPromotional:  2,
+		WashAll:         -2,
+		WashPromotional: -2,
+	}
+	s.assertCreditThenInvoiceBalances(startBalances)
+
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-advance",
+								Name: "in-advance",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(5),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+						},
 					},
 				},
 			},
 		},
 	})
+	s.assertCreditThenInvoiceBalances(startBalances)
 
 	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.assertCreditThenInvoiceBalances(startBalances)
 
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+	expectedLines := []expectedLine{
 		{
 			Matcher: oneTimeLineMatcher{
 				PhaseKey: "first-phase",
@@ -2687,15 +2776,21 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
-	})
+	}
+
+	s.assertFlatFeeChargesForLines(ctx, subsView, expectedLines)
+	s.expectLines(gatheringInvoice, subsView.Subscription.ID, expectedLines)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
 	ctx := s.T().Context()
-	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
 
 	// Given
 	//  we have a subscription with a single phase with a single one-time fee in arrears with a shifted billing anchor
@@ -2709,6 +2804,21 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
 	// Then
 	//  the gathering invoice will contain the generated item schedule to the cancellation's timestamp
 
+	s.createPromotionalCreditFunding(ctx, createPromotionalCreditFundingInput{
+		Namespace: s.Namespace,
+		Customer:  s.Customer.GetID(),
+		Currency:  currencyx.Code(currency.USD),
+		Amount:    alpacadecimal.NewFromInt(2),
+		At:        start,
+	})
+	startBalances := expectedCreditThenInvoiceBalances{
+		FBOAll:          2,
+		FBOPromotional:  2,
+		WashAll:         -2,
+		WashPromotional: -2,
+	}
+	s.assertCreditThenInvoiceBalances(startBalances)
+
 	planInput := plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: s.Namespace,
@@ -2719,6 +2829,7 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -2768,9 +2879,11 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
 
 	s.NoError(err)
 	s.NotNil(subsView)
+	s.assertCreditThenInvoiceBalances(startBalances)
 
 	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.assertCreditThenInvoiceBalances(startBalances)
 
 	// let's cancel the subscription
 	cancelAt := s.mustParseTime("2024-01-15T00:00:00Z")
@@ -2787,8 +2900,9 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
 
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.assertCreditThenInvoiceBalances(startBalances)
 
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+	expectedLines := []expectedLine{
 		{
 			Matcher: oneTimeLineMatcher{
 				PhaseKey: "first-phase",
@@ -2807,8 +2921,15 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
-	})
+	}
+
+	s.assertFlatFeeChargesForLines(ctx, subsView, expectedLines)
+	s.expectLines(gatheringInvoice, subsView.Subscription.ID, expectedLines)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
@@ -3572,687 +3693,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	s.Equal(billing.StandardInvoiceStatusDeleted, updatedDraftInvoice.Status)
 }
 
-func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
-	ctx := s.T().Context()
-	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
-
-	// Given
-	//  we have a subscription with a single phase with recurring flat fee
-	// When
-	//  we have the gathering invoice created, and update an item (manually)
-	// Then
-	//  resyncing the subscription would not cause the item to be upserted again
-
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "in-advance",
-						Name: "in-advance",
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      alpacadecimal.NewFromFloat(5),
-							PaymentTerm: productcatalog.InAdvancePaymentTerm,
-						}),
-					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
-				},
-			},
-		},
-	})
-
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
-	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
-
-	var updatedLine billing.GatheringLine
-	err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice: gatheringInvoice.GetInvoiceID(),
-		EditFn: func(invoice *billing.GatheringInvoice) error {
-			line := s.getGatheringLineByChildID(*invoice, fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID))
-
-			price, err := line.Price.AsFlat()
-			s.NoError(err)
-
-			price.PaymentTerm = productcatalog.InArrearsPaymentTerm
-			line.Price = *productcatalog.NewPriceFrom(price)
-
-			line.ServicePeriod = timeutil.ClosedPeriod{
-				From: line.ServicePeriod.From.Add(time.Hour),
-				To:   line.ServicePeriod.To.Add(time.Hour),
-			}
-			line.InvoiceAt = line.ServicePeriod.To
-			line.ManagedBy = billing.ManuallyManagedLine
-
-			updatedLine, err = line.Clone()
-			s.NoError(err)
-			return nil
-		},
-	})
-	s.NoError(err)
-
-	editedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
-		Invoice: gatheringInvoice.GetInvoiceID(),
-		Expand: billing.GatheringInvoiceExpands{
-			billing.GatheringInvoiceExpandLines,
-			billing.GatheringInvoiceExpandDeletedLines,
-		},
-	})
-
-	s.NoError(err)
-	s.DebugDumpInvoice("edited invoice", editedInvoice)
-
-	// When resyncing the subscription
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
-	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice - after sync", gatheringInvoice)
-
-	// Then the line should not be updated
-	invoiceLine := s.getGatheringLineByChildID(gatheringInvoice, *updatedLine.ChildUniqueReferenceID)
-	s.True(invoiceLine.GatheringLineBase.Equal(updatedLine.GatheringLineBase), "line should not be updated")
-}
-
-func (s *CreditThenInvoiceTestSuite) TestSplitLineManualEditSync() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
-	ctx := s.T().Context()
-	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
-	s.enableProgressiveBilling()
-
-	s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 12, s.mustParseTime("2024-01-01T10:00:00Z"))
-
-	// Given
-	//  we have a subscription with a single phase with recurring flat fee
-	//  we have the gathering invoice created
-	//  we have a draft invoice with a split line
-	// When
-	//  the item on the draft invoice gets updated (manually)
-	// Then
-	//  editing the subscription will update fields, but period will be managed by the sync to ensure consistency between line and parent
-
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  s.APIRequestsTotalFeature.Key,
-						Name: "ubp",
-						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-							Amount: alpacadecimal.NewFromFloat(5),
-						}),
-						FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-						FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
-					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
-				},
-			},
-		},
-	})
-
-	// lets sync for 2 months so we have lines on gathering
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-03-01T00:00:00Z")))
-	s.DebugDumpInvoice("gathering invoice - pre invoicing", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
-
-	clock.FreezeTime(s.mustParseTime("2024-01-15T00:00:00Z"))
-	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: s.Customer.GetID(),
-	})
-	s.NoError(err)
-	s.Len(draftInvoices, 1)
-	draftInvoice := draftInvoices[0]
-
-	s.DebugDumpInvoice("draft invoice", draftInvoice)
-
-	var updatedLine *billing.StandardLine
-	editedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice: draftInvoice.GetInvoiceID(),
-		EditFn: func(invoice *billing.StandardInvoice) error {
-			lines := invoice.Lines.OrEmpty()
-			s.Len(lines, 1)
-
-			line := lines[0]
-
-			line.Name = "test"
-			line.ManagedBy = billing.ManuallyManagedLine
-
-			updatedLine, err = line.Clone()
-			s.NoError(err)
-			return nil
-		},
-	})
-
-	s.NoError(err)
-	s.DebugDumpInvoice("edited invoice", editedInvoice)
-	s.DebugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
-	s.NotNil(updatedLine)
-
-	clock.FreezeTime(s.mustParseTime("2024-01-10T00:00:00Z"))
-	_, err = s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
-		Enum: lo.ToPtr(subscription.TimingImmediate),
-	})
-	s.NoError(err)
-
-	subsView, err = s.SubscriptionService.GetView(ctx, subsView.Subscription.NamespacedID)
-	s.NoError(err)
-
-	// When resyncing the subscription
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-03-01T00:00:00Z")))
-	s.T().Log("-> Subscription canceled")
-
-	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	resyncedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: editedInvoice.GetInvoiceID(),
-		Expand:  billing.StandardInvoiceExpandAll,
-	})
-	s.NoError(err)
-	s.DebugDumpInvoice("draft invoice - after sync", resyncedInvoice)
-
-	// Then the line should not be updated
-	s.Len(resyncedInvoice.Lines.OrEmpty(), 1)
-	resyncedInvoiceLine := resyncedInvoice.Lines.OrEmpty()[0]
-
-	// Field updates are supported for manually managed lines
-	s.Equal(resyncedInvoiceLine.StandardLineBase.Name, updatedLine.Name)
-	// Period however is managed by the sync to ensure consistency between line and parent (update endpoint does the filtering)
-	s.Equal(timeutil.ClosedPeriod{
-		From: s.mustParseTime("2024-01-01T00:00:00Z"),
-		To:   s.mustParseTime("2024-01-10T00:00:00Z"),
-	}, resyncedInvoiceLine.Period)
-}
-
-func (s *CreditThenInvoiceTestSuite) TestGatheringManualDeleteSync() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
-	ctx := s.T().Context()
-	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
-
-	// Given
-	//  we have a subscription with a single phase with recurring flat fee
-	// When
-	//  we have the gathering invoice created, and delete an item (manually)
-	// Then
-	//  resyncing the subscription would not cause the item to be upserted again
-
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "in-advance",
-						Name: "in-advance",
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      alpacadecimal.NewFromFloat(5),
-							PaymentTerm: productcatalog.InAdvancePaymentTerm,
-						}),
-					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
-				},
-			},
-		},
-	})
-
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
-	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
-
-	var updatedLine billing.GatheringLine
-
-	childUniqueReferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID)
-
-	err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice: gatheringInvoice.GetInvoiceID(),
-		EditFn: func(invoice *billing.GatheringInvoice) error {
-			line := s.getGatheringLineByChildID(*invoice, childUniqueReferenceID)
-
-			line.DeletedAt = lo.ToPtr(clock.Now())
-			line.ManagedBy = billing.ManuallyManagedLine
-
-			updatedLine = lo.Must(line.Clone())
-			return nil
-		},
-		IncludeDeletedLines: true,
-	})
-	s.NoError(err)
-
-	editedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
-		Invoice: gatheringInvoice.GetInvoiceID(),
-		Expand: billing.GatheringInvoiceExpands{
-			billing.GatheringInvoiceExpandLines,
-			billing.GatheringInvoiceExpandDeletedLines,
-		},
-	})
-	s.NoError(err)
-
-	updatedLineFromEditedInvoice := s.getGatheringLineByChildID(editedInvoice, childUniqueReferenceID)
-	s.NotNil(updatedLineFromEditedInvoice.DeletedAt)
-	s.Equal(billing.ManuallyManagedLine, updatedLineFromEditedInvoice.ManagedBy)
-
-	s.DebugDumpInvoice("edited invoice", editedInvoice)
-
-	// When resyncing the subscription
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
-	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice - after sync", gatheringInvoice)
-
-	// Then the line should not be recreated
-	s.expectNoLineWithChildID(gatheringInvoice, *updatedLine.ChildUniqueReferenceID)
-}
-
-func (s *CreditThenInvoiceTestSuite) TestManualIgnoringOfSyncedLines() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
-	ctx := s.T().Context()
-	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
-
-	// Given
-	//  we have a subscription with a single phase with recurring flat fee
-	// When
-	//  we have the draft and gathering invoices created, and manually mark lines as sync ignored, and then edit the line
-	// Then
-	//  resyncing the subscription would not cause the sync ignored lines to
-	//  - be touched on the draft invoice
-	//  - be deleted on the gathering invoice
-	//  - but new versions of lines can be created when they have NEW reference IDs
-
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "in-advance",
-						Name: "in-advance",
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      alpacadecimal.NewFromFloat(5),
-							PaymentTerm: productcatalog.InAdvancePaymentTerm,
-						}),
-					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
-				},
-			},
-		},
-	})
-
-	// Let's sync for 2 months so we have lines on gathering and draft
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-03-01T00:00:00Z")))
-
-	// Let's assert we have one line on the draft invoice
-	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: s.Customer.GetID(),
-	})
-	s.NoError(err)
-	s.Len(draftInvoices, 1)
-	draftInvoice := draftInvoices[0]
-
-	s.DebugDumpInvoice("draft invoice", draftInvoice)
-
-	lines, ok := draftInvoice.Lines.Get()
-	s.True(ok)
-	s.Len(lines, 1)
-
-	draftLineReferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID)
-	s.Equal(draftLineReferenceID, *lines[0].ChildUniqueReferenceID)
-
-	// Let's assert we have two lines on the gathering invoice
-	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
-	gatheringLines, ok := gatheringInvoice.Lines.Get()
-	s.True(ok)
-	s.Len(gatheringLines, 2)
-
-	gatheringLineReferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[1]", subsView.Subscription.ID)
-	s.Equal(gatheringLineReferenceID, *gatheringLines[0].ChildUniqueReferenceID)
-
-	// Now let's manually mark the lines as sync ignored
-	_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice: draftInvoice.GetInvoiceID(),
-		EditFn: func(invoice *billing.StandardInvoice) error {
-			line := s.getStandardLineByChildID(*invoice, draftLineReferenceID)
-
-			line.Annotations = models.Annotations{
-				billing.AnnotationSubscriptionSyncIgnore:               true,
-				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
-			}
-
-			return nil
-		},
-	})
-	s.NoError(err)
-
-	var gatheringInvoiceIgnoredLine billing.GatheringLine
-
-	err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice: gatheringInvoice.GetInvoiceID(),
-		EditFn: func(invoice *billing.GatheringInvoice) error {
-			line := s.getGatheringLineByChildID(*invoice, gatheringLineReferenceID)
-
-			line.Annotations = models.Annotations{
-				billing.AnnotationSubscriptionSyncIgnore:               true,
-				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
-			}
-
-			gatheringInvoiceIgnoredLine = lo.Must(line.Clone())
-
-			return nil
-		},
-	})
-	s.NoError(err)
-
-	// Now let's edit the subscription
-	subsView, err = s.SubscriptionWorkflowService.EditRunning(ctx, subsView.Subscription.NamespacedID, []subscription.Patch{
-		patch.PatchRemoveItem{
-			PhaseKey: "first-phase",
-			ItemKey:  "in-advance",
-		},
-		subscriptionAddItem{
-			PhaseKey: "first-phase",
-			ItemKey:  "in-advance",
-			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      alpacadecimal.NewFromFloat(10),
-				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			}),
-			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
-		}.AsPatch(),
-	}, s.timingImmediate())
-	s.NoError(err)
-
-	// Now let's resync the subscription
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-03-01T00:00:00Z")))
-
-	// Then the lines should not be updated
-	draftInvoiceAfterSync, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: draftInvoice.GetInvoiceID(),
-		Expand:  billing.StandardInvoiceExpandAll,
-	})
-	s.NoError(err)
-	s.DebugDumpInvoice("draft invoice - after sync", draftInvoiceAfterSync)
-
-	expectedInvoice := lo.Must(draftInvoice.Clone())
-	expectedInvoice.Lines = expectedInvoice.Lines.Map(func(line *billing.StandardLine) *billing.StandardLine {
-		if line.ChildUniqueReferenceID != nil && *line.ChildUniqueReferenceID == draftLineReferenceID {
-			line.Annotations = models.Annotations{
-				billing.AnnotationSubscriptionSyncIgnore:               true,
-				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
-			}
-		}
-
-		line.DetailedLines = lo.Map(line.DetailedLines, func(child billing.DetailedLine, _ int) billing.DetailedLine {
-			child.FeeLineConfigID = ""
-			return child
-		})
-
-		return line
-	})
-
-	draftInvoiceAfterSync.Lines = draftInvoiceAfterSync.Lines.Map(func(line *billing.StandardLine) *billing.StandardLine {
-		line.DetailedLines = lo.Map(line.DetailedLines, func(child billing.DetailedLine, _ int) billing.DetailedLine {
-			child.FeeLineConfigID = ""
-			return child
-		})
-		return line
-	})
-
-	if len(expectedInvoice.ValidationIssues) == 0 {
-		expectedInvoice.ValidationIssues = nil
-	}
-
-	s.Equal(lo.Must(expectedInvoice.RemoveMetaForCompare()), lo.Must(draftInvoiceAfterSync.RemoveMetaForCompare()))
-
-	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice - after sync", gatheringInvoice)
-
-	gatheringInvoiceIgnoredLineAfterSync := s.getGatheringLineByChildID(gatheringInvoice, *gatheringInvoiceIgnoredLine.ChildUniqueReferenceID)
-	s.Equal(lo.Must(gatheringInvoiceIgnoredLine.RemoveMetaForCompare()), lo.Must(gatheringInvoiceIgnoredLineAfterSync.RemoveMetaForCompare()))
-
-	// But the non-marked line should be deleted
-	deletedGartheringLinereferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[2]", subsView.Subscription.ID)
-	for _, line := range gatheringInvoice.Lines.OrEmpty() {
-		if line.ChildUniqueReferenceID != nil && *line.ChildUniqueReferenceID == deletedGartheringLinereferenceID {
-			s.Fail("deleted line should be deleted")
-		}
-	}
-
-	// Finally, let's assert that the new versions of the lines are created!
-	updatedGartheringLines := gatheringInvoice.Lines.OrEmpty()
-	s.Len(updatedGartheringLines, 4)
-
-	newLineReferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[1]/period[0]", subsView.Subscription.ID)
-	updatedLine := s.getGatheringLineByChildID(gatheringInvoice, newLineReferenceID)
-	s.NotNil(updatedLine)
-
-	price, err := updatedLine.Price.AsFlat()
-	s.NoError(err)
-	s.Equal(alpacadecimal.NewFromFloat(10), price.Amount)
-}
-
-func (s *CreditThenInvoiceTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriodChanges() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
-	ctx := s.T().Context()
-	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
-
-	// Given
-	//  we have a subscription with a single phase with two recurring fee items
-	// When
-	//  we have the gathering invoice and manually mark a line as sync ignored
-	//  and we cancel the subscription so the line would end earlier than before
-	// Then
-	//  the marked line doesn't change after re-syncing the subscription
-
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "marked",
-						Name: "marked",
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      alpacadecimal.NewFromFloat(5),
-							PaymentTerm: productcatalog.InAdvancePaymentTerm,
-						}),
-					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P3M"),
-				},
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "non-marked",
-						Name: "non-marked",
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      alpacadecimal.NewFromFloat(5),
-							PaymentTerm: productcatalog.InAdvancePaymentTerm,
-						}),
-					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P3M"),
-				},
-			},
-		},
-	})
-
-	// Let's just sync for the current month
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-04-01T00:00:00Z")))
-
-	// Let's assert we have two lines on the gathering invoice
-	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
-	gatheringLines, ok := gatheringInvoice.Lines.Get()
-	s.True(ok)
-	s.Len(gatheringLines, 4)
-
-	markedLineReferenceID := fmt.Sprintf("%s/first-phase/marked/v[0]/period[0]", subsView.Subscription.ID)
-	unMarkedLineReferenceID := fmt.Sprintf("%s/first-phase/non-marked/v[0]/period[0]", subsView.Subscription.ID)
-
-	// Now let's manually mark the lines as sync ignored
-	err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice: gatheringInvoice.GetInvoiceID(),
-		EditFn: func(invoice *billing.GatheringInvoice) error {
-			line := s.getGatheringLineByChildID(*invoice, markedLineReferenceID)
-
-			line.Annotations = models.Annotations{
-				billing.AnnotationSubscriptionSyncIgnore:               true,
-				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
-			}
-
-			return nil
-		},
-	})
-	s.NoError(err)
-
-	// Now let's cancel the subscription
-	_, err = s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
-		Custom: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")), // we cancel after the first month
-	})
-	s.NoError(err)
-
-	subsView, err = s.SubscriptionService.GetView(ctx, subsView.Subscription.NamespacedID)
-	s.NoError(err)
-
-	// Now let's resync the subscription
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-04-01T00:00:00Z")))
-
-	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice - after sync", gatheringInvoice)
-
-	// And assert that everything works as expected
-	markedLine := s.getGatheringLineByChildID(gatheringInvoice, markedLineReferenceID)
-	s.NotNil(markedLine)
-	s.Equal(markedLine.ServicePeriod, timeutil.ClosedPeriod{
-		From: s.mustParseTime("2024-01-01T00:00:00Z"),
-		To:   s.mustParseTime("2024-04-01T00:00:00Z"), // period wasn't updated
-	})
-
-	unmarkedLine := s.getGatheringLineByChildID(gatheringInvoice, unMarkedLineReferenceID)
-	s.NotNil(unmarkedLine)
-	s.Equal(unmarkedLine.ServicePeriod, timeutil.ClosedPeriod{
-		From: s.mustParseTime("2024-01-01T00:00:00Z"),
-		To:   s.mustParseTime("2024-02-01T00:00:00Z"), // period was updated
-	})
-}
-
-func (s *CreditThenInvoiceTestSuite) TestSplitLineManualDeleteSync() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
-	ctx := s.T().Context()
-	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
-	s.enableProgressiveBilling()
-
-	s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 12, s.mustParseTime("2024-01-01T10:00:00Z"))
-
-	// Given
-	//  we have a subscription with a single phase with recurring flat fee
-	//  we have the gathering invoice created
-	//  we have a draft invoice with a split line
-	// When
-	//  the item on the draft invoice gets deleted (manually)
-	// Then
-	//  editing the subscription would not cause the item to be recreated, but periods are updated
-
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  s.APIRequestsTotalFeature.Key,
-						Name: "ubp",
-						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-							Amount: alpacadecimal.NewFromFloat(5),
-						}),
-						FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-						FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
-					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
-				},
-			},
-		},
-	})
-
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
-	s.DebugDumpInvoice("gathering invoice - pre invoicing", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
-
-	clock.FreezeTime(s.mustParseTime("2024-01-15T00:00:00Z"))
-	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: s.Customer.GetID(),
-	})
-	s.NoError(err)
-	s.Len(draftInvoices, 1)
-	draftInvoice := draftInvoices[0]
-
-	s.DebugDumpInvoice("draft invoice", draftInvoice)
-	s.DebugDumpInvoice("gathering invoice - after invoicing", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
-
-	var updatedLine *billing.StandardLine
-	editedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice: draftInvoice.GetInvoiceID(),
-		EditFn: func(invoice *billing.StandardInvoice) error {
-			lines := invoice.Lines.OrEmpty()
-			s.Len(lines, 1)
-
-			line := lines[0]
-
-			line.DeletedAt = lo.ToPtr(clock.Now())
-
-			updatedLine = lo.Must(line.Clone())
-			return nil
-		},
-	})
-
-	s.NoError(err)
-	s.DebugDumpInvoice("edited invoice", editedInvoice)
-	s.DebugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
-	s.NotNil(updatedLine)
-
-	clock.FreezeTime(s.mustParseTime("2024-01-10T00:00:00Z"))
-	_, err = s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
-		Enum: lo.ToPtr(subscription.TimingImmediate),
-	})
-	s.NoError(err)
-
-	subsView, err = s.SubscriptionService.GetView(ctx, subsView.Subscription.NamespacedID)
-	s.NoError(err)
-
-	// When resyncing the subscription
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
-	s.T().Log("-> Subscription canceled")
-
-	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-
-	resyncedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: editedInvoice.GetInvoiceID(),
-		Expand:  billing.StandardInvoiceExpandAll.With(billing.StandardInvoiceExpandDeletedLines),
-	})
-	s.NoError(err)
-	s.DebugDumpInvoice("draft invoice - after sync", resyncedInvoice)
-
-	// The line should still be deleted
-	s.Len(resyncedInvoice.Lines.OrEmpty(), 1)
-
-	line := resyncedInvoice.Lines.OrEmpty()[0]
-	s.NotNil(line.DeletedAt)
-	// Period is updated
-	s.Equal(timeutil.ClosedPeriod{
-		From: s.mustParseTime("2024-01-01T00:00:00Z"),
-		To:   s.mustParseTime("2024-01-10T00:00:00Z"),
-	}, line.Period)
-
-	s.NotNil(line.SplitLineHierarchy)
-	parentGroup := line.SplitLineHierarchy.Group
-	// Parent's period is in sync with the child
-	s.Equal(timeutil.ClosedPeriod{
-		From: s.mustParseTime("2024-01-01T00:00:00Z"),
-		To:   s.mustParseTime("2024-01-10T00:00:00Z"),
-	}, parentGroup.ServicePeriod)
-	s.Equal(fmt.Sprintf("%s/first-phase/api-requests-total/v[0]/period[0]", subsView.Subscription.ID), *parentGroup.UniqueReferenceID)
-}
-
-func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSync() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
+func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncFlatFee() {
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 
@@ -4265,78 +3706,310 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSync() {
 
 	taxConfig := &productcatalog.TaxConfig{
 		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		Stripe: &productcatalog.StripeTaxConfig{
-			Code: "txcd_10000000",
-		},
 	}
 
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "in-arrears",
-						Name: "in-arrears",
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      alpacadecimal.NewFromFloat(5),
-							PaymentTerm: productcatalog.InArrearsPaymentTerm,
-						}),
-						TaxConfig: taxConfig,
+	var subsView subscription.SubscriptionView
+	var updatedSubsView subscription.SubscriptionView
+	var draftInvoices []billing.StandardInvoice
+
+	s.Run("create subscription", func() {
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+
+		subsView = s.createSubscriptionFromPlan(plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
+			},
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Test Plan",
+					Key:            "test-plan",
+					Version:        1,
+					Currency:       currency.USD,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
+				},
+				Phases: []productcatalog.Phase{
+					{
+						PhaseMeta: s.phaseMeta("first-phase", ""),
+						RateCards: productcatalog.RateCards{
+							&productcatalog.FlatFeeRateCard{
+								RateCardMeta: productcatalog.RateCardMeta{
+									Key:  "in-arrears",
+									Name: "in-arrears",
+									Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+										Amount:      alpacadecimal.NewFromFloat(5),
+										PaymentTerm: productcatalog.InArrearsPaymentTerm,
+									}),
+									TaxConfig: taxConfig,
+								},
+								BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1D")),
+							},
+						},
+					},
 				},
 			},
-		},
+		})
 	})
 
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+	s.Run("gathering invoice", func() {
+		s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+		_, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: s.Customer.GetID(),
+		})
+		s.NoError(err)
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+		s.assertCreditThenInvoiceChargeTaxConfigs(ctx, subsView.Subscription.ID, chargesmeta.ChargeTypeFlatFee, taxConfig)
 
-	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
-	lines := gatheringInvoice.Lines.OrEmpty()
-	for _, line := range lines {
-		s.Equal(taxConfig, line.TaxConfig)
+		s.assertGatheringLineTaxConfigs(gatheringInvoice.Lines.OrEmpty(), taxConfig)
+	})
+
+	s.Run("gathering invoice after edit", func() {
+		// Given we edit the subscription the tax config is carried over to the lines
+
+		clock.FreezeTime(s.mustParseTime("2024-01-02T00:00:00Z"))
+		var err error
+		updatedSubsView, err = s.SubscriptionWorkflowService.EditRunning(ctx, subsView.Subscription.NamespacedID, []subscription.Patch{
+			patch.PatchRemoveItem{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-arrears",
+			},
+			subscriptionAddItem{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-advance",
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(10),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				TaxConfig:      taxConfig,
+				BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+			}.AsPatch(),
+		}, s.timingImmediate())
+		s.NoError(err)
+		s.NotNil(updatedSubsView)
+
+		s.NoError(s.Service.SynchronizeSubscription(ctx, updatedSubsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+		_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: s.Customer.GetID(),
+		})
+		s.NoError(err)
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+		s.assertCreditThenInvoiceChargeTaxConfigs(ctx, updatedSubsView.Subscription.ID, chargesmeta.ChargeTypeFlatFee, taxConfig)
+
+		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.DebugDumpInvoice("gathering invoice - after edit", gatheringInvoice)
+
+		s.assertGatheringLineTaxConfigs(gatheringInvoice.Lines.OrEmpty(), taxConfig)
+	})
+
+	s.Run("draft invoices", func() {
+		var err error
+		draftAt := s.mustParseTime("2024-02-01T00:00:00Z")
+		for at := s.mustParseTime("2024-01-03T00:00:00Z"); at.Before(draftAt); at = at.AddDate(0, 0, 1) {
+			clock.FreezeTime(at)
+			_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+				Customer: s.Customer.GetID(),
+			})
+			s.NoError(err)
+		}
+		clock.FreezeTime(draftAt)
+
+		draftInvoices, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: s.Customer.GetID(),
+			AsOf:     lo.ToPtr(clock.Now()),
+		})
+		s.NoError(err)
+		s.Require().NotEmpty(draftInvoices)
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+
+		for idx, draftInvoice := range draftInvoices {
+			s.DebugDumpInvoice(fmt.Sprintf("draft invoice %d", idx), draftInvoice)
+			s.assertStandardLineTaxConfigs(draftInvoice.Lines.OrEmpty(), taxConfig)
+		}
+	})
+
+	s.Run("issued invoices", func() {
+		s.Require().NotEmpty(draftInvoices)
+
+		for idx, draftInvoice := range draftInvoices {
+			issuedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.GetInvoiceID())
+			s.NoError(err)
+			s.DebugDumpInvoice(fmt.Sprintf("issued invoice %d", idx), issuedInvoice)
+			s.assertStandardLineTaxConfigs(issuedInvoice.Lines.OrEmpty(), taxConfig)
+		}
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{
+			AccruedAll:     24.68,
+			AccruedInvoice: 24.68,
+			WashAll:        -24.68,
+			WashInvoice:    -24.68,
+		})
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncUsageBased() {
+	ctx := s.T().Context()
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	// Given
+	//  we have tax information set in the rate card
+	// When
+	//  we synchronize the subscription phases
+	// Then
+	//  the gathering invoice will contain the tax details
+
+	taxConfig := &productcatalog.TaxConfig{
+		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 	}
 
-	// Given we edit the subscription the tax config is carried over to the lines
+	var subsView subscription.SubscriptionView
+	var updatedSubsView subscription.SubscriptionView
+	var draftInvoices []billing.StandardInvoice
 
-	updatedSubsView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subsView.Subscription.NamespacedID, []subscription.Patch{
-		patch.PatchRemoveItem{
-			PhaseKey: "first-phase",
-			ItemKey:  "in-arrears",
-		},
-		subscriptionAddItem{
-			PhaseKey: "first-phase",
-			ItemKey:  "in-advance",
-			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      alpacadecimal.NewFromFloat(10),
-				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			}),
-			TaxConfig:      taxConfig,
-			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1D")),
-		}.AsPatch(),
-	}, s.timingImmediate())
-	s.NoError(err)
-	s.NotNil(updatedSubsView)
+	s.Run("create subscription", func() {
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+		s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 12, s.mustParseTime("2024-01-01T10:00:00Z"))
 
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+		subsView = s.createSubscriptionFromPlan(plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
+			},
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Test Plan",
+					Key:            "test-plan",
+					Version:        1,
+					Currency:       currency.USD,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				},
+				Phases: []productcatalog.Phase{
+					{
+						PhaseMeta: s.phaseMeta("first-phase", ""),
+						RateCards: productcatalog.RateCards{
+							&productcatalog.UsageBasedRateCard{
+								RateCardMeta: productcatalog.RateCardMeta{
+									Key:        s.APIRequestsTotalFeature.Key,
+									Name:       s.APIRequestsTotalFeature.Key,
+									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+										Amount: alpacadecimal.NewFromFloat(5),
+									}),
+									TaxConfig: taxConfig,
+								},
+								BillingCadence: datetime.MustParseDuration(s.T(), "P1D"),
+							},
+						},
+					},
+				},
+			},
+		})
+	})
 
-	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice - after edit", gatheringInvoice)
+	s.Run("gathering invoice", func() {
+		s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+		s.assertCreditThenInvoiceChargeTaxConfigs(ctx, subsView.Subscription.ID, chargesmeta.ChargeTypeUsageBased, taxConfig)
 
-	lines = gatheringInvoice.Lines.OrEmpty()
-	for _, line := range lines {
-		s.Equal(taxConfig, line.TaxConfig)
-	}
+		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+
+		s.assertGatheringLineTaxConfigs(gatheringInvoice.Lines.OrEmpty(), taxConfig)
+	})
+
+	s.Run("gathering invoice after edit", func() {
+		// Given we edit the subscription the tax config is carried over to the lines
+
+		clock.FreezeTime(s.mustParseTime("2024-01-02T00:00:00Z"))
+		var err error
+		updatedSubsView, err = s.SubscriptionWorkflowService.EditRunning(ctx, subsView.Subscription.NamespacedID, []subscription.Patch{
+			patch.PatchRemoveItem{
+				PhaseKey: "first-phase",
+				ItemKey:  s.APIRequestsTotalFeature.Key,
+			},
+			subscriptionAddItem{
+				PhaseKey: "first-phase",
+				ItemKey:  s.APIRequestsTotalFeature.Key,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(10),
+				}),
+				FeatureKey:     s.APIRequestsTotalFeature.Key,
+				TaxConfig:      taxConfig,
+				BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1D")),
+			}.AsPatch(),
+		}, s.timingImmediate())
+		s.NoError(err)
+		s.NotNil(updatedSubsView)
+
+		s.NoError(s.Service.SynchronizeSubscription(ctx, updatedSubsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+		s.assertCreditThenInvoiceChargeTaxConfigs(ctx, updatedSubsView.Subscription.ID, chargesmeta.ChargeTypeUsageBased, taxConfig)
+
+		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.DebugDumpInvoice("gathering invoice - after edit", gatheringInvoice)
+
+		s.assertGatheringLineTaxConfigs(gatheringInvoice.Lines.OrEmpty(), taxConfig)
+	})
+
+	s.Run("draft invoices", func() {
+		clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
+		_, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: s.Customer.GetID(),
+		})
+		s.NoError(err)
+
+		draftInvoices, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: s.Customer.GetID(),
+			AsOf:     lo.ToPtr(clock.Now()),
+		})
+		s.NoError(err)
+		s.Require().NotEmpty(draftInvoices)
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+
+		for idx, draftInvoice := range draftInvoices {
+			s.DebugDumpInvoice(fmt.Sprintf("draft invoice %d", idx), draftInvoice)
+			s.assertStandardLineTaxConfigs(draftInvoice.Lines.OrEmpty(), taxConfig)
+		}
+	})
+
+	s.Run("issued invoices", func() {
+		s.Require().NotEmpty(draftInvoices)
+
+		for idx, draftInvoice := range draftInvoices {
+			clock.FreezeTime(draftInvoice.DefaultCollectionAtForStandardInvoice())
+			readyInvoice, err := s.BillingService.AdvanceInvoice(ctx, draftInvoice.GetInvoiceID())
+			s.NoError(err)
+			s.assertStandardLineTaxConfigs(readyInvoice.Lines.OrEmpty(), taxConfig)
+			s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+
+			issuedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.GetInvoiceID())
+			s.NoError(err)
+			s.DebugDumpInvoice(fmt.Sprintf("issued invoice %d", idx), issuedInvoice)
+			s.assertStandardLineTaxConfigs(issuedInvoice.Lines.OrEmpty(), taxConfig)
+		}
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{
+			AccruedAll:     60,
+			AccruedInvoice: 60,
+			WashAll:        -60,
+			WashInvoice:    -60,
+		})
+	})
 }
 
 func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCreation() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
 	ctx := s.T().Context()
-	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
 
 	// Given
 	//  we have a subscription with a single phase with an in advance fee
@@ -4347,38 +4020,79 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 	//
 	// Note that the UBP line is not synced because the subscription is not active yet
 
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "in-advance",
-						Name: "in-advance",
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      alpacadecimal.NewFromFloat(6),
-							PaymentTerm: productcatalog.InAdvancePaymentTerm,
-						}),
-					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+	s.createPromotionalCreditFunding(ctx, createPromotionalCreditFundingInput{
+		Namespace: s.Namespace,
+		Customer:  s.Customer.GetID(),
+		Currency:  currencyx.Code(currency.USD),
+		Amount:    alpacadecimal.NewFromInt(2),
+		At:        start,
+	})
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{
+		FBOAll:          2,
+		FBOPromotional:  2,
+		WashAll:         -2,
+		WashPromotional: -2,
+	})
+
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
 				},
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:        s.APIRequestsTotalFeature.Key,
-						Name:       s.APIRequestsTotalFeature.Key,
-						FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-						FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
-						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-							Amount: alpacadecimal.NewFromFloat(10),
-						}),
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-advance",
+								Name: "in-advance",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(6),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:        s.APIRequestsTotalFeature.Key,
+								Name:       s.APIRequestsTotalFeature.Key,
+								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount: alpacadecimal.NewFromFloat(10),
+								}),
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
 					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
 	})
 
 	s.NoError(s.Service.SynchronizeSubscriptionAndInvoiceCustomer(ctx, subsView, s.mustParseTime("2024-01-01T00:00:00Z")))
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{
+		FBOAll:             0,
+		FBOPromotional:     0,
+		AccruedAll:         2,
+		AccruedPromotional: 2,
+		WashAll:            -2,
+		WashPromotional:    -2,
+	})
 
 	// in-arrears lines wont get synced with this deadline so we'll only have the in advance line on the draft invoice
 	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
@@ -4390,11 +4104,12 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 
 	instantInvoice, err := invoices.Items[0].AsStandardInvoice()
 	s.NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, instantInvoice.Status)
 
 	s.DebugDumpInvoice("instant invoice", instantInvoice)
 
 	// Instant invoice should have the in advance fee
-	s.expectLines(instantInvoice, subsView.Subscription.ID, []expectedLine{
+	expectedLines := []expectedLine{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
@@ -4410,15 +4125,21 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusActiveRealizationProcessing),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
-	})
+	}
+	s.assertChargesForLines(ctx, subsView, expectedLines)
+	s.expectLines(instantInvoice, subsView.Subscription.ID, expectedLines)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCreationWithSubscriptionStartInFuture() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
 	ctx := s.T().Context()
-	clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z")) // This will be the future
+	futureStart := s.mustParseTime("2024-02-01T00:00:00Z")
+	present := s.mustParseTime("2024-01-20T00:00:00Z")
+	clock.FreezeTime(futureStart) // This will be the future
 
 	// Given
 	//  we have a subscription with a single phase with an in advance fee
@@ -4429,40 +4150,75 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 	//
 	// Note that the UBP line is not synced because the subscription is not active yet
 
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "in-advance",
-						Name: "in-advance",
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      alpacadecimal.NewFromFloat(6),
-							PaymentTerm: productcatalog.InAdvancePaymentTerm,
-						}),
-					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+	s.createPromotionalCreditFunding(ctx, createPromotionalCreditFundingInput{
+		Namespace: s.Namespace,
+		Customer:  s.Customer.GetID(),
+		Currency:  currencyx.Code(currency.USD),
+		Amount:    alpacadecimal.NewFromInt(2),
+		At:        present,
+	})
+	startBalances := expectedCreditThenInvoiceBalances{
+		FBOAll:          2,
+		FBOPromotional:  2,
+		WashAll:         -2,
+		WashPromotional: -2,
+	}
+	s.assertCreditThenInvoiceBalances(startBalances)
+
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
 				},
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:        s.APIRequestsTotalFeature.Key,
-						Name:       s.APIRequestsTotalFeature.Key,
-						FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-						FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
-						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-							Amount: alpacadecimal.NewFromFloat(10),
-						}),
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-advance",
+								Name: "in-advance",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(6),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:        s.APIRequestsTotalFeature.Key,
+								Name:       s.APIRequestsTotalFeature.Key,
+								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount: alpacadecimal.NewFromFloat(10),
+								}),
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
 					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
 	})
 
-	clock.FreezeTime(s.mustParseTime("2024-01-20T00:00:00Z")) // This will be the present
+	clock.FreezeTime(present) // This will be the present
 
 	s.NoError(s.Service.SynchronizeSubscriptionAndInvoiceCustomer(ctx, subsView, clock.Now()))
+	s.assertCreditThenInvoiceBalances(startBalances)
 
 	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{s.Namespace},
@@ -4480,7 +4236,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
 	// Gathering invoice should have the UBP line
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+	expectedLines := []expectedLine{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
@@ -4496,54 +4252,96 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
+			InvoiceAt: mo.Some([]time.Time{futureStart}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
-	})
+	}
+	s.assertChargesForLines(ctx, subsView, expectedLines)
+	s.expectLines(gatheringInvoice, subsView.Subscription.ID, expectedLines)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
+	s.T().Skip("TODO: fix credit-then-invoice flat-fee discount handling before enabling this scenario")
 
 	ctx := s.T().Context()
-	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
 
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:  "in-advance",
-						Name: "in-advance",
-						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-							Amount:      alpacadecimal.NewFromFloat(6),
-							PaymentTerm: productcatalog.InAdvancePaymentTerm,
-						}),
-						Discounts: productcatalog.Discounts{
-							Percentage: &productcatalog.PercentageDiscount{
-								Percentage: models.NewPercentage(100),
+	s.createPromotionalCreditFunding(ctx, createPromotionalCreditFundingInput{
+		Namespace: s.Namespace,
+		Customer:  s.Customer.GetID(),
+		Currency:  currencyx.Code(currency.USD),
+		Amount:    alpacadecimal.NewFromInt(2),
+		At:        start,
+	})
+	startBalances := expectedCreditThenInvoiceBalances{
+		FBOAll:          2,
+		FBOPromotional:  2,
+		WashAll:         -2,
+		WashPromotional: -2,
+	}
+	s.assertCreditThenInvoiceBalances(startBalances)
+
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-advance",
+								Name: "in-advance",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(6),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+								Discounts: productcatalog.Discounts{
+									Percentage: &productcatalog.PercentageDiscount{
+										Percentage: models.NewPercentage(100),
+									},
+								},
 							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:        s.APIRequestsTotalFeature.Key,
+								Name:       s.APIRequestsTotalFeature.Key,
+								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount: alpacadecimal.NewFromFloat(10),
+								}),
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
 					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
-				},
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:        s.APIRequestsTotalFeature.Key,
-						Name:       s.APIRequestsTotalFeature.Key,
-						FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-						FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
-						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-							Amount: alpacadecimal.NewFromFloat(10),
-						}),
-					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
 	})
 
 	s.NoError(s.Service.SynchronizeSubscriptionAndInvoiceCustomer(ctx, subsView, clock.Now().Add(time.Minute))) // time is frozen to start time (syncing in arrears upto which would sync nothing, and we want both the instant invoice for in advance as well as the gathering for UBP)
+	s.assertCreditThenInvoiceBalances(startBalances)
 
 	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
 		Customers: []string{s.Customer.ID},
@@ -4574,7 +4372,7 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 	s.DebugDumpInvoice("gathering invoice", *gatheringInvoice)
 	s.DebugDumpInvoice("instant invoice", *instantInvoice)
 
-	s.expectLines(*gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+	gatheringExpectedLines := []expectedLine{
 		// Gathering invoice should have the UBP line
 		{
 			Matcher: recurringLineMatcher{
@@ -4591,6 +4389,10 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(usagebased.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
 		// And next Billing Period's in advance line
 		{
@@ -4612,11 +4414,16 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
-	})
+	}
+	s.expectLines(*gatheringInvoice, subsView.Subscription.ID, gatheringExpectedLines)
 
 	// Instant invoice should have the in advance fee
-	s.expectLines(*instantInvoice, subsView.Subscription.ID, []expectedLine{
+	instantExpectedLines := []expectedLine{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
@@ -4632,8 +4439,14 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusActiveRealizationProcessing),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
-	})
+	}
+	s.expectLines(*instantInvoice, subsView.Subscription.ID, instantExpectedLines)
+	s.assertChargesForLines(ctx, subsView, append(gatheringExpectedLines, instantExpectedLines...))
 
 	// The advance fee should have 100% discount
 	line := instantInvoice.Lines.OrEmpty()[0]
@@ -4644,8 +4457,6 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 }
 
 func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 	defer clock.UnFreeze()
@@ -4719,6 +4530,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				Key:            "test-plan",
 				Version:        1,
 				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -4731,6 +4543,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 			},
 		},
 	})
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
 	// Let's cancel the subscription asof 2025-03-01
 	clock.FreezeTime(s.mustParseTime("2024-03-01T00:00:00Z"))
@@ -4745,11 +4558,12 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 
 	// Let's syncrhonize subscription data for 1 month
 	s.NoError(s.Service.SynchronizeSubscription(ctx, subView, s.mustParseTime("2024-03-01T00:00:00Z")))
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
-	s.expectLines(gatheringInvoice, subView.Subscription.ID, []expectedLine{
+	expectedLines := []expectedLine{
 		// January is 31 days, wechange phase after 2 weeks (14 days)
 		// 5 * 14/31 = 2.258... which we round to 2.26
 		// First phase lines
@@ -4769,6 +4583,10 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -4786,6 +4604,10 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -4800,6 +4622,10 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
 		// We align billing to the 1st of month, so we'll prorate the first iteration
 		// January is 31 days, 31 - 14 = 17 days, 5 * 17/31 = 2.741... which we round to 2.74
@@ -4822,6 +4648,10 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -4841,6 +4671,10 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -4860,6 +4694,10 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -4879,6 +4717,10 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-03-01T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -4900,8 +4742,14 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z"), s.mustParseTime("2024-03-01T00:00:00Z")}),
+			Charge: mo.Some(chargeExpects{
+				Status:         string(flatfee.StatusCreated),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		},
-	})
+	}
+	s.expectLines(gatheringInvoice, subView.Subscription.ID, expectedLines)
+	s.assertChargesForLines(ctx, subView, expectedLines)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestSynchronizeSubscriptionPeriodAlgorithmChange() {
@@ -5670,6 +5518,78 @@ func (s *CreditThenInvoiceTestSuite) mustGetUsageBasedChargeByIDWithExpands(ctx 
 	s.NoError(err)
 
 	return usageBasedCharge
+}
+
+func (s *CreditThenInvoiceTestSuite) assertGatheringLineTaxConfigs(lines []billing.GatheringLine, expected *productcatalog.TaxConfig) {
+	s.T().Helper()
+
+	s.Require().NotEmpty(lines)
+	for _, line := range lines {
+		s.Require().NotNil(line.TaxConfig)
+		s.True(expected.Equal(line.TaxConfig), "line %s tax config: expected %+v, got %+v", line.ID, expected, line.TaxConfig)
+	}
+}
+
+func (s *CreditThenInvoiceTestSuite) assertStandardLineTaxConfigs(lines []*billing.StandardLine, expected *productcatalog.TaxConfig) {
+	s.T().Helper()
+
+	s.Require().NotEmpty(lines)
+	for _, line := range lines {
+		s.Require().NotNil(line.TaxConfig)
+		s.True(expected.Equal(line.TaxConfig), "line %s tax config: expected %+v, got %+v", line.ID, expected, line.TaxConfig)
+	}
+}
+
+func (s *CreditThenInvoiceTestSuite) assertCreditThenInvoiceChargeTaxConfigs(ctx context.Context, subscriptionID string, chargeType chargesmeta.ChargeType, expected *productcatalog.TaxConfig) {
+	s.T().Helper()
+
+	expectedChargeTaxConfig := productcatalog.TaxCodeConfigFrom(expected)
+	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subscriptionID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargeType},
+	})
+	s.NoError(err)
+	s.Require().NotEmpty(res.Items)
+
+	for _, charge := range res.Items {
+		switch chargeType {
+		case chargesmeta.ChargeTypeFlatFee:
+			flatFeeCharge, err := charge.AsFlatFeeCharge()
+			s.NoError(err)
+			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, flatFeeCharge.Intent.TaxConfig, flatFeeCharge.ID)
+		case chargesmeta.ChargeTypeUsageBased:
+			usageBasedCharge, err := charge.AsUsageBasedCharge()
+			s.NoError(err)
+			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, usageBasedCharge.Intent.TaxConfig, usageBasedCharge.ID)
+		default:
+			s.Failf("unsupported charge type", "unsupported charge type %s", chargeType)
+		}
+	}
+}
+
+func (s *CreditThenInvoiceTestSuite) assertTaxCodeConfigEqual(expected, actual *productcatalog.TaxCodeConfig, label string) {
+	s.T().Helper()
+
+	if expected == nil {
+		s.Nil(actual, "%s: tax config", label)
+		return
+	}
+
+	s.Require().NotNil(actual, "%s: tax config", label)
+	if expected.Behavior == nil {
+		s.Nil(actual.Behavior, "%s: tax behavior", label)
+	} else {
+		s.Require().NotNil(actual.Behavior, "%s: tax behavior", label)
+		s.Equal(*expected.Behavior, *actual.Behavior, "%s: tax behavior", label)
+	}
+
+	if expected.TaxCodeID == nil {
+		s.Nil(actual.TaxCodeID, "%s: tax code id", label)
+	} else {
+		s.Require().NotNil(actual.TaxCodeID, "%s: tax code id", label)
+		s.Equal(*expected.TaxCodeID, *actual.TaxCodeID, "%s: tax code id", label)
+	}
 }
 
 type expectedUsageBasedChargeInput struct {
