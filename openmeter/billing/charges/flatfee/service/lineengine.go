@@ -287,7 +287,7 @@ func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine
 		Adapter:              e.service.adapter,
 		Realizations:         e.service.realizations,
 		Service:              e.service,
-		CreditNotesSupported: e.service.creditNotesSupported,
+		CreditNotesSupported: e.service.creditNotesSupported.Load(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)

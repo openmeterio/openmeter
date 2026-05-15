@@ -23,7 +23,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceCharge
 			Adapter:              s.adapter,
 			Realizations:         s.realizations,
 			Service:              s,
-			CreditNotesSupported: s.creditNotesSupported,
+			CreditNotesSupported: s.creditNotesSupported.Load(),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
@@ -50,7 +50,7 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 			Adapter:              s.adapter,
 			Realizations:         s.realizations,
 			Service:              s,
-			CreditNotesSupported: s.creditNotesSupported,
+			CreditNotesSupported: s.creditNotesSupported.Load(),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)

@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+	"sync/atomic"
+	"testing"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -67,14 +69,16 @@ func New(config Config) (flatfee.Service, error) {
 		return nil, err
 	}
 
-	return &service{
-		adapter:              config.Adapter,
-		handler:              config.Handler,
-		metaAdapter:          config.MetaAdapter,
-		locker:               config.Locker,
-		realizations:         realizations,
-		creditNotesSupported: charges.CreditNotesSupportedByLineUpdater,
-	}, nil
+	svc := &service{
+		adapter:      config.Adapter,
+		handler:      config.Handler,
+		metaAdapter:  config.MetaAdapter,
+		locker:       config.Locker,
+		realizations: realizations,
+	}
+	svc.creditNotesSupported.Store(charges.CreditNotesSupportedByLineUpdater)
+
+	return svc, nil
 }
 
 type service struct {
@@ -83,7 +87,7 @@ type service struct {
 	metaAdapter          meta.Adapter
 	locker               *lockr.Locker
 	realizations         *flatfeerealizations.Service
-	creditNotesSupported bool
+	creditNotesSupported atomic.Bool
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {
@@ -92,6 +96,15 @@ func (s *service) GetLineEngine() billing.LineEngine {
 	}
 }
 
-func (s *service) SetCreditNotesSupportedByLineUpdater(supported bool) {
-	s.creditNotesSupported = supported
+// SetCreditNotesSupportedByLineUpdater sets the credit notes supported by the line updater.
+// This is used to test the credit notes supported by the line updater, but must not be used
+// in production code.
+func (s *service) SetCreditNotesSupportedByLineUpdater(t *testing.T, supported bool) error {
+	if t == nil {
+		return errors.New("testing is nil")
+	}
+
+	t.Helper()
+	s.creditNotesSupported.Store(supported)
+	return nil
 }

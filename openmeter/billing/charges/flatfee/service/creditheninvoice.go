@@ -62,10 +62,21 @@ func NewCreditThenInvoiceStateMachine(config StateMachineConfig) (*CreditThenInv
 
 func (s *CreditThenInvoiceStateMachine) configureStates() {
 	s.Configure(flatfee.StatusCreated).
+		// Zero-amount CTI flat fees intentionally skip the billing line
+		// engine. Once the service period starts there will be no gathering
+		// line to produce TriggerFinalInvoiceCreated, so the charge closes
+		// directly from created.
+		Permit(
+			meta.TriggerNext,
+			flatfee.StatusFinal,
+			statelessx.BoolFn(s.IsInsideServicePeriodAndZeroAmount),
+		).
+		// Non-zero CTI flat fees still wait in active for the flat-fee line
+		// engine to create a realization run from the standard invoice line.
 		Permit(
 			meta.TriggerNext,
 			flatfee.StatusActive,
-			statelessx.BoolFn(s.IsInsideServicePeriod),
+			statelessx.BoolFn(s.IsInsideServicePeriodAndNonZeroAmount),
 		).
 		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
@@ -73,6 +84,10 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		OnActive(s.AdvanceAfterServicePeriodFrom)
 
 	s.Configure(flatfee.StatusActive).
+		// This also repairs previously active zero-amount charges. They have
+		// no line-engine path left, so active must not become their terminal
+		// operational state.
+		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.IsZeroAmount)).
 		Permit(meta.TriggerFinalInvoiceCreated, flatfee.StatusActiveRealizationStarted).
 		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
@@ -296,7 +311,12 @@ type generateInvoicePatchesInput struct {
 func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Context, input generateInvoicePatchesInput) error {
 	currentRun := s.Charge.Realizations.CurrentRun
 
-	// Hack: credit notes are not supported yet, but the execution bellow is based on the assumption that they are. Any corner cases need to be captured here.
+	// TODO(credit-note support): this branch is a temporary fallback for
+	// immutable invoice lines until the line updater can correct them with
+	// credit notes. The normal patch flow below assumes immutable invoice
+	// history can be adjusted safely; while that is false, we update the
+	// charge intent/state but avoid creating replacement billable work for
+	// the already-invoiced period.
 	if !s.CreditNotesSupported {
 		// Case 1: We are trying to shrink an immutable invoice, but credit notes are not supported yet.
 
@@ -306,9 +326,6 @@ func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Conte
 		//
 		// This prevents charging both the non-prorated and prorated amounts.
 		if currentRun != nil && currentRun.Immutable && !input.NewAmountAfterProration.Equal(input.OldAmountAfterProration) {
-			s.Charge.Intent = input.Intent
-			s.Charge.State.AmountAfterProration = input.NewAmountAfterProration
-
 			if currentRun.LineID == nil {
 				return models.NewGenericPreConditionFailedError(
 					fmt.Errorf("cannot %s flat-fee charge %s because current realization run %s does not have a persisted line reference", input.Op, s.Charge.ID, currentRun.ID.ID),
@@ -320,6 +337,9 @@ func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Conte
 					fmt.Errorf("cannot %s flat-fee charge %s because current realization run %s does not have a persisted invoice reference", input.Op, s.Charge.ID, currentRun.ID.ID),
 				)
 			}
+
+			s.Charge.Intent = input.Intent
+			s.Charge.State.AmountAfterProration = input.NewAmountAfterProration
 
 			s.AddInvoicePatch(invoiceupdater.NewDeleteLinePatch(
 				billing.LineID{
@@ -349,9 +369,19 @@ func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Conte
 	if currentRun == nil {
 		s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
 		if input.NewAmountAfterProration.IsZero() {
+			// A zero patch target has no invoice artifact to wait for. Keep it
+			// terminal and clear advancement so the charge worker stops
+			// selecting it.
+			s.Charge.Status = flatfee.StatusFinal
+			s.Charge.State.AdvanceAfter = nil
 			return nil
 		}
 		s.AddInvoicePatch(invoiceupdater.NewCreateLinePatch(updatedGatheringLine))
+		// A zero charge can become billable again after extend/shrink. Move it
+		// back to created so normal service-period advancement and invoicing
+		// can recreate the CTI lifecycle.
+		s.Charge.Status = flatfee.StatusCreated
+		s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(input.Period.From))
 		return nil
 	}
 
@@ -389,8 +419,11 @@ func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Conte
 			s.Charge.Realizations.PriorRuns = append(s.Charge.Realizations.PriorRuns, *currentRun)
 			s.Charge.Realizations.CurrentRun = nil
 
-			s.Charge.Status = flatfee.StatusCreated
-			s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(input.Period.From))
+			// The mutable standard-line deletion hook owns credit correction
+			// for the detached run. After the line is removed, a zero-amount
+			// charge has no remaining invoice lifecycle to wait for.
+			s.Charge.Status = flatfee.StatusFinal
+			s.Charge.State.AdvanceAfter = nil
 
 			return nil
 		}
