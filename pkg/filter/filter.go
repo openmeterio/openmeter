@@ -948,17 +948,41 @@ func (f FilterULID) validateWithComplexity(maxDepth int) error {
 
 // IsEmpty returns true if the filter is empty.
 func (f FilterULID) IsEmpty() bool {
-	return isEmptyFilter(f.FilterString)
+	return f.FilterString.IsEmpty() && f.And == nil && f.Or == nil
 }
 
 // SelectWhereExpr converts the filter to a SQL WHERE expression.
 func (f FilterULID) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
-	return f.FilterString.SelectWhereExpr(field, q)
+	switch {
+	case f.And != nil:
+		return q.And(lo.Map(*f.And, func(child FilterULID, _ int) string {
+			return child.SelectWhereExpr(field, q)
+		})...)
+	case f.Or != nil:
+		return q.Or(lo.Map(*f.Or, func(child FilterULID, _ int) string {
+			return child.SelectWhereExpr(field, q)
+		})...)
+	default:
+		return f.FilterString.SelectWhereExpr(field, q)
+	}
 }
 
 // Select converts the filter to an Ent selector predicate.
 func (f FilterULID) Select(field string) func(*sql.Selector) {
-	return f.FilterString.Select(field)
+	switch {
+	case f.And != nil:
+		return sql.AndPredicates(lo.FilterMap(*f.And, func(child FilterULID, _ int) (func(*sql.Selector), bool) {
+			p := child.Select(field)
+			return p, p != nil
+		})...)
+	case f.Or != nil:
+		return sql.OrPredicates(lo.FilterMap(*f.Or, func(child FilterULID, _ int) (func(*sql.Selector), bool) {
+			p := child.Select(field)
+			return p, p != nil
+		})...)
+	default:
+		return f.FilterString.Select(field)
+	}
 }
 
 // collectStringValues collects the string values into a slice from the filter
