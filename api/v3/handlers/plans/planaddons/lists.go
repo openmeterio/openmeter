@@ -2,7 +2,6 @@ package planaddons
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -63,14 +62,6 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 			}
 
 			if params.Params.Filter != nil {
-				if params.Params.Filter.PlanId != nil {
-					return ListPlanAddonsRequest{}, apierrors.NewBadRequestError(ctx,
-						errors.New("filter[plan_id] conflicts with path planId"),
-						apierrors.InvalidParameters{
-							{Field: "filter[plan_id]", Reason: "plan id is already set via the path parameter; use the path instead", Source: apierrors.InvalidParamSourceQuery},
-						})
-				}
-
 				id, err := filters.FromAPIFilterULID(params.Params.Filter.Id)
 				if err != nil {
 					return ListPlanAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{

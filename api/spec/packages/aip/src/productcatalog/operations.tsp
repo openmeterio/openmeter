@@ -290,8 +290,6 @@ model ListPlanAddonsParamsFilter {
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   id?: Common.ULIDFieldFilter;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
-  plan_id?: Common.ULIDFieldFilter;
-  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   plan_key?: Common.StringFieldFilter;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   addon_id?: Common.ULIDFieldFilter;
