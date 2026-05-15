@@ -32,6 +32,10 @@ type mockFlatFeeHandler struct{}
 var _ flatfee.Handler = (*mockFlatFeeHandler)(nil)
 
 func (mockFlatFeeHandler) OnAllocateCredits(_ context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
+	if input.PreTaxAmountToAllocate.IsZero() {
+		return nil, nil
+	}
+
 	return creditrealization.CreateAllocationInputs{
 		{
 			ServicePeriod:     input.ServicePeriod,
