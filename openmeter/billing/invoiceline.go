@@ -39,9 +39,10 @@ func (InvoiceLineManagedBy) Values() []string {
 }
 
 type GetLinesForSubscriptionInput struct {
-	Namespace      string
-	SubscriptionID string
-	CustomerID     string
+	Namespace            string
+	SubscriptionID       string
+	CustomerID           string
+	IncludeChargeManaged bool
 }
 
 func (i GetLinesForSubscriptionInput) Validate() error {
@@ -84,6 +85,7 @@ type GenericInvoiceLineReader interface {
 	GetServicePeriod() timeutil.ClosedPeriod
 	GetChildUniqueReferenceID() *string
 	GetFeatureKey() string
+	GetChargeID() *string
 
 	Validate() error
 	AsInvoiceLine() InvoiceLine

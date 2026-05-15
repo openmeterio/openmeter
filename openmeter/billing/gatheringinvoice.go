@@ -387,6 +387,10 @@ type GatheringLineBase struct {
 	UBPConfigID string `json:"ubpConfigID"`
 }
 
+func (i GatheringLineBase) GetChargeID() *string {
+	return i.ChargeID
+}
+
 func (i GatheringLineBase) Validate() error {
 	var errs []error
 
