@@ -1518,7 +1518,8 @@ func (s *SanitySuite) TestTaxCodeFlowsFromCreditPurchaseToEarnings() {
 		advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
 		s.NoError(err)
 		s.Equal(flatfee.StatusFinal, advancedCharge.Status)
-		s.Len(advancedCharge.Realizations.CreditRealizations, 1)
+		s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
+		s.Len(advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
 
 		// Accrued must hold the consumed amount; FBO must be drained
 		nilCostBasis := alpacadecimal.Zero

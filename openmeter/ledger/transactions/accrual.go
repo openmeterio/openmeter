@@ -160,6 +160,7 @@ func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairing
 		if current.Address == nil {
 			accruedSubAccount, err := accruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
 				Currency:  t.Currency,
+				TaxCode:   source.Address.Route().Route().TaxCode,
 				CostBasis: source.Address.Route().Route().CostBasis,
 			})
 			if err != nil {

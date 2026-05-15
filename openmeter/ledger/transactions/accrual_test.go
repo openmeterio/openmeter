@@ -172,8 +172,11 @@ func TestTransferCustomerFBOToAccruedTemplate_SeparatesTaxCodeBuckets(t *testing
 		t,
 		TransferCustomerFBOToAccruedTemplate{
 			At:       env.Now(),
-			Amount:   alpacadecimal.NewFromInt(80),
 			Currency: env.Currency,
+			Sources: []PostingAmount{
+				{Address: fboTaxA.Address(), Amount: alpacadecimal.NewFromInt(30)},
+				{Address: fboTaxB.Address(), Amount: alpacadecimal.NewFromInt(50)},
+			},
 		},
 	)
 	require.Len(t, inputs, 1)
@@ -201,8 +204,11 @@ func TestTransferCustomerFBOToAccruedTemplate_NilTaxCodeIsolatedFromNonNil(t *te
 		t,
 		TransferCustomerFBOToAccruedTemplate{
 			At:       env.Now(),
-			Amount:   alpacadecimal.NewFromInt(60),
 			Currency: env.Currency,
+			Sources: []PostingAmount{
+				{Address: fboNilTax.Address(), Amount: alpacadecimal.NewFromInt(40)},
+				{Address: fboTaxA.Address(), Amount: alpacadecimal.NewFromInt(20)},
+			},
 		},
 	)
 	require.Len(t, inputs, 1)

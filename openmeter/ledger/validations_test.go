@@ -95,7 +95,7 @@ func mustPostingAddress(t *testing.T, currency currencyx.Code) ledger.PostingAdd
 	t.Helper()
 
 	route := ledger.Route{Currency: currency}
-	key, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, route)
+	key, err := ledger.BuildRoutingKey(route)
 	require.NoError(t, err)
 
 	address, err := ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
