@@ -50,8 +50,6 @@ func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subsc
 		return State{}, fmt.Errorf("getting existing lines: %w", err)
 	}
 
-	// Charge-managed invoice lines are edited through charge patches, so subscription sync loads the
-	// charge entities instead of reconciling those lines directly.
 	lines, err = slicesx.MapWithErr(lines, normalizePersistedLineOrHierarchy)
 	if err != nil {
 		return State{}, fmt.Errorf("normalizing existing lines: %w", err)
