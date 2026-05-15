@@ -531,7 +531,8 @@ func (s *SuiteBase) assertUsageBasedChargesForLines(ctx context.Context, subsVie
 				s.Equal(expectedLine.InvoiceAt.OrEmpty()[idx], charge.Intent.InvoiceAt, "%s: invoice at", childID)
 			}
 			s.Equal(s.Customer.ID, charge.Intent.CustomerID, "%s: customer id", childID)
-			s.Equal(itemKey, charge.Intent.FeatureKey, "%s: feature key", childID)
+			expectedFeatureKey := lo.FromPtrOr(item.Spec.RateCard.AsMeta().FeatureKey, itemKey)
+			s.Equal(expectedFeatureKey, charge.Intent.FeatureKey, "%s: feature key", childID)
 			s.Equal(*productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: unitPrice.Amount}), charge.Intent.Price, "%s: price", childID)
 			s.Require().NotNil(charge.Intent.Subscription, "%s: subscription", childID)
 			s.Equal(subsView.Subscription.ID, charge.Intent.Subscription.SubscriptionID, "%s: subscription id", childID)

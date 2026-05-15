@@ -306,6 +306,9 @@ func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Conte
 		//
 		// This prevents charging both the non-prorated and prorated amounts.
 		if currentRun != nil && currentRun.Immutable && !input.NewAmountAfterProration.Equal(input.OldAmountAfterProration) {
+			s.Charge.Intent = input.Intent
+			s.Charge.State.AmountAfterProration = input.NewAmountAfterProration
+
 			if currentRun.LineID == nil {
 				return models.NewGenericPreConditionFailedError(
 					fmt.Errorf("cannot %s flat-fee charge %s because current realization run %s does not have a persisted line reference", input.Op, s.Charge.ID, currentRun.ID.ID),
@@ -330,7 +333,8 @@ func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Conte
 		}
 	}
 
-	s.applyInvoicePatchInput(input)
+	s.Charge.Intent = input.Intent
+	s.Charge.State.AmountAfterProration = input.NewAmountAfterProration
 
 	updatedGatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
 		Charge:        s.Charge,
@@ -453,9 +457,4 @@ func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Conte
 	s.Charge.State.AdvanceAfter = &advanceAfter
 
 	return nil
-}
-
-func (s *CreditThenInvoiceStateMachine) applyInvoicePatchInput(input generateInvoicePatchesInput) {
-	s.Charge.Intent = input.Intent
-	s.Charge.State.AmountAfterProration = input.NewAmountAfterProration
 }
