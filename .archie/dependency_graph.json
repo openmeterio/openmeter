@@ -1,0 +1,103 @@
+{
+  "nodes": [
+    {
+      "id": "api/client/python/examples/async",
+      "label": "async",
+      "component": "",
+      "inDegree": 0,
+      "outDegree": 1,
+      "inCycle": false,
+      "fileCount": 6
+    },
+    {
+      "id": "api/client/python/examples/sync",
+      "label": "sync",
+      "component": "",
+      "inDegree": 0,
+      "outDegree": 1,
+      "inCycle": false,
+      "fileCount": 6
+    },
+    {
+      "id": "api/spec/packages/aip/lib",
+      "label": "lib",
+      "component": "",
+      "inDegree": 0,
+      "outDegree": 1,
+      "inCycle": false,
+      "fileCount": 2
+    },
+    {
+      "id": "api/spec/packages/aip/lib/rules",
+      "label": "rules",
+      "component": "",
+      "inDegree": 1,
+      "outDegree": 0,
+      "inCycle": false,
+      "fileCount": 10
+    },
+    {
+      "id": "api/spec/packages/legacy/lib",
+      "label": "lib",
+      "component": "",
+      "inDegree": 0,
+      "outDegree": 1,
+      "inCycle": false,
+      "fileCount": 2
+    },
+    {
+      "id": "api/spec/packages/legacy/lib/rules",
+      "label": "rules",
+      "component": "",
+      "inDegree": 1,
+      "outDegree": 0,
+      "inCycle": false,
+      "fileCount": 7
+    },
+    {
+      "id": "openmeter",
+      "label": "openmeter",
+      "component": "",
+      "inDegree": 2,
+      "outDegree": 0,
+      "inCycle": false,
+      "fileCount": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": "api/client/python/examples/async",
+      "to": "openmeter",
+      "weight": 9,
+      "crossComponent": false,
+      "inCycle": false
+    },
+    {
+      "from": "api/client/python/examples/sync",
+      "to": "openmeter",
+      "weight": 4,
+      "crossComponent": false,
+      "inCycle": false
+    },
+    {
+      "from": "api/spec/packages/aip/lib",
+      "to": "api/spec/packages/aip/lib/rules",
+      "weight": 8,
+      "crossComponent": false,
+      "inCycle": false
+    },
+    {
+      "from": "api/spec/packages/legacy/lib",
+      "to": "api/spec/packages/legacy/lib/rules",
+      "weight": 5,
+      "crossComponent": false,
+      "inCycle": false
+    }
+  ],
+  "cycles": [],
+  "stats": {
+    "nodeCount": 7,
+    "edgeCount": 4,
+    "cycleCount": 0
+  }
+}

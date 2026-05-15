@@ -1,6 +1,7 @@
 package appservice
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -68,7 +69,7 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func New(config Config) (*Service, error) {
+func New(ctx context.Context, config Config) (*Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
@@ -85,7 +86,7 @@ func New(config Config) (*Service, error) {
 	}
 
 	// Register stripe app in marketplace
-	err := config.AppService.RegisterMarketplaceListing(app.RegistryItem{
+	err := config.AppService.RegisterMarketplaceListing(ctx, app.RegistryItem{
 		Listing: appstripe.StripeMarketplaceListing,
 		Factory: service,
 	})

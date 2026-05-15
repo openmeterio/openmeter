@@ -1,0 +1,335 @@
+{
+  "api/spec/packages/aip/src/currencies": {
+    "purpose": "TypeSpec definitions for the billing currencies API: fiat and custom currency models plus list/create operations. All output compiles to v3 OpenAPI spec and SDKs via `make gen-api`; no hand-written Go or OpenAPI here.",
+    "patterns": [
+      {
+        "name": "Discriminated union with envelope:none",
+        "description": "Currency is a @discriminated union with envelope:'none' and discriminatorPropertyName:'type'. New currency variants must extend this union \u2014 never add a flat polymorphic field.",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union Currency { fiat: CurrencyFiat, custom: CurrencyCustom }"
+      },
+      {
+        "name": "Generic base model CurrencyBase<T>",
+        "description": "Type-specific models spread CurrencyBase<CurrencyType.X> and add only their own fields. Common fields (id, type, name, description, symbol) live exclusively on CurrencyBase.",
+        "example": "model CurrencyCustom { ...CurrencyBase<CurrencyType.Custom>; @visibility(Lifecycle.Create, Lifecycle.Read) code: CurrencyCodeCustom; }"
+      },
+      {
+        "name": "@visibility on every field",
+        "description": "All fields carry explicit @visibility(Lifecycle.*) annotations. Read-only system fields use Lifecycle.Read only; user-settable fields use Lifecycle.Create and/or Lifecycle.Read.",
+        "example": "@visibility(Lifecycle.Read) id: Shared.ULID; @visibility(Lifecycle.Create, Lifecycle.Read) name: string;"
+      },
+      {
+        "name": "@friendlyName on every exported type",
+        "description": "Every model, enum, union, and scalar must have @friendlyName(\"Billing<Name>\") to stabilize generated SDK type names and prevent collisions.",
+        "example": "@friendlyName(\"BillingCurrencyCustom\") model CurrencyCustom { ... }"
+      },
+      {
+        "name": "Stability @extension decorators on every operation",
+        "description": "Every operation carries @extension(Shared.InternalExtension, true) and @extension(Shared.UnstableExtension, true). Omitting either breaks API maturity tracking in the generated OpenAPI.",
+        "example": "@extension(Shared.UnstableExtension, true) @extension(Shared.InternalExtension, true) @get list(...)"
+      },
+      {
+        "name": "PagePaginationQuery spread + deepObject filter",
+        "description": "List operations spread ...Common.PagePaginationQuery for pagination and accept filter via @query(#{ style: \"deepObject\", explode: true }).",
+        "example": "list(...Common.PagePaginationQuery, @query(#{ style: \"deepObject\", explode: true }) filter?: ListCurrenciesParamsFilter)"
+      },
+      {
+        "name": "Models in currency.tsp, HTTP operations in operations.tsp",
+        "description": "currency.tsp defines all models/enums/scalars with no HTTP imports. operations.tsp imports @typespec/http and declares all interface operations. cost-bases/ is a child folder imported via index.tsp.",
+        "example": "// currency.tsp: no HTTP imports | operations.tsp: using TypeSpec.Http; interface CurrenciesCustomOperations { @post create(...) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "currency.tsp",
+        "role": "Defines CurrencyType enum, Currency discriminated union, CurrencyBase<T> generic, CurrencyFiat, CurrencyCustom, and CurrencyCodeCustom scalar. No HTTP imports.",
+        "watch_for": "Adding @get/@post or importing @typespec/http breaks the model/operation separation. Missing @friendlyName causes unstable SDK names. Missing @visibility defaults all lifecycle phases."
+      },
+      {
+        "file": "operations.tsp",
+        "role": "Declares CurrenciesOperations (list) and CurrenciesCustomOperations (create) with HTTP decorators, stability extensions, and ListCurrenciesParamsFilter model.",
+        "watch_for": "Omitting @extension stability decorators breaks internal API maturity tracking. Using inline pagination params instead of ...Common.PagePaginationQuery causes drift from the standard pagination contract."
+      },
+      {
+        "file": "index.tsp",
+        "role": "Entry point that imports currency.tsp, operations.tsp, and cost-bases/operations.tsp in order.",
+        "watch_for": "New .tsp files added to this folder must be imported here; silently excluded from compilation otherwise."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing api/v3/api.gen.go or api/v3/openapi.yaml \u2014 always regenerate via `make gen-api`",
+      "Declaring fields without @visibility \u2014 fields default to all lifecycle phases, leaking write-only or system fields into create payloads",
+      "Adding operations without @extension(Shared.InternalExtension) and @extension(Shared.UnstableExtension) \u2014 breaks internal API maturity tracking",
+      "Using a @friendlyName that duplicates an existing model name \u2014 causes SDK type collisions",
+      "Importing @typespec/http in currency.tsp (model file) \u2014 HTTP decorators belong only in operations.tsp"
+    ],
+    "decisions": [
+      {
+        "decision": "Currency is a discriminated union (envelope:none) rather than a flat polymorphic model",
+        "rationale": "Enables SDK discriminator deserialization without a wrapper envelope field, matching the fiat/custom split at the type level."
+      },
+      {
+        "decision": "Models and operations split across currency.tsp and operations.tsp",
+        "rationale": "Keeps model definitions free of HTTP concerns so they can be imported without pulling in HTTP decorator dependencies."
+      },
+      {
+        "decision": "@extension(Shared.InternalExtension/UnstableExtension) on all operations",
+        "rationale": "Currencies API is internal/unstable; stability decorators gate exposure in public-facing OpenAPI outputs and SDK generation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new custom currency variant with a create operation",
+        "code": "// currency.tsp \u2014 model only, no HTTP imports\n@friendlyName(\"BillingCurrencyToken\")\nmodel CurrencyToken {\n  ...CurrencyBase<CurrencyType.Custom>;\n  @visibility(Lifecycle.Create, Lifecycle.Read)\n  code: CurrencyCodeCustom;\n  @visibility(Lifecycle.Create, Lifecycle.Read)\n  decimals: uint8;\n}\n\n// operations.tsp \u2014 HTTP decorators only here\ninterface CurrenciesTokenOperations {\n  @extension(Shared.UnstableExtension, true)\n  @extension(Shared.InternalExtension, true)\n  @post\n  @operationId(\"create-token-currency\")\n  @summary(\"Create token currency\")\n  create(\n    @body body: Shared.CreateRequest<CurrencyToken>,\n  ): Shared.CreateResponse<CurrencyToken> | Common.ErrorResponses;\n}"
+      }
+    ]
+  },
+  "api/spec/packages/aip/src/customers": {
+    "purpose": "TypeSpec definitions for the customer API: core customer CRUD, billing overlay, Stripe session operations, credits sub-API, and charges sub-API. Root folder coordinates sub-domain imports via index.tsp and acts as the entry point for the customers namespace.",
+    "patterns": [
+      {
+        "name": "Shared.Resource spread for mutable entities",
+        "description": "Core CRUD entities (Customer) spread ...Shared.Resource to inherit id, name, created_at, updated_at, deleted_at, and metadata fields consistently.",
+        "example": "model Customer { ...Shared.Resource; @visibility(Lifecycle.Create, Lifecycle.Read) key: Shared.ExternalResourceKey; ... }"
+      },
+      {
+        "name": "@visibility on every field with all applicable lifecycles",
+        "description": "Each field explicitly lists every Lifecycle phase (Create, Read, Update) that applies. Omitting Update for mutable fields excludes them from PUT/upsert payloads.",
+        "example": "@visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update) primary_email?: string;"
+      },
+      {
+        "name": "@friendlyName(\"Billing<Name>\") on every exported type",
+        "description": "All exported models, enums, unions, and scalars must have @friendlyName prefixed with 'Billing' to stabilize generated SDK names.",
+        "example": "@friendlyName(\"BillingCustomer\") model Customer { ... }"
+      },
+      {
+        "name": "Shared generic request/response wrappers",
+        "description": "Operations use Shared.CreateRequest<T>, Shared.UpsertRequest<T>, Shared.CreateResponse<T>, Shared.GetResponse<T>, Shared.UpsertResponse<T> wrappers rather than bare model types.",
+        "example": "create(@body customer: Shared.CreateRequest<Customer>): Shared.CreateResponse<Customer> | Common.ErrorResponses;"
+      },
+      {
+        "name": "deepObject filter + PagePaginationQuery for list operations",
+        "description": "List operations spread ...Common.PagePaginationQuery and accept filter via @query(#{ style: \"deepObject\", explode: true }).",
+        "example": "list(...Common.PagePaginationQuery, @query(#{ style: \"deepObject\", explode: true }) filter?: ListCustomersParamsFilter)"
+      },
+      {
+        "name": "Models in domain .tsp, HTTP operations in operations.tsp",
+        "description": "customer.tsp and billing.tsp define models only with no @typespec/http imports. operations.tsp imports @typespec/http and declares all interface operations.",
+        "example": "// customer.tsp: no HTTP import | operations.tsp: using TypeSpec.Http; interface CustomersOperations { @post create(...) }"
+      },
+      {
+        "name": "Sub-domains as child folders imported via index.tsp",
+        "description": "credits/ and charges/ sub-domains each have their own index.tsp and are imported in the parent index.tsp. New sub-domains follow the same pattern.",
+        "example": "// index.tsp: import \"./credits/index.tsp\"; import \"./charges/index.tsp\";"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "customer.tsp",
+        "role": "Defines Customer, Address, CustomerUsageAttribution, CustomerReference, CustomerKeyReference, and UsageAttributionSubjectKey. No HTTP imports.",
+        "watch_for": "Missing @visibility on new fields defaults to all lifecycles. Not spreading Shared.Resource on new CRUD entities breaks consistency. Adding HTTP decorators here violates model/operation separation."
+      },
+      {
+        "file": "billing.tsp",
+        "role": "Defines CustomerBillingData referencing Billing.BillingProfileReference and Apps.AppCustomerData. Bridges customer and billing/apps namespaces.",
+        "watch_for": "Imports apps and billing index.tsp \u2014 adding new billing-related customer fields here keeps billing concerns co-located. Don't put billing concerns in customer.tsp."
+      },
+      {
+        "file": "operations.tsp",
+        "role": "Declares CustomersOperations (CRUD + list), CustomerBillingOperations (get/upsert billing, app-data, Stripe sessions), and all related request models.",
+        "watch_for": "Each operation needs @operationId and @summary. Stripe sub-operations use @route sub-paths. Error responses must include Common.ErrorResponses."
+      },
+      {
+        "file": "index.tsp",
+        "role": "Root import file for the customers folder; pulls in customer.tsp, operations.tsp, credits/index.tsp, charges/index.tsp.",
+        "watch_for": "New sub-domain folders must be imported here or they are silently excluded from compilation."
+      }
+    ],
+    "anti_patterns": [
+      "Adding HTTP decorators (@get, @post, @path, @query) in customer.tsp or billing.tsp \u2014 they belong only in operations.tsp",
+      "Omitting @visibility on fields \u2014 fields default to all lifecycle phases, leaking write-only or system fields into create/update payloads",
+      "Omitting @friendlyName on new models or enums \u2014 the generated SDK name will be unstable or collide",
+      "Using inline pagination params instead of ...Common.PagePaginationQuery \u2014 causes drift from the standard pagination contract",
+      "Hand-editing api/v3/api.gen.go or api/v3/openapi.yaml \u2014 always regenerate via `make gen-api`"
+    ],
+    "decisions": [
+      {
+        "decision": "Customer billing and app data live in billing.tsp, not customer.tsp",
+        "rationale": "Keeps core customer identity free of billing/app coupling; billing.tsp bridges namespaces explicitly so the dependency is traceable."
+      },
+      {
+        "decision": "credits/ and charges/ are child sub-folders imported via index.tsp",
+        "rationale": "Maintains logical separation of sub-domains while keeping the TypeSpec compilation path unified through the parent index."
+      },
+      {
+        "decision": "Stripe-specific operations use @route sub-paths within CustomerBillingOperations",
+        "rationale": "Co-locates Stripe session operations with the billing interface they logically belong to, avoiding a proliferation of top-level interfaces."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new customer sub-resource with list and get operations",
+        "code": "// new-sub-resource.tsp (no HTTP imports)\nimport \"../shared/index.tsp\";\nnamespace Customers;\n\n@friendlyName(\"BillingCustomerContract\")\nmodel CustomerContract {\n  ...Shared.Resource;\n  @visibility(Lifecycle.Create, Lifecycle.Read)\n  title: string;\n}\n\n// operations.tsp addition\nimport \"./new-sub-resource.tsp\";\ninterface CustomerContractOperations {\n  @get\n  @operationId(\"get-customer-contract\")\n  @summary(\"Get customer contract\")\n  get(\n    @path customerId: Shared.ULID,\n    @path contractId: Shared.ULID,\n  ): Shared.GetResponse<CustomerContract> | Common.NotFound | Common.ErrorResponses;\n\n  @get\n  @operationId(\"list-customer-contracts\")\n  @summary(\"List customer contracts\")\n  list(\n    @path customerId: Shared.ULID,\n    ...Common.PagePaginationQuery,\n  ): Shared.PagePaginatedResponse<CustomerContract> | Common.ErrorResponses;\n}\n\n// index.tsp: add import \"./new-sub-resource-ops.tsp\";"
+      }
+    ]
+  },
+  "api/client/python/examples/async": {
+    "purpose": "Runnable async Python example scripts demonstrating openmeter SDK usage patterns against a live endpoint; each file is self-contained and exercises one domain (customers, entitlements, ingest, meter queries, subscriptions) using the async client from openmeter.aio.",
+    "patterns": [
+      {
+        "name": "Async context manager client lifetime",
+        "description": "Always instantiate the async Client inside `async with Client(endpoint=..., token=...) as client:` so the underlying HTTP session is properly closed even on exceptions.",
+        "example": "async with Client(endpoint=ENDPOINT, token=token) as client: ..."
+      },
+      {
+        "name": "Environment-variable configuration with defaults",
+        "description": "All connection and domain parameters read from os.environ with a fallback literal; never hardcode credentials.",
+        "example": "ENDPOINT: str = environ.get('OPENMETER_ENDPOINT') or 'https://openmeter.cloud'"
+      },
+      {
+        "name": "HttpResponseError catch-all",
+        "description": "Every main() wraps all client calls in a single try/except HttpResponseError block imported from corehttp.exceptions.",
+        "example": "except HttpResponseError as e: print(f'Error: {e}')"
+      },
+      {
+        "name": "asyncio.run entry point",
+        "description": "Scripts call asyncio.run(main()) at module level with no if __name__ == '__main__' guard.",
+        "example": "asyncio.run(main())"
+      },
+      {
+        "name": "Dict-access for discriminated-union list items",
+        "description": "Entitlement list items from customer_entitlements_v2.list() come back as plain dicts due to SDK deserialisation; always use .get() not attribute access.",
+        "example": "entitlement_type = entitlement.get('type')"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ingest.py",
+        "role": "Shows CloudEvents ingestion: construct Event with uuid id, UTC time, specversion='1.0', then await client.events.ingest_event(event).",
+        "watch_for": "time must be timezone-aware (datetime.timezone.utc); omitting tzinfo silently produces a naive datetime."
+      },
+      {
+        "file": "entitlement.py",
+        "role": "Demonstrates three entitlement sub-types (metered/static/boolean) via get_customer_entitlement_value and customer_entitlements_v2.list.",
+        "watch_for": "items_property list returns dicts, not typed objects \u2014 attribute access raises AttributeError."
+      },
+      {
+        "file": "query.py",
+        "role": "Meter query examples: plain total, group_by list, and advanced_meter_group_by_filters with FilterString(eq=...).",
+        "watch_for": "r.data may be empty; always guard len(r.data) > 0 before indexing r.data[0]."
+      },
+      {
+        "file": "subscription.py",
+        "role": "Full subscription lifecycle: create via PlanSubscriptionCreate, get_expanded, list_customer_subscriptions with status filter.",
+        "watch_for": "list_customer_subscriptions result pagination uses items_property not items."
+      },
+      {
+        "file": "customer.py",
+        "role": "Customer CRUD: create with CustomerCreate, get by ID, update with CustomerReplaceUpdate.",
+        "watch_for": "client is instantiated inside the async with block, not at module level \u2014 unlike the sync counterpart."
+      }
+    ],
+    "anti_patterns": [
+      "Using `from openmeter import Client` (sync) instead of `from openmeter.aio import Client` in async examples",
+      "Calling asyncio.run() inside an already-running event loop",
+      "Accessing entitlement list items with attribute syntax instead of .get() when the SDK returns dicts",
+      "Hardcoding endpoint or token instead of reading from environment variables",
+      "Instantiating the async Client outside `async with` \u2014 HTTP session is never closed"
+    ],
+    "decisions": [
+      {
+        "decision": "One file per domain, not a single monolithic demo",
+        "rationale": "Keeps each example runnable in isolation; developers can copy a single file without unrelated dependencies."
+      },
+      {
+        "decision": "async with for client lifetime instead of explicit close()",
+        "rationale": "Guarantees HTTP session teardown even when exceptions are raised inside main()."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Ingest a CloudEvent asynchronously",
+        "code": "import asyncio, datetime, uuid\nfrom openmeter.aio import Client\nfrom openmeter.models import Event\nfrom corehttp.exceptions import HttpResponseError\n\nENDPOINT: str = environ.get('OPENMETER_ENDPOINT') or 'https://openmeter.cloud'\ntoken = environ.get('OPENMETER_TOKEN')\n\nasync def main() -> None:\n    async with Client(endpoint=ENDPOINT, token=token) as client:\n        try:\n            event = Event(\n                id=str(uuid.uuid4()),\n                source='my-app',\n                specversion='1.0',\n                type='prompt',\n                subject='customer-1',\n                time=datetime.datetime.now(datetime.timezone.utc),\n                data={'tokens': 100, 'model': 'gpt-4o'},\n            )\n            await client.events.ingest_event(event)\n        except HttpResponseError as e:\n            print(f'Error: {e}')\n\nasyncio.run(main())"
+      }
+    ]
+  },
+  "api/client/python/examples/sync": {
+    "purpose": "Runnable synchronous Python example scripts mirroring the async/ folder; each script exercises one domain using the blocking `openmeter.Client` and is structurally identical to its async counterpart except for module-level client construction and absence of async/await.",
+    "patterns": [
+      {
+        "name": "Module-level client instantiation",
+        "description": "The sync Client is instantiated at module level (outside any function), not inside a context manager, because there is no async session to manage.",
+        "example": "client = Client(endpoint=ENDPOINT, token=token)"
+      },
+      {
+        "name": "Environment-variable configuration with defaults",
+        "description": "All connection and domain parameters read from os.environ with a fallback literal; never hardcode credentials.",
+        "example": "ENDPOINT: str = environ.get('OPENMETER_ENDPOINT') or 'https://openmeter.cloud'"
+      },
+      {
+        "name": "HttpResponseError catch-all",
+        "description": "Every main() wraps all client calls in a single try/except HttpResponseError block imported from corehttp.exceptions.",
+        "example": "except HttpResponseError as e: print(f'Error: {e}')"
+      },
+      {
+        "name": "Direct main() call at module level",
+        "description": "Scripts call main() at module level with no asyncio.run() and no if __name__ == '__main__' guard.",
+        "example": "main()"
+      },
+      {
+        "name": "Dict-access for discriminated-union list items",
+        "description": "Entitlement list items from customer_entitlements_v2.list() come back as plain dicts; always use .get() not attribute access.",
+        "example": "entitlement_type = entitlement.get('type')"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ingest.py",
+        "role": "Blocking CloudEvents ingestion: module-level client, then client.events.ingest_event(event) with timezone-aware datetime.",
+        "watch_for": "time must be timezone-aware (datetime.timezone.utc); client is module-level, not a context manager."
+      },
+      {
+        "file": "entitlement.py",
+        "role": "Same three-type entitlement demo as async counterpart using client.customer_entitlements_v2.list and client.customer_entitlement.get_customer_entitlement_value.",
+        "watch_for": "items_property returns dicts; attribute access on list items raises AttributeError."
+      },
+      {
+        "file": "query.py",
+        "role": "Meter queries including FilterString(eq=...) for advanced_meter_group_by_filters.",
+        "watch_for": "r.data may be empty; guard len(r.data) > 0 before indexing r.data[0]."
+      },
+      {
+        "file": "subscription.py",
+        "role": "Subscription lifecycle: create with PlanSubscriptionCreate, get_expanded, list with SubscriptionStatus filter.",
+        "watch_for": "list result pagination uses items_property not items."
+      },
+      {
+        "file": "customer.py",
+        "role": "Customer CRUD: create with CustomerCreate, get by ID, update with CustomerReplaceUpdate \u2014 all blocking calls on module-level client.",
+        "watch_for": "client is module-level here (unlike async/ which puts it inside async with); do not wrap in async with."
+      }
+    ],
+    "anti_patterns": [
+      "Using `from openmeter.aio import Client` (async) instead of `from openmeter import Client` in sync examples",
+      "Wrapping the sync client in `async with` or calling asyncio.run()",
+      "Accessing entitlement list items with attribute syntax instead of .get() when the SDK returns dicts",
+      "Hardcoding endpoint or token instead of reading from environment variables",
+      "Instantiating the client inside main() on every call instead of once at module level"
+    ],
+    "decisions": [
+      {
+        "decision": "Module-level client construction instead of per-call instantiation",
+        "rationale": "Connection setup is done once; repeated calls reuse the same underlying HTTP connection pool."
+      },
+      {
+        "decision": "Structural parity with async/ folder",
+        "rationale": "Developers can compare sync and async examples side-by-side; the only difference is the import path (openmeter vs openmeter.aio) and absence of await/asyncio.run."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Ingest a CloudEvent synchronously",
+        "code": "import datetime, uuid\nfrom os import environ\nfrom openmeter import Client\nfrom openmeter.models import Event\nfrom corehttp.exceptions import HttpResponseError\n\nENDPOINT: str = environ.get('OPENMETER_ENDPOINT') or 'https://openmeter.cloud'\ntoken = environ.get('OPENMETER_TOKEN')\n\nclient = Client(endpoint=ENDPOINT, token=token)\n\ndef main() -> None:\n    try:\n        event = Event(\n            id=str(uuid.uuid4()),\n            source='my-app',\n            specversion='1.0',\n            type='prompt',\n            subject='customer-1',\n            time=datetime.datetime.now(datetime.timezone.utc),\n            data={'tokens': 100, 'model': 'gpt-4o'},\n        )\n        client.events.ingest_event(event)\n        print('Event ingested successfully')\n    except HttpResponseError as e:\n        print(f'Error ingesting event: {e}')\n\nmain()"
+      }
+    ]
+  }
+}

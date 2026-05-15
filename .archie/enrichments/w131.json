@@ -1,0 +1,52 @@
+{
+  "openmeter/watermill/driver/noop": {
+    "purpose": "Zero-value no-op implementation of message.Publisher for use in disabled-feature Wire paths (e.g. credits.enabled=false). Satisfies the compiler with Publish and Close returning nil; no messages are ever sent.",
+    "patterns": [
+      {
+        "name": "Compile-time interface assertion",
+        "description": "var _ message.Publisher = (*Publisher)(nil) at package level ensures the struct always satisfies the Watermill interface, catching drift at compile time.",
+        "example": "var _ message.Publisher = (*Publisher)(nil)"
+      },
+      {
+        "name": "Zero-value struct with no constructor",
+        "description": "noop.Publisher has no fields; instantiate directly with &noop.Publisher{} or noop.Publisher{}. No constructor function is needed or should be added.",
+        "example": "return &noop.Publisher{}"
+      },
+      {
+        "name": "Both methods return nil",
+        "description": "Publish and Close must always return nil \u2014 callers treat non-nil errors as real failures even when the feature is disabled.",
+        "example": "func (Publisher) Publish(topic string, messages ...*message.Message) error { return nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "publisher.go",
+        "role": "Entire package. Defines the Publisher struct, the compile-time interface assertion, and no-op Publish/Close methods.",
+        "watch_for": "Both Publish and Close must return nil. Do not add fields, dependencies, logging, or metrics \u2014 this defeats the purpose of a disabled-feature noop."
+      }
+    ],
+    "anti_patterns": [
+      "Adding logging or metrics to Publisher \u2014 defeats the purpose and adds side-effects in disabled paths",
+      "Returning non-nil errors from Publish or Close \u2014 callers treat errors as real failures",
+      "Adding constructor functions that accept dependencies \u2014 zero-value struct is the intended usage pattern",
+      "Growing this package beyond the single Publisher type \u2014 other noop concerns belong in their own packages",
+      "Using this publisher in non-disabled-feature paths \u2014 only use in Wire provider functions where a feature flag (e.g. credits.enabled=false) requires a no-op"
+    ],
+    "decisions": [
+      {
+        "decision": "Zero-value struct with no constructor",
+        "rationale": "Maximally simple; Wire providers return &noop.Publisher{} inline without any setup, making disabled feature paths trivially safe and dependency-free."
+      },
+      {
+        "decision": "Package scoped to a single type",
+        "rationale": "Keeping the package to exactly one type (Publisher) ensures it remains trivially auditable and cannot accumulate hidden side-effects over time."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wire provider returning noop publisher when a feature is disabled",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop\"\n\nfunc NewEventPublisher(cfg config.CreditsConfiguration) message.Publisher {\n    if !cfg.Enabled {\n        return &noop.Publisher{}\n    }\n    return buildRealKafkaPublisher(cfg)\n}"
+      }
+    ]
+  }
+}

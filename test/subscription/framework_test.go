@@ -1,7 +1,6 @@
 package subscription_test
 
 import (
-	"context"
 	"log/slog"
 	"testing"
 
@@ -69,6 +68,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	// App
 	appAdapter, err := appadapter.New(appadapter.Config{
 		Client: deps.DBDeps.DBClient,
+		Logger: slog.Default(),
 	})
 	require.NoError(t, err)
 
@@ -130,14 +130,14 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	})
 	require.NoError(t, err)
 
+	ctx := t.Context()
+
 	// OpenMeter sandbox (registration as side-effect)
-	_, err = appsandbox.NewMockableFactory(t, appsandbox.Config{
+	_, err = appsandbox.NewMockableFactory(ctx, t, appsandbox.Config{
 		AppService:     appService,
 		BillingService: billingService,
 	})
 	require.NoError(t, err)
-
-	ctx := context.Background()
 	_, err = appService.CreateApp(ctx,
 		app.CreateAppInput{
 			Name:        "Test Sandbox",

@@ -1,0 +1,186 @@
+{
+  "tools/migrate": {
+    "purpose": "Migration toolchain for the OpenMeter database: embeds Atlas-generated SQL files (tools/migrate/migrations/), wraps golang-migrate for startup-time application, and hosts the viewgen sub-tool that generates ClickHouse view DDL separately from Atlas. Primary constraint: SQL files and atlas.sum are Atlas-owned and must never be hand-edited.",
+    "patterns": [
+      {
+        "name": "SourceWrapper for migration:ignore filtering",
+        "description": "All migration file access goes through SourceWrapper (fs.go), which skips files containing '-- migration:ignore' on any line. This is the only supported way to exclude a migration file from the chain.",
+        "example": "fs := migrate.NewSourceWrapper(options.Migrations.FS); sourceDriver, _ := iofs.New(fs, path)"
+      },
+      {
+        "name": "OMMigrationsConfig as canonical config",
+        "description": "migrate.OMMigrationsConfig is the single pre-built MigrationsConfig for the embedded migrations/ directory with StateTableName = 'schema_om'. All callers (app/common, cmd/jobs, tests) use this constant; never construct ad-hoc MigrationsConfig pointing at the same embed.",
+        "example": "migrator, err := migrate.New(migrate.MigrateOptions{Migrations: migrate.OMMigrationsConfig, ...})"
+      },
+      {
+        "name": "Migration stop tests via runner / stops pattern",
+        "description": "Data-migration tests use the runner{stops: stops{...}}.Test(t) harness (migrate_test.go). Each stop specifies a version, direction (directionUp / directionDown), and an action func(t, *sql.DB). The harness runs stops in version order, calls migrator.Migrate(version), then runs action with the raw *sql.DB \u2014 never through an ORM.",
+        "example": "runner{stops: stops{{version: 20250926145930, direction: directionUp, action: func(t *testing.T, db *sql.DB){...}}}}.Test(t)"
+      },
+      {
+        "name": "purgeDB between up and down passes",
+        "description": "runner.Test truncates all non-schema_om tables between the up-stop sequence and the down-stop sequence using TRUNCATE ... CASCADE. Required because data migration tests may leave rows whose schema is incompatible with the down path.",
+        "example": "// inside runner.Test: r.purgeDB(t, testDB) is called after all up stops and before down stops"
+      },
+      {
+        "name": "View parity enforced by TestViewDefinitionsMatchGeneratedSchemaSQL",
+        "description": "view_parity_test.go runs the full migration suite on two databases \u2014 one applying migrations as-is (including view DDL), one stripping all CREATE/DROP VIEW statements and re-applying views from viewgen.GenerateSQL. Both resulting view definitions must match exactly. Any view changed in openmeter/ent/schema must be re-generated with 'make generate-view-sql'.",
+        "example": "sql, _ := viewgen.GenerateSQL(\"../../openmeter/ent/schema\"); applyGeneratedViews(t, db)"
+      },
+      {
+        "name": "WaitForMigrationJob for deferred migration startup",
+        "description": "Migrate.WaitForMigrationJob polls until db version >= LatestVersion() from the source driver. Used by binaries that do not run migrations themselves but must wait for a migration job to finish before starting.",
+        "example": "if err := migrator.WaitForMigrationJob(migrate.WithMaxRetries(60)); err != nil { return err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "tools/migrate/migrate.go",
+        "role": "Core migration library: embeds migrations/ via //go:embed, builds golang-migrate instance from MigrateOptions, wraps ErrNoChange into no-op (not an error), exposes Up/Down/Migrate/WaitForMigrationJob/LatestVersion.",
+        "watch_for": "filterErrNoChange swallows migrate.ErrNoChange \u2014 callers must not re-check for that sentinel. StateTableName is injected as x-migrations-table URL query param; changing MigrationsTable constant breaks all deployed databases."
+      },
+      {
+        "file": "tools/migrate/fs.go",
+        "role": "SourceWrapper filters out migration files containing '-- migration:ignore' from directory listings, enabling selective exclusion without deleting files from the embed.",
+        "watch_for": "IgnoreMarker must appear at the start of a line (strings.HasPrefix). SourceWrapper.ReadDir recurses into sub-directories and flattens them \u2014 the embedded migrations/ directory must remain flat."
+      },
+      {
+        "file": "tools/migrate/migrate_test.go",
+        "role": "Defines the runner/stops harness used by all migration stop tests. TestUpDownUp is the baseline that runs the full migration chain up, then down, then up again.",
+        "watch_for": "stops.ups() sorts ascending by version; stops.downs() sorts descending. purgeDB skips the schema_om table. Any new migration test file must be in package migrate_test and use the runner pattern."
+      },
+      {
+        "file": "tools/migrate/view_parity_test.go",
+        "role": "Validates that view DDL in migration files matches what viewgen.GenerateSQL produces from openmeter/ent/schema. Runs two parallel migrated databases to compare pg_get_viewdef output.",
+        "watch_for": "stripViewStatements splits on semicolons \u2014 view SQL embedded in migrations must end with semicolons. buildMigrationsWithoutViews excludes entire migration files whose only content is view statements."
+      },
+      {
+        "file": "tools/migrate/views.sql",
+        "role": "Generated output of viewgen; contains CREATE VIEW DDL for all ent.View schemas. Header '-- Code generated by viewgen, DO NOT EDIT.' enforces no manual edits.",
+        "watch_for": "Regenerate with 'make generate-view-sql'. Adding a new ent.View schema requires re-running viewgen."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing any file in tools/migrate/migrations/ \u2014 Atlas owns the chain and atlas.sum will fail CI validation",
+      "Calling atlas migrate diff expecting it to pick up a new ent.View schema \u2014 Atlas does not diff views; use viewgen instead",
+      "Using an ORM (Ent, GORM) inside migration stop test actions \u2014 raw *sql.DB is required because the ORM only understands the current schema version",
+      "Adding a new migration stop test outside the runner/stops pattern \u2014 it will not run the purgeDB/down/up cycle and may leave the database dirty for subsequent tests",
+      "Importing app/common or any openmeter/ domain package from tools/migrate/cmd/viewgen/main.go \u2014 the binary only needs ent schema paths"
+    ],
+    "decisions": [
+      {
+        "decision": "golang-migrate wraps Atlas-generated SQL rather than using Atlas at runtime",
+        "rationale": "Atlas CLI is a dev/CI tool; golang-migrate provides a lightweight embedded runner with a stable Go API, ErrNoChange handling, and the x-migrations-table parameter that isolates OpenMeter's schema_om table from other users of the same Postgres instance."
+      },
+      {
+        "decision": "viewgen is a separate tool from Atlas migration generation",
+        "rationale": "Atlas does not include ent.View schemas in its diff output, so view DDL would silently disappear from migrations. viewgen reads EntSQL annotations directly from the schema loader and renders CREATE VIEW statements that can be applied alongside migration files."
+      },
+      {
+        "decision": "Migration stop tests use raw *sql.DB, not Ent, and call purgeDB between up and down passes",
+        "rationale": "Data-migration tests assert schema shape at intermediate versions where Ent's generated types are incompatible. purgeDB is necessary because historical migrations may not have correct inverse data transforms for rows inserted by earlier stops."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Write a migration stop test for a new data migration",
+        "code": "package migrate_test\n\nimport (\n\t\"database/sql\"\n\t\"testing\"\n\n\t\"github.com/oklog/ulid/v2\"\n\t\"github.com/stretchr/testify/require\"\n)\n\nfunc TestMyDataMigration(t *testing.T) {\n\trowID := ulid.Make().String()\n\n\trunner{\n\t\tstops: stops{\n\t\t\t{\n\t\t\t\t// Insert test data BEFORE the migration runs\n\t\t\t\tversion:   20260320084936, // last version before your migration\n\t\t\t\tdirection: directionUp,\n\t\t\t\taction: func(t *testing.T, db *sql.DB) {\n\t\t\t\t\t_, err := db.Exec(`INSERT INTO my_table (id, namespace, created_at, updated_at, name) VALUES ($1, 'default', NOW(), NOW(), 'test')`, rowID)\n\t\t\t\t\trequire.NoError(t, err)\n\t\t\t\t},\n\t\t\t},\n\t\t\t{\n\t\t\t\t// Verify migration results AFTER the migration\n\t\t\t\tversion:   20260320171954, // your migration version\n\t\t\t\tdirection: directionUp,\n\t\t\t\taction: func(t *testing.T, db *sql.DB) {\n\t\t\t\t\tvar newCol sql.NullString\n\t\t\t\t\terr := db.QueryRow(`SELECT new_column FROM my_table WHERE id = $1`, rowID).Scan(&newCol)\n\t\t\t\t\trequire.NoError(t, err)\n\t\t\t\t\trequire.True(t, newCol.Valid)\n\t\t\t\t\trequire.Equal(t, \"expected_value\", newCol.String)\n\t\t\t\t},\n\t\t\t},\n\t\t},\n\t}.Test(t)\n}"
+      }
+    ]
+  },
+  "tools/migrate/viewgen": {
+    "purpose": "Standalone code generator that produces tools/migrate/views.sql by extracting Ent view schemas (ent.View) from openmeter/ent/schema/; bridges the Atlas gap where Ent view entities do not appear in migrate.Tables and are therefore invisible to atlas migrate diff.",
+    "patterns": [
+      {
+        "name": "GenerateSQL vs GenerateFile split",
+        "description": "GenerateSQL(schemaPath string) ([]byte, error) returns raw SQL bytes; GenerateFile(schemaPath, outputPath string) handles I/O. Tests call GenerateSQL directly; the CLI entrypoint calls GenerateFile.",
+        "example": "sql, err := viewgen.GenerateSQL(\"../../openmeter/ent/schema\")"
+      },
+      {
+        "name": "Schema-driven view collection via entc/load",
+        "description": "viewgen loads Ent schemas via entc/load.Config, iterates schemas, filters s.View==true, extracts the EntSQL annotation to get CREATE VIEW DDL. Non-view schemas are ignored.",
+        "example": "// load schema, filter s.View == true, call entSQLAnnotation(s) for DDL"
+      },
+      {
+        "name": "Alphabetic sort before render",
+        "description": "View entries are sorted alphabetically by name before rendering to SQL to ensure deterministic output and stable PR diffs.",
+        "example": "slices.SortFunc(views, func(a, b viewEntry) int { return strings.Compare(a.Name, b.Name) })"
+      },
+      {
+        "name": "Generated-file header",
+        "description": "Output file starts with '-- Code generated by viewgen, DO NOT EDIT.' to prevent manual edits and signal generation status.",
+        "example": "// header written as first line of views.sql output"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "tools/migrate/viewgen/viewgen.go",
+        "role": "Core library: loads Ent schema, collects ent.View schemas, extracts EntSQL CREATE VIEW annotations, sorts alphabetically, renders to SQL bytes.",
+        "watch_for": "Calling entSQLAnnotation on non-view schemas is wasteful and may return nil. The double JSON round-trip for EntSQL annotation is intentional \u2014 do not simplify. View name derivation has a three-level fallback (annotation name, schema name, table name)."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing tools/migrate/views.sql \u2014 it is generated; run 'make generate-view-sql' instead",
+      "Adding view DDL directly to Atlas migration files \u2014 Atlas does not diff Ent views; viewgen is the only correct path",
+      "Relying on 'atlas migrate --env local diff' to pick up a new ent.View schema \u2014 Atlas reports no changes for view entities",
+      "Skipping the alphabetic sort when adding new render logic \u2014 non-deterministic output breaks PR diffs"
+    ],
+    "decisions": [
+      {
+        "decision": "Separate viewgen tool instead of an inline Atlas hook",
+        "rationale": "Atlas CLI has no extension point for ent.View schemas; viewgen reads EntSQL annotations directly from the schema loader, which is the only reliable way to extract view DDL from Ent without reimplementing Atlas internals."
+      },
+      {
+        "decision": "Dialect-specific ViewFor with ViewAs fallback",
+        "rationale": "EntSQL annotations may provide dialect-specific DDL (ViewFor) or a generic DDL (ViewAs). The fallback chain ensures correctness for both old and new annotation styles."
+      }
+    ],
+    "code_examples": []
+  },
+  "tools/migrate/cmd": {
+    "purpose": "Organisational parent for thin CLI entrypoints that operate on the migration toolchain. Separates CLI wiring from library logic \u2014 all business logic lives in sibling library packages under tools/migrate/; cmd/ sub-directories contain only flag parsing and delegation.",
+    "patterns": [
+      {
+        "name": "Thin entrypoint delegation",
+        "description": "main.go in each sub-directory only parses flags and calls the corresponding library function. No SQL generation, schema inspection, or file I/O beyond the final write.",
+        "example": "// main.go: parse -schema and -out flags, call viewgen.GenerateFile(schema, out)"
+      },
+      {
+        "name": "stdlib flag for single-purpose tools",
+        "description": "Uses stdlib flag package, not Cobra or Viper. A single-purpose tool with one or two flags does not need a command framework.",
+        "example": "schema := flag.String(\"schema\", \"openmeter/ent/schema\", \"path to ent schema\"); flag.Parse()"
+      },
+      {
+        "name": "exitf helper for error reporting",
+        "description": "Errors are reported via a local exitf helper (fmt.Fprintf(os.Stderr, ...) + os.Exit(1)) rather than log.Fatal or panic, to produce clean error messages for CI.",
+        "example": "func exitf(format string, args ...any) { fmt.Fprintf(os.Stderr, format+\"\\n\", args...); os.Exit(1) }"
+      },
+      {
+        "name": "One sub-command per directory",
+        "description": "Each cmd/<name>/ directory contains exactly one main.go producing one binary. Never add a second command to an existing cmd/<name>/ directory; create a sibling instead.",
+        "example": "// tools/migrate/cmd/viewgen/main.go -> binary: viewgen"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "tools/migrate/cmd/viewgen/main.go",
+        "role": "Thin CLI wrapper: parses -schema and -out flags, delegates to viewgen.GenerateFile. No business logic.",
+        "watch_for": "Must not import app/common or any openmeter/ domain package. Only needs the schema path and the viewgen library."
+      }
+    ],
+    "anti_patterns": [
+      "Adding SQL generation or schema-inspection logic directly in main.go instead of the sibling library package",
+      "Importing app/common or any openmeter/ domain package \u2014 this binary only needs the schema path and the library",
+      "Using Cobra or Viper for a single-purpose tool that only needs one or two flags",
+      "Adding a second command to an existing cmd/<name>/ package instead of creating a sibling cmd/<othername>/ directory",
+      "Using log.Fatal or panic instead of a local exitf helper for error exits"
+    ],
+    "decisions": [
+      {
+        "decision": "Library logic lives in tools/migrate/viewgen, not in main.go",
+        "rationale": "Separating library from CLI entrypoint allows view_parity_test.go to call viewgen.GenerateSQL directly without shelling out, making tests faster and eliminating binary build dependencies in the test path."
+      }
+    ],
+    "code_examples": []
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "collector/benthos/presets/http-server": {
+    "purpose": "Self-contained Benthos YAML pipeline preset that receives CloudEvents over HTTP, validates them against the CloudEvents JSON schema, buffers durably to SQLite, and forwards batches to the OpenMeter ingest API. No Go code \u2014 only YAML configuration with env-var substitution.",
+    "patterns": [
+      {
+        "name": "sync_response via metadata",
+        "description": "HTTP status code and Content-Type for the synchronous response are set via Bloblang metadata assignments (`meta http_status_code`, `meta content_type`) before calling `sync_response: {}`. The input reads these with `.or()` defaults so the block itself never hardcodes values.",
+        "example": "mapping: |\n  meta http_status_code = \"400\"\n  meta content_type = \"application/problem+json\"\n- sync_response: {}"
+      },
+      {
+        "name": "catch-log-delete for validation failures",
+        "description": "After `json_schema` validation, a `catch` block must log the error, assign 400 status metadata, send a RFC-7807 problem+json `sync_response`, then drop the message with `root = deleted()`. All four steps are required \u2014 removing any step stalls or silently drops events without notifying the caller.",
+        "example": "- catch:\n  - log:\n      level: ERROR\n      message: \"schema validation failed due to: ${!error()}\"\n  - mapping: |\n      meta http_status_code = \"400\"\n      root = {\"type\": \"about:blank\", \"status\": 400, ...}\n  - sync_response: {}\n  - mapping: root = deleted()"
+      },
+      {
+        "name": "SQLite buffer with split post-processor",
+        "description": "The buffer must be SQLite with a `split` post-processor capped at 100. Changing the buffer type breaks the at-least-once durability guarantee; removing the split allows oversized batches to reach the output.",
+        "example": "buffer:\n  sqlite:\n    path: \"${BUFFER_PATH:./buffer.db}\"\n    post_processors:\n      - split:\n          size: 100"
+      },
+      {
+        "name": "drop_on 400 at output",
+        "description": "The `http_client` output is wrapped with `drop_on: [400]` to permanently discard events that the OpenMeter API rejects as invalid (HTTP 400), preventing infinite retry loops for structurally bad events.",
+        "example": "drop_on:\n  error_patterns:\n    - Bad Request\n  output:\n    http_client:\n      drop_on:\n        - 400"
+      },
+      {
+        "name": "counter metrics at input and output",
+        "description": "`openmeter_event_received` is incremented by a `metric` processor on every ingested message; `openmeter_events_sent` is incremented inside the output batching processors. Both counters must be kept in sync when modifying the pipeline.",
+        "example": "- metric:\n    type: counter\n    name: openmeter_event_received\n    value: 1"
+      },
+      {
+        "name": "env-var substitution with defaults",
+        "description": "All operational parameters (URL, token, buffer path, log level) use `${VAR:default}` substitution. Removing defaults breaks deployments that rely on them without explicit env vars.",
+        "example": "url: \"${OPENMETER_URL:https://openmeter.cloud}/api/v1/events\"\nAuthorization: \"Bearer ${OPENMETER_TOKEN:}\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "config.yaml",
+        "role": "Complete self-contained Benthos pipeline: HTTP input with CloudEvents schema validation, SQLite buffer, batched HTTP output to OpenMeter. This is the single deployable artifact for this preset.",
+        "watch_for": "The 204 `meta http_status_code` assignment and `sync_response: {}` must appear AFTER the validation catch block \u2014 reordering them means callers receive no acknowledgement. The `sync_response` in the input reads `meta(\"http_status_code\").or(\"204\")` so both success and error branches must set the metadata before calling sync_response."
+      }
+    ],
+    "anti_patterns": [
+      "Adding transformation or enrichment logic \u2014 this preset is receive-validate-forward only",
+      "Using a non-SQLite buffer without updating the split post-processor size",
+      "Hardcoding OPENMETER_URL or OPENMETER_TOKEN instead of using env-var substitution with defaults",
+      "Removing the catch block after json_schema validation \u2014 unhandled validation errors stall the pipeline",
+      "Placing `sync_response: {}` before the `meta http_status_code` assignment \u2014 callers receive 204 even for invalid events"
+    ],
+    "decisions": [
+      {
+        "decision": "SQLite buffer for durability",
+        "rationale": "Ensures events are not lost if the OpenMeter output is temporarily unavailable, matching the at-least-once delivery guarantee of the broader ingest path."
+      },
+      {
+        "decision": "Synchronous HTTP response before buffering",
+        "rationale": "Clients receive immediate 204/400 feedback from the collector; the async buffer+forward path is invisible to the producer, keeping the ingest API contract intact."
+      }
+    ],
+    "code_examples": []
+  },
+  "collector/benthos/presets/kubernetes-pod-exec-time": {
+    "purpose": "Benthos pipeline preset that periodically scrapes Kubernetes pod resources via `kubernetes_resources`, maps each pod into a CloudEvents-shaped usage event with CPU/memory/GPU metrics derived from pod spec and annotations, validates the event, and forwards to OpenMeter. Designed for billing pod execution time.",
+    "patterns": [
+      {
+        "name": "schedule + kubernetes_resources input",
+        "description": "Input combines `schedule` (wrapping `kubernetes_resources`) to control poll interval via `SCRAPE_INTERVAL`. The `label_selector` and `namespaces` fields filter scraped pods. `meta(\"schedule_interval\")` carries the configured interval into the pipeline for per-second normalisation.",
+        "example": "input:\n  schedule:\n    input:\n      kubernetes_resources:\n        namespaces:\n          - ${SCRAPE_NAMESPACE:}\n        label_selector: \"app=seed\"\n    interval: \"${SCRAPE_INTERVAL:15s}\""
+      },
+      {
+        "name": "Bloblang mapping to CloudEvents structure",
+        "description": "The pipeline mapping must produce a CloudEvents-compliant object with `id` (uuid_v4()), `specversion: \"1.0\"`, `type`, `source`, `time`, `subject`, and `data`. Subject reads from `openmeter.io/subject` annotation, falling back to pod name.",
+        "example": "root = {\n  \"id\": uuid_v4(),\n  \"specversion\": \"1.0\",\n  \"subject\": this.metadata.annotations.\"openmeter.io/subject\".or(this.metadata.name),\n  ...\n}"
+      },
+      {
+        "name": "data.openmeter.io/ annotation passthrough",
+        "description": "Pod annotations prefixed with `data.openmeter.io/` are stripped of the prefix and merged into the CloudEvent `data` map via `.filter(...has_prefix...).map_each_key(...trim_prefix...)`. This lets operators inject custom dimensions without touching the pipeline.",
+        "example": "this.metadata.annotations.filter(item -> item.key.has_prefix(\"data.openmeter.io/\")).map_each_key(key -> key.trim_prefix(\"data.openmeter.io/\")).assign({...})"
+      },
+      {
+        "name": "resource_quantity Bloblang function with .number(0) default",
+        "description": "CPU/memory/GPU values from pod spec are converted via the custom `resource_quantity(...)` Bloblang function (registered by the benthos-collector binary). Always call `.number(0)` to default missing/nil resource fields to zero \u2014 omitting it causes mapping errors for pods without resource requests/limits.",
+        "example": "\"cpu_request_millicores\": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.cpu).number(0)).sum()"
+      },
+      {
+        "name": "$duration_seconds from schedule interval metadata",
+        "description": "`$duration_seconds` is computed from `meta(\"schedule_interval\")` parsed to seconds. All per-second metric fields divide by `$duration_seconds`. This must be derived from the metadata, not a static env var, so per-second values remain correct when `SCRAPE_INTERVAL` changes.",
+        "example": "let duration_seconds = (meta(\"schedule_interval\").parse_duration() / 1000 / 1000 / 1000).round().int64()"
+      },
+      {
+        "name": "switch output: openmeter first with continue:true, stdout second for DEBUG",
+        "description": "Output uses `switch` with two cases: first unconditionally sends to the `openmeter` output plugin with `continue: true`; second sends to stdout only when `DEBUG=true`. The openmeter case MUST be first and have `continue: true` \u2014 reordering drops events from the real output when DEBUG is active.",
+        "example": "output:\n  switch:\n    cases:\n      - check: \"\"\n        continue: true\n        output:\n          openmeter: ...\n      - check: '\"${DEBUG:false}\" == \"true\"'\n        output:\n          stdout: {}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "config.yaml",
+        "role": "Full Benthos pipeline: scheduled Kubernetes scrape, pod-to-CloudEvent Bloblang mapping with resource_quantity functions, CloudEvents schema validation, custom openmeter output plugin with optional DEBUG stdout.",
+        "watch_for": "The `openmeter` output type is a custom Benthos plugin registered by the benthos-collector binary \u2014 it is NOT a standard Benthos output and handles batching and auth internally. `$duration_seconds` is the divisor for all per-second fields; changing SCRAPE_INTERVAL changes these values proportionally."
+      }
+    ],
+    "anti_patterns": [
+      "Using the standard `http_client` output instead of the custom `openmeter` output plugin \u2014 the plugin handles batching and auth internally",
+      "Reordering switch cases so stdout appears before the openmeter case \u2014 real output events are dropped when DEBUG is true",
+      "Omitting `.number(0)` on `resource_quantity()` calls \u2014 nil fields cause mapping errors for pods without resource requests/limits",
+      "Computing duration_seconds as a static env var instead of deriving it from `meta(\"schedule_interval\")` \u2014 per-second normalisation breaks when SCRAPE_INTERVAL changes",
+      "Adding route or path bindings to the kubernetes_resources input \u2014 it is a pull-based scraper, not an HTTP server"
+    ],
+    "decisions": [
+      {
+        "decision": "Derive duration_seconds from schedule interval metadata",
+        "rationale": "Makes per-second normalisation automatic and correct when operators change SCRAPE_INTERVAL without touching the pipeline mapping."
+      },
+      {
+        "decision": "Annotation-driven subject and custom data dimensions",
+        "rationale": "Avoids hardcoding tenant/subject identity in the pipeline; operators annotate pods with openmeter.io/subject and data.openmeter.io/* to control metering attribution at the Kubernetes level without pipeline changes."
+      }
+    ],
+    "code_examples": []
+  }
+}

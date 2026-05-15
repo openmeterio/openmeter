@@ -1,0 +1,76 @@
+{
+  "openmeter/subject/service/hooks": {
+    "purpose": "Implements the CustomerSubjectHook that bridges customer.Service lifecycle events to subject.Service provisioning, ensuring every UsageAttribution.SubjectKey has a corresponding Subject row without creating circular imports between subject and customer domains.",
+    "patterns": [
+      {
+        "name": "Embed NoopServiceHook for partial overrides",
+        "description": "Hook structs embed the noop type alias (NoopCustomerSubjectHook = models.NoopServiceHook[customer.Customer]) and override only the needed lifecycle methods (PostCreate, PostUpdate). All other lifecycle methods default to no-ops automatically.",
+        "example": "type customerSubjectHook struct { NoopCustomerSubjectHook; provisioner *SubjectProvisioner; tracer trace.Tracer }"
+      },
+      {
+        "name": "Context-key skip flag prevents re-entrant loops",
+        "description": "NewContextWithSkipSubjectCustomer sets a typed private context key; EnsureSubjects checks SkipSubjectCustomerFromContext before acting. Any call back into subject.Service inside a hook method must carry this context to prevent infinite recursion when a reverse hook is also registered.",
+        "example": "sub, err = p.subject.Create(NewContextWithSkipSubjectCustomer(ctx), subject.CreateInput{...})"
+      },
+      {
+        "name": "Config struct with Validate() for constructor injection",
+        "description": "All dependencies (Subject service, Logger, Tracer) are bundled in SubjectProvisionerConfig which implements models.Validator. NewCustomerSubjectHook and NewSubjectProvisioner both call config.Validate() before allocation; invalid configs return a wrapped error.",
+        "example": "func NewCustomerSubjectHook(config CustomerSubjectHookConfig) (CustomerSubjectHook, error) { if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid subject hook config: %w\", err) } ... }"
+      },
+      {
+        "name": "OTel span per operation with deferred closure capturing err",
+        "description": "Every exported method opens a tracer span at entry and defers span.End() together with status-setting in a closure that captures the returned named error variable. RecordError is called only on non-nil err.",
+        "example": "ctx, span := p.tracer.Start(ctx, \"subject_provisioner.ensure_subjects\"); defer func() { if err != nil { span.SetStatus(otelcodes.Error, err.Error()); span.RecordError(err) }; span.End() }()"
+      },
+      {
+        "name": "models.IsGenericNotFoundError for idempotent upsert",
+        "description": "EnsureSubject calls subject.GetByIdOrKey and treats IsGenericNotFoundError (or a deleted subject) as the signal to create; all other errors are propagated. Never match errors by string comparison.",
+        "example": "if models.IsGenericNotFoundError(err) || sub.IsDeleted() { sub, err = p.subject.Create(NewContextWithSkipSubjectCustomer(ctx), ...) }"
+      },
+      {
+        "name": "Delegate business logic to SubjectProvisioner, not hook methods",
+        "description": "Hook lifecycle methods (PostCreate, PostUpdate) are thin delegators that call provisioner.EnsureSubjects and handle span status. All provisioning logic lives in SubjectProvisioner so it can be reused outside the hook interface (e.g., batch backfills).",
+        "example": "func (s customerSubjectHook) PostCreate(ctx context.Context, cus *customer.Customer) error { ctx, span := s.tracer.Start(...); defer span.End(); return s.provisioner.EnsureSubjects(ctx, cus) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "customersubject.go",
+        "role": "Sole production file: defines customerSubjectHook (models.ServiceHook[customer.Customer] impl), SubjectProvisioner (provisioning worker), and their config structs. The type alias CustomerSubjectHookConfig = SubjectProvisionerConfig keeps the public API surface minimal.",
+        "watch_for": "Any new lifecycle method (e.g. PostDelete) must pass NewContextWithSkipSubjectCustomer(ctx) when calling back into subject.Service. Never skip config.Validate() in constructors. The EnsureSubjects nil-guard on cus must be preserved."
+      },
+      {
+        "file": "customersubject_test.go",
+        "role": "Integration tests wiring concrete adapters (subjectadapter, customeradapter, customerservice, subjectservice) without importing app/common. Covers WithExistingSubject, WithoutExistingSubject, and mutual Conflict (both hooks registered simultaneously) scenarios.",
+        "watch_for": "Tests use t.Context() not context.Background(). testutils.InitPostgresDB + DBSchemaMigrate must be called before any DB interaction. NoopCustomerOverrideService shows how to stub billing deps without importing billing wiring."
+      }
+    ],
+    "anti_patterns": [
+      "Calling subject.Service methods inside a hook without NewContextWithSkipSubjectCustomer when a reverse hook is also registered \u2014 causes infinite recursion",
+      "Importing app/common in tests \u2014 breaks isolation; build test deps from concrete constructors (adapter + service) directly",
+      "Using context.Background() instead of propagating the caller ctx through hook methods",
+      "Catching errors from subject.Service by string comparison instead of models.IsGenericNotFoundError",
+      "Adding business logic directly in hook lifecycle methods instead of delegating to SubjectProvisioner"
+    ],
+    "decisions": [
+      {
+        "decision": "Separate SubjectProvisioner from customerSubjectHook",
+        "rationale": "SubjectProvisioner can be reused independently for non-hook provisioning paths (e.g. batch backfills) without carrying the models.ServiceHook interface overhead."
+      },
+      {
+        "decision": "Skip flag in context rather than a boolean field on the hook",
+        "rationale": "A context key is naturally scoped to one call stack, preventing skip state from leaking across concurrent requests that share the same hook instance."
+      },
+      {
+        "decision": "Type alias CustomerSubjectHookConfig = SubjectProvisionerConfig",
+        "rationale": "Avoids duplicating config fields while letting callers reference the hook-specific name; a single Validate() implementation covers both entry points."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a PostDelete lifecycle that removes orphaned subjects while preventing reverse-hook loops",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/customer\"\n\tsubjectservicehooks \"github.com/openmeterio/openmeter/openmeter/subject/service/hooks\"\n)\n\nfunc (s customerSubjectHook) PostDelete(ctx context.Context, cus *customer.Customer) error {\n\tctx, span := s.tracer.Start(ctx, \"customer_subject_hook.post_delete\")\n\tdefer span.End()\n\t// Pass skip-flag context so subject.Delete does not re-trigger customer hooks\n\tctx = subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx)\n\treturn s.provisioner.RemoveSubjects(ctx, cus)\n}"
+      }
+    ]
+  }
+}

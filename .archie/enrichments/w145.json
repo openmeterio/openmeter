@@ -1,0 +1,62 @@
+{
+  "pkg/framework/entutils/testutils/ent2/schema": {
+    "purpose": "Test-only Ent schema fixture providing a second distinct database schema (ent2) for entutils multi-database transaction isolation tests. Contains no production logic \u2014 exists solely to give the test harness two independent Ent schemas.",
+    "patterns": [
+      {
+        "name": "Embed ent.Schema as first field",
+        "description": "Every schema struct must embed ent.Schema as its first field so Ent code generation recognises it as an entity.",
+        "example": "type Example2 struct { ent.Schema }"
+      },
+      {
+        "name": "Include entutils.TimeMixin in Mixin()",
+        "description": "All schema structs must return entutils.TimeMixin{} from Mixin() to get created_at/updated_at fields, consistent with production schema conventions.",
+        "example": "func (Example2) Mixin() []ent.Mixin { return []ent.Mixin{entutils.TimeMixin{}} }"
+      },
+      {
+        "name": "Immutable string primary key named 'id'",
+        "description": "The primary key is always a string field named 'id', marked Unique() and Immutable(), matching the project-wide ID convention.",
+        "example": "field.String(\"id\").Unique().Immutable()"
+      },
+      {
+        "name": "Return empty slices for unused schema hooks",
+        "description": "Indexes() and Edges() must return empty slices (not nil) when unused.",
+        "example": "func (Example2) Indexes() []ent.Index { return []ent.Index{} }"
+      },
+      {
+        "name": "Minimal schema \u2014 no relations or complex fields",
+        "description": "Test fixture schemas must stay as small as possible: only an id and one or two value fields. No edges, no foreign keys, no domain logic.",
+        "example": "field.String(\"example_value_2\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "example2.go",
+        "role": "Defines the Example2 Ent schema entity \u2014 the second fixture schema used in entutils multi-db transaction isolation tests.",
+        "watch_for": "Do not add real business logic, edges, or complex fields. Any schema change regenerates the test DB and can break entutils tests."
+      }
+    ],
+    "anti_patterns": [
+      "Adding production domain fields or edges to test fixture schemas",
+      "Omitting entutils.TimeMixin from Mixin() \u2014 breaks consistency with production schema conventions",
+      "Using a non-string or mutable ID field \u2014 violates the project-wide ULID/string ID convention",
+      "Importing domain packages (openmeter/billing, openmeter/customer, etc.) into this test schema",
+      "Returning nil instead of empty slice from Indexes() or Edges()"
+    ],
+    "decisions": [
+      {
+        "decision": "Separate ent2 schema from ent1 schema in testutils",
+        "rationale": "entutils transaction helpers must be tested against two independent Ent databases to verify cross-db transaction isolation; a distinct schema package avoids collision with the ent1 fixture."
+      },
+      {
+        "decision": "Minimal schema with only id and one value field",
+        "rationale": "Keeping fixtures small makes generated test DB migrations fast and decouples entutils tests from domain schema evolution."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Define a new test entity in this schema package",
+        "code": "package schema\n\nimport (\n\t\"entgo.io/ent\"\n\t\"entgo.io/ent/schema/field\"\n\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\ntype Example2 struct {\n\tent.Schema\n}\n\nfunc (Example2) Mixin() []ent.Mixin {\n\treturn []ent.Mixin{\n\t\tentutils.TimeMixin{},\n\t}\n}\n\nfunc (Example2) Fields() []ent.Field {\n\treturn []ent.Field{\n\t\tfield.String(\"id\").Unique().Immutable(),\n\t\tfield.String(\"example_value_2\"),\n\t}\n}\n\nfunc (Example2) Indexes() []ent.Index { return []ent.Index{} }\nfunc (Example2) Edges() []ent.Edge   { return []ent.Edge{} }"
+      }
+    ]
+  }
+}

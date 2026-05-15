@@ -22,67 +22,71 @@ func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams)
 		return pagination.Result[meter.Meter]{}, models.NewGenericValidationError(err)
 	}
 
-	// Start database query
-	query := a.db.Meter.Query()
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *Adapter) (pagination.Result[meter.Meter], error) {
+		// Start database query
+		query := repo.db.Meter.Query()
 
-	// Filtering
-	if !params.WithoutNamespace {
-		query = query.
-			Where(meterdb.NamespaceEQ(params.Namespace))
-	}
-
-	if !params.IncludeDeleted {
-		query = query.Where(meterdb.DeletedAtIsNil())
-	}
-
-	if params.IDFilter != nil {
-		query = query.Where(meterdb.IDIn(*params.IDFilter...))
-	}
-
-	query = filter.ApplyToQuery(query, params.Key, meterdb.FieldKey)
-	query = filter.ApplyToQuery(query, params.Name, meterdb.FieldName)
-
-	if params.EventTypes != nil {
-		query = query.Where(meterdb.EventTypeIn(*params.EventTypes...))
-	}
-
-	// Ordering
-	if params.Order != "" {
-		var order []sql.OrderTermOption
-
-		if !params.Order.IsDefaultValue() {
-			order = entutils.GetOrdering(params.Order)
+		// Filtering
+		if !params.WithoutNamespace {
+			query = query.
+				Where(meterdb.NamespaceEQ(params.Namespace))
 		}
 
-		switch params.OrderBy {
-		case meter.OrderByKey:
-			query = query.Order(meterdb.ByKey(order...))
-		case meter.OrderByName:
-			query = query.Order(meterdb.ByName(order...))
-		case meter.OrderByAggregation:
-			query = query.Order(meterdb.ByAggregation(order...))
-		case meter.OrderByCreatedAt:
-			query = query.Order(meterdb.ByCreatedAt(order...))
-		case meter.OrderByUpdatedAt:
-			query = query.Order(meterdb.ByUpdatedAt(order...))
-		default:
-			query = query.Order(meterdb.ByCreatedAt(order...))
+		if !params.IncludeDeleted {
+			query = query.Where(meterdb.DeletedAtIsNil())
 		}
-	}
 
-	// Pagination
-	entities, err := query.Paginate(ctx, params.Page)
-	if err != nil {
-		return pagination.Result[meter.Meter]{}, err
-	}
+		if params.IDFilter != nil {
+			query = query.Where(meterdb.IDIn(*params.IDFilter...))
+		}
 
-	// Map to response
-	resp, err := pagination.MapResultErr(entities, MapFromEntityFactory)
-	if err != nil {
-		return pagination.Result[meter.Meter]{}, fmt.Errorf("failed to map meters: %w", err)
-	}
+		query = filter.ApplyToQuery(query, params.Key, meterdb.FieldKey)
+		query = filter.ApplyToQuery(query, params.Name, meterdb.FieldName)
 
-	return resp, nil
+		if params.EventTypes != nil {
+			query = query.Where(meterdb.EventTypeIn(*params.EventTypes...))
+		}
+
+		// Ordering
+		if params.Order != "" {
+			var order []sql.OrderTermOption
+
+			if !params.Order.IsDefaultValue() {
+				order = entutils.GetOrdering(params.Order)
+			}
+
+			switch params.OrderBy {
+			case meter.OrderByKey:
+				query = query.Order(meterdb.ByKey(order...))
+			case meter.OrderByName:
+				query = query.Order(meterdb.ByName(order...))
+			case meter.OrderByAggregation:
+				query = query.Order(meterdb.ByAggregation(order...))
+			case meter.OrderByCreatedAt:
+				query = query.Order(meterdb.ByCreatedAt(order...))
+			case meter.OrderByUpdatedAt:
+				query = query.Order(meterdb.ByUpdatedAt(order...))
+			default:
+				return pagination.Result[meter.Meter]{}, models.NewGenericValidationError(
+					fmt.Errorf("unsupported order by field: %q", params.OrderBy),
+				)
+			}
+		}
+
+		// Pagination
+		entities, err := query.Paginate(ctx, params.Page)
+		if err != nil {
+			return pagination.Result[meter.Meter]{}, err
+		}
+
+		// Map to response
+		resp, err := pagination.MapResultErr(entities, MapFromEntityFactory)
+		if err != nil {
+			return pagination.Result[meter.Meter]{}, fmt.Errorf("failed to map meters: %w", err)
+		}
+
+		return resp, nil
+	})
 }
 
 // GetMeterByIDOrSlug returns a meter from the meter store by ID or slug.
@@ -91,27 +95,29 @@ func (a *Adapter) GetMeterByIDOrSlug(ctx context.Context, input meter.GetMeterIn
 		return meter.Meter{}, models.NewGenericValidationError(err)
 	}
 
-	entity, err := a.db.Meter.Query().
-		Where(meterdb.NamespaceEQ(input.Namespace)).
-		Where(meterdb.Or(
-			meterdb.ID(input.IDOrSlug),
-			meterdb.And(meterdb.Key(input.IDOrSlug), meterdb.DeletedAtIsNil()),
-		)).
-		First(ctx)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return meter.Meter{}, meter.NewMeterNotFoundError(input.IDOrSlug)
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *Adapter) (meter.Meter, error) {
+		entity, err := repo.db.Meter.Query().
+			Where(meterdb.NamespaceEQ(input.Namespace)).
+			Where(meterdb.Or(
+				meterdb.ID(input.IDOrSlug),
+				meterdb.And(meterdb.Key(input.IDOrSlug), meterdb.DeletedAtIsNil()),
+			)).
+			First(ctx)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return meter.Meter{}, meter.NewMeterNotFoundError(input.IDOrSlug)
+			}
+
+			return meter.Meter{}, fmt.Errorf("failed to get meter by ID or slug: %w", err)
 		}
 
-		return meter.Meter{}, fmt.Errorf("failed to get meter by ID or slug: %w", err)
-	}
+		m, err := MapFromEntityFactory(entity)
+		if err != nil {
+			return m, fmt.Errorf("failed to map meter: %w", err)
+		}
 
-	m, err := MapFromEntityFactory(entity)
-	if err != nil {
-		return m, fmt.Errorf("failed to map meter: %w", err)
-	}
-
-	return m, nil
+		return m, nil
+	})
 }
 
 // MapFromEntityFactory creates a function that maps a meter db entity to a meter model.

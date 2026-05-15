@@ -1,0 +1,131 @@
+{
+  "openmeter/dedupe/memorydedupe": {
+    "purpose": "In-memory LRU-backed deduplication for CloudEvents, used as the no-dependency fallback when Redis is unavailable. Implements dedupe.Deduplicator using a fixed-size hashicorp/golang-lru cache keyed by dedupe.Item.Key() with nil values \u2014 never stores event payloads.",
+    "patterns": [
+      {
+        "name": "LRU keyed by item.Key() with nil values",
+        "description": "All dedup checks use item.Key() (composite of Namespace+ID+Source) as the LRU map key, storing nil as the value. Never store event payload data.",
+        "example": "isContained, _ := d.store.ContainsOrAdd(item.Key(), nil)"
+      },
+      {
+        "name": "Atomic check-and-set via ContainsOrAdd for IsUnique",
+        "description": "IsUnique must use ContainsOrAdd (single LRU call) to avoid a check-then-set race under concurrent ingest goroutines. CheckUnique and Set are separate non-atomic operations.",
+        "example": "isContained, _ := d.store.ContainsOrAdd(item.Key(), nil); return !isContained, nil"
+      },
+      {
+        "name": "CheckUniqueBatch pre-allocates both result sets",
+        "description": "Always initialise UniqueItems and AlreadyProcessedItems with make(dedupe.ItemSet, len(items)) before ranging; never append to nil maps.",
+        "example": "result := dedupe.CheckUniqueBatchResult{UniqueItems: make(dedupe.ItemSet, len(items)), AlreadyProcessedItems: make(dedupe.ItemSet, len(items))}"
+      },
+      {
+        "name": "Implement all five Deduplicator methods",
+        "description": "Must satisfy dedupe.Deduplicator: IsUnique, CheckUnique, Set, Close, and CheckUniqueBatch. Close() is a no-op but must exist.",
+        "example": "func (d *Deduplicator) Close() error { return nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "memorydedupe.go",
+        "role": "Single-file implementation; NewDeduplicator(size) is the only constructor. defaultSize=1024 is used when size<1.",
+        "watch_for": "Callers must choose a meaningful cache size \u2014 too small causes premature LRU eviction, causing previously-seen events to appear unique again (false-unique bug)."
+      },
+      {
+        "file": "memorydedupe_test.go",
+        "role": "Validates atomic IsUnique (second call returns false) and that CheckUnique+Set are separate read/write operations.",
+        "watch_for": "Tests use context.Background() \u2014 acceptable in tests only; production code must propagate caller context."
+      }
+    ],
+    "anti_patterns": [
+      "Storing event payload data in the LRU cache \u2014 only nil values allowed, keyed by item.Key()",
+      "Using separate Contains + Add calls instead of ContainsOrAdd in IsUnique \u2014 creates a TOCTOU race under concurrent ingest",
+      "Skipping Close() \u2014 must exist even as a no-op to satisfy dedupe.Deduplicator interface",
+      "Using context.Background() in production implementation code (tests only)",
+      "Constructing CheckUniqueBatchResult without pre-allocated maps \u2014 nil map assignment panics"
+    ],
+    "decisions": [
+      {
+        "decision": "LRU eviction over unbounded growth",
+        "rationale": "Bounded memory footprint for long-running sink workers; evicted entries can cause duplicate events to slip through, which is acceptable for the in-memory fallback (Redis is preferred for production)."
+      },
+      {
+        "decision": "IsUnique atomically checks-and-sets via ContainsOrAdd",
+        "rationale": "A single LRU call avoids a check-then-set race under concurrent ingest goroutines without introducing a mutex around every operation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implement a new Deduplicator satisfying dedupe.Deduplicator",
+        "code": "import (\n\t\"context\"\n\t\"github.com/cloudevents/sdk-go/v2/event\"\n\t\"github.com/openmeterio/openmeter/openmeter/dedupe\"\n)\n\nfunc (d *MyDeduplicator) IsUnique(ctx context.Context, namespace string, ev event.Event) (bool, error) {\n\titem := dedupe.Item{Namespace: namespace, ID: ev.ID(), Source: ev.Source()}\n\t// use atomic check-and-set: isContained, _ := d.store.ContainsOrAdd(item.Key(), nil)\n\treturn !isContained, nil\n}\n\nfunc (d *MyDeduplicator) CheckUniqueBatch(ctx context.Context, items []dedupe.Item) (dedupe.CheckUniqueBatchResult, error) {\n\tresult := dedupe.CheckUniqueBatchResult{\n\t\tUniqueItems:           make(dedupe.ItemSet, len(items)),\n\t\tAlreadyProcessedItems: make(dedupe.ItemSet, len(items)),\n\t}\n\t// range and classify\n\treturn result, nil\n}"
+      }
+    ]
+  },
+  "openmeter/dedupe/redisdedupe": {
+    "purpose": "Redis-backed deduplication for CloudEvents in the sink worker, implementing dedupe.Deduplicator with TTL-based expiry, pipelined batch writes, and three key-format modes (rawkey, keyhash, keyhash-migration) to support zero-downtime migration of Redis key encoding.",
+    "patterns": [
+      {
+        "name": "Mode-switch on every key operation",
+        "description": "Every method (IsUnique, CheckUnique, Set, CheckUniqueBatch) must switch on d.Mode to select the Redis key format. Never assume a single format; adding a new method without the switch breaks migration mode.",
+        "example": "switch d.Mode {\ncase DedupeModeRawKey: keys = append(keys, item.Key())\ncase DedupeModeKeyHash, DedupeModeKeyHashMigration: keys = append(keys, GetKeyHash(item.Key()))\n}"
+      },
+      {
+        "name": "SetArgs with NX + TTL for atomic set-if-not-exists",
+        "description": "All uniqueness writes use redis.SetArgs{TTL: d.Expiration, Mode: \"nx\"}. Return redis.Nil means the key already existed (duplicate). An empty status string also signals duplicate.",
+        "example": "status, err := d.Redis.SetArgs(ctx, key, \"\", redis.SetArgs{TTL: d.Expiration, Mode: \"nx\"}).Result()"
+      },
+      {
+        "name": "Pipelined batch writes in Set()",
+        "description": "Set() pipelines multiple SetArgs calls via d.Redis.Pipelined. Inspect per-command errors individually \u2014 redis.Nil on a pipeline command means the key pre-existed (not a fatal error).",
+        "example": "cmds, err := d.Redis.Pipelined(ctx, func(pipe redis.Pipeliner) error { ... })\nfor i, cmd := range cmds { if errors.Is(cmd.Err(), redis.Nil) { existingItems = append(existingItems, items[i]) } }"
+      },
+      {
+        "name": "keyhash-migration checks both old and new key formats",
+        "description": "During DedupeModeKeyHashMigration, IsUnique sets the new hashed key first, then checks if the old rawkey exists in Redis to avoid false-unique results during rolling deploys.",
+        "example": "isUnique, err := d.setKey(ctx, keyHash); if isUnique { isSet, _ := d.Redis.Exists(ctx, item.Key()).Result(); return isSet == 0, nil }"
+      },
+      {
+        "name": "nil guard on d.Redis before any Redis call",
+        "description": "IsUnique guards d.Redis == nil and returns an error. Replicate this guard in any new method that calls d.Redis directly.",
+        "example": "if d.Redis == nil { return false, errors.New(\"redis client not initialized\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "redisdedupe.go",
+        "role": "Full Deduplicator implementation; DedupeMode type and its three constants are the API extension point for key-format migration.",
+        "watch_for": "keyhash-migration mode reads both rawkey and keyhash formats to prevent false-unique events during rolling deploy \u2014 do not simplify without coordinating a full cutover."
+      },
+      {
+        "file": "keyhash.go",
+        "role": "Standalone hashing helper using xxh3.HashString128 + base64.RawURLEncoding to shrink Redis keys by ~57% vs raw composite keys.",
+        "watch_for": "Changing the hash algorithm or encoding invalidates all existing Redis keys \u2014 causes a flood of duplicate events to be treated as unique. Any change requires a new migration mode."
+      }
+    ],
+    "anti_patterns": [
+      "Using SET without NX \u2014 allows overwriting existing keys and defeats deduplication semantics",
+      "Adding a new DedupeMode without updating every method's switch statement",
+      "Ignoring redis.Nil in pipeline results \u2014 it signals a pre-existing key, not a fatal error",
+      "Calling d.Redis methods without the nil guard (replicate the guard from IsUnique in every new method)",
+      "Changing GetKeyHash algorithm without adding a new migration mode and Redis key rotation plan"
+    ],
+    "decisions": [
+      {
+        "decision": "Three-mode key format with explicit migration mode",
+        "rationale": "Allows a rolling upgrade from rawkey to keyhash without a big-bang cutover; migration mode checks both formats so no events are incorrectly classified as unique during the transition window."
+      },
+      {
+        "decision": "xxh3-128 + base64url over raw composite strings",
+        "rationale": "22-char base64url keys use ~57% less Redis memory than the ~77-char raw composite key while maintaining collision probability ~1e-30 at 300M events/day."
+      },
+      {
+        "decision": "TTL-based expiry instead of unbounded growth",
+        "rationale": "Ingest events are only deduplicated within a recent window; expired keys free memory automatically without a separate purge job."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Check uniqueness in DedupeModeKeyHash mode and write atomically with TTL",
+        "code": "import (\n\t\"github.com/redis/go-redis/v9\"\n\t\"github.com/openmeterio/openmeter/openmeter/dedupe\"\n)\n\nfunc (d Deduplicator) setKey(ctx context.Context, key string) (bool, error) {\n\tstatus, err := d.Redis.SetArgs(ctx, key, \"\", redis.SetArgs{\n\t\tTTL:  d.Expiration,\n\t\tMode: \"nx\",\n\t}).Result()\n\tif err != nil && err != redis.Nil {\n\t\treturn false, err\n\t}\n\tif status == \"\" {\n\t\treturn false, nil // duplicate: key already existed\n\t}\n\tif status == \"OK\" {\n\t\treturn true, nil // unique: key was newly created\n\t}\n\treturn false, fmt.Errorf(\"unknown status\")\n}"
+      }
+    ]
+  }
+}

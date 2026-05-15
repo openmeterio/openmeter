@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light mode — warm papaya backgrounds, teal primary, tangerine accents */
+    --background: 34 100% 98%;
+    --foreground: 207 100% 7%;
+
+    --card: 37 100% 95%;
+    --card-foreground: 207 100% 7%;
+
+    --popover: 34 100% 98%;
+    --popover-foreground: 207 100% 7%;
+
+    --primary: 187 66% 25%;
+    --primary-foreground: 37 100% 95%;
+
+    --secondary: 37 100% 93%;
+    --secondary-foreground: 207 100% 7%;
+
+    --muted: 37 100% 93%;
+    --muted-foreground: 187 40% 35%;
+
+    --accent: 29 100% 90%;
+    --accent-foreground: 29 100% 20%;
+
+    --destructive: 15 78% 41%;
+    --destructive-foreground: 34 100% 98%;
+
+    --border: 37 60% 88%;
+    --input: 37 60% 88%;
+    --ring: 187 66% 25%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark mode — deep navy ink, bright teal primary, warm tangerine accents */
+    --background: 207 100% 7%;
+    --foreground: 37 100% 91%;
+
+    --card: 207 100% 6%;
+    --card-foreground: 37 100% 91%;
+
+    --popover: 207 100% 6%;
+    --popover-foreground: 37 100% 91%;
+
+    --primary: 187 65% 55%;
+    --primary-foreground: 207 100% 4%;
+
+    --secondary: 207 100% 12%;
+    --secondary-foreground: 37 100% 91%;
+
+    --muted: 207 100% 12%;
+    --muted-foreground: 187 63% 70%;
+
+    --accent: 29 100% 20%;
+    --accent-foreground: 29 100% 70%;
+
+    --destructive: 15 78% 26%;
+    --destructive-foreground: 37 100% 91%;
+
+    --border: 207 60% 14%;
+    --input: 207 60% 14%;
+    --ring: 187 65% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom Scrollbar for "Premium" Feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-ink/5 rounded-full hover:bg-ink/10 transition-colors;
+}
+
+/* Hide Mermaid Error Leakage and persistings */
+div[id^="d-mermaid"],
+div[id*="mermaid-error"],
+svg[id*="mermaid-error"],
+#mermaid-error-svg,
+.mermaid-error,
+body>div:has(> .mermaid-error),
+body>div:has(> #mermaid-error-svg) {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  position: absolute !important;
+  pointer-events: none !important;
+  z-index: -9999 !important;
+  opacity: 0 !important;
+}

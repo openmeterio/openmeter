@@ -1,0 +1,297 @@
+{
+  "openmeter/meter/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing meter.Service and meter.ManageService interfaces. Owns all DB reads and writes for meter entities, enforcing namespace isolation and soft-delete semantics via DeletedAt.",
+    "patterns": [
+      {
+        "name": "TransactingRepo wrapping on every mutating method",
+        "description": "Every mutating DB operation wraps its body in transaction.Run + entutils.TransactingRepo (or WithNoValue). Reads-only methods use entutils.TransactingRepo directly without transaction.Run.",
+        "example": "return transaction.Run(ctx, a, func(ctx context.Context) (meterpkg.Meter, error) { return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *Adapter) (meterpkg.Meter, error) { ... }) })"
+      },
+      {
+        "name": "Tx/WithTx/Self triad required by TransactingRepo",
+        "description": "Adapter implements entutils.TxCreator: Tx() hijacks transaction via HijackTx+NewTxDriver, WithTx() creates txClient from raw config, Self() returns self. Omitting any method breaks TransactingRepo rebinding.",
+        "example": "func (a *Adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *Adapter { txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &Adapter{db: txClient.Client(), logger: a.logger} }"
+      },
+      {
+        "name": "Config-validated constructor",
+        "description": "New(Config) validates all required fields (Client, Logger) before constructing the Adapter; returns error on invalid config.",
+        "example": "func New(config Config) (*Adapter, error) { if err := config.Validate(); err != nil { return nil, err } return &Adapter{db: config.Client, logger: config.Logger}, nil }"
+      },
+      {
+        "name": "Interface compliance assertion",
+        "description": "var _ meter.Service = (*Adapter)(nil) at package level ensures compile-time interface satisfaction. Add similar assertions for any new interface this adapter implements.",
+        "example": "var _ meter.Service = (*Adapter)(nil)"
+      },
+      {
+        "name": "MapFromEntityFactory for all domain mapping",
+        "description": "All query paths call MapFromEntityFactory to convert *db.Meter to meter.Meter. Never construct domain objects inline from Ent entities.",
+        "example": "meter, err := MapFromEntityFactory(entity)"
+      },
+      {
+        "name": "Soft-delete via DeletedAt filter",
+        "description": "Meters are soft-deleted by setting DeletedAt; queries default to filtering DeletedAt IS NULL. Only omit the filter when IncludeDeleted is explicitly set.",
+        "example": "if !params.IncludeDeleted { query = query.Where(meterdb.DeletedAtIsNil()) }"
+      },
+      {
+        "name": "Typed error wrapping",
+        "description": "db.IsConstraintError -> models.NewGenericConflictError; db.IsNotFound -> meter.NewMeterNotFoundError; other errors wrapped with fmt.Errorf.",
+        "example": "if db.IsConstraintError(err) { return meterpkg.Meter{}, models.NewGenericConflictError(fmt.Errorf(\"meter with the same slug already exists\")) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Core Adapter struct, Config, constructor, and Tx/WithTx/Self triad implementation.",
+        "watch_for": "Forgetting to implement any of Tx/WithTx/Self breaks TransactingRepo for this adapter."
+      },
+      {
+        "file": "manage.go",
+        "role": "Create/Update/Delete meter + cross-entity checks (HasActiveFeatureForMeter, HasEntitlementForMeter, ListFeaturesForMeter). Uses featureadapter.MapFeatureEntity for feature mapping.",
+        "watch_for": "Cross-entity queries use entitlementdb and featuredb predicates; missing namespace Where clauses can leak cross-namespace data."
+      },
+      {
+        "file": "meter.go",
+        "role": "ListMeters (pagination, filtering, ordering) and GetMeterByIDOrSlug plus MapFromEntityFactory.",
+        "watch_for": "Ordering switch must handle all meter.OrderBy constants or return GenericValidationError; missing cases silently use default ordering."
+      },
+      {
+        "file": "adapter_test.go",
+        "role": "Integration tests using testutils.InitPostgresDB and schema.Create to provision a real schema.",
+        "watch_for": "Tests use t.Context(); using context.Background() breaks test-scoped cancellation and transaction cleanup."
+      }
+    ],
+    "anti_patterns": [
+      "Calling a.db directly in a helper method body without wrapping in entutils.TransactingRepo \u2014 bypasses ctx-carried transaction.",
+      "Hand-writing SQL instead of using Ent query builders.",
+      "Editing openmeter/ent/db/ generated files directly.",
+      "Returning raw Ent entities from public functions instead of mapping through MapFromEntityFactory.",
+      "Omitting DeletedAt IS NULL filter in queries where soft-deleted meters should be excluded."
+    ],
+    "decisions": [
+      {
+        "decision": "Adapter implements both meter.Service and meter.ManageService at the DB layer; service/ wraps it for business logic.",
+        "rationale": "Keeps persistence concerns isolated; ManageService in service/ layer adds hooks, event publishing, and cross-domain validation without mixing them into SQL."
+      },
+      {
+        "decision": "Soft-delete via DeletedAt rather than hard DELETE.",
+        "rationale": "Meters referenced by historical billing/usage data must not be physically removed to preserve audit trails and FK integrity."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Create a meter inside a transaction using TransactingRepo",
+        "code": "func (a *Adapter) CreateMeter(ctx context.Context, input meterpkg.CreateMeterInput) (meterpkg.Meter, error) {\n\treturn transaction.Run(ctx, a, func(ctx context.Context) (meterpkg.Meter, error) {\n\t\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *Adapter) (meterpkg.Meter, error) {\n\t\t\tentity, err := repo.db.Meter.Create().\n\t\t\t\tSetNamespace(input.Namespace).\n\t\t\t\tSetKey(input.Key).\n\t\t\t\tSetAggregation(input.Aggregation).\n\t\t\t\tSave(ctx)\n\t\t\tif err != nil {\n\t\t\t\tif db.IsConstraintError(err) {\n\t\t\t\t\treturn meterpkg.Meter{}, models.NewGenericConflictError(fmt.Errorf(\"meter already exists\"))\n\t\t\t\t}\n\t\t\t\treturn meterpkg.Meter{}, fmt.Errorf(\"failed to create meter: %w\", err)\n\t\t\t}\n\t\t\treturn MapFromEntityFactory(entity)\n\t\t})\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/meter/httphandler": {
+    "purpose": "v1 HTTP handler layer for the meter domain. Exposes meter CRUD, query (JSON and CSV), subject list, and group-by endpoints using the httptransport.Handler pattern; delegates business logic to meter.ManageService and streaming.Connector.",
+    "patterns": [
+      {
+        "name": "Handler interface + factory function",
+        "description": "Handler interface composes sub-handler interfaces (MeterHandler). New(...) constructs the concrete handler struct; var _ Handler = (*handler)(nil) asserts compliance.",
+        "example": "func New(namespaceDecoder, customerService, meterService, streaming, subjectService, options...) Handler { return &handler{...} }"
+      },
+      {
+        "name": "httptransport.NewHandlerWithArgs for path-param endpoints",
+        "description": "Endpoints with path parameters use httptransport.NewHandlerWithArgs[Request, Response, Params]; the decoder func receives the parsed params alongside *http.Request.",
+        "example": "return httptransport.NewHandlerWithArgs(decoderFunc, operationFunc, commonhttp.JSONResponseEncoderWithStatus[R](http.StatusOK), options...)"
+      },
+      {
+        "name": "Namespace resolved at decode time",
+        "description": "Every decoder calls h.resolveNamespace(ctx) first and embeds the resolved namespace in the request struct \u2014 never passes raw http.Request to service layer.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return Req{}, err }"
+      },
+      {
+        "name": "Mapping functions live in mapping.go",
+        "description": "All api <-> domain type conversions (ToAPIMeter, ToAPIMeterQueryResult, toQueryParamsFromRequest) live in mapping.go; handler files must not inline type conversions.",
+        "example": "return ToAPIMeter(m), nil"
+      },
+      {
+        "name": "JSON path validation via streaming.Connector before meter mutations",
+        "description": "validateJSONPaths and validateGroupByJSONPaths call streaming.ValidateJSONPath before CreateMeter/UpdateMeter because ClickHouse rejects invalid paths at query time.",
+        "example": "err := validateJSONPaths(ctx, h.streaming, request.ValueProperty, request.GroupBy)"
+      },
+      {
+        "name": "CSV response via commonhttp.CSVResponseEncoder",
+        "description": "CSV endpoints return commonhttp.CSVResponse (interface with Records() + FileName()). queryMeterCSVResult in query_csv.go implements this interface.",
+        "example": "commonhttp.CSVResponseEncoder[QueryMeterCSVResponse]"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface declaration, concrete handler struct, New constructor with all service dependencies.",
+        "watch_for": "Adding a new endpoint requires extending the MeterHandler interface and implementing the method on *handler."
+      },
+      {
+        "file": "mapping.go",
+        "role": "Domain <-> API type converters and toQueryParamsFromRequest (resolves customer IDs, validates group-by, maps window timezone).",
+        "watch_for": "toQueryParamsFromRequest calls customerService.ListCustomers \u2014 customer-not-found must surface as GenericNotFoundError, not 500."
+      },
+      {
+        "file": "meter.go",
+        "role": "CRUD handler implementations (List, Get, Create, Update, Delete) and validateJSONPaths helpers.",
+        "watch_for": "UpdateMeter fetches current meter first to resolve ID; removing this fetch breaks the update flow."
+      },
+      {
+        "file": "query.go",
+        "role": "QueryMeter (GET), QueryMeterPost (POST), ListSubjects, ListGroupByValues \u2014 all delegate to streaming.Connector after resolving the meter.",
+        "watch_for": "ListGroupByValues defaults From to last 24 hours when both From and To are nil \u2014 must remain to avoid unbounded ClickHouse scans."
+      },
+      {
+        "file": "query_csv.go",
+        "role": "CSV variants of query endpoints; queryMeterCSVResult.Records() builds header/data rows with optional subject display names.",
+        "watch_for": "Subject display names are best-effort enrichment; missing subjects fill with empty string, not an error."
+      }
+    ],
+    "anti_patterns": [
+      "Calling meter.ManageService or streaming.Connector directly in the decoder func \u2014 decoding must only extract and validate HTTP input.",
+      "Inline type conversions in handler files instead of mapping.go functions.",
+      "Skipping validateJSONPaths before CreateMeter/UpdateMeter \u2014 ClickHouse will reject invalid JSONPath expressions at query time.",
+      "Returning 500 for customer-not-found in filter resolution \u2014 must return models.NewGenericNotFoundError.",
+      "Using context.Background() instead of propagating ctx from the request."
+    ],
+    "decisions": [
+      {
+        "decision": "handler struct holds both meter.ManageService and streaming.Connector directly.",
+        "rationale": "Meter query operations (QueryMeter, ListSubjects, ListGroupByValues) run directly against ClickHouse via Connector, bypassing the meter service to avoid double-hop latency."
+      },
+      {
+        "decision": "POST body query (QueryMeterPost) is mapped via ToRequestFromQueryParamsPOSTBody before calling toQueryParamsFromRequest.",
+        "rationale": "Single shared params-to-streaming conversion path reduces divergence between GET and POST query semantics."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Typical handler method: decode path param + namespace, delegate to service, map response",
+        "code": "func (h *handler) GetMeter() GetMeterHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, idOrSlug string) (GetMeterRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return GetMeterRequest{}, err }\n\t\t\treturn GetMeterRequest{namespace: ns, idOrSlug: idOrSlug}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request GetMeterRequest) (GetMeterResponse, error) {\n\t\t\tm, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{Namespace: request.namespace, IDOrSlug: request.idOrSlug})\n\t\t\tif err != nil { return GetMeterResponse{}, err }\n\t\t\treturn ToAPIMeter(m), nil\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[GetMeterResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"getMeter\"))...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/meter/mockadapter": {
+    "purpose": "In-memory mock implementation of meter.Service and meter.ManageService for use in tests. Optionally syncs meters to PostgreSQL via SetDBClient to satisfy FK constraints on features.meter_id.",
+    "patterns": [
+      {
+        "name": "Two-level struct: adapter (Service) + manageAdapter (ManageService)",
+        "description": "adapter implements meter.Service with an in-memory slice; manageAdapter embeds adapter and adds Create/Update/Delete/RegisterPreUpdateMeterHook, satisfying meter.ManageService.",
+        "example": "type manageAdapter struct { adapter *adapter; meter.Service }"
+      },
+      {
+        "name": "New vs NewManage factory selection",
+        "description": "Tests needing read-only access call New(meters); tests needing full mutation access call NewManage(meters). Both validate input meters.",
+        "example": "func NewManage(meters []meter.Meter) (meter.ManageService, error)"
+      },
+      {
+        "name": "Optional PG sync via SetDBClient",
+        "description": "Call adapter.SetDBClient(*entdb.Client) after New to make CreateMeter/ReplaceMeters persist rows to PostgreSQL for FK integrity. PG sync happens before in-memory state updates.",
+        "example": "adapter.SetDBClient(client) // enables FK-safe test scenarios"
+      },
+      {
+        "name": "ReplaceMeters for bulk test seeding",
+        "description": "ReplaceMeters atomically replaces all in-memory meters and syncs to PG if SetDBClient was called. Reuses existing PG rows by (namespace, key) to handle shared template DBs.",
+        "example": "adapter.ReplaceMeters(ctx, meters)"
+      },
+      {
+        "name": "Zero-page pagination returns full dataset",
+        "description": "ListMeters returns all matching items when params.Page.IsZero(), skipping offset math \u2014 mirrors real pagination behavior for unpaginated callers.",
+        "example": "if params.Page.IsZero() { return pagination.Result[meter.Meter]{Items: meters, TotalCount: len(meters)}, nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Core in-memory adapter struct, New/NewManage constructors, SetDBClient, TestAdapter type alias.",
+        "watch_for": "TestAdapter type alias exposes adapter internals to tests; only use for direct field inspection, not for bypassing the service interface."
+      },
+      {
+        "file": "manage.go",
+        "role": "In-memory Create/Update/Delete implementations. RegisterPreUpdateMeterHook is a noop.",
+        "watch_for": "UpdateMeter matches by ID or Key in the in-memory slice \u2014 both must match the namespace to avoid cross-namespace mutations."
+      },
+      {
+        "file": "meter.go",
+        "role": "ListMeters (in-memory filter + pagination) and GetMeterByIDOrSlug + ReplaceMeters (PG sync logic).",
+        "watch_for": "PG sync in ReplaceMeters reuses existing (namespace, key) rows; if tests share a template DB, IDs may be remapped silently."
+      }
+    ],
+    "anti_patterns": [
+      "Using mockadapter in production wiring \u2014 it is test-only.",
+      "Calling adapter.meters directly from tests instead of going through the Service interface.",
+      "Calling SetDBClient after meters are already seeded without calling ReplaceMeters \u2014 existing in-memory meters won't be synced to PG.",
+      "Expecting RegisterPreUpdateMeterHook to work \u2014 it is a noop in the mock.",
+      "Using context.Background() in tests when t.Context() is available \u2014 breaks test-scoped cancellation."
+    ],
+    "decisions": [
+      {
+        "decision": "Optional PG sync via SetDBClient rather than always requiring a DB.",
+        "rationale": "Pure in-memory tests need no DB; only tests that also create features (FK on features.meter_id) need PG sync."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/meter/service": {
+    "purpose": "Business logic layer for the meter domain. Service delegates reads to the adapter; ManageService adds mutation orchestration including event type validation, cross-domain conflict checks, pre-update hooks, and Watermill event publishing.",
+    "patterns": [
+      {
+        "name": "Service embeds adapter for read operations",
+        "description": "Service struct holds *adapter.Adapter and delegates ListMeters/GetMeterByIDOrSlug directly to it \u2014 no additional logic for reads.",
+        "example": "type Service struct { adapter *adapter.Adapter }"
+      },
+      {
+        "name": "ManageService embeds Service + adds mutation orchestration",
+        "description": "ManageService embeds meter.Service (the read-only Service), holds *adapter.Adapter separately for mutations, and adds publisher, namespaceManager, eventTypeValidator, preUpdateHooks.",
+        "example": "type ManageService struct { meter.Service; hooks *models.ServiceHookRegistry[meter.Meter]; adapter *adapter.Adapter; publisher eventbus.Publisher; ... }"
+      },
+      {
+        "name": "Publish domain events after each successful mutation",
+        "description": "After successful Create/Update/Delete, ManageService publishes a typed event (NewMeterCreateEvent, NewMeterUpdateEvent, NewMeterDeleteEvent) via eventbus.Publisher.",
+        "example": "meterCreatedEvent := meter.NewMeterCreateEvent(ctx, &createdMeter); s.publisher.Publish(ctx, meterCreatedEvent)"
+      },
+      {
+        "name": "Pre-update hook registry",
+        "description": "RegisterPreUpdateMeterHook appends hooks to hooks registry; UpdateMeter calls s.hooks.PreUpdate before calling adapter.UpdateMeter, enabling cross-domain validation.",
+        "example": "if err := s.hooks.PreUpdate(ctx, &currentMeter); err != nil { return meter.Meter{}, err }"
+      },
+      {
+        "name": "Cross-domain conflict checks before delete",
+        "description": "DeleteMeter checks HasActiveFeatureForMeter and HasEntitlementForMeter via adapter; returns GenericConflictError if active references exist.",
+        "example": "if hasFeatures { return models.NewGenericConflictError(fmt.Errorf(\"meter has active features and cannot be deleted\")) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "manage.go",
+        "role": "ManageService with Create/Update/Delete + hook/event plumbing and all cross-domain validation logic.",
+        "watch_for": "CreateMeter calls namespaceManager.CreateNamespace as a side effect (workaround); this namespace creation happens after DB write and publishes an event. Publishing events before adapter mutation succeeds is a violation."
+      },
+      {
+        "file": "service.go",
+        "role": "Read-only Service struct wrapping adapter; thin delegation layer.",
+        "watch_for": "Service is instantiated inside NewManage via New(adapter) \u2014 do not instantiate Service separately when ManageService is needed."
+      }
+    ],
+    "anti_patterns": [
+      "Adding DB queries directly to service.go or manage.go \u2014 all persistence goes through the adapter.",
+      "Publishing events before the adapter mutation succeeds \u2014 events must follow successful writes.",
+      "Skipping the pre-update hooks in UpdateMeter \u2014 downstream billing/entitlement hooks rely on them.",
+      "Adding adapter methods directly to Service interface \u2014 Service is read-only; ManageService holds direct *adapter.Adapter reference for cross-domain adapter methods not on the interface."
+    ],
+    "decisions": [
+      {
+        "decision": "Service layer publishes Watermill events after mutations rather than in the adapter.",
+        "rationale": "Adapter is a pure persistence layer; event publishing is a business concern that belongs above it to keep the adapter testable without an event bus."
+      },
+      {
+        "decision": "ManageService holds a direct *adapter.Adapter reference in addition to the embedded meter.Service.",
+        "rationale": "Cross-domain checks (HasActiveFeatureForMeter, HasEntitlementForMeter) are adapter methods not exposed on the meter.Service interface, requiring direct adapter access."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Delete a meter with cross-domain conflict guard and post-delete event publish",
+        "code": "func (s *ManageService) DeleteMeter(ctx context.Context, input meter.DeleteMeterInput) error {\n\tgetMeter, err := s.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{Namespace: input.Namespace, IDOrSlug: input.IDOrSlug})\n\tif err != nil { return err }\n\tif getMeter.DeletedAt != nil { return nil } // idempotent\n\thasFeatures, err := s.adapter.HasActiveFeatureForMeter(ctx, input.Namespace, getMeter.ID)\n\tif err != nil { return fmt.Errorf(\"check features: %w\", err) }\n\tif hasFeatures { return models.NewGenericConflictError(fmt.Errorf(\"meter has active features\")) }\n\tif err = s.adapter.DeleteMeter(ctx, getMeter); err != nil { return err }\n\t// re-fetch to get DeletedAt populated\n\tdeletedMeter, err := s.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{Namespace: input.Namespace, IDOrSlug: input.IDOrSlug})\n\tif err != nil { return err }\n\tif err := s.publisher.Publish(ctx, meter.NewMeterDeleteEvent(ctx, &deletedMeter)); err != nil {\n\t\treturn fmt.Errorf(\"publish delete event: %w\", err)\n\t}\n\treturn nil\n}"
+      }
+    ]
+  }
+}

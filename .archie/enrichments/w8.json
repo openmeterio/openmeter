@@ -1,0 +1,207 @@
+{
+  "api/client/python/openmeter/_generated/_utils": {
+    "purpose": "Low-level serialization/deserialization utilities for the generated Python SDK. Provides SdkJSONEncoder, the _Model MutableMapping-based base class (model_base.py), format-aware type converters for datetime/bytes/timedelta/decimal, and the legacy Autorest-style Model/Serializer/Deserializer (serialization.py). These files are fully generated and must not be hand-edited.",
+    "patterns": [
+      {
+        "name": "Format-dispatch deserialization via get_deserializer()",
+        "description": "Always route datetime/bytes/timedelta/decimal deserialization through get_deserializer(annotation, rf). It selects from _DESERIALIZE_MAPPING (keyed by Python type) or _DESERIALIZE_MAPPING_WITHFORMAT (keyed by wire format string like 'rfc7231', 'base64url'). Never hand-roll datetime or bytes parsing.",
+        "example": "deserializer = get_deserializer(datetime, rf)  # rf._format may be 'rfc7231' or None; value = deserializer(raw_value)"
+      },
+      {
+        "name": "SdkJSONEncoder for all request body serialization",
+        "description": "Pass exclude_readonly=True when building request bodies so read-only fields (visibility=['read']) are stripped. SdkJSONEncoder handles datetime, bytes, timedelta, decimal, and _Model instances via its default() method.",
+        "example": "json.dumps(payload, cls=SdkJSONEncoder, exclude_readonly=True)"
+      },
+      {
+        "name": "Two distinct Model base classes \u2014 do not mix",
+        "description": "model_base.py defines _Model (MutableMapping-backed, uses rest_field annotations). serialization.py defines Model (attribute_map class var, Autorest-style Serializer/Deserializer). _operations.py uses the legacy serialization.Model path via _SERIALIZER; generated dataclass-style models extend _Model.",
+        "example": "# New models: class MyModel(_Model): field: str = rest_field(...)\n# Never mix: do not subclass _Model and also declare _attribute_map"
+      },
+      {
+        "name": "_MyMutableMapping cache invalidation on __setitem__",
+        "description": "The _MyMutableMapping backing _Model clears _deserialized_<key> attribute cache on every __setitem__. Mutating _data directly bypasses this invalidation. Always go through attribute access or the dict interface (obj['key'] = value or obj.key = value).",
+        "example": "# Correct: obj.name = 'new'  or  obj['name'] = 'new'\n# Wrong: obj._data['name'] = 'new'  # bypasses cache invalidation"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "model_base.py",
+        "role": "Defines _Model (MutableMapping-based base for all generated models), rest_field, rest_discriminator, SdkJSONEncoder, and all _deserialize_* helper functions. Core of the new-codegen path.",
+        "watch_for": "Mutating _data directly on a _Model bypasses the _deserialized_<key> cache-invalidation in __setitem__; always go through attribute or dict interface."
+      },
+      {
+        "file": "serialization.py",
+        "role": "Legacy Autorest-style Model base class, Serializer, Deserializer, RawDeserializer, and key transformers (attribute_transformer, full_restapi_key_transformer). Used by _operations.py via module-level _SERIALIZER singleton.",
+        "watch_for": "_SERIALIZER has client_side_validation=False; do not create per-call Serializer instances or re-enable validation."
+      },
+      {
+        "file": "__init__.py",
+        "role": "Re-exports SdkJSONEncoder, Model, rest_field, rest_discriminator as the public surface of this utils package.",
+        "watch_for": "Any new public symbol added here must also appear in __all__."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-rolling datetime or bytes serialization instead of using _serialize_datetime / _serialize_bytes / get_deserializer()",
+      "Editing model_base.py or serialization.py directly \u2014 they are generated and overwritten by make gen-api",
+      "Creating per-request Serializer() instances \u2014 _SERIALIZER is a module-level singleton with client_side_validation=False",
+      "Importing from corehttp internals not already imported in these files (adds fragile transitive dependency)",
+      "Subclassing _Model and also declaring _attribute_map \u2014 these are mutually exclusive codegen paths"
+    ],
+    "decisions": [
+      {
+        "decision": "Two separate Model base classes coexist: _Model (MutableMapping, rest_field) and serialization.Model (attribute_map, Autorest)",
+        "rationale": "SDK was generated with a newer codegen (_Model) but retains the legacy Autorest Model for backwards compatibility with older client patterns and XML support via serialization.py."
+      },
+      {
+        "decision": "_DESERIALIZE_MAPPING_WITHFORMAT separates format-aware converters from type-based converters",
+        "rationale": "The same Python type (datetime) maps to multiple wire formats (rfc3339, rfc7231, unix-timestamp). Splitting into two maps lets get_deserializer() check format first, then fall back to type-only dispatch."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Deserialize a datetime field with format awareness from a rest_field annotation",
+        "code": "from openmeter._generated._utils.model_base import get_deserializer\n# rf is the _RestField instance whose _format may be 'rfc7231', 'unix-timestamp', or None\ndeserializer = get_deserializer(datetime, rf)\nvalue = deserializer(raw_value)  # returns a timezone-aware datetime"
+      }
+    ]
+  },
+  "api/client/python/openmeter/_generated/models": {
+    "purpose": "Auto-generated Python model classes and enums for the entire OpenMeter API surface. Every request/response body type (~200+ classes in _models.py) and every string enum (_enums.py) is defined here; this is the single source of truth for Python-typed API objects in the SDK. Do not edit _models.py or _enums.py \u2014 only _patch.py is safe to modify.",
+    "patterns": [
+      {
+        "name": "rest_field attribute declaration with visibility and name mapping",
+        "description": "Each field is declared as a class variable using rest_field(name='camelCaseName', visibility=[...], format='rfc3339') to map Python snake_case to JSON camelCase. Required fields have no default; optional fields are Optional[T] with = rest_field(...). The visibility list controls which CRUD operations include the field.",
+        "example": "created_at: datetime.datetime = rest_field(name='createdAt', visibility=['read'], format='rfc3339')"
+      },
+      {
+        "name": "Dual @overload __init__ pattern",
+        "description": "Every model class has two @overload signatures: one with keyword args (for IDE completion of required fields), one with mapping: Mapping[str, Any] (for raw-dict construction from parsed JSON). The real __init__ always calls super().__init__(*args, **kwargs).",
+        "example": "@overload\ndef __init__(self, *, name: str, key: str) -> None: ...\n@overload\ndef __init__(self, mapping: Mapping[str, Any]) -> None: ...\ndef __init__(self, *args, **kwargs) -> None:\n    super().__init__(*args, **kwargs)"
+      },
+      {
+        "name": "CaseInsensitiveEnumMeta for all string enums",
+        "description": "All enums in _enums.py inherit from (str, Enum) with metaclass=CaseInsensitiveEnumMeta from corehttp.utils. This enables case-insensitive lookup by string value so wire comparisons work regardless of server casing.",
+        "example": "class AppType(str, Enum, metaclass=CaseInsensitiveEnumMeta):\n    STRIPE = 'stripe'\n    SANDBOX = 'sandbox'"
+      },
+      {
+        "name": "_patch.py as the only safe customization point",
+        "description": "_patch.py is preserved across regenerations. Add helper methods, monkey-patches, or additional public symbols here. patch_sdk() must remain callable. New symbols must also be listed in _patch.__all__ to appear in models.__all__.",
+        "example": "# _patch.py\n__all__ = ['my_helper']\ndef my_helper(): ...\ndef patch_sdk(): pass  # must remain callable"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "_models.py",
+        "role": "Contains all ~200+ generated dataclass-style model classes extending _Model from _utils/model_base. The authoritative definition of every API request/response shape.",
+        "watch_for": "DO NOT EDIT \u2014 regenerated by make gen-api. All customizations must go in _patch.py."
+      },
+      {
+        "file": "_enums.py",
+        "role": "All string enums used across models and operations. Every enum uses CaseInsensitiveEnumMeta for wire-value matching.",
+        "watch_for": "DO NOT EDIT \u2014 regenerated. Never add plain str Enum without CaseInsensitiveEnumMeta."
+      },
+      {
+        "file": "__init__.py",
+        "role": "Re-exports all models and enums, applies _patch.py via _patch_sdk(). The __all__ list is the authoritative public API of this subpackage.",
+        "watch_for": "DO NOT EDIT \u2014 regenerated. New public symbols added in _patch.py must appear in _patch.__all__ to propagate here."
+      },
+      {
+        "file": "_patch.py",
+        "role": "The only file safe to hand-edit. Place SDK customizations that must survive regeneration here.",
+        "watch_for": "patch_sdk() must remain callable even if empty. Never remove it."
+      }
+    ],
+    "anti_patterns": [
+      "Editing _models.py or _enums.py directly \u2014 overwritten by make gen-api",
+      "Subclassing generated models outside of _patch.py \u2014 breaks regeneration idempotency",
+      "Using plain str Enum without CaseInsensitiveEnumMeta \u2014 breaks case-insensitive wire value matching",
+      "Adding new public symbols to _patch.py without listing them in _patch.__all__ \u2014 they won't appear in models.__all__",
+      "Constructing models with positional arguments \u2014 use keyword args or a Mapping dict; positional args are not supported by the overload signatures"
+    ],
+    "decisions": [
+      {
+        "decision": "All models are MutableMapping-backed (_Model) rather than plain dataclasses",
+        "rationale": "Enables dict-style access and JSON serialization without a separate to_dict() step, matching the corehttp pipeline's expectation for request bodies and the SdkJSONEncoder's iteration over items()."
+      },
+      {
+        "decision": "_patch.py is preserved across regenerations as the sole customization point",
+        "rationale": "Generated code must remain pristine for automated regeneration; _patch.py provides a stable escape hatch that survives make gen-api without merge conflicts."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Construct a model using typed kwargs or a raw dict from parsed JSON",
+        "code": "from openmeter._generated.models import Customer, AddonCreate, AppType\n\n# Typed keyword construction (IDE completes required fields)\ncustomer = Customer(name='Acme', external_mapping_key='acme-001')\n\n# Raw dict construction from parsed JSON response\ncustomer = Customer({'name': 'Acme', 'externalMappingKey': 'acme-001'})\n\n# Enum usage \u2014 case-insensitive\napp_type = AppType('STRIPE')  # == AppType.STRIPE"
+      }
+    ]
+  },
+  "api/client/python/openmeter/_generated/operations": {
+    "purpose": "Auto-generated operation classes that implement every OpenMeter API endpoint as typed Python methods grouped by resource (CustomersOperations, InvoicesOperations, BillingProfilesOperations, etc.). Each class uses the corehttp pipeline to build, send, and deserialize HTTP requests. Do not edit _operations.py \u2014 only _patch.py is safe to modify.",
+    "patterns": [
+      {
+        "name": "build_*_request free functions for request construction",
+        "description": "Every operation is preceded by a build_<resource>_<verb>_request(...) free function that constructs the HttpRequest (URL path formatting, query params, headers) using the module-level _SERIALIZER singleton. The operation method calls this builder then sends via self._client.send_request. Never build HttpRequest objects manually outside this pattern.",
+        "example": "def build_customers_list_request(*, page=None, page_size=None, **kwargs) -> HttpRequest:\n    _params['page'] = _SERIALIZER.query('page', page, 'int')\n    return HttpRequest(method='GET', url='/api/v1/customers', params=_params, headers=_headers)"
+      },
+      {
+        "name": "ClsType optional callback for result interception",
+        "description": "Every operation method accepts an optional cls: ClsType kwarg \u2014 a callback(pipeline_response, deserialized, headers) that can intercept or transform the result. Pass None (the default) for standard use. Never remove this parameter from generated signatures.",
+        "example": "ClsType = Optional[Callable[[PipelineResponse[HttpRequest, HttpResponse], T, dict[str, Any]], Any]]"
+      },
+      {
+        "name": "map_error for typed HTTP error mapping before deserialization",
+        "description": "Operations call map_error(status_code=response.status_code, response=response, error_map={404: ResourceNotFoundError, 409: ResourceExistsError, ...}) before deserializing success responses. Never catch HttpResponseError without calling map_error first.",
+        "example": "error_map = {404: ResourceNotFoundError, 409: ResourceExistsError}\nmap_error(status_code=response.status_code, response=response, error_map=error_map)"
+      },
+      {
+        "name": "Module-level _SERIALIZER singleton \u2014 do not reinstantiate",
+        "description": "_SERIALIZER = Serializer() is a module-level singleton with client_side_validation=False. Never create per-call Serializer() instances. All query/header/URL serialization goes through _SERIALIZER.query(), _SERIALIZER.header(), _SERIALIZER.url().",
+        "example": "_SERIALIZER = Serializer()\n_SERIALIZER.client_side_validation = False\n# Usage: _SERIALIZER.query('page', page, 'int')"
+      },
+      {
+        "name": "ItemPaged for paginated list operations",
+        "description": "List operations that return paginated collections return ItemPaged[T] from corehttp.paging. Callers iterate the result directly; the pager handles next-page fetching transparently.",
+        "example": "result: ItemPaged[Customer] = ops.list(page=1, page_size=20)\nfor customer in result:\n    print(customer.name)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "_operations.py",
+        "role": "All ~30 generated operation classes. Each is initialized with a PipelineClient and OpenMeterClientConfiguration. Contains all build_*_request helpers and the send+deserialize logic.",
+        "watch_for": "DO NOT EDIT \u2014 regenerated by make gen-api. _SERIALIZER is module-level; do not create per-request instances."
+      },
+      {
+        "file": "__init__.py",
+        "role": "Re-exports all Operations classes and applies _patch.py via _patch_sdk(). The __all__ list is authoritative.",
+        "watch_for": "DO NOT EDIT \u2014 regenerated. Any symbols added in _patch.py must appear in _patch.__all__ to be included in __all__."
+      },
+      {
+        "file": "_patch.py",
+        "role": "The only file safe to hand-edit. Override or extend generated operation class methods here.",
+        "watch_for": "patch_sdk() must remain callable. Methods added here must not conflict with generated signatures."
+      }
+    ],
+    "anti_patterns": [
+      "Editing _operations.py directly \u2014 overwritten by make gen-api",
+      "Building HttpRequest objects manually outside the build_*_request free-function pattern \u2014 breaks serialization consistency",
+      "Catching HttpResponseError without calling map_error first \u2014 loses typed exception mapping (ResourceNotFoundError, ResourceExistsError, etc.)",
+      "Creating per-request Serializer() instances instead of using the module-level _SERIALIZER singleton",
+      "Removing the cls: ClsType parameter from any operation method signature"
+    ],
+    "decisions": [
+      {
+        "decision": "Request construction is split into build_*_request free functions separate from the send+deserialize logic in Operations class methods",
+        "rationale": "Enables unit-testing request construction (URL, headers, params) without an HTTP client, and keeps the send path uniform across all operations."
+      },
+      {
+        "decision": "Operations classes are grouped by resource (CustomersOperations, InvoicesOperations, etc.) rather than by HTTP method",
+        "rationale": "Resource-grouped classes match the TypeSpec interface groupings and make it easy to find all operations for a given domain without scanning the entire file."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Invoke a paginated list operation and a single-resource get through the operations classes",
+        "code": "from openmeter._generated.operations import CustomersOperations, InvoicesOperations\n\n# ops is injected by the top-level OpenMeterClient; not constructed directly\n# Paginated list \u2014 iterate ItemPaged[Customer]\nfor customer in ops.customers.list(page=1, page_size=20):\n    print(customer.name)\n\n# Single resource get\ninvoice = ops.invoices.get(invoice_id='01HXYZ...')"
+      }
+    ]
+  }
+}

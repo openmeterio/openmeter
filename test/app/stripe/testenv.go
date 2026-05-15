@@ -132,6 +132,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	// App
 	appAdapter, err := appadapter.New(appadapter.Config{
 		Client: entClient,
+		Logger: logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app adapter: %w", err)
@@ -181,7 +182,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create webhook url generator: %w", err)
 	}
 
-	appStripeService, err := appstripeservice.New(appstripeservice.Config{
+	appStripeService, err := appstripeservice.New(ctx, appstripeservice.Config{
 		Adapter:             appStripeAdapter,
 		AppService:          appService,
 		SecretService:       secretService,

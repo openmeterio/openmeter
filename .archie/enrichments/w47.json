@@ -1,0 +1,106 @@
+{
+  "deploy/charts/openmeter/templates": {
+    "purpose": "Helm templates for deploying all OpenMeter binaries (api, balance-worker, billing-worker, sink-worker, notification-service) plus optional dependencies (Svix, ClickHouse) as Kubernetes workloads. Every template shares a single ConfigMap-mounted config.yaml and the same image tag, enforcing homogeneous deployment across all binaries.",
+    "patterns": [
+      {
+        "name": "componentName for all resource names",
+        "description": "Every resource name must use `include \"openmeter.componentName\" (list . \"<component>\")` \u2014 never `.Release.Name` directly. The helper truncates to 63 chars minus component length for DNS compliance.",
+        "example": "name: {{ include \"openmeter.componentName\" (list . \"billing-worker\") }}"
+      },
+      {
+        "name": "componentLabels / componentSelectorLabels for all label blocks",
+        "description": "All metadata.labels use `openmeter.componentLabels`, all selector.matchLabels use `openmeter.componentSelectorLabels` with the component string. Never write app.kubernetes.io labels inline.",
+        "example": "labels:\n  {{- include \"openmeter.componentLabels\" (list . \"sink-worker\") | nindent 4 }}"
+      },
+      {
+        "name": "checksum/config annotation on every workload pod template",
+        "description": "Every Deployment and CronJob pod template must carry `checksum/config: {{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}` to force pod rollout on config changes.",
+        "example": "annotations:\n  checksum/config: {{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}"
+      },
+      {
+        "name": "initContainers gated on *.enabled flags via named templates",
+        "description": "Init containers are only emitted when `Values.postgresql.enabled` or `Values.clickhouse.enabled` is true, using `openmeter.init.postgres` / `openmeter.init.clickhouse` named templates from _helpers.tpl. Never inline the readiness-check logic.",
+        "example": "{{ if or .Values.postgresql.enabled .Values.clickhouse.enabled -}}\ninitContainers:\n  {{- if .Values.postgresql.enabled -}}\n  {{- include \"openmeter.init.postgres\" (list .) | nindent 8 }}\n  {{- end }}"
+      },
+      {
+        "name": "Shared image tag across all OpenMeter Deployments",
+        "description": "All OpenMeter binary containers use `{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}`. Never pin a different image per component. Svix is the only exception \u2014 it uses `Values.svix.image`.",
+        "example": "image: \"{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}\""
+      },
+      {
+        "name": "Config via ConfigMap volume mount at /etc/openmeter",
+        "description": "Every workload mounts the `openmeter.fullname` ConfigMap at `/etc/openmeter` and passes `--config /etc/openmeter/config.yaml` as an arg. CA certificates are conditionally mounted at `/usr/local/share/ca-certificates` when `Values.caRootCertificates` is non-empty.",
+        "example": "volumeMounts:\n  - name: config\n    mountPath: /etc/openmeter\nvolumes:\n  - name: config\n    configMap:\n      name: {{ include \"openmeter.fullname\" . }}"
+      },
+      {
+        "name": "Optional-dependency resources wrapped in enabled guards",
+        "description": "Files for optional services (clickhouse.yaml, svix.yaml) wrap their entire content in `{{- if .Values.<service>.enabled -}}`. New optional dependencies must follow this pattern and also add an override block in configmap.yaml's helmValuesConfig template.",
+        "example": "{{- if .Values.svix.enabled -}}\napiVersion: apps/v1\nkind: Deployment\n...\n{{- end }}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "_helpers.tpl",
+        "role": "Defines all named templates: openmeter.fullname, openmeter.componentName, openmeter.labels, openmeter.selectorLabels, openmeter.componentLabels, openmeter.componentSelectorLabels, openmeter.serviceAccountName, and init-container helpers (openmeter.init.netcat, openmeter.init.postgres, openmeter.init.clickhouse, openmeter.init.redis). All other templates depend on these.",
+        "watch_for": "openmeter.componentName uses list syntax `(list . \"component\")` \u2014 passing a plain string will break. The name is truncated at `62 - len(component)` chars; long component names silently truncate. openmeter.init.redis uses a PING loop unlike netcat-based postgres/clickhouse init containers."
+      },
+      {
+        "file": "configmap.yaml",
+        "role": "Produces the config.yaml ConfigMap by deep-merging `Values.config` with auto-generated overrides for self-hosted Kafka/ClickHouse/Postgres/Svix via `mergeOverwrite`. Also emits a separate ca-certificates ConfigMap when `Values.caRootCertificates` is set.",
+        "watch_for": "The `helmValuesConfig` define block uses `fromYaml`/`mergeOverwrite` \u2014 whitespace inside the define block matters for YAML validity. Adding a new self-hosted dependency requires a new `if .Values.<dep>.enabled` block here mirroring the override keys from config.example.yaml."
+      },
+      {
+        "file": "deployment.yaml",
+        "role": "Defines five Deployments: api, balance-worker, notification-service, sink-worker, billing-worker. Each uses its own `.Values.<component>.replicaCount` and passes a binary-specific entrypoint command to `/entrypoint.sh`.",
+        "watch_for": "Health probes hit `/healthz/live` and `/healthz/ready` on port `telemetry-http` (10000), not the API port (80). The api Deployment additionally exposes port 80 (http). All five Deployments must carry the checksum/config annotation."
+      },
+      {
+        "file": "jobs.yaml",
+        "role": "Defines three CronJobs: subscription-sync, billing-collect-invoices, billing-advance-invoices. All use `concurrencyPolicy: Forbid` and `restartPolicy: Never`. Schedules come from `Values.jobs.<job>.schedule`.",
+        "watch_for": "New CronJobs must set `concurrencyPolicy: Forbid` to prevent overlapping runs. The job command invokes `openmeter-jobs` binary with subcommand args (e.g. `billing advance all`), not a long-running server. checksum/config must appear at both jobTemplate.metadata and template.metadata levels."
+      },
+      {
+        "file": "svix.yaml",
+        "role": "Conditionally deploys Svix as a Deployment + Service, gated on `Values.svix.enabled`. Svix config is injected via environment variables (SVIX_REDIS_DSN, SVIX_DB_DSN, SVIX_JWT_SECRET), not the shared ConfigMap.",
+        "watch_for": "Svix uses its own image (`Values.svix.image`) and its own resources field (`Values.svix.resources`), not the shared `Values.image` or `Values.resources`. Init containers check postgres and redis readiness, not clickhouse."
+      },
+      {
+        "file": "clickhouse.yaml",
+        "role": "Deploys a ClickHouseInstallation CRD (Altinity operator) only when `Values.clickhouse.enabled`. Requires the clickhouse-operator to be installed in the cluster.",
+        "watch_for": "This is a custom CRD (`clickhouse.altinity.com/v1`), not a standard Deployment \u2014 helm lint will fail without the CRD present. Storage sizes (3Gi data, 1Gi log) are hardcoded in volumeClaimTemplates, not values-driven."
+      },
+      {
+        "file": "ingress.yaml",
+        "role": "Standard Kubernetes Ingress for the api Service only. Supports multi-Kube-version API version selection via `semverCompare` (>=1.19-0 uses networking.k8s.io/v1, >=1.14-0 uses v1beta1, otherwise extensions/v1beta1).",
+        "watch_for": "Ingress always targets the api component Service via `openmeter.componentName` with \"api\". Only workers have no Ingress. Only emitted when `Values.ingress.enabled`."
+      }
+    ],
+    "anti_patterns": [
+      "Writing app.kubernetes.io/* labels inline instead of using openmeter.componentLabels / openmeter.componentSelectorLabels helpers",
+      "Hardcoding resource names with .Release.Name directly instead of openmeter.componentName or openmeter.fullname",
+      "Adding a new Deployment or CronJob without a checksum/config annotation on the pod template \u2014 config changes won't trigger rollouts",
+      "Adding optional infrastructure without both an `{{- if .Values.<service>.enabled -}}` guard in the resource file AND a corresponding override block in configmap.yaml's helmValuesConfig",
+      "Using different image fields per OpenMeter binary \u2014 all binaries share Values.image.repository and Values.image.tag; only Svix is exempt with Values.svix.image"
+    ],
+    "decisions": [
+      {
+        "decision": "Single shared ConfigMap for all workloads, merged at render time from Values.config plus per-flag overrides",
+        "rationale": "All OpenMeter binaries share the same config.yaml schema. Merging at Helm render time via mergeOverwrite avoids per-binary ConfigMaps while still allowing self-hosted dependency addresses to be injected automatically when *.enabled flags are set."
+      },
+      {
+        "decision": "CronJobs use concurrencyPolicy: Forbid and restartPolicy: Never",
+        "rationale": "Billing advance, collect, and subscription-sync jobs are not idempotent under concurrent execution; Forbid prevents overlap. Never restart policy means the next scheduled run handles recovery rather than restarting a failed pod indefinitely."
+      },
+      {
+        "decision": "Init containers generated from named templates in _helpers.tpl rather than inline YAML",
+        "rationale": "The same readiness-check logic (nc -z for postgres/clickhouse, PING loop for redis) is reused across all five Deployments and three CronJobs. Centralizing in _helpers.tpl ensures consistent busybox image tag and address derivation from openmeter.fullname."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new worker Deployment (e.g. charges-worker)",
+        "code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: {{ include \"openmeter.componentName\" (list . \"charges-worker\") }}\n  labels:\n    {{- include \"openmeter.componentLabels\" (list . \"charges-worker\") | nindent 4 }}\nspec:\n  replicas: {{ .Values.chargesWorker.replicaCount }}\n  selector:\n    matchLabels:\n    {{- include \"openmeter.componentSelectorLabels\" (list . \"charges-worker\") | nindent 6 }}\n  template:\n    metadata:\n      annotations:\n        checksum/config: {{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}\n      labels:\n        {{- include \"openmeter.componentLabels\" (list . \"charges-worker\") | nindent 8 }}\n    spec:\n      {{ if or .Values.postgresql.enabled .Values.clickhouse.enabled -}}\n      initContainers:\n        {{- if .Values.postgresql.enabled -}}\n        {{- include \"openmeter.init.postgres\" (list .) | nindent 8 }}\n        {{- end }}\n      {{- end }}\n      containers:\n        - name: {{ .Chart.Name }}\n          image: \"{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}\"\n          command: [\"/entrypoint.sh\", \"openmeter-charges-worker\"]\n          args: [\"--telemetry-address\", \"0.0.0.0:10000\", \"--config\", \"/etc/openmeter/config.yaml\"]\n          ports:\n            - name: telemetry-http\n              containerPort: 10000\n          livenessProbe:\n            httpGet:\n              path: /healthz/live\n              port: telemetry-http\n          readinessProbe:\n            httpGet:\n              path: /healthz/ready\n              port: telemetry-http\n          volumeMounts:\n            - name: config\n              mountPath: /etc/openmeter\n      volumes:\n        - name: config\n          configMap:\n            name: {{ include \"openmeter.fullname\" . }}"
+      }
+    ]
+  }
+}

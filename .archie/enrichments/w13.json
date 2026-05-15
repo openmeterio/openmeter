@@ -1,0 +1,101 @@
+{
+  "api/spec/packages/aip/common/definitions": {
+    "purpose": "Shared OpenAPI YAML component library for the v3 AIP spec \u2014 defines reusable filter schemas, error responses, pagination metadata, security schemes, and common property types that all AIP resource routes reference via $ref. These are raw OpenAPI YAML fragments consumed by the TypeSpec build pipeline, not TypeSpec files.",
+    "patterns": [
+      {
+        "name": "RFC 7807 error schema hierarchy via allOf",
+        "description": "All error schemas must extend BaseError (status, title, instance, detail required) via allOf. BadRequestError adds invalid_parameters; specific errors add example values only. Never add a top-level error schema without extending BaseError.",
+        "example": "BadRequestError: allOf: [$ref: BaseError, {type: object, required: [invalid_parameters], properties: {invalid_parameters: {$ref: InvalidParameters}}}]"
+      },
+      {
+        "name": "Filter type composition via oneOf over named atomic sub-types",
+        "description": "Composite filter types (StringFieldFilter, NumericFieldFilter, DateTimeFieldFilter) are expressed as oneOf over named atomic sub-types each with additionalProperties: false. New filter variants must be added as a named sub-type first, then listed in the parent oneOf \u2014 never inline anonymous objects.",
+        "example": "NumericFieldFilter: oneOf: [{type: number}, {$ref: NumericFieldEqualsFilter}, {$ref: NumericFieldLTFilter}, ...]"
+      },
+      {
+        "name": "x-examples required on every filter schema",
+        "description": "Every filter schema must carry x-examples showing all supported variant forms. Missing x-examples causes SDK generation to produce incomplete examples.",
+        "example": "StringFieldFilter: x-examples: {example-1: 'value', example-2: {eq: 'value'}, example-3: {contains: 'value'}, example-4: {ocontains: '...'}, example-5: {oeq: '...'}, example-6: {neq: '...'}}"
+      },
+      {
+        "name": "Cursor-based pagination via CursorMeta family",
+        "description": "Paginated list responses reference CursorMeta, CursorMetaWithTotal, or CursorMetaWithEstimatedTotal from metadatas.yaml \u2014 never define inline page metadata. CursorMetaPage requires next and previous (nullable strings) plus size.",
+        "example": "response meta: {$ref: '#/components/schemas/CursorMeta'} \u2014 wraps CursorMetaPage with first/last/next/previous/size"
+      },
+      {
+        "name": "readOnly: true on all server-generated fields",
+        "description": "UUID, CreatedAt, UpdatedAt, and all error schema fields are marked readOnly: true. UUID_RW is the variant for user-settable ID fields. New response-only fields must carry readOnly: true.",
+        "example": "UUID: {type: string, format: uuid, readOnly: true} vs UUID_RW: {type: string, format: uuid} (no readOnly)"
+      },
+      {
+        "name": "x-flatten-allOf: true for specialised ID types",
+        "description": "Specialised ID types composed via allOf (UserId, TeamId, OrganizationId, NullableTimestamp) must include x-flatten-allOf: true to collapse allOf wrappers in generated SDK output and avoid verbose nested types.",
+        "example": "UserId: {x-flatten-allOf: true, allOf: [{$ref: properties.yaml#/components/schemas/UUID}, {description: 'Contains a unique identifier used for a user.'}]}"
+      },
+      {
+        "name": "Security schemes defined centrally in security.yaml",
+        "description": "All bearer/cookie security schemes (personalAccessToken, systemAccountAccessToken, konnectAccessToken, portalAccessToken, serviceAccessToken, clientToken) live only in security.yaml. Internal schemes carry x-internal: true. Never inline a securityScheme in a route file.",
+        "example": "clientToken: {x-internal: true, type: http, scheme: bearer, bearerFormat: Token}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "aip_filters.yaml",
+        "role": "Defines all reusable query-filter component schemas: StringFieldFilter, NumericFieldFilter, DateTimeFieldFilter, UuidFieldFilter, BooleanFieldFilter, SortQuery, LabelsFieldFilter, and their atomic sub-types.",
+        "watch_for": "Adding a new filter variant without also adding an x-examples entry causes incomplete SDK docs. UuidFieldFilter reuses StringField sub-types (StringFieldEqualsFilter, StringFieldOEQFilter, StringFieldNEQFilter) \u2014 do not duplicate those schemas."
+      },
+      {
+        "file": "errors.yaml",
+        "role": "Defines the full error response component tree: ErrorResponse discriminated union, per-status responses (BadRequest through NotAvailable), BaseError, and all InvalidParameter variants (Standard, MinimumLength, MaximumLength, ChoiceItem, DependentItem).",
+        "watch_for": "ErrorResponse uses a status-keyed discriminator mapping \u2014 adding a new HTTP error code requires updating both the oneOf list and the discriminator.mapping. KonnectCPLegacy* variants are a parallel schema family for Kong-legacy JSON error format; do not mix them with RFC 7807 BaseError descendants."
+      },
+      {
+        "file": "metadatas.yaml",
+        "role": "Defines cursor-based pagination schemas (CursorMetaPage, CursorMeta, CursorMetaWithTotal, CursorMetaWithEstimatedTotal, CursorPaginatedMetaWithSizeAndTotal) and query parameters (CursorPageQuery, PageBefore, PageAfter, PageSize).",
+        "watch_for": "CursorMetaWithSizeAndTotal is a separate schema from CursorMetaWithTotal \u2014 the former is used when total may be null on non-first pages. x-speakeasy-terraform-ignore: true on PageNumber/PageSize/PaginatedMeta must not be removed."
+      },
+      {
+        "file": "properties.yaml",
+        "role": "Defines primitive property schemas (UUID, UUID_RW, CreatedAt, UpdatedAt, ExpiresAt, NullableTimestamp) and specialised ID types composed via allOf+x-flatten-allOf (UserId, TeamId, OrganizationId).",
+        "watch_for": "UUID is readOnly; use UUID_RW for user-settable ID fields. Specialised ID types require x-flatten-allOf: true to collapse allOf wrappers in generated SDK output."
+      },
+      {
+        "file": "konnect_properties.yaml",
+        "role": "Konnect-specific reusable schemas: NullableUUID, Labels/LabelsUpdate, PublicLabels/PublicLabelsUpdate, EntityType, and path parameters (AuditLogDestinationId, Workspace).",
+        "watch_for": "LabelsUpdate and PublicLabelsUpdate are writeOnly variants with nullable: true on additionalProperties \u2014 do not collapse read and write forms into a single schema."
+      },
+      {
+        "file": "security.yaml",
+        "role": "Central registry of all OpenAPI securitySchemes used across the AIP spec.",
+        "watch_for": "clientToken carries x-internal: true \u2014 internal schemes must keep this flag to prevent public SDK exposure. Adding a scheme here is not sufficient; it must also be referenced in the routes that require it."
+      }
+    ],
+    "anti_patterns": [
+      "Defining inline anonymous filter objects inside a oneOf \u2014 always create a named sub-type with a title and additionalProperties: false",
+      "Adding error schemas that do not extend BaseError via allOf \u2014 breaks RFC 7807 contract and the ErrorResponse discriminator",
+      "Omitting x-examples on new filter schemas \u2014 SDK generators use these to produce client-side examples",
+      "Adding new security schemes directly in route files instead of security.yaml \u2014 breaks the central auth registry",
+      "Mixing KonnectCPLegacy* schemas with standard BaseError descendants \u2014 they are separate error-format families and must not cross-reference"
+    ],
+    "decisions": [
+      {
+        "decision": "Filter types use oneOf over named atomic sub-types rather than inline objects",
+        "rationale": "Named sub-types allow SDK generators to produce distinct type names (e.g. NumericFieldLTFilter) and enable $ref reuse across resource schemas without duplicating definitions."
+      },
+      {
+        "decision": "Pagination metadata is separated into CursorMeta vs CursorMetaWithTotal vs CursorMetaWithEstimatedTotal",
+        "rationale": "Different list endpoints have different cost profiles for computing exact vs estimated counts; forcing a single schema would either over-compute or mislead clients about total accuracy."
+      },
+      {
+        "decision": "KonnectCPLegacy* schemas coexist alongside RFC 7807 BaseError schemas",
+        "rationale": "Legacy Kong gateway endpoints return plain JSON {message} errors; the AIP endpoints return application/problem+json. Both must be expressible in the same spec without one polluting the other."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new string filter variant (e.g. prefix match) to StringFieldFilter",
+        "code": "# 1. Define the atomic sub-type in aip_filters.yaml:\nStringFieldPrefixFilter:\n  title: StringFieldPrefixFilter\n  description: Filters by prefix match on the string field.\n  type: object\n  additionalProperties: false\n  properties:\n    prefix:\n      type: string\n  required: [prefix]\n  x-examples:\n    example-1:\n      prefix: 'acme-'\n\n# 2. Add the $ref to StringFieldFilter's oneOf list:\nStringFieldFilter:\n  oneOf:\n    - $ref: '#/components/schemas/StringFieldEqualsFilter'\n    - $ref: '#/components/schemas/StringFieldContainsFilter'\n    - $ref: '#/components/schemas/StringFieldPrefixFilter'  # new\n  x-examples:\n    example-7:\n      prefix: 'acme-'  # add matching example"
+      }
+    ]
+  }
+}

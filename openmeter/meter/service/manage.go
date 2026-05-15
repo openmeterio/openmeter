@@ -17,7 +17,7 @@ var _ meter.ManageService = (*ManageService)(nil)
 
 type ManageService struct {
 	meter.Service
-	preUpdateHooks     []meter.PreUpdateMeterHook
+	hooks              *models.ServiceHookRegistry[meter.Meter]
 	adapter            *adapter.Adapter
 	publisher          eventbus.Publisher
 	namespaceManager   *namespace.Manager
@@ -32,6 +32,7 @@ func NewManage(
 ) *ManageService {
 	return &ManageService{
 		Service:            New(adapter),
+		hooks:              models.NewServiceHookRegistry[meter.Meter](),
 		adapter:            adapter,
 		publisher:          publisher,
 		namespaceManager:   namespaceManager,
@@ -39,10 +40,9 @@ func NewManage(
 	}
 }
 
-// RegisterPreUpdateMeterHook registers a hook to be called before updating a meter.
-func (s *ManageService) RegisterPreUpdateMeterHook(hook meter.PreUpdateMeterHook) error {
-	s.preUpdateHooks = append(s.preUpdateHooks, hook)
-	return nil
+// RegisterHooks registers lifecycle hooks for the meter service.
+func (s *ManageService) RegisterHooks(hooks ...models.ServiceHook[meter.Meter]) {
+	s.hooks.RegisterHooks(hooks...)
 }
 
 // CreateMeter creates a meter
@@ -208,10 +208,8 @@ func (s *ManageService) UpdateMeter(ctx context.Context, input meter.UpdateMeter
 	}
 
 	// Run pre-update hooks
-	for _, hook := range s.preUpdateHooks {
-		if err := hook(ctx, input); err != nil {
-			return meter.Meter{}, err
-		}
+	if err := s.hooks.PreUpdate(ctx, &currentMeter); err != nil {
+		return meter.Meter{}, err
 	}
 
 	if input.Annotations == nil {

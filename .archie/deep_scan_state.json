@@ -1,0 +1,26 @@
+{
+  "completed_steps": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "last_completed": 9,
+  "status": "completed",
+  "started_at": "2026-05-14T19:16:09.898448+00:00",
+  "run_context": {
+    "scope": "whole",
+    "intent_layer": "no",
+    "scan_mode": "full",
+    "monorepo_type": "none",
+    "start_step": 1,
+    "workspaces": [
+      "[]"
+    ]
+  }
+}

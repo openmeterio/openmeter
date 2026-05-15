@@ -1,0 +1,57 @@
+{
+  "openmeter/notification/eventhandler/noop": {
+    "purpose": "No-op implementation of notification.EventHandler used when the notification subsystem is disabled or unconfigured. All methods satisfy the interface contract without performing any real dispatch, reconciliation, or lifecycle work, enabling Wire to inject a safe zero-value implementation instead of a nil pointer.",
+    "patterns": [
+      {
+        "name": "Compile-time interface assertion",
+        "description": "The file-level `var _ notification.EventHandler = (*Handler)(nil)` ensures the package fails to compile if Handler drifts from the interface, providing the only automated guard against method-set changes in notification.EventHandler.",
+        "example": "var _ notification.EventHandler = (*Handler)(nil)"
+      },
+      {
+        "name": "Blank-identifier parameters, nil return",
+        "description": "Every method uses blank identifiers for all parameters and returns nil \u2014 no logging, no metrics, no state mutation. This is the canonical noop body shape used throughout the repo (ledgernoop, webhooknoop).",
+        "example": "func (h Handler) Dispatch(_ context.Context, _ *notification.Event) error { return nil }"
+      },
+      {
+        "name": "Two-value constructor matching Wire expectation",
+        "description": "New() returns (*Handler, error) even though no error can occur, matching the standard Wire provider signature so app/common can swap real vs. noop without changing provider function signatures.",
+        "example": "func New() (*Handler, error) { return &Handler{}, nil }"
+      },
+      {
+        "name": "Value receiver on zero-value struct",
+        "description": "Handler holds no state; most methods use value receivers to avoid heap allocation and communicate that the struct is safe to copy.",
+        "example": "func (h Handler) Reconcile(_ context.Context) error { return nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Single-file package providing the noop EventHandler; wired by app/common when notification is disabled.",
+        "watch_for": "If notification.EventHandler gains new methods, this file will fail to compile \u2014 add matching no-op stubs immediately using blank-identifier params and nil returns."
+      }
+    ],
+    "anti_patterns": [
+      "Adding logging, metrics, or side-effects to any method \u2014 this package must remain intentionally inert.",
+      "Removing the compile-time interface assertion (var _ notification.EventHandler = (*Handler)(nil)) \u2014 it is the only guard against interface drift.",
+      "Using context.Background() or context.TODO() instead of blank-identifying the received context parameter.",
+      "Storing any state on Handler \u2014 it must remain a zero-value struct with no fields.",
+      "Returning non-nil errors from any method \u2014 callers in app/common assume noop always succeeds."
+    ],
+    "decisions": [
+      {
+        "decision": "Separate noop sub-package rather than a nil check inside the real handler",
+        "rationale": "Matches the broader noop pattern across openmeter (ledgernoop, webhooknoop): Wire injects the concrete noop type so call sites need no nil guards at runtime, keeping business logic free of feature-flag branches."
+      },
+      {
+        "decision": "Value receivers for all methods",
+        "rationale": "Handler holds no state so value receivers avoid unnecessary heap allocation and signal that copies are safe \u2014 consistent with other zero-value noop structs in the repo."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new method after notification.EventHandler interface change",
+        "code": "// handler.go \u2014 append below existing methods\nfunc (h Handler) NewMethod(_ context.Context, _ *notification.SomeInput) error {\n\treturn nil\n}"
+      }
+    ]
+  }
+}

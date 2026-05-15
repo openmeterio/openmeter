@@ -229,7 +229,7 @@ func MockWithAppType(t app.AppType) mockConfigOption {
 	}
 }
 
-func NewMockableFactory(_ *testing.T, config Config, opts ...mockConfigOption) (*MockableFactory, error) {
+func NewMockableFactory(ctx context.Context, _ *testing.T, config Config, opts ...mockConfigOption) (*MockableFactory, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("failed to validate config: %w", err)
 	}
@@ -252,7 +252,7 @@ func NewMockableFactory(_ *testing.T, config Config, opts ...mockConfigOption) (
 		listing.Type = mockConfig.OverrideType
 	}
 
-	err := config.AppService.RegisterMarketplaceListing(app.RegistryItem{
+	err := config.AppService.RegisterMarketplaceListing(ctx, app.RegistryItem{
 		Listing: listing,
 		Factory: fact,
 	})

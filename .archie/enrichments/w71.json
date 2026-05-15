@@ -1,0 +1,122 @@
+{
+  "openmeter/billing/validators/customer": {
+    "purpose": "Implements customer.RequestValidator to enforce billing pre-conditions before customer deletion \u2014 blocks removal of customers with non-final standard invoices or active (non-soft-deleted) gathering invoices. It is the cross-domain guard preventing customer removal from leaving orphaned billing state.",
+    "patterns": [
+      {
+        "name": "Embed NoopRequestValidator",
+        "description": "Validator embeds customer.NoopRequestValidator so only ValidateDeleteCustomer needs implementation; all other RequestValidator methods default to no-op without breaking the interface.",
+        "example": "type Validator struct { customer.NoopRequestValidator; billingService billing.Service; syncService subscriptionsync.Service; subscriptionService subscription.Service }"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "var _ customer.RequestValidator = (*Validator)(nil) at package level ensures the struct satisfies the interface at compile time.",
+        "example": "var _ customer.RequestValidator = (*Validator)(nil)"
+      },
+      {
+        "name": "Sync-before-validate pattern",
+        "description": "ValidateDeleteCustomer syncs active subscriptions via SynchronizeSubscription before checking invoice state, ensuring pending charges are reflected before the gate check.",
+        "example": "v.syncService.SynchronizeSubscription(ctx, view, time.Now())"
+      },
+      {
+        "name": "Nil-guard constructors",
+        "description": "NewValidator returns an error if any required service dependency is nil, enforcing required deps at construction time rather than at call time.",
+        "example": "if billingService == nil { return nil, fmt.Errorf(\"billing service is required\") }"
+      },
+      {
+        "name": "errors.Join for multi-invoice failures",
+        "description": "All invoice validation failures accumulate into a slice and are joined with errors.Join so the caller receives all blocking invoices at once.",
+        "example": "errs = append(errs, fmt.Errorf(\"invoice %s is not in final state\", stdInvoice.ID)); return errors.Join(errs...)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "customer.go",
+        "role": "Single-file package: defines Validator struct, NewValidator constructor, and ValidateDeleteCustomer \u2014 the only override of NoopRequestValidator.",
+        "watch_for": "The 24-hour watermark (time.Now().Add(-24 * time.Hour)) is an embedded business rule for active subscription detection. Gathering invoices with non-nil DeletedAt are skipped (soft-deleted). Standard invoices must have IsFinal() == true. All reads go through billing.Service and subscription.Service \u2014 never the adapters directly."
+      }
+    ],
+    "anti_patterns": [
+      "Adding ValidateCreateCustomer or ValidateUpdateCustomer overrides without a billing-domain reason \u2014 this package only guards billing pre-conditions on delete.",
+      "Calling billing adapter or Ent directly instead of going through billing.Service \u2014 all reads must go through the service interface.",
+      "Skipping the SynchronizeSubscription step before invoice validation \u2014 without it, pending subscription charges may not be reflected and the gate check will be incorrect.",
+      "Using context.Background() instead of propagating the incoming ctx parameter.",
+      "Returning a plain error for billing blocks instead of letting errors.Join accumulate all failures \u2014 callers need all blocking invoices at once."
+    ],
+    "decisions": [
+      {
+        "decision": "Validator registers with customer.Service.RegisterRequestValidator() at wiring time in app/common, not via direct import.",
+        "rationale": "Billing depends on customer; customer cannot import billing. Registration at wire time inverts the dependency without an import cycle."
+      },
+      {
+        "decision": "Subscription sync is driven inside the validator rather than as a pre-hook in the subscription service.",
+        "rationale": "The validator needs a billing-consistent snapshot of invoices; syncing at validation time ensures the check is atomic with respect to the delete."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new pre-delete billing check (e.g., block deletion if open credit notes exist)",
+        "code": "// In customer.go, extend ValidateDeleteCustomer after the existing invoice loop:\ncreditNotes, err := v.billingService.ListCreditNotes(ctx, billing.ListCreditNotesInput{\n    Namespaces: []string{input.Namespace},\n    Customers:  []string{input.ID},\n})\nif err != nil {\n    return err\n}\nfor _, cn := range creditNotes.Items {\n    if !cn.Status.IsFinal() {\n        errs = append(errs, fmt.Errorf(\"credit note %s is not final\", cn.ID))\n    }\n}\nreturn errors.Join(errs...)"
+      }
+    ]
+  },
+  "openmeter/billing/validators/subscription": {
+    "purpose": "Implements subscription.SubscriptionCommandHook to validate that a customer's billing app setup is valid whenever a subscription with billable items is created or updated \u2014 blocks subscription lifecycle transitions when the invoicing app cannot handle tax calculation, invoicing, or payment collection.",
+    "patterns": [
+      {
+        "name": "Embed NoOpSubscriptionCommandHook",
+        "description": "Validator embeds subscription.NoOpSubscriptionCommandHook so only AfterCreate and AfterUpdate need implementation; all other hook methods default to no-op.",
+        "example": "type Validator struct { subscription.NoOpSubscriptionCommandHook; billingService billing.Service }"
+      },
+      {
+        "name": "Early-exit on non-billable subscription",
+        "description": "hasBillableItems checks whether any rate card in the subscription has a non-nil Price before calling the billing service, avoiding unnecessary network calls for free-tier subscriptions.",
+        "example": "if !v.hasBillableItems(view) { return nil }"
+      },
+      {
+        "name": "models.NewGenericConflictError wrapping",
+        "description": "Billing validation failures are wrapped in models.NewGenericConflictError, which maps to HTTP 409 in the error encoder chain.",
+        "example": "return models.NewGenericConflictError(fmt.Errorf(\"invalid billing setup: %w\", err))"
+      },
+      {
+        "name": "Return interface not concrete type from constructor",
+        "description": "NewValidator returns subscription.SubscriptionCommandHook (interface), not *Validator, so callers depend on the interface, not the concrete type.",
+        "example": "func NewValidator(billingService billing.Service) (subscription.SubscriptionCommandHook, error)"
+      },
+      {
+        "name": "Capability slice validation",
+        "description": "Required app capabilities are passed as a slice to ValidateCustomer, keeping validation app-agnostic and easy to extend without changing control flow.",
+        "example": "customerApp.ValidateCustomer(ctx, customerProfile.Customer, []app.CapabilityType{app.CapabilityTypeCalculateTax, app.CapabilityTypeInvoiceCustomers, app.CapabilityTypeCollectPayments})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "validator.go",
+        "role": "Single-file package: Validator struct, NewValidator, AfterCreate, AfterUpdate, validateBillingSetup, hasBillableItems. Both AfterCreate and AfterUpdate delegate to validateBillingSetup, keeping the logic DRY.",
+        "watch_for": "customerapp.AsCustomerApp type-asserts the app base to a customer-app interface \u2014 if the app type changes, this assertion fails at runtime. The Expand field in GetCustomerOverrideInput must include both Apps: true and Customer: true; missing either causes a nil-dereference or incomplete check."
+      }
+    ],
+    "anti_patterns": [
+      "Overriding BeforeCreate/BeforeDelete without strong justification \u2014 post-create/post-update validation is intentional so the billing check runs against the fully persisted subscription view.",
+      "Returning a plain error instead of models.NewGenericConflictError for billing setup failures \u2014 the HTTP layer expects a 409 error type.",
+      "Calling subscription service or Ent adapters directly \u2014 all billing state reads must go through billing.Service.",
+      "Adding app-type-specific branching (e.g., 'if Stripe do X') \u2014 capability validation is intentionally app-agnostic via the CapabilityType slice.",
+      "Using context.Background() instead of propagating the incoming ctx."
+    ],
+    "decisions": [
+      {
+        "decision": "Validator is registered with subscription.Service.RegisterHook() at wiring time in app/common, not via direct import.",
+        "rationale": "Billing imports subscription; subscription cannot import billing. The hook registration at wire time inverts the dependency without an import cycle."
+      },
+      {
+        "decision": "Validation runs after create/update (AfterCreate, AfterUpdate) rather than before.",
+        "rationale": "The billing service needs the fully persisted subscription view (with all phases and items resolved) to evaluate billability; a before-hook would not have this complete view."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new required billing capability check (e.g., require CapabilityTypeRefundPayments)",
+        "code": "// In validator.go, extend the capability slice in validateBillingSetup:\nreturn customerApp.ValidateCustomer(ctx, customerProfile.Customer, []app.CapabilityType{\n    app.CapabilityTypeCalculateTax,\n    app.CapabilityTypeInvoiceCustomers,\n    app.CapabilityTypeCollectPayments,\n    app.CapabilityTypeRefundPayments, // new capability\n})"
+      }
+    ]
+  }
+}

@@ -3,7 +3,8 @@ package app
 import (
 	"context"
 	"errors"
-	"fmt"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type AppFactory interface {
@@ -25,15 +26,15 @@ type AppFactoryInstallAppWithAPIKeyInput struct {
 
 func (i AppFactoryInstallAppWithAPIKeyInput) Validate() error {
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		return models.NewGenericValidationError(errors.New("namespace is required"))
 	}
 
 	if i.APIKey == "" {
-		return errors.New("api key is required")
+		return models.NewGenericValidationError(errors.New("api key is required"))
 	}
 
 	if i.Name == "" {
-		return errors.New("name is required")
+		return models.NewGenericValidationError(errors.New("name is required"))
 	}
 
 	return nil
@@ -50,11 +51,11 @@ type AppFactoryInstallAppInput struct {
 
 func (i AppFactoryInstallAppInput) Validate() error {
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		return models.NewGenericValidationError(errors.New("namespace is required"))
 	}
 
 	if i.Name == "" {
-		return errors.New("name is required")
+		return models.NewGenericValidationError(errors.New("name is required"))
 	}
 
 	return nil
@@ -66,13 +67,15 @@ type RegistryItem struct {
 }
 
 func (r RegistryItem) Validate() error {
+	var errs []error
+
 	if err := r.Listing.Validate(); err != nil {
-		return fmt.Errorf("error validating registry item: %w", err)
+		errs = append(errs, err)
 	}
 
 	if r.Factory == nil {
-		return errors.New("factory is required")
+		errs = append(errs, models.NewGenericValidationError(errors.New("factory is required")))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

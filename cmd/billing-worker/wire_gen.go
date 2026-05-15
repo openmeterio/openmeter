@@ -380,7 +380,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Logger: logger,
 	}
 	appsConfiguration := conf.Apps
-	factory, err := common.NewAppSandboxFactory(appsConfiguration, service, billingRegistry)
+	factory, err := common.NewAppSandboxFactory(ctx, appsConfiguration, service, billingRegistry)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -416,7 +416,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingRegistry, eventbusPublisher)
+	appstripeService, err := common.NewAppStripeService(ctx, logger, client, appsConfiguration, service, customerService, secretserviceService, billingRegistry, eventbusPublisher)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -428,7 +428,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appcustominvoicingService, err := common.NewAppCustomInvoicingService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingRegistry, eventbusPublisher)
+	appcustominvoicingService, err := common.NewAppCustomInvoicingService(ctx, logger, client, appsConfiguration, service, customerService, secretserviceService, billingRegistry, eventbusPublisher)
 	if err != nil {
 		cleanup8()
 		cleanup7()

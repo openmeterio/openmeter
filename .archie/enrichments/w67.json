@@ -1,0 +1,71 @@
+{
+  "openmeter/billing/creditgrant/service": {
+    "purpose": "Implements creditgrant.Service as a facade that orchestrates credit grant creation, retrieval, listing, and external settlement transitions by delegating entirely to charges.Service and creditpurchase.Service. Owns no direct DB access \u2014 all persistence flows through the charges pipeline.",
+    "patterns": [
+      {
+        "name": "Config struct with Validate() + New()",
+        "description": "All dependencies declared in a Config struct. New() calls Config.Validate() before constructing the service; returns an error if any required dependency is nil.",
+        "example": "func New(config Config) (creditgrant.Service, error) { if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid config: %w\", err) } ... }"
+      },
+      {
+        "name": "input.Validate() as the first statement in every public method",
+        "description": "Every public method calls input.Validate() before any logic and wraps the error with fmt.Errorf before returning.",
+        "example": "func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (...) { if err := input.Validate(); err != nil { return ..., fmt.Errorf(\"invalid input: %w\", err) } }"
+      },
+      {
+        "name": "Delegate to charges.Service \u2014 no Ent imports",
+        "description": "The service has no openmeter/ent/db import. All mutations go through chargesService.Create, GetByID, or HandleCreditPurchaseExternalPaymentStateTransition.",
+        "example": "result, err := s.chargesService.Create(ctx, charges.CreateInput{Namespace: input.Namespace, Intents: charges.ChargeIntents{charges.NewChargeIntent(intent)}})"
+      },
+      {
+        "name": "Ownership check before returning a charge",
+        "description": "Get-style methods verify cpCharge.Intent.CustomerID == input.CustomerID and return models.NewGenericNotFoundError on mismatch to prevent cross-tenant leaks.",
+        "example": "if cpCharge.Intent.CustomerID != input.CustomerID { return creditpurchase.Charge{}, fmt.Errorf(\"get charge: %w\", models.NewGenericNotFoundError(...)) }"
+      },
+      {
+        "name": "ValidationIssue with HTTP status for business-rule rejections",
+        "description": "Business-rule violations (e.g. wrong settlement type) use models.NewValidationIssue with commonhttp.WithHTTPStatusCodeAttribute to carry an explicit HTTP status to the encoder.",
+        "example": "return ..., models.NewValidationIssue(\"credit_grant_external_settlement_not_supported\", \"credit grant is not externally funded\", models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))"
+      },
+      {
+        "name": "Private toIntent/toSettlement converters for CreateInput mapping",
+        "description": "Mapping from CreateInput to creditpurchase.Intent is isolated in package-private toIntent() and toSettlement() functions; keep them as pure field mappers with no business logic.",
+        "example": "intent := toIntent(input); result, err := s.chargesService.Create(ctx, charges.CreateInput{..., Intents: charges.ChargeIntents{charges.NewChargeIntent(intent)}})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Single file implementing creditgrant.Service. Wraps charges.Service and creditpurchase.Service; performs customer existence check, ownership assertion, and settlement-type validation before delegating.",
+        "watch_for": "toIntent() hardcodes clock.Now() for ServicePeriod/BillingPeriod/FullServicePeriod with a TODO \u2014 real period derivation is not yet implemented. Do not rely on these values being meaningful. After Create(), the service does a second chargesService.GetByID call to fetch the realizations; this is a deliberate two-step fetch, not a bug."
+      }
+    ],
+    "anti_patterns": [
+      "Importing openmeter/ent/db or calling Ent builders directly \u2014 all DB access must go through charges.Service or creditpurchase.Service",
+      "Skipping input.Validate() at the top of a new method \u2014 every public method must validate before acting",
+      "Returning a charge without verifying CustomerID ownership \u2014 always assert cpCharge.Intent.CustomerID == input.CustomerID in Get-style methods",
+      "Using context.Background() instead of the caller-supplied ctx",
+      "Adding business logic inside toIntent()/toSettlement() beyond pure field mapping \u2014 keep them as dumb converters"
+    ],
+    "decisions": [
+      {
+        "decision": "Service delegates entirely to charges.Service rather than holding its own adapter",
+        "rationale": "Credit grants are a specialised view of creditpurchase.Charge; all lifecycle state (advance, realizations, ledger writes) is already managed by the charges pipeline, so duplicating persistence here would create divergent write paths."
+      },
+      {
+        "decision": "Ownership check done in the service layer, not in charges.Service",
+        "rationale": "charges.Service is namespace-scoped but not customer-scoped; the creditgrant service is the API boundary that adds per-customer access control without polluting the generic charges layer."
+      },
+      {
+        "decision": "charges.NewChargeIntent used instead of struct-literal ChargeIntent{}",
+        "rationale": "The Charge tagged-union has a private discriminator field set only by NewCharge[T]/NewChargeIntent; struct-literal construction leaves the discriminator zero-valued and all type-switch accessors return errors."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Creating a credit grant \u2014 full path from CreateInput to creditpurchase.Charge",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/billing/charges\"\n    \"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase\"\n    \"github.com/openmeterio/openmeter/openmeter/billing/creditgrant\"\n    \"github.com/openmeterio/openmeter/openmeter/customer\"\n)\n\nfunc (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (creditpurchase.Charge, error) {\n    if err := input.Validate(); err != nil {\n        return creditpurchase.Charge{}, fmt.Errorf(\"invalid input: %w\", err)\n    }\n    _, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput{\n        CustomerID: &customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID},\n    })\n    if err != nil {\n        return creditpurchase.Charge{}, fmt.Errorf(\"get customer: %w\", err)\n    }\n    intent := toIntent(input)\n    result, err := s.chargesService.Create(ctx, charges.CreateInput{\n        Namespace: input.Namespace,\n        Intents:   charges.ChargeIntents{charges.NewChargeIntent(intent)},\n    })\n    if err != nil {\n        return creditpurchase.Charge{}, fmt.Errorf(\"create credit grant charge: %w\", err)\n    }\n    // ... fetch with realizations expand and return cpCharge\n}"
+      }
+    ]
+  }
+}

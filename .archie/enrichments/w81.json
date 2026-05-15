@@ -1,0 +1,86 @@
+{
+  "openmeter/customer/service/hooks": {
+    "purpose": "Lifecycle hook implementations for the customer domain \u2014 entitlement validation pre-delete guard (entitlementvalidator.go) and subject-to-customer auto-provisioning (subjectcustomer.go). New hooks integrate with models.ServiceHook[T] registry without coupling the customer package to callers.",
+    "patterns": [
+      {
+        "name": "ServiceHook type alias pair",
+        "description": "Each hook file declares a public type alias for the interface and a Noop alias. The concrete struct embeds the Noop so only overridden methods need implementing.",
+        "example": "type EntitlementValidatorHook = models.ServiceHook[customer.Customer]\ntype NoopEntitlementValidatorHook = models.NoopServiceHook[customer.Customer]\nvar _ models.ServiceHook[customer.Customer] = (*entitlementValidatorHook)(nil)"
+      },
+      {
+        "name": "Config struct + Validate() + constructor",
+        "description": "Every hook is constructed via a Config struct with a Validate() error method. Constructor calls Validate() first, nil-dependency checks are mandatory inside Validate.",
+        "example": "func NewEntitlementValidatorHook(config EntitlementValidatorHookConfig) (EntitlementValidatorHook, error) {\n  if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid ... config: %w\", err) }\n  return &entitlementValidatorHook{...}, nil\n}"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "Every concrete hook struct declares a package-level var _ assertion to verify interface satisfaction at compile time.",
+        "example": "var _ models.ServiceHook[customer.Customer] = (*entitlementValidatorHook)(nil)"
+      },
+      {
+        "name": "OTel tracing in hook methods",
+        "description": "Non-trivial hook methods start a span via tracer.Start, record errors with span.RecordError + span.SetStatus, and defer span.End. The tracer is injected through the Config struct.",
+        "example": "func (s subjectCustomerHook) PostCreate(ctx context.Context, sub *subject.Subject) error {\n  ctx, span := s.tracer.Start(ctx, \"subject_customer_hook.post_create\")\n  defer span.End()\n  ...\n}"
+      },
+      {
+        "name": "Loop-prevention via context key",
+        "description": "When a hook calls back into customer.Service (UpdateCustomer/CreateCustomer), it wraps ctx with subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx) to break re-entrant hook cycles.",
+        "example": "cus, err = p.customer.UpdateCustomer(\n  subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx),\n  customer.UpdateCustomerInput{...})"
+      },
+      {
+        "name": "models.GenericError types for domain errors",
+        "description": "Validation failures return models.NewGenericValidationError; not-found returns models.NewGenericNotFoundError; conflicts return models.NewGenericConflictError; precondition failures return models.NewGenericPreConditionFailedError. Never return raw errors for domain conditions.",
+        "example": "return models.NewGenericValidationError(fmt.Errorf(\"customer has entitlements, please remove them before deleting the customer\"))"
+      },
+      {
+        "name": "Test env built from package constructors (no app/common)",
+        "description": "Tests wire adapters and services directly (customeradapter.New, customerservice.New, subjectadapter.New) without importing app/common. testutils.InitPostgresDB provides the Ent client; eventbus.NewMock provides the publisher.",
+        "example": "db := testutils.InitPostgresDB(t)\ncustomerAdapter, _ := customeradapter.New(customeradapter.Config{Client: db.EntDriver.Client(), Logger: logger})\ncustomerService, _ := customerservice.New(customerservice.Config{Adapter: customerAdapter, Publisher: publisher})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entitlementvalidator.go",
+        "role": "PreDelete hook for customer.Customer \u2014 blocks deletion when active entitlements exist. Minimal hook overriding only one method; all others fall through to the embedded Noop.",
+        "watch_for": "Uses clock.Now() for entitlement snapshot time; always pass the caller's ctx, never context.Background()."
+      },
+      {
+        "file": "subjectcustomer.go",
+        "role": "PostCreate/PostUpdate/PostDelete hook for subject.Subject \u2014 auto-provisions or updates a matching Customer. Houses CustomerProvisioner (reusable create/update logic) and EnsureStripeCustomer (billing override sync).",
+        "watch_for": "getCustomerForSubject tries both usage-attribution lookup and key lookup. EnsureCustomer handles keyConflict by omitting the key on create. CmpSubjectCustomer determines whether an update is needed \u2014 extend carefully to avoid spurious updates."
+      },
+      {
+        "file": "subjectcustomer_test.go",
+        "role": "Integration tests for CustomerProvisioner \u2014 exercises create, update, and conflict scenarios against a real Postgres instance via testutils.InitPostgresDB.",
+        "watch_for": "TestEnv is local to this package and independent from app/common. Tests call env.DBSchemaMigrate(t) before using the DB. Use t.Context(), not context.Background()."
+      }
+    ],
+    "anti_patterns": [
+      "Calling customer.Service from a hook without subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx) \u2014 causes infinite re-entrant hook invocations.",
+      "Returning raw fmt.Errorf for domain conditions (not-found, conflict, validation) \u2014 callers and HTTP encoders depend on models.Generic* error types.",
+      "Importing app/common in test files \u2014 breaks isolation and can introduce import cycles; build test deps from package constructors directly.",
+      "Embedding a non-Noop base struct \u2014 hooks must embed the Noop alias so future interface method additions don't break compilation.",
+      "Using context.Background() or context.TODO() inside hook methods \u2014 always propagate the caller's ctx to maintain tracing and cancellation."
+    ],
+    "decisions": [
+      {
+        "decision": "Hooks embed models.NoopServiceHook[T] rather than implementing all methods.",
+        "rationale": "The ServiceHook interface grows as new lifecycle events are added; embedding Noop provides safe defaults so existing hooks don't break on interface expansion."
+      },
+      {
+        "decision": "CustomerProvisioner is a separate struct from the hook.",
+        "rationale": "EnsureCustomer and EnsureStripeCustomer are reused from outside the hook (e.g. app/stripe provisioning flows), so extracting them into a standalone CustomerProvisioner avoids duplication without tying the logic to the subject lifecycle."
+      },
+      {
+        "decision": "IgnoreErrors flag on subjectCustomerHook.",
+        "rationale": "Subject creation/update should not fail if customer provisioning is non-critical in some deployment modes; the flag lets the caller degrade gracefully (warn + continue) rather than surfacing the error."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new PreDelete hook that checks billing conditions before customer deletion",
+        "code": "package hooks\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n\t\"github.com/openmeterio/openmeter/openmeter/customer\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype (\n\tBillingValidatorHook     = models.ServiceHook[customer.Customer]\n\tNoopBillingValidatorHook = models.NoopServiceHook[customer.Customer]\n)\n\nvar _ models.ServiceHook[customer.Customer] = (*billingValidatorHook)(nil)\n\ntype billingValidatorHook struct {\n\tNoopBillingValidatorHook\n\tbillingService billing.Service\n}\n\ntype BillingValidatorHookConfig struct {\n\tBillingService billing.Service\n}\n\nfunc (c BillingValidatorHookConfig) Validate() error {\n\tif c.BillingService == nil {\n\t\treturn fmt.Errorf(\"billing service is required\")\n\t}\n\treturn nil\n}\n\nfunc NewBillingValidatorHook(config BillingValidatorHookConfig) (BillingValidatorHook, error) {\n\tif err := config.Validate(); err != nil {\n\t\treturn nil, fmt.Errorf(\"invalid billing validator hook config: %w\", err)\n\t}\n\treturn &billingValidatorHook{billingService: config.BillingService}, nil\n}\n\nfunc (h *billingValidatorHook) PreDelete(ctx context.Context, cus *customer.Customer) error {\n\t// Check for open invoices via billing service\n\t// Return models.NewGenericValidationError if conditions not met\n\treturn nil\n}"
+      }
+    ]
+  }
+}

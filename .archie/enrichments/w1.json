@@ -1,0 +1,38 @@
+{
+  "api/types": {
+    "purpose": "Holds manually-authored Go types that fill gaps where oapi-codegen cannot generate correct types from the OpenAPI spec (e.g. oneOf/anyOf schemas). Types here are referenced from the OpenAPI spec via `x-go-type` so generated clients use them correctly \u2014 this package must never contain business logic.",
+    "patterns": [
+      {
+        "name": "x-go-type reference only",
+        "description": "New types are added here only when oapi-codegen cannot generate them (oneOf/anyOf). The type is then referenced in the OpenAPI spec via the `x-go-type` extension, not imported directly by hand-written code.",
+        "example": "In openapi.yaml: schema: x-go-type: types.MyUnionType"
+      },
+      {
+        "name": "Pure type definitions",
+        "description": "Files in this package contain only type declarations (struct, interface, type alias). No functions, no methods, no init(), no business logic.",
+        "example": "type MyUnionType struct { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "doc.go",
+        "role": "Package declaration and authoritative comment explaining when and why to add types here \u2014 read before adding any new type.",
+        "watch_for": "The comment is the contract: only add types for spec constructs oapi-codegen cannot handle (oneOf/anyOf). If oapi-codegen can handle it, do not add it here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding types that oapi-codegen can generate automatically from the OpenAPI spec",
+      "Adding business logic, helper functions, or methods to types in this package",
+      "Duplicating types already present in api/api.gen.go or api/v3/api.gen.go",
+      "Importing this package from domain code (openmeter/*) \u2014 it is consumed via x-go-type by generated code only",
+      "Editing api/api.gen.go or api/v3/api.gen.go to inline types instead of using this package"
+    ],
+    "decisions": [
+      {
+        "decision": "Types live in a separate package rather than inline in generated files",
+        "rationale": "Generated files (api/api.gen.go, api/v3/api.gen.go) must not be hand-edited; a separate package allows manual type definitions to survive regeneration cycles while remaining importable by generated code via x-go-type references."
+      }
+    ],
+    "code_examples": []
+  }
+}

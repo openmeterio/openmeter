@@ -1,0 +1,91 @@
+{
+  "openmeter/billing/charges/usagebased/service/rating": {
+    "purpose": "Stateless usage-rating orchestrator: snapshots metered quantity from ClickHouse (via streaming.Connector) and dispatches to the delta or period-preserving sub-engine to produce DetailedLines or totals. No DB writes \u2014 all persistence is owned by callers in the run package.",
+    "patterns": [
+      {
+        "name": "Config-struct constructor with Validate()",
+        "description": "New(Config) validates all required fields before constructing the service. Every exported input type also implements Validate() and is called at the top of the method body.",
+        "example": "func New(config Config) (Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "StoredAtLT cutoff in every ClickHouse query",
+        "description": "snapshotQuantity always sets FilterStoredAt.Lt = &in.StoredAtLT in the QueryMeter call so usage is bounded to a deterministic point in time, enabling idempotent re-rating.",
+        "example": "FilterStoredAt: &filter.FilterTimeUnix{FilterTime: filter.FilterTime{Lt: &in.StoredAtLT}}"
+      },
+      {
+        "name": "Rating-engine dispatch via charge.State.RatingEngine",
+        "description": "GetDetailedRatingForUsage switches on charge.State.RatingEngine (RatingEngineDelta or RatingEnginePeriodPreserving) to call deltaRater.Rate or periodPreservingRater.Rate. A default case returns an error \u2014 no silent fallback.",
+        "example": "switch charge.State.RatingEngine { case usagebased.RatingEngineDelta: ... case usagebased.RatingEnginePeriodPreserving: ... default: return ..., fmt.Errorf(\"unsupported rating engine: %s\", ...) }"
+      },
+      {
+        "name": "Voided-realization exclusion before subtraction",
+        "description": "eligibleRealizations filters out runs where run.IsVoidedBillingHistory() before passing AlreadyBilledDetailedLines to the delta engine. Voided runs must also be skipped in ensureDetailedLinesLoadedForRating.",
+        "example": "lo.Filter(charge.Realizations, func(run usagebased.RealizationRun, _ int) bool { if run.IsVoidedBillingHistory() { return false } return run.ServicePeriodTo.Before(in.ServicePeriodTo) })"
+      },
+      {
+        "name": "Lazy detailed-line loading via DetailedLinesFetcher",
+        "description": "ensureDetailedLinesLoadedForRating checks whether all prior eligible runs have DetailedLines.IsPresent() before calling detailedLinesFetcher.FetchDetailedLines \u2014 avoiding unnecessary fetches when lines are already loaded.",
+        "example": "if !lo.EveryBy(charge.Realizations, func(run ...) bool { ... return run.DetailedLines.IsPresent() }) { expandedCharge, err := s.detailedLinesFetcher.FetchDetailedLines(ctx, charge) }"
+      },
+      {
+        "name": "WithCreditsMutatorDisabled() always set on rating calls",
+        "description": "Both GetTotalsForUsage and GetDetailedRatingForUsage pass billingrating.WithCreditsMutatorDisabled() to ratingService.GenerateDetailedLines so that credit allocation is not applied during rating (callers apply credits separately).",
+        "example": "opts := []billingrating.GenerateDetailedLinesOption{billingrating.WithCreditsMutatorDisabled()}"
+      },
+      {
+        "name": "Prefer GetTotalsForUsage over GetDetailedRatingForUsage when only totals are needed",
+        "description": "GetTotalsForUsage skips detailed-line construction and only calls ratingResult.Totals \u2014 materially faster for pre-advance checks.",
+        "example": "totals, err := svc.GetTotalsForUsage(ctx, GetTotalsForUsageInput{Charge: charge, StoredAtLT: storedAt, ...})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines the Service interface (GetTotalsForUsage, GetDetailedRatingForUsage, GetPreferredRatingEngineFor), Config struct with Validate(), and New constructor that builds deltaRater and periodPreservingRater.",
+        "watch_for": "Pure computation \u2014 no Ent/DB dependency. DetailedLinesFetcher is an interface injected via Config; never inject an adapter directly."
+      },
+      {
+        "file": "details.go",
+        "role": "Implements GetDetailedRatingForUsage: calls ensureDetailedLinesLoadedForRating, snapshotQuantity, currentBillingPeriod, then dispatches to deltaRater or ratePeriodPreservingDetails.",
+        "watch_for": "The current run (ServicePeriodTo == run.ServicePeriodTo) is excluded from eligibleRealizations \u2014 never include it as a prior run or subtraction will zero out the current bill."
+      },
+      {
+        "file": "totals.go",
+        "role": "Implements GetTotalsForUsage: snapshots quantity, calls ratingService.GenerateDetailedLines with DisableCreditsMutator+optional IgnoreMinimumCommitment, and returns only ratingResult.Totals.",
+        "watch_for": "Does NOT suffix ChildUniqueReferenceIDs \u2014 do not add that logic here; it belongs in the delta/period-preserving engines."
+      },
+      {
+        "file": "quantitysnapshot.go",
+        "role": "Private snapshotQuantity helper: builds QueryMeter params with FilterStoredAt and MeterGroupByFilters, calls streaming.Connector, sums rows via summarizeMeterQueryRow.",
+        "watch_for": "Validation errors wrapped as billing.ValidationError{Err: err} \u2014 use the same wrapper for any new validations added here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding Ent/DB adapter calls inside this package \u2014 persistence is exclusively the caller's responsibility.",
+      "Calling snapshotQuantity without a non-zero StoredAtLT \u2014 every ClickHouse query must be bounded by the stored-at cutoff for idempotent re-rating.",
+      "Including the current run (ServicePeriodTo == in.ServicePeriodTo) in eligibleRealizations \u2014 it will be subtracted from itself and produce a zero bill.",
+      "Passing voided realizations to deltaRater.Rate as AlreadyBilledDetailedLines \u2014 IsVoidedBillingHistory() runs must be filtered out before subtraction.",
+      "Omitting WithCreditsMutatorDisabled() when calling ratingService.GenerateDetailedLines \u2014 credit allocation must be deferred to run creation, not applied during raw rating."
+    ],
+    "decisions": [
+      {
+        "decision": "Stateless package with no DB dependency",
+        "rationale": "Rating is a pure computation (snapshot usage + apply rate card). Keeping it DB-free makes it trivially testable with MockStreamingConnector and reusable from multiple callers without transaction concerns."
+      },
+      {
+        "decision": "Rating-engine selection at dispatch time via charge.State.RatingEngine",
+        "rationale": "Delta and period-preserving engines have different correctness trade-offs (delta is production-safe; period-preserving is experimental). Dispatching at service level lets the charge carry its own engine preference without the caller knowing internal engine details."
+      },
+      {
+        "decision": "Lazy DetailedLines loading via interface rather than pre-loading in callers",
+        "rationale": "Prior runs usually have DetailedLines already expanded by the time rating is called; the fetcher interface avoids redundant DB round-trips while providing a safe fallback for cases where they are missing."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Rate a usage-based charge and retrieve detailed lines with the stored-at cutoff",
+        "code": "import (\n    usagebasedrating \"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating\"\n    billingratingservice \"github.com/openmeterio/openmeter/openmeter/billing/rating/service\"\n)\n\nsvc, err := usagebasedrating.New(usagebasedrating.Config{\n    StreamingConnector:   streamingConnector,\n    RatingService:        billingratingservice.New(),\n    DetailedLinesFetcher: detailedLinesFetcher,\n})\nif err != nil { return err }\n\nresult, err := svc.GetDetailedRatingForUsage(ctx, usagebasedrating.GetDetailedRatingForUsageInput{\n    Charge:          charge,          // must have State.RatingEngine set\n    ServicePeriodTo: currentPeriodTo, // must be within Charge.Intent.ServicePeriod\n    StoredAtLT:      storedAtOffset,  // mandatory: bounds ClickHouse query\n    Customer:        customerOverride,\n    FeatureMeter:    featureMeter,\n})\n// result.DetailedLines, result.Totals, result.Quantity"
+      }
+    ]
+  }
+}

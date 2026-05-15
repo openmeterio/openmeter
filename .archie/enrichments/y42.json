@@ -1,0 +1,136 @@
+{
+  "test/app": {
+    "purpose": "Integration test root for app marketplace integrations (Stripe, custom invoicing) \u2014 wires all services from raw package constructors against a real pgtestdb Postgres DB and validates app lifecycle, invoice sync, and async invoice state protocols without importing app/common or Wire provider sets.",
+    "patterns": [
+      {
+        "name": "TestEnv interface + testEnv struct",
+        "description": "Each sub-package defines a TestEnv interface exposing domain services (App(), Adapter(), Close()) and a concrete testEnv struct implementing it. NewTestEnv wires all services using direct package constructors only.",
+        "example": "type TestEnv interface { Adapter() app.Adapter; App() app.Service; Close() error }\nvar _ TestEnv = (*testEnv)(nil)"
+      },
+      {
+        "name": "InitBillingService shared helper",
+        "description": "Billing service construction is extracted into InitBillingService(t, ctx, InitBillingServiceInput) so multiple test files in the same package can reuse the constructor without duplicating the wiring chain.",
+        "example": "billingService, err := InitBillingService(t, ctx, InitBillingServiceInput{DBClient: entClient, CustomerService: customerService, AppService: appService})"
+      },
+      {
+        "name": "migrate.Up() before service construction",
+        "description": "Each test environment runs migrator.Up() on the pgtestdb-provisioned Postgres connection before constructing any services. Always defer migrator.CloseOrLogError() immediately after.",
+        "example": "migrator, err := migrate.New(migrate.MigrateOptions{ConnectionString: driver.URL, Migrations: migrate.OMMigrationsConfig})\n_ = migrator.Up()\ndefer migrator.CloseOrLogError()"
+      },
+      {
+        "name": "setupNamespace(t) per test method",
+        "description": "AppHandlerTestSuite.setupNamespace(t) generates a fresh ULID namespace at the start of each test method to ensure full isolation. Must be called at the top of every test method before any service call.",
+        "example": "func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *testing.T) {\n    s.setupNamespace(t)\n    service := s.Env.App()\n    // ...\n}"
+      },
+      {
+        "name": "closerFunc closes both entClient and EntDriver",
+        "description": "The testEnv closerFunc must close both entClient.Close() and driver.EntDriver.Close(), joining errors with errors.Join. Missing either close leaks a DB connection.",
+        "example": "closerFunc := func() error {\n    var errs error\n    if err = entClient.Close(); err != nil { errs = errors.Join(errs, err) }\n    if err = driver.EntDriver.Close(); err != nil { errs = errors.Join(errs, err) }\n    return errs\n}"
+      },
+      {
+        "name": "eventbus.NewMock(t) for publisher",
+        "description": "All test environments use eventbus.NewMock(t) instead of a real Kafka publisher. This is the only sanctioned publisher mock in this package.",
+        "example": "publisher := eventbus.NewMock(t)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "test/app/testenv.go",
+        "role": "Constructs the full service graph for app integration tests. Defines TestEnv interface, testEnv struct, NewTestEnv constructor, and InitBillingService helper.",
+        "watch_for": "Never import app/common here. Always defer migrator.CloseOrLogError(). closerFunc must close both entClient and driver.EntDriver. InitBillingServiceInput.Validate() must be called before constructing services."
+      },
+      {
+        "file": "test/app/marketplace.go",
+        "role": "AppHandlerTestSuite with test methods for GetMarketplaceListing and ListMarketplaceListings.",
+        "watch_for": "Always call setupNamespace(t) at the top of each test method. Use models.IsGenericNotFoundError for not-found assertions, not require.Error with string matching."
+      },
+      {
+        "file": "test/app/app_test.go",
+        "role": "Test entry point; creates TestEnv, defers Close(), then runs sub-tests via AppHandlerTestSuite.",
+        "watch_for": "ctx cancel must be deferred. env.Close() errors must be reported via t.Errorf, not require.NoError (to allow cleanup to complete)."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common or Wire provider sets in testenv.go \u2014 always wire from raw package constructors (appadapter.New, appservice.New, etc.)",
+      "Sharing a namespace string across test methods in AppHandlerTestSuite \u2014 always call setupNamespace(t) per method",
+      "Calling Stripe client methods directly instead of going through app.Service or appstripe.Service",
+      "Forgetting defer stripeClient.Restore() / stripeAppClient.Restore() in stripe sub-tests \u2014 leftover mock expectations poison subsequent tests",
+      "Adding invoice line assertions without stable-sorting lines before setting mock expectations \u2014 use StableSortInvoiceItemParams"
+    ],
+    "decisions": [
+      {
+        "decision": "InitBillingService is a shared helper rather than inline construction",
+        "rationale": "Multiple test files (app_test.go, stripe/invoice_test.go) need a billing.Service; extracting the constructor avoids duplication and keeps testenv.go focused on app-level wiring."
+      },
+      {
+        "decision": "Two parallel test architectures: TestEnv interface vs billingtest.BaseSuite embedding",
+        "rationale": "Simple marketplace tests need only App() and Adapter(); invoice sync tests need the full billing suite machinery from billingtest.BaseSuite \u2014 the two patterns coexist without conflict."
+      },
+      {
+        "decision": "Raw package constructors only, no app/common imports",
+        "rationale": "app/common imports all domain packages; importing it from test code creates import cycles and forces all domains to compile together for any single test."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Construct a minimal test environment from raw package constructors (testenv.go pattern)",
+        "code": "import (\n    appadapter \"github.com/openmeterio/openmeter/openmeter/app/adapter\"\n    appservice \"github.com/openmeterio/openmeter/openmeter/app/service\"\n    \"github.com/openmeterio/openmeter/openmeter/watermill/eventbus\"\n    \"github.com/openmeterio/openmeter/openmeter/testutils\"\n    \"github.com/openmeterio/openmeter/tools/migrate\"\n)\n\nfunc NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {\n    publisher := eventbus.NewMock(t)\n    driver := testutils.InitPostgresDB(t)\n    entClient := driver.EntDriver.Client()\n    migrator, _ := migrate.New(migrate.MigrateOptions{ConnectionString: driver.URL, Migrations: migrate.OMMigrationsConfig})\n    _ = migrator.Up()\n    defer migrator.CloseOrLogError()\n    appAdapter, _ := appadapter.New(appadapter.Config{Client: entClient})\n    appService, _ := appservice.New(appservice.Config{Adapter: appAdapter, Publisher: publisher})\n    closerFunc := func() error {\n        return errors.Join(entClient.Close(), driver.EntDriver.Close())\n    }\n    return &testEnv{adapter: appAdapter, app: appService, closerFunc: closerFunc}, nil\n}"
+      }
+    ]
+  },
+  "test/entitlement": {
+    "purpose": "Structural parent for entitlement integration and regression test packages \u2014 owns the test/entitlement/regression sub-package that guards grant burn-down, expiry, voiding, and reset edge cases against real Postgres using raw package constructors and MockStreamingConnector.",
+    "patterns": [
+      {
+        "name": "No source files at parent level",
+        "description": "All test code lives in sub-packages (regression/). The test/entitlement directory itself contains only a CLAUDE.md. Never add .go source files directly here.",
+        "example": "// All code in: test/entitlement/regression/*.go"
+      },
+      {
+        "name": "setupDependencies for self-contained bootstrap",
+        "description": "Each regression test file wires its own dependency graph via a setupDependencies function using raw package constructors \u2014 never app/common or Wire provider sets.",
+        "example": "deps := setupDependencies(t) // returns real Ent adapters + MockStreamingConnector"
+      },
+      {
+        "name": "Controlled clock with defer reset",
+        "description": "Tests that exercise time-based grant burn-down advance the global clock via clock.SetTime() and must always defer clock.ResetTime() to prevent state leaking into parallel tests.",
+        "example": "clock.SetTime(now)\ndefer clock.ResetTime()"
+      },
+      {
+        "name": "Scenario tests named after the bug they guard",
+        "description": "Regression test functions in scenario_test.go are named after the specific production bug or edge case they cover, making root-cause traceability immediate.",
+        "example": "func TestGrantExpiryBeforeReset(t *testing.T) { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "test/entitlement/regression/framework_test.go",
+        "role": "Defines setupDependencies, createCustomerAndSubject helpers, and the shared test wiring used by all scenario tests.",
+        "watch_for": "Pre-existing context.Background() uses in this file are not models to follow \u2014 new code should use t.Context(). Never import app/common here."
+      },
+      {
+        "file": "test/entitlement/regression/scenario_test.go",
+        "role": "Individual regression test functions, one per production bug or edge case.",
+        "watch_for": "Each test must call setupDependencies independently \u2014 pgtestdb provides a fresh DB per test. Never reuse subject keys or feature keys across test functions."
+      }
+    ],
+    "anti_patterns": [
+      "Adding .go source files directly in test/entitlement \u2014 all code belongs in the regression sub-package",
+      "Importing app/common or any Wire provider set from any test under this folder \u2014 causes import cycles",
+      "Using context.Background() in new test code where t.Context() is available",
+      "Reusing subject or feature keys across test functions without isolated setupDependencies calls",
+      "Skipping defer clock.ResetTime() \u2014 leaves global clock state dirty for parallel tests"
+    ],
+    "decisions": [
+      {
+        "decision": "Regression tests isolated in test/entitlement/regression rather than co-located with openmeter/entitlement/",
+        "rationale": "Keeps the regression harness separate from production domain code, allowing test-only imports (pgtestdb, MockStreamingConnector) without polluting the production package graph."
+      },
+      {
+        "decision": "MockStreamingConnector instead of real ClickHouse",
+        "rationale": "ClickHouse is unavailable in the standard CI test environment; MockStreamingConnector provides deterministic usage query responses without external dependencies."
+      }
+    ],
+    "code_examples": []
+  }
+}

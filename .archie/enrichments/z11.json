@@ -1,0 +1,86 @@
+{
+  "openmeter/billing/rating": {
+    "purpose": "Public contract layer for the billing rating sub-system: defines the Service interface, DetailedLine value type, accessor interfaces (StandardLineAccessor, GatheringLineAccessor), and ChildUniqueReferenceID constants consumed by the rating/service implementation, charges, and billing worker. Callers import only this package \u2014 never rating/service.",
+    "patterns": [
+      {
+        "name": "ChildUniqueReferenceID constants from const.go",
+        "description": "All child line identifiers must use the named constants in const.go (e.g. UsageChildUniqueReferenceID, UnitPriceUsageChildUniqueReferenceID). Never hardcode these strings in pricers, mutators, or callers.",
+        "example": "ChildUniqueReferenceID: rating.UnitPriceUsageChildUniqueReferenceID"
+      },
+      {
+        "name": "currencyx.Calculator for all monetary arithmetic",
+        "description": "Every amount on DetailedLine must be rounded via currencyx.Calculator.RoundToPrecision. Raw alpacadecimal arithmetic is only acceptable as an intermediate step before storage.",
+        "example": "total := in.Currency.RoundToPrecision(in.PerUnitAmount.Mul(in.Quantity))"
+      },
+      {
+        "name": "Functional options for GenerateDetailedLines variants",
+        "description": "Behavioural knobs (IgnoreMinimumCommitment, DisableCreditsMutator) are passed as variadic GenerateDetailedLinesOption functions. Never add boolean flags directly to the Service interface signature.",
+        "example": "svc.GenerateDetailedLines(line, rating.WithMinimumCommitmentIgnored())"
+      },
+      {
+        "name": "Accessor interfaces \u2014 never concrete billing line types",
+        "description": "Callers supply lines via StandardLineAccessor or GatheringLineAccessor. The rating package must not import or reference concrete billing.InvoiceLine structs directly.",
+        "example": "func (s *service) GenerateDetailedLines(in StandardLineAccessor, opts ...GenerateDetailedLinesOption) (GenerateDetailedLinesResult, error)"
+      },
+      {
+        "name": "AddDiscountForOverage for max-spend capping",
+        "description": "Maximum-spend cap discounts must be applied by calling DetailedLine.AddDiscountForOverage with an AddDiscountInput; returns a new value. Never compute overage discounts inline in pricers or service methods.",
+        "example": "line = line.AddDiscountForOverage(rating.AddDiscountInput{BilledAmountBeforeLine: prev, MaxSpend: max, Currency: calc})"
+      },
+      {
+        "name": "DetailedLine is an immutable value type",
+        "description": "All With-style mutations (AddDiscountForOverage) return a new DetailedLine copy. Pricers must produce new values rather than mutating shared state. No pointer receivers that mutate in place.",
+        "example": "updated := line.AddDiscountForOverage(input) // original line unchanged"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "const.go",
+        "role": "Single source of truth for all ChildUniqueReferenceID string values used by pricers, mutators, tests, and callers to label DetailedLine children.",
+        "watch_for": "Adding a new price type without a corresponding constant here causes silent mismatches in child-line correlation across charges and billing worker."
+      },
+      {
+        "file": "detailedline.go",
+        "role": "Defines the DetailedLine value type, TotalAmount computation (PerUnitAmount\u00d7Quantity minus discounts and credits), AddDiscountForOverage, and DetailedLines.Sum.",
+        "watch_for": "TotalAmount already subtracts AmountDiscounts and CreditsApplied \u2014 double-subtracting in callers produces incorrect invoice totals. Negative Quantity is valid (usage correction); negative PerUnitAmount is rejected by Validate()."
+      },
+      {
+        "file": "line.go",
+        "role": "Accessor interfaces (StandardLineAccessor, GatheringLineAccessor, PriceAccessor) that decouple the rating package from concrete billing line types.",
+        "watch_for": "Adding methods to these interfaces forces all implementors to update; prefer adding helpers in service.go or rating/service instead."
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface, GenerateDetailedLinesResult, ResolveBillablePeriodInput (with Validate()), and functional option types. Concrete implementation lives in rating/service sub-package.",
+        "watch_for": "ResolveBillablePeriodInput.Validate() is the authoritative check \u2014 do not duplicate this validation in callers or the implementation."
+      }
+    ],
+    "anti_patterns": [
+      "Hardcoding ChildUniqueReferenceID strings instead of using the constants in const.go",
+      "Setting input.Usage for FlatPriceType lines \u2014 pricer validation returns an error",
+      "Computing DetailedLine totals (rounding, discount subtraction) outside TotalAmount or getTotalsFromDetailedLines in rating/service",
+      "Importing concrete billing line types (billing.InvoiceLine) directly in this package \u2014 use the accessor interfaces in line.go",
+      "Adding state fields to the service struct in rating/service \u2014 the implementation is intentionally stateless; New() returns an empty struct"
+    ],
+    "decisions": [
+      {
+        "decision": "Service interface lives in the rating package root; implementation in rating/service sub-package",
+        "rationale": "Callers (charges, billing worker) import only the interface and types without pulling in implementation dependencies such as pricer logic and mutator chains."
+      },
+      {
+        "decision": "DetailedLine is a value type with copy-on-write semantics for all mutations",
+        "rationale": "Immutable-by-convention pipeline: pricers produce new DetailedLine values rather than mutating shared state, making mutation order explicit and preventing aliasing bugs in the priceMutator chain."
+      },
+      {
+        "decision": "Behavioural knobs use functional options (GenerateDetailedLinesOption) rather than input struct fields",
+        "rationale": "Keeps the primary input path (StandardLineAccessor) stable while allowing opt-in overrides (IgnoreMinimumCommitment, DisableCreditsMutator) without breaking existing callers."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Computing a DetailedLine total with max-spend overage discount",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/billing/rating\"\n\t\"github.com/openmeterio/openmeter/pkg/currencyx\"\n\t\"github.com/invopop/gobl/currency\"\n)\n\ncalc, _ := currencyx.Code(currency.USD).Calculator()\nline := rating.DetailedLine{\n\tName:                   \"Unit usage\",\n\tChildUniqueReferenceID: rating.UnitPriceUsageChildUniqueReferenceID,\n\tQuantity:               alpacadecimal.NewFromFloat(10),\n\tPerUnitAmount:          alpacadecimal.NewFromFloat(5),\n}\nline = line.AddDiscountForOverage(rating.AddDiscountInput{\n\tBilledAmountBeforeLine: prevTotal,\n\tMaxSpend:               maxSpend,\n\tCurrency:               calc,\n})\ntotal := line.TotalAmount(calc)"
+      }
+    ]
+  }
+}

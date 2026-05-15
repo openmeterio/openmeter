@@ -1,0 +1,51 @@
+{
+  "openmeter/sink/models": {
+    "purpose": "Pure types package defining the shared data structures for the sink worker pipeline \u2014 SinkMessage (the unit of work flowing from Kafka consumer through deduplication to ClickHouse flush) and ProcessingStatus/ProcessingState (OK/DROP disposition tracking). Contains no business logic; all sink pipeline stages import this package.",
+    "patterns": [
+      {
+        "name": "SinkMessage as pipeline carrier",
+        "description": "All sink pipeline stages operate on SinkMessage, which bundles the raw kafka.Message, its deserialized CloudEventsKafkaPayload, the resolved Namespace, affected Meters, and ProcessingStatus. New pipeline data must be added as fields here, not passed separately between stages.",
+        "example": "msg := models.SinkMessage{Namespace: ns, KafkaMessage: km, Serialized: payload, Status: models.ProcessingStatus{State: models.OK}}"
+      },
+      {
+        "name": "GetDedupeItem bridges dedupe package",
+        "description": "SinkMessage.GetDedupeItem() produces a dedupe.Item using Namespace, Serialized.Id, and Serialized.Source \u2014 the canonical deduplication key. Always use this method rather than constructing dedupe.Item inline to ensure the key composition stays consistent.",
+        "example": "item := msg.GetDedupeItem() // returns dedupe.Item{Namespace: m.Namespace, ID: m.Serialized.Id, Source: m.Serialized.Source}"
+      },
+      {
+        "name": "ProcessingState as int8 iota enum with String()",
+        "description": "States are int8 iota constants (OK=0, DROP=1). String() is implemented for logging. New states must follow the same iota pattern and add a case to String() \u2014 omitting the String() case produces 'unknown(N)' in logs.",
+        "example": "const (\n\tOK ProcessingState = iota\n\tDROP\n)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "models.go",
+        "role": "Single source of truth for all sink pipeline data types. All sink stages (Kafka consumer, deduplication, ClickHouse storage, flush handlers) import this package.",
+        "watch_for": "SinkMessage.Serialized may be nil before deserialization completes \u2014 callers must nil-check before accessing Serialized.Id or Serialized.Source. ProcessingStatus.DropError should be non-nil whenever State==DROP to preserve the reason for dropping."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic or validation to this package \u2014 it must remain a pure types/models package with no side effects",
+      "Constructing dedupe.Item directly from SinkMessage fields instead of calling GetDedupeItem()",
+      "Adding a new ProcessingState iota constant without adding a matching case to ProcessingState.String()",
+      "Importing this package from openmeter/streaming or openmeter/meter \u2014 those packages are upstream dependencies of sink/models, not consumers; doing so creates a circular dependency"
+    ],
+    "decisions": [
+      {
+        "decision": "SinkMessage holds both the raw kafka.Message and the deserialized CloudEventsKafkaPayload as separate fields",
+        "rationale": "Deserialization is a discrete pipeline step; keeping both lets downstream stages access Kafka metadata (offsets, partition) alongside the typed event payload without re-parsing the raw bytes."
+      },
+      {
+        "decision": "ProcessingState is int8 iota rather than a string enum",
+        "rationale": "The sink worker processes high volumes of messages; int8 comparisons are cheaper than string comparisons in the hot flush path."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructing a SinkMessage after Kafka consumption and checking deduplication disposition",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/sink/models\"\n)\n\nmsg := models.SinkMessage{\n\tNamespace:    ns,\n\tKafkaMessage: km,\n\tserialized:   payload, // set after deserialization step\n\tStatus:       models.ProcessingStatus{State: models.OK},\n}\n\n// Bridge to deduplication layer \u2014 always use GetDedupeItem, not inline construction\nitem := msg.GetDedupeItem()\nif duplicate {\n\tmsg.Status = models.ProcessingStatus{\n\t\tState:     models.DROP,\n\t\tDropError: fmt.Errorf(\"duplicate event: %s\", item.ID),\n\t}\n}"
+      }
+    ]
+  }
+}

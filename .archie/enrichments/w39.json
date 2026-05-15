@@ -1,0 +1,62 @@
+{
+  "collector/benthos/bloblang": {
+    "purpose": "Side-effect-only plugin package that registers custom Bloblang functions as Benthos/Redpanda Connect plugins via Go init(). Must be blank-imported by the collector binary to activate registrations; exports nothing.",
+    "patterns": [
+      {
+        "name": "init-based plugin registration",
+        "description": "Every custom function is registered inside an init() function using bloblang.RegisterFunctionV2. No exported symbols \u2014 activation is achieved solely by blank-importing the package.",
+        "example": "func init() { err := bloblang.RegisterFunctionV2(\"resource_quantity\", spec, factory); if err != nil { panic(err) } }"
+      },
+      {
+        "name": "PluginSpec with typed params",
+        "description": "Use bloblang.NewPluginSpec() with explicit Param declarations (bloblang.NewStringParam, etc.) so callers get typed argument extraction via args.GetString / args.GetInt64.",
+        "example": "spec := bloblang.NewPluginSpec().Description(\"...\").Param(bloblang.NewStringParam(\"value\").Description(\"...\"))"
+      },
+      {
+        "name": "Lazy-closure return",
+        "description": "The factory passed to RegisterFunctionV2 evaluates and validates arguments once, then returns a func() (any, error) closure for repeated invocation. Heavy parsing happens in the factory, not in the closure.",
+        "example": "return func(args *bloblang.ParsedParams) (bloblang.Function, error) { qty := parse(args); return func() (any, error) { return qty.String(), nil }, nil }"
+      },
+      {
+        "name": "Empty-value guard before parsing",
+        "description": "Check for empty string before delegating to external parsers; return a zero value (not an error) on empty input to let pipelines handle optional fields gracefully.",
+        "example": "if value == \"\" { return func() (any, error) { return 0, nil }, nil }"
+      },
+      {
+        "name": "Panic on registration failure",
+        "description": "RegisterFunctionV2 errors are treated as fatal \u2014 panic immediately. Registration failures indicate name collisions or bad specs and must not be silently ignored.",
+        "example": "if err != nil { panic(err) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "parse_resource.go",
+        "role": "Registers the 'resource_quantity' Bloblang function that converts Kubernetes resource.Quantity strings (e.g. '100m', '2Gi') to decimal strings using k8s.io/apimachinery/pkg/api/resource.ParseQuantity.",
+        "watch_for": "Panics on RegisterFunctionV2 error \u2014 any registration name collision or bad PluginSpec causes a startup panic. Ensure function names are globally unique within the binary."
+      }
+    ],
+    "anti_patterns": [
+      "Exporting functions or types from this package \u2014 it is side-effect-only and must have no exported API.",
+      "Performing heavy I/O, network calls, or slow computation inside the returned func() closure \u2014 validate and parse in the factory, not on every invocation.",
+      "Returning hard errors for empty or zero input \u2014 prefer returning a zero value to keep pipelines tolerant of missing fields.",
+      "Registering the same function name in multiple files \u2014 init() order is undefined and a duplicate name causes a startup panic.",
+      "Skipping the blank import in cmd/benthos-collector \u2014 the package registers nothing unless blank-imported; forgetting the import silently omits all custom functions."
+    ],
+    "decisions": [
+      {
+        "decision": "Use init() for auto-registration instead of an explicit Register() call.",
+        "rationale": "Benthos plugin packages are designed for blank-import activation; a central Register() call would require the collector binary to enumerate every plugin, coupling it to this package's internals."
+      },
+      {
+        "decision": "Depend on k8s.io/apimachinery resource.ParseQuantity for Kubernetes resource string parsing.",
+        "rationale": "Kubernetes resource strings have complex SI/binary suffix rules; reusing the authoritative parser avoids reimplementing that logic and guarantees correctness for all valid quantity formats."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new Bloblang function 'parse_duration' that converts a Go duration string to milliseconds",
+        "code": "package bloblang\n\nimport (\n\t\"time\"\n\n\t\"github.com/redpanda-data/benthos/v4/public/bloblang\"\n)\n\nfunc init() {\n\tspec := bloblang.NewPluginSpec().\n\t\tDescription(\"Parse a Go duration string and return its value in milliseconds.\").\n\t\tParam(bloblang.NewStringParam(\"value\").Description(\"Duration string, e.g. '1h30m'.\"))\n\n\terr := bloblang.RegisterFunctionV2(\"parse_duration\", spec, func(args *bloblang.ParsedParams) (bloblang.Function, error) {\n\t\tvalue, err := args.GetString(\"value\")\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\tif value == \"\" {\n\t\t\treturn func() (any, error) { return int64(0), nil }, nil\n\t\t}\n\t\td, err := time.ParseDuration(value)\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\tms := d.Milliseconds()\n\t\treturn func() (any, error) { return ms, nil }, nil\n\t})\n\tif err != nil {\n\t\tpanic(err)\n\t}\n}"
+      }
+    ]
+  }
+}

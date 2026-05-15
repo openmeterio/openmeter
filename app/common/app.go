@@ -43,6 +43,7 @@ func NewAppService(
 ) (app.Service, error) {
 	appAdapter, err := appadapter.New(appadapter.Config{
 		Client: db,
+		Logger: logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create app adapter: %w", err)
@@ -54,7 +55,7 @@ func NewAppService(
 	})
 }
 
-func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingRegistry BillingRegistry, publisher eventbus.Publisher) (appstripe.Service, error) {
+func NewAppStripeService(ctx context.Context, logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingRegistry BillingRegistry, publisher eventbus.Publisher) (appstripe.Service, error) {
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
 		Client:          db,
 		AppService:      appService,
@@ -78,7 +79,7 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 		}
 	}
 
-	return appstripeservice.New(appstripeservice.Config{
+	return appstripeservice.New(ctx, appstripeservice.Config{
 		Adapter:                    appStripeAdapter,
 		AppService:                 appService,
 		SecretService:              secretService,
@@ -91,11 +92,13 @@ func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig confi
 }
 
 func NewAppSandboxFactory(
+	ctx context.Context,
 	appsConfig config.AppsConfiguration,
 	appService app.Service,
 	billing BillingRegistry,
 ) (*appsandbox.Factory, error) {
-	factory, err := appsandbox.NewFactory(appsandbox.Config{
+	// NewFactory registers the sandbox marketplace listing as a side-effect.
+	factory, err := appsandbox.NewFactory(ctx, appsandbox.Config{
 		AppService:     appService,
 		BillingService: billing.Billing,
 	})
@@ -123,7 +126,7 @@ func NewAppSandboxProvisioner(ctx context.Context, logger *slog.Logger, appsConf
 	}, nil
 }
 
-func NewAppCustomInvoicingService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingRegistry BillingRegistry, publisher eventbus.Publisher) (appcustominvoicing.Service, error) {
+func NewAppCustomInvoicingService(ctx context.Context, logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingRegistry BillingRegistry, publisher eventbus.Publisher) (appcustominvoicing.Service, error) {
 	appCustomInvoicingAdapter, err := appcustominvoicingadapter.New(appcustominvoicingadapter.Config{
 		Client: db,
 		Logger: logger,
@@ -143,7 +146,7 @@ func NewAppCustomInvoicingService(logger *slog.Logger, db *entdb.Client, appsCon
 	}
 
 	// This registers the app with the marketplace as a side-effect
-	_, err = appcustominvoicing.NewFactory(appcustominvoicing.FactoryConfig{
+	_, err = appcustominvoicing.NewFactory(ctx, appcustominvoicing.FactoryConfig{
 		AppService:             appService,
 		CustomInvoicingService: service,
 		BillingService:         billingRegistry.Billing,

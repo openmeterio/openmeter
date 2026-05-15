@@ -37,7 +37,7 @@ func (a ListCustomerInput) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type EnsureCustomerInput struct {
@@ -46,19 +46,21 @@ type EnsureCustomerInput struct {
 }
 
 func (a EnsureCustomerInput) Validate() error {
+	var errs []error
+
 	if err := a.AppID.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if err := a.CustomerID.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if a.AppID.Namespace != a.CustomerID.Namespace {
-		return fmt.Errorf("app ID namespace %s does not match customer ID namespace %s", a.AppID.Namespace, a.CustomerID.Namespace)
+		errs = append(errs, models.NewGenericValidationError(fmt.Errorf("app ID namespace %s does not match customer ID namespace %s", a.AppID.Namespace, a.CustomerID.Namespace)))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type DeleteCustomerInput struct {
@@ -67,25 +69,27 @@ type DeleteCustomerInput struct {
 }
 
 func (a DeleteCustomerInput) Validate() error {
+	var errs []error
+
 	if a.AppID == nil && a.CustomerID == nil {
-		return fmt.Errorf("app ID and customer ID cannot be nil")
+		errs = append(errs, models.NewGenericValidationError(errors.New("app ID and customer ID cannot be nil")))
 	}
 
 	if a.AppID != nil {
 		if err := a.AppID.Validate(); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
 
 	if a.CustomerID != nil {
 		if err := a.CustomerID.Validate(); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
 
 	if a.AppID != nil && a.CustomerID != nil && a.AppID.Namespace != a.CustomerID.Namespace {
-		return errors.New("app and customer must be in the same namespace")
+		errs = append(errs, models.NewGenericValidationError(errors.New("app and customer must be in the same namespace")))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

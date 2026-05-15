@@ -1,0 +1,71 @@
+{
+  "pkg/treex": {
+    "purpose": "Generic typed tree data structure (Node[T], Tree[T]) providing DFS traversal, cycle detection, shallow/deep clone, and child-swap operations. Used by subscription and product-catalog domains to model hierarchical rate-card and field-descriptor trees where immutable-style node updates via pointer-identity swapping are required.",
+    "patterns": [
+      {
+        "name": "Non-nil pointer values only",
+        "description": "NewNode[T](v T) panics at runtime if v is not a non-nil pointer. T must be a pointer type. This enforces the pointer-identity semantics used by SwapChild/RemoveChild comparisons.",
+        "example": "node := treex.NewNode(&myStruct{id: 1})  // T is *myStruct"
+      },
+      {
+        "name": "Seal the graph with NewTree after building",
+        "description": "Build the full node graph using AddChild, then call NewTree(root) once to validate acyclicity. NewTree returns ErrGraphHasCycle for cycles and ErrNodeGraphInvalid for nil children. Do not call NewTree incrementally.",
+        "example": "tr, err := treex.NewTree(rootNode); if errors.Is(err, treex.ErrGraphHasCycle) { ... }"
+      },
+      {
+        "name": "ShallowClone for immutable-style node replacement",
+        "description": "ShallowClone copies the node struct and first-level children slice, reattaching existing children (updating child.parent) to the clone. Use to 'rename' or 'update' a node value without rebuilding the subtree; then call SwapChild or SwapNode on the parent.",
+        "example": "updated := &wrapper{name: \"new\"}; updated.node = old.node.ShallowClone(); updated.node.SetValue(updated); root.node.SwapChild(old.node, updated.node)"
+      },
+      {
+        "name": "Self-referential node embedding",
+        "description": "Domain structs embed *Node[*Self] and set it in their constructor. The node's value points back to the owning struct, enabling tree traversal to recover the domain object via n.Value().",
+        "example": "type FieldDescriptor struct { name string; node *treex.Node[*FieldDescriptor] }\nfunc newFD(name string) *FieldDescriptor { fd := &FieldDescriptor{name: name}; fd.node = treex.NewNode(fd); return fd }"
+      },
+      {
+        "name": "DFS stop=true prunes subtree only",
+        "description": "Returning (true, nil) from the DFS callback halts descent into that node's children but sibling subtrees continue walking. Returning a non-nil error aborts the entire walk immediately.",
+        "example": "tr.DFS(func(n *treex.Node[*T]) (bool, error) { if skip(n) { return true, nil }; return false, process(n) })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "node.go",
+        "role": "Node[T] struct with parent/children management; AddChild, RemoveChild, SwapChild, ShallowClone, DeepClone.",
+        "watch_for": "SwapChild and RemoveChild use pointer equality (c == child), not value equality \u2014 always pass the exact *Node pointer. ShallowClone reattaches first-level children to the clone, mutating child.parent on those immediate children."
+      },
+      {
+        "file": "tree.go",
+        "role": "Tree[T] wrapper: NewTree validates acyclicity via DFS with visited+onStack maps; exposes DFS, Leafs, SwapNode.",
+        "watch_for": "SwapNode on the root replaces t.root directly without re-validation \u2014 caller is responsible for the new node being non-nil. Mid-DFS SwapNode requires returning stop=true immediately to avoid following the detached subtree."
+      },
+      {
+        "file": "errors.go",
+        "role": "Sentinel error vars: ErrRootNodeIsNil, ErrGraphHasCycle, ErrNodeHasNoParentButNotRoot, ErrNodeGraphInvalid.",
+        "watch_for": "Use errors.Is for matching \u2014 all four are package-level var values, not typed error structs."
+      }
+    ],
+    "anti_patterns": [
+      "Passing value types (non-pointers) to NewNode \u2014 panics immediately at construction",
+      "Modifying node.children slice directly instead of using AddChild/RemoveChild/SwapChild \u2014 bypasses parent-pointer bookkeeping, corrupts tree invariants",
+      "Continuing DFS traversal after SwapNode inside the callback without returning stop=true \u2014 the callback will follow the now-detached old subtree",
+      "Calling NewTree repeatedly as nodes are added rather than building the full graph first \u2014 unnecessary O(n) validation on each call"
+    ],
+    "decisions": [
+      {
+        "decision": "Node values are constrained to pointer types, enforced at runtime via reflect.ValueOf().Kind()",
+        "rationale": "Tree mutations (SwapChild, RemoveChild) rely on pointer identity comparison (c == child); value types would make sibling lookup ambiguous and break the self-referential embedding pattern."
+      },
+      {
+        "decision": "Cycle detection runs at NewTree construction time, not incrementally on AddChild",
+        "rationale": "Allows building node graphs freely and attaching subtrees in arbitrary order before sealing them into a validated Tree; the O(n) DFS validation is paid only once."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Self-referential embedding + immutable update via ShallowClone + SwapChild",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/treex\"\n\ntype RateCard struct {\n\tname string\n\tnode *treex.Node[*RateCard]\n}\n\nfunc newRateCard(name string) *RateCard {\n\trc := &RateCard{name: name}\n\trc.node = treex.NewNode(rc) // T must be *RateCard\n\treturn rc\n}\n\n// Rename a node without rebuilding its subtree:\nfunc renameCard(root *RateCard, old *RateCard, newName string) error {\n\tupdated := &RateCard{name: newName}\n\tupdated.node = old.node.ShallowClone()   // copies children, reattaches their parents\n\tupdated.node.SetValue(updated)            // point node back at new wrapper\n\n\ttr, err := treex.NewTree(root.node)\n\tif err != nil {\n\t\treturn err\n\t}\n\treturn tr.SwapNode(old.node, updated.node)\n}"
+      }
+    ]
+  }
+}

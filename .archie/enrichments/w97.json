@@ -1,0 +1,91 @@
+{
+  "openmeter/ledger/historical/adapter": {
+    "purpose": "Ent/PostgreSQL implementation of ledgerhistorical.Repo: books double-entry transactions (LedgerTransaction + LedgerEntry rows), manages transaction groups, sums entries, and lists transactions with tri-tuple cursor pagination. All queries must eagerly load SubAccount\u2192Account\u2192Route edges or hydrateHistoricalTransaction will error.",
+    "patterns": [
+      {
+        "name": "Full TxCreator+TxUser triad on repo",
+        "description": "repo implements Tx (via r.db.HijackTx + entutils.NewTxDriver), WithTx (via db.NewTxClientFromRawConfig), and Self(). Every method body wraps with entutils.TransactingRepo so caller-supplied transactions are honored.",
+        "example": "return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgerhistorical.Transaction, error) { ... tx.db.LedgerTransaction.Create()... })"
+      },
+      {
+        "name": "Eager edge loading on every query",
+        "description": "Every query returning a Transaction must call WithEntries(func(eq){ eq.WithSubAccount(func(sq){ sq.WithAccount(); sq.WithRoute() }) }). Missing any edge causes hydrateHistoricalTransaction to return an error on SubAccountOrErr/AccountOrErr/RouteOrErr.",
+        "example": "q.WithEntries(func(eq *db.LedgerEntryQuery) { eq.WithSubAccount(func(sq *db.LedgerSubAccountQuery) { sq.WithAccount(); sq.WithRoute() }) })"
+      },
+      {
+        "name": "hydrateHistoricalTransaction for all DB-to-domain conversion",
+        "description": "All DB rows must be converted to domain objects via hydrateHistoricalTransaction, which calls ledgerhistorical.NewTransactionFromData. Never map db.LedgerTransaction fields to domain structs inline.",
+        "example": "items, err := slicesx.MapWithErr(dbItems, func(tx *db.LedgerTransaction) (*ledgerhistorical.Transaction, error) { return hydrateHistoricalTransaction(tx) })"
+      },
+      {
+        "name": "Tri-tuple cursor pagination (bookedAt DESC, createdAt DESC, ID DESC)",
+        "description": "Pagination uses SQL predicate-based cursors over three fields. Forward direction uses ledgerTransactionAfterCursorPredicate; backward uses ledgerTransactionBeforeCursorPredicate and then slices.Reverse on results. NextCursor always points to the last returned item.",
+        "example": "if input.Before != nil { query = query.Where(ledgerTransactionBeforeCursorPredicate(*input.Before)) } ... if input.Before != nil { slices.Reverse(items) }"
+      },
+      {
+        "name": "sumEntriesQuery builder for all aggregation",
+        "description": "SumEntries delegates to sumEntriesQuery{query: query}.Build(tx.db). New filter dimensions must be added to entryPredicates() or subAccountPredicates() in sumentries_query.go, not inline in repo methods. Route filters call b.query.Filters.Route.Normalize() and must propagate errors as ledger.ErrLedgerQueryInvalid.",
+        "example": "q := sumEntriesQuery{query: query}; entryQuery, err := q.Build(tx.db); entryQuery.Aggregate(db.As(db.Sum(ledgerentrydb.FieldAmount), \"sum_amount\")).Scan(ctx, &rows)"
+      },
+      {
+        "name": "Bulk entry creation after transaction row",
+        "description": "BookTransaction saves the LedgerTransaction row first, then calls CreateBulk for all LedgerEntry rows in a single batch. Never insert entries one-by-one in a loop.",
+        "example": "createdEntries, err = tx.db.LedgerEntry.CreateBulk(createInputs...).Save(ctx)"
+      },
+      {
+        "name": "Compile-time interface compliance assertion",
+        "description": "repo.go declares var _ ledgerhistorical.Repo = (*repo)(nil) and var _ entutils.TxUser[*repo] = (*repo)(nil) at package level. Every new adapter struct must include both guards.",
+        "example": "var _ ledgerhistorical.Repo = (*repo)(nil)\nvar _ entutils.TxUser[*repo] = (*repo)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "repo.go",
+        "role": "Defines the repo struct (holds only *db.Client), NewRepo constructor, Tx/WithTx/Self triad, and both compile-time interface assertions. Entry point for adding new repo methods.",
+        "watch_for": "Do not store additional state on repo beyond *db.Client; inject all dependencies via the constructor. Both interface assertions (Repo and TxUser) must stay present."
+      },
+      {
+        "file": "ledger.go",
+        "role": "Contains BookTransaction, CreateTransactionGroup, GetTransactionGroup, SumEntries, ListTransactions, and all cursor/ordering helpers (ledgerTransactionAfterCursorPredicate, ledgerTransactionBeforeCursorPredicate, listTransactionsOrdering, listTransactionsEntryPredicates).",
+        "watch_for": "hydrateHistoricalTransaction panics if SubAccount\u2192Account or SubAccount\u2192Route edges are not loaded; always eager-load them. The Before-direction requires slices.Reverse after fetch and produces NextCursor pointing to the last item."
+      },
+      {
+        "file": "sumentries_query.go",
+        "role": "Encapsulates sumEntriesQuery with entryPredicates() and subAccountPredicates(). Also exposes SQL() for raw SQL extraction used by the viewgen tool. All filter dimensions for SumEntries live here.",
+        "watch_for": "Route filter normalization errors must be wrapped with ledger.ErrLedgerQueryInvalid, not returned as raw errors. SQL() uses dialect.Postgres explicitly and must stay in sync with entryPredicates()."
+      },
+      {
+        "file": "ledger_test.go",
+        "role": "In-package DB integration tests using NewTestEnv(t) + env.DBSchemaMigrate(t). Covers forward/backward pagination, no-overlap resumption, currency filter, creditMovement filter, and annotation filter.",
+        "watch_for": "Tests call time.Sleep between transactions to ensure distinct CreatedAt timestamps for deterministic ordering \u2014 do not remove these sleeps. Tests use t.Context(), not context.Background()."
+      }
+    ],
+    "anti_patterns": [
+      "Omitting WithSubAccount/WithAccount/WithRoute eager-load on any query returning hydrated transactions \u2014 hydrateHistoricalTransaction returns an error on SubAccountOrErr/AccountOrErr/RouteOrErr",
+      "Mapping db.LedgerTransaction fields to domain structs inline instead of routing through hydrateHistoricalTransaction",
+      "Inserting LedgerEntry rows one-by-one in a loop instead of using CreateBulk",
+      "Adding filter predicates directly inside ListTransactions or SumEntries instead of extending sumEntriesQuery.entryPredicates() / subAccountPredicates()",
+      "Using context.Background() instead of the caller-provided ctx in any repo method, which drops the Ent transaction and OTel spans"
+    ],
+    "decisions": [
+      {
+        "decision": "Tri-tuple cursor (bookedAt, createdAt, ID) instead of single-field offset",
+        "rationale": "BookedAt is user-visible and can repeat; tie-breaking on createdAt+ID makes pagination stable across concurrent inserts without requiring a serial primary key."
+      },
+      {
+        "decision": "sumEntriesQuery is a separate struct with Build() and SQL() methods",
+        "rationale": "Isolates filter predicate logic from repo methods and allows the viewgen CLI tool (tools/migrate/cmd/viewgen) to extract raw SQL without executing a query against a live database."
+      },
+      {
+        "decision": "Tx uses HijackTx + entutils.NewTxDriver instead of db.BeginTx",
+        "rationale": "Aligns with the project-wide entutils.TransactingRepo pattern so callers can bind the transaction via ctx and participate in caller-supplied transactions without leaking raw *sql.Tx across package boundaries."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new filter dimension (e.g. CostBasis) to SumEntries without touching repo methods",
+        "code": "// In sumentries_query.go, extend subAccountPredicates():\nif b.query.Filters.CostBasis != nil {\n    routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasis(*b.query.Filters.CostBasis))\n}\n// No changes needed in ledger.go \u2014 SumEntries delegates unchanged:\nfunc (r *repo) SumEntries(ctx context.Context, query ledger.Query) (alpacadecimal.Decimal, error) {\n    return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (alpacadecimal.Decimal, error) {\n        q := sumEntriesQuery{query: query}\n        entryQuery, err := q.Build(tx.db)\n        if err != nil { return alpacadecimal.Decimal{}, err }\n        var rows []struct{ SumAmount stdsql.NullString `json:\"sum_amount,omitempty\"` }\n        if err := entryQuery.Aggregate(db.As(db.Sum(ledgerentrydb.FieldAmount), \"sum_amount\")).Scan(ctx, &rows); err != nil {\n            return alpacadecimal.Decimal{}, fmt.Errorf(\"sum entries: %w\", err)\n        }\n        if len(rows) == 0 || !rows[0].SumAmount.Valid { return alpacadecimal.NewFromInt(0), nil }\n        return alpacadecimal.NewFromString(rows[0].SumAmount.String)\n    })\n}"
+      }
+    ]
+  }
+}

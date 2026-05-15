@@ -1,0 +1,81 @@
+{
+  "pkg/framework/transport/httptransport": {
+    "purpose": "Generic typed HTTP handler pipeline (decode \u2192 operation \u2192 encode) shared by all domain httpdriver and api/v3/handlers packages. Handler[Request,Response] is the universal adapter between Chi routes and domain service calls; every v1 and v3 endpoint is built on it.",
+    "patterns": [
+      {
+        "name": "NewHandler triple constructor",
+        "description": "Always construct via NewHandler(requestDecoder, op, responseEncoder, ...options). Never instantiate handler{} directly \u2014 defaultHandlerOptions (GenericErrorEncoder) are injected by newHandler and would be missing.",
+        "example": "httptransport.NewHandler(decodeListFoos, svc.ListFoos, encodeListFoos, httptransport.WithOperationName(\"foo.list\"))"
+      },
+      {
+        "name": "HandlerWithArgs for path-param injection",
+        "description": "When a Chi URL param must be baked into the decoder, use NewHandlerWithArgs + .With(arg) at mount time. With() clones the value-receiver handler, binding the arg into decodeRequest without allocation on each request.",
+        "example": "h := httptransport.NewHandlerWithArgs(decodeGetFoo, op, encodeFoo); r.Get(\"/{id}\", func(w http.ResponseWriter, r *http.Request) { h.With(chi.URLParam(r, \"id\")).ServeHTTP(w, r) })"
+      },
+      {
+        "name": "ErrorEncoder chain (first match wins)",
+        "description": "WithErrorEncoder appends to h.errorEncoders; handlers iterate in order; the first returning true short-circuits. GenericErrorEncoder is appended last by defaultHandlerOptions \u2014 custom domain encoders must be passed as options to NewHandler, not after Chain.",
+        "example": "httptransport.NewHandler(dec, op, enc, httptransport.WithErrorEncoder(billingErrorEncoder))"
+      },
+      {
+        "name": "Chain for cross-cutting middleware",
+        "description": "Use handler.Chain(outer, ...others) to wrap the operation with operation.Middleware. Chain returns a new handler value (value-receiver copy); the original is unmodified.",
+        "example": "secured := h.Chain(authmiddleware.RequireScope(\"billing:write\"))"
+      },
+      {
+        "name": "SelfEncodingError escape hatch",
+        "description": "Errors implementing SelfEncodingError (EncodeError(ctx, w) bool) bypass the ErrorEncoder chain. Use only for infrastructure error types (e.g. models.StatusProblem). Do not implement on domain errors \u2014 use ErrorEncoder instead.",
+        "example": "// models.StatusProblem implements SelfEncodingError and calls Respond(w) directly"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Core Handler[Req,Resp] interface and internal handler struct. ServeHTTP orchestrates decode\u2192operation\u2192encode; encodeError iterates the chain then falls back to SelfEncodingError then 500. defaultHandlerOptions appends GenericErrorEncoder unconditionally.",
+        "watch_for": "Do not pass GenericErrorEncoder again via WithErrorEncoder \u2014 it is already appended by defaultHandlerOptions; a second copy double-encodes errors."
+      },
+      {
+        "file": "argshandler.go",
+        "role": "HandlerWithArgs variant for route-param injection. With() clones the value-receiver handler and swaps decodeRequest; relies on handler being a non-pointer struct.",
+        "watch_for": "Both With() and Chain() rely on value-receiver copy semantics. If pointer fields are ever added to handler, these methods will share state across copies \u2014 explicit deep copy required."
+      },
+      {
+        "file": "options.go",
+        "role": "HandlerOption interface and all WithX constructors. errorEncoders slice is order-sensitive (append). resolveErrorHandler returns dummyErrorHandler when none set.",
+        "watch_for": "errorEncoders are appended in order; custom domain encoders passed after defaultHandlerOptions are appended after GenericErrorEncoder and will never fire \u2014 always pass custom encoders as options to NewHandler."
+      },
+      {
+        "file": "encoder/encoder.go",
+        "role": "Declares ResponseEncoder[T] and ErrorEncoder pure function types. No logic \u2014 pure type definitions that both handler.go and commonhttp import without cycle.",
+        "watch_for": "ErrorEncoder must return false if it did not write to ResponseWriter; returning true after a partial write leaves the response in an inconsistent state."
+      }
+    ],
+    "anti_patterns": [
+      "Instantiating handler{} struct directly \u2014 bypasses defaultHandlerOptions and loses GenericErrorEncoder",
+      "Calling context.Background() inside a RequestDecoder \u2014 always use the ctx passed from ServeHTTP",
+      "Implementing SelfEncodingError on domain-level errors \u2014 reserve it for infrastructure types; domain errors belong in ErrorEncoder chain",
+      "Adding state (mutexes, caches) to HandlerWithArgs or handler \u2014 value types cloned by With() and Chain() would race on shared pointer fields",
+      "Writing to ResponseWriter inside RequestDecoder on error \u2014 return the error and let the ErrorEncoder chain handle it"
+    ],
+    "decisions": [
+      {
+        "decision": "Value-receiver handler with copy-on-With/Chain semantics",
+        "rationale": "Enables safe per-request arg injection and middleware wrapping without allocation or locking; the original registered handler is immutable after construction."
+      },
+      {
+        "decision": "ErrorEncoder chain with last-resort fallback to 500 in handler.go, not in GenericErrorEncoder",
+        "rationale": "Keeps the fallback authoritative and unconfigurable; any error not handled by the chain or SelfEncodingError always produces a well-formed 500 problem+json response."
+      },
+      {
+        "decision": "Separate encoder sub-package for ResponseEncoder/ErrorEncoder function types",
+        "rationale": "Breaks the import cycle between handler.go (which uses both) and commonhttp (which defines GenericErrorEncoder) \u2014 encoder has no dependencies so both can import it."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Minimal domain HTTP handler wired into a Chi router",
+        "code": "import (\n\t\"context\"\n\t\"net/http\"\n\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n)\n\nfunc NewListFoosHandler(svc FooService) httptransport.Handler[ListFoosRequest, ListFoosResponse] {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (ListFoosRequest, error) {\n\t\t\treturn ListFoosRequest{Namespace: r.Header.Get(\"X-Namespace\")}, nil\n\t\t},\n\t\tsvc.ListFoos,\n\t\tfunc(ctx context.Context, w http.ResponseWriter, r *http.Request, resp ListFoosResponse) error {\n\t\t\treturn commonhttp.JSONResponseEncoder(ctx, w, resp)\n\t\t},\n\t\thttptransport.WithOperationName(\"foo.list\"),\n\t)\n}"
+      }
+    ]
+  }
+}

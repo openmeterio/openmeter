@@ -1,0 +1,239 @@
+{
+  "api/client/javascript/src/client": {
+    "purpose": "Generated TypeScript SDK client implementing the full OpenMeter admin API surface. Each domain resource is a class wrapping an openapi-fetch Client<paths> with typed routes, sub-resource composition, and uniform error/date handling via transformResponse.",
+    "patterns": [
+      {
+        "name": "Resource class wrapping openapi-fetch",
+        "description": "Every domain file exports one or more classes. Each class takes Client<paths, `${string}/${string}`> in its constructor and exposes async methods that call this.client.GET/POST/PUT/DELETE/PATCH with typed path literals, then return transformResponse(resp). Never access resp.data directly.",
+        "example": "constructor(private client: Client<paths, `${string}/${string}`>) {}\npublic async create(addon: AddonCreate, options?: RequestOptions) {\n  const resp = await this.client.POST('/api/v1/addons', { body: addon, ...options })\n  return transformResponse(resp)\n}"
+      },
+      {
+        "name": "Nested sub-resource classes as public fields",
+        "description": "Compound domains (Billing, Apps, Customers, Notifications, Plans, Entitlements) expose sub-resources as public class fields initialized in the constructor. Each sub-class takes the same client reference.",
+        "example": "export class Billing {\n  public profiles: BillingProfiles\n  public invoices: BillingInvoices\n  constructor(private client: Client<paths, ...>) {\n    this.profiles = new BillingProfiles(this.client)\n    this.invoices = new BillingInvoices(this.client)\n  }\n}"
+      },
+      {
+        "name": "Types always from schemas.ts via operations/paths",
+        "description": "All domain types (input shapes, path params, query params) come from './schemas.js' imports \u2014 either named types or operations['operationName']['parameters']['path'|'query'] and requestBody['content']['application/json']. Never invent local type shapes.",
+        "example": "import type { AddonCreate, operations, paths } from './schemas.js'\npublic async update(id: operations['updateAddon']['parameters']['path']['id'], addon: operations['updateAddon']['requestBody']['content']['application/json'], options?: RequestOptions)"
+      },
+      {
+        "name": "RequestOptions on every public method",
+        "description": "Every public method accepts options?: RequestOptions as its last parameter and spreads it into the fetch call with ...options. RequestOptions = Pick<RequestInit, 'signal'> defined in common.ts.",
+        "example": "public async get(id: string, options?: RequestOptions) {\n  const resp = await this.client.GET('/api/v1/addons/{addonId}', { params: { path: { addonId: id } }, ...options })\n  return transformResponse(resp)\n}"
+      },
+      {
+        "name": "OpenMeter root class registers every resource",
+        "description": "index.ts creates the openapi-fetch client with date-encoding querySerializer and optional Bearer auth, then instantiates every resource class as a public field. Adding a new resource requires: (1) new domain file, (2) import in index.ts, (3) public field declaration, (4) constructor instantiation.",
+        "example": "this.client = createClient<paths>({ ...config, querySerializer: (q) => createQuerySerializer({ array: { explode: true, style: 'form' }, object: { explode: true, style: 'deepObject' } })(encodeDates(q)) })\nthis.addons = new Addons(this.client)"
+      },
+      {
+        "name": "Events ingest uses application/cloudevents-batch+json",
+        "description": "events.ts special-cases the ingest method: normalizes single/array input to array, applies setDefaultsForEvent (id, source, specversion, time defaults), and sends Content-Type: application/cloudevents-batch+json. The list method uses standard application/json.",
+        "example": "const resp = await this.client.POST('/api/v1/events', { body, headers: { 'Content-Type': 'application/cloudevents-batch+json' }, ...options })"
+      },
+      {
+        "name": "Explicit return type casts for typed responses",
+        "description": "When the generic transformResponse return type is too broad, methods cast the result to the exact operations response type. See meters.ts query() and queryPost().",
+        "example": "return transformResponse(resp) as operations['queryMeter']['responses']['200']['content']['application/json']"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "index.ts",
+        "role": "Root OpenMeter class and Config type. Creates the openapi-fetch client with date-encoding querySerializer (encodeDates + form/deepObject serialization), optional Bearer token, and instantiates all resource classes as public fields.",
+        "watch_for": "Adding a resource class file without registering it as a public field AND calling new in the constructor \u2014 the instance will be unreachable. Config type requires apiKey only when baseUrl is 'https://openmeter.cloud'."
+      },
+      {
+        "file": "utils.ts",
+        "role": "transformResponse (throws HTTPError on 4xx/5xx, recursively decodes ISO date strings to Date objects), decodeDates, encodeDates (recursive Date\u2192ISO string used in query serializer).",
+        "watch_for": "Never skip transformResponse; direct resp.data access misses date decoding and error handling entirely."
+      },
+      {
+        "file": "common.ts",
+        "role": "Defines RequestOptions (Pick<RequestInit, 'signal'>), HTTPError class with fromResponse factory (reads application/problem+json for structured detail), and isHTTPError type guard.",
+        "watch_for": "HTTPError.fromResponse checks Content-Type: application/problem+json to extract problem.detail as the error message. Use isHTTPError to distinguish API errors from network failures."
+      },
+      {
+        "file": "schemas.ts",
+        "role": "Generated file exporting paths, operations, and all domain types. Source of truth for all type shapes.",
+        "watch_for": "DO NOT EDIT \u2014 regenerate via make gen-api. Any manual edit will be overwritten."
+      },
+      {
+        "file": "billing.ts",
+        "role": "Most complex resource: Billing class with three sub-classes (BillingProfiles, BillingInvoices, BillingCustomers). BillingInvoices exposes state-machine actions: advance, approve, retry, void, recalculateTax, snapshotQuantities, simulate, createLineItems, invoicePendingLines.",
+        "watch_for": "Most invoice actions take only path params (no body), but void requires body: VoidInvoiceActionInput and simulate/createLineItems/invoicePendingLines require body. Don't omit required bodies."
+      },
+      {
+        "file": "customers.ts",
+        "role": "Customers class with four sub-classes: CustomerApps, CustomerEntitlements (v1 /api/v1), CustomerEntitlementsV2 (/api/v2), CustomerStripe.",
+        "watch_for": "customers.entitlementsV1 hits /api/v1 paths; customers.entitlements hits /api/v2 paths \u2014 they are different API versions, do not mix when adding methods."
+      },
+      {
+        "file": "events.ts",
+        "role": "Events.ingest normalizes input, sets CloudEvent defaults (id via node:crypto or fallback UUID, source='@openmeter/sdk', specversion='1.0', time=now), sends as cloudevents-batch+json.",
+        "watch_for": "Must use Content-Type: application/cloudevents-batch+json for POST /api/v1/events. UUID generation tries node:crypto first and falls back to Math.random-based UUID for browser compatibility."
+      },
+      {
+        "file": "events.spec.ts",
+        "role": "Vitest tests using @fetch-mock/vitest. Shows correct test pattern: fetchMock.mockReset() in beforeEach, route assertions with fetchMock.callHistory.done().",
+        "watch_for": "Date params must be serialized to ISO strings in mock route query matchers \u2014 the SDK encodes dates before sending. The test verifies this encoding behavior."
+      }
+    ],
+    "anti_patterns": [
+      "Defining domain type shapes locally instead of importing from './schemas.js' \u2014 all shapes come from the generated file",
+      "Accessing resp.data directly without calling transformResponse \u2014 loses date decoding and HTTPError throwing on 4xx/5xx",
+      "Adding a resource class but not registering it as a public field AND constructor instantiation in OpenMeter (index.ts)",
+      "Manually editing schemas.ts \u2014 it is code-generated and will be overwritten by make gen-api",
+      "Omitting options?: RequestOptions from a public method or not spreading ...options into the fetch call \u2014 prevents AbortSignal propagation"
+    ],
+    "decisions": [
+      {
+        "decision": "openapi-fetch with typed paths/operations from generated schemas.ts",
+        "rationale": "Compile-time type-checking of route paths, path params, query params, and request/response bodies. Any API change in TypeSpec caught at TypeScript compile time after regeneration, preventing SDK drift."
+      },
+      {
+        "decision": "Date values encoded (Date\u2192ISO string) in query serializer and decoded (ISO\u2192Date) in transformResponse",
+        "rationale": "OpenAPI dates are strings; SDK callers expect JS Date objects. Centralizing encode/decode in utils.ts ensures consistent Date handling across all endpoints without per-method boilerplate."
+      },
+      {
+        "decision": "Each domain has its own file; index.ts is the only file that imports all of them",
+        "rationale": "Tree-shaking friendly \u2014 consumers who import individual classes only pull in their file. index.ts provides the convenience-bundled OpenMeter class for callers wanting the full client."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new resource class for a new domain 'widgets' with list and create methods",
+        "code": "// widgets.ts\nimport type { Client } from 'openapi-fetch'\nimport type { RequestOptions } from './common.js'\nimport type { WidgetCreate, operations, paths } from './schemas.js'\nimport { transformResponse } from './utils.js'\n\nexport class Widgets {\n  constructor(private client: Client<paths, `${string}/${string}`>) {}\n\n  public async create(widget: WidgetCreate, options?: RequestOptions) {\n    const resp = await this.client.POST('/api/v1/widgets', { body: widget, ...options })\n    return transformResponse(resp)\n  }\n\n  public async list(params?: operations['listWidgets']['parameters']['query'], options?: RequestOptions) {\n    const resp = await this.client.GET('/api/v1/widgets', { params: { query: params }, ...options })\n    return transformResponse(resp)\n  }\n}\n\n// index.ts additions:\nimport { Widgets } from './widgets.js'\n// In OpenMeter class:\npublic widgets: Widgets\n// In constructor:\nthis.widgets = new Widgets(this.client)"
+      }
+    ]
+  },
+  "api/client/javascript/src/portal": {
+    "purpose": "Restricted portal-scoped client for end-customer access. Exposes a single OpenMeter class authenticated via portalToken (required, not optional) that provides only the portal meter query endpoint \u2014 intentionally a much smaller surface than the full admin client.",
+    "patterns": [
+      {
+        "name": "Imports utilities from parent client, not redefined",
+        "description": "All utility logic (RequestOptions, paths/operations types, transformResponse, encodeDates) is imported from '../client/common.js', '../client/schemas.js', and '../client/utils.js'. This file adds only portal-specific wiring.",
+        "example": "import type { RequestOptions } from '../client/common.js'\nimport type { operations, paths } from '../client/schemas.js'\nimport { encodeDates, transformResponse } from '../client/utils.js'"
+      },
+      {
+        "name": "portalToken replaces apiKey in Config",
+        "description": "Config type requires portalToken: string (not optional). Auth header is always `Bearer ${config.portalToken}`. The same querySerializer shape (form explode, deepObject) as the main client must be kept in sync.",
+        "example": "export type Config = Pick<ClientOptions, 'baseUrl' | 'headers' | 'fetch' | 'Request' | 'requestInitExt'> & { portalToken: string }"
+      },
+      {
+        "name": "Accept: application/json header on meter query",
+        "description": "The portal meter query endpoint can return CSV if Accept header is not set. Always pass Accept: application/json explicitly, and cast the return type to the exact operations response type.",
+        "example": "const resp = await this.client.GET('/api/v1/portal/meters/{meterSlug}/query', { headers: { Accept: 'application/json' }, params: { path: { meterSlug }, query }, ...options })\nreturn transformResponse(resp) as operations['queryPortalMeter']['responses']['200']['content']['application/json']"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "index.ts",
+        "role": "Entire portal SDK in one file. Creates openapi-fetch client, wires Bearer portalToken, exposes single query() method for /api/v1/portal/meters/{meterSlug}/query.",
+        "watch_for": "Must pass Accept: application/json explicitly on the meter query \u2014 endpoint returns CSV otherwise. querySerializer shape must stay in sync with main client index.ts."
+      }
+    ],
+    "anti_patterns": [
+      "Adding admin-level endpoints to the portal client \u2014 this client is intentionally restricted to portal-scoped access only",
+      "Redefining transformResponse or encodeDates instead of importing from '../client/utils.js'",
+      "Making portalToken optional in Config \u2014 portal requests always require authentication",
+      "Omitting Accept: application/json on the meter query \u2014 endpoint falls back to CSV response"
+    ],
+    "decisions": [
+      {
+        "decision": "Portal client is a separate minimal class rather than a subset configuration of the main OpenMeter client",
+        "rationale": "Prevents accidentally exposing admin endpoints to end-customer portal tokens and makes the restricted surface explicit at the type level with no risk of scope creep."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/client/javascript/src/react": {
+    "purpose": "Thin React integration layer providing a context/provider/hook trio (OpenMeterContext, OpenMeterProvider, useOpenMeter) so React apps can inject and consume a portal OpenMeter client anywhere in the component tree. This is a single file; all SDK logic lives in ../portal/.",
+    "patterns": [
+      {
+        "name": "Re-export portal surface wholesale",
+        "description": "context.tsx does `export * from '../portal/index.js'` so all portal SDK types and functions are available from the react import path. Consumers import from '@openmeter/sdk/react' and get everything.",
+        "example": "export * from '../portal/index.js'"
+      },
+      {
+        "name": "Null-initialized context with undefined-throws hook",
+        "description": "OpenMeterContext default is null (unauthenticated state). useOpenMeter throws only if context is undefined (outside provider). Callers check for null themselves to handle unauthenticated state.",
+        "example": "const ctx = createContext<OpenMeter | null>(null)\nexport function useOpenMeter() {\n  const context = useContext(OpenMeterContext)\n  if (typeof context === 'undefined') { throw new Error('useOpenMeter must be used within a OpenMeterProvider') }\n  return context\n}"
+      },
+      {
+        "name": "'use client' directive at top",
+        "description": "File is marked 'use client' for Next.js App Router compatibility. Any addition to this file must preserve this directive at the very first line.",
+        "example": "'use client'"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "context.tsx",
+        "role": "Entire folder. Exports OpenMeterContext, OpenMeterProvider, useOpenMeter, and re-exports all portal SDK symbols.",
+        "watch_for": "Do not add business logic or API call methods here. All SDK behaviour belongs in ../portal/. New exports should come via re-export from ../portal/, not defined locally. Do not remove 'use client'."
+      }
+    ],
+    "anti_patterns": [
+      "Defining SDK methods or API call logic directly in context.tsx instead of delegating to ../portal/",
+      "Removing the 'use client' directive \u2014 breaks Next.js App Router",
+      "Creating a second context or provider for different API concerns \u2014 extend the OpenMeter type in portal/ instead",
+      "Throwing inside useOpenMeter when value is null \u2014 null is a valid unauthenticated state, only undefined should throw"
+    ],
+    "decisions": [
+      {
+        "decision": "Context default is null, not a noop object",
+        "rationale": "Forces callers to handle the unauthenticated state explicitly rather than silently calling noop methods that appear to work but do nothing."
+      },
+      {
+        "decision": "All portal exports are re-exported from this entry point",
+        "rationale": "Consumers importing from the react path get the full portal SDK surface without a second import statement, keeping usage ergonomic while preserving a single source of truth in ../portal/."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wrap app with provider and consume client in a component",
+        "code": "'use client'\nimport { OpenMeterProvider, useOpenMeter } from '@openmeter/sdk/react'\nimport { OpenMeter } from '@openmeter/sdk/portal'\n\nconst client = new OpenMeter({ baseUrl: 'https://openmeter.cloud', portalToken: 'tok_...' })\n\nfunction App() {\n  return (\n    <OpenMeterProvider value={client}>\n      <Dashboard />\n    </OpenMeterProvider>\n  )\n}\n\nfunction Dashboard() {\n  const om = useOpenMeter() // throws if outside provider, null if unauthenticated\n  if (!om) return <Login />\n  // om.query(...)\n}"
+      }
+    ]
+  },
+  "api/client/javascript/src/zod": {
+    "purpose": "Auto-generated Zod validation schemas for all OpenMeter API query parameters and request bodies, produced by orval from the OpenAPI spec. Exports typed Zod objects and constant defaults/regex patterns per operation \u2014 never hand-edit this file.",
+    "patterns": [
+      {
+        "name": "Generated by orval \u2014 do not edit",
+        "description": "index.ts carries the 'Generated by orval v8.7.0 \u2014 Do not edit manually.' header. All schemas are regenerated from the OpenAPI spec. Any manual edit will be overwritten on the next make gen-api.",
+        "example": "/**\n * Generated by orval v8.7.0 \ud83c\udf7a\n * Do not edit manually.\n */"
+      },
+      {
+        "name": "Constants exported before each Zod schema",
+        "description": "Each operation exports named constants for defaults, min/max values, and RegExp patterns before the Zod schema object (e.g. listAddonsQueryPageDefault = 1, listAddonsQueryKeyItemRegExp). These constants are referenced inside the zod.object() calls.",
+        "example": "export const listAddonsQueryPageDefault = 1\nexport const listAddonsQueryPageSizeMax = 1000\nexport const ListAddonsQueryParams = zod.object({\n  page: zod.coerce.number().min(1).default(listAddonsQueryPageDefault),\n  pageSize: zod.coerce.number().min(1).max(listAddonsQueryPageSizeMax).default(listAddonsQueryPageSizeDefault)\n})"
+      },
+      {
+        "name": "zod.coerce for all scalar fields",
+        "description": "Query parameters use zod.coerce.string(), zod.coerce.number(), zod.coerce.boolean() to handle URL string coercion automatically. This matches how form-encoded query strings arrive in validated contexts.",
+        "example": "includeDeleted: zod.coerce.boolean().default(listAddonsQueryIncludeDeletedDefault)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "index.ts",
+        "role": "Single generated file exporting all Zod schemas for API query param and body validation. Exports both the constants (defaults, regexps, min/max) and the Zod schema objects per operation.",
+        "watch_for": "DO NOT EDIT. Import and use these schemas for server-side validation of incoming query parameters. The naming convention is <OperationPascalCase>QueryParams or <OperationPascalCase>Body."
+      }
+    ],
+    "anti_patterns": [
+      "Manually editing index.ts \u2014 it is regenerated by orval from the OpenAPI spec on make gen-api",
+      "Redefining Zod schemas locally when the generated schemas already cover the operation",
+      "Using the raw generated constants (defaults/regexps) in application logic \u2014 they are implementation details of the schema and subject to regeneration"
+    ],
+    "decisions": [
+      {
+        "decision": "Zod schemas generated by orval from the same OpenAPI spec that generates TypeScript types",
+        "rationale": "Keeps runtime validation (Zod) and compile-time types (TypeScript) in sync with the TypeSpec source of truth. Single make gen-api updates both."
+      }
+    ],
+    "code_examples": []
+  }
+}

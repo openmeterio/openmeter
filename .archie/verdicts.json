@@ -1,0 +1,64 @@
+{
+  "verdicts": [
+    {
+      "id": "f_0008",
+      "verdict": "keep",
+      "confidence": 0.95,
+      "reason": "The cited code exists and correctly implements prefix-based topic routing with a silent fallback to SystemEventsTopic; this is a real and documented structural fragility where new event families that forget to declare EventVersionSubsystem will misroute, breaking topic isolation. The failure mode is acknowledged in enforcement rules as pitfall pf-007 but remains unblocked at runtime."
+    },
+    {
+      "id": "f_0006",
+      "verdict": "keep",
+      "confidence": 0.85,
+      "reason": "The quoted call site exists and billing-worker does assume the default namespace already exists via GetDefaultNamespace() without registering handlers to create it, creating a real startup ordering dependency on cmd/server; however, the actual failure mode is an explicit crash (error log + os.Exit(1)) rather than 'silent degradation' as claimed."
+    },
+    {
+      "id": "f_0009",
+      "verdict": "keep",
+      "confidence": 0.9,
+      "reason": "The quoted code exists at appclient.go:238-240 inside providerError(), a parameterless error handler called from request-scoped methods. It calls UpdateAppStatus(context.Background(), ...) during Stripe 401 handling, severing transaction context and OTel spans from a database mutation \u2014 a direct violation of the documented rule 'Never introduce context.Background() to sidestep missing context propagation in application code'."
+    },
+    {
+      "id": "f_0001",
+      "verdict": "demote",
+      "confidence": 0.85,
+      "reason": "The triggering call site (adapter.go:52) shows the correct Tx() method implementation of the TxCreator interface, not unsafe usage of a raw *entdb.Client. The finding describes a real risk class (helpers accepting raw *entdb.Client bypassing transactions), which is documented in enforcement rules ctx-001/ctx-002 and CLAUDE.md warnings. However, no actual code violation is shown\u2014only the infrastructure that could enable violations if misused, plus the safeguards (TransactingRepo pattern) that prevent them. Reclassify as a pitfall pattern to watch for rather than a current bug."
+    },
+    {
+      "id": "f_0004",
+      "verdict": "keep",
+      "confidence": 0.92,
+      "reason": "The quoted atlas.sum hash chain exists and is real; sequential timestamped migrations do produce predictable merge conflicts on parallel branches by design\u2014this is documented as an accepted trade-off in the enforcement rules, not a bug, but it is a genuine architectural characteristic worth tracking."
+    },
+    {
+      "id": "f_0003",
+      "verdict": "keep",
+      "confidence": 0.85,
+      "reason": "The quoted code at grouphandler.go:48-54 exactly exhibits the claimed behavior: silent return of nil when ce_type is not in typeHandlerMap, and this silently-drop pattern does hide version mismatches per the documented pitfall (pitfalls.md: 'a known event whose payload version the consumer cannot decode' is indistinguishable from intentionally-ignored events); however, this architectural risk is already well-documented in enforcement rules as a known pitfall rather than a new finding."
+    },
+    {
+      "id": "f_0007",
+      "verdict": "keep",
+      "confidence": 0.87,
+      "reason": "Hook providers (NewCustomerLedgerServiceHook, NewCustomerSubjectServiceHook, NewCustomerEntitlementValidatorServiceHook) call RegisterHooks/RegisterRequestValidator as side-effects but are NOT in the base Customer wire set, only in individual function definitions; Wire will only call them if another dependency transitively requires their output type, and some binaries (e.g., BalanceWorker) appear not to include them in their wire.Build, causing hooks to silently not register without compile error."
+    },
+    {
+      "id": "f_0005",
+      "verdict": "keep",
+      "confidence": 0.85,
+      "reason": "The quoted code exists and genuinely uses context.Background() during request processing inside kin-openapi's ErrorHandler callback, violating the rule; the kin-openapi library signature limitation makes this structurally hard to avoid, but the code lacks any workaround or comment explaining the constraint, and no legitimate exception (main startup or post-cancel shutdown) applies here."
+    },
+    {
+      "id": "f_0002",
+      "verdict": "demote",
+      "confidence": 0.7,
+      "reason": "The finding accurately describes a real architectural fragility (fan-out noop guards without central compile-time enforcement), and this pattern is documented in enforcement rules as a pitfall (pf-005 credits guard spans four layers). However, the CURRENT codebase has all four guards properly implemented: app/common/ledger.go guards NewLedgerAccountService, NewLedgerHistoricalLedger, NewLedgerResolversService; app/common/customer.go guards NewCustomerLedgerServiceHook; app/common/billing.go guards NewBillingRegistry by skipping ChargesRegistry. The finding describes a future risk (if a NEW ledger-touching provider forgets the guard) rather than a current bug. This matches the known architectural pitfall pattern and should be tracked as an architectural decay risk in reviews, not as a findable bug."
+    },
+    {
+      "id": "f_0010",
+      "verdict": "keep",
+      "confidence": 0.0,
+      "reason": "verifier call failed (timeout / cli missing / non-zero exit); fail-open"
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "deploy/charts/benthos-collector/templates": {
+    "purpose": "Helm templates rendering the complete Kubernetes resource set (StatefulSet, Service, RBAC, ServiceAccount, Secret, ConfigMap) for the benthos-collector binary; enforces naming via _helpers.tpl macros, stores Benthos config in a Secret, and wires Downward-API env vars for leader-election.",
+    "patterns": [
+      {
+        "name": "All names through _helpers.tpl macros",
+        "description": "Every resource name must use `include \"benthos-collector.fullname\"` or `include \"benthos-collector.componentName\" (list . \"component\")`. Never concatenate `.Release.Name` or `.Chart.Name` directly.",
+        "example": "name: {{ include \"benthos-collector.componentName\" (list . \"config\") }}"
+      },
+      {
+        "name": "Common label helpers on every resource",
+        "description": "Every `metadata.labels` block must call `include \"benthos-collector.labels\" . | nindent 4`; selector labels use `include \"benthos-collector.selectorLabels\" . | nindent N`.",
+        "example": "labels:\n  {{- include \"benthos-collector.labels\" . | nindent 4 }}"
+      },
+      {
+        "name": "Config stored in Secret, not ConfigMap",
+        "description": "The Benthos config.yaml is base64-encoded into a Secret named `<fullname>-config` and mounted at `/etc/benthos/config.yaml` as a read-only subPath volume. ConfigMap is only for CA certificates.",
+        "example": "data:\n  config.yaml: {{ .Values.config | toYaml | b64enc | quote }}"
+      },
+      {
+        "name": "Container args via benthos-collector.args helper only",
+        "description": "Container args in statefulset.yaml must always be emitted via `include \"benthos-collector.args\" .`; the helper enforces mutual exclusivity of `config`, `configFile`, and `preset` and calls `fail` if none is set.",
+        "example": "args: {{ include \"benthos-collector.args\" . }}"
+      },
+      {
+        "name": "Downward-API env vars injected unconditionally",
+        "description": "The StatefulSet always injects K8S_POD_NAME, K8S_POD_UID, K8S_NAMESPACE, K8S_APP_INSTANCE, K8S_APP_NAME, K8S_APP_VERSION via fieldRef. New env vars must not conflict with these names.",
+        "example": "- name: K8S_POD_NAME\n  valueFrom:\n    fieldRef:\n      fieldPath: metadata.name"
+      },
+      {
+        "name": "Checksum annotations force pod roll on config change",
+        "description": "Pod template carries `checksum/config: {{ .Values.config | toYaml | sha256sum }}` and `checksum/secret: {{ .Values.openmeter | toYaml | sha256sum }}` so StatefulSet pods roll when config or credentials change.",
+        "example": "annotations:\n  checksum/config: {{ .Values.config | toYaml | sha256sum }}\n  checksum/secret: {{ .Values.openmeter | toYaml | sha256sum }}"
+      },
+      {
+        "name": "Storage-gated volume and PVC",
+        "description": "The `data` volumeMount and volumeClaimTemplates are only rendered when `.Values.storage.enabled` is true. Any new persistent volume must follow the same gate.",
+        "example": "{{- if .Values.storage.enabled }}\n  volumeClaimTemplates:\n    ...\n{{- end }}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "_helpers.tpl",
+        "role": "Single source of truth for all named template functions: name, fullname, chart, labels, selectorLabels, serviceAccountName, componentName (two-arg list), storageClass, args.",
+        "watch_for": "`benthos-collector.componentName` takes a list `(list . \"component\")` not a dict \u2014 passing a wrong arg type causes a nil-pointer render error. `benthos-collector.storageClass` delegates to inline `common.storage.class` defined in the same file."
+      },
+      {
+        "file": "statefulset.yaml",
+        "role": "Core workload; StatefulSet (not Deployment) for stable pod names and optional PVC volumeClaimTemplates; mounts config Secret as subPath and injects Downward API env.",
+        "watch_for": "Adding a volumeMount without gating on `.Values.storage.enabled` will break renders when storage is disabled. The config volume references the Secret name from `benthos-collector.componentName (list . \"config\")` \u2014 if the macro output changes, the mount breaks."
+      },
+      {
+        "file": "secret.yaml",
+        "role": "Always renders two Secrets unconditionally: one for OPENMETER_URL/OPENMETER_TOKEN (required field fails render if absent), one for the Benthos config YAML.",
+        "watch_for": "The config Secret name `benthos-collector.componentName (list . \"config\")` must stay in sync with the volume reference in statefulset.yaml. Renaming it in one place without the other breaks the mount."
+      },
+      {
+        "file": "rbac.yaml",
+        "role": "Conditionally (`.Values.rbac.create`) creates ClusterRole+Binding for pod/node/PVC reads and a namespace Role+Binding for lease management (leader election).",
+        "watch_for": "Contains a duplicate `subjects:` key in the ClusterRoleBinding \u2014 an existing YAML bug some parsers accept silently. Do not replicate this pattern in new resources."
+      },
+      {
+        "file": "configmap.yaml",
+        "role": "Only renders when `.Values.caRootCertificates` is non-empty; stores CA certs keyed by name with `.crt` suffix, lowercased.",
+        "watch_for": "If CA cert key names change, the volumeMount path `/usr/local/share/ca-certificates` in statefulset.yaml must still align."
+      }
+    ],
+    "anti_patterns": [
+      "Hardcoding release or chart name strings instead of using `benthos-collector.fullname` / `benthos-collector.componentName`",
+      "Storing the Benthos config.yaml in a ConfigMap \u2014 it must always be a Secret to protect embedded credentials",
+      "Adding container args directly in statefulset.yaml instead of routing through `benthos-collector.args`, which validates config source exclusivity",
+      "Adding new env vars that conflict with the unconditionally injected Downward-API set (K8S_POD_NAME, K8S_POD_UID, K8S_NAMESPACE, etc.)",
+      "Using a Deployment instead of StatefulSet \u2014 stable pod identity is required for leader election and PVC volumeClaimTemplates"
+    ],
+    "decisions": [
+      {
+        "decision": "StatefulSet over Deployment",
+        "rationale": "Stable pod names (exposed via K8S_POD_NAME Downward API) are required for the leader-election lease mechanism; PVC volumeClaimTemplates also require StatefulSet semantics."
+      },
+      {
+        "decision": "Config stored in Secret, not ConfigMap",
+        "rationale": "The Benthos config can contain sensitive credentials (API keys, tokens); Secret keeps them base64-encoded and subject to RBAC, unlike a plaintext ConfigMap."
+      },
+      {
+        "decision": "Checksum annotations on pod template",
+        "rationale": "StatefulSet does not automatically roll pods on Secret/ConfigMap changes; sha256sum annotations force a pod roll when config or OpenMeter credentials change."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new named template helper and using it in a new resource",
+        "code": "{{/* In _helpers.tpl */}}\n{{- define \"benthos-collector.myHelper\" -}}\n{{- printf \"%s-%s\" (include \"benthos-collector.fullname\" .) \"mycomponent\" | trunc 63 | trimSuffix \"-\" }}\n{{- end }}\n\n{{/* In a new resource template */}}\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: {{ include \"benthos-collector.myHelper\" . }}\n  labels:\n    {{- include \"benthos-collector.labels\" . | nindent 4 }}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "timestamp": "2026-04-24T10:14:12.006031+00:00",
+    "erosion": 0.5359,
+    "gini": 0.7677,
+    "top20_share": 0.8248,
+    "verbosity": 0.1093,
+    "total_loc": 742092,
+    "scan_type": "deep"
+  },
+  {
+    "timestamp": "2026-04-28T18:42:00.665047+00:00",
+    "erosion": 0.4459,
+    "gini": 0.6969,
+    "top20_share": 0.7378,
+    "verbosity": 0.0586,
+    "total_loc": 345136,
+    "scan_type": "deep"
+  },
+  {
+    "timestamp": "2026-05-04T10:09:30.489821+00:00",
+    "erosion": 0.4459,
+    "gini": 0.6968,
+    "top20_share": 0.7379,
+    "verbosity": 0.0588,
+    "total_loc": 351752,
+    "scan_type": "deep"
+  },
+  {
+    "timestamp": "2026-05-14T20:00:40.921693+00:00",
+    "erosion": 0.4453,
+    "gini": 0.6957,
+    "top20_share": 0.7378,
+    "verbosity": 0.0609,
+    "total_loc": 379517,
+    "scan_type": "deep"
+  }
+]

@@ -1,0 +1,63 @@
+{
+  "pattern_divergences": [],
+  "naming_violations": [],
+  "dependency_violations": [],
+  "structural_outliers": [
+    {
+      "type": "structural_outlier",
+      "folder": ".github",
+      "message": "Uses [.md, .yml] while siblings mostly use [.yaml]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "quickstart",
+      "message": "Uses [.go, .md] while siblings mostly use [.yaml]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/go",
+      "message": "Uses [.go, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/javascript",
+      "message": "Uses [.json, .ts, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/python",
+      "message": "Uses [.in, .toml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "openmeter/billing",
+      "message": "Has 38 files \u2014 significantly more than sibling average (7). May be a god-folder that should be split.",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "pkg/models",
+      "message": "Has 28 files \u2014 significantly more than sibling average (4). May be a god-folder that should be split.",
+      "severity": "info"
+    }
+  ],
+  "antipattern_clusters": [],
+  "summary": {
+    "total_findings": 7,
+    "warnings": 0,
+    "informational": 7,
+    "checks_run": [
+      "pattern_divergences",
+      "naming_violations",
+      "dependency_violations",
+      "structural_outliers",
+      "antipattern_clusters"
+    ],
+    "timestamp": "2026-04-24T10:14:15.425712+00:00"
+  }
+}

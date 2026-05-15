@@ -1,0 +1,96 @@
+{
+  "openmeter/ingest/kafkaingest": {
+    "purpose": "Implements the ingest.Collector interface by producing CloudEvents to per-namespace Kafka topics using confluent-kafka-go. Owns topic resolution and provisioning on every Ingest call, OTel span lifecycle per event, Kafka header construction (namespace, specversion, ingested_at, OTel span context), and the KafkaProducerGroup oklog/run pair for async delivery reporting.",
+    "patterns": [
+      {
+        "name": "Serializer injection for key and value encoding",
+        "description": "Collector never encodes events directly \u2014 it delegates to serializer.Serializer. SerializeKey encodes a dedupe.Item (namespace+source+id) as JSON for sink-worker deduplication; SerializeValue encodes a flat CloudEventsKafkaPayload. Both must be called in order inside every Ingest invocation.",
+        "example": "key, _ := s.Serializer.SerializeKey(topicName, namespace, ev)\nvalue, _ := s.Serializer.SerializeValue(topicName, ev)"
+      },
+      {
+        "name": "Topic resolved and provisioned inside every Ingest call",
+        "description": "TopicResolver.Resolve maps namespace \u2192 topic name; TopicProvisioner.Provision ensures the topic exists before Produce is called. Both happen per call, not at construction time. The provisioner is expected to be idempotent (no-op on existing topics).",
+        "example": "topicName, err := s.TopicResolver.Resolve(ctx, namespace)\n_ = s.TopicProvisioner.Provision(ctx, pkgkafka.TopicConfig{Name: topicName, Partitions: s.TopicPartitions})"
+      },
+      {
+        "name": "OTel span wraps full Ingest lifecycle with deferred error recording",
+        "description": "Ingest opens a span at entry and captures the local err variable in a deferred closure that calls span.RecordError + span.SetStatus on any non-nil error. Never return an error path without this span capturing it.",
+        "example": "ctx, span := s.Tracer.Start(ctx, \"openmeter.ingest.process.event\", ...)\ndefer func() {\n  if err != nil { span.RecordError(err); span.SetStatus(otelcodes.Error, err.Error()) }\n  span.End()\n}()"
+      },
+      {
+        "name": "Fixed Kafka header set per message",
+        "description": "Every kafka.Message must include four headers: 'namespace' ([]byte), 'specversion', 'ingested_at' (RFC3339Nano UTC via ToIngestedAt), and otelx.OTelSpanContextKey (serialized span context). The sink worker reads these headers to reconstruct context and attribute events to the correct tenant.",
+        "example": "Headers: []kafka.Header{\n  {Key: HeaderKeyNamespace, Value: []byte(namespace)},\n  {Key: \"specversion\", Value: []byte(ev.SpecVersion())},\n  {Key: HeaderKeyIngestedAt, Value: []byte(ToIngestedAt(clock.Now()))},\n  {Key: otelx.OTelSpanContextKey, Value: spanCtx},\n}"
+      },
+      {
+        "name": "KafkaProducerGroup as oklog/run pair, not an internal goroutine",
+        "description": "KafkaProducerGroup returns (execute func() error, interrupt func(error)) for use in cmd/* oklog/run.Group. The execute loop drains producer.Events() handling *kafka.Message delivery reports, *kafka.Stats (metrics), and kafka.Error (broker errors). Must be started by the caller \u2014 never start the producer without running this group.",
+        "example": "execute, interrupt := kafkaingest.KafkaProducerGroup(ctx, producer, logger, kafkaMetrics)\nrunGroup.Add(execute, interrupt)"
+      },
+      {
+        "name": "NamespaceHandler reuses same Resolver and Provisioner as Collector",
+        "description": "NamespaceHandler.CreateNamespace calls Resolve then Provision; DeleteNamespace is a no-op unless DeletionEnabled=true. The TopicResolver nil check is done at call time, not construction, so a zero-value NamespaceHandler will panic in production.",
+        "example": "namespaceManager.RegisterHandler(kafkaingest.NamespaceHandler{\n  TopicResolver: resolver, TopicProvisioner: provisioner,\n  Partitions: 4, DeletionEnabled: false,\n})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "collector.go",
+        "role": "Core Collector struct with Ingest (produce path) and Close methods, plus KafkaProducerGroup for async delivery reporting. All Kafka produce logic lives here.",
+        "watch_for": "Producer.Produce is fire-and-forget; delivery results arrive asynchronously via KafkaProducerGroup. Missing the group means silent delivery failures. The local 'err' variable is captured by the deferred span closure \u2014 do not shadow it with := inside the function body."
+      },
+      {
+        "file": "namespace.go",
+        "role": "NamespaceHandler implements openmeter/namespace.Handler for Kafka ingest topics. Provisions on CreateNamespace; deprovisions only when DeletionEnabled=true.",
+        "watch_for": "TopicResolver nil-check is deferred to call time \u2014 a zero-value NamespaceHandler panics at runtime, not setup. Register this handler before initNamespace() in cmd/server/main.go or the default namespace misses provisioning."
+      },
+      {
+        "file": "serializer/json.go",
+        "role": "JSONSerializer implements SerializeKey (dedupe.Item JSON \u2192 key bytes) and SerializeValue (CloudEventsKafkaPayload JSON \u2192 value bytes). Wire format consumed by sink worker's FromKafkaPayloadToCloudEvents.",
+        "watch_for": "CloudEventsKafkaPayload.Time is unix int64 \u2014 timezone is intentionally dropped. Data is stored as a JSON string inside the payload, not raw bytes. Do not change this without updating the sink worker's deserializer."
+      },
+      {
+        "file": "serializer/serializer.go",
+        "role": "Serializer interface definition with GetKeySchemaId/GetValueSchemaId schema-registry hooks. Current JSON impl returns 0 for both schema IDs.",
+        "watch_for": "If adding a schema-registry-aware serializer, all four methods must return real schema IDs or the sink worker will mis-deserialize messages."
+      },
+      {
+        "file": "topicresolver/namespacedtopic.go",
+        "role": "NamespacedTopicResolver maps namespace \u2192 Kafka topic name via fmt.Sprintf(template, namespace). Default template produces 'om_%s_events'.",
+        "watch_for": "Constructor validates non-empty template but not %s count. A template with zero or two %s placeholders silently produces wrong topic names."
+      },
+      {
+        "file": "topicresolver/resolver.go",
+        "role": "Resolver interface. Accepts context.Context for future async/DB-backed implementations.",
+        "watch_for": "Always propagate caller's ctx to Resolve \u2014 never pass context.Background() in application code."
+      }
+    ],
+    "anti_patterns": [
+      "Calling Producer.Produce without running KafkaProducerGroup in an oklog/run.Group \u2014 delivery errors are silently dropped",
+      "Hard-coding topic names instead of calling TopicResolver.Resolve per namespace",
+      "Adding new Kafka headers inside Ingest without also updating the sink worker's header parsing",
+      "Constructing Collector or NamespaceHandler with a nil TopicResolver \u2014 nil check is deferred to call time and will panic in production",
+      "Storing timezone-aware time in CloudEventsKafkaPayload.Time \u2014 the field is unix int64 and timezone is intentionally stripped by the serializer"
+    ],
+    "decisions": [
+      {
+        "decision": "Topic is resolved and provisioned on every Ingest call, not only at namespace creation",
+        "rationale": "Ensures idempotent topic existence even when the NamespaceHandler was not called first (e.g., in self-hosted single-namespace deployments). The provisioner is expected to be idempotent (no-op on existing topics) so the per-call overhead is a single Kafka admin API check."
+      },
+      {
+        "decision": "Key encodes dedupe.Item (namespace+source+id) rather than event ID alone",
+        "rationale": "Enables consistent Kafka partitioning per logical event identity so the sink worker's Redis deduplication hash matches the Kafka message key without a separate lookup, preventing double-counting on consumer restart."
+      },
+      {
+        "decision": "KafkaProducerGroup is an oklog/run pair returned to the caller rather than a goroutine started inside NewCollector",
+        "rationale": "Lets cmd/* binaries control the delivery-reporting lifecycle via the shared run.Group, ensuring graceful shutdown and avoiding goroutine leaks \u2014 consistent with the oklog/run pattern used throughout all cmd/* entrypoints."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wiring Collector and registering NamespaceHandler in app/common",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest\"\n\t\"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer\"\n\t\"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver\"\n\tpkgkafka \"github.com/openmeterio/openmeter/pkg/kafka\"\n)\n\nresolver := topicresolver.NewNamespacedTopicResolver(\"om_%s_events\")\ncollector, err := kafkaingest.NewCollector(producer, serializer.NewJSONSerializer(), resolver, provisioner, 4, logger, tracer)\n// Register namespace handler BEFORE initNamespace() so default namespace gets provisioned:\nnamespaceManager.RegisterHandler(kafkaingest.NamespaceHandler{\n\tTopicResolver:    resolver,\n\tTopicProvisioner: provisioner,\n\tPartitions:       4,\n\tDeletionEnabled:  false,\n})\n// Add producer event loop to oklog/run.Group:\nexecute, interrupt := kafkaingest.KafkaProducerGroup(ctx, producer, logger, kafkaMetrics)\nrunGroup.Add(execute, interrupt)"
+      }
+    ]
+  }
+}

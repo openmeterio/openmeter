@@ -1,0 +1,111 @@
+{
+  "openmeter/billing/charges/flatfee": {
+    "purpose": "Public domain contract package for flat-fee charges: declares all domain types (Charge, Intent, Status, Realizations, DetailedLines, RealizationRun), the Adapter composite interface, the Service interface, and the Handler interface for ledger/credit callbacks. It is the contract boundary between flatfee/service and flatfee/adapter sub-packages \u2014 no business logic or DB access lives here.",
+    "patterns": [
+      {
+        "name": "Input.Validate() before any operation",
+        "description": "Every Input struct (CreateChargesInput, GetByIDsInput, IntentWithInitialStatus, AdvanceChargeInput, CreateCurrentRunInput, etc.) implements Validate() that collects errors with errors.Join and wraps via models.NewNillableGenericValidationError. Callers must invoke Validate() as the first statement before any adapter or service call.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "Adapter is a composite of fine-grained sub-interfaces + entutils.TxCreator",
+        "description": "Adapter embeds ChargeAdapter, ChargeDetailedLineAdapter, ChargeCreditAllocationAdapter, ChargeRunAdapter, ChargeInvoicedUsageAdapter, ChargePaymentAdapter, and entutils.TxCreator. Callers that only need a sub-interface can depend on the narrower type. No direct methods live on the Adapter composite.",
+        "example": "type Adapter interface { ChargeAdapter; ChargeDetailedLineAdapter; ...; entutils.TxCreator }"
+      },
+      {
+        "name": "Expand dependency validation",
+        "description": "validateExpands enforces that ExpandDetailedLines requires ExpandRealizations, and ExpandDeletedRealizations requires ExpandRealizations. Violations return fmt.Errorf wrapped by the caller's Validate().",
+        "example": "if expands.Has(meta.ExpandDetailedLines) && !expands.Has(meta.ExpandRealizations) { return fmt.Errorf(...) }"
+      },
+      {
+        "name": "Currency rounding in Intent.Normalized() and CalculateAmountAfterProration",
+        "description": "Intent.Normalized() calls calc.RoundToPrecision on AmountBeforeProration. CalculateAmountAfterProration also rounds the prorated result to currency precision. Never compare or store amounts without rounding first.",
+        "example": "i.AmountBeforeProration = calc.RoundToPrecision(i.AmountBeforeProration)"
+      },
+      {
+        "name": "Status as typed string with Values() + Validate() + ToMetaChargeStatus()",
+        "description": "Status is a typed string with an exhaustive Values() []string method and a Validate() that checks slices.Contains. ToMetaChargeStatus() splits on '.' to extract the top-level meta.ChargeStatus. New statuses must be added to Values() or Validate() will reject them.",
+        "example": "func (s Status) Validate() error { if !slices.Contains(s.Values(), string(s)) { return models.NewGenericValidationError(...) } }"
+      },
+      {
+        "name": "Handler interface for external ledger/credit callbacks declared here, not in flatfee/service",
+        "description": "Handler declares OnAssignedToInvoice, OnInvoiceUsageAccrued, OnCreditsOnlyUsageAccrued, OnCreditsOnlyUsageAccruedCorrection, OnPaymentAuthorized, OnPaymentSettled, OnPaymentUncollectible \u2014 all returning typed result structs. Placing Handler here (not in flatfee/service) breaks the import cycle: flatfee/service imports flatfee for types.",
+        "example": "OnAssignedToInvoice(ctx context.Context, input OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error)"
+      },
+      {
+        "name": "ProRatingModeAdapterEnum with NoProratingAdapterMode for DB persistence",
+        "description": "ProRatingModeAdapterEnum extends productcatalog.ProRatingMode with a NoProratingAdapterMode value ('no_prorate') that has no productcatalog counterpart. Only the adapter layer uses this enum for DB column mapping; service-layer logic must use productcatalog.ProRatingConfig.",
+        "example": "NoProratingAdapterMode ProRatingModeAdapterEnum = \"no_prorate\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Declares the Adapter composite interface and all adapter-facing input types (CreateChargesInput, GetByIDInput, GetByIDsInput, IntentWithInitialStatus, CreateCurrentRunInput, CreateInvoicedUsageInput). New persistence methods must be added to one of the six sub-interfaces here.",
+        "watch_for": "Do not add conversion logic here; that belongs in flatfee/adapter/mapper.go. All input types must implement Validate()."
+      },
+      {
+        "file": "charge.go",
+        "role": "Core domain types: ChargeBase, Charge, Intent, State, Realizations. Intent.CalculateAmountAfterProration owns all proration math \u2014 it rounds results to currency precision and never increases AmountBeforeProration when servicePeriod >= fullServicePeriod.",
+        "watch_for": "CalculateAmountAfterProration guard: servicePeriodDuration >= fullServicePeriodDuration returns the unprorated amount. Charge.WithStatus/WithBase return value copies (not pointer mutations) \u2014 required by the generic state machine."
+      },
+      {
+        "file": "service.go",
+        "role": "Declares Service (= FlatFeeService + GetLineEngine + InvoiceLifecycleHooks is implied via flatfee/service embedding), CreateInput, AdvanceChargeInput, GetByIDsInput for the service layer. InvoiceLifecycleHooks methods are called by the billing engine.",
+        "watch_for": "Never add billing.Service dependencies to this interface file. ChargeWithGatheringLine wraps a Charge with an optional GatheringLine for atomic creation."
+      },
+      {
+        "file": "handler.go",
+        "role": "Declares Handler interface for ledger/credit event callbacks. Each OnXxx input struct implements Validate() and some implement ValidateWith(currencyCalculator) when currency precision is required.",
+        "watch_for": "Handler implementations live outside this package (in flatfee/service or ledger/chargeadapter). Do not add business logic in the interface file."
+      },
+      {
+        "file": "statemachine.go",
+        "role": "Defines Status type, Values(), Validate(), ToMetaChargeStatus(). Flat-fee statuses are hierarchical: sub-statuses use dot notation (e.g. 'active.realization.started'); ToMetaChargeStatus() extracts the top-level prefix.",
+        "watch_for": "New statuses must be added to Values() or runtime validation will reject them. ToMetaChargeStatus splits on '.' \u2014 ensure new sub-statuses follow the 'toplevel.substate' convention."
+      },
+      {
+        "file": "realizationrun.go",
+        "role": "RealizationRunBase, RealizationRun, RealizationRuns, RealizationRunID, UpdateRealizationRunInput. RealizationRun uses mo.Option[DetailedLines] so detailed lines are distinguished from 'not loaded' vs 'empty'. IsVoidedBillingHistory covers both soft-deleted and unsupported-credit-note runs.",
+        "watch_for": "UpdateRealizationRunInput uses mo.Option fields \u2014 a field absent from a partial update must remain mo.None, not zero value. RealizationRunTypeInvalidDueToUnsupportedCreditNote must never be an InitialType."
+      },
+      {
+        "file": "detailedline.go",
+        "role": "DetailedLine is a type alias for stddetailedline.Base; changes to stddetailedline.Base propagate here automatically. DetailedLines.Clone() performs a deep copy via lo.Map.",
+        "watch_for": "Because DetailedLine is a type alias (not a named type), you cannot add methods to it directly \u2014 add helpers to DetailedLines (the slice type) instead."
+      },
+      {
+        "file": "charge_test.go",
+        "role": "Unit tests for Intent.CalculateAmountAfterProration covering proration disabled, equal periods, half-period, zero-length periods, JPY rounding, and servicePeriod exceeding fullServicePeriod. Lives in package flatfee (not flatfee_test) to access unexported helpers.",
+        "watch_for": "Tests use datetime.MustParseTimeInLocation \u2014 always supply UTC to avoid timezone-dependent rounding surprises in assertions."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic (state machine transitions, DB calls) directly in adapter.go, service.go, or handler.go \u2014 these files are interface and type definition files only.",
+      "Using raw (unrounded) amounts in allocation or comparison logic \u2014 always call currencyCalculator.RoundToPrecision or Intent.CalculateAmountAfterProration before storing or comparing.",
+      "Omitting Validate() on new Input types \u2014 every struct passed across the package boundary must be self-validating via models.NewNillableGenericValidationError.",
+      "Referencing meta.ChargeStatusXxx constants directly in service or adapter code instead of the package-local Status constants (StatusCreated, StatusActive, etc.).",
+      "Using NoProratingAdapterMode in service-layer logic \u2014 this enum value exists only for DB persistence mapping and has no productcatalog counterpart."
+    ],
+    "decisions": [
+      {
+        "decision": "Adapter is a composite of six fine-grained sub-interfaces rather than a flat method list.",
+        "rationale": "Callers that only need ChargeAdapter or ChargePaymentAdapter can depend on the narrower interface, reducing coupling and making mocking easier in tests."
+      },
+      {
+        "decision": "ProRatingModeAdapterEnum lives in this package (not productcatalog) and adds NoProratingAdapterMode.",
+        "rationale": "The DB enum must capture the 'no prorate' case that productcatalog omits; keeping it here prevents productcatalog from gaining a persistence-layer concern."
+      },
+      {
+        "decision": "Handler interface is declared here (not in flatfee/service) to allow flatfee/service to implement it without import cycles.",
+        "rationale": "flatfee/service imports flatfee for domain types; placing Handler in flatfee/service would force flatfee to import flatfee/service, creating a cycle."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implementing a new flat-fee adapter method that writes two rows atomically inside a ctx-propagated transaction",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) CreatePaymentAndUsage(ctx context.Context, input flatfee.CreateInvoicedUsageInput) error {\n\tif err := input.Validate(); err != nil {\n\t\treturn err\n\t}\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n\t\tif _, err := tx.CreatePayment(ctx, input.RunID, paymentData); err != nil {\n\t\t\treturn fmt.Errorf(\"create payment: %w\", err)\n\t\t}\n\t\t_, err := tx.CreateInvoicedUsage(ctx, input)\n\t\treturn err\n\t})\n}"
+      }
+    ]
+  }
+}

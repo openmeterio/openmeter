@@ -1,0 +1,153 @@
+{
+  "collector/benthos/internal/logging": {
+    "purpose": "Single-file bridge package that adapts Benthos' service.Logger to logr.LogSink, enabling controller-runtime and klog to route through the same Benthos logger instance. No business logic \u2014 purely a logging adapter.",
+    "patterns": [
+      {
+        "name": "Benthos-to-logr bridge via CtrlLogger",
+        "description": "CtrlLogger implements logr.LogSink by wrapping *service.Logger. Level 0 maps to Infof; any other level maps to Debugf. Error always calls Errorf. Construct via logr.New(&CtrlLogger{logger: logger}).",
+        "example": "logr.New(&CtrlLogger{logger: svc.Logger()})"
+      },
+      {
+        "name": "SetupKlog called once at startup",
+        "description": "SetupKlog sets the global klog logger via klog.SetLogger with a logr.Logger carrying component=kubernetes key. Must be called exactly once \u2014 klog global state is not re-entrant.",
+        "example": "logging.SetupKlog(svc.Logger())"
+      },
+      {
+        "name": "WithValues and WithName are intentional no-ops",
+        "description": "Both methods return the same receiver unchanged. Benthos uses format strings \u2014 structured kv pairs from controller-runtime are silently dropped by design.",
+        "example": "func (l *CtrlLogger) WithValues(keysAndValues ...any) logr.LogSink { return l }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "logging.go",
+        "role": "Entire package: CtrlLogger struct, NewLogrLogger factory, SetupKlog global initializer.",
+        "watch_for": "WithValues/WithName are no-ops \u2014 structured kv pairs from controller-runtime are silently dropped; do not add state to them."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a second logger abstraction \u2014 this package is purely a bridge, not a logging framework",
+      "Implementing WithValues/WithName with real state \u2014 Benthos logger is format-string based and cannot carry structured fields",
+      "Calling SetupKlog more than once \u2014 klog global state is not re-entrant"
+    ],
+    "decisions": [
+      {
+        "decision": "Map logr level 0 to Info, all other levels to Debug",
+        "rationale": "controller-runtime uses level 0 for normal operational messages; higher levels are verbose debug output that should not appear at Info in production"
+      },
+      {
+        "decision": "Prefix klog entries with component=kubernetes",
+        "rationale": "Distinguishes Kubernetes controller-runtime log lines from Benthos pipeline logs in aggregated log streams"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wire Benthos logger into controller-runtime and klog",
+        "code": "import \"github.com/openmeterio/openmeter/collector/benthos/internal/logging\"\n\nlogging.SetupKlog(svc.Logger())\nlogrLogger := logging.NewLogrLogger(svc.Logger())"
+      }
+    ]
+  },
+  "collector/benthos/internal/message": {
+    "purpose": "Provides the Batch type alias (= service.MessageBatch) and the Transaction primitive that associates a batch with its acknowledgement mechanism, enabling delivery guarantees as batches flow through pipeline stages.",
+    "patterns": [
+      {
+        "name": "Batch is a type alias, not a newtype",
+        "description": "type Batch = service.MessageBatch \u2014 all Benthos MessageBatch methods are available directly. Do not add methods to Batch; it is purely a transparent alias.",
+        "example": "type Batch = service.MessageBatch"
+      },
+      {
+        "name": "Transaction pairs Payload with ack mechanism",
+        "description": "Transaction holds a Batch and either a responseChan chan<-error or a responseFunc. Use NewTransaction for chan-based ack, NewTransactionFunc for func-based ack. Call Ack(ctx, nil) for success, Ack(ctx, err) to trigger retry upstream.",
+        "example": "tx := message.NewTransactionFunc(batch, func(ctx context.Context, err error) error { return err })\nreturn tx.Ack(context.Background(), nil)"
+      },
+      {
+        "name": "WithContext for cancellation propagation",
+        "description": "WithContext returns a shallow copy of the Transaction with the new ctx. Receivers should honor t.Context() cancellation but must still call Ack even when canceled, passing t.Context().Err().",
+        "example": "tx = tx.WithContext(ctx)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "batch.go",
+        "role": "Single type alias for service.MessageBatch.",
+        "watch_for": "This is an alias (=), not a defined type \u2014 do not add methods to Batch directly."
+      },
+      {
+        "file": "transaction.go",
+        "role": "Transaction struct with NewTransaction (chan-based) and NewTransactionFunc (func-based) constructors plus Ack and WithContext.",
+        "watch_for": "Exactly one of responseChan or responseFunc is non-nil; Ack branches on responseFunc != nil first. Calling Ack multiple times is not idempotent."
+      }
+    ],
+    "anti_patterns": [
+      "Not calling Ack after processing \u2014 the upstream source will stall waiting for acknowledgement",
+      "Calling Ack multiple times on the same Transaction \u2014 chan send and responseFunc are not idempotent",
+      "Ignoring t.Context() cancellation in a long reconnect loop \u2014 can block shutdown",
+      "Adding methods to Batch \u2014 it is a type alias and must remain a transparent pass-through"
+    ],
+    "decisions": [
+      {
+        "decision": "Two ack paths: chan<-error vs func(context.Context, error) error",
+        "rationale": "Chan-based ack is simpler for single-consumer paths; func-based ack supports async/contextual delivery confirmation needed by more complex output brokers"
+      },
+      {
+        "decision": "Transaction is its own concept rather than embedding service.Message",
+        "rationale": "Batch expansion (splitting one batch into derived batches) breaks direct message-level ack; Transaction decouples ack from batch contents so derivative transactions can be tracked independently"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Create and acknowledge a function-based transaction",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/collector/benthos/internal/message\"\n)\n\nfunc process(batch message.Batch) error {\n\ttx := message.NewTransactionFunc(batch, func(ctx context.Context, err error) error {\n\t\treturn err\n\t})\n\t// ... pipeline stages ...\n\treturn tx.Ack(context.Background(), nil)\n}"
+      }
+    ]
+  },
+  "collector/benthos/internal/shutdown": {
+    "purpose": "Provides the Signaller primitive for two-tier graceful shutdown (at-leisure then now) plus a HasClosed signal. Components own a Signaller; orchestrators call CloseAtLeisure/CloseNow; components call ShutdownComplete when done.",
+    "patterns": [
+      {
+        "name": "Two-tier shutdown: CloseAtLeisure then CloseNow",
+        "description": "CloseAtLeisure closes closeAtLeisureChan (finish current work, start no new work). CloseNow calls CloseAtLeisure first then closes closeNowChan (stop immediately). Each is guarded by sync.Once so concurrent calls are safe.",
+        "example": "sig.CloseAtLeisure() // soft stop\nsig.CloseNow()       // hard stop \u2014 always calls CloseAtLeisure first"
+      },
+      {
+        "name": "Chan-based and ctx-based wait helpers per tier",
+        "description": "Each tier exposes *Chan() returning a read-only channel for select, and *Ctx() wrapping it in a context. Use *Ctx() when combining shutdown with other cancellation sources.",
+        "example": "ctx, cancel := sig.CloseNowCtx(parentCtx)\ndefer cancel()"
+      },
+      {
+        "name": "ShutdownComplete signals component termination",
+        "description": "The component calls sig.ShutdownComplete() once its goroutines have exited. Orchestrators wait on HasClosedChan() or HasClosedCtx() to confirm safe teardown. Forgetting this call blocks the orchestrator forever.",
+        "example": "defer sig.ShutdownComplete()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "signaler.go",
+        "role": "Entire package: Signaller struct with CloseAtLeisure, CloseNow, ShutdownComplete and their *Chan/*Ctx/ShouldClose* accessors.",
+        "watch_for": "CloseNow always calls CloseAtLeisure first \u2014 ShouldCloseAtLeisure is true whenever ShouldCloseNow is true; checking only the Now tier misses the leisure signal."
+      }
+    ],
+    "anti_patterns": [
+      "Forgetting to call ShutdownComplete \u2014 orchestrators block forever waiting on HasClosedChan",
+      "Adding a third shutdown tier \u2014 the two-tier model (leisure / now) is the intentional contract",
+      "Using CloseAtLeisureCtx when CloseNowCtx is needed \u2014 leisure ctx fires on either tier; now ctx fires only on the urgent tier",
+      "Closing shutdown channels directly \u2014 always call CloseAtLeisure/CloseNow; direct close panics on repeat calls"
+    ],
+    "decisions": [
+      {
+        "decision": "sync.Once guards each close channel",
+        "rationale": "Closing a closed channel panics; Once makes CloseAtLeisure and CloseNow safe to call multiple times from concurrent goroutines"
+      },
+      {
+        "decision": "Separate Signaller per component rather than a global shutdown signal",
+        "rationale": "Allows fine-grained teardown sequencing \u2014 orchestrator can drain outputs before closing inputs by shutting down Signallers in dependency order"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Component using Signaller for graceful shutdown",
+        "code": "import \"github.com/openmeterio/openmeter/collector/benthos/internal/shutdown\"\n\nsig := shutdown.NewSignaller()\ngo func() {\n\tdefer sig.ShutdownComplete()\n\tfor {\n\t\tselect {\n\t\tcase <-sig.CloseAtLeisureChan():\n\t\t\t// finish in-flight work, then return\n\t\t\treturn\n\t\t}\n\t}\n}()\n// orchestrator triggers and waits\nsig.CloseNow()\n<-sig.HasClosedChan()"
+      }
+    ]
+  }
+}

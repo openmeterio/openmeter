@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="ghostGrad" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" style="stop-color:#8ED8F5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3AACE0;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <path d="
+    M 40 105
+    C 40 63, 68 32, 100 32
+    C 132 32, 160 63, 160 105
+    L 160 162
+    C 151 155, 142 148, 133 155
+    C 124 162, 115 155, 100 155
+    C 85 155, 76 162, 67 155
+    C 58 148, 49 155, 40 162
+    Z
+  " fill="url(#ghostGrad)" filter="url(#glow)"/>
+
+  <g opacity="0.15" stroke="#ffffff" stroke-width="1.2" stroke-dasharray="4,3">
+    <line x1="60" y1="85" x2="140" y2="85"/>
+    <line x1="55" y1="110" x2="145" y2="110"/>
+    <line x1="60" y1="135" x2="140" y2="135"/>
+    <line x1="78" y1="55" x2="78" y2="150"/>
+    <line x1="100" y1="42" x2="100" y2="152"/>
+    <line x1="122" y1="55" x2="122" y2="150"/>
+  </g>
+
+  <ellipse cx="79" cy="88" rx="14" ry="15" fill="white"/>
+  <ellipse cx="121" cy="88" rx="14" ry="15" fill="white"/>
+
+  <ellipse cx="83" cy="91" rx="7" ry="8" fill="#1A2E4A"/>
+  <ellipse cx="125" cy="91" rx="7" ry="8" fill="#1A2E4A"/>
+
+  <circle cx="86" cy="87" r="2.5" fill="white"/>
+  <circle cx="128" cy="87" r="2.5" fill="white"/>
+</svg>

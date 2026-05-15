@@ -1,0 +1,255 @@
+{
+  "test/billing": {
+    "purpose": "Integration test suite for the billing domain \u2014 exercises invoice lifecycle, adapter persistence, collection flows, discounts, tax handling, schema migrations, and subscription sync against a real PostgreSQL database provisioned via pgtestdb and Atlas migrations.",
+    "patterns": [
+      {
+        "name": "BaseSuite embedding",
+        "description": "Every test suite embeds BaseSuite (suite.go) which boots the full billing stack from raw package constructors \u2014 never from app/common. All shared service fields (BillingService, BillingAdapter, CustomerService, FeatureService, MeterAdapter, MockStreamingConnector, etc.) are initialised in BaseSuite.setupSuite.",
+        "example": "type InvoicingTestSuite struct { BaseSuite }\nfunc TestInvoicing(t *testing.T) { suite.Run(t, new(InvoicingTestSuite)) }"
+      },
+      {
+        "name": "SubscriptionMixin for subscription-dependent tests",
+        "description": "Test suites that require plan/subscription/addon/entitlement/credit services embed SubscriptionMixin alongside BaseSuite and call SubscriptionMixin.SetupSuite(t, s.GetSubscriptionMixInDependencies()) in their own SetupSuite override.",
+        "example": "type SubscriptionTestSuite struct { BaseSuite; SubscriptionMixin; SubscriptionSyncService subscriptionsync.Service }"
+      },
+      {
+        "name": "Unique namespace per test",
+        "description": "Every test method uses a unique namespace string \u2014 either a hard-coded constant prefixed with 'ns-' unique per method, or s.GetUniqueNamespace(prefix) \u2014 to prevent cross-test FK violations on the shared database.",
+        "example": "namespace := s.GetUniqueNamespace(\"ns-schema-migration\")"
+      },
+      {
+        "name": "clock.SetTime / clock.ResetTime for deterministic time",
+        "description": "Tests that depend on invoice_at / collection_at / period calculations freeze or advance pkg/clock globally. BaseSuite.TearDownTest always calls clock.UnFreeze() and clock.ResetTime(); individual tests must still defer clock.ResetTime() if they call clock.SetTime inline.",
+        "example": "clock.SetTime(periodStart); defer clock.ResetTime()"
+      },
+      {
+        "name": "MockStreamingConnector for usage events",
+        "description": "Usage events are injected via s.MockStreamingConnector.AddSimpleEvent(meterSlug, quantity, ts) or SetSimpleEvents. Always defer s.MockStreamingConnector.Reset() after injecting events to prevent bleed into subsequent sub-tests.",
+        "example": "s.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(time.Minute))\ndefer s.MockStreamingConnector.Reset()"
+      },
+      {
+        "name": "Atlas migrations by default; TEST_DISABLE_ATLAS skips them",
+        "description": "setupSuite runs full golang-migrate Atlas migrations unless TEST_DISABLE_ATLAS env var is set. SchemaMigrationTestSuite forces Atlas by passing SetupSuiteOptions{ForceAtlas: true} explicitly to test schema-level migration correctness.",
+        "example": "func (s *SchemaMigrationTestSuite) SetupSuite() { s.BaseSuite.setupSuite(SetupSuiteOptions{ForceAtlas: true}) }"
+      },
+      {
+        "name": "t.Context() preferred in new test code",
+        "description": "New tests use ctx := s.T().Context() to tie context lifetime to the test harness. Legacy tests still use context.Background() \u2014 keep consistency within each file.",
+        "example": "ctx := s.T().Context()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "suite.go",
+        "role": "BaseSuite definition: wires billing, customer, feature, meter, app, taxcode, subject, sandbox, and custom-invoicing services from raw constructors. Provides test helpers: InstallSandboxApp, CreateTestCustomer, ProvisionBillingProfile, CreateDraftInvoice, DebugDumpInvoice.",
+        "watch_for": "Never import app/common \u2014 test-only import cycles. All cross-domain hooks (subject/customer, entitlement validator) must be registered here, not in individual test suites."
+      },
+      {
+        "file": "subscription_suite.go",
+        "role": "SubscriptionMixin: builds plan/subscription/addon/entitlement/credit dependency graph from raw adapters. Exposes SetupEntitlements for the full credit/entitlement connector stack.",
+        "watch_for": "Requires SubscriptionMixInDependencies.Validate() to pass \u2014 all six fields must be non-nil. Uses eventbus.NewMock(t), not a real Kafka publisher."
+      },
+      {
+        "file": "schemamigration_test.go",
+        "role": "Tests schema-level migration paths (e.g., schema level 1 \u2192 current). Uses s.BillingAdapter.SetInvoiceDefaultSchemaLevel and raw Ent queries to force legacy schema state, then validates migration read behaviour.",
+        "watch_for": "Do not use BillingService for setup here \u2014 the test must place rows that BillingService would normally reject."
+      },
+      {
+        "file": "collection_test.go",
+        "role": "End-to-end tests for progressive billing collection: collection_at calculation, late-event windows, anchored alignment, flat-fee-only skipping collection.",
+        "watch_for": "Relies heavily on clock.SetTime at specific points and MockStreamingConnector events at specific StoredAt timestamps \u2014 event order and time advancement must match invoice state machine transitions."
+      },
+      {
+        "file": "discount_test.go",
+        "role": "Tests discount correlation ID stability across invoice splits and unit-discount progressive billing across multiple invoice periods.",
+        "watch_for": "Calls s.MeterAdapter.ReplaceMeters and defers cleanup \u2014 meters must be replaced before features are created and cleaned up in defer to avoid test pollution."
+      },
+      {
+        "file": "profile.go",
+        "role": "Shared profile fixture builder: minimalCreateProfileInputTemplate(appID) returns a sane default CreateProfileInput with AutoAdvance=true, DraftPeriod=P1D, CollectionInterval=PT0S.",
+        "watch_for": "CollectionInterval is set to PT0S (immediate) by default so general tests do not block on collection windows \u2014 tests that validate collection timing must override this."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common in test files \u2014 causes import cycles; construct services from raw adapters as BaseSuite does.",
+      "Using context.Background() when s.T().Context() is available \u2014 breaks test-scoped cancellation.",
+      "Calling s.MockStreamingConnector.AddSimpleEvent without defer Reset() \u2014 events bleed into subsequent sub-tests.",
+      "Hard-coding the same namespace constant across multiple test methods in a file \u2014 causes FK constraint violations on the shared database.",
+      "Accessing BillingAdapter directly in tests when BillingService covers the same operation \u2014 bypasses state machine and validation logic."
+    ],
+    "decisions": [
+      {
+        "decision": "Construct all services from raw package constructors, not app/common Wire providers.",
+        "rationale": "Avoids import cycles (app/common depends on openmeter packages; test/ packages are peers) and lets each test suite compose only the services it actually needs."
+      },
+      {
+        "decision": "Run Atlas migrations by default (not ent.Schema.Create) in BaseSuite.",
+        "rationale": "Ensures tests exercise the same migration path as production, catching column/constraint drift that ent.Schema.Create would silently fix."
+      },
+      {
+        "decision": "Use pkg/clock globally for deterministic time in tests.",
+        "rationale": "Invoice lifecycle depends on clock.Now() for collection_at, quantity_snapshoted_at, and invoice_at comparisons; freezing clock eliminates race conditions in time-sensitive assertions."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Typical test method: install sandbox app, provision billing profile, create customer, inject streaming events, advance clock, invoice pending lines.",
+        "code": "namespace := \"ns-my-feature\"\nctx := s.T().Context()\nsandboxApp := s.InstallSandboxApp(s.T(), namespace)\ns.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())\ncust := s.CreateTestCustomer(namespace, \"test-subject\")\ns.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(time.Minute))\ndefer s.MockStreamingConnector.Reset()\nclock.SetTime(periodEnd.Add(time.Hour))\ndefer clock.ResetTime()\ninvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{Customer: cust.GetID()})\ns.NoError(err)"
+      }
+    ]
+  },
+  "test/credits": {
+    "purpose": "Integration tests for the credits/charges domain: credit grant lifecycle (invoice-funded, promotional, external), flat-fee/usage-based/credit-purchase charge advancement against a real ledger stack, and billing/charges rating logic. Extends test/billing.BaseSuite with ledger and charges service wiring.",
+    "patterns": [
+      {
+        "name": "Extend BaseSuite with ledger + charges stack",
+        "description": "CreditsTestSuite embeds billingtest.BaseSuite and adds Charges, Ledger, LedgerAccountService, LedgerResolver, and RevenueRecognizer. SetupSuite calls s.BaseSuite.SetupSuite() first, then initialises the ledger via ledgertestutils.InitDeps and assembles the charges stack via chargestestutils.NewServices.",
+        "example": "type BaseSuite struct {\n\tbillingtest.BaseSuite\n\tCharges charges.Service\n\tLedger ledger.Ledger\n\tLedgerAccountService ledgeraccount.Service\n\tLedgerResolver *ledgerresolvers.AccountResolver\n}"
+      },
+      {
+        "name": "CreateLedgerBackedCustomer for ledger-dependent tests",
+        "description": "Tests that require a customer with ledger accounts (FBO, receivable, etc.) call s.CreateLedgerBackedCustomer(ns, subjectKey) rather than BaseSuite.CreateTestCustomer. The helper calls LedgerResolver.EnsureBusinessAccounts then CreateCustomerAccounts.",
+        "example": "cust := s.CreateLedgerBackedCustomer(ns, \"test-subject\")"
+      },
+      {
+        "name": "chargestestutils.NewServices for charge stack construction",
+        "description": "The charges stack (usagebased, flatfee, creditpurchase handlers wired to ledgerchargeadapter) is always assembled via chargestestutils.NewServices, not ad-hoc inline. FlatFeeHandler, CreditPurchaseHandler, and UsageBasedHandler are injected from ledgerchargeadapter constructors.",
+        "example": "stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{\n\tClient: s.DBClient, BillingService: s.BillingService,\n\tFlatFeeHandler: ledgerchargeadapter.NewFlatFeeHandler(...),\n})"
+      },
+      {
+        "name": "Drive charge lifecycle via charges.Service, not adapters",
+        "description": "Tests call s.Charges.Create / AdvanceCharges / ApplyPatches rather than calling lower-level adapter methods directly, mirroring production billing-worker behaviour. CreateMockChargeIntent is the shared helper for building ChargeIntent values without struct literals.",
+        "example": "intent := s.CreateMockChargeIntent(CreateMockChargeIntentInput{Customer: cust.GetID(), Price: flatPrice, ...})\ngrants, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.ChargeIntents{intent}})"
+      },
+      {
+        "name": "TearDownTest resets clock and streaming connector",
+        "description": "BaseSuite.TearDownTest calls s.MockStreamingConnector.Reset(), clock.UnFreeze(), and clock.ResetTime() automatically after each test. Individual test methods still need defer clock.ResetTime() if they call clock.SetTime after starting sub-tests.",
+        "example": "func (s *BaseSuite) TearDownTest() {\n\ts.MockStreamingConnector.Reset()\n\tclock.UnFreeze()\n\tclock.ResetTime()\n}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "base.go",
+        "role": "BaseSuite for the credits package: embeds billingtest.BaseSuite, initialises ledger deps via ledgertestutils.InitDeps, builds revenue recognizer, collector service, and the full charges stack via chargestestutils.NewServices. Exposes CreateLedgerBackedCustomer and CreateMockChargeIntent helpers.",
+        "watch_for": "SetupSuite order is critical: billingtest.BaseSuite.SetupSuite() must run before ledgertestutils.InitDeps to ensure DBClient is available."
+      },
+      {
+        "file": "sanity_test.go / sanity_lifecycle_test.go",
+        "role": "Core charges lifecycle tests: AdvanceCharges, ApplyPatches, external payment settlement state transitions for flatfee, usagebased, and creditpurchase charge types.",
+        "watch_for": "Custom-invoicing app used (not sandbox) to verify async sync flows. Relies on clock.SetTime to control advancement windows."
+      },
+      {
+        "file": "creditgrant_test.go",
+        "role": "Tests creditgrant.Service.Create for invoice-funded, promotional, and external settlement grants. Validates that invoice-funded grants produce standard invoices, promotional grants are immediately final, and external grants follow authorized\u2192settled transitions.",
+        "watch_for": "Must use s.CreateLedgerBackedCustomer \u2014 plain CreateTestCustomer customers lack ledger accounts and cause resolver errors."
+      },
+      {
+        "file": "rating_test.go",
+        "role": "Pure unit tests for charges billing calculator: verifies period resolution and billing period splitting without DB interaction. RatingTestSuite does not embed BaseSuite.",
+        "watch_for": "These tests are fast and DB-independent \u2014 do not pull in BaseSuite setup overhead."
+      }
+    ],
+    "anti_patterns": [
+      "Calling lower-level charge adapter methods directly instead of going through charges.Service.Create / AdvanceCharges / ApplyPatches.",
+      "Using BaseSuite.CreateTestCustomer for tests that require ledger accounts \u2014 use s.CreateLedgerBackedCustomer instead.",
+      "Constructing charges.ChargeIntent{} struct literals instead of charges.NewChargeIntent(flatfee.Intent{...}) \u2014 private discriminator stays zero-valued.",
+      "Instantiating ledger adapters inline in test methods \u2014 always delegate to ledgertestutils.InitDeps.",
+      "Using context.Background() instead of s.T().Context() in new tests."
+    ],
+    "decisions": [
+      {
+        "decision": "Wire ledger and charges stack on top of existing billingtest.BaseSuite rather than creating a separate test environment.",
+        "rationale": "Reuses the billing, customer, feature, and streaming infrastructure already initialised in BaseSuite (~150-line setup chain), avoiding duplication and keeping charge tests co-located with billing tests."
+      },
+      {
+        "decision": "Use chargestestutils.NewServices as the canonical charges stack builder in tests.",
+        "rationale": "Mirrors the production wiring in app/common/charges.go, ensuring tests exercise the same handler-to-ledger-adapter wiring that production code uses, including ledgerchargeadapter.NewFlatFeeHandler and related constructors."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Create a ledger-backed customer, build a flatfee charge intent, advance charges, and assert FBO balance.",
+        "code": "cust := s.CreateLedgerBackedCustomer(ns, \"test-subject\")\nintent := s.CreateMockChargeIntent(CreateMockChargeIntentInput{\n\tCustomer: cust.GetID(), Currency: USD,\n\tPrice: productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: alpacadecimal.NewFromFloat(100)}),\n\tServicePeriod: period,\n})\ngrants, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.ChargeIntents{intent}})\ns.NoError(err)\nclock.SetTime(period.To.Add(time.Hour))\n_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Namespace: ns})\ns.NoError(err)\nbalance := s.MustCustomerFBOBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]())\ns.Equal(alpacadecimal.NewFromFloat(100), balance)"
+      }
+    ]
+  },
+  "test/customer": {
+    "purpose": "Integration tests for customer, subject, subscription, entitlement, plan, and billing domains wired together \u2014 validates cross-domain lifecycle correctness (usage attributions, subject hooks, subscription constraints, invoice generation) against real PostgreSQL.",
+    "patterns": [
+      {
+        "name": "TestEnv interface with all cross-domain services",
+        "description": "TestEnv exposes Customer(), Subscription(), SubscriptionWorkflow(), Entitlement(), Feature(), Subject(), Plan(), Billing(), App(), and Meter() methods so test methods can exercise multi-domain flows without constructing services inline.",
+        "example": "type TestEnv interface { Customer() customer.Service; Subject() subject.Service; SubscriptionWorkflow() subscriptionworkflow.Service; Billing() billing.Service; ... }"
+      },
+      {
+        "name": "Hooks registered after service construction in NewTestEnv",
+        "description": "After building customerService and subjectService from raw constructors, cross-domain hooks are wired manually: customerService.RegisterRequestValidator(entValidator), subjectService.RegisterHooks(subjectCustomerHook), customerService.RegisterHooks(customerSubjectHook), customerService.RegisterRequestValidator(subsCustValidator). Order matters.",
+        "example": "customerService.RegisterRequestValidator(entcustomervalidator.NewValidator(entitlementRegistry.EntitlementRepo))\nsubjectService.RegisterHooks(subjectCustomerHook)\ncustomerService.RegisterHooks(customerSubjectHook)"
+      },
+      {
+        "name": "subscriptiontestutils.SetupDBDeps for DB bootstrapping",
+        "description": "NewTestEnv calls subscriptiontestutils.SetupDBDeps(t) instead of calling testutils.InitPostgresDB directly. This handles schema migration and returns a DBClient ready for all adapters in one call.",
+        "example": "dbDeps := subscriptiontestutils.SetupDBDeps(t)"
+      },
+      {
+        "name": "Unique ULID namespace per test method via setupNamespace",
+        "description": "Every test method in CustomerHandlerTestSuite begins with s.setupNamespace(t), which assigns a new ulid.Make().String() to s.namespace, providing full test isolation on the shared database.",
+        "example": "func (s *CustomerHandlerTestSuite) setupNamespace(t *testing.T) {\n\ts.namespace = ulid.Make().String()\n}"
+      },
+      {
+        "name": "clock.SetTime + t.Cleanup(clock.ResetTime) for time-sensitive tests",
+        "description": "Tests that need to advance time call clock.SetTime(future) and always register t.Cleanup(clock.ResetTime) to prevent global clock state from leaking between tests.",
+        "example": "clock.SetTime(future)\nt.Cleanup(clock.ResetTime)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "testenv.go",
+        "role": "Constructs the full multi-domain service graph from raw package constructors. Wires meter, customer, entitlement, subject, plan, app, subscription, workflow, and billing. Registers all hooks post-construction. Exposes TestEnv interface.",
+        "watch_for": "Hook registration order matters: entValidator before subjectHook before subscriptionValidator. Never import app/common. noopCustomerOverrideService is an inline noop for billing.CustomerOverrideService \u2014 do not replace with a real implementation."
+      },
+      {
+        "file": "customer.go",
+        "role": "CustomerHandlerTestSuite with CRUD tests for customer lifecycle, key conflict detection, and subscription-present update constraints.",
+        "watch_for": "UsageAttribution is nil (not empty slice) when no subjects are attached \u2014 assertions must check Nil not Empty. TestKey is reused across test methods only because setupNamespace provides namespace isolation."
+      },
+      {
+        "file": "subject.go",
+        "role": "Tests subject deletion edge cases (dangling subjects, subjects still attached to customers, subjects with active entitlements) and TestMultiSubjectIntegrationFlow \u2014 a full plan+subscription+invoice end-to-end.",
+        "watch_for": "TestMultiSubjectIntegrationFlow installs a sandbox app and creates a billing profile \u2014 both must succeed or the test panics. clock.ResetTime must be deferred immediately after clock.SetTime."
+      },
+      {
+        "file": "customer_test.go",
+        "role": "Entry point: creates TestEnv, defers Close(), runs Customer and Subject sub-test groups via CustomerHandlerTestSuite and SubjectHandlerTestSuite.",
+        "watch_for": "t.Errorf used for Close errors (not t.Fatal) to ensure deferred Close always runs even if sub-tests fail."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common or Wire provider sets \u2014 all wiring must use raw package constructors to avoid import cycles.",
+      "Using context.Background() in new test code where t.Context() is available.",
+      "Reusing the same subject key or customer key across test functions without setupNamespace \u2014 causes unique-constraint violations.",
+      "Forgetting to defer clock.ResetTime() after clock.SetTime() \u2014 leaves global clock dirty for subsequent tests.",
+      "Asserting UsageAttribution as empty slice instead of nil \u2014 service returns nil when there are no subject keys."
+    ],
+    "decisions": [
+      {
+        "decision": "TestEnv exposes all cross-domain services (10 methods) rather than just customer.",
+        "rationale": "Subject deletion, subscription constraints, and multi-subject billing flows require real instances of subscription, entitlement, billing, and plan \u2014 a minimal customer-only env cannot exercise these paths."
+      },
+      {
+        "decision": "Hooks wired manually in NewTestEnv rather than discovered via DI.",
+        "rationale": "Tests must stay independent from app/common. Manual hook registration ensures the exact hook set matches production wiring without importing Wire providers or creating import cycles."
+      },
+      {
+        "decision": "subscriptiontestutils.SetupDBDeps used for DB bootstrap.",
+        "rationale": "Centralises pgtestdb provisioning and schema migration so multiple test packages share the same proven setup path, reducing per-package boilerplate."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Multi-domain integration test: generate unique namespace, create customer with subject, subscribe to a plan, assert subscription is active.",
+        "code": "s.setupNamespace(t)\nctx := context.Background()\napp := s.installSandboxApp(t, s.namespace)\n_ = s.createDefaultProfile(t, app, s.namespace)\ncust, err := s.Env.Customer().CreateCustomer(ctx, customer.CreateCustomerInput{\n\tNamespace: s.namespace,\n\tCustomerMutate: customer.CustomerMutate{\n\t\tName: \"Test\",\n\t\tUsageAttribution: &customer.CustomerUsageAttribution{SubjectKeys: []string{\"subj-1\"}},\n\t},\n})\nrequire.NoError(t, err)\nsub, err := s.Env.SubscriptionWorkflow().CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{\n\tNamespace: s.namespace, CustomerID: cust.ID,\n})\nrequire.NoError(t, err)\nrequire.NotNil(t, sub)"
+      }
+    ]
+  }
+}

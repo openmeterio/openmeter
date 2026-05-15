@@ -1,0 +1,57 @@
+{
+  "tools/migrate/cmd": {
+    "purpose": "Organisational parent for thin CLI entrypoints that operate on the migration toolchain. Separates CLI wiring from library logic \u2014 all business logic lives in sibling library packages under tools/migrate/; cmd/ sub-directories contain only flag parsing and delegation.",
+    "patterns": [
+      {
+        "name": "Thin entrypoint delegation",
+        "description": "main.go parses flags and makes a single call into the sibling library package. Zero business logic in main. All generation, inspection, or transformation logic lives in the library.",
+        "example": "viewgen.GenerateFile(*schemaPath, *outPath) \u2014 one library call, then exitf on error"
+      },
+      {
+        "name": "stdlib flag for single-purpose tools",
+        "description": "Single-command tools use the stdlib flag package. Cobra/Viper is reserved for multi-command binaries (cmd/server, cmd/jobs). Two flags need no sub-command routing.",
+        "example": "flag.String(\"schema\", \"./openmeter/ent/schema\", ...) / flag.Parse()"
+      },
+      {
+        "name": "exitf helper for error reporting",
+        "description": "Errors are written to stderr via a local exitf helper and os.Exit(1). No log package, no panic.",
+        "example": "func exitf(format string, args ...any) { fmt.Fprintf(os.Stderr, format, args...); os.Exit(1) }"
+      },
+      {
+        "name": "One sub-command per directory",
+        "description": "Each CLI tool gets its own cmd/<name>/ directory rather than adding multiple commands to a single main package.",
+        "example": "tools/migrate/cmd/viewgen/ \u2014 one directory, one tool"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "tools/migrate/cmd/viewgen/main.go",
+        "role": "CLI entrypoint for ClickHouse view SQL generation: parses --schema and --out flags, delegates entirely to viewgen.GenerateFile, exits on error.",
+        "watch_for": "Do not add SQL generation or Ent schema inspection here \u2014 keep it in tools/migrate/viewgen. Do not import app/common or any openmeter domain package."
+      }
+    ],
+    "anti_patterns": [
+      "Adding SQL generation or schema-inspection logic directly in main.go instead of the sibling library package",
+      "Importing app/common or any openmeter/ domain package \u2014 this binary only needs the schema path and the library",
+      "Using Cobra or Viper for a single-purpose tool that only needs one or two flags",
+      "Adding a second command to an existing cmd/<name>/ package instead of creating a sibling cmd/<othername>/ directory",
+      "Using log.Fatal or panic instead of a local exitf helper for error exits"
+    ],
+    "decisions": [
+      {
+        "decision": "Library logic lives in tools/migrate/viewgen, not in main.go",
+        "rationale": "Keeps the library testable and importable without invoking os.Exit; the cmd layer is purely a thin CLI shim."
+      },
+      {
+        "decision": "stdlib flag instead of Cobra",
+        "rationale": "A tool with two flags needs no sub-command routing; Cobra adds unnecessary import weight and ceremony for single-purpose migration tools."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new single-purpose migration tool under tools/migrate/cmd/",
+        "code": "package main\n\nimport (\n\t\"flag\"\n\t\"fmt\"\n\t\"os\"\n\n\t\"github.com/openmeterio/openmeter/tools/migrate/mytool\"\n)\n\nfunc main() {\n\tinputPath := flag.String(\"input\", \"./tools/migrate/migrations\", \"migrations dir\")\n\tflag.Parse()\n\tif err := mytool.Run(*inputPath); err != nil {\n\t\texitf(\"%v\", err)\n\t}\n}\n\nfunc exitf(format string, args ...any) {\n\tfmt.Fprintf(os.Stderr, format+\"\\n\", args...)\n\tos.Exit(1)\n}"
+      }
+    ]
+  }
+}

@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -31,8 +31,7 @@ func (h *handler) ListEvents() ListEventsHandler {
 				return ListEventsRequest{}, err
 			}
 
-			// We add a second to avoid validation issues
-			minimumFrom := time.Now().Add(-meterevent.MaximumFromDuration).Add(time.Second)
+			minimumFrom := clock.Now().Add(-meterevent.MaximumFromDuration)
 
 			return ListEventsRequest{
 				Namespace:      ns,

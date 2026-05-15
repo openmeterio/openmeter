@@ -101,7 +101,7 @@ func (a AppBase) ValidateCapabilities(capabilities ...CapabilityType) error {
 		}
 
 		if !found {
-			return fmt.Errorf("capability %s is not supported by %s app type", capability, a.Type)
+			return models.NewGenericPreConditionFailedError(fmt.Errorf("capability %s is not supported by %s app type", capability, a.Type))
 		}
 	}
 
@@ -116,27 +116,27 @@ func (a AppBase) ValidateCapabilities(capabilities ...CapabilityType) error {
 // Validate validates the app base
 func (a AppBase) Validate() error {
 	if err := a.ManagedResource.Validate(); err != nil {
-		return fmt.Errorf("error validating managed resource: %w", err)
+		return models.NewGenericValidationError(fmt.Errorf("error validating managed resource: %w", err))
 	}
 
 	if a.ID == "" {
-		return errors.New("id is required")
+		return models.NewGenericValidationError(errors.New("id is required"))
 	}
 
 	if a.Namespace == "" {
-		return errors.New("namespace is required")
+		return models.NewGenericValidationError(errors.New("namespace is required"))
 	}
 
 	if a.Name == "" {
-		return errors.New("name is required")
+		return models.NewGenericValidationError(errors.New("name is required"))
 	}
 
 	if a.Status == "" {
-		return errors.New("status is required")
+		return models.NewGenericValidationError(errors.New("status is required"))
 	}
 
 	if err := a.Listing.Validate(); err != nil {
-		return fmt.Errorf("error validating listing: %w", err)
+		return models.NewGenericValidationError(fmt.Errorf("error validating listing: %w", err))
 	}
 
 	return nil
@@ -150,11 +150,11 @@ type AppID struct {
 
 func (i AppID) Validate() error {
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		return models.NewGenericValidationError(errors.New("namespace is required"))
 	}
 
 	if i.ID == "" {
-		return errors.New("id is required")
+		return models.NewGenericValidationError(errors.New("id is required"))
 	}
 
 	return nil

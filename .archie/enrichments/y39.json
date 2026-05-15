@@ -1,0 +1,122 @@
+{
+  "pkg/framework/entutils/testutils/ent1": {
+    "purpose": "Ent codegen bootstrap for the ent1 test fixture database \u2014 drives entc.Generate for the schema/ child and produces a generated DB client under db/ used exclusively by entutils transaction and cursor tests. It is not a production package.",
+    "patterns": [
+      {
+        "name": "Ignored-main codegen driver",
+        "description": "entc.go carries //go:build ignore so it is excluded from normal builds and invoked only via `go generate` through generate.go.",
+        "example": "//go:build ignore\nfunc main() { entc.Generate(\"./schema\", ...) }"
+      },
+      {
+        "name": "Full feature set matching production",
+        "description": "entc.Generate must request FeatureVersionedMigration, FeatureLock, FeatureUpsert, FeatureExecQuery \u2014 same flags as the production schema generator \u2014 so test-generated code exercises identical capabilities.",
+        "example": "Features: []gen.Feature{gen.FeatureVersionedMigration, gen.FeatureLock, gen.FeatureUpsert, gen.FeatureExecQuery}"
+      },
+      {
+        "name": "Full extension stack (cursor + expose + paginate)",
+        "description": "ent1 registers entcursor, entexpose, and entpaginate extensions so the generated client includes all helpers used in production adapters. ent2 intentionally omits cursor and paginate \u2014 do not collapse ent1 to match ent2.",
+        "example": "entc.Extensions(entcursor.New(), entexpose.New(), entpaginate.New())"
+      },
+      {
+        "name": "Package path scoped under testutils/ent1/db",
+        "description": "Target and Package must remain under pkg/framework/entutils/testutils/ent1/db to avoid overwriting production entdb or ent2 generated code.",
+        "example": "Package: \"github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent1/db\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entc.go",
+        "role": "Single-use codegen driver; invoked by go generate, never imported at runtime.",
+        "watch_for": "Diverging the Feature list or Extensions from what production schemas use \u2014 test helpers must match production codegen capabilities."
+      },
+      {
+        "file": "generate.go",
+        "role": "Contains the //go:generate directive that runs entc.go for this fixture.",
+        "watch_for": "Changing the package name away from ent1 breaks go generate resolution."
+      }
+    ],
+    "anti_patterns": [
+      "Removing FeatureVersionedMigration, FeatureLock, FeatureUpsert, or FeatureExecQuery \u2014 diverges test-generated client from production capabilities",
+      "Dropping entcursor or entpaginate extensions \u2014 leaves test client missing helpers that transaction/cursor tests depend on",
+      "Pointing Target or Package at production db paths or ent2 paths \u2014 overwrites generated code",
+      "Adding production business logic or domain imports (openmeter/billing, openmeter/customer) to entc.go",
+      "Adding edges or complex fields to the schema/ child \u2014 this is a minimal test fixture"
+    ],
+    "decisions": [
+      {
+        "decision": "ent1 includes all three framework extensions (cursor, expose, paginate) while ent2 includes only entexpose.",
+        "rationale": "ent1 is the primary transaction/cursor test fixture and must exercise the full extension stack; ent2 is a minimal second-database fixture only needing expose for multi-DB isolation tests."
+      },
+      {
+        "decision": "entc.go uses //go:build ignore to exclude it from normal compilation.",
+        "rationale": "Keeps the codegen driver out of the test binary while allowing `go run entc.go` via go generate without a separate tool binary."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Full entc.Generate call for ent1 with correct feature flags and extensions",
+        "code": "//go:build ignore\n\npackage main\n\nimport (\n\t\"log\"\n\n\t\"entgo.io/ent/entc\"\n\t\"entgo.io/ent/entc/gen\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils/entcursor\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils/entexpose\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils/entpaginate\"\n)\n\nfunc main() {\n\terr := entc.Generate(\"./schema\",\n\t\t&gen.Config{\n\t\t\tFeatures: []gen.Feature{\n\t\t\t\tgen.FeatureVersionedMigration,\n\t\t\t\tgen.FeatureLock,\n\t\t\t\tgen.FeatureUpsert,\n\t\t\t\tgen.FeatureExecQuery,\n\t\t\t},\n\t\t\tTarget:  \"./db\",\n\t\t\tSchema:  \"./schema\",\n\t\t\tPackage: \"github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent1/db\",\n\t\t},\n\t\tentc.Extensions(entcursor.New(), entexpose.New(), entpaginate.New()),\n\t)\n\tif err != nil {\n\t\tlog.Fatal(\"running ent codegen:\", err)\n\t}\n}"
+      }
+    ]
+  },
+  "pkg/framework/entutils/testutils/ent2": {
+    "purpose": "Ent codegen bootstrap for the ent2 test fixture database \u2014 a minimal second Ent client used exclusively to test multi-database transaction isolation in entutils. Intentionally stripped-down: only the entexpose extension, no cursor or pagination helpers.",
+    "patterns": [
+      {
+        "name": "Ignored-main codegen driver",
+        "description": "entc.go carries //go:build ignore and is invoked only via `go generate` through generate.go, never imported at runtime.",
+        "example": "//go:build ignore\nfunc main() { entc.Generate(\"./schema\", ...) }"
+      },
+      {
+        "name": "Full feature set matching production",
+        "description": "FeatureVersionedMigration, FeatureLock, FeatureUpsert, FeatureExecQuery must be present \u2014 identical to production and ent1 \u2014 to keep test-generated code consistent.",
+        "example": "Features: []gen.Feature{gen.FeatureVersionedMigration, gen.FeatureLock, gen.FeatureUpsert, gen.FeatureExecQuery}"
+      },
+      {
+        "name": "entexpose only \u2014 no cursor/paginate",
+        "description": "ent2 intentionally registers only entexpose. Adding entcursor or entpaginate blurs ent2's role as a lightweight fixture and generates unused code.",
+        "example": "entc.Extensions(entexpose.New())"
+      },
+      {
+        "name": "Package path scoped under testutils/ent2/db",
+        "description": "Target and Package must remain under pkg/framework/entutils/testutils/ent2/db to avoid overwriting ent1 or production generated code.",
+        "example": "Package: \"github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent2/db\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entc.go",
+        "role": "Codegen driver for the ent2 fixture; excluded from normal builds via build tag.",
+        "watch_for": "Adding entcursor or entpaginate here would make ent2 generate unnecessary code and blur the distinction from ent1."
+      },
+      {
+        "file": "generate.go",
+        "role": "//go:generate hook that runs entc.go for the ent2 fixture.",
+        "watch_for": "Package name must remain ent2; changing it breaks go generate resolution."
+      }
+    ],
+    "anti_patterns": [
+      "Adding entcursor or entpaginate extensions \u2014 ent2 is intentionally minimal compared to ent1",
+      "Pointing Target or Package at production db paths or ent1 paths \u2014 overwrites generated code",
+      "Importing domain packages (openmeter/billing, openmeter/customer, etc.) into this fixture",
+      "Removing the standard four Feature flags \u2014 diverges from production codegen and ent1",
+      "Adding relations, edges, or domain fields to the schema/ child \u2014 this is a minimal test-only fixture"
+    ],
+    "decisions": [
+      {
+        "decision": "ent2 registers only entexpose, not the full extension set used by ent1.",
+        "rationale": "ent2 exists solely to provide a second independent Ent client for multi-DB transaction isolation tests; cursor and pagination helpers are unnecessary for this role."
+      },
+      {
+        "decision": "entc.go uses //go:build ignore to exclude it from normal compilation.",
+        "rationale": "Keeps the codegen driver out of the test binary while allowing `go run entc.go` via go generate without a separate tool binary."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Full entc.Generate call for ent2 with correct feature flags and minimal extension (entexpose only)",
+        "code": "//go:build ignore\n\npackage main\n\nimport (\n\t\"log\"\n\n\t\"entgo.io/ent/entc\"\n\t\"entgo.io/ent/entc/gen\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils/entexpose\"\n)\n\nfunc main() {\n\terr := entc.Generate(\"./schema\",\n\t\t&gen.Config{\n\t\t\tFeatures: []gen.Feature{\n\t\t\t\tgen.FeatureVersionedMigration,\n\t\t\t\tgen.FeatureLock,\n\t\t\t\tgen.FeatureUpsert,\n\t\t\t\tgen.FeatureExecQuery,\n\t\t\t},\n\t\t\tTarget:  \"./db\",\n\t\t\tSchema:  \"./schema\",\n\t\t\tPackage: \"github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent2/db\",\n\t\t},\n\t\tentc.Extensions(entexpose.New()),\n\t)\n\tif err != nil {\n\t\tlog.Fatal(\"running ent codegen:\", err)\n\t}\n}"
+      }
+    ]
+  }
+}

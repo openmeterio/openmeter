@@ -3,7 +3,6 @@ package adapter
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entitlementdb "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -103,7 +102,7 @@ func (a *Adapter) DeleteMeter(ctx context.Context, meter meterpkg.Meter) error {
 			a,
 			func(ctx context.Context, repo *Adapter) error {
 				_, err := repo.db.Meter.UpdateOneID(meter.ID).
-					SetDeletedAt(time.Now()).
+					SetDeletedAt(clock.Now()).
 					Save(ctx)
 				if err != nil {
 					if db.IsNotFound(err) {

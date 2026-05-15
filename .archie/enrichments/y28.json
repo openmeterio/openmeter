@@ -1,0 +1,186 @@
+{
+  "openmeter/entitlement/balanceworker": {
+    "purpose": "Kafka-driven worker that recalculates entitlement balances on lifecycle events (grant created/voided, entitlement created/deleted/reset, batched ingest). Subscribes to three Kafka topics (system, ingest, balance-worker) and publishes snapshot events downstream; the two-stage RecalculateEvent pattern decouples fan-out from calculation.",
+    "patterns": [
+      {
+        "name": "Two-stage recalculation via RecalculateEvent",
+        "description": "Direct lifecycle handlers (grant, entitlement, ingest) publish a RecalculateEvent to the balance-worker topic rather than calling handleEntitlementEvent directly. A second handler for RecalculateEvent performs the actual calculation. Keeps fan-out retry independent from calculation retry.",
+        "example": "w.opts.EventBus.Publish(ctx, events.RecalculateEvent{Entitlement: pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.Entitlement.ID}, OriginalEventSource: metadata.ComposeResourcePath(...), AsOf: event.Entitlement.ManagedModel.CreatedAt, SourceOperation: events.OperationTypeEntitlementCreated})"
+      },
+      {
+        "name": "Filter-before-calculate discipline",
+        "description": "Every recalculation path calls w.filters.IsNamespaceInScope then w.filters.IsEntitlementInScope before any DB or ClickHouse access. Filtered events return (nil, nil) \u2014 not an error. The filter chain short-circuits on first false.",
+        "example": "inScope, err := w.filters.IsNamespaceInScope(ctx, entitlementID.Namespace); if !inScope { return nil, nil }"
+      },
+      {
+        "name": "handleOption functional options with mandatory WithEventAt",
+        "description": "handleEntitlementEventOptions is built via functional options: WithSource, WithEventAt, WithSourceOperation, WithRawIngestedEvents. opts.Validate() is always called first and returns an error when eventAt.IsZero().",
+        "example": "w.opts.EventBus.WithContext(ctx).PublishIfNoError(w.handleEntitlementEvent(ctx, id, WithSource(src), WithEventAt(event.ResetAt), WithSourceOperation(snapshot.ValueOperationReset)))"
+      },
+      {
+        "name": "PublishIfNoError for conditional publish",
+        "description": "Handlers that may legitimately return nil event (filtered) without error use w.opts.EventBus.WithContext(ctx).PublishIfNoError(...) so nil-event is not published but also does not trigger a retry.",
+        "example": "return w.opts.EventBus.WithContext(ctx).PublishIfNoError(w.handleEntitlementEvent(ctx, pkgmodels.NamespacedID{...}, options...))"
+      },
+      {
+        "name": "Options structs with Validate() called in every constructor",
+        "description": "WorkerOptions, RecalculatorOptions, EntitlementFiltersConfig all implement Validate() via errors.Join. Constructors call Validate() first and return early. Missing dependencies surface as startup errors, not runtime panics.",
+        "example": "if err := opts.Validate(); err != nil { return nil, fmt.Errorf(\"failed to validate worker options: %w\", err) }"
+      },
+      {
+        "name": "RecordLastCalculation after every successful snapshot (non-fatal)",
+        "description": "After creating a snapshot event, always call w.filters.RecordLastCalculation with the entitlement and calculatedAt. Failure is non-fatal \u2014 log a warning and continue, because it only affects high-watermark deduplication.",
+        "example": "err = w.filters.RecordLastCalculation(ctx, filters.RecordLastCalculationRequest{Entitlement: *entitlementEntity, CalculatedAt: calculatedAt}); if err != nil { w.opts.Logger.WarnContext(ctx, \"failed to record last calculation\", \"error\", err) }"
+      },
+      {
+        "name": "AddHandler for post-construction extensibility",
+        "description": "w.AddHandler(grouphandler.GroupEventHandler) appends additional batched-ingest handlers after construction, called in order. Used by billing-worker to hook into ingest events without modifying balance-worker internals. Handlers must be idempotent.",
+        "example": "worker.AddHandler(grouphandler.NewGroupEventHandler(func(ctx context.Context, event *ingestevents.EventBatchedIngest) error { return billingService.HandleIngestEvent(ctx, event) }))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "worker.go",
+        "role": "Entry point: WorkerOptions, Worker struct, New() constructor, router setup subscribing to 3 Kafka topics, eventHandler() registering all NoPublishingHandler event type closures.",
+        "watch_for": "All new event type handlers must be registered inside grouphandler.NewNoPublishingHandler in eventHandler(). w.nonPublishingHandler is set after construction; AddHandler is the only safe extension point post-construction."
+      },
+      {
+        "file": "entitlementhandler.go",
+        "role": "Core calculation: handleEntitlementEvent (filter \u2192 fetch entitlement \u2192 filter \u2192 processEntitlementEntity), processEntitlementEntity (deleted/reset/normal branching), createSnapshotEvent, createDeletedSnapshotEvent, snapshotToEvent.",
+        "watch_for": "Reset operations use entitlementEntity.CurrentUsagePeriod.From as calculatedAt, not time.Now(). Deleted/expired entitlements emit a delete snapshot with nil Value \u2014 not an error. Always call in.Validate() in snapshotToEvent."
+      },
+      {
+        "file": "recalculate.go",
+        "role": "Recalculator struct for batch recalculation jobs: ListInScopeEntitlements (paginated at 20k/page to avoid Ent IN-subquery limit), ProcessEntitlements, sendEntitlementEvent. Uses LRU+TTL caches for feature and customerSubject lookups.",
+        "watch_for": "DefaultIncludeDeletedDuration=24h governs how long deleted entitlements stay in-scope for batch jobs. The paginated loop is intentional \u2014 Ent IN-subqueries break on large sets."
+      },
+      {
+        "file": "ingesthandler.go",
+        "role": "handleBatchedIngestEvent: queries BalanceWorkerRepository for affected entitlements, checks activity period overlap with event timestamps, publishes RecalculateEvent for each affected entitlement.",
+        "watch_for": "Deleted entitlements are explicitly skipped \u2014 their final snapshot was published at deletion. Activity period check (GetEntitlementActivityPeriod) uses min(ActiveTo, DeletedAt) as upper bound."
+      },
+      {
+        "file": "filters.go",
+        "role": "EntitlementFilters wraps a []NamedFilter chain (NotificationsFilter + HighWatermarkCache) with OTel counters per scope/filter/name.",
+        "watch_for": "Filter chain short-circuits on first false result. RecordLastCalculation only calls filters that implement CalculationTimeRecorder (optional interface checked via type assertion)."
+      },
+      {
+        "file": "repository.go",
+        "role": "BalanceWorkerRepository interface + ListAffectedEntitlementsResponse DTO. GetEntitlementActivityPeriod computes the valid event-reception window.",
+        "watch_for": "Activity period uses ActiveFrom over CreatedAt when set. When both ActiveTo and DeletedAt are present, the earlier one wins as the upper bound (min via lo.MinBy)."
+      },
+      {
+        "file": "subject_customer.go",
+        "role": "resolveCustomerAndSubject package-level helper used by both Worker and Recalculator. Subject may be nil when customer has no usage attribution.",
+        "watch_for": "If cus.UsageAttribution == nil or GetFirstSubjectKey returns no keys, returns (customer, nil, nil) \u2014 not an error. Missing subject entity falls back to a synthetic Subject with just the key."
+      }
+    ],
+    "anti_patterns": [
+      "Publishing a snapshot event directly from a lifecycle event handler instead of going through RecalculateEvent \u2014 breaks two-stage deduplication and filter pipeline",
+      "Calling handleEntitlementEvent without WithEventAt \u2014 eventAt.IsZero() causes a hard validation error",
+      "Adding DB or external service calls to filter implementations without LRU+TTL caching \u2014 IsNamespaceInScope/IsEntitlementInScope are called per-event and will saturate downstream services",
+      "Registering new event type handlers outside the grouphandler.NewNoPublishingHandler block in eventHandler() \u2014 they will never be called",
+      "Using time.Now() as calculatedAt for reset operations \u2014 reset snapshots must use CurrentUsagePeriod.From to capture initial grant state"
+    ],
+    "decisions": [
+      {
+        "decision": "Three-topic subscription (system + ingest + balance-worker) with RecalculateEvent intermediary on the balance-worker topic",
+        "rationale": "Separates high-volume ingest fan-out (one event \u2192 many entitlements \u2192 many RecalculateEvents) from the actual ClickHouse balance calculation, allowing independent retry and deduplication via high-watermark cache"
+      },
+      {
+        "decision": "Filter chain before every recalculation (NotificationsFilter + HighWatermarkCache)",
+        "rationale": "Prevents unnecessary ClickHouse queries for entitlements with no active notification rules or that were recently calculated; critical for cost at scale since every ingest event can affect multiple entitlements"
+      },
+      {
+        "decision": "Recalculator as separate struct from Worker",
+        "rationale": "Batch recalculation jobs (cmd/jobs) need the same calculation logic without constructing a full Kafka-connected Worker; extracting Recalculator enables reuse without Kafka dependency"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Registering a new lifecycle event type that triggers balance recalculation",
+        "code": "// In worker.go eventHandler(), inside grouphandler.NewNoPublishingHandler:\ngrouphandler.NewGroupEventHandler(func(ctx context.Context, event *somepkg.SomeEvent) error {\n\treturn w.opts.EventBus.Publish(ctx, events.RecalculateEvent{\n\t\tEntitlement:         pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},\n\t\tOriginalEventSource: metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID),\n\t\tAsOf:                event.OccurredAt,\n\t\tSourceOperation:     events.OperationTypeEntitlementCreated, // pick closest matching\n\t})\n}),"
+      }
+    ]
+  },
+  "openmeter/entitlement/driver": {
+    "purpose": "V1 HTTP driver for the entitlement domain: adapts entitlement.Service and meteredentitlement.Connector to Chi HTTP handlers using httptransport.HandlerWithArgs, with subject-key-based customer resolution. Also provides the shared Parser singleton and MapEntitlementValueToAPI used by both v1 and v2 drivers.",
+    "patterns": [
+      {
+        "name": "HandlerWithArgs typed triplet",
+        "description": "Each handler is declared as a type alias of httptransport.HandlerWithArgs[Request, Response, Params]. Request/Response/Params are defined as named types or type aliases immediately above each handler type declaration.",
+        "example": "type CreateEntitlementHandler httptransport.HandlerWithArgs[CreateEntitlementHandlerRequest, CreateEntitlementHandlerResponse, CreateEntitlementHandlerParams]"
+      },
+      {
+        "name": "Namespace from context only",
+        "description": "All handlers call h.resolveNamespace(ctx) via namespacedriver.NamespaceDecoder \u2014 namespace is never accepted as a URL or query parameter in v1.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return request, err }"
+      },
+      {
+        "name": "Customer resolution in operation closure, not decoder",
+        "description": "The decoder reads only URL params (subject key, entitlement ID). Customer resolution via resolveCustomerFromSubject happens in the operation closure. UsageAttribution is populated after resolution before calling the service.",
+        "example": "cust, err := h.resolveCustomerFromSubject(ctx, request.Namespace, request.SubjectIdOrKey); request.Inputs.UsageAttribution = cust.GetUsageAttribution()"
+      },
+      {
+        "name": "Parser singleton for entitlement type dispatch",
+        "description": "Parser.ToAPIGeneric dispatches on EntitlementType to ToMetered/ToStatic/ToBoolean. Always use Parser.ToAPIGeneric rather than switching on EntitlementType inline in handlers.",
+        "example": "return Parser.ToAPIGeneric(&entitlement.EntitlementWithCustomer{Entitlement: lo.FromPtr(res), Customer: *cust})"
+      },
+      {
+        "name": "GetErrorEncoder() for domain error mapping",
+        "description": "All handlers pass httptransport.WithErrorEncoder(GetErrorEncoder()) in their options. GetErrorEncoder maps feature.FeatureNotFoundError, entitlement.NotFoundError, AlreadyExistsError (with conflictingEntityId), InvalidValueError, InvalidFeatureError, WrongTypeError to HTTP status codes.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"createEntitlement\"), httptransport.WithErrorEncoder(GetErrorEncoder()))..."
+      },
+      {
+        "name": "Separate connector fields for base and metered ops",
+        "description": "meteredEntitlementHandler holds both entitlementConnector (entitlement.Service) for base entitlement queries and balanceConnector (meteredentitlement.Connector) for grant/balance ops. Never cross-use them.",
+        "example": "h.balanceConnector.CreateGrant(...) for grant ops; h.entitlementConnector.ListEntitlements(...) for base entitlement queries"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entitlement.go",
+        "role": "EntitlementHandler interface + entitlementHandler struct: CreateEntitlement, OverrideEntitlement, GetEntitlement, GetEntitlementById, DeleteEntitlement, GetEntitlementValue, GetEntitlementsOfSubject, ListEntitlements.",
+        "watch_for": "CreateEntitlement passes empty streaming.CustomerUsageAttribution{} to ParseAPICreateInput then overwrites it in the operation closure after resolving the customer. ListEntitlements supports both page-based and limit/offset pagination via commonhttp.Union response type."
+      },
+      {
+        "file": "metered.go",
+        "role": "MeteredEntitlementHandler: CreateGrant, ListEntitlementGrants, ResetEntitlementUsage, GetEntitlementBalanceHistory. resolveCustomerFromSubject bridges subject key to customer ID.",
+        "watch_for": "resolveCustomerFromSubject checks IsDeleted() before proceeding. GetEntitlementBalanceHistory returns both windowed and burndown history in one response mapped to GrantBurnDownHistorySegment."
+      },
+      {
+        "file": "parser.go",
+        "role": "Parser package-level singleton with ToMetered/ToStatic/ToBoolean/ToAPIGeneric for domain\u2192API mapping. ParseAPICreateInput for API\u2192domain. MapEntitlementValueToAPI used by both v1 and v2 drivers and balanceworker.",
+        "watch_for": "ParseAPICreateInput explicitly prunes ActiveFrom/ActiveTo (request.ActiveFrom = nil) \u2014 lifecycle fields are not accepted via the create API. MapRecurrenceToAPI is best-effort for ISO durations that don't map to named enums."
+      },
+      {
+        "file": "errors.go",
+        "role": "GetErrorEncoder() returns the domain-specific error encoder for this package. Called by all handlers in entitlement.go and metered.go.",
+        "watch_for": "AlreadyExistsError encoder adds conflictingEntityId to the response extensions map. New domain errors must be registered here \u2014 omitting causes fallthrough to generic 500."
+      }
+    ],
+    "anti_patterns": [
+      "Switching on EntitlementType inline in handler closures instead of calling Parser.ToAPIGeneric",
+      "Accepting namespace as a query/path parameter \u2014 always resolve via h.namespaceDecoder.GetNamespace(ctx)",
+      "Using balanceConnector methods for base entitlement operations or entitlementConnector for grant/balance ops",
+      "Adding new domain error types to handler closures instead of GetErrorEncoder()",
+      "Calling entitlement service methods with a raw subject key string instead of first resolving to customer.ID via resolveCustomerFromSubject"
+    ],
+    "decisions": [
+      {
+        "decision": "Subject-key-centric v1 driver with customer resolution inside the operation closure",
+        "rationale": "V1 API predates customer-ID-centric v2; subject key is the public identifier in v1 but customer.ID is required internally. Resolving in the operation closure keeps the decoder stateless and allows lazy resolution only when needed."
+      },
+      {
+        "decision": "Parser as package-level singleton shared between v1 and v2 drivers",
+        "rationale": "Stateless type-dispatch logic is shared between v1 driver (this package) and v2 driver; singleton avoids repeated construction while keeping per-subtype mapping methods organized."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new v1 handler that reads an entitlement by subject key",
+        "code": "type (\n\tGetMyHandlerRequest  = struct{ Namespace, SubjectKey, EntitlementID string }\n\tGetMyHandlerResponse = *api.Entitlement\n\tGetMyHandlerParams   = struct{ SubjectKey, EntitlementID string }\n)\ntype GetMyHandler httptransport.HandlerWithArgs[GetMyHandlerRequest, GetMyHandlerResponse, GetMyHandlerParams]\n\nfunc (h *entitlementHandler) GetMy() GetMyHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, p GetMyHandlerParams) (GetMyHandlerRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return GetMyHandlerRequest{}, err }\n\t\t\treturn GetMyHandlerRequest{Namespace: ns, SubjectKey: p.SubjectKey, EntitlementID: p.EntitlementID}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req GetMyHandlerRequest) (GetMyHandlerResponse, error) {\n\t\t\tcust, err := h.resolveCustomerFromSubject(ctx, req.Namespace, req.SubjectKey)\n\t\t\tif err != nil { return nil, err }\n\t\t\tres, err := h.connector.GetEntitlement(ctx, req.Namespace, cust.ID, req.EntitlementID)\n\t\t\tif err != nil { return nil, err }\n\t\t\treturn Parser.ToAPIGeneric(&entitlement.EntitlementWithCustomer{Entitlement: *res, Customer: *cust})\n\t\t},\n\t\tcommonhttp.JSONResponseEncoder[GetMyHandlerResponse],\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"getMy\"), httptransport.WithErrorEncoder(GetErrorEncoder()))...,\n\t)\n}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "api/client/python/openmeter/aio/operations": {
+    "purpose": "Public async operations namespace shim that re-exports all async operation classes from the auto-generated Azure SDK layer (_generated/aio/operations) into the stable openmeter.aio.operations namespace, applying optional monkey-patch overrides via _patch.py. No business logic lives here \u2014 this is a thin re-export boundary.",
+    "patterns": [
+      {
+        "name": "Wildcard re-export from generated layer",
+        "description": "All operations are imported from ..._generated.aio.operations._operations via wildcard import. Never define new operation classes directly in __init__.py.",
+        "example": "from ..._generated.aio.operations._operations import *  # noqa: F401, F403"
+      },
+      {
+        "name": "Patch overlay applied after base import",
+        "description": "_patch.py overrides are imported after _operations so patch symbols take precedence. patch_sdk() must be called at module end to activate runtime patches.",
+        "example": "from ..._generated.aio.operations._patch import *; _patch_sdk()"
+      },
+      {
+        "name": "__all__ extension pattern",
+        "description": "__all__ is set to the generated layer's __all__, then extended with patch symbols not already present. Order matters: generated names first, patch additions appended.",
+        "example": "__all__ = __all__\n__all__.extend([p for p in _patch_all if p not in __all__])"
+      },
+      {
+        "name": "TYPE_CHECKING-only patch import guard",
+        "description": "The _patch wildcard import is guarded by TYPE_CHECKING for static analysis, then repeated unconditionally for runtime. This double-import pattern is intentional Azure SDK convention.",
+        "example": "if TYPE_CHECKING:\n    from ..._generated.aio.operations._patch import *"
+      },
+      {
+        "name": "Graceful ImportError fallback for patch",
+        "description": "The _patch import is wrapped in try/except ImportError so the SDK works normally when no patch file exists.",
+        "example": "try:\n    from ..._generated.aio.operations._patch import __all__ as _patch_all\nexcept ImportError:\n    _patch_all = []"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "__init__.py",
+        "role": "Sole file in this package; acts as the public re-export shim. Importing from openmeter.aio.operations resolves here.",
+        "watch_for": "Do not add new symbols or logic here. Any new async operation must be added in _generated/aio/operations/_operations.py (generated) or _patch.py (override). Changing import order breaks patch precedence. Removing _patch_sdk() call silently disables all runtime patches."
+      }
+    ],
+    "anti_patterns": [
+      "Defining new operation classes or methods directly in __init__.py \u2014 all operations come from _generated",
+      "Removing the _patch_sdk() call at module end \u2014 runtime patches will silently not apply",
+      "Manually editing _generated/aio/operations/_operations.py \u2014 it is auto-generated and will be overwritten on next SDK generation",
+      "Importing specific names instead of wildcard \u2014 breaks compatibility when _generated adds new operations",
+      "Reordering base import and patch import \u2014 patch symbols must override base, so patch import must come after _operations import"
+    ],
+    "decisions": [
+      {
+        "decision": "Wildcard re-export shim instead of direct _generated imports",
+        "rationale": "Gives consumers a stable openmeter.aio.operations namespace that survives generator churn; the _generated path is an internal implementation detail consumers should not depend on."
+      },
+      {
+        "decision": "Optional _patch.py layer with graceful ImportError handling",
+        "rationale": "Allows SDK customisations (auth, retry, helpers) to be injected without forking the generator; if no patch file exists the SDK still works normally."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Correct structure of __init__.py \u2014 re-export with patch overlay",
+        "code": "from typing import TYPE_CHECKING\n\nif TYPE_CHECKING:\n    from ..._generated.aio.operations._patch import *  # pylint: disable=unused-wildcard-import\n\nfrom ..._generated.aio.operations._operations import *  # noqa: F401, F403\n\ntry:\n    from ..._generated.aio.operations._patch import __all__ as _patch_all\n    from ..._generated.aio.operations._patch import *  # noqa: F401, F403\nexcept ImportError:\n    _patch_all = []\nfrom ..._generated.aio.operations._patch import patch_sdk as _patch_sdk\n\nfrom ..._generated.aio.operations import __all__\n\n__all__ = __all__\n__all__.extend([p for p in _patch_all if p not in __all__])\n\n_patch_sdk()"
+      }
+    ]
+  }
+}

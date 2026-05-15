@@ -1,0 +1,134 @@
+{
+  "openmeter/ent/schema": {
+    "purpose": "Single source of truth for every PostgreSQL table and view in OpenMeter \u2014 35+ Ent schema structs that Atlas diffs against migration history to produce timestamped SQL migrations. Never edit generated output in openmeter/ent/db/; edit schemas here and run make generate.",
+    "patterns": [
+      {
+        "name": "Mixin composition for identity and timestamps",
+        "description": "Every entity must embed the appropriate entutils mixins: IDMixin (ULID PK), NamespaceMixin (multi-tenancy), TimeMixin (created_at/updated_at/deleted_at). Use UniqueResourceMixin or ResourceMixin for entities that also need a human-readable key and metadata. Never hand-roll these columns.",
+        "example": "func (Addon) Mixin() []ent.Mixin { return []ent.Mixin{ entutils.UniqueResourceMixin{} } }"
+      },
+      {
+        "name": "Postgres-typed fields with SchemaType",
+        "description": "Money/decimal columns use field.Other(name, alpacadecimal.Decimal{}) with SchemaType{dialect.Postgres: \"numeric\"}. ULID FK columns use SchemaType{dialect.Postgres: \"char(26)\"}. Currency codes use SchemaType{dialect.Postgres: \"varchar(3)\"}. JSON blobs use SchemaType{dialect.Postgres: \"jsonb\"}. Omitting SchemaType silently falls back to a less-precise default.",
+        "example": "field.Other(\"amount\", alpacadecimal.Decimal{}).SchemaType(map[string]string{dialect.Postgres: \"numeric\"})"
+      },
+      {
+        "name": "GoType + ValueScanner for complex domain types stored as jsonb",
+        "description": "Non-scalar domain types stored in jsonb columns must set .GoType(domainType{}) and .ValueScanner(entutils.JSONStringValueScanner[domainType]()) (or a custom ValueScannerFunc). Declare the scanner as a package-level var. Missing ValueScanner causes silent scan errors at runtime.",
+        "example": "var PriceValueScanner = entutils.JSONStringValueScanner[*productcatalog.Price]()\nfield.String(\"price\").GoType(&productcatalog.Price{}).ValueScanner(PriceValueScanner).SchemaType(map[string]string{dialect.Postgres: \"jsonb\"})"
+      },
+      {
+        "name": "Partial unique indexes with entsql.IndexWhere for soft-delete safety",
+        "description": "Uniqueness constraints that must ignore deleted rows must use .Annotations(entsql.IndexWhere(\"deleted_at IS NULL\")).Unique(). Do NOT use a plain .Unique() on (namespace, key) columns \u2014 it will reject restoring a previously deleted record with the same key.",
+        "example": "index.Fields(\"namespace\", \"key\", \"version\").Annotations(entsql.IndexWhere(\"deleted_at IS NULL\")).Unique()"
+      },
+      {
+        "name": "Cascade deletes via entsql.Annotation on edges",
+        "description": "Owned child entities (e.g. phases cascaded from plan, lines from invoice) must set entsql.Annotation{OnDelete: entsql.Cascade} on the parent's edge.To(...). Without it, deleting the parent leaves orphan rows that break FK constraints.",
+        "example": "edge.To(\"phases\", PlanPhase.Type).Annotations(entsql.Annotation{OnDelete: entsql.Cascade})"
+      },
+      {
+        "name": "ent.View for read-only union views; no mixins with indexes or edges",
+        "description": "Cross-table search views (e.g. ChargesSearchV1) implement ent.View and declare their SQL via entsql.ViewFor in Annotations(). Never add mixins with index or edge definitions to a View struct \u2014 ent generation panics. Views may not appear in Atlas migrate.Tables; add an explicit SQL migration if atlas reports no diff.",
+        "example": "type ChargesSearchV1 struct { ent.View }\nfunc (v ChargesSearchV1) Annotations() []schema.Annotation { return []schema.Annotation{ entsql.ViewFor(dialect.Postgres, func(s *sql.Selector) { ... }) } }"
+      },
+      {
+        "name": "Shared mixin structs for repeated field groups",
+        "description": "Field groups that recur across multiple entities (tax fields, rate card fields, payment fields, detailed line fields) are extracted into mixin.Schema structs (TaxMixin, RateCard, stddetailedline.Mixin, payment.InvoicedMixin, chargemeta.Mixin). Embed them in Mixin() to avoid duplication. Do NOT copy fields by hand.",
+        "example": "func (PlanRateCard) Mixin() []ent.Mixin { return []ent.Mixin{ entutils.UniqueResourceMixin{}, TaxMixin{} } }\nfunc (PlanRateCard) Fields() []ent.Field { fields := RateCard{}.Fields(); fields = append(fields, ...); return fields }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "billing.go",
+        "role": "Largest schema file: BillingProfile, BillingWorkflowConfig, BillingCustomerOverride, BillingInvoice, BillingInvoiceLine, BillingInvoiceFlatFeeLineConfig, BillingInvoiceUsageBasedLineConfig, BillingInvoiceSplitLineGroup, BillingStandardInvoiceDetailedLine, and discount sub-entities.",
+        "watch_for": "BillingInvoiceLine has >30 fields plus edges to all charge sub-types; adding a new field requires a migration and updating the adapter mapping. BillingDiscountsValueScanner and BillingCreditsAppliedValueScanner are declared here and must be kept in sync with their domain types."
+      },
+      {
+        "file": "charges.go",
+        "role": "Defines the Charge pivot entity (one row per charge regardless of type, holding FK to the type-specific table) and the ChargesSearchV1 union view.",
+        "watch_for": "The view's buildChargesSearchV1TableSelector must list chargesSearchV1Columns exactly as they appear in each charge sub-table. Adding a column to chargemeta.Mixin without updating chargesSearchV1Columns breaks the union view."
+      },
+      {
+        "file": "chargesflatfee.go / chargesusagebased.go / chargescreditpurchase.go",
+        "role": "Per-type charge schemas including their run, payment, invoiced-usage, credit-allocation, and detailed-line sub-entities.",
+        "watch_for": "Each charge type must have exactly one edge back to Charge via edge.To(\"charge\", Charge.Type).Unique().Immutable(). Payment and invoiced-usage sub-entities use shared mixins (payment.InvoicedMixin, invoicedusage.Mixin) \u2014 add fields to those mixins rather than duplicating."
+      },
+      {
+        "file": "subscription.go",
+        "role": "Subscription, SubscriptionPhase, SubscriptionItem \u2014 the three-level hierarchy that links plan rate cards to entitlements and billing lines.",
+        "watch_for": "SubscriptionItem duplicates all RateCard fields instead of using an edge (by design for snapshot immutability). Changes to productcatalog RateCard fields must be mirrored here manually and in the adapter mapping."
+      },
+      {
+        "file": "taxcode.go",
+        "role": "TaxCode entity plus TaxMixin (adds tax_code_id + tax_behavior to any entity). TaxCode.Edges lists every entity that carries a tax code FK.",
+        "watch_for": "When adding TaxMixin to a new entity, also add the corresponding back-edge in TaxCode.Edges() or ent generation will fail with missing ref."
+      },
+      {
+        "file": "notification.go",
+        "role": "NotificationChannel, NotificationRule, NotificationEvent, NotificationEventDeliveryStatus. Also defines ChannelConfigValueScanner and RuleConfigValueScanner \u2014 custom type-switching serializers for polymorphic jsonb config.",
+        "watch_for": "Adding a new ChannelType or EventType requires updating both the ValueScanner V (marshal) and S (unmarshal) switch statements; missing case causes an error at runtime, not compile time."
+      },
+      {
+        "file": "ledger_account.go / ledger_customer_account.go / ledger_entry.go / ledger_transaction.go / ledger_transaction_group.go",
+        "role": "Double-entry ledger schema: accounts, sub-accounts, routing rules, transaction groups, transactions, and entries.",
+        "watch_for": "LedgerCustomerAccount intentionally has no edges (no FK to LedgerAccount) to avoid import cycles. These tables must only be written when credits.enabled=true; see wiring guards in app/common."
+      }
+    ],
+    "anti_patterns": [
+      "Editing files under openmeter/ent/db/ \u2014 that directory is fully generated; changes are overwritten by make generate.",
+      "Adding a unique index without entsql.IndexWhere(\"deleted_at IS NULL\") on entities that support soft delete \u2014 causes constraint violations when re-creating a deleted record.",
+      "Declaring mixin with index or edge definitions inside an ent.View schema \u2014 ent generation panics.",
+      "Storing money/decimal as float64 or text instead of field.Other with alpacadecimal.Decimal{} and SchemaType numeric \u2014 loses precision for billing arithmetic.",
+      "Manually editing tools/migrate/migrations/ SQL files \u2014 Atlas owns that directory and validates the hash chain; manual edits break migrate-check-validate."
+    ],
+    "decisions": [
+      {
+        "decision": "One Go file per domain area rather than one file per entity",
+        "rationale": "billing.go, charges*.go, subscription.go group tightly coupled entities so that cross-entity edge definitions (e.g. BillingInvoiceLine <-> Charge) are colocated, reducing the chance of missing back-edges."
+      },
+      {
+        "decision": "Shared mixin structs (TaxMixin, RateCard, chargemeta.Mixin) for repeated field groups",
+        "rationale": "Multiple charge and catalog entities share identical field sets. Mixins give a single edit point so a field addition propagates correctly to all tables via make generate without manually touching each schema."
+      },
+      {
+        "decision": "Pivot Charge entity with optional FK fields per sub-type",
+        "rationale": "The three charge types (flat-fee, usage-based, credit-purchase) have divergent schemas; a single union table would be too sparse. The Charge pivot enables a single FK from BillingInvoiceLine to any charge type, while the ChargesSearchV1 view provides a unified search surface."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new entity with soft-deletable unique key, decimal amount, and jsonb config blob",
+        "code": "package schema\n\nimport (\n\t\"entgo.io/ent\"\n\t\"entgo.io/ent/dialect\"\n\t\"entgo.io/ent/dialect/entsql\"\n\t\"entgo.io/ent/schema/field\"\n\t\"entgo.io/ent/schema/index\"\n\t\"github.com/alpacahq/alpacadecimal\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/mydomain\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nvar MyConfigScanner = entutils.JSONStringValueScanner[mydomain.Config]()\n\ntype MyEntity struct{ ent.Schema }\n\nfunc (MyEntity) Mixin() []ent.Mixin {\n\treturn []ent.Mixin{entutils.UniqueResourceMixin{}}\n}\n\nfunc (MyEntity) Fields() []ent.Field {\n\treturn []ent.Field{\n\t\tfield.Other(\"amount\", alpacadecimal.Decimal{}).SchemaType(map[string]string{dialect.Postgres: \"numeric\"}),\n\t\tfield.String(\"config\").GoType(mydomain.Config{}).ValueScanner(MyConfigScanner).SchemaType(map[string]string{dialect.Postgres: \"jsonb\"}),\n\t}\n}\n\nfunc (MyEntity) Indexes() []ent.Index {\n\treturn []ent.Index{\n\t\tindex.Fields(\"namespace\", \"key\").Annotations(entsql.IndexWhere(\"deleted_at IS NULL\")).Unique(),\n\t}\n}"
+      }
+    ]
+  },
+  "openmeter/ent/tx": {
+    "purpose": "Thin bridge that adapts the Ent ORM transaction API to the pkg/framework/transaction.Creator interface, allowing domain adapters and services to start Postgres transactions without importing ent internals directly.",
+    "patterns": [
+      {
+        "name": "Implement transaction.Creator via db.HijackTx",
+        "description": "NewCreator(db *db.Client) returns a transaction.Creator whose Tx() method calls db.HijackTx to obtain a raw sql.Tx config, then wraps it in entutils.NewTxDriver. This is the only correct way to create a transaction.Driver that openmeter/pkg/framework/entutils.TransactingRepo can read from context.",
+        "example": "func (t *txCreator) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {\n\ttxCtx, rawConfig, eDriver, err := t.db.HijackTx(ctx, &sql.TxOptions{ReadOnly: false})\n\tif err != nil { return nil, nil, fmt.Errorf(\"failed to hijack transaction: %w\", err) }\n\treturn txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil\n}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "enttx.go",
+        "role": "Sole file: exports NewCreator(db *db.Client) transaction.Creator. Wired in app/common/database.go and injected wherever a TxCreator is required.",
+        "watch_for": "Do not change sql.TxOptions to ReadOnly: true \u2014 billing adapters write inside transactions and will panic. Do not bypass this and construct transactions manually; downstream TransactingRepo depends on the ctx driver key set by HijackTx."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing ent transactions outside this package (e.g. db.Tx(ctx) directly in an adapter) \u2014 bypasses the transaction.Driver protocol and makes the tx invisible to entutils.TransactingRepo.",
+      "Adding business logic to this package \u2014 it is purely a bridge; keep it to one function."
+    ],
+    "decisions": [
+      {
+        "decision": "Separate package rather than method on db.Client",
+        "rationale": "Keeps the ent-generated openmeter/ent/db package free of framework dependencies; domain adapters depend on the transaction.Creator interface without importing ent internals."
+      }
+    ],
+    "code_examples": []
+  }
+}

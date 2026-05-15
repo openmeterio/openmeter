@@ -1,0 +1,106 @@
+{
+  "openmeter/billing/charges/usagebased/service/run": {
+    "purpose": "Owns the mechanics of usage-based realization runs \u2014 rating, run persistence, credit allocation/correction, lineage writes, invoice usage booking, and payment authorization/settlement. Never makes state-machine decisions; executes run operations only.",
+    "patterns": [
+      {
+        "name": "Config-struct constructor with Validate()",
+        "description": "New(Config) validates all four required dependencies (Adapter, Rater, Handler, Lineage) before returning *Service. Config.Validate() uses errors.Join over a []error slice.",
+        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err } return &Service{...}, nil }"
+      },
+      {
+        "name": "Input structs validate first",
+        "description": "Every exported method calls in.Validate() as its first action. Input structs implement Validate() and validate sub-fields recursively with wrapped fmt.Errorf messages.",
+        "example": "func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (...) { if err := in.Validate(); err != nil { return ..., err } ... }"
+      },
+      {
+        "name": "CreditAllocationMode enum for credit semantics",
+        "description": "Three-valued enum CreditAllocationNone/Exact/Available controls whether credits are allocated and whether exact-match is required. Its own Validate() catches invalid values.",
+        "example": "CreditAllocation: CreditAllocationExact // allocates exact run total; error if ledger cannot satisfy"
+      },
+      {
+        "name": "Atomic credit-realization + lineage writes",
+        "description": "createRunCreditRealizations always calls lineage.CreateInitialLineages then lineage.PersistCorrectionLineageSegments immediately after adapter.CreateRunCreditRealization. These three calls must never be split.",
+        "example": "s.adapter.CreateRunCreditRealization(...); s.lineage.CreateInitialLineages(...); s.lineage.PersistCorrectionLineageSegments(...)"
+      },
+      {
+        "name": "Handler callbacks for all ledger side-effects",
+        "description": "Ledger writes (credit allocation, payment authorization, settlement, invoice usage accrual) go through usagebased.Handler callbacks. Never call ledger adapters directly from this package.",
+        "example": "ledgerRef, err := s.handler.OnInvoiceUsageAccrued(ctx, usagebased.OnInvoiceUsageAccruedInput{...})"
+      },
+      {
+        "name": "Round before compare or persist",
+        "description": "Decimals must be rounded via CurrencyCalculator.RoundToPrecision before negative-total checks, delta comparisons, and UpdateRealizationRun calls. Never compare unrounded alpacadecimal.Decimal values.",
+        "example": "runTotals := ratingResult.Totals.RoundToPrecision(in.CurrencyCalculator); if runTotals.Total.IsNegative() { ... }"
+      },
+      {
+        "name": "NoFiatTransactionRequired short-circuit",
+        "description": "BookInvoicedPaymentAuthorized and SettleInvoicedPayment both short-circuit with a no-op result when in.Run.NoFiatTransactionRequired is true, skipping handler and adapter calls.",
+        "example": "if in.Run.NoFiatTransactionRequired { return BookInvoicedPaymentAuthorizedResult{Run: in.Run}, nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines Service struct, Config, New constructor, and CreditAllocationMode enum.",
+        "watch_for": "No state-machine logic ever belongs here \u2014 this package executes runs, it does not decide which state to enter."
+      },
+      {
+        "file": "create.go",
+        "role": "CreateRatedRun: full run creation \u2014 rate, validate totals, persist run+detailed lines, optionally allocate credits, update run totals.",
+        "watch_for": "runTotals must be rounded before the negative-total check and before UpdateRealizationRun. ensureDetailedLinesLoadedForRating must be called before rating to satisfy PriorRuns validation."
+      },
+      {
+        "file": "correct.go",
+        "role": "ReconcileCredits (delta allocation/correction) and CorrectAllCredits (zero out run credits).",
+        "watch_for": "TargetAmount and currentAmount must both be rounded before computing delta \u2014 comparing unrounded decimals produces incorrect billing corrections."
+      },
+      {
+        "file": "credits.go",
+        "role": "Private allocate() helper and createRunCreditRealizations() that pairs adapter credit creation with lineage writes.",
+        "watch_for": "Never call adapter.CreateRunCreditRealization without the two subsequent lineage calls \u2014 they must be treated as a single atomic business operation."
+      },
+      {
+        "file": "invoice.go",
+        "role": "BookAccruedInvoiceUsage: books invoice usage accrual via handler then persists AccruedUsage. Short-circuits on NoFiatTransactionRequired.",
+        "watch_for": "Empty TransactionGroupID returned from handler is an error \u2014 enforce this check before calling adapter.CreateRunInvoicedUsage."
+      },
+      {
+        "file": "payment.go",
+        "role": "BookInvoicedPaymentAuthorized and SettleInvoicedPayment: authorize/settle payment via handler then persist via adapter.",
+        "watch_for": "State guards in Validate() (payment already authorized, mismatched line ID, already settled) must be preserved for any new payment methods."
+      },
+      {
+        "file": "payment_test.go",
+        "role": "Unit tests for BookInvoicedPaymentAuthorizedInput.Validate() and SettleInvoicedPaymentInput.Validate() covering all rejection paths.",
+        "watch_for": "Test helpers (newUsageBasedCharge, newUsageBasedRun) construct values directly \u2014 do not extract them to testutils; they depend on internal types."
+      }
+    ],
+    "anti_patterns": [
+      "Making state-machine decisions (status transitions, trigger selection) inside this package \u2014 those belong in the usagebased charge service layer above.",
+      "Calling ledger adapters directly \u2014 all ledger side-effects must flow through usagebased.Handler callbacks.",
+      "Splitting createRunCreditRealizations from its lineage calls \u2014 CreateInitialLineages and PersistCorrectionLineageSegments must always follow credit creation atomically.",
+      "Comparing alpacadecimal.Decimal values before rounding with CurrencyCalculator \u2014 rounding order is required for billing correctness.",
+      "Assigning charge.Intent.TaxConfig pointer directly into DetailedLine \u2014 always clone with cfg.Clone() to prevent mutation across run boundaries."
+    ],
+    "decisions": [
+      {
+        "decision": "Service owns run mechanics but not state-machine decisions",
+        "rationale": "Separating 'how to execute a run' (rating, persistence, credit math) from 'when to execute a run' (state transitions) keeps this package testable without a full state machine."
+      },
+      {
+        "decision": "Handler interface for all ledger side-effects",
+        "rationale": "Ledger calls are externally provided via usagebased.Handler so this package compiles and tests without a real ledger implementation; the integration point is a single seam per operation type."
+      },
+      {
+        "decision": "CreditAllocationMode enum instead of boolean flags",
+        "rationale": "Three distinct allocation semantics (none, exact, available) cannot be expressed cleanly with a boolean; an enum with Validate() catches invalid values at construction time."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Create a final realization run with exact credit allocation",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run\"\n)\n\nrunSvc, err := run.New(run.Config{\n    Adapter: usagebasedAdapter,\n    Rater:   ratingService,\n    Handler: usagebasedHandler,\n    Lineage: lineageService,\n})\nif err != nil { return err }\n\nresult, err := runSvc.CreateRatedRun(ctx, run.CreateRatedRunInput{\n    Charge:             charge,\n    CustomerOverride:   customerOverride,\n    FeatureMeter:       featureMeter,\n    Type:               usagebased.RealizationRunTypeFinalRealization,\n    StoredAtLT:         storedAt,\n    ServicePeriodTo:    periodTo,\n    LineID:             &lineID,\n    InvoiceID:          &invoiceID,\n    CreditAllocation:   run.CreditAllocationExact,\n    CurrencyCalculator: calculator,\n})"
+      }
+    ]
+  }
+}

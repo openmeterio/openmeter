@@ -19,7 +19,7 @@ const (
 
 func (i InstallMethod) Validate() error {
 	if i == "" {
-		return errors.New("install method is required")
+		return models.NewGenericValidationError(errors.New("install method is required"))
 	}
 
 	if !slices.Contains([]InstallMethod{
@@ -27,7 +27,7 @@ func (i InstallMethod) Validate() error {
 		InstallMethodAPIKey,
 		InstallMethodNoCredentials,
 	}, i) {
-		return fmt.Errorf("invalid install method: %s", i)
+		return models.NewGenericValidationError(fmt.Errorf("invalid install method: %s", i))
 	}
 
 	return nil
@@ -43,15 +43,15 @@ type MarketplaceListing struct {
 
 func (p MarketplaceListing) Validate() error {
 	if p.Type == "" {
-		return errors.New("type is required")
+		return models.NewGenericValidationError(errors.New("type is required"))
 	}
 
 	if p.Name == "" {
-		return errors.New("name is required")
+		return models.NewGenericValidationError(errors.New("name is required"))
 	}
 
 	if p.Description == "" {
-		return errors.New("description is required")
+		return models.NewGenericValidationError(errors.New("description is required"))
 	}
 
 	for i, capability := range p.Capabilities {
@@ -78,15 +78,15 @@ type Capability struct {
 
 func (c Capability) Validate() error {
 	if c.Key == "" {
-		return errors.New("key is required")
+		return models.NewGenericValidationError(errors.New("key is required"))
 	}
 
 	if c.Name == "" {
-		return errors.New("name is required")
+		return models.NewGenericValidationError(errors.New("name is required"))
 	}
 
 	if c.Description == "" {
-		return errors.New("description is required")
+		return models.NewGenericValidationError(errors.New("description is required"))
 	}
 
 	return nil
@@ -98,7 +98,7 @@ type MarketplaceListingID struct {
 
 func (i MarketplaceListingID) Validate() error {
 	if i.Type == "" {
-		return errors.New("type is required")
+		return models.NewGenericValidationError(errors.New("type is required"))
 	}
 
 	return nil
@@ -114,7 +114,7 @@ type MarketplaceListInput struct {
 
 func (i MarketplaceListInput) Validate() error {
 	if err := i.Page.Validate(); err != nil {
-		return fmt.Errorf("error validating page: %w", err)
+		return models.NewGenericValidationError(fmt.Errorf("error validating page: %w", err))
 	}
 
 	return nil
@@ -127,15 +127,17 @@ type InstallAppWithAPIKeyInput struct {
 }
 
 func (i InstallAppWithAPIKeyInput) Validate() error {
+	var errs []error
+
 	if err := i.InstallAppInput.Validate(); err != nil {
-		return fmt.Errorf("error validating install app input: %w", err)
+		errs = append(errs, err)
 	}
 
 	if i.APIKey == "" {
-		return errors.New("api key is required")
+		errs = append(errs, models.NewGenericValidationError(errors.New("api key is required")))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type InstallAppInput struct {
@@ -146,17 +148,17 @@ type InstallAppInput struct {
 }
 
 func (i InstallAppInput) Validate() error {
+	var errs []error
+
 	if err := i.MarketplaceListingID.Validate(); err != nil {
-		return models.NewGenericValidationError(
-			fmt.Errorf("error validating marketplace listing id: %w", err),
-		)
+		errs = append(errs, err)
 	}
 
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		errs = append(errs, models.NewGenericValidationError(errors.New("namespace is required")))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type GetOauth2InstallURLInput = MarketplaceListingID
@@ -178,19 +180,19 @@ type AuthorizeOauth2InstallInput struct {
 }
 
 func (i AuthorizeOauth2InstallInput) Validate() error {
+	var errs []error
+
 	if err := i.MarketplaceListingID.Validate(); err != nil {
-		return models.NewGenericValidationError(
-			fmt.Errorf("error validating marketplace listing id: %w", err),
-		)
+		errs = append(errs, err)
 	}
 
 	if i.State == "" {
-		return errors.New("state is required")
+		errs = append(errs, models.NewGenericValidationError(errors.New("state is required")))
 	}
 
 	if i.Error != "" && i.Code != "" {
-		return errors.New("code and error cannot be set at the same time")
+		errs = append(errs, models.NewGenericValidationError(errors.New("code and error cannot be set at the same time")))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

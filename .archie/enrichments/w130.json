@@ -1,0 +1,304 @@
+{
+  "openmeter/watermill/eventbus": {
+    "purpose": "Wraps Watermill's cqrs.EventBus to route typed domain events to one of three Kafka topics (ingest, system, balance-worker) based on event-name prefix matching against EventVersionSubsystem constants. The Publisher interface is the single injection point all producers use; topic routing is fully encapsulated and callers never reference topic names directly.",
+    "patterns": [
+      {
+        "name": "Topic routing by event-name prefix",
+        "description": "GeneratePublishTopic checks strings.HasPrefix against ingestevents.EventVersionSubsystem+'.' and balanceworkerevents.EventVersionSubsystem+'.'; everything else falls to SystemEventsTopic with no error. New event families must declare an EventVersionSubsystem constant matching one of these prefixes exactly.",
+        "example": "ingestVersionSubsystemPrefix := ingestevents.EventVersionSubsystem + \".\""
+      },
+      {
+        "name": "PublishIfNoError for handler-inline publishing",
+        "description": "Use p.WithContext(ctx).PublishIfNoError(handler(ctx, event)) to avoid a separate error check when a handler returns (marshaler.Event, error). Returns nil if the event is nil (handler signals no-publish).",
+        "example": "return w.publisher.WithContext(ctx).PublishIfNoError(w.handleEvent(ctx, ev))"
+      },
+      {
+        "name": "Options.Validate before construction",
+        "description": "Both Options and TopicMapping have Validate() methods called by New(). All three topic names and a non-nil Publisher and Logger are required. New() returns an error on validation failure; never skip validation.",
+        "example": "if err := opts.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "NewMock for unit tests",
+        "description": "Use eventbus.NewMock(t) in tests; it wires a noop.Publisher with fixed topic names. Never instantiate a real Kafka-backed publisher in unit tests.",
+        "example": "eventBus := eventbus.NewMock(t)"
+      },
+      {
+        "name": "Nil-event guard \u2014 return nil to suppress publish",
+        "description": "publisher.Publish silently ignores nil events. Handlers that conditionally want to skip publishing should return nil rather than an empty struct.",
+        "example": "if event == nil { return nil } // inside publisher.Publish"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "eventbus.go",
+        "role": "Entire package in one file: TopicMapping, Options, Publisher/ContextPublisher interfaces, publisher struct, New(), NewMock().",
+        "watch_for": "Adding a 4th topic requires updating TopicMapping, Validate(), and the GeneratePublishTopic switch; the new EventVersionSubsystem prefix must not overlap with existing ones or routing silently misroutes."
+      }
+    ],
+    "anti_patterns": [
+      "Publishing directly to a Kafka topic string \u2014 always use eventbus.Publisher so routing is centralised.",
+      "Defining event names without an EventVersionSubsystem constant \u2014 GeneratePublishTopic defaults to SystemEventsTopic silently for unrecognised prefixes.",
+      "Passing a nil Publisher in Options \u2014 New() will return an error; use noop.Publisher for tests.",
+      "Checking event == nil at call sites \u2014 the publisher already guards against nil events.",
+      "Creating a second Publisher instance outside app/common Wire wiring \u2014 TopicMapping must be consistent across all producers in a binary."
+    ],
+    "decisions": [
+      {
+        "decision": "Three fixed topics, prefix-routed by EventVersionSubsystem",
+        "rationale": "Topic isolation matches the worker topology (sink-worker, balance-worker, everything else) without requiring callers to know which topic to use \u2014 the event name carries the routing key, keeping producers decoupled from consumer topology."
+      },
+      {
+        "decision": "Publisher interface instead of exposing cqrs.EventBus directly",
+        "rationale": "Hides Watermill internals, allows noop substitution in tests and DI, and provides the WithContext/PublishIfNoError ergonomic shortcut that avoids repetitive error-check boilerplate in handler loops."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Publishing a domain event from a service handler using PublishIfNoError",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/watermill/eventbus\"\n\nfunc (w *worker) handleSubscriptionEvent(ctx context.Context, ev SubscriptionEvent) (marshaler.Event, error) {\n    // ... business logic ...\n    return billingevents.NewInvoiceCreated(inv.ID), nil\n}\n\n// In worker loop:\nreturn w.publisher.WithContext(ctx).PublishIfNoError(w.handleSubscriptionEvent(ctx, ev))"
+      }
+    ]
+  },
+  "openmeter/watermill/grouphandler": {
+    "purpose": "Provides NoPublishingHandler, a multiplexed Watermill consumer handler that dispatches a single Kafka message to all registered GroupEventHandlers matching the CloudEvents ce_type header, with per-type OTel metrics. Unknown event types are silently ACKed (dropped, not errored) to support rolling deploys.",
+    "patterns": [
+      {
+        "name": "NewGroupEventHandler generic constructor",
+        "description": "Use NewGroupEventHandler[T](func(ctx context.Context, event *T) error) to register a typed handler. The generic parameter T is the concrete event struct. Do not implement GroupEventHandler manually.",
+        "example": "grouphandler.NewGroupEventHandler(func(ctx context.Context, ev *billingevents.InvoiceCreated) error { return svc.OnInvoiceCreated(ctx, ev) })"
+      },
+      {
+        "name": "Silent drop on unknown event type",
+        "description": "If no handler matches ce_type, the message is ACKed and the ignored metric is incremented. Never return an error for unknown event types \u2014 workers must tolerate schema evolution during rolling deploys.",
+        "example": "if !ok || len(groupHandler) == 0 { h.meters.handlerMessageCount.Add(..., meterAttributeStatusIgnored); return nil }"
+      },
+      {
+        "name": "errors.Join fan-out over all handlers for a type",
+        "description": "All handlers for the same event type receive the same deserialized event pointer via errors.Join(lo.Map(...)). A failure in any handler surfaces as an error causing Watermill retry; partial success is not possible.",
+        "example": "err := errors.Join(lo.Map(groupHandler, func(h GroupEventHandler, _ int) error { return h.Handle(msg.Context(), event) })...)"
+      },
+      {
+        "name": "AddHandler for post-construction registration",
+        "description": "Use AddHandler to register additional handlers after NewNoPublishingHandler returns; it acquires the write lock safely. Used by BillingWorker to attach external handlers at startup.",
+        "example": "handler.AddHandler(grouphandler.NewGroupEventHandler(myOtherHandler))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "grouphandler.go",
+        "role": "Entire package in one file. Defines NoPublishingHandler (the mux), GroupEventHandler alias, NewGroupEventHandler generic, and OTel meters.",
+        "watch_for": "The first handler in the slice for a type is used for Unmarshal (NewEvent()); all handlers share the same deserialized event pointer. If handlers mutate the event, they will race and corrupt each other's view."
+      }
+    ],
+    "anti_patterns": [
+      "Returning an error for unrecognised event types \u2014 causes Watermill to retry and eventually DLQ valid messages from other event families on the same topic.",
+      "Mutating the event pointer inside a GroupEventHandler when multiple handlers are registered for the same type \u2014 they share one deserialized instance.",
+      "Bypassing NoPublishingHandler and writing a raw message.NoPublishHandlerFunc \u2014 per-type OTel metrics and type-dispatch would be missing.",
+      "Passing a non-pointer event struct that uses pointer receivers to NewGroupEventHandler \u2014 type assertion for NewEvent() will fail to deserialize correctly."
+    ],
+    "decisions": [
+      {
+        "decision": "errors.Join fan-out rather than early-exit on handler failure",
+        "rationale": "All handlers for an event type are equal observers; partial failure must surface as an error so Watermill retries, not silently swallow one handler's failure while others succeed."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Registering typed event handlers and wiring into the Watermill router",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/watermill/grouphandler\"\n    billingevents \"github.com/openmeterio/openmeter/openmeter/billing/worker/events\"\n)\n\nhandler, err := grouphandler.NewNoPublishingHandler(\n    m.Marshaler(),\n    metricMeter,\n    grouphandler.NewGroupEventHandler(func(ctx context.Context, ev *billingevents.InvoiceCreated) error {\n        return svc.OnInvoiceCreated(ctx, ev)\n    }),\n)\n// Later, post-construction:\nhandler.AddHandler(grouphandler.NewGroupEventHandler(myOtherHandler))"
+      }
+    ]
+  },
+  "openmeter/watermill/marshaler": {
+    "purpose": "Implements the cqrs.CommandEventMarshaler contract using CloudEvents 1.0 as the wire format. Every domain event is serialized to a CloudEvents JSON envelope with ce_type/ce_time/ce_source/ce_subject Watermill metadata headers; deserialization validates via Event.Validate(). WithSource wraps an Event to inject the source field without modifying the event struct.",
+    "patterns": [
+      {
+        "name": "Event interface \u2014 EventName, EventMetadata, Validate",
+        "description": "Every publishable struct must implement marshaler.Event: EventName() string (used as ce_type and router dispatch key), EventMetadata() metadata.EventMetadata (source, subject, time, id), and Validate() error (called on both Marshal and Unmarshal paths).",
+        "example": "func (e *InvoiceCreated) EventName() string { return EventVersionSubsystem + \".invoice.created/v1\" }"
+      },
+      {
+        "name": "WithSource wrapper to inject CloudEvents source",
+        "description": "Use marshaler.WithSource(sourceURI, ev) when the event struct does not carry the source itself. MarshalJSON delegates to the inner event to avoid adding an extra 'Event' wrapper key in the JSON payload.",
+        "example": "return marshaler.WithSource(\"openmeter/billing-worker\", ev)"
+      },
+      {
+        "name": "ULID auto-ID and zero-time auto-now in NewCloudEvent",
+        "description": "NewCloudEvent auto-generates a ULID ID and sets time to now if EventMetadata returns empty values. Events needing deterministic IDs must set metadata.ID explicitly before publishing.",
+        "example": "if metadata.ID == \"\" { cloudEvent.SetID(ulid.Make().String()) }"
+      },
+      {
+        "name": "Validate called on both sides of the wire",
+        "description": "Marshal calls Validate before encoding; Unmarshal calls it after JSON decode. Consumers rely on this invariant \u2014 do not skip Validate in event structs, even if fields appear optional.",
+        "example": "return ev.Validate() // last line of Unmarshal"
+      },
+      {
+        "name": "UnknownEventName fallback for non-Event types",
+        "description": "Name() returns 'io.openmeter.unknown' for types not implementing the Event interface. This silently routes to SystemEventsTopic via eventbus prefix matching. All published structs must implement Event.",
+        "example": "if !ok { return UnknownEventName } // inside Name()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "marshaler.go",
+        "role": "Core marshaler: Marshal (Event\u2192CloudEvents JSON+headers), Unmarshal (CloudEvents JSON\u2192Event+Validate), Name, NameFromMessage, NewCloudEvent helper.",
+        "watch_for": "Name() returns UnknownEventName for non-Event values \u2014 this silently routes to SystemEventsTopic; ensure all published structs implement Event."
+      },
+      {
+        "file": "source.go",
+        "role": "eventWithSource wrapper that overrides EventMetadata().Source. MarshalJSON delegates to inner event to avoid extra 'Event' key in payload.",
+        "watch_for": "json.inline tag on embedded Event is decorative; actual marshaling goes through the explicit MarshalJSON override. Pass pointer events to WithSource \u2014 value receivers on the inner Event may not satisfy interface correctly."
+      },
+      {
+        "file": "source_test.go",
+        "role": "Unit test for WithSource round-trip: confirms source header is set and payload unmarshals back to original struct.",
+        "watch_for": "Test uses package-internal event struct \u2014 real events must implement all three Event methods or Validate will fail during Unmarshal."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing EventName() with an unstable string that changes between versions \u2014 event routing and consumer handler dispatch rely on stable names.",
+      "Returning a non-pointer from WithSource when the inner Event uses pointer receivers \u2014 MarshalJSON override requires pointer semantics to delegate correctly.",
+      "Setting CloudEventsHeaderType manually in Watermill message metadata \u2014 Marshal sets it from EventName(); overriding bypasses type-based routing.",
+      "Skipping Validate() in event structs \u2014 Unmarshal calls it; invalid events surface as consumer errors and trigger retries.",
+      "Embedding a non-Event type and passing it to Marshal \u2014 Name() returns UnknownEventName and routing silently falls to SystemEventsTopic."
+    ],
+    "decisions": [
+      {
+        "decision": "CloudEvents 1.0 as the wire format",
+        "rationale": "Provides a standard envelope (type, source, subject, time, id) consumable by non-Go systems and inspectable in Kafka without custom schema knowledge, enabling cross-team debugging and future polyglot consumers."
+      },
+      {
+        "decision": "Validate called on both producer and consumer sides",
+        "rationale": "Catches corrupt or partial events at both publish time and consumption time, preventing invalid data from propagating downstream and making schema violations immediately visible at the source."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining a new domain event struct that satisfies the marshaler.Event interface",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/event/metadata\"\n\nconst EventVersionSubsystem = \"io.openmeter.billing\"\n\ntype InvoiceCreated struct {\n    InvoiceID string `json:\"invoiceId\"`\n}\n\nfunc (e *InvoiceCreated) EventName() string {\n    return EventVersionSubsystem + \".invoice.created/v1\"\n}\n\nfunc (e *InvoiceCreated) EventMetadata() metadata.EventMetadata {\n    return metadata.EventMetadata{Source: \"openmeter/billing\"}\n}\n\nfunc (e *InvoiceCreated) Validate() error {\n    if e.InvoiceID == \"\" { return errors.New(\"invoiceId is required\") }\n    return nil\n}"
+      }
+    ]
+  },
+  "openmeter/watermill/nopublisher": {
+    "purpose": "Provides two pure adapter functions for converting between Watermill's NoPublishHandlerFunc and HandlerFunc signatures, used when a handler is logically a consumer but must be wired into a router slot expecting a different function signature.",
+    "patterns": [
+      {
+        "name": "NoPublisherHandlerToHandlerFunc for consumer-only handlers",
+        "description": "Wraps a NoPublishHandlerFunc into a HandlerFunc that always returns (nil, err). Use when the Watermill router API requires HandlerFunc but the handler never produces output messages.",
+        "example": "router.AddHandler(\"name\", topic, sub, pub, nopublisher.NoPublisherHandlerToHandlerFunc(myConsumer))"
+      },
+      {
+        "name": "HandlerFuncToNoPublisherHandler with production guard",
+        "description": "Converts a HandlerFunc into a NoPublishHandlerFunc; returns ErrMessagesProduced if the inner handler emits any messages. Only wrap handlers that are truly side-effect-only \u2014 any returned message causes an error and infinite retries.",
+        "example": "nopublisher.HandlerFuncToNoPublisherHandler(h) // errors if h returns messages"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "nopublisher.go",
+        "role": "Two pure adapter functions and one sentinel error (ErrMessagesProduced). No state.",
+        "watch_for": "ErrMessagesProduced is a hard error \u2014 if a wrapped HandlerFunc ever returns messages, the consumer will error and retry indefinitely. Only wrap handlers that are guaranteed to return nil messages."
+      }
+    ],
+    "anti_patterns": [
+      "Using HandlerFuncToNoPublisherHandler on a handler that conditionally produces messages \u2014 ErrMessagesProduced will cause infinite retries.",
+      "Reimplementing these adapters inline in worker code instead of importing this package."
+    ],
+    "decisions": [],
+    "code_examples": []
+  },
+  "openmeter/watermill/router": {
+    "purpose": "Constructs the standard Watermill *message.Router with a fixed, ordered middleware stack: PoisonQueue (DLQ), DLQ telemetry with OTel tracing, CorrelationID, Recoverer, exponential-backoff Retry, optional ProcessingTimeout+RestoreContext, and per-handler HandlerMetrics. All worker binaries must use NewDefaultRouter as their router factory.",
+    "patterns": [
+      {
+        "name": "Fixed middleware order via NewDefaultRouter",
+        "description": "Middleware is added in a specific order: PoisonQueue \u2192 DLQTelemetry \u2192 CorrelationID \u2192 Recoverer \u2192 Retry \u2192 (RestoreContext+Timeout if configured) \u2192 HandlerMetrics. New workers must call NewDefaultRouter rather than constructing their own router.",
+        "example": "watermillRouter, err := router.NewDefaultRouter(router.Options{...})"
+      },
+      {
+        "name": "RestoreContext immediately before Timeout \u2014 never Timeout standalone",
+        "description": "Timeout middleware permanently replaces msg.Context() after returning; RestoreContext saves and restores the original context so subsequent retries start with a fresh context. Always pair them in this order.",
+        "example": "router.AddMiddleware(RestoreContext, middleware.Timeout(opts.Config.ProcessingTimeout))"
+      },
+      {
+        "name": "MaxRetries off-by-one correction",
+        "description": "Watermill's Retry executes MaxRetries+1 times total; NewDefaultRouter subtracts 1 before passing to the middleware. config.RetryConfiguration.MaxRetries is the true total attempt count. MaxRetries=0 means one attempt, no retry.",
+        "example": "if maxRetries > 0 { maxRetries = maxRetries - 1 }"
+      },
+      {
+        "name": "WarningLogSeverityError for non-fatal transient errors",
+        "description": "Wrap expected transient errors (e.g. race between DB commit and Kafka message arrival) with router.NewWarningLogSeverityError. DLQTelemetry downgrades these to WARN log level; the message still goes to DLQ.",
+        "example": "return router.NewWarningLogSeverityError(err)"
+      },
+      {
+        "name": "Options.Validate before construction",
+        "description": "Options.Validate() checks Subscriber, Publisher, Logger, MetricMeter, Tracer, and Config.Validate(). Missing MetricMeter or Tracer causes nil-pointer panics inside HandlerMetrics construction \u2014 always validate.",
+        "example": "if err := opts.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "Real OTel providers required in tests",
+        "description": "All OTel instruments are created at router construction time. Pass sdkmetric.NewMeterProvider().Meter(...) and sdktrace.NewTracerProvider().Tracer(...) in tests \u2014 nil values are rejected by Validate.",
+        "example": "options.MetricMeter = sdkmetric.NewMeterProvider().Meter(\"test\")\noptions.Tracer = sdktrace.NewTracerProvider().Tracer(\"test\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "router.go",
+        "role": "NewDefaultRouter: constructs *message.Router with full middleware stack from Options. Config sourced from config.ConsumerConfiguration.",
+        "watch_for": "DLQ.Topic and ConsumerGroupName must be set in Config before passing to NewDefaultRouter; they are not validated by Options.Validate but missing values will cause Watermill panics at runtime."
+      },
+      {
+        "file": "metrics.go",
+        "role": "HandlerMetrics (per-handler attempt metrics) and NewDLQTelemetryMiddleware (full message lifecycle with OTel span). Both consumed internally by NewDefaultRouter.",
+        "watch_for": "NewDLQTelemetryMiddleware wraps the entire retry+DLQ span in a single OTel trace span \u2014 do not add another span wrapper around the router handler or traces will nest incorrectly."
+      },
+      {
+        "file": "context.go",
+        "role": "RestoreContext middleware: saves msg.Context() before handler, defers restore after. Must be applied immediately before Timeout.",
+        "watch_for": "If Timeout is added without RestoreContext, subsequent retries share a cancelled context and will immediately fail regardless of ProcessingTimeout value."
+      },
+      {
+        "file": "errors.go",
+        "role": "WarningLogSeverityError sentinel type. DLQTelemetry checks via errors.As to downgrade log level to WARN.",
+        "watch_for": "Only affects log severity \u2014 the message still goes to DLQ. Do not use as a way to suppress DLQ routing."
+      },
+      {
+        "file": "logger.go",
+        "role": "warningOnlyLogger: Watermill logger adapter that downgrades Error\u2192Warn for retry noise. Used exclusively in the Retry middleware within NewDefaultRouter.",
+        "watch_for": "warningOnlyLogger.With() returns a new warningOnlyLogger \u2014 ensure the returned adapter is used, not the original."
+      },
+      {
+        "file": "router_test.go",
+        "role": "Table-driven integration tests for DLQ, retry, and timeout scenarios using gochannel in-memory pubsub. Reference for valid Options construction in tests.",
+        "watch_for": "Tests use DoneCondition channel to await async handler completion \u2014 use done.Wait(120s) pattern, never time.Sleep."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing a *message.Router directly instead of NewDefaultRouter \u2014 middleware order, DLQ wiring, and OTel tracing will be absent.",
+      "Adding Timeout middleware without RestoreContext immediately before it \u2014 cancelled contexts will break retry logic and cause immediate timeouts on all retry attempts.",
+      "Setting MaxRetries=0 expecting 'no retries with no DLQ' \u2014 MaxRetries=0 means one attempt then DLQ; set MaxRetries=1 for one attempt plus one retry.",
+      "Returning non-WarningLogSeverityError for expected transient failures \u2014 they log at ERROR level and may trigger unnecessary alerts.",
+      "Skipping Options.Validate \u2014 missing Tracer/MetricMeter causes nil-pointer panics inside HandlerMetrics construction."
+    ],
+    "decisions": [
+      {
+        "decision": "PoisonQueue outermost, HandlerMetrics innermost",
+        "rationale": "PoisonQueue must catch all errors including those from Recoverer; HandlerMetrics must measure only actual handler execution time, not the retry/DLQ overhead surrounding it."
+      },
+      {
+        "decision": "RestoreContext workaround for watermill#467",
+        "rationale": "Watermill's Timeout middleware permanently replaces msg.Context() after the handler returns; without RestoreContext the next retry attempt starts with an already-cancelled context, causing immediate failure regardless of ProcessingTimeout."
+      },
+      {
+        "decision": "warningOnlyLogger for Retry middleware only",
+        "rationale": "Retry errors are expected transient failures; logging them at ERROR would pollute alert channels. Only final DLQ disposition (surfaced by DLQTelemetry) should be an error log."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructing the default router in a worker binary",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/watermill/router\"\n    \"github.com/openmeterio/openmeter/app/config\"\n)\n\nwatermillRouter, err := router.NewDefaultRouter(router.Options{\n    Subscriber:  kafkaSubscriber,\n    Publisher:   kafkaPublisher, // for DLQ\n    Logger:      logger,\n    MetricMeter: metricMeter,\n    Tracer:      tracer,\n    Config: config.ConsumerConfiguration{\n        ConsumerGroupName: \"billing-worker\",\n        DLQ: config.DLQConfiguration{Topic: \"billing-worker-dlq\"},\n        Retry: config.RetryConfiguration{\n            MaxRetries:      5,\n            InitialInterval: 100 * time.Millisecond,\n            MaxInterval:     10 * time.Second,\n        },\n        ProcessingTimeout: 30 * time.Second,\n    },\n})"
+      }
+    ]
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "pkg/framework/entutils/testutils/ent1/schema": {
+    "purpose": "Test fixture Ent schema used exclusively by entutils transaction tests. Provides a minimal single-entity schema (Example1) to exercise TransactingRepo, TxCreator, and related Ent test infrastructure without coupling to production domain schemas.",
+    "patterns": [
+      {
+        "name": "Embed ent.Schema",
+        "description": "Every schema struct must embed ent.Schema as an anonymous field \u2014 required by Ent's code generator.",
+        "example": "type Example1 struct { ent.Schema }"
+      },
+      {
+        "name": "Use entutils.TimeMixin",
+        "description": "Apply entutils.TimeMixin{} in Mixin() to get standard created_at/updated_at timestamps consistent with production schemas.",
+        "example": "func (Example1) Mixin() []ent.Mixin { return []ent.Mixin{entutils.TimeMixin{}} }"
+      },
+      {
+        "name": "Immutable string ID field",
+        "description": "Declare the primary key as field.String(\"id\").Unique().Immutable() \u2014 matches production schema conventions for ULID/string PKs.",
+        "example": "field.String(\"id\").Unique().Immutable()"
+      },
+      {
+        "name": "Return empty slices for unused schema hooks",
+        "description": "Return []ent.Index{} and []ent.Edge{} when there are no indexes or edges \u2014 do not omit the methods.",
+        "example": "func (Example1) Indexes() []ent.Index { return []ent.Index{} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "example1.go",
+        "role": "Sole test entity schema. Provides a minimal two-field entity (id + example_value_1) with TimeMixin for testing entutils transaction helpers.",
+        "watch_for": "Do not add production business logic here. Schema changes require regenerating the testutils ent client via go generate in the testutils package."
+      }
+    ],
+    "anti_patterns": [
+      "Adding production domain fields or edges \u2014 this schema is a test fixture only",
+      "Omitting entutils.TimeMixin \u2014 breaks consistency with production schema conventions tested by entutils",
+      "Using integer or UUID primary keys instead of string \u2014 mismatches the ULID string PK pattern used in production",
+      "Skipping Indexes() or Edges() methods \u2014 Ent codegen expects all four interface methods to be present"
+    ],
+    "decisions": [
+      {
+        "decision": "Minimal schema with only two fields",
+        "rationale": "Test fixtures need just enough structure to exercise transaction semantics (read/write/rollback) without the complexity of real domain entities that would create test maintenance burden."
+      },
+      {
+        "decision": "Reuse entutils.TimeMixin instead of raw timestamp fields",
+        "rationale": "Ensures the test schema exercises the same mixin path as production schemas, catching any regressions in TimeMixin behavior."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining a new test-fixture Ent schema entity with TimeMixin and string PK",
+        "code": "package schema\n\nimport (\n\t\"entgo.io/ent\"\n\t\"entgo.io/ent/schema/field\"\n\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\ntype Example1 struct {\n\tent.Schema\n}\n\nfunc (Example1) Mixin() []ent.Mixin {\n\treturn []ent.Mixin{\n\t\tentutils.TimeMixin{},\n\t}\n}\n\nfunc (Example1) Fields() []ent.Field {\n\treturn []ent.Field{\n\t\tfield.String(\"id\").\n\t\t\tUnique().\n\t\t\tImmutable(),\n\t\tfield.String(\"example_value_1\"),\n\t}\n}\n\nfunc (Example1) Indexes() []ent.Index {\n\treturn []ent.Index{}\n}\n\nfunc (Example1) Edges() []ent.Edge {\n\treturn []ent.Edge{}\n}"
+      }
+    ]
+  }
+}

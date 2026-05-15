@@ -1,0 +1,132 @@
+{
+  "openmeter/entitlement/balanceworker/events": {
+    "purpose": "Pure schema package defining RecalculateEvent \u2014 the Watermill event contract between balance recalculation producers (entitlement lifecycle hooks, ingest flush) and the balance-worker consumer. No business logic, no DB access.",
+    "patterns": [
+      {
+        "name": "Implement marshaler.Event with compile-time assertion",
+        "description": "Every event struct must implement marshaler.Event (EventName() string, EventMetadata() metadata.EventMetadata). Enforce with var _ marshaler.Event = RecalculateEvent{}.",
+        "example": "var _ marshaler.Event = RecalculateEvent{}"
+      },
+      {
+        "name": "Versioned EventType via metadata.EventType struct",
+        "description": "Event type is declared as metadata.EventType{Subsystem, Name, Version}; the event name string is derived via metadata.GetEventName(). Bump Version on breaking schema changes \u2014 never rename the Go type instead.",
+        "example": "recalculateEventType = metadata.EventType{Subsystem: EventSubsystem, Name: RecalculateEventName, Version: \"v2\"}"
+      },
+      {
+        "name": "OperationType enum with Values() + Validate()",
+        "description": "New operation kinds must be added to both the const block and the Values() slice. Validate() uses slices.Contains(o.Values(), o) \u2014 omitting an entry from Values() makes it always invalid.",
+        "example": "func (o OperationType) Validate() error { if !slices.Contains(o.Values(), o) { return fmt.Errorf(...) } return nil }"
+      },
+      {
+        "name": "EventMetadata.Subject via ComposeResourcePath",
+        "description": "Subject must always be built with metadata.ComposeResourcePath(namespace, entityKind, id) \u2014 never raw string concatenation.",
+        "example": "Subject: metadata.ComposeResourcePath(e.Entitlement.Namespace, metadata.EntityEntitlement, e.Entitlement.ID)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "recalculate.go",
+        "role": "Single source of truth for the recalculate event schema: struct fields, OperationType enum, and all marshaler.Event plumbing.",
+        "watch_for": "Adding fields is a wire-format change \u2014 consumers must be updated simultaneously. Version string in recalculateEventType must be bumped on breaking changes. EventVersionSubsystem is exported from this file and used by eventbus routing \u2014 do not rename."
+      }
+    ],
+    "anti_patterns": [
+      "Adding DB calls or business logic \u2014 this is a pure schema/data package",
+      "Constructing RecalculateEvent without calling Validate() before publishing",
+      "Hard-coding the event name string instead of using metadata.GetEventName(recalculateEventType)",
+      "Introducing a new OperationType constant without adding it to Values()",
+      "Renaming EventVersionSubsystem \u2014 it is the routing key used by eventbus.GeneratePublishTopic"
+    ],
+    "decisions": [
+      {
+        "decision": "Event schema lives in events/ sub-package rather than inline in the worker",
+        "rationale": "Producers outside the worker (entitlement service hooks, ingest flush) import this package to construct events without depending on the full worker package, avoiding circular imports."
+      },
+      {
+        "decision": "Version encoded in EventType struct ('v2'), not in the Go type name",
+        "rationale": "Allows multiple consumers running different versions to coexist on the same Kafka topic during rolling deploys by filtering on EventVersionSubsystem."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new OperationType and publish a valid RecalculateEvent",
+        "code": "// 1. Add to const block and Values() in recalculate.go:\nconst OperationTypeMyNew OperationType = \"my_new\"\nfunc (o OperationType) Values() []OperationType {\n    return []OperationType{..., OperationTypeMyNew}\n}\n\n// 2. Construct and validate before publish:\nevt := events.RecalculateEvent{\n    Entitlement:         models.NamespacedID{Namespace: ns, ID: entID},\n    AsOf:                time.Now(),\n    OriginalEventSource: \"my-producer\",\n    SourceOperation:     events.OperationTypeMyNew,\n}\nif err := evt.Validate(); err != nil {\n    return fmt.Errorf(\"invalid event: %w\", err)\n}\nreturn publisher.Publish(ctx, evt)"
+      }
+    ]
+  },
+  "openmeter/entitlement/balanceworker/filters": {
+    "purpose": "Pluggable filter chain that gates whether a RecalculateEvent should be processed for a given namespace/entitlement. Prevents redundant ClickHouse queries via high-watermark caching and short-circuits namespaces with no active notification rules.",
+    "patterns": [
+      {
+        "name": "Filter / NamedFilter / CalculationTimeRecorder interface hierarchy",
+        "description": "All implementations must satisfy Filter (IsNamespaceInScope + IsEntitlementInScope). Named filters also implement Name() string. Filters that update state after calculation implement CalculationTimeRecorder. All enforce with compile-time var _ assertions.",
+        "example": "var _ NamedFilter = (*HighWatermarkCache)(nil)\nvar _ CalculationTimeRecorder = (*HighWatermarkCache)(nil)"
+      },
+      {
+        "name": "Config struct with Validate() called first in constructor",
+        "description": "Each filter with external dependencies takes a typed Config struct implementing models.Validator. The constructor calls cfg.Validate() as its first statement and returns error on failure \u2014 never panics.",
+        "example": "func NewNotificationsFilter(cfg NotificationsFilterConfig) (NamedFilter, error) {\n    if err := cfg.Validate(); err != nil { return nil, err }\n    ...\n}"
+      },
+      {
+        "name": "HighWatermarkBackend abstraction for storage",
+        "description": "HighWatermarkCache delegates all storage to HighWatermarkBackend interface (Get/Record). Only in-memory LRU is implemented now. New backends (Redis) must implement HighWatermarkBackend \u2014 never add storage directly to HighWatermarkCache.",
+        "example": "type HighWatermarkBackend interface {\n    Get(ctx context.Context, entitlementID string) (highWatermarkBackendGetResult, error)\n    Record(ctx context.Context, req RecordLastCalculationRequest) error\n}"
+      },
+      {
+        "name": "LRU+TTL cache for all external service lookups",
+        "description": "Any filter that calls an external service (notification, DB) must cache results using lrux.CacheWithItemTTL \u2014 filters run per-event on the hot worker path and must not issue unbounded external calls.",
+        "example": "ruleCache, err := lrux.NewCacheWithItemTTL(cfg.CacheSize, filter.fetchRulesForNamespace, lrux.WithTTL(cfg.CacheTTL))"
+      },
+      {
+        "name": "Reset operations always pass high-watermark filter",
+        "description": "snapshot.ValueOperationReset must bypass the watermark check and return true unconditionally \u2014 fresh notification events for new periods must always flow through.",
+        "example": "if req.Operation == snapshot.ValueOperationReset { return true, nil }"
+      },
+      {
+        "name": "EntitlementFilterRequest.Validate() inside every IsEntitlementInScope",
+        "description": "All IsEntitlementInScope implementations must call req.Validate() first and return the error. Zero-value EventAt silently bypasses watermark comparisons if not validated.",
+        "example": "func (f *Foo) IsEntitlementInScope(ctx context.Context, req EntitlementFilterRequest) (bool, error) {\n    if err := req.Validate(); err != nil { return false, err }\n    ...\n}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "filter.go",
+        "role": "Defines the Filter, NamedFilter, CalculationTimeRecorder interfaces and the EntitlementFilterRequest / RecordLastCalculationRequest input types.",
+        "watch_for": "EntitlementFilterRequest.Validate() is the canonical guard \u2014 all implementations must call it. Adding fields here is a breaking change for all filter implementations."
+      },
+      {
+        "file": "highwatermark.go",
+        "role": "In-memory LRU cache preventing recalculation for events older than the last successful calculation timestamp.",
+        "watch_for": "defaultClockDrift (-1ms) is subtracted from the watermark in comparisons \u2014 replicate this offset in any new time comparison or events under clock skew will be dropped. HighWatermarkInMemoryBackend.cache is not goroutine-safe without lru's built-in locking \u2014 do not bypass it."
+      },
+      {
+        "file": "notifications.go",
+        "role": "Skips recalculation for namespaces/entitlements with no active BalanceThreshold notification rules. Caches rule lookups with TTL via lrux.",
+        "watch_for": "Empty Features list in a BalanceThreshold rule means 'all features in scope' \u2014 any new feature-matching logic must preserve this semantics. NotificationsFilter does not implement CalculationTimeRecorder (no RecordLastCalculation) \u2014 do not add watermark logic here."
+      }
+    ],
+    "anti_patterns": [
+      "Calling external services inside IsEntitlementInScope without LRU+TTL caching \u2014 runs per-event and will saturate downstream services",
+      "Implementing a new filter without a compile-time var _ interface assertion",
+      "Skipping cfg.Validate() in a new filter constructor \u2014 nil dependencies cause nil-pointer panics at runtime rather than startup",
+      "Adding mutable state to filter structs without concurrent-access protection \u2014 filters are called concurrently from worker goroutines",
+      "Hardcoding storage into HighWatermarkCache instead of implementing a new HighWatermarkBackend"
+    ],
+    "decisions": [
+      {
+        "decision": "Filters composed as a named chain rather than a single monolithic gating function",
+        "rationale": "Each filter has a distinct concern (watermark vs notification rule existence) with different caching strategies. The chain allows the worker to short-circuit on the cheapest filter (namespace-level) before the more expensive entitlement-level check."
+      },
+      {
+        "decision": "HighWatermarkCache uses a pluggable HighWatermarkBackend interface despite only in-memory being implemented",
+        "rationale": "Future Redis-backed persistence would allow high-watermark state to survive worker restarts, eliminating post-crash redundant ClickHouse queries across all entitlements."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new NamedFilter that skips entitlements whose feature is archived",
+        "code": "package filters\n\nimport (\n    \"context\"\n    \"fmt\"\n\n    \"github.com/openmeterio/openmeter/openmeter/entitlement\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nvar _ NamedFilter = (*ArchivedFeatureFilter)(nil)\n\ntype ArchivedFeatureFilterConfig struct {\n    EntitlementService entitlement.Service\n}\n\nfunc (c ArchivedFeatureFilterConfig) Validate() error {\n    if c.EntitlementService == nil {\n        return fmt.Errorf(\"entitlementService is required\")\n    }\n    return nil\n}\n\nvar _ models.Validator = ArchivedFeatureFilterConfig{}\n\ntype ArchivedFeatureFilter struct{ svc entitlement.Service }\n\nfunc NewArchivedFeatureFilter(cfg ArchivedFeatureFilterConfig) (NamedFilter, error) {\n    if err := cfg.Validate(); err != nil { return nil, err }\n    return &ArchivedFeatureFilter{svc: cfg.EntitlementService}, nil\n}\n\nfunc (f *ArchivedFeatureFilter) Name() string { return \"archived_feature\" }\n\nfunc (f *ArchivedFeatureFilter) IsNamespaceInScope(_ context.Context, _ string) (bool, error) {\n    return true, nil\n}\n\nfunc (f *ArchivedFeatureFilter) IsEntitlementInScope(ctx context.Context, req EntitlementFilterRequest) (bool, error) {\n    if err := req.Validate(); err != nil { return false, err }\n    // ... check req.Entitlement.FeatureID against archived features ...\n    return true, nil\n}"
+      }
+    ]
+  }
+}

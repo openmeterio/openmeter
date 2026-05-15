@@ -1,0 +1,390 @@
+{
+  "api/client/python/openmeter/_generated/_utils": {
+    "purpose": "Low-level serialization/deserialization utilities for the generated Python SDK. Provides SdkJSONEncoder, the _Model MutableMapping-based base class (model_base.py), format-aware type converters for datetime/bytes/timedelta/decimal, and the legacy Autorest-style Model/Serializer/Deserializer (serialization.py). These files are fully generated and must not be hand-edited.",
+    "patterns": [
+      {
+        "name": "Format-dispatch deserialization via get_deserializer()",
+        "description": "Always route datetime/bytes/timedelta/decimal deserialization through get_deserializer(annotation, rf). It selects from _DESERIALIZE_MAPPING (keyed by Python type) or _DESERIALIZE_MAPPING_WITHFORMAT (keyed by wire format string like 'rfc7231', 'base64url'). Never hand-roll datetime or bytes parsing.",
+        "example": "deserializer = get_deserializer(datetime, rf)  # rf._format may be 'rfc7231' or None; value = deserializer(raw_value)"
+      },
+      {
+        "name": "SdkJSONEncoder for all request body serialization",
+        "description": "Pass exclude_readonly=True when building request bodies so read-only fields (visibility=['read']) are stripped. SdkJSONEncoder handles datetime, bytes, timedelta, decimal, and _Model instances via its default() method.",
+        "example": "json.dumps(payload, cls=SdkJSONEncoder, exclude_readonly=True)"
+      },
+      {
+        "name": "Two distinct Model base classes \u2014 do not mix",
+        "description": "model_base.py defines _Model (MutableMapping-backed, uses rest_field annotations). serialization.py defines Model (attribute_map class var, Autorest-style Serializer/Deserializer). _operations.py uses the legacy serialization.Model path via _SERIALIZER; generated dataclass-style models extend _Model.",
+        "example": "# New models: class MyModel(_Model): field: str = rest_field(...)\n# Never mix: do not subclass _Model and also declare _attribute_map"
+      },
+      {
+        "name": "_MyMutableMapping cache invalidation on __setitem__",
+        "description": "The _MyMutableMapping backing _Model clears _deserialized_<key> attribute cache on every __setitem__. Mutating _data directly bypasses this invalidation. Always go through attribute access or the dict interface (obj['key'] = value or obj.key = value).",
+        "example": "# Correct: obj.name = 'new'  or  obj['name'] = 'new'\n# Wrong: obj._data['name'] = 'new'  # bypasses cache invalidation"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "model_base.py",
+        "role": "Defines _Model (MutableMapping-based base for all generated models), rest_field, rest_discriminator, SdkJSONEncoder, and all _deserialize_* helper functions. Core of the new-codegen path.",
+        "watch_for": "Mutating _data directly on a _Model bypasses the _deserialized_<key> cache-invalidation in __setitem__; always go through attribute or dict interface."
+      },
+      {
+        "file": "serialization.py",
+        "role": "Legacy Autorest-style Model base class, Serializer, Deserializer, RawDeserializer, and key transformers (attribute_transformer, full_restapi_key_transformer). Used by _operations.py via module-level _SERIALIZER singleton.",
+        "watch_for": "_SERIALIZER has client_side_validation=False; do not create per-call Serializer instances or re-enable validation."
+      },
+      {
+        "file": "__init__.py",
+        "role": "Re-exports SdkJSONEncoder, Model, rest_field, rest_discriminator as the public surface of this utils package.",
+        "watch_for": "Any new public symbol added here must also appear in __all__."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-rolling datetime or bytes serialization instead of using _serialize_datetime / _serialize_bytes / get_deserializer()",
+      "Editing model_base.py or serialization.py directly \u2014 they are generated and overwritten by make gen-api",
+      "Creating per-request Serializer() instances \u2014 _SERIALIZER is a module-level singleton with client_side_validation=False",
+      "Importing from corehttp internals not already imported in these files (adds fragile transitive dependency)",
+      "Subclassing _Model and also declaring _attribute_map \u2014 these are mutually exclusive codegen paths"
+    ],
+    "decisions": [
+      {
+        "decision": "Two separate Model base classes coexist: _Model (MutableMapping, rest_field) and serialization.Model (attribute_map, Autorest)",
+        "rationale": "SDK was generated with a newer codegen (_Model) but retains the legacy Autorest Model for backwards compatibility with older client patterns and XML support via serialization.py."
+      },
+      {
+        "decision": "_DESERIALIZE_MAPPING_WITHFORMAT separates format-aware converters from type-based converters",
+        "rationale": "The same Python type (datetime) maps to multiple wire formats (rfc3339, rfc7231, unix-timestamp). Splitting into two maps lets get_deserializer() check format first, then fall back to type-only dispatch."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Deserialize a datetime field with format awareness from a rest_field annotation",
+        "code": "from openmeter._generated._utils.model_base import get_deserializer\n# rf is the _RestField instance whose _format may be 'rfc7231', 'unix-timestamp', or None\ndeserializer = get_deserializer(datetime, rf)\nvalue = deserializer(raw_value)  # returns a timezone-aware datetime"
+      }
+    ]
+  },
+  "api/client/python/openmeter/_generated/models": {
+    "purpose": "Auto-generated Python model classes and enums for the entire OpenMeter API surface. Every request/response body type (~200+ classes in _models.py) and every string enum (_enums.py) is defined here; this is the single source of truth for Python-typed API objects in the SDK. Do not edit _models.py or _enums.py \u2014 only _patch.py is safe to modify.",
+    "patterns": [
+      {
+        "name": "rest_field attribute declaration with visibility and name mapping",
+        "description": "Each field is declared as a class variable using rest_field(name='camelCaseName', visibility=[...], format='rfc3339') to map Python snake_case to JSON camelCase. Required fields have no default; optional fields are Optional[T] with = rest_field(...). The visibility list controls which CRUD operations include the field.",
+        "example": "created_at: datetime.datetime = rest_field(name='createdAt', visibility=['read'], format='rfc3339')"
+      },
+      {
+        "name": "Dual @overload __init__ pattern",
+        "description": "Every model class has two @overload signatures: one with keyword args (for IDE completion of required fields), one with mapping: Mapping[str, Any] (for raw-dict construction from parsed JSON). The real __init__ always calls super().__init__(*args, **kwargs).",
+        "example": "@overload\ndef __init__(self, *, name: str, key: str) -> None: ...\n@overload\ndef __init__(self, mapping: Mapping[str, Any]) -> None: ...\ndef __init__(self, *args, **kwargs) -> None:\n    super().__init__(*args, **kwargs)"
+      },
+      {
+        "name": "CaseInsensitiveEnumMeta for all string enums",
+        "description": "All enums in _enums.py inherit from (str, Enum) with metaclass=CaseInsensitiveEnumMeta from corehttp.utils. This enables case-insensitive lookup by string value so wire comparisons work regardless of server casing.",
+        "example": "class AppType(str, Enum, metaclass=CaseInsensitiveEnumMeta):\n    STRIPE = 'stripe'\n    SANDBOX = 'sandbox'"
+      },
+      {
+        "name": "_patch.py as the only safe customization point",
+        "description": "_patch.py is preserved across regenerations. Add helper methods, monkey-patches, or additional public symbols here. patch_sdk() must remain callable. New symbols must also be listed in _patch.__all__ to appear in models.__all__.",
+        "example": "# _patch.py\n__all__ = ['my_helper']\ndef my_helper(): ...\ndef patch_sdk(): pass  # must remain callable"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "_models.py",
+        "role": "Contains all ~200+ generated dataclass-style model classes extending _Model from _utils/model_base. The authoritative definition of every API request/response shape.",
+        "watch_for": "DO NOT EDIT \u2014 regenerated by make gen-api. All customizations must go in _patch.py."
+      },
+      {
+        "file": "_enums.py",
+        "role": "All string enums used across models and operations. Every enum uses CaseInsensitiveEnumMeta for wire-value matching.",
+        "watch_for": "DO NOT EDIT \u2014 regenerated. Never add plain str Enum without CaseInsensitiveEnumMeta."
+      },
+      {
+        "file": "__init__.py",
+        "role": "Re-exports all models and enums, applies _patch.py via _patch_sdk(). The __all__ list is the authoritative public API of this subpackage.",
+        "watch_for": "DO NOT EDIT \u2014 regenerated. New public symbols added in _patch.py must appear in _patch.__all__ to propagate here."
+      },
+      {
+        "file": "_patch.py",
+        "role": "The only file safe to hand-edit. Place SDK customizations that must survive regeneration here.",
+        "watch_for": "patch_sdk() must remain callable even if empty. Never remove it."
+      }
+    ],
+    "anti_patterns": [
+      "Editing _models.py or _enums.py directly \u2014 overwritten by make gen-api",
+      "Subclassing generated models outside of _patch.py \u2014 breaks regeneration idempotency",
+      "Using plain str Enum without CaseInsensitiveEnumMeta \u2014 breaks case-insensitive wire value matching",
+      "Adding new public symbols to _patch.py without listing them in _patch.__all__ \u2014 they won't appear in models.__all__",
+      "Constructing models with positional arguments \u2014 use keyword args or a Mapping dict; positional args are not supported by the overload signatures"
+    ],
+    "decisions": [
+      {
+        "decision": "All models are MutableMapping-backed (_Model) rather than plain dataclasses",
+        "rationale": "Enables dict-style access and JSON serialization without a separate to_dict() step, matching the corehttp pipeline's expectation for request bodies and the SdkJSONEncoder's iteration over items()."
+      },
+      {
+        "decision": "_patch.py is preserved across regenerations as the sole customization point",
+        "rationale": "Generated code must remain pristine for automated regeneration; _patch.py provides a stable escape hatch that survives make gen-api without merge conflicts."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Construct a model using typed kwargs or a raw dict from parsed JSON",
+        "code": "from openmeter._generated.models import Customer, AddonCreate, AppType\n\n# Typed keyword construction (IDE completes required fields)\ncustomer = Customer(name='Acme', external_mapping_key='acme-001')\n\n# Raw dict construction from parsed JSON response\ncustomer = Customer({'name': 'Acme', 'externalMappingKey': 'acme-001'})\n\n# Enum usage \u2014 case-insensitive\napp_type = AppType('STRIPE')  # == AppType.STRIPE"
+      }
+    ]
+  },
+  "api/client/python/openmeter/_generated/operations": {
+    "purpose": "Auto-generated operation classes that implement every OpenMeter API endpoint as typed Python methods grouped by resource (CustomersOperations, InvoicesOperations, BillingProfilesOperations, etc.). Each class uses the corehttp pipeline to build, send, and deserialize HTTP requests. Do not edit _operations.py \u2014 only _patch.py is safe to modify.",
+    "patterns": [
+      {
+        "name": "build_*_request free functions for request construction",
+        "description": "Every operation is preceded by a build_<resource>_<verb>_request(...) free function that constructs the HttpRequest (URL path formatting, query params, headers) using the module-level _SERIALIZER singleton. The operation method calls this builder then sends via self._client.send_request. Never build HttpRequest objects manually outside this pattern.",
+        "example": "def build_customers_list_request(*, page=None, page_size=None, **kwargs) -> HttpRequest:\n    _params['page'] = _SERIALIZER.query('page', page, 'int')\n    return HttpRequest(method='GET', url='/api/v1/customers', params=_params, headers=_headers)"
+      },
+      {
+        "name": "ClsType optional callback for result interception",
+        "description": "Every operation method accepts an optional cls: ClsType kwarg \u2014 a callback(pipeline_response, deserialized, headers) that can intercept or transform the result. Pass None (the default) for standard use. Never remove this parameter from generated signatures.",
+        "example": "ClsType = Optional[Callable[[PipelineResponse[HttpRequest, HttpResponse], T, dict[str, Any]], Any]]"
+      },
+      {
+        "name": "map_error for typed HTTP error mapping before deserialization",
+        "description": "Operations call map_error(status_code=response.status_code, response=response, error_map={404: ResourceNotFoundError, 409: ResourceExistsError, ...}) before deserializing success responses. Never catch HttpResponseError without calling map_error first.",
+        "example": "error_map = {404: ResourceNotFoundError, 409: ResourceExistsError}\nmap_error(status_code=response.status_code, response=response, error_map=error_map)"
+      },
+      {
+        "name": "Module-level _SERIALIZER singleton \u2014 do not reinstantiate",
+        "description": "_SERIALIZER = Serializer() is a module-level singleton with client_side_validation=False. Never create per-call Serializer() instances. All query/header/URL serialization goes through _SERIALIZER.query(), _SERIALIZER.header(), _SERIALIZER.url().",
+        "example": "_SERIALIZER = Serializer()\n_SERIALIZER.client_side_validation = False\n# Usage: _SERIALIZER.query('page', page, 'int')"
+      },
+      {
+        "name": "ItemPaged for paginated list operations",
+        "description": "List operations that return paginated collections return ItemPaged[T] from corehttp.paging. Callers iterate the result directly; the pager handles next-page fetching transparently.",
+        "example": "result: ItemPaged[Customer] = ops.list(page=1, page_size=20)\nfor customer in result:\n    print(customer.name)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "_operations.py",
+        "role": "All ~30 generated operation classes. Each is initialized with a PipelineClient and OpenMeterClientConfiguration. Contains all build_*_request helpers and the send+deserialize logic.",
+        "watch_for": "DO NOT EDIT \u2014 regenerated by make gen-api. _SERIALIZER is module-level; do not create per-request instances."
+      },
+      {
+        "file": "__init__.py",
+        "role": "Re-exports all Operations classes and applies _patch.py via _patch_sdk(). The __all__ list is authoritative.",
+        "watch_for": "DO NOT EDIT \u2014 regenerated. Any symbols added in _patch.py must appear in _patch.__all__ to be included in __all__."
+      },
+      {
+        "file": "_patch.py",
+        "role": "The only file safe to hand-edit. Override or extend generated operation class methods here.",
+        "watch_for": "patch_sdk() must remain callable. Methods added here must not conflict with generated signatures."
+      }
+    ],
+    "anti_patterns": [
+      "Editing _operations.py directly \u2014 overwritten by make gen-api",
+      "Building HttpRequest objects manually outside the build_*_request free-function pattern \u2014 breaks serialization consistency",
+      "Catching HttpResponseError without calling map_error first \u2014 loses typed exception mapping (ResourceNotFoundError, ResourceExistsError, etc.)",
+      "Creating per-request Serializer() instances instead of using the module-level _SERIALIZER singleton",
+      "Removing the cls: ClsType parameter from any operation method signature"
+    ],
+    "decisions": [
+      {
+        "decision": "Request construction is split into build_*_request free functions separate from the send+deserialize logic in Operations class methods",
+        "rationale": "Enables unit-testing request construction (URL, headers, params) without an HTTP client, and keeps the send path uniform across all operations."
+      },
+      {
+        "decision": "Operations classes are grouped by resource (CustomersOperations, InvoicesOperations, etc.) rather than by HTTP method",
+        "rationale": "Resource-grouped classes match the TypeSpec interface groupings and make it easy to find all operations for a given domain without scanning the entire file."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Invoke a paginated list operation and a single-resource get through the operations classes",
+        "code": "from openmeter._generated.operations import CustomersOperations, InvoicesOperations\n\n# ops is injected by the top-level OpenMeterClient; not constructed directly\n# Paginated list \u2014 iterate ItemPaged[Customer]\nfor customer in ops.customers.list(page=1, page_size=20):\n    print(customer.name)\n\n# Single resource get\ninvoice = ops.invoices.get(invoice_id='01HXYZ...')"
+      }
+    ]
+  },
+  "api/spec/packages/legacy/src/billing": {
+    "purpose": "TypeSpec schema-only package defining the v1 billing API surface \u2014 billing profiles, customer overrides, and invoice lifecycle endpoints. All .tsp files compile into api/openapi.yaml via `make gen-api`; no runtime code lives here.",
+    "patterns": [
+      {
+        "name": "@friendlyName on every model, union, enum, and interface",
+        "description": "Every public declaration carries @friendlyName to produce stable, human-readable Go type names. Missing @friendlyName causes autogenerated names that break SDK contracts on schema change.",
+        "example": "@friendlyName(\"BillingProfile\")\nmodel BillingProfile { ... }"
+      },
+      {
+        "name": "@visibility lifecycle decorators on every field",
+        "description": "Fields must be annotated with Lifecycle.Read, Lifecycle.Create, Lifecycle.Update as appropriate. Fields without @visibility default to all lifecycles and expose internal state in create/update payloads.",
+        "example": "@visibility(Lifecycle.Read)\nsupplier: BillingParty;"
+      },
+      {
+        "name": "Discriminated unions with envelope:none for polymorphic types",
+        "description": "All union variants use @discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) so the discriminator field is inlined. Adding a new union arm requires both the arm in the union AND a model with a matching `type` literal field.",
+        "example": "@discriminated(#{ discriminatorPropertyName: \"type\", envelope: \"none\" })\nunion BillingWorkflowCollectionAlignment {\n  subscription: BillingWorkflowCollectionAlignmentSubscription,\n  anchored: BillingWorkflowCollectionAlignmentAnchored,\n}"
+      },
+      {
+        "name": "Spread (...) and OmitProperties<T> for model composition, not extends",
+        "description": "Models reuse shared fields via spread (e.g. ...global.Resource, ...OmitProperties<T, ...>). Using extends where spread is expected changes property semantics in generated SDK types.",
+        "example": "model BillingProfileCustomerOverride {\n  ...OmitProperties<ResourceTimestamps, \"deletedAt\">;\n  billingProfileId?: ULID;\n}"
+      },
+      {
+        "name": "Explicit @operationId on every interface operation",
+        "description": "Every operation must carry @operationId to produce stable Go function names in the generated server stub. Omitting it causes autogenerated names that may change across TypeSpec compiler versions.",
+        "example": "@get\n@operationId(\"getBillingProfile\")\nget(@path id: ULID): BillingProfile | NotFoundError | CommonErrors;"
+      },
+      {
+        "name": "namespace OpenMeter on all declarations",
+        "description": "Every model, union, enum, and interface must be declared inside namespace OpenMeter. Missing namespace causes the symbol to land in the global scope and fail to compile as part of the package.",
+        "example": "namespace OpenMeter;\n\n@friendlyName(\"BillingWorkflow\")\nmodel BillingWorkflow { ... }"
+      },
+      {
+        "name": "main.tsp as the sole entry point importing all sibling files",
+        "description": "Every new .tsp file added to this folder must be imported in main.tsp. A file not imported there compiles in isolation but produces no output in api/openapi.yaml.",
+        "example": "// main.tsp\nimport \"./invoices/main.tsp\";\nimport \"./profile.tsp\";\nimport \"./customeroverride.tsp\";\nimport \"./invoices.tsp\";"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.tsp",
+        "role": "Package entry point: imports all sibling and child .tsp files and declares namespace usage directives.",
+        "watch_for": "Adding a new .tsp file without a matching import here \u2014 the file silently produces no output."
+      },
+      {
+        "file": "profile.tsp",
+        "role": "Defines BillingProfile, BillingProfileCreate, BillingProfileReplaceUpdate, BillingWorkflow and its sub-settings (collection, invoicing, payment, tax), app references, and CRUD interface for /api/v1/billing/profiles.",
+        "watch_for": "BillingProfileReplaceUpdate uses ResourceReplaceModel<BillingProfile> \u2014 adding a field to BillingProfile without controlling its visibility on the replace model will leak read-only fields into the update payload."
+      },
+      {
+        "file": "customeroverride.tsp",
+        "role": "Defines customer override CRUD at /api/v1/billing/customers/{customerId} and BillingProfileCustomerOverrideWithDetails response merging override + base profile.",
+        "watch_for": "BillingProfileCustomerWorkflowOverride has app fields annotated @visibility(Lifecycle.Read) only \u2014 they must never appear in create/update inputs."
+      },
+      {
+        "file": "invoices.tsp",
+        "role": "Defines invoice listing/get/delete/update/action endpoints across three interface groups (InvoicesEndpoints, InvoiceEndpoints, CustomerInvoiceEndpoints) and request/response models for invoice actions (void, approve, advance, retry, snapshot-quantities).",
+        "watch_for": "VoidInvoiceLineAction is a discriminated union with envelope:none \u2014 adding a new void action type requires both a new union arm AND a new model with a matching `type` literal field."
+      },
+      {
+        "file": "invoices/main.tsp",
+        "role": "Child package entry: imports all invoice sub-models (invoice.tsp, discounts.tsp, party.tsp, pay.tsp, tax.tsp, docref.tsp). Invoice entity field shape lives in the child package, not the parent invoices.tsp.",
+        "watch_for": "Do not define invoice entity fields in the parent invoices.tsp \u2014 that file only defines endpoints and action input/output models."
+      }
+    ],
+    "anti_patterns": [
+      "Adding runtime or business logic \u2014 this folder is schema-only; all logic belongs in openmeter/billing/",
+      "Editing generated files (api/openapi.yaml, api/api.gen.go) instead of the .tsp source",
+      "Omitting @friendlyName on new models, unions, or enums \u2014 causes unstable generated Go type names that break SDK contracts",
+      "Adding fields without @visibility decorators \u2014 fields default to all lifecycles and expose internal state on create/update requests",
+      "Using extends for model composition instead of spread (...) or OmitProperties \u2014 changes property inheritance semantics in generated output"
+    ],
+    "decisions": [
+      {
+        "decision": "Visibility-controlled fields instead of separate request/response types",
+        "rationale": "Using @visibility(Lifecycle.Read/Create/Update) on a single model reduces duplication and ensures the OpenAPI generator derives correct request/response schemas automatically without maintaining parallel type hierarchies."
+      },
+      {
+        "decision": "Discriminated unions with envelope:none for polymorphic workflow alignment and void-action types",
+        "rationale": "envelope:none inlines the discriminator field directly in the object, matching the Go domain types in openmeter/billing/ which use a Type string field rather than a wrapper object."
+      },
+      {
+        "decision": "BillingProfileReplaceUpdate uses ResourceReplaceModel<BillingProfile> with an explicit workflow override field",
+        "rationale": "TypeSpec.Rest.Resource.ResourceReplaceModel auto-derives update payload from read model visibility; the explicit workflow field override allows different update semantics for workflow sub-config without duplicating the whole BillingProfile tree."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new billing workflow action endpoint with a discriminated input type",
+        "code": "// In invoices.tsp, inside InvoiceEndpoints:\n@post\n@route(\"/my-action\")\n@summary(\"Perform my action\")\n@operationId(\"myInvoiceAction\")\nmyAction(\n  @path invoiceId: ULID,\n  @body request: MyActionInput,\n): Invoice | NotFoundError | CommonErrors;\n\n// New models (namespace OpenMeter already declared at top):\n@friendlyName(\"MyActionType\")\nenum MyActionType { discard: \"discard\", redo: \"redo\" }\n\n@friendlyName(\"MyActionInput\")\nmodel MyActionInput {\n  @visibility(Lifecycle.Create)\n  type: MyActionType;\n}"
+      }
+    ]
+  },
+  "api/spec/packages/legacy/src/entitlements": {
+    "purpose": "TypeSpec schema-only package defining the v1 entitlements API surface \u2014 subjects-scoped entitlement CRUD, grant management, customer access checks, and shared value/history/reset sub-routes. All V1 symbols are deprecated in favour of v2 equivalents in the v2/ sub-folder; new entitlement work belongs there.",
+    "patterns": [
+      {
+        "name": "Discriminated union with envelope:none for polymorphic entitlement types",
+        "description": "The Entitlement union and EntitlementCreateInputs union use @discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }). Adding a new entitlement type requires a new arm in BOTH unions plus a new model with a matching `type` literal field.",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })\n@friendlyName(\"EntitlementCreateInputs\")\nunion EntitlementCreateInputs {\n  metered: EntitlementMeteredCreateInputs,\n  static: EntitlementStaticCreateInputs,\n  boolean: EntitlementBooleanCreateInputs,\n}"
+      },
+      {
+        "name": "OmitProperties<T, \"field1\" | \"field2\"> for model composition",
+        "description": "Response models spread OmitProperties over a base create-input type and add read-only fields, avoiding full redefinition and keeping create/read models in sync automatically when the base type changes.",
+        "example": "model EntitlementMetered {\n  type: EntitlementType.metered;\n  ...OmitProperties<EntitlementMeteredCreateInputs, \"type\" | \"measureUsageFrom\" | \"usagePeriod\">;\n  ...EntitlementMeteredCalculatedFields;\n}"
+      },
+      {
+        "name": "#deprecated + #suppress pair on every V1 symbol with a V2 successor",
+        "description": "Every V1 model, union, and operation that has a V2 successor must carry both #deprecated and #suppress. Missing either causes compiler warnings that break `make gen-api`.",
+        "example": "#deprecated \"Use EntitlementMeteredV2 instead\"\n#suppress \"deprecated\" \"V1 Entitlements APIs will be removed on December 1st, 2025\"\n@friendlyName(\"EntitlementMetered\")\nmodel EntitlementMetered { ... }"
+      },
+      {
+        "name": "Explicit @operationId on every operation",
+        "description": "All operations carry @operationId to ensure stable generated Go function names. Omitting it causes name instability across TypeSpec compiler upgrades.",
+        "example": "@get\n@operationId(\"getEntitlementValue\")\n@route(\"/{entitlementIdOrFeatureKey}/value\")\ngetEntitlementValue(...): EntitlementValue | CommonErrors | NotFoundError;"
+      },
+      {
+        "name": "main.tsp as the sole entry point importing all sibling files",
+        "description": "A new .tsp file in this folder must be imported in main.tsp (which also cross-imports productcatalog/features.tsp) or it produces no output in api/openapi.yaml.",
+        "example": "// main.tsp\nimport \"./entitlements.tsp\";\nimport \"../productcatalog/features.tsp\";\nimport \"./grant.tsp\";\nimport \"./subjects.tsp\";\nimport \"./customer.tsp\";"
+      },
+      {
+        "name": "Separate interface groups per distinct URL prefix",
+        "description": "Each interface maps to exactly one URL prefix so adding operations does not pollute another prefix's operation set.",
+        "example": "@route(\"/api/v1/customers/{customerIdOrKey}\")\n@tag(\"Entitlements\")\n@friendlyName(\"Customer\")\ninterface CustomerEndpoints { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.tsp",
+        "role": "Package entry point: imports all sibling .tsp files including the cross-package productcatalog/features.tsp. No model or interface declarations live here.",
+        "watch_for": "Forgetting to import a new .tsp file \u2014 it compiles in isolation but is invisible to the full package output."
+      },
+      {
+        "file": "entitlements.tsp",
+        "role": "Defines the Entitlement discriminated union, EntitlementCreateInputs union, EntitlementSharedFields, all three per-type create-input models (metered/boolean/static), and the admin list/get endpoints at /api/v1/entitlements.",
+        "watch_for": "Adding a new entitlement type variant requires updating BOTH the Entitlement read union AND the EntitlementCreateInputs create union atomically, or the discriminator will be incomplete."
+      },
+      {
+        "file": "subjects.tsp",
+        "role": "Defines all V1 subject-scoped entitlement CRUD and grant endpoints at /api/v1/subjects/{subjectIdOrKey}/entitlements. All operations are deprecated and point to V2 equivalents.",
+        "watch_for": "Do not add new operations here \u2014 they belong in the v2 sub-folder. Every operation here carries #deprecated + #suppress."
+      },
+      {
+        "file": "grant.tsp",
+        "role": "Defines Grant, GrantCreateInput, ExpirationPeriod, ExpirationDuration, and the global /api/v1/grants admin list/void endpoints. Already imports @typespec/http and uses TypeSpec.Http.",
+        "watch_for": "Missing `import \"@typespec/http\"` and `using TypeSpec.Http` in new files referencing these models will cause compilation failure."
+      },
+      {
+        "file": "customer.tsp",
+        "role": "Defines CustomerAccess and the customer-scoped access-check endpoints (getCustomerAccess, getCustomerEntitlementValue) at /api/v1/customers/{customerIdOrKey}.",
+        "watch_for": "CustomerAccess.entitlements is typed as Record<EntitlementValue> \u2014 do not split into a separate typed map without updating all SDK consumers."
+      }
+    ],
+    "anti_patterns": [
+      "Adding new V1 operations or models in this folder instead of the v2 sub-folder \u2014 all V1 entitlement APIs are deprecated",
+      "Adding a new entitlement type variant to only one of the two discriminated unions (Entitlement or EntitlementCreateInputs) \u2014 both must be updated atomically",
+      "Omitting #deprecated + #suppress pair on new V1 symbols \u2014 causes compiler warnings that break `make gen-api`",
+      "Defining models without @friendlyName \u2014 autogenerated names can clash with or shadow V2 names in the same namespace",
+      "Adding HTTP decorators to a new .tsp file without `import \"@typespec/http\"` and `using TypeSpec.Http` \u2014 causes compilation failure"
+    ],
+    "decisions": [
+      {
+        "decision": "V1 symbols are kept but fully deprecated in favour of V2 equivalents in the v2 sub-folder",
+        "rationale": "Breaking API changes require a deprecation window; keeping V1 symbols with #deprecated annotations lets the compiler warn SDK consumers while the generator still emits the endpoints for backward-compatible clients."
+      },
+      {
+        "decision": "OmitProperties composition instead of standalone read-model redefinitions",
+        "rationale": "Avoids maintaining two parallel type hierarchies for create vs. read; when a create-input field changes, the read model reflects it automatically unless explicitly omitted."
+      },
+      {
+        "decision": "EntitlementValue shared across all entitlement types with optional type-specific fields",
+        "rationale": "A single EntitlementValue model with optional metered-specific fields (balance, usage, overage) and shared hasAccess allows the /value endpoint to return a uniform shape regardless of entitlement type, reducing client branching logic."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new V2-only entitlement endpoint (this work belongs in v2/, not here)",
+        "code": "// In api/spec/packages/legacy/src/entitlements/v2/customer.tsp:\n\n@route(\"/api/v2/customers/{customerIdOrKey}/entitlements\")\n@tag(\"Entitlements\")\n@friendlyName(\"CustomerEntitlementsV2\")\ninterface CustomerEntitlementsV2Endpoints {\n  @post\n  @operationId(\"createEntitlementV2\")\n  @summary(\"Create customer entitlement\")\n  post(\n    @path customerIdOrKey: ULIDOrExternalKey,\n    @body entitlement: EntitlementV2CreateInputs,\n  ): {\n    @statusCode _: 201;\n    @body body: EntitlementV2;\n  } | CommonErrors | ConflictError;\n}"
+      }
+    ]
+  }
+}

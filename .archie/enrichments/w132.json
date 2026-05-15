@@ -1,0 +1,76 @@
+{
+  "openmeter/watermill/driver/kafka/metrics": {
+    "purpose": "Bridges go-metrics (used by Sarama/Kafka clients) to OpenTelemetry by wrapping go-metrics types so every metric mutation is forwarded to an otelmetric.Meter. Enables Kafka client telemetry to appear in the OpenTelemetry pipeline without changing Sarama internals.",
+    "patterns": [
+      {
+        "name": "Wrap-and-delegate metric types",
+        "description": "Each wrapped type (wrappedMeter, wrappedCounter, wrappedGauge, wrappedGaugeFloat64, wrappedHistogram) embeds the original go-metrics interface and overrides only mutation methods (Mark, Inc, Dec, Update, Record) to call both the OTel instrument and the underlying go-metrics method.",
+        "example": "type wrappedCounter struct { metrics.Counter; otelMeter otelmetric.Int64UpDownCounter; attributes attribute.Set } \u2014 Inc calls otelMeter.Add then Counter.Inc"
+      },
+      {
+        "name": "Registry delegation via embedding",
+        "description": "registry embeds metrics.Registry for all read/list operations and only overrides Register and GetOrRegister to intercept new metric registrations and wrap them.",
+        "example": "type registry struct { metrics.Registry; mu sync.Mutex; meticMeter otelmetric.Meter; ... }"
+      },
+      {
+        "name": "TransformMetricsNameToOtel for name mapping and drop filtering",
+        "description": "All metric names pass through NameTransformFn before OTel instrument creation. Returning Drop:true bypasses OTel wrapping and returns the raw go-metrics type unchanged.",
+        "example": "transfomedMetric := r.nameTransformFn(name); if transfomedMetric.Drop { return def, nil }"
+      },
+      {
+        "name": "Mutex-guarded registration",
+        "description": "GetOrRegister and Register acquire r.mu before checking or writing to the embedded Registry, preventing races on concurrent Sarama metric registration.",
+        "example": "r.mu.Lock(); defer r.mu.Unlock() at the top of both GetOrRegister and Register"
+      },
+      {
+        "name": "Reflect-based metric factory unwrapping",
+        "description": "def passed to getWrappedMeter may be a zero-arg function returning the metric (Sarama pattern). reflect.ValueOf(def).Kind() == reflect.Func triggers a call to extract the actual metric before type-switching.",
+        "example": "if v := reflect.ValueOf(def); v.Kind() == reflect.Func { def = v.Call(nil)[0].Interface() }"
+      },
+      {
+        "name": "context.Background() for OTel calls (documented limitation)",
+        "description": "All OTel instrument calls use context.Background() because go-metrics mutation methods carry no context parameter. This is an accepted limitation documented in README.md.",
+        "example": "m.otelMeter.Add(context.Background(), n, otelmetric.WithAttributeSet(m.attributes))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Entire package implementation: Registry constructor, wrapped metric structs, and their OTel-forwarding mutation methods.",
+        "watch_for": "Adding a new go-metrics type requires: (1) a new wrapped struct embedding that type, (2) a new case in getWrappedMeter's type switch, (3) override of every mutation method. Missing any method leaves silent gaps where OTel receives no data."
+      },
+      {
+        "file": "README.md",
+        "role": "Documents the known limitations: context is always context.Background() and metric registration errors are only logged, never propagated to callers.",
+        "watch_for": "If OTel metric registration errors are silently swallowed by errorHandler, callers see no panic but metrics are missing entirely."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a new metric type without implementing ALL mutation methods on the wrapper \u2014 partial delegation silently drops OTel events.",
+      "Calling r.Registry.Register directly inside getWrappedMeter instead of returning the wrapped value \u2014 double-registration under the same name will occur.",
+      "Removing the reflect-based factory unwrapping \u2014 Sarama passes metric factories as zero-arg functions, not direct metric values; removing the reflect call breaks those registrations.",
+      "Initialising NewRegistry without a MetricMeter \u2014 constructor returns an error; callers must check it or OTel forwarding is entirely absent.",
+      "Using a real propagated context instead of context.Background() in wrapped methods \u2014 go-metrics interfaces have no context parameter so callers cannot propagate one."
+    ],
+    "decisions": [
+      {
+        "decision": "Embed metrics.Registry rather than re-implementing it",
+        "rationale": "All read/iteration/unregister operations on the registry are unchanged; only the write path (Register, GetOrRegister) needs interception to wrap new metrics, minimising the surface area of this adapter."
+      },
+      {
+        "decision": "TransformMetricsNameToOtel as an injectable function with Drop support",
+        "rationale": "Sarama emits dozens of internal metrics; callers need to filter noise and rename metrics to match OTel naming conventions without forking this package."
+      },
+      {
+        "decision": "context.Background() in all OTel calls",
+        "rationale": "go-metrics mutation methods (Mark, Inc, Update) carry no context; propagating caller context is structurally impossible without changing the go-metrics interface, which would require forking Sarama."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Register a custom go-metrics registry that forwards to OTel, filtering noise metrics via NameTransformFn",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka/metrics\"\n\t\"go.opentelemetry.io/otel/attribute\"\n\totelmetric \"go.opentelemetry.io/otel/metric\"\n)\n\nreg, err := metrics.NewRegistry(metrics.NewRegistryOptions{\n\tMetricMeter: meter, // otelmetric.Meter from app wiring\n\tNameTransformFn: func(name string) metrics.TransformedMetric {\n\t\tif name == \"incoming-byte-rate\" {\n\t\t\treturn metrics.TransformedMetric{Drop: true}\n\t\t}\n\t\treturn metrics.TransformedMetric{\n\t\t\tName:       \"kafka.\" + name,\n\t\t\tAttributes: attribute.NewSet(),\n\t\t}\n\t},\n\tErrorHandler: metrics.LoggingErrorHandler(logger),\n})\nif err != nil {\n\treturn fmt.Errorf(\"create kafka metrics registry: %w\", err)\n}"
+      }
+    ]
+  }
+}

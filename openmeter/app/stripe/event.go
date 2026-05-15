@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/session"
+	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 const (
@@ -52,7 +52,7 @@ func (e AppCheckoutSessionEvent) EventMetadata() metadata.EventMetadata {
 		ID:      ulid.Make().String(),
 		Source:  resourcePath,
 		Subject: resourcePath,
-		Time:    time.Now(),
+		Time:    clock.Now(),
 	}
 }
 

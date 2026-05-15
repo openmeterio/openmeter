@@ -1,0 +1,245 @@
+{
+  "cmd/jobs/entitlement": {
+    "purpose": "Cobra sub-command group for entitlement administrative jobs; exposes recalculate-balance-snapshots which drives balanceworker.Recalculator to recompute metered entitlement balance snapshots and publish results to the event bus. All dependencies come exclusively from internal.App.",
+    "patterns": [
+      {
+        "name": "Source all services from internal.App",
+        "description": "Commands must never construct domain services locally. All dependencies (EntitlementRegistry, EventPublisher, NotificationService, Customer, Subject, Meter, Logger) are read from the package-level internal.App global.",
+        "example": "balanceworker.NewRecalculator(balanceworker.RecalculatorOptions{Entitlement: internal.App.EntitlementRegistry, EventBus: internal.App.EventPublisher, ...})"
+      },
+      {
+        "name": "Root + sub-command via cmd.AddCommand in RootCommand()",
+        "description": "root.go defines RootCommand() returning a parent cobra.Command with Use='entitlement'; each job file registers itself via cmd.AddCommand(NewXxxCommand()) inside RootCommand().",
+        "example": "cmd.AddCommand(NewRecalculateBalanceSnapshotsCommand())"
+      },
+      {
+        "name": "Use cmd.Context() for context propagation",
+        "description": "RunE closures must pass cmd.Context() to all domain calls, never context.Background().",
+        "example": "return recalculator.Recalculate(cmd.Context(), \"default\", time.Now())"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "root.go",
+        "role": "Defines the 'entitlement' parent Cobra command and registers all sub-commands via cmd.AddCommand.",
+        "watch_for": "New jobs must be added via cmd.AddCommand here to be reachable from the CLI."
+      },
+      {
+        "file": "recalculatesnapshots.go",
+        "role": "Canonical job implementation: constructs balanceworker.Recalculator from internal.App fields and invokes Recalculate(cmd.Context(), ...).",
+        "watch_for": "All RecalculatorOptions fields come from internal.App \u2014 adding a dependency requires updating cmd/jobs/internal/wire.go Application struct first and regenerating."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing domain services (e.g. balanceworker.Recalculator dependencies) inside the command instead of sourcing from internal.App",
+      "Using context.Background() instead of cmd.Context()",
+      "Adding business logic to RunE beyond orchestrating internal.App services",
+      "Registering sub-commands outside of RootCommand()"
+    ],
+    "decisions": [
+      {
+        "decision": "Dependencies come exclusively from internal.App global rather than local construction.",
+        "rationale": "Wire-generated initializeApplication in cmd/jobs/internal produces a fully wired Application; repeating wiring in job commands would duplicate provider graphs and risk inconsistency."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new entitlement job sub-command",
+        "code": "// newjob.go\npackage entitlement\n\nimport (\n\t\"github.com/spf13/cobra\"\n\t\"github.com/openmeterio/openmeter/cmd/jobs/internal\"\n)\n\nfunc NewMyEntitlementJobCommand() *cobra.Command {\n\treturn &cobra.Command{\n\t\tUse:   \"my-job\",\n\t\tShort: \"Does something with entitlements\",\n\t\tRunE: func(cmd *cobra.Command, args []string) error {\n\t\t\treturn internal.App.EntitlementRegistry.SomeOp(cmd.Context())\n\t\t},\n\t}\n}\n// Then in root.go RootCommand(): cmd.AddCommand(NewMyEntitlementJobCommand())"
+      }
+    ]
+  },
+  "cmd/jobs/internal": {
+    "purpose": "Single Wire DI entry point for the jobs binary: provides the Wire-generated Application struct, Viper config loading, and package-level globals (App, AppShutdown, Config) shared by all cmd/jobs sub-command packages. Never import this package from app/common \u2014 import direction is one-way outward.",
+    "patterns": [
+      {
+        "name": "Wire-generated initializeApplication in wire.go",
+        "description": "wire.go declares the Application struct and calls wire.Build with app/common provider sets; wire_gen.go is the generated output and must never be hand-edited. After any change to wire.go or provider constructors, run 'make generate'.",
+        "example": "wire.Build(common.App, common.Billing, common.Customer, ..., wire.Struct(new(Application), \"*\"))"
+      },
+      {
+        "name": "Application struct as the exhaustive service registry",
+        "description": "Every domain service needed by any sub-command must be a field on Application. Adding a dependency requires adding it as a typed field here and a corresponding common.* provider in wire.Build, then regenerating.",
+        "example": "type Application struct { common.GlobalInitializer; BillingRegistry common.BillingRegistry; EntitlementRegistry *registry.Entitlement; ... }"
+      },
+      {
+        "name": "Two-phase startup: loadConfig then initializeApplication",
+        "description": "app.go calls loadConfig first to populate the Config global, then calls Wire-generated initializeApplication(ctx, Config). Sub-commands invoke internal.InitializeApplication from their PersistentPreRunE.",
+        "example": "App, AppShutdown, err = initializeApplication(ctx, Config)"
+      },
+      {
+        "name": "Package-level globals annotated with nolint:gochecknoglobals",
+        "description": "App, AppShutdown, Config, ConfigFile are deliberately package-level globals \u2014 do not refactor to local variables. The nolint annotation is intentional.",
+        "example": "//nolint:gochecknoglobals\nvar App Application; var AppShutdown func(); var Config config.Configuration"
+      },
+      {
+        "name": "metadata() bridges config to common.Metadata with service name 'jobs'",
+        "description": "The metadata() function in wire.go maps config.Configuration to common.Metadata with the binary-specific service name constant 'jobs', stamping all telemetry.",
+        "example": "func metadata(conf config.Configuration) common.Metadata { return common.NewMetadata(conf, version, \"jobs\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "wire.go",
+        "role": "Source of truth for which common.* provider sets are included for the jobs binary; declares Application struct fields.",
+        "watch_for": "Adding a new domain service to Application requires adding the corresponding common.* provider set in wire.Build, then running 'make generate'."
+      },
+      {
+        "file": "wire_gen.go",
+        "role": "Generated by Wire \u2014 DO NOT EDIT. Shows exact construction order and cleanup chain.",
+        "watch_for": "Never hand-edit; re-run 'make generate' after any wire.go change."
+      },
+      {
+        "file": "globals.go",
+        "role": "Defines the four package-level globals consumed by all job sub-packages.",
+        "watch_for": "Fields on Application must exist before any sub-command can reference them at compile time."
+      },
+      {
+        "file": "app.go",
+        "role": "Public entrypoint InitializeApplication called by cmd/jobs/main.go's PersistentPreRunE.",
+        "watch_for": "Order matters: loadConfig runs before initializeApplication; config validation failure aborts before Wire wiring."
+      },
+      {
+        "file": "config.go",
+        "role": "Loads and validates app/config.Configuration using Viper with config.DecodeHook().",
+        "watch_for": "ConfigFileNotFoundError is tolerated (env-var only config); all other read errors are fatal."
+      }
+    ],
+    "anti_patterns": [
+      "Editing wire_gen.go directly instead of modifying wire.go and regenerating with 'make generate'",
+      "Adding domain service construction logic inside app.go or config.go instead of wire.go provider sets",
+      "Importing cmd/jobs/internal from app/common (creates import cycle \u2014 direction is one-way: internal imports app/common, not vice versa)",
+      "Adding a new Application field without a corresponding common.* provider in wire.Build",
+      "Calling viper.SetDefault directly in internal/ instead of relying on app/config.SetViperDefaults"
+    ],
+    "decisions": [
+      {
+        "decision": "All domain wiring is delegated to app/common provider sets rather than inline construction.",
+        "rationale": "Centralizing providers in app/common means all seven binaries share identical wiring logic; changes to a constructor signature surface at Wire generation time, not at runtime."
+      },
+      {
+        "decision": "Package-level globals for App/Config rather than passing via Cobra context values.",
+        "rationale": "Cobra's PersistentPreRunE runs before any sub-command RunE, making globals the simplest cross-package handoff without threading context through every layer."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new service (e.g. CurrenciesService) to the jobs Application",
+        "code": "// 1. In wire.go \u2014 add field and provider:\ntype Application struct {\n\t// ... existing fields\n\tCurrencies currencies.Adapter\n}\n// In wire.Build add: common.Currencies,\n\n// 2. Run: make generate\n// wire_gen.go is regenerated automatically.\n\n// 3. Sub-commands can now access: internal.App.Currencies"
+      }
+    ]
+  },
+  "cmd/jobs/llmcost": {
+    "purpose": "Cobra sub-command group for LLM cost database operations; exposes a single 'sync' command that delegates to Wire-provided LLMCostSyncJob from internal.App \u2014 no local service construction.",
+    "patterns": [
+      {
+        "name": "Package-level Cmd var with init() sub-command registration",
+        "description": "Cmd is declared as a package-level *cobra.Command; sub-commands are registered in init() via Cmd.AddCommand. This differs from the entitlement package's RootCommand() pattern \u2014 match the style of the file you are extending.",
+        "example": "var Cmd = &cobra.Command{Use: \"llm-cost\", ...}; func init() { Cmd.AddCommand(syncCmd()) }"
+      },
+      {
+        "name": "Delegate to internal.App service, never construct locally",
+        "description": "RunE must call internal.App.LLMCostSyncJob.Run(cmd.Context()) directly; never construct llmcost.SyncJob or its dependencies inside the command.",
+        "example": "return internal.App.LLMCostSyncJob.Run(cmd.Context())"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "llmcost.go",
+        "role": "Defines the 'llm-cost' parent command and 'sync' sub-command; canonical example of the init()-based sub-command registration pattern.",
+        "watch_for": "LLMCostSyncJob must exist on internal.App (wired via common.LLMCost in wire.go); removing it from Application breaks this command at compile time."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing llmcost.SyncJob directly instead of using internal.App.LLMCostSyncJob",
+      "Using context.Background() instead of cmd.Context()",
+      "Adding business logic beyond delegating to the sync job"
+    ],
+    "decisions": [],
+    "code_examples": []
+  },
+  "cmd/jobs/migrate": {
+    "purpose": "Cobra sub-command for running database migrations via the Wire-provided Migrator; validates the migration mode flag before executing and explicitly rejects the 'job' mode to prevent circular migration loops.",
+    "patterns": [
+      {
+        "name": "Override App.Migrator.Config at runtime before calling Migrate",
+        "description": "The --mode flag value is parsed via config.AutoMigrate() and written to internal.App.Migrator.Config.AutoMigrate before calling Migrate. This is the only place in jobs that mutates App state after initialization.",
+        "example": "internal.App.Migrator.Config.AutoMigrate = migrationMode; err := internal.App.Migrator.Migrate(cmd.Context())"
+      },
+      {
+        "name": "Validate mode before execution with explicit rejection of 'job' mode",
+        "description": "Uses config.AutoMigrate() to parse and validate the mode string. Explicitly rejects AutoMigrateMigrationJob mode to prevent circular use of the jobs binary for job-mode migration.",
+        "example": "if !migrationMode.Enabled() { return fmt.Errorf(\"migration mode is disabled\") }\nif migrationMode == config.AutoMigrateMigrationJob { return fmt.Errorf(\"migration mode cannot be job\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "migrate.go",
+        "role": "Implements the 'migrate' Cobra command; wraps common.Migrator with mode validation. Default mode is 'migration' (config.AutoMigrateMigration).",
+        "watch_for": "The --mode flag accepts only 'ent' and 'migration'; 'job' is explicitly rejected. Do not add migration logic (DDL, data transforms) here \u2014 those belong in tools/migrate/migrations/."
+      }
+    ],
+    "anti_patterns": [
+      "Calling tools/migrate directly instead of going through internal.App.Migrator",
+      "Adding migration logic (DDL, data transforms) to this command \u2014 those belong in tools/migrate/migrations/",
+      "Allowing the 'job' migration mode through without rejection"
+    ],
+    "decisions": [
+      {
+        "decision": "Migration mode is overridden on App.Migrator.Config rather than constructing a new Migrator.",
+        "rationale": "The Wire-provided Migrator already has the correct DB client and logger; overriding just the mode field reuses all that wiring without duplication."
+      }
+    ],
+    "code_examples": []
+  },
+  "cmd/jobs/quickstart": {
+    "purpose": "Cobra sub-command group for docker-compose quickstart helpers; provides a 'cron' command that schedules billing lifecycle polling loops using gocron. Explicitly not for production \u2014 billing-worker handles these flows via Kafka/Watermill in production.",
+    "patterns": [
+      {
+        "name": "gocron-based polling loops for billing lifecycle",
+        "description": "cronjobs.go uses gocron.NewScheduler to schedule BillingSubscriptionReconciler.All, BillingCollector.All, BillingAutoAdvancer.All at fixed intervals. Scheduler starts via s.Start() then blocks on cmd.Context().Done().",
+        "example": "s.NewJob(gocron.DurationJob(time.Minute), gocron.NewTask(func() { internal.App.BillingCollector.All(cmd.Context(), namespaces, nil, batchSize) }))"
+      },
+      {
+        "name": "Nil-guard optional internal.App services before scheduling",
+        "description": "ChargesAutoAdvancer may be nil when charges/credits are disabled; always check nil before scheduling its job.",
+        "example": "if internal.App.ChargesAutoAdvancer != nil { s.NewJob(gocron.DurationJob(time.Minute), gocron.NewTask(func() { ... })) }"
+      },
+      {
+        "name": "Block on context cancellation then shutdown scheduler",
+        "description": "The cron RunE blocks on <-cmd.Context().Done() and calls s.Shutdown() before returning, ensuring graceful stop of all scheduled jobs.",
+        "example": "<-cmd.Context().Done(); if err := s.Shutdown(); err != nil { return err }"
+      },
+      {
+        "name": "Composition of other job packages via init()",
+        "description": "quickstart.go adds sub-commands from other job packages (e.g. billing/subscriptionsync) via Cmd.AddCommand in init(). The package acts as a meta-group aggregating related operational commands.",
+        "example": "func init() { Cmd.AddCommand(subscriptionsync.Cmd) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "quickstart.go",
+        "role": "Defines the 'quickstart' parent command and composes sub-commands from other job packages via init().",
+        "watch_for": "Explicitly documented as not for production. Do not add production-critical logic here."
+      },
+      {
+        "file": "cronjobs.go",
+        "role": "Implements 'cron' sub-command using gocron for billing lifecycle automation in quickstart environments.",
+        "watch_for": "Hardcodes namespace 'default' and batchSize=10 \u2014 unsuitable for multi-tenant production use. Any new cron job must nil-guard optional internal.App services before scheduling."
+      }
+    ],
+    "anti_patterns": [
+      "Using this package's gocron patterns in production workers \u2014 billing-worker uses Kafka/Watermill for these flows",
+      "Hardcoding namespaces for production deployments",
+      "Not nil-checking optional internal.App services (e.g. ChargesAutoAdvancer) before scheduling",
+      "Adding production-critical billing logic to quickstart commands"
+    ],
+    "decisions": [
+      {
+        "decision": "Quickstart cron uses gocron instead of Watermill/Kafka for simplicity.",
+        "rationale": "The quickstart docker-compose environment may not have a full Kafka topology; gocron provides polling-based advancement without Kafka dependencies, making the quickstart self-contained."
+      }
+    ],
+    "code_examples": []
+  }
+}

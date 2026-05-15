@@ -1,0 +1,141 @@
+{
+  "openmeter/subscription/validators/customer": {
+    "purpose": "Implements customer.RequestValidator to enforce subscription-aware pre-conditions on customer mutations \u2014 blocks deletes when active subscriptions exist and prevents subject-key changes when a customer has active subscriptions. Registered at wiring time via app/common to avoid circular imports.",
+    "patterns": [
+      {
+        "name": "NoopRequestValidator embedding",
+        "description": "Embed customer.NoopRequestValidator so only the overridden methods need implementation; unimplemented lifecycle methods default to no-op.",
+        "example": "type Validator struct { customer.NoopRequestValidator; subscriptionService subscription.Service; customerService customer.Service }"
+      },
+      {
+        "name": "Interface assertion at package level",
+        "description": "Declare var _ customer.RequestValidator = (*Validator)(nil) at package top for compile-time interface satisfaction proof.",
+        "example": "var _ customer.RequestValidator = (*Validator)(nil)"
+      },
+      {
+        "name": "Constructor nil-guard",
+        "description": "NewValidator returns (*Validator, error) and validates every dependency is non-nil before construction.",
+        "example": "if subscriptionService == nil { return nil, fmt.Errorf(\"subscription service is required\") }"
+      },
+      {
+        "name": "Use clock.Now() for time-sensitive queries",
+        "description": "Pass lo.ToPtr(clock.Now()) to subscription.ListSubscriptionsInput.ActiveAt so tests can control time via the clock package.",
+        "example": "ActiveAt: lo.ToPtr(clock.Now())"
+      },
+      {
+        "name": "Delegate input validation to input type",
+        "description": "Call input.Validate() first inside each handler before any domain queries to keep validation self-contained.",
+        "example": "if err := input.Validate(); err != nil { return err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "validator.go",
+        "role": "Single file implementing the customer.RequestValidator interface with ValidateUpdateCustomer and ValidateDeleteCustomer logic.",
+        "watch_for": "ValidateUpdateCustomer fetches the current customer only when UsageAttribution.SubjectKeys is non-nil \u2014 skipping this branch for other mutations is intentional. Error types must use models.NewGenericNotFoundError / models.NewGenericPreConditionFailedError for correct HTTP status mapping."
+      }
+    ],
+    "anti_patterns": [
+      "Returning plain fmt.Errorf for not-found or pre-condition errors \u2014 must use models.NewGenericNotFoundError / models.NewGenericPreConditionFailedError so HTTP mapping works correctly",
+      "Using context.Background() instead of the caller-supplied ctx",
+      "Calling billing or other non-subscription services from this validator \u2014 would create import cycles",
+      "Checking active subscriptions without the ActiveAt filter \u2014 would return already-cancelled subscriptions",
+      "Registering the validator inside the subscription or customer package constructors \u2014 must be done in app/common to avoid circular imports"
+    ],
+    "decisions": [
+      {
+        "decision": "Validator is registered via customer.Service.RegisterRequestValidator() in app/common wiring, not hardcoded in the customer package.",
+        "rationale": "Avoids circular import between subscription and customer packages; subscription registers the constraint at startup through the registry pattern."
+      },
+      {
+        "decision": "Only ValidateUpdateCustomer and ValidateDeleteCustomer are overridden; ValidateCreateCustomer remains a no-op via embedding.",
+        "rationale": "Customer creation has no subscription pre-conditions; embedding NoopRequestValidator avoids boilerplate."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Register the validator during app wiring (app/common)",
+        "code": "import customer \"github.com/openmeterio/openmeter/openmeter/subscription/validators/customer\"\n\nv, err := customer.NewValidator(subscriptionService, customerService)\nif err != nil { return err }\ncustomerService.RegisterRequestValidator(v)"
+      }
+    ]
+  },
+  "openmeter/subscription/validators/subscription": {
+    "purpose": "Implements subscription.SubscriptionCommandHook to enforce the unique-constraint invariant: no two active subscriptions for the same customer may overlap in time or cover the same features. Registered at wiring time via app/common; feature-flag-gated for multi-subscription support.",
+    "patterns": [
+      {
+        "name": "NoOpSubscriptionCommandHook embedding",
+        "description": "Embed subscription.NoOpSubscriptionCommandHook so only the overridden Before*/After* methods need implementation.",
+        "example": "type SubscriptionUniqueConstraintValidator struct { subscription.NoOpSubscriptionCommandHook; Config SubscriptionUniqueConstraintValidatorConfig }"
+      },
+      {
+        "name": "Config struct with Validate()",
+        "description": "Group all dependencies in a Config struct with its own Validate() method; the constructor calls config.Validate() and returns an error if any dependency is missing.",
+        "example": "func (c SubscriptionUniqueConstraintValidatorConfig) Validate() error { if c.FeatureFlags == nil { return fmt.Errorf(\"feature flags is required\") } ... }"
+      },
+      {
+        "name": "Pipeline composition through small component methods",
+        "description": "Split validation into named steps (collectCustomerSubscriptionsStarting, mapSubsToViews, mapViewsToSpecs, validateUniqueConstraint, includeSubSpec) in components.go and compose them in validator.go; each step returns (result, error).",
+        "example": "subs, _ := v.collectCustomerSubscriptionsStarting(...); views, _ := v.mapSubsToViews(ctx, subs); specs, _ := v.mapViewsToSpecs(views); _, err = v.validateUniqueConstraint(ctx, specs)"
+      },
+      {
+        "name": "Feature-flag-gated validation path",
+        "description": "Check ffx.Service.IsFeatureEnabled for subscription.MultiSubscriptionEnabledFF before choosing which validation path to run; BeforeUpdate skips all validation when multi-subscription is disabled.",
+        "example": "multiSubscriptionEnabled, err := v.Config.FeatureFlags.IsFeatureEnabled(ctx, subscription.MultiSubscriptionEnabledFF)"
+      },
+      {
+        "name": "pagination.CollectAll for unbounded list queries",
+        "description": "Use pagination.CollectAll + pagination.NewPaginator when fetching all customer subscriptions to avoid silently missing subscriptions beyond the first page.",
+        "example": "return pagination.CollectAll(ctx, pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[subscription.Subscription], error) { return v.Config.QueryService.List(ctx, ...) }), 1000)"
+      },
+      {
+        "name": "Exclude current subscription before re-inserting updated spec",
+        "description": "In BeforeUpdate, filter out the subscription being updated (by ID) from the existing set before appending the target spec so the old version does not conflict with the new one.",
+        "example": "views, err = v.filterSubViews(func(v subscription.SubscriptionView) bool { return v.Subscription.ID != currentId.ID }, views)"
+      },
+      {
+        "name": "pipelineAfter reuse across post-mutation hooks",
+        "description": "AfterCreate, AfterUpdate, AfterCancel, AfterContinue, and BeforeDelete all delegate to the single pipelineAfter method; use includeSubViewUnique (lo.UniqBy) to prevent double-counting.",
+        "example": "func (v SubscriptionUniqueConstraintValidator) AfterCreate(ctx context.Context, view subscription.SubscriptionView) error { return v.pipelineAfter(ctx, view) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "validator.go",
+        "role": "Implements all Before*/After* hook methods; each method builds a collect\u2192map\u2192validate\u2192include pipeline.",
+        "watch_for": "pipelineAfter is reused for AfterCreate, AfterUpdate, AfterCancel, AfterContinue, and BeforeDelete \u2014 any change to post-mutation validation affects all five hooks simultaneously."
+      },
+      {
+        "file": "components.go",
+        "role": "Low-level pipeline building blocks (collect, map, filter, include) used by validator.go; no business rules live here.",
+        "watch_for": "includeSubViewUnique uses lo.UniqBy by subscription ID to prevent double-counting the same subscription; removing that dedup causes false-positive uniqueness errors."
+      }
+    ],
+    "anti_patterns": [
+      "Querying subscriptions without the ActiveInPeriod filter \u2014 returns all-time subscriptions and breaks the uniqueness check",
+      "Calling subscription.Service write methods from within a hook \u2014 creates re-entrant hook calls",
+      "Using context.Background() instead of the caller-supplied ctx",
+      "Bypassing pagination.CollectAll for large customer subscription lists \u2014 silently misses subscriptions beyond the first page",
+      "Adding business logic directly into components.go \u2014 it is a pure utility file; keep domain decisions in validator.go"
+    ],
+    "decisions": [
+      {
+        "decision": "Components are separated into components.go to keep validator.go focused on the validation pipeline logic.",
+        "rationale": "Improves readability and testability of each pipeline step in isolation."
+      },
+      {
+        "decision": "Feature flag subscription.MultiSubscriptionEnabledFF selects between per-subscription and per-feature uniqueness checks.",
+        "rationale": "Allows gradual rollout of multi-subscription support without breaking existing single-subscription customers."
+      },
+      {
+        "decision": "Hook is registered via subscription.Service.RegisterHook() at wiring time in app/common, not inside the subscription package itself.",
+        "rationale": "Keeps the uniqueness constraint out of the core subscription package to avoid tight coupling and import cycles."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Register the validator during app wiring (app/common)",
+        "code": "import subval \"github.com/openmeterio/openmeter/openmeter/subscription/validators/subscription\"\n\nhook, err := subval.NewSubscriptionUniqueConstraintValidator(subval.SubscriptionUniqueConstraintValidatorConfig{\n    FeatureFlags:    featureFlagService,\n    QueryService:    subscriptionService,\n    CustomerService: customerService,\n})\nif err != nil { return err }\nsubscriptionService.RegisterHook(hook)"
+      }
+    ]
+  }
+}

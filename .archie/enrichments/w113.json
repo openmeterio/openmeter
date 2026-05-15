@@ -1,0 +1,240 @@
+{
+  "openmeter/productcatalog/planaddon/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing planaddon.Repository \u2014 the persistence layer for plan-to-addon assignment records. Owns all SQL queries, soft-delete logic, and eager-loading of related plan and addon entities via the Tx/WithTx/Self triad required by entutils.TransactingRepo.",
+    "patterns": [
+      {
+        "name": "TransactingRepo wrapping every method",
+        "description": "Every exported adapter method wraps its body in entutils.TransactingRepo[T, *adapter](ctx, a, fn). The fn closure receives a tx-rebound *adapter; never call a.db directly outside this closure.",
+        "example": "return entutils.TransactingRepo[*planaddon.PlanAddon, *adapter](ctx, a, fn)"
+      },
+      {
+        "name": "Tx/WithTx/Self triad",
+        "description": "adapter implements Tx (via a.db.HijackTx + entutils.NewTxDriver), WithTx (via entdb.NewTxClientFromRawConfig), and Self (returns a). All three are required for TransactingRepo to rebind to caller-supplied transactions.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), logger: a.logger} }"
+      },
+      {
+        "name": "Post-create/update refetch with eager loads",
+        "description": "After Save() or Update(), re-query with WithPlan(PlanEagerLoadPhasesWithRateCardsWithFeaturesFn).WithAddon(AddonEagerLoadRateCardsWithFeaturesFn) because Ent Save() does not populate edges.",
+        "example": "planAddonRow, err = a.db.PlanAddon.Query().Where(...).WithPlan(PlanEagerLoadPhasesWithRateCardsWithFeaturesFn).WithAddon(AddonEagerLoadRateCardsWithFeaturesFn).First(ctx)"
+      },
+      {
+        "name": "Soft-delete via SetDeletedAt + clock.Now()",
+        "description": "Delete sets DeletedAt to clock.Now().UTC() via UpdateOneID, never hard-deletes. List/Get queries add planaddondb.DeletedAtIsNil() unless IncludeDeleted is set.",
+        "example": "a.db.PlanAddon.UpdateOneID(planAddon.ID).Where(planaddondb.Namespace(...)).SetDeletedAt(clock.Now().UTC()).Exec(ctx)"
+      },
+      {
+        "name": "Typed NotFoundError wrapping",
+        "description": "entdb.IsNotFound(err) must be caught and re-wrapped as planaddon.NewNotFoundError(NotFoundErrorParams{...}) so callers receive a domain-typed error instead of a raw Ent error.",
+        "example": "if entdb.IsNotFound(err) { return nil, planaddon.NewNotFoundError(planaddon.NotFoundErrorParams{Namespace: params.Namespace, ID: params.ID}) }"
+      },
+      {
+        "name": "Shared package-level eager-load vars",
+        "description": "PlanEagerLoadPhasesWithRateCardsWithFeaturesFn and AddonEagerLoadRateCardsWithFeaturesFn are package-level vars reused across all queries to keep edge loading consistent across methods.",
+        "example": "var PlanEagerLoadPhasesWithRateCardsWithFeaturesFn = func(pq *entdb.PlanQuery) { pq.WithPhases(func(ppq *entdb.PlanPhaseQuery) { ppq.WithRatecards(func(prq *entdb.PlanRateCardQuery) { prq.WithFeatures() }) }) }"
+      },
+      {
+        "name": "Validated Config constructor",
+        "description": "New(Config) validates required fields (Client, Logger) via Config.Validate() \u2014 returns an error rather than panicking if any field is nil. var _ models.Validator = (*Config)(nil) enforces the interface at compile time.",
+        "example": "var _ models.Validator = (*Config)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Defines Config, constructor New, and the adapter struct with Tx/WithTx/Self. No query logic lives here.",
+        "watch_for": "Must implement the full TxCreator+TxUser triad exactly or TransactingRepo will fail to rebind. var _ planaddon.Repository = (*adapter)(nil) compile-check must pass."
+      },
+      {
+        "file": "planaddon.go",
+        "role": "All CRUD method implementations. Each method closure is passed to entutils.TransactingRepo.",
+        "watch_for": "Avoid calling a.db directly outside a TransactingRepo closure \u2014 always use the closure's rebound *adapter. For DeletePlanAddon, get-then-soft-delete pattern must stay consistent."
+      },
+      {
+        "file": "mapping.go",
+        "role": "FromPlanAddonRow converts entdb.PlanAddon to planaddon.PlanAddon, delegating plan/addon edge mapping to planadapter.FromPlanRow and addonadapter.FromAddonRow.",
+        "watch_for": "Edges are optional \u2014 always guard with `if a.Edges.Plan != nil` and `if a.Edges.Addon != nil` before dereferencing."
+      },
+      {
+        "file": "adapter_test.go",
+        "role": "Integration tests against a real Postgres schema using pctestutils.NewTestEnv. Tests cover Create/Get/List/Update/Delete via env.PlanAddonRepository.",
+        "watch_for": "env.DBSchemaMigrate(t) must be called before any query. Tests use context.Background() (pre-t.Context() era) \u2014 keep consistent with existing style."
+      }
+    ],
+    "anti_patterns": [
+      "Calling a.db directly in a method body without wrapping in entutils.TransactingRepo \u2014 bypasses ctx-bound transaction.",
+      "Hard-deleting rows via Delete() instead of soft-deleting via SetDeletedAt.",
+      "Returning raw entdb.IsNotFound errors \u2014 always wrap in planaddon.NewNotFoundError.",
+      "Adding business-logic validation (plan status checks, conflict detection) inside the adapter \u2014 those belong in the service layer.",
+      "Skipping eager-load function vars when re-fetching after create/update \u2014 callers expect fully populated Plan and Addon edges."
+    ],
+    "decisions": [
+      {
+        "decision": "TransactingRepo pattern for every method",
+        "rationale": "Ent transactions propagate implicitly in ctx; using the raw *entdb.Client falls off a caller-supplied transaction and causes partial writes under concurrency."
+      },
+      {
+        "decision": "Post-create refetch instead of using Save() return value",
+        "rationale": "Ent's Save() does not populate relation edges; a separate query with WithPlan/WithAddon is the only way to return a fully hydrated domain object."
+      },
+      {
+        "decision": "Soft-delete over hard-delete",
+        "rationale": "Plan-addon assignments must remain queryable (with IncludeDeleted) for audit and reconciliation after removal."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new mutation method following the established adapter pattern",
+        "code": "func (a *adapter) SomeMutation(ctx context.Context, params planaddon.SomeMutationInput) (*planaddon.PlanAddon, error) {\n\tfn := func(ctx context.Context, a *adapter) (*planaddon.PlanAddon, error) {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid params: %w\", err)\n\t\t}\n\t\trow, err := a.db.PlanAddon.UpdateOneID(params.ID).\n\t\t\tWhere(planaddondb.Namespace(params.Namespace)).\n\t\t\tSetSomeField(params.SomeField).\n\t\t\tSave(ctx)\n\t\tif err != nil {\n\t\t\tif entdb.IsNotFound(err) {\n\t\t\t\treturn nil, planaddon.NewNotFoundError(planaddon.NotFoundErrorParams{Namespace: params.Namespace, ID: params.ID})\n\t\t\t}\n\t\t\treturn nil, fmt.Errorf(\"failed to mutate: %w\", err)\n\t\t}\n\t\t// refetch with eager loads...\n\t\t_ = row\n\t\treturn a.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{NamespacedModel: models.NamespacedModel{Namespace: params.Namespace}, ID: params.ID})\n\t}\n\treturn entutils.TransactingRepo[*planaddon.PlanAddon, *adapter](ctx, a, fn)\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/planaddon/httpdriver": {
+    "purpose": "HTTP handler layer for plan-addon assignment CRUD endpoints, bridging the v1 REST API (api.PlanAddon*) to planaddon.Service via the httptransport.HandlerWithArgs generic pattern. Owns request decoding, response mapping, and error encoding only \u2014 no business logic.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandlerWithArgs for every endpoint",
+        "description": "Each handler method returns a typed HandlerWithArgs[Request, Response, Params] constructed inline with a decoder closure, an operation closure, and a ResponseEncoder. Never implement ServeHTTP directly.",
+        "example": "return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[T](http.StatusOK), ...options)"
+      },
+      {
+        "name": "Namespace resolved via h.resolveNamespace(ctx)",
+        "description": "All decoders call h.resolveNamespace(ctx) which delegates to h.namespaceDecoder.GetNamespace(ctx). Never read namespace from URL params or request headers directly.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ..., err }"
+      },
+      {
+        "name": "ValidationErrorEncoder per operation",
+        "description": "Every operation appends httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)) so domain validation errors are encoded as RFC 7807 Problem Details.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"createPlanAddon\"), httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)))..."
+      },
+      {
+        "name": "Local type aliases in planaddon.go",
+        "description": "Each endpoint declares local type aliases (e.g. CreatePlanAddonRequest = planaddon.CreatePlanAddonInput) next to the handler type declaration for self-documentation.",
+        "example": "type (CreatePlanAddonRequest = planaddon.CreatePlanAddonInput; CreatePlanAddonResponse = api.PlanAddon; CreatePlanAddonHandler httptransport.HandlerWithArgs[...])"
+      },
+      {
+        "name": "Handler interface embeds sub-interfaces",
+        "description": "Handler interface embeds PlanAddonHandler, which declares one factory method per endpoint returning typed handler values. var _ Handler = (*handler)(nil) enforces compile-time interface satisfaction.",
+        "example": "type Handler interface { PlanAddonHandler }; type PlanAddonHandler interface { ListPlanAddons() ListPlanAddonsHandler; ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "driver.go",
+        "role": "Defines Handler and PlanAddonHandler interfaces, handler struct, New constructor, and resolveNamespace helper.",
+        "watch_for": "All new endpoint methods must appear in both the PlanAddonHandler interface and the handler struct for var _ Handler = (*handler)(nil) to pass. resolveNamespace returns 500 (not 400) on missing namespace."
+      },
+      {
+        "file": "planaddon.go",
+        "role": "One function per HTTP operation; each builds and returns a HandlerWithArgs using inline decoder/operation closures.",
+        "watch_for": "Status codes must match API spec: 200 for list/get/update, 201 for create, 204 (EmptyResponseEncoder) for delete. Do not add business logic here."
+      },
+      {
+        "file": "mapping.go",
+        "role": "FromPlanAddon converts domain planaddon.PlanAddon to api.PlanAddon. AsCreatePlanAddonRequest/AsUpdatePlanAddonRequest convert API body types to domain input types.",
+        "watch_for": "FromPlanAddon calls a.AsProductCatalogPlanAddon().ValidationErrors() \u2014 validation issues must always be propagated to the response ValidationErrors field, never swallowed."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing net/http.Handler directly on handler methods \u2014 always use httptransport.NewHandlerWithArgs.",
+      "Resolving namespace from URL path parameters instead of h.resolveNamespace(ctx).",
+      "Omitting WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(...)) from an operation's options \u2014 validation errors will not serialize correctly.",
+      "Adding business logic (plan/addon status checks, conflict detection) in decoder or mapping layer \u2014 decoders parse only.",
+      "Returning raw domain errors without letting the error encoder chain handle them."
+    ],
+    "decisions": [
+      {
+        "decision": "httptransport.HandlerWithArgs generic pattern for all operations",
+        "rationale": "Separates HTTP concerns (decode, encode, error handling) from business logic and enables consistent middleware chaining (OTel, error encoding) across all endpoints without boilerplate."
+      },
+      {
+        "decision": "Namespace injected via NamespaceDecoder rather than path/query param",
+        "rationale": "Self-hosted deployments use a static default namespace; the decoder abstraction allows both self-hosted (static) and multi-tenant (header/JWT) resolvers without changing handler code."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new read-only endpoint following the httpdriver pattern",
+        "code": "type (\n\tMyNewRequest  = planaddon.MyNewInput\n\tMyNewResponse = api.PlanAddon\n\tMyNewParams   struct{ PlanIDOrKey string }\n\tMyNewHandler  httptransport.HandlerWithArgs[MyNewRequest, MyNewResponse, MyNewParams]\n)\n\nfunc (h *handler) MyNew() MyNewHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, params MyNewParams) (MyNewRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil {\n\t\t\t\treturn MyNewRequest{}, err\n\t\t\t}\n\t\t\treturn MyNewRequest{NamespacedModel: models.NamespacedModel{Namespace: ns}, PlanIDOrKey: params.PlanIDOrKey}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request MyNewRequest) (MyNewResponse, error) {\n\t\t\ta, err := h.service.MyNew(ctx, request)\n\t\t\tif err != nil {\n\t\t\t\treturn MyNewResponse{}, err\n\t\t\t}\n\t\t\treturn FromPlanAddon(*a)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[MyNewResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(\n\t\t\th.options,\n\t\t\thttptransport.WithOperationName(\"myNew\"),\n\t\t\thttptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),\n\t\t)...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/planaddon/service": {
+    "purpose": "Business-logic layer implementing planaddon.Service \u2014 validates inputs, enforces plan/addon state constraints (status, deleted checks), delegates persistence to planaddon.Repository, and publishes domain events after every mutation. No Ent or SQL imports allowed here.",
+    "patterns": [
+      {
+        "name": "transaction.Run / RunWithNoValue for write operations",
+        "description": "Mutating methods (CreatePlanAddon, DeletePlanAddon, UpdatePlanAddon) wrap their fn closure in transaction.Run(ctx, s.adapter, fn) or transaction.RunWithNoValue to ensure atomicity across adapter calls and event publishing.",
+        "example": "return transaction.Run(ctx, s.adapter, fn)"
+      },
+      {
+        "name": "Validate params first, then cross-entity checks",
+        "description": "Every method calls params.Validate() immediately on entry, then fetches related entities (plan, addon) to enforce business rules (status, deleted state) before calling the adapter.",
+        "example": "if err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid ...: %w\", err) }"
+      },
+      {
+        "name": "Domain-specific errors wrapped as models.Generic* errors",
+        "description": "plan.NotFoundError, addon.NotFoundError, planaddon.NotFoundError are caught via errors.As and re-wrapped as models.NewGenericNotFoundError. Validation failures use models.NewGenericValidationError. Duplicates use models.NewGenericConflictError.",
+        "example": "if notFound := &(plan.NotFoundError{}); errors.As(err, &notFound) { return nil, models.NewGenericNotFoundError(err) }"
+      },
+      {
+        "name": "Publish domain event after every successful mutation",
+        "description": "After successful create/update/delete, publish a typed event (planaddon.NewPlanAddonCreateEvent, UpdateEvent, DeleteEvent) via s.publisher inside the transaction closure \u2014 failure rolls back the DB change.",
+        "example": "event := planaddon.NewPlanAddonCreateEvent(ctx, planAddon); if err = s.publisher.Publish(ctx, event); err != nil { return nil, err }"
+      },
+      {
+        "name": "Config struct with required-field nil-checks in New()",
+        "description": "service.New(Config) checks Adapter, Plan, Addon, Logger, Publisher for nil and returns an error, enforcing complete wiring at construction time. var _ planaddon.Service = (*service)(nil) enforces compile-time interface satisfaction.",
+        "example": "if config.Adapter == nil { return nil, errors.New(\"add-on assignment adapter is required\") }"
+      },
+      {
+        "name": "Patch-field merge rules mirrored and documented between service and adapter",
+        "description": "UpdatePlanAddon builds a merged draft PlanAddon for Validate() before calling the adapter. Merge rules (MaxQuantity always replaced via SetOrClearMaxQuantity; FromPlanPhase/Metadata/Annotations only written when non-nil) must exactly match the adapter's behaviour.",
+        "example": "// MaxQuantity is always replaced via SetOrClearMaxQuantity, so nil clears the column \u2014 use params.MaxQuantity as-is."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines Config, New constructor, and service struct. No method logic lives here.",
+        "watch_for": "var _ planaddon.Service = (*service)(nil) compile-check \u2014 add new interface methods here before implementing them in planaddon.go."
+      },
+      {
+        "file": "planaddon.go",
+        "role": "All planaddon.Service method implementations. Read methods call fn(ctx) directly; write methods use transaction.Run / RunWithNoValue.",
+        "watch_for": "DeletePlanAddon re-fetches the record after deletion to get the DeletedAt timestamp for the event payload \u2014 do not skip this refetch. Always publish the event inside the transaction closure."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Integration tests exercising the full service+adapter+DB stack via pctestutils.NewTestEnv. Covers invalid-state transitions (e.g. published plan rejects new plan-addon).",
+        "watch_for": "Tests create meters, features, plans, and addons as prerequisites \u2014 reuse pctestutils helpers rather than duplicating fixture code."
+      }
+    ],
+    "anti_patterns": [
+      "Calling s.adapter methods outside a transaction.Run closure for write paths \u2014 risks partial writes if publisher.Publish fails.",
+      "Returning adapter-level errors (planaddon.NotFoundError) directly without wrapping in models.Generic* \u2014 breaks the HTTP error encoder chain.",
+      "Checking plan/addon status inside the adapter \u2014 status validation belongs exclusively in the service layer.",
+      "Omitting event publishing after a successful mutation \u2014 downstream systems depend on these events for sync.",
+      "Using context.Background() instead of the passed ctx \u2014 breaks tracing and cancellation."
+    ],
+    "decisions": [
+      {
+        "decision": "transaction.Run wraps all write operations",
+        "rationale": "Create/Update/Delete each call the adapter multiple times (get-then-mutate pattern) and publish an event; all must be atomic so a publish failure rolls back the DB change."
+      },
+      {
+        "decision": "Cross-entity validation (plan status, addon status) in the service not the adapter",
+        "rationale": "Adapters are pure persistence; business rules about which states allow assignment creation/deletion must be in the service to stay testable without a DB."
+      },
+      {
+        "decision": "Patch-field merge logic mirrored and documented between service and adapter",
+        "rationale": "UpdatePlanAddon builds a draft merged state for Validate() before calling the adapter; the merge rules must exactly match the adapter's SetOrClear/conditional-set behaviour to avoid silent divergence."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new write service method with transaction, validation, and event publishing",
+        "code": "func (s service) SomeMutation(ctx context.Context, params planaddon.SomeMutationInput) (*planaddon.PlanAddon, error) {\n\tfn := func(ctx context.Context) (*planaddon.PlanAddon, error) {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid params: %w\", err)\n\t\t}\n\t\tpa, err := s.adapter.SomeMutation(ctx, params)\n\t\tif err != nil {\n\t\t\tif notFound := &(planaddon.NotFoundError{}); errors.As(err, &notFound) {\n\t\t\t\treturn nil, models.NewGenericNotFoundError(err)\n\t\t\t}\n\t\t\treturn nil, fmt.Errorf(\"failed to mutate: %w\", err)\n\t\t}\n\t\tevent := planaddon.NewPlanAddonUpdateEvent(ctx, pa)\n\t\tif err = s.publisher.Publish(ctx, event); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"failed to publish event: %w\", err)\n\t\t}\n\t\treturn pa, nil\n\t}\n\treturn transaction.Run(ctx, s.adapter, fn)\n}"
+      }
+    ]
+  }
+}

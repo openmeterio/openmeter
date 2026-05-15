@@ -1,0 +1,62 @@
+{
+  "openmeter/registry/builder": {
+    "purpose": "Single-function package providing GetEntitlementRegistry, a non-Wire factory that wires all entitlement-domain adapters, connectors, and services into *registry.Entitlement. Used by balance-worker and test suites that need entitlement infrastructure without importing app/common.",
+    "patterns": [
+      {
+        "name": "Options struct as constructor input",
+        "description": "All external dependencies are grouped into EntitlementOptions (DatabaseClient, StreamingConnector, Logger, MeterService, CustomerService, Publisher, Tracer, Locker, EntitlementsConfiguration). New parameters must be added to this struct, not as direct function arguments.",
+        "example": "GetEntitlementRegistry(EntitlementOptions{DatabaseClient: db, StreamingConnector: conn, ...})"
+      },
+      {
+        "name": "Bottom-up adapter initialisation order",
+        "description": "DB adapters (featureDBAdapter, entitlementDBAdapter, grantDBAdapter, balanceSnapshotDBAdapter) are created first, then connectors that depend on them, then the top-level entitlement service. Never create a connector before its adapter dependencies.",
+        "example": "featureDBAdapter -> featureConnector -> meteredEntitlementConnector -> entitlementConnector"
+      },
+      {
+        "name": "Register hooks immediately after connector construction",
+        "description": "RegisterHooks is called immediately after each connector is constructed \u2014 not inline, not deferred. Both meteredEntitlementConnector and entitlementConnector each get their own RegisterHooks call.",
+        "example": "meteredEntitlementConnector.RegisterHooks(meteredentitlement.ConvertHook(entitlementsubscriptionhook.NewEntitlementSubscriptionHook(...)))"
+      },
+      {
+        "name": "Return fully populated registry struct by pointer",
+        "description": "GetEntitlementRegistry returns *registry.Entitlement with every field explicitly populated. Any new connector or adapter added to registry.Entitlement must be assigned here or callers will get nil fields and runtime panics.",
+        "example": "return &registry.Entitlement{Feature: featureConnector, GrantRepo: grantDBAdapter, MeteredEntitlement: meteredEntitlementConnector, Entitlement: entitlementConnector, ...}"
+      },
+      {
+        "name": "transactionManager via enttx.NewCreator",
+        "description": "The Ent transaction manager is created with enttx.NewCreator(opts.DatabaseClient) and passed into CreditConnectorConfig.TransactionManager. Never pass the raw *db.Client as a transaction manager.",
+        "example": "transactionManager := enttx.NewCreator(opts.DatabaseClient)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entitlement.go",
+        "role": "The only file in this package. Defines EntitlementOptions and GetEntitlementRegistry. Owns the full wiring sequence for entitlement-domain infrastructure.",
+        "watch_for": "Adding a new adapter/connector requires: (1) constructing it in the correct bottom-up order, (2) passing it to downstream constructors that depend on it, (3) assigning it to the returned registry struct. Skipping step 3 leaves callers with nil fields and runtime panics."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common from this package \u2014 it must remain independent to avoid import cycles with test suites",
+      "Skipping hook registration after connector construction \u2014 entitlementsubscriptionhook and credithook are mandatory for correct credit burn-down and subscription sync",
+      "Passing opts.DatabaseClient directly as a TxCreator \u2014 always wrap with enttx.NewCreator",
+      "Adding business logic or conditional wiring inside GetEntitlementRegistry \u2014 this is a pure factory; conditionals belong in the caller",
+      "Returning a partially populated *registry.Entitlement \u2014 every field must be set or downstream nil-dereferences will occur at runtime"
+    ],
+    "decisions": [
+      {
+        "decision": "Single-function package instead of Wire provider set",
+        "rationale": "balance-worker and test suites need entitlement infrastructure without importing app/common Wire sets; a plain constructor avoids import cycles while still giving a fully wired registry"
+      },
+      {
+        "decision": "EntitlementOptions flat struct over variadic functional options",
+        "rationale": "All dependencies are mandatory; a flat struct makes missing fields a compile error (zero-value pointers panic early) and avoids the indirection of option functions"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructing the entitlement registry for a worker or test",
+        "code": "import (\n\tregistrybuilder \"github.com/openmeterio/openmeter/openmeter/registry/builder\"\n\t\"github.com/openmeterio/openmeter/openmeter/registry\"\n)\n\nfunc buildRegistry(db *entdb.Client, streamingConn streaming.Connector, meterSvc meter.Service, customerSvc customer.Service, publisher eventbus.Publisher, tracer trace.Tracer, locker *lockr.Locker, cfg config.EntitlementsConfiguration, logger *slog.Logger) *registry.Entitlement {\n\treturn registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{\n\t\tDatabaseClient:            db,\n\t\tEntitlementsConfiguration: cfg,\n\t\tStreamingConnector:        streamingConn,\n\t\tLogger:                    logger,\n\t\tMeterService:              meterSvc,\n\t\tCustomerService:           customerSvc,\n\t\tPublisher:                 publisher,\n\t\tTracer:                    tracer,\n\t\tLocker:                    locker,\n\t})\n}"
+      }
+    ]
+  }
+}

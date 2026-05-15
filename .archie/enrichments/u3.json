@@ -1,0 +1,175 @@
+{
+  "openmeter/billing/charges": {
+    "purpose": "Top-level domain contract package for the charges sub-system: defines the tagged-union Charge/ChargeIntent types (private discriminator accessed via AsFlatFeeCharge/AsUsageBasedCharge/AsCreditPurchaseCharge), the composite Service interface (ChargeService + CreditPurchaseFacadeService), and Adapter (ChargesSearchAdapter + TxCreator). All charge lifecycle must flow through charges.Service \u2014 never via sub-package adapters directly.",
+    "patterns": [
+      {
+        "name": "Tagged-union construction via NewCharge[T]/NewChargeIntent[T]",
+        "description": "Charge and ChargeIntent hold a private `t meta.ChargeType` discriminator set only by NewCharge[T] / NewChargeIntent[T]. Accessors (AsFlatFeeCharge, AsUsageBasedCharge, AsCreditPurchaseCharge) return typed values or errors. Never use struct literals.",
+        "example": "charge := charges.NewCharge(flatfee.Charge{...})\nff, err := charge.AsFlatFeeCharge()"
+      },
+      {
+        "name": "Input.Validate() on every cross-boundary struct",
+        "description": "All Input types implement models.Validator. Validate() accumulates sub-errors via errors.Join and wraps with models.NewNillableGenericValidationError. Service implementations call Validate() before any business logic.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "ValidationIssue sentinels declared in errors.go",
+        "description": "Package-level errors (ErrChargeNotFound, ErrChargeNamespaceEmpty, ErrChargeInvalid, ErrCreditRealizationsAlreadyAllocated) are models.ValidationIssue vars with ErrorCode constants, severity, and HTTP status via commonhttp.WithHTTPStatusCodeAttribute. Never use raw fmt.Errorf for these conditions.",
+        "example": "return charges.NewChargeNotFoundError(namespace, id)"
+      },
+      {
+        "name": "ChargeIntents.ByType() for per-type dispatch",
+        "description": "ByType() returns ChargeIntentsByType with pre-split slices (FlatFee, CreditPurchase, UsageBased each as []WithIndex[T]). Iterate ByType() output rather than switching on individual items in a loop.",
+        "example": "byType, err := intents.ByType()\nfor _, ff := range byType.FlatFee { /* ff.Value, ff.Index */ }"
+      },
+      {
+        "name": "NewLockKeyForCharge for per-charge advisory locks",
+        "description": "Per-charge advisory locks must be obtained via charges.NewLockKeyForCharge(chargeID), which validates the ID before constructing the lockr.Key. Never hand-construct lockr.Key strings inline.",
+        "example": "key, err := charges.NewLockKeyForCharge(chargeID)"
+      },
+      {
+        "name": "AdvanceChargesEvent for async dispatch",
+        "description": "Async charge advancement is triggered by publishing AdvanceChargesEvent (EventName uses metadata.GetEventName, not a raw string). Event carries Namespace + CustomerID; metadata source/subject via metadata.ComposeResourcePath.",
+        "example": "evt := charges.AdvanceChargesEvent{Namespace: ns, CustomerID: cid}\npublisher.Publish(ctx, evt)"
+      },
+      {
+        "name": "Adapter exposes read-only ChargesSearchAdapter only",
+        "description": "charges.Adapter embeds ChargesSearchAdapter (GetByIDs, ListCharges, ListCustomersToAdvance \u2014 all read-only) plus entutils.TxCreator. Write operations belong to sub-package adapters invoked through the service orchestration layer, never called directly by callers.",
+        "example": "var _ charges.Adapter = (*adapter.Adapter)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines Service interface (ChargeService + CreditPurchaseFacadeService) and all Input types with Validate(). Primary contract for callers.",
+        "watch_for": "Input Validate() must accumulate all sub-errors via errors.Join and call sub-field Validate(); never short-circuit on first error."
+      },
+      {
+        "file": "charge.go",
+        "role": "Defines Charge, ChargeIntent, Charges, ChargeIntents, ChargeIntentsByType, and WithIndex generic wrapper. All charge-type dispatch routes through switch cases here.",
+        "watch_for": "NewCharge/NewChargeIntent are the ONLY constructors \u2014 struct literal Charge{} leaves field `t` empty; all accessor methods will return errors."
+      },
+      {
+        "file": "adapter.go",
+        "role": "Defines Adapter interface (ChargesSearchAdapter + TxCreator), ChargeSearchItem, ChargeSearchItems with Validate().",
+        "watch_for": "ChargesSearchAdapter methods are read-only; writes must go through sub-package adapters via the service layer."
+      },
+      {
+        "file": "errors.go",
+        "role": "All package-level ValidationIssue sentinels and ErrorCode constants with embedded HTTP status codes.",
+        "watch_for": "Adding a new domain error as fmt.Errorf instead of models.NewValidationIssue breaks HTTP status mapping in the error encoder chain (produces 500)."
+      },
+      {
+        "file": "patch.go",
+        "role": "Defines ApplyPatchesInput (CustomerID + Creates + PatchesByChargeID map) and ConcatenateApplyPatchesInputs.",
+        "watch_for": "PatchesByChargeID enforces one patch per charge ID; ConcatenateApplyPatchesInputs returns error on duplicate IDs \u2014 do not bypass with direct map merges."
+      },
+      {
+        "file": "events.go",
+        "role": "AdvanceChargesEvent for async per-customer charge advancement via event bus.",
+        "watch_for": "EventName must use metadata.GetEventName; constructing the name string manually breaks topic routing in eventbus.GeneratePublishTopic."
+      },
+      {
+        "file": "lock.go",
+        "role": "NewLockKeyForCharge produces the lockr.Key for per-charge advisory locking, with chargeID validation.",
+        "watch_for": "Always call NewLockKeyForCharge \u2014 raw string keys can collide across namespaces."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing Charge{} or ChargeIntent{} with struct literals instead of NewCharge[T]/NewChargeIntent[T] \u2014 leaves discriminator field `t` empty, all accessor methods error.",
+      "Bypassing charges.Service by calling flatfee/usagebased/creditpurchase sub-package adapters directly from app/common or billing/worker \u2014 breaks namespace lockdown check and TransactingRepo discipline.",
+      "Returning raw fmt.Errorf instead of models.NewValidationIssue for domain error conditions \u2014 breaks HTTP status code mapping, produces 500.",
+      "Adding business orchestration logic (gathering-line creation, auto-advance) to adapter.go \u2014 adapter is pure data-access; orchestration belongs in charges/service.",
+      "Omitting Validate() on new Input types or skipping the call in service implementations \u2014 allows denormalized/invalid inputs to reach the adapter layer."
+    ],
+    "decisions": [
+      {
+        "decision": "Charge and ChargeIntent are tagged unions (private discriminator, NewCharge[T] constructor) rather than interfaces or separate top-level types.",
+        "rationale": "Prevents callers from constructing partial charge values and forces all type dispatch through a single switch pattern, making coverage gaps visible when adding new charge types."
+      },
+      {
+        "decision": "charges.Adapter only exposes read/search methods (ChargesSearchAdapter); write operations belong to sub-package adapters invoked through the service orchestration layer.",
+        "rationale": "Keeps the top-level package as a pure aggregation point with no write side-effects, ensuring all mutations flow through the service with namespace lockdown and TransactingRepo checks."
+      },
+      {
+        "decision": "ValidationIssue sentinels with embedded HTTP status codes declared at package level in errors.go.",
+        "rationale": "Centralises HTTP status mapping so the error encoder chain detects them by type assertion; inline fmt.Errorf calls silently produce 500 responses."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Creating charges and dispatching async advancement",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee\"\n)\n\nintent := charges.NewChargeIntent(flatfee.Intent{ /* ... */ })\ninput := charges.CreateInput{\n\tNamespace: ns,\n\tIntents:   charges.ChargeIntents{intent},\n}\nif err := input.Validate(); err != nil {\n\treturn err\n}\ncreated, err := chargeService.Create(ctx, input)\nif err != nil {\n\treturn err\n}\n// Async advancement via event bus:\nevt := charges.AdvanceChargesEvent{Namespace: ns, CustomerID: customerID}\nreturn publisher.Publish(ctx, evt)"
+      }
+    ]
+  },
+  "openmeter/billing/worker": {
+    "purpose": "Top-level Watermill-based billing worker that fans out subscription and invoice events from the system Kafka topic to typed handlers via a single NoPublishingHandler multiplexer. Owns the Worker struct, WorkerOptions config, and AddHandler extension point; child packages (advance, collect, asyncadvance, subscriptionsync) own their specific logic independently.",
+    "patterns": [
+      {
+        "name": "WorkerOptions.Validate() constructor guard",
+        "description": "All required fields are checked in Validate() before any goroutine or router is started; New() returns error if Validate() fails. ChargesService is explicitly optional (nil allowed) so credits-disabled deployments still work.",
+        "example": "if err := opts.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "grouphandler.NewGroupEventHandler per event type in eventHandler()",
+        "description": "Each Watermill event type gets its own NewGroupEventHandler closure registered in eventHandler(). The closure receives a typed event pointer and delegates immediately to a service method with no business logic.",
+        "example": "grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.AdvanceStandardInvoiceEvent) error {\n    return w.asyncAdvanceHandler.Handle(ctx, event)\n})"
+      },
+      {
+        "name": "LockdownNamespaces guard before every service call",
+        "description": "Every handler closure checks slices.Contains(w.lockdownNamespaces, event.<Namespace>) and returns nil early for locked namespaces. Must be present in every new handler closure.",
+        "example": "if event != nil && slices.Contains(w.lockdownNamespaces, event.Invoice.Namespace) { return nil }"
+      },
+      {
+        "name": "Optional ChargesService nil-guard pattern",
+        "description": "ChargesService is optional; its handler is only constructed and registered when the field is non-nil. This is the canonical pattern for optional sub-handlers in WorkerOptions.",
+        "example": "if opts.ChargesService != nil { asyncAdvanceChargesHandler, err = chargesasyncadvance.New(...) }"
+      },
+      {
+        "name": "AddHandler for post-construction extension",
+        "description": "Post-construction callers use Worker.AddHandler(handler) to append additional GroupEventHandler implementations; handlers run after built-ins and must be idempotent since events can be retried.",
+        "example": "worker.AddHandler(myExtraHandler) // from app/common or cmd layer"
+      },
+      {
+        "name": "Single Kafka consumer for all event types",
+        "description": "All event types flow through one router.AddConsumerHandler subscription on SystemEventsTopic; the NoPublishingHandler multiplexes by ce_type header internally. Unknown event types are silently dropped.",
+        "example": "router.AddConsumerHandler(\"billing_worker_system_events\", opts.SystemEventsTopic, opts.Router.Subscriber, worker.nonPublishingHandler.Handle)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "worker.go",
+        "role": "Defines WorkerOptions, Worker struct, New() constructor, eventHandler() registration loop, AddHandler(), Run(), Close(). Single authoritative place for handler registration.",
+        "watch_for": "Adding new event types requires a new NewGroupEventHandler entry in eventHandler() with a lockdownNamespaces guard; forgetting the guard or making ChargesService required breaks credits-disabled deployments."
+      }
+    ],
+    "anti_patterns": [
+      "Returning ErrInvoiceCannotAdvance from a handler closure \u2014 Watermill nacks and requeues; catch it inside the handler and return nil instead.",
+      "Calling billing.Adapter directly from worker.go \u2014 all DB access must go through billing.Service or injected sub-services.",
+      "Adding business logic inside worker.go event closures \u2014 delegate immediately to the appropriate sub-service (asyncAdvanceHandler, subscriptionSync, etc.).",
+      "Omitting the lockdownNamespaces guard in a new event handler closure \u2014 causes the handler to run for locked namespaces that should be skipped.",
+      "Using context.Background() inside handler closures \u2014 always use the ctx passed by the Watermill closure parameter."
+    ],
+    "decisions": [
+      {
+        "decision": "Single NoPublishingHandler multiplexing all event types over one Kafka subscription.",
+        "rationale": "Simplifies router topology; unknown event types are silently dropped, making the worker tolerant of schema evolution without redeployment."
+      },
+      {
+        "decision": "ChargesService is optional (nil-guarded) in WorkerOptions.",
+        "rationale": "Allows deployments where charges are disabled to run the billing worker without wiring the charges subsystem."
+      },
+      {
+        "decision": "AddHandler() extension point instead of subclassing or re-wiring.",
+        "rationale": "Lets app/common and cmd layer attach domain-specific handlers after construction without modifying the core worker package."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new subscription event type handler with lockdown guard",
+        "code": "grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.SomeNewEvent) error {\n    if event != nil && slices.Contains(w.lockdownNamespaces, event.Subscription.Namespace) {\n        return nil\n    }\n    return w.subscriptionSync.SynchronizeSubscriptionAndInvoiceCustomer(ctx, event.SubscriptionView, time.Now())\n}),"
+      }
+    ]
+  }
+}

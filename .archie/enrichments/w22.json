@@ -1,0 +1,111 @@
+{
+  "api/spec/packages/legacy/src/productcatalog": {
+    "purpose": "TypeSpec source for the v1 product catalog, subscription, and add-on API contracts. Defines all models, enums, unions, and route interfaces that compile into api/openapi.yaml and drive Go server stubs \u2014 never edit generated outputs, only these .tsp files.",
+    "patterns": [
+      {
+        "name": "Discriminated union with envelope:none",
+        "description": "All polymorphic types (Price, RateCard, RateCardEntitlement, SubscriptionEditOperation, FeatureUnitCost) use @discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" | \"op\" }) so the discriminator sits at the top level with no wrapper object. SubscriptionEditOperation uniquely uses 'op' as the discriminator property name, not 'type'.",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union Price { flat: FlatPrice, unit: UnitPrice, tiered: TieredPrice, dynamic: DynamicPrice, package: PackagePrice }"
+      },
+      {
+        "name": "Visibility lifecycle annotation on every model field",
+        "description": "Every concrete model field carries @visibility(Lifecycle.Read), @visibility(Lifecycle.Read, Lifecycle.Create), or similar. Computed/server-assigned fields (status, effectiveFrom, effectiveTo, version, annotations) are Lifecycle.Read only. Only abstract base models like RateCardBase<T> may omit visibility on some fields.",
+        "example": "@visibility(Lifecycle.Read) status: PlanStatus; // server-computed, never writable"
+      },
+      {
+        "name": "Spread-based composition over TypeSpec extends",
+        "description": "Models are composed by spreading shared base models (...UniqueResource, ...ResourceTimestamps, ...RateCardBase<T>, ...SpendCommitments) rather than using TypeSpec extends. This gives explicit field ownership and enables OmitProperties<> overrides in create/update variants.",
+        "example": "model RateCardFlatFee { ...RateCardBase<RateCardType.flatFee>; billingCadence: duration | null; price: FlatPriceWithPaymentTerm | null; }"
+      },
+      {
+        "name": "Create/update variants via OmitProperties + withVisibility",
+        "description": "Write models (PlanAddonCreate, SubscriptionAddonCreate) are produced with @withVisibility(Lifecycle.Create) and OmitProperties<DefaultKeyVisibility<Model, Lifecycle.Read>, \"field\"> to strip read-only fields and replace embedded objects with just their ID. Never duplicate model fields from scratch.",
+        "example": "@withVisibility(Lifecycle.Create) model PlanAddonCreate { ...OmitProperties<DefaultKeyVisibility<PlanAddon, Lifecycle.Read>, \"addon\">; addonId: ULID; }"
+      },
+      {
+        "name": "All routes declared exclusively in routes.tsp",
+        "description": "Every HTTP interface (FeaturesEndpoints, PlansEndpoints, PlanAddonsEndpoints, AddonsEndpoints, SubscriptionsEndpoints) is declared in routes.tsp with @route, @tag, @friendlyName, @operationId, and @summary on every operation. No other .tsp file in this folder may declare route interfaces.",
+        "example": "@route(\"/api/v1/plans\") @tag(\"Product Catalog\") @friendlyName(\"Plans\") interface PlansEndpoints { @get @operationId(\"listPlans\") @summary(\"List plans\") list(...): PaginatedResponse<Plan> | CommonErrors; }"
+      },
+      {
+        "name": "Domain-specific error alias for subscription mutations",
+        "description": "Subscription create/edit/change/cancel routes use CommonSubscriptionErrors (defined in errors.tsp) which extends the generic errors with SubscriptionBadRequestErrorResponse and SubscriptionConflictErrorResponse carrying SubscriptionErrorExtensions.validationErrors[]. Feature/plan/addon routes use the parent package's CommonErrors alias instead.",
+        "example": "alias CommonSubscriptionErrors = SubscriptionBadRequestErrorResponse | SubscriptionConflictErrorResponse | UnauthorizedError | ForbiddenError | InternalServerErrorError | ...;"
+      },
+      {
+        "name": "ISO8601 duration encoding on all duration fields",
+        "description": "Every duration field uses @encode(DurationKnownEncoding.ISO8601) and an @example(duration.fromISO(\"P1M\")) annotation. Nullable billing cadence (one-time fee rate cards) is typed as duration | null. Omitting the encoding directive causes the TypeSpec compiler to default to seconds serialization.",
+        "example": "@encode(DurationKnownEncoding.ISO8601) @example(duration.fromISO(\"P1M\")) billingCadence: duration | null;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "routes.tsp",
+        "role": "Sole file declaring all HTTP interfaces; imports rest.tsp, subscriptionaddon.tsp, and errors.tsp. Uses 'using TypeSpec.Http; using TypeSpec.OpenAPI;'.",
+        "watch_for": "Missing @operationId or @friendlyName breaks Go codegen naming. Adding a route interface in any other file breaks @tag grouping. Subscription mutations must use CommonSubscriptionErrors, not CommonErrors."
+      },
+      {
+        "file": "ratecards.tsp",
+        "role": "Defines RateCardBase<T> generic, RateCard union (flat_fee | usage_based), RateCardFlatFee, RateCardUsageBased, RateCardUsageBasedPrice union, and entitlement templates (RateCardMeteredEntitlement, RateCardStaticEntitlement, RateCardBooleanEntitlement).",
+        "watch_for": "Adding a new RateCard variant requires updating both the RateCard union AND RateCardUsageBasedPrice union. Entitlement templates must strip featureKey/featureId/usagePeriod via OmitProperties."
+      },
+      {
+        "file": "prices.tsp",
+        "role": "Defines Price union and all price models (FlatPrice, UnitPrice, TieredPrice, DynamicPrice, PackagePrice) plus *WithCommitments variants that spread SpendCommitments.",
+        "watch_for": "New price type must be added to Price union, PriceType enum, and RateCardUsageBasedPrice union in ratecards.tsp. Forgetting any of the three leaves the type unreachable from rate cards."
+      },
+      {
+        "file": "subscription.tsp",
+        "role": "Defines Subscription, SubscriptionExpanded, SubscriptionPhase/Item/Edit, SubscriptionCreate/@oneOf union (PlanSubscriptionCreate | CustomSubscriptionCreate), SubscriptionChange union, and all SubscriptionEditOperation variants.",
+        "watch_for": "SubscriptionCreate and SubscriptionChange are @oneOf unions \u2014 new variants need @summary. SubscriptionEditOperation uses discriminatorPropertyName: 'op', not 'type'. Expanding SubscriptionExpanded must not omit itemTimelines."
+      },
+      {
+        "file": "plan.tsp",
+        "role": "Defines Plan, PlanPhase, PlanStatus, SettlementMode, PlanOrderBy, and PlanReferenceInput. Plan.phases has @minItems(1) and Plan.validationErrors is ValidationError[] | null (not optional).",
+        "watch_for": "New Lifecycle.Create fields on Plan must also work with TypeSpec.Rest.Resource.ResourceCreateModel<Plan> used in routes.tsp. Plan.validationErrors must remain | null, never optional."
+      },
+      {
+        "file": "errors.tsp",
+        "role": "Defines CommonSubscriptionErrors alias and SubscriptionBadRequestErrorResponse/SubscriptionConflictErrorResponse models with SubscriptionErrorExtensions.validationErrors array.",
+        "watch_for": "This file imports ratecards.tsp \u2014 avoid circular imports if ratecards.tsp later needs error types."
+      },
+      {
+        "file": "main.tsp",
+        "role": "Package entry point importing all sub-files in dependency order. features.tsp and subscriptionaddon.tsp are NOT imported here \u2014 features.tsp is used via the parent package; subscriptionaddon.tsp via the routes.tsp import chain.",
+        "watch_for": "New .tsp files must be imported here (in the correct dependency order) to be included in compilation. Importing features.tsp here would cause duplicate namespace conflicts."
+      },
+      {
+        "file": "subscriptionaddon.tsp",
+        "role": "Defines SubscriptionAddon with timeline segments, SubscriptionAddonCreate (write model using OmitProperties + @withVisibility), and SubscriptionAddonRateCard. Imported by routes.tsp.",
+        "watch_for": "SubscriptionAddonCreate omits the 'addon' embedded object and replaces it with addon: { id: ULID } \u2014 the same pattern as PlanAddonCreate. QuantityAt is Lifecycle.Read only."
+      }
+    ],
+    "anti_patterns": [
+      "Defining a polymorphic type without @discriminated(#{ envelope: \"none\", ... }) \u2014 produces a wrapped discriminator that breaks client deserialization.",
+      "Adding a route interface in any file other than routes.tsp \u2014 breaks @tag grouping and operationId consistency.",
+      "Duplicating model fields for create/update variants instead of using OmitProperties<DefaultKeyVisibility<Model, Lifecycle.Read>, \"...\"> with @withVisibility.",
+      "Using a duration field without @encode(DurationKnownEncoding.ISO8601) \u2014 the TypeSpec compiler defaults to seconds serialization, breaking ISO 8601 clients.",
+      "Using CommonErrors (parent package) instead of CommonSubscriptionErrors for subscription mutation routes \u2014 the subscription-specific error extensions (validationErrors) will be missing from the OpenAPI schema."
+    ],
+    "decisions": [
+      {
+        "decision": "SubscriptionEditOperation uses discriminatorPropertyName: 'op' instead of 'type'.",
+        "rationale": "Distinguishes patch commands (add_item, remove_item, add_phase, etc.) from resource type discriminators used in Price/RateCard, preventing naming collisions in generated code and making PATCH semantics explicit."
+      },
+      {
+        "decision": "PlanAddonCreate and SubscriptionAddonCreate replace the embedded Addon/addon object with just { id: ULID } on write.",
+        "rationale": "On write operations only the identifier is needed; embedding the full Addon object (which is Lifecycle.Read) would require clients to supply server-computed fields like status, effectiveFrom, and version."
+      },
+      {
+        "decision": "CommonSubscriptionErrors is a local alias in errors.tsp rather than reusing the parent CommonErrors.",
+        "rationale": "Subscription mutations return SubscriptionBadRequestErrorResponse and SubscriptionConflictErrorResponse with SubscriptionErrorExtensions (validationErrors array) not present in generic error types, requiring a domain-specific error alias."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new usage-based price type (e.g. 'stepped') to the product catalog",
+        "code": "// 1. In prices.tsp \u2014 extend PriceType enum and add the model:\nenum PriceType { ..., stepped: \"stepped\" }\nmodel SteppedPrice {\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update) type: PriceType.stepped;\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update) amount: Money;\n}\nmodel SteppedPriceWithCommitments { ...SteppedPrice; ...SpendCommitments; }\n\n// 2. In prices.tsp \u2014 add to Price union:\n@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })\nunion Price { ..., stepped: SteppedPrice }\n\n// 3. In ratecards.tsp \u2014 add to RateCardUsageBasedPrice union:\n@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })\nunion RateCardUsageBasedPrice { ..., stepped: SteppedPriceWithCommitments }\n\n// 4. Run: make gen-api && make generate"
+      }
+    ]
+  }
+}

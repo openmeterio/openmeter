@@ -1,0 +1,184 @@
+{
+  "pkg/clock": {
+    "purpose": "Process-global test clock that replaces time.Now() with a controllable time source backed by atomic drift/freeze vars. All production code must call clock.Now() so tests can freeze or shift time deterministically without any interface injection.",
+    "patterns": [
+      {
+        "name": "clock.Now() everywhere",
+        "description": "Production code must call clock.Now() instead of time.Now(). The package uses package-level atomics so no interface injection is needed.",
+        "example": "import \"github.com/openmeterio/openmeter/pkg/clock\"; t := clock.Now()"
+      },
+      {
+        "name": "FreezeTime/UnFreeze in tests",
+        "description": "Tests freeze the clock with clock.FreezeTime(t) and restore with defer clock.UnFreeze() or defer clock.ResetTime().",
+        "example": "clock.FreezeTime(testutils.GetRFC3339Time(t, \"2024-06-30T15:39:00Z\")); defer clock.UnFreeze()"
+      },
+      {
+        "name": "Monotonic clock stripped",
+        "description": "clock.Now() always calls .Round(0) to strip the monotonic reading, preventing subtle comparison bugs when storing/comparing times.",
+        "example": "return time.Now().Add(-driftDuration).Round(0)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "clock.go",
+        "role": "Entire package: atomic drift int64 for SetTime, atomic frozen int32 + atomic.Value for FreezeTime. SetTime computes drift as time.Since(t).Nanoseconds().",
+        "watch_for": "drift is the offset subtracted from wall time, not an absolute time value. FreezeTime and SetTime are two independent mechanisms \u2014 FreezeTime short-circuits drift entirely."
+      }
+    ],
+    "anti_patterns": [
+      "Calling time.Now() directly in production code \u2014 always use clock.Now()",
+      "Forgetting defer clock.ResetTime() or defer clock.UnFreeze() in tests, which leaks frozen/drifted state across test cases",
+      "Adding a context parameter or Clock interface \u2014 the global atomic design is intentional for zero-overhead usage across the codebase"
+    ],
+    "decisions": [
+      {
+        "decision": "Package-level atomics instead of an injected Clock interface",
+        "rationale": "Zero call-site changes needed across the codebase; atomic ops are lock-free and safe for concurrent test use."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/cmpx": {
+    "purpose": "Single-file package exposing a Comparable[T] constraint and a Compare[T] generic function for deterministic ordering of domain types. Used wherever two values need to be ordered without boilerplate type assertions.",
+    "patterns": [
+      {
+        "name": "Implement Comparable[T] on domain types",
+        "description": "Any type that needs ordering must implement Compare(T) int. The generic Compare[T] function dispatches to left.Compare(right).",
+        "example": "func (a MyType) Compare(b MyType) int { return cmpx.Compare(a, b) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "compare.go",
+        "role": "Defines Comparable[T] interface and Compare[T] generic helper. No dependencies other than stdlib.",
+        "watch_for": "The package is intentionally minimal \u2014 do not add non-ordering utilities here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding any logic beyond comparison ordering to this package",
+      "Using reflect.DeepEqual or sort.Slice comparisons in callers instead of implementing Comparable[T]"
+    ],
+    "decisions": [],
+    "code_examples": []
+  },
+  "pkg/contextx": {
+    "purpose": "Context-keyed key-value store (via peterbourgon/ctxdata) and a slog.Handler adapter that auto-attaches stored attributes to every log record emitted within a request context. Used to propagate structured log fields through service layers without threading explicit logger parameters.",
+    "patterns": [
+      {
+        "name": "WithAttr / WithAttrs to annotate context",
+        "description": "Call contextx.WithAttr(ctx, key, value) or contextx.WithAttrs(ctx, map) to attach structured data. A ctxdata bag is lazily created if absent.",
+        "example": "ctx = contextx.WithAttr(ctx, \"customer_id\", customerID)"
+      },
+      {
+        "name": "NewLogHandler wraps existing slog.Handler",
+        "description": "Wrap any slog.Handler with contextx.NewLogHandler to automatically add all context attributes to every log record. Install at logger construction time, not per-request.",
+        "example": "slog.New(contextx.NewLogHandler(slog.NewJSONHandler(os.Stdout, nil)))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "attr.go",
+        "role": "WithAttr and WithAttrs write to ctxdata bag; both silently ignore Set errors. Creates a new bag via ctxdata.New if none exists.",
+        "watch_for": "ctxdata.From returns nil if no bag exists \u2014 always handle the nil case (the helpers do this, but raw ctxdata callers must too)."
+      },
+      {
+        "file": "log.go",
+        "role": "Handler wraps slog.Handler; Handle reads ctxdata.GetAllMap and appends all entries as slog.Any attributes before delegating.",
+        "watch_for": "WithAttrs and WithGroup must re-wrap the inner handler in a new Handler struct to preserve the contextx behaviour on derived loggers."
+      }
+    ],
+    "anti_patterns": [
+      "Using context.WithValue directly for structured log fields instead of contextx.WithAttr",
+      "Installing contextx.NewLogHandler more than once in a handler chain \u2014 double-attaches the same attributes to every record"
+    ],
+    "decisions": [
+      {
+        "decision": "peterbourgon/ctxdata as the context bag instead of custom context keys",
+        "rationale": "Provides a typed map API accessible from any layer without defining package-private key types everywhere."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/convert": {
+    "purpose": "Nil-safe generic pointer and type conversion helpers used throughout the codebase to eliminate repetitive nil-guard boilerplate when mapping between domain types, API types, and Ent-generated types.",
+    "patterns": [
+      {
+        "name": "ToPointer for value-to-pointer",
+        "description": "Use convert.ToPointer[T](value) instead of taking the address of a local variable directly.",
+        "example": "convert.ToPointer(\"some-string\")"
+      },
+      {
+        "name": "MapToPointer / SliceToPointer return nil on empty",
+        "description": "Both return nil (not a pointer to empty collection) when the input is empty. Prefer over lo.EmptyableToPtr for maps and slices.",
+        "example": "convert.MapToPointer(myMap) // returns nil if len==0"
+      },
+      {
+        "name": "SafeDeRef for nil-safe pointer transformation",
+        "description": "Applies a mapping function only if the pointer is non-nil; returns nil otherwise. Replaces repetitive if ptr != nil blocks in converter files.",
+        "example": "convert.SafeDeRef(req.StartTime, func(t time.Time) *time.Time { return convert.ToPointer(t.UTC()) })"
+      },
+      {
+        "name": "ToStringLike for type-aliased string conversions",
+        "description": "Converts *Source to *Dest where both are ~string kind, avoiding unsafe casts.",
+        "example": "convert.ToStringLike[api.CurrencyCode, currencyx.Code](req.Currency)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ptr.go",
+        "role": "All pointer/type helpers including DerefHeaderPtr for *map and *slice dereferencing. Also StringerPtrToStringPtr for fmt.Stringer types.",
+        "watch_for": "lo.EmptyableToPtr is explicitly avoided for maps/slices \u2014 always use MapToPointer/SliceToPointer instead to get nil-on-empty semantics."
+      },
+      {
+        "file": "time.go",
+        "role": "TimePtrIn converts *time.Time to a given location, nil-safe. Returns a new pointer; does not mutate in place.",
+        "watch_for": "Returns nil when input is nil \u2014 callers must not assume a non-nil result."
+      }
+    ],
+    "anti_patterns": [
+      "Using lo.EmptyableToPtr on maps or slices \u2014 it does not treat empty collections as nil",
+      "Adding domain-specific conversion logic here \u2014 this package is for generic pointer/type mechanics only",
+      "Taking the address of a local variable instead of convert.ToPointer when the intent is nil-safety"
+    ],
+    "decisions": [],
+    "code_examples": []
+  },
+  "pkg/currencyx": {
+    "purpose": "Thin ISO 4217 currency wrapper on invopop/gobl/currency that adds a Calculator type for currency-precision decimal rounding. Used across billing and subscription for all monetary arithmetic to ensure correct subunit rounding per currency.",
+    "patterns": [
+      {
+        "name": "Validate before Calculator",
+        "description": "Always call Code.Validate() or obtain a Calculator via Code.Calculator() which validates internally. Never use a Code value without validation.",
+        "example": "calc, err := currencyx.Code(\"USD\").Calculator(); if err != nil { return err }"
+      },
+      {
+        "name": "Calculator.RoundToPrecision for monetary amounts",
+        "description": "Round alpacadecimal.Decimal to the correct subunit count for the currency. Never hardcode decimal places.",
+        "example": "rounded := calc.RoundToPrecision(amount) // USD -> 2 places, JPY -> 0 places"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "currency.go",
+        "role": "Code type (alias of currency.Code), Validate, Calculator constructor, RoundToPrecision using Def.Subunits, IsRoundedToPrecision.",
+        "watch_for": "RoundToPrecision uses Def.Subunits (not smallestDenomination) \u2014 correct for online payments, but physical-cash rounding may differ."
+      }
+    ],
+    "anti_patterns": [
+      "Rounding monetary amounts with a fixed precision constant instead of Calculator.RoundToPrecision",
+      "Using currency.Code (gobl) directly instead of currencyx.Code \u2014 the wrapper adds Validate() and Calculator()"
+    ],
+    "decisions": [
+      {
+        "decision": "Wraps gobl/currency rather than implementing ISO 4217 from scratch",
+        "rationale": "GOBL is already a transitive dependency for invoicing; reusing its currency definitions avoids a duplicate definition table."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Round a billing amount to currency precision",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/pkg/currencyx\"\n\t\"github.com/alpacahq/alpacadecimal\"\n)\n\ncalc, err := currencyx.Code(\"USD\").Calculator()\nif err != nil {\n\treturn err\n}\nrounded := calc.RoundToPrecision(alpacadecimal.NewFromFloat(1.23456)) // -> 1.23"
+      }
+    ]
+  }
+}

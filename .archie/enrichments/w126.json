@@ -1,0 +1,76 @@
+{
+  "openmeter/subscription/hooks/annotations": {
+    "purpose": "Implements a SubscriptionCommandHook that repairs annotation-based chain links (previous/superseding subscription IDs) when a subscription is deleted, maintaining doubly-linked list integrity across the subscription chain without orphaned pointers.",
+    "patterns": [
+      {
+        "name": "Embed NoOpSubscriptionCommandHook",
+        "description": "Every hook struct must embed subscription.NoOpSubscriptionCommandHook so only overridden methods need implementation; unimplemented methods compile as no-ops.",
+        "example": "type AnnotationCleanupHook struct { subscription.NoOpSubscriptionCommandHook; subscriptionQueryService subscription.QueryService; ... }"
+      },
+      {
+        "name": "Constructor validates all deps",
+        "description": "NewAnnotationCleanupHook returns (*T, error) and nil-checks every injected dependency before constructing the struct.",
+        "example": "if subscriptionQueryService == nil { return nil, fmt.Errorf(\"subscription query service is required\") }"
+      },
+      {
+        "name": "Use AnnotationParser for all annotation access",
+        "description": "All reads and writes of annotation keys must go through subscription.AnnotationParser methods \u2014 never read/write annotation map keys by string literal directly.",
+        "example": "supersedingID := subscription.AnnotationParser.GetSupersedingSubscriptionID(view.Subscription.Annotations)"
+      },
+      {
+        "name": "Clone before mutating annotations",
+        "description": "Always call maps.Clone on the annotation map before any modification to avoid mutating the original view's annotations in-place.",
+        "example": "supersedingAnnotations = maps.Clone(supersedingAnnotations)"
+      },
+      {
+        "name": "Soft-skip NotFound, hard-error on all others",
+        "description": "When fetching a linked subscription, check subscription.IsSubscriptionNotFoundError; log-and-continue on not-found, return error for all other failures.",
+        "example": "if subscription.IsSubscriptionNotFoundError(err) { h.logger.Error(\"...\"); return nil }"
+      },
+      {
+        "name": "Nil-out empty annotation maps after deletion",
+        "description": "After deleting keys, if len(annotations) == 0 set the map to nil before persisting to avoid storing empty maps.",
+        "example": "if len(supersedingAnnotations) == 0 { supersedingAnnotations = nil }"
+      },
+      {
+        "name": "Persist via SubscriptionRepository.UpdateAnnotations",
+        "description": "All annotation writes use subscriptionRepo.UpdateAnnotations(ctx, namespacedID, annotations) \u2014 never route through the full Service to avoid re-triggering hooks.",
+        "example": "h.subscriptionRepo.UpdateAnnotations(ctx, supersedingView.Subscription.NamespacedID, supersedingAnnotations)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "hook.go",
+        "role": "Sole file; defines AnnotationCleanupHook with BeforeDelete that repairs both the superseding and previous subscription annotation pointers when a subscription is deleted.",
+        "watch_for": "BeforeDelete aborts the delete if it returns an error. Both updateSupersedingSubscriptionAnnotations and updatePreviousSubscriptionAnnotations must succeed. The two helpers are symmetric: each reads the opposite link ID and re-points it, or clears it when there is nothing to point to."
+      }
+    ],
+    "anti_patterns": [
+      "Reading or writing annotation map keys by string literal instead of using subscription.AnnotationParser",
+      "Mutating view.Subscription.Annotations in-place without maps.Clone first",
+      "Returning an error on subscription.IsSubscriptionNotFoundError \u2014 these are expected races and must be logged and skipped",
+      "Implementing hook interface methods without embedding NoOpSubscriptionCommandHook, forcing all unrelated methods to be explicitly stubbed",
+      "Storing an empty (len==0) annotations map instead of nil when all keys are removed"
+    ],
+    "decisions": [
+      {
+        "decision": "Hook lives in a dedicated sub-package (hooks/annotations) rather than inline in the subscription service",
+        "rationale": "Keeps annotation-chain repair logic isolated from core subscription lifecycle code and avoids circular imports between the service and the hook."
+      },
+      {
+        "decision": "Only BeforeDelete is overridden",
+        "rationale": "Annotation chain links only need repair at deletion time; create/update paths set annotations through normal AnnotationParser flows elsewhere."
+      },
+      {
+        "decision": "Uses subscription.SubscriptionRepository directly for annotation writes, not subscription.Service",
+        "rationale": "UpdateAnnotations is a low-level repository operation; routing through the full service would re-trigger hooks and risk re-entrancy."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wiring the hook during application startup in app/common",
+        "code": "import annotationhook \"github.com/openmeterio/openmeter/openmeter/subscription/hooks/annotations\"\n\nhook, err := annotationhook.NewAnnotationCleanupHook(subscriptionQuerySvc, subscriptionRepo, logger)\nif err != nil {\n    return fmt.Errorf(\"create annotation cleanup hook: %w\", err)\n}\nsubscriptionSvc.RegisterHook(hook)"
+      }
+    ]
+  }
+}

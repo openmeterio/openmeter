@@ -1,0 +1,359 @@
+{
+  "api/client/python/openmeter/_generated/aio/operations": {
+    "purpose": "Async (asyncio) mirror of the sync operations layer \u2014 each Operations class wraps a resource group and exposes `async def` methods that execute HTTP requests via AsyncPipelineClient, delegating all request-building to sync `build_*` functions in the parent `operations/_operations.py`.",
+    "patterns": [
+      {
+        "name": "Delegate request construction to sync build_* functions",
+        "description": "Every async method imports and calls `build_<resource>_<action>_request` from `...operations._operations` \u2014 never duplicates URL or query-param construction inline.",
+        "example": "_request = build_apps_list_request(page=page, page_size=page_size, headers=_headers, params=_params)"
+      },
+      {
+        "name": "Positional constructor injection",
+        "description": "Each Operations class `__init__` pops (client, config, serializer, deserializer) from positional args first, kwargs second \u2014 never as named-only parameters.",
+        "example": "self._client: AsyncPipelineClient = input_args.pop(0) if input_args else kwargs.pop('client')"
+      },
+      {
+        "name": "Per-method error_map with typed model deserialization",
+        "description": "Every method builds a MutableMapping error_map seeded with 404/409/304 defaults, then manually deserializes typed Problem models (BadRequestProblemResponse, UnauthorizedProblemResponse, etc.) for each status code before raising HttpResponseError.",
+        "example": "error = _failsafe_deserialize(_models.BadRequestProblemResponse, response); raise HttpResponseError(response=response, model=error)"
+      },
+      {
+        "name": "Stream-safe response body cleanup on error",
+        "description": "On non-2xx responses when `_stream=True`, call `await response.read()` inside a try/except for StreamConsumedError and StreamClosedError before calling map_error \u2014 prevents socket leaks.",
+        "example": "if _stream: try: await response.read() except (StreamConsumedError, StreamClosedError): pass"
+      },
+      {
+        "name": "_patch.py customization hook",
+        "description": "`_patch.py` is the only sanctioned place to add customizations; `__init__.py` imports `from ._patch import *` and calls `_patch_sdk()` at module load. Keep `_patch.py` minimal \u2014 it is the escape hatch, not the norm.",
+        "example": "from ._patch import __all__ as _patch_all; _patch_sdk()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "_operations.py",
+        "role": "Contains every async Operations class and their async methods. Generated file \u2014 do not edit directly; changes belong in _patch.py or upstream generators.",
+        "watch_for": "Do NOT instantiate Operations classes directly; they are accessed through OpenMeterClient attributes. Adding new methods here without a corresponding sync build_* function in the parent operations package breaks the reuse pattern."
+      },
+      {
+        "file": "__init__.py",
+        "role": "Re-exports all Operations classes and applies _patch.py overrides via `_patch_sdk()`. Mirrors the sync operations __init__.py exactly.",
+        "watch_for": "Any new Operations class added to _operations.py must be added to both __all__ and the import list here, and mirrored in the sync __init__.py."
+      },
+      {
+        "file": "_patch.py",
+        "role": "Empty stub for SDK customizations; imported and executed by __init__.py. Preserved across regenerations as the intentional customization seam.",
+        "watch_for": "Never add business logic here. This file's sole purpose is to be the stable customization point that survives code regeneration."
+      }
+    ],
+    "anti_patterns": [
+      "Duplicating URL/query-param construction inside async methods instead of calling the shared sync build_* functions",
+      "Instantiating Operations classes directly rather than accessing them via OpenMeterClient attributes",
+      "Adding error handling or deserialization logic outside the per-method error_map block",
+      "Editing _operations.py as if it were hand-written code \u2014 it is generated and will be overwritten on next SDK generation",
+      "Raising exceptions before calling `await response.read()` on a streaming error response (leaks the socket)"
+    ],
+    "decisions": [
+      {
+        "decision": "Async operations delegate all request construction to sync build_* functions in the parent package",
+        "rationale": "Avoids duplicating URL and parameter logic across sync/async variants; a single change to the request builder propagates to both execution paths."
+      },
+      {
+        "decision": "Per-method typed error deserialization instead of a shared error handler",
+        "rationale": "Different endpoints return different Problem subtypes; inline deserialization keeps error context close to the operation contract without requiring a shared dispatcher that must know all error shapes."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new async operation method following the existing pattern",
+        "code": "from ...operations._operations import build_my_resource_list_request\nfrom ..._utils.model_base import _deserialize, _failsafe_deserialize\nfrom ... import models as _models\n\nasync def list(self, *, page: Optional[int] = None, **kwargs: Any) -> _models.MyResourcePaginatedResponse:\n    error_map: MutableMapping = {404: ResourceNotFoundError, 409: ResourceExistsError, 304: ResourceNotModifiedError}\n    error_map.update(kwargs.pop('error_map', {}) or {})\n    _headers = kwargs.pop('headers', {}) or {}\n    _params = kwargs.pop('params', {}) or {}\n    cls: ClsType[_models.MyResourcePaginatedResponse] = kwargs.pop('cls', None)\n    _request = build_my_resource_list_request(page=page, headers=_headers, params=_params)\n    path_format_arguments = {'endpoint': self._serialize.url('self._config.endpoint', self._config.endpoint, 'str', skip_quote=True)}\n    _request.url = self._client.format_url(_request.url, **path_format_arguments)\n    _decompress = kwargs.pop('decompress', True)\n    _stream = kwargs.pop('stream', False)\n    pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)\n    response = pipeline_response.http_response\n    if response.status_code not in [200]:\n        if _stream:\n            try:\n                await response.read()\n            except (StreamConsumedError, StreamClosedError):\n                pass\n        map_error(status_code=response.status_code, response=response, error_map=error_map)\n        error = _failsafe_deserialize(_models.UnexpectedProblemResponse, response)\n        raise HttpResponseError(response=response, model=error)\n    deserialized = _deserialize(_models.MyResourcePaginatedResponse, response.json())\n    if cls:\n        return cls(pipeline_response, deserialized, {})\n    return deserialized"
+      }
+    ]
+  },
+  "api/v3/handlers/meters": {
+    "purpose": "v3 HTTP handler package for all meter CRUD and query operations; bridges generated api/v3 request/response types to meter.ManageService and streaming.Connector via the httptransport.Handler pipeline, and owns the query/ sub-package for translating MeterQueryRequest fields into streaming.QueryParams.",
+    "patterns": [
+      {
+        "name": "Type-alias triplets per operation file",
+        "description": "Each operation file declares three type aliases: <Op>Request, <Op>Response, <Op>Handler. Request/Response alias domain input/output types directly; Handler aliases httptransport.Handler or HandlerWithArgs.",
+        "example": "type CreateMeterRequest = meter.CreateMeterInput; type CreateMeterResponse = api.Meter; type CreateMeterHandler httptransport.Handler[CreateMeterRequest, CreateMeterResponse]"
+      },
+      {
+        "name": "NewHandlerWithArgs for path-param endpoints; NewHandler for no-param",
+        "description": "Endpoints with a meterID path param use httptransport.NewHandlerWithArgs. Endpoints without path params (e.g. CreateMeter) use httptransport.NewHandler.",
+        "example": "httptransport.NewHandlerWithArgs(decoderFunc, operationFunc, commonhttp.JSONResponseEncoderWithStatus[Response](http.StatusOK), opts...)"
+      },
+      {
+        "name": "Namespace resolved in decoder, never in operation",
+        "description": "h.resolveNamespace(ctx) is always called inside the decoder closure (first argument); errors from it are returned immediately without entering the operation.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return Request{}, err }"
+      },
+      {
+        "name": "apierrors.GenericErrorEncoder on every handler",
+        "description": "Every httptransport.NewHandler / NewHandlerWithArgs call must append httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) inside httptransport.AppendOptions.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"get-meter\"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))..."
+      },
+      {
+        "name": "Reserved dimension validation in decoder",
+        "description": "For Create and Update, call validateDimensionsWithoutReserved(*body.Dimensions) in the decoder before constructing the domain input; this delegates to query.IsReservedDimension per key.",
+        "example": "if body.Dimensions != nil { if err := validateDimensionsWithoutReserved(*body.Dimensions); err != nil { return Request{}, err } }"
+      },
+      {
+        "name": "Query endpoints delegate to query.BuildQueryParams",
+        "description": "Both QueryMeter and QueryMeterCSV call query.BuildQueryParams(ctx, m, req.Body, query.NewCustomerResolver(h.customerService)) \u2014 never inline param-building logic in the handler files.",
+        "example": "params, err := query.BuildQueryParams(ctx, m, req.Body, query.NewCustomerResolver(h.customerService))"
+      },
+      {
+        "name": "Goverter-generated conversion vars initialized in init()",
+        "description": "convert.gen.go sets package-level var functions (FromAPICreateMeterRequest, ToAPIMeter, etc.) inside init(). Never call them before init runs and never hand-edit convert.gen.go.",
+        "example": "var FromAPICreateMeterRequest func(namespace string, req api.CreateMeterRequest) (meter.CreateMeterInput, error)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines the Handler interface (all 7 method signatures) and the handler struct with resolveNamespace, service, streaming, customerService, options. New() injects all dependencies.",
+        "watch_for": "Do not add domain service calls to handler struct methods directly; those belong in per-operation files."
+      },
+      {
+        "file": "convert.go",
+        "role": "Hand-written helpers (ToAPIMeterAggregation, FromAPIMeterAggregation, ToAPIMeterQueryRow, ToAPIMeterQueryResult, FromAPIUpdateMeterRequest) plus Goverter annotations driving convert.gen.go generation.",
+        "watch_for": "Goverter var declarations (FromAPICreateMeterRequest, ToAPIMeter) must not be called manually before init(); they are set in convert.gen.go's init()."
+      },
+      {
+        "file": "convert.gen.go",
+        "role": "Generated by Goverter \u2014 DO NOT EDIT. Contains init() that sets all package-level conversion function vars.",
+        "watch_for": "Any hand-edit is overwritten by 'go generate ./...'. Re-run make generate after changing convert.go annotations."
+      },
+      {
+        "file": "errors.go",
+        "role": "Declares ErrCodeReservedDimension ErrorCode constant and ErrReservedDimension ValidationIssue sentinel with HTTP 400 attribute. NewReservedDimensionError adds path and value attributes.",
+        "watch_for": "All new validation errors in this package must follow the same pattern: package-level sentinel + constructor that calls .WithPathString/.WithAttr."
+      },
+      {
+        "file": "dimensions.go",
+        "role": "validateDimensionsWithoutReserved iterates a map and returns NewReservedDimensionError if any key matches query.IsReservedDimension.",
+        "watch_for": "New reserved dimensions must be added in query/dimensions.go (IsReservedDimension), not here."
+      },
+      {
+        "file": "query_csv.go",
+        "role": "QueryMeterCSV handler plus queryMeterCSVResult implementing commonhttp.CSVResponse. Column order: from, to, [subject,] [customer_id, customer_key, customer_name,] <other dims>, value. Customer enrichment via ListCustomers post-query.",
+        "watch_for": "Any new reserved dimension column must be added to both the header slice and the record-building loop in Records()."
+      },
+      {
+        "file": "query/",
+        "role": "Sub-package owning BuildQueryParams, IsReservedDimension, CustomerResolverFunc, filter operator extraction, and ISO 8601 to WindowSize lookup.",
+        "watch_for": "Do not inline query parameter translation in the parent handler files; always delegate to BuildQueryParams."
+      }
+    ],
+    "anti_patterns": [
+      "Using httptransport.NewHandler instead of NewHandlerWithArgs when the endpoint takes a path parameter (meterID).",
+      "Calling h.resolveNamespace in the operation closure instead of the decoder closure.",
+      "Adding a new reserved dimension key directly in this package instead of updating query.IsReservedDimension in query/dimensions.go.",
+      "Hand-editing convert.gen.go \u2014 it is overwritten by go generate.",
+      "Omitting httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) from the options block, which breaks domain-error-to-HTTP-status mapping."
+    ],
+    "decisions": [
+      {
+        "decision": "query/ is a separate sub-package rather than inline code in query.go",
+        "rationale": "Isolates all MeterQueryRequest to streaming.QueryParams translation (dimension validation, filter extraction, customer resolution, window-size mapping) so handlers stay thin and the logic is independently testable without an HTTP context."
+      },
+      {
+        "decision": "Conversion functions are Goverter-generated vars initialized in init(), not methods",
+        "rationale": "Goverter generates type-safe mapping code at build time; package-level vars set in init() let the generated code live in a separate file while being callable from hand-written handlers without a receiver."
+      },
+      {
+        "decision": "ValidationIssue package-level sentinel + WithPathString/WithAttr constructors",
+        "rationale": "Pre-building the base issue (ErrReservedDimension) as a sentinel lets the HTTP error encoder read the embedded HTTP status code attribute, while per-call constructors add field-specific path/value context without duplicating the base message."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new CRUD endpoint (e.g. CloneMeter) following the established handler pattern",
+        "code": "// clone.go\npackage meters\n\nimport (\n\t\"context\"\n\t\"net/http\"\n\n\tapi \"github.com/openmeterio/openmeter/api/v3\"\n\t\"github.com/openmeterio/openmeter/api/v3/apierrors\"\n\t\"github.com/openmeterio/openmeter/openmeter/meter\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype (\n\tCloneMeterRequest struct {\n\t\tmodels.NamespacedID\n\t\tName string\n\t}\n\tCloneMeterResponse = api.Meter\n\tCloneMeterParams   = string\n\tCloneMeterHandler  httptransport.HandlerWithArgs[CloneMeterRequest, CloneMeterResponse, CloneMeterParams]\n)\n\nfunc (h *handler) CloneMeter() CloneMeterHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, meterID CloneMeterParams) (CloneMeterRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil {\n\t\t\t\treturn CloneMeterRequest{}, err\n\t\t\t}\n\t\t\treturn CloneMeterRequest{\n\t\t\t\tNamespacedID: models.NamespacedID{Namespace: ns, ID: meterID},\n\t\t\t\tName:         r.URL.Query().Get(\"name\"),\n\t\t\t}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req CloneMeterRequest) (CloneMeterResponse, error) {\n\t\t\tm, err := h.service.CloneMeter(ctx, meter.CloneMeterInput{NamespacedID: req.NamespacedID, Name: req.Name})\n\t\t\tif err != nil {\n\t\t\t\treturn CloneMeterResponse{}, err\n\t\t\t}\n\t\t\treturn ToAPIMeter(m), nil\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[CloneMeterResponse](http.StatusCreated),\n\t\thttptransport.AppendOptions(\n\t\t\th.options,\n\t\t\thttptransport.WithOperationName(\"clone-meter\"),\n\t\t\thttptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n\t\t)...,\n\t)\n}"
+      }
+    ]
+  },
+  "api/v3/handlers/plans": {
+    "purpose": "v3 HTTP handler package for all plan CRUD and lifecycle operations (create, get, list, update, delete, publish, archive); bridges generated api/v3 types to plan.Service with rich bidirectional conversion for the Plan > Phase > RateCard > Price hierarchy.",
+    "patterns": [
+      {
+        "name": "Type-alias triplets per operation file",
+        "description": "Each operation file declares <Op>Request, <Op>Response, <Op>Handler type aliases. Request/Response alias domain input/output types directly.",
+        "example": "type CreatePlanRequest = plan.CreatePlanInput; type CreatePlanResponse = api.BillingPlan; type CreatePlanHandler httptransport.Handler[CreatePlanRequest, CreatePlanResponse]"
+      },
+      {
+        "name": "NewHandlerWithArgs for path-param endpoints; NewHandler for no-param",
+        "description": "Endpoints with a planID path param use NewHandlerWithArgs; CreatePlan (no path param) uses NewHandler.",
+        "example": "httptransport.NewHandlerWithArgs(decoderFunc, operationFunc, commonhttp.JSONResponseEncoderWithStatus[Response](http.StatusOK), opts...)"
+      },
+      {
+        "name": "Namespace resolved first in decoder",
+        "description": "h.resolveNamespace(ctx) is always the first call in the decoder closure; return immediately on error.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return Request{}, err }"
+      },
+      {
+        "name": "IgnoreNonCriticalIssues=true on create and update",
+        "description": "After FromAPICreatePlanRequest / FromAPIUpsertPlanRequest, set req.IgnoreNonCriticalIssues = true before returning from the decoder.",
+        "example": "req, err := FromAPICreatePlanRequest(ns, body); ...; req.IgnoreNonCriticalIssues = true; return req, nil"
+      },
+      {
+        "name": "clock.Now() for time-sensitive fields in decoder",
+        "description": "PublishPlan sets EffectiveFrom = clock.Now(); ArchivePlan sets EffectiveTo = clock.Now(). Never use time.Now() \u2014 tests mock clock via clock.SetTime.",
+        "example": "EffectiveFrom: lo.ToPtr(clock.Now())"
+      },
+      {
+        "name": "Nil-check on service response for mutating lifecycle operations",
+        "description": "CreatePlan, UpdatePlan, PublishPlan, ArchivePlan check for p == nil after the service call and return a descriptive error. Get/Delete do not need this check.",
+        "example": "if p == nil { return CreatePlanResponse{}, fmt.Errorf(\"failed to create plan\") }"
+      },
+      {
+        "name": "Exhaustive price type switch with unsupported-type guard",
+        "description": "ToAPIBillingPrice uses an exhaustive switch on p.Type(). DynamicPriceType and PackagePriceType return models.NewGenericConflictError. ListPlans silently skips plans with unsupported prices via hasUnsupportedV3Price.",
+        "example": "case productcatalog.DynamicPriceType: return result, models.NewGenericConflictError(fmt.Errorf(\"dynamic price is not supported in v3 API\"))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines Handler interface (7 method signatures) and handler struct with resolveNamespace, service (plan.Service), and options. New() constructor. Only plan.Service is injected \u2014 no streaming or customer service dependency.",
+        "watch_for": "Do not inject additional services here; if you need customer lookups, delegate to plan.Service or add a dedicated helper."
+      },
+      {
+        "file": "convert.go",
+        "role": "All bidirectional conversion: ToAPIBillingPlan, ToAPIBillingPlanPhase, ToAPIBillingRateCard, ToAPIBillingPrice, ToAPIBillingPriceTiers, FromAPICreatePlanRequest, FromAPIUpsertPlanRequest, FromAPIBillingPlanPhase, FromAPIBillingRateCard, FromAPIBillingPrice, ToProRatingConfig.",
+        "watch_for": "DynamicPriceType and PackagePriceType return GenericConflictError (not 500). Adding a new price type requires updating ToAPIBillingPrice, FromAPIBillingPrice, and the unsupportedV3PriceTypes map."
+      },
+      {
+        "file": "convert_test.go",
+        "role": "Table-driven unit tests for all convert.go functions. Uses clock.SetTime for status tests, newTestPlan helper, and decimal/gobl/currency literals.",
+        "watch_for": "New conversion paths must have corresponding table-driven tests here; use assert.Equal with typed API constants (api.BillingPlanStatus*, api.ISO8601Duration, api.Numeric) rather than plain strings."
+      },
+      {
+        "file": "list.go",
+        "role": "ListPlans with page-based pagination (default page 1, size 20). Silently skips plans with unsupported v3 prices via hasUnsupportedV3Price.",
+        "watch_for": "The hasUnsupportedV3Price skip is a temporary workaround (FIXME). Do not add further silent-skip logic \u2014 return errors or expose all items."
+      },
+      {
+        "file": "publish.go",
+        "role": "PublishPlan sets EffectiveFrom = clock.Now() in the decoder.",
+        "watch_for": "Must use clock.Now() not time.Now() \u2014 tests control clock via clock.SetTime."
+      },
+      {
+        "file": "archive.go",
+        "role": "ArchivePlan sets EffectiveTo = clock.Now() in the decoder.",
+        "watch_for": "Same clock.Now() requirement as publish.go."
+      }
+    ],
+    "anti_patterns": [
+      "Using time.Now() instead of clock.Now() in decoder closures \u2014 breaks time-controlled tests.",
+      "Omitting req.IgnoreNonCriticalIssues = true in Create/Update decoders \u2014 rejects plans with non-critical validation issues.",
+      "Adding a new price type in ToAPIBillingPrice without also updating FromAPIBillingPrice, hasUnsupportedV3Price, and the round-trip tests in convert_test.go.",
+      "Omitting httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) from any handler options block.",
+      "Calling domain service methods from the encoder closure (third argument) \u2014 all service calls must happen in the operation closure (second argument)."
+    ],
+    "decisions": [
+      {
+        "decision": "DynamicPriceType and PackagePriceType return GenericConflictError (409) rather than a 500",
+        "rationale": "The v3 API does not yet have a wire format for these price types; a conflict error surfaces the limitation clearly to callers instead of silently dropping data or returning a generic server error."
+      },
+      {
+        "decision": "Labels round-trip via labels.ToMetadata / labels.FromMetadata, not direct map assignment",
+        "rationale": "The labels package enforces key/value format rules and provides consistent nil-vs-empty handling across all handlers that touch label metadata."
+      },
+      {
+        "decision": "IgnoreNonCriticalIssues set in the HTTP decoder, not in the domain service",
+        "rationale": "HTTP create/update callers expect lenient validation; the service layer retains the ability to surface non-critical issues as warnings on the returned object without blocking persistence."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new plan lifecycle action (e.g. ClonePlan) with clock.Now() and nil-check",
+        "code": "// clone.go\npackage plans\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"net/http\"\n\n\tapi \"github.com/openmeterio/openmeter/api/v3\"\n\t\"github.com/openmeterio/openmeter/api/v3/apierrors\"\n\t\"github.com/openmeterio/openmeter/openmeter/productcatalog/plan\"\n\t\"github.com/openmeterio/openmeter/pkg/clock\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype (\n\tClonePlanRequest  = plan.ClonePlanInput\n\tClonePlanResponse = api.BillingPlan\n\tClonePlanParams   = string\n\tClonePlanHandler  httptransport.HandlerWithArgs[ClonePlanRequest, ClonePlanResponse, ClonePlanParams]\n)\n\nfunc (h *handler) ClonePlan() ClonePlanHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, planID ClonePlanParams) (ClonePlanRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil {\n\t\t\t\treturn ClonePlanRequest{}, err\n\t\t\t}\n\t\t\treturn ClonePlanRequest{\n\t\t\t\tNamespacedID: models.NamespacedID{Namespace: ns, ID: planID},\n\t\t\t\tClonedAt:     clock.Now(),\n\t\t\t}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request ClonePlanRequest) (ClonePlanResponse, error) {\n\t\t\tp, err := h.service.ClonePlan(ctx, request)\n\t\t\tif err != nil {\n\t\t\t\treturn ClonePlanResponse{}, err\n\t\t\t}\n\t\t\tif p == nil {\n\t\t\t\treturn ClonePlanResponse{}, fmt.Errorf(\"failed to clone plan\")\n\t\t\t}\n\t\t\treturn ToAPIBillingPlan(*p)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ClonePlanResponse](http.StatusCreated),\n\t\thttptransport.AppendOptions(\n\t\t\th.options,\n\t\t\thttptransport.WithOperationName(\"clone-plan\"),\n\t\t\thttptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n\t\t)...,\n\t)\n}"
+      }
+    ]
+  },
+  "api/v3/handlers/subscriptions": {
+    "purpose": "v3 HTTP handler package for billing subscription lifecycle (list, get, create from plan, cancel, unschedule cancellation, change-plan); uses two distinct domain services \u2014 planSubscriptionService for create/change workflows and subscriptionService for get/list/cancel/continue.",
+    "patterns": [
+      {
+        "name": "Pre-validation of referenced entities inside the decoder",
+        "description": "Resolve and validate customer and plan references inside the request decoder (first func) using apierrors.NewBadRequestError with InvalidParameters for missing required fields.",
+        "example": "if body.Plan.Id == nil && body.Plan.Key == nil { return ..., apierrors.NewBadRequestError(ctx, errors.New(reason), []apierrors.InvalidParameter{{Field: \"plan.id\", ...}}) }"
+      },
+      {
+        "name": "Private helper methods for ID-or-key entity lookup",
+        "description": "getCustomerByIDOrKey and getPlanByIDOrKey are private handler methods that accept namespace + optional ID/Key pointers and return the entity. They are defined in create.go and reused by change.go.",
+        "example": "customerEntity, err := h.getCustomerByIDOrKey(ctx, ns, body.Customer.Id, body.Customer.Key)"
+      },
+      {
+        "name": "PlanInput constructed via FromRef, never direct field assignment",
+        "description": "Always construct plansubscription.PlanInput via planInput.FromRef(&PlanRefInput{Key: ..., Version: ...}) after resolving the concrete plan.",
+        "example": "planInput := plansubscription.PlanInput{}; planInput.FromRef(&plansubscription.PlanRefInput{Key: planEntity.Key, Version: &planEntity.Version})"
+      },
+      {
+        "name": "Timing union decode: AsDateTime() before AsBillingSubscriptionEditTimingEnum()",
+        "description": "FromAPIBillingSubscriptionEditTiming tries AsDateTime() first; enum fallback is second. This order is critical because datetime strings also satisfy the string union type.",
+        "example": "if custom, err := t.AsDateTime(); err == nil { return subscription.Timing{Custom: &custom}, nil }"
+      },
+      {
+        "name": "planSubscriptionService for create/change; subscriptionService for get/list/cancel/continue",
+        "description": "The handler struct holds two subscription services with different responsibilities. Using the wrong one silently changes workflow semantics and billing sync.",
+        "example": "h.planSubscriptionService.Create(ctx, request) // not h.subscriptionService.Create"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface (6 methods) and handler struct: resolveNamespace, customerService, planService, planSubscriptionService, subscriptionService.",
+        "watch_for": "Two distinct subscription services are injected: planSubscriptionService (create/change) and subscriptionService (get/list/cancel/continue). Mixing them changes workflow semantics."
+      },
+      {
+        "file": "create.go",
+        "role": "Creates subscription from plan; validates customer and plan exist, builds PlanInput via FromRef, calls planSubscriptionService.Create. Also defines getCustomerByIDOrKey and getPlanByIDOrKey private helpers.",
+        "watch_for": "TODO comments note helpers should eventually move to the service layer \u2014 keep them private to handler for now."
+      },
+      {
+        "file": "change.go",
+        "role": "Changes running subscription to a new plan; fetches current subscription for name/desc/metadata defaults, builds ChangeSubscriptionWorkflowInput, calls planSubscriptionService.Change. Response is BillingSubscriptionChangeResponse{Current, Next} not a single subscription.",
+        "watch_for": "Metadata defaults come from the existing subscription; only override if body.Labels is non-nil."
+      },
+      {
+        "file": "convert.go",
+        "role": "ToAPIBillingSubscription (uses clock.Now() for GetStatusAt), FromAPIBillingSubscriptionEditTiming (datetime-before-enum order), FromAPIBillingSubscriptionCreate.",
+        "watch_for": "Tests that assert subscription status must mock clock via clock.SetTime. The timing decode order (datetime first) is load-bearing \u2014 reversing it breaks custom RFC3339 timing."
+      },
+      {
+        "file": "cancel.go",
+        "role": "CancelSubscription; defaults timing to TimingImmediate when body.Timing is nil.",
+        "watch_for": "Nil timing body must default to immediate \u2014 do not require timing to be present."
+      }
+    ],
+    "anti_patterns": [
+      "Swapping planSubscriptionService and subscriptionService calls \u2014 Create/Change must go through the plan service for billing sync hooks.",
+      "Reversing timing decode order (trying enum before datetime) \u2014 datetime strings will be misidentified as enum values.",
+      "Skipping getCustomerByIDOrKey / getPlanByIDOrKey pre-validation and calling planSubscriptionService directly \u2014 plan must be resolved to a concrete version before creating.",
+      "Using commonhttp.GenericErrorEncoder() instead of apierrors.GenericErrorEncoder() in v3 handlers.",
+      "Setting PlanInput fields directly instead of using planInput.FromRef \u2014 direct assignment bypasses the FromRef invariants."
+    ],
+    "decisions": [
+      {
+        "decision": "Two separate subscription services: planSubscriptionService and subscriptionService",
+        "rationale": "plansubscription.PlanSubscriptionService orchestrates billing sync and plan versioning on top of the core subscription.Service; the split keeps billing-coupling out of the generic subscription lifecycle and allows non-plan subscriptions in the future."
+      },
+      {
+        "decision": "datetime decoded before enum in FromAPIBillingSubscriptionEditTiming",
+        "rationale": "Both datetime strings and enum strings satisfy the string union type; trying datetime first and falling back to enum is the only way to correctly route RFC3339 custom timestamps without misidentifying them as enum values."
+      },
+      {
+        "decision": "Entity pre-validation (customer + plan lookup) happens in the decoder, not in the operation closure",
+        "rationale": "Failing fast in the decoder returns structured 400 errors via apierrors.NewBadRequestError with typed InvalidParameters, giving callers actionable field-level error messages before any service call is made."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new subscription lifecycle action (e.g. PauseSubscription) following the established handler pattern",
+        "code": "// pause.go\npackage subscriptions\n\nimport (\n\t\"context\"\n\t\"net/http\"\n\n\tapi \"github.com/openmeterio/openmeter/api/v3\"\n\t\"github.com/openmeterio/openmeter/api/v3/apierrors\"\n\t\"github.com/openmeterio/openmeter/api/v3/request\"\n\t\"github.com/openmeterio/openmeter/openmeter/subscription\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n\tmodels \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype (\n\tPauseSubscriptionRequest struct {\n\t\tID     models.NamespacedID\n\t\tTiming subscription.Timing\n\t}\n\tPauseSubscriptionResponse = api.BillingSubscription\n\tPauseSubscriptionParams   = string\n\tPauseSubscriptionHandler  httptransport.HandlerWithArgs[PauseSubscriptionRequest, PauseSubscriptionResponse, PauseSubscriptionParams]\n)\n\nfunc (h *handler) PauseSubscription() PauseSubscriptionHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, subID PauseSubscriptionParams) (PauseSubscriptionRequest, error) {\n\t\t\tbody := api.BillingSubscriptionPause{}\n\t\t\tif err := request.ParseBody(r, &body); err != nil {\n\t\t\t\treturn PauseSubscriptionRequest{}, err\n\t\t\t}\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil {\n\t\t\t\treturn PauseSubscriptionRequest{}, err\n\t\t\t}\n\t\t\ttiming, err := FromAPIBillingSubscriptionEditTiming(body.Timing)\n\t\t\tif err != nil {\n\t\t\t\treturn PauseSubscriptionRequest{}, err\n\t\t\t}\n\t\t\treturn PauseSubscriptionRequest{\n\t\t\t\tID:     models.NamespacedID{Namespace: ns, ID: subID},\n\t\t\t\tTiming: timing,\n\t\t\t}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req PauseSubscriptionRequest) (PauseSubscriptionResponse, error) {\n\t\t\tsub, err := h.subscriptionService.Pause(ctx, req.ID, req.Timing)\n\t\t\tif err != nil {\n\t\t\t\treturn PauseSubscriptionResponse{}, err\n\t\t\t}\n\t\t\treturn ToAPIBillingSubscription(sub), nil\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[PauseSubscriptionResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(\n\t\t\th.options,\n\t\t\thttptransport.WithOperationName(\"pause-subscription\"),\n\t\t\thttptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n\t\t)...,\n\t)\n}"
+      }
+    ]
+  }
+}

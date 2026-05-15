@@ -1,0 +1,82 @@
+{
+  "api/v3/handlers/subscriptions/subscriptionaddons": {
+    "purpose": "v3 HTTP handler for listing subscription addons; implements the httptransport.HandlerWithArgs pipeline for the ListSubscriptionAddons endpoint, converting between domain subscriptionaddon.SubscriptionAddon and API apiv3.SubscriptionAddon types.",
+    "patterns": [
+      {
+        "name": "HandlerWithArgs decode/operate/encode pipeline",
+        "description": "Every endpoint uses httptransport.NewHandlerWithArgs with three functions: (1) decode params+request into a typed request struct, (2) call the domain service, (3) encode response. Never write raw http.Handler.",
+        "example": "httptransport.NewHandlerWithArgs(decodeFn, operateFn, commonhttp.JSONResponseEncoderWithStatus[T](http.StatusOK), opts...)"
+      },
+      {
+        "name": "Namespace resolution via injected closure",
+        "description": "Namespace is resolved by calling h.resolveNamespace(ctx) inside the decode function. Never hardcode or parse namespace from URL params directly.",
+        "example": "ns, err := h.resolveNamespace(ctx)"
+      },
+      {
+        "name": "Pagination via pagination.NewPage with validation",
+        "description": "Page input is always constructed via pagination.NewPage(number, size) with defaults (1, 20), then validated with page.Validate() before building the service input.",
+        "example": "page := pagination.NewPage(lo.FromPtrOr(params.Params.Page.Number, 1), lo.FromPtrOr(params.Params.Page.Size, 20))"
+      },
+      {
+        "name": "Error encoding via apierrors.GenericErrorEncoder",
+        "description": "All handlers append apierrors.GenericErrorEncoder() as the error encoder option. Never use commonhttp.GenericErrorEncoder() in v3 handlers.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))"
+      },
+      {
+        "name": "Sort parsing via request.ParseSortBy",
+        "description": "Sort query params are parsed with request.ParseSortBy, then mapped to domain OrderBy type and validated with OrderBy.Validate(). Bad sort fields return apierrors.NewBadRequestError.",
+        "example": "sort, err := request.ParseSortBy(*params.Params.Sort); input.OrderBy = subscriptionaddon.OrderBy(sort.Field)"
+      },
+      {
+        "name": "toAPI conversion in convert.go only",
+        "description": "All domain-to-API type conversion lives in convert.go as standalone functions (e.g. toAPISubscriptionAddon). The operate function calls these; it never embeds conversion logic inline.",
+        "example": "converted, err := toAPISubscriptionAddon(item)"
+      },
+      {
+        "name": "Handler interface + struct separation",
+        "description": "handler.go defines a Handler interface listing all endpoint methods (e.g. ListSubscriptionAddons()), a private handler struct holding dependencies, and a New() constructor. Each endpoint lives in its own file.",
+        "example": "type Handler interface { ListSubscriptionAddons() ListSubscriptionAddonsHandler }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines Handler interface, handler struct with injected deps (resolveNamespace, subscriptionAddonService, options), and New() constructor.",
+        "watch_for": "Adding new dependencies here requires wiring in api/v3/server/server.go. Keep handler struct fields minimal."
+      },
+      {
+        "file": "list.go",
+        "role": "Full implementation of ListSubscriptionAddons endpoint: typed params, request, response, and handler function.",
+        "watch_for": "Default pagination values (page 1, size 20) must be applied before Validate(). Sort fields must be validated via OrderBy.Validate() \u2014 unknown fields should return 400 not 500."
+      },
+      {
+        "file": "convert.go",
+        "role": "Domain-to-API type conversion. toAPISubscriptionAddon reads clock.Now() to determine the active instance and computes the union period across all instances.",
+        "watch_for": "Returns error if addon has no instances \u2014 callers must handle this. The union period calculation uses lo.Reduce; adding new fields here must stay in sync with apiv3.SubscriptionAddon struct."
+      }
+    ],
+    "anti_patterns": [
+      "Never call subscriptionAddonService methods directly from the decode function \u2014 decode must only parse/validate inputs.",
+      "Never use commonhttp.GenericErrorEncoder() in v3 handlers; always use apierrors.GenericErrorEncoder().",
+      "Never embed domain-to-API conversion logic inline in list.go \u2014 put it in convert.go.",
+      "Never skip page.Validate() before using the page value \u2014 invalid page params must return 400.",
+      "Never resolve namespace from URL path params directly \u2014 always call h.resolveNamespace(ctx)."
+    ],
+    "decisions": [
+      {
+        "decision": "toAPISubscriptionAddon reads clock.Now() and unions all instance periods to produce a single ActiveFrom/ActiveTo range",
+        "rationale": "The domain model stores multiple timed instances; the API surface exposes a single flattened addon view with a current quantity snapshot and a full effective date range."
+      },
+      {
+        "decision": "Sort validation uses subscriptionaddon.OrderBy.Validate() after field mapping",
+        "rationale": "Keeps supported sort fields authoritative in the domain package \u2014 the handler does not hardcode valid sort field names."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new list endpoint to this package",
+        "code": "// In handler.go \u2014 add to Handler interface:\nGetSubscriptionAddon() GetSubscriptionAddonHandler\n\n// New file get.go:\ntype GetSubscriptionAddonHandler = httptransport.HandlerWithArgs[GetRequest, apiv3.SubscriptionAddon, GetParams]\n\nfunc (h *handler) GetSubscriptionAddon() GetSubscriptionAddonHandler {\n    return httptransport.NewHandlerWithArgs(\n        func(ctx context.Context, r *http.Request, params GetParams) (GetRequest, error) {\n            ns, err := h.resolveNamespace(ctx)\n            if err != nil { return GetRequest{}, err }\n            return GetRequest{ID: models.NamespacedID{Namespace: ns, ID: params.AddonID}}, nil\n        },\n        func(ctx context.Context, req GetRequest) (apiv3.SubscriptionAddon, error) {\n            item, err := h.subscriptionAddonService.Get(ctx, req.ID)\n            if err != nil { return apiv3.SubscriptionAddon{}, err }\n            return toAPISubscriptionAddon(item)\n        },\n        commonhttp.JSONResponseEncoderWithStatus[apiv3.SubscriptionAddon](http.StatusOK),\n        httptransport.AppendOptions(h.options,\n            httptransport.WithOperationName(\"get-subscription-addon\"),\n            httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n        )...,\n    )\n}"
+      }
+    ]
+  }
+}

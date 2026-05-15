@@ -1,0 +1,56 @@
+{
+  "openmeter/credit/hook": {
+    "purpose": "Provides lifecycle hook implementations bridging the credit/grant domain into the entitlement service hook registry. Currently owns a single PreDelete hook that deletes all grants for a metered entitlement before the entitlement itself is removed.",
+    "patterns": [
+      {
+        "name": "Embed NoopHook for unimplemented lifecycle methods",
+        "description": "Every hook struct must embed models.NoopServiceHook[entitlement.Entitlement] so only the relevant lifecycle methods need overriding. This satisfies the full models.ServiceHook interface without boilerplate.",
+        "example": "type entitlementHook struct { NoopHook; grantRepo grant.Repo }"
+      },
+      {
+        "name": "Type-alias hook interfaces at package boundary",
+        "description": "Export typed aliases (EntitlementHook, NoopHook) that parameterise the generic models types with entitlement.Entitlement, keeping callers decoupled from the type parameter.",
+        "example": "type EntitlementHook = models.ServiceHook[entitlement.Entitlement]"
+      },
+      {
+        "name": "Nil-check then type-assert before acting",
+        "description": "Every hook method must nil-check the entity first, then type-assert to the specific sub-type via the domain helper. Unknown sub-types return nil (silent no-op), never an error.",
+        "example": "if ent == nil { return nil }; meteredEnt, err := meteredentitlement.ParseFromGenericEntitlement(ent); if err != nil { return nil }"
+      },
+      {
+        "name": "Constructor returns the interface, not the concrete struct",
+        "description": "NewEntitlementHook must return EntitlementHook (the interface alias), not *entitlementHook, so callers cannot depend on the concrete type.",
+        "example": "func NewEntitlementHook(grantRepo grant.Repo) EntitlementHook { return &entitlementHook{grantRepo: grantRepo} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entitlement_hook.go",
+        "role": "Sole file in the package. Defines EntitlementHook and NoopHook type aliases, the concrete entitlementHook struct, its constructor, and the PreDelete implementation. Wired into entitlement.Service via RegisterHooks in app/common.",
+        "watch_for": "Adding hook methods that call grantRepo without nil-checking the entity or without type-asserting to meteredentitlement first \u2014 this will panic or corrupt non-metered entitlement deletes."
+      }
+    ],
+    "anti_patterns": [
+      "Returning an error for an unrecognised entitlement sub-type \u2014 unknown sub-types must silently return nil",
+      "Adding business logic that reaches outside credit/grant (e.g. calling balance or engine packages) \u2014 this hook owns only grant cleanup",
+      "Implementing PostCreate/PostUpdate without embedding NoopHook \u2014 always embed to satisfy the full interface",
+      "Registering this hook against a non-entitlement service hook registry \u2014 it is parameterised on entitlement.Entitlement only"
+    ],
+    "decisions": [
+      {
+        "decision": "Embed models.NoopServiceHook instead of implementing the full interface",
+        "rationale": "The hook only needs PreDelete; embedding NoopHook provides all other methods as no-ops and prevents future interface additions from breaking the build."
+      },
+      {
+        "decision": "Type-assert via meteredentitlement.ParseFromGenericEntitlement rather than switching on an entitlement kind constant",
+        "rationale": "ParseFromGenericEntitlement encapsulates sub-type detection in the metered package, keeping the hook free of kind constants and resilient to new entitlement types."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new lifecycle method (e.g. PostCreate) that targets metered entitlements only",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/credit/grant\"\n\t\"github.com/openmeterio/openmeter/openmeter/entitlement\"\n\tmeteredentitlement \"github.com/openmeterio/openmeter/openmeter/entitlement/metered\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (h *entitlementHook) PostCreate(ctx context.Context, ent *entitlement.Entitlement) error {\n\tif ent == nil {\n\t\treturn nil\n\t}\n\tmeteredEnt, err := meteredentitlement.ParseFromGenericEntitlement(ent)\n\tif err != nil {\n\t\treturn nil // not a metered entitlement \u2014 silent no-op\n\t}\n\t_ = meteredEnt\n\t// domain logic here\n\treturn nil\n}"
+      }
+    ]
+  }
+}

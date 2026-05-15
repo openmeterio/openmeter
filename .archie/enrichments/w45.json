@@ -1,0 +1,96 @@
+{
+  "collector/quickstart/collector/resources": {
+    "purpose": "Declares shared Benthos cache resources (dedupe_cache, memory backend, 1h TTL) referenced by name from stream processors in the quickstart collector pipeline. This folder contains declarations only \u2014 no processors or business logic.",
+    "patterns": [
+      {
+        "name": "Named cache label convention",
+        "description": "Cache resources must use a label that exactly matches the string in dedupe processor `cache:` fields elsewhere in the pipeline. A label mismatch causes a runtime reference error when the stream starts.",
+        "example": "cache_resources:\n  - label: dedupe_cache\n    memory:\n      default_ttl: 1h"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "dedupe-cache.yaml",
+        "role": "Defines the in-memory deduplication cache shared by input.yaml's dedupe processor.",
+        "watch_for": "Renaming `dedupe_cache` breaks the `cache: dedupe_cache` reference in streams/input.yaml. Changing TTL affects deduplication window and memory footprint."
+      }
+    ],
+    "anti_patterns": [
+      "Adding processors or business logic inside a resource file \u2014 resources are declarations only.",
+      "Using a persistent cache backend (Redis, etc.) without updating collector deployment configuration.",
+      "Renaming `dedupe_cache` without updating all `cache:` references in stream processors."
+    ],
+    "decisions": [
+      {
+        "decision": "In-memory cache with 1h TTL for deduplication.",
+        "rationale": "Quickstart is a lightweight local demo; persistent cache would require additional infrastructure. 1h TTL matches expected event replay windows."
+      }
+    ],
+    "code_examples": []
+  },
+  "collector/quickstart/collector/streams": {
+    "purpose": "Defines the two-stream Benthos pipeline for the quickstart collector: input.yaml handles HTTP ingestion (Content-Type switching, deduplication, schema validation, sync HTTP responses); output.yaml reads from the shared inproc channel, buffers to SQLite for durability, and forwards to the OpenMeter API in batches.",
+    "patterns": [
+      {
+        "name": "Inproc channel coupling between streams",
+        "description": "input.yaml writes validated events to `inproc: openmeter`; output.yaml reads from `inproc: openmeter`. The label string must match exactly \u2014 mismatch silently drops all events.",
+        "example": "# input.yaml output section\n- inproc: openmeter\n# output.yaml input section\ninput:\n  inproc: openmeter"
+      },
+      {
+        "name": "Content-Type switch before dedup/validation",
+        "description": "A pipeline switch processor splits `application/cloudevents-batch+json` (unarchive json_array) from `application/cloudevents+json` (noop). Unknown Content-Types return HTTP 400 via sync_response and drop the message using `mapping: root = deleted()`.",
+        "example": "processors:\n  - switch:\n      - check: meta(\"Content-Type\").lowercase() == \"application/cloudevents-batch+json\"\n        processors:\n          - unarchive:\n              format: json_array"
+      },
+      {
+        "name": "Sync response for HTTP status propagation",
+        "description": "HTTP response status is set via `meta http_response_status` and surfaced through the fan_out output's `sync_response: {}` branch. The address block echoes the meta value, defaulting to 204.",
+        "example": "sync_response:\n  status: '${! meta(\"http_response_status\").or(\"204\") }'"
+      },
+      {
+        "name": "SQLite buffer for durable output",
+        "description": "output.yaml uses a SQLite buffer with a split post-processor to re-expand batched messages before forwarding to the openmeter output plugin. Removing `split: {}` sends unexpanded batch payloads.",
+        "example": "buffer:\n  sqlite:\n    path: /var/lib/collector/buffer.sqlite\n    post_processors:\n      - split: {}"
+      },
+      {
+        "name": "Environment variable configuration for output",
+        "description": "All deployment-specific values (OPENMETER_URL, OPENMETER_TOKEN, BATCH_SIZE, BATCH_PERIOD) are injected via environment variables with safe defaults. Never hardcode these values.",
+        "example": "output:\n  openmeter:\n    url: \"${OPENMETER_URL:https://openmeter.cloud}\"\n    token: \"${OPENMETER_TOKEN:}\"\n    batching:\n      count: ${BATCH_SIZE:1}\n      period: ${BATCH_PERIOD:30s}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "input.yaml",
+        "role": "HTTP server entry point: receives CloudEvents, enforces Content-Type, deduplicates via dedupe_cache, validates against CloudEvents JSON schema, and fans out to inproc channel + sync_response.",
+        "watch_for": "The dedupe processor references `dedupe_cache` by label \u2014 that label must exist in resources/dedupe-cache.yaml. The catch block after json_schema validation returns 400 and drops invalid events; removing catch leaves schema errors unhandled and events pass through."
+      },
+      {
+        "file": "output.yaml",
+        "role": "Reads from inproc channel, buffers to SQLite for durability, then batches and forwards to the openmeter output plugin.",
+        "watch_for": "The `split: {}` post-processor is required to re-expand messages packed by the SQLite buffer; removing it sends unexpanded batch payloads to OpenMeter."
+      }
+    ],
+    "anti_patterns": [
+      "Renaming `inproc: openmeter` in either file without updating the other \u2014 breaks the inter-stream channel silently.",
+      "Removing the fan_out sync_response branch \u2014 HTTP clients will never receive responses.",
+      "Bypassing the Content-Type switch and sending raw bytes directly to dedupe \u2014 dedup hash computed on non-normalized payloads produces incorrect deduplication.",
+      "Hardcoding OPENMETER_URL or OPENMETER_TOKEN instead of using environment variable interpolation.",
+      "Removing the SQLite buffer without an alternative durability mechanism \u2014 events lost on collector restart."
+    ],
+    "decisions": [
+      {
+        "decision": "Two-file stream split (input + output) connected by inproc channel.",
+        "rationale": "Separates HTTP ingestion concerns (validation, dedup, sync response) from forwarding concerns (buffering, batching, auth), making each independently configurable."
+      },
+      {
+        "decision": "xxhash64 content hash as dedupe key.",
+        "rationale": "Fast non-cryptographic hash over full message content provides exact-once deduplication for retried CloudEvent payloads without requiring a unique event ID field in the payload."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Full input pipeline: Content-Type switch \u2192 dedupe \u2192 schema validation \u2192 catch \u2192 fan_out with sync_response and inproc",
+        "code": "# input.yaml\npipeline:\n  processors:\n    - switch:\n        - check: meta(\"Content-Type\").lowercase() == \"application/cloudevents-batch+json\"\n          processors:\n            - unarchive:\n                format: json_array\n        - check: meta(\"Content-Type\").lowercase() == \"application/cloudevents+json\"\n          processors:\n            - noop: {}\n        - check: \"\"\n          processors:\n            - mapping: |\n                meta http_response_status = \"400\"\n                root = {\"type\": \"about:blank\", \"status\": 400}\n            - sync_response: {}\n            - mapping: \"root = deleted()\"\n    - dedupe:\n        cache: \"dedupe_cache\"\n        key: '${! content().hash(\"xxhash64\") }'\n        drop_on_err: false\n    - json_schema:\n        schema_path: \"file://./cloudevents.spec.json\"\n    - catch:\n        - mapping: |\n            meta http_response_status = \"400\"\n            root = {\"type\": \"about:blank\", \"status\": 400, \"detail\": \"%s\".format(error())}\n        - sync_response: {}\n        - mapping: \"root = deleted()\"\noutput:\n  broker:\n    pattern: fan_out\n    outputs:\n      - sync_response: {}\n        processors:\n          - mapping: root = null\n      - inproc: openmeter"
+      }
+    ]
+  }
+}

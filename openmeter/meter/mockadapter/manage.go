@@ -2,7 +2,6 @@ package adapter
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -11,12 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// RegisterPreUpdateMeterHook registers a pre-update meter hook.
-func (a manageAdapter) RegisterPreUpdateMeterHook(hook meterpkg.PreUpdateMeterHook) error {
-	return models.NewGenericNotImplementedError(
-		fmt.Errorf("pre-update meter hook is not implemented in mock adapter"),
-	)
-}
+// RegisterHooks registers lifecycle hooks (noop in mock adapter).
+func (a manageAdapter) RegisterHooks(_ ...models.ServiceHook[meterpkg.Meter]) {}
 
 // CreateMeter creates a new meter.
 func (a manageAdapter) CreateMeter(ctx context.Context, input meterpkg.CreateMeterInput) (meterpkg.Meter, error) {

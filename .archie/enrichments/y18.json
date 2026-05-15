@@ -1,0 +1,372 @@
+{
+  "openmeter/meterevent": {
+    "purpose": "Public API surface for listing metered usage events from ClickHouse; owns the Service interface, Event domain type, ListEventsParams/ListEventsV2Params with hard constraints (32-day lookback, 100-event limit), and cursor-based pagination. The adapter/ and httphandler/ sub-packages implement and expose the service without touching Postgres/Ent.",
+    "patterns": [
+      {
+        "name": "Params.Validate() before delegation",
+        "description": "Both ListEventsParams and ListEventsV2Params expose Validate() using errors.Join for multi-error aggregation. Callers (adapter, httphandler) must invoke Validate() before delegating to streaming.Connector \u2014 limits and filter constraints are enforced here, not at the adapter.",
+        "example": "if err := params.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "SortBy-aware Cursor emission",
+        "description": "Event.Cursor() switches on the SortBy field (Time/IngestedAt/StoredAt) to pick the correct timestamp for pagination. StoreRowID is always the tiebreak. New sort fields require a matching case in Cursor() and a matching SortBy.Validate() entry.",
+        "example": "case streaming.EventSortFieldIngestedAt: return pagination.NewCursor(e.IngestedAt, e.StoreRowID)"
+      },
+      {
+        "name": "ValidationErrors as per-event field, not top-level error",
+        "description": "Individual event validation failures are attached to Event.ValidationErrors []error. The service method still returns a result slice \u2014 callers inspect per-event errors without a blanket failure.",
+        "example": "event.ValidationErrors = append(event.ValidationErrors, validationErr)"
+      },
+      {
+        "name": "CustomerID filter: only $in supported",
+        "description": "ListEventsV2Params.Validate() explicitly rejects CustomerID filters that are non-empty but do not use .In. This constraint is enforced in Validate(), not in the adapter or httphandler.",
+        "example": "if !p.CustomerID.IsEmpty() && p.CustomerID.In == nil { errs = append(errs, errors.New(\"customer id filter supports only in\")) }"
+      },
+      {
+        "name": "NextCursor emitted only on full page",
+        "description": "The adapter must omit NextCursor when the result page is smaller than effectiveLimit \u2014 emitting a cursor on a partial page causes callers to make a redundant empty-result request.",
+        "example": "if len(events) == effectiveLimit { result.NextCursor = &lastCursor }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines Service interface, Event domain type (including Cursor() and SortBy field), ListEventsParams, ListEventsV2Params, MaximumFromDuration (32d), MaximumLimit (100). Source of truth for all validation logic.",
+        "watch_for": "Adding a new filter field requires a ValidateWithComplexity clause in Validate(); adding a sort field requires both a SortBy constant and a Cursor() case. Omitting either lets invalid input reach ClickHouse."
+      },
+      {
+        "file": "adapter/adapter.go",
+        "role": "Single service implementation \u2014 delegates to streaming.Connector, enriches results with customer IDs (with per-call cache), attaches ValidationErrors per event.",
+        "watch_for": "Must not import openmeter/ent/db. Must not emit NextCursor when result page is smaller than effective limit. Subject\u2192customerID cache is per-call, not process-wide."
+      },
+      {
+        "file": "httphandler/mapping.go",
+        "role": "All API\u2194domain type conversions for both v1 and v2 handlers. Centralises field mappings.",
+        "watch_for": "Inlining conversions in event.go or event_v2.go violates the mapping.go convention and makes future API changes harder to audit."
+      },
+      {
+        "file": "httphandler/handler.go",
+        "role": "Defines the composite Handler interface embedding per-endpoint sub-interfaces; wires sub-handlers for server registration.",
+        "watch_for": "New endpoints need a new sub-interface added here AND registered in openmeter/server/router."
+      }
+    ],
+    "anti_patterns": [
+      "Importing openmeter/ent/db in the adapter \u2014 this is a streaming-only (ClickHouse) package with no Postgres access",
+      "Returning a top-level error for individual event validation failures instead of attaching to Event.ValidationErrors",
+      "Emitting NextCursor when the result page is smaller than effectiveLimit",
+      "Skipping params.Validate() before delegating to streaming.Connector \u2014 hard limits bypass",
+      "Inlining API\u2194domain type conversions in event.go or event_v2.go instead of mapping.go"
+    ],
+    "decisions": [
+      {
+        "decision": "ValidationErrors are per-event fields, not top-level errors",
+        "rationale": "Allows partial results with inline error annotations rather than failing the entire listing for one invalid event \u2014 consumers can decide how to handle individual bad events."
+      },
+      {
+        "decision": "Hard time-window and count limits (32 days, 100 events) enforced in Validate(), not in adapter or handler",
+        "rationale": "Centralising limits in the domain params type makes them enforceable regardless of which caller invokes the service, and enables unit tests without standing up adapters."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new sort field \u2014 requires changes in three places",
+        "code": "// 1. Add constant to streaming package: EventSortFieldMyField\n// 2. In service.go Event.Cursor():\ncase streaming.EventSortFieldMyField:\n    return pagination.NewCursor(e.MyFieldTime, e.StoreRowID)\n// 3. streaming.EventSortField.Validate() must accept the new value\n// ListEventsV2Params.Validate() calls p.SortBy.Validate() automatically"
+      }
+    ]
+  },
+  "openmeter/meterexport": {
+    "purpose": "Streaming export of pre-aggregated synthetic meter events from ClickHouse; converts SUM/COUNT meter rows into RawEvents suitable for re-ingestion. The root package owns the Service interface, DataExportConfig, DataExportParams, and TargetMeterDescriptor; the service/ sub-package holds the dual-channel streaming implementation.",
+    "patterns": [
+      {
+        "name": "Config/Params Validate() before delegation",
+        "description": "DataExportConfig and DataExportParams both expose Validate() using errors.Join. The service/ sub-package calls Validate() at the start of every public method before touching ClickHouse.",
+        "example": "if err := params.Validate(); err != nil { return err }"
+      },
+      {
+        "name": "Dual-channel streaming result",
+        "description": "ExportSyntheticMeterData writes events to result chan<- streaming.RawEvent and errors to err chan<- error. Channel ownership is exclusive to the producing goroutine \u2014 channels are created by the caller and closed via defer in the producer. Never close channels outside the producing goroutine.",
+        "example": "func (s *svc) ExportSyntheticMeterData(ctx context.Context, params DataExportParams, result chan<- streaming.RawEvent, err chan<- error) error"
+      },
+      {
+        "name": "iter.Seq2 wrapper as preferred caller API",
+        "description": "ExportSyntheticMeterDataIter wraps the dual-channel method in iter.Seq2[streaming.RawEvent, error] \u2014 handles channel management and context cancellation internally. Early break from the range loop cancels the producer context.",
+        "example": "for event, err := range seq { if err != nil { handle(err) }; process(event) }"
+      },
+      {
+        "name": "Custom JSON marshal/unmarshal for time.Location",
+        "description": "DataExportConfig implements MarshalJSON/UnmarshalJSON to serialise ExportWindowTimeZone as an IANA name string. Nil timezone marshals to empty string and unmarshals back to nil.",
+        "example": "func (c DataExportConfig) MarshalJSON() ([]byte, error) { tzName := \"\"; if c.ExportWindowTimeZone != nil { tzName = c.ExportWindowTimeZone.String() }; ... }"
+      },
+      {
+        "name": "Aggregation whitelist in validateAndGetMeter",
+        "description": "Only SUM and COUNT aggregations are supported. validateAndGetMeter in service/syntheticdata.go rejects all other aggregation types before any export query is issued. Adding a new aggregation to createEventFromMeterRow requires a matching whitelist entry in validateAndGetMeter.",
+        "example": "switch meter.Aggregation { case meter.MeterAggregationSum, meter.MeterAggregationCount: // ok; default: return error }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines Service interface (GetTargetMeterDescriptor, ExportSyntheticMeterData, ExportSyntheticMeterDataIter), DataExportConfig, DataExportParams, TargetMeterDescriptor, and their Validate()/JSON methods.",
+        "watch_for": "Adding a new aggregation type here requires whitelisting it in service/syntheticdata.go validateAndGetMeter switch AND createEventFromMeterRow \u2014 missing either causes runtime rejection after successful validation."
+      },
+      {
+        "file": "service/funnel.go",
+        "role": "Windowed pagination loop that drives the ClickHouse query and feeds the result channel.",
+        "watch_for": "Never close resultCh or errCh outside funnel \u2014 channel ownership is exclusive to this function via defer close. Double-close panics."
+      },
+      {
+        "file": "service/syntheticdata_iter.go",
+        "role": "iter.Seq2 wrapper \u2014 the idiomatic range-based API for callers.",
+        "watch_for": "Early break from the range loop must cancel the producer context to stop the funnel goroutine; otherwise goroutine leaks on partial iteration."
+      },
+      {
+        "file": "service/syntheticdata.go",
+        "role": "validateAndGetMeter rejects unsupported aggregation types; createEventFromMeterRow constructs RawEvents from ClickHouse rows.",
+        "watch_for": "Aggregation whitelist must be kept in sync with createEventFromMeterRow \u2014 whitelist validates, createEvent converts; divergence causes silent data loss."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a new aggregation type to createEventFromMeterRow without whitelisting it in validateAndGetMeter",
+      "Closing resultCh or errCh outside the producing funnel goroutine \u2014 causes double-close panic",
+      "Calling ExportSyntheticMeterData synchronously without draining both channels concurrently \u2014 deadlocks when buffered channels fill",
+      "Adding Ent/DB dependencies to this package \u2014 depends only on streaming.Connector and meter.Service interfaces",
+      "Skipping sync.Once guard for context-cancellation errors in errCh \u2014 causes duplicate ctx.Err() entries callers cannot distinguish"
+    ],
+    "decisions": [
+      {
+        "decision": "Dual-channel streaming rather than returning a slice",
+        "rationale": "Export can span many ClickHouse window pages; buffering all results in memory before returning would OOM for large time ranges. Channels allow backpressure and early cancellation."
+      },
+      {
+        "decision": "Only SUM and COUNT aggregations supported",
+        "rationale": "Pre-aggregated synthetic events are only reversible for additive (SUM) and countable (COUNT) functions. MAX and UNIQUE_COUNT lose information when windowed and cannot be safely reconstructed."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Consuming exports via the iter.Seq2 API with early-exit safety",
+        "code": "seq, err := svc.ExportSyntheticMeterDataIter(ctx, params)\nif err != nil {\n    return fmt.Errorf(\"start export: %w\", err)\n}\nfor event, iterErr := range seq {\n    if iterErr != nil {\n        // non-fatal: log and continue, or cancel ctx to abort\n        log.Warn(\"export error\", \"err\", iterErr)\n        continue\n    }\n    if err := ingest(ctx, event); err != nil {\n        return err // early break cancels producer goroutine automatically\n    }\n}"
+      }
+    ]
+  },
+  "openmeter/namespace": {
+    "purpose": "Multi-tenancy infrastructure: Manager fans out CreateNamespace/DeleteNamespace to all registered Handler implementations (ClickHouse streaming, Kafka ingest, Ledger). Handlers are registered dynamically before startup completes; the namespacedriver sub-package provides the NamespaceDecoder abstraction for HTTP-layer namespace resolution.",
+    "patterns": [
+      {
+        "name": "Handler registration before CreateDefaultNamespace",
+        "description": "All Handler implementations must be registered via RegisterHandler before CreateDefaultNamespace is called. Handlers registered after this call miss default-namespace provisioning for ClickHouse tables, Kafka topics, and Ledger accounts.",
+        "example": "manager.RegisterHandler(streamingConnector); manager.RegisterHandler(kafkaCollector); manager.CreateDefaultNamespace(ctx)"
+      },
+      {
+        "name": "Fan-out with errors.Join (no short-circuit)",
+        "description": "createNamespace and deleteNamespace iterate all handlers and accumulate errors with errors.Join. A failure in one handler does not prevent others from being called \u2014 no rollback on partial failure.",
+        "example": "for _, handler := range m.config.Handlers { if err := handler.CreateNamespace(ctx, name); err != nil { errs = append(errs, err) } }; return errors.Join(errs...)"
+      },
+      {
+        "name": "Default namespace protected from deletion",
+        "description": "DeleteNamespace rejects deletion of the default namespace by comparing name against m.config.DefaultNamespace before any handler call.",
+        "example": "if name == m.config.DefaultNamespace { return errors.New(\"cannot delete default namespace\") }"
+      },
+      {
+        "name": "StaticNamespaceDecoder as a named string type",
+        "description": "namespacedriver.StaticNamespaceDecoder is a named string type \u2014 cast a string literal to use it, no struct initialisation required. Used in self-hosted single-tenant deployments.",
+        "example": "var decoder namespacedriver.NamespaceDecoder = namespacedriver.StaticNamespaceDecoder(\"default\")"
+      },
+      {
+        "name": "RWMutex-guarded handler slice for dynamic registration",
+        "description": "RegisterHandler acquires a write lock; createNamespace/deleteNamespace acquire a read lock. Allows registration to race safely with in-flight namespace operations during startup.",
+        "example": "m.mu.Lock(); defer m.mu.Unlock(); m.config.Handlers = append(m.config.Handlers, handler)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "namespace.go",
+        "role": "Full Manager implementation: RWMutex-guarded handler slice, RegisterHandler, CreateNamespace, DeleteNamespace, CreateDefaultNamespace, GetDefaultNamespace, IsManagementDisabled.",
+        "watch_for": "No rollback on partial handler failure \u2014 a TODO comment documents this. Do not assume atomicity across handlers. Passing nil as a Handler returns an error; callers must check."
+      },
+      {
+        "file": "namespacedriver/decoder.go",
+        "role": "NamespaceDecoder interface (GetNamespace(r *http.Request) (string, bool)) and StaticNamespaceDecoder named string type. Must stay dependency-free \u2014 no domain imports.",
+        "watch_for": "GetNamespace returning (true, \"\") silently scopes queries to an empty namespace. Returning (false, \"\") signals the caller to reject the request."
+      }
+    ],
+    "anti_patterns": [
+      "Registering a Handler after CreateDefaultNamespace is called \u2014 it will miss default namespace provisioning",
+      "Returning (true, \"\") from NamespaceDecoder.GetNamespace \u2014 callers treat empty namespace as valid and misscope queries",
+      "Importing domain packages (billing, customer, entitlement) in namespacedriver \u2014 must stay infrastructure-only",
+      "Assuming createNamespace is atomic \u2014 failures in one handler do not roll back others",
+      "Adding multi-tenant dynamic namespace resolution to StaticNamespaceDecoder \u2014 dynamic lookup belongs in a separate decoder implementation"
+    ],
+    "decisions": [
+      {
+        "decision": "Manager holds a RWMutex-guarded handler slice rather than a fixed set",
+        "rationale": "Handlers are registered dynamically at startup (after Manager construction) to support optional subsystems like Ledger that depend on the credits.enabled config flag; a fixed constructor-time set would force all handlers to be wired unconditionally."
+      },
+      {
+        "decision": "StaticNamespaceDecoder is a named string type, not a struct",
+        "rationale": "Self-hosted single-tenant deployments always route to one namespace; a plain named string avoids initialisation ceremony while satisfying the NamespaceDecoder interface."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Registering a new handler that must receive default namespace provisioning",
+        "code": "// In cmd/server/main.go \u2014 before initNamespace()\nif err := app.NamespaceManager.RegisterHandler(myNewHandler); err != nil {\n    return fmt.Errorf(\"register handler: %w\", err)\n}\n// CreateDefaultNamespace fans out to all registered handlers including myNewHandler\nif err := app.NamespaceManager.CreateDefaultNamespace(ctx); err != nil {\n    return fmt.Errorf(\"create default namespace: %w\", err)\n}"
+      }
+    ]
+  },
+  "openmeter/portal": {
+    "purpose": "Issues and validates short-lived HS256 JWT portal tokens scoped to namespace, subject, and an optional meter slug allowlist; ListTokens and InvalidateToken are intentionally unimplemented stubs. The root package owns the Service interface and all input/output types with Validate() methods; adapter/ and authenticator/ and httphandler/ sub-packages provide the JWT implementation, Chi middleware, and HTTP handlers.",
+    "patterns": [
+      {
+        "name": "Input Validate() before service call",
+        "description": "CreateTokenInput, ListTokensInput, and InvalidateTokenInput each expose Validate() with errors.Join. Adapters and httphandlers must call Validate() before delegating to portal.Service.",
+        "example": "if err := input.Validate(); err != nil { return nil, models.NewGenericValidationError(err) }"
+      },
+      {
+        "name": "Token field set only in CreateToken response path",
+        "description": "PortalToken.Token is *string and nil in all read paths. The JWT string is assigned only after token creation \u2014 never inside toAPIPortalToken mapping, which is shared by list/read paths.",
+        "example": "token, err := adapter.CreateToken(ctx, input); // then: token.Token = &jwtString"
+      },
+      {
+        "name": "ListTokens/InvalidateToken return GenericNotImplementedError",
+        "description": "These methods are intentionally unimplemented on the JWT adapter (stateless by design). A separate noop.go provides a full stub for test wiring that also returns NotImplementedError.",
+        "example": "func (a *Adapter) ListTokens(...) (pagination.Result[*PortalToken], error) { return pagination.Result[*PortalToken]{}, models.NewGenericNotImplementedError(\"list portal tokens\") }"
+      },
+      {
+        "name": "Meter slug allowlist validation in httphandler, not portal.Service",
+        "description": "CreateToken httphandler validates AllowedMeterSlugs against meter.Service before calling portal.Service.CreateToken. portal.Service has no dependency on meter.Service \u2014 cross-domain validation lives at the transport boundary.",
+        "example": "// In httphandler/portal.go operation func: for _, slug := range slugs { _, err := meterSvc.GetMeterByIDOrSlug(ctx, ns, slug) }"
+      },
+      {
+        "name": "AllowedMeterSlugs nil vs empty semantics",
+        "description": "AllowedMeterSlugs *[]string: nil means all meter slugs allowed; non-nil empty slice means no slugs allowed. Callers and the authenticator must distinguish these two cases.",
+        "example": "if input.AllowedMeterSlugs != nil { for _, slug := range *input.AllowedMeterSlugs { if slug == \"\" { errs = append(errs, ...) } } }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines Service (composed of PortalTokenService), PortalToken, PortalTokenClaims, CreateTokenInput, ListTokensInput, InvalidateTokenInput, and all Validate() methods.",
+        "watch_for": "AllowedMeterSlugs is *[]string \u2014 nil means unrestricted; non-nil empty means fully restricted. Callers must not conflate the two cases."
+      },
+      {
+        "file": "adapter/adapter.go",
+        "role": "JWT-backed stateless adapter. Config.SharedSecret must be non-empty. Strict JWT parse options (WithExpirationRequired, WithStrictDecoding, WithValidMethods, WithIssuer) must not be relaxed.",
+        "watch_for": "Never store token state in DB here \u2014 stateless by design. A DB-backed impl would be a separate adapter type."
+      },
+      {
+        "file": "authenticator/authenticator.go",
+        "role": "Chi middleware dispatching per OpenAPI security scheme; injects validated PortalTokenClaims subject into context via typed context key.",
+        "watch_for": "Auth failures must always be 401 via models.NewStatusProblem \u2014 never 200 or 500. AllowedMeterSlugs check must happen even when meterSlug param is absent from route."
+      },
+      {
+        "file": "httphandler/mapping.go",
+        "role": "API\u2194domain type conversions. toAPIPortalToken must not set the Token field \u2014 that is set only in the CreateToken operation.",
+        "watch_for": "Inlining conversions in portal.go breaks the mapping.go convention. Token field leaking into non-create responses exposes JWT strings incorrectly."
+      }
+    ],
+    "anti_patterns": [
+      "Relaxing JWT validation options (removing WithExpirationRequired, WithStrictDecoding, WithValidMethods) in the adapter",
+      "Setting PortalToken.Token inside toAPIPortalToken \u2014 must only be assigned in the CreateToken response path",
+      "Adding DB persistence to the JWT adapter \u2014 stateless by design; a DB-backed impl is a separate adapter",
+      "Skipping AllowedMeterSlugs validation in httphandler when meterSlug param is absent from route",
+      "Returning 500 for auth failures in the authenticator middleware \u2014 must always be 401"
+    ],
+    "decisions": [
+      {
+        "decision": "Stateless JWT tokens with no DB persistence for ListTokens/InvalidateToken",
+        "rationale": "Portal tokens are short-lived and scoped; avoiding a DB table removes a write-path dependency and keeps token issuance fast. ListTokens/InvalidateToken are explicitly unimplemented until a DB-backed adapter is needed."
+      },
+      {
+        "decision": "Meter slug allowlist validation in httphandler, not portal.Service",
+        "rationale": "portal.Service has no import dependency on meter.Service \u2014 cross-domain meter existence validation is a transport-boundary concern, preserving the clean domain separation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "CreateToken handler \u2014 meter slug validation before portal.Service call",
+        "code": "// In httphandler/portal.go operation func:\nif input.AllowedMeterSlugs != nil {\n    for _, slug := range *input.AllowedMeterSlugs {\n        if _, err := h.meterSvc.GetMeterByIDOrSlug(ctx, ns, slug); err != nil {\n            return nil, models.NewGenericValidationError(fmt.Errorf(\"meter slug %q not found\", slug))\n        }\n    }\n}\ntoken, err := h.portalSvc.CreateToken(ctx, input)\nif err != nil {\n    return nil, err\n}\n// Token field is set here \u2014 NOT inside toAPIPortalToken\napiToken := toAPIPortalToken(token)\napiToken.Token = token.Token"
+      }
+    ]
+  },
+  "openmeter/progressmanager": {
+    "purpose": "Tracks progress of long-running async operations (e.g. ClickHouse export jobs) via a Redis-backed key-value store with TTL. Root package defines Service and Adapter interfaces; entity/ sub-package owns pure domain types; adapter/ sub-package provides Redis, noop, and mock implementations; httpdriver/ exposes a single GetProgress HTTP endpoint.",
+    "patterns": [
+      {
+        "name": "Validate() on every input and entity type",
+        "description": "GetProgressInput, UpsertProgressInput, and Progress all implement Validate() using errors.Join to collect all validation errors. The adapter calls Validate() before any Redis operation.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "Namespaced Redis key format",
+        "description": "Redis keys include namespace and operation ID (e.g. progress:<namespace>:<id>) to prevent multi-tenant key collisions. Key format is defined in adapter/progress.go getKey() \u2014 do not change without a migration plan.",
+        "example": "func getKey(input entity.GetProgressInput) string { return fmt.Sprintf(\"progress:%s:%s\", input.Namespace, input.ID) }"
+      },
+      {
+        "name": "redis.Nil mapped to GenericNotFoundError",
+        "description": "When Redis returns redis.Nil (key not found), the adapter maps it to models.GenericNotFoundError \u2014 enabling correct HTTP 404 mapping via GenericErrorEncoder.",
+        "example": "if errors.Is(err, redis.Nil) { return nil, models.NewGenericNotFoundError(\"progress\", input.ID) }"
+      },
+      {
+        "name": "Noop UpsertProgress is a safe silent no-op",
+        "description": "adapterNoop.UpsertProgress always returns nil. Callers rely on this for test/disabled-feature wiring \u2014 the noop must never return an error from UpsertProgress.",
+        "example": "func (a *adapterNoop) UpsertProgress(_ context.Context, _ entity.UpsertProgressInput) error { return nil }"
+      },
+      {
+        "name": "Service and Adapter interfaces mirror each other",
+        "description": "Service embeds ProgressManagerService; Adapter embeds ProgressManagerAdapter \u2014 both have identical method signatures. Service is the outward-facing interface; Adapter is the storage contract. Keep them in sync.",
+        "example": "type Service interface { ProgressManagerService }; type Adapter interface { ProgressManagerAdapter }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines the outward-facing Service interface (GetProgress, UpsertProgress). Must stay identical to Adapter method signatures.",
+        "watch_for": "Adding a method to Service without adding it to Adapter (and vice versa) breaks the compile-time interface chain."
+      },
+      {
+        "file": "adapter.go",
+        "role": "Defines the Adapter interface (storage contract). Deliberately mirrors Service \u2014 do not diverge.",
+        "watch_for": "If Service and Adapter signatures diverge, the Wire provider that injects Adapter as Service will fail to compile."
+      },
+      {
+        "file": "entity/progressmanager.go",
+        "role": "All domain value types (ProgressID, Progress, GetProgressInput, UpsertProgressInput) and their Validate() methods. Pure types only \u2014 no Redis or Ent imports.",
+        "watch_for": "Adding persistence logic or external imports here breaks entity/adapter separation and creates import cycles."
+      },
+      {
+        "file": "adapter/adapter.go",
+        "role": "Redis implementation, adapterNoop, and MockProgressManager (testify mock for Service). Key format, TTL, and redis.Nil mapping live here.",
+        "watch_for": "Changing getKey() format orphans all in-flight progress records. Making adapterNoop.UpsertProgress return an error breaks callers that rely on noop writes being safe."
+      },
+      {
+        "file": "httpdriver/progress.go",
+        "role": "Single GetProgress HTTP endpoint using httptransport.NewHandlerWithArgs; namespace resolved via namespacedriver.NamespaceDecoder.",
+        "watch_for": "Do not call the domain service from the decoder function \u2014 decode maps request fields only; the operation func calls the service."
+      }
+    ],
+    "anti_patterns": [
+      "Storing progress keys without namespace prefix \u2014 breaks multi-tenant isolation",
+      "Returning raw redis errors instead of models.GenericNotFoundError for redis.Nil \u2014 breaks HTTP 404 mapping",
+      "Changing the Redis key format in getKey() without a migration plan \u2014 orphans all in-flight progress records",
+      "Adding persistence, Redis, or HTTP logic to entity/ types \u2014 must be pure domain types only",
+      "Making adapterNoop.UpsertProgress return an error \u2014 callers rely on noop writes being safe no-ops"
+    ],
+    "decisions": [
+      {
+        "decision": "Redis (not PostgreSQL/Ent) as the backing store",
+        "rationale": "Progress records are ephemeral, TTL-scoped, and high-write; a Redis hash with TTL avoids Postgres table bloat and eliminates the need for a periodic cleanup job."
+      },
+      {
+        "decision": "Entity types in a separate entity/ sub-package",
+        "rationale": "Keeps the root package as a thin interface definition layer; entity types can be imported by adapter/ without creating a circular import with the root package."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Upsert then get progress \u2014 standard lifecycle showing validation and error mapping",
+        "code": "// Upsert\nupsertInput := entity.UpsertProgressInput{\n    Namespace: ns,\n    ID:        opID,\n    Progress:  entity.Progress{Total: 100, Completed: 50, UpdatedAt: time.Now()},\n}\nif err := upsertInput.Validate(); err != nil {\n    return fmt.Errorf(\"invalid upsert input: %w\", err)\n}\nif err := svc.UpsertProgress(ctx, upsertInput); err != nil {\n    return err\n}\n\n// Get\ngetInput := entity.GetProgressInput{Namespace: ns, ID: opID}\nif err := getInput.Validate(); err != nil {\n    return fmt.Errorf(\"invalid get input: %w\", err)\n}\nprogress, err := svc.GetProgress(ctx, getInput)\nif err != nil {\n    // models.GenericNotFoundError if key expired or never set\n    return err\n}"
+      }
+    ]
+  }
+}

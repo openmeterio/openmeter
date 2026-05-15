@@ -1,0 +1,2025 @@
+{
+  "pattern_divergences": [
+    {
+      "type": "pattern_divergence",
+      "folder": "collector/quickstart/collector",
+      "message": "Siblings under collector/quickstart/ mostly use [bearer token auth on http output, cloudevents 1.0 envelope, environment-variable-driven configuration, switch output for optional stdout logging] but this folder does not",
+      "expected": [
+        "bearer token auth on http output",
+        "cloudevents 1.0 envelope",
+        "environment-variable-driven configuration",
+        "otel tracer as opt-in comment stub",
+        "prometheus metrics always enabled",
+        "separation of concerns across config layers",
+        "switch output for optional stdout logging"
+      ],
+      "actual": [
+        "otel tracer as opt-in comment stub",
+        "prometheus metrics always enabled",
+        "separation of concerns across config layers"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "collector/quickstart/seeder",
+      "message": "Siblings under collector/quickstart/ mostly use [otel tracer as opt-in comment stub, prometheus metrics always enabled, separation of concerns across config layers] but this folder does not",
+      "expected": [
+        "bearer token auth on http output",
+        "cloudevents 1.0 envelope",
+        "environment-variable-driven configuration",
+        "otel tracer as opt-in comment stub",
+        "prometheus metrics always enabled",
+        "separation of concerns across config layers",
+        "switch output for optional stdout logging"
+      ],
+      "actual": [
+        "bearer token auth on http output",
+        "cloudevents 1.0 envelope",
+        "environment-variable-driven configuration",
+        "switch output for optional stdout logging"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "deploy/charts/benthos-collector",
+      "message": "Siblings under deploy/charts/ mostly use [checksum/config annotation on every workload pod template, component names via openmeter.componentname helper, config via single configmap volume mounted at /etc/openmeter, cronjobs use forbid concurrency and never restart policy, labels via componentlabels / componentselectorlabels, optional infrastructure wrapped in enabled guards, single shared image tag across all openmeter binaries] but this folder does not",
+      "expected": [
+        "all names via helpers",
+        "args routed through benthos-collector.args helper",
+        "checksum/config annotation on every workload pod template",
+        "component names via openmeter.componentname helper",
+        "config checksum annotation triggers pod rollout",
+        "config stored in secret",
+        "config via single configmap volume mounted at /etc/openmeter",
+        "cronjobs use forbid concurrency and never restart policy",
+        "downward-api env vars injected unconditionally",
+        "labels via componentlabels / componentselectorlabels",
+        "optional infrastructure wrapped in enabled guards",
+        "rbac gated on rbac.create",
+        "single shared image tag across all openmeter binaries",
+        "statefulset not deployment"
+      ],
+      "actual": [
+        "all names via helpers",
+        "args routed through benthos-collector.args helper",
+        "config checksum annotation triggers pod rollout",
+        "config stored in secret",
+        "downward-api env vars injected unconditionally",
+        "rbac gated on rbac.create",
+        "statefulset not deployment"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "deploy/charts/openmeter",
+      "message": "Siblings under deploy/charts/ mostly use [all names via helpers, args routed through benthos-collector.args helper, config checksum annotation triggers pod rollout, config stored in secret, downward-api env vars injected unconditionally, rbac gated on rbac.create, statefulset not deployment] but this folder does not",
+      "expected": [
+        "all names via helpers",
+        "args routed through benthos-collector.args helper",
+        "checksum/config annotation on every workload pod template",
+        "component names via openmeter.componentname helper",
+        "config checksum annotation triggers pod rollout",
+        "config stored in secret",
+        "config via single configmap volume mounted at /etc/openmeter",
+        "cronjobs use forbid concurrency and never restart policy",
+        "downward-api env vars injected unconditionally",
+        "labels via componentlabels / componentselectorlabels",
+        "optional infrastructure wrapped in enabled guards",
+        "rbac gated on rbac.create",
+        "single shared image tag across all openmeter binaries",
+        "statefulset not deployment"
+      ],
+      "actual": [
+        "checksum/config annotation on every workload pod template",
+        "component names via openmeter.componentname helper",
+        "config via single configmap volume mounted at /etc/openmeter",
+        "cronjobs use forbid concurrency and never restart policy",
+        "labels via componentlabels / componentselectorlabels",
+        "optional infrastructure wrapped in enabled guards",
+        "single shared image tag across all openmeter binaries"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "etc/seed",
+      "message": "Siblings under etc/ mostly use [contract binding to generated spec, docker internal host redirect] but this folder does not",
+      "expected": [
+        "cloudevents 1.0 envelope",
+        "contract binding to generated spec",
+        "docker internal host redirect",
+        "dual-output switch: http primary + optional stdout log",
+        "environment-variable parameterisation with defaults",
+        "infinite generation with count: 0",
+        "subject pool via modulo randomisation with timestamp seed"
+      ],
+      "actual": [
+        "cloudevents 1.0 envelope",
+        "dual-output switch: http primary + optional stdout log",
+        "environment-variable parameterisation with defaults",
+        "infinite generation with count: 0",
+        "subject pool via modulo randomisation with timestamp seed"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "etc/wiretap",
+      "message": "Siblings under etc/ mostly use [cloudevents 1.0 envelope, dual-output switch: http primary + optional stdout log, environment-variable parameterisation with defaults, infinite generation with count: 0, subject pool via modulo randomisation with timestamp seed] but this folder does not",
+      "expected": [
+        "cloudevents 1.0 envelope",
+        "contract binding to generated spec",
+        "docker internal host redirect",
+        "dual-output switch: http primary + optional stdout log",
+        "environment-variable parameterisation with defaults",
+        "infinite generation with count: 0",
+        "subject pool via modulo randomisation with timestamp seed"
+      ],
+      "actual": [
+        "contract binding to generated spec",
+        "docker internal host redirect"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/flatfee/service",
+      "message": "Siblings under openmeter/billing/charges/flatfee/ mostly use [config struct + validate() + new() constructor, expand flags gate edge loading, input validate() before any db access, mapper functions isolated in mapper.go, soft-delete via deletedat field, not hard delete, transactingrepo wrapping on every write method, tx / withtx / self triad for transaction propagation] but this folder does not",
+      "expected": [
+        "config struct + validate() + new() constructor",
+        "config+validate before construction",
+        "currency rounding before any amount comparison or allocation",
+        "expand flags gate edge loading",
+        "input validate() before any db access",
+        "input.validate() before any adapter call",
+        "lineengine as a thin wrapper over service",
+        "mapper functions isolated in mapper.go",
+        "settlement-mode dispatch via newstatemachine",
+        "soft-delete via deletedat field, not hard delete",
+        "transactingrepo wrapping on every write method",
+        "transaction.run wraps all multi-step adapter calls",
+        "tx / withtx / self triad for transaction propagation",
+        "withlockedcharge for mutation triggers"
+      ],
+      "actual": [
+        "config+validate before construction",
+        "currency rounding before any amount comparison or allocation",
+        "input.validate() before any adapter call",
+        "lineengine as a thin wrapper over service",
+        "settlement-mode dispatch via newstatemachine",
+        "transaction.run wraps all multi-step adapter calls",
+        "withlockedcharge for mutation triggers"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/flatfee/adapter",
+      "message": "Siblings under openmeter/billing/charges/flatfee/ mostly use [config+validate before construction, currency rounding before any amount comparison or allocation, input.validate() before any adapter call, lineengine as a thin wrapper over service, settlement-mode dispatch via newstatemachine, transaction.run wraps all multi-step adapter calls, withlockedcharge for mutation triggers] but this folder does not",
+      "expected": [
+        "config struct + validate() + new() constructor",
+        "config+validate before construction",
+        "currency rounding before any amount comparison or allocation",
+        "expand flags gate edge loading",
+        "input validate() before any db access",
+        "input.validate() before any adapter call",
+        "lineengine as a thin wrapper over service",
+        "mapper functions isolated in mapper.go",
+        "settlement-mode dispatch via newstatemachine",
+        "soft-delete via deletedat field, not hard delete",
+        "transactingrepo wrapping on every write method",
+        "transaction.run wraps all multi-step adapter calls",
+        "tx / withtx / self triad for transaction propagation",
+        "withlockedcharge for mutation triggers"
+      ],
+      "actual": [
+        "config struct + validate() + new() constructor",
+        "expand flags gate edge loading",
+        "input validate() before any db access",
+        "mapper functions isolated in mapper.go",
+        "soft-delete via deletedat field, not hard delete",
+        "transactingrepo wrapping on every write method",
+        "tx / withtx / self triad for transaction propagation"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/usagebased/service",
+      "message": "Siblings under openmeter/billing/charges/usagebased/ mostly use [config struct + validate() + new() constructor, input validation before entering transactingrepo, interface compliance assertions at compile time, mapper functions in mapper.go, not inline in methods, soft-delete via deletedat + namespace filter on all queries, transactingrepo wrapping on every write method, withtx + self() for entutils transaction rebinding] but this folder does not",
+      "expected": [
+        "config struct + validate() + new() constructor",
+        "config-struct constructor with validate()",
+        "ensuredetailedlinesloadedforrating before rating calls",
+        "fireandactivate + advanceuntilstatestable pattern",
+        "ignoreminimumcommitment on partial runs",
+        "input validation before entering transactingrepo",
+        "interface compliance assertions at compile time",
+        "lineengine registered via getlineengine()",
+        "mapper functions in mapper.go, not inline in methods",
+        "settlement-mode dispatch in newstatemachine",
+        "soft-delete via deletedat + namespace filter on all queries",
+        "transactingrepo wrapping on every write method",
+        "withlockedcharge wraps every mutating operation",
+        "withtx + self() for entutils transaction rebinding"
+      ],
+      "actual": [
+        "config-struct constructor with validate()",
+        "ensuredetailedlinesloadedforrating before rating calls",
+        "fireandactivate + advanceuntilstatestable pattern",
+        "ignoreminimumcommitment on partial runs",
+        "lineengine registered via getlineengine()",
+        "settlement-mode dispatch in newstatemachine",
+        "withlockedcharge wraps every mutating operation"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/usagebased/adapter",
+      "message": "Siblings under openmeter/billing/charges/usagebased/ mostly use [config-struct constructor with validate(), ensuredetailedlinesloadedforrating before rating calls, fireandactivate + advanceuntilstatestable pattern, ignoreminimumcommitment on partial runs, lineengine registered via getlineengine(), settlement-mode dispatch in newstatemachine, withlockedcharge wraps every mutating operation] but this folder does not",
+      "expected": [
+        "config struct + validate() + new() constructor",
+        "config-struct constructor with validate()",
+        "ensuredetailedlinesloadedforrating before rating calls",
+        "fireandactivate + advanceuntilstatestable pattern",
+        "ignoreminimumcommitment on partial runs",
+        "input validation before entering transactingrepo",
+        "interface compliance assertions at compile time",
+        "lineengine registered via getlineengine()",
+        "mapper functions in mapper.go, not inline in methods",
+        "settlement-mode dispatch in newstatemachine",
+        "soft-delete via deletedat + namespace filter on all queries",
+        "transactingrepo wrapping on every write method",
+        "withlockedcharge wraps every mutating operation",
+        "withtx + self() for entutils transaction rebinding"
+      ],
+      "actual": [
+        "config struct + validate() + new() constructor",
+        "input validation before entering transactingrepo",
+        "interface compliance assertions at compile time",
+        "mapper functions in mapper.go, not inline in methods",
+        "soft-delete via deletedat + namespace filter on all queries",
+        "transactingrepo wrapping on every write method",
+        "withtx + self() for entutils transaction rebinding"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/client/python/openmeter/aio",
+      "message": "Siblings under api/client/python/openmeter/ mostly use [__all__ propagation, call patch_sdk() at module load, optional _patch overlay, type_checking guard for patch stubs] but this folder does not",
+      "expected": [
+        "__all__ propagation",
+        "call patch_sdk() at module load",
+        "optional _patch overlay",
+        "type_checking guard for patch stubs"
+      ],
+      "actual": [
+        "__all__ extension pattern",
+        "_patch_sdk() call at module end",
+        "client subclasses openmeterclient",
+        "graceful _patch importerror guard",
+        "thin shim over _generated",
+        "type_checking-only patch import"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/client/python/openmeter/_generated",
+      "message": "Siblings under api/client/python/openmeter/ mostly use [__all__ propagation, call patch_sdk() at module load, optional _patch overlay, type_checking guard for patch stubs] but this folder does not",
+      "expected": [
+        "__all__ propagation",
+        "call patch_sdk() at module load",
+        "optional _patch overlay",
+        "type_checking guard for patch stubs"
+      ],
+      "actual": [
+        "_patch.py customization escape hatch",
+        "context manager protocol on client",
+        "operations-as-attributes pattern",
+        "send_request url formatting",
+        "single shared pipelineclient with injected policy chain"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/client/python/openmeter/_generated/aio",
+      "message": "Siblings under api/client/python/openmeter/_generated/ mostly use [_patch.py escape hatch] but this folder does not",
+      "expected": [
+        "_patch.py escape hatch"
+      ],
+      "actual": [
+        "_patch.py customization hook",
+        "async context manager protocol",
+        "asyncpipelineclient injection",
+        "policy chain construction",
+        "send_request url formatting"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/client/python/openmeter/_generated/_utils",
+      "message": "Siblings under api/client/python/openmeter/_generated/ mostly use [_patch.py escape hatch] but this folder does not",
+      "expected": [
+        "_patch.py escape hatch"
+      ],
+      "actual": [
+        "format-dispatch deserialization",
+        "sdkjsonencoder for serialization",
+        "two-layer model hierarchy"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/watermill/driver/kafka",
+      "message": "Siblings under openmeter/watermill/driver/ mostly use [compile-time interface assertion, zero-value struct usage] but this folder does not",
+      "expected": [
+        "brokeroptions as shared config root",
+        "compile-time interface assertion",
+        "otel tracing via kafka.newotelsaramatracer()",
+        "partition-key routing via marshalerwithpartitionkey",
+        "role suffix on clientid",
+        "saramametricrenamer drops per-broker/topic cardinality",
+        "topic provisioning before publisher creation",
+        "zero-value struct usage"
+      ],
+      "actual": [
+        "brokeroptions as shared config root",
+        "otel tracing via kafka.newotelsaramatracer()",
+        "partition-key routing via marshalerwithpartitionkey",
+        "role suffix on clientid",
+        "saramametricrenamer drops per-broker/topic cardinality",
+        "topic provisioning before publisher creation"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/watermill/driver/noop",
+      "message": "Siblings under openmeter/watermill/driver/ mostly use [brokeroptions as shared config root, otel tracing via kafka.newotelsaramatracer(), partition-key routing via marshalerwithpartitionkey, role suffix on clientid, saramametricrenamer drops per-broker/topic cardinality, topic provisioning before publisher creation] but this folder does not",
+      "expected": [
+        "brokeroptions as shared config root",
+        "compile-time interface assertion",
+        "otel tracing via kafka.newotelsaramatracer()",
+        "partition-key routing via marshalerwithpartitionkey",
+        "role suffix on clientid",
+        "saramametricrenamer drops per-broker/topic cardinality",
+        "topic provisioning before publisher creation",
+        "zero-value struct usage"
+      ],
+      "actual": [
+        "compile-time interface assertion",
+        "zero-value struct usage"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "pkg/kafka/metrics/internal",
+      "message": "Siblings under pkg/kafka/metrics/ mostly use [partitions as map[string]partition not slice, string enum type with unmarshaljson + int64(), struct fields tagged with librdkafka json keys, test via embedded testdata json, windowstats reused for all rolling-window histogram data] but this folder does not",
+      "expected": [
+        "add method delegates to sub-metric structs",
+        "extended flag gates sub-metric construction",
+        "metric naming: kafka.<domain>.<stat>",
+        "metric struct per stats domain",
+        "newxxxmetrics factory with sequential error returns",
+        "nil guard on stats pointer",
+        "partition loop skips internal partitions",
+        "partitions as map[string]partition not slice",
+        "string enum type with unmarshaljson + int64()",
+        "struct fields tagged with librdkafka json keys",
+        "test via embedded testdata json",
+        "windowstats reused for all rolling-window histogram data"
+      ],
+      "actual": [
+        "add method delegates to sub-metric structs",
+        "extended flag gates sub-metric construction",
+        "metric naming: kafka.<domain>.<stat>",
+        "metric struct per stats domain",
+        "newxxxmetrics factory with sequential error returns",
+        "nil guard on stats pointer",
+        "partition loop skips internal partitions"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "pkg/kafka/metrics/stats",
+      "message": "Siblings under pkg/kafka/metrics/ mostly use [add method delegates to sub-metric structs, extended flag gates sub-metric construction, metric naming: kafka.<domain>.<stat>, metric struct per stats domain, newxxxmetrics factory with sequential error returns, nil guard on stats pointer, partition loop skips internal partitions] but this folder does not",
+      "expected": [
+        "add method delegates to sub-metric structs",
+        "extended flag gates sub-metric construction",
+        "metric naming: kafka.<domain>.<stat>",
+        "metric struct per stats domain",
+        "newxxxmetrics factory with sequential error returns",
+        "nil guard on stats pointer",
+        "partition loop skips internal partitions",
+        "partitions as map[string]partition not slice",
+        "string enum type with unmarshaljson + int64()",
+        "struct fields tagged with librdkafka json keys",
+        "test via embedded testdata json",
+        "windowstats reused for all rolling-window histogram data"
+      ],
+      "actual": [
+        "partitions as map[string]partition not slice",
+        "string enum type with unmarshaljson + int64()",
+        "struct fields tagged with librdkafka json keys",
+        "test via embedded testdata json",
+        "windowstats reused for all rolling-window histogram data"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "test/app/custominvoicing",
+      "message": "Siblings under test/app/ mostly use [embed billingtest.basesuite for invoice tests, fixture for shared setup sequences, mocksecretservice with passthrough mode, stripeclientmock / stripeappclientmock with restore(), testenv interface for app_test.go, unique namespace per test via setupnamespace(t)] but this folder does not",
+      "expected": [
+        "drive state machine via service layer, not adapter",
+        "embed billingtest.basesuite",
+        "embed billingtest.basesuite for invoice tests",
+        "fixture for shared setup sequences",
+        "mocksecretservice with passthrough mode",
+        "mockstreamingconnector for usage data",
+        "setupdefaultbillingprofile helper",
+        "stripeclientmock / stripeappclientmock with restore()",
+        "suite.run for sub-scenarios",
+        "testenv interface for app_test.go",
+        "unique namespace per test function",
+        "unique namespace per test via setupnamespace(t)"
+      ],
+      "actual": [
+        "drive state machine via service layer, not adapter",
+        "embed billingtest.basesuite",
+        "mockstreamingconnector for usage data",
+        "setupdefaultbillingprofile helper",
+        "suite.run for sub-scenarios",
+        "unique namespace per test function"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "test/app/stripe",
+      "message": "Siblings under test/app/ mostly use [drive state machine via service layer, not adapter, embed billingtest.basesuite, mockstreamingconnector for usage data, setupdefaultbillingprofile helper, suite.run for sub-scenarios, unique namespace per test function] but this folder does not",
+      "expected": [
+        "drive state machine via service layer, not adapter",
+        "embed billingtest.basesuite",
+        "embed billingtest.basesuite for invoice tests",
+        "fixture for shared setup sequences",
+        "mocksecretservice with passthrough mode",
+        "mockstreamingconnector for usage data",
+        "setupdefaultbillingprofile helper",
+        "stripeclientmock / stripeappclientmock with restore()",
+        "suite.run for sub-scenarios",
+        "testenv interface for app_test.go",
+        "unique namespace per test function",
+        "unique namespace per test via setupnamespace(t)"
+      ],
+      "actual": [
+        "embed billingtest.basesuite for invoice tests",
+        "fixture for shared setup sequences",
+        "mocksecretservice with passthrough mode",
+        "stripeclientmock / stripeappclientmock with restore()",
+        "testenv interface for app_test.go",
+        "unique namespace per test via setupnamespace(t)"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "tools/migrate/viewgen",
+      "message": "Siblings under tools/migrate/ mostly use [exitf helper for error reporting, stdlib flag, not cobra/viper, thin entrypoint delegation] but this folder does not",
+      "expected": [
+        "alphabetic sort before render",
+        "double json round-trip for entsql annotation",
+        "exitf helper for error reporting",
+        "generated-file header",
+        "public entry-points: generatesql vs generatefile",
+        "schema-driven view collection",
+        "stdlib flag, not cobra/viper",
+        "thin entrypoint delegation"
+      ],
+      "actual": [
+        "alphabetic sort before render",
+        "double json round-trip for entsql annotation",
+        "generated-file header",
+        "public entry-points: generatesql vs generatefile",
+        "schema-driven view collection"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "tools/migrate/cmd",
+      "message": "Siblings under tools/migrate/ mostly use [alphabetic sort before render, double json round-trip for entsql annotation, generated-file header, public entry-points: generatesql vs generatefile, schema-driven view collection] but this folder does not",
+      "expected": [
+        "alphabetic sort before render",
+        "double json round-trip for entsql annotation",
+        "exitf helper for error reporting",
+        "generated-file header",
+        "public entry-points: generatesql vs generatefile",
+        "schema-driven view collection",
+        "stdlib flag, not cobra/viper",
+        "thin entrypoint delegation"
+      ],
+      "actual": [
+        "exitf helper for error reporting",
+        "stdlib flag, not cobra/viper",
+        "thin entrypoint delegation"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/spec/packages/legacy/lib",
+      "message": "Siblings under api/spec/packages/legacy/ mostly use [@encode(datetimeknownencoding.rfc3339) on datetime scalar, @friendlyname on all model/union/enum/interface declarations, @visibility lifecycle decorators on every model field, filter models with @extension(\"x-omitempty\", true) on every operator field, main.tsp as the sole compilation entry point, shared primitive types centralised in types.tsp, spread (...) for model composition instead of inheritance] but this folder does not",
+      "expected": [
+        "@encode(datetimeknownencoding.rfc3339) on datetime scalar",
+        "@friendlyname on all model/union/enum/interface declarations",
+        "@visibility lifecycle decorators on every model field",
+        "casing helpers centralised in utils.js",
+        "context.reportdiagnostic with ast node as target",
+        "createrule factory with parammessage",
+        "filter models with @extension(\"x-omitempty\", true) on every operator field",
+        "friendlyname rule is error-severity (blocking)",
+        "main.tsp as the sole compilation entry point",
+        "model property doc exemptions",
+        "rule registration via definelinter",
+        "shared primitive types centralised in types.tsp",
+        "spread (...) for model composition instead of inheritance"
+      ],
+      "actual": [
+        "casing helpers centralised in utils.js",
+        "context.reportdiagnostic with ast node as target",
+        "createrule factory with parammessage",
+        "friendlyname rule is error-severity (blocking)",
+        "model property doc exemptions",
+        "rule registration via definelinter"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/spec/packages/legacy/src",
+      "message": "Siblings under api/spec/packages/legacy/ mostly use [casing helpers centralised in utils.js, context.reportdiagnostic with ast node as target, createrule factory with parammessage, friendlyname rule is error-severity (blocking), model property doc exemptions, rule registration via definelinter] but this folder does not",
+      "expected": [
+        "@encode(datetimeknownencoding.rfc3339) on datetime scalar",
+        "@friendlyname on all model/union/enum/interface declarations",
+        "@visibility lifecycle decorators on every model field",
+        "casing helpers centralised in utils.js",
+        "context.reportdiagnostic with ast node as target",
+        "createrule factory with parammessage",
+        "filter models with @extension(\"x-omitempty\", true) on every operator field",
+        "friendlyname rule is error-severity (blocking)",
+        "main.tsp as the sole compilation entry point",
+        "model property doc exemptions",
+        "rule registration via definelinter",
+        "shared primitive types centralised in types.tsp",
+        "spread (...) for model composition instead of inheritance"
+      ],
+      "actual": [
+        "@encode(datetimeknownencoding.rfc3339) on datetime scalar",
+        "@friendlyname on all model/union/enum/interface declarations",
+        "@visibility lifecycle decorators on every model field",
+        "filter models with @extension(\"x-omitempty\", true) on every operator field",
+        "main.tsp as the sole compilation entry point",
+        "shared primitive types centralised in types.tsp",
+        "spread (...) for model composition instead of inheritance"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/meterevent/adapter",
+      "message": "Siblings under openmeter/meterevent/ mostly use [handlerwithargs triple: decoder / operation / encoder, interface composition for handler, mapping functions in mapping.go, not inline, namespace resolved via namespacedecoder in decoder fn, operationname option appended to handler options, type alias block per endpoint, validation errors wrapped with models.newgenericvalidationerror in decoder] but this folder does not",
+      "expected": [
+        "cursor emission only on full page",
+        "early-empty-return on customer resolution",
+        "handlerwithargs triple: decoder / operation / encoder",
+        "interface compliance assertion",
+        "interface composition for handler",
+        "mapping functions in mapping.go, not inline",
+        "namespace resolved via namespacedecoder in decoder fn",
+        "operationname option appended to handler options",
+        "post-process pipeline",
+        "subject\u2192customerid cache",
+        "type alias block per endpoint",
+        "validate-before-delegate",
+        "validation errors wrapped with models.newgenericvalidationerror in decoder",
+        "validationerrors attached to event, not returned as error"
+      ],
+      "actual": [
+        "cursor emission only on full page",
+        "early-empty-return on customer resolution",
+        "interface compliance assertion",
+        "post-process pipeline",
+        "subject\u2192customerid cache",
+        "validate-before-delegate",
+        "validationerrors attached to event, not returned as error"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/meterevent/httphandler",
+      "message": "Siblings under openmeter/meterevent/ mostly use [cursor emission only on full page, early-empty-return on customer resolution, interface compliance assertion, post-process pipeline, subject\u2192customerid cache, validate-before-delegate, validationerrors attached to event, not returned as error] but this folder does not",
+      "expected": [
+        "cursor emission only on full page",
+        "early-empty-return on customer resolution",
+        "handlerwithargs triple: decoder / operation / encoder",
+        "interface compliance assertion",
+        "interface composition for handler",
+        "mapping functions in mapping.go, not inline",
+        "namespace resolved via namespacedecoder in decoder fn",
+        "operationname option appended to handler options",
+        "post-process pipeline",
+        "subject\u2192customerid cache",
+        "type alias block per endpoint",
+        "validate-before-delegate",
+        "validation errors wrapped with models.newgenericvalidationerror in decoder",
+        "validationerrors attached to event, not returned as error"
+      ],
+      "actual": [
+        "handlerwithargs triple: decoder / operation / encoder",
+        "interface composition for handler",
+        "mapping functions in mapping.go, not inline",
+        "namespace resolved via namespacedecoder in decoder fn",
+        "operationname option appended to handler options",
+        "type alias block per endpoint",
+        "validation errors wrapped with models.newgenericvalidationerror in decoder"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/spec/patches",
+      "message": "Siblings under api/spec/ mostly use [custom linter rules must be registered in lib/index.js, make gen-api is the only regeneration path, route/tag binding at root namespace files only, two-package split: aip vs legacy] but this folder does not",
+      "expected": [
+        "compiled artifact targeting",
+        "custom linter rules must be registered in lib/index.js",
+        "make gen-api is the only regeneration path",
+        "minimal scope",
+        "patch-package format",
+        "route/tag binding at root namespace files only",
+        "two-package split: aip vs legacy"
+      ],
+      "actual": [
+        "compiled artifact targeting",
+        "minimal scope",
+        "patch-package format"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/spec/packages",
+      "message": "Siblings under api/spec/ mostly use [compiled artifact targeting, minimal scope, patch-package format] but this folder does not",
+      "expected": [
+        "compiled artifact targeting",
+        "custom linter rules must be registered in lib/index.js",
+        "make gen-api is the only regeneration path",
+        "minimal scope",
+        "patch-package format",
+        "route/tag binding at root namespace files only",
+        "two-package split: aip vs legacy"
+      ],
+      "actual": [
+        "custom linter rules must be registered in lib/index.js",
+        "make gen-api is the only regeneration path",
+        "route/tag binding at root namespace files only",
+        "two-package split: aip vs legacy"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/sink/models",
+      "message": "Siblings under openmeter/sink/ mostly use [buffered async channel with two-phase shutdown, flusheventhandlers as the fan-out multiplexer, newflusheventhandler constructor with mandatory validation, otel metrics per handler name, trace context propagation through drain] but this folder does not",
+      "expected": [
+        "buffered async channel with two-phase shutdown",
+        "flusheventhandlers as the fan-out multiplexer",
+        "getdedupeitem bridges dedupe package",
+        "newflusheventhandler constructor with mandatory validation",
+        "otel metrics per handler name",
+        "processingstate as iota enum with string()",
+        "sinkmessage as pipeline carrier",
+        "trace context propagation through drain"
+      ],
+      "actual": [
+        "getdedupeitem bridges dedupe package",
+        "processingstate as iota enum with string()",
+        "sinkmessage as pipeline carrier"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/sink/flushhandler",
+      "message": "Siblings under openmeter/sink/ mostly use [getdedupeitem bridges dedupe package, processingstate as iota enum with string(), sinkmessage as pipeline carrier] but this folder does not",
+      "expected": [
+        "buffered async channel with two-phase shutdown",
+        "flusheventhandlers as the fan-out multiplexer",
+        "getdedupeitem bridges dedupe package",
+        "newflusheventhandler constructor with mandatory validation",
+        "otel metrics per handler name",
+        "processingstate as iota enum with string()",
+        "sinkmessage as pipeline carrier",
+        "trace context propagation through drain"
+      ],
+      "actual": [
+        "buffered async channel with two-phase shutdown",
+        "flusheventhandlers as the fan-out multiplexer",
+        "newflusheventhandler constructor with mandatory validation",
+        "otel metrics per handler name",
+        "trace context propagation through drain"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/subscription/validators/customer",
+      "message": "Siblings under openmeter/subscription/validators/ mostly use [config struct with validate(), exclude current subscription by id before re-inserting updated spec, feature-flag-gated logic, noopsubscriptioncommandhook embedding, pagination.collectall for unbounded list queries, pipeline composition through small component methods] but this folder does not",
+      "expected": [
+        "config struct with validate()",
+        "constructor nil-guard",
+        "delegate input validation to input type",
+        "exclude current subscription by id before re-inserting updated spec",
+        "feature-flag-gated logic",
+        "interface assertion at package level",
+        "nooprequestvalidator embedding",
+        "noopsubscriptioncommandhook embedding",
+        "pagination.collectall for unbounded list queries",
+        "pipeline composition through small component methods",
+        "use clock.now() for time-sensitive queries"
+      ],
+      "actual": [
+        "constructor nil-guard",
+        "delegate input validation to input type",
+        "interface assertion at package level",
+        "nooprequestvalidator embedding",
+        "use clock.now() for time-sensitive queries"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/subscription/validators/subscription",
+      "message": "Siblings under openmeter/subscription/validators/ mostly use [constructor nil-guard, delegate input validation to input type, interface assertion at package level, nooprequestvalidator embedding, use clock.now() for time-sensitive queries] but this folder does not",
+      "expected": [
+        "config struct with validate()",
+        "constructor nil-guard",
+        "delegate input validation to input type",
+        "exclude current subscription by id before re-inserting updated spec",
+        "feature-flag-gated logic",
+        "interface assertion at package level",
+        "nooprequestvalidator embedding",
+        "noopsubscriptioncommandhook embedding",
+        "pagination.collectall for unbounded list queries",
+        "pipeline composition through small component methods",
+        "use clock.now() for time-sensitive queries"
+      ],
+      "actual": [
+        "config struct with validate()",
+        "exclude current subscription by id before re-inserting updated spec",
+        "feature-flag-gated logic",
+        "noopsubscriptioncommandhook embedding",
+        "pagination.collectall for unbounded list queries",
+        "pipeline composition through small component methods"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/spec/packages/aip/src/customers/charges",
+      "message": "Siblings under api/spec/packages/aip/src/customers/ mostly use [@friendlyname(\"billing<name>\") on every exported model/enum, @visibility(lifecycle.read, lifecycle.create) \u2014 no update visibility, cursor pagination for transactions, page pagination for grants, nested anonymous object literals for compound fields, separate interfaces per resource in operations.tsp, shared.resource spread for mutable resources, shared.resourceimmutable for transactions] but this folder does not",
+      "expected": [
+        "@friendlyname on every model and enum",
+        "@friendlyname(\"billing<name>\") on every exported model/enum",
+        "@visibility(lifecycle.read) for all response-only fields",
+        "@visibility(lifecycle.read, lifecycle.create) \u2014 no update visibility",
+        "cursor pagination for transactions, page pagination for grants",
+        "deepobject explode for filter query params",
+        "discriminated union via @discriminated",
+        "generic chargebase spread",
+        "nested anonymous object literals for compound fields",
+        "operations file owns @get interface, imports http decorators",
+        "separate interfaces per resource in operations.tsp",
+        "shared.resource spread for mutable resources, shared.resourceimmutable for transactions"
+      ],
+      "actual": [
+        "@friendlyname on every model and enum",
+        "@visibility(lifecycle.read) for all response-only fields",
+        "deepobject explode for filter query params",
+        "discriminated union via @discriminated",
+        "generic chargebase spread",
+        "operations file owns @get interface, imports http decorators"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/spec/packages/aip/src/customers/credits",
+      "message": "Siblings under api/spec/packages/aip/src/customers/ mostly use [@friendlyname on every model and enum, @visibility(lifecycle.read) for all response-only fields, deepobject explode for filter query params, discriminated union via @discriminated, generic chargebase spread, operations file owns @get interface, imports http decorators] but this folder does not",
+      "expected": [
+        "@friendlyname on every model and enum",
+        "@friendlyname(\"billing<name>\") on every exported model/enum",
+        "@visibility(lifecycle.read) for all response-only fields",
+        "@visibility(lifecycle.read, lifecycle.create) \u2014 no update visibility",
+        "cursor pagination for transactions, page pagination for grants",
+        "deepobject explode for filter query params",
+        "discriminated union via @discriminated",
+        "generic chargebase spread",
+        "nested anonymous object literals for compound fields",
+        "operations file owns @get interface, imports http decorators",
+        "separate interfaces per resource in operations.tsp",
+        "shared.resource spread for mutable resources, shared.resourceimmutable for transactions"
+      ],
+      "actual": [
+        "@friendlyname(\"billing<name>\") on every exported model/enum",
+        "@visibility(lifecycle.read, lifecycle.create) \u2014 no update visibility",
+        "cursor pagination for transactions, page pagination for grants",
+        "nested anonymous object literals for compound fields",
+        "separate interfaces per resource in operations.tsp",
+        "shared.resource spread for mutable resources, shared.resourceimmutable for transactions"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "app/common",
+      "message": "Siblings under app/ mostly use [one config struct per concern file, setviperdefaults as the single registration point, sub-config helper methods for derived values, validate() returns errors.join] but this folder does not",
+      "expected": [
+        "closer function pattern for stateful resources",
+        "config.go wire.fieldsof for sub-struct injection",
+        "credits.enabled guard at provider level",
+        "hook and validator registration inside wiring",
+        "noop providers for optional features",
+        "one config struct per concern file",
+        "one domain file per wire set",
+        "registry structs for multi-service domains",
+        "setviperdefaults as the single registration point",
+        "sub-config helper methods for derived values",
+        "validate() returns errors.join"
+      ],
+      "actual": [
+        "closer function pattern for stateful resources",
+        "config.go wire.fieldsof for sub-struct injection",
+        "credits.enabled guard at provider level",
+        "hook and validator registration inside wiring",
+        "noop providers for optional features",
+        "one domain file per wire set",
+        "registry structs for multi-service domains"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "app/config",
+      "message": "Siblings under app/ mostly use [closer function pattern for stateful resources, config.go wire.fieldsof for sub-struct injection, credits.enabled guard at provider level, hook and validator registration inside wiring, noop providers for optional features, one domain file per wire set, registry structs for multi-service domains] but this folder does not",
+      "expected": [
+        "closer function pattern for stateful resources",
+        "config.go wire.fieldsof for sub-struct injection",
+        "credits.enabled guard at provider level",
+        "hook and validator registration inside wiring",
+        "noop providers for optional features",
+        "one config struct per concern file",
+        "one domain file per wire set",
+        "registry structs for multi-service domains",
+        "setviperdefaults as the single registration point",
+        "sub-config helper methods for derived values",
+        "validate() returns errors.join"
+      ],
+      "actual": [
+        "one config struct per concern file",
+        "setviperdefaults as the single registration point",
+        "sub-config helper methods for derived values",
+        "validate() returns errors.join"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "cmd/jobs/billing/collect",
+      "message": "Siblings under cmd/jobs/billing/ mostly use [internal.app singleton access] but this folder does not",
+      "expected": [
+        "cmd.context() for context propagation",
+        "internal.app singleton access",
+        "sub-command factory functions"
+      ],
+      "actual": [
+        "cmd.context() for context propagation",
+        "stringslicevar for multi-value filters",
+        "structured input types from domain packages",
+        "sub-command factory functions",
+        "time.now() as default asof/collectionat"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "cmd/jobs/billing/subscriptionsync",
+      "message": "Siblings under cmd/jobs/billing/ mostly use [internal.app singleton access, sub-command factory functions] but this folder does not",
+      "expected": [
+        "cmd.context() for context propagation",
+        "internal.app singleton access",
+        "sub-command factory functions"
+      ],
+      "actual": [
+        "cmd.context() for context propagation",
+        "default lookback constant",
+        "force flag for idempotent re-runs",
+        "shared filter flags across sub-commands via package-level vars",
+        "typed reconciler input structs"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "cmd/jobs/ledger/backfillaccounts",
+      "message": "Siblings under cmd/jobs/ledger/ mostly use [config struct with validate + constructor, dryrun increments wouldprovision counters only, idempotent provisioning via get-then-create, interface-driven dependencies, paginationv2.max_safe_iter guard on cursor loop, recordfailure increments failurecount and logs, runinput.normalized() for defaults] but this folder does not",
+      "expected": [
+        "bypass di for concrete ledger stack",
+        "config struct with validate + constructor",
+        "dryrun increments wouldprovision counters only",
+        "flags in init(), logic in rune",
+        "idempotent provisioning via get-then-create",
+        "interface-driven dependencies",
+        "paginationv2.max_safe_iter guard on cursor loop",
+        "print summary before returning error",
+        "recordfailure increments failurecount and logs",
+        "rfc3339 time parsing for flag values",
+        "runinput.normalized() for defaults"
+      ],
+      "actual": [
+        "bypass di for concrete ledger stack",
+        "flags in init(), logic in rune",
+        "print summary before returning error",
+        "rfc3339 time parsing for flag values"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "cmd/jobs/ledger/service",
+      "message": "Siblings under cmd/jobs/ledger/ mostly use [bypass di for concrete ledger stack, flags in init(), logic in rune, print summary before returning error, rfc3339 time parsing for flag values] but this folder does not",
+      "expected": [
+        "bypass di for concrete ledger stack",
+        "config struct with validate + constructor",
+        "dryrun increments wouldprovision counters only",
+        "flags in init(), logic in rune",
+        "idempotent provisioning via get-then-create",
+        "interface-driven dependencies",
+        "paginationv2.max_safe_iter guard on cursor loop",
+        "print summary before returning error",
+        "recordfailure increments failurecount and logs",
+        "rfc3339 time parsing for flag values",
+        "runinput.normalized() for defaults"
+      ],
+      "actual": [
+        "config struct with validate + constructor",
+        "dryrun increments wouldprovision counters only",
+        "idempotent provisioning via get-then-create",
+        "interface-driven dependencies",
+        "paginationv2.max_safe_iter guard on cursor loop",
+        "recordfailure increments failurecount and logs",
+        "runinput.normalized() for defaults"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "collector/benthos/presets/http-server",
+      "message": "Siblings under collector/benthos/presets/ mostly use [bloblang mapping to cloudevents structure, data.openmeter.io/ annotation passthrough, per-second rate metrics, resource_quantity bloblang function, schedule + kubernetes_resources input, switch output with debug stdout branch] but this folder does not",
+      "expected": [
+        "bloblang mapping to cloudevents structure",
+        "catch-log-delete for validation failures",
+        "counter metrics at input and output",
+        "data.openmeter.io/ annotation passthrough",
+        "drop_on 400 at output",
+        "per-second rate metrics",
+        "resource_quantity bloblang function",
+        "schedule + kubernetes_resources input",
+        "sqlite buffer with post-processor split",
+        "switch output with debug stdout branch",
+        "sync_response via metadata"
+      ],
+      "actual": [
+        "catch-log-delete for validation failures",
+        "counter metrics at input and output",
+        "drop_on 400 at output",
+        "sqlite buffer with post-processor split",
+        "sync_response via metadata"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "collector/benthos/presets/kubernetes-pod-exec-time",
+      "message": "Siblings under collector/benthos/presets/ mostly use [catch-log-delete for validation failures, counter metrics at input and output, drop_on 400 at output, sqlite buffer with post-processor split, sync_response via metadata] but this folder does not",
+      "expected": [
+        "bloblang mapping to cloudevents structure",
+        "catch-log-delete for validation failures",
+        "counter metrics at input and output",
+        "data.openmeter.io/ annotation passthrough",
+        "drop_on 400 at output",
+        "per-second rate metrics",
+        "resource_quantity bloblang function",
+        "schedule + kubernetes_resources input",
+        "sqlite buffer with post-processor split",
+        "switch output with debug stdout branch",
+        "sync_response via metadata"
+      ],
+      "actual": [
+        "bloblang mapping to cloudevents structure",
+        "data.openmeter.io/ annotation passthrough",
+        "per-second rate metrics",
+        "resource_quantity bloblang function",
+        "schedule + kubernetes_resources input",
+        "switch output with debug stdout branch"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "collector/quickstart/collector/resources",
+      "message": "Siblings under collector/quickstart/collector/ mostly use [content-type switch before dedup/validation, environment variable configuration for output, inproc channel coupling between streams, sqlite buffer for durable output, sync response for http status propagation] but this folder does not",
+      "expected": [
+        "content-type switch before dedup/validation",
+        "environment variable configuration for output",
+        "inproc channel coupling between streams",
+        "named cache label convention",
+        "sqlite buffer for durable output",
+        "sync response for http status propagation"
+      ],
+      "actual": [
+        "named cache label convention"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "collector/quickstart/collector/streams",
+      "message": "Siblings under collector/quickstart/collector/ mostly use [named cache label convention] but this folder does not",
+      "expected": [
+        "content-type switch before dedup/validation",
+        "environment variable configuration for output",
+        "inproc channel coupling between streams",
+        "named cache label convention",
+        "sqlite buffer for durable output",
+        "sync response for http status propagation"
+      ],
+      "actual": [
+        "content-type switch before dedup/validation",
+        "environment variable configuration for output",
+        "inproc channel coupling between streams",
+        "sqlite buffer for durable output",
+        "sync response for http status propagation"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "docs/decisions",
+      "message": "Siblings under docs/ mostly use [before/after api examples for sdk migrations, date-prefixed filename, deprecation timeline table, sql migration scripts included inline] but this folder does not",
+      "expected": [
+        "adr sequential numbering",
+        "before/after api examples for sdk migrations",
+        "date-prefixed filename",
+        "decision recorded with tradeoffs",
+        "deprecation timeline table",
+        "sql migration scripts included inline"
+      ],
+      "actual": [
+        "adr sequential numbering",
+        "decision recorded with tradeoffs"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "docs/migration-guides",
+      "message": "Siblings under docs/ mostly use [adr sequential numbering, decision recorded with tradeoffs] but this folder does not",
+      "expected": [
+        "adr sequential numbering",
+        "before/after api examples for sdk migrations",
+        "date-prefixed filename",
+        "decision recorded with tradeoffs",
+        "deprecation timeline table",
+        "sql migration scripts included inline"
+      ],
+      "actual": [
+        "before/after api examples for sdk migrations",
+        "date-prefixed filename",
+        "deprecation timeline table",
+        "sql migration scripts included inline"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/creditpurchase/service",
+      "message": "Siblings under openmeter/billing/charges/creditpurchase/ mostly use [config.validate() before construction] but this folder does not",
+      "expected": [
+        "config.validate() before construction"
+      ],
+      "actual": [
+        "config.validate() + new() constructor pattern",
+        "handler.on* for ledger side-effects",
+        "lineage.backfilladvancelineagesegments after grant",
+        "settlement-type dispatch in create",
+        "transaction.run wraps every service method",
+        "validate input then delegate to adapter"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/lineage/adapter",
+      "message": "Siblings under openmeter/billing/charges/lineage/ mostly use [close-then-split segment approach for partial amounts, config struct + validate() + new() constructor, input.validate() before any business logic, lock-then-mutate segment pattern, transaction.runwithnovalue for all multi-step mutations] but this folder does not",
+      "expected": [
+        "close-then-split segment approach for partial amounts",
+        "config struct + validate() + new() constructor",
+        "config struct + validate() constructor pattern",
+        "explicit tx-required guard on lock operations",
+        "input.validate() before any business logic",
+        "lock-then-mutate segment pattern",
+        "private map helpers for ent-to-domain conversion",
+        "standalone package-level helper for shared cross-package use",
+        "transactingrepo wrapping all db operations",
+        "transaction.runwithnovalue for all multi-step mutations",
+        "tx/withtx/self triad for txcreator compatibility"
+      ],
+      "actual": [
+        "config struct + validate() constructor pattern",
+        "explicit tx-required guard on lock operations",
+        "private map helpers for ent-to-domain conversion",
+        "standalone package-level helper for shared cross-package use",
+        "transactingrepo wrapping all db operations",
+        "tx/withtx/self triad for txcreator compatibility"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/lineage/service",
+      "message": "Siblings under openmeter/billing/charges/lineage/ mostly use [config struct + validate() constructor pattern, explicit tx-required guard on lock operations, private map helpers for ent-to-domain conversion, standalone package-level helper for shared cross-package use, transactingrepo wrapping all db operations, tx/withtx/self triad for txcreator compatibility] but this folder does not",
+      "expected": [
+        "close-then-split segment approach for partial amounts",
+        "config struct + validate() + new() constructor",
+        "config struct + validate() constructor pattern",
+        "explicit tx-required guard on lock operations",
+        "input.validate() before any business logic",
+        "lock-then-mutate segment pattern",
+        "private map helpers for ent-to-domain conversion",
+        "standalone package-level helper for shared cross-package use",
+        "transactingrepo wrapping all db operations",
+        "transaction.runwithnovalue for all multi-step mutations",
+        "tx/withtx/self triad for txcreator compatibility"
+      ],
+      "actual": [
+        "close-then-split segment approach for partial amounts",
+        "config struct + validate() + new() constructor",
+        "input.validate() before any business logic",
+        "lock-then-mutate segment pattern",
+        "transaction.runwithnovalue for all multi-step mutations"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/client/python/examples/async",
+      "message": "Siblings under api/client/python/examples/ mostly use [direct main() call at module level, module-level client instantiation] but this folder does not",
+      "expected": [
+        "async context manager client lifetime",
+        "asyncio.run entry point",
+        "dict-access for discriminated-union items",
+        "direct main() call at module level",
+        "environment-variable configuration with defaults",
+        "httpresponseerror catch-all",
+        "module-level client instantiation"
+      ],
+      "actual": [
+        "async context manager client lifetime",
+        "asyncio.run entry point",
+        "dict-access for discriminated-union items",
+        "environment-variable configuration with defaults",
+        "httpresponseerror catch-all"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/client/python/examples/sync",
+      "message": "Siblings under api/client/python/examples/ mostly use [async context manager client lifetime, asyncio.run entry point] but this folder does not",
+      "expected": [
+        "async context manager client lifetime",
+        "asyncio.run entry point",
+        "dict-access for discriminated-union items",
+        "direct main() call at module level",
+        "environment-variable configuration with defaults",
+        "httpresponseerror catch-all",
+        "module-level client instantiation"
+      ],
+      "actual": [
+        "dict-access for discriminated-union items",
+        "direct main() call at module level",
+        "environment-variable configuration with defaults",
+        "httpresponseerror catch-all",
+        "module-level client instantiation"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/usagebased/service/rating",
+      "message": "Siblings under openmeter/billing/charges/usagebased/service/ mostly use [creditallocationmode enum controls credit allocation behaviour, ensuredetailedlinesloadedforrating before creating a new run, every exported method validates its input struct first, handler callbacks for ledger side-effects, lineage created immediately after credit realizations] but this folder does not",
+      "expected": [
+        "config-struct constructor with validate()",
+        "creditallocationmode enum controls credit allocation behaviour",
+        "ensuredetailedlinesloadedforrating before creating a new run",
+        "every exported method validates its input struct first",
+        "handler callbacks for ledger side-effects",
+        "lineage created immediately after credit realizations",
+        "prefer gettotalsforusage over getdetailedlinesforusage when only totals needed",
+        "priorruns must have detailedlines expanded before rating",
+        "service-period-scoped childuniquereferenceid",
+        "storedatoffset cutoff in meter queries"
+      ],
+      "actual": [
+        "config-struct constructor with validate()",
+        "prefer gettotalsforusage over getdetailedlinesforusage when only totals needed",
+        "priorruns must have detailedlines expanded before rating",
+        "service-period-scoped childuniquereferenceid",
+        "storedatoffset cutoff in meter queries"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/usagebased/service/run",
+      "message": "Siblings under openmeter/billing/charges/usagebased/service/ mostly use [prefer gettotalsforusage over getdetailedlinesforusage when only totals needed, priorruns must have detailedlines expanded before rating, service-period-scoped childuniquereferenceid, storedatoffset cutoff in meter queries] but this folder does not",
+      "expected": [
+        "config-struct constructor with validate()",
+        "creditallocationmode enum controls credit allocation behaviour",
+        "ensuredetailedlinesloadedforrating before creating a new run",
+        "every exported method validates its input struct first",
+        "handler callbacks for ledger side-effects",
+        "lineage created immediately after credit realizations",
+        "prefer gettotalsforusage over getdetailedlinesforusage when only totals needed",
+        "priorruns must have detailedlines expanded before rating",
+        "service-period-scoped childuniquereferenceid",
+        "storedatoffset cutoff in meter queries"
+      ],
+      "actual": [
+        "config-struct constructor with validate()",
+        "creditallocationmode enum controls credit allocation behaviour",
+        "ensuredetailedlinesloadedforrating before creating a new run",
+        "every exported method validates its input struct first",
+        "handler callbacks for ledger side-effects",
+        "lineage created immediately after credit realizations"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/worker/advance",
+      "message": "Siblings under openmeter/billing/charges/worker/ mostly use [config.validate() before construction, customerid constructed from event fields, single-responsibility handle method, warn-then-return on service error] but this folder does not",
+      "expected": [
+        "advance via service interface only",
+        "config struct + constructor validation",
+        "config.validate() before construction",
+        "customerid constructed from event fields",
+        "fan-out with error accumulation",
+        "pagination via collectall",
+        "single-responsibility handle method",
+        "structured logging with slog",
+        "warn-then-return on service error"
+      ],
+      "actual": [
+        "advance via service interface only",
+        "config struct + constructor validation",
+        "fan-out with error accumulation",
+        "pagination via collectall",
+        "structured logging with slog"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/worker/asyncadvance",
+      "message": "Siblings under openmeter/billing/charges/worker/ mostly use [advance via service interface only, config struct + constructor validation, fan-out with error accumulation, pagination via collectall, structured logging with slog] but this folder does not",
+      "expected": [
+        "advance via service interface only",
+        "config struct + constructor validation",
+        "config.validate() before construction",
+        "customerid constructed from event fields",
+        "fan-out with error accumulation",
+        "pagination via collectall",
+        "single-responsibility handle method",
+        "structured logging with slog",
+        "warn-then-return on service error"
+      ],
+      "actual": [
+        "config.validate() before construction",
+        "customerid constructed from event fields",
+        "single-responsibility handle method",
+        "warn-then-return on service error"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/validators/customer",
+      "message": "Siblings under openmeter/billing/validators/ mostly use [capability slice validation, early-exit on non-billable subscription, embed noopsubscriptioncommandhook, models.newgenericconflicterror wrapping, nil-guard constructors returning hook interface] but this folder does not",
+      "expected": [
+        "capability slice validation",
+        "compile-time interface assertion",
+        "early-exit on non-billable subscription",
+        "embed nooprequestvalidator",
+        "embed noopsubscriptioncommandhook",
+        "errors.join for multi-invoice errors",
+        "models.newgenericconflicterror wrapping",
+        "nil-guard constructors",
+        "nil-guard constructors returning hook interface",
+        "sync-before-validate pattern"
+      ],
+      "actual": [
+        "compile-time interface assertion",
+        "embed nooprequestvalidator",
+        "errors.join for multi-invoice errors",
+        "nil-guard constructors",
+        "sync-before-validate pattern"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/validators/subscription",
+      "message": "Siblings under openmeter/billing/validators/ mostly use [compile-time interface assertion, embed nooprequestvalidator, errors.join for multi-invoice errors, nil-guard constructors, sync-before-validate pattern] but this folder does not",
+      "expected": [
+        "capability slice validation",
+        "compile-time interface assertion",
+        "early-exit on non-billable subscription",
+        "embed nooprequestvalidator",
+        "embed noopsubscriptioncommandhook",
+        "errors.join for multi-invoice errors",
+        "models.newgenericconflicterror wrapping",
+        "nil-guard constructors",
+        "nil-guard constructors returning hook interface",
+        "sync-before-validate pattern"
+      ],
+      "actual": [
+        "capability slice validation",
+        "early-exit on non-billable subscription",
+        "embed noopsubscriptioncommandhook",
+        "models.newgenericconflicterror wrapping",
+        "nil-guard constructors returning hook interface"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/worker/asyncadvance",
+      "message": "Siblings under openmeter/billing/worker/ mostly use [batched parallel fan-out with errchan + sync.waitgroup] but this folder does not",
+      "expected": [
+        "batched parallel fan-out with errchan + sync.waitgroup"
+      ],
+      "actual": [
+        "config.validate() guards strategy mismatch",
+        "errinvoicecannotadvance \u2192 warn + nil return",
+        "handle() has a single-event signature"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/worker/subscriptionsync",
+      "message": "Siblings under openmeter/billing/worker/ mostly use [batched parallel fan-out with errchan + sync.waitgroup] but this folder does not",
+      "expected": [
+        "batched parallel fan-out with errchan + sync.waitgroup"
+      ],
+      "actual": [
+        "adapter split: syncstateadapter + txcreator",
+        "composite service interface",
+        "functional option for synchronizesubscription",
+        "input type with validate()",
+        "models.namespacedid as identity type"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/cost/adapter",
+      "message": "Siblings under openmeter/cost/ mostly use [config struct with validate(), input validation before delegation] but this folder does not",
+      "expected": [
+        "config struct with validate()",
+        "costresolverfunc abstraction separates cost resolution from aggregation",
+        "feature metergroupbyfilters merged with precedence",
+        "genericvalidationerror / genericnotfounderror for domain errors",
+        "input validation before delegation",
+        "interface compliance assertion",
+        "internal group-by key injection and post-aggregation stripping",
+        "pre-resolve and cache expensive lookups"
+      ],
+      "actual": [
+        "costresolverfunc abstraction separates cost resolution from aggregation",
+        "feature metergroupbyfilters merged with precedence",
+        "genericvalidationerror / genericnotfounderror for domain errors",
+        "interface compliance assertion",
+        "internal group-by key injection and post-aggregation stripping",
+        "pre-resolve and cache expensive lookups"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/cost/service",
+      "message": "Siblings under openmeter/cost/ mostly use [costresolverfunc abstraction separates cost resolution from aggregation, feature metergroupbyfilters merged with precedence, genericvalidationerror / genericnotfounderror for domain errors, internal group-by key injection and post-aggregation stripping, pre-resolve and cache expensive lookups] but this folder does not",
+      "expected": [
+        "config struct with validate()",
+        "costresolverfunc abstraction separates cost resolution from aggregation",
+        "feature metergroupbyfilters merged with precedence",
+        "genericvalidationerror / genericnotfounderror for domain errors",
+        "input validation before delegation",
+        "interface compliance assertion",
+        "internal group-by key injection and post-aggregation stripping",
+        "pre-resolve and cache expensive lookups"
+      ],
+      "actual": [
+        "config struct with validate()",
+        "input validation before delegation",
+        "interface compliance assertion"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/currencies/adapter",
+      "message": "Siblings under openmeter/currencies/ mostly use [business-logic only \u2014 no ent imports, in-memory fiat enumeration via gobl, input validation before transaction, transaction.run wrapping adapter calls] but this folder does not",
+      "expected": [
+        "business-logic only \u2014 no ent imports",
+        "compile-time interface assertion",
+        "config struct + validate + new constructor",
+        "entdb.isconstrainterror \u2192 genericconflicterror",
+        "in-memory fiat enumeration via gobl",
+        "input validation before transaction",
+        "mapxfromdb mapper functions",
+        "transactingrepo wrapping every method",
+        "transaction.run wrapping adapter calls",
+        "tx / withtx / self triad"
+      ],
+      "actual": [
+        "compile-time interface assertion",
+        "config struct + validate + new constructor",
+        "entdb.isconstrainterror \u2192 genericconflicterror",
+        "mapxfromdb mapper functions",
+        "transactingrepo wrapping every method",
+        "tx / withtx / self triad"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/currencies/service",
+      "message": "Siblings under openmeter/currencies/ mostly use [config struct + validate + new constructor, entdb.isconstrainterror \u2192 genericconflicterror, mapxfromdb mapper functions, transactingrepo wrapping every method, tx / withtx / self triad] but this folder does not",
+      "expected": [
+        "business-logic only \u2014 no ent imports",
+        "compile-time interface assertion",
+        "config struct + validate + new constructor",
+        "entdb.isconstrainterror \u2192 genericconflicterror",
+        "in-memory fiat enumeration via gobl",
+        "input validation before transaction",
+        "mapxfromdb mapper functions",
+        "transactingrepo wrapping every method",
+        "transaction.run wrapping adapter calls",
+        "tx / withtx / self triad"
+      ],
+      "actual": [
+        "business-logic only \u2014 no ent imports",
+        "compile-time interface assertion",
+        "in-memory fiat enumeration via gobl",
+        "input validation before transaction",
+        "transaction.run wrapping adapter calls"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/dedupe/memorydedupe",
+      "message": "Siblings under openmeter/dedupe/ mostly use [mode-switch on every key operation, pipelined batch writes, setargs with nx + ttl for atomic set-if-not-exists, xxh3 128-bit hash \u2192 base64url key] but this folder does not",
+      "expected": [
+        "checkuniquebatch returns split result sets",
+        "implement all dedupe.deduplicator methods",
+        "lru-cache keyed by dedupe.item.key()",
+        "mode-switch on every key operation",
+        "pipelined batch writes",
+        "setargs with nx + ttl for atomic set-if-not-exists",
+        "xxh3 128-bit hash \u2192 base64url key"
+      ],
+      "actual": [
+        "checkuniquebatch returns split result sets",
+        "implement all dedupe.deduplicator methods",
+        "lru-cache keyed by dedupe.item.key()"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/dedupe/redisdedupe",
+      "message": "Siblings under openmeter/dedupe/ mostly use [checkuniquebatch returns split result sets, implement all dedupe.deduplicator methods, lru-cache keyed by dedupe.item.key()] but this folder does not",
+      "expected": [
+        "checkuniquebatch returns split result sets",
+        "implement all dedupe.deduplicator methods",
+        "lru-cache keyed by dedupe.item.key()",
+        "mode-switch on every key operation",
+        "pipelined batch writes",
+        "setargs with nx + ttl for atomic set-if-not-exists",
+        "xxh3 128-bit hash \u2192 base64url key"
+      ],
+      "actual": [
+        "mode-switch on every key operation",
+        "pipelined batch writes",
+        "setargs with nx + ttl for atomic set-if-not-exists",
+        "xxh3 128-bit hash \u2192 base64url key"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/ent/schema",
+      "message": "Siblings under openmeter/ent/ mostly use [implement transaction.creator via db.hijacktx] but this folder does not",
+      "expected": [
+        "cascade deletes via entsql.annotation on edges",
+        "ent.view for read-only union views; no mixins with indexes or edges",
+        "gotype + valuescanner for complex domain types stored as jsonb",
+        "implement transaction.creator via db.hijacktx",
+        "mixin composition for identity and timestamps",
+        "partial unique indexes with entsql.indexwhere for soft-delete safety",
+        "postgres-typed fields with schematype",
+        "shared mixin structs for repeated field groups"
+      ],
+      "actual": [
+        "cascade deletes via entsql.annotation on edges",
+        "ent.view for read-only union views; no mixins with indexes or edges",
+        "gotype + valuescanner for complex domain types stored as jsonb",
+        "mixin composition for identity and timestamps",
+        "partial unique indexes with entsql.indexwhere for soft-delete safety",
+        "postgres-typed fields with schematype",
+        "shared mixin structs for repeated field groups"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/ent/tx",
+      "message": "Siblings under openmeter/ent/ mostly use [cascade deletes via entsql.annotation on edges, ent.view for read-only union views; no mixins with indexes or edges, gotype + valuescanner for complex domain types stored as jsonb, mixin composition for identity and timestamps, partial unique indexes with entsql.indexwhere for soft-delete safety, postgres-typed fields with schematype, shared mixin structs for repeated field groups] but this folder does not",
+      "expected": [
+        "cascade deletes via entsql.annotation on edges",
+        "ent.view for read-only union views; no mixins with indexes or edges",
+        "gotype + valuescanner for complex domain types stored as jsonb",
+        "implement transaction.creator via db.hijacktx",
+        "mixin composition for identity and timestamps",
+        "partial unique indexes with entsql.indexwhere for soft-delete safety",
+        "postgres-typed fields with schematype",
+        "shared mixin structs for repeated field groups"
+      ],
+      "actual": [
+        "implement transaction.creator via db.hijacktx"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/entitlement/balanceworker/events",
+      "message": "Siblings under openmeter/entitlement/balanceworker/ mostly use [calculationtimerecorder for post-calculation watermark updates, config struct with validate() before construction, filter interface with isnamespaceinscope + isentitlementinscope, highwatermark backend abstraction, lru+ttl cache for external service lookups] but this folder does not",
+      "expected": [
+        "calculationtimerecorder for post-calculation watermark updates",
+        "config struct with validate() before construction",
+        "eventmetadata subject uses composeresourcepath",
+        "filter interface with isnamespaceinscope + isentitlementinscope",
+        "highwatermark backend abstraction",
+        "implement marshaler.event interface",
+        "lru+ttl cache for external service lookups",
+        "operationtype enum with values()+validate()",
+        "versioned event type via metadata.eventtype"
+      ],
+      "actual": [
+        "eventmetadata subject uses composeresourcepath",
+        "implement marshaler.event interface",
+        "operationtype enum with values()+validate()",
+        "versioned event type via metadata.eventtype"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/entitlement/balanceworker/filters",
+      "message": "Siblings under openmeter/entitlement/balanceworker/ mostly use [eventmetadata subject uses composeresourcepath, implement marshaler.event interface, operationtype enum with values()+validate(), versioned event type via metadata.eventtype] but this folder does not",
+      "expected": [
+        "calculationtimerecorder for post-calculation watermark updates",
+        "config struct with validate() before construction",
+        "eventmetadata subject uses composeresourcepath",
+        "filter interface with isnamespaceinscope + isentitlementinscope",
+        "highwatermark backend abstraction",
+        "implement marshaler.event interface",
+        "lru+ttl cache for external service lookups",
+        "operationtype enum with values()+validate()",
+        "versioned event type via metadata.eventtype"
+      ],
+      "actual": [
+        "calculationtimerecorder for post-calculation watermark updates",
+        "config struct with validate() before construction",
+        "filter interface with isnamespaceinscope + isentitlementinscope",
+        "highwatermark backend abstraction",
+        "lru+ttl cache for external service lookups"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/event/metadata",
+      "message": "Siblings under openmeter/event/ mostly use [inline validate() on every model, minimal shared types only] but this folder does not",
+      "expected": [
+        "entity constant registry",
+        "eventtype triple (subsystem/version/name)",
+        "inline validate() on every model",
+        "minimal shared types only",
+        "resource paths via composeresourcepath"
+      ],
+      "actual": [
+        "entity constant registry",
+        "eventtype triple (subsystem/version/name)",
+        "resource paths via composeresourcepath"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/event/models",
+      "message": "Siblings under openmeter/event/ mostly use [entity constant registry, eventtype triple (subsystem/version/name), resource paths via composeresourcepath] but this folder does not",
+      "expected": [
+        "entity constant registry",
+        "eventtype triple (subsystem/version/name)",
+        "inline validate() on every model",
+        "minimal shared types only",
+        "resource paths via composeresourcepath"
+      ],
+      "actual": [
+        "inline validate() on every model",
+        "minimal shared types only"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/ingest/kafkaingest/serializer",
+      "message": "Siblings under openmeter/ingest/kafkaingest/ mostly use [context threading, resolver interface, template-based namespace-to-topic mapping] but this folder does not",
+      "expected": [
+        "cloudeventskafkapayload wire format",
+        "compile-time interface assertion",
+        "context threading",
+        "key encodes dedupe.item",
+        "optional data field handling",
+        "resolver interface",
+        "serializer interface contract",
+        "template-based namespace-to-topic mapping"
+      ],
+      "actual": [
+        "cloudeventskafkapayload wire format",
+        "compile-time interface assertion",
+        "key encodes dedupe.item",
+        "optional data field handling",
+        "serializer interface contract"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/ingest/kafkaingest/topicresolver",
+      "message": "Siblings under openmeter/ingest/kafkaingest/ mostly use [cloudeventskafkapayload wire format, key encodes dedupe.item, optional data field handling, serializer interface contract] but this folder does not",
+      "expected": [
+        "cloudeventskafkapayload wire format",
+        "compile-time interface assertion",
+        "context threading",
+        "key encodes dedupe.item",
+        "optional data field handling",
+        "resolver interface",
+        "serializer interface contract",
+        "template-based namespace-to-topic mapping"
+      ],
+      "actual": [
+        "compile-time interface assertion",
+        "context threading",
+        "resolver interface",
+        "template-based namespace-to-topic mapping"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/ledger/account/adapter",
+      "message": "Siblings under openmeter/ledger/account/ mostly use [domain object construction via newaccountfromdata / newsubaccountfromdata, n+1 mitigation with local accountsbyid cache in listsubaccounts, service wires itself as subaccountservice, transaction.run for multi-step mutations, validate input before repo calls] but this folder does not",
+      "expected": [
+        "constraint-error idempotent upsert for sub-accounts",
+        "domain object construction via newaccountfromdata / newsubaccountfromdata",
+        "mapaccountdata / mapsubaccountdata as pure domain converters",
+        "n+1 mitigation with local accountsbyid cache in listsubaccounts",
+        "route upsert via canonical routing key",
+        "routefilter normalization before predicate building",
+        "service wires itself as subaccountservice",
+        "transactingrepo wrapping",
+        "transaction.run for multi-step mutations",
+        "txuser implementation on repo",
+        "validate input before repo calls",
+        "withroute+withaccount eager loading for subaccount reads"
+      ],
+      "actual": [
+        "constraint-error idempotent upsert for sub-accounts",
+        "mapaccountdata / mapsubaccountdata as pure domain converters",
+        "route upsert via canonical routing key",
+        "routefilter normalization before predicate building",
+        "transactingrepo wrapping",
+        "txuser implementation on repo",
+        "withroute+withaccount eager loading for subaccount reads"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/ledger/account/service",
+      "message": "Siblings under openmeter/ledger/account/ mostly use [constraint-error idempotent upsert for sub-accounts, mapaccountdata / mapsubaccountdata as pure domain converters, route upsert via canonical routing key, routefilter normalization before predicate building, transactingrepo wrapping, txuser implementation on repo, withroute+withaccount eager loading for subaccount reads] but this folder does not",
+      "expected": [
+        "constraint-error idempotent upsert for sub-accounts",
+        "domain object construction via newaccountfromdata / newsubaccountfromdata",
+        "mapaccountdata / mapsubaccountdata as pure domain converters",
+        "n+1 mitigation with local accountsbyid cache in listsubaccounts",
+        "route upsert via canonical routing key",
+        "routefilter normalization before predicate building",
+        "service wires itself as subaccountservice",
+        "transactingrepo wrapping",
+        "transaction.run for multi-step mutations",
+        "txuser implementation on repo",
+        "validate input before repo calls",
+        "withroute+withaccount eager loading for subaccount reads"
+      ],
+      "actual": [
+        "domain object construction via newaccountfromdata / newsubaccountfromdata",
+        "n+1 mitigation with local accountsbyid cache in listsubaccounts",
+        "service wires itself as subaccountservice",
+        "transaction.run for multi-step mutations",
+        "validate input before repo calls"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "pkg/framework/entutils/testutils/ent1",
+      "message": "Siblings under pkg/framework/entutils/testutils/ mostly use [extension: entexpose only, package path under testutils/ent2] but this folder does not",
+      "expected": [
+        "extension: entexpose only",
+        "extensions: entcursor + entexpose + entpaginate",
+        "feature set mirrors production",
+        "ignored-main codegen driver",
+        "package path under testutils",
+        "package path under testutils/ent2"
+      ],
+      "actual": [
+        "extensions: entcursor + entexpose + entpaginate",
+        "feature set mirrors production",
+        "ignored-main codegen driver",
+        "package path under testutils"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "pkg/framework/entutils/testutils/ent2",
+      "message": "Siblings under pkg/framework/entutils/testutils/ mostly use [extensions: entcursor + entexpose + entpaginate, package path under testutils] but this folder does not",
+      "expected": [
+        "extension: entexpose only",
+        "extensions: entcursor + entexpose + entpaginate",
+        "feature set mirrors production",
+        "ignored-main codegen driver",
+        "package path under testutils",
+        "package path under testutils/ent2"
+      ],
+      "actual": [
+        "extension: entexpose only",
+        "feature set mirrors production",
+        "ignored-main codegen driver",
+        "package path under testutils/ent2"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "collector/benthos",
+      "message": "Siblings under collector/ mostly use [environment-variable-driven configuration, healthcheck-gated depends_on, layered config loading, switch output with debug stdout branch] but this folder does not",
+      "expected": [
+        "blank-import activation",
+        "child-package specialisation",
+        "environment-variable substitution in yaml presets",
+        "environment-variable-driven configuration",
+        "healthcheck-gated depends_on",
+        "layered config loading",
+        "leader-election gate on all replicated work",
+        "switch output with debug stdout branch"
+      ],
+      "actual": [
+        "blank-import activation",
+        "child-package specialisation",
+        "environment-variable substitution in yaml presets",
+        "leader-election gate on all replicated work"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "collector/quickstart",
+      "message": "Siblings under collector/ mostly use [blank-import activation, child-package specialisation, environment-variable substitution in yaml presets, leader-election gate on all replicated work] but this folder does not",
+      "expected": [
+        "blank-import activation",
+        "child-package specialisation",
+        "environment-variable substitution in yaml presets",
+        "environment-variable-driven configuration",
+        "healthcheck-gated depends_on",
+        "layered config loading",
+        "leader-election gate on all replicated work",
+        "switch output with debug stdout branch"
+      ],
+      "actual": [
+        "environment-variable-driven configuration",
+        "healthcheck-gated depends_on",
+        "layered config loading",
+        "switch output with debug stdout branch"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/spec/packages/aip",
+      "message": "Siblings under api/spec/packages/ mostly use [@friendlyname on every model, enum, union, interface, @operationid on every interface operation, @visibility lifecycle decorators on model fields, filter models with @extension(\"x-omitempty\", true) on all operator fields, main.tsp as sole compilation entry point, rest resource templates for crud request bodies, shared primitives in types.tsp, never re-declared in sub-domains] but this folder does not",
+      "expected": [
+        "@friendlyname on every model, enum, union, interface",
+        "@operationid on every interface operation",
+        "@visibility lifecycle decorators on model fields",
+        "custom linter via createrule factory",
+        "domain ops imported via index.tsp barrels",
+        "filter models with @extension(\"x-omitempty\", true) on all operator fields",
+        "main.tsp as sole compilation entry point",
+        "omit-unreachable-types: true in tspconfig",
+        "pascalcase acronym exceptions in utils.js",
+        "rest resource templates for crud request bodies",
+        "route and tag binding at root only",
+        "security via @useref to external yaml",
+        "shared primitives in types.tsp, never re-declared in sub-domains",
+        "two-step compile pipeline"
+      ],
+      "actual": [
+        "custom linter via createrule factory",
+        "domain ops imported via index.tsp barrels",
+        "omit-unreachable-types: true in tspconfig",
+        "pascalcase acronym exceptions in utils.js",
+        "route and tag binding at root only",
+        "security via @useref to external yaml",
+        "two-step compile pipeline"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/spec/packages/legacy",
+      "message": "Siblings under api/spec/packages/ mostly use [custom linter via createrule factory, domain ops imported via index.tsp barrels, omit-unreachable-types: true in tspconfig, pascalcase acronym exceptions in utils.js, route and tag binding at root only, security via @useref to external yaml, two-step compile pipeline] but this folder does not",
+      "expected": [
+        "@friendlyname on every model, enum, union, interface",
+        "@operationid on every interface operation",
+        "@visibility lifecycle decorators on model fields",
+        "custom linter via createrule factory",
+        "domain ops imported via index.tsp barrels",
+        "filter models with @extension(\"x-omitempty\", true) on all operator fields",
+        "main.tsp as sole compilation entry point",
+        "omit-unreachable-types: true in tspconfig",
+        "pascalcase acronym exceptions in utils.js",
+        "rest resource templates for crud request bodies",
+        "route and tag binding at root only",
+        "security via @useref to external yaml",
+        "shared primitives in types.tsp, never re-declared in sub-domains",
+        "two-step compile pipeline"
+      ],
+      "actual": [
+        "@friendlyname on every model, enum, union, interface",
+        "@operationid on every interface operation",
+        "@visibility lifecycle decorators on model fields",
+        "filter models with @extension(\"x-omitempty\", true) on all operator fields",
+        "main.tsp as sole compilation entry point",
+        "rest resource templates for crud request bodies",
+        "shared primitives in types.tsp, never re-declared in sub-domains"
+      ],
+      "severity": "warn"
+    }
+  ],
+  "naming_violations": [],
+  "dependency_violations": [],
+  "structural_outliers": [
+    {
+      "type": "structural_outlier",
+      "folder": "e2e",
+      "message": "Has 21 files \u2014 significantly more than sibling average (4). May be a god-folder that should be split.",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api",
+      "message": "Uses [.go, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "e2e",
+      "message": "Uses [.go, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "quickstart",
+      "message": "Uses [.go, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/spec",
+      "message": "Uses [.json, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/v3",
+      "message": "Uses [.go, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/go",
+      "message": "Uses [.go, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/javascript",
+      "message": "Uses [.json, .ts, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/python",
+      "message": "Uses [.in, .toml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/python/examples",
+      "message": "Uses [.json, .toml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/python/openmeter",
+      "message": "Uses [.py, .typed] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "openmeter/billing",
+      "message": "Has 39 files \u2014 significantly more than sibling average (8). May be a god-folder that should be split.",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "pkg/models",
+      "message": "Has 29 files \u2014 significantly more than sibling average (5). May be a god-folder that should be split.",
+      "severity": "info"
+    }
+  ],
+  "antipattern_clusters": [],
+  "summary": {
+    "total_findings": 94,
+    "warnings": 81,
+    "informational": 13,
+    "checks_run": [
+      "pattern_divergences",
+      "naming_violations",
+      "dependency_violations",
+      "structural_outliers",
+      "antipattern_clusters"
+    ],
+    "timestamp": "2026-05-04T10:09:36.813721+00:00"
+  }
+}

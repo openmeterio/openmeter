@@ -2,13 +2,13 @@ package adapter
 
 import (
 	"context"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -71,7 +71,7 @@ func (a *adapter) DeleteCustomerData(ctx context.Context, input appcustominvoici
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
 		return tx.db.AppCustomInvoicingCustomer.Update().
-			SetDeletedAt(time.Now()).
+			SetDeletedAt(clock.Now()).
 			Where(
 				appcustominvoicingcustomer.CustomerID(input.CustomerID),
 				appcustominvoicingcustomer.Namespace(input.Namespace),

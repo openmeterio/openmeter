@@ -1,0 +1,96 @@
+{
+  "openmeter/customer/service": {
+    "purpose": "Concrete implementation of customer.Service: orchestrates customer CRUD lifecycle by running RequestValidatorRegistry checks before DB writes, wrapping all mutations in Postgres transactions via transaction.Run, fanning out ServiceHookRegistry callbacks (Pre/Post Create/Update/Delete) inside the transaction, and publishing typed Watermill domain events as the last step. Acts as the single authoritative integration point where hooks and validators attach to the customer domain without importing them directly.",
+    "patterns": [
+      {
+        "name": "Config struct + Validate() + New()",
+        "description": "Service is only constructable via New(Config), never by struct literal. Config.Validate() rejects nil fields at construction time, ensuring requestValidatorRegistry is always initialised.",
+        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err } return &Service{adapter: config.Adapter, requestValidatorRegistry: customer.NewRequestValidatorRegistry(), ...}, nil }"
+      },
+      {
+        "name": "transaction.Run / transaction.RunWithNoValue wraps all mutations",
+        "description": "Every method that writes to the DB wraps its body in transaction.Run or transaction.RunWithNoValue so adapter writes, hook calls, and event publishes share one Postgres transaction and roll back atomically on any error.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*customer.Customer, error) { created, err := s.adapter.CreateCustomer(ctx, input); ...; s.hooks.PostCreate(ctx, created); ...; s.publisher.Publish(ctx, event); return created, nil })"
+      },
+      {
+        "name": "RequestValidatorRegistry called before entering the transaction",
+        "description": "CreateCustomer, UpdateCustomer, and DeleteCustomer call s.requestValidatorRegistry.Validate*Customer before transaction.Run; errors are wrapped with models.NewGenericValidationError.",
+        "example": "if err := s.requestValidatorRegistry.ValidateCreateCustomer(ctx, input); err != nil { return nil, models.NewGenericValidationError(err) }"
+      },
+      {
+        "name": "ServiceHookRegistry fan-out inside the transaction",
+        "description": "s.hooks is a models.ServiceHookRegistry[customer.Customer]; Pre hooks run before the adapter write, Post hooks run after, all inside the transaction so a hook failure rolls back the adapter write.",
+        "example": "if err = s.hooks.PostCreate(ctx, createdCustomer); err != nil { return nil, err }"
+      },
+      {
+        "name": "Watermill event publish as the last step inside the transaction",
+        "description": "After adapter write and hook fan-out, each mutation publishes a typed domain event (customer.NewCustomerCreateEvent etc.) via s.publisher.Publish; publish errors abort the transaction.",
+        "example": "if err := s.publisher.Publish(ctx, customer.NewCustomerCreateEvent(ctx, createdCustomer)); err != nil { return nil, fmt.Errorf(\"failed to publish customer created event: %w\", err) }"
+      },
+      {
+        "name": "models.Generic* error types for all domain conditions",
+        "description": "Not-found, pre-condition-failed, and validation errors are wrapped in models.NewGenericNotFoundError / models.NewGenericPreConditionFailedError / models.NewGenericValidationError so HTTP encoders map them to correct status codes.",
+        "example": "return models.NewGenericPreConditionFailedError(customer.NewErrDeletingCustomerWithActiveSubscriptions(cus.ActiveSubscriptionIDs.OrEmpty()))"
+      },
+      {
+        "name": "Compile-time interface assertion at the top of each file",
+        "description": "Every file that adds methods to Service declares var _ customer.Service = (*Service)(nil) ensuring compile-time interface satisfaction.",
+        "example": "var _ customer.Service = (*Service)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines Service struct, Config, Config.Validate(), and New(). The only place new service-level dependencies (fields) should be added.",
+        "watch_for": "Adding business logic here instead of customer.go; forgetting to validate new Config fields in Validate(); skipping the compile-time assertion."
+      },
+      {
+        "file": "customer.go",
+        "role": "Implements all customer.Service methods. Pattern per method: validate input \u2192 transaction.Run \u2192 adapter call \u2192 hook fan-out \u2192 event publish.",
+        "watch_for": "Mutations outside transaction.Run; hooks called after publisher.Publish (hooks must precede publish inside tx); raw fmt.Errorf for domain conditions instead of models.Generic* types."
+      },
+      {
+        "file": "requestvalidator.go",
+        "role": "Thin delegation: RegisterRequestValidator forwards to s.requestValidatorRegistry.Register and carries the compile-time assertion for customer.RequestValidatorService.",
+        "watch_for": "Duplicating validation logic here instead of a registered RequestValidator implementation."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Full CRUD integration test built from customertestutils.NewTestEnv (no app/common). Tests use t.Context() throughout.",
+        "watch_for": "Importing app/common breaks test isolation; using context.Background() instead of t.Context() causes lifecycle/tracing issues."
+      },
+      {
+        "file": "ledger_hook_test.go",
+        "role": "Integration test for the ledger provisioning hook: registers a hook via env.CustomerService.RegisterHooks, verifies accounts created on CreateCustomer, and verifies transaction rollback when hook fails.",
+        "watch_for": "Hook tests must assert rollback: if hook returns an error the customer row must not exist. Use ErrorIs/ErrorAs against models.Generic* types."
+      }
+    ],
+    "anti_patterns": [
+      "Performing DB writes outside transaction.Run / transaction.RunWithNoValue \u2014 partial writes are not rolled back on hook or publish failure.",
+      "Calling customer.Service from inside a hook without NewContextWithSkipSubjectCustomer(ctx) \u2014 causes infinite re-entrant hook invocations.",
+      "Returning raw fmt.Errorf for domain conditions (not-found, conflict, validation) \u2014 HTTP encoders and callers depend on models.Generic* typed errors.",
+      "Importing app/common in test files \u2014 breaks isolation and can introduce import cycles; build test deps from customertestutils.NewTestEnv.",
+      "Using context.Background() or context.TODO() in methods or tests \u2014 always propagate caller ctx to maintain tracing, cancellation, and t.Context() lifecycle."
+    ],
+    "decisions": [
+      {
+        "decision": "All mutations wrapped in transaction.Run so hooks and event publishes are atomic with the adapter write.",
+        "rationale": "A hook failure (e.g. ledger provisioning) must roll back the customer row; publishing a stale event after a partial write would corrupt downstream state."
+      },
+      {
+        "decision": "RequestValidatorRegistry and ServiceHookRegistry are separate registries with distinct call sites \u2014 validators run before the transaction, hooks run inside it.",
+        "rationale": "Validators perform cheap pre-condition checks without needing a transaction; hooks need rollback capability. Merging them would force pre-condition checks to acquire a transaction unnecessarily."
+      },
+      {
+        "decision": "Service struct is only constructable via New(Config), not by direct struct literal.",
+        "rationale": "Ensures requestValidatorRegistry is always initialised via NewRequestValidatorRegistry() and required fields are validated at construction time, preventing nil-panic bugs at first method call."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new mutating method (e.g. ArchiveCustomer) following the established pattern",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/customer\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (s *Service) ArchiveCustomer(ctx context.Context, input customer.ArchiveCustomerInput) (*customer.Customer, error) {\n\t// 1. Pre-condition check outside transaction\n\tif err := s.requestValidatorRegistry.ValidateUpdateCustomer(ctx, customer.UpdateCustomerInput{\n\t\tCustomerID: input.CustomerID,\n\t}); err != nil {\n\t\treturn nil, models.NewGenericValidationError(err)\n\t}\n\n\t// 2. All writes inside transaction.Run\n\treturn transaction.Run(ctx, s.adapter, func(ctx context.Context) (*customer.Customer, error) {\n\t\t// 3. Pre hook\n\t\tif err := s.hooks.PreUpdate(ctx, nil); err != nil {\n\t\t\treturn nil, err\n\t\t}\n\n\t\t// 4. Adapter write\n\t\tcus, err := s.adapter.ArchiveCustomer(ctx, input)\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"failed to archive customer: %w\", err)\n\t\t}\n\n\t\t// 5. Post hook\n\t\tif err := s.hooks.PostUpdate(ctx, cus); err != nil {\n\t\t\treturn nil, err\n\t\t}\n\n\t\t// 6. Publish event last\n\t\tif err := s.publisher.Publish(ctx, customer.NewCustomerUpdateEvent(ctx, cus)); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"failed to publish customer archived event: %w\", err)\n\t\t}\n\n\t\treturn cus, nil\n\t})\n}"
+      }
+    ]
+  }
+}

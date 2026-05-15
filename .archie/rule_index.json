@@ -1,0 +1,866 @@
+{
+  "by_path_glob": {
+    "app/common/*.go": [
+      "pf-006-wire-hook-audit",
+      "wire-002-provider-no-business-logic"
+    ],
+    "openmeter/**/*.go": [
+      "pf-007-event-subsystem-prefix",
+      "lock-004-context-timeout",
+      "lock-005-session-locker-goroutine",
+      "otel-002-tracex-preferred",
+      "validationissue-001-immutability",
+      "wm-004-maxretries-zero",
+      "ctx-003-background-main-exception",
+      "dep-001",
+      "wm-001",
+      "lock-002"
+    ],
+    "openmeter/billing/**/*.go": [
+      "lock-003-key-construction",
+      "billing-008-charge-intent-constructor",
+      "wm-006-balance-worker-topic-isolation",
+      "billing-003",
+      "billing-005",
+      "billing-010-split-line-group"
+    ],
+    "openmeter/sink/**/*.go": [
+      "sink-002-flush-handler-async",
+      "meter-001"
+    ],
+    "openmeter/billing/validators/**/*.go": [
+      "customer-001-requestvalidator-pre-mutation-only"
+    ],
+    "app/common/customer.go": [
+      "customer-001-requestvalidator-pre-mutation-only"
+    ],
+    "openmeter/subscription/**/*.go": [
+      "subscription-001-spec-patch"
+    ],
+    "openmeter/ledger/**/*.go": [
+      "ledger-001-resolve-transactions"
+    ],
+    "cmd/billing-worker/main.go": [
+      "billing-006-billing-worker-startup-order"
+    ],
+    "openmeter/billing/charges/**/*.go": [
+      "charge-001-chargelike-value-semantics"
+    ],
+    "cmd/**/*.go": [
+      "wm-004-maxretries-zero",
+      "dep-004",
+      "cfg-001"
+    ],
+    "api/v3/handlers/**/*.go": [
+      "goverter-001-convert-file-naming",
+      "api-001"
+    ],
+    "openmeter/notification/**/*.go": [
+      "notification-002-null-channel-sentinel",
+      "wm-002"
+    ],
+    ".github/workflows/ci.yaml": [
+      "ci-001-dirty-tree-check",
+      "infra-004-ci-nix-shell"
+    ],
+    "api/spec/packages/aip/src/**/*.tsp": [
+      "api-003-typespec-route-binding"
+    ],
+    "api/spec/packages/legacy/src/**/*.tsp": [
+      "api-003-typespec-route-binding"
+    ],
+    "openmeter/billing/worker/advance/**/*.go": [
+      "billing-007-advancement-strategy-inline-vs-queued"
+    ],
+    "openmeter/billing/**/*_test.go": [
+      "test-005-mock-streaming-connector"
+    ],
+    "openmeter/billing/charges/**/*_test.go": [
+      "test-005-mock-streaming-connector"
+    ],
+    "openmeter/**/adapter/**/*.go": [
+      "layer-007-adapter-triad",
+      "ctx-001",
+      "ent-001"
+    ],
+    "openmeter/ent/schema/*.go": [
+      "ent-003-mixin-required"
+    ],
+    "openmeter/watermill/eventbus/**/*.go": [
+      "wm-005-fourth-kafka-topic"
+    ],
+    "deploy/charts/openmeter/Chart.yaml": [
+      "infra-005-helm-appversion"
+    ],
+    "deploy/charts/benthos-collector/Chart.yaml": [
+      "infra-005-helm-appversion"
+    ],
+    "openmeter/server/**/*.go": [
+      "api-004-request-validator-enabled"
+    ],
+    "api/v3/server/**/*.go": [
+      "api-004-request-validator-enabled"
+    ],
+    "openmeter/**/service/*.go": [
+      "ent-004-no-direct-db-mutations-in-service"
+    ],
+    "cmd/server/**/*.go": [
+      "wm-006-balance-worker-topic-isolation"
+    ],
+    "cmd/billing-worker/**/*.go": [
+      "wm-006-balance-worker-topic-isolation"
+    ],
+    "app/common/": [
+      "dep-002",
+      "credits-001",
+      "di-001",
+      "di-002"
+    ],
+    "openmeter/watermill/**/*.go": [
+      "wm-002"
+    ],
+    "openmeter/billing/worker/**/*.go": [
+      "wm-002"
+    ],
+    "openmeter/billing/charges/**/adapter/**/*.go": [
+      "ctx-002"
+    ],
+    "**/*.go": [
+      "credits-003"
+    ],
+    "openmeter/**/httpdriver/**/*.go": [
+      "api-001"
+    ],
+    "api/openapi.yaml": [
+      "api-002"
+    ],
+    "api/openapi.cloud.yaml": [
+      "api-002"
+    ],
+    "api/v3/openapi.yaml": [
+      "api-002"
+    ],
+    "openmeter/ent/db/": [
+      "gen-001"
+    ],
+    "api/spec/": [
+      "gen-003",
+      "gen-004"
+    ],
+    "openmeter/ent/schema/": [
+      "gen-005",
+      "gen-007"
+    ],
+    "tools/migrate/migrations/": [
+      "gen-006",
+      "migration-001",
+      "migration-002"
+    ],
+    "openmeter/billing/charges/": [
+      "tx-001",
+      "test-004"
+    ],
+    "openmeter/": [
+      "tx-002",
+      "test-001",
+      "test-002",
+      "test-003",
+      "layer-001",
+      "layer-003",
+      "kafka-001",
+      "http-001",
+      "http-002",
+      "servicehook-001"
+    ],
+    "openmeter/ledger/": [
+      "credits-002"
+    ],
+    "./": [
+      "build-001",
+      "security-001"
+    ],
+    "cmd/": [
+      "layer-002"
+    ],
+    "openmeter/watermill/": [
+      "kafka-002"
+    ],
+    "openmeter/notification/": [
+      "notification-001"
+    ],
+    "openmeter/billing/": [
+      "charges-001",
+      "billing-001",
+      "billing-002",
+      "lock-001"
+    ],
+    "cmd/server/": [
+      "namespace-001"
+    ],
+    "api/v3/": [
+      "api-v3-001"
+    ],
+    "openmeter/portal/**/*.go": [
+      "portal-001"
+    ],
+    "openmeter/ingest/**/*.go": [
+      "meter-001"
+    ],
+    "openmeter/credit/**/*.go": [
+      "credit-001"
+    ],
+    "openmeter/entitlement/**/*.go": [
+      "credit-001"
+    ],
+    "openmeter/entitlement/balanceworker/**/*.go": [
+      "balance-001"
+    ]
+  },
+  "by_code_shape": [
+    {
+      "rule_id": "pf-006-wire-hook-audit",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "RegisterHooks|RegisterRequestValidator"
+        ],
+        "must_not_match": [
+          "// side-effect",
+          "openmeter_"
+        ]
+      }
+    },
+    {
+      "rule_id": "pf-007-event-subsystem-prefix",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "func.*EventName.*string"
+        ],
+        "must_not_match": [
+          "EventVersionSubsystem",
+          "ingestevents\\.",
+          "balanceworkerevents\\."
+        ]
+      }
+    },
+    {
+      "rule_id": "lock-003-key-construction",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "lockr\\.Key\\("
+        ],
+        "must_not_match": [
+          "NewLockKeyForCharge"
+        ]
+      }
+    },
+    {
+      "rule_id": "lock-004-context-timeout",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "context\\.WithTimeout"
+        ],
+        "must_not_match": [
+          "pgdriver\\.WithLockTimeout"
+        ]
+      }
+    },
+    {
+      "rule_id": "lock-005-session-locker-goroutine",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "SessionLocker"
+        ],
+        "must_not_match": [
+          "\\.Close\\("
+        ]
+      }
+    },
+    {
+      "rule_id": "otel-002-tracex-preferred",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "s\\.tracer\\.Start\\(|a\\.tracer\\.Start\\("
+        ],
+        "must_not_match": [
+          "tracex\\.Start|tracex\\.Wrap"
+        ]
+      }
+    },
+    {
+      "rule_id": "sink-002-flush-handler-async",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "OnFlushSuccess"
+        ],
+        "must_not_match": [
+          "go func"
+        ]
+      }
+    },
+    {
+      "rule_id": "wire-002-provider-no-business-logic",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "panic\\(|log\\.Fatal|os\\.Exit"
+        ]
+      }
+    },
+    {
+      "rule_id": "customer-001-requestvalidator-pre-mutation-only",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "ValidateDeleteCustomer|ValidateCreateCustomer|ValidateUpdateCustomer"
+        ]
+      }
+    },
+    {
+      "rule_id": "subscription-001-spec-patch",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "spec\\.Phases\\s*=|spec\\.CurrentPhase\\s*="
+        ]
+      }
+    },
+    {
+      "rule_id": "ledger-001-resolve-transactions",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "ledger\\.Entry\\{|ledger\\.CommitGroup"
+        ],
+        "must_not_match": [
+          "transactions\\.ResolveTransactions"
+        ]
+      }
+    },
+    {
+      "rule_id": "billing-006-billing-worker-startup-order",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "app\\.Run\\("
+        ],
+        "must_not_match": [
+          "EnsureBusinessAccounts"
+        ]
+      }
+    },
+    {
+      "rule_id": "charge-001-chargelike-value-semantics",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "func\\s+\\(c\\s+\\*\\w+Charge\\)\\s+WithStatus|func\\s+\\(c\\s+\\*\\w+Charge\\)\\s+WithBase"
+        ]
+      }
+    },
+    {
+      "rule_id": "validationissue-001-immutability",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "ValidationIssue\\{"
+        ],
+        "must_not_match": [
+          "NewValidationIssue|NewValidationError|NewValidationWarning"
+        ]
+      }
+    },
+    {
+      "rule_id": "wm-004-maxretries-zero",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "MaxRetries:\\s*0"
+        ]
+      }
+    },
+    {
+      "rule_id": "goverter-001-convert-file-naming",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "goverter:converter"
+        ]
+      }
+    },
+    {
+      "rule_id": "notification-002-null-channel-sentinel",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "MessageCreate|MessageCreate"
+        ],
+        "must_not_match": [
+          "NullChannel|Dispatch|notification\\.Event"
+        ]
+      }
+    },
+    {
+      "rule_id": "ci-001-dirty-tree-check",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "generate"
+        ],
+        "must_not_match": [
+          "git diff --exit-code"
+        ]
+      }
+    },
+    {
+      "rule_id": "infra-004-ci-nix-shell",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "run:.*go test|run:.*golangci-lint|run:.*atlas"
+        ],
+        "must_not_match": [
+          "nix develop"
+        ]
+      }
+    },
+    {
+      "rule_id": "api-003-typespec-route-binding",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "@route\\("
+        ]
+      }
+    },
+    {
+      "rule_id": "billing-007-advancement-strategy-inline-vs-queued",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "AdvanceStandardInvoiceEvent"
+        ],
+        "must_not_match": [
+          "AdvanceInvoice"
+        ]
+      }
+    },
+    {
+      "rule_id": "test-005-mock-streaming-connector",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "MockStreamingConnector"
+        ],
+        "must_not_match": [
+          "StoredAt|SetStoredAt"
+        ]
+      }
+    },
+    {
+      "rule_id": "ctx-003-background-main-exception",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "context\\.Background\\(\\)"
+        ],
+        "must_not_match": [
+          "Shutdown|ExecuteContext|func main"
+        ]
+      }
+    },
+    {
+      "rule_id": "layer-007-adapter-triad",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "entutils\\.TransactingRepo"
+        ],
+        "must_not_match": [
+          "func.*Self\\(\\)"
+        ]
+      }
+    },
+    {
+      "rule_id": "ent-003-mixin-required",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "ent\\.Schema"
+        ],
+        "must_not_match": [
+          "NamespaceMixin"
+        ]
+      }
+    },
+    {
+      "rule_id": "billing-008-charge-intent-constructor",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "charges\\.ChargeIntent\\{"
+        ]
+      }
+    },
+    {
+      "rule_id": "wm-005-fourth-kafka-topic",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "Topic.*=.*\""
+        ]
+      }
+    },
+    {
+      "rule_id": "api-004-request-validator-enabled",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "chi\\.NewRouter|api\\.HandlerWithOptions"
+        ],
+        "must_not_match": [
+          "OapiRequestValidator|ValidateRequest"
+        ]
+      }
+    },
+    {
+      "rule_id": "ent-004-no-direct-db-mutations-in-service",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "\"github\\.com/openmeterio/openmeter/openmeter/ent/db\""
+        ]
+      }
+    },
+    {
+      "rule_id": "wm-006-balance-worker-topic-isolation",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "balanceworkerevents\\."
+        ]
+      }
+    },
+    {
+      "rule_id": "dep-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "\"github\\.com/openmeterio/openmeter/app/common\""
+        ]
+      }
+    },
+    {
+      "rule_id": "dep-004",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "^\\s*go func\\("
+        ],
+        "must_not_match": [
+          "run\\.Add",
+          "run\\.Group"
+        ]
+      }
+    },
+    {
+      "rule_id": "wm-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "kafka\\.NewProducer|confluent.*ProduceChannel|sarama.*SendMessage"
+        ],
+        "must_not_match": [
+          "eventbus\\.Publisher",
+          "watermill"
+        ]
+      }
+    },
+    {
+      "rule_id": "wm-002",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "func.*\\*message\\.Message.*error"
+        ],
+        "must_not_match": [
+          "msg\\.Context\\(\\)"
+        ]
+      }
+    },
+    {
+      "rule_id": "ctx-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "\\*entdb\\.Tx"
+        ],
+        "must_not_match": [
+          "entutils\\.TransactingRepo",
+          "entutils\\.TransactingRepoWithNoValue"
+        ]
+      }
+    },
+    {
+      "rule_id": "ctx-002",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "a\\.db\\.\\w+\\."
+        ],
+        "must_not_match": [
+          "entutils\\.TransactingRepo",
+          "entutils\\.TransactingRepoWithNoValue"
+        ]
+      }
+    },
+    {
+      "rule_id": "billing-003",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "charges\\.Charge\\{"
+        ]
+      }
+    },
+    {
+      "rule_id": "credits-003",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "BillingRegistry\\.Charges\\."
+        ],
+        "must_not_match": [
+          "ChargesServiceOrNil"
+        ]
+      }
+    },
+    {
+      "rule_id": "lock-002",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "\\.LockForTX\\("
+        ],
+        "must_not_match": [
+          "TransactingRepo",
+          "entutils\\.Transacting"
+        ]
+      }
+    },
+    {
+      "rule_id": "api-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "func.*Handler.*ServeHTTP|func.*http\\.ResponseWriter.*\\*http\\.Request"
+        ]
+      }
+    },
+    {
+      "rule_id": "ent-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "\\.ExecContext\\(|\\bdb\\.QueryContext\\("
+        ],
+        "must_not_match": [
+          "// clickhouse",
+          "// ClickHouse"
+        ]
+      }
+    },
+    {
+      "rule_id": "cfg-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "viper\\.SetDefault\\("
+        ]
+      }
+    },
+    {
+      "rule_id": "billing-005",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "billing\\.InvoiceLine\\{"
+        ]
+      }
+    },
+    {
+      "rule_id": "portal-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "meter\\.Service|meter\\.GetMeter"
+        ],
+        "must_not_match": [
+          "// meter validation",
+          "httpdriver",
+          "httphandler"
+        ]
+      }
+    },
+    {
+      "rule_id": "meter-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "jsonpath|gjson\\.Get|json\\.Path"
+        ],
+        "must_not_match": [
+          "meter\\.ParseEvent",
+          "ParseEvent"
+        ]
+      }
+    },
+    {
+      "rule_id": "credit-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "CreateGrant|EffectiveAt"
+        ],
+        "must_not_match": [
+          "Truncate\\(time\\.Minute\\)",
+          "\\.Truncate\\("
+        ]
+      }
+    },
+    {
+      "rule_id": "balance-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "QueryMeter|GetBalanceAt|handleEntitlementEvent"
+        ],
+        "must_not_match": [
+          "highWatermark|HighWatermark|watermark"
+        ]
+      }
+    },
+    {
+      "rule_id": "billing-010-split-line-group",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "SplitLineGroupID\\s*="
+        ],
+        "must_not_match": [
+          "SplitLineGroupService",
+          "// adapter"
+        ]
+      }
+    }
+  ],
+  "for_classifier": [
+    "pf-006-wire-hook-audit",
+    "pf-007-event-subsystem-prefix",
+    "lock-005-session-locker-goroutine",
+    "otel-002-tracex-preferred",
+    "wire-002-provider-no-business-logic",
+    "customer-001-requestvalidator-pre-mutation-only",
+    "subscription-001-spec-patch",
+    "goverter-001-convert-file-naming",
+    "notification-002-null-channel-sentinel",
+    "billing-007-advancement-strategy-inline-vs-queued",
+    "test-005-mock-streaming-connector",
+    "ctx-003-background-main-exception",
+    "layer-007-adapter-triad",
+    "wm-005-fourth-kafka-topic",
+    "billing-009-reconciler-idempotency",
+    "ent-004-no-direct-db-mutations-in-service",
+    "wm-006-balance-worker-topic-isolation",
+    "dep-001",
+    "dep-002",
+    "dep-003",
+    "dep-004",
+    "dep-005",
+    "dep-006",
+    "wm-001",
+    "wm-002",
+    "wm-003",
+    "ctx-001",
+    "ctx-002",
+    "layer-004",
+    "layer-005",
+    "layer-006",
+    "billing-003",
+    "billing-004",
+    "credits-003",
+    "credits-004",
+    "lock-002",
+    "sink-001",
+    "api-001",
+    "reg-001",
+    "watermill-001",
+    "error-001",
+    "ent-001",
+    "ent-002",
+    "otel-001",
+    "cfg-001",
+    "billing-005",
+    "llmcost-001",
+    "subject-001",
+    "wire-001",
+    "gen-001",
+    "gen-002",
+    "gen-003",
+    "gen-004",
+    "gen-005",
+    "gen-006",
+    "gen-007",
+    "tx-001",
+    "tx-002",
+    "credits-001",
+    "credits-002",
+    "build-001",
+    "test-001",
+    "test-002",
+    "test-003",
+    "test-004",
+    "layer-001",
+    "layer-002",
+    "layer-003",
+    "kafka-001",
+    "kafka-002",
+    "notification-001",
+    "migration-001",
+    "migration-002",
+    "security-001",
+    "charges-001",
+    "namespace-001",
+    "api-v3-001",
+    "billing-001",
+    "billing-002",
+    "di-001",
+    "di-002",
+    "http-001",
+    "http-002",
+    "servicehook-001",
+    "lock-001",
+    "portal-001",
+    "ingest-001",
+    "meter-001",
+    "credit-001",
+    "entitlement-001",
+    "balance-001",
+    "dedupe-001",
+    "billing-010-split-line-group",
+    "android-layer-viewmodel-context",
+    "android-layer-fragment-network",
+    "android-layer-fragment-db",
+    "android-layer-activity-db",
+    "swift-layer-view-network",
+    "swift-layer-view-userdefaults",
+    "typescript-layer-component-fetch",
+    "typescript-react-dom-manipulation"
+  ]
+}

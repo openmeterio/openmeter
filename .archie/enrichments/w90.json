@@ -1,0 +1,91 @@
+{
+  "openmeter/event/metadata": {
+    "purpose": "Defines canonical event identity primitives for the entire system: the EventType triple (Subsystem/Version/Name) that produces deterministic 'io.openmeter.<subsystem>.<version>.<name>' strings, EventMetadata for ID/time/source/subject fields, and ComposeResourcePath helpers for '//openmeter.io/...' URIs. All Watermill event producers across binaries depend on these types for consistent routing.",
+    "patterns": [
+      {
+        "name": "EventType triple declaration",
+        "description": "Every new event kind is declared as a package-level var EventType{Subsystem, Version, Name}. The canonical string is always obtained via EventType.EventName() \u2014 never via fmt.Sprintf. VersionSubsystem() returns the two-segment prefix used by eventbus.GeneratePublishTopic for Kafka routing.",
+        "example": "var MyEventType = metadata.EventType{Subsystem: \"billing\", Version: \"v1\", Name: \"invoiceCreated\"}\n// canonical name: \"io.openmeter.billing.v1.invoiceCreated\"\n// routing prefix: \"io.openmeter.billing.v1\""
+      },
+      {
+        "name": "Resource paths via ComposeResourcePath",
+        "description": "All source/subject fields in EventMetadata must use ComposeResourcePath(namespace, entityType..., id) or ComposeResourcePathRaw(). The authority prefix '//openmeter.io/' is injected automatically. Never use fmt.Sprintf to build these URIs.",
+        "example": "source := metadata.ComposeResourcePath(ns, metadata.EntityInvoice, invoiceID)\n// result: \"//openmeter.io/namespace/<ns>/invoice/<invoiceID>\""
+      },
+      {
+        "name": "Entity constant registry",
+        "description": "All entity type strings (EntityInvoice, EntityCustomer, EntityEntitlement, etc.) are declared as package-level string constants in resourcepath.go. New domain entities require a matching EntityXxx constant added here before use in any ComposeResourcePath call.",
+        "example": "const EntitySubscriptionAddon = \"subscriptionAddon\"\n// Then use: metadata.ComposeResourcePath(ns, metadata.EntitySubscriptionAddon, addonID)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "event_type.go",
+        "role": "Declares EventType struct with EventName() ('io.openmeter.<subsystem>.<version>.<name>') and VersionSubsystem() ('io.openmeter.<subsystem>.<version>') formatters, plus EventMetadata for ID/time/source/subject fields on every event.",
+        "watch_for": "The format is subsystem.version.name \u2014 version is the SECOND segment, not the third. Never build the event name string manually; routing in eventbus.GeneratePublishTopic relies on the VersionSubsystem() prefix matching exactly."
+      },
+      {
+        "file": "resourcepath.go",
+        "role": "Defines all EntityXxx constants and the ComposeResourcePath / ComposeResourcePathRaw helpers that produce '//openmeter.io/...' URIs used in CloudEvents source and subject fields.",
+        "watch_for": "Adding a new domain entity requires a new EntityXxx constant here. Missing constants lead to inline string literals in event producers, causing inconsistent resource paths that break audit and correlation across binaries."
+      }
+    ],
+    "anti_patterns": [
+      "Building 'io.openmeter.*' event name strings with fmt.Sprintf instead of EventType.EventName()",
+      "Constructing '//openmeter.io/...' paths with fmt.Sprintf instead of ComposeResourcePath",
+      "Adding a new entity type as an inline string literal in an event struct rather than a new EntityXxx constant in resourcepath.go",
+      "Declaring EventType values with the version in the wrong position (format is subsystem.version.name, not subsystem.name.version)"
+    ],
+    "decisions": [
+      {
+        "decision": "EventName format encodes subsystem + version + name in a fixed dot-separated URI under 'io.openmeter.'",
+        "rationale": "Watermill's eventbus.GeneratePublishTopic routes events to the correct Kafka topic by matching the EventName() prefix against known EventVersionSubsystem constants. A deterministic, centrally-defined format prevents routing mismatches across independently-deployed worker binaries."
+      },
+      {
+        "decision": "Resource paths follow '//openmeter.io/namespace/<ns>/<entity>/<id>' convention via ComposeResourcePath",
+        "rationale": "CloudEvents spec requires unambiguous source/subject URIs. The '//openmeter.io/' authority prefix scopes all paths to this system globally and enables consistent correlation across audit logs, traces, and webhook payloads."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Declaring a new event type and building its EventMetadata",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/event/metadata\"\n\nvar InvoiceCreatedEventType = metadata.EventType{\n    Subsystem: \"billing\",\n    Version:   \"v1\",\n    Name:      \"invoiceCreated\",\n}\n\nmeta := metadata.EventMetadata{\n    ID:      ulid.Make().String(),\n    Time:    time.Now(),\n    Source:  metadata.ComposeResourcePath(ns, metadata.EntityInvoice, invoiceID),\n    Subject: metadata.ComposeResourcePath(ns, metadata.EntityCustomer, customerID),\n}\n// Routing prefix for eventbus: InvoiceCreatedEventType.VersionSubsystem()"
+      }
+    ]
+  },
+  "openmeter/event/models": {
+    "purpose": "Holds minimal cross-subsystem value types (FeatureKeyAndID, NamespaceID) that appear inside event payloads shared between multiple domain packages (entitlement, billing, productcatalog). Each type implements Validate() to enforce required fields before payload construction.",
+    "patterns": [
+      {
+        "name": "Inline Validate() on every exported struct",
+        "description": "Every struct in this package must implement Validate() error that checks all required fields. Callers must invoke Validate() before embedding the value in an event payload. No silent zero-value structs should propagate into event buses.",
+        "example": "f := models.FeatureKeyAndID{Key: featureKey, ID: featureID}\nif err := f.Validate(); err != nil {\n    return fmt.Errorf(\"invalid feature ref: %w\", err)\n}"
+      },
+      {
+        "name": "Cross-subsystem value types only",
+        "description": "Only add types here if they appear in event payloads used by two or more domain packages. Domain-specific structs belong in their own domain package. This package is imported by many subsystems; heavy additions create wide compilation coupling.",
+        "example": "// FeatureKeyAndID is used in both entitlement and billing event payloads \u2014 correct placement\n// Invoice{} belongs in openmeter/billing \u2014 do not add here"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "models.go",
+        "role": "Declares FeatureKeyAndID (Key+ID pair for feature references) and NamespaceID (namespace identifier) \u2014 both are embedded in event payloads across entitlement and billing subsystems.",
+        "watch_for": "Do not import openmeter domain packages (billing, entitlement, customer, etc.) from this file \u2014 it is imported by all of them and circular imports will result. Keep types minimal: string fields + Validate() only."
+      }
+    ],
+    "anti_patterns": [
+      "Adding domain-specific types (Invoice, Subscription, Entitlement) to this package \u2014 they belong in their respective domain packages",
+      "Skipping Validate() calls on values received in event payloads from this package",
+      "Importing openmeter/* domain packages from models.go \u2014 this package must remain a leaf with no domain imports to avoid circular dependencies",
+      "Adding business logic or computed fields to these value types \u2014 they are pure data containers"
+    ],
+    "decisions": [
+      {
+        "decision": "Separate package for cross-subsystem event value types rather than duplicating in each domain",
+        "rationale": "Both entitlement and billing packages need FeatureKeyAndID in their event payloads. A shared package prevents import cycles: neither billing nor entitlement imports the other, but both can import event/models."
+      }
+    ],
+    "code_examples": []
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "openmeter/billing/worker/subscriptionsync/service": {
+    "purpose": "Concrete implementation of subscriptionsync.Service that orchestrates a three-phase sync pipeline (load persisted billing state \u2192 compute target state \u2192 plan+apply reconciler diff) to keep invoice lines and charges aligned with live subscription views. All mutations are serialized per-customer via billing.Service.WithLock.",
+    "patterns": [
+      {
+        "name": "Config.Validate() before construction",
+        "description": "New(Config) calls config.Validate() before creating any internal objects and returns an error if BillingService, SubscriptionService, SubscriptionSyncAdapter, Logger, or Tracer is nil. ChargesService is optional (nil is valid when credits are disabled).",
+        "example": "service, err := New(Config{BillingService: svc, SubscriptionService: subsSvc, SubscriptionSyncAdapter: adapter, Logger: slog.Default(), Tracer: noop.NewTracerProvider().Tracer(\"test\")})"
+      },
+      {
+        "name": "billing.Service.WithLock wraps all mutations",
+        "description": "SynchronizeSubscription acquires a per-customer pg_advisory_xact_lock via billingService.WithLock before calling buildSyncPlan and reconciler.Apply. No invoice line or charge mutation may happen outside this lock.",
+        "example": "return s.billingService.WithLock(ctx, customerID, func(ctx context.Context) error { linesDiff, _ := s.buildSyncPlan(ctx, subs, asOf, ...); return s.reconciler.Apply(ctx, reconciler.ApplyInput{Plan: linesDiff, ...}) })"
+      },
+      {
+        "name": "Three-phase pipeline: persisted \u2192 target \u2192 plan/apply",
+        "description": "buildSyncPlan in reconcile.go loads persistedstate via persistedstate.NewLoader, builds targetstate via targetstate.NewBuilder, then calls reconciler.Plan. Apply is a separate call. Plan is pure in-memory and enables DryRun mode.",
+        "example": "persisted, _ := persistedstate.NewLoader(s.billingService, s.chargesService).LoadForSubscription(ctx, subs); target, _ := targetstate.NewBuilder(s.logger, s.tracer).Build(ctx, targetstate.BuildInput{...}); plan, _ := s.reconciler.Plan(ctx, reconciler.PlanInput{Target: target, Persisted: persisted})"
+      },
+      {
+        "name": "tracex.Start spans on every public method",
+        "description": "Every exported method (SynchronizeSubscription, SynchronizeSubscriptionAndInvoiceCustomer, invoicePendingLines, updateSyncState, buildSyncPlan) opens an OTel span via tracex.StartWithNoValue or tracex.Start and wraps its body in span.Wrap.",
+        "example": "span := tracex.StartWithNoValue(ctx, s.tracer, \"billing.worker.subscription.sync.SynchronizeSubscription\", trace.WithAttributes(attribute.String(\"subscription_id\", subs.Subscription.ID))); return span.Wrap(func(ctx context.Context) error { ... })"
+      },
+      {
+        "name": "updateSyncState after every sync branch",
+        "description": "All terminal code paths in SynchronizeSubscription \u2014 including HasBillables() short-circuit, deleted-customer guard, empty plan, and successful apply \u2014 must call updateSyncState with the MaxGenerationTimeLimit from the plan. Missing this breaks the scheduler, causing the subscription to re-queue immediately on every tick.",
+        "example": "if err := s.updateSyncState(ctx, updateSyncStateInput{SubscriptionView: subs, MaxGenerationTimeLimit: linesDiff.SubscriptionMaxGenerationTimeLimit}); err != nil { return fmt.Errorf(\"updating sync state: %w\", err) }"
+      },
+      {
+        "name": "FeatureFlags struct for runtime-toggleable behavior",
+        "description": "EnableFlatFeeInAdvanceProrating, EnableFlatFeeInArrearsProrating, and EnableCreditThenInvoice are carried as a FeatureFlags struct on Service. Tests toggle them via s.Service.featureFlags = FeatureFlags{...} and reset them in afterTest.",
+        "example": "s.Service.featureFlags.EnableFlatFeeInAdvanceProrating = true // in test; s.Service.featureFlags = FeatureFlags{} // reset in afterTest"
+      },
+      {
+        "name": "SuiteBase embeds billingtest.BaseSuite + SubscriptionMixin",
+        "description": "All test suites embed SuiteBase which provides BillingService, SubscriptionService, MockStreamingConnector, and the setupChargesService helper. Never build test dependencies from app/common; use setupChargesService(chargestestutils.Config{...}) to inject charges.Service when credits-only tests are needed.",
+        "example": "type CreditsOnlySubscriptionHandlerTestSuite struct { SuiteBase }; func (s *CreditsOnlySubscriptionHandlerTestSuite) SetupSuite() { s.SuiteBase.SetupSuite(); s.setupChargesService(chargestestutils.Config{...}) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service struct definition, Config with Validate(), FeatureFlags, and New constructor. reconciler.New is called internally using Config fields \u2014 do not construct reconciler.Reconciler separately outside New().",
+        "watch_for": "ChargesService is optional at construction; reconciler.Config derives from the same Config fields so reconciler feature flags must be set via FeatureFlags, not by configuring reconciler directly."
+      },
+      {
+        "file": "sync.go",
+        "role": "Main orchestration: SynchronizeSubscription, SynchronizeSubscriptionAndInvoiceCustomer, HandleSubscriptionSyncEvent, invoicePendingLines, updateSyncState.",
+        "watch_for": "HasBillables() short-circuit must still call updateSyncState; customerDeletedAt guard sets PreventFurtherSyncs=true; DryRun must skip all adapter writes including updateSyncState; billing.ErrInvoiceCreateNoLines must be swallowed in invoicePendingLines."
+      },
+      {
+        "file": "reconcile.go",
+        "role": "buildSyncPlan \u2014 assembles persistedstate, targetstate, and calls reconciler.Plan. Returns *reconciler.Plan (pointer); nil means nothing to do.",
+        "watch_for": "Callers must nil-check the returned *Plan before calling linesDiff.IsEmpty() to avoid nil-pointer panics."
+      },
+      {
+        "file": "handlers.go",
+        "role": "HandleCancelledEvent and HandleInvoiceCreation \u2014 thin Kafka-event adapters that delegate to SynchronizeSubscriptionAndInvoiceCustomer.",
+        "watch_for": "HandleCancelledEvent intentionally skips pre-sync invoice creation; HandleInvoiceCreation uses clock.Now() not the invoice timestamp to decide how far to provision forward."
+      },
+      {
+        "file": "base_test.go",
+        "role": "SuiteBase and shared helpers: gatheringInvoice, expectLines, recurringLineMatcher, oneTimeLineMatcher, generatePeriods, populateChildIDsFromParents.",
+        "watch_for": "recurringLineMatcher.ChildIDs generates UniqueIDs in the format subsID/phaseKey/itemKey/v[N]/period[N] \u2014 must stay in sync with targetstate package; afterTest resets featureFlags and MockStreamingConnector."
+      },
+      {
+        "file": "creditsonly_test.go",
+        "role": "Integration tests for credits-only settlement mode: flat-fee and usage-based charge provisioning, cancellation at period boundary, mid-period shrink/prorate.",
+        "watch_for": "Requires setupChargesService to have been called; tests verify that reconciliation is idempotent by checking charge UpdatedAt timestamps before and after a re-sync."
+      },
+      {
+        "file": "sync_test.go",
+        "role": "Integration tests for invoice-backed sync: happy path, progressive billing, cancellation, continuation, billing anchor edge cases.",
+        "watch_for": "Always call defer clock.ResetTime() and defer s.MockStreamingConnector.Reset() to avoid test pollution between cases."
+      }
+    ],
+    "anti_patterns": [
+      "Calling reconciler.Apply or persistedstate.Loader outside the billing.Service.WithLock closure \u2014 concurrent invoice mutations produce duplicate or partial lines.",
+      "Omitting updateSyncState at the end of any new sync branch \u2014 the reconciler scheduler re-queues the subscription immediately on every tick instead of waiting for MaxGenerationTimeLimit.",
+      "Adding business logic to HandleSubscriptionSyncEvent or HandleCancelledEvent beyond fetching the subscription view and delegating to SynchronizeSubscription \u2014 these handlers must remain thin Kafka-event adapters.",
+      "Constructing billing.Service or charges.Service directly in a test instead of using SuiteBase / setupChargesService \u2014 this bypasses the shared MockStreamingConnector and breaks streaming connector assertions.",
+      "Using context.Background() instead of propagating the caller ctx through buildSyncPlan and reconciler calls \u2014 breaks OTel tracing and context cancellation."
+    ],
+    "decisions": [
+      {
+        "decision": "Service delegates all DB mutations to billing.Service and charges.Service interfaces rather than calling adapters directly.",
+        "rationale": "Keeps the sync service at the orchestration layer; billing.Service.WithLock, transaction management, and validation remain with the owning domain service, preventing the sync package from accumulating persistence concerns."
+      },
+      {
+        "decision": "Plan and Apply are two separate reconciler calls; buildSyncPlan returns a pure in-memory Plan with no side effects.",
+        "rationale": "Enables DryRun mode (Plan only, no Apply) and makes the diff inspectable in logs and tests before committing writes \u2014 critical for debugging sync decisions without mutating state."
+      },
+      {
+        "decision": "FeatureFlags is a mutable struct on Service (not injected via Wire) so integration tests can toggle individual flags per test case.",
+        "rationale": "Allows gradual feature rollout without rebuilding the service; tests use s.Service.featureFlags = FeatureFlags{} in afterTest to reset state between cases without reconstructing the entire service dependency tree."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Synchronize a subscription and immediately invoice pending lines (standard entry point from Watermill handler)",
+        "code": "// sync.go\nfunc (s *Service) SynchronizeSubscriptionAndInvoiceCustomer(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {\n\tspan := tracex.StartWithNoValue(ctx, s.tracer, \"billing.worker.subscription.sync.SynchronizeSubscriptionAndInvoiceCustomer\",\n\t\ttrace.WithAttributes(attribute.String(\"subscription_id\", subs.Subscription.ID)))\n\treturn span.Wrap(func(ctx context.Context) error {\n\t\tif err := s.SynchronizeSubscription(ctx, subs, asOf); err != nil {\n\t\t\treturn fmt.Errorf(\"synchronize subscription: %w\", err)\n\t\t}\n\t\tcustomerID := customer.CustomerID{Namespace: subs.Subscription.Namespace, ID: subs.Subscription.CustomerId}\n\t\tif err := s.invoicePendingLines(ctx, customerID); err != nil {\n\t\t\treturn fmt.Errorf(\"invoice pending lines (post): %w [customer_id=%s]\", err, customerID.ID)\n\t\t}\n\t\treturn nil\n\t})\n}"
+      }
+    ]
+  }
+}

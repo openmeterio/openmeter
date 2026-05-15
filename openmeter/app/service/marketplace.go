@@ -10,12 +10,12 @@ import (
 
 var _ app.AppService = (*Service)(nil)
 
-func (s *Service) RegisterMarketplaceListing(input app.RegisterMarketplaceListingInput) error {
+func (s *Service) RegisterMarketplaceListing(ctx context.Context, input app.RegisterMarketplaceListingInput) error {
 	if err := input.Validate(); err != nil {
 		return models.NewGenericValidationError(err)
 	}
 
-	return s.adapter.RegisterMarketplaceListing(input)
+	return s.adapter.RegisterMarketplaceListing(ctx, input)
 }
 
 func (s *Service) GetMarketplaceListing(ctx context.Context, input app.MarketplaceGetInput) (app.RegistryItem, error) {

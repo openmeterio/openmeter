@@ -1,0 +1,81 @@
+{
+  "openmeter/billing/charges/meta/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing meta.Adapter for the charges meta-registry \u2014 persists charge cross-reference records (the Charge join table linking charge IDs to their typed sub-entities) and manages their soft-delete lifecycle. All DB writes are transaction-aware via entutils.TransactingRepoWithNoValue.",
+    "patterns": [
+      {
+        "name": "TransactingRepoWithNoValue on every write",
+        "description": "Every mutating method calls entutils.TransactingRepoWithNoValue(ctx, a, func(ctx, tx *adapter) error{...}). This rebinds to the caller's ctx-propagated transaction or starts a new one. Using the raw a.db directly bypasses the active tx.",
+        "example": "return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error { return tx.db.Charge.Create()...Save(ctx) })"
+      },
+      {
+        "name": "Tx / WithTx / Self triad",
+        "description": "adapter implements all three methods required by entutils.TxUser[T]: Tx(ctx) via HijackTx+NewTxDriver, WithTx(ctx, tx) via NewTxClientFromRawConfig, and Self(). All three must be present for TransactingRepoWithNoValue to rebind correctly.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client(), logger: a.logger} }"
+      },
+      {
+        "name": "Config struct with Validate() before New()",
+        "description": "Config holds Client *entdb.Client and Logger *slog.Logger. New() calls config.Validate() and returns error before constructing \u2014 never returns a broken adapter.",
+        "example": "func New(config Config) (meta.Adapter, error) { if err := config.Validate(); err != nil { return nil, err }; return &adapter{db: config.Client, logger: config.Logger}, nil }"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "var _ meta.Adapter = (*adapter)(nil) at package level ensures adapter always satisfies meta.Adapter at compile time.",
+        "example": "var _ meta.Adapter = (*adapter)(nil)"
+      },
+      {
+        "name": "Soft-delete with DeletedAtIsNil guard",
+        "description": "DeleteRegisteredCharge sets deleted_at via SetDeletedAt(clock.Now()) with a chargedb.DeletedAtIsNil() predicate \u2014 never issues a hard DELETE and prevents double-deletion.",
+        "example": "tx.db.Charge.UpdateOneID(in.ID).Where(chargedb.DeletedAtIsNil(), chargedb.Namespace(in.Namespace)).SetDeletedAt(clock.Now()).Exec(ctx)"
+      },
+      {
+        "name": "Input Validate() before any Ent call",
+        "description": "Every exported method calls in.Validate() as the first line, returning its error before touching the DB. Input types own their own validation.",
+        "example": "func (a *adapter) RegisterCharges(ctx context.Context, in meta.RegisterChargesInput) error { if err := in.Validate(); err != nil { return err }; ... }"
+      },
+      {
+        "name": "Type-switched FK assignment on charge creation",
+        "description": "RegisterCharges switches on in.Type (FlatFee/UsageBased/CreditPurchase) and calls the matching SetCharge*ID builder method, ensuring exactly one FK column is populated per charge type.",
+        "example": "switch in.Type { case meta.ChargeTypeFlatFee: create = create.SetChargeFlatFeeID(charge.ID); case meta.ChargeTypeUsageBased: create = create.SetChargeUsageBasedID(charge.ID); ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Defines Config, New constructor, and the adapter struct with Tx/WithTx/Self. The only place where *entdb.Client is stored; all DB access elsewhere goes through tx.db obtained from WithTx.",
+        "watch_for": "Never store or pass a bare *entdb.Client outside Tx/WithTx/Self \u2014 doing so bypasses the ctx-bound transaction."
+      },
+      {
+        "file": "charges.go",
+        "role": "Implements RegisterCharges (bulk-create with type-switched FK assignment) and DeleteRegisteredCharge (soft-delete). Both wrap Ent calls in TransactingRepoWithNoValue.",
+        "watch_for": "Any new write method must also use TransactingRepoWithNoValue. Missing this wrapping causes writes to fall outside the caller's transaction and produces partial writes in multi-step AdvanceCharges flows."
+      }
+    ],
+    "anti_patterns": [
+      "Calling tx.db.Charge... directly in an exported method body without TransactingRepoWithNoValue \u2014 bypasses the ctx transaction",
+      "Hard-deleting rows (tx.db.Charge.DeleteOneID) instead of soft-deleting via SetDeletedAt",
+      "Storing business logic or validation in this adapter \u2014 logic belongs in the meta service layer",
+      "Adding new fields to Config without a corresponding nil-check in Config.Validate()",
+      "Removing or bypassing the var _ meta.Adapter = (*adapter)(nil) compile-time assertion"
+    ],
+    "decisions": [
+      {
+        "decision": "TransactingRepoWithNoValue instead of direct Ent calls",
+        "rationale": "Charge advancement mixes multiple writes across adapters; if any helper uses the raw client instead of rebinding to ctx's transaction, partial writes occur under concurrency. Explicit wrapping is the only compiler-enforceable guard."
+      },
+      {
+        "decision": "Separate Config struct with Validate() before construction",
+        "rationale": "Fails fast with a descriptive error rather than a nil-pointer panic at first DB call, which could be deep inside a billing transaction."
+      },
+      {
+        "decision": "Soft-delete with DeletedAtIsNil predicate guard",
+        "rationale": "Billing charge records are audit-critical; hard deletes lose history. The IsNil predicate makes double-soft-delete a no-op rather than an error-prone inconsistent state."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new write method that bulk-updates charge status",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/charges/meta\"\n\tchargedb \"github.com/openmeterio/openmeter/openmeter/ent/db/charge\"\n\t\"github.com/openmeterio/openmeter/pkg/clock\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) MarkChargesProcessed(ctx context.Context, in meta.MarkChargesProcessedInput) error {\n\tif err := in.Validate(); err != nil {\n\t\treturn err\n\t}\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n\t\t_, err := tx.db.Charge.Update().\n\t\t\tWhere(chargedb.IDIn(in.IDs...), chargedb.Namespace(in.Namespace)).\n\t\t\tSetProcessedAt(clock.Now()).\n\t\t\tSave(ctx)\n\t\treturn err\n\t})\n}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,169 @@
+{
+  "api/spec/packages/aip/common": {
+    "purpose": "Organisational parent for shared OpenAPI YAML component fragments consumed by the v3 AIP TypeSpec build pipeline. Its single child (definitions/) centralises all reusable schemas, error responses, pagination metadata, filter types, and security schemes that every AIP route references via $ref.",
+    "patterns": [],
+    "key_file_guides": [
+      {
+        "file": "CLAUDE.md",
+        "role": "Archie-generated intent layer for the common/ organisational folder; describes the role of definitions/ and the centralisation decision.",
+        "watch_for": "Do not add TypeSpec source files directly here \u2014 all component fragments belong in definitions/."
+      }
+    ],
+    "anti_patterns": [
+      "Adding OpenAPI YAML fragments directly in common/ instead of definitions/ \u2014 the build pipeline resolves $ref targets from definitions/ only.",
+      "Duplicating schema definitions across route-specific files instead of $ref-ing the shared definitions \u2014 breaks the single-source guarantee.",
+      "Adding route bindings or operation definitions here \u2014 this folder is shared infrastructure, not a route layer."
+    ],
+    "decisions": [
+      {
+        "decision": "All shared components live in a single definitions/ child rather than being scattered alongside route files.",
+        "rationale": "Centralising $ref targets prevents duplicate schema definitions and ensures the TypeSpec build pipeline resolves all component references from one canonical location."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/spec/packages/aip/lib": {
+    "purpose": "TypeSpec linter plugin for the v3 AIP spec \u2014 exports a $linter via index.js that registers all custom rules (casing, docs, friendlyName, no-nullable, composition, field-prefix) enforcing AIP naming conventions and structural constraints. Rules run during `make gen-api` and block or warn before any OpenAPI or SDK artifact is generated.",
+    "patterns": [
+      {
+        "name": "createRule factory for every rule",
+        "description": "Every lint rule must be defined via createRule from '@typespec/compiler'. Raw functions calling context.report directly are not registered by the TypeSpec rule engine and have no effect.",
+        "example": "import { createRule } from '@typespec/compiler'\nexport const myRule = createRule({ name: 'my-rule', severity: 'error', messages: { default: 'msg' }, create: (context) => ({ model: (m) => { /* ... */ } }) })"
+      },
+      {
+        "name": "Two-severity model: error vs warning",
+        "description": "Rules blocking compilation (missing @friendlyName, enum value casing) use severity: 'error'. Stylistic preferences (model name casing, prefix grouping, composition) use severity: 'warning'. Never use error for stylistic-only rules.",
+        "example": "// error: blocks gen-api\nexport const friendlyNameRule = createRule({ severity: 'error', ... })\n// warning: informs but does not block\nexport const casingRule = createRule({ severity: 'warning', ... })"
+      },
+      {
+        "name": "Register every rule in index.js",
+        "description": "A new rule file has zero effect until imported and added to the rules array in index.js, which is the sole entry point consumed by defineLinter.",
+        "example": "// index.js\nimport { myRule } from './rules/my-rule.js'\nconst rules = [ ..., myRule ]\nexport const $linter = defineLinter({ rules })"
+      },
+      {
+        "name": "PascalCase exceptions live exclusively in utils.js",
+        "description": "Accepted acronym exceptions for isPascalCaseNoAcronyms (OAuth2, URL, API, UI, ID) are defined in utils.js. Add new acronyms there only \u2014 not inline in individual rule files.",
+        "example": "// utils.js\nconst pascalCaseExceptions = ['OAuth2', 'URL', 'API', 'UI', 'ID']"
+      },
+      {
+        "name": "EXCLUDED_PREFIXES for boolean-flag field groups",
+        "description": "field-prefix.js exempts AIP-standard boolean-flag prefixes (is*, enable*, disable*, allow*, etc.) via EXCLUDED_PREFIXES. New boolean-flag prefixes must be added there to avoid spurious warnings.",
+        "example": "// field-prefix.js\nconst EXCLUDED_PREFIXES = ['is_', 'enable_', 'disable_', 'allow_', ...]"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "index.js",
+        "role": "Sole entry point \u2014 exports $linter via defineLinter, imports and registers every rule. The TypeSpec compiler loads only this file.",
+        "watch_for": "Adding a new rule file without importing it here \u2014 the rule is silently ignored."
+      },
+      {
+        "file": "rules/utils.js",
+        "role": "Shared casing helpers: isPascalCaseNoAcronyms, isCamelCaseNoAcronyms, isSnakeCase, isKebabCase. Holds the pascalCaseExceptions allowlist.",
+        "watch_for": "Acronyms missing from pascalCaseExceptions will be flagged as casing errors \u2014 add them here, not per-rule."
+      },
+      {
+        "file": "rules/casing.js",
+        "role": "casingRule (warning): models/enums PascalCase, non-path properties snake_case, path properties camelCase, enum member names PascalCase. casingErrorsRule (error): enum member string values must be snake_case.",
+        "watch_for": "@path-decorated params are checked for camelCase not snake_case \u2014 renaming them to snake_case to silence a warning produces a new error."
+      },
+      {
+        "file": "rules/friendly-name.js",
+        "role": "Enforces @friendlyName on all models, enums, unions, and non-Endpoints/Operations interfaces (severity: error). Interfaces ending in 'Endpoints'/'Operations' must NOT have @friendlyName.",
+        "watch_for": "Every new TypeSpec model, enum, union, and non-route interface needs @friendlyName \u2014 missing it blocks gen-api."
+      },
+      {
+        "file": "rules/field-prefix.js",
+        "role": "Warns when 2+ model properties share a common prefix_ and should be grouped into a sub-object. EXCLUDED_PREFIXES exempts AIP-standard boolean-flag prefixes.",
+        "watch_for": "New boolean-flag property groups without an entry in EXCLUDED_PREFIXES produce spurious warnings."
+      },
+      {
+        "file": "rules/composition-over-inheritance.js",
+        "role": "Warns when a model extends a base without @discriminator. Prefers spread (...Base) or 'model is Base' for composition.",
+        "watch_for": "Using 'extends' for mixins without @discriminator produces warnings \u2014 prefer spread syntax."
+      },
+      {
+        "file": "rules/docs.js",
+        "role": "Enforces @doc on models, enums, and properties; docFormatRule checks format conventions.",
+        "watch_for": "Missing @doc on new types blocks gen-api if configured as error severity."
+      }
+    ],
+    "anti_patterns": [
+      "Defining a rule as a raw function calling context.report directly instead of using createRule \u2014 TypeSpec rule registration requires createRule.",
+      "Using severity: 'error' for stylistic preferences (casing, prefix grouping) \u2014 errors block gen-api; use 'warning'.",
+      "Adding new accepted PascalCase acronyms anywhere other than pascalCaseExceptions in utils.js.",
+      "Forgetting to import a new rule in index.js \u2014 the rule file is valid JS but has zero effect.",
+      "Adding underscore-prefixed boolean-flag field groups without adding the prefix to EXCLUDED_PREFIXES in field-prefix.js."
+    ],
+    "decisions": [
+      {
+        "decision": "Two-severity model: error blocks compilation, warning surfaces in lint output but does not fail gen-api.",
+        "rationale": "Hard naming contracts (friendlyName, enum value casing) must be enforced before code generation succeeds; stylistic preferences should guide authors without halting the build on every iteration."
+      },
+      {
+        "decision": "PascalCase exceptions codified in utils.js rather than inline per rule.",
+        "rationale": "Centralising exceptions makes them reviewable and extensible without touching each rule that uses isPascalCaseNoAcronyms."
+      },
+      {
+        "decision": "EXCLUDED_PREFIXES in field-prefix.js exempts AIP-standard boolean-flag prefixes.",
+        "rationale": "AIP guidelines explicitly allow these prefix patterns for boolean fields; grouping them into sub-objects would violate AIP conventions."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new AIP linter rule that enforces a required decorator on all operations",
+        "code": "// rules/require-my-decorator.js\nimport { createRule, paramMessage } from '@typespec/compiler'\n\nexport const requireMyDecoratorRule = createRule({\n  name: 'require-my-decorator',\n  severity: 'error',\n  description: 'Ensure @myDecorator is present on all operations.',\n  messages: {\n    default: paramMessage`Operation ${'name'} must have @myDecorator.`,\n  },\n  create: (context) => ({\n    operation: (op) => {\n      if (!op.decorators.some((d) => d.decorator.name === '$myDecorator')) {\n        context.reportDiagnostic({ format: { name: op.name }, target: op, messageId: 'default' })\n      }\n    },\n  }),\n})\n\n// index.js \u2014 also add:\nimport { requireMyDecoratorRule } from './rules/require-my-decorator.js'\nconst rules = [ ..., requireMyDecoratorRule ]"
+      }
+    ]
+  },
+  "api/client/python/scripts": {
+    "purpose": "Contains the single release script (release.sh) that computes the next PEP-440 pre-release version by querying live PyPI state, stamps it into pyproject.toml and openmeter/_version.py/_commit.py, then invokes `poetry publish --build`. Its primary constraint: only 'alpha' is a valid PY_SDK_RELEASE_TAG value; any other tag hard-errors.",
+    "patterns": [
+      {
+        "name": "PEP-440 alpha versioning via live PyPI query",
+        "description": "When PY_SDK_RELEASE_VERSION is absent, the script queries PyPI for the latest alpha release, extracts the pre-release number, increments it, and constructs the next version (e.g. 1.0.0a3). Any new release automation must follow this monotonic increment pattern.",
+        "example": "LATEST_VERSION=$(curl -s https://pypi.org/pypi/openmeter/json | jq -r '.releases | keys[] | select(test(\"a[0-9]+\"))' | sort -V | tail -1)"
+      },
+      {
+        "name": "Version normalisation before poetry invocation",
+        "description": "Before calling `poetry version`, strip a leading 'v' and convert semver pre-release suffixes (-alpha, -beta) to PEP-440 equivalents (a, b) via sed. Any injected PY_SDK_RELEASE_VERSION must survive this sed pipeline without unintended mutation.",
+        "example": "export PY_SDK_RELEASE_VERSION=$(echo \"$PY_SDK_RELEASE_VERSION\" | sed -E 's/^v//' | sed -E 's/-alpha\\.?/a/; s/-beta\\.?/b/;')"
+      },
+      {
+        "name": "Unconditional dist clean before publish",
+        "description": "`rm -rf dist` runs before `poetry publish --build` to prevent poetry's interactive prompt about overwriting existing artifacts. Any pre-publish build step added must not recreate dist before this clean.",
+        "example": "rm -rf dist\npoetry publish --build --no-interaction"
+      },
+      {
+        "name": "Version/commit stamped into package at build time",
+        "description": "The script writes openmeter/_version.py and openmeter/_commit.py as transient side-effects before the build. These files must not be committed to source control. The `|| true` silently ignores write failures if the openmeter/ directory is missing.",
+        "example": "printf \"VERSION = \\\"%s\\\"\" \"$PY_SDK_RELEASE_VERSION\" > openmeter/_version.py || true\nprintf \"COMMIT = \\\"%s\\\"\" \"$COMMIT_SHORT_SHA\" > openmeter/_commit.py || true"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "release.sh",
+        "role": "Single-entry-point release script invoked by CI (sdk-python-dev-release.yaml) with PY_SDK_RELEASE_TAG=alpha or a pre-set PY_SDK_RELEASE_VERSION. Computes version, stamps files, runs `poetry publish --build`.",
+        "watch_for": "The `|| true` on printf lines silently ignores write failures for _version.py and _commit.py \u2014 a missing openmeter/ directory will not abort the script. Only 'alpha' is accepted as PY_SDK_RELEASE_TAG; any other value exits with error. COMMIT_SHORT_SHA falls back to `git rev-parse --short=12 HEAD` if not set by CI."
+      }
+    ],
+    "anti_patterns": [
+      "Committing openmeter/_version.py or openmeter/_commit.py \u2014 they are written transiently by release.sh and must not be in source control",
+      "Setting PY_SDK_RELEASE_TAG to anything other than 'alpha' \u2014 the script hard-errors on unknown tags",
+      "Calling `poetry build` separately before this script \u2014 dist artifacts left behind will trigger an interactive poetry prompt that hangs CI",
+      "Injecting a PY_SDK_RELEASE_VERSION with unusual formats (e.g. 'v1.0.0-alpha.1') without verifying the sed pipeline produces a valid PEP-440 string",
+      "Adding a pre-publish build step that recreates the dist/ directory after the `rm -rf dist` clean"
+    ],
+    "decisions": [
+      {
+        "decision": "Version computed from live PyPI state rather than git tags",
+        "rationale": "Alpha releases are continuous and not tied to formal git tags; querying PyPI ensures the next published version is always monotonically incremented even if the CI job is re-run."
+      },
+      {
+        "decision": "poetry used for both build and publish in a single command",
+        "rationale": "Keeps the release pipeline to one tool invocation, avoiding a separate `poetry build` step that would require managing dist artifact cleanup independently."
+      }
+    ],
+    "code_examples": []
+  }
+}
