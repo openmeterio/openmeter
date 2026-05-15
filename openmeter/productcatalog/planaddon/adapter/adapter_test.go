@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -338,7 +339,7 @@ func TestPostgresAdapter(t *testing.T) {
 				t.Run("ById", func(t *testing.T) {
 					listPlanAddons, err := env.PlanAddonRepository.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
 						Namespaces: []string{namespace},
-						IDs:        []string{planAddon.ID},
+						ID:         &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(planAddon.ID)}},
 					})
 					assert.NoErrorf(t, err, "listing plan add-on assignment by id must not fail")
 
@@ -350,14 +351,72 @@ func TestPostgresAdapter(t *testing.T) {
 				t.Run("ByResourceKey", func(t *testing.T) {
 					listPlanAddons, err := env.PlanAddonRepository.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
 						Namespaces: []string{namespace},
-						PlanKeys:   []string{planV1.Key},
-						AddonKeys:  []string{addonV1.Key},
+						PlanKey:    &filter.FilterString{Eq: lo.ToPtr(planV1.Key)},
+						AddonKey:   &filter.FilterString{Eq: lo.ToPtr(addonV1.Key)},
 					})
 					assert.NoErrorf(t, err, "listing plan add-on assignment by plan and add-on keys must not fail")
 
 					require.Lenf(t, listPlanAddons.Items, 1, "plan add-on assignments must not be empty")
 
 					planaddon.AssertPlanAddonEqual(t, *planAddon, listPlanAddons.Items[0])
+				})
+
+				t.Run("ByPlanID", func(t *testing.T) {
+					listPlanAddons, err := env.PlanAddonRepository.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
+						Namespaces: []string{namespace},
+						PlanID:     &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(planV1.ID)}},
+					})
+					assert.NoErrorf(t, err, "listing plan add-on assignment by plan id must not fail")
+
+					require.Lenf(t, listPlanAddons.Items, 1, "plan add-on assignments must not be empty")
+
+					planaddon.AssertPlanAddonEqual(t, *planAddon, listPlanAddons.Items[0])
+				})
+
+				t.Run("ByAddonID", func(t *testing.T) {
+					listPlanAddons, err := env.PlanAddonRepository.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
+						Namespaces: []string{namespace},
+						AddonID:    &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(addonV1.ID)}},
+					})
+					assert.NoErrorf(t, err, "listing plan add-on assignment by addon id must not fail")
+
+					require.Lenf(t, listPlanAddons.Items, 1, "plan add-on assignments must not be empty")
+
+					planaddon.AssertPlanAddonEqual(t, *planAddon, listPlanAddons.Items[0])
+				})
+
+				t.Run("ByAddonName", func(t *testing.T) {
+					listPlanAddons, err := env.PlanAddonRepository.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
+						Namespaces: []string{namespace},
+						AddonName:  &filter.FilterString{Contains: lo.ToPtr("Addon")},
+					})
+					assert.NoErrorf(t, err, "listing plan add-on assignment by addon name must not fail")
+
+					require.Lenf(t, listPlanAddons.Items, 1, "plan add-on assignments must not be empty")
+
+					planaddon.AssertPlanAddonEqual(t, *planAddon, listPlanAddons.Items[0])
+				})
+
+				t.Run("ByCurrency", func(t *testing.T) {
+					listPlanAddons, err := env.PlanAddonRepository.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
+						Namespaces:   []string{namespace},
+						PlanCurrency: &filter.FilterString{Eq: lo.ToPtr("USD")},
+					})
+					assert.NoErrorf(t, err, "listing plan add-on assignment by currency must not fail")
+
+					require.Lenf(t, listPlanAddons.Items, 1, "plan add-on assignments must not be empty")
+
+					planaddon.AssertPlanAddonEqual(t, *planAddon, listPlanAddons.Items[0])
+				})
+
+				t.Run("NoMatch", func(t *testing.T) {
+					listPlanAddons, err := env.PlanAddonRepository.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
+						Namespaces:   []string{namespace},
+						PlanCurrency: &filter.FilterString{Eq: lo.ToPtr("EUR")},
+					})
+					assert.NoErrorf(t, err, "listing plan add-on assignments with non-matching currency must not fail")
+
+					require.Lenf(t, listPlanAddons.Items, 0, "plan add-on assignments must be empty for non-matching currency")
 				})
 			})
 
