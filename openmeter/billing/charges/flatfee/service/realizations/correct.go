@@ -2,6 +2,7 @@ package realizations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ReconcileCreditRealizationsInput describes the desired credit allocation
@@ -25,27 +27,29 @@ type ReconcileCreditRealizationsInput struct {
 }
 
 func (i ReconcileCreditRealizationsInput) Validate() error {
+	var errs []error
+
 	if err := i.Charge.Validate(); err != nil {
-		return fmt.Errorf("charge: %w", err)
+		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
 
 	if err := i.Run.Validate(); err != nil {
-		return fmt.Errorf("run: %w", err)
+		errs = append(errs, fmt.Errorf("run: %w", err))
 	}
 
 	if i.AllocateAt.IsZero() {
-		return fmt.Errorf("allocate at is required")
+		errs = append(errs, errors.New("allocate at is required"))
 	}
 
 	if i.TargetAmount.IsNegative() {
-		return fmt.Errorf("target amount must be zero or positive")
+		errs = append(errs, errors.New("target amount must be zero or positive"))
 	}
 
 	if err := i.CurrencyCalculator.Validate(); err != nil {
-		return fmt.Errorf("currency calculator: %w", err)
+		errs = append(errs, fmt.Errorf("currency calculator: %w", err))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ReconcileCreditRealizationsResult struct {
