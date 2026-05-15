@@ -140,6 +140,27 @@ When invoking commands through Codex tools, prefer direct command execution. Do 
 
 In tests, prefer `t.Context()` when a `testing.T` or `testing.TB` is available instead of introducing `context.Background()`. This keeps cancellation and test-scoped lifecycle tied to the test harness.
 
+Prefer one consistent test harness style over mixed ad hoc structures. Use production-backed paths, such as rating-backed or service-backed fixtures, when the real path can express the scenario; keep hand-assembled fixtures for cases that cannot be produced realistically. If a behavior is a suite-wide rule, hardcode it into the shared harness instead of exposing it as per-test knobs.
+
+Avoid redundant test helpers and duplicate setup paths. Prefer parameterizing one helper over maintaining near-identical helpers, use literal helper names that state exactly what they do, and inline two-line single-use helpers that do not need `defer`. Clean up dead test helpers immediately after refactors.
+
+For service and lifecycle subtests, start each subtest body with concise intent comments when the scenario is non-trivial:
+
+```go
+// given:
+// - ...
+// when:
+// - ...
+// then:
+// - ...
+```
+
+When using `clock.FreezeTime(...)` in tests, immediately pair it with `defer clock.UnFreeze()` in the same scope so later assertions or subtests do not inherit frozen time accidentally.
+
+When asserting `alpacadecimal.Decimal` equality in tests, prefer `require.Equal(t, expectedFloat64, actual.InexactFloat64())` over boolean assertions like `require.True(t, expected.Equal(actual))` when precision requirements allow it. Prefer simple `float64(5)`-style literals over verbose decimal construction for expected values. Inline one-off expected balance structs at the assertion site; name expected balances only when reused or when the name carries useful phase semantics across subtests.
+
+After each meaningful test-related change, run focused `go vet` and focused `go test` for the touched package.
+
 Examples:
 
 ```bash
@@ -190,6 +211,26 @@ See the `/service` skill for service/adapter patterns, constructors, input types
 In `openmeter/billing/charges/.../adapter`, keep Ent access transaction-aware even in shared helper functions. If a helper accepts a raw `*entdb.Client`, still wrap its body with `entutils.TransactingRepo(...)` / `TransactingRepoWithNoValue(...)` so it rebinds to the transaction already carried in `ctx` instead of depending on the caller to pass a tx-specific client.
 
 Do not introduce `context.Background()` or `context.TODO()` to sidestep missing context propagation in application code. Either propagate the caller's context through the full call path, or remove the unused `context.Context` parameter from the API if the operation is purely local and does not need cancellation, deadlines, or request-scoped values.
+
+Never use `panic` in non-test code paths. If a new failure mode is possible, change the function signature to return an error and propagate it explicitly.
+
+In production constructors and initialization, do not use `slog.Default()` as a fallback dependency. Require a `*slog.Logger` in config/provider inputs and inject it explicitly.
+
+Prefer standard library helpers and existing dependencies over local wrappers: use `slices.Clone(s)` for defensive slice copies instead of `append([]T(nil), s...)`; use `lo.ToPtr(...)` for pointer literals; and use `lo.Must(...)` only for `(value, err)` flows where panic-on-failure is intentional in test setup. Do not add local wrappers such as `ptr`, `loPtr`, `must`, or `loMust` when `github.com/samber/lo` already covers the need.
+
+Keep helper functions honest and narrow. If a production helper is only called once and is just a short guard or a few straightforward lines, inline it unless the name carries meaningful domain semantics. Do not add helpers for trivial single-use struct literals, do not hide aggregate mutation inside construction helpers, and return the domain value a helper actually builds rather than a broader wrapper needed by one caller.
+
+Prefer explicit input structs for helpers that combine an aggregate with derived lifecycle values, such as period or timestamp overrides. This makes it clear which fields are construction inputs and which fields are persisted aggregate state.
+
+Use `map` / `mapped` terminology for converting one domain representation to another. Avoid `project` / `projected` for that meaning.
+
+Add a docstring to domain helpers when the name compresses important business semantics that are easy to misread at call sites. Explain the observable business contract and why excluded cases are excluded, not the implementation mechanics.
+
+When refactoring or reverting code, preserve existing explanatory comments by default. Remove or rewrite a comment only when the code change makes it false, stale, or misleading.
+
+For slice-wide invariants where the exact offending element is not important, prefer collecting distinct values with `lo.Map` + `lo.Uniq` and validating cardinality over stateful "first seen value" loops.
+
+When `make generate` or `atlas migrate --env local diff ...` adds incidental `go.sum` entries, such as `tablewriter`, drop those `go.sum` changes unless the task explicitly requires a dependency change.
 
 ## Key Dependencies
 
