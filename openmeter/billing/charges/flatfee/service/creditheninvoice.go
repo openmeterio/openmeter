@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -36,13 +37,6 @@ var (
 	_ periodPatch = meta.PatchExtend{}
 	_ periodPatch = meta.PatchShrink{}
 )
-
-type generateInvoicePatchesInput struct {
-	Op                      meta.PatchType
-	Period                  timeutil.ClosedPeriod
-	OldAmountAfterProration alpacadecimal.Decimal
-	NewAmountAfterProration alpacadecimal.Decimal
-}
 
 func NewCreditThenInvoiceStateMachine(config StateMachineConfig) (*CreditThenInvoiceStateMachine, error) {
 	if err := config.Validate(); err != nil {
@@ -200,22 +194,22 @@ func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch 
 func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (generateInvoicePatchesInput, error) {
 	oldAmountAfterProration := s.Charge.State.AmountAfterProration
 
-	s.Charge.Intent.ServicePeriod.To = patch.GetNewServicePeriodTo()
-	s.Charge.Intent.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
-	s.Charge.Intent.BillingPeriod.To = patch.GetNewBillingPeriodTo()
-	s.Charge.Intent.InvoiceAt = patch.GetNewInvoiceAt()
-	s.Charge.Intent = s.Charge.Intent.Normalized()
+	intent := s.Charge.Intent
+	intent.ServicePeriod.To = patch.GetNewServicePeriodTo()
+	intent.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
+	intent.BillingPeriod.To = patch.GetNewBillingPeriodTo()
+	intent.InvoiceAt = patch.GetNewInvoiceAt()
+	intent = intent.Normalized()
 
-	amountAfterProration, err := s.Charge.Intent.CalculateAmountAfterProration()
+	amountAfterProration, err := intent.CalculateAmountAfterProration()
 	if err != nil {
 		return generateInvoicePatchesInput{}, fmt.Errorf("calculating amount after proration: %w", err)
 	}
 
-	s.Charge.State.AmountAfterProration = amountAfterProration
-
 	return generateInvoicePatchesInput{
 		Op:                      patch.Op(),
-		Period:                  s.Charge.Intent.ServicePeriod,
+		Period:                  intent.ServicePeriod,
+		Intent:                  intent,
 		OldAmountAfterProration: oldAmountAfterProration,
 		NewAmountAfterProration: amountAfterProration,
 	}, nil
@@ -291,8 +285,52 @@ func (s *CreditThenInvoiceStateMachine) AreAllPaymentsSettled() bool {
 	return run.Payment.Status == payment.StatusSettled
 }
 
+type generateInvoicePatchesInput struct {
+	Op                      meta.PatchType
+	Period                  timeutil.ClosedPeriod
+	Intent                  flatfee.Intent
+	OldAmountAfterProration alpacadecimal.Decimal
+	NewAmountAfterProration alpacadecimal.Decimal
+}
+
 func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Context, input generateInvoicePatchesInput) error {
 	currentRun := s.Charge.Realizations.CurrentRun
+
+	// Hack: credit notes are not supported yet, but the execution bellow is based on the assumption that they are. Any corner cases need to be captured here.
+	if !s.CreditNotesSupported {
+		// Case 1: We are trying to shrink an immutable invoice, but credit notes are not supported yet.
+
+		// the immutable invoice cannot be corrected safely. Emit only the delete patch so the invoice
+		// updater records an immutable-invoice warning; do not create replacement billable work for the
+		// same already-invoiced period.
+		//
+		// This prevents charging both the non-prorated and prorated amounts.
+		if currentRun != nil && currentRun.Immutable && !input.NewAmountAfterProration.Equal(input.OldAmountAfterProration) {
+			if currentRun.LineID == nil {
+				return models.NewGenericPreConditionFailedError(
+					fmt.Errorf("cannot %s flat-fee charge %s because current realization run %s does not have a persisted line reference", input.Op, s.Charge.ID, currentRun.ID.ID),
+				)
+			}
+
+			if currentRun.InvoiceID == nil {
+				return models.NewGenericPreConditionFailedError(
+					fmt.Errorf("cannot %s flat-fee charge %s because current realization run %s does not have a persisted invoice reference", input.Op, s.Charge.ID, currentRun.ID.ID),
+				)
+			}
+
+			s.AddInvoicePatch(invoiceupdater.NewDeleteLinePatch(
+				billing.LineID{
+					Namespace: s.Charge.Namespace,
+					ID:        *currentRun.LineID,
+				},
+				*currentRun.InvoiceID,
+			))
+
+			return nil
+		}
+	}
+
+	s.applyInvoicePatchInput(input)
 
 	updatedGatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
 		Charge:        s.Charge,
@@ -360,6 +398,23 @@ func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Conte
 
 		line.ID = *currentRun.LineID
 
+		// The invoice updater rebuilt the mutable standard line from the new
+		// charge intent, but the charge realization run still describes the old
+		// line amount and credit allocations. Reconcile them before handing the
+		// updated line back to billing.
+		result, err := s.Realizations.ReconcileStandardLineToIntent(ctx, flatfeerealizations.ReconcileStandardLineToIntentInput{
+			Charge:     s.Charge,
+			Run:        *currentRun,
+			Line:       *line,
+			AllocateAt: clock.Now(),
+		})
+		if err != nil {
+			return fmt.Errorf("reconcile standard line to intent for %s flat-fee charge[%s]: %w", input.Op, s.Charge.ID, err)
+		}
+
+		s.Charge.Realizations.CurrentRun = &result.Run
+		line = &result.Line
+
 		genericLine, err := line.AsInvoiceLine().AsGenericLine()
 		if err != nil {
 			return fmt.Errorf("converting %s flat-fee standard line[%s] to generic line: %w", input.Op, *currentRun.LineID, err)
@@ -398,4 +453,9 @@ func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Conte
 	s.Charge.State.AdvanceAfter = &advanceAfter
 
 	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) applyInvoicePatchInput(input generateInvoicePatchesInput) {
+	s.Charge.Intent = input.Intent
+	s.Charge.State.AmountAfterProration = input.NewAmountAfterProration
 }
