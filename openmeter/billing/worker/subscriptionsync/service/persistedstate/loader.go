@@ -39,17 +39,17 @@ func NewLoader(billingService billingService, chargeService chargeService) Loade
 
 func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subscription) (State, error) {
 	lines, err := l.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
-		Namespace:            subs.Namespace,
-		SubscriptionID:       subs.ID,
-		CustomerID:           subs.CustomerId,
+		Namespace:      subs.Namespace,
+		SubscriptionID: subs.ID,
+		CustomerID:     subs.CustomerId,
+		// Charge-managed invoice lines are edited through charge patches, so subscription sync loads the
+		// charge entities instead of reconciling those lines directly.
 		IncludeChargeManaged: false,
 	})
 	if err != nil {
 		return State{}, fmt.Errorf("getting existing lines: %w", err)
 	}
 
-	// Charge-managed invoice lines are edited through charge patches, so subscription sync loads the
-	// charge entities instead of reconciling those lines directly.
 	lines, err = slicesx.MapWithErr(lines, normalizePersistedLineOrHierarchy)
 	if err != nil {
 		return State{}, fmt.Errorf("normalizing existing lines: %w", err)
