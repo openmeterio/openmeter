@@ -799,7 +799,7 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsProratingGathering() {
 
 		lines := invoices.Items[0].Lines.OrEmpty()
 		threeMonthLines := lo.Filter(lines, func(line billing.GatheringLine, _ int) bool {
-			return line.ServicePeriod.Duration() != time.Hour*24 // all other lines will be 1 dqy
+			return line.ServicePeriod.Duration() != time.Hour*24 // all other lines will be 1 day
 		})
 		s.Len(threeMonthLines, 1)
 
