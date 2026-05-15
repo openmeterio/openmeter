@@ -700,7 +700,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
 
 		// LEDGER:
-		// - OnFlatFeeAssignedToInvoice is called with the pre tax total amount of USD 100
+		// - OnAllocateCredits is called with the pre tax amount to allocate of USD 100
 		// - Two credit realizations should happen for the two different credit types
 
 		// Validate the credit realizations

@@ -101,18 +101,18 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 		}
 
 		if !amountAfterProration.IsZero() {
-			handlerInput := flatfee.OnAssignedToInvoiceInput{
-				Charge:            charge,
-				ServicePeriod:     in.Line.Period,
-				PreTaxTotalAmount: amountAfterProration,
+			handlerInput := flatfee.OnAllocateCreditsInput{
+				Charge:                 charge,
+				ServicePeriod:          in.Line.Period,
+				PreTaxAmountToAllocate: amountAfterProration,
 			}
 			if err := handlerInput.Validate(); err != nil {
-				return StartCreditThenInvoiceRunResult{}, fmt.Errorf("validating on assigned to invoice input: %w", err)
+				return StartCreditThenInvoiceRunResult{}, fmt.Errorf("validating allocate credits input: %w", err)
 			}
 
-			creditAllocations, err := s.handler.OnAssignedToInvoice(ctx, handlerInput)
+			creditAllocations, err := s.handler.OnAllocateCredits(ctx, handlerInput)
 			if err != nil {
-				return StartCreditThenInvoiceRunResult{}, fmt.Errorf("on flat fee assigned to invoice: %w", err)
+				return StartCreditThenInvoiceRunResult{}, fmt.Errorf("allocate credits for flat fee: %w", err)
 			}
 
 			creditAllocationsWithLineID := append(creditrealization.CreateAllocationInputs(nil), creditAllocations...)

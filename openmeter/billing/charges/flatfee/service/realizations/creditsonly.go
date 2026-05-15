@@ -53,17 +53,18 @@ func (s *Service) AllocateCreditsOnly(ctx context.Context, in AllocateCreditsOnl
 		return AllocateCreditsOnlyResult{}, nil
 	}
 
-	input := flatfee.OnCreditsOnlyUsageAccruedInput{
-		Charge:           in.Charge,
-		AmountToAllocate: in.Amount,
+	input := flatfee.OnAllocateCreditsInput{
+		Charge:                 in.Charge,
+		ServicePeriod:          in.Charge.Intent.ServicePeriod,
+		PreTaxAmountToAllocate: in.Amount,
 	}
 	if err := input.Validate(); err != nil {
 		return AllocateCreditsOnlyResult{}, fmt.Errorf("validate input: %w", err)
 	}
 
-	creditAllocations, err := s.handler.OnCreditsOnlyUsageAccrued(ctx, input)
+	creditAllocations, err := s.handler.OnAllocateCredits(ctx, input)
 	if err != nil {
-		return AllocateCreditsOnlyResult{}, fmt.Errorf("on credits only usage accrued: %w", err)
+		return AllocateCreditsOnlyResult{}, fmt.Errorf("allocate credits: %w", err)
 	}
 
 	allocated := in.CurrencyCalculator.RoundToPrecision(creditAllocations.Sum())

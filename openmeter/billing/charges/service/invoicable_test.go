@@ -130,13 +130,13 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 
 		testTrnsGroupID := ulid.Make().String()
 		creditRealizationCallbackInvocations := 0
-		s.FlatFeeTestHandler.onAssignedToInvoice = func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
+		s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 			creditRealizationCallbackInvocations++
 
 			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.ServicePeriod,
-					Amount:        input.PreTaxTotalAmount.Mul(alpacadecimal.NewFromFloat(0.3)), // 30% as credits
+					Amount:        input.PreTaxAmountToAllocate.Mul(alpacadecimal.NewFromFloat(0.3)), // 30% as credits
 					LedgerTransaction: ledgertransaction.GroupReference{
 						TransactionGroupID: testTrnsGroupID,
 					},
@@ -397,10 +397,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInAdvanceWithPr
 	s.Run("when the charge becomes active and draft invoice is created", func() {
 		defer s.FlatFeeTestHandler.Reset()
 
-		creditAllocationCallback := newCountedCreditAllocationCallback[flatfee.OnAssignedToInvoiceInput]()
-		s.FlatFeeTestHandler.onAssignedToInvoice = creditAllocationCallback.Handler(
+		creditAllocationCallback := newCountedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]()
+		s.FlatFeeTestHandler.onAllocateCredits = creditAllocationCallback.Handler(
 			s.T(),
-			func(input flatfee.OnAssignedToInvoiceInput, ledgerTransaction ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
+			func(input flatfee.OnAllocateCreditsInput, ledgerTransaction ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
 				return creditrealization.CreateAllocationInputs{
 					{
 						ServicePeriod:     input.ServicePeriod,
@@ -409,10 +409,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInAdvanceWithPr
 					},
 				}
 			},
-			func(t *testing.T, input flatfee.OnAssignedToInvoiceInput) {
+			func(t *testing.T, input flatfee.OnAllocateCreditsInput) {
 				assert.Equal(t, flatFeeChargeID.ID, input.Charge.ID)
 				assert.Equal(t, servicePeriod, input.ServicePeriod)
-				assert.Equal(t, float64(7), input.PreTaxTotalAmount.InexactFloat64())
+				assert.Equal(t, float64(7), input.PreTaxAmountToAllocate.InexactFloat64())
 			},
 		)
 
@@ -528,11 +528,11 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 	s.Run("invoice pending lines fully settled by credits", func() {
 		defer s.FlatFeeTestHandler.Reset()
 
-		s.FlatFeeTestHandler.onAssignedToInvoice = func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
+		s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.ServicePeriod,
-					Amount:        input.PreTaxTotalAmount,
+					Amount:        input.PreTaxAmountToAllocate,
 					LedgerTransaction: ledgertransaction.GroupReference{
 						TransactionGroupID: ulid.Make().String(),
 					},
@@ -628,7 +628,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZe
 		// - billing invoices pending lines at the service period start
 		// then:
 		// - the draft invoice has one standard line and the charge has a mutable run
-		s.FlatFeeTestHandler.onAssignedToInvoice = func(context.Context, flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
+		s.FlatFeeTestHandler.onAllocateCredits = func(context.Context, flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 			return nil, nil
 		}
 
@@ -2231,18 +2231,18 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 		defer s.FlatFeeTestHandler.Reset()
 
 		type callbackInvocation struct {
-			Input flatfee.OnCreditsOnlyUsageAccruedInput
+			Input flatfee.OnAllocateCreditsInput
 		}
 
 		var callbacks []callbackInvocation
 
-		s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+		s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 			callbacks = append(callbacks, callbackInvocation{Input: input})
 
 			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.Charge.Intent.ServicePeriod,
-					Amount:        input.AmountToAllocate,
+					Amount:        input.PreTaxAmountToAllocate,
 					LedgerTransaction: ledgertransaction.GroupReference{
 						TransactionGroupID: ulid.Make().String(),
 					},
@@ -2271,7 +2271,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 
 		// The handler was called exactly once with the correct amount.
 		s.Len(callbacks, 1)
-		s.Equal(float64(100), callbacks[0].Input.AmountToAllocate.InexactFloat64())
+		s.Equal(float64(100), callbacks[0].Input.PreTaxAmountToAllocate.InexactFloat64())
 
 		// Credit realizations were persisted.
 		s.Require().NotNil(fetchedFF.Realizations.CurrentRun)
@@ -2316,11 +2316,11 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
 	}
 
-	s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+	s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 		return creditrealization.CreateAllocationInputs{
 			{
 				ServicePeriod: input.Charge.Intent.ServicePeriod,
-				Amount:        input.AmountToAllocate,
+				Amount:        input.PreTaxAmountToAllocate,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: ulid.Make().String(),
 				},
@@ -2398,12 +2398,12 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsActivatesAtSe
 	}
 	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
 
-	creditsOnlyUsageAccruedCallback := newCountedCreditAllocationCallback[flatfee.OnCreditsOnlyUsageAccruedInput]()
-	s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = creditsOnlyUsageAccruedCallback.Handler(s.T(), func(input flatfee.OnCreditsOnlyUsageAccruedInput, ledgerTransaction ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
+	allocateCreditsCallback := newCountedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]()
+	s.FlatFeeTestHandler.onAllocateCredits = allocateCreditsCallback.Handler(s.T(), func(input flatfee.OnAllocateCreditsInput, ledgerTransaction ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
 		return creditrealization.CreateAllocationInputs{
 			{
 				ServicePeriod:     input.Charge.Intent.ServicePeriod,
-				Amount:            input.AmountToAllocate,
+				Amount:            input.PreTaxAmountToAllocate,
 				LedgerTransaction: ledgerTransaction,
 			},
 		}
@@ -2439,7 +2439,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsActivatesAtSe
 	s.NotNil(createdCharge.State.AdvanceAfter)
 	s.True(servicePeriod.From.Equal(*createdCharge.State.AdvanceAfter))
 	s.Nil(createdCharge.Realizations.CurrentRun)
-	s.Zero(creditsOnlyUsageAccruedCallback.nrInvocations)
+	s.Zero(allocateCreditsCallback.nrInvocations)
 
 	clock.FreezeTime(servicePeriod.From)
 	advancedCharges := s.mustAdvanceFlatFeeCharges(ctx, cust.GetID())
@@ -2450,7 +2450,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsActivatesAtSe
 	s.NotNil(activeCharge.State.AdvanceAfter)
 	s.True(servicePeriod.To.Equal(*activeCharge.State.AdvanceAfter))
 	s.Nil(activeCharge.Realizations.CurrentRun)
-	s.Zero(creditsOnlyUsageAccruedCallback.nrInvocations)
+	s.Zero(allocateCreditsCallback.nrInvocations)
 
 	clock.FreezeTime(servicePeriod.To)
 	advancedCharges = s.mustAdvanceFlatFeeCharges(ctx, cust.GetID())
@@ -2462,7 +2462,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsActivatesAtSe
 	s.Require().NotNil(finalCharge.Realizations.CurrentRun)
 	s.Len(finalCharge.Realizations.CurrentRun.CreditRealizations, 1)
 	s.Equal(float64(75), finalCharge.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
-	s.Equal(1, creditsOnlyUsageAccruedCallback.nrInvocations)
+	s.Equal(1, allocateCreditsCallback.nrInvocations)
 }
 
 func (s *InvoicableChargesTestSuite) mustAdvanceFlatFeeCharges(ctx context.Context, customerID customer.CustomerID) charges.Charges {
