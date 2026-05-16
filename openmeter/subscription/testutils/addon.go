@@ -118,7 +118,7 @@ var ExampleAddonRateCard6 = productcatalog.FlatFeeRateCard{
 }
 
 func GetExampleAddonInput(t *testing.T, effectivePeriod productcatalog.EffectivePeriod) addon.CreateAddonInput {
-	return BuildAddonForTesting(t, effectivePeriod, productcatalog.AddonInstanceTypeSingle, &ExampleAddonRateCard1)
+	return BuildAddonForTesting(t, effectivePeriod, productcatalog.AddonInstanceTypeSingle, ExampleAddonRateCard1.Clone())
 }
 
 type testAddonService struct {

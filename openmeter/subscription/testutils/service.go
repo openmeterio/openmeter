@@ -17,6 +17,7 @@ import (
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
@@ -184,12 +185,15 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	})
 	require.NoError(t, err)
 
+	featureResolver, err := featureresolver.New(entitlementRegistry.Feature)
+	require.NoErrorf(t, err, "failed to create feature resolver: %v", err)
+
 	planService, err := planservice.New(planservice.Config{
-		Feature:   entitlementRegistry.Feature,
-		Logger:    logger,
-		Adapter:   planRepo,
-		Publisher: publisher,
-		TaxCode:   taxCodeService,
+		FeatureResolver: featureResolver,
+		Logger:          logger,
+		Adapter:         planRepo,
+		Publisher:       publisher,
+		TaxCode:         taxCodeService,
 	})
 	require.NoError(t, err)
 
@@ -221,11 +225,11 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	require.NoError(t, err)
 
 	addonService, err := addonservice.New(addonservice.Config{
-		Adapter:   addonRepo,
-		Logger:    logger,
-		Publisher: publisher,
-		Feature:   entitlementRegistry.Feature,
-		TaxCode:   taxCodeService,
+		Adapter:         addonRepo,
+		Logger:          logger,
+		Publisher:       publisher,
+		FeatureResolver: featureResolver,
+		TaxCode:         taxCodeService,
 	})
 	require.NoError(t, err)
 

@@ -79,7 +79,7 @@ func TestAddonServiceChangeQuantity(t *testing.T) {
 
 			addonInp := subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
-			}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard1)
+			}, productcatalog.AddonInstanceTypeMultiple, subscriptiontestutils.ExampleAddonRateCard1.Clone())
 
 			_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 

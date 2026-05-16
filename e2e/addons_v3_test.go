@@ -299,10 +299,7 @@ func TestV3AddonFeatureReferenceResolution(t *testing.T) {
 
 	status, _, problem := c.CreateAddon(body)
 	assert.Equal(t, http.StatusBadRequest, status, "%+v", problem)
-	// Server returns a plain BaseAPIError with the reason in Detail; the PC
-	// code rate_card_feature_not_found is not surfaced through
-	// extensions.validationErrors for this path.
-	assertProblemDetail(t, problem, "feature with ID "+fakeFeatureID+" not found")
+	assertValidationCode(t, problem, "rate_card_feature_not_found")
 }
 
 // Payment-term × price compatibility.
