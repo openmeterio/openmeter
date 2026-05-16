@@ -1,0 +1,13 @@
+header = "Apache-2.0"
+
+[[exceptions]]
+path = "vendor/"
+
+[[exceptions]]
+path = "api/client/go/"
+
+[[exceptions]]
+path = ".gen/"
+
+[[exceptions]]
+path = "**.gen.go"
