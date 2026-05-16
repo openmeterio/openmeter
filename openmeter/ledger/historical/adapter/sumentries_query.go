@@ -112,7 +112,7 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 		})
 	}
 
-	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 6)
+	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 7)
 	if normalizedRoute.Currency != "" {
 		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(normalizedRoute.Currency)))
 	}
@@ -121,9 +121,13 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			ledgersubaccountroutedb.CreditPriority(*normalizedRoute.CreditPriority),
 		)
 	}
-	// DEFERRED: tax/feature route filters are not active yet but plumbing is in place.
-	if normalizedRoute.TaxCode != nil {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCode(*normalizedRoute.TaxCode))
+	if normalizedRoute.TaxCode.IsPresent() {
+		tc, _ := normalizedRoute.TaxCode.Get()
+		if tc != nil {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCode(*tc))
+		} else {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCodeIsNil())
+		}
 	}
 	if len(normalizedRoute.Features) > 0 {
 		// DB stores features as a sorted jsonb array; filter value is also sorted for canonical comparison.
@@ -137,6 +141,14 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasis(*costBasis))
 		} else {
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasisIsNil())
+		}
+	}
+	if normalizedRoute.TaxBehavior.IsPresent() {
+		tb, _ := normalizedRoute.TaxBehavior.Get()
+		if tb != nil {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxBehavior(*tb))
+		} else {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxBehaviorIsNil())
 		}
 	}
 	if normalizedRoute.TransactionAuthorizationStatus != nil {

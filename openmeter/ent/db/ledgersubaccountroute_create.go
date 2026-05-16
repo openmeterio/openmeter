@@ -113,6 +113,20 @@ func (_c *LedgerSubAccountRouteCreate) SetNillableTaxCode(v *string) *LedgerSubA
 	return _c
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_c *LedgerSubAccountRouteCreate) SetTaxBehavior(v ledger.TaxBehavior) *LedgerSubAccountRouteCreate {
+	_c.mutation.SetTaxBehavior(v)
+	return _c
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_c *LedgerSubAccountRouteCreate) SetNillableTaxBehavior(v *ledger.TaxBehavior) *LedgerSubAccountRouteCreate {
+	if v != nil {
+		_c.SetTaxBehavior(*v)
+	}
+	return _c
+}
+
 // SetFeatures sets the "features" field.
 func (_c *LedgerSubAccountRouteCreate) SetFeatures(v []string) *LedgerSubAccountRouteCreate {
 	_c.mutation.SetFeatures(v)
@@ -277,6 +291,11 @@ func (_c *LedgerSubAccountRouteCreate) check() error {
 	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "LedgerSubAccountRoute.currency"`)}
 	}
+	if v, ok := _c.mutation.TaxBehavior(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.TransactionAuthorizationStatus(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "transaction_authorization_status", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.transaction_authorization_status": %w`, err)}
@@ -352,6 +371,10 @@ func (_c *LedgerSubAccountRouteCreate) createSpec() (*LedgerSubAccountRoute, *sq
 	if value, ok := _c.mutation.TaxCode(); ok {
 		_spec.SetField(ledgersubaccountroute.FieldTaxCode, field.TypeString, value)
 		_node.TaxCode = &value
+	}
+	if value, ok := _c.mutation.TaxBehavior(); ok {
+		_spec.SetField(ledgersubaccountroute.FieldTaxBehavior, field.TypeString, value)
+		_node.TaxBehavior = &value
 	}
 	if value, ok := _c.mutation.Features(); ok {
 		_spec.SetField(ledgersubaccountroute.FieldFeatures, field.TypeJSON, value)
@@ -521,6 +544,9 @@ func (u *LedgerSubAccountRouteUpsertOne) UpdateNewValues() *LedgerSubAccountRout
 		}
 		if _, exists := u.create.mutation.TaxCode(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldTaxCode)
+		}
+		if _, exists := u.create.mutation.TaxBehavior(); exists {
+			s.SetIgnore(ledgersubaccountroute.FieldTaxBehavior)
 		}
 		if _, exists := u.create.mutation.Features(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldFeatures)
@@ -803,6 +829,9 @@ func (u *LedgerSubAccountRouteUpsertBulk) UpdateNewValues() *LedgerSubAccountRou
 			}
 			if _, exists := b.mutation.TaxCode(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldTaxCode)
+			}
+			if _, exists := b.mutation.TaxBehavior(); exists {
+				s.SetIgnore(ledgersubaccountroute.FieldTaxBehavior)
 			}
 			if _, exists := b.mutation.Features(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldFeatures)

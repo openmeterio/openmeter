@@ -113,6 +113,12 @@ func TaxCode(v string) predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldTaxCode, v))
 }
 
+// TaxBehavior applies equality check predicate on the "tax_behavior" field. It's identical to TaxBehaviorEQ.
+func TaxBehavior(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldTaxBehavior, vc))
+}
+
 // CostBasis applies equality check predicate on the "cost_basis" field. It's identical to CostBasisEQ.
 func CostBasis(v alpacadecimal.Decimal) predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldCostBasis, v))
@@ -676,6 +682,100 @@ func TaxCodeEqualFold(v string) predicate.LedgerSubAccountRoute {
 // TaxCodeContainsFold applies the ContainsFold predicate on the "tax_code" field.
 func TaxCodeContainsFold(v string) predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldTaxCode, v))
+}
+
+// TaxBehaviorEQ applies the EQ predicate on the "tax_behavior" field.
+func TaxBehaviorEQ(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorNEQ applies the NEQ predicate on the "tax_behavior" field.
+func TaxBehaviorNEQ(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldNEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorIn applies the In predicate on the "tax_behavior" field.
+func TaxBehaviorIn(vs ...ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.LedgerSubAccountRoute(sql.FieldIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorNotIn applies the NotIn predicate on the "tax_behavior" field.
+func TaxBehaviorNotIn(vs ...ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.LedgerSubAccountRoute(sql.FieldNotIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorGT applies the GT predicate on the "tax_behavior" field.
+func TaxBehaviorGT(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldGT(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorGTE applies the GTE predicate on the "tax_behavior" field.
+func TaxBehaviorGTE(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldGTE(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorLT applies the LT predicate on the "tax_behavior" field.
+func TaxBehaviorLT(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldLT(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorLTE applies the LTE predicate on the "tax_behavior" field.
+func TaxBehaviorLTE(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldLTE(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorContains applies the Contains predicate on the "tax_behavior" field.
+func TaxBehaviorContains(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldContains(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorHasPrefix applies the HasPrefix predicate on the "tax_behavior" field.
+func TaxBehaviorHasPrefix(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldHasPrefix(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorHasSuffix applies the HasSuffix predicate on the "tax_behavior" field.
+func TaxBehaviorHasSuffix(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldHasSuffix(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorIsNil applies the IsNil predicate on the "tax_behavior" field.
+func TaxBehaviorIsNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldIsNull(FieldTaxBehavior))
+}
+
+// TaxBehaviorNotNil applies the NotNil predicate on the "tax_behavior" field.
+func TaxBehaviorNotNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNotNull(FieldTaxBehavior))
+}
+
+// TaxBehaviorEqualFold applies the EqualFold predicate on the "tax_behavior" field.
+func TaxBehaviorEqualFold(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldEqualFold(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorContainsFold applies the ContainsFold predicate on the "tax_behavior" field.
+func TaxBehaviorContainsFold(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldTaxBehavior, vc))
 }
 
 // FeaturesIsNil applies the IsNil predicate on the "features" field.

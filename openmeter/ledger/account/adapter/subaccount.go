@@ -74,7 +74,7 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		return nil, fmt.Errorf("failed to normalize route: %w", err)
 	}
 
-	routeKey, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, normalizedRoute)
+	routeKey, err := ledger.BuildRoutingKey(normalizedRoute)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build routing key: %w", err)
 	}
@@ -86,6 +86,7 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		SetRoutingKey(routeKey.Value()).
 		SetCurrency(string(normalizedRoute.Currency)).
 		SetNillableTaxCode(normalizedRoute.TaxCode).
+		SetNillableTaxBehavior(normalizedRoute.TaxBehavior).
 		SetFeatures(normalizedRoute.Features).
 		SetNillableCostBasis(normalizedRoute.CostBasis).
 		SetNillableCreditPriority(normalizedRoute.CreditPriority).
@@ -154,7 +155,7 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 			return nil, fmt.Errorf("failed to normalize route filter: %w", err)
 		}
 
-		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 6)
+		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 7)
 		if normalizedRoute.Currency != "" {
 			routePredicates = append(routePredicates, dbledgersubaccountroute.Currency(string(normalizedRoute.Currency)))
 		}
@@ -163,9 +164,13 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				dbledgersubaccountroute.CreditPriority(*normalizedRoute.CreditPriority),
 			)
 		}
-		// DEFERRED: tax/feature route filters are not active yet but plumbing is in place.
-		if normalizedRoute.TaxCode != nil {
-			routePredicates = append(routePredicates, dbledgersubaccountroute.TaxCode(*normalizedRoute.TaxCode))
+		if normalizedRoute.TaxCode.IsPresent() {
+			tc, _ := normalizedRoute.TaxCode.Get()
+			if tc != nil {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.TaxCode(*tc))
+			} else {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.TaxCodeIsNil())
+			}
 		}
 		if len(normalizedRoute.Features) > 0 {
 			// DB stores features as a sorted jsonb array; filter value is also sorted for canonical comparison.
@@ -179,6 +184,14 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasis(*costBasis))
 			} else {
 				routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasisIsNil())
+			}
+		}
+		if normalizedRoute.TaxBehavior.IsPresent() {
+			tb, _ := normalizedRoute.TaxBehavior.Get()
+			if tb != nil {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.TaxBehavior(*tb))
+			} else {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.TaxBehaviorIsNil())
 			}
 		}
 		if normalizedRoute.TransactionAuthorizationStatus != nil {
@@ -230,6 +243,7 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 		Route: ledger.Route{
 			Currency:                       currencyx.Code(dbRoute.Currency),
 			TaxCode:                        dbRoute.TaxCode,
+			TaxBehavior:                    dbRoute.TaxBehavior,
 			Features:                       dbRoute.Features,
 			CostBasis:                      dbRoute.CostBasis,
 			CreditPriority:                 dbRoute.CreditPriority,

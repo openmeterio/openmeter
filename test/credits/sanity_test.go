@@ -10,6 +10,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -22,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -1420,5 +1422,132 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 			"settlement should only translate accrued between buckets, not change the total accrued amount",
 		)
 		assertDelta("external wash after later purchase settlement", start.externalWash, alpacadecimal.NewFromInt(-50), s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
+	})
+}
+
+// TestTaxCodeFlowsFromCreditPurchaseToEarnings verifies the end-to-end routing of
+// TaxCode: credit purchase → FBO sub-account → accrued → earnings.
+// Credits funded with a TaxCode must land in a TaxCode-keyed earnings sub-account
+// after charge collection and revenue recognition.
+func (s *SanitySuite) TestTaxCodeFlowsFromCreditPurchaseToEarnings() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("taxcode-earnings-flow")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "txcd-40000001",
+		Name:      "Test Tax Code",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000001"},
+		},
+	})
+	s.Require().NoError(err)
+
+	const amount = 30
+
+	setupAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-31T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.SetTime(setupAt)
+
+	s.Run("fund customer FBO with TaxCode via promotional credit", func() {
+		result := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+			Namespace: ns,
+			Customer:  cust.GetID(),
+			Amount:    alpacadecimal.NewFromInt(amount),
+			At:        setupAt,
+			CostBasis: alpacadecimal.Zero,
+			TaxConfig: &productcatalog.TaxCodeConfig{TaxCodeID: &tc.ID},
+		})
+		s.NotEmpty(result.Charge.Realizations.CreditGrantRealization.TransactionGroupID)
+
+		// FBO sub-account is keyed by TaxCode; nil-TaxCode FBO must be zero
+		nilCostBasis := alpacadecimal.Zero
+		s.Equal(float64(amount), s.MustCustomerFBOBalanceForTaxCode(cust.GetID(), USD, mo.Some(&nilCostBasis), mo.Some(&tc.ID)).InexactFloat64(),
+			"FBO balance in TaxCode sub-account must equal funded amount")
+		s.Equal(float64(0), s.MustCustomerFBOBalanceForTaxCode(cust.GetID(), USD, mo.Some(&nilCostBasis), mo.Some[*string](nil)).InexactFloat64(),
+			"nil-TaxCode FBO sub-account must be untouched")
+	})
+
+	var flatFeeChargeID string
+	s.Run("create and advance flat fee credit-only charge", func() {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditOnlySettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(amount),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					Name:              "flat-fee-taxcode-test",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "flat-fee-taxcode-test",
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		chargeID, err := res[0].GetChargeID()
+		s.NoError(err)
+		flatFeeChargeID = chargeID.ID
+
+		clock.FreezeTime(servicePeriod.From)
+
+		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: cust.GetID(),
+		})
+		s.NoError(err)
+		s.Len(advancedCharges, 1)
+
+		advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(flatfee.StatusFinal, advancedCharge.Status)
+		s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
+		s.Len(advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
+
+		// Accrued must hold the consumed amount; FBO must be drained
+		nilCostBasis := alpacadecimal.Zero
+		s.Equal(float64(0), s.MustCustomerFBOBalanceForTaxCode(cust.GetID(), USD, mo.Some(&nilCostBasis), mo.Some(&tc.ID)).InexactFloat64(),
+			"TaxCode FBO sub-account must be drained after charge collection")
+		s.Equal(float64(0), s.MustCustomerFBOBalanceForTaxCode(cust.GetID(), USD, mo.Some(&nilCostBasis), mo.Some[*string](nil)).InexactFloat64(),
+			"nil-TaxCode FBO sub-account must remain zero")
+		s.Equal(float64(amount), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&nilCostBasis)).InexactFloat64(),
+			"accrued must hold the collected amount")
+	})
+
+	_ = flatFeeChargeID
+
+	s.Run("recognize revenue and assert earnings land in TaxCode sub-account", func() {
+		clock.FreezeTime(servicePeriod.To)
+
+		s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
+
+		nilCostBasis := alpacadecimal.Zero
+
+		// Earnings keyed by TaxCode must receive the full amount
+		taxCodeEarnings := s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&nilCostBasis), mo.Some(&tc.ID))
+		s.Equal(float64(amount), taxCodeEarnings.InexactFloat64(),
+			"earnings for TaxCode sub-account must equal recognized amount")
+
+		// Nil-TaxCode earnings sub-account must remain zero
+		nilTaxCodeEarnings := s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&nilCostBasis), mo.Some[*string](nil))
+		s.Equal(float64(0), nilTaxCodeEarnings.InexactFloat64(),
+			"nil-TaxCode earnings sub-account must be untouched")
 	})
 }

@@ -251,7 +251,7 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 	require.NoError(t, err)
 
 	createRoute := func(accountID string, creditPriority *int, costBasis *alpacadecimal.Decimal) error {
-		key, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, ledger.Route{
+		key, err := ledger.BuildRoutingKey(ledger.Route{
 			Currency:       currencyx.Code("USD"),
 			CostBasis:      costBasis,
 			CreditPriority: creditPriority,

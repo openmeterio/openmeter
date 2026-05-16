@@ -136,3 +136,10 @@ var ErrRoutingRuleViolated = models.NewValidationIssue(
 	ErrCodeRoutingRuleViolated,
 	"ledger routing rule violated",
 )
+
+const ErrCodeTaxBehaviorInvalid models.ErrorCode = "ledger_tax_behavior_invalid"
+
+var ErrTaxBehaviorInvalid = models.NewValidationIssue(
+	ErrCodeTaxBehaviorInvalid,
+	"ledger tax behavior is invalid",
+)

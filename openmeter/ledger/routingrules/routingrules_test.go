@@ -325,7 +325,7 @@ func TestDefaultValidator_RejectsWashToOpenReceivable(t *testing.T) {
 func addressForRoute(t *testing.T, accountType ledger.AccountType, subAccountID string, route ledger.Route) ledger.PostingAddress {
 	t.Helper()
 
-	key, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, route)
+	key, err := ledger.BuildRoutingKey(route)
 	require.NoError(t, err)
 
 	addr, err := ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
