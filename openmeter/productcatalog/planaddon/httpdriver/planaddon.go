@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -50,12 +52,23 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 				OrderBy:          planaddon.OrderBy(lo.FromPtrOr(params.OrderBy, api.PlanAddonOrderById)),
 				Order:            sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderDESC)),
 				Namespaces:       []string{ns},
-				PlanIDs:          []string{params.PlanIDOrKey},
-				PlanKeys:         []string{params.PlanIDOrKey},
-				AddonIDs:         lo.FromPtrOr(params.Id, nil),
-				AddonKeys:        lo.FromPtrOr(params.Key, nil),
 				AddonKeyVersions: lo.FromPtrOr(params.KeyVersion, nil),
 				IncludeDeleted:   lo.FromPtr(params.IncludeDeleted),
+			}
+
+			// Detect whether PlanIDOrKey is a ULID or a key string.
+			if _, err := ulid.Parse(params.PlanIDOrKey); err == nil {
+				req.PlanID = &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(params.PlanIDOrKey)}}
+			} else {
+				req.PlanKey = &filter.FilterString{Eq: lo.ToPtr(params.PlanIDOrKey)}
+			}
+
+			if ids := lo.FromPtrOr(params.Id, nil); len(ids) > 0 {
+				req.AddonID = &filter.FilterULID{FilterString: filter.FilterString{In: lo.ToPtr(ids)}}
+			}
+
+			if keys := lo.FromPtrOr(params.Key, nil); len(keys) > 0 {
+				req.AddonKey = &filter.FilterString{In: lo.ToPtr(keys)}
 			}
 
 			return req, nil

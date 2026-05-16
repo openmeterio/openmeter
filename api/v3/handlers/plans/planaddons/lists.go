@@ -8,8 +8,11 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -51,11 +54,75 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 				})
 			}
 
-			return ListPlanAddonsRequest{
+			req := ListPlanAddonsRequest{
 				Namespaces: []string{ns},
-				PlanIDs:    []string{params.PlanID},
-				Page:       page,
-			}, nil
+				// Enforce the plan scope from the path parameter.
+				PlanID: &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(params.PlanID)}},
+				Page:   page,
+			}
+
+			if params.Params.Filter != nil {
+				id, err := filters.FromAPIFilterULID(params.Params.Filter.Id)
+				if err != nil {
+					return ListPlanAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.ID = id
+
+				planKey, err := filters.FromAPIFilterString(params.Params.Filter.PlanKey)
+				if err != nil {
+					return ListPlanAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[plan_key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.PlanKey = planKey
+
+				addonID, err := filters.FromAPIFilterULID(params.Params.Filter.AddonId)
+				if err != nil {
+					return ListPlanAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[addon_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.AddonID = addonID
+
+				addonKey, err := filters.FromAPIFilterString(params.Params.Filter.AddonKey)
+				if err != nil {
+					return ListPlanAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[addon_key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.AddonKey = addonKey
+
+				addonName, err := filters.FromAPIFilterString(params.Params.Filter.AddonName)
+				if err != nil {
+					return ListPlanAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[addon_name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.AddonName = addonName
+
+				planCurrency, err := filters.FromAPIFilterString(params.Params.Filter.PlanCurrency)
+				if err != nil {
+					return ListPlanAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[plan_currency]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.PlanCurrency = planCurrency
+			}
+
+			if params.Params.Sort != nil {
+				sort, err := request.ParseSortBy(*params.Params.Sort)
+				if err != nil {
+					return ListPlanAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.OrderBy = planaddon.OrderBy(sort.Field)
+				req.Order = sort.Order.ToSortxOrder()
+			}
+
+			return req, nil
 		},
 		func(ctx context.Context, req ListPlanAddonsRequest) (ListPlanAddonsResponse, error) {
 			result, err := h.addonService.ListPlanAddons(ctx, req)

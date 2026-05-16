@@ -856,6 +856,18 @@ func ApplyToQuery[F Filter, Q EntQuery[Q, P], P Predicate](q Q, f *F, field stri
 	return q
 }
 
+func ApplyToPredicate[F Filter, P Predicate](arr []P, f *F, field string) []P {
+	if f == nil {
+		return arr
+	}
+
+	if p := SelectPredicate[P](Filter(*f), field); p != nil {
+		return append(arr, *p)
+	}
+
+	return arr
+}
+
 // validateSingleOperator checks that at most one operator field is set on a
 // filter struct. To combine operators, use the And or Or fields.
 func validateSingleOperator(v Filter) error {

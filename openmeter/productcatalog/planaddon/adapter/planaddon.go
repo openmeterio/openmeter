@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -30,77 +31,45 @@ func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanA
 			query = query.Where(planaddondb.NamespaceIn(params.Namespaces...))
 		}
 
-		var orFilters []predicate.PlanAddon
-		if len(params.IDs) > 0 {
-			orFilters = append(orFilters, planaddondb.IDIn(params.IDs...))
-		}
+		// Assignment-level filters (AND semantics)
+		query = filter.ApplyToQuery(query, params.ID, planaddondb.FieldID)
 
-		// Plan predicates
+		// Plan-side filters applied via HasPlanWith (all AND)
+		var planPreds []predicate.Plan
 
-		var planOrFilters []predicate.Plan
-
-		if len(params.PlanIDs) > 0 {
-			planOrFilters = append(planOrFilters, plandb.IDIn(params.PlanIDs...))
-		}
-
-		if len(params.PlanKeys) > 0 {
-			planOrFilters = append(planOrFilters, plandb.KeyIn(params.PlanKeys...))
-		}
+		planPreds = filter.ApplyToPredicate(planPreds, params.PlanID, plandb.FieldID)
+		planPreds = filter.ApplyToPredicate(planPreds, params.PlanKey, plandb.FieldKey)
+		planPreds = filter.ApplyToPredicate(planPreds, params.PlanCurrency, plandb.FieldCurrency)
 
 		if len(params.PlanKeyVersions) > 0 {
-			var planKeyVersionFilters []predicate.Plan
-
+			var planKeyVersionPreds []predicate.Plan
 			for key, version := range params.PlanKeyVersions {
-				planOrFilters = append(planOrFilters, plandb.And(plandb.Key(key), plandb.VersionIn(version...)))
+				planKeyVersionPreds = append(planKeyVersionPreds, plandb.And(plandb.Key(key), plandb.VersionIn(version...)))
 			}
-
-			planOrFilters = append(planOrFilters, plandb.Or(planKeyVersionFilters...))
+			planPreds = append(planPreds, plandb.Or(planKeyVersionPreds...))
 		}
 
-		if len(params.Currencies) > 0 {
-			planOrFilters = append(planOrFilters, plandb.CurrencyIn(params.Currencies...))
+		if len(planPreds) > 0 {
+			query = query.Where(planaddondb.HasPlanWith(planPreds...))
 		}
 
-		if len(planOrFilters) > 0 {
-			orFilters = append(orFilters, planaddondb.HasPlanWith(
-				plandb.Or(planOrFilters...),
-			))
-		}
+		// Addon-side filters applied via HasAddonWith (all AND)
+		var addonPreds []predicate.Addon
 
-		// Addon predicates
+		addonPreds = filter.ApplyToPredicate(addonPreds, params.AddonID, addondb.FieldID)
+		addonPreds = filter.ApplyToPredicate(addonPreds, params.AddonKey, addondb.FieldKey)
+		addonPreds = filter.ApplyToPredicate(addonPreds, params.AddonName, addondb.FieldName)
 
-		var addonOrFilters []predicate.Addon
-
-		if len(params.AddonIDs) > 0 {
-			addonOrFilters = append(addonOrFilters, addondb.IDIn(params.AddonIDs...))
-		}
-
-		if len(params.AddonKeys) > 0 {
-			addonOrFilters = append(addonOrFilters, addondb.KeyIn(params.AddonKeys...))
-		}
-
-		if len(params.PlanKeyVersions) > 0 {
-			var planKeyVersionFilters []predicate.Addon
-
-			for key, version := range params.PlanKeyVersions {
-				addonOrFilters = append(addonOrFilters, addondb.And(addondb.Key(key), addondb.VersionIn(version...)))
+		if len(params.AddonKeyVersions) > 0 {
+			var addonKeyVersionPreds []predicate.Addon
+			for key, version := range params.AddonKeyVersions {
+				addonKeyVersionPreds = append(addonKeyVersionPreds, addondb.And(addondb.Key(key), addondb.VersionIn(version...)))
 			}
-
-			addonOrFilters = append(addonOrFilters, addondb.Or(planKeyVersionFilters...))
+			addonPreds = append(addonPreds, addondb.Or(addonKeyVersionPreds...))
 		}
 
-		if len(params.Currencies) > 0 {
-			addonOrFilters = append(addonOrFilters, addondb.CurrencyIn(params.Currencies...))
-		}
-
-		if len(addonOrFilters) > 0 {
-			orFilters = append(orFilters, planaddondb.HasAddonWith(
-				addondb.Or(addonOrFilters...),
-			))
-		}
-
-		if len(orFilters) > 0 {
-			query = query.Where(planaddondb.Or(orFilters...))
+		if len(addonPreds) > 0 {
+			query = query.Where(planaddondb.HasAddonWith(addonPreds...))
 		}
 
 		if !params.IncludeDeleted {
