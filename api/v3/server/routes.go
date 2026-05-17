@@ -464,3 +464,17 @@ func (s *Server) UpdateOrganizationDefaultTaxCodes(w http.ResponseWriter, r *htt
 func (s *Server) QueryGovernanceAccess(w http.ResponseWriter, r *http.Request, params api.QueryGovernanceAccessParams) {
 	unimplemented.QueryGovernanceAccess(w, r, params)
 }
+
+// Accounting Periods
+
+func (s *Server) ListAccountingPeriods(w http.ResponseWriter, r *http.Request, params api.ListAccountingPeriodsParams) {
+	unimplemented.ListAccountingPeriods(w, r, params)
+}
+
+func (s *Server) GetAccountingPeriod(w http.ResponseWriter, r *http.Request, periodId api.ULID) {
+	unimplemented.GetAccountingPeriod(w, r, periodId)
+}
+
+func (s *Server) CloseAccountingPeriod(w http.ResponseWriter, r *http.Request) {
+	unimplemented.CloseAccountingPeriod(w, r)
+}
