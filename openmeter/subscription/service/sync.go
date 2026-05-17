@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -26,8 +27,19 @@ import (
 // TODO: localize error so phase and item keys are always included (alongside subscription reference)
 // TODO (OM-1074): clean up this control flow
 func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {
+	setSpanAttrs(ctx,
+		attribute.String("subscription.namespace", view.Subscription.Namespace),
+		attribute.String("subscription.id", view.Subscription.ID),
+		attribute.String("subscription.sync.operation", "spec_sync"),
+	)
+	setSpanAttrs(ctx, addViewAttrs([]attribute.KeyValue{}, "subscription.view.before", view)...)
+	setSpanAttrs(ctx, addSpecAttrs([]attribute.KeyValue{}, "subscription.spec.before", view.Spec)...)
+	setSpanAttrs(ctx, addSpecAttrs([]attribute.KeyValue{}, "subscription.spec.target", newSpec)...)
+
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
 		var def subscription.Subscription
+		var phaseDeleted, phaseCreated int
+		var itemDeleted, itemCreated int
 
 		// Some sanity checks for good measure
 		if view.Subscription.CustomerId != newSpec.CustomerId {
@@ -66,6 +78,12 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 				if err := s.deletePhase(ctx, currentPhaseView); err != nil {
 					return def, fmt.Errorf("failed to delete phase: %w", err)
 				}
+				phaseDeleted++
+				addSpanEvent(ctx, "subscription.sync.phase.delete",
+					attribute.String("phase.key", currentPhaseView.SubscriptionPhase.Key),
+					attribute.String("phase.id", currentPhaseView.SubscriptionPhase.ID),
+					attribute.String("reason", "removed"),
+				)
 
 				dirty.mark(subscription.NewPhasePath(currentPhaseView.SubscriptionPhase.Key))
 
@@ -102,6 +120,12 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 				if err := s.deletePhase(ctx, currentPhaseView); err != nil {
 					return def, fmt.Errorf("failed to delete phase: %w", err)
 				}
+				phaseDeleted++
+				addSpanEvent(ctx, "subscription.sync.phase.delete",
+					attribute.String("phase.key", currentPhaseView.SubscriptionPhase.Key),
+					attribute.String("phase.id", currentPhaseView.SubscriptionPhase.ID),
+					attribute.String("reason", "changed"),
+				)
 
 				dirty.mark(subscription.NewPhasePath(currentPhaseView.SubscriptionPhase.Key))
 
@@ -127,6 +151,13 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						if err := s.deleteItem(ctx, currentItemView); err != nil {
 							return def, fmt.Errorf("failed to delete item: %w", err)
 						}
+						itemDeleted++
+						addSpanEvent(ctx, "subscription.sync.item.delete",
+							attribute.String("phase.key", currentItemView.Spec.PhaseKey),
+							attribute.String("item.key", currentItemView.Spec.ItemKey),
+							attribute.String("item.id", currentItemView.SubscriptionItem.ID),
+							attribute.String("reason", "key_removed"),
+						)
 
 						dirty.mark(subscription.NewItemPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey))
 					}
@@ -143,6 +174,14 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						if err := s.deleteItem(ctx, currentItemView); err != nil {
 							return def, fmt.Errorf("failed to delete item: %w", err)
 						}
+						itemDeleted++
+						addSpanEvent(ctx, "subscription.sync.item.delete",
+							attribute.String("phase.key", currentItemView.Spec.PhaseKey),
+							attribute.String("item.key", currentItemView.Spec.ItemKey),
+							attribute.String("item.id", currentItemView.SubscriptionItem.ID),
+							attribute.Int("item.version", currentItemIdx),
+							attribute.String("reason", "version_removed"),
+						)
 
 						dirty.mark(subscription.NewItemVersionPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx))
 
@@ -194,6 +233,14 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						if err := s.deleteItem(ctx, currentItemView); err != nil {
 							return def, fmt.Errorf("failed to delete item: %w", err)
 						}
+						itemDeleted++
+						addSpanEvent(ctx, "subscription.sync.item.delete",
+							attribute.String("phase.key", currentItemView.Spec.PhaseKey),
+							attribute.String("item.key", currentItemView.Spec.ItemKey),
+							attribute.String("item.id", currentItemView.SubscriptionItem.ID),
+							attribute.Int("item.version", currentItemIdx),
+							attribute.String("reason", "changed"),
+						)
 
 						dirty.mark(subscription.NewItemVersionPath(currentItemView.Spec.PhaseKey, currentItemView.Spec.ItemKey, currentItemIdx))
 
@@ -231,6 +278,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 				if _, err := s.createPhase(ctx, view.Customer, *matchingPhaseFromNewSpec, view.Subscription, newPhaseCadence); err != nil {
 					return def, fmt.Errorf("failed to create phase: %w", err)
 				}
+				phaseCreated++
 
 				// There's nothing more to be done for this phase, so lets skip to the next one
 				continue
@@ -268,6 +316,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						}); err != nil {
 							return def, fmt.Errorf("failed to create item: %w", err)
 						}
+						itemCreated++
 
 						// There's nothing more to be done for this item, so lets skip to the next one
 						continue
@@ -297,6 +346,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 				if _, err := s.createPhase(ctx, view.Customer, *phase, view.Subscription, phaseCadence); err != nil {
 					return def, fmt.Errorf("failed to create phase: %w", err)
 				}
+				phaseCreated++
 				continue
 			}
 
@@ -321,6 +371,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						}); err != nil {
 							return def, fmt.Errorf("failed to create item: %w", err)
 						}
+						itemCreated++
 
 						// There's nothing left to do for this item
 						continue
@@ -338,13 +389,31 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						}); err != nil {
 							return def, fmt.Errorf("failed to create item: %w", err)
 						}
+						itemCreated++
 					}
 				}
 			}
 		}
 
 		// 4. Finally we're done with syncing everything, we should just re-fetch the subscription
-		return s.Get(ctx, view.Subscription.NamespacedID)
+		setSpanAttrs(ctx,
+			attribute.Int("subscription.sync.touched_paths.count", len(dirty)),
+			attribute.Int("subscription.sync.phases.deleted", phaseDeleted),
+			attribute.Int("subscription.sync.phases.created", phaseCreated),
+			attribute.Int("subscription.sync.items.deleted", itemDeleted),
+			attribute.Int("subscription.sync.items.created", itemCreated),
+		)
+
+		sub, err := s.Get(ctx, view.Subscription.NamespacedID)
+		if err != nil {
+			return def, err
+		}
+		setSpanAttrs(ctx,
+			attribute.String("subscription.sync.result_id", sub.ID),
+			attribute.String("subscription.sync.result_namespace", sub.Namespace),
+		)
+
+		return sub, nil
 	})
 }
 
