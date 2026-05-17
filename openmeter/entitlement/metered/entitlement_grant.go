@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -61,7 +62,7 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, customerI
 		return EntitlementGrant{}, err
 	}
 
-	if err := e.hooks.PreUpdate(ctx, metered); err != nil {
+	if err := e.hooks.PreUpdate(subscription.NewGrantOperationContext(ctx), metered); err != nil {
 		return EntitlementGrant{}, err
 	}
 

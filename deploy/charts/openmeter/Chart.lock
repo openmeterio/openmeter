@@ -4,12 +4,12 @@ dependencies:
   version: 0.23.3
 - name: kafka
   repository: oci://registry-1.docker.io/bitnamicharts
-  version: 30.1.8
+  version: 32.4.4
 - name: postgresql
   repository: oci://registry-1.docker.io/bitnamicharts
-  version: 16.1.2
+  version: 17.1.0
 - name: redis
   repository: oci://registry-1.docker.io/bitnamicharts
-  version: 20.2.1
-digest: sha256:984e797866c51fc1d921e3490d3f88b1023257345849449ffb0adb457e39a529
-generated: "2025-08-17T14:11:37.936915+02:00"
+  version: 23.1.1
+digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+generated: "2026-04-22T00:00:00.000000+00:00"
