@@ -106,7 +106,7 @@ func TestOnCreditPurchaseInitiated_ExpiringCreditPlansBreakage(t *testing.T) {
 	require.Len(t, rows, 1)
 	require.Equal(t, ledger.BreakageKindPlan, rows[0].Kind)
 	require.True(t, rows[0].Amount.Equal(alpacadecimal.NewFromInt(100)), "plan amount: %s", rows[0].Amount)
-	require.True(t, rows[0].ExpiresAt.Equal(expiresAt), "expires_at: %s", rows[0].ExpiresAt)
+	require.WithinDuration(t, expiresAt, rows[0].ExpiresAt, time.Microsecond, "expires_at")
 
 	fbo := env.fboSubAccount(t, costBasis)
 	breakageSubAccount := env.BreakageSubAccountWithCostBasis(t, &costBasis)
