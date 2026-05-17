@@ -1,16 +1,29 @@
 # Credit Collection
 
-This package turns customer credit and advance into accrued value. The hard part is not posting `FBO -> accrued`; it is preserving the order of what was collected so later correction and breakage flows can undo the same economic slices.
+This package turns customer credit and advance into accrued value. The hard part is not posting `FBO -> accrued`; it is preserving the exact order of what was collected so later correction and breakage flows can undo the same economic slices.
 
 ## Vocab
 
 - `BookedAt`: timestamp used for the ledger transactions being written.
 - `SourceBalanceAsOf`: timestamp used to decide which FBO sources are available.
 - `source`: one spendable FBO slice selected by the collector.
-- `allocation`: billing's collapsed record of collected credit.
 - `source entry`: the concrete negative FBO ledger entry created by collection.
+- `allocation`: billing's collapsed record of collected credit.
+- `advance`: value moved through FBO/accrued before real credit exists to cover it.
 
-`BookedAt` and `SourceBalanceAsOf` are intentionally separate. A charge can be booked at one business timestamp while source selection uses the current view of available credit, including future-dated expiry entries that are already visible by then.
+`BookedAt` and `SourceBalanceAsOf` are intentionally separate.
+
+Example:
+
+```text
+charge allocates at T1
+source balance is checked at T5
+
+BookedAt = T1
+SourceBalanceAsOf = T5
+```
+
+The transaction is booked at `T1`, but source selection can see credit and expiry state visible as of `T5`.
 
 ## Collection Order
 
@@ -24,113 +37,212 @@ stable cursor asc
 
 Non-expiring credit sorts after expiring credit with the same priority.
 
-The collector must use the same order as breakage release. This is what lets breakage avoid grant-level lineage. If the collector consumes an expiring source, it also asks breakage to release the matching planned breakage for that same source.
-
-## Why Source Entries Carry Identity
-
-Billing allocations are intentionally coarser than ledger collection internals. For example, a single allocation can represent multiple FBO source entries.
-
-That means corrections cannot rely only on the allocation amount. A partial correction needs to know the original internal order:
-
-```text
-usage collected 10:
-  source #0: 4 from expiry E1
-  source #1: 6 from expiry E2
-
-correction restores 5:
-  restore 5 from source #1
-```
-
-The source entry identity/order is the stable bridge between:
-
-- the committed ledger entries,
-- the breakage release attached to each expiring source,
-- and the later correction request against the billing allocation.
-
-The amount still comes from ledger entries. The identity/order only says which committed source entry came first.
+This order must match breakage release order. If the collector consumes an expiring source, it also asks breakage to release the matching planned breakage for that same source.
 
 ## Forward Collection Example
 
-Suppose the customer has:
+Assume the customer has:
 
 ```text
-priority 0, expires E1: 7
-priority 0, expires E2: 5
-priority 1, no expiry: 9
+source A: priority 0, expires T10, available 10
+source B: priority 0, expires T15, available 15
+source C: priority 1, no expiry,  available 20
 ```
 
-Collecting 10 chooses:
+Collecting 5 at `T2` chooses source A:
 
 ```text
-7 from E1
-3 from E2
+@T2
+FBO(A)  -5
+ACCRUED +5
 ```
 
-The ledger posts the FBO sources to accrued at `BookedAt` and breakage releases the same expiring slices at their expiry timestamps:
+Breakage release for the selected expiring source:
 
 ```text
-@BookedAt
-FBO(E1)  -7
-FBO(E2)  -3
-accrued +10
-
-@E1 [release]
-FBO      +7
-breakage -7
-
-@E2 [release]
-FBO      +3
-breakage -3
+@T10 [release]
+FBO(A) +5
+BR     -5
 ```
 
-The non-expiring source is untouched because lower-priority expiring credit was enough.
-
-## Advance
-
-If credit-only collection cannot cover the full amount, the shortfall is advanced:
+Collecting another 10 at `T3` chooses the rest of source A, then source B:
 
 ```text
-@BookedAt
-receivable -x
-FBO        +x
-
-@BookedAt
-FBO     -x
-accrued +x
+@T3
+FBO(A)  -5
+FBO(B)  -5
+ACCRUED +10
 ```
 
-Advance does not create breakage. It has no expiring real credit backing it yet.
+Breakage releases:
 
-If a later expiring credit purchase backfills that advance, breakage treats the covered amount as already used: it creates a plan and an immediate release for the same expiry.
+```text
+@T10 [release]
+FBO(A) +5
+BR     -5
 
-## Corrections
+@T15 [release]
+FBO(B) +5
+BR     -5
+```
+
+Source C is untouched because all lower-priority expiring credit was consumed first.
+
+## Source Entry Identity
+
+Billing allocations are intentionally coarser than ledger collection internals. A single allocation can represent multiple FBO source entries.
+
+Example:
+
+```text
+allocation amount = 10
+
+ledger source entries:
+  source #0: FBO(A) -5
+  source #1: FBO(B) -5
+```
+
+The ledger entries carry source identity/order metadata:
+
+```text
+source #0 -> order 0
+source #1 -> order 1
+```
+
+That identity is not a second source of numeric truth. Amounts come from ledger entries. The identity only records the order in which committed source entries were selected.
+
+This bridge is needed because later correction starts from a billing allocation, but breakage releases are attached to concrete FBO source entries.
+
+## Credit-Only Advance
+
+If credit-only collection cannot cover the requested amount, the shortfall becomes advance.
+
+Example:
+
+```text
+customer has 10 real credit
+usage needs 15
+```
+
+Real credit collection:
+
+```text
+@T
+FBO(real) -10
+ACCRUED   +10
+```
+
+Advance creation and collection:
+
+```text
+@T
+RECEIVABLE -5
+FBO        +5
+
+@T
+FBO(advance) -5
+ACCRUED      +5
+```
+
+Advance does not create breakage because no expiring real credit backs it yet.
+
+## Advance Backfill
+
+When later real credit covers advance, the covered value is already used from the collector's perspective.
+
+Example:
+
+```text
+T1 usage creates 5 advance
+T5 expiring credit purchase covers that advance
+T20 purchased credit expires
+```
+
+Breakage sees the covered amount as issued and immediately used:
+
+```text
+@T20 [plan]
+FBO(real) -5
+BR        +5
+
+@T20 [release]
+FBO(real) +5
+BR        -5
+```
+
+Net breakage is zero unless the original advance-backed usage is later corrected.
+
+## Usage Corrections
 
 Usage correction restores previously collected value. It does not increase usage; it unwinds up to the original collected amount.
 
-For a partial correction, the collector restores source entries in reverse original collection order:
+Correction uses reverse original collection order.
+
+Example:
 
 ```text
-original collection:
-  source #0: 4 from E1
-  source #1: 6 from E2
+original allocation amount = 10
 
-correction of 5:
-  restore 5 from source #1
+source #0: 4 from expiry T10
+source #1: 6 from expiry T15
 ```
 
-If source #1 had a breakage release, that release is reopened for 5. If the correction were 8, it would reopen:
+Correction of 5 restores:
+
+```text
+5 from source #1
+```
+
+Ledger correction:
+
+```text
+@C
+FBO(source #1) +5
+ACCRUED        -5
+```
+
+Breakage correction:
+
+```text
+@T15 [reopen]
+FBO(source #1) -5
+BR             +5
+```
+
+Correction of 8 restores:
 
 ```text
 6 from source #1
 2 from source #0
 ```
 
-This reverse order is what keeps remaining usage equivalent to the original collection prefix:
+Ledger correction:
 
 ```text
-original:  E1(4), E2(6)
-correct 5
-remaining used: E1(4), E2(1)
+@C
+FBO(source #1) +6
+FBO(source #0) +2
+ACCRUED        -8
+```
+
+Breakage correction:
+
+```text
+@T15 [reopen]
+FBO(source #1) -6
+BR             +6
+
+@T10 [reopen]
+FBO(source #0) -2
+BR             +2
+```
+
+The remaining usage is equivalent to the original collection prefix:
+
+```text
+original:  T10(4), T15(6)
+correct 8
+remaining used: T10(2), T15(0)
 ```
 
 ## Backfilled Advance Correction
@@ -142,15 +254,52 @@ Backfilled advance is a two-time problem:
 
 Correcting the original usage has to unwind both facts:
 
-- undo the original advance-backed collection,
-- unwind the later backfill attribution,
-- reopen the advance-backfill breakage release,
-- and make the covered real credit available again as ordinary FBO credit.
+- undo the original advance-backed collection;
+- unwind the later backfill attribution;
+- reopen the advance-backfill breakage release;
+- make the covered real credit available again as ordinary FBO credit.
 
-This is why correction follows the active lineage state first, then maps back to the original source entry. The source entry tells us what was collected; lineage tells us what that value became later.
+Example:
+
+```text
+T1 usage consumes 5 advance
+T5 credit purchase backfills that 5, expires T20
+T6 original usage is corrected by 5
+```
+
+The correction:
+
+```text
+@T6
+FBO(advance) +5
+ACCRUED      -5
+```
+
+The backfilled credit is no longer used, so breakage reopens the release:
+
+```text
+@T20 [reopen]
+FBO(real) -5
+BR        +5
+```
+
+The covered real credit is re-issued into ordinary FBO state so it can be consumed later or expire at `T20`.
 
 ## Transaction Boundary
 
-Collection and correction must run inside one database transaction. Source selection, ledger commit, breakage record persistence, and billing realization/correction creation are one logical operation.
+Collection and correction must run inside one database transaction.
 
-If any step commits independently, later flows can see impossible intermediate states: ledger entries without breakage records, breakage records without ledger entries, or billing allocations pointing at incomplete ledger work.
+The atomic unit includes:
+
+- source selection;
+- ledger commit;
+- breakage record persistence;
+- billing allocation/correction creation.
+
+If any step commits independently, later flows can observe impossible intermediate states:
+
+```text
+ledger entries without breakage records
+breakage records without ledger entries
+billing allocations pointing at incomplete ledger work
+```
