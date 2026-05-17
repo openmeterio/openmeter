@@ -45,6 +45,10 @@ type Service interface {
 	// expired credit transactions.
 	ListExpiredRecords(ctx context.Context, input ListExpiredRecordsInput) ([]Record, error)
 
+	// ListExpiredBreakageImpacts returns customer-visible breakage impacts by
+	// netting raw breakage rows that have reached expiry.
+	ListExpiredBreakageImpacts(ctx context.Context, input ListExpiredBreakageImpactsInput) (ListExpiredBreakageImpactsResult, error)
+
 	// PersistCommittedRecords turns pending record metadata into durable
 	// rows after the corresponding breakage ledger transactions have committed.
 	PersistCommittedRecords(ctx context.Context, pending []PendingRecord, group ledger.TransactionGroup) error

@@ -37,6 +37,10 @@ func (NoopService) ListExpiredRecords(context.Context, ListExpiredRecordsInput) 
 	return nil, nil
 }
 
+func (NoopService) ListExpiredBreakageImpacts(context.Context, ListExpiredBreakageImpactsInput) (ListExpiredBreakageImpactsResult, error) {
+	return ListExpiredBreakageImpactsResult{}, nil
+}
+
 func (NoopService) PersistCommittedRecords(context.Context, []PendingRecord, ledger.TransactionGroup) error {
 	return nil
 }

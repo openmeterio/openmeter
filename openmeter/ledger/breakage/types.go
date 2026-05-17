@@ -125,6 +125,49 @@ type ListExpiredRecordsInput struct {
 	AsOf       time.Time
 }
 
+// ListExpiredBreakageImpactsInput selects customer-visible breakage impact rows.
+// Impacts are derived by netting expired plan/release/reopen records by expiry.
+type ListExpiredBreakageImpactsInput struct {
+	CustomerID customer.CustomerID
+	Currency   *currencyx.Code
+	AsOf       time.Time
+	After      *ledger.TransactionCursor
+	Before     *ledger.TransactionCursor
+	Limit      int
+}
+
+// ListExpiredBreakageImpactsResult contains breakage impacts ordered by
+// ledger cursor descending, matching customer transaction listing semantics.
+type ListExpiredBreakageImpactsResult struct {
+	Items   []BreakageImpact
+	HasMore bool
+}
+
+// BreakageImpact is the customer-facing effect of breakage that has reached its
+// expiration timestamp. Amount is negative because expiry reduces FBO balance.
+type BreakageImpact struct {
+	ID          models.NamespacedID
+	CreatedAt   time.Time
+	BookedAt    time.Time
+	CustomerID  customer.CustomerID
+	Currency    currencyx.Code
+	Amount      alpacadecimal.Decimal
+	Annotations models.Annotations
+}
+
+func (i BreakageImpact) Cursor() ledger.TransactionCursor {
+	return ledger.TransactionCursor{
+		BookedAt:  i.BookedAt,
+		CreatedAt: i.CreatedAt,
+		ID:        i.ID,
+	}
+}
+
+type ListBreakageTransactionCursorsInput struct {
+	Namespace     string
+	TransactionID []string
+}
+
 // CreateRecordsInput persists record rows for already committed
 // breakage ledger transactions.
 type CreateRecordsInput struct {
@@ -221,4 +264,9 @@ type Adapter interface {
 	// query time. The caller owns netting plan/release/reopen rows into a
 	// customer-facing expired transaction.
 	ListExpiredRecords(ctx context.Context, input ListExpiredRecordsInput) ([]Record, error)
+
+	// ListBreakageTransactionCursors returns ledger cursors for committed
+	// breakage transaction ids. This keeps read-model projection in breakage
+	// from loading transaction groups one by one through the ledger API.
+	ListBreakageTransactionCursors(ctx context.Context, input ListBreakageTransactionCursorsInput) (map[string]ledger.TransactionCursor, error)
 }
