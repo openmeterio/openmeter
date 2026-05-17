@@ -8,6 +8,8 @@ package main
 
 import (
 	"context"
+	"log/slog"
+
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
@@ -20,7 +22,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
-	"log/slog"
 )
 
 // Injectors from wire.go:
@@ -71,6 +72,12 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	migrator := common.Migrator{
 		Config: postgresConfig,
 		Client: client,
+		Logger: logger,
+	}
+	aggregationConfiguration := conf.Aggregation
+	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
+	clickHouseMigrator := common.ClickHouseMigrator{
+		Config: clickHouseAggregationConfiguration,
 		Logger: logger,
 	}
 	ingestConfiguration := conf.Ingest
@@ -179,8 +186,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	aggregationConfiguration := conf.Aggregation
-	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	v4, cleanup7, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
 	if err != nil {
 		cleanup6()
@@ -232,6 +237,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	application := Application{
 		GlobalInitializer:       globalInitializer,
 		Migrator:                migrator,
+		ClickHouseMigrator:      clickHouseMigrator,
 		BrokerOptions:           brokerOptions,
 		EventPublisher:          eventbusPublisher,
 		EntClient:               client,
@@ -264,6 +270,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 type Application struct {
 	common.GlobalInitializer
 	common.Migrator
+	common.ClickHouseMigrator
 
 	BrokerOptions           kafka.BrokerOptions
 	EventPublisher          eventbus.Publisher

@@ -1,7 +1,6 @@
 package clickhouse
 
 import (
-	_ "embed"
 	"fmt"
 	"strings"
 	"time"
@@ -10,43 +9,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
-
-// Create Events Table
-type createEventsTable struct {
-	Database        string
-	EventsTableName string
-}
-
-func (d createEventsTable) toSQL() string {
-	tableName := getTableName(d.Database, d.EventsTableName)
-
-	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
-	sb.CreateTable(tableName)
-	sb.IfNotExists()
-	sb.Define("namespace", "String")
-	sb.Define("id", "String")
-	sb.Define("type", "LowCardinality(String)")
-	sb.Define("subject", "String")
-	sb.Define("source", "String")
-	sb.Define("time", "DateTime")
-	sb.Define("data", "String")
-	sb.Define("ingested_at", "DateTime")
-	sb.Define("stored_at", "DateTime")
-	sb.Define(fmt.Sprintf("INDEX %s_stored_at stored_at TYPE minmax GRANULARITY 4", d.EventsTableName))
-	sb.Define("store_row_id", "String")
-	sb.SQL("ENGINE = MergeTree")
-	sb.SQL("PARTITION BY toYYYYMM(time)")
-	// Lowest cardinality columns we always filter on goes to the most left.
-	// ClickHouse always picks partition first so we always filter time by month.
-	// Theoretically we could add toStartOfHour(time) to the order sooner than subject
-	// but we bet on that a typical namespace has more subjects than hours in a month.
-	// Subject is an optional filter so it won't always help to reduce number of rows scanned.
-	// Finally we add time not just to speed up queries but also to keep data on the disk together.
-	sb.SQL("ORDER BY (namespace, type, subject, toStartOfHour(time))")
-
-	sql, _ := sb.Build()
-	return sql
-}
 
 // Query Events Table
 type queryEventsTable struct {
