@@ -722,8 +722,8 @@ github.com/gabriel-vasile/mimetype v1.4.9/go.mod h1:WnSQhFKJuBlRyLiKohA/2DtIlPFA
 github.com/gdamore/optopia v0.2.0/go.mod h1:YKYEwo5C1Pa617H7NlPcmQXl+vG6YnSSNB44n8dNL0Q=
 github.com/generikvault/gvalstrings v0.0.0-20180926130504-471f38f0112a h1:J8FuFJ7K+Hiwkla2kT9fVIVix+EZhAlDsZwRlfFI3MA=
 github.com/generikvault/gvalstrings v0.0.0-20180926130504-471f38f0112a/go.mod h1:ms6iGk40n2YQrbM9Sr6onzwYBD1q5D0T5DQmcaye6uU=
-github.com/getkin/kin-openapi v0.137.0 h1:Q3HhawNQV0GfvO2mIYMUBUSEFrDsVlzcYz4VydL9YEo=
-github.com/getkin/kin-openapi v0.137.0/go.mod h1:vUYWaKyMqj7PfTybelXtLuLN9tReS12vxnzMRK+z2GY=
+github.com/getkin/kin-openapi v0.138.0 h1:ebfE0JAmF6AqHrNBy1KO3Fs68K9tPs48HalvLPo7Rv4=
+github.com/getkin/kin-openapi v0.138.0/go.mod h1:vUYWaKyMqj7PfTybelXtLuLN9tReS12vxnzMRK+z2GY=
 github.com/getsentry/sentry-go v0.34.1 h1:HSjc1C/OsnZttohEPrrqKH42Iud0HuLCXpv8cU1pWcw=
 github.com/getsentry/sentry-go v0.34.1/go.mod h1:C55omcY9ChRQIUcVcGcs+Zdy4ZpQGvNJ7JYHIoSWOtE=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
