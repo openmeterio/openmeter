@@ -29,11 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type EntitlementSnapshotHandlerState struct {
-	TotalGrants float64 `json:"totalGrants"`
-}
-
-var ErrNoBalanceAvailable = errors.New("no balance available")
+var ErrNoBalanceAvailable = errors.New("no balance available for entitlement")
 
 func (b *EntitlementSnapshotHandler) handleAsSnapshotEvent(ctx context.Context, event snapshot.SnapshotEvent) error {
 	// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
@@ -146,7 +142,7 @@ func (b *EntitlementSnapshotHandler) handleRule(ctx context.Context, balSnapshot
 
 		lastEventActualValue, err := getNumericThreshold(
 			lastEvent.Payload.BalanceThreshold.Threshold,
-			lastEvent.Payload.BalanceThreshold.Value)
+			snapshot.EntitlementValue(lastEvent.Payload.BalanceThreshold.Value))
 		if err != nil {
 			if errors.Is(err, ErrNoBalanceAvailable) {
 				// In case there are no grants, percentage all percentage rules would match, so let's instead
@@ -392,23 +388,19 @@ type numericThreshold struct {
 
 const absoluteZero = 1e-9
 
-func getNumericThreshold(threshold notification.BalanceThreshold, value api.EntitlementValue) (*numericThreshold, error) {
+func getNumericThreshold(threshold notification.BalanceThreshold, value snapshot.EntitlementValue) (*numericThreshold, error) {
 	var (
-		balance     = lo.FromPtr(value.Balance)
-		usage       = lo.FromPtr(value.Usage)
-		overage     = lo.FromPtr(value.Overage)
-		totalGrants = lo.FromPtr(value.TotalAvailableGrantAmount)
+		// Balance = TotalAvailableGrants - Usage
+		balance = lo.FromPtr(value.Balance)
+		// Usage = TotalAvailableGrants - Balance. It is only available if active grants are available in the current usage period.
+		usage = lo.FromPtr(value.Usage)
+		// Overage means the usage which is not covered by the grants.
+		overage = lo.FromPtr(value.Overage)
+		// TotalAvailableGrants means all the active grants available for in the current usage period.
+		totalAvailableGrants = lo.FromPtr(value.TotalAvailableGrantAmount)
+		// Total usage is the sum of the usage and overage
+		totalUsage = usage + overage
 	)
-
-	// If no grants are available, we cannot calculate the threshold value.
-	if totalGrants == 0 {
-		return nil, ErrNoBalanceAvailable
-	}
-
-	// Invalid entitlement value as there cannot be overage if the balance is not zero.
-	if balance > absoluteZero && overage > absoluteZero {
-		return nil, errors.New("balance and overage cannot be positive number at the same time")
-	}
 
 	switch threshold.Type {
 	// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsageValue
@@ -416,18 +408,28 @@ func getNumericThreshold(threshold notification.BalanceThreshold, value api.Enti
 		return &numericThreshold{
 			BalanceThreshold: threshold,
 			ThresholdValue:   threshold.Value,
-			Active:           threshold.Value < usage,
+			Active:           threshold.Value < totalUsage,
 		}, nil
 	// Deprecated: obsoleted by api.NotificationRuleBalanceThresholdValueTypeUsagePercentage
 	case api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.NotificationRuleBalanceThresholdValueTypePercent:
-		thresholdValue := totalGrants * (threshold.Value / 100)
+		// If no grants are available, we cannot calculate the threshold value.
+		if totalAvailableGrants <= absoluteZero {
+			return nil, ErrNoBalanceAvailable
+		}
+
+		thresholdValue := totalAvailableGrants * (threshold.Value / 100)
 
 		return &numericThreshold{
 			BalanceThreshold: threshold,
 			ThresholdValue:   thresholdValue,
-			Active:           thresholdValue < usage,
+			Active:           thresholdValue < totalUsage,
 		}, nil
 	case api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
+		// If no grants are available, we cannot calculate the threshold value.
+		if totalAvailableGrants <= absoluteZero {
+			return nil, ErrNoBalanceAvailable
+		}
+
 		active := threshold.Value > balance
 
 		if threshold.Value == 0 {
@@ -440,7 +442,7 @@ func getNumericThreshold(threshold notification.BalanceThreshold, value api.Enti
 			Active:           active,
 		}, nil
 	default:
-		return nil, errors.New("unknown threshold type")
+		return nil, fmt.Errorf("unknown threshold type: %s", threshold.Type)
 	}
 }
 
@@ -468,7 +470,7 @@ func getActiveThresholdsWithHighestPriority(thresholds []notification.BalanceThr
 	)
 
 	for _, threshold := range thresholds {
-		numThreshold, err := getNumericThreshold(threshold, api.EntitlementValue(value))
+		numThreshold, err := getNumericThreshold(threshold, value)
 		if err != nil {
 			if errors.Is(err, ErrNoBalanceAvailable) {
 				continue

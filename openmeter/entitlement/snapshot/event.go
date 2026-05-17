@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
+	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -39,6 +40,8 @@ func (o ValueOperationType) Validate() error {
 	return nil
 }
 
+var _ pkgmodels.CustomValidator[EntitlementValue] = (*EntitlementValue)(nil)
+
 type EntitlementValue struct {
 	// Balance Only available for metered entitlements. Metered entitlements are built around a balance calculation where feature usage is deducted from the issued grants. Balance represents the remaining balance of the entitlement, it's value never turns negative.
 	Balance *float64 `json:"balance,omitempty"`
@@ -57,6 +60,10 @@ type EntitlementValue struct {
 
 	// Usage Only available for metered entitlements. Returns the total feature usage in the current period.
 	Usage *float64 `json:"usage,omitempty"`
+}
+
+func (e EntitlementValue) ValidateWith(validators ...pkgmodels.ValidatorFunc[EntitlementValue]) error {
+	return pkgmodels.Validate(e, validators...)
 }
 
 type SnapshotEvent struct {
