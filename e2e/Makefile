@@ -13,6 +13,19 @@ test-local: ## Run tests against local openmeter
 
 	$(MAKE) env-local-down
 
+.PHONY: test-httpexpect-local
+test-httpexpect-local: ## Run httpexpect tests against local openmeter (stack must already be up)
+	$(call print-target)
+	$(MAKE) env-local-down
+	$(MAKE) env-local-up
+
+	# wait for sink-worker to be ready
+	curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
+
+	TZ=UTC OPENMETER_ADDRESS=http://localhost:38888 go test -tags=dynamic -count=1 -v ./httpexpect/...
+
+	$(MAKE) env-local-down
+
 .PHONY: env-local-down
 env-local-down:
 	$(call print-target)
