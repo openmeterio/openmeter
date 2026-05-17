@@ -7,8 +7,8 @@ import (
 )
 
 type CreditsConfiguration struct {
-	Enabled                 bool `yaml:"enabled"`
-	EnableCreditThenInvoice bool `yaml:"enable_credit_then_invoice"`
+	Enabled                 bool `yaml:"enabled" mapstructure:"enabled"`
+	EnableCreditThenInvoice bool `yaml:"enable_credit_then_invoice" mapstructure:"enable_credit_then_invoice"`
 }
 
 func (c CreditsConfiguration) Validate() error {
