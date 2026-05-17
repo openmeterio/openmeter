@@ -22,7 +22,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
@@ -65,6 +67,8 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 	s.BalanceQuerier = ledgerDeps.HistoricalLedger
 	s.LedgerResolver = ledgerDeps.ResolversService
 
+	transactionManager := enttx.NewCreator(s.DBClient)
+
 	collectorService := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: ledgerDeps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
@@ -72,6 +76,7 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 			AccountCatalog: ledgerDeps.AccountService,
 			BalanceQuerier: ledgerDeps.HistoricalLedger,
 		},
+		TransactionManager: transactionManager,
 	})
 
 	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
@@ -94,6 +99,8 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 			ledgerDeps.HistoricalLedger,
 			ledgerDeps.ResolversService,
 			ledgerDeps.AccountService,
+			ledgerbreakage.NewNoopService(),
+			transactionManager,
 		),
 		UsageBasedHandler: ledgerchargeadapter.NewUsageBasedHandler(
 			ledgerDeps.HistoricalLedger,
@@ -1493,7 +1500,7 @@ func (s *CreditThenInvoiceTestSuite) mustCustomerFBOBalance(customerID customer.
 		Currency:       code,
 		CostBasis:      costBasis,
 		CreditPriority: lo.ToPtr(ledger.DefaultCustomerFBOPriority),
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -1509,7 +1516,7 @@ func (s *CreditThenInvoiceTestSuite) mustCustomerReceivableBalance(customerID cu
 		Currency:                       code,
 		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -1524,7 +1531,7 @@ func (s *CreditThenInvoiceTestSuite) mustCustomerAccruedBalance(customerID custo
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.AccruedAccount, ledger.RouteFilter{
 		Currency:  code,
 		CostBasis: costBasis,
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -1539,7 +1546,7 @@ func (s *CreditThenInvoiceTestSuite) mustWashBalance(namespace string, code curr
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.WashAccount, ledger.RouteFilter{
 		Currency:  code,
 		CostBasis: costBasis,
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -1553,7 +1560,7 @@ func (s *CreditThenInvoiceTestSuite) mustEarningsBalance(namespace string, code 
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.EarningsAccount, ledger.RouteFilter{
 		Currency: code,
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()

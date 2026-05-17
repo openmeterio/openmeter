@@ -60,6 +60,10 @@ func ListFundedCreditActivities(ctx context.Context, dbClient *db.Client, input 
 		)
 	}
 
+	if input.AsOf != nil {
+		query = query.Where(dbchargecreditpurchasecreditgrant.GrantedAtLTE(*input.AsOf))
+	}
+
 	if input.After != nil {
 		query = query.Where(fundedCreditActivityAfterPredicate(*input.After))
 	}

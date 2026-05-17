@@ -16,6 +16,7 @@ var DefaultValidator = Validator{
 				{ledger.AccountTypeCustomerReceivable, ledger.AccountTypeWash},
 				{ledger.AccountTypeCustomerAccrued, ledger.AccountTypeEarnings},
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeBrokerage},
+				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeBreakage},
 			},
 		},
 		RequireFlowDirectionRule{
@@ -33,6 +34,10 @@ var DefaultValidator = Validator{
 		RequireFlowDirectionRule{
 			From: ledger.AccountTypeWash,
 			To:   ledger.AccountTypeCustomerReceivable,
+		},
+		RequireFlowDirectionRule{
+			From: ledger.AccountTypeCustomerFBO,
+			To:   ledger.AccountTypeBreakage,
 		},
 		RequireAccountAuthorizationStatusRule{
 			WhenHasAccountTypes: []ledger.AccountType{
@@ -82,6 +87,14 @@ var DefaultValidator = Validator{
 		RequireSameRouteRule{
 			Left:  ledger.AccountTypeCustomerReceivable,
 			Right: ledger.AccountTypeWash,
+			Fields: []RouteField{
+				RouteFieldCurrency,
+				RouteFieldCostBasis,
+			},
+		},
+		RequireSameRouteRule{
+			Left:  ledger.AccountTypeCustomerFBO,
+			Right: ledger.AccountTypeBreakage,
 			Fields: []RouteField{
 				RouteFieldCurrency,
 				RouteFieldCostBasis,

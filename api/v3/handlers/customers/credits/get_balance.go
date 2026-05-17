@@ -3,6 +3,7 @@ package customerscredits
 import (
 	"context"
 	"net/http"
+	"time"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
@@ -18,6 +19,7 @@ type (
 	GetCustomerCreditBalanceRequest struct {
 		CustomerID customer.CustomerID
 		Currencies customerbalance.CurrencyFilter
+		AsOf       time.Time
 	}
 	GetCustomerCreditBalanceResponse = api.BillingCreditBalances
 	GetCustomerCreditBalanceParams   struct {
@@ -40,12 +42,18 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 					Namespace: namespace,
 					ID:        args.CustomerID,
 				},
+				AsOf: clock.Now(),
 			}
 
-			if args.Params.Filter != nil && args.Params.Filter.Currency != nil {
-				currency := currencyx.Code(*args.Params.Filter.Currency)
-				request.Currencies = customerbalance.CurrencyFilter{
-					Codes: []currencyx.Code{currency},
+			if args.Params.Filter != nil {
+				if args.Params.Filter.Currency != nil {
+					currency := currencyx.Code(*args.Params.Filter.Currency)
+					request.Currencies = customerbalance.CurrencyFilter{
+						Codes: []currencyx.Code{currency},
+					}
+				}
+				if args.Params.Filter.AsOf != nil {
+					request.AsOf = *args.Params.Filter.AsOf
 				}
 			}
 
@@ -62,6 +70,7 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 			balancesByCurrency, err := h.balanceFacade.GetBalances(ctx, customerbalance.GetBalancesInput{
 				CustomerID: request.CustomerID,
 				Currencies: request.Currencies,
+				AsOf:       &request.AsOf,
 			})
 			if err != nil {
 				return GetCustomerCreditBalanceResponse{}, err
@@ -73,7 +82,7 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 			}
 
 			return GetCustomerCreditBalanceResponse{
-				RetrievedAt: clock.Now(),
+				RetrievedAt: request.AsOf,
 				Balances:    balances,
 			}, nil
 		},

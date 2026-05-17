@@ -88,6 +88,8 @@ type ChargeCreditPurchase struct {
 	CreditAmount alpacadecimal.Decimal `json:"credit_amount,omitempty"`
 	// EffectiveAt holds the value of the "effective_at" field.
 	EffectiveAt *time.Time `json:"effective_at,omitempty"`
+	// ExpiresAt holds the value of the "expires_at" field.
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 	// Priority holds the value of the "priority" field.
 	Priority *int `json:"priority,omitempty"`
 	// Settlement holds the value of the "settlement" field.
@@ -237,7 +239,7 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldCurrency, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldTaxCodeID, chargecreditpurchase.FieldTaxBehavior, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
-		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt:
+		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt, chargecreditpurchase.FieldExpiresAt:
 			values[i] = new(sql.NullTime)
 		case chargecreditpurchase.FieldSettlement:
 			values[i] = chargecreditpurchase.ValueScanner.Settlement.ScanValue()
@@ -438,6 +440,13 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 				_m.EffectiveAt = new(time.Time)
 				*_m.EffectiveAt = value.Time
 			}
+		case chargecreditpurchase.FieldExpiresAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field expires_at", values[i])
+			} else if value.Valid {
+				_m.ExpiresAt = new(time.Time)
+				*_m.ExpiresAt = value.Time
+			}
 		case chargecreditpurchase.FieldPriority:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field priority", values[i])
@@ -636,6 +645,11 @@ func (_m *ChargeCreditPurchase) String() string {
 	builder.WriteString(", ")
 	if v := _m.EffectiveAt; v != nil {
 		builder.WriteString("effective_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.ExpiresAt; v != nil {
+		builder.WriteString("expires_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")

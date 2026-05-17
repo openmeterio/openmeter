@@ -107,13 +107,23 @@ func (t TransferCustomerFBOToAccruedTemplate) routePairingKey(address ledger.Pos
 }
 
 func compareFBOAccrualCorrectionSourceEntries(left ledger.Entry, right ledger.Entry) int {
+	leftOrder, leftHasOrder := left.Annotations().GetInt(ledger.AnnotationCollectionSourceOrder)
+	rightOrder, rightHasOrder := right.Annotations().GetInt(ledger.AnnotationCollectionSourceOrder)
+	if leftHasOrder && rightHasOrder && leftOrder != rightOrder {
+		return cmp.Compare(leftOrder, rightOrder)
+	}
+
 	leftPriority := fboCorrectionPriority(left.PostingAddress())
 	rightPriority := fboCorrectionPriority(right.PostingAddress())
 	if leftPriority != rightPriority {
 		return cmp.Compare(leftPriority, rightPriority)
 	}
 
-	return cmp.Compare(left.PostingAddress().SubAccountID(), right.PostingAddress().SubAccountID())
+	if c := cmp.Compare(left.PostingAddress().SubAccountID(), right.PostingAddress().SubAccountID()); c != 0 {
+		return c
+	}
+
+	return cmp.Compare(left.IdentityKey(), right.IdentityKey())
 }
 
 func fboCorrectionPriority(address ledger.PostingAddress) int {
@@ -182,8 +192,10 @@ func (t TransferCustomerFBOToAccruedTemplate) buildRoutePreservingAccrualEntries
 
 	for _, source := range sources {
 		entryInputs = append(entryInputs, &EntryInput{
-			address: source.Address,
-			amount:  source.Amount.Neg(),
+			address:     source.Address,
+			amount:      source.Amount.Neg(),
+			identityKey: source.IdentityKey,
+			annotations: source.Annotations,
 		})
 	}
 

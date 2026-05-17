@@ -91,6 +91,11 @@ func SubAccountID(v string) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldEQ(FieldSubAccountID, v))
 }
 
+// IdentityKey applies equality check predicate on the "identity_key" field. It's identical to IdentityKeyEQ.
+func IdentityKey(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEQ(FieldIdentityKey, v))
+}
+
 // Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
 func Amount(v alpacadecimal.Decimal) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldEQ(FieldAmount, v))
@@ -369,6 +374,71 @@ func SubAccountIDEqualFold(v string) predicate.LedgerEntry {
 // SubAccountIDContainsFold applies the ContainsFold predicate on the "sub_account_id" field.
 func SubAccountIDContainsFold(v string) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldContainsFold(FieldSubAccountID, v))
+}
+
+// IdentityKeyEQ applies the EQ predicate on the "identity_key" field.
+func IdentityKeyEQ(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEQ(FieldIdentityKey, v))
+}
+
+// IdentityKeyNEQ applies the NEQ predicate on the "identity_key" field.
+func IdentityKeyNEQ(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNEQ(FieldIdentityKey, v))
+}
+
+// IdentityKeyIn applies the In predicate on the "identity_key" field.
+func IdentityKeyIn(vs ...string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldIn(FieldIdentityKey, vs...))
+}
+
+// IdentityKeyNotIn applies the NotIn predicate on the "identity_key" field.
+func IdentityKeyNotIn(vs ...string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNotIn(FieldIdentityKey, vs...))
+}
+
+// IdentityKeyGT applies the GT predicate on the "identity_key" field.
+func IdentityKeyGT(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldGT(FieldIdentityKey, v))
+}
+
+// IdentityKeyGTE applies the GTE predicate on the "identity_key" field.
+func IdentityKeyGTE(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldGTE(FieldIdentityKey, v))
+}
+
+// IdentityKeyLT applies the LT predicate on the "identity_key" field.
+func IdentityKeyLT(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldLT(FieldIdentityKey, v))
+}
+
+// IdentityKeyLTE applies the LTE predicate on the "identity_key" field.
+func IdentityKeyLTE(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldLTE(FieldIdentityKey, v))
+}
+
+// IdentityKeyContains applies the Contains predicate on the "identity_key" field.
+func IdentityKeyContains(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldContains(FieldIdentityKey, v))
+}
+
+// IdentityKeyHasPrefix applies the HasPrefix predicate on the "identity_key" field.
+func IdentityKeyHasPrefix(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldHasPrefix(FieldIdentityKey, v))
+}
+
+// IdentityKeyHasSuffix applies the HasSuffix predicate on the "identity_key" field.
+func IdentityKeyHasSuffix(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldHasSuffix(FieldIdentityKey, v))
+}
+
+// IdentityKeyEqualFold applies the EqualFold predicate on the "identity_key" field.
+func IdentityKeyEqualFold(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEqualFold(FieldIdentityKey, v))
+}
+
+// IdentityKeyContainsFold applies the ContainsFold predicate on the "identity_key" field.
+func IdentityKeyContainsFold(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldContainsFold(FieldIdentityKey, v))
 }
 
 // AmountEQ applies the EQ predicate on the "amount" field.

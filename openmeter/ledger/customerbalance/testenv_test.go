@@ -14,7 +14,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	charges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaseadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/adapter"
+	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
@@ -27,6 +29,9 @@ import (
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
@@ -57,7 +62,9 @@ const (
 type testEnv struct {
 	*ledgertestutils.IntegrationEnv
 
+	BreakageService   ledgerbreakage.Service
 	Service           *service
+	creditPurchase    creditpurchase.Service
 	flatFeeService    flatfee.Service
 	usageBasedService usagebased.Service
 	featureMeters     feature.FeatureMeters
@@ -161,6 +168,21 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	breakageAdapter, err := ledgerbreakageadapter.New(ledgerbreakageadapter.Config{
+		Client: base.DB,
+	})
+	require.NoError(t, err)
+
+	breakageService, err := ledgerbreakage.NewService(ledgerbreakage.Config{
+		Adapter: breakageAdapter,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: base.Deps.ResolversService,
+			AccountCatalog: base.Deps.AccountService,
+			BalanceQuerier: base.Deps.HistoricalLedger,
+		},
+	})
+	require.NoError(t, err)
+
 	collectorService := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: base.Deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
@@ -168,6 +190,8 @@ func newTestEnv(t *testing.T) *testEnv {
 			AccountCatalog: base.Deps.AccountService,
 			BalanceQuerier: base.Deps.HistoricalLedger,
 		},
+		Breakage:           breakageService,
+		TransactionManager: enttx.NewCreator(base.DB),
 	})
 
 	usageAdapter, err := usagebasedadapter.New(usagebasedadapter.Config{
@@ -236,6 +260,21 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
+		Adapter: creditPurchaseAdapter,
+		Handler: ledgerchargeadapter.NewCreditPurchaseHandler(
+			base.Deps.HistoricalLedger,
+			base.Deps.HistoricalLedger,
+			base.Deps.ResolversService,
+			base.Deps.AccountService,
+			breakageService,
+			enttx.NewCreator(base.DB),
+		),
+		Lineage:     lineageService,
+		MetaAdapter: metaAdapter,
+	})
+	require.NoError(t, err)
+
 	service, err := New(Config{
 		AccountResolver:   base.Deps.ResolversService,
 		SubAccountService: base.Deps.AccountService,
@@ -244,16 +283,19 @@ func newTestEnv(t *testing.T) *testEnv {
 			flatFeeService:    flatFeeService,
 			usageBasedService: usageService,
 		},
-		CreditPurchaseSvc: creditPurchaseAdapter,
+		CreditPurchaseSvc: creditPurchaseService,
 		UsageBasedService: usageService,
 		Ledger:            base.Deps.HistoricalLedger,
 		BalanceQuerier:    base.Deps.HistoricalLedger,
+		Breakage:          breakageService,
 	})
 	require.NoError(t, err)
 
 	env := &testEnv{
 		IntegrationEnv:    base,
+		BreakageService:   breakageService,
 		Service:           service,
+		creditPurchase:    creditPurchaseService,
 		flatFeeService:    flatFeeService,
 		usageBasedService: usageService,
 		featureMeters:     featureMeters,

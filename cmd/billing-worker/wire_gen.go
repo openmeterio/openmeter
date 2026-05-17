@@ -337,7 +337,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	customerAccountRepo := common.NewLedgerResolversRepo(client)
 	customerLedgerProvisioner := common.NewLedgerResolversService(creditsConfiguration, accountService, customerAccountRepo, locker)
 	accountResolver := common.NewLedgerAccountResolver(customerLedgerProvisioner)
-	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService)
+	breakageService, err := common.NewLedgerBreakageService(creditsConfiguration, client, balanceQuerier, accountResolver, accountService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService)
 	if err != nil {
 		cleanup7()
 		cleanup6()

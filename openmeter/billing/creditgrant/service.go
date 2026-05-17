@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -63,6 +64,7 @@ type CreateInput struct {
 	Purchase      *PurchaseTerms
 	TaxConfig     *productcatalog.TaxConfig
 	Filters       *GrantFilters
+	ExpiresAfter  *datetime.ISODuration
 }
 
 type GrantFilters struct {
@@ -107,6 +109,13 @@ func (i CreateInput) Validate() error {
 
 		if i.Purchase.PerUnitCostBasis != nil && !i.Purchase.PerUnitCostBasis.IsPositive() {
 			errs = append(errs, errors.New("per_unit_cost_basis must be positive"))
+		}
+	}
+
+	if i.ExpiresAfter != nil {
+		expiresAfter := i.ExpiresAfter.Simplify(true)
+		if expiresAfter.IsZero() || expiresAfter.IsNegative() {
+			errs = append(errs, errors.New("expires_after must be positive"))
 		}
 	}
 

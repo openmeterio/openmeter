@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -24,8 +25,11 @@ import (
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
@@ -44,10 +48,16 @@ type BaseSuite struct {
 	billingtest.BaseSuite
 
 	Charges              charges.Service
+	CreditPurchaseSvc    creditpurchase.Service
+	UsageBasedSvc        usagebased.Service
+	CustomerBalanceSvc   customerbalance.Service
 	Ledger               ledger.Ledger
 	BalanceQuerier       ledger.BalanceQuerier
 	LedgerAccountService ledgeraccount.Service
 	LedgerResolver       *ledgerresolvers.AccountResolver
+	BreakageService      ledgerbreakage.Service
+	FlatFeeHandler       flatfee.Handler
+	LineageService       lineage.Service
 	RevenueRecognizer    recognizer.Service
 }
 
@@ -73,6 +83,25 @@ func (s *BaseSuite) SetupSuite() {
 		Adapter: lineageAdapter,
 	})
 	s.NoError(err)
+	s.LineageService = lineageService
+
+	transactionManager := enttx.NewCreator(s.DBClient)
+
+	breakageAdapter, err := ledgerbreakageadapter.New(ledgerbreakageadapter.Config{
+		Client: s.DBClient,
+	})
+	s.NoError(err)
+
+	breakageService, err := ledgerbreakage.NewService(ledgerbreakage.Config{
+		Adapter: breakageAdapter,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: deps.ResolversService,
+			AccountCatalog: deps.AccountService,
+			BalanceQuerier: deps.HistoricalLedger,
+		},
+	})
+	s.NoError(err)
+	s.BreakageService = breakageService
 
 	revenueRecognizer, err := recognizer.NewService(recognizer.Config{
 		Ledger: deps.HistoricalLedger,
@@ -82,7 +111,7 @@ func (s *BaseSuite) SetupSuite() {
 			BalanceQuerier: deps.HistoricalLedger,
 		},
 		Lineage:            lineageService,
-		TransactionManager: enttx.NewCreator(s.DBClient),
+		TransactionManager: transactionManager,
 	})
 	s.NoError(err)
 	s.RevenueRecognizer = revenueRecognizer
@@ -94,7 +123,15 @@ func (s *BaseSuite) SetupSuite() {
 			AccountCatalog: deps.AccountService,
 			BalanceQuerier: deps.HistoricalLedger,
 		},
+		Breakage:           breakageService,
+		TransactionManager: transactionManager,
 	})
+	flatFeeHandler := ledgerchargeadapter.NewFlatFeeHandler(
+		deps.HistoricalLedger,
+		transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger},
+		collectorService,
+	)
+	s.FlatFeeHandler = flatFeeHandler
 
 	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
 		Client:                s.DBClient,
@@ -102,12 +139,27 @@ func (s *BaseSuite) SetupSuite() {
 		BillingService:        s.BillingService,
 		FeatureService:        s.FeatureService,
 		StreamingConnector:    s.MockStreamingConnector,
-		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger}, collectorService),
-		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.HistoricalLedger, deps.ResolversService, deps.AccountService),
+		FlatFeeHandler:        flatFeeHandler,
+		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.HistoricalLedger, deps.ResolversService, deps.AccountService, breakageService, transactionManager),
 		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger}, collectorService),
 	})
 	s.NoError(err)
 	s.Charges = stack.ChargesService
+	s.CreditPurchaseSvc = stack.CreditPurchaseService
+	s.UsageBasedSvc = stack.UsageBasedService
+
+	customerBalanceSvc, err := customerbalance.New(customerbalance.Config{
+		AccountResolver:   deps.ResolversService,
+		SubAccountService: deps.AccountService,
+		ChargesService:    stack.ChargesService,
+		CreditPurchaseSvc: stack.CreditPurchaseService,
+		UsageBasedService: stack.UsageBasedService,
+		Ledger:            deps.HistoricalLedger,
+		BalanceQuerier:    deps.HistoricalLedger,
+		Breakage:          breakageService,
+	})
+	s.NoError(err)
+	s.CustomerBalanceSvc = customerBalanceSvc
 }
 
 func (s *BaseSuite) TearDownTest() {
@@ -234,16 +286,29 @@ func (s *BaseSuite) MustCustomerFBOBalance(customerID customer.CustomerID, code 
 // mo.Some(nil) for the explicit nil-cost-basis route, or mo.Some(&costBasis)
 // for one concrete cost-basis route.
 func (s *BaseSuite) MustCustomerFBOBalanceWithPriority(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], priority int) alpacadecimal.Decimal {
+	return s.MustCustomerFBOBalanceWithPriorityAsOf(customerID, code, costBasis, priority, nil)
+}
+
+func (s *BaseSuite) MustCustomerFBOBalanceAsOf(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], asOf time.Time) alpacadecimal.Decimal {
+	return s.MustCustomerFBOBalanceWithPriorityAsOf(customerID, code, costBasis, ledger.DefaultCustomerFBOPriority, &asOf)
+}
+
+func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityAsOf(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], priority int, asOf *time.Time) alpacadecimal.Decimal {
 	s.T().Helper()
 
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
 	s.NoError(err)
 
+	query := ledger.BalanceQuery{}
+	if asOf != nil {
+		query.AsOf = asOf
+	}
+
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
 		Currency:       code,
 		CostBasis:      costBasis,
 		CreditPriority: lo.ToPtr(priority),
-	}, nil)
+	}, query)
 	s.NoError(err)
 
 	return balance.Settled()
@@ -262,7 +327,7 @@ func (s *BaseSuite) MustCustomerReceivableBalance(customerID customer.CustomerID
 		Currency:                       code,
 		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -280,7 +345,7 @@ func (s *BaseSuite) MustCustomerAccruedBalance(customerID customer.CustomerID, c
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.AccruedAccount, ledger.RouteFilter{
 		Currency:  code,
 		CostBasis: costBasis,
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -298,7 +363,7 @@ func (s *BaseSuite) MustWashBalance(namespace string, code currencyx.Code, costB
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.WashAccount, ledger.RouteFilter{
 		Currency:  code,
 		CostBasis: costBasis,
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -320,7 +385,22 @@ func (s *BaseSuite) MustEarningsBalanceForCostBasis(namespace string, code curre
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.EarningsAccount, ledger.RouteFilter{
 		Currency:  code,
 		CostBasis: costBasis,
-	}, nil)
+	}, ledger.BalanceQuery{})
+	s.NoError(err)
+
+	return balance.Settled()
+}
+
+func (s *BaseSuite) MustBreakageBalanceAsOf(namespace string, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], asOf time.Time) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
+	s.NoError(err)
+
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.BreakageAccount, ledger.RouteFilter{
+		Currency:  code,
+		CostBasis: costBasis,
+	}, ledger.BalanceQuery{AsOf: &asOf})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -401,6 +481,7 @@ type CreateCreditPurchaseIntentInput struct {
 	Currency      currencyx.Code
 	Amount        alpacadecimal.Decimal
 	EffectiveAt   *time.Time
+	ExpiresAt     *time.Time
 	Priority      *int
 	ServicePeriod timeutil.ClosedPeriod
 	Settlement    creditpurchase.Settlement
@@ -446,6 +527,7 @@ func (s *BaseSuite) CreateCreditPurchaseIntent(input CreateCreditPurchaseIntentI
 		},
 		CreditAmount: input.Amount,
 		EffectiveAt:  input.EffectiveAt,
+		ExpiresAt:    input.ExpiresAt,
 		Priority:     input.Priority,
 		Settlement:   input.Settlement,
 	})
@@ -456,6 +538,7 @@ type CreatePromotionalCreditFundingInput struct {
 	Customer  customer.CustomerID
 	Amount    alpacadecimal.Decimal
 	At        time.Time
+	ExpiresAt *time.Time
 	CostBasis alpacadecimal.Decimal
 	Priority  *int
 }
@@ -475,6 +558,7 @@ func (s *BaseSuite) CreatePromotionalCreditFunding(ctx context.Context, input Cr
 				Customer:      input.Customer,
 				Currency:      USD,
 				Amount:        input.Amount,
+				ExpiresAt:     input.ExpiresAt,
 				Priority:      input.Priority,
 				ServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
 				Settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
@@ -490,9 +574,17 @@ func (s *BaseSuite) CreatePromotionalCreditFunding(ctx context.Context, input Cr
 
 	costBasis := mo.Some(&input.CostBasis)
 	if input.Priority != nil {
-		s.True(s.MustCustomerFBOBalanceWithPriority(input.Customer, USD, costBasis, *input.Priority).Equal(input.Amount))
+		if input.ExpiresAt != nil {
+			s.True(s.MustCustomerFBOBalanceWithPriorityAsOf(input.Customer, USD, costBasis, *input.Priority, &input.At).Equal(input.Amount))
+		} else {
+			s.True(s.MustCustomerFBOBalanceWithPriority(input.Customer, USD, costBasis, *input.Priority).Equal(input.Amount))
+		}
 	} else {
-		s.True(s.MustCustomerFBOBalance(input.Customer, USD, costBasis).Equal(input.Amount))
+		if input.ExpiresAt != nil {
+			s.True(s.MustCustomerFBOBalanceAsOf(input.Customer, USD, costBasis, input.At).Equal(input.Amount))
+		} else {
+			s.True(s.MustCustomerFBOBalance(input.Customer, USD, costBasis).Equal(input.Amount))
+		}
 	}
 
 	return CreatePromotionalCreditFundingResult{

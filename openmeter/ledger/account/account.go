@@ -39,7 +39,7 @@ func NewAccountFromData(data AccountData, services AccountLiveServices) (ledger.
 		return newCustomerReceivableAccount(base), nil
 	case ledger.AccountTypeCustomerAccrued:
 		return newCustomerAccruedAccount(base), nil
-	case ledger.AccountTypeWash, ledger.AccountTypeEarnings, ledger.AccountTypeBrokerage:
+	case ledger.AccountTypeWash, ledger.AccountTypeEarnings, ledger.AccountTypeBrokerage, ledger.AccountTypeBreakage:
 		return newBusinessAccount(base), nil
 	default:
 		if err := data.AccountType.Validate(); err != nil {

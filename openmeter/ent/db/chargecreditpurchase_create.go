@@ -297,6 +297,20 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableEffectiveAt(v *time.Time) *Char
 	return _c
 }
 
+// SetExpiresAt sets the "expires_at" field.
+func (_c *ChargeCreditPurchaseCreate) SetExpiresAt(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetExpiresAt(v)
+	return _c
+}
+
+// SetNillableExpiresAt sets the "expires_at" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableExpiresAt(v *time.Time) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetExpiresAt(*v)
+	}
+	return _c
+}
+
 // SetPriority sets the "priority" field.
 func (_c *ChargeCreditPurchaseCreate) SetPriority(v int) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetPriority(v)
@@ -709,6 +723,10 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 	if value, ok := _c.mutation.EffectiveAt(); ok {
 		_spec.SetField(chargecreditpurchase.FieldEffectiveAt, field.TypeTime, value)
 		_node.EffectiveAt = &value
+	}
+	if value, ok := _c.mutation.ExpiresAt(); ok {
+		_spec.SetField(chargecreditpurchase.FieldExpiresAt, field.TypeTime, value)
+		_node.ExpiresAt = &value
 	}
 	if value, ok := _c.mutation.Priority(); ok {
 		_spec.SetField(chargecreditpurchase.FieldPriority, field.TypeInt, value)
@@ -1252,6 +1270,9 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		}
 		if _, exists := u.create.mutation.EffectiveAt(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldEffectiveAt)
+		}
+		if _, exists := u.create.mutation.ExpiresAt(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldExpiresAt)
 		}
 		if _, exists := u.create.mutation.Priority(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldPriority)
@@ -1828,6 +1849,9 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			}
 			if _, exists := b.mutation.EffectiveAt(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldEffectiveAt)
+			}
+			if _, exists := b.mutation.ExpiresAt(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldExpiresAt)
 			}
 			if _, exists := b.mutation.Priority(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldPriority)

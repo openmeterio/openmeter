@@ -261,20 +261,21 @@ model CreditGrant {
   // @visibility(Lifecycle.Create, Lifecycle.Read)
   // effective_at?: Shared.DateTime;
 
-  // /**
-  //  * The duration after which the credit grant expires.
-  //  *
-  //  * Defaults to never expiring.
-  //  */
-  // @visibility(Lifecycle.Create, Lifecycle.Read)
-  // expires_after?: Shared.ISO8601Duration;
+  /**
+   * The duration after which the credit grant expires.
+   *
+   * Defaults to never expiring.
+   */
+  @visibility(Lifecycle.Create)
+  expires_after?: Shared.ISO8601Duration;
 
-  // /**
-  //  * The timestamp when the credit grant expires.
-  //  * Calculated from `effective_at` and `expires_after` if provided.
-  //  */
-  // @visibility(Lifecycle.Read)
-  // expires_at?: Shared.DateTime;
+  /**
+   * The timestamp when the credit grant expires.
+   *
+   * Calculated from the grant effective time and `expires_after` if provided.
+   */
+  @visibility(Lifecycle.Read)
+  expires_at?: Shared.DateTime;
 
   /**
    * Timestamp when the grant was voided.

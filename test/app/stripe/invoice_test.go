@@ -25,6 +25,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
@@ -126,6 +128,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 			AccountCatalog: ledgerDeps.AccountService,
 			BalanceQuerier: ledgerDeps.HistoricalLedger,
 		},
+		TransactionManager: enttx.NewCreator(s.DBClient),
 	})
 
 	chargeStack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
@@ -135,7 +138,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 		FeatureService:        s.FeatureService,
 		StreamingConnector:    s.MockStreamingConnector,
 		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(ledgerDeps.HistoricalLedger, transactions.ResolverDependencies{AccountService: ledgerDeps.ResolversService, AccountCatalog: ledgerDeps.AccountService, BalanceQuerier: ledgerDeps.HistoricalLedger}, collectorService),
-		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(ledgerDeps.HistoricalLedger, ledgerDeps.HistoricalLedger, ledgerDeps.ResolversService, ledgerDeps.AccountService),
+		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(ledgerDeps.HistoricalLedger, ledgerDeps.HistoricalLedger, ledgerDeps.ResolversService, ledgerDeps.AccountService, ledgerbreakage.NewNoopService(), enttx.NewCreator(s.DBClient)),
 		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(ledgerDeps.HistoricalLedger, transactions.ResolverDependencies{AccountService: ledgerDeps.ResolversService, AccountCatalog: ledgerDeps.AccountService, BalanceQuerier: ledgerDeps.HistoricalLedger}, collectorService),
 	})
 	s.Require().NoError(err, "failed to initialize charges service")

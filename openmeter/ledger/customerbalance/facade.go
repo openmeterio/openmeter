@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -29,12 +30,14 @@ func (f CurrencyFilter) Validate() error {
 type GetBalancesInput struct {
 	CustomerID customer.CustomerID
 	Currencies CurrencyFilter
+	AsOf       *time.Time
 }
 
 type GetBalanceInput struct {
 	CustomerID customer.CustomerID
 	Currency   currencyx.Code
 	After      *ledger.TransactionCursor
+	AsOf       *time.Time
 }
 
 func (i GetBalancesInput) Validate() error {
@@ -46,6 +49,10 @@ func (i GetBalancesInput) Validate() error {
 
 	if err := i.Currencies.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currencies: %w", err))
+	}
+
+	if i.AsOf != nil && i.AsOf.IsZero() {
+		errs = append(errs, fmt.Errorf("asOf must not be zero"))
 	}
 
 	return errors.Join(errs...)
@@ -66,6 +73,14 @@ func (i GetBalanceInput) Validate() error {
 		if err := i.After.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("after: %w", err))
 		}
+	}
+
+	if i.AsOf != nil && i.AsOf.IsZero() {
+		errs = append(errs, fmt.Errorf("asOf must not be zero"))
+	}
+
+	if i.After != nil && i.AsOf != nil {
+		errs = append(errs, fmt.Errorf("after and asOf cannot both be set"))
 	}
 
 	return errors.Join(errs...)
@@ -119,7 +134,9 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 
 	balances := make([]BalanceByCurrency, 0, len(codes))
 	for _, code := range codes {
-		balance, err := f.service.GetBalance(ctx, input.CustomerID, code, nil)
+		balance, err := f.service.GetBalance(ctx, input.CustomerID, code, ledger.BalanceQuery{
+			AsOf: input.AsOf,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -142,7 +159,10 @@ func (f *Facade) GetBalance(ctx context.Context, input GetBalanceInput) (alpacad
 		return alpacadecimal.Zero, err
 	}
 
-	balance, err := f.service.GetBalance(ctx, input.CustomerID, input.Currency, input.After)
+	balance, err := f.service.GetBalance(ctx, input.CustomerID, input.Currency, ledger.BalanceQuery{
+		After: input.After,
+		AsOf:  input.AsOf,
+	})
 	if err != nil {
 		return alpacadecimal.Zero, err
 	}

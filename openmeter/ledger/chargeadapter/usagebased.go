@@ -237,15 +237,16 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 	}
 
 	realizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{
-		Namespace:      input.Charge.Namespace,
-		ChargeID:       input.Charge.ID,
-		CustomerID:     input.Charge.Intent.CustomerID,
-		Annotations:    chargeAnnotationsForUsageBasedCharge(input.Charge),
-		At:             input.AllocateAt,
-		Currency:       input.Charge.Intent.Currency,
-		SettlementMode: input.Charge.Intent.SettlementMode,
-		ServicePeriod:  input.Charge.Intent.ServicePeriod,
-		Amount:         input.AmountToAllocate,
+		Namespace:         input.Charge.Namespace,
+		ChargeID:          input.Charge.ID,
+		CustomerID:        input.Charge.Intent.CustomerID,
+		Annotations:       chargeAnnotationsForUsageBasedCharge(input.Charge),
+		BookedAt:          input.AllocateAt,
+		SourceBalanceAsOf: clock.Now(),
+		Currency:          input.Charge.Intent.Currency,
+		SettlementMode:    input.Charge.Intent.SettlementMode,
+		ServicePeriod:     input.Charge.Intent.ServicePeriod,
+		Amount:            input.AmountToAllocate,
 	})
 	if err != nil {
 		return nil, err

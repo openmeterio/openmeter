@@ -583,6 +583,9 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 	if _u.mutation.EffectiveAtCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldEffectiveAt, field.TypeTime)
 	}
+	if _u.mutation.ExpiresAtCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldExpiresAt, field.TypeTime)
+	}
 	if _u.mutation.PriorityCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldPriority, field.TypeInt)
 	}
@@ -1306,6 +1309,9 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if _u.mutation.EffectiveAtCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldEffectiveAt, field.TypeTime)
+	}
+	if _u.mutation.ExpiresAtCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldExpiresAt, field.TypeTime)
 	}
 	if _u.mutation.PriorityCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldPriority, field.TypeInt)

@@ -16,6 +16,7 @@ type EntryData struct {
 	Namespace   string
 	Annotations models.Annotations
 	CreatedAt   time.Time
+	IdentityKey string
 
 	SubAccountID string
 	AccountType  ledger.AccountType
@@ -65,6 +66,18 @@ func (e *Entry) PostingAddress() ledger.PostingAddress {
 
 func (e *Entry) Amount() alpacadecimal.Decimal {
 	return e.data.Amount
+}
+
+func (e *Entry) IdentityKey() string {
+	return e.data.IdentityKey
+}
+
+func (e *Entry) Annotations() models.Annotations {
+	return e.data.Annotations
+}
+
+func (e *Entry) ID() models.NamespacedID {
+	return models.NamespacedID{Namespace: e.data.Namespace, ID: e.data.ID}
 }
 
 func (e *Entry) TransactionID() models.NamespacedID {

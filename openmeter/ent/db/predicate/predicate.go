@@ -311,6 +311,9 @@ func LLMCostPriceOrErr(p LLMCostPrice, err error) LLMCostPrice {
 // LedgerAccount is the predicate function for ledgeraccount builders.
 type LedgerAccount func(*sql.Selector)
 
+// LedgerBreakageRecord is the predicate function for ledgerbreakagerecord builders.
+type LedgerBreakageRecord func(*sql.Selector)
+
 // LedgerCustomerAccount is the predicate function for ledgercustomeraccount builders.
 type LedgerCustomerAccount func(*sql.Selector)
 

@@ -24,7 +24,7 @@ type NoopService struct{}
 
 var _ Service = NoopService{}
 
-func (NoopService) GetBalance(context.Context, customer.CustomerID, currencyx.Code, *ledger.TransactionCursor) (ledger.Balance, error) {
+func (NoopService) GetBalance(context.Context, customer.CustomerID, currencyx.Code, ledger.BalanceQuery) (ledger.Balance, error) {
 	return noopBalance{}, nil
 }
 
