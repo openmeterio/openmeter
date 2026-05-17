@@ -1,0 +1,14 @@
+{
+  "name": "openmeter-e2e-playwright",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.4.0",
+    "@playwright/test": "^1.44.0",
+    "typescript": "^5.4.0"
+  }
+}
