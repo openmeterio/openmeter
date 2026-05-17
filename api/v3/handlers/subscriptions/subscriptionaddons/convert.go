@@ -2,6 +2,8 @@ package subscriptionaddons
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -15,8 +17,10 @@ import (
 func toAPISubscriptionAddon(addon subscriptionaddon.SubscriptionAddon) (apiv3.SubscriptionAddon, error) {
 	now := clock.Now()
 
-	// If no instance is active at `now`, quantity stays 0.
-	inst, _ := addon.GetInstanceAt(now)
+	inst, found := addon.GetInstanceAt(now)
+	if !found {
+		return apiv3.SubscriptionAddon{}, fmt.Errorf("no instance is active at %s", now.Format(time.RFC3339))
+	}
 
 	pers := lo.Map(addon.GetInstances(), func(i subscriptionaddon.SubscriptionAddonInstance, _ int) timeutil.OpenPeriod {
 		return i.AsPeriod()

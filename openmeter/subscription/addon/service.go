@@ -37,7 +37,7 @@ func (f OrderBy) Validate() error {
 
 type Service interface {
 	Create(ctx context.Context, namespace string, input CreateSubscriptionAddonInput) (*SubscriptionAddon, error)
-	Get(ctx context.Context, id models.NamespacedID) (*SubscriptionAddon, error)
+	Get(ctx context.Context, id GetSubscriptionAddonInput) (*SubscriptionAddon, error)
 	List(ctx context.Context, namespace string, input ListSubscriptionAddonsInput) (pagination.Result[SubscriptionAddon], error)
 
 	ChangeQuantity(ctx context.Context, id models.NamespacedID, input CreateSubscriptionAddonQuantityInput) (*SubscriptionAddon, error)
@@ -66,4 +66,23 @@ func (i ListSubscriptionAddonsInput) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// GetSubscriptionAddonInput defines the input parameters for fetching subscription add-on assignment either by SubscriptionAddon.ID or
+// by the subscription and add-on identifiers.
+type GetSubscriptionAddonInput struct {
+	models.NamespacedID
+
+	// SubscriptionID
+	SubscriptionID string `json:"subscriptionId"`
+}
+
+func (i GetSubscriptionAddonInput) Validate() error {
+	var errs []error
+
+	if err := i.NamespacedID.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
