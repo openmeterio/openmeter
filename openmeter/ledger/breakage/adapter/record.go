@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbledgerbreakagerecord "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
+	dbledgertransaction "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -159,6 +160,38 @@ func (a *adapter) ListExpiredRecords(ctx context.Context, input breakage.ListExp
 		}
 
 		return mapRecords(rows), nil
+	})
+}
+
+func (a *adapter) ListBreakageTransactionCursors(ctx context.Context, input breakage.ListBreakageTransactionCursorsInput) (map[string]ledger.TransactionCursor, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (map[string]ledger.TransactionCursor, error) {
+		rows, err := tx.db.LedgerTransaction.Query().
+			Where(
+				dbledgertransaction.NamespaceEQ(input.Namespace),
+				dbledgertransaction.IDIn(input.TransactionID...),
+			).
+			All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list breakage transaction cursors: %w", err)
+		}
+
+		out := make(map[string]ledger.TransactionCursor, len(rows))
+		for _, row := range rows {
+			out[row.ID] = ledger.TransactionCursor{
+				BookedAt:  row.BookedAt,
+				CreatedAt: row.CreatedAt,
+				ID: models.NamespacedID{
+					Namespace: row.Namespace,
+					ID:        row.ID,
+				},
+			}
+		}
+
+		return out, nil
 	})
 }
 
