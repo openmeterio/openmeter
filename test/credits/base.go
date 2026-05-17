@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -56,6 +57,7 @@ type BaseSuite struct {
 	LedgerResolver       *ledgerresolvers.AccountResolver
 	BreakageService      ledgerbreakage.Service
 	FlatFeeHandler       flatfee.Handler
+	LineageService       lineage.Service
 	RevenueRecognizer    recognizer.Service
 }
 
@@ -81,6 +83,7 @@ func (s *BaseSuite) SetupSuite() {
 		Adapter: lineageAdapter,
 	})
 	s.NoError(err)
+	s.LineageService = lineageService
 
 	transactionManager := enttx.NewCreator(s.DBClient)
 

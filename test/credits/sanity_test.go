@@ -178,8 +178,8 @@ func (s *SanitySuite) TestExpiringCreditBreakagePlanReleaseAndExpirySanity() {
 		amount:        setup.usedAmount,
 		name:          "expiring-credit-breakage-usage",
 	}).charge
-	s.Require().Len(charge.Realizations.CreditRealizations, 1)
-	s.AssertDecimalEqual(setup.usedAmount, charge.Realizations.CreditRealizations[0].Amount, "used credit realization amount")
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
+	s.AssertDecimalEqual(setup.usedAmount, s.mustFlatFeeCreditRealizations(charge)[0].Amount, "used credit realization amount")
 
 	// Then the used portion releases planned breakage, and only the unused remainder breaks at expiry.
 	s.assertReleasedBreakage(releasedBreakageAssertionInput{
@@ -442,8 +442,8 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensOnUsageCorrectionSanity()
 		amount:        setup.usedAmount,
 		name:          "expiring-credit-breakage-correction-usage",
 	}).charge
-	s.Require().Len(charge.Realizations.CreditRealizations, 1)
-	s.AssertDecimalEqual(setup.usedAmount, charge.Realizations.CreditRealizations[0].Amount, "used credit realization amount before correction")
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
+	s.AssertDecimalEqual(setup.usedAmount, s.mustFlatFeeCreditRealizations(charge)[0].Amount, "used credit realization amount before correction")
 
 	// Then the used portion releases planned breakage.
 	s.assertReleasedBreakage(releasedBreakageAssertionInput{
@@ -526,7 +526,7 @@ func (s *SanitySuite) TestExpiringCreditBreakagePartiallyReopensOnUsageShrinkSan
 		amount:        setup.usedAmount,
 		name:          "expiring-credit-breakage-partial-correction-usage",
 	}).charge
-	s.Require().Len(charge.Realizations.CreditRealizations, 1)
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
 	s.assertReleasedBreakage(releasedBreakageAssertionInput{
 		ctx:             setup.ctx,
 		namespace:       setup.namespace,
@@ -543,7 +543,7 @@ func (s *SanitySuite) TestExpiringCreditBreakagePartiallyReopensOnUsageShrinkSan
 	// When only part of the usage allocation is corrected.
 	correctionAt := setup.usageAt.Add(time.Hour)
 	clock.FreezeTime(correctionAt)
-	s.correctCreditUsageAllocation(setup.ctx, charge, charge.Realizations.CreditRealizations[0], correctedUsage, correctionAt)
+	s.correctCreditUsageAllocation(setup.ctx, charge, s.mustFlatFeeCreditRealizations(charge)[0], correctedUsage, correctionAt)
 
 	// Then only the corrected part reopens breakage.
 	s.assertReopenedBreakage(reopenedBreakageAssertionInput{
@@ -618,7 +618,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensLatestExpirationFirstOnUs
 		amount:        setup.usedAmount,
 		name:          "expiring-credit-breakage-multi-expiry-correction-usage",
 	}).charge
-	s.Require().Len(charge.Realizations.CreditRealizations, 1)
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
 	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
 		{expiresAt: firstExpiresAt, planAmount: firstGrantAmount, releaseAmount: firstGrantAmount},
 		{expiresAt: secondExpiresAt, planAmount: secondGrantAmount, releaseAmount: alpacadecimal.NewFromInt(3)},
@@ -627,7 +627,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensLatestExpirationFirstOnUs
 	// When the charge allocation is partially corrected, correction unwinds the latest consumed expiration first.
 	correctionAt := setup.usageAt.Add(time.Hour)
 	clock.FreezeTime(correctionAt)
-	s.correctCreditUsageAllocation(setup.ctx, charge, charge.Realizations.CreditRealizations[0], correctedUsage, correctionAt)
+	s.correctCreditUsageAllocation(setup.ctx, charge, s.mustFlatFeeCreditRealizations(charge)[0], correctedUsage, correctionAt)
 
 	// Then the later expiration is fully reopened before the earlier expiration is partially reopened.
 	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
@@ -702,7 +702,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageIgnoresNonExpiringSourceOnUsageS
 		amount:        setup.usedAmount,
 		name:          "expiring-credit-breakage-non-expiring-correction-usage",
 	}).charge
-	s.Require().Len(charge.Realizations.CreditRealizations, 1)
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
 	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
 		{expiresAt: setup.expiresAt, planAmount: expiringAmount, releaseAmount: expiringAmount},
 	})
@@ -710,7 +710,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageIgnoresNonExpiringSourceOnUsageS
 	// When the allocation is partially corrected, correction first unwinds the non-expiring source.
 	correctionAt := setup.usageAt.Add(time.Hour)
 	clock.FreezeTime(correctionAt)
-	s.correctCreditUsageAllocation(setup.ctx, charge, charge.Realizations.CreditRealizations[0], correctedUsage, correctionAt)
+	s.correctCreditUsageAllocation(setup.ctx, charge, s.mustFlatFeeCreditRealizations(charge)[0], correctedUsage, correctionAt)
 
 	// Then only the corrected amount that came from expiring credit reopens breakage.
 	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
@@ -775,6 +775,14 @@ type createCreditOnlyFlatFeeChargeInput struct {
 type createdCreditOnlyFlatFeeCharge struct {
 	id     string
 	charge flatfee.Charge
+}
+
+func (s *SanitySuite) mustFlatFeeCreditRealizations(charge flatfee.Charge) creditrealization.Realizations {
+	s.T().Helper()
+
+	s.Require().NotNil(charge.Realizations.CurrentRun)
+
+	return charge.Realizations.CurrentRun.CreditRealizations
 }
 
 type breakageRowsByExpiryAssertion struct {
@@ -1204,9 +1212,13 @@ func (s *SanitySuite) createPromotionalCreditGrant(ctx context.Context, input Cr
 func (s *SanitySuite) correctCreditUsageAllocation(ctx context.Context, charge flatfee.Charge, allocation creditrealization.Realization, amount alpacadecimal.Decimal, allocateAt time.Time) {
 	s.T().Helper()
 
-	corrections, err := s.FlatFeeHandler.OnCreditsOnlyUsageAccruedCorrection(ctx, flatfee.CreditsOnlyUsageAccruedCorrectionInput{
-		Charge:     charge,
-		AllocateAt: allocateAt,
+	lineageSegmentsByRealization, err := s.LineageService.LoadActiveSegmentsByRealizationID(ctx, charge.Namespace, []string{allocation.ID})
+	s.Require().NoError(err)
+
+	corrections, err := s.FlatFeeHandler.OnCorrectCreditAllocations(ctx, flatfee.CorrectCreditAllocationsInput{
+		Charge:                       charge,
+		AllocateAt:                   allocateAt,
+		LineageSegmentsByRealization: lineageSegmentsByRealization,
 		Corrections: creditrealization.CorrectionRequest{
 			{
 				Allocation: allocation,
@@ -1363,7 +1375,7 @@ func (s *SanitySuite) createAndAdvanceFlatFeeCreditOnlyCharge(setup creditOnlyDe
 		amount:        setup.amount,
 		name:          setup.namespace,
 	})
-	s.Len(created.charge.Realizations.CreditRealizations, 1)
+	s.Len(s.mustFlatFeeCreditRealizations(created.charge), 1)
 
 	return created.id
 }
