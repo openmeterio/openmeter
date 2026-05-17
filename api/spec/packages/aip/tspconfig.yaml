@@ -1,5 +1,8 @@
 emit:
   - '@typespec/openapi3'
+  - '@typespec/http-client-js'
+  - '@openmeter/typespec-zod'
+  - '@openmeter/typespec-go'
 parameters:
   base-dir:
     default: '{cwd}'
@@ -9,6 +12,14 @@ options:
     emitter-output-dir: '{output-dir}/output/definitions/metering-and-billing/v3'
     omit-unreachable-types: true
     seal-object-schemas: true
+  '@typespec/http-client-js':
+    emitter-output-dir: '{output-dir}/../aip-client-javascript'
+    package-name: '@openmeter/sdk'
+  '@openmeter/typespec-zod':
+    emitter-output-dir: '{output-dir}/../aip-client-javascript'
+  '@openmeter/typespec-go':
+    emitter-output-dir: '{output-dir}/../aip-client-go'
+    module: 'github.com/openmeterio/openmeter/api/spec/packages/aip-client-go'
 linter:
   extends:
     - '@openmeter/api-spec-aip/all'
