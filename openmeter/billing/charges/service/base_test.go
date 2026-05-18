@@ -187,6 +187,7 @@ type createMockChargeIntentInput struct {
 	managedBy         billing.InvoiceLineManagedBy
 	uniqueReferenceID string
 	taxConfig         *productcatalog.TaxCodeConfig
+	proRating         productcatalog.ProRatingConfig
 }
 
 func (i *createMockChargeIntentInput) Validate() error {
@@ -254,6 +255,7 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 
 			AmountBeforeProration: price.Amount,
+			ProRating:             input.proRating,
 		}
 		return charges.NewChargeIntent(flatFeeIntent)
 	}

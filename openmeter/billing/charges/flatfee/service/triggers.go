@@ -19,10 +19,11 @@ func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceCharge
 
 	return s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) {
 		stateMachine, err := s.newStateMachine(StateMachineConfig{
-			Charge:       charge,
-			Adapter:      s.adapter,
-			Realizations: s.realizations,
-			Service:      s,
+			Charge:               charge,
+			Adapter:              s.adapter,
+			Realizations:         s.realizations,
+			Service:              s,
+			CreditNotesSupported: s.creditNotesSupported.Load(),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
@@ -45,10 +46,11 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 
 	charge, err := s.withLockedCharge(ctx, chargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) {
 		stateMachine, err := s.newStateMachine(StateMachineConfig{
-			Charge:       charge,
-			Adapter:      s.adapter,
-			Realizations: s.realizations,
-			Service:      s,
+			Charge:               charge,
+			Adapter:              s.adapter,
+			Realizations:         s.realizations,
+			Service:              s,
+			CreditNotesSupported: s.creditNotesSupported.Load(),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
