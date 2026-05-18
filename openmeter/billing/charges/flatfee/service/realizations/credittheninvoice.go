@@ -150,7 +150,7 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 			return StartCreditThenInvoiceRunResult{}, err
 		}
 
-		detailedLines := flatfee.DetailedLines(lo.Map(line.DetailedLines, func(detailedLine billing.DetailedLine, _ int) flatfee.DetailedLine {
+		detailedLines := flatfee.DetailedLines(lo.Map(mappedLine.DetailedLines, func(detailedLine billing.DetailedLine, _ int) flatfee.DetailedLine {
 			return detailedLine.Base.Clone()
 		}))
 
@@ -301,7 +301,7 @@ func (s *Service) ReconcileStandardLineToIntent(ctx context.Context, in Reconcil
 			return ReconcileStandardLineToIntentResult{}, err
 		}
 
-		detailedLines := flatfee.DetailedLines(lo.Map(line.DetailedLines, func(detailedLine billing.DetailedLine, _ int) flatfee.DetailedLine {
+		detailedLines := flatfee.DetailedLines(lo.Map(mappedLine.DetailedLines, func(detailedLine billing.DetailedLine, _ int) flatfee.DetailedLine {
 			return detailedLine.Base.Clone()
 		}))
 
