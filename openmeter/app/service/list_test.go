@@ -214,10 +214,10 @@ func TestListApps_SortByIDDesc(t *testing.T) {
 			OrderBy:   app.AppOrderByID,
 			Order:     sortx.OrderDesc,
 		})
-		require.Equal(t, 2, result.TotalCount)
 		return err == nil && result.TotalCount == 2 &&
 			result.Items[0].GetID().ID == a2.GetID().ID
 	}, time.Second, time.Millisecond)
+	require.Equal(t, 2, result.TotalCount)
 	require.Equal(t, a2.GetID().ID, result.Items[0].GetID().ID)
 	require.Equal(t, a1.GetID().ID, result.Items[1].GetID().ID)
 }
@@ -238,10 +238,10 @@ func TestListApps_SortByCreatedAtDesc(t *testing.T) {
 			OrderBy:   app.AppOrderByCreatedAt,
 			Order:     sortx.OrderDesc,
 		})
-		require.Equal(t, 2, result.TotalCount)
 		return err == nil && result.TotalCount == 2 &&
 			result.Items[0].GetID().ID == a2.GetID().ID
 	}, time.Second, time.Millisecond)
+	require.Equal(t, 2, result.TotalCount)
 	require.Equal(t, a2.GetID().ID, result.Items[0].GetID().ID)
 	require.Equal(t, a1.GetID().ID, result.Items[1].GetID().ID)
 }
@@ -260,10 +260,10 @@ func TestListApps_DefaultSortCreatedAtAsc(t *testing.T) {
 			Namespace: ns,
 			Page:      pagination.NewPage(1, 20),
 		})
-		require.Equal(t, 2, result.TotalCount)
 		return err == nil && result.TotalCount == 2 &&
 			result.Items[0].GetID().ID == a1.GetID().ID
 	}, time.Second, time.Millisecond)
+	require.Equal(t, 2, result.TotalCount)
 	require.Equal(t, a1.GetID().ID, result.Items[0].GetID().ID)
 	require.Equal(t, a2.GetID().ID, result.Items[1].GetID().ID)
 }
