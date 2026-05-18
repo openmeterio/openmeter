@@ -719,19 +719,24 @@ func (s *service) resolveBreakageTemplate(
 		return nil, fmt.Errorf("expected one breakage transaction input, got %d", len(inputs))
 	}
 
-	return transactions.WithAnnotations(inputs[0], ledger.BreakageAnnotations(breakageKindForTemplate(template), recordID, planID)), nil
+	kind, err := breakageKindForTemplate(template)
+	if err != nil {
+		return nil, err
+	}
+
+	return transactions.WithAnnotations(inputs[0], ledger.BreakageAnnotations(kind, recordID, planID)), nil
 }
 
-func breakageKindForTemplate(template transactions.TransactionTemplate) ledger.BreakageKind {
+func breakageKindForTemplate(template transactions.TransactionTemplate) (ledger.BreakageKind, error) {
 	switch template.(type) {
 	case transactions.PlanCustomerFBOBreakageTemplate:
-		return ledger.BreakageKindPlan
+		return ledger.BreakageKindPlan, nil
 	case transactions.ReleaseCustomerFBOBreakageTemplate:
-		return ledger.BreakageKindRelease
+		return ledger.BreakageKindRelease, nil
 	case transactions.ReopenCustomerFBOBreakageTemplate:
-		return ledger.BreakageKindReopen
+		return ledger.BreakageKindReopen, nil
 	default:
-		panic(fmt.Sprintf("unsupported breakage template %T", template))
+		return "", fmt.Errorf("unsupported breakage template %T", template)
 	}
 }
 

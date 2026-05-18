@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -24,7 +26,7 @@ func TestCollectCustomerFBOUsesPriorityOrder(t *testing.T) {
 	priorityTwo := fundPriority(t, env, 2, 50)
 	priorityOne := fundPriority(t, env, 1, 30)
 
-	sources, err := collector.collectCustomerFBO(t.Context(), env.CustomerID, env.Currency, alpacadecimal.NewFromInt(60), env.Now())
+	sources, err := collectCustomerFBOForTest(t, env, collector, alpacadecimal.NewFromInt(60), env.Now())
 	require.NoError(t, err)
 	require.Len(t, sources, 2)
 
@@ -44,7 +46,7 @@ func TestCollectCustomerFBOUsesSubAccountIDTieBreaker(t *testing.T) {
 	first := fundPriorityWithCostBasis(t, env, 1, 10, &costBasisOne)
 	second := fundPriorityWithCostBasis(t, env, 1, 10, &costBasisTwo)
 
-	sources, err := collector.collectCustomerFBO(t.Context(), env.CustomerID, env.Currency, alpacadecimal.NewFromInt(20), env.Now())
+	sources, err := collectCustomerFBOForTest(t, env, collector, alpacadecimal.NewFromInt(20), env.Now())
 	require.NoError(t, err)
 	require.Len(t, sources, 2)
 
@@ -64,14 +66,14 @@ func TestCollectCustomerFBOUsesAsOfBalance(t *testing.T) {
 	source := fundPriority(t, env, 1, 50)
 	bookFutureFBOCollection(t, env, 1, 30, env.Now().AddDate(0, 0, 1))
 
-	currentSources, err := collector.collectCustomerFBO(t.Context(), env.CustomerID, env.Currency, alpacadecimal.NewFromInt(50), env.Now())
+	currentSources, err := collectCustomerFBOForTest(t, env, collector, alpacadecimal.NewFromInt(50), env.Now())
 	require.NoError(t, err)
 	require.Len(t, currentSources, 1)
 	require.Equal(t, source.Address().SubAccountID(), currentSources[0].Address.SubAccountID())
 	require.True(t, alpacadecimal.NewFromInt(50).Equal(currentSources[0].Amount), "current amount: %s", currentSources[0].Amount)
 
 	futureAsOf := env.Now().AddDate(0, 0, 1)
-	futureSources, err := collector.collectCustomerFBO(t.Context(), env.CustomerID, env.Currency, alpacadecimal.NewFromInt(50), futureAsOf)
+	futureSources, err := collectCustomerFBOForTest(t, env, collector, alpacadecimal.NewFromInt(50), futureAsOf)
 	require.NoError(t, err)
 	require.Len(t, futureSources, 1)
 	require.Equal(t, source.Address().SubAccountID(), futureSources[0].Address.SubAccountID())
@@ -125,8 +127,23 @@ func newTestAccrualCollector(env *ledgertestutils.IntegrationEnv) *accrualCollec
 			AccountCatalog: env.Deps.AccountService,
 			BalanceQuerier: env.Deps.HistoricalLedger,
 		},
+		accountLocker:      env.Deps.AccountService,
 		transactionManager: enttx.NewCreator(env.DB),
 	}
+}
+
+func collectCustomerFBOForTest(
+	t *testing.T,
+	env *ledgertestutils.IntegrationEnv,
+	collector *accrualCollector,
+	target alpacadecimal.Decimal,
+	asOf time.Time,
+) ([]transactions.PostingAmount, error) {
+	t.Helper()
+
+	return transaction.Run(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) ([]transactions.PostingAmount, error) {
+		return collector.collectCustomerFBO(ctx, env.CustomerID, env.Currency, target, asOf)
+	})
 }
 
 func newTestAccrualCollectorWithBreakage(

@@ -1,6 +1,7 @@
 package filters
 
 import (
+	"encoding"
 	"errors"
 	"fmt"
 	"net/url"
@@ -85,7 +86,7 @@ var (
 	filterLabelsType      = reflect.TypeFor[FilterLabels]()
 	filterLabelsPtrType   = reflect.TypeFor[*FilterLabels]()
 	stringPtrType         = reflect.TypeFor[*string]()
-	timePtrType           = reflect.TypeFor[*time.Time]()
+	textUnmarshalerType   = reflect.TypeFor[encoding.TextUnmarshaler]()
 )
 
 // parseFiltersValue iterates struct fields and dispatches to per-type parsers.
@@ -186,24 +187,26 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 				return err
 			}
 
-		case timePtrType:
-			if hasOperatorStyleKeys(qs, name) {
-				return fmt.Errorf("filter[%s]: operator-style keys are not supported for this field", name)
-			}
-			if err := parseTimePtr(qs, name, fieldVal); err != nil {
-				return err
-			}
-
 		default:
 			// Handle *T where T is a named string-based type (e.g. *BillingCreditTransactionType).
-			if fieldVal.Kind() == reflect.Pointer && fieldVal.Type().Elem().Kind() == reflect.String {
+			switch {
+			case fieldVal.Kind() == reflect.Pointer && fieldVal.Type().Elem().Kind() == reflect.String:
 				if hasOperatorStyleKeys(qs, name) {
 					return fmt.Errorf("filter[%s]: operator-style keys are not supported for this field", name)
 				}
 				if err := parseStringPtrTyped(qs, name, fieldVal); err != nil {
 					return err
 				}
-			} else {
+
+			case fieldVal.Kind() == reflect.Pointer && reflect.PointerTo(fieldVal.Type().Elem()).Implements(textUnmarshalerType):
+				if hasOperatorStyleKeys(qs, name) {
+					return fmt.Errorf("filter[%s]: operator-style keys are not supported for this field", name)
+				}
+				if err := parseTextUnmarshalerPtr(qs, name, fieldVal); err != nil {
+					return err
+				}
+
+			default:
 				return fmt.Errorf("filter[%s]: unsupported filter field type %s", name, fieldVal.Type())
 			}
 		}
@@ -231,30 +234,6 @@ func parseStringPtr(qs url.Values, name string, fieldVal reflect.Value) error {
 	return nil
 }
 
-// parseTimePtr handles simple filter[field]=value for *time.Time fields.
-func parseTimePtr(qs url.Values, name string, fieldVal reflect.Value) error {
-	prefix := "filter[" + name + "]"
-	for key, values := range qs {
-		if key != prefix {
-			continue
-		}
-		val, err := singleValue(key, values)
-		if err != nil {
-			return err
-		}
-		if val == "" {
-			return fmt.Errorf("filter[%s]: empty datetime value", name)
-		}
-		parsed, err := time.Parse(time.RFC3339, val)
-		if err != nil {
-			return fmt.Errorf("filter[%s]: %w", name, ErrInvalidDateTime)
-		}
-		fieldVal.Set(reflect.ValueOf(&parsed))
-		break
-	}
-	return nil
-}
-
 // parseStringPtrTyped handles filter[field]=value for *T fields where T is a named string type.
 func parseStringPtrTyped(qs url.Values, name string, fieldVal reflect.Value) error {
 	prefix := "filter[" + name + "]"
@@ -271,6 +250,38 @@ func parseStringPtrTyped(qs url.Values, name string, fieldVal reflect.Value) err
 			ptr.Elem().SetString(val)
 			fieldVal.Set(ptr)
 		}
+		break
+	}
+	return nil
+}
+
+// parseTextUnmarshalerPtr handles filter[field]=value for *T fields where *T
+// implements encoding.TextUnmarshaler, such as *time.Time.
+func parseTextUnmarshalerPtr(qs url.Values, name string, fieldVal reflect.Value) error {
+	prefix := "filter[" + name + "]"
+	for key, values := range qs {
+		if key != prefix {
+			continue
+		}
+		val, err := singleValue(key, values)
+		if err != nil {
+			return err
+		}
+		if val == "" {
+			return fmt.Errorf("filter[%s]: empty value", name)
+		}
+
+		ptr := reflect.New(fieldVal.Type().Elem())
+		unmarshaler := ptr.Interface().(encoding.TextUnmarshaler)
+		if err := unmarshaler.UnmarshalText([]byte(val)); err != nil {
+			if fieldVal.Type().Elem() == reflect.TypeFor[time.Time]() {
+				return fmt.Errorf("filter[%s]: %w", name, ErrInvalidDateTime)
+			}
+
+			return fmt.Errorf("filter[%s]: %w", name, err)
+		}
+
+		fieldVal.Set(ptr)
 		break
 	}
 	return nil

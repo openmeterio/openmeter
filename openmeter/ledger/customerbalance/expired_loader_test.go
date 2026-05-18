@@ -423,6 +423,7 @@ func requireExpiredTransactions(
 
 		require.Equal(t, CreditTransactionTypeExpired, item.Type)
 		require.True(t, issuedAt.Add(expectedItem.expiresAfter).Equal(item.BookedAt), "expired booked_at at index %d", idx)
+		require.True(t, item.BookedAt.Equal(item.CreatedAt), "expired created_at should be projection expiry at index %d", idx)
 		require.True(t, alpacadecimal.NewFromInt(expectedItem.amount).Equal(item.Amount), "expired amount at index %d: %s", idx, item.Amount)
 		require.True(t, alpacadecimal.NewFromInt(expectedItem.balanceBefore).Equal(item.Balance.Before), "expired balance before at index %d: %s", idx, item.Balance.Before)
 		require.True(t, alpacadecimal.NewFromInt(expectedItem.balanceAfter).Equal(item.Balance.After), "expired balance after at index %d: %s", idx, item.Balance.After)

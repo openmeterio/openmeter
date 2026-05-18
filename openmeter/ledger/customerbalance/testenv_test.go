@@ -183,7 +183,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
-	collectorService := ledgercollector.NewService(ledgercollector.Config{
+	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: base.Deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: base.Deps.ResolversService,
@@ -191,8 +191,10 @@ func newTestEnv(t *testing.T) *testEnv {
 			BalanceQuerier: base.Deps.HistoricalLedger,
 		},
 		Breakage:           breakageService,
+		AccountLocker:      base.Deps.AccountService,
 		TransactionManager: enttx.NewCreator(base.DB),
 	})
+	require.NoError(t, err)
 
 	usageAdapter, err := usagebasedadapter.New(usagebasedadapter.Config{
 		Client:      base.DB,
@@ -260,16 +262,19 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
+		base.Deps.HistoricalLedger,
+		base.Deps.HistoricalLedger,
+		base.Deps.ResolversService,
+		base.Deps.AccountService,
+		breakageService,
+		enttx.NewCreator(base.DB),
+	)
+	require.NoError(t, err)
+
 	creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
-		Adapter: creditPurchaseAdapter,
-		Handler: ledgerchargeadapter.NewCreditPurchaseHandler(
-			base.Deps.HistoricalLedger,
-			base.Deps.HistoricalLedger,
-			base.Deps.ResolversService,
-			base.Deps.AccountService,
-			breakageService,
-			enttx.NewCreator(base.DB),
-		),
+		Adapter:     creditPurchaseAdapter,
+		Handler:     creditPurchaseHandler,
 		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
 	})

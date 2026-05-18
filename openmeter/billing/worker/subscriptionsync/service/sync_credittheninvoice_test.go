@@ -71,15 +71,27 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 
 	transactionManager := enttx.NewCreator(s.DBClient)
 
-	collectorService := ledgercollector.NewService(ledgercollector.Config{
+	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: ledgerDeps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: ledgerDeps.ResolversService,
 			AccountCatalog: ledgerDeps.AccountService,
 			BalanceQuerier: ledgerDeps.HistoricalLedger,
 		},
+		AccountLocker:      ledgerDeps.AccountService,
 		TransactionManager: transactionManager,
 	})
+	s.NoError(err)
+
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
+		ledgerDeps.HistoricalLedger,
+		ledgerDeps.HistoricalLedger,
+		ledgerDeps.ResolversService,
+		ledgerDeps.AccountService,
+		ledgerbreakage.NewNoopService(),
+		transactionManager,
+	)
+	s.NoError(err)
 
 	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
 		Client:             s.DBClient,
@@ -96,14 +108,7 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 			},
 			collectorService,
 		),
-		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(
-			ledgerDeps.HistoricalLedger,
-			ledgerDeps.HistoricalLedger,
-			ledgerDeps.ResolversService,
-			ledgerDeps.AccountService,
-			ledgerbreakage.NewNoopService(),
-			transactionManager,
-		),
+		CreditPurchaseHandler: creditPurchaseHandler,
 		UsageBasedHandler: ledgerchargeadapter.NewUsageBasedHandler(
 			ledgerDeps.HistoricalLedger,
 			transactions.ResolverDependencies{

@@ -62,16 +62,22 @@ func NewChargesCollectorService(
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
-) ledgercollector.Service {
-	return ledgercollector.NewService(ledgercollector.Config{
+) (ledgercollector.Service, error) {
+	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: ledgerService,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: accountResolver,
 			AccountCatalog: accountService,
 			BalanceQuerier: balanceQuerier,
 		},
+		AccountLocker:      accountService,
 		TransactionManager: enttx.NewCreator(db),
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create charges collector service: %w", err)
+	}
+
+	return collectorService, nil
 }
 
 func NewLedgerBreakageService(
@@ -128,8 +134,13 @@ func NewChargesCreditPurchaseHandler(
 	accountService ledgeraccount.Service,
 	breakageService ledgerbreakage.Service,
 	transactionManager transaction.Creator,
-) creditpurchase.Handler {
-	return ledgerchargeadapter.NewCreditPurchaseHandler(ledgerService, balanceQuerier, accountResolver, accountService, breakageService, transactionManager)
+) (creditpurchase.Handler, error) {
+	handler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerService, balanceQuerier, accountResolver, accountService, breakageService, transactionManager)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create charges credit purchase handler: %w", err)
+	}
+
+	return handler, nil
 }
 
 func NewChargesUsageBasedHandler(
@@ -393,7 +404,7 @@ func newChargesRegistry(
 	}
 
 	transactionManager := enttx.NewCreator(db)
-	collectorService := ledgercollector.NewService(ledgercollector.Config{
+	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: ledgerService,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: accountResolver,
@@ -401,8 +412,12 @@ func newChargesRegistry(
 			BalanceQuerier: balanceQuerier,
 		},
 		Breakage:           breakageService,
+		AccountLocker:      accountService,
 		TransactionManager: transactionManager,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create charges collector service: %w", err)
+	}
 
 	recognizerService, err := NewRecognizerService(db, ledgerService, balanceQuerier, accountResolver, accountService, lineageService)
 	if err != nil {
@@ -411,7 +426,7 @@ func newChargesRegistry(
 
 	flatFeeHandler := NewChargesFlatFeeHandler(ledgerService, balanceQuerier, accountResolver, accountService, collectorService)
 	usageBasedHandler := NewChargesUsageBasedHandler(ledgerService, balanceQuerier, accountResolver, accountService, collectorService)
-	creditPurchaseHandler := NewChargesCreditPurchaseHandler(
+	creditPurchaseHandler, err := NewChargesCreditPurchaseHandler(
 		ledgerService,
 		balanceQuerier,
 		accountResolver,
@@ -419,6 +434,9 @@ func newChargesRegistry(
 		breakageService,
 		transactionManager,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	flatFeeAdapter, err := NewChargesFlatFeeAdapter(db, logger, metaAdapter)
 	if err != nil {

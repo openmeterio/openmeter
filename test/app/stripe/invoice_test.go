@@ -121,15 +121,20 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 
 	s.LedgerResolver = ledgerDeps.ResolversService
 
-	collectorService := ledgercollector.NewService(ledgercollector.Config{
+	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: ledgerDeps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: ledgerDeps.ResolversService,
 			AccountCatalog: ledgerDeps.AccountService,
 			BalanceQuerier: ledgerDeps.HistoricalLedger,
 		},
+		AccountLocker:      ledgerDeps.AccountService,
 		TransactionManager: enttx.NewCreator(s.DBClient),
 	})
+	s.Require().NoError(err)
+
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerDeps.HistoricalLedger, ledgerDeps.HistoricalLedger, ledgerDeps.ResolversService, ledgerDeps.AccountService, ledgerbreakage.NewNoopService(), enttx.NewCreator(s.DBClient))
+	s.Require().NoError(err)
 
 	chargeStack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
 		Client:                s.DBClient,
@@ -138,7 +143,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 		FeatureService:        s.FeatureService,
 		StreamingConnector:    s.MockStreamingConnector,
 		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(ledgerDeps.HistoricalLedger, transactions.ResolverDependencies{AccountService: ledgerDeps.ResolversService, AccountCatalog: ledgerDeps.AccountService, BalanceQuerier: ledgerDeps.HistoricalLedger}, collectorService),
-		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(ledgerDeps.HistoricalLedger, ledgerDeps.HistoricalLedger, ledgerDeps.ResolversService, ledgerDeps.AccountService, ledgerbreakage.NewNoopService(), enttx.NewCreator(s.DBClient)),
+		CreditPurchaseHandler: creditPurchaseHandler,
 		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(ledgerDeps.HistoricalLedger, transactions.ResolverDependencies{AccountService: ledgerDeps.ResolversService, AccountCatalog: ledgerDeps.AccountService, BalanceQuerier: ledgerDeps.HistoricalLedger}, collectorService),
 	})
 	s.Require().NoError(err, "failed to initialize charges service")

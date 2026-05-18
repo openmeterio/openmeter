@@ -306,16 +306,19 @@ func newCreditPurchaseHandlerTestEnv(t *testing.T) *creditPurchaseHandlerTestEnv
 	})
 	require.NoError(t, err)
 
+	handler, err := chargeadapter.NewCreditPurchaseHandler(
+		base.Deps.HistoricalLedger,
+		base.Deps.HistoricalLedger,
+		base.Deps.ResolversService,
+		base.Deps.AccountService,
+		breakageService,
+		enttx.NewCreator(base.DB),
+	)
+	require.NoError(t, err)
+
 	return &creditPurchaseHandlerTestEnv{
 		IntegrationEnv: base,
-		handler: chargeadapter.NewCreditPurchaseHandler(
-			base.Deps.HistoricalLedger,
-			base.Deps.HistoricalLedger,
-			base.Deps.ResolversService,
-			base.Deps.AccountService,
-			breakageService,
-			enttx.NewCreator(base.DB),
-		),
+		handler:        handler,
 	}
 }
 

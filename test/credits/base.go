@@ -116,7 +116,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.NoError(err)
 	s.RevenueRecognizer = revenueRecognizer
 
-	collectorService := ledgercollector.NewService(ledgercollector.Config{
+	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: deps.ResolversService,
@@ -124,14 +124,19 @@ func (s *BaseSuite) SetupSuite() {
 			BalanceQuerier: deps.HistoricalLedger,
 		},
 		Breakage:           breakageService,
+		AccountLocker:      deps.AccountService,
 		TransactionManager: transactionManager,
 	})
+	s.NoError(err)
 	flatFeeHandler := ledgerchargeadapter.NewFlatFeeHandler(
 		deps.HistoricalLedger,
 		transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger},
 		collectorService,
 	)
 	s.FlatFeeHandler = flatFeeHandler
+
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.HistoricalLedger, deps.ResolversService, deps.AccountService, breakageService, transactionManager)
+	s.NoError(err)
 
 	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
 		Client:                s.DBClient,
@@ -140,7 +145,7 @@ func (s *BaseSuite) SetupSuite() {
 		FeatureService:        s.FeatureService,
 		StreamingConnector:    s.MockStreamingConnector,
 		FlatFeeHandler:        flatFeeHandler,
-		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.HistoricalLedger, deps.ResolversService, deps.AccountService, breakageService, transactionManager),
+		CreditPurchaseHandler: creditPurchaseHandler,
 		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger}, collectorService),
 	})
 	s.NoError(err)

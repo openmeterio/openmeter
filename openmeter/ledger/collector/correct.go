@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -722,7 +723,7 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 }
 
 func sortCorrectionSegments(segments []lineage.Segment) []lineage.Segment {
-	sorted := append([]lineage.Segment(nil), segments...)
+	sorted := slices.Clone(segments)
 	sort.SliceStable(sorted, func(i, j int) bool {
 		// Go from most downstream representation back outward.
 		precedence := func(state creditrealization.LineageSegmentState) int {

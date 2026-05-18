@@ -16,6 +16,8 @@ type LedgerBreakageRecord struct {
 	ent.Schema
 }
 
+// Breakage records intentionally keep ledger references as plain IDs: they are
+// projection rows, not accounting source of truth. See ledger/breakage/README.md.
 func (LedgerBreakageRecord) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},

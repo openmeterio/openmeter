@@ -36,12 +36,12 @@ func NewCreditPurchaseHandler(
 	accountCatalog ledger.AccountCatalog,
 	breakageService breakage.Service,
 	transactionManager transaction.Creator,
-) chargecreditpurchase.Handler {
+) (chargecreditpurchase.Handler, error) {
 	if breakageService == nil {
 		breakageService = breakage.NewNoopService()
 	}
 	if transactionManager == nil {
-		panic("credit purchase transaction manager is required")
+		return nil, fmt.Errorf("transaction manager is required")
 	}
 
 	return &creditPurchaseHandler{
@@ -51,7 +51,7 @@ func NewCreditPurchaseHandler(
 		accountCatalog:     accountCatalog,
 		breakage:           breakageService,
 		transactionManager: transactionManager,
-	}
+	}, nil
 }
 
 func (h *creditPurchaseHandler) OnPromotionalCreditPurchase(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {

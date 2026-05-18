@@ -116,6 +116,13 @@ func (c *accrualCollector) listCustomerFBOSources(
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
+	if c.accountLocker == nil {
+		return nil, fmt.Errorf("account locker is required")
+	}
+	if err := c.accountLocker.LockAccountsForPosting(ctx, []ledger.Account{customerAccounts.FBOAccount}); err != nil {
+		return nil, fmt.Errorf("lock customer FBO account: %w", err)
+	}
+
 	fboAccountWithID, ok := customerAccounts.FBOAccount.(accountIdentifier)
 	if !ok {
 		return nil, fmt.Errorf("customer FBO account does not expose an ID")
