@@ -85,16 +85,16 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 			}, nil
 		},
 		func(ctx context.Context, req ListSubscriptionAddonsRequest) (ListSubscriptionAddonsResponse, error) {
-			res, err := h.subscriptionAddonService.List(ctx, req.SubscriptionID.Namespace, req.Input)
+			res, err := h.addonService.List(ctx, req.SubscriptionID.Namespace, req.Input)
 			if err != nil {
-				return ListSubscriptionAddonsResponse{}, fmt.Errorf("failed to list subscription addons: %w", err)
+				return ListSubscriptionAddonsResponse{}, err
 			}
 
 			items := make([]apiv3.SubscriptionAddon, 0, len(res.Items))
 			for _, item := range res.Items {
 				converted, err := toAPISubscriptionAddon(item)
 				if err != nil {
-					return ListSubscriptionAddonsResponse{}, fmt.Errorf("failed to convert subscription addon: %w", err)
+					return ListSubscriptionAddonsResponse{}, err
 				}
 				items = append(items, converted)
 			}

@@ -2648,6 +2648,41 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
+  /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}:
+    get:
+      operationId: get-subscription-addon
+      summary: Get add-on association for subscription
+      description: Get an add-on association for a subscription.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: subscriptionAddonId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: SubscriptionAddon response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionAddon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Subscriptions
+      x-internal: true
+      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/cancel:
     post:
       operationId: cancel-subscription
