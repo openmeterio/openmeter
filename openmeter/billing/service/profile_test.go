@@ -122,6 +122,19 @@ func TestListProfiles(t *testing.T) {
 			},
 		},
 		{
+			name: "SortByID",
+			input: billing.ListProfilesInput{
+				Namespace: ns,
+				OrderBy:   "id",
+				Order:     sortx.OrderDesc,
+			},
+			assertAdapter: func(t *testing.T, got billing.ListProfilesInput) {
+				t.Helper()
+				require.Equal(t, billing.OrderByID, got.OrderBy)
+				require.Equal(t, sortx.OrderDesc, got.Order)
+			},
+		},
+		{
 			// both Eq and Contains set — validateSingleOperator returns ErrFilterMultipleOperators
 			name: "ValidationError_NameMultipleOperators",
 			input: billing.ListProfilesInput{

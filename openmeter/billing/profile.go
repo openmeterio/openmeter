@@ -371,6 +371,7 @@ type OrderBy string
 
 func (o OrderBy) Values() []OrderBy {
 	return []OrderBy{
+		OrderByID,
 		OrderByCreatedAt,
 		OrderByUpdatedAt,
 		OrderByName,

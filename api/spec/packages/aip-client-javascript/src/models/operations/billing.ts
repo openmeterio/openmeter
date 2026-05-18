@@ -14,7 +14,7 @@ export interface ListBillingProfilesQuery {
   page?: { size?: number; number?: number }
   /** Sort billing profiles returned in the response. Supported sort attributes are: - `id` - `name` - `createdAt` (default) - `updatedAt` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order. */
   sort?: SortQueryInput
-  /** Filter billing profiles returned in the response. To filter billing profiles by name add the following query param: filter[name]=my-profile */
+  /** Filter billing profiles returned in the response. To filter billing profiles by name add the following query param: filter[name][eq]=my-profile */
   filter?: ListBillingProfilesParamsFilter
 }
 
