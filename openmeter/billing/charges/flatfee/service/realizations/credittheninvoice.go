@@ -331,6 +331,8 @@ func (s *Service) ReconcileStandardLineToIntent(ctx context.Context, in Reconcil
 }
 
 func rateFlatFeeLine(line billing.StandardLine, ratingService billingrating.Service) (*billing.StandardLine, error) {
+	// Keep the caller-facing line shape on ratedLine, and use ratingLine only
+	// to clear split metadata for pricing before merging generated details back.
 	ratedLine, err := line.Clone()
 	if err != nil {
 		return nil, fmt.Errorf("cloning line: %w", err)

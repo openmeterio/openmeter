@@ -35,14 +35,19 @@ func (s *Service) repairChargeSubscriptionReferences(ctx context.Context, persis
 		return persisted, nil
 	}
 
-	targetByUniqueID := lo.SliceToMap(
-		lo.Filter(target.Items, func(item targetstate.StateItem, _ int) bool {
-			return item.IsBillable()
-		}),
-		func(item targetstate.StateItem) (string, targetstate.StateItem) {
-			return item.UniqueID, item
-		},
-	)
+	billableTargetItems := lo.Filter(target.Items, func(item targetstate.StateItem, _ int) bool {
+		return item.IsBillable()
+	})
+	billableTargetUniqueIDs := lo.Map(billableTargetItems, func(item targetstate.StateItem, _ int) string {
+		return item.UniqueID
+	})
+	if len(lo.Uniq(billableTargetUniqueIDs)) != len(billableTargetUniqueIDs) {
+		return persistedstate.State{}, fmt.Errorf("duplicate billable target unique IDs while repairing charge subscription references")
+	}
+
+	targetByUniqueID := lo.SliceToMap(billableTargetItems, func(item targetstate.StateItem) (string, targetstate.StateItem) {
+		return item.UniqueID, item
+	})
 
 	for _, persistedEntry := range lo.Entries(persisted.ByUniqueID) {
 		targetItem, ok := targetByUniqueID[persistedEntry.Key]

@@ -80,6 +80,10 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 }
 
 func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge flatfee.Charge, newSubscriptionItemID string) (flatfee.Charge, error) {
+	if err := charge.ManagedModel.Validate(); err != nil {
+		return flatfee.Charge{}, err
+	}
+
 	if err := charge.Validate(); err != nil {
 		return flatfee.Charge{}, err
 	}

@@ -62,6 +62,10 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 }
 
 func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge usagebased.Charge, newSubscriptionItemID string) (usagebased.Charge, error) {
+	if err := charge.ManagedModel.Validate(); err != nil {
+		return usagebased.Charge{}, err
+	}
+
 	if err := charge.Validate(); err != nil {
 		return usagebased.Charge{}, err
 	}
