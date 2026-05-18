@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -366,6 +367,31 @@ type CreateProfileAppsInput = ProfileAppReferences
 
 type ListProfilesResult = pagination.Result[Profile]
 
+type OrderBy string
+
+func (o OrderBy) Values() []OrderBy {
+	return []OrderBy{
+		OrderByCreatedAt,
+		OrderByUpdatedAt,
+		OrderByName,
+	}
+}
+
+func (o OrderBy) Validate() error {
+	if !slices.Contains(o.Values(), o) {
+		return fmt.Errorf("invalid order by: %s", o)
+	}
+	return nil
+}
+
+const (
+	OrderByID        OrderBy = "id"
+	OrderByCreatedAt OrderBy = OrderBy(api.BillingProfileOrderByCreatedAt)
+	OrderByUpdatedAt OrderBy = OrderBy(api.BillingProfileOrderByUpdatedAt)
+	OrderByName      OrderBy = OrderBy(api.BillingProfileOrderByName)
+	OrderByDefault   OrderBy = OrderBy(api.BillingProfileOrderByDefault)
+)
+
 type ListProfilesInput struct {
 	pagination.Page
 
@@ -373,8 +399,11 @@ type ListProfilesInput struct {
 
 	Namespace       string
 	IncludeArchived bool
-	OrderBy         api.BillingProfileOrderBy
+	OrderBy         OrderBy
 	Order           sortx.Order
+
+	ID   *filter.FilterULID
+	Name *filter.FilterString
 }
 
 func (i ListProfilesInput) Validate() error {
@@ -386,7 +415,25 @@ func (i ListProfilesInput) Validate() error {
 		return fmt.Errorf("error validating expand: %w", err)
 	}
 
-	return nil
+	var errs []error
+	if i.ID != nil {
+		if err := i.ID.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if i.Name != nil {
+		if err := i.Name.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if i.OrderBy != "" {
+		if err := i.OrderBy.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ProfileExpand struct {

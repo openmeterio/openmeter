@@ -1683,6 +1683,25 @@ export interface ListSubscriptionsParamsFilter {
   plan_key?: string | { eq?: string; oeq?: string[]; neq?: string }
 }
 
+/** Filter options for listing billing profiles. */
+export interface ListBillingProfilesParamsFilter {
+  id?: string | { eq?: string; oeq?: string[]; neq?: string }
+  name?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+}
+
 /** Filter options for listing features. */
 export interface ListFeatureParamsFilter {
   meter_id?: string | { eq?: string; oeq?: string[]; neq?: string }

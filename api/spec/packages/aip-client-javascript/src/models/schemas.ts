@@ -2847,6 +2847,13 @@ export const listSubscriptionsParamsFilter = z
   })
   .describe('Filter options for listing subscriptions.')
 
+export const listBillingProfilesParamsFilter = z
+  .object({
+    id: ulidFieldFilter.optional(),
+    name: stringFieldFilter.optional(),
+  })
+  .describe('Filter options for listing billing profiles.')
+
 export const listFeatureParamsFilter = z
   .object({
     meter_id: ulidFieldFilter.optional(),
@@ -4941,6 +4948,8 @@ export const listBillingProfilesQueryParams = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listBillingProfilesParamsFilter.optional(),
 })
 
 export const listBillingProfilesResponse = z.object({
