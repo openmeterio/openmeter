@@ -26,7 +26,7 @@ import (
 var MonthPeriod = datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0)
 
 func TestPlanAddonService(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	env := pctestutils.NewTestEnv(t)
