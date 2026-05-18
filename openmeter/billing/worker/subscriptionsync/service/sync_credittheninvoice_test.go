@@ -510,6 +510,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 			From: s.mustParseTime("2024-02-15T00:00:00Z"),
 			To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 		})
+
 	})
 
 	s.Run("subscription cancellation", func() {

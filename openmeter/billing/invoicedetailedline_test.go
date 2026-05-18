@@ -207,5 +207,5 @@ func detailedLineWithAppliedCredit(childUniqueReferenceID string, amount int64, 
 func requireDecimalEqual(t *testing.T, expected, actual alpacadecimal.Decimal) {
 	t.Helper()
 
-	require.Equal(t, expected.InexactFloat64(), actual.InexactFloat64())
+	require.True(t, expected.Equal(actual), "expected %s, got %s", expected.String(), actual.String())
 }
