@@ -319,6 +319,18 @@ func (_u *ChargeUsageBasedUpdate) ClearDiscounts() *ChargeUsageBasedUpdate {
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *ChargeUsageBasedUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpdate {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *ChargeUsageBasedUpdate) ClearUnitConfig() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetFeatureID sets the "feature_id" field.
 func (_u *ChargeUsageBasedUpdate) SetFeatureID(v string) *ChargeUsageBasedUpdate {
 	_u.mutation.SetFeatureID(v)
@@ -563,6 +575,11 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.unit_config": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.FeatureID(); ok {
 		if err := chargeusagebased.FeatureIDValidator(v); err != nil {
 			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
@@ -680,6 +697,16 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := chargeusagebased.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(chargeusagebased.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(chargeusagebased.FieldUnitConfig, field.TypeString)
 	}
 	if value, ok := _u.mutation.RatingEngine(); ok {
 		_spec.SetField(chargeusagebased.FieldRatingEngine, field.TypeEnum, value)
@@ -1166,6 +1193,18 @@ func (_u *ChargeUsageBasedUpdateOne) ClearDiscounts() *ChargeUsageBasedUpdateOne
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *ChargeUsageBasedUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearUnitConfig() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetFeatureID sets the "feature_id" field.
 func (_u *ChargeUsageBasedUpdateOne) SetFeatureID(v string) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetFeatureID(v)
@@ -1423,6 +1462,11 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.unit_config": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.FeatureID(); ok {
 		if err := chargeusagebased.FeatureIDValidator(v); err != nil {
 			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
@@ -1557,6 +1601,16 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := chargeusagebased.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(chargeusagebased.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(chargeusagebased.FieldUnitConfig, field.TypeString)
 	}
 	if value, ok := _u.mutation.RatingEngine(); ok {
 		_spec.SetField(chargeusagebased.FieldRatingEngine, field.TypeEnum, value)

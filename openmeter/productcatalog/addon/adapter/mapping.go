@@ -95,6 +95,7 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 		FeatureID:           r.FeatureID,
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
+		UnitConfig:          r.UnitConfig,
 		Discounts:           lo.FromPtr(r.Discounts),
 	}
 
@@ -306,6 +307,7 @@ func FromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		EntitlementTemplate: r.EntitlementTemplate,
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
+		UnitConfig:          r.UnitConfig,
 		Discounts:           lo.FromPtr(r.Discounts),
 	}
 
@@ -363,6 +365,7 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 		FeatureKey:          meta.FeatureKey,
 		FeatureID:           meta.FeatureID,
 		Price:               meta.Price,
+		UnitConfig:          meta.UnitConfig,
 		Type:                r.Type(),
 		Discounts:           lo.EmptyableToPtr(meta.Discounts),
 	}

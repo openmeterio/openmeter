@@ -221,6 +221,18 @@ func (_u *PlanRateCardUpdate) ClearPrice() *PlanRateCardUpdate {
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *PlanRateCardUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *PlanRateCardUpdate {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *PlanRateCardUpdate) ClearUnitConfig() *PlanRateCardUpdate {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *PlanRateCardUpdate) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardUpdate {
 	_u.mutation.SetDiscounts(v)
@@ -377,6 +389,11 @@ func (_u *PlanRateCardUpdate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.price": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.unit_config": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.discounts": %w`, err)}
@@ -476,6 +493,16 @@ func (_u *PlanRateCardUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(planratecard.FieldPrice, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := planratecard.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(planratecard.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(planratecard.FieldUnitConfig, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := planratecard.ValueScanner.Discounts.Value(value)
@@ -782,6 +809,18 @@ func (_u *PlanRateCardUpdateOne) ClearPrice() *PlanRateCardUpdateOne {
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *PlanRateCardUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *PlanRateCardUpdateOne {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *PlanRateCardUpdateOne) ClearUnitConfig() *PlanRateCardUpdateOne {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *PlanRateCardUpdateOne) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardUpdateOne {
 	_u.mutation.SetDiscounts(v)
@@ -951,6 +990,11 @@ func (_u *PlanRateCardUpdateOne) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.price": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.unit_config": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.discounts": %w`, err)}
@@ -1067,6 +1111,16 @@ func (_u *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRateCa
 	}
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(planratecard.FieldPrice, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := planratecard.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(planratecard.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(planratecard.FieldUnitConfig, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := planratecard.ValueScanner.Discounts.Value(value)

@@ -76,6 +76,8 @@ const (
 	FieldSettlementMode = "settlement_mode"
 	// FieldDiscounts holds the string denoting the discounts field in the database.
 	FieldDiscounts = "discounts"
+	// FieldUnitConfig holds the string denoting the unit_config field in the database.
+	FieldUnitConfig = "unit_config"
 	// FieldFeatureKey holds the string denoting the feature_key field in the database.
 	FieldFeatureKey = "feature_key"
 	// FieldFeatureID holds the string denoting the feature_id field in the database.
@@ -213,6 +215,7 @@ var Columns = []string{
 	FieldInvoiceAt,
 	FieldSettlementMode,
 	FieldDiscounts,
+	FieldUnitConfig,
 	FieldFeatureKey,
 	FieldFeatureID,
 	FieldRatingEngine,
@@ -252,8 +255,9 @@ var (
 	DefaultID func() string
 	// ValueScanner of all ChargeUsageBased fields.
 	ValueScanner struct {
-		Discounts field.TypeValueScanner[*productcatalog.Discounts]
-		Price     field.TypeValueScanner[*productcatalog.Price]
+		Discounts  field.TypeValueScanner[*productcatalog.Discounts]
+		UnitConfig field.TypeValueScanner[*productcatalog.UnitConfig]
+		Price      field.TypeValueScanner[*productcatalog.Price]
 	}
 )
 
@@ -453,6 +457,11 @@ func BySettlementMode(opts ...sql.OrderTermOption) OrderOption {
 // ByDiscounts orders the results by the discounts field.
 func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
+}
+
+// ByUnitConfig orders the results by the unit_config field.
+func ByUnitConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitConfig, opts...).ToFunc()
 }
 
 // ByFeatureKey orders the results by the feature_key field.

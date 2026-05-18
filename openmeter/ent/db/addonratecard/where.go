@@ -882,6 +882,16 @@ func PriceNotNil() predicate.AddonRateCard {
 	return predicate.AddonRateCard(sql.FieldNotNull(FieldPrice))
 }
 
+// UnitConfigIsNil applies the IsNil predicate on the "unit_config" field.
+func UnitConfigIsNil() predicate.AddonRateCard {
+	return predicate.AddonRateCard(sql.FieldIsNull(FieldUnitConfig))
+}
+
+// UnitConfigNotNil applies the NotNil predicate on the "unit_config" field.
+func UnitConfigNotNil() predicate.AddonRateCard {
+	return predicate.AddonRateCard(sql.FieldNotNull(FieldUnitConfig))
+}
+
 // DiscountsIsNil applies the IsNil predicate on the "discounts" field.
 func DiscountsIsNil() predicate.AddonRateCard {
 	return predicate.AddonRateCard(sql.FieldIsNull(FieldDiscounts))

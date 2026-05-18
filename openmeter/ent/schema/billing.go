@@ -581,6 +581,20 @@ func (BillingInvoiceUsageBasedLineConfig) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
+		field.Other("converted_quantity", alpacadecimal.Decimal{}).
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+		field.String("applied_unit_config").
+			GoType(&productcatalog.UnitConfig{}).
+			ValueScanner(UnitConfigValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
 	}
 }
 

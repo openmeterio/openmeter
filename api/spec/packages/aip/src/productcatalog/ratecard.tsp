@@ -58,12 +58,14 @@ model RateCard {
   /**
    * Unit conversion configuration for the rate card.
    *
-   * Synthesized on read for plans authored with v1 dynamic or package prices:
-   * dynamic prices map to a unit price with a multiply unit config, and package
-   * prices map to a unit price with a divide unit config. Not yet accepted on create
-   * or update.
+   * When set, transforms the raw metered quantity into a billing quantity before
+   * pricing. Valid only with unit, graduated, or volume prices.
+   *
+   * For plans authored with v1 dynamic or package prices, the unit config is
+   * synthesized on read: dynamic prices map to a unit price with a multiply unit
+   * config, and package prices map to a unit price with a divide unit config.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Unit config")
   unit_config?: UnitConfig;
 

@@ -97,7 +97,7 @@ func TestPopulateUsageBasedStandardLineFromRunProjectsDetailsAndCredits(t *testi
 		},
 	}
 
-	err := populateUsageBasedStandardLineFromRun(line, run, usagebased.RealizationRuns{priorRun, run})
+	err := populateUsageBasedStandardLineFromRun(line, usagebased.Intent{}, run, usagebased.RealizationRuns{priorRun, run})
 	require.NoError(t, err)
 
 	require.Len(t, line.DetailedLines, 2)
@@ -163,7 +163,7 @@ func TestPopulateUsageBasedStandardLineFromRunAppliesUsageDiscount(t *testing.T)
 		},
 	}
 
-	err := populateUsageBasedStandardLineFromRun(line, run, usagebased.RealizationRuns{priorRun, run})
+	err := populateUsageBasedStandardLineFromRun(line, usagebased.Intent{}, run, usagebased.RealizationRuns{priorRun, run})
 	require.NoError(t, err)
 
 	require.Equal(t, float64(10), lo.FromPtr(line.UsageBased.Quantity).InexactFloat64())
@@ -181,6 +181,108 @@ func TestPopulateUsageBasedStandardLineFromRunAppliesUsageDiscount(t *testing.T)
 	require.NoError(t, err)
 	require.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAV", reason.CorrelationID)
 	require.Equal(t, float64(10), reason.Quantity.InexactFloat64())
+}
+
+func TestPopulateUsageBasedStandardLineFromRunSnapshotsUnitConfig(t *testing.T) {
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	line := newUsageBasedStandardLineForTest(period)
+
+	intent := usagebased.Intent{
+		UnitConfig: &productcatalog.UnitConfig{
+			Operation:        productcatalog.UnitConfigOperationDivide,
+			ConversionFactor: alpacadecimal.NewFromInt(1000),
+			Rounding:         lo.ToPtr(productcatalog.UnitConfigRoundingModeCeiling),
+			DisplayUnit:      lo.ToPtr("packages"),
+		},
+	}
+
+	// Cumulative raw: prior=1000, current=2247. Line-period raw = 1247.
+	// Apply(divide 1000): converted_prior=1.000, converted_current=2.247.
+	// Converted line-period = 2.247 - 1.000 = 1.247.
+	priorRun := usagebased.RealizationRun{
+		RealizationRunBase: usagebased.RealizationRunBase{
+			ID: usagebased.RealizationRunID{
+				Namespace: line.Namespace,
+				ID:        "prior-run-id",
+			},
+			Type:            usagebased.RealizationRunTypePartialInvoice,
+			StoredAtLT:      period.From,
+			ServicePeriodTo: period.From.Add(24 * time.Hour),
+			MeteredQuantity: alpacadecimal.NewFromInt(1000),
+		},
+	}
+
+	run := usagebased.RealizationRun{
+		RealizationRunBase: usagebased.RealizationRunBase{
+			ID: usagebased.RealizationRunID{
+				Namespace: line.Namespace,
+				ID:        "run-id",
+			},
+			StoredAtLT:      period.To,
+			ServicePeriodTo: period.To,
+			MeteredQuantity: alpacadecimal.NewFromInt(2247),
+			Totals: totals.Totals{
+				Amount: alpacadecimal.NewFromInt(20),
+				Total:  alpacadecimal.NewFromInt(20),
+			},
+		},
+		DetailedLines: mo.Some(usagebased.DetailedLines{
+			newUsageBasedDetailedLineForTest("usage-a", period, alpacadecimal.NewFromInt(20)),
+		}),
+	}
+
+	err := populateUsageBasedStandardLineFromRun(line, intent, run, usagebased.RealizationRuns{priorRun, run})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(1247), lo.FromPtr(line.UsageBased.MeteredQuantity).InexactFloat64(), "raw line-period unchanged")
+	require.Equal(t, float64(1000), lo.FromPtr(line.UsageBased.MeteredPreLinePeriodQuantity).InexactFloat64(), "raw cumulative prior unchanged")
+
+	require.NotNil(t, line.UsageBased.ConvertedQuantity)
+	require.Equal(t, "1.247", line.UsageBased.ConvertedQuantity.String(), "precise converted line-period via cumulative-then-diff")
+
+	require.NotNil(t, line.UsageBased.AppliedUnitConfig)
+	require.Equal(t, productcatalog.UnitConfigOperationDivide, line.UsageBased.AppliedUnitConfig.Operation)
+	require.Equal(t, "1000", line.UsageBased.AppliedUnitConfig.ConversionFactor.String())
+	require.Equal(t, productcatalog.UnitConfigRoundingModeCeiling, *line.UsageBased.AppliedUnitConfig.Rounding)
+	require.Equal(t, "packages", *line.UsageBased.AppliedUnitConfig.DisplayUnit)
+}
+
+func TestPopulateUsageBasedStandardLineFromRunNoUnitConfigLeavesFieldsNil(t *testing.T) {
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	line := newUsageBasedStandardLineForTest(period)
+
+	run := usagebased.RealizationRun{
+		RealizationRunBase: usagebased.RealizationRunBase{
+			ID: usagebased.RealizationRunID{
+				Namespace: line.Namespace,
+				ID:        "run-id",
+			},
+			StoredAtLT:      period.To,
+			ServicePeriodTo: period.To,
+			MeteredQuantity: alpacadecimal.NewFromInt(10),
+			Totals: totals.Totals{
+				Amount: alpacadecimal.NewFromInt(10),
+				Total:  alpacadecimal.NewFromInt(10),
+			},
+		},
+		DetailedLines: mo.Some(usagebased.DetailedLines{
+			newUsageBasedDetailedLineForTest("usage-a", period, alpacadecimal.NewFromInt(10)),
+		}),
+	}
+
+	err := populateUsageBasedStandardLineFromRun(line, usagebased.Intent{}, run, usagebased.RealizationRuns{run})
+	require.NoError(t, err)
+
+	require.Nil(t, line.UsageBased.ConvertedQuantity, "no UnitConfig → nil ConvertedQuantity (would be redundant with MeteredQuantity)")
+	require.Nil(t, line.UsageBased.AppliedUnitConfig, "no UnitConfig → nil snapshot")
 }
 
 func TestPopulateUsageBasedStandardLineFromRunRequiresExpandedDetails(t *testing.T) {
@@ -206,7 +308,7 @@ func TestPopulateUsageBasedStandardLineFromRunRequiresExpandedDetails(t *testing
 		},
 	}
 
-	err := populateUsageBasedStandardLineFromRun(line, run, usagebased.RealizationRuns{run})
+	err := populateUsageBasedStandardLineFromRun(line, usagebased.Intent{}, run, usagebased.RealizationRuns{run})
 	require.ErrorContains(t, err, "detailed lines must be expanded")
 }
 

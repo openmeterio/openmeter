@@ -141,6 +141,26 @@ func TestFlatFeeRateCard(t *testing.T) {
 				},
 				ExpectedError: true,
 			},
+			{
+				Name: "invalid, unit config rejected with flat price",
+				RateCard: FlatFeeRateCard{
+					RateCardMeta: RateCardMeta{
+						Key:         "feat-1",
+						Name:        "Flat 1",
+						Description: lo.ToPtr("Flat 1"),
+						Price: NewPriceFrom(FlatPrice{
+							Amount:      decimal.NewFromInt(1000),
+							PaymentTerm: InArrearsPaymentTerm,
+						}),
+						UnitConfig: &UnitConfig{
+							Operation:        UnitConfigOperationMultiply,
+							ConversionFactor: decimal.NewFromFloat(1.2),
+						},
+					},
+					BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
+				},
+				ExpectedError: true,
+			},
 		}
 
 		for _, test := range tests {
@@ -335,6 +355,61 @@ func TestUsageBasedRateCard(t *testing.T) {
 					BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				},
 				ExpectedError: true,
+			},
+			{
+				Name: "valid, unit config with unit price",
+				RateCard: UsageBasedRateCard{
+					RateCardMeta: RateCardMeta{
+						Key:        "feat-1",
+						Name:       "Usage 1",
+						FeatureKey: lo.ToPtr(feat1.Key),
+						FeatureID:  lo.ToPtr(feat1.ID),
+						Price: NewPriceFrom(UnitPrice{
+							Amount: decimal.NewFromInt(1),
+						}),
+						UnitConfig: &UnitConfig{
+							Operation:        UnitConfigOperationMultiply,
+							ConversionFactor: decimal.NewFromFloat(1.5),
+						},
+					},
+					BillingCadence: datetime.MustParseDuration(t, "P1M"),
+				},
+				ExpectedError: false,
+			},
+			{
+				Name: "valid, unit config with tiered price",
+				RateCard: UsageBasedRateCard{
+					RateCardMeta: RateCardMeta{
+						Key:        "feat-1",
+						Name:       "Usage 1",
+						FeatureKey: lo.ToPtr(feat1.Key),
+						FeatureID:  lo.ToPtr(feat1.ID),
+						Price: NewPriceFrom(TieredPrice{
+							Mode: VolumeTieredPrice,
+							Tiers: []PriceTier{
+								{
+									UpToAmount: lo.ToPtr(decimal.NewFromInt(100)),
+									UnitPrice: &PriceTierUnitPrice{
+										Amount: decimal.NewFromInt(5),
+									},
+								},
+								{
+									UpToAmount: nil,
+									UnitPrice: &PriceTierUnitPrice{
+										Amount: decimal.NewFromInt(1),
+									},
+								},
+							},
+						}),
+						UnitConfig: &UnitConfig{
+							Operation:        UnitConfigOperationDivide,
+							ConversionFactor: decimal.NewFromInt(1000),
+							Rounding:         lo.ToPtr(UnitConfigRoundingModeCeiling),
+						},
+					},
+					BillingCadence: datetime.MustParseDuration(t, "P1M"),
+				},
+				ExpectedError: false,
 			},
 		}
 

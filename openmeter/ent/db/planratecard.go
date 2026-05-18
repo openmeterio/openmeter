@@ -55,6 +55,8 @@ type PlanRateCard struct {
 	BillingCadence *datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
+	// UnitConfig holds the value of the "unit_config" field.
+	UnitConfig *productcatalog.UnitConfig `json:"unit_config,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// The phase identifier the ratecard is assigned to.
@@ -130,6 +132,8 @@ func (*PlanRateCard) scanValues(columns []string) ([]any, error) {
 			values[i] = planratecard.ValueScanner.TaxConfig.ScanValue()
 		case planratecard.FieldPrice:
 			values[i] = planratecard.ValueScanner.Price.ScanValue()
+		case planratecard.FieldUnitConfig:
+			values[i] = planratecard.ValueScanner.UnitConfig.ScanValue()
 		case planratecard.FieldDiscounts:
 			values[i] = planratecard.ValueScanner.Discounts.ScanValue()
 		default:
@@ -256,6 +260,12 @@ func (_m *PlanRateCard) assignValues(columns []string, values []any) error {
 				return err
 			} else {
 				_m.Price = value
+			}
+		case planratecard.FieldUnitConfig:
+			if value, err := planratecard.ValueScanner.UnitConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.UnitConfig = value
 			}
 		case planratecard.FieldDiscounts:
 			if value, err := planratecard.ValueScanner.Discounts.FromValue(values[i]); err != nil {
@@ -390,6 +400,11 @@ func (_m *PlanRateCard) String() string {
 	builder.WriteString(", ")
 	if v := _m.Price; v != nil {
 		builder.WriteString("price=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.UnitConfig; v != nil {
+		builder.WriteString("unit_config=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

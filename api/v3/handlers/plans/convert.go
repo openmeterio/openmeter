@@ -141,20 +141,63 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 
 	result.Price = price
 
-	unitConfig, err := ToAPIBillingRateCardUnitConfig(meta.Price)
-	if err != nil {
-		return result, fmt.Errorf("failed to convert unit config: %w", err)
-	}
+	if meta.UnitConfig != nil {
+		result.UnitConfig = ToAPIBillingUnitConfig(meta.UnitConfig)
+	} else {
+		unitConfig, err := ToAPIBillingRateCardUnitConfig(meta.Price)
+		if err != nil {
+			return result, fmt.Errorf("failed to convert unit config: %w", err)
+		}
 
-	result.UnitConfig = unitConfig
+		result.UnitConfig = unitConfig
+	}
 
 	return result, nil
 }
 
-// ToAPIBillingRateCardUnitConfig synthesizes a v3 unit config from a v1 dynamic
-// or package price. v3 does not surface dynamic or package prices directly;
-// instead they are rendered as a unit price paired with a unit config that
-// describes the conversion that v1 applied implicitly.
+func ToAPIBillingUnitConfig(uc *productcatalog.UnitConfig) *api.BillingUnitConfig {
+	if uc == nil {
+		return nil
+	}
+
+	out := &api.BillingUnitConfig{
+		Operation:        api.BillingUnitConfigOperation(uc.Operation),
+		ConversionFactor: uc.ConversionFactor.String(),
+		DisplayUnit:      uc.DisplayUnit,
+		Precision:        uc.Precision,
+	}
+
+	if uc.Rounding != nil {
+		out.Rounding = lo.ToPtr(api.BillingUnitConfigRoundingMode(*uc.Rounding))
+	}
+
+	return out
+}
+
+func FromAPIBillingUnitConfig(a *api.BillingUnitConfig) (*productcatalog.UnitConfig, error) {
+	if a == nil {
+		return nil, nil
+	}
+
+	factor, err := decimal.NewFromString(a.ConversionFactor)
+	if err != nil {
+		return nil, fmt.Errorf("invalid unit config conversion factor: %w", err)
+	}
+
+	uc := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperation(a.Operation),
+		ConversionFactor: factor,
+		DisplayUnit:      a.DisplayUnit,
+		Precision:        a.Precision,
+	}
+
+	if a.Rounding != nil {
+		uc.Rounding = lo.ToPtr(productcatalog.UnitConfigRoundingMode(*a.Rounding))
+	}
+
+	return uc, nil
+}
+
 func ToAPIBillingRateCardUnitConfig(p *productcatalog.Price) (*api.BillingUnitConfig, error) {
 	if p == nil {
 		return nil, nil
@@ -527,12 +570,9 @@ func FromAPIBillingPlanPhase(p api.BillingPlanPhase) (productcatalog.Phase, erro
 }
 
 func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, error) {
-	// unit_config is read-only: it is synthesized from v1 dynamic and package
-	// prices on the response path. Accepting it on create/update would silently
-	// drop the original v1 price semantics, so reject it explicitly until v3
-	// authoring is designed.
-	if rc.UnitConfig != nil {
-		return nil, models.NewGenericValidationError(fmt.Errorf("unit_config is not accepted on create or update for rate card %q", rc.Key))
+	unitConfig, err := FromAPIBillingUnitConfig(rc.UnitConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert unit config: %w", err)
 	}
 
 	priceType, err := rc.Price.Discriminator()
@@ -550,6 +590,7 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 		Name:        rc.Name,
 		Description: rc.Description,
 		Metadata:    labelMeta,
+		UnitConfig:  unitConfig,
 	}
 
 	if rc.Feature != nil {

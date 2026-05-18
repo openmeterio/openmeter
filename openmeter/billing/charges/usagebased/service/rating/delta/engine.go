@@ -83,10 +83,15 @@ func (e Engine) Rate(_ context.Context, in Input) (Result, error) {
 		opts = append(opts, billingrating.WithMinimumCommitmentIgnored())
 	}
 
+	// Rating sees the billing quantity. Apply UnitConfig to the cumulative raw
+	// metered quantity once here so downstream rating tier/package math
+	// operates on converted units. Identity when UnitConfig is nil.
+	_, billingQuantity := in.Intent.UnitConfig.Apply(in.CurrentPeriod.MeteredQuantity)
+
 	billingDetailedLines, err := e.ratingService.GenerateDetailedLines(usagebased.RateableIntent{
 		Intent:        in.Intent,
 		ServicePeriod: in.CurrentPeriod.ServicePeriod,
-		MeterValue:    in.CurrentPeriod.MeteredQuantity,
+		MeterValue:    billingQuantity,
 	}, opts...)
 	if err != nil {
 		return Result{}, fmt.Errorf("generating detailed lines: %w", err)

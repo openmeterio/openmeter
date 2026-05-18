@@ -143,6 +143,12 @@ func TestPostgresAdapter(t *testing.T) {
 								MaximumAmount: nil,
 							},
 						}),
+						UnitConfig: &productcatalog.UnitConfig{
+							Operation:        productcatalog.UnitConfigOperationDivide,
+							ConversionFactor: decimal.NewFromInt(1000),
+							Rounding:         lo.ToPtr(productcatalog.UnitConfigRoundingModeCeiling),
+							DisplayUnit:      lo.ToPtr("GB"),
+						},
 					},
 					BillingCadence: pctestutils.MonthPeriod,
 				},

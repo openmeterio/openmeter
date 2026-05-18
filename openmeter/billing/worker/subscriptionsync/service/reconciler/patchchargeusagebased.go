@@ -112,6 +112,7 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 		FeatureKey:     lo.FromPtr(rateCardMeta.FeatureKey),
 		Price:          *price,
 		Discounts:      rateCardMeta.Discounts,
+		UnitConfig:     rateCardMeta.UnitConfig,
 	})
 
 	return intent, nil

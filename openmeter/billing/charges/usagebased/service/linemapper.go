@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run usagebased.RealizationRun, runs usagebased.RealizationRuns) error {
+func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, intent usagebased.Intent, run usagebased.RealizationRun, runs usagebased.RealizationRuns) error {
 	if stdLine.UsageBased == nil {
 		stdLine.UsageBased = &billing.UsageBasedLine{}
 	}
@@ -32,6 +32,23 @@ func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run us
 	stdLine.OverrideCollectionPeriodEnd = lo.ToPtr(run.StoredAtLT.Add(usagebased.InternalCollectionPeriod))
 	stdLine.UsageBased.MeteredQuantity = lo.ToPtr(billingMeteredQuantity.LinePeriod)
 	stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(billingMeteredQuantity.PreLinePeriod)
+
+	// Snapshot UnitConfig + converted line-period quantity when the rate card
+	// has a UnitConfig. Cumulative-then-diff: converted line-period =
+	// Apply(cumulative_current).converted - Apply(cumulative_prior).converted.
+	// This matches the rating-input semantics (rating sees the invoiced
+	// cumulative), so for ceiling/floor rounding the line totals are correct
+	// even when raw usage moves within a single package boundary.
+	if intent.UnitConfig != nil {
+		cumulativeCurrent := billingMeteredQuantity.PreLinePeriod.Add(billingMeteredQuantity.LinePeriod)
+		convertedCurrent, _ := intent.UnitConfig.Apply(cumulativeCurrent)
+		convertedPrior, _ := intent.UnitConfig.Apply(billingMeteredQuantity.PreLinePeriod)
+		convertedLinePeriod := convertedCurrent.Sub(convertedPrior)
+
+		stdLine.UsageBased.ConvertedQuantity = lo.ToPtr(convertedLinePeriod)
+		unitConfigSnapshot := intent.UnitConfig.Clone()
+		stdLine.UsageBased.AppliedUnitConfig = &unitConfigSnapshot
+	}
 
 	// Charge runs store cumulative raw metered quantity. Billing lines expose the raw
 	// metered values separately from net billable quantities and consumed usage discounts,

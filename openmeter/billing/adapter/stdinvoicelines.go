@@ -534,7 +534,9 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydi
 				SetID(line.UsageBased.ConfigID).
 				SetNillablePreLinePeriodQuantity(line.UsageBased.PreLinePeriodQuantity).
 				SetNillableMeteredQuantity(line.UsageBased.MeteredQuantity).
-				SetNillableMeteredPreLinePeriodQuantity(line.UsageBased.MeteredPreLinePeriodQuantity)
+				SetNillableMeteredPreLinePeriodQuantity(line.UsageBased.MeteredPreLinePeriodQuantity).
+				SetNillableConvertedQuantity(line.UsageBased.ConvertedQuantity).
+				SetAppliedUnitConfig(line.UsageBased.AppliedUnitConfig)
 
 			return create, nil
 		},

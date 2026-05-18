@@ -89,6 +89,11 @@ func MeteredQuantity(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBased
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldMeteredQuantity, v))
 }
 
+// ConvertedQuantity applies equality check predicate on the "converted_quantity" field. It's identical to ConvertedQuantityEQ.
+func ConvertedQuantity(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldConvertedQuantity, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.BillingInvoiceUsageBasedLineConfig {
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldNamespace, v))
@@ -407,6 +412,66 @@ func MeteredQuantityIsNil() predicate.BillingInvoiceUsageBasedLineConfig {
 // MeteredQuantityNotNil applies the NotNil predicate on the "metered_quantity" field.
 func MeteredQuantityNotNil() predicate.BillingInvoiceUsageBasedLineConfig {
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotNull(FieldMeteredQuantity))
+}
+
+// ConvertedQuantityEQ applies the EQ predicate on the "converted_quantity" field.
+func ConvertedQuantityEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldEQ(FieldConvertedQuantity, v))
+}
+
+// ConvertedQuantityNEQ applies the NEQ predicate on the "converted_quantity" field.
+func ConvertedQuantityNEQ(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNEQ(FieldConvertedQuantity, v))
+}
+
+// ConvertedQuantityIn applies the In predicate on the "converted_quantity" field.
+func ConvertedQuantityIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldIn(FieldConvertedQuantity, vs...))
+}
+
+// ConvertedQuantityNotIn applies the NotIn predicate on the "converted_quantity" field.
+func ConvertedQuantityNotIn(vs ...alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotIn(FieldConvertedQuantity, vs...))
+}
+
+// ConvertedQuantityGT applies the GT predicate on the "converted_quantity" field.
+func ConvertedQuantityGT(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldGT(FieldConvertedQuantity, v))
+}
+
+// ConvertedQuantityGTE applies the GTE predicate on the "converted_quantity" field.
+func ConvertedQuantityGTE(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldGTE(FieldConvertedQuantity, v))
+}
+
+// ConvertedQuantityLT applies the LT predicate on the "converted_quantity" field.
+func ConvertedQuantityLT(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldLT(FieldConvertedQuantity, v))
+}
+
+// ConvertedQuantityLTE applies the LTE predicate on the "converted_quantity" field.
+func ConvertedQuantityLTE(v alpacadecimal.Decimal) predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldLTE(FieldConvertedQuantity, v))
+}
+
+// ConvertedQuantityIsNil applies the IsNil predicate on the "converted_quantity" field.
+func ConvertedQuantityIsNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldIsNull(FieldConvertedQuantity))
+}
+
+// ConvertedQuantityNotNil applies the NotNil predicate on the "converted_quantity" field.
+func ConvertedQuantityNotNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotNull(FieldConvertedQuantity))
+}
+
+// AppliedUnitConfigIsNil applies the IsNil predicate on the "applied_unit_config" field.
+func AppliedUnitConfigIsNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldIsNull(FieldAppliedUnitConfig))
+}
+
+// AppliedUnitConfigNotNil applies the NotNil predicate on the "applied_unit_config" field.
+func AppliedUnitConfigNotNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotNull(FieldAppliedUnitConfig))
 }
 
 // And groups predicates with the AND operator between them.

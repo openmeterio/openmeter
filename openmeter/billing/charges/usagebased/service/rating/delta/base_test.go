@@ -22,9 +22,10 @@ type deltaRatingTestPeriodsValue struct {
 }
 
 type deltaRatingTestCase struct {
-	price     productcatalog.Price
-	discounts productcatalog.Discounts
-	phases    []deltaRatingPhase
+	price      productcatalog.Price
+	discounts  productcatalog.Discounts
+	unitConfig *productcatalog.UnitConfig
+	phases     []deltaRatingPhase
 }
 
 type deltaRatingPhase struct {
@@ -45,6 +46,7 @@ func runDeltaRatingTestCase(t *testing.T, tc deltaRatingTestCase) {
 	}
 
 	intent := ratingtestutils.NewIntentForTest(t, fullServicePeriod, tc.price, tc.discounts)
+	intent.UnitConfig = tc.unitConfig
 	engine := New(billingratingservice.New())
 	bookedDetailedLinesByPhase := make([]usagebased.DetailedLines, len(tc.phases))
 

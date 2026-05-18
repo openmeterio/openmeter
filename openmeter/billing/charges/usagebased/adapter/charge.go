@@ -35,6 +35,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetDiscounts(&charge.Intent.Discounts).
+			SetUnitConfig(charge.Intent.UnitConfig).
 			SetFeatureID(charge.State.FeatureID).
 			SetInvoiceAt(meta.NormalizeTimestamp(charge.Intent.InvoiceAt).In(time.UTC)).
 			SetRatingEngine(charge.State.RatingEngine).
@@ -227,6 +228,7 @@ func expandRealizations(query *db.ChargeUsageBasedQuery, expands meta.Expands) *
 func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, intent usagebased.CreateIntent) (*db.ChargeUsageBasedCreate, error) {
 	create := a.db.ChargeUsageBased.Create().
 		SetDiscounts(&intent.Discounts).
+		SetUnitConfig(intent.UnitConfig).
 		SetFeatureID(intent.FeatureID).
 		SetRatingEngine(intent.RatingEngine).
 		SetPrice(&intent.Price).

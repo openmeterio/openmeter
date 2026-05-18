@@ -51,6 +51,7 @@ func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased) usagebased.ChargeBase {
 			FeatureKey:     entity.FeatureKey,
 			Discounts:      lo.FromPtr(entity.Discounts),
 			Price:          lo.FromPtr(entity.Price),
+			UnitConfig:     entity.UnitConfig,
 		},
 		State: usagebased.State{
 			CurrentRealizationRunID: entity.CurrentRealizationRunID,

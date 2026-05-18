@@ -999,6 +999,15 @@ type UsageBasedLine struct {
 
 	PreLinePeriodQuantity        *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
 	MeteredPreLinePeriodQuantity *alpacadecimal.Decimal `json:"meteredPreLinePeriodQuantity,omitempty"`
+
+	// ConvertedQuantity is the precise (unrounded) line-period quantity after
+	// UnitConfig conversion. Nil when AppliedUnitConfig is nil. Differs from
+	// the invoiced quantity only when UnitConfig.Rounding is set.
+	ConvertedQuantity *alpacadecimal.Decimal `json:"convertedQuantity,omitempty"`
+
+	// AppliedUnitConfig is the UnitConfig snapshot in effect when this line
+	// was rated. Nil when the rate card had no UnitConfig.
+	AppliedUnitConfig *productcatalog.UnitConfig `json:"appliedUnitConfig,omitempty"`
 }
 
 func (i UsageBasedLine) Equal(other *UsageBasedLine) bool {

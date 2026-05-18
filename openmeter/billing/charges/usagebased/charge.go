@@ -193,6 +193,11 @@ type Intent struct {
 	Price productcatalog.Price `json:"price"`
 
 	Discounts productcatalog.Discounts `json:"discounts"`
+
+	// UnitConfig optionally transforms the raw metered quantity into the
+	// billing quantity before rating. Snapshotted from the rate card at
+	// charge creation; immutable for the charge's lifetime.
+	UnitConfig *productcatalog.UnitConfig `json:"unitConfig,omitempty"`
 }
 
 func (i Intent) Normalized() Intent {
@@ -223,6 +228,10 @@ func (i Intent) Validate() error {
 
 	if err := i.Price.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("price: %w", err))
+	}
+
+	if err := i.UnitConfig.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("unit config: %w", err))
 	}
 
 	if i.FeatureKey == "" {

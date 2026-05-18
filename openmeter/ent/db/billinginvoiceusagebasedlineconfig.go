@@ -32,7 +32,11 @@ type BillingInvoiceUsageBasedLineConfig struct {
 	MeteredPreLinePeriodQuantity *alpacadecimal.Decimal `json:"metered_pre_line_period_quantity,omitempty"`
 	// MeteredQuantity holds the value of the "metered_quantity" field.
 	MeteredQuantity *alpacadecimal.Decimal `json:"metered_quantity,omitempty"`
-	selectValues    sql.SelectValues
+	// ConvertedQuantity holds the value of the "converted_quantity" field.
+	ConvertedQuantity *alpacadecimal.Decimal `json:"converted_quantity,omitempty"`
+	// AppliedUnitConfig holds the value of the "applied_unit_config" field.
+	AppliedUnitConfig *productcatalog.UnitConfig `json:"applied_unit_config,omitempty"`
+	selectValues      sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -40,12 +44,14 @@ func (*BillingInvoiceUsageBasedLineConfig) scanValues(columns []string) ([]any, 
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, billinginvoiceusagebasedlineconfig.FieldMeteredPreLinePeriodQuantity, billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
+		case billinginvoiceusagebasedlineconfig.FieldPreLinePeriodQuantity, billinginvoiceusagebasedlineconfig.FieldMeteredPreLinePeriodQuantity, billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, billinginvoiceusagebasedlineconfig.FieldConvertedQuantity:
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case billinginvoiceusagebasedlineconfig.FieldID, billinginvoiceusagebasedlineconfig.FieldNamespace, billinginvoiceusagebasedlineconfig.FieldPriceType, billinginvoiceusagebasedlineconfig.FieldFeatureKey:
 			values[i] = new(sql.NullString)
 		case billinginvoiceusagebasedlineconfig.FieldPrice:
 			values[i] = billinginvoiceusagebasedlineconfig.ValueScanner.Price.ScanValue()
+		case billinginvoiceusagebasedlineconfig.FieldAppliedUnitConfig:
+			values[i] = billinginvoiceusagebasedlineconfig.ValueScanner.AppliedUnitConfig.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -113,6 +119,19 @@ func (_m *BillingInvoiceUsageBasedLineConfig) assignValues(columns []string, val
 				_m.MeteredQuantity = new(alpacadecimal.Decimal)
 				*_m.MeteredQuantity = *value.S.(*alpacadecimal.Decimal)
 			}
+		case billinginvoiceusagebasedlineconfig.FieldConvertedQuantity:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field converted_quantity", values[i])
+			} else if value.Valid {
+				_m.ConvertedQuantity = new(alpacadecimal.Decimal)
+				*_m.ConvertedQuantity = *value.S.(*alpacadecimal.Decimal)
+			}
+		case billinginvoiceusagebasedlineconfig.FieldAppliedUnitConfig:
+			if value, err := billinginvoiceusagebasedlineconfig.ValueScanner.AppliedUnitConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.AppliedUnitConfig = value
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -175,6 +194,16 @@ func (_m *BillingInvoiceUsageBasedLineConfig) String() string {
 	builder.WriteString(", ")
 	if v := _m.MeteredQuantity; v != nil {
 		builder.WriteString("metered_quantity=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.ConvertedQuantity; v != nil {
+		builder.WriteString("converted_quantity=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.AppliedUnitConfig; v != nil {
+		builder.WriteString("applied_unit_config=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')

@@ -168,7 +168,7 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			return nil, fmt.Errorf("getting current realization run for charge[%s]: %w", charge.ID, err)
 		}
 
-		if err := populateUsageBasedStandardLineFromRun(stdLine, currentRun, charge.Realizations); err != nil {
+		if err := populateUsageBasedStandardLineFromRun(stdLine, charge.Intent, currentRun, charge.Realizations); err != nil {
 			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 		}
 
@@ -219,7 +219,7 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 			return nil, fmt.Errorf("getting current realization run for charge[%s]: %w", charge.ID, err)
 		}
 
-		if err := populateUsageBasedStandardLineFromRun(stdLine, currentRun, charge.Realizations); err != nil {
+		if err := populateUsageBasedStandardLineFromRun(stdLine, charge.Intent, currentRun, charge.Realizations); err != nil {
 			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 		}
 

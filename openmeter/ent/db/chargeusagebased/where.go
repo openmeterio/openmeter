@@ -1540,6 +1540,16 @@ func DiscountsNotNil() predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldDiscounts))
 }
 
+// UnitConfigIsNil applies the IsNil predicate on the "unit_config" field.
+func UnitConfigIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldUnitConfig))
+}
+
+// UnitConfigNotNil applies the NotNil predicate on the "unit_config" field.
+func UnitConfigNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldUnitConfig))
+}
+
 // FeatureKeyEQ applies the EQ predicate on the "feature_key" field.
 func FeatureKeyEQ(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEQ(FieldFeatureKey, v))

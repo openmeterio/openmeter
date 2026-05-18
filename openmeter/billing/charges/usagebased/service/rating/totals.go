@@ -57,6 +57,11 @@ func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInp
 		return totals.Totals{}, fmt.Errorf("get snapshot quantity: %w", err)
 	}
 
+	// Rating sees the billing quantity. Apply UnitConfig to the cumulative raw
+	// snapshot once here so downstream rating tier/package math operates on
+	// converted units. Identity when UnitConfig is nil.
+	_, billingQuantity := in.Charge.Intent.UnitConfig.Apply(snapshotQuantity)
+
 	// Totals must stay gross before charge credit allocation; run creation applies credits later and expects gross rating totals here.
 	opts := []billingrating.GenerateDetailedLinesOption{
 		billingrating.WithCreditsMutatorDisabled(),
@@ -67,7 +72,7 @@ func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInp
 
 	ratingResult, err := s.ratingService.GenerateDetailedLines(usagebased.RateableIntent{
 		Intent:        in.Charge.Intent,
-		MeterValue:    snapshotQuantity,
+		MeterValue:    billingQuantity,
 		ServicePeriod: in.Charge.Intent.ServicePeriod,
 	}, opts...)
 	if err != nil {

@@ -376,6 +376,16 @@ var ErrRateCardUsageBasedPriceWithNoFeature = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeRateCardUnitConfigRequiresUsageBasedPrice models.ErrorCode = "unit_config_requires_usage_based_price"
+
+var ErrRateCardUnitConfigRequiresUsageBasedPrice = models.NewValidationIssue(
+	ErrCodeRateCardUnitConfigRequiresUsageBasedPrice,
+	"unit config is only valid with unit, graduated, or volume prices",
+	models.WithFieldString("unitConfig"),
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 // Addon errors
 
 const ErrCodeAddonKeyEmpty models.ErrorCode = "addon_key_empty"

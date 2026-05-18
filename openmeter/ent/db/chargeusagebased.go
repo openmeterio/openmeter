@@ -88,6 +88,8 @@ type ChargeUsageBased struct {
 	SettlementMode productcatalog.SettlementMode `json:"settlement_mode,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
+	// UnitConfig holds the value of the "unit_config" field.
+	UnitConfig *productcatalog.UnitConfig `json:"unit_config,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey string `json:"feature_key,omitempty"`
 	// FeatureID holds the value of the "feature_id" field.
@@ -252,6 +254,8 @@ func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case chargeusagebased.FieldDiscounts:
 			values[i] = chargeusagebased.ValueScanner.Discounts.ScanValue()
+		case chargeusagebased.FieldUnitConfig:
+			values[i] = chargeusagebased.ValueScanner.UnitConfig.ScanValue()
 		case chargeusagebased.FieldPrice:
 			values[i] = chargeusagebased.ValueScanner.Price.ScanValue()
 		default:
@@ -455,6 +459,12 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 				return err
 			} else {
 				_m.Discounts = value
+			}
+		case chargeusagebased.FieldUnitConfig:
+			if value, err := chargeusagebased.ValueScanner.UnitConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.UnitConfig = value
 			}
 		case chargeusagebased.FieldFeatureKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -680,6 +690,11 @@ func (_m *ChargeUsageBased) String() string {
 	builder.WriteString(", ")
 	if v := _m.Discounts; v != nil {
 		builder.WriteString("discounts=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.UnitConfig; v != nil {
+		builder.WriteString("unit_config=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

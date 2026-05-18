@@ -723,6 +723,34 @@ func TestFromRateCard_DynamicAndPackagePrices(t *testing.T) {
 		require.NoError(t, err)
 		assert.Nil(t, result.UnitConfig)
 	})
+
+	t.Run("persisted unit config is returned verbatim, not re-synthesized", func(t *testing.T) {
+		price := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: decimal.NewFromInt(1),
+		})
+
+		rc := &productcatalog.UsageBasedRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:   "tokens",
+				Name:  "Tokens",
+				Price: price,
+				UnitConfig: &productcatalog.UnitConfig{
+					Operation:        productcatalog.UnitConfigOperationMultiply,
+					ConversionFactor: decimal.NewFromFloat(1.5),
+					DisplayUnit:      lo.ToPtr("tokens"),
+				},
+			},
+			BillingCadence: cadence,
+		}
+
+		result, err := ToAPIBillingRateCard(rc)
+		require.NoError(t, err)
+		require.NotNil(t, result.UnitConfig)
+		assert.Equal(t, api.BillingUnitConfigOperationMultiply, result.UnitConfig.Operation)
+		assert.Equal(t, api.Numeric("1.5"), result.UnitConfig.ConversionFactor)
+		require.NotNil(t, result.UnitConfig.DisplayUnit)
+		assert.Equal(t, "tokens", *result.UnitConfig.DisplayUnit)
+	})
 }
 
 func TestFromBillingDiscounts(t *testing.T) {
@@ -1301,7 +1329,7 @@ func TestToRateCard(t *testing.T) {
 		assert.Equal(t, productcatalog.VolumeTieredPrice, tiered.Mode)
 	})
 
-	t.Run("rejects unit_config on create/update", func(t *testing.T) {
+	t.Run("parses unit_config with multiply operation", func(t *testing.T) {
 		var price api.BillingPrice
 		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "1", Type: "unit"}))
 
@@ -1318,12 +1346,69 @@ func TestToRateCard(t *testing.T) {
 			},
 		}
 
+		result, err := FromAPIBillingRateCard(rc)
+		require.NoError(t, err)
+
+		uc := result.AsMeta().UnitConfig
+		require.NotNil(t, uc)
+		assert.Equal(t, productcatalog.UnitConfigOperationMultiply, uc.Operation)
+		assert.True(t, uc.ConversionFactor.Equal(decimal.NewFromFloat(1.2)))
+		assert.Nil(t, uc.Rounding)
+		assert.Nil(t, uc.DisplayUnit)
+	})
+
+	t.Run("parses unit_config with divide and rounding", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "10", Type: "unit"}))
+
+		bc := api.ISO8601Duration("P1M")
+
+		rc := api.BillingRateCard{
+			Key:            "bytes",
+			Name:           "Bytes",
+			Price:          price,
+			BillingCadence: &bc,
+			UnitConfig: &api.BillingUnitConfig{
+				Operation:        api.BillingUnitConfigOperationDivide,
+				ConversionFactor: "1000000000",
+				Rounding:         lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling),
+				DisplayUnit:      lo.ToPtr("GB"),
+			},
+		}
+
+		result, err := FromAPIBillingRateCard(rc)
+		require.NoError(t, err)
+
+		uc := result.AsMeta().UnitConfig
+		require.NotNil(t, uc)
+		assert.Equal(t, productcatalog.UnitConfigOperationDivide, uc.Operation)
+		assert.True(t, uc.ConversionFactor.Equal(decimal.NewFromInt(1_000_000_000)))
+		require.NotNil(t, uc.Rounding)
+		assert.Equal(t, productcatalog.UnitConfigRoundingModeCeiling, *uc.Rounding)
+		require.NotNil(t, uc.DisplayUnit)
+		assert.Equal(t, "GB", *uc.DisplayUnit)
+	})
+
+	t.Run("rejects invalid conversion_factor decimal", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "1", Type: "unit"}))
+
+		bc := api.ISO8601Duration("P1M")
+
+		rc := api.BillingRateCard{
+			Key:            "tokens",
+			Name:           "Tokens",
+			Price:          price,
+			BillingCadence: &bc,
+			UnitConfig: &api.BillingUnitConfig{
+				Operation:        api.BillingUnitConfigOperationMultiply,
+				ConversionFactor: "not-a-number",
+			},
+		}
+
 		_, err := FromAPIBillingRateCard(rc)
 		require.Error(t, err)
-		var validationErr *models.GenericValidationError
-		assert.ErrorAs(t, err, &validationErr)
-		assert.Contains(t, err.Error(), "unit_config")
-		assert.Contains(t, err.Error(), "tokens")
+		assert.Contains(t, err.Error(), "unit config")
 	})
 }
 

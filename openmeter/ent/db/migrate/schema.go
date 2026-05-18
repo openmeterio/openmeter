@@ -91,6 +91,7 @@ var (
 		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
 		{Name: "price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "addon_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -104,19 +105,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "addon_rate_cards_addons_ratecards",
-				Columns:    []*schema.Column{AddonRateCardsColumns[17]},
+				Columns:    []*schema.Column{AddonRateCardsColumns[18]},
 				RefColumns: []*schema.Column{AddonsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "addon_rate_cards_features_addon_ratecard",
-				Columns:    []*schema.Column{AddonRateCardsColumns[18]},
+				Columns:    []*schema.Column{AddonRateCardsColumns[19]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "addon_rate_cards_tax_codes_addon_rate_cards",
-				Columns:    []*schema.Column{AddonRateCardsColumns[19]},
+				Columns:    []*schema.Column{AddonRateCardsColumns[20]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -145,12 +146,12 @@ var (
 			{
 				Name:    "addonratecard_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{AddonRateCardsColumns[19]},
+				Columns: []*schema.Column{AddonRateCardsColumns[20]},
 			},
 			{
 				Name:    "addonratecard_addon_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{AddonRateCardsColumns[17], AddonRateCardsColumns[8]},
+				Columns: []*schema.Column{AddonRateCardsColumns[18], AddonRateCardsColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -158,7 +159,7 @@ var (
 			{
 				Name:    "addonratecard_addon_id_feature_key",
 				Unique:  true,
-				Columns: []*schema.Column{AddonRateCardsColumns[17], AddonRateCardsColumns[11]},
+				Columns: []*schema.Column{AddonRateCardsColumns[18], AddonRateCardsColumns[11]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -1175,6 +1176,8 @@ var (
 		{Name: "pre_line_period_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "metered_pre_line_period_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "metered_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "converted_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "applied_unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 	}
 	// BillingInvoiceUsageBasedLineConfigsTable holds the schema information for the "billing_invoice_usage_based_line_configs" table.
 	BillingInvoiceUsageBasedLineConfigsTable = &schema.Table{
@@ -2438,6 +2441,7 @@ var (
 		{Name: "invoice_at", Type: field.TypeTime},
 		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"credit_then_invoice", "credit_only"}},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "feature_key", Type: field.TypeString},
 		{Name: "rating_engine", Type: field.TypeEnum, Enums: []string{"delta", "period_preserving"}},
 		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
@@ -2458,43 +2462,43 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_usage_based_charge_usage_based_runs_current_run",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[28]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[29]},
 				RefColumns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_customers_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[29]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[30]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_usage_based_features_usage_based_charges",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[30]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[31]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_usage_based_subscriptions_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[31]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[32]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_subscription_items_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[32]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[33]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_subscription_phases_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[33]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[34]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_tax_codes_charge_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[34]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[35]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -2503,7 +2507,7 @@ var (
 			{
 				Name:    "chargeusagebased_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[14], ChargeUsageBasedColumns[29], ChargeUsageBasedColumns[8]},
+				Columns: []*schema.Column{ChargeUsageBasedColumns[14], ChargeUsageBasedColumns[30], ChargeUsageBasedColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -2536,7 +2540,7 @@ var (
 			{
 				Name:    "chargeusagebased_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[34]},
+				Columns: []*schema.Column{ChargeUsageBasedColumns[35]},
 			},
 		},
 	}
@@ -4446,6 +4450,7 @@ var (
 		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
 		{Name: "price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "phase_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -4459,19 +4464,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "plan_rate_cards_features_ratecard",
-				Columns:    []*schema.Column{PlanRateCardsColumns[17]},
+				Columns:    []*schema.Column{PlanRateCardsColumns[18]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "plan_rate_cards_plan_phases_ratecards",
-				Columns:    []*schema.Column{PlanRateCardsColumns[18]},
+				Columns:    []*schema.Column{PlanRateCardsColumns[19]},
 				RefColumns: []*schema.Column{PlanPhasesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "plan_rate_cards_tax_codes_plan_rate_cards",
-				Columns:    []*schema.Column{PlanRateCardsColumns[19]},
+				Columns:    []*schema.Column{PlanRateCardsColumns[20]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -4500,12 +4505,12 @@ var (
 			{
 				Name:    "planratecard_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{PlanRateCardsColumns[19]},
+				Columns: []*schema.Column{PlanRateCardsColumns[20]},
 			},
 			{
 				Name:    "planratecard_phase_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{PlanRateCardsColumns[18], PlanRateCardsColumns[8]},
+				Columns: []*schema.Column{PlanRateCardsColumns[19], PlanRateCardsColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -4513,7 +4518,7 @@ var (
 			{
 				Name:    "planratecard_phase_id_feature_key",
 				Unique:  true,
-				Columns: []*schema.Column{PlanRateCardsColumns[18], PlanRateCardsColumns[11]},
+				Columns: []*schema.Column{PlanRateCardsColumns[19], PlanRateCardsColumns[11]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},

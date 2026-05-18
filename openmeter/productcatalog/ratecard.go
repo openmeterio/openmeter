@@ -88,6 +88,10 @@ type RateCardMeta struct {
 	// Price defines the price for the RateCard
 	Price *Price `json:"price"`
 
+	// UnitConfig optionally transforms metered quantities into billing units
+	// before pricing. Persisted but inert until Phase 3 wires it into rating.
+	UnitConfig *UnitConfig `json:"unitConfig,omitempty"`
+
 	// Discounts defines a list of discounts for the RateCard
 	Discounts Discounts `json:"discounts,omitempty"`
 }
@@ -140,6 +144,11 @@ func (r RateCardMeta) Clone() RateCardMeta {
 		clone.Price = &p
 	}
 
+	if r.UnitConfig != nil {
+		uc := r.UnitConfig.Clone()
+		clone.UnitConfig = &uc
+	}
+
 	clone.Discounts = r.Discounts.Clone()
 
 	// TaxCode is an eagerly loaded reference, shallow copy is sufficient
@@ -179,6 +188,10 @@ func (r RateCardMeta) Equal(v RateCardMeta) bool {
 
 	if (r.Price != nil && v.Price == nil) ||
 		(r.Price == nil && v.Price != nil) {
+		return false
+	}
+
+	if !r.UnitConfig.Equal(v.UnitConfig) {
 		return false
 	}
 
@@ -242,6 +255,27 @@ func (r RateCardMeta) Validate() error {
 	if r.FeatureKey != nil {
 		if r.Key != *r.FeatureKey {
 			errs = append(errs, ErrRateCardKeyFeatureKeyMismatch)
+		}
+	}
+
+	if r.UnitConfig != nil {
+		if err := r.UnitConfig.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid unit config: %w",
+				models.ErrorWithFieldPrefix(
+					models.NewFieldSelectorGroup(models.NewFieldSelector("unitConfig")),
+					err),
+			))
+		}
+
+		if r.Price == nil {
+			errs = append(errs, ErrRateCardUnitConfigRequiresUsageBasedPrice)
+		} else {
+			switch r.Price.Type() {
+			case UnitPriceType, TieredPriceType:
+				// allowed
+			default:
+				errs = append(errs, ErrRateCardUnitConfigRequiresUsageBasedPrice)
+			}
 		}
 	}
 
