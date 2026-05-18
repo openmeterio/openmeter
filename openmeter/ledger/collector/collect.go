@@ -22,6 +22,7 @@ type accrualCollector struct {
 	ledger             ledger.Ledger
 	deps               transactions.ResolverDependencies
 	breakage           breakage.Service
+	accountLocker      ledger.AccountLocker
 	transactionManager transaction.Creator
 }
 

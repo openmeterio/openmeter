@@ -54,26 +54,6 @@ func (i ListExpiredBreakageImpactsInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (i ListBreakageTransactionCursorsInput) Validate() error {
-	var errs []error
-
-	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace is required"))
-	}
-
-	if len(i.TransactionID) == 0 {
-		errs = append(errs, errors.New("transaction ids are required"))
-	}
-
-	for idx, id := range i.TransactionID {
-		if id == "" {
-			errs = append(errs, fmt.Errorf("transaction ids[%d] is required", idx))
-		}
-	}
-
-	return errors.Join(errs...)
-}
-
 func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpiredBreakageImpactsInput) (ListExpiredBreakageImpactsResult, error) {
 	if err := input.Validate(); err != nil {
 		return ListExpiredBreakageImpactsResult{}, err
@@ -89,8 +69,6 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 	}
 
 	groups := make(map[expiredBreakageImpactGroupKey]*expiredBreakageImpactGroup)
-	transactionIDs := make([]string, 0, len(records))
-	transactionIDSeen := make(map[string]struct{}, len(records))
 	for _, record := range records {
 		key := expiredBreakageImpactGroupKey{
 			expiresAt: record.ExpiresAt,
@@ -109,30 +87,19 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 		switch record.Kind {
 		case ledger.BreakageKindPlan, ledger.BreakageKindReopen:
 			group.amount = group.amount.Add(record.Amount)
+			if record.Kind == ledger.BreakageKindPlan && (group.cursorID.ID == "" || record.ID.ID < group.cursorID.ID) {
+				group.cursorID = record.ID
+			}
 		case ledger.BreakageKindRelease:
 			group.amount = group.amount.Sub(record.Amount)
 		default:
 			return ListExpiredBreakageImpactsResult{}, fmt.Errorf("unexpected breakage kind %q", record.Kind)
 		}
-
-		group.transactionIDs = append(group.transactionIDs, record.BreakageTransactionID)
-		if _, ok := transactionIDSeen[record.BreakageTransactionID]; !ok {
-			transactionIDs = append(transactionIDs, record.BreakageTransactionID)
-			transactionIDSeen[record.BreakageTransactionID] = struct{}{}
-		}
 	}
-	if len(transactionIDs) == 0 {
+	if len(groups) == 0 {
 		return ListExpiredBreakageImpactsResult{
 			Items: []BreakageImpact{},
 		}, nil
-	}
-
-	transactionCursors, err := s.adapter.ListBreakageTransactionCursors(ctx, ListBreakageTransactionCursorsInput{
-		Namespace:     input.CustomerID.Namespace,
-		TransactionID: transactionIDs,
-	})
-	if err != nil {
-		return ListExpiredBreakageImpactsResult{}, fmt.Errorf("list breakage transaction cursors: %w", err)
 	}
 
 	items := make([]BreakageImpact, 0, len(groups))
@@ -144,15 +111,13 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 		if group.amount.IsNegative() {
 			return ListExpiredBreakageImpactsResult{}, fmt.Errorf("expired breakage amount is negative for %s %s", group.expiresAt, group.currency)
 		}
-
-		cursor, err := newestBreakageImpactCursor(group.transactionIDs, transactionCursors)
-		if err != nil {
-			return ListExpiredBreakageImpactsResult{}, err
+		if group.cursorID.ID == "" {
+			return ListExpiredBreakageImpactsResult{}, fmt.Errorf("expired breakage impact has no plan record for %s %s", group.expiresAt, group.currency)
 		}
 
 		item := BreakageImpact{
-			ID:         cursor.ID,
-			CreatedAt:  cursor.CreatedAt,
+			ID:         group.cursorID,
+			CreatedAt:  group.expiresAt,
 			BookedAt:   group.expiresAt,
 			CustomerID: input.CustomerID,
 			Currency:   group.currency,
@@ -184,28 +149,6 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 	}, nil
 }
 
-func newestBreakageImpactCursor(transactionIDs []string, cursors map[string]ledger.TransactionCursor) (ledger.TransactionCursor, error) {
-	var newest *ledger.TransactionCursor
-
-	for _, transactionID := range transactionIDs {
-		cursor, ok := cursors[transactionID]
-		if !ok {
-			return ledger.TransactionCursor{}, fmt.Errorf("breakage transaction cursor %s not found", transactionID)
-		}
-
-		if newest == nil || cursor.Compare(*newest) > 0 {
-			cursorCopy := cursor
-			newest = &cursorCopy
-		}
-	}
-
-	if newest == nil {
-		return ledger.TransactionCursor{}, errors.New("expired breakage impact has no transaction references")
-	}
-
-	return *newest, nil
-}
-
 func breakageImpactMatchesCursorWindow(item BreakageImpact, after, before *ledger.TransactionCursor) bool {
 	cursor := item.Cursor()
 
@@ -226,8 +169,8 @@ type expiredBreakageImpactGroupKey struct {
 }
 
 type expiredBreakageImpactGroup struct {
-	expiresAt      time.Time
-	currency       currencyx.Code
-	amount         alpacadecimal.Decimal
-	transactionIDs []string
+	expiresAt time.Time
+	currency  currencyx.Code
+	amount    alpacadecimal.Decimal
+	cursorID  models.NamespacedID
 }

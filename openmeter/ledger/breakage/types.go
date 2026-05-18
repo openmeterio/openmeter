@@ -163,11 +163,6 @@ func (i BreakageImpact) Cursor() ledger.TransactionCursor {
 	}
 }
 
-type ListBreakageTransactionCursorsInput struct {
-	Namespace     string
-	TransactionID []string
-}
-
 // CreateRecordsInput persists record rows for already committed
 // breakage ledger transactions.
 type CreateRecordsInput struct {
@@ -264,9 +259,4 @@ type Adapter interface {
 	// query time. The caller owns netting plan/release/reopen rows into a
 	// customer-facing expired transaction.
 	ListExpiredRecords(ctx context.Context, input ListExpiredRecordsInput) ([]Record, error)
-
-	// ListBreakageTransactionCursors returns ledger cursors for committed
-	// breakage transaction ids. This keeps read-model projection in breakage
-	// from loading transaction groups one by one through the ledger API.
-	ListBreakageTransactionCursors(ctx context.Context, input ListBreakageTransactionCursorsInput) (map[string]ledger.TransactionCursor, error)
 }

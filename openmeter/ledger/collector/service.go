@@ -25,9 +25,10 @@ type Service interface {
 }
 
 type Config struct {
-	Ledger       ledger.Ledger
-	Dependencies transactions.ResolverDependencies
-	Breakage     breakage.Service
+	Ledger        ledger.Ledger
+	Dependencies  transactions.ResolverDependencies
+	Breakage      breakage.Service
+	AccountLocker ledger.AccountLocker
 	// TransactionManager wraps the full collection flow so source selection,
 	// ledger commit, and follow-up bookkeeping share one DB transaction.
 	TransactionManager transaction.Creator
@@ -61,9 +62,12 @@ type service struct {
 	corrector *accrualCorrector
 }
 
-func NewService(config Config) Service {
+func NewService(config Config) (Service, error) {
 	if config.TransactionManager == nil {
-		panic("collector transaction manager is required")
+		return nil, fmt.Errorf("transaction manager is required")
+	}
+	if config.AccountLocker == nil {
+		return nil, fmt.Errorf("account locker is required")
 	}
 
 	return &service{
@@ -71,6 +75,7 @@ func NewService(config Config) Service {
 			ledger:             config.Ledger,
 			deps:               config.Dependencies,
 			breakage:           config.Breakage,
+			accountLocker:      config.AccountLocker,
 			transactionManager: config.TransactionManager,
 		},
 		corrector: &accrualCorrector{
@@ -79,7 +84,7 @@ func NewService(config Config) Service {
 			breakage:           config.Breakage,
 			transactionManager: config.TransactionManager,
 		},
-	}
+	}, nil
 }
 
 func (s *service) CollectToAccrued(ctx context.Context, input CollectToAccruedInput) (creditrealization.CreateAllocationInputs, error) {

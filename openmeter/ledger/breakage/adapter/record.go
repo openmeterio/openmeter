@@ -9,7 +9,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbledgerbreakagerecord "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
-	dbledgertransaction "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -90,15 +89,12 @@ func (a *adapter) ListReleaseRecords(ctx context.Context, input breakage.ListRel
 			releasePredicates = append(releasePredicates, dbledgerbreakagerecord.SourceKindIn(input.ReleaseSourceKind...))
 		}
 
-		rows, err := tx.db.LedgerBreakageRecord.Query().
+		releaseRows, err := tx.db.LedgerBreakageRecord.Query().
 			Where(
 				dbledgerbreakagerecord.NamespaceEQ(input.CustomerID.Namespace),
 				dbledgerbreakagerecord.CustomerIDEQ(input.CustomerID.ID),
 				dbledgerbreakagerecord.DeletedAtIsNil(),
-				dbledgerbreakagerecord.Or(
-					dbledgerbreakagerecord.And(releasePredicates...),
-					dbledgerbreakagerecord.KindEQ(ledger.BreakageKindReopen),
-				),
+				dbledgerbreakagerecord.And(releasePredicates...),
 			).
 			Order(
 				dbledgerbreakagerecord.BySourceEntryID(sql.OrderAsc()),
@@ -111,8 +107,38 @@ func (a *adapter) ListReleaseRecords(ctx context.Context, input breakage.ListRel
 			return nil, fmt.Errorf("list release breakage records: %w", err)
 		}
 
-		out := make([]breakage.Record, 0, len(rows))
-		for _, row := range rows {
+		releaseIDs := make([]string, 0, len(releaseRows))
+		for _, row := range releaseRows {
+			releaseIDs = append(releaseIDs, row.ID)
+		}
+
+		reopenRows := []*entdb.LedgerBreakageRecord{}
+		if len(releaseIDs) > 0 {
+			reopenRows, err = tx.db.LedgerBreakageRecord.Query().
+				Where(
+					dbledgerbreakagerecord.NamespaceEQ(input.CustomerID.Namespace),
+					dbledgerbreakagerecord.CustomerIDEQ(input.CustomerID.ID),
+					dbledgerbreakagerecord.DeletedAtIsNil(),
+					dbledgerbreakagerecord.KindEQ(ledger.BreakageKindReopen),
+					dbledgerbreakagerecord.ReleaseIDIn(releaseIDs...),
+				).
+				Order(
+					dbledgerbreakagerecord.BySourceEntryID(sql.OrderAsc()),
+					dbledgerbreakagerecord.ByExpiresAt(sql.OrderAsc()),
+					dbledgerbreakagerecord.ByID(sql.OrderAsc()),
+				).
+				ForUpdate().
+				All(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("list reopen breakage records: %w", err)
+			}
+		}
+
+		out := make([]breakage.Record, 0, len(releaseRows)+len(reopenRows))
+		for _, row := range releaseRows {
+			out = append(out, mapRecordFromDB(row))
+		}
+		for _, row := range reopenRows {
 			out = append(out, mapRecordFromDB(row))
 		}
 
@@ -160,38 +186,6 @@ func (a *adapter) ListExpiredRecords(ctx context.Context, input breakage.ListExp
 		}
 
 		return mapRecords(rows), nil
-	})
-}
-
-func (a *adapter) ListBreakageTransactionCursors(ctx context.Context, input breakage.ListBreakageTransactionCursorsInput) (map[string]ledger.TransactionCursor, error) {
-	if err := input.Validate(); err != nil {
-		return nil, err
-	}
-
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (map[string]ledger.TransactionCursor, error) {
-		rows, err := tx.db.LedgerTransaction.Query().
-			Where(
-				dbledgertransaction.NamespaceEQ(input.Namespace),
-				dbledgertransaction.IDIn(input.TransactionID...),
-			).
-			All(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("list breakage transaction cursors: %w", err)
-		}
-
-		out := make(map[string]ledger.TransactionCursor, len(rows))
-		for _, row := range rows {
-			out[row.ID] = ledger.TransactionCursor{
-				BookedAt:  row.BookedAt,
-				CreatedAt: row.CreatedAt,
-				ID: models.NamespacedID{
-					Namespace: row.Namespace,
-					ID:        row.ID,
-				},
-			}
-		}
-
-		return out, nil
 	})
 }
 
