@@ -25,14 +25,18 @@ type minimalApp struct {
 	app.AppBase
 }
 
-func (m *minimalApp) GetEventAppData() (app.EventAppData, error)                     { return app.EventAppData{}, nil }
+func (m *minimalApp) GetEventAppData() (app.EventAppData, error) { return app.EventAppData{}, nil }
+
 func (m *minimalApp) UpdateAppConfig(_ context.Context, _ app.AppConfigUpdate) error { return nil }
+
 func (m *minimalApp) GetCustomerData(_ context.Context, _ app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
 	return nil, nil
 }
+
 func (m *minimalApp) UpsertCustomerData(_ context.Context, _ app.UpsertAppInstanceCustomerDataInput) error {
 	return nil
 }
+
 func (m *minimalApp) DeleteCustomerData(_ context.Context, _ app.DeleteAppInstanceCustomerDataInput) error {
 	return nil
 }
