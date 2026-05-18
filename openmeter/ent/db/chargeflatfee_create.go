@@ -1098,6 +1098,24 @@ func (u *ChargeFlatFeeUpsert) UpdateManagedBy() *ChargeFlatFeeUpsert {
 	return u
 }
 
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *ChargeFlatFeeUpsert) SetSubscriptionItemID(v string) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldSubscriptionItemID, v)
+	return u
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateSubscriptionItemID() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldSubscriptionItemID)
+	return u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *ChargeFlatFeeUpsert) ClearSubscriptionItemID() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldSubscriptionItemID)
+	return u
+}
+
 // SetAdvanceAfter sets the "advance_after" field.
 func (u *ChargeFlatFeeUpsert) SetAdvanceAfter(v time.Time) *ChargeFlatFeeUpsert {
 	u.Set(chargeflatfee.FieldAdvanceAfter, v)
@@ -1424,9 +1442,6 @@ func (u *ChargeFlatFeeUpsertOne) UpdateNewValues() *ChargeFlatFeeUpsertOne {
 		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
 			s.SetIgnore(chargeflatfee.FieldSubscriptionPhaseID)
 		}
-		if _, exists := u.create.mutation.SubscriptionItemID(); exists {
-			s.SetIgnore(chargeflatfee.FieldSubscriptionItemID)
-		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeflatfee.FieldNamespace)
 		}
@@ -1576,6 +1591,27 @@ func (u *ChargeFlatFeeUpsertOne) SetManagedBy(v billing.InvoiceLineManagedBy) *C
 func (u *ChargeFlatFeeUpsertOne) UpdateManagedBy() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateManagedBy()
+	})
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *ChargeFlatFeeUpsertOne) SetSubscriptionItemID(v string) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetSubscriptionItemID(v)
+	})
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateSubscriptionItemID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateSubscriptionItemID()
+	})
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *ChargeFlatFeeUpsertOne) ClearSubscriptionItemID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearSubscriptionItemID()
 	})
 }
 
@@ -2123,9 +2159,6 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateNewValues() *ChargeFlatFeeUpsertBulk {
 			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
 				s.SetIgnore(chargeflatfee.FieldSubscriptionPhaseID)
 			}
-			if _, exists := b.mutation.SubscriptionItemID(); exists {
-				s.SetIgnore(chargeflatfee.FieldSubscriptionItemID)
-			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeflatfee.FieldNamespace)
 			}
@@ -2276,6 +2309,27 @@ func (u *ChargeFlatFeeUpsertBulk) SetManagedBy(v billing.InvoiceLineManagedBy) *
 func (u *ChargeFlatFeeUpsertBulk) UpdateManagedBy() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateManagedBy()
+	})
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *ChargeFlatFeeUpsertBulk) SetSubscriptionItemID(v string) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetSubscriptionItemID(v)
+	})
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateSubscriptionItemID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateSubscriptionItemID()
+	})
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearSubscriptionItemID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearSubscriptionItemID()
 	})
 }
 

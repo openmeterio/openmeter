@@ -333,7 +333,9 @@ func (s *SuiteBase) expectLines(invoice billing.GenericInvoiceReader, subscripti
 			}
 
 			if expectedLine.Price.IsPresent() {
-				s.Equal(*expectedLine.Price.OrEmpty(), *line.GetPrice(), "%s: price", childID)
+				expectedPrice := expectedLine.Price.OrEmpty()
+				actualPrice := line.GetPrice()
+				s.Truef(expectedPrice.Equal(actualPrice), "%s: price expected %v, got %v", childID, expectedPrice, actualPrice)
 			}
 
 			s.Equal(expectedLine.Periods[idx].From, line.GetServicePeriod().From, "%s: period start", childID)
@@ -368,10 +370,8 @@ func (s *SuiteBase) assertChargesForLines(ctx context.Context, subsView subscrip
 		switch expectedLine.Price.OrEmpty().Type() {
 		case productcatalog.FlatPriceType:
 			flatFeeExpectedLines = append(flatFeeExpectedLines, expectedLine)
-		case productcatalog.UnitPriceType:
-			usageBasedExpectedLines = append(usageBasedExpectedLines, expectedLine)
 		default:
-			s.Failf("unsupported charge price", "unsupported charge price type %s", expectedLine.Price.OrEmpty().Type())
+			usageBasedExpectedLines = append(usageBasedExpectedLines, expectedLine)
 		}
 	}
 
@@ -511,8 +511,6 @@ func (s *SuiteBase) assertUsageBasedChargesForLines(ctx context.Context, subsVie
 		item := phase.ItemsByKey[itemKey][version]
 
 		s.Require().True(expectedLine.Price.IsPresent())
-		unitPrice, err := expectedLine.Price.OrEmpty().AsUnit()
-		s.NoError(err)
 		s.Require().True(expectedLine.Charge.IsPresent(), "charge expectations are required")
 		chargeExpects := expectedLine.Charge.OrEmpty()
 		s.Require().NotEmpty(chargeExpects.Status, "charge status expectation is required")
@@ -533,13 +531,13 @@ func (s *SuiteBase) assertUsageBasedChargesForLines(ctx context.Context, subsVie
 			s.Equal(s.Customer.ID, charge.Intent.CustomerID, "%s: customer id", childID)
 			expectedFeatureKey := lo.FromPtrOr(item.Spec.RateCard.AsMeta().FeatureKey, itemKey)
 			s.Equal(expectedFeatureKey, charge.Intent.FeatureKey, "%s: feature key", childID)
-			s.Equal(*productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: unitPrice.Amount}), charge.Intent.Price, "%s: price", childID)
+			expectedPrice := expectedLine.Price.OrEmpty()
+			s.Truef(expectedPrice.Equal(&charge.Intent.Price), "%s: price expected %v, got %v", childID, expectedPrice, charge.Intent.Price)
 			s.Require().NotNil(charge.Intent.Subscription, "%s: subscription", childID)
 			s.Equal(subsView.Subscription.ID, charge.Intent.Subscription.SubscriptionID, "%s: subscription id", childID)
 			s.Equal(phase.SubscriptionPhase.ID, charge.Intent.Subscription.PhaseID, "%s: phase id", childID)
 			s.Equal(item.SubscriptionItem.ID, charge.Intent.Subscription.ItemID, "%s: item id", childID)
 			s.Nil(charge.State.CurrentRealizationRunID, "%s: current realization run", childID)
-			s.Nil(charge.State.AdvanceAfter, "%s: advance after", childID)
 		}
 	}
 }

@@ -112,7 +112,6 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 		edge.From("subscription_item", SubscriptionItem.Type).
 			Ref("charges_flat_fee").
 			Field("subscription_item_id").
-			Immutable().
 			Unique(),
 		edge.From("customer", Customer.Type).
 			Ref("charges_flat_fee").

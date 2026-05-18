@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -146,6 +147,26 @@ func (_u *ChargeUsageBasedUpdate) SetNillableManagedBy(v *billing.InvoiceLineMan
 	if v != nil {
 		_u.SetManagedBy(*v)
 	}
+	return _u
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (_u *ChargeUsageBasedUpdate) SetSubscriptionItemID(v string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetSubscriptionItemID(v)
+	return _u
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableSubscriptionItemID(v *string) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetSubscriptionItemID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (_u *ChargeUsageBasedUpdate) ClearSubscriptionItemID() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearSubscriptionItemID()
 	return _u
 }
 
@@ -430,6 +451,11 @@ func (_u *ChargeUsageBasedUpdate) SetCurrentRun(v *ChargeUsageBasedRuns) *Charge
 	return _u.SetCurrentRunID(v.ID)
 }
 
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *ChargeUsageBasedUpdate) SetSubscriptionItem(v *SubscriptionItem) *ChargeUsageBasedUpdate {
+	return _u.SetSubscriptionItemID(v.ID)
+}
+
 // SetFeature sets the "feature" edge to the Feature entity.
 func (_u *ChargeUsageBasedUpdate) SetFeature(v *Feature) *ChargeUsageBasedUpdate {
 	return _u.SetFeatureID(v.ID)
@@ -490,6 +516,12 @@ func (_u *ChargeUsageBasedUpdate) RemoveDetailedLines(v ...*ChargeUsageBasedRunD
 // ClearCurrentRun clears the "current_run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedUpdate) ClearCurrentRun() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearCurrentRun()
+	return _u
+}
+
+// ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *ChargeUsageBasedUpdate) ClearSubscriptionItem() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearSubscriptionItem()
 	return _u
 }
 
@@ -806,6 +838,35 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.SubscriptionItemCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionItemTable,
+			Columns: []string{chargeusagebased.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionItemTable,
+			Columns: []string{chargeusagebased.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.FeatureCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -993,6 +1054,26 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableManagedBy(v *billing.InvoiceLine
 	if v != nil {
 		_u.SetManagedBy(*v)
 	}
+	return _u
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (_u *ChargeUsageBasedUpdateOne) SetSubscriptionItemID(v string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetSubscriptionItemID(v)
+	return _u
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableSubscriptionItemID(v *string) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetSubscriptionItemID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearSubscriptionItemID() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearSubscriptionItemID()
 	return _u
 }
 
@@ -1277,6 +1358,11 @@ func (_u *ChargeUsageBasedUpdateOne) SetCurrentRun(v *ChargeUsageBasedRuns) *Cha
 	return _u.SetCurrentRunID(v.ID)
 }
 
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *ChargeUsageBasedUpdateOne) SetSubscriptionItem(v *SubscriptionItem) *ChargeUsageBasedUpdateOne {
+	return _u.SetSubscriptionItemID(v.ID)
+}
+
 // SetFeature sets the "feature" edge to the Feature entity.
 func (_u *ChargeUsageBasedUpdateOne) SetFeature(v *Feature) *ChargeUsageBasedUpdateOne {
 	return _u.SetFeatureID(v.ID)
@@ -1337,6 +1423,12 @@ func (_u *ChargeUsageBasedUpdateOne) RemoveDetailedLines(v ...*ChargeUsageBasedR
 // ClearCurrentRun clears the "current_run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedUpdateOne) ClearCurrentRun() *ChargeUsageBasedUpdateOne {
 	_u.mutation.ClearCurrentRun()
+	return _u
+}
+
+// ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *ChargeUsageBasedUpdateOne) ClearSubscriptionItem() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearSubscriptionItem()
 	return _u
 }
 
@@ -1676,6 +1768,35 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionItemCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionItemTable,
+			Columns: []string{chargeusagebased.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionItemTable,
+			Columns: []string{chargeusagebased.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

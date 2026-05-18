@@ -13,7 +13,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -101,11 +103,18 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 			RealizationRunBase: runBase,
 		}
 
-		if !amountAfterProration.IsZero() {
+		line, err := rateFlatFeeLine(in.Line, s.ratingService)
+		if err != nil {
+			return StartCreditThenInvoiceRunResult{}, err
+		}
+
+		creditAllocationTarget := currencyCalculator.RoundToPrecision(line.Totals.Total)
+
+		if !creditAllocationTarget.IsZero() {
 			handlerInput := flatfee.OnAllocateCreditsInput{
 				Charge:                 charge,
 				ServicePeriod:          in.Line.Period,
-				PreTaxAmountToAllocate: amountAfterProration,
+				PreTaxAmountToAllocate: creditAllocationTarget,
 			}
 			if err := handlerInput.Validate(); err != nil {
 				return StartCreditThenInvoiceRunResult{}, fmt.Errorf("validating allocate credits input: %w", err)
@@ -136,24 +145,9 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 			return StartCreditThenInvoiceRunResult{}, fmt.Errorf("mapping credit realizations to credits applied: %w", err)
 		}
 
-		line, err := in.Line.Clone()
+		mappedLine, err := applyCreditsToFlatFeeLine(*line, creditsApplied, currencyCalculator)
 		if err != nil {
-			return StartCreditThenInvoiceRunResult{}, fmt.Errorf("cloning line: %w", err)
-		}
-
-		line.CreditsApplied = creditsApplied
-
-		generatedDetailedLines, err := s.ratingService.GenerateDetailedLines(line)
-		if err != nil {
-			return StartCreditThenInvoiceRunResult{}, fmt.Errorf("generating detailed lines for line[%s]: %w", line.ID, err)
-		}
-
-		if err := invoicecalc.MergeGeneratedDetailedLines(line, generatedDetailedLines); err != nil {
-			return StartCreditThenInvoiceRunResult{}, fmt.Errorf("merging generated detailed lines for line[%s]: %w", line.ID, err)
-		}
-
-		if err := line.Validate(); err != nil {
-			return StartCreditThenInvoiceRunResult{}, fmt.Errorf("validating standard line[%s]: %w", line.ID, err)
+			return StartCreditThenInvoiceRunResult{}, err
 		}
 
 		detailedLines := flatfee.DetailedLines(lo.Map(line.DetailedLines, func(detailedLine billing.DetailedLine, _ int) flatfee.DetailedLine {
@@ -166,8 +160,8 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 
 		runBase, err = s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
 			ID:                        runBase.ID,
-			Totals:                    mo.Some(line.Totals),
-			NoFiatTransactionRequired: mo.Some(line.Totals.Total.IsZero()),
+			Totals:                    mo.Some(mappedLine.Totals),
+			NoFiatTransactionRequired: mo.Some(mappedLine.Totals.Total.IsZero()),
 		})
 		if err != nil {
 			return StartCreditThenInvoiceRunResult{}, fmt.Errorf("updating run totals for line[%s]: %w", line.ID, err)
@@ -276,11 +270,19 @@ func (s *Service) ReconcileStandardLineToIntent(ctx context.Context, in Reconcil
 		// run update so ledger and invoice state describe the same service
 		// window.
 		run.ServicePeriod = in.Line.Period
+
+		line, err := rateFlatFeeLine(in.Line, s.ratingService)
+		if err != nil {
+			return ReconcileStandardLineToIntentResult{}, err
+		}
+
+		creditAllocationTarget := currencyCalculator.RoundToPrecision(line.Totals.Total)
+
 		reconcileResult, err := s.ReconcileCredits(ctx, ReconcileCreditRealizationsInput{
 			Charge:             in.Charge,
 			Run:                run,
 			AllocateAt:         in.AllocateAt,
-			TargetAmount:       amountAfterProration,
+			TargetAmount:       creditAllocationTarget,
 			CurrencyCalculator: currencyCalculator,
 		})
 		if err != nil {
@@ -294,26 +296,9 @@ func (s *Service) ReconcileStandardLineToIntent(ctx context.Context, in Reconcil
 			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("mapping credit realizations to credits applied: %w", err)
 		}
 
-		line, err := in.Line.Clone()
+		mappedLine, err := applyCreditsToFlatFeeLine(*line, creditsApplied, currencyCalculator)
 		if err != nil {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("cloning line: %w", err)
-		}
-
-		// CreditsApplied is invoice-facing derived data. The durable credit
-		// source of truth remains the run's credit realization rows.
-		line.CreditsApplied = creditsApplied
-
-		generatedDetailedLines, err := s.ratingService.GenerateDetailedLines(line)
-		if err != nil {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("generating detailed lines for line[%s]: %w", line.ID, err)
-		}
-
-		if err := invoicecalc.MergeGeneratedDetailedLines(line, generatedDetailedLines); err != nil {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("merging generated detailed lines for line[%s]: %w", line.ID, err)
-		}
-
-		if err := line.Validate(); err != nil {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("validating standard line[%s]: %w", line.ID, err)
+			return ReconcileStandardLineToIntentResult{}, err
 		}
 
 		detailedLines := flatfee.DetailedLines(lo.Map(line.DetailedLines, func(detailedLine billing.DetailedLine, _ int) flatfee.DetailedLine {
@@ -328,8 +313,8 @@ func (s *Service) ReconcileStandardLineToIntent(ctx context.Context, in Reconcil
 			ID:                        run.ID,
 			ServicePeriod:             mo.Some(line.Period),
 			AmountAfterProration:      mo.Some(amountAfterProration),
-			Totals:                    mo.Some(line.Totals),
-			NoFiatTransactionRequired: mo.Some(line.Totals.Total.IsZero()),
+			Totals:                    mo.Some(mappedLine.Totals),
+			NoFiatTransactionRequired: mo.Some(mappedLine.Totals.Total.IsZero()),
 		})
 		if err != nil {
 			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("updating run totals for line[%s]: %w", line.ID, err)
@@ -340,7 +325,66 @@ func (s *Service) ReconcileStandardLineToIntent(ctx context.Context, in Reconcil
 
 		return ReconcileStandardLineToIntentResult{
 			Run:  run,
-			Line: *line,
+			Line: *mappedLine,
 		}, nil
 	})
+}
+
+func rateFlatFeeLine(line billing.StandardLine, ratingService billingrating.Service) (*billing.StandardLine, error) {
+	ratedLine, err := line.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning line: %w", err)
+	}
+
+	ratedLine.CreditsApplied = nil
+
+	ratingLine, err := line.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning rating line: %w", err)
+	}
+
+	ratingLine.CreditsApplied = nil
+	// Flat-fee charges materialize their own billable periods. Subscription
+	// split-line metadata must not make the flat pricer skip an otherwise
+	// billable in-advance or in-arrears charge run.
+	ratingLine.SplitLineGroupID = nil
+	ratingLine.SplitLineHierarchy = nil
+
+	generatedDetailedLines, err := ratingService.GenerateDetailedLines(ratingLine, billingrating.WithCreditsMutatorDisabled())
+	if err != nil {
+		return nil, fmt.Errorf("generating detailed lines for line[%s]: %w", ratedLine.ID, err)
+	}
+
+	if err := invoicecalc.MergeGeneratedDetailedLines(ratedLine, generatedDetailedLines); err != nil {
+		return nil, fmt.Errorf("merging generated detailed lines for line[%s]: %w", ratedLine.ID, err)
+	}
+
+	if err := ratedLine.Validate(); err != nil {
+		return nil, fmt.Errorf("validating standard line[%s]: %w", ratedLine.ID, err)
+	}
+
+	return ratedLine, nil
+}
+
+func applyCreditsToFlatFeeLine(line billing.StandardLine, creditsApplied billing.CreditsApplied, currencyCalculator currencyx.Calculator) (*billing.StandardLine, error) {
+	mappedLine, err := line.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning line: %w", err)
+	}
+
+	mappedLine.CreditsApplied = creditsApplied
+
+	detailedLines, err := mappedLine.DetailedLines.WithCreditsApplied(creditsApplied, currencyCalculator)
+	if err != nil {
+		return nil, fmt.Errorf("applying credits to detailed lines for line[%s]: %w", mappedLine.ID, err)
+	}
+
+	mappedLine.DetailedLines = detailedLines
+	mappedLine.Totals = mappedLine.DetailedLines.SumTotals().RoundToPrecision(currencyCalculator)
+
+	if err := mappedLine.Validate(); err != nil {
+		return nil, fmt.Errorf("validating standard line[%s]: %w", mappedLine.ID, err)
+	}
+
+	return mappedLine, nil
 }

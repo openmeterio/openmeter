@@ -33,6 +33,11 @@ func (s *Service) buildSyncPlan(ctx context.Context, subsView subscription.Subsc
 			return nil, err
 		}
 
+		persisted, err = s.repairChargeSubscriptionReferences(ctx, persisted, target)
+		if err != nil {
+			return nil, err
+		}
+
 		return s.reconciler.Plan(ctx, reconciler.PlanInput{
 			Subscription: subsView.Subscription,
 			Currency:     currency,

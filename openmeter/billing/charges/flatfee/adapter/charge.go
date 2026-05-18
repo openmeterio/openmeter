@@ -79,6 +79,32 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 	})
 }
 
+func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge flatfee.Charge, newSubscriptionItemID string) (flatfee.Charge, error) {
+	if err := charge.Validate(); err != nil {
+		return flatfee.Charge{}, err
+	}
+
+	if newSubscriptionItemID == "" {
+		return flatfee.Charge{}, fmt.Errorf("subscription item ID is required")
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.Charge, error) {
+		// TODO: make subscription_item_id immutable again once subscription edits
+		// no longer recreate the item ID for logical item updates.
+		updatedChargeBase, err := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
+			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace)).
+			SetSubscriptionItemID(newSubscriptionItemID).
+			Save(ctx)
+		if err != nil {
+			return flatfee.Charge{}, err
+		}
+
+		charge.ChargeBase = MapChargeBaseFromDB(updatedChargeBase)
+
+		return charge, nil
+	})
+}
+
 func (a *adapter) DeleteCharge(ctx context.Context, charge flatfee.Charge) error {
 	if err := charge.ManagedModel.Validate(); err != nil {
 		return err

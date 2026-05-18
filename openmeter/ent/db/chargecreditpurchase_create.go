@@ -1023,6 +1023,24 @@ func (u *ChargeCreditPurchaseUpsert) UpdateManagedBy() *ChargeCreditPurchaseUpse
 	return u
 }
 
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *ChargeCreditPurchaseUpsert) SetSubscriptionItemID(v string) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldSubscriptionItemID, v)
+	return u
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateSubscriptionItemID() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldSubscriptionItemID)
+	return u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *ChargeCreditPurchaseUpsert) ClearSubscriptionItemID() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldSubscriptionItemID)
+	return u
+}
+
 // SetAdvanceAfter sets the "advance_after" field.
 func (u *ChargeCreditPurchaseUpsert) SetAdvanceAfter(v time.Time) *ChargeCreditPurchaseUpsert {
 	u.Set(chargecreditpurchase.FieldAdvanceAfter, v)
@@ -1241,9 +1259,6 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldSubscriptionPhaseID)
 		}
-		if _, exists := u.create.mutation.SubscriptionItemID(); exists {
-			s.SetIgnore(chargecreditpurchase.FieldSubscriptionItemID)
-		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldNamespace)
 		}
@@ -1396,6 +1411,27 @@ func (u *ChargeCreditPurchaseUpsertOne) SetManagedBy(v billing.InvoiceLineManage
 func (u *ChargeCreditPurchaseUpsertOne) UpdateManagedBy() *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.UpdateManagedBy()
+	})
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetSubscriptionItemID(v string) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetSubscriptionItemID(v)
+	})
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateSubscriptionItemID() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateSubscriptionItemID()
+	})
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearSubscriptionItemID() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearSubscriptionItemID()
 	})
 }
 
@@ -1817,9 +1853,6 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldSubscriptionPhaseID)
 			}
-			if _, exists := b.mutation.SubscriptionItemID(); exists {
-				s.SetIgnore(chargecreditpurchase.FieldSubscriptionItemID)
-			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldNamespace)
 			}
@@ -1973,6 +2006,27 @@ func (u *ChargeCreditPurchaseUpsertBulk) SetManagedBy(v billing.InvoiceLineManag
 func (u *ChargeCreditPurchaseUpsertBulk) UpdateManagedBy() *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.UpdateManagedBy()
+	})
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetSubscriptionItemID(v string) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetSubscriptionItemID(v)
+	})
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateSubscriptionItemID() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateSubscriptionItemID()
+	})
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearSubscriptionItemID() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearSubscriptionItemID()
 	})
 }
 
