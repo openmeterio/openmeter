@@ -15,6 +15,7 @@ import "./llmcost/index.tsp";
 import "./productcatalog/index.tsp";
 import "./defaults/index.tsp";
 import "./governance/index.tsp";
+import "./accounting/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -64,6 +65,10 @@ using TypeSpec.OpenAPI;
 @tagMetadata(
   Shared.GovernanceTag,
   #{ description: Shared.GovernanceDescription }
+)
+@tagMetadata(
+  Shared.AccountingTag,
+  #{ description: Shared.AccountingDescription }
 )
 namespace OpenMeter;
 
@@ -201,3 +206,8 @@ interface OrganizationDefaultTaxCodesEndpoints
 @route("/openmeter/governance")
 @tag(Shared.GovernanceTag)
 interface GovernanceEndpoints extends Governance.GovernanceOperations {}
+
+@route("/openmeter/accounting/periods")
+@tag(Shared.AccountingTag)
+interface AccountingPeriodsEndpoints
+  extends Accounting.AccountingPeriodsOperations {}

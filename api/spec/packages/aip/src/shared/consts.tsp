@@ -42,6 +42,9 @@ const DefaultsDescription = "Organization-level default configuration.";
 const GovernanceTag = "OpenMeter Governance";
 const GovernanceDescription = "Governance evaluation of customers to check their feature access.";
 
+const AccountingTag = "OpenMeter Accounting";
+const AccountingDescription = "Accounting manages the accounting periods, transactions, and revenue recognition.";
+
 // The functionality should be considered unstable.
 const UnstableExtension = "x-unstable";
 // The functionality is internal and should not be used by customers.
