@@ -30,7 +30,7 @@ import (
 // errors, and only subscription_item_id is updated. The charge adapter keeps a matching TODO on the
 // temporary mutability of subscription_item_id; it should become immutable again once subscription edits no
 // longer recreate item IDs for logical item updates.
-func (s *Service) repairChargeSubscriptionReferences(ctx context.Context, persisted persistedstate.State, target targetstate.State) (persistedstate.State, error) {
+func (s *Service) repairChargeSubscriptionReferences(ctx context.Context, persisted persistedstate.State, target targetstate.State, dryRun bool) (persistedstate.State, error) {
 	if s.chargesService == nil {
 		return persisted, nil
 	}
@@ -87,13 +87,21 @@ func (s *Service) repairChargeSubscriptionReferences(ctx context.Context, persis
 			continue
 		}
 
-		// TODO: subscription edits can recreate subscription items while the
-		// subscription-sync identity remains based on the logical path. Keep
-		// charge references aligned here until subscription item identity or
-		// target unique IDs can model this case directly.
-		updatedCharge, err := chargeSubscription.UpdateSubscriptionItemID(ctx, s.chargesService, expectedSubscription.ItemID)
-		if err != nil {
-			return persistedstate.State{}, fmt.Errorf("updating charge subscription reference: %w", err)
+		var updatedCharge charges.Charge
+		if dryRun {
+			updatedCharge, err = chargeSubscription.WithSubscriptionItemID(expectedSubscription.ItemID)
+			if err != nil {
+				return persistedstate.State{}, fmt.Errorf("updating charge subscription reference in memory: %w", err)
+			}
+		} else {
+			// TODO: subscription edits can recreate subscription items while the
+			// subscription-sync identity remains based on the logical path. Keep
+			// charge references aligned here until subscription item identity or
+			// target unique IDs can model this case directly.
+			updatedCharge, err = chargeSubscription.UpdateSubscriptionItemID(ctx, s.chargesService, expectedSubscription.ItemID)
+			if err != nil {
+				return persistedstate.State{}, fmt.Errorf("updating charge subscription reference: %w", err)
+			}
 		}
 
 		updatedPersistedItem, err := persistedItemFromCharge(updatedCharge)
@@ -116,6 +124,56 @@ type persistedChargeSubscriptionReference struct {
 
 func (r persistedChargeSubscriptionReference) UpdateSubscriptionItemID(ctx context.Context, chargesService charges.Service, newSubscriptionItemID string) (charges.Charge, error) {
 	return chargesService.UpdateSubscriptionItemID(ctx, r.Charge, newSubscriptionItemID)
+}
+
+func (r persistedChargeSubscriptionReference) WithSubscriptionItemID(newSubscriptionItemID string) (charges.Charge, error) {
+	if newSubscriptionItemID == "" {
+		return charges.Charge{}, fmt.Errorf("subscription item ID is required")
+	}
+
+	switch r.Charge.Type() {
+	case meta.ChargeTypeFlatFee:
+		charge, err := r.Charge.AsFlatFeeCharge()
+		if err != nil {
+			return charges.Charge{}, err
+		}
+
+		subscription, err := subscriptionReferenceWithItemID(charge.Intent.Subscription, newSubscriptionItemID)
+		if err != nil {
+			return charges.Charge{}, err
+		}
+
+		charge.Intent.Subscription = subscription
+
+		return charges.NewCharge(charge), nil
+	case meta.ChargeTypeUsageBased:
+		charge, err := r.Charge.AsUsageBasedCharge()
+		if err != nil {
+			return charges.Charge{}, err
+		}
+
+		subscription, err := subscriptionReferenceWithItemID(charge.Intent.Subscription, newSubscriptionItemID)
+		if err != nil {
+			return charges.Charge{}, err
+		}
+
+		charge.Intent.Subscription = subscription
+
+		return charges.NewCharge(charge), nil
+	default:
+		return charges.Charge{}, fmt.Errorf("unsupported charge type: %s", r.Charge.Type())
+	}
+}
+
+func subscriptionReferenceWithItemID(subscription *meta.SubscriptionReference, newSubscriptionItemID string) (*meta.SubscriptionReference, error) {
+	if subscription == nil {
+		return nil, fmt.Errorf("subscription reference is required")
+	}
+
+	subscriptionCopy := *subscription
+	subscriptionCopy.ItemID = newSubscriptionItemID
+
+	return &subscriptionCopy, nil
 }
 
 func persistedChargeSubscriptionReferenceFromItem(item persistedstate.Item) (persistedChargeSubscriptionReference, error) {

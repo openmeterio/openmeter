@@ -3033,6 +3033,22 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
+	s.Run("dry run does not repair the persisted charge item reference", func() {
+		chargeBeforeDryRun := s.mustGetOnlyUsageBasedCharge(ctx, subsView.Subscription.ID)
+		s.Require().NotNil(chargeBeforeDryRun.Intent.Subscription)
+		itemIDBeforeDryRun := chargeBeforeDryRun.Intent.Subscription.ItemID
+
+		phase := s.getPhaseByKey(s.T(), updatedSubsView, "first-phase")
+		targetItemID := phase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].SubscriptionItem.ID
+		s.NotEqual(itemIDBeforeDryRun, targetItemID)
+
+		s.NoError(s.Service.SynchronizeSubscription(ctx, updatedSubsView, s.mustParseTime("2024-02-01T00:00:00Z"), subscriptionsync.EnableDryRun()))
+
+		chargeAfterDryRun := s.mustGetOnlyUsageBasedCharge(ctx, subsView.Subscription.ID)
+		s.Require().NotNil(chargeAfterDryRun.Intent.Subscription)
+		s.Equal(itemIDBeforeDryRun, chargeAfterDryRun.Intent.Subscription.ItemID)
+	})
+
 	s.NoError(s.Service.SynchronizeSubscription(ctx, updatedSubsView, s.mustParseTime("2024-02-01T00:00:00Z")))
 
 	// gathering invoice
