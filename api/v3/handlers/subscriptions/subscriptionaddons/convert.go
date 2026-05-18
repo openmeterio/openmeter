@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -19,7 +20,7 @@ func toAPISubscriptionAddon(addon subscriptionaddon.SubscriptionAddon) (apiv3.Su
 
 	inst, found := addon.GetInstanceAt(now)
 	if !found {
-		return apiv3.SubscriptionAddon{}, fmt.Errorf("no instance is active at %s", now.Format(time.RFC3339))
+		return apiv3.SubscriptionAddon{}, models.NewGenericNotFoundError(fmt.Errorf("no instance is active at %s", now.Format(time.RFC3339)))
 	}
 
 	pers := lo.Map(addon.GetInstances(), func(i subscriptionaddon.SubscriptionAddonInstance, _ int) timeutil.OpenPeriod {
@@ -27,7 +28,7 @@ func toAPISubscriptionAddon(addon subscriptionaddon.SubscriptionAddon) (apiv3.Su
 	})
 
 	if len(pers) == 0 {
-		return apiv3.SubscriptionAddon{}, errors.New("no instances found for subscription addon")
+		return apiv3.SubscriptionAddon{}, models.NewGenericNotFoundError(errors.New("no instances found for subscription addon"))
 	}
 
 	union := lo.Reduce(pers, func(agg timeutil.OpenPeriod, item timeutil.OpenPeriod, _ int) timeutil.OpenPeriod {
