@@ -2301,6 +2301,20 @@ func (u *ChargeUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUpdateOne
 	return u.SetDeletedAt(*value)
 }
 
+func (u *ChargeCreditPurchaseUpdate) SetOrClearSubscriptionItemID(value *string) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearSubscriptionItemID(value *string) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
+}
+
 func (u *ChargeCreditPurchaseUpdate) SetOrClearAdvanceAfter(value *time.Time) *ChargeCreditPurchaseUpdate {
 	if value == nil {
 		return u.ClearAdvanceAfter()
@@ -2579,6 +2593,20 @@ func (u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) SetOrClearAnnotations(val
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearSubscriptionItemID(value *string) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearSubscriptionItemID(value *string) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
 }
 
 func (u *ChargeFlatFeeUpdate) SetOrClearAdvanceAfter(value *time.Time) *ChargeFlatFeeUpdate {
@@ -3097,6 +3125,20 @@ func (u *ChargeFlatFeeRunPaymentUpdateOne) SetOrClearAnnotations(value *models.A
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearSubscriptionItemID(value *string) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearSubscriptionItemID(value *string) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
 }
 
 func (u *ChargeUsageBasedUpdate) SetOrClearAdvanceAfter(value *time.Time) *ChargeUsageBasedUpdate {

@@ -20,6 +20,7 @@ type Service interface {
 type UsageBasedService interface {
 	Create(ctx context.Context, input CreateInput) ([]ChargeWithGatheringLine, error)
 	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
+	UpdateSubscriptionItemID(ctx context.Context, charge Charge, newSubscriptionItemID string) (Charge, error)
 	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (*Charge, error)
 	TriggerPatch(ctx context.Context, charge meta.ChargeID, patch meta.Patch) (meta.TriggerPatchResult[Charge], error)
 	GetCurrentTotals(ctx context.Context, input GetCurrentTotalsInput) (GetCurrentTotalsResult, error)

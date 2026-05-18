@@ -1105,6 +1105,24 @@ func (u *ChargeUsageBasedUpsert) UpdateManagedBy() *ChargeUsageBasedUpsert {
 	return u
 }
 
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *ChargeUsageBasedUpsert) SetSubscriptionItemID(v string) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldSubscriptionItemID, v)
+	return u
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateSubscriptionItemID() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldSubscriptionItemID)
+	return u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *ChargeUsageBasedUpsert) ClearSubscriptionItemID() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldSubscriptionItemID)
+	return u
+}
+
 // SetAdvanceAfter sets the "advance_after" field.
 func (u *ChargeUsageBasedUpsert) SetAdvanceAfter(v time.Time) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldAdvanceAfter, v)
@@ -1371,9 +1389,6 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
 			s.SetIgnore(chargeusagebased.FieldSubscriptionPhaseID)
 		}
-		if _, exists := u.create.mutation.SubscriptionItemID(); exists {
-			s.SetIgnore(chargeusagebased.FieldSubscriptionItemID)
-		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeusagebased.FieldNamespace)
 		}
@@ -1529,6 +1544,27 @@ func (u *ChargeUsageBasedUpsertOne) SetManagedBy(v billing.InvoiceLineManagedBy)
 func (u *ChargeUsageBasedUpsertOne) UpdateManagedBy() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateManagedBy()
+	})
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *ChargeUsageBasedUpsertOne) SetSubscriptionItemID(v string) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetSubscriptionItemID(v)
+	})
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateSubscriptionItemID() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateSubscriptionItemID()
+	})
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *ChargeUsageBasedUpsertOne) ClearSubscriptionItemID() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearSubscriptionItemID()
 	})
 }
 
@@ -2006,9 +2042,6 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
 				s.SetIgnore(chargeusagebased.FieldSubscriptionPhaseID)
 			}
-			if _, exists := b.mutation.SubscriptionItemID(); exists {
-				s.SetIgnore(chargeusagebased.FieldSubscriptionItemID)
-			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeusagebased.FieldNamespace)
 			}
@@ -2165,6 +2198,27 @@ func (u *ChargeUsageBasedUpsertBulk) SetManagedBy(v billing.InvoiceLineManagedBy
 func (u *ChargeUsageBasedUpsertBulk) UpdateManagedBy() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateManagedBy()
+	})
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *ChargeUsageBasedUpsertBulk) SetSubscriptionItemID(v string) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetSubscriptionItemID(v)
+	})
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateSubscriptionItemID() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateSubscriptionItemID()
+	})
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearSubscriptionItemID() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearSubscriptionItemID()
 	})
 }
 

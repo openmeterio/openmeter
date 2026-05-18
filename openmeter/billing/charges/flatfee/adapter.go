@@ -32,6 +32,7 @@ type ChargeAdapter interface {
 	CreateCharges(ctx context.Context, charges CreateChargesInput) ([]Charge, error)
 
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
+	UpdateSubscriptionItemID(ctx context.Context, charge Charge, newSubscriptionItemID string) (Charge, error)
 	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
 	GetByID(ctx context.Context, id GetByIDInput) (Charge, error)

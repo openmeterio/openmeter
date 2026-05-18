@@ -107,8 +107,7 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 		edge.From("subscription_item", SubscriptionItem.Type).
 			Ref("charges_usage_based").
 			Field("subscription_item_id").
-			Unique().
-			Immutable(),
+			Unique(),
 		edge.From("customer", Customer.Type).
 			Field("customer_id").
 			Ref("charges_usage_based").
