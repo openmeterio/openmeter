@@ -177,7 +177,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 			ID:        subs.CustomerId,
 		}, func(ctx context.Context) (*synchronizeSubscriptionResult, error) {
 			// Calculate per line patches
-			linesDiff, err := s.buildSyncPlan(ctx, subs.SettlementMode, subsView, asOf, customerDeletedAt, currency, options.DryRun)
+			linesDiff, err := s.buildSyncPlan(ctx, subs, subsView, asOf, customerDeletedAt, currency, options.DryRun)
 			if err != nil {
 				return nil, err
 			}

@@ -137,6 +137,8 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 		pageIndex++
 	}
 
+	pageIndex = 1
+
 	for {
 		subscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
 			Namespaces: in.Namespaces,
