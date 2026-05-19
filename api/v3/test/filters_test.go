@@ -30,6 +30,7 @@ type fieldFiltersTarget struct {
 	ULID        *filters.FilterULID        `json:"ulid,omitempty"`
 	DateTime    *filters.FilterDateTime    `json:"datetime,omitempty"`
 	Labels      *filters.FilterLabels      `json:"labels,omitempty"`
+	Timestamp   *time.Time                 `json:"timestamp,omitempty"`
 }
 
 // validatorErrorResponse mirrors the AIP-style error body produced by
@@ -227,6 +228,52 @@ func TestFieldFilterValidation(t *testing.T) {
 			wantField:        "labels",
 			wantRule:         "type",
 			wantReasonSubstr: "must be an object",
+		},
+
+		// Shared.DateTime scalar (plain timestamp field, not a filter wrapper).
+		// The OAS validator enforces RFC-3339 date-time format (kin-openapi regex).
+		// Valid: UTC (Z), positive/negative numeric offsets, sub-second precision, leap second.
+		{name: "timestamp valid UTC Z", query: "filter[timestamp]=2024-01-01T00:00:00Z", wantStatus: http.StatusNoContent},
+		// + must be percent-encoded in query strings; raw + decodes to space.
+		{name: "timestamp valid positive offset", query: "filter[timestamp]=2024-06-15T12:30:00%2B05:30", wantStatus: http.StatusNoContent},
+		{name: "timestamp valid negative offset", query: "filter[timestamp]=2024-06-15T12:30:00-07:00", wantStatus: http.StatusNoContent},
+		{name: "timestamp valid sub-second precision", query: "filter[timestamp]=2024-01-02T03:04:05.999Z", wantStatus: http.StatusNoContent},
+		{name: "timestamp valid leap second", query: "filter[timestamp]=2016-12-31T23:59:60Z", wantStatus: http.StatusNoContent},
+		// Invalid: not a date-time string at all.
+		{
+			name:             "timestamp invalid not a datetime",
+			query:            "filter[timestamp]=not-a-datetime",
+			wantStatus:       http.StatusBadRequest,
+			wantField:        "timestamp",
+			wantRule:         "format",
+			wantReasonSubstr: "date-time",
+		},
+		// Invalid: date-only (missing time component).
+		{
+			name:             "timestamp invalid date only",
+			query:            "filter[timestamp]=2024-01-01",
+			wantStatus:       http.StatusBadRequest,
+			wantField:        "timestamp",
+			wantRule:         "format",
+			wantReasonSubstr: "date-time",
+		},
+		// Invalid: missing timezone designator.
+		{
+			name:             "timestamp invalid no timezone",
+			query:            "filter[timestamp]=2024-01-01T00:00:00",
+			wantStatus:       http.StatusBadRequest,
+			wantField:        "timestamp",
+			wantRule:         "format",
+			wantReasonSubstr: "date-time",
+		},
+		// Invalid: space separator instead of T.
+		{
+			name:             "timestamp invalid space separator",
+			query:            "filter[timestamp]=2024-01-01+00:00:00Z",
+			wantStatus:       http.StatusBadRequest,
+			wantField:        "timestamp",
+			wantRule:         "format",
+			wantReasonSubstr: "date-time",
 		},
 
 		// Multiple filters in one request — independent fields can be combined.
@@ -526,6 +573,13 @@ func TestFieldFilterParse(t *testing.T) {
 			name:      "labels contains",
 			query:     "filter[labels.key][contains]=team",
 			wantParse: fieldFiltersTarget{Labels: &filters.FilterLabels{"key": {Contains: lo.ToPtr("team")}}},
+		},
+
+		// Shared.DateTime scalar — plain *time.Time field, not a filter wrapper.
+		{
+			name:      "timestamp short",
+			query:     "filter[timestamp]=2024-01-02T03:04:05Z",
+			wantParse: fieldFiltersTarget{Timestamp: &dt},
 		},
 
 		// Multiple independent filters in one request.

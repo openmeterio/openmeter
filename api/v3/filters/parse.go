@@ -1,6 +1,7 @@
 package filters
 
 import (
+	"encoding"
 	"errors"
 	"fmt"
 	"net/url"
@@ -85,6 +86,7 @@ var (
 	filterLabelsType      = reflect.TypeFor[FilterLabels]()
 	filterLabelsPtrType   = reflect.TypeFor[*FilterLabels]()
 	stringPtrType         = reflect.TypeFor[*string]()
+	textUnmarshalerType   = reflect.TypeFor[encoding.TextUnmarshaler]()
 )
 
 // parseFiltersValue iterates struct fields and dispatches to per-type parsers.
@@ -186,8 +188,16 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 			}
 
 		default:
-			// Handle *T where T is a named string-based type (e.g. *BillingCreditTransactionType).
-			if fieldVal.Kind() == reflect.Pointer && fieldVal.Type().Elem().Kind() == reflect.String {
+			// Handle *T where *T implements encoding.TextUnmarshaler (e.g. *time.Time).
+			if fieldVal.Kind() == reflect.Pointer && fieldVal.Type().Implements(textUnmarshalerType) {
+				if hasOperatorStyleKeys(qs, name) {
+					return fmt.Errorf("filter[%s]: operator-style keys are not supported for this field", name)
+				}
+				if err := parseTextUnmarshalerPtr(qs, name, fieldVal); err != nil {
+					return err
+				}
+				// Handle *T where T is a named string-based type (e.g. *BillingCreditTransactionType).
+			} else if fieldVal.Kind() == reflect.Pointer && fieldVal.Type().Elem().Kind() == reflect.String {
 				if hasOperatorStyleKeys(qs, name) {
 					return fmt.Errorf("filter[%s]: operator-style keys are not supported for this field", name)
 				}
@@ -236,6 +246,29 @@ func parseStringPtrTyped(qs url.Values, name string, fieldVal reflect.Value) err
 		if val != "" {
 			ptr := reflect.New(fieldVal.Type().Elem())
 			ptr.Elem().SetString(val)
+			fieldVal.Set(ptr)
+		}
+		break
+	}
+	return nil
+}
+
+// parseTextUnmarshalerPtr handles filter[field]=value for *T fields where *T implements encoding.TextUnmarshaler.
+func parseTextUnmarshalerPtr(qs url.Values, name string, fieldVal reflect.Value) error {
+	prefix := "filter[" + name + "]"
+	for key, values := range qs {
+		if key != prefix {
+			continue
+		}
+		val, err := singleValue(key, values)
+		if err != nil {
+			return err
+		}
+		if val != "" {
+			ptr := reflect.New(fieldVal.Type().Elem())
+			if err := ptr.Interface().(encoding.TextUnmarshaler).UnmarshalText([]byte(val)); err != nil {
+				return fmt.Errorf("filter[%s]: invalid value %q: %w", name, val, err)
+			}
 			fieldVal.Set(ptr)
 		}
 		break
