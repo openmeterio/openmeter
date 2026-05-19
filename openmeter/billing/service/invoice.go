@@ -514,8 +514,9 @@ func (s *Service) PaymentAuthorized(ctx context.Context, input billing.PaymentAu
 	return s.executeTriggerOnInvoice(ctx, input, billing.TriggerAuthorized)
 }
 
-func (s *Service) SnapshotQuantities(ctx context.Context, input billing.SnapshotQuantitiesInput) (billing.StandardInvoice, error) {
-	return s.executeTriggerOnInvoice(ctx, input, billing.TriggerSnapshotQuantities)
+// ForceCollectInvoice bypasses the invoice collection period and moves the invoice into collection immediately.
+func (s *Service) ForceCollectInvoice(ctx context.Context, input billing.ForceCollectInvoiceInput) (billing.StandardInvoice, error) {
+	return s.executeTriggerOnInvoice(ctx, input, billing.TriggerForceCollect)
 }
 
 func (s *Service) RetryInvoice(ctx context.Context, input billing.RetryInvoiceInput) (billing.StandardInvoice, error) {

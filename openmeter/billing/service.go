@@ -88,7 +88,8 @@ type InvoiceService interface {
 	// - the invoice is in a state that cannot be advanced (e.g. waiting for draft period to expire)
 	// - the invoice is advanced to the final state
 	AdvanceInvoice(ctx context.Context, input AdvanceInvoiceInput) (StandardInvoice, error)
-	SnapshotQuantities(ctx context.Context, input SnapshotQuantitiesInput) (StandardInvoice, error)
+	// ForceCollectInvoice bypasses the invoice collection period and moves the invoice into collection immediately.
+	ForceCollectInvoice(ctx context.Context, input ForceCollectInvoiceInput) (StandardInvoice, error)
 	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (StandardInvoice, error)
 	PaymentAuthorized(ctx context.Context, input PaymentAuthorizedInput) (StandardInvoice, error)
 	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (StandardInvoice, error)

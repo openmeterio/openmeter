@@ -191,10 +191,9 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 
 			TaxConfig: lineIntent.TaxConfig.ToTaxConfig(),
 
-			Engine:                 billing.LineEngineTypeChargeFlatFee,
-			ChargeID:               lo.ToPtr(flatFee.ID),
-			ChildUniqueReferenceID: lineIntent.UniqueReferenceID,
-			Subscription:           subscription,
+			Engine:       billing.LineEngineTypeChargeFlatFee,
+			ChargeID:     lo.ToPtr(flatFee.ID),
+			Subscription: subscription,
 		},
 	}
 
