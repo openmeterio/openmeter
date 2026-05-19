@@ -222,3 +222,16 @@ notification:
 #     address: 127.0.0.1:6379
 #     database: 0
 #     # Other redis options as needed
+
+# taxcode configures the list of tax codes to be auto-provisioned on namespace creation.
+# taxcode:
+#   seeds:
+#     - key: default
+#       name: "Provider default"
+#       defaultInvoicing: true
+#     - key: nontaxable
+#       name: "Nontaxable"
+#       defaultCreditGrant: true
+#       appMappings:
+#         - appType: stripe
+#           taxCode: "txcd_00000000"

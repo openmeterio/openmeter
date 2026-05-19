@@ -119,6 +119,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	err = app.NamespaceManager.RegisterHandler(app.TaxCodeNamespaceHandler)
+	if err != nil {
+		logger.Error("failed to register tax code namespace handler", "error", err)
+		os.Exit(1)
+	}
+
 	// Initialize Namespace
 	err = initNamespace(app.NamespaceManager, logger)
 	if err != nil {

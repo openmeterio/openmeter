@@ -447,6 +447,26 @@ func TestComplete(t *testing.T) {
 			`^_\..*$`,
 			`^openmeter\..*$`,
 		},
+		TaxCode: TaxCodeConfiguration{
+			Seeds: []TaxCodeSeed{
+				{
+					Key:              "default",
+					Name:             "Provider default",
+					DefaultInvoicing: true,
+				},
+				{
+					Key:                "nontaxable",
+					Name:               "Nontaxable",
+					DefaultCreditGrant: true,
+					AppMappings: []TaxCodeAppMapping{
+						{
+							AppType: "stripe",
+							TaxCode: "txcd_00000000",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	assert.Equal(t, expected, actual)

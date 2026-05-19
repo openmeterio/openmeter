@@ -167,3 +167,15 @@ productCatalog:
   subscription:
     multiSubscriptionNamespaces:
       - "multi-subscription"
+
+taxcode:
+  seeds:
+    - key: default
+      name: Provider default
+      defaultInvoicing: true
+    - key: nontaxable
+      name: Nontaxable
+      defaultCreditGrant: true
+      appMappings:
+        - appType: stripe
+          taxCode: txcd_00000000
