@@ -434,6 +434,32 @@ func TestDefaultValidator_AllowsFBOToAccruedMatchingTaxCode(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestDefaultValidator_AllowsReceivableToAccruedMatchingTaxCode(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	openStatus := ledger.TransactionAuthorizationStatusOpen
+	tax := "tax_A"
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-tax", ledger.Route{
+				Currency:                       currencyx.Code("USD"),
+				TaxCode:                        &tax,
+				TransactionAuthorizationStatus: &openStatus,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-tax", ledger.Route{
+				Currency: currencyx.Code("USD"),
+				TaxCode:  &tax,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.NoError(t, err)
+}
+
 func TestDefaultValidator_AllowsAccruedToEarningsMatchingTaxCode(t *testing.T) {
 	validator := routingrules.DefaultValidator
 	tax := "tax_A"

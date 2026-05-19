@@ -226,10 +226,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		issuableAmount = alpacadecimal.Zero
 	}
 
-	var taxCodeID *string
-	if charge.Intent.TaxConfig != nil {
-		taxCodeID = charge.Intent.TaxConfig.TaxCodeID
-	}
+	taxCodeID := taxCodeIDFromIntent(charge.Intent.TaxConfig)
 
 	var templates []transactions.TransactionTemplate
 

@@ -151,11 +151,16 @@ func (r SubAccountRoute) Route() Route {
 
 // Route holds the literal values that identify a sub-account's routing path.
 // It is used for creation, persistence, and routing key generation.
-// Version is set automatically by Normalize() based on which fields are present.
 type Route struct {
-	Version                        RoutingKeyVersion
-	Currency                       currencyx.Code
-	TaxCode                        *string
+	// Version is auto-derived by Normalize() based on which fields are present.
+	// Direct assignment is overwritten on the next Normalize call. Do not set
+	// manually except for testing edge cases.
+	Version  RoutingKeyVersion
+	Currency currencyx.Code
+	TaxCode  *string
+	// TaxBehavior is an FBO-only routing dimension. Receivable, Accrued,
+	// and Earnings sub-accounts do not carry it. Only IssueCustomerReceivable*
+	// transactions thread it via CustomerFBORouteParams.
 	TaxBehavior                    *TaxBehavior
 	Features                       []string
 	CostBasis                      *alpacadecimal.Decimal
