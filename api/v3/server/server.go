@@ -64,6 +64,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
@@ -81,32 +82,33 @@ type Config struct {
 	ResponseValidation  config.ResponseValidationConfig
 
 	// services
-	AddonService             addon.Service
-	AppService               app.Service
-	BillingService           billing.Service
-	LLMCostService           llmcost.Service
-	MeterService             meter.ManageService
-	StreamingConnector       streaming.Connector
-	IngestService            ingest.Service
-	MeterEventService        meterevent.Service
-	CustomerService          customer.Service
-	CreditGrantService       creditgrant.Service
-	Ledger                   ledger.Ledger
-	AccountResolver          ledger.AccountResolver
-	CustomerBalanceFacade    *customerbalance.Facade
-	EntitlementService       entitlement.Service
-	GovernanceService        governance.Service
-	PlanService              plan.Service
-	PlanAddonService         planaddon.Service
-	PlanSubscriptionService  plansubscription.PlanSubscriptionService
-	StripeService            appstripe.Service
-	SubscriptionService      subscription.Service
-	SubscriptionAddonService subscriptionaddon.Service
-	TaxCodeService           taxcode.Service
-	CurrencyService          currencies.CurrencyService
-	ChargeService            billingcharges.ChargeService
-	CostService              cost.Service
-	FeatureConnector         feature.FeatureConnector
+	AddonService                addon.Service
+	AppService                  app.Service
+	BillingService              billing.Service
+	LLMCostService              llmcost.Service
+	MeterService                meter.ManageService
+	StreamingConnector          streaming.Connector
+	IngestService               ingest.Service
+	MeterEventService           meterevent.Service
+	CustomerService             customer.Service
+	CreditGrantService          creditgrant.Service
+	Ledger                      ledger.Ledger
+	AccountResolver             ledger.AccountResolver
+	CustomerBalanceFacade       *customerbalance.Facade
+	EntitlementService          entitlement.Service
+	GovernanceService           governance.Service
+	PlanService                 plan.Service
+	PlanAddonService            planaddon.Service
+	PlanSubscriptionService     plansubscription.PlanSubscriptionService
+	StripeService               appstripe.Service
+	SubscriptionService         subscription.Service
+	SubscriptionAddonService    subscriptionaddon.Service
+	SubscriptionWorkflowService subscriptionworkflow.Service
+	TaxCodeService              taxcode.Service
+	CurrencyService             currencies.CurrencyService
+	ChargeService               billingcharges.ChargeService
+	CostService                 cost.Service
+	FeatureConnector            feature.FeatureConnector
 
 	FeatureGate *featuregate.FeatureGateChecker
 }
@@ -232,6 +234,10 @@ func (c *Config) Validate() error {
 		errs = append(errs, err)
 	}
 
+	if c.SubscriptionWorkflowService == nil {
+		errs = append(errs, errors.New("subscription workflow service is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -317,7 +323,7 @@ func NewServer(config *Config) (*Server, error) {
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, config.StreamingConnector, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, httptransport.WithErrorHandler(config.ErrorHandler))
-	subscriptionAddonsHandler := subscriptionaddonshandler.New(resolveNamespace, config.SubscriptionAddonService, httptransport.WithErrorHandler(config.ErrorHandler))
+	subscriptionAddonsHandler := subscriptionaddonshandler.New(resolveNamespace, config.SubscriptionAddonService, config.SubscriptionWorkflowService, httptransport.WithErrorHandler(config.ErrorHandler))
 	billingProfilesHandler := billingprofileshandler.New(resolveNamespace, config.BillingService, httptransport.WithErrorHandler(config.ErrorHandler))
 	plansHandler := planshandler.New(resolveNamespace, config.PlanService, httptransport.WithErrorHandler(config.ErrorHandler))
 	planAddonsHandler := planaddonshandler.New(resolveNamespace, config.PlanService, config.PlanAddonService, httptransport.WithErrorHandler(config.ErrorHandler))

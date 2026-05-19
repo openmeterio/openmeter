@@ -2968,41 +2968,6 @@ export const updateOrganizationDefaultTaxCodesRequest = z
   })
   .describe('OrganizationDefaultTaxCodes update request.')
 
-export const subscriptionAddon = z
-  .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    created_at: dateTime,
-    updated_at: dateTime,
-    deleted_at: dateTime.optional(),
-    addon: addonReference,
-    quantity: z
-      .number()
-      .int()
-      .gte(1)
-
-      .describe(
-        'The quantity of the add-on. Always 1 for single instance add-ons.',
-      ),
-    quantity_at: dateTime,
-    active_from: dateTime,
-    active_to: dateTime.optional(),
-  })
-  .describe('Addon purchased with a subscription.')
-
 export const planAddon = z
   .object({
     id: ulid,
@@ -3379,6 +3344,71 @@ export const subscriptionChange = z
     timing: subscriptionEditTiming,
   })
   .describe('Request for changing a subscription.')
+
+export const createSubscriptionAddonRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    addon: addonReference,
+    quantity: z
+      .number()
+      .int()
+      .gte(1)
+
+      .describe(
+        'The quantity of the add-on. Always 1 for single instance add-ons.',
+      ),
+    timing: subscriptionEditTiming,
+  })
+  .describe('SubscriptionAddon create request.')
+
+export const subscriptionAddon = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    created_at: dateTime,
+    updated_at: dateTime,
+    deleted_at: dateTime.optional(),
+    addon: addonReference,
+    quantity: z
+      .number()
+      .int()
+      .gte(1)
+
+      .describe(
+        'The quantity of the add-on. Always 1 for single instance add-ons.',
+      ),
+    quantity_at: dateTime,
+    active_from: dateTime,
+    active_to: dateTime.optional(),
+    timing: subscriptionEditTiming,
+  })
+  .describe('Addon purchased with a subscription.')
 
 export const appStripe = z
   .object({
@@ -3781,13 +3811,6 @@ export const workflowTaxSettings = z
   })
   .describe('Tax settings for a billing workflow.')
 
-export const subscriptionAddonPagePaginatedResponse = z
-  .object({
-    data: z.array(subscriptionAddon),
-    meta: paginatedMeta,
-  })
-  .describe('Page paginated response.')
-
 export const planAddonPagePaginatedResponse = z
   .object({
     data: z.array(planAddon),
@@ -3937,6 +3960,13 @@ export const workflowCollectionAlignment = z
   .describe(
     'The alignment for collecting the pending line items into an invoice. Defaults to subscription, which means that we are to create a new invoice every time the a subscription period starts (for in advance items) or ends (for in arrears items).',
   )
+
+export const subscriptionAddonPagePaginatedResponse = z
+  .object({
+    data: z.array(subscriptionAddon),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
 
 export const app = z
   .discriminatedUnion('type', [appStripe, appSandbox, appExternalInvoicing])
@@ -4939,6 +4969,14 @@ export const changeSubscriptionPathParams = z.object({
 export const changeSubscriptionBody = subscriptionChange
 
 export const changeSubscriptionResponse = subscriptionChangeResponse
+
+export const createSubscriptionAddonPathParams = z.object({
+  subscriptionId: ulid,
+})
+
+export const createSubscriptionAddonBody = createSubscriptionAddonRequest
+
+export const createSubscriptionAddonResponse = subscriptionAddon
 
 export const listSubscriptionAddonsPathParams = z.object({
   subscriptionId: ulid,

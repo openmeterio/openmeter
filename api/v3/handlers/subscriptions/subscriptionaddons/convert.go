@@ -8,12 +8,37 @@ import (
 	"github.com/samber/lo"
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func mapCreateSubscriptionAddonRequestToInput(req apiv3.CreateSubscriptionAddonRequest) (subscriptionworkflow.AddAddonWorkflowInput, error) {
+	timing, err := subscriptions.FromAPIBillingSubscriptionEditTiming(req.Timing)
+	if err != nil {
+		return subscriptionworkflow.AddAddonWorkflowInput{}, fmt.Errorf("failed to cast Timing: %w", err)
+	}
+
+	meta, err := labels.ToMetadata(req.Labels)
+	if err != nil {
+		return subscriptionworkflow.AddAddonWorkflowInput{}, err
+	}
+
+	r := subscriptionworkflow.AddAddonWorkflowInput{
+		AddonID:         req.Addon.Id,
+		InitialQuantity: req.Quantity,
+		Timing:          timing,
+		MetadataModel: models.MetadataModel{
+			Metadata: meta,
+		},
+	}
+
+	return r, nil
+}
 
 func toAPISubscriptionAddon(addon subscriptionaddon.SubscriptionAddon) (apiv3.SubscriptionAddon, error) {
 	now := clock.Now()
@@ -42,7 +67,7 @@ func toAPISubscriptionAddon(addon subscriptionaddon.SubscriptionAddon) (apiv3.Su
 		CreatedAt:   addon.CreatedAt,
 		UpdatedAt:   addon.UpdatedAt,
 		DeletedAt:   addon.DeletedAt,
-		Addon: apiv3.AddonReferenceItem{
+		Addon: apiv3.AddonReference{
 			Id: addon.Addon.ID,
 		},
 		Labels:     labels.FromMetadata(addon.Metadata),

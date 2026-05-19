@@ -1837,32 +1837,6 @@ export interface UpdateOrganizationDefaultTaxCodesRequest {
   credit_grant_tax_code?: TaxCodeReference
 }
 
-/** Addon purchased with a subscription. */
-export interface SubscriptionAddon {
-  id: string
-  /** Display name of the resource. Between 1 and 256 characters. */
-  name: string
-  /** Optional description of the resource. Maximum 1024 characters. */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
-  /** The add-on associated with the subscription. */
-  addon: AddonReference
-  /** The quantity of the add-on. Always 1 for single instance add-ons. */
-  quantity: number
-  /** An ISO-8601 timestamp representation of which point in time the quantity was resolved to. */
-  quantity_at: string
-  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
-  active_from: string
-  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
-  active_to?: string
-}
-
 /** PlanAddon represents an association between a plan and an add-on, controlling which add-ons are available for purchase within a plan. */
 export interface PlanAddon {
   id: string
@@ -2240,6 +2214,49 @@ export interface SubscriptionChange {
   timing: 'immediate' | 'next_billing_cycle' | string
 }
 
+/** SubscriptionAddon create request. */
+export interface CreateSubscriptionAddonRequest {
+  /** Display name of the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** The add-on associated with the subscription. */
+  addon: AddonReference
+  /** The quantity of the add-on. Always 1 for single instance add-ons. */
+  quantity: number
+  /** The timing of the operation. After the create or update, a new entry will be created in the timeline. */
+  timing: 'immediate' | 'next_billing_cycle' | string
+}
+
+/** Addon purchased with a subscription. */
+export interface SubscriptionAddon {
+  id: string
+  /** Display name of the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** The add-on associated with the subscription. */
+  addon: AddonReference
+  /** The quantity of the add-on. Always 1 for single instance add-ons. */
+  quantity: number
+  /** An ISO-8601 timestamp representation of which point in time the quantity was resolved to. */
+  quantity_at: string
+  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
+  active_from: string
+  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
+  active_to?: string
+  /** The timing of the operation. After the create or update, a new entry will be created in the timeline. */
+  timing: 'immediate' | 'next_billing_cycle' | string
+}
+
 /** Stripe app. */
 export interface AppStripe {
   id: string
@@ -2508,12 +2525,6 @@ export interface WorkflowTaxSettings {
 }
 
 /** Page paginated response. */
-export interface SubscriptionAddonPagePaginatedResponse {
-  data: SubscriptionAddon[]
-  meta: PaginatedMeta
-}
-
-/** Page paginated response. */
 export interface PlanAddonPagePaginatedResponse {
   data: PlanAddon[]
   meta: PaginatedMeta
@@ -2604,6 +2615,12 @@ export interface AppStripeCreateCheckoutSessionRequestOptions {
   redirect_on_completion?: 'always' | 'if_required' | 'never'
   /** Configuration for collecting tax IDs during checkout. */
   tax_id_collection?: AppStripeCreateCheckoutSessionTaxIdCollection
+}
+
+/** Page paginated response. */
+export interface SubscriptionAddonPagePaginatedResponse {
+  data: SubscriptionAddon[]
+  meta: PaginatedMeta
 }
 
 /** Page paginated response. */
