@@ -167,6 +167,7 @@ interface SubscriptionAddonOperations {
   @get
   @operationId("list-subscription-addons")
   @summary("List subscription addons")
+  @extension(Shared.UnstableExtension, true)
   list(
     @path subscriptionId: Shared.ULID,
     ...Common.PagePaginationQuery,
@@ -183,7 +184,6 @@ interface SubscriptionAddonOperations {
   @operationId("get-subscription-addon")
   @summary("Get add-on association for subscription")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   getAddon(
     @path subscriptionId: Shared.ULID,
     @path subscriptionAddonId: Shared.ULID,

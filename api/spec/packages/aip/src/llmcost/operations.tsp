@@ -52,7 +52,6 @@ interface LLMCostPricesOperations {
    * List global LLM cost prices. Returns prices with overrides applied if any.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @get
   @operationId("list-llm-cost-prices")
   @summary("List LLM cost prices")
@@ -86,7 +85,6 @@ interface LLMCostPricesOperations {
    * any.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @get
   @operationId("get-llm-cost-price")
   @summary("Get LLM cost price")
@@ -103,7 +101,6 @@ interface LLMCostOverridesOperations {
    * List per-namespace price overrides.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @get
   @operationId("list-llm-cost-overrides")
   @summary("List LLM cost overrides")
@@ -118,7 +115,6 @@ interface LLMCostOverridesOperations {
    * Create a per-namespace price override.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @post
   @operationId("create-llm-cost-override")
   @summary("Create LLM cost override")
@@ -130,7 +126,6 @@ interface LLMCostOverridesOperations {
    * Delete a per-namespace price override.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @delete
   @operationId("delete-llm-cost-override")
   @summary("Delete LLM cost override")
