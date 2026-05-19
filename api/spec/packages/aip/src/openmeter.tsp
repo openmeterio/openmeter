@@ -20,19 +20,19 @@ using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
 /**
- * OpenMeter is a cloud native usage metering and billing service. The OpenMeter
- * API allows you to ingest events, query meter usage, and manage resources.
+ * OpenMeter is a cloud native usage metering and billing service. The API allows
+ * you to ingest events, query meter usage, and manage resources.
  */
-@service(#{ title: "OpenMeter API" })
-@info(#{
-  version: "1.0.0",
-  license: #{
-    name: "Apache 2.0",
-    url: "http://www.apache.org/licenses/LICENSE-2.0.html",
-  },
-  termsOfService: "https://openmeter.cloud/terms-of-service",
-})
-@server("https://openmeter.cloud/api/v3", "Cloud")
+@service(#{ title: "OpenMeter and Konnect Metering & Billing API" })
+@info(#{ version: "0.0.1" })
+@server("https://openmeter.cloud/api/v3", "OpenMeter Cloud")
+@server(
+  "https://{region}.api.konghq.com/v3",
+  "Production region",
+  {
+    region: "us" | "eu" | "au" | "me" | "in" = "us",
+  }
+)
 @server(
   "http://localhost:{port}/api/v3",
   "Local",
