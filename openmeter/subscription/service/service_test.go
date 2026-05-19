@@ -692,6 +692,28 @@ func TestList(t *testing.T) {
 			require.Len(t, includeDeletedScheduledList.Items, 1)
 			require.Equal(t, sub4.ID, includeDeletedScheduledList.Items[0].ID)
 			require.NotNil(t, includeDeletedScheduledList.Items[0].DeletedAt)
+
+			deletedAt := includeDeletedScheduledList.Items[0].DeletedAt
+			includeDeletedAfterList, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				IncludeDeleted: true,
+				Status:         []subscription.SubscriptionStatus{subscription.SubscriptionStatusScheduled},
+				DeletedAt: &filter.FilterTime{
+					Gt: lo.ToPtr(deletedAt.Add(-time.Second)),
+				},
+			})
+			require.NoError(t, err)
+			require.Len(t, includeDeletedAfterList.Items, 1)
+			require.Equal(t, sub4.ID, includeDeletedAfterList.Items[0].ID)
+
+			includeDeletedBeforeList, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				IncludeDeleted: true,
+				Status:         []subscription.SubscriptionStatus{subscription.SubscriptionStatusScheduled},
+				DeletedAt: &filter.FilterTime{
+					Lt: lo.ToPtr(deletedAt.Add(-time.Second)),
+				},
+			})
+			require.NoError(t, err)
+			require.Empty(t, includeDeletedBeforeList.Items)
 		})
 	})
 

@@ -192,7 +192,6 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 
 			return w.subscriptionSync.HandleSubscriptionSyncEvent(ctx, event)
 		}),
-		// TODO: let's add deleted event handling!!!~!
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.AdvanceStandardInvoiceEvent) error {
 			if event != nil && slices.Contains(w.lockdownNamespaces, event.Invoice.Namespace) {
 				return nil

@@ -105,14 +105,16 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 		}
 
 		var subsView *subscription.SubscriptionView
-		if refOrView.Type() == SubscriptionReferenceTypeView {
+		if subs.IsDeleted() {
+			subsView = nil
+		} else if refOrView.Type() == SubscriptionReferenceTypeView {
 			view, err := refOrView.AsSubscriptionView()
 			if err != nil {
 				return nil, err
 			}
 
 			subsView = &view
-		} else if !subs.IsDeleted() {
+		} else {
 			view, err := s.subscriptionService.GetView(ctx, subscriptionID)
 			if err != nil {
 				return nil, err

@@ -3730,7 +3730,7 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 	s.NoError(err)
 	s.NotNil(updatedSubsView)
 
-	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+	s.NoError(s.Service.SyncByView(ctx, updatedSubsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 
 	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice - after edit", gatheringInvoice)
