@@ -47,7 +47,7 @@ jobs:
       # perform the OIDC handshake. setup-node provides a current npm and
       # writes a registry-scoped .npmrc with no _authToken.
       - name: Set up pnpm
-        uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6
+        uses: pnpm/action-setup@739bfe42ca9233c5e6aca07c1a25a9d34aca49b0 # v6
         with:
           package_json_file: api/client/javascript/package.json
 
