@@ -1887,7 +1887,7 @@ func (n NoopBillingService) AdvanceInvoice(ctx context.Context, input billing.Ad
 	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopBillingService) SnapshotQuantities(ctx context.Context, input billing.SnapshotQuantitiesInput) (billing.StandardInvoice, error) {
+func (n NoopBillingService) ForceCollectInvoice(ctx context.Context, input billing.ForceCollectInvoiceInput) (billing.StandardInvoice, error) {
 	return billing.StandardInvoice{}, nil
 }
 

@@ -912,7 +912,51 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncNonBillableAmount
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 	s.assertCreditThenInvoiceBalances(startBalances)
 
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+	s.assertCharges(ctx, updatedSubsView, []expectedCharge{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "in-advance",
+				Version:   0,
+				PeriodMin: 0,
+				PeriodMax: 0,
+			},
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusFinal),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-01T00:00:40Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "in-advance",
+				Version:   0,
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusDeleted),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+		},
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -921,10 +965,12 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncNonBillableAmount
 				PeriodMin: 0,
 				PeriodMax: 1, // as its in-advance, we'll generate the item for the next month too
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:40Z"),
@@ -935,10 +981,32 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncNonBillableAmount
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{
-				s.mustParseTime("2024-01-01T00:00:00Z"),
-				s.mustParseTime("2024-02-01T00:00:00Z"),
-			}),
+			InvoiceAt: []*time.Time{
+				lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+			},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "first-phase",
+						ItemKey:   "in-advance",
+						Version:   1,
+						PeriodMin: 0,
+						PeriodMax: 0,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				},
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "first-phase",
+						ItemKey:   "in-advance",
+						Version:   1,
+						PeriodMin: 1,
+						PeriodMax: 1,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
 			// Periods:   s.generatePeriods("2024-01-01T00:00:40Z", "2024-02-01T00:00:40Z", "P1M", 1),
 			// InvoiceAt: s.generateDailyTimestamps("2024-01-01T00:00:40Z", 6),
 		},
@@ -1043,7 +1111,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncNonBillableAmount
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 	s.assertCreditThenInvoiceBalances(startBalances)
 
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+	s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -1052,20 +1120,46 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncNonBillableAmount
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-01-01T00:00:40Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{
-				s.mustParseTime("2024-01-01T00:00:00Z"),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				},
+			},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "in-advance",
+				Version:   0,
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusDeleted),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -1075,11 +1169,12 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncNonBillableAmount
 				PeriodMin: 0,
 				PeriodMax: 1,
 			},
-
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:40Z"),
@@ -1090,10 +1185,32 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncNonBillableAmount
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{
-				s.mustParseTime("2024-01-01T00:00:00Z"),
-				s.mustParseTime("2024-02-01T00:00:00Z"),
-			}),
+			InvoiceAt: []*time.Time{
+				lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+			},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "first-phase",
+						ItemKey:   "in-advance",
+						Version:   1,
+						PeriodMin: 0,
+						PeriodMax: 0,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				},
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "first-phase",
+						ItemKey:   "in-advance",
+						Version:   1,
+						PeriodMin: 1,
+						PeriodMax: 1,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
 		},
 	})
 }
@@ -1196,7 +1313,7 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsGatheringSyncNonBillableAmount
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 	s.assertCreditThenInvoiceBalances(startBalances)
 
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+	s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -1205,11 +1322,12 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsGatheringSyncNonBillableAmount
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -1217,7 +1335,12 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsGatheringSyncNonBillableAmount
 				},
 			},
 			// We'll wait till the end of the billing cadence of the item
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -1227,11 +1350,12 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsGatheringSyncNonBillableAmount
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:40Z"),
@@ -1239,7 +1363,12 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsGatheringSyncNonBillableAmount
 				},
 			},
 			// We'll wait till the end of the billing cadence of the item
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
 		},
 	})
 }
@@ -1340,7 +1469,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncBillableAmountPro
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 	s.assertCreditThenInvoiceBalances(startBalances)
 
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+	s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -1349,20 +1478,50 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncBillableAmountPro
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      alpacadecimal.NewFromFloat(0.32), // 10 * 1 / 31
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{
-				s.mustParseTime("2024-01-01T00:00:00Z"),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(0.32), // 10 * 1 / 31
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				},
+			},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   "in-advance",
+				Version:   0,
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusDeleted),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(10),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
 			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -1372,20 +1531,28 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncBillableAmountPro
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      alpacadecimal.NewFromFloat(19.35), // 20 * 30 / 31
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(20),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-02T00:00:00Z"),
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{
-				s.mustParseTime("2024-01-01T00:00:00Z"),
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(19.35), // 20 * 30 / 31
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -1395,20 +1562,24 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncBillableAmountPro
 				PeriodMin: 1,
 				PeriodMax: 1,
 			},
-
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(20),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-02-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{
-				s.mustParseTime("2024-02-01T00:00:00Z"),
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
 			// Periods:   s.generatePeriods("2024-01-01T12:00:00Z", "2024-01-02T12:00:00Z", "P1D", 5),
 			// InvoiceAt: s.generateDailyTimestamps("2024-01-01T12:00:00Z", 5),
 		},
@@ -1516,7 +1687,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncDraftInvoiceProra
 		})
 
 		draftInvoice = draftInvoices[0]
-		s.expectLines(draftInvoice, subsView.Subscription.ID, []expectedLine{
+		s.assertCharges(ctx, subsView, []expectedCharge{
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey:  "first-phase",
@@ -1525,14 +1696,54 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncDraftInvoiceProra
 					PeriodMin: 0,
 					PeriodMax: 0,
 				},
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusActiveRealizationProcessing),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromFloat(6),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				})),
+				}),
 				Periods: []timeutil.ClosedPeriod{
 					{
 						From: s.mustParseTime("2024-01-01T00:00:00Z"),
 						To:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					},
+				},
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+				Realizations: []expectedChargeRealization{
+					{
+						Status: draftInvoice.Status,
+						Totals: totals.Totals{
+							Amount:       alpacadecimal.NewFromFloat(6),
+							CreditsTotal: alpacadecimal.NewFromFloat(2),
+							Total:        alpacadecimal.NewFromFloat(4),
+						},
+					},
+				},
+			},
+			{
+				Matcher: recurringLineMatcher{
+					PhaseKey:  "first-phase",
+					ItemKey:   "in-advance",
+					Version:   0,
+					PeriodMin: 1,
+					PeriodMax: 1,
+				},
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusCreated),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(6),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Periods: []timeutil.ClosedPeriod{
+					{
+						From: s.mustParseTime("2024-02-01T00:00:00Z"),
+						To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					},
+				},
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+				GatheringLines: []expectedChargeGatheringLine{
+					{
+						InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
 					},
 				},
 			},
@@ -1566,7 +1777,60 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncDraftInvoiceProra
 		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 		s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
-		s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+		s.assertCharges(ctx, updatedSubsView, []expectedCharge{
+			{
+				Matcher: recurringLineMatcher{
+					PhaseKey:  "first-phase",
+					ItemKey:   "in-advance",
+					Version:   0,
+					PeriodMin: 0,
+					PeriodMax: 0,
+				},
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusActiveRealizationProcessing),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(6),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Periods: []timeutil.ClosedPeriod{
+					{
+						From: s.mustParseTime("2024-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2024-01-02T00:00:00Z"),
+					},
+				},
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+				Realizations: []expectedChargeRealization{
+					{
+						Status: draftInvoice.Status,
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(0.19), // 6 * 1 / 31
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+				},
+			},
+			{
+				Matcher: recurringLineMatcher{
+					PhaseKey:  "first-phase",
+					ItemKey:   "in-advance",
+					Version:   0,
+					PeriodMin: 1,
+					PeriodMax: 1,
+				},
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusDeleted),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(6),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Periods: []timeutil.ClosedPeriod{
+					{
+						From: s.mustParseTime("2024-02-01T00:00:00Z"),
+						To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					},
+				},
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			},
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey:  "first-phase",
@@ -1575,18 +1839,28 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncDraftInvoiceProra
 					PeriodMin: 0,
 					PeriodMax: 0,
 				},
-
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-					Amount:      alpacadecimal.NewFromFloat(9.68), // 10 * 30 / 31
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusCreated),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(10),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				})),
+				}),
 				Periods: []timeutil.ClosedPeriod{
 					{
 						From: s.mustParseTime("2024-01-02T00:00:00Z"),
 						To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 					},
 				},
-				InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+				GatheringLines: []expectedChargeGatheringLine{
+					{
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(9.68), // 10 * 30 / 31
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+						InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+					},
+				},
 			},
 			{
 				Matcher: recurringLineMatcher{
@@ -1596,18 +1870,24 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncDraftInvoiceProra
 					PeriodMin: 1,
 					PeriodMax: 1,
 				},
-
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusCreated),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromFloat(10),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				})),
+				}),
 				Periods: []timeutil.ClosedPeriod{
 					{
 						From: s.mustParseTime("2024-02-01T00:00:00Z"),
 						To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 					},
 				},
-				InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+				GatheringLines: []expectedChargeGatheringLine{
+					{
+						InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+					},
+				},
 			},
 		})
 
@@ -1626,7 +1906,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncDraftInvoiceProra
 			WashPromotional:    -2,
 		})
 
-		s.expectLines(draftInvoice, subsView.Subscription.ID, []expectedLine{
+		s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey:  "first-phase",
@@ -1635,15 +1915,110 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncDraftInvoiceProra
 					PeriodMin: 0,
 					PeriodMax: 0,
 				},
-
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-					Amount:      alpacadecimal.NewFromFloat(0.19), // 6 * 1 / 31
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusActiveRealizationProcessing),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(6),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				})),
+				}),
 				Periods: []timeutil.ClosedPeriod{
 					{
 						From: s.mustParseTime("2024-01-01T00:00:00Z"),
 						To:   s.mustParseTime("2024-01-02T00:00:00Z"),
+					},
+				},
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+				Realizations: []expectedChargeRealization{
+					{
+						Status: draftInvoice.Status,
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(0.19), // 6 * 1 / 31
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+						Totals: totals.Totals{
+							Amount:       alpacadecimal.NewFromFloat(0.19),
+							CreditsTotal: alpacadecimal.NewFromFloat(0.19),
+						},
+					},
+				},
+			},
+			{
+				Matcher: recurringLineMatcher{
+					PhaseKey:  "first-phase",
+					ItemKey:   "in-advance",
+					Version:   0,
+					PeriodMin: 1,
+					PeriodMax: 1,
+				},
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusDeleted),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(6),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Periods: []timeutil.ClosedPeriod{
+					{
+						From: s.mustParseTime("2024-02-01T00:00:00Z"),
+						To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					},
+				},
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			},
+			{
+				Matcher: recurringLineMatcher{
+					PhaseKey:  "first-phase",
+					ItemKey:   "in-advance",
+					Version:   1,
+					PeriodMin: 0,
+					PeriodMax: 0,
+				},
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusCreated),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(10),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Periods: []timeutil.ClosedPeriod{
+					{
+						From: s.mustParseTime("2024-01-02T00:00:00Z"),
+						To:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					},
+				},
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+				GatheringLines: []expectedChargeGatheringLine{
+					{
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(9.68), // 10 * 30 / 31
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+						InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+					},
+				},
+			},
+			{
+				Matcher: recurringLineMatcher{
+					PhaseKey:  "first-phase",
+					ItemKey:   "in-advance",
+					Version:   1,
+					PeriodMin: 1,
+					PeriodMax: 1,
+				},
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusCreated),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(10),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Periods: []timeutil.ClosedPeriod{
+					{
+						From: s.mustParseTime("2024-02-01T00:00:00Z"),
+						To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					},
+				},
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+				GatheringLines: []expectedChargeGatheringLine{
+					{
+						InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
 					},
 				},
 			},
@@ -1791,7 +2166,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePror
 			WashPromotional:    -2,
 			WashInvoice:        -4,
 		})
-		s.expectLines(approvedInvoice, subsView.Subscription.ID, []expectedLine{
+		s.assertCharges(ctx, subsView, []expectedCharge{
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey:  "first-phase",
@@ -1800,14 +2175,54 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePror
 					PeriodMin: 0,
 					PeriodMax: 0,
 				},
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusFinal),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromFloat(6),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				})),
+				}),
 				Periods: []timeutil.ClosedPeriod{
 					{
 						From: s.mustParseTime("2024-01-01T00:00:00Z"),
 						To:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					},
+				},
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+				Realizations: []expectedChargeRealization{
+					{
+						Status: approvedInvoice.Status,
+						Totals: totals.Totals{
+							Amount:       alpacadecimal.NewFromFloat(6),
+							CreditsTotal: alpacadecimal.NewFromFloat(2),
+							Total:        alpacadecimal.NewFromFloat(4),
+						},
+					},
+				},
+			},
+			{
+				Matcher: recurringLineMatcher{
+					PhaseKey:  "first-phase",
+					ItemKey:   "in-advance",
+					Version:   0,
+					PeriodMin: 1,
+					PeriodMax: 1,
+				},
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusCreated),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(6),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Periods: []timeutil.ClosedPeriod{
+					{
+						From: s.mustParseTime("2024-02-01T00:00:00Z"),
+						To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					},
+				},
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+				GatheringLines: []expectedChargeGatheringLine{
+					{
+						InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
 					},
 				},
 			},
@@ -1845,7 +2260,66 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePror
 		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 		s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
-		s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+		s.assertCharges(ctx, updatedSubsView, []expectedCharge{
+			{
+				Matcher: recurringLineMatcher{
+					PhaseKey:  "first-phase",
+					ItemKey:   "in-advance",
+					Version:   0,
+					PeriodMin: 0,
+					PeriodMax: 0,
+				},
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusFinal),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(6),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Periods: []timeutil.ClosedPeriod{
+					{
+						From: s.mustParseTime("2024-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2024-01-02T00:00:00Z"),
+					},
+				},
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+				Realizations: []expectedChargeRealization{
+					{
+						Period: timeutil.ClosedPeriod{
+							From: s.mustParseTime("2024-01-01T00:00:00Z"),
+							To:   s.mustParseTime("2024-02-01T00:00:00Z"),
+						},
+						Status:   billing.StandardInvoiceStatusPaid,
+						IsVoided: true,
+						Totals: totals.Totals{
+							Amount:       alpacadecimal.NewFromFloat(6),
+							CreditsTotal: alpacadecimal.NewFromFloat(2),
+							Total:        alpacadecimal.NewFromFloat(4),
+						},
+					},
+				},
+			},
+			{
+				Matcher: recurringLineMatcher{
+					PhaseKey:  "first-phase",
+					ItemKey:   "in-advance",
+					Version:   0,
+					PeriodMin: 1,
+					PeriodMax: 1,
+				},
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusDeleted),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(6),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Periods: []timeutil.ClosedPeriod{
+					{
+						From: s.mustParseTime("2024-02-01T00:00:00Z"),
+						To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					},
+				},
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			},
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey:  "first-phase",
@@ -1854,18 +2328,28 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePror
 					PeriodMin: 0,
 					PeriodMax: 0,
 				},
-
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-					Amount:      alpacadecimal.NewFromFloat(9.68), // 10 * 30 / 31
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusCreated),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(10),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				})),
+				}),
 				Periods: []timeutil.ClosedPeriod{
 					{
 						From: s.mustParseTime("2024-01-02T00:00:00Z"),
 						To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 					},
 				},
-				InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+				GatheringLines: []expectedChargeGatheringLine{
+					{
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(9.68), // 10 * 30 / 31
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+						InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+					},
+				},
 			},
 			{
 				Matcher: recurringLineMatcher{
@@ -1875,18 +2359,24 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePror
 					PeriodMin: 1,
 					PeriodMax: 1,
 				},
-
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusCreated),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromFloat(10),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				})),
+				}),
 				Periods: []timeutil.ClosedPeriod{
 					{
 						From: s.mustParseTime("2024-02-01T00:00:00Z"),
 						To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 					},
 				},
-				InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+				GatheringLines: []expectedChargeGatheringLine{
+					{
+						InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+					},
+				},
 			},
 		})
 
@@ -1910,28 +2400,6 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePror
 			WashInvoice:        -4,
 		})
 
-		s.expectLines(approvedInvoice, subsView.Subscription.ID, []expectedLine{
-			{
-				Matcher: recurringLineMatcher{
-					PhaseKey:  "first-phase",
-					ItemKey:   "in-advance",
-					Version:   0,
-					PeriodMin: 0,
-					PeriodMax: 0,
-				},
-
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-					Amount:      alpacadecimal.NewFromFloat(6),
-					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				})),
-				Periods: []timeutil.ClosedPeriod{
-					{
-						From: s.mustParseTime("2024-01-01T00:00:00Z"),
-						To:   s.mustParseTime("2024-02-01T00:00:00Z"),
-					},
-				},
-			},
-		})
 		s.Len(approvedInvoice.ValidationIssues, 1)
 
 		issue := approvedInvoice.ValidationIssues[0]
@@ -2183,7 +2651,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 	s.assertCreditThenInvoiceBalances(startBalances)
 
-	expectedLines := []expectedLine{
+	expectedCharges := []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -2193,21 +2661,24 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 				PeriodMax: 0,
 			},
 
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -2218,10 +2689,12 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 				PeriodMax: 7,
 			},
 
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(8),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-02T00:00:00Z"),
@@ -2258,21 +2731,39 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 				},
 			},
 			// in-advance items are invoiced immediately when change happens
-			InvoiceAt: mo.Some([]time.Time{
+			InvoiceAt: []*time.Time{
 				// In Advance Items are invoicable at the start of the Billing Period (even if thats before the start of their creation / service period)
-				s.mustParseTime("2024-01-01T00:00:00Z"),
-				s.mustParseTime("2024-01-01T00:00:00Z"),
-				s.mustParseTime("2024-01-01T00:00:00Z"),
-				s.mustParseTime("2024-01-01T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-			}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+				lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-01-29T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-01-29T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-01-29T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-01-29T00:00:00Z")),
+			},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "first-phase",
+						ItemKey:   "in-advance",
+						Version:   1,
+						PeriodMin: 0,
+						PeriodMax: 3,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				},
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "first-phase",
+						ItemKey:   "in-advance",
+						Version:   1,
+						PeriodMin: 4,
+						PeriodMax: 7,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-29T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -2283,21 +2774,24 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 				PeriodMax: 0,
 			},
 
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-01-02T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-29T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-29T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-29T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -2308,10 +2802,12 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 				PeriodMax: 3,
 			},
 
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(7),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-02T00:00:00Z"),
@@ -2330,21 +2826,28 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 					To:   s.mustParseTime("2024-01-29T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-				s.mustParseTime("2024-01-29T00:00:00Z"),
-			}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{
+				lo.ToPtr(s.mustParseTime("2024-01-29T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-01-29T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-01-29T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-01-29T00:00:00Z")),
+			},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "first-phase",
+						ItemKey:   "in-arrears",
+						Version:   1,
+						PeriodMin: 0,
+						PeriodMax: 3,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-29T00:00:00Z")),
+				},
+			},
 		},
 	}
 
-	s.assertFlatFeeChargesForLines(ctx, subView, expectedLines)
-	s.expectLines(gatheringInvoice, subView.Subscription.ID, expectedLines)
+	s.assertCharges(ctx, subView, expectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionCancellation() {
@@ -2437,38 +2940,57 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionCancellation() {
 
 	// Trial isn't synchronized as its a free trial...
 	// Let's check the default phase
-	expectedLines := []expectedLine{
+	expectedCharges := []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "default",
 				ItemKey:   s.APIRequestsTotalFeature.Key,
 				Version:   0,
 				PeriodMin: 0,
-				PeriodMax: 1,
+				PeriodMax: 0,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(5)})),
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price:  productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(5)}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: startTime.AddDate(0, 1, 0),
 					To:   startTime.AddDate(0, 2, 0),
 				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(startTime.AddDate(0, 2, 0))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(startTime.AddDate(0, 2, 0)),
+				},
+			},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "default",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				Version:   0,
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price:  productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(5)}),
+			Periods: []timeutil.ClosedPeriod{
 				{
 					From: startTime.AddDate(0, 2, 0),
 					To:   startTime.AddDate(0, 3, 0),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{
-				startTime.AddDate(0, 2, 0),
-				startTime.AddDate(0, 3, 0),
-			}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(usagebased.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(startTime.AddDate(0, 3, 0))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(startTime.AddDate(0, 3, 0)),
+				},
+			},
 		},
 	}
-	s.assertChargesForLines(ctx, subView, expectedLines)
-	s.expectLines(gatheringInvoice, subView.Subscription.ID, expectedLines)
+	s.assertCharges(ctx, subView, expectedCharges)
 
 	// Let's cancel the subscription a day later
 	cancelAt := clock.Now().Add(time.Hour * 24)
@@ -2487,7 +3009,11 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionCancellation() {
 
 	// Let's validate that every line was canceled
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.assertChargesForLines(ctx, subView, nil)
+	expectedCharges[0].Status = string(usagebased.StatusDeleted)
+	expectedCharges[0].GatheringLines = nil
+	expectedCharges[1].Status = string(usagebased.StatusDeleted)
+	expectedCharges[1].GatheringLines = nil
+	s.assertCharges(ctx, subView, expectedCharges)
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 }
 
@@ -2586,30 +3112,30 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProgressiveBillingCa
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
 	// Let's check the default phase
-	initialExpectedLines := []expectedLine{
+	initialExpectedCharges := []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey: "default",
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
-			Price: mo.Some(testPrice),
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price:  testPrice,
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: startTime,
 					To:   startTime.AddDate(0, 1, 0),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{
-				startTime.AddDate(0, 1, 0),
-			}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(usagebased.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(startTime.AddDate(0, 1, 0))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(startTime.AddDate(0, 1, 0)),
+				},
+			},
 		},
 	}
-	s.assertChargesForLines(ctx, subView, initialExpectedLines)
-	s.expectLines(gatheringInvoice, subView.Subscription.ID, initialExpectedLines)
+	s.assertCharges(ctx, subView, initialExpectedCharges)
 
 	// Given we already have a progressively billed line/invoice for a day
 	// Let's advane the clock a day
@@ -2751,7 +3277,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 	s.assertCreditThenInvoiceBalances(startBalances)
 
-	expectedLines := []expectedLine{
+	expectedCharges := []expectedCharge{
 		{
 			Matcher: oneTimeLineMatcher{
 				PhaseKey: "first-phase",
@@ -2759,26 +3285,28 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 				Version:  0,
 			},
 
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-01-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				},
+			},
 		},
 	}
 
-	s.assertFlatFeeChargesForLines(ctx, subsView, expectedLines)
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, expectedLines)
+	s.assertCharges(ctx, subsView, expectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
@@ -2896,7 +3424,7 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 	s.assertCreditThenInvoiceBalances(startBalances)
 
-	expectedLines := []expectedLine{
+	expectedCharges := []expectedCharge{
 		{
 			Matcher: oneTimeLineMatcher{
 				PhaseKey: "first-phase",
@@ -2904,26 +3432,28 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
 				Version:  0,
 			},
 
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-15T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-15T00:00:00Z")),
+				},
+			},
 		},
 	}
 
-	s.assertFlatFeeChargesForLines(ctx, subsView, expectedLines)
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, expectedLines)
+	s.assertCharges(ctx, subsView, expectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
@@ -2981,7 +3511,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
-	initialExpectedLines := []expectedLine{
+	initialExpectedCharges := []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -2990,24 +3520,26 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(usagebased.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
 		},
 	}
-	s.assertChargesForLines(ctx, subsView, initialExpectedLines)
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, initialExpectedLines)
+	s.assertCharges(ctx, subsView, initialExpectedCharges)
 
 	updatedSubsView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subsView.Subscription.NamespacedID, []subscription.Patch{
 		patch.PatchAddPhase{
@@ -3056,7 +3588,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
-	updatedExpectedLines := []expectedLine{
+	updatedExpectedCharges := []expectedCharge{
 		// we'll have the single line in the first phase truncated to its 2 day length
 		{
 			Matcher: recurringLineMatcher{
@@ -3066,21 +3598,23 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-01-03T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-03T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(usagebased.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-03T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-03T00:00:00Z")),
+				},
+			},
 		},
 		// We'll have one line for the second phase that gets aligned to the billing anchor
 		{
@@ -3091,25 +3625,26 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-03T00:00:00Z"),
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(usagebased.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
 		},
 	}
-	s.assertChargesForLines(ctx, updatedSubsView, updatedExpectedLines)
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, updatedExpectedLines)
+	s.assertCharges(ctx, updatedSubsView, updatedExpectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice() {
@@ -3180,7 +3715,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-03-01T00:00:00Z")))
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
-	initialExpectedLines := []expectedLine{
+	initialExpectedCharges := []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -3189,9 +3724,11 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 				PeriodMin: 0,
 				PeriodMax: 1,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -3202,17 +3739,35 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{
-				s.mustParseTime("2024-02-01T00:00:00Z"),
-				s.mustParseTime("2024-03-01T00:00:00Z"),
-			}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(usagebased.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{
+				lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+			},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "first-phase",
+						ItemKey:   s.APIRequestsTotalFeature.Key,
+						Version:   0,
+						PeriodMin: 0,
+						PeriodMax: 0,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "first-phase",
+						ItemKey:   s.APIRequestsTotalFeature.Key,
+						Version:   0,
+						PeriodMin: 1,
+						PeriodMax: 1,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+				},
+			},
 		},
 	}
-	s.assertChargesForLines(ctx, subsView, initialExpectedLines)
+	s.assertCharges(ctx, subsView, initialExpectedCharges)
 
 	// Some time has passed, we're syncing the draft invoice
 	clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
@@ -3225,30 +3780,37 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 	draftInvoice := draftInvoices[0]
 	s.DebugDumpInvoice("draft invoice", draftInvoice)
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
-	s.expectLines(draftInvoice, subsView.Subscription.ID, []expectedLine{
+	s.assertCharges(ctx, subsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
-				PhaseKey: "first-phase",
-				ItemKey:  s.APIRequestsTotalFeature.Key,
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				Version:   0,
+				PeriodMin: 0,
+				PeriodMax: 0,
 			},
-			Qty: mo.Some[float64](11),
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusActiveFinalRealizationWaitingForCollection),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			Realizations: []expectedChargeRealization{
+				{
+					Status: draftInvoice.Status,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromFloat(110),
+						Total:  alpacadecimal.NewFromFloat(110),
+					},
+				},
+			},
 		},
-	})
-
-	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
-	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
-
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -3257,18 +3819,29 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 				PeriodMin: 1,
 				PeriodMax: 1,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-02-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-03-01T00:00:00Z")}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+				},
+			},
 		},
 	})
+
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
 	// To simulate late subscription events (the events not being processed in time by the billing worker)
 	// we'll do a time-travel here to work around otherwise system limitations.
@@ -3309,7 +3882,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
-	updatedGatheringExpectedLines := []expectedLine{
+	updatedExpectedCharges := []expectedCharge{
 		// The mutable draft line is deleted and recreated as a gathering line for the shortened first phase.
 		{
 			Matcher: recurringLineMatcher{
@@ -3319,20 +3892,23 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusActive),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-01-31T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-31T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(usagebased.StatusActive),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-31T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-31T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -3342,20 +3918,23 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-31T00:00:00Z"),
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(usagebased.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -3365,24 +3944,47 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 				PeriodMin: 1,
 				PeriodMax: 1,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-02-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-03-01T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(usagebased.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+				},
+			},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				Version:   0,
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusDeleted),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
 			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z"))},
 		},
 	}
-	s.assertChargesForLines(ctx, updatedSubsView, updatedGatheringExpectedLines)
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, updatedGatheringExpectedLines)
+	s.assertCharges(ctx, updatedSubsView, updatedExpectedCharges)
 
 	updatedDraftInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 		Invoice: draftInvoice.GetInvoiceID(),
@@ -3499,7 +4101,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-03-01T00:00:00Z")))
 	s.assertCreditThenInvoiceBalances(startBalances)
 
-	initialExpectedLines := []expectedLine{
+	initialExpectedCharges := []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -3508,9 +4110,11 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 				PeriodMin: 0,
 				PeriodMax: 1,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -3521,17 +4125,35 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{
-				s.mustParseTime("2024-02-01T00:00:00Z"),
-				s.mustParseTime("2024-03-01T00:00:00Z"),
-			}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(usagebased.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{
+				lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+			},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "first-phase",
+						ItemKey:   s.APIRequestsTotalFeature.Key,
+						Version:   0,
+						PeriodMin: 0,
+						PeriodMax: 0,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "first-phase",
+						ItemKey:   s.APIRequestsTotalFeature.Key,
+						Version:   0,
+						PeriodMin: 1,
+						PeriodMax: 1,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+				},
+			},
 		},
 	}
-	s.assertChargesForLines(ctx, subsView, initialExpectedLines)
+	s.assertCharges(ctx, subsView, initialExpectedCharges)
 
 	clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
 	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -3544,7 +4166,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 	draftInvoice := draftInvoices[0]
 	s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, draftInvoice.Status)
 
-	draftInvoice, err = s.BillingService.SnapshotQuantities(ctx, draftInvoice.GetInvoiceID())
+	draftInvoice, err = s.BillingService.ForceCollectInvoice(ctx, draftInvoice.GetInvoiceID())
 	s.NoError(err)
 	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, draftInvoice.Status)
 	s.assertCreditThenInvoiceBalances(afterDraftInvoiceBalances)
@@ -3555,25 +4177,17 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 	s.Len(issuedInvoice.ValidationIssues, 0)
 	s.DebugDumpInvoice("issued invoice", issuedInvoice)
 	s.assertCreditThenInvoiceBalances(afterIssuedInvoiceBalances)
-	s.expectLines(issuedInvoice, subsView.Subscription.ID, []expectedLine{
-		{
-			Matcher: recurringLineMatcher{
-				PhaseKey: "first-phase",
-				ItemKey:  s.APIRequestsTotalFeature.Key,
-			},
-
-			Qty: mo.Some[float64](12),
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount: alpacadecimal.NewFromFloat(10),
-			})),
-			Periods: []timeutil.ClosedPeriod{
-				{
-					From: s.mustParseTime("2024-01-01T00:00:00Z"),
-					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
-				},
-			},
-		},
-	})
+	issuedInvoiceLines := issuedInvoice.Lines.OrEmpty()
+	s.Require().Len(issuedInvoiceLines, 1)
+	issuedInvoiceLine := issuedInvoiceLines[0]
+	s.AssertDecimalEqual(alpacadecimal.NewFromFloat(12), *issuedInvoiceLine.GetQuantity(), "issued invoice quantity")
+	s.True(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		Amount: alpacadecimal.NewFromFloat(10),
+	}).Equal(issuedInvoiceLine.GetPrice()), "issued invoice price")
+	s.Equal(timeutil.ClosedPeriod{
+		From: s.mustParseTime("2024-01-01T00:00:00Z"),
+		To:   s.mustParseTime("2024-02-01T00:00:00Z"),
+	}, issuedInvoiceLine.GetServicePeriod())
 
 	s.DebugDumpInvoice("gathering invoice", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
 	s.assertCreditThenInvoiceBalances(afterIssuedInvoiceBalances)
@@ -3614,7 +4228,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
-	updatedGatheringExpectedLines := []expectedLine{
+	s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -3623,20 +4237,54 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusActive),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-01-31T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-31T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(usagebased.StatusActive),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-31T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-31T00:00:00Z")),
+				},
+			},
+			Realizations: []expectedChargeRealization{
+				{
+					Period: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2024-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					},
+					Status:   billing.StandardInvoiceStatusPaid,
+					IsVoided: true,
+				},
+			},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				Version:   0,
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusDeleted),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
 			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z"))},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -3646,20 +4294,23 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-31T00:00:00Z"),
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(usagebased.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -3669,24 +4320,25 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 				PeriodMin: 1,
 				PeriodMax: 1,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-02-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-03-01T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(usagebased.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+				},
+			},
 		},
-	}
-	s.assertChargesForLines(ctx, updatedSubsView, updatedGatheringExpectedLines)
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, updatedGatheringExpectedLines)
+	})
 
 	updatedIssuedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 		Invoice: issuedInvoice.GetInvoiceID(),
@@ -3696,35 +4348,26 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 	s.DebugDumpInvoice("issued invoice - 2nd sync", updatedIssuedInvoice)
 	s.assertCreditThenInvoiceBalances(afterIssuedInvoiceBalances)
 
-	s.expectLines(updatedIssuedInvoice, subsView.Subscription.ID, []expectedLine{
-		{
-			Matcher: recurringLineMatcher{
-				PhaseKey: "first-phase",
-				ItemKey:  s.APIRequestsTotalFeature.Key,
-			},
-
-			Qty: mo.Some[float64](12),
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount: alpacadecimal.NewFromFloat(10),
-			})),
-			Periods: []timeutil.ClosedPeriod{
-				{
-					From: s.mustParseTime("2024-01-01T00:00:00Z"),
-					To:   s.mustParseTime("2024-02-01T00:00:00Z"), // This is not updated, which is what we want
-				},
-			},
-		},
-	})
+	updatedIssuedInvoiceLines := updatedIssuedInvoice.Lines.OrEmpty()
+	s.Require().Len(updatedIssuedInvoiceLines, 1)
+	updatedIssuedInvoiceLine := updatedIssuedInvoiceLines[0]
+	s.AssertDecimalEqual(alpacadecimal.NewFromFloat(12), *updatedIssuedInvoiceLine.GetQuantity(), "updated issued invoice quantity")
+	s.True(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		Amount: alpacadecimal.NewFromFloat(10),
+	}).Equal(updatedIssuedInvoiceLine.GetPrice()), "updated issued invoice price")
+	s.Equal(timeutil.ClosedPeriod{
+		From: s.mustParseTime("2024-01-01T00:00:00Z"),
+		To:   s.mustParseTime("2024-02-01T00:00:00Z"), // This is not updated, which is what we want
+	}, updatedIssuedInvoiceLine.GetServicePeriod())
 
 	s.Len(updatedIssuedInvoice.ValidationIssues, 1)
 	s.expectValidationIssueForLine(updatedIssuedInvoice.Lines.OrEmpty()[0], updatedIssuedInvoice.ValidationIssues[0])
 }
 
 func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	defer clock.UnFreeze()
 
 	// Given
 	//  we have progressive billing enalbed
@@ -3752,27 +4395,108 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 
 	s.enableProgressiveBilling()
 
-	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
-		{
-			PhaseMeta: s.phaseMeta("first-phase", ""),
-			RateCards: productcatalog.RateCards{
-				&productcatalog.UsageBasedRateCard{
-					RateCardMeta: productcatalog.RateCardMeta{
-						Key:        s.APIRequestsTotalFeature.Key,
-						Name:       s.APIRequestsTotalFeature.Key,
-						FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-						FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
-						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-							Amount: alpacadecimal.NewFromFloat(10),
-						}),
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:        s.APIRequestsTotalFeature.Key,
+								Name:       s.APIRequestsTotalFeature.Key,
+								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount: alpacadecimal.NewFromFloat(10),
+								}),
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
 					},
-					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},
 			},
 		},
 	})
 
 	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-03-01T00:00:00Z")))
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+
+	s.assertCharges(ctx, subsView, []expectedCharge{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				Version:   0,
+				PeriodMin: 0,
+				PeriodMax: 0,
+			},
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{
+				lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+			},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				Version:   0,
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{
+				lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+			},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+				},
+			},
+		},
+	})
 
 	// invoice 1: issued invoice creation
 	clock.FreezeTime(s.mustParseTime("2024-01-15T00:00:00Z"))
@@ -3783,27 +4507,84 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	s.NoError(err)
 	s.Len(draftInvoices1, 1)
 
-	invoice1, err := s.BillingService.ApproveInvoice(ctx, draftInvoices1[0].GetInvoiceID())
+	s.Require().NotNil(draftInvoices1[0].CollectionAt)
+	clock.FreezeTime(*draftInvoices1[0].CollectionAt)
+	invoice1, err := s.BillingService.AdvanceInvoice(ctx, draftInvoices1[0].GetInvoiceID())
+	s.NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice1.Status)
+
+	invoice1, err = s.BillingService.ApproveInvoice(ctx, invoice1.GetInvoiceID())
 	s.NoError(err)
 	s.Equal(billing.StandardInvoiceStatusPaid, invoice1.Status)
 
 	s.populateChildIDsFromParents(&invoice1)
 	s.DebugDumpInvoice("issued invoice1", invoice1)
 
-	s.expectLines(invoice1, subsView.Subscription.ID, []expectedLine{
+	s.assertCharges(ctx, subsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
-				PhaseKey: "first-phase",
-				ItemKey:  s.APIRequestsTotalFeature.Key,
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				PeriodMin: 0,
+				PeriodMax: 0,
 			},
-			Qty: mo.Some[float64](2),
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusActive),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
-					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					Period: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2024-01-15T00:00:00Z"),
+						To:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
+			Realizations: []expectedChargeRealization{
+				{
+					Period: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2024-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2024-01-15T00:00:00Z"),
+					},
+					Status: billing.StandardInvoiceStatusPaid,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromFloat(20),
+						Total:  alpacadecimal.NewFromFloat(20),
+					},
+				},
+			},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
 				},
 			},
 		},
@@ -3822,22 +4603,84 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	draftInvoice2 := draftInvoices2[0]
 	s.populateChildIDsFromParents(&draftInvoice2)
 	s.DebugDumpInvoice("draft invoice2", draftInvoice2)
-	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, draftInvoice2.Status)
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, draftInvoice2.Status)
 
-	s.expectLines(draftInvoice2, subsView.Subscription.ID, []expectedLine{
+	s.assertCharges(ctx, subsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
-				PhaseKey: "first-phase",
-				ItemKey:  s.APIRequestsTotalFeature.Key,
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				PeriodMin: 0,
+				PeriodMax: 0,
 			},
-			Qty: mo.Some[float64](3),
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusActivePartialInvoiceWaitingForCollection),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
-					From: s.mustParseTime("2024-01-15T00:00:00Z"),
-					To:   s.mustParseTime("2024-01-18T00:00:00Z"),
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					Period: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2024-01-18T00:00:00Z"),
+						To:   s.mustParseTime("2024-02-01T00:00:00Z"),
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
+			Realizations: []expectedChargeRealization{
+				{
+					Period: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2024-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2024-01-15T00:00:00Z"),
+					},
+					Status: billing.StandardInvoiceStatusPaid,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromFloat(20),
+						Total:  alpacadecimal.NewFromFloat(20),
+					},
+				},
+				{
+					Period: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2024-01-15T00:00:00Z"),
+						To:   s.mustParseTime("2024-01-18T00:00:00Z"),
+					},
+					Status: billing.StandardInvoiceStatusDraftWaitingForCollection,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromFloat(30),
+						Total:  alpacadecimal.NewFromFloat(30),
+					},
+				},
+			},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
 				},
 			},
 		},
@@ -3848,34 +4691,6 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	s.populateChildIDsFromParents(&gatheringInvoice)
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
-		{
-			Matcher: recurringLineMatcher{
-				PhaseKey:  "first-phase",
-				ItemKey:   s.APIRequestsTotalFeature.Key,
-				Version:   0,
-				PeriodMin: 0,
-				PeriodMax: 1,
-			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount: alpacadecimal.NewFromFloat(10),
-			})),
-			Periods: []timeutil.ClosedPeriod{
-				{
-					From: s.mustParseTime("2024-01-18T00:00:00Z"),
-					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
-				},
-				{
-					From: s.mustParseTime("2024-02-01T00:00:00Z"),
-					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
-				},
-			},
-			InvoiceAt: mo.Some([]time.Time{
-				s.mustParseTime("2024-02-01T00:00:00Z"),
-				s.mustParseTime("2024-03-01T00:00:00Z"),
-			}),
-		},
-	})
 	clock.FreezeTime(s.mustParseTime("2024-01-09T12:00:00Z"))
 
 	updatedSubsView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subsView.Subscription.NamespacedID, []subscription.Patch{
@@ -3913,33 +4728,119 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	s.populateChildIDsFromParents(&gatheringInvoice)
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+	s.assertCharges(ctx, updatedSubsView, []expectedCharge{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				Version:   0,
+				PeriodMin: 0,
+				PeriodMax: 0,
+			},
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusActive),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-01-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-01-11T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-11T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-11T00:00:00Z")),
+				},
+			},
+			Realizations: []expectedChargeRealization{
+				{
+					Period: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2024-01-01T00:00:00Z"),
+						To:   s.mustParseTime("2024-01-15T00:00:00Z"),
+					},
+					Status:   billing.StandardInvoiceStatusPaid,
+					IsVoided: true,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromFloat(20),
+						Total:  alpacadecimal.NewFromFloat(20),
+					},
+				},
+			},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				Version:   0,
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusDeleted),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2024-02-01T00:00:00Z"),
+					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z"))},
+		},
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "second-phase",
 				ItemKey:   s.APIRequestsTotalFeature.Key,
 				Version:   0,
 				PeriodMin: 0,
-				PeriodMax: 1,
+				PeriodMax: 0,
 			},
-
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-11T00:00:00Z"),
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "second-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				Version:   0,
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(5),
+			}),
+			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-02-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{
-				s.mustParseTime("2024-02-01T00:00:00Z"),
-				s.mustParseTime("2024-03-01T00:00:00Z"),
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+				},
+			},
 		},
 	})
 
@@ -3952,26 +4853,6 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 
 	s.populateChildIDsFromParents(&updatedIssuedInvoice)
 	s.DebugDumpInvoice("invoice1 (issued) - 2nd sync", updatedIssuedInvoice)
-
-	// remains the same
-	s.expectLines(updatedIssuedInvoice, subsView.Subscription.ID, []expectedLine{
-		{
-			Matcher: recurringLineMatcher{
-				PhaseKey: "first-phase",
-				ItemKey:  s.APIRequestsTotalFeature.Key,
-			},
-			Qty: mo.Some[float64](2),
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount: alpacadecimal.NewFromFloat(10),
-			})),
-			Periods: []timeutil.ClosedPeriod{
-				{
-					From: s.mustParseTime("2024-01-01T00:00:00Z"),
-					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
-				},
-			},
-		},
-	})
 
 	s.expectValidationIssueForLine(updatedIssuedInvoice.Lines.OrEmpty()[0], updatedIssuedInvoice.ValidationIssues[0])
 
@@ -4404,30 +5285,32 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 	s.DebugDumpInvoice("instant invoice", instantInvoice)
 
 	// Instant invoice should have the in advance fee
-	expectedLines := []expectedLine{
+	expectedCharges := []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  "in-advance",
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusActiveRealizationProcessing),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(6),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusActiveRealizationProcessing),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			Realizations: []expectedChargeRealization{
+				{
+					Status: instantInvoice.Status,
+				},
+			},
 		},
 	}
-	s.assertChargesForLines(ctx, subsView, expectedLines)
-	s.expectLines(instantInvoice, subsView.Subscription.ID, expectedLines)
+	s.assertCharges(ctx, subsView, expectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCreationWithSubscriptionStartInFuture() {
@@ -4531,31 +5414,33 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
 	// Gathering invoice should have the UBP line
-	expectedLines := []expectedLine{
+	expectedCharges := []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  "in-advance",
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(6),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-02-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{futureStart}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(futureStart)},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(futureStart),
+				},
+			},
 		},
 	}
-	s.assertChargesForLines(ctx, subsView, expectedLines)
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, expectedLines)
+	s.assertCharges(ctx, subsView, expectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
@@ -4698,27 +5583,30 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 		// then:
 		// - the instant line has a full discount and no credit allocation
 		// - promotional credits remain available on the ledger
-		gatheringExpectedLines := []expectedLine{
+		expectedCharges := []expectedCharge{
 			// Gathering invoice should have the UBP line
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey: "first-phase",
 					ItemKey:  s.APIRequestsTotalFeature.Key,
 				},
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Type:   chargesmeta.ChargeTypeUsageBased,
+				Status: string(usagebased.StatusCreated),
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromFloat(10),
-				})),
+				}),
 				Periods: []timeutil.ClosedPeriod{
 					{
 						From: s.mustParseTime("2024-01-01T00:00:00Z"),
 						To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 					},
 				},
-				InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
-				Charge: mo.Some(chargeExpects{
-					Status:         string(usagebased.StatusCreated),
-					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				}),
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+				GatheringLines: []expectedChargeGatheringLine{
+					{
+						InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+					},
+				},
 			},
 			// And next Billing Period's in advance line
 			{
@@ -4729,50 +5617,51 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 					PeriodMax: 1,
 					Version:   0,
 				},
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusCreated),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromFloat(6),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				})),
+				}),
 				Periods: []timeutil.ClosedPeriod{
 					{
 						From: s.mustParseTime("2024-02-01T00:00:00Z"),
 						To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 					},
 				},
-				InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
-				Charge: mo.Some(chargeExpects{
-					Status:         string(flatfee.StatusCreated),
-					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				}),
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+				GatheringLines: []expectedChargeGatheringLine{
+					{
+						InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+					},
+				},
 			},
-		}
-		s.expectLines(*gatheringInvoice, subsView.Subscription.ID, gatheringExpectedLines)
-
-		// Instant invoice should have the in advance fee
-		instantExpectedLines := []expectedLine{
+			// Instant invoice should have the in advance fee
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey: "first-phase",
 					ItemKey:  "in-advance",
 				},
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusActiveRealizationProcessing),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromFloat(6),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				})),
+				}),
 				Periods: []timeutil.ClosedPeriod{
 					{
 						From: s.mustParseTime("2024-01-01T00:00:00Z"),
 						To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 					},
 				},
-				Charge: mo.Some(chargeExpects{
-					Status:         string(flatfee.StatusActiveRealizationProcessing),
-					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				}),
+				Realizations: []expectedChargeRealization{
+					{
+						Status: instantInvoice.Status,
+					},
+				},
 			},
 		}
-		s.expectLines(*instantInvoice, subsView.Subscription.ID, instantExpectedLines)
-		s.assertChargesForLines(ctx, subsView, append(gatheringExpectedLines, instantExpectedLines...))
+		s.assertCharges(ctx, subsView, expectedCharges)
 		s.assertCreditThenInvoiceBalances(startBalances)
 
 		// The advance fee should have 100% discount
@@ -4933,27 +5822,30 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronizationWithPartialDisco
 		// then:
 		// - the instant line has a 50% discount and consumes available promotional credits
 		// - the remaining invoice total is not covered by credits
-		gatheringExpectedLines := []expectedLine{
+		expectedCharges := []expectedCharge{
 			// Gathering invoice should have the UBP line
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey: "first-phase",
 					ItemKey:  s.APIRequestsTotalFeature.Key,
 				},
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Type:   chargesmeta.ChargeTypeUsageBased,
+				Status: string(usagebased.StatusCreated),
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromFloat(10),
-				})),
+				}),
 				Periods: []timeutil.ClosedPeriod{
 					{
 						From: s.mustParseTime("2024-01-01T00:00:00Z"),
 						To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 					},
 				},
-				InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
-				Charge: mo.Some(chargeExpects{
-					Status:         string(usagebased.StatusCreated),
-					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				}),
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+				GatheringLines: []expectedChargeGatheringLine{
+					{
+						InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+					},
+				},
 			},
 			// And next Billing Period's in advance line
 			{
@@ -4964,50 +5856,51 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronizationWithPartialDisco
 					PeriodMax: 1,
 					Version:   0,
 				},
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusCreated),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromFloat(6),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				})),
+				}),
 				Periods: []timeutil.ClosedPeriod{
 					{
 						From: s.mustParseTime("2024-02-01T00:00:00Z"),
 						To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 					},
 				},
-				InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
-				Charge: mo.Some(chargeExpects{
-					Status:         string(flatfee.StatusCreated),
-					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				}),
+				InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+				GatheringLines: []expectedChargeGatheringLine{
+					{
+						InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+					},
+				},
 			},
-		}
-		s.expectLines(*gatheringInvoice, subsView.Subscription.ID, gatheringExpectedLines)
-
-		// Instant invoice should have the in advance fee
-		instantExpectedLines := []expectedLine{
+			// Instant invoice should have the in advance fee
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey: "first-phase",
 					ItemKey:  "in-advance",
 				},
-				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Type:   chargesmeta.ChargeTypeFlatFee,
+				Status: string(flatfee.StatusActiveRealizationProcessing),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromFloat(6),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				})),
+				}),
 				Periods: []timeutil.ClosedPeriod{
 					{
 						From: s.mustParseTime("2024-01-01T00:00:00Z"),
 						To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 					},
 				},
-				Charge: mo.Some(chargeExpects{
-					Status:         string(flatfee.StatusActiveRealizationProcessing),
-					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				}),
+				Realizations: []expectedChargeRealization{
+					{
+						Status: instantInvoice.Status,
+					},
+				},
 			},
 		}
-		s.expectLines(*instantInvoice, subsView.Subscription.ID, instantExpectedLines)
-		s.assertChargesForLines(ctx, subsView, append(gatheringExpectedLines, instantExpectedLines...))
+		s.assertCharges(ctx, subsView, expectedCharges)
 		s.assertCreditThenInvoiceBalances(afterInstantInvoiceBalances)
 
 		// The advance fee should have 50% discount and consume the available credits
@@ -5151,7 +6044,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
-	expectedLines := []expectedLine{
+	expectedCharges := []expectedCharge{
 		// January is 31 days, wechange phase after 2 weeks (14 days)
 		// 5 * 14/31 = 2.258... which we round to 2.26
 		// First phase lines
@@ -5160,60 +6053,77 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				PhaseKey: "first-phase",
 				ItemKey:  "in-advance",
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      alpacadecimal.NewFromFloat(2.26),
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(2.26),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-01T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  "in-arrears",
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      alpacadecimal.NewFromFloat(2.26),
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-15T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(2.26),
+						PaymentTerm: productcatalog.InArrearsPaymentTerm,
+					}),
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-15T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  "api-requests-total",
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(10)})),
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price:  productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(10)}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-15T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-15T00:00:00Z")),
+				},
+			},
 		},
 		// We align billing to the 1st of month, so we'll prorate the first iteration
 		// January is 31 days, 31 - 14 = 17 days, 5 * 17/31 = 2.741... which we round to 2.74
@@ -5225,21 +6135,28 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      alpacadecimal.NewFromFloat(2.74),
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-15T00:00:00Z"),
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-01-15T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(2.74),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-01-15T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -5248,21 +6165,24 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				PeriodMin: 1,
 				PeriodMax: 1,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-02-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -5271,21 +6191,28 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      alpacadecimal.NewFromFloat(2.74),
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-15T00:00:00Z"),
 					To:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(2.74),
+						PaymentTerm: productcatalog.InArrearsPaymentTerm,
+					}),
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -5294,21 +6221,24 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				PeriodMin: 1,
 				PeriodMax: 1,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-02-01T00:00:00Z"),
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-03-01T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+				},
+			},
 		},
 		{
 			Matcher: recurringLineMatcher{
@@ -5318,7 +6248,9 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				PeriodMax: 1,
 			},
 			// UBP does not need prorating on price due to period being shorter
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(10.0)})),
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price:  productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(10.0)}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2024-01-15T00:00:00Z"),
@@ -5329,20 +6261,36 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z"), s.mustParseTime("2024-03-01T00:00:00Z")}),
-			Charge: mo.Some(chargeExpects{
-				Status:         string(flatfee.StatusCreated),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			}),
+			InvoiceAt: []*time.Time{
+				lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+			},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "second-phase",
+						ItemKey:   "api-requests-total",
+						PeriodMin: 0,
+						PeriodMax: 0,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-02-01T00:00:00Z")),
+				},
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "second-phase",
+						ItemKey:   "api-requests-total",
+						PeriodMin: 1,
+						PeriodMax: 1,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z")),
+				},
+			},
 		},
 	}
-	s.expectLines(gatheringInvoice, subView.Subscription.ID, expectedLines)
-	s.assertChargesForLines(ctx, subView, expectedLines)
+	s.assertCharges(ctx, subView, expectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestSynchronizeSubscriptionPeriodAlgorithmChange() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2025-01-31T00:00:00Z"))
 	defer clock.UnFreeze()
@@ -5377,6 +6325,34 @@ func (s *CreditThenInvoiceTestSuite) TestSynchronizeSubscriptionPeriodAlgorithmC
 
 	invoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", invoice)
+	expectedCharges := []expectedCharge{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-advance",
+			},
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(6),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2025-01-31T00:00:00Z"),
+					To:   s.mustParseTime("2025-02-28T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2025-01-31T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2025-01-31T00:00:00Z")),
+				},
+			},
+		},
+	}
+	s.assertCharges(ctx, subsView, expectedCharges)
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
 	err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice: invoice.GetInvoiceID(),
@@ -5408,24 +6384,17 @@ func (s *CreditThenInvoiceTestSuite) TestSynchronizeSubscriptionPeriodAlgorithmC
 	s.NoError(err)
 
 	s.DebugDumpInvoice("gathering invoice - updated", invoice)
-	s.expectLines(invoice, subsView.Subscription.ID, []expectedLine{
-		{
-			Matcher: recurringLineMatcher{
-				PhaseKey: "first-phase",
-				ItemKey:  "in-advance",
-			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      alpacadecimal.NewFromFloat(6),
-				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
-			Periods: []timeutil.ClosedPeriod{
-				{
-					From: s.mustParseTime("2025-01-31T00:00:00Z"),
-					To:   s.mustParseTime("2025-03-02T00:00:00Z"),
-				},
-			},
-		},
-	})
+	s.Require().Len(invoice.Lines.OrEmpty(), 1)
+	s.Equal(timeutil.ClosedPeriod{
+		From: s.mustParseTime("2025-01-31T00:00:00Z"),
+		To:   s.mustParseTime("2025-03-02T00:00:00Z"),
+	}, invoice.Lines.OrEmpty()[0].ServicePeriod)
+	expectedCharges[0].GatheringLines[0].Period = timeutil.ClosedPeriod{
+		From: s.mustParseTime("2025-01-31T00:00:00Z"),
+		To:   s.mustParseTime("2025-03-02T00:00:00Z"),
+	}
+	s.assertCharges(ctx, subsView, expectedCharges)
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
 	// Let's generate the next set of items
 	clock.FreezeTime(s.mustParseTime("2025-02-28T00:00:00Z"))
@@ -5435,7 +6404,7 @@ func (s *CreditThenInvoiceTestSuite) TestSynchronizeSubscriptionPeriodAlgorithmC
 	invoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice - updated", invoice)
 
-	s.expectLines(invoice, subsView.Subscription.ID, []expectedLine{
+	s.assertCharges(ctx, subsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -5443,32 +6412,56 @@ func (s *CreditThenInvoiceTestSuite) TestSynchronizeSubscriptionPeriodAlgorithmC
 				PeriodMin: 0,
 				PeriodMax: 1,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(6),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2025-01-31T00:00:00Z"),
-					To:   s.mustParseTime("2025-03-02T00:00:00Z"),
+					To:   s.mustParseTime("2025-02-28T00:00:00Z"),
 				},
 				{
-					From: s.mustParseTime("2025-03-02T00:00:00Z"),
+					From: s.mustParseTime("2025-02-28T00:00:00Z"),
 					To:   s.mustParseTime("2025-03-31T00:00:00Z"),
 				},
 			},
-
-			InvoiceAt: mo.Some([]time.Time{
-				s.mustParseTime("2025-01-31T00:00:00Z"),
-				s.mustParseTime("2025-03-02T00:00:00Z"),
-			}),
+			InvoiceAt: []*time.Time{
+				lo.ToPtr(s.mustParseTime("2025-01-31T00:00:00Z")),
+				lo.ToPtr(s.mustParseTime("2025-02-28T00:00:00Z")),
+			},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "first-phase",
+						ItemKey:   "in-advance",
+						PeriodMin: 0,
+						PeriodMax: 0,
+					},
+					Period: timeutil.ClosedPeriod{
+						From: s.mustParseTime("2025-01-31T00:00:00Z"),
+						To:   s.mustParseTime("2025-03-02T00:00:00Z"),
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2025-01-31T00:00:00Z")),
+				},
+				{
+					LineMatcher: recurringLineMatcher{
+						PhaseKey:  "first-phase",
+						ItemKey:   "in-advance",
+						PeriodMin: 1,
+						PeriodMax: 1,
+					},
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2025-02-28T00:00:00Z")),
+				},
+			},
 		},
 	})
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 }
 
 func (s *CreditThenInvoiceTestSuite) TestDeletedCustomerHandling() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
 	// Given
 	//  a customer with a subscription
 	//  the subscription has UBP prices
@@ -5532,24 +6525,33 @@ func (s *CreditThenInvoiceTestSuite) TestDeletedCustomerHandling() {
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
 	// 2025-01-01T00:00:00Z -> 2025-01-01T01:00:00Z
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+	expectedCharges := []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2025-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2025-01-01T01:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2025-01-01T01:00:00Z")}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2025-01-01T01:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2025-01-01T01:00:00Z")),
+				},
+			},
 		},
-	})
+	}
+	s.assertCharges(ctx, subsView, expectedCharges)
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
 	// Then we can invoice the customer
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -5564,24 +6566,36 @@ func (s *CreditThenInvoiceTestSuite) TestDeletedCustomerHandling() {
 	// We expect that the line is only covering the subscription's duration
 	// 2025-01-01T00:00:00Z -> 2025-01-01T01:00:00Z
 	// We expect that the invoice reaches a paid/non-error status
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+	s.assertCharges(ctx, subsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Type:   chargesmeta.ChargeTypeUsageBased,
+			Status: string(usagebased.StatusActiveFinalRealizationProcessing),
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: s.mustParseTime("2025-01-01T00:00:00Z"),
 					To:   s.mustParseTime("2025-01-01T01:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2025-01-01T01:00:00Z")}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2025-01-01T01:00:00Z"))},
+			Realizations: []expectedChargeRealization{
+				{
+					Status: invoice.Status,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromFloat(60),
+						Total:  alpacadecimal.NewFromFloat(60),
+					},
+				},
+			},
 		},
 	})
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
 	// Invoice expectations:
 	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
@@ -5589,8 +6603,6 @@ func (s *CreditThenInvoiceTestSuite) TestDeletedCustomerHandling() {
 }
 
 func (s *CreditThenInvoiceTestSuite) TestFirstDayOfMonthBillingForSubPeriodLength() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2025-10-15T00:00:00Z"))
 	defer clock.UnFreeze()
@@ -5666,47 +6678,65 @@ func (s *CreditThenInvoiceTestSuite) TestFirstDayOfMonthBillingForSubPeriodLengt
 	clock.FreezeTime(s.mustParseTime("2024-01-20T00:00:00Z")) // This will be the present
 
 	s.NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, subsView, clock.Now()))
-
-	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Customers: []string{s.Customer.ID},
-		Expand:    billing.GatheringInvoiceExpandAll,
-	})
-	s.NoError(err)
-	s.Len(invoices.Items, 1)
-
-	gatheringInvoice := invoices.Items[0]
-
-	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
-
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+	s.assertCharges(ctx, subsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey: "first-phase",
 				ItemKey:  "in-advance",
 			},
-			Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      alpacadecimal.NewFromFloat(6),
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			})),
+			}),
 			Periods: []timeutil.ClosedPeriod{
 				{
-					From: s.mustParseTime("2024-02-01T00:00:00Z"),
-					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					From: s.mustParseTime("2025-10-15T00:00:00Z"),
+					To:   s.mustParseTime("2025-11-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2025-10-15T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2025-10-15T00:00:00Z")),
+				},
+			},
 		},
 	})
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
 	s.NoError(s.Service.SyncByView(ctx, subsView, clock.Now()))
-
-	invoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice", invoice)
+	s.assertCharges(ctx, subsView, []expectedCharge{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "first-phase",
+				ItemKey:  "in-advance",
+			},
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2025-10-15T00:00:00Z"),
+					To:   s.mustParseTime("2025-11-01T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2025-10-15T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2025-10-15T00:00:00Z")),
+				},
+			},
+		},
+	})
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 }
 
 func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateNoBillables() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2025-10-15T00:00:00Z"))
 	defer clock.UnFreeze()
@@ -5777,6 +6807,8 @@ func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateNoBillables() {
 	clock.FreezeTime(s.mustParseTime("2024-01-20T00:00:00Z")) // This will be the present
 
 	s.NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, subsView, clock.Now()))
+	s.assertCharges(ctx, subsView, nil)
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
 	syncStates, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
 		{
@@ -5800,8 +6832,6 @@ func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateNoBillables() {
 }
 
 func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateWithFreePhaseActiveInTheFuture() {
-	s.T().Skip("TODO: transform this copied suite into credit then invoice settlement mode validation")
-
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2025-10-15T00:00:00Z"))
 	defer clock.UnFreeze()
@@ -5889,6 +6919,33 @@ func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateWithFreePhaseActiveInThe
 	clock.FreezeTime(s.mustParseTime("2024-01-20T00:00:00Z")) // This will be the present
 
 	s.NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, subsView, clock.Now()))
+	s.assertCharges(ctx, subsView, []expectedCharge{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "paid-phase",
+				ItemKey:  "in-advance",
+			},
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2025-12-15T00:00:00Z"),
+					To:   s.mustParseTime("2026-01-15T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2025-12-15T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2025-12-15T00:00:00Z")),
+				},
+			},
+		},
+	})
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
 	syncStates, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
 		{
@@ -5913,6 +6970,62 @@ func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateWithFreePhaseActiveInThe
 	// Let's advance the clock to simulate the next sync happening
 	clock.FreezeTime(s.mustParseTime("2025-12-15T01:00:00Z"))
 	s.NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, subsView, clock.Now()))
+	s.assertCharges(ctx, subsView, []expectedCharge{
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey: "paid-phase",
+				ItemKey:  "in-advance",
+			},
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusActiveRealizationProcessing),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2025-12-15T00:00:00Z"),
+					To:   s.mustParseTime("2026-01-15T00:00:00Z"),
+				},
+			},
+			Realizations: []expectedChargeRealization{
+				{
+					Status: billing.StandardInvoiceStatusDraftWaitingAutoApproval,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromFloat(5),
+						Total:  alpacadecimal.NewFromFloat(5),
+					},
+				},
+			},
+		},
+		{
+			Matcher: recurringLineMatcher{
+				PhaseKey:  "paid-phase",
+				ItemKey:   "in-advance",
+				PeriodMin: 1,
+				PeriodMax: 1,
+			},
+			Type:   chargesmeta.ChargeTypeFlatFee,
+			Status: string(flatfee.StatusCreated),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(5),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			Periods: []timeutil.ClosedPeriod{
+				{
+					From: s.mustParseTime("2026-01-15T00:00:00Z"),
+					To:   s.mustParseTime("2026-02-15T00:00:00Z"),
+				},
+			},
+			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2026-01-15T00:00:00Z"))},
+			GatheringLines: []expectedChargeGatheringLine{
+				{
+					InvoiceAt: lo.ToPtr(s.mustParseTime("2026-01-15T00:00:00Z")),
+				},
+			},
+		},
+	})
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
 	syncStates, err = s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
 		{
