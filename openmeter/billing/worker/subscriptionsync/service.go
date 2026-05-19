@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Service interface {
@@ -15,12 +16,15 @@ type Service interface {
 }
 
 type SyncService interface {
-	SynchronizeSubscriptionAndInvoiceCustomer(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error
-	SynchronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time, opts ...SynchronizeSubscriptionOption) error
+	SyncByViewAndInvoiceCustomer(ctx context.Context, view subscription.SubscriptionView, asOf time.Time) error
+	SyncByIDAndInvoiceCustomer(ctx context.Context, subscriptionID models.NamespacedID, asOf time.Time) error
+	SyncByView(ctx context.Context, view subscription.SubscriptionView, asOf time.Time, opts ...SynchronizeSubscriptionOption) error
+	SyncByID(ctx context.Context, subscriptionID models.NamespacedID, asOf time.Time, opts ...SynchronizeSubscriptionOption) error
 }
 
 type EventHandler interface {
 	HandleCancelledEvent(ctx context.Context, event *subscription.CancelledEvent) error
+	HandleDeletedEvent(ctx context.Context, event *subscription.DeletedEvent) error
 	HandleSubscriptionSyncEvent(ctx context.Context, event *subscription.SubscriptionSyncEvent) error
 	HandleInvoiceCreation(ctx context.Context, event *billing.StandardInvoiceCreatedEvent) error
 }

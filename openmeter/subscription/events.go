@@ -72,7 +72,7 @@ func NewDeletedEvent(ctx context.Context, view SubscriptionView) DeletedEvent {
 type DeletedEvent viewEvent
 
 var (
-	_ marshaler.Event = CreatedEvent{}
+	_ marshaler.Event = DeletedEvent{}
 
 	subscriptionDeletedEventName = metadata.GetEventName(metadata.EventType{
 		Subsystem: EventSubsystem,

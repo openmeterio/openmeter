@@ -28,7 +28,7 @@ type State struct {
 type BuildInput struct {
 	AsOf              time.Time
 	CustomerDeletedAt *time.Time
-	SubscriptionView  subscription.SubscriptionView
+	SubscriptionView  *subscription.SubscriptionView
 	Persisted         persistedstate.State
 }
 
@@ -39,8 +39,10 @@ func (i BuildInput) Validate() error {
 		errs = append(errs, errors.New("asOf is required"))
 	}
 
-	if err := i.SubscriptionView.Validate(true); err != nil {
-		errs = append(errs, err)
+	if i.SubscriptionView != nil {
+		if err := i.SubscriptionView.Validate(true); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
 	if err := i.Persisted.Validate(); err != nil {
@@ -67,7 +69,14 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 			return State{}, fmt.Errorf("validating input: %w", err)
 		}
 
-		subs := input.SubscriptionView
+		if input.SubscriptionView == nil {
+			// If the subscription is deleted, we return an empty state to force reconciliation to delete any depending objects.
+			return State{
+				MaxGenerationTimeLimit: input.AsOf,
+			}, nil
+		}
+
+		subs := *input.SubscriptionView
 		// If the customer is deleted, we need to cap the subscription view at the customer deleted at
 		// or invoicing will not allow creating the lines.
 		// Note: this only happens if there is a db inconsistency between the subscription and the customer lifecycle.

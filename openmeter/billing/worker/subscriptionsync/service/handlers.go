@@ -23,7 +23,7 @@ func (s *Service) HandleCancelledEvent(ctx context.Context, event *subscription.
 
 	if event.Spec.ActiveTo == nil {
 		// Let's do one sync, just to make sure we have at least the new items lined up
-		err := s.SynchronizeSubscriptionAndInvoiceCustomer(ctx, event.SubscriptionView, now)
+		err := s.synchronizeSubscriptionAndInvoiceCustomer(ctx, newSubscriptionReferenceOrView(event.SubscriptionView), now)
 		if err != nil {
 			return err
 		}
@@ -32,7 +32,7 @@ func (s *Service) HandleCancelledEvent(ctx context.Context, event *subscription.
 	}
 
 	// Let's sync up to the end of the subscription
-	err := s.SynchronizeSubscriptionAndInvoiceCustomer(ctx, event.SubscriptionView, *event.Spec.ActiveTo)
+	err := s.synchronizeSubscriptionAndInvoiceCustomer(ctx, newSubscriptionReferenceOrView(event.SubscriptionView), *event.Spec.ActiveTo)
 	if err != nil {
 		return err
 	}
@@ -62,20 +62,22 @@ func (s *Service) HandleInvoiceCreation(ctx context.Context, event *billing.Stan
 	)
 
 	for _, subscriptionID := range affectedSubscriptions {
-		subsView, err := s.subscriptionService.GetView(ctx, models.NamespacedID{
-			Namespace: event.Invoice.Namespace,
-			ID:        subscriptionID,
-		})
-		if err != nil {
-			return fmt.Errorf("getting subscription view[%s]: %w", subscriptionID, err)
-		}
-
 		// We use the current time as reference point instead of the invoice, as if we are delayed
 		// we might want to provision more lines
-		if err := s.SynchronizeSubscription(ctx, subsView, clock.Now()); err != nil {
+		if err := s.synchronizeSubscriptionAndInvoiceCustomer(ctx, newSubscriptionReferenceOrView(models.NamespacedID{
+			Namespace: event.Invoice.Namespace,
+			ID:        subscriptionID,
+		}), clock.Now()); err != nil {
 			return fmt.Errorf("syncing subscription[%s]: %w", subscriptionID, err)
 		}
 	}
 
 	return nil
+}
+
+// HandleDeletedEvent is a handler for the subscription deleted event, it will make sure that
+// we synchronize the subscription and invoice customer.
+func (s *Service) HandleDeletedEvent(ctx context.Context, event *subscription.DeletedEvent) error {
+	_, err := s.synchronizeSubscription(ctx, newSubscriptionReferenceOrView(event.Subscription.NamespacedID), clock.Now())
+	return err
 }

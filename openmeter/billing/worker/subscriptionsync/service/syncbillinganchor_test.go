@@ -126,7 +126,7 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorSinglePhase() {
 	s.Equal(billingAnchor, subsView.Subscription.BillingAnchor)
 
 	// When synchronizing the subscription up to 2025-09-30T15:00:00Z
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, testutils.GetRFC3339Time(s.T(), "2025-09-29T15:00:00Z")))
+	s.NoError(s.Service.SyncByView(ctx, subsView, testutils.GetRFC3339Time(s.T(), "2025-09-29T15:00:00Z")))
 
 	// Then:
 	//  - the entitlement should be set up to be active from 2025-07-10T15:00:00Z,
@@ -323,7 +323,7 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorMultiPhase() {
 	s.Equal(billingAnchor, subsView.Subscription.BillingAnchor)
 
 	// When synchronizing the subscription up to 2025-09-30T15:00:00Z
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, testutils.GetRFC3339Time(s.T(), "2025-09-29T15:00:00Z")))
+	s.NoError(s.Service.SyncByView(ctx, subsView, testutils.GetRFC3339Time(s.T(), "2025-09-29T15:00:00Z")))
 
 	// Then:
 	//  - the entitlement should be set up to be active from 2025-07-10T15:00:00Z,

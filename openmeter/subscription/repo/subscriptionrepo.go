@@ -156,8 +156,12 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 		now := clock.Now()
 
 		query := repo.db.Subscription.Query().
-			WithPlan().
-			Where(SubscriptionNotDeletedAt(now)...)
+			WithPlan()
+
+		notDeletedAtNow := SubscriptionNotDeletedAt(now)
+		if !in.IncludeDeleted {
+			query = query.Where(notDeletedAtNow...)
+		}
 
 		if len(in.Namespaces) > 0 {
 			query = query.Where(dbsubscription.NamespaceIn(in.Namespaces...))
@@ -171,6 +175,7 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 		query = filter.ApplyToQuery(query, in.ID, dbsubscription.FieldID)
 		query = filter.ApplyToQuery(query, in.CustomerID, dbsubscription.FieldCustomerID)
 		query = filter.ApplyToQuery(query, in.PlanID, dbsubscription.FieldPlanID)
+		query = filter.ApplyToQuery(query, in.DeletedAt, dbsubscription.FieldDeletedAt)
 
 		if planKeyPred := filter.SelectPredicate[predicate.Plan](lo.FromPtrOr(in.PlanKey, filter.FilterString{}), dbplan.FieldKey); planKeyPred != nil {
 			query = query.Where(dbsubscription.HasPlanWith(*planKeyPred))

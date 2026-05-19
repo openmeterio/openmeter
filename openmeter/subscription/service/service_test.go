@@ -674,6 +674,25 @@ func TestList(t *testing.T) {
 			require.Equal(t, sub4.ID, list.Items[0].ID)
 			require.Equal(t, subscription.SubscriptionStatusScheduled, list.Items[0].GetStatusAt(clock.Now()))
 		})
+
+		t.Run("Should list deleted subscriptions when requested", func(t *testing.T) {
+			require.NoError(t, service.Delete(ctx, sub4.NamespacedID))
+
+			defaultList, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				Status: []subscription.SubscriptionStatus{subscription.SubscriptionStatusScheduled},
+			})
+			require.NoError(t, err)
+			require.Empty(t, defaultList.Items)
+
+			includeDeletedScheduledList, err := service.List(ctx, subscription.ListSubscriptionsInput{
+				IncludeDeleted: true,
+				Status:         []subscription.SubscriptionStatus{subscription.SubscriptionStatusScheduled},
+			})
+			require.NoError(t, err)
+			require.Len(t, includeDeletedScheduledList.Items, 1)
+			require.Equal(t, sub4.ID, includeDeletedScheduledList.Items[0].ID)
+			require.NotNil(t, includeDeletedScheduledList.Items[0].DeletedAt)
+		})
 	})
 
 	t.Run("Should filter and sort by new fields", func(t *testing.T) {
