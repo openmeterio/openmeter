@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -74,18 +73,17 @@ func New(config Config) (*Service, error) {
 }
 
 type PlanInput struct {
-	Subscription subscription.Subscription
-	Currency     currencyx.Calculator
-	Target       targetstate.State
-	Persisted    persistedstate.State
+	SubscriptionSettlementMode productcatalog.SettlementMode
+	Currency                   currencyx.Calculator
+	Target                     targetstate.State
+	Persisted                  persistedstate.State
 }
 
 type ApplyInput struct {
-	DryRun       bool
-	Customer     customer.CustomerID
-	Subscription subscription.Subscription
-	Currency     currencyx.Calculator
-	Plan         *Plan
+	DryRun   bool
+	Customer customer.CustomerID
+	Currency currencyx.Calculator
+	Plan     *Plan
 }
 
 func (i ApplyInput) Validate() error {
@@ -95,10 +93,6 @@ func (i ApplyInput) Validate() error {
 	}
 	if err := i.Customer.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer: %w", err))
-	}
-
-	if err := i.Subscription.NamespacedID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("subscription namespaced id: %w", err))
 	}
 
 	if err := i.Currency.Validate(); err != nil {
@@ -210,8 +204,14 @@ func filterInScopeLines(inScopeLines []targetstate.StateItem, patchCollections *
 }
 
 func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
-	if input.Subscription.SettlementMode == productcatalog.CreditOnlySettlementMode && s.chargesService == nil {
+	if input.SubscriptionSettlementMode == productcatalog.CreditOnlySettlementMode && s.chargesService == nil {
 		return nil, fmt.Errorf("credit only settlement mode is not supported without charges service enabled")
+	}
+
+	if len(input.Target.Items) == 0 && len(input.Persisted.ByUniqueID) == 0 {
+		return &Plan{
+			SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
+		}, nil
 	}
 
 	patchCollections, err := newPatchCollectionRouter(

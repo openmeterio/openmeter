@@ -38,10 +38,12 @@ type ListSubscriptionsInput struct {
 	ActiveAt       *time.Time
 	ActiveInPeriod *timeutil.StartBoundedPeriod
 	Status         []SubscriptionStatus
+	IncludeDeleted bool
 
-	ID      *filter.FilterULID
-	PlanID  *filter.FilterULID
-	PlanKey *filter.FilterString
+	ID        *filter.FilterULID
+	PlanID    *filter.FilterULID
+	PlanKey   *filter.FilterString
+	DeletedAt *filter.FilterTime
 }
 
 func (i ListSubscriptionsInput) Validate() error {
@@ -86,6 +88,12 @@ func (i ListSubscriptionsInput) Validate() error {
 	if i.PlanKey != nil {
 		if err := i.PlanKey.Validate(); err != nil {
 			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid plan_key filter: %w", err)))
+		}
+	}
+
+	if i.DeletedAt != nil {
+		if err := i.DeletedAt.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid deleted_at filter: %w", err)))
 		}
 	}
 

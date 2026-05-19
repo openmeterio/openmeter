@@ -11,7 +11,7 @@ Guidance for working with `openmeter/billing/worker/subscriptionsync/`.
 
 `subscriptionsync` is the bridge between the subscription domain and billing.
 
-- Input: `subscription.SubscriptionView`
+- Input: either a subscription ID (`models.NamespacedID`) or an already-expanded `subscription.SubscriptionView`
 - Output: reconciled billing state
   - invoice lines / split-line groups
   - charges
@@ -25,7 +25,8 @@ It does not own subscription editing rules and it does not own billing primitive
 openmeter/billing/worker/subscriptionsync/
 ├── service/                         # orchestration entrypoint used by the worker
 │   ├── service.go                   # Service struct, Config, FeatureFlags, constructor
-│   ├── sync.go                      # SynchronizeSubscription + SynchronizeSubscriptionAndInvoiceCustomer
+│   ├── sync.go                      # internal sync orchestration for SyncByID/SyncByView entrypoints
+│   ├── ref.go                       # normalizes subscription ID vs view references
 │   ├── reconcile.go                 # build persisted snapshot + target state + plan
 │   ├── handlers.go                  # event handlers (HandleCancelledEvent, HandleInvoiceCreation)
 │   ├── base_test.go                 # shared SuiteBase + SyncSuiteBase test harness
@@ -54,19 +55,28 @@ openmeter/billing/worker/subscriptionsync/
 
 ## Core Flow
 
-`Service.SynchronizeSubscription(...)` in `service/sync.go` is the main entrypoint.
+The public sync entrypoints are defined by `subscriptionsync.SyncService`:
+
+- `SyncByID(...)` and `SyncByIDAndInvoiceCustomer(...)` fetch subscription state internally.
+- `SyncByView(...)` and `SyncByViewAndInvoiceCustomer(...)` use an already-expanded subscription view.
+- The `AndInvoiceCustomer` variants run the regular sync and then invoice pending lines for the subscription customer.
+
+The internal orchestration lives in `service/sync.go` (`synchronizeSubscription`, `synchronizeSubscriptionAndInvoiceCustomer`) and normalizes the public input through `subscriptionReferenceOrView` from `service/ref.go`.
 
 High-level flow:
-1. Load persisted sync state and persisted billing artifacts.
-2. Build target state from the subscription view.
-3. Reconcile target vs persisted.
-4. Apply billing patches.
-5. Persist sync state.
+1. Load the subscription entity, including deleted subscriptions when the ID path is used.
+2. Load persisted sync state and persisted billing artifacts.
+3. Build target state from the subscription view, or an empty target state when the subscription is deleted.
+4. Reconcile target vs persisted.
+5. Apply billing patches.
+6. Persist sync state.
 
 The important bridge boundaries are:
 - `persistedstate`: current billing-side reality relevant to this subscription
 - `targetstate`: expected billing-side reality derived from the subscription view
 - `reconciler`: diff between the two, expressed as backend-specific patches
+
+Deleted-subscription cleanup uses the ID path. `subscription.Service.GetView` follows the normal non-deleted read path, so code that needs to reconcile deleted subscriptions must use `List(... IncludeDeleted: true)` or the sync service's ID entrypoints rather than calling `GetView` first.
 
 ## Persisted State
 
@@ -100,6 +110,7 @@ Invoice loading notes:
 `service/targetstate` converts a subscription view into expected billing/charge items.
 
 Useful points:
+- `BuildInput.SubscriptionView` is a pointer. A nil view represents a deleted subscription and builds an empty target state so persisted billing artifacts are removed.
 - `StateItem.IsBillable()` is the first gate
 - `StateItem.GetServicePeriod()` is the diff-level period source
 - `StateItem.GetExpectedLine()` is invoice-specific rendering; keep direct billing assumptions isolated to places that really need invoice lines
@@ -191,6 +202,8 @@ Test suite hierarchy:
 
 Use `setupChargesService(config)` on `SuiteBase` to rebuild the sync service with a charge-capable stack (replaces the default no-charges service).
 
+When a billing sync test needs to exercise deleted-subscription cleanup, prefer the public ID entrypoint (`SyncByID` / `SyncByIDAndInvoiceCustomer`) so the service owns the `IncludeDeleted` lookup. Subscription-domain coverage for deleted scheduled replacements belongs under `openmeter/subscription/service/sync_test.go`; keep billing-package tests focused on billing artifacts.
+
 For charge-backed sync tests:
 - prefer `openmeter/billing/charges/testutils.NewMockHandlers()`
 - these mocks are intentionally minimal but valid enough for charge creation/advancement
@@ -216,7 +229,7 @@ Pattern for credit-only tests:
 
 Key methods:
 - `ListSubscriptions(...)` — pages through active subscriptions with their sync states
-- `ReconcileSubscription(...)` — fetches subscription view and calls `SynchronizeSubscription`
+- `ReconcileSubscription(...)` — calls `SyncByID` for the subscription under reconciliation
 - `All(...)` — reconciles all eligible subscriptions, skipping those with no billables or whose `NextSyncAfter` is in the future (unless `Force` is set)
 
 ## Common Refactor Rules

@@ -155,7 +155,7 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				return nil
 			}
 
-			return w.subscriptionSync.SynchronizeSubscriptionAndInvoiceCustomer(ctx, event.SubscriptionView, time.Now())
+			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(ctx, event.SubscriptionView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CancelledEvent) error {
 			if event != nil && slices.Contains(w.lockdownNamespaces, event.Subscription.Namespace) {
@@ -164,19 +164,26 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 
 			return w.subscriptionSync.HandleCancelledEvent(ctx, event)
 		}),
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.DeletedEvent) error {
+			if event != nil && slices.Contains(w.lockdownNamespaces, event.Subscription.Namespace) {
+				return nil
+			}
+
+			return w.subscriptionSync.HandleDeletedEvent(ctx, event)
+		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.ContinuedEvent) error {
 			if event != nil && slices.Contains(w.lockdownNamespaces, event.Subscription.Namespace) {
 				return nil
 			}
 
-			return w.subscriptionSync.SynchronizeSubscriptionAndInvoiceCustomer(ctx, event.SubscriptionView, time.Now())
+			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(ctx, event.SubscriptionView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.UpdatedEvent) error {
 			if event != nil && slices.Contains(w.lockdownNamespaces, event.UpdatedView.Subscription.Namespace) {
 				return nil
 			}
 
-			return w.subscriptionSync.SynchronizeSubscriptionAndInvoiceCustomer(ctx, event.UpdatedView, time.Now())
+			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(ctx, event.UpdatedView, time.Now())
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.SubscriptionSyncEvent) error {
 			if event != nil && slices.Contains(w.lockdownNamespaces, event.Subscription.Namespace) {

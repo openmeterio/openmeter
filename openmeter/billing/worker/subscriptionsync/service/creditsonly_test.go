@@ -205,7 +205,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeProvisio
 
 	s.Run("provisions the next two billing cycles", func() {
 		// When we provision the next two billing cycles.
-		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
 
 		// Then two matching flat fee charges are created.
 		initialCharges = s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
@@ -219,7 +219,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeProvisio
 
 		// When the clock advances and we re-provision the same next two billing cycles.
 		clock.SetTime(s.mustParseTime("2024-01-15T00:00:00Z"))
-		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
 
 		// Then the existing charges are unchanged.
 		reconciledCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
@@ -324,7 +324,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 	var originalSecondPeriodCharge flatfee.Charge
 
 	s.Run("provisions the next two billing cycles", func() {
-		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, subscriptionView, syncUntil))
 		provisionedCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 		s.Len(provisionedCharges, 2)
 
@@ -344,7 +344,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 		subscriptionView, err = s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
 		s.NoError(err)
 
-		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
 
 		remainingCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, []expectedFlatFeeCharge{
 			expectedCharges[0].Indexes(0),
@@ -461,7 +461,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeMidPerio
 	var originalSecondPeriodCharge flatfee.Charge
 
 	s.Run("provisions the current and next billing cycle", func() {
-		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, initialSyncUntil))
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, initialSyncUntil))
 
 		provisionedCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 		s.Len(provisionedCharges, 2)
@@ -481,7 +481,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeMidPerio
 		subscriptionView, err = s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
 		s.NoError(err)
 
-		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, resyncUntil))
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, resyncUntil))
 
 		remainingCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, []expectedFlatFeeCharge{
 			{
@@ -619,7 +619,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedProvi
 	var initialCharges []usagebased.Charge
 
 	s.Run("provisions the next two billing cycles", func() {
-		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
 		initialCharges = s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 	})
 
@@ -629,7 +629,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedProvi
 		})
 
 		clock.SetTime(s.mustParseTime("2024-01-15T00:00:00Z"))
-		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
 
 		reconciledCharges := s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 		s.Len(reconciledCharges, len(initialCharges))
@@ -733,7 +733,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCance
 	var originalCharge usagebased.Charge
 
 	s.Run("provisions the charge in created state", func() {
-		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
 		provisionedCharges := s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 		s.Len(provisionedCharges, 1)
 		originalCharge = provisionedCharges[0]
@@ -752,7 +752,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCance
 		subscriptionView, err = s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
 		s.NoError(err)
 
-		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
 		s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, nil)
 
 		deletedChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
@@ -866,7 +866,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 	var originalFirstPeriodCharge usagebased.Charge
 
 	s.Run("provisions the current and next billing cycle", func() {
-		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, initialSyncUntil))
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, initialSyncUntil))
 
 		provisionedCharges := s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 		s.Len(provisionedCharges, 2)
@@ -917,7 +917,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 		subscriptionView, err = s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
 		s.NoError(err)
 
-		s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, initialSyncUntil))
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, initialSyncUntil))
 
 		remainingCharges := s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, []expectedUsageBasedCharge{
 			{
@@ -1095,7 +1095,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 		}).Indexes(0),
 	}
 
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+	s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
 	s.expectCreditsOnlyMixedCharges(ctx, subscriptionView.Subscription.ID, expectedFlatFeeCharges, expectedUsageBasedCharges)
 }
 
@@ -1349,7 +1349,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeTaxCodeP
 		},
 	}, startAt)
 
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+	s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
 
 	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:       s.Namespace,
@@ -1433,7 +1433,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedTaxCo
 		},
 	}, startAt)
 
-	s.NoError(s.Service.SynchronizeSubscription(ctx, subscriptionView, syncUntil))
+	s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
 
 	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:       s.Namespace,
