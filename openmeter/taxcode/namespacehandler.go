@@ -48,6 +48,15 @@ func (c NamespaceHandlerConfig) validate() error {
 
 	if len(c.Seeds) == 0 {
 		errs = append(errs, errors.New("at least one seed entry is required"))
+	} else {
+		invoicingCount := lo.CountBy(c.Seeds, func(s SeedEntry) bool { return s.DefaultInvoicing })
+		creditGrantCount := lo.CountBy(c.Seeds, func(s SeedEntry) bool { return s.DefaultCreditGrant })
+		if invoicingCount != 1 {
+			errs = append(errs, fmt.Errorf("exactly one seed must have DefaultInvoicing=true, got %d", invoicingCount))
+		}
+		if creditGrantCount != 1 {
+			errs = append(errs, fmt.Errorf("exactly one seed must have DefaultCreditGrant=true, got %d", creditGrantCount))
+		}
 	}
 
 	return errors.Join(errs...)
@@ -80,7 +89,8 @@ func NewNamespaceHandler(cfg NamespaceHandlerConfig) (*NamespaceHandler, error) 
 
 // CreateNamespace provisions the configured seed tax codes and sets the per-namespace
 // OrganizationDefaultTaxCodes. The operation is idempotent: pre-existing tax codes are
-// left unchanged and a complete org-defaults row causes an early return.
+// left unchanged and a pre-existing org-defaults row skips the org-defaults upsert (seed
+// creation always runs regardless).
 // All seed creates and the org-defaults upsert run inside a single transaction.
 func (h *NamespaceHandler) CreateNamespace(ctx context.Context, ns string) error {
 	return transaction.RunWithNoValue(ctx, h.transactionManager, func(ctx context.Context) error {
@@ -101,15 +111,15 @@ func (h *NamespaceHandler) CreateNamespace(ctx context.Context, ns string) error
 			}
 		}
 
-		// Idempotency check: if org defaults already exist and are complete, skip upsert.
-		existing, err := h.service.GetOrganizationDefaultTaxCodes(ctx, GetOrganizationDefaultTaxCodesInput{
+		// Idempotency check: if org defaults already exist, skip upsert.
+		_, err := h.service.GetOrganizationDefaultTaxCodes(ctx, GetOrganizationDefaultTaxCodesInput{
 			Namespace: ns,
 		})
 		if err != nil && !IsOrganizationDefaultTaxCodesNotFoundError(err) {
 			return fmt.Errorf("get organization default tax codes: %w", err)
 		}
 
-		if err == nil && existing.InvoicingTaxCodeID != "" && existing.CreditGrantTaxCodeID != "" {
+		if err == nil {
 			// Already provisioned — nothing to do.
 			return nil
 		}

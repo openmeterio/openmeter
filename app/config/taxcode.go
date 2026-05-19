@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/viper"
+
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
 type TaxCodeConfiguration struct {
@@ -71,6 +73,8 @@ func (c TaxCodeConfiguration) Validate() error {
 
 			if mapping.TaxCode == "" {
 				errs = append(errs, fmt.Errorf("seed[%d].appMappings[%d]: taxCode must not be empty", i, j))
+			} else if mapping.AppType == "stripe" && !taxcode.TaxCodeStripeRegexp.MatchString(mapping.TaxCode) {
+				errs = append(errs, fmt.Errorf("seed[%d].appMappings[%d]: taxCode %q is not a valid Stripe tax code (must match %s)", i, j, mapping.TaxCode, taxcode.TaxCodeStripeRegexp.String()))
 			}
 		}
 	}

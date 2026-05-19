@@ -110,6 +110,7 @@ func (a *adapter) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput)
 		entity, err := a.db.TaxCode.Query().
 			Where(taxcodedb.Namespace(input.Namespace)).
 			Where(taxcodedb.ID(input.ID)).
+			Where(taxcodedb.DeletedAtIsNil()).
 			Only(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
