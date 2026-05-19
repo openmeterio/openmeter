@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/viper"
 
@@ -43,19 +44,20 @@ func (c TaxCodeConfiguration) Validate() error {
 	defaultCreditGrantCount := 0
 
 	for i, seed := range c.Seeds {
-		if seed.Key == "" {
+		trimmedKey := strings.TrimSpace(seed.Key)
+		if trimmedKey == "" {
 			errs = append(errs, fmt.Errorf("seed[%d]: key must not be empty", i))
 		}
 
-		if seed.Name == "" {
+		if strings.TrimSpace(seed.Name) == "" {
 			errs = append(errs, fmt.Errorf("seed[%d]: name must not be empty", i))
 		}
 
-		if seed.Key != "" {
-			if _, exists := keys[seed.Key]; exists {
+		if trimmedKey != "" {
+			if _, exists := keys[trimmedKey]; exists {
 				errs = append(errs, fmt.Errorf("seed[%d]: duplicate key %q", i, seed.Key))
 			}
-			keys[seed.Key] = struct{}{}
+			keys[trimmedKey] = struct{}{}
 		}
 
 		if seed.DefaultInvoicing {
@@ -67,11 +69,11 @@ func (c TaxCodeConfiguration) Validate() error {
 		}
 
 		for j, mapping := range seed.AppMappings {
-			if mapping.AppType == "" {
+			if strings.TrimSpace(mapping.AppType) == "" {
 				errs = append(errs, fmt.Errorf("seed[%d].appMappings[%d]: appType must not be empty", i, j))
 			}
 
-			if mapping.TaxCode == "" {
+			if strings.TrimSpace(mapping.TaxCode) == "" {
 				errs = append(errs, fmt.Errorf("seed[%d].appMappings[%d]: taxCode must not be empty", i, j))
 			} else if mapping.AppType == "stripe" && !taxcode.TaxCodeStripeRegexp.MatchString(mapping.TaxCode) {
 				errs = append(errs, fmt.Errorf("seed[%d].appMappings[%d]: taxCode %q is not a valid Stripe tax code (must match %s)", i, j, mapping.TaxCode, taxcode.TaxCodeStripeRegexp.String()))

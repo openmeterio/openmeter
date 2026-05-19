@@ -2,6 +2,7 @@ package common
 
 import (
 	"log/slog"
+	"strings"
 
 	"github.com/google/wire"
 	"github.com/samber/lo"
@@ -49,13 +50,13 @@ func NewTaxCodeNamespaceHandler(
 ) (*taxcode.NamespaceHandler, error) {
 	seeds := lo.Map(cfg.Seeds, func(s config.TaxCodeSeed, _ int) taxcode.SeedEntry {
 		return taxcode.SeedEntry{
-			Key:         s.Key,
-			Name:        s.Name,
+			Key:         strings.TrimSpace(s.Key),
+			Name:        strings.TrimSpace(s.Name),
 			Description: s.Description,
 			AppMappings: lo.Map(s.AppMappings, func(m config.TaxCodeAppMapping, _ int) taxcode.TaxCodeAppMapping {
 				return taxcode.TaxCodeAppMapping{
-					AppType: app.AppType(m.AppType),
-					TaxCode: m.TaxCode,
+					AppType: app.AppType(strings.TrimSpace(m.AppType)),
+					TaxCode: strings.TrimSpace(m.TaxCode),
 				}
 			}),
 			DefaultInvoicing:   s.DefaultInvoicing,

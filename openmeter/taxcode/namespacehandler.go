@@ -94,10 +94,20 @@ func NewNamespaceHandler(cfg NamespaceHandlerConfig) (*NamespaceHandler, error) 
 // All seed creates and the org-defaults upsert run inside a single transaction.
 func (h *NamespaceHandler) CreateNamespace(ctx context.Context, ns string) error {
 	return transaction.RunWithNoValue(ctx, h.transactionManager, func(ctx context.Context) error {
+		// List existing tax codes once; ensureTaxCode does map lookups against this set
+		// and only re-lists on a concurrent-create conflict.
+		listed, err := h.service.ListTaxCodes(ctx, ListTaxCodesInput{Namespace: ns})
+		if err != nil {
+			return fmt.Errorf("list tax codes: %w", err)
+		}
+		existingByKey := lo.SliceToMap(listed.Items, func(tc TaxCode) (string, TaxCode) {
+			return tc.Key, tc
+		})
+
 		var invoicingID, creditGrantID string
 
 		for _, seed := range h.seeds {
-			id, err := h.ensureTaxCode(ctx, ns, seed)
+			id, err := h.ensureTaxCode(ctx, ns, seed, existingByKey)
 			if err != nil {
 				return fmt.Errorf("seed tax code %q: %w", seed.Key, err)
 			}
@@ -112,7 +122,7 @@ func (h *NamespaceHandler) CreateNamespace(ctx context.Context, ns string) error
 		}
 
 		// Idempotency check: if org defaults already exist, skip upsert.
-		_, err := h.service.GetOrganizationDefaultTaxCodes(ctx, GetOrganizationDefaultTaxCodesInput{
+		_, err = h.service.GetOrganizationDefaultTaxCodes(ctx, GetOrganizationDefaultTaxCodesInput{
 			Namespace: ns,
 		})
 		if err != nil && !IsOrganizationDefaultTaxCodesNotFoundError(err) {
@@ -144,19 +154,10 @@ func (h *NamespaceHandler) DeleteNamespace(_ context.Context, _ string) error {
 
 // ensureTaxCode returns the ID of the tax code identified by seed.Key in namespace ns.
 // If it does not exist yet, it is created. Pre-existing codes are never mutated.
-func (h *NamespaceHandler) ensureTaxCode(ctx context.Context, ns string, seed SeedEntry) (string, error) {
-	// There is no GetTaxCodeByKey API, so we list all codes and filter in memory.
-	result, err := h.service.ListTaxCodes(ctx, ListTaxCodesInput{
-		Namespace: ns,
-	})
-	if err != nil {
-		return "", fmt.Errorf("list tax codes: %w", err)
-	}
-
-	existing, found := lo.Find(result.Items, func(tc TaxCode) bool {
-		return tc.Key == seed.Key
-	})
-	if found {
+// existingByKey is the pre-fetched index built by CreateNamespace; the conflict path
+// re-lists from the service to reconcile concurrent inserts that the index missed.
+func (h *NamespaceHandler) ensureTaxCode(ctx context.Context, ns string, seed SeedEntry, existingByKey map[string]TaxCode) (string, error) {
+	if existing, found := existingByKey[seed.Key]; found {
 		return existing.ID, nil
 	}
 
