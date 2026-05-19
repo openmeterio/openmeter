@@ -5,6 +5,7 @@ import "github.com/openmeterio/openmeter/openmeter/ledger"
 var DefaultValidator = Validator{
 	Rules: []RoutingRule{
 		RequireUniqueSubAccountsRule{},
+		RequireTaxBehaviorScopeRule{},
 		AllowedAccountSetsRule{
 			Sets: [][]ledger.AccountType{
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable},

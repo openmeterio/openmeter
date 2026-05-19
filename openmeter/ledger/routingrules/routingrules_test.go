@@ -160,6 +160,24 @@ func TestDefaultValidator_AllowsDuplicateSubAccountEntriesWithUniqueIdentities(t
 	require.NoError(t, err)
 }
 
+func TestDefaultValidator_RejectsTaxBehaviorOutsideFBO(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	taxBehavior := ledger.TaxBehaviorExclusive
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-tax-behavior", ledger.Route{
+				Currency:    currencyx.Code("USD"),
+				TaxBehavior: &taxBehavior,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "ledger routing rule violated")
+}
+
 func TestDefaultValidator_RejectsMismatchedReceivableAndFBORoute(t *testing.T) {
 	validator := routingrules.DefaultValidator
 
@@ -247,6 +265,37 @@ func TestDefaultValidator_RejectsFBOCostBasisTranslationWithMismatchedPriority(t
 				Currency:       currencyx.Code("USD"),
 				CostBasis:      &costBasis,
 				CreditPriority: &knownPriority,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "ledger routing rule violated")
+}
+
+func TestDefaultValidator_RejectsFBOCostBasisTranslationWithMismatchedTaxBehavior(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	priority := ledger.DefaultCustomerFBOPriority
+	costBasis := alpacadecimal.NewFromInt(1)
+	inclusive := ledger.TaxBehaviorInclusive
+	exclusive := ledger.TaxBehaviorExclusive
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo-unknown", ledger.Route{
+				Currency:       currencyx.Code("USD"),
+				CreditPriority: &priority,
+				TaxBehavior:    &inclusive,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo-known", ledger.Route{
+				Currency:       currencyx.Code("USD"),
+				CostBasis:      &costBasis,
+				CreditPriority: &priority,
+				TaxBehavior:    &exclusive,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},

@@ -177,6 +177,7 @@ type RouteField string
 const (
 	RouteFieldCurrency                       RouteField = "currency"
 	RouteFieldTaxCode                        RouteField = "tax_code"
+	RouteFieldTaxBehavior                    RouteField = "tax_behavior"
 	RouteFieldFeatures                       RouteField = "features"
 	RouteFieldCostBasis                      RouteField = "cost_basis"
 	RouteFieldCreditPriority                 RouteField = "credit_priority"
@@ -195,6 +196,21 @@ func (r RequireSameRouteRule) Validate(tx TxView) error {
 	}
 
 	return requireMatchingRouteFields(tx.EntriesOf(r.Left), tx.EntriesOf(r.Right), r.Left, r.Right, r.Fields)
+}
+
+type RequireTaxBehaviorScopeRule struct{}
+
+func (r RequireTaxBehaviorScopeRule) Validate(tx TxView) error {
+	for _, entry := range tx.entries {
+		if entry.AccountType() != ledger.AccountTypeCustomerFBO && entry.Route().TaxBehavior != nil {
+			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
+				"reason":       "tax_behavior_only_allowed_on_customer_fbo",
+				"account_type": entry.AccountType(),
+			})
+		}
+	}
+
+	return nil
 }
 
 type RequireAccountAuthorizationStatusRule struct {
@@ -217,6 +233,8 @@ func sameRouteField(left ledger.Route, right ledger.Route, field RouteField) (bo
 		return left.Currency == right.Currency, nil
 	case RouteFieldTaxCode:
 		return optionalStringEqual(left.TaxCode, right.TaxCode), nil
+	case RouteFieldTaxBehavior:
+		return optionalTaxBehaviorEqual(left.TaxBehavior, right.TaxBehavior), nil
 	case RouteFieldFeatures:
 		return stringSliceEqual(left.Features, right.Features), nil
 	case RouteFieldCostBasis:
@@ -339,6 +357,7 @@ func (r RequireFBOCostBasisTranslationRule) Validate(tx TxView) error {
 		[]RouteField{
 			RouteFieldCurrency,
 			RouteFieldTaxCode,
+			RouteFieldTaxBehavior,
 			RouteFieldFeatures,
 			RouteFieldCreditPriority,
 		},

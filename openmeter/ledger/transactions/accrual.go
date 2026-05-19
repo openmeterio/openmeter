@@ -157,21 +157,8 @@ func (t TransferCustomerFBOToAccruedTemplate) resolve(ctx context.Context, custo
 	}, nil
 }
 
-// resolveAccruedSubAccByRoutePairingKey routes each FBO source to its
-// matching accrued sub-account using the SOURCE route's TaxCode and
-// CostBasis. Charge intent TaxConfig does NOT override the destination
-// bucket on this path: accrual preserves funding-source attribution by
-// design (credit-only flows do not translate TaxCode at consumption).
-//
-// If charge.Intent.TaxConfig diverges from FBO source TaxCode, the
-// resulting accrued posting lands in the FUNDING source bucket. The
-// FBO-to-Accrued routing rule (defaults.go) enforces TaxCode match between
-// source and destination entries within a single transaction.
-//
-// To override accrued TaxCode based on charge intent, a separate Accrued-to-
-// Accrued translation template (modeled after
-// TranslateCustomerAccruedCostBasisTemplate) plus a matching routing rule
-// (modeled after RequireAccruedCostBasisTranslationRule) would be required.
+// resolveAccruedSubAccByRoutePairingKey preserves source attribution: each FBO
+// source routes to the accrued bucket with the same TaxCode and CostBasis.
 func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairingKey(
 	ctx context.Context,
 	accruedAccount ledger.CustomerAccruedAccount,
@@ -256,6 +243,7 @@ type TransferCustomerFBOAdvanceToAccruedTemplate struct {
 	Amount         alpacadecimal.Decimal
 	Currency       currencyx.Code
 	TaxCode        *string
+	TaxBehavior    *ledger.TaxBehavior
 	CostBasis      *alpacadecimal.Decimal
 	CreditPriority *int
 }
@@ -282,6 +270,12 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) Validate() error {
 	if t.CreditPriority != nil {
 		if err := ledger.ValidateCreditPriority(*t.CreditPriority); err != nil {
 			return fmt.Errorf("credit priority: %w", err)
+		}
+	}
+
+	if t.TaxBehavior != nil {
+		if err := t.TaxBehavior.Validate(); err != nil {
+			return fmt.Errorf("tax behavior: %w", err)
 		}
 	}
 
@@ -351,6 +345,7 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       t.Currency,
 		TaxCode:        t.TaxCode,
+		TaxBehavior:    t.TaxBehavior,
 		CostBasis:      t.CostBasis,
 		CreditPriority: priority,
 	})
