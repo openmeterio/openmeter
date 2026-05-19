@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type CurrencyFilter struct {
@@ -55,7 +56,7 @@ func (i GetBalancesInput) Validate() error {
 		errs = append(errs, fmt.Errorf("asOf must not be zero"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (i GetBalanceInput) Validate() error {
@@ -83,7 +84,7 @@ func (i GetBalanceInput) Validate() error {
 		errs = append(errs, fmt.Errorf("after and asOf cannot both be set"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type BalanceByCurrency struct {

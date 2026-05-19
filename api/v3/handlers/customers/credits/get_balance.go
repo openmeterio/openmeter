@@ -2,6 +2,7 @@ package customerscredits
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -37,23 +38,41 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 				return GetCustomerCreditBalanceRequest{}, err
 			}
 
+			asOf := clock.Now()
+			if args.Params.Timestamp != nil {
+				asOf = *args.Params.Timestamp
+			}
+
 			request := GetCustomerCreditBalanceRequest{
 				CustomerID: customer.CustomerID{
 					Namespace: namespace,
 					ID:        args.CustomerID,
 				},
-				AsOf: clock.Now(),
+				AsOf: asOf,
 			}
 
-			if args.Params.Filter != nil {
-				if args.Params.Filter.Currency != nil {
-					currency := currencyx.Code(*args.Params.Filter.Currency)
-					request.Currencies = customerbalance.CurrencyFilter{
-						Codes: []currencyx.Code{currency},
-					}
+			if args.Params.Filter != nil && args.Params.Filter.Currency != nil {
+				f := args.Params.Filter.Currency
+				if f.Neq != nil {
+					return GetCustomerCreditBalanceRequest{}, apierrors.NewBadRequestError(
+						ctx,
+						errors.New("neq operator is not supported for currency"),
+						apierrors.InvalidParameters{{
+							Field:  "filter[currency]",
+							Reason: "neq operator is not supported",
+							Source: apierrors.InvalidParamSourceQuery,
+						}},
+					)
 				}
-				if args.Params.Filter.AsOf != nil {
-					request.AsOf = *args.Params.Filter.AsOf
+				codes := make([]currencyx.Code, 0, 1+len(f.Oeq))
+				if f.Eq != nil {
+					codes = append(codes, currencyx.Code(*f.Eq))
+				}
+				for _, v := range f.Oeq {
+					codes = append(codes, currencyx.Code(v))
+				}
+				if len(codes) > 0 {
+					request.Currencies = customerbalance.CurrencyFilter{Codes: codes}
 				}
 			}
 

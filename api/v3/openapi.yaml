@@ -950,6 +950,16 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/ULID'
+        - name: timestamp
+          in: query
+          required: false
+          description: |-
+            Return the credit balance as of this timestamp.
+
+            Defaults to the current time.
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          style: deepObject
         - name: filter
           in: query
           required: false
@@ -7770,12 +7780,8 @@ components:
       properties:
         currency:
           allOf:
-            - $ref: '#/components/schemas/BillingCurrencyCode'
+            - $ref: '#/components/schemas/StringFieldFilterExact'
           description: Filter credit balance by currency.
-        as_of:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: Return the credit balance as of this timestamp. Defaults to the current time.
       additionalProperties: false
       description: Filter options for getting a credit balance.
     GovernanceFeatureAccess:
