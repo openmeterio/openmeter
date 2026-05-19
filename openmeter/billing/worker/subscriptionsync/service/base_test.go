@@ -397,8 +397,10 @@ type chargeRealizationKey struct {
 	IsVoided bool
 }
 
-func (s *SuiteBase) assertCharges(ctx context.Context, subscriptionID models.NamespacedID, expectedCharges []expectedCharge) {
+func (s *SuiteBase) assertCharges(ctx context.Context, subsView subscription.SubscriptionView, expectedCharges []expectedCharge) {
 	s.T().Helper()
+
+	subscriptionID := subsView.Subscription.NamespacedID
 
 	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:       subscriptionID.Namespace,
@@ -449,12 +451,12 @@ func (s *SuiteBase) assertCharges(ctx context.Context, subscriptionID models.Nam
 			})
 			s.Require().Truef(found, "charge not found with child unique reference id %s", childID)
 
-			s.assertCharge(ctx, charge, subscriptionID.ID, childID, childIDs, expectedCharge, idx)
+			s.assertCharge(ctx, charge, subsView, childID, childIDs, expectedCharge, idx)
 		}
 	}
 }
 
-func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, subscriptionID string, childID string, expectedChargeIDs []string, expectedCharge expectedCharge, idx int) {
+func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, subsView subscription.SubscriptionView, childID string, expectedChargeIDs []string, expectedCharge expectedCharge, idx int) {
 	s.T().Helper()
 
 	chargeID, err := charge.GetChargeID()
@@ -462,12 +464,18 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 
 	s.Equal(expectedCharge.Type, charge.Type(), "%s: type", childID)
 
+	phaseKey, itemKey, _ := s.chargeExpectedLineMatcherParts(expectedCharge.Matcher)
+	phase := s.getPhaseByKey(s.T(), subsView, phaseKey)
+
 	switch charge.Type() {
 	case chargesmeta.ChargeTypeUsageBased:
 		usageBasedCharge, err := charge.AsUsageBasedCharge()
 		s.NoError(err)
 
 		s.Equal(expectedCharge.Status, string(usageBasedCharge.Status), "%s: status", childID)
+		s.Equal(subsView.Subscription.SettlementMode, usageBasedCharge.Intent.SettlementMode, "%s: settlement mode", childID)
+		s.Equal(s.Customer.ID, usageBasedCharge.Intent.CustomerID, "%s: customer id", childID)
+		s.Equal(subsView.Subscription.Currency, usageBasedCharge.Intent.Currency, "%s: currency", childID)
 		s.Equal(expectedCharge.Periods[idx], usageBasedCharge.Intent.ServicePeriod, "%s: service period", childID)
 		if len(expectedCharge.FullServicePeriods) > 0 {
 			s.Equal(expectedCharge.FullServicePeriods[idx], usageBasedCharge.Intent.FullServicePeriod, "%s: full service period", childID)
@@ -481,11 +489,25 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		if len(expectedCharge.InvoiceAt) > idx && expectedCharge.InvoiceAt[idx] != nil {
 			s.Equal(*expectedCharge.InvoiceAt[idx], usageBasedCharge.Intent.InvoiceAt, "%s: invoice at", childID)
 		}
+		s.Require().NotNil(usageBasedCharge.Intent.Subscription, "%s: subscription", childID)
+		s.Equal(subsView.Subscription.ID, usageBasedCharge.Intent.Subscription.SubscriptionID, "%s: subscription id", childID)
+		s.Equal(phase.SubscriptionPhase.ID, usageBasedCharge.Intent.Subscription.PhaseID, "%s: phase id", childID)
+		// Deleted charges can reference soft-deleted subscription items, and subscription views never
+		// contain soft-deleted items.
+		item, itemFound := s.subscriptionItemByID(phase, itemKey, usageBasedCharge.Intent.Subscription.ItemID, childID, usageBasedCharge.DeletedAt != nil)
+		expectedFeatureKey := itemKey
+		if itemFound {
+			expectedFeatureKey = lo.FromPtrOr(item.Spec.RateCard.AsMeta().FeatureKey, itemKey)
+		}
+		s.Equal(expectedFeatureKey, usageBasedCharge.Intent.FeatureKey, "%s: feature key", childID)
 	case chargesmeta.ChargeTypeFlatFee:
 		flatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
 
 		s.Equal(expectedCharge.Status, string(flatFeeCharge.Status), "%s: status", childID)
+		s.Equal(subsView.Subscription.SettlementMode, flatFeeCharge.Intent.SettlementMode, "%s: settlement mode", childID)
+		s.Equal(s.Customer.ID, flatFeeCharge.Intent.CustomerID, "%s: customer id", childID)
+		s.Equal(subsView.Subscription.Currency, flatFeeCharge.Intent.Currency, "%s: currency", childID)
 		s.Equal(expectedCharge.Periods[idx], flatFeeCharge.Intent.ServicePeriod, "%s: service period", childID)
 		if len(expectedCharge.FullServicePeriods) > 0 {
 			s.Equal(expectedCharge.FullServicePeriods[idx], flatFeeCharge.Intent.FullServicePeriod, "%s: full service period", childID)
@@ -501,13 +523,21 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		if len(expectedCharge.InvoiceAt) > idx && expectedCharge.InvoiceAt[idx] != nil {
 			s.Equal(*expectedCharge.InvoiceAt[idx], flatFeeCharge.Intent.InvoiceAt, "%s: invoice at", childID)
 		}
+		s.Require().NotNil(flatFeeCharge.Intent.Subscription, "%s: subscription", childID)
+		s.Equal(subsView.Subscription.ID, flatFeeCharge.Intent.Subscription.SubscriptionID, "%s: subscription id", childID)
+		s.Equal(phase.SubscriptionPhase.ID, flatFeeCharge.Intent.Subscription.PhaseID, "%s: phase id", childID)
+		// Deleted charges can reference soft-deleted subscription items, and subscription views never
+		// contain soft-deleted items.
+		if item, itemFound := s.subscriptionItemByID(phase, itemKey, flatFeeCharge.Intent.Subscription.ItemID, childID, flatFeeCharge.DeletedAt != nil); itemFound {
+			s.Equal(item.SubscriptionItem.ID, flatFeeCharge.Intent.Subscription.ItemID, "%s: item id", childID)
+		}
 	default:
 		s.Failf("unsupported charge type", "charge %s has unsupported type %s", chargeID.ID, charge.Type())
 	}
 
-	s.assertChargeGatheringLines(ctx, charge, subscriptionID, childID, expectedChargeIDs, expectedCharge.Periods[idx], expectedCharge.Price, expectedCharge.GatheringLines)
+	s.assertChargeGatheringLines(ctx, charge, subsView.Subscription.ID, childID, expectedChargeIDs, expectedCharge.Periods[idx], expectedCharge.Price, expectedCharge.GatheringLines)
 
-	expectedRealizations := s.expectedRealizationsForCharge(subscriptionID, childID, expectedChargeIDs, expectedCharge.Periods[idx], expectedCharge.Realizations)
+	expectedRealizations := s.expectedRealizationsForCharge(subsView.Subscription.ID, childID, expectedChargeIDs, expectedCharge.Periods[idx], expectedCharge.Realizations)
 	actualRealizations := s.chargeRealizations(ctx, charge)
 	expectedRealizationKeys := lo.Map(expectedRealizations, func(realization expectedChargeRealization, _ int) chargeRealizationKey {
 		return chargeRealizationKey{
@@ -549,6 +579,19 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 			s.Truef(expectedRealization.Totals.Equal(actualRealization.Totals), "%s: realization totals expected %v, got %v", childID, expectedRealization.Totals, actualRealization.Totals)
 		}
 	}
+}
+
+func (s *SuiteBase) subscriptionItemByID(phase subscription.SubscriptionPhaseView, itemKey string, itemID string, childID string, allowMissing bool) (subscription.SubscriptionItemView, bool) {
+	s.T().Helper()
+
+	item, found := lo.Find(phase.ItemsByKey[itemKey], func(item subscription.SubscriptionItemView) bool {
+		return item.SubscriptionItem.ID == itemID
+	})
+	if !allowMissing {
+		s.Require().Truef(found, "%s: subscription item id %s belongs to phase %s item %s", childID, itemID, phase.SubscriptionPhase.Key, itemKey)
+	}
+
+	return item, found
 }
 
 func (s *SuiteBase) assertChargeGatheringLines(ctx context.Context, charge charges.Charge, subscriptionID string, childID string, expectedChargeIDs []string, chargePeriod timeutil.ClosedPeriod, chargePrice *productcatalog.Price, expectedGatheringLines []expectedChargeGatheringLine) {
@@ -775,6 +818,20 @@ func (s *SuiteBase) gatheringChargeLines(ctx context.Context, charge charges.Cha
 
 type lineMatcher interface {
 	ChildIDs(subsID string) []string
+}
+
+func (s *SuiteBase) chargeExpectedLineMatcherParts(matcher lineMatcher) (string, string, int) {
+	s.T().Helper()
+
+	switch matcher := matcher.(type) {
+	case recurringLineMatcher:
+		return matcher.PhaseKey, matcher.ItemKey, matcher.Version
+	case oneTimeLineMatcher:
+		return matcher.PhaseKey, matcher.ItemKey, matcher.Version
+	default:
+		s.T().Fatalf("charge assertion does not support matcher type %T", matcher)
+		return "", "", 0
+	}
 }
 
 type recurringLineMatcher struct {

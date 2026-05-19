@@ -912,7 +912,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncNonBillableAmount
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 	s.assertCreditThenInvoiceBalances(startBalances)
 
-	s.assertCharges(ctx, updatedSubsView.Subscription.NamespacedID, []expectedCharge{
+	s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -1111,7 +1111,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncNonBillableAmount
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 	s.assertCreditThenInvoiceBalances(startBalances)
 
-	s.assertCharges(ctx, updatedSubsView.Subscription.NamespacedID, []expectedCharge{
+	s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -1313,7 +1313,7 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsGatheringSyncNonBillableAmount
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 	s.assertCreditThenInvoiceBalances(startBalances)
 
-	s.assertCharges(ctx, updatedSubsView.Subscription.NamespacedID, []expectedCharge{
+	s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -1469,7 +1469,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncBillableAmountPro
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 	s.assertCreditThenInvoiceBalances(startBalances)
 
-	s.assertCharges(ctx, updatedSubsView.Subscription.NamespacedID, []expectedCharge{
+	s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -1687,7 +1687,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncDraftInvoiceProra
 		})
 
 		draftInvoice = draftInvoices[0]
-		s.assertCharges(ctx, subsView.Subscription.NamespacedID, []expectedCharge{
+		s.assertCharges(ctx, subsView, []expectedCharge{
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey:  "first-phase",
@@ -1777,7 +1777,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncDraftInvoiceProra
 		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 		s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
-		s.assertCharges(ctx, updatedSubsView.Subscription.NamespacedID, []expectedCharge{
+		s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey:  "first-phase",
@@ -1906,7 +1906,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncDraftInvoiceProra
 			WashPromotional:    -2,
 		})
 
-		s.assertCharges(ctx, updatedSubsView.Subscription.NamespacedID, []expectedCharge{
+		s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey:  "first-phase",
@@ -2166,7 +2166,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePror
 			WashPromotional:    -2,
 			WashInvoice:        -4,
 		})
-		s.assertCharges(ctx, subsView.Subscription.NamespacedID, []expectedCharge{
+		s.assertCharges(ctx, subsView, []expectedCharge{
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey:  "first-phase",
@@ -2260,7 +2260,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePror
 		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 		s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
-		s.assertCharges(ctx, updatedSubsView.Subscription.NamespacedID, []expectedCharge{
+		s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 			{
 				Matcher: recurringLineMatcher{
 					PhaseKey:  "first-phase",
@@ -2847,7 +2847,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 		},
 	}
 
-	s.assertCharges(ctx, subView.Subscription.NamespacedID, expectedCharges)
+	s.assertCharges(ctx, subView, expectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionCancellation() {
@@ -2990,7 +2990,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionCancellation() {
 			},
 		},
 	}
-	s.assertCharges(ctx, subView.Subscription.NamespacedID, expectedCharges)
+	s.assertCharges(ctx, subView, expectedCharges)
 
 	// Let's cancel the subscription a day later
 	cancelAt := clock.Now().Add(time.Hour * 24)
@@ -3013,7 +3013,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionCancellation() {
 	expectedCharges[0].GatheringLines = nil
 	expectedCharges[1].Status = string(usagebased.StatusDeleted)
 	expectedCharges[1].GatheringLines = nil
-	s.assertCharges(ctx, subView.Subscription.NamespacedID, expectedCharges)
+	s.assertCharges(ctx, subView, expectedCharges)
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 }
 
@@ -3135,7 +3135,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProgressiveBillingCa
 			},
 		},
 	}
-	s.assertCharges(ctx, subView.Subscription.NamespacedID, initialExpectedCharges)
+	s.assertCharges(ctx, subView, initialExpectedCharges)
 
 	// Given we already have a progressively billed line/invoice for a day
 	// Let's advane the clock a day
@@ -3306,7 +3306,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 		},
 	}
 
-	s.assertCharges(ctx, subsView.Subscription.NamespacedID, expectedCharges)
+	s.assertCharges(ctx, subsView, expectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
@@ -3453,7 +3453,7 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
 		},
 	}
 
-	s.assertCharges(ctx, subsView.Subscription.NamespacedID, expectedCharges)
+	s.assertCharges(ctx, subsView, expectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
@@ -3539,7 +3539,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 			},
 		},
 	}
-	s.assertCharges(ctx, subsView.Subscription.NamespacedID, initialExpectedCharges)
+	s.assertCharges(ctx, subsView, initialExpectedCharges)
 
 	updatedSubsView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subsView.Subscription.NamespacedID, []subscription.Patch{
 		patch.PatchAddPhase{
@@ -3644,7 +3644,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 			},
 		},
 	}
-	s.assertCharges(ctx, updatedSubsView.Subscription.NamespacedID, updatedExpectedCharges)
+	s.assertCharges(ctx, updatedSubsView, updatedExpectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice() {
@@ -3767,7 +3767,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 			},
 		},
 	}
-	s.assertCharges(ctx, subsView.Subscription.NamespacedID, initialExpectedCharges)
+	s.assertCharges(ctx, subsView, initialExpectedCharges)
 
 	// Some time has passed, we're syncing the draft invoice
 	clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
@@ -3780,7 +3780,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 	draftInvoice := draftInvoices[0]
 	s.DebugDumpInvoice("draft invoice", draftInvoice)
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
-	s.assertCharges(ctx, subsView.Subscription.NamespacedID, []expectedCharge{
+	s.assertCharges(ctx, subsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -3984,7 +3984,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 			InvoiceAt: []*time.Time{lo.ToPtr(s.mustParseTime("2024-03-01T00:00:00Z"))},
 		},
 	}
-	s.assertCharges(ctx, updatedSubsView.Subscription.NamespacedID, updatedExpectedCharges)
+	s.assertCharges(ctx, updatedSubsView, updatedExpectedCharges)
 
 	updatedDraftInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 		Invoice: draftInvoice.GetInvoiceID(),
@@ -4153,7 +4153,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 			},
 		},
 	}
-	s.assertCharges(ctx, subsView.Subscription.NamespacedID, initialExpectedCharges)
+	s.assertCharges(ctx, subsView, initialExpectedCharges)
 
 	clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
 	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -4228,7 +4228,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
-	s.assertCharges(ctx, updatedSubsView.Subscription.NamespacedID, []expectedCharge{
+	s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -4520,7 +4520,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	s.populateChildIDsFromParents(&invoice1)
 	s.DebugDumpInvoice("issued invoice1", invoice1)
 
-	s.assertCharges(ctx, subsView.Subscription.NamespacedID, []expectedCharge{
+	s.assertCharges(ctx, subsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -4605,7 +4605,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	s.DebugDumpInvoice("draft invoice2", draftInvoice2)
 	s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, draftInvoice2.Status)
 
-	s.assertCharges(ctx, subsView.Subscription.NamespacedID, []expectedCharge{
+	s.assertCharges(ctx, subsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -4728,7 +4728,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	s.populateChildIDsFromParents(&gatheringInvoice)
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", gatheringInvoice)
 
-	s.assertCharges(ctx, updatedSubsView.Subscription.NamespacedID, []expectedCharge{
+	s.assertCharges(ctx, updatedSubsView, []expectedCharge{
 		{
 			Matcher: recurringLineMatcher{
 				PhaseKey:  "first-phase",
@@ -5310,7 +5310,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 			},
 		},
 	}
-	s.assertCharges(ctx, subsView.Subscription.NamespacedID, expectedCharges)
+	s.assertCharges(ctx, subsView, expectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCreationWithSubscriptionStartInFuture() {
@@ -5440,7 +5440,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 			},
 		},
 	}
-	s.assertCharges(ctx, subsView.Subscription.NamespacedID, expectedCharges)
+	s.assertCharges(ctx, subsView, expectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
@@ -5661,7 +5661,7 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 				},
 			},
 		}
-		s.assertCharges(ctx, subsView.Subscription.NamespacedID, expectedCharges)
+		s.assertCharges(ctx, subsView, expectedCharges)
 		s.assertCreditThenInvoiceBalances(startBalances)
 
 		// The advance fee should have 100% discount
@@ -5900,7 +5900,7 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronizationWithPartialDisco
 				},
 			},
 		}
-		s.assertCharges(ctx, subsView.Subscription.NamespacedID, expectedCharges)
+		s.assertCharges(ctx, subsView, expectedCharges)
 		s.assertCreditThenInvoiceBalances(afterInstantInvoiceBalances)
 
 		// The advance fee should have 50% discount and consume the available credits
@@ -6287,7 +6287,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 			},
 		},
 	}
-	s.assertCharges(ctx, subView.Subscription.NamespacedID, expectedCharges)
+	s.assertCharges(ctx, subView, expectedCharges)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestSynchronizeSubscriptionPeriodAlgorithmChange() {
