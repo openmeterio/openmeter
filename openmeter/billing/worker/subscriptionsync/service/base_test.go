@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"testing"
 	"time"
 
@@ -414,6 +415,8 @@ func (s *SuiteBase) assertCharges(ctx context.Context, subsView subscription.Sub
 	s.NoError(err)
 
 	expectedChargeIDs := lo.Flatten(lo.Map(expectedCharges, func(expectedCharge expectedCharge, _ int) []string {
+		s.Require().NotNil(expectedCharge.Matcher, "expected charge matcher")
+
 		return expectedCharge.Matcher.ChildIDs(subscriptionID.ID)
 	}))
 	actualChargeIDs := lo.Map(res.Items, func(charge charges.Charge, _ int) string {
@@ -428,6 +431,8 @@ func (s *SuiteBase) assertCharges(ctx context.Context, subsView subscription.Sub
 	s.ElementsMatch(expectedChargeIDs, actualChargeIDs)
 
 	for _, expectedCharge := range expectedCharges {
+		s.Require().NotNil(expectedCharge.Matcher, "expected charge matcher")
+
 		childIDs := expectedCharge.Matcher.ChildIDs(subscriptionID.ID)
 		s.Require().NotEmpty(expectedCharge.Type, "expected charge type")
 		s.Require().NotEmpty(expectedCharge.Status, "expected charge status")
@@ -518,7 +523,7 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		if expectedCharge.Price != nil {
 			expectedFlatPrice, err := expectedCharge.Price.AsFlat()
 			s.NoError(err)
-			s.AssertDecimalEqual(expectedFlatPrice.Amount, flatFeeCharge.Intent.AmountBeforeProration, fmt.Sprintf("%s: amount before proration", childID))
+			require.Equal(s.T(), expectedFlatPrice.Amount.InexactFloat64(), flatFeeCharge.Intent.AmountBeforeProration.InexactFloat64(), fmt.Sprintf("%s: amount before proration", childID))
 		}
 		if len(expectedCharge.InvoiceAt) > idx && expectedCharge.InvoiceAt[idx] != nil {
 			s.Equal(*expectedCharge.InvoiceAt[idx], flatFeeCharge.Intent.InvoiceAt, "%s: invoice at", childID)
@@ -556,8 +561,9 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 
 	s.ElementsMatch(expectedRealizationKeys, actualRealizationKeys, "%s: realizations", childID)
 
+	remainingActualRealizations := slices.Clone(actualRealizations)
 	for _, expectedRealization := range expectedRealizations {
-		actualRealization, found := lo.Find(actualRealizations, func(realization actualChargeRealization) bool {
+		actualRealization, idx, found := lo.FindIndexOf(remainingActualRealizations, func(realization actualChargeRealization) bool {
 			return realization.Period == expectedRealization.Period &&
 				realization.Status == expectedRealization.Status &&
 				realization.IsVoided == expectedRealization.IsVoided
@@ -566,6 +572,7 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 			s.Failf("realization not found", "realization not found for charge %s with status %s and period %s", childID, expectedRealization.Status, expectedRealization.Period)
 			continue
 		}
+		remainingActualRealizations = slices.Delete(remainingActualRealizations, idx, idx+1)
 
 		expectedPrice := expectedRealization.Price
 		if expectedPrice == nil {
@@ -609,14 +616,16 @@ func (s *SuiteBase) assertChargeGatheringLines(ctx context.Context, charge charg
 
 	s.ElementsMatch(expectedKeys, actualKeys, "%s: gathering lines", childID)
 
+	remainingActualLines := slices.Clone(actualLines)
 	for _, expectedLine := range expectedLines {
-		actualLine, found := lo.Find(actualLines, func(line actualChargeGatheringLine) bool {
+		actualLine, idx, found := lo.FindIndexOf(remainingActualLines, func(line actualChargeGatheringLine) bool {
 			return line.Period == expectedLine.Period
 		})
 		if !found {
 			s.Failf("gathering line not found", "gathering line not found for charge %s with period %s", childID, expectedLine.Period)
 			continue
 		}
+		remainingActualLines = slices.Delete(remainingActualLines, idx, idx+1)
 
 		expectedPrice := expectedLine.Price
 		if expectedPrice == nil {
