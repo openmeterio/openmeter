@@ -2601,10 +2601,45 @@ paths:
       tags:
         - OpenMeter Subscriptions
   /openmeter/subscriptions/{subscriptionId}/addons:
+    post:
+      operationId: create-subscription-addon
+      summary: Create a new subscription add-on
+      description: Add add-on to a subscription.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: SubscriptionAddon created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionAddon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubscriptionAddonRequest'
+      x-internal: true
+      x-unstable: true
     get:
       operationId: list-subscription-addons
       summary: List subscription addons
-      description: List the addons of a subscription.
+      description: List the add-ons of a subscription.
       parameters:
         - name: subscriptionId
           in: path
@@ -7427,6 +7462,50 @@ components:
           $ref: '#/components/schemas/ULID'
       additionalProperties: false
       description: TaxCode reference.
+    CreateSubscriptionAddonRequest:
+      type: object
+      required:
+        - name
+        - addon
+        - quantity
+        - timing
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        addon:
+          allOf:
+            - $ref: '#/components/schemas/AddonReference'
+          description: The add-on associated with the subscription.
+          title: Add-on
+        quantity:
+          type: integer
+          minimum: 1
+          description: The quantity of the add-on. Always 1 for single instance add-ons.
+          title: Quantity
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
+          description: |-
+            The timing of the operation. After the create or update, a new entry will be
+            created in the timeline.
+          title: Timing
+      additionalProperties: false
+      description: SubscriptionAddon create request.
     CreateTaxCodeRequest:
       type: object
       required:
@@ -9345,7 +9424,7 @@ components:
           readOnly: true
         addon:
           allOf:
-            - $ref: '#/components/schemas/AddonReferenceItem'
+            - $ref: '#/components/schemas/AddonReference'
           description: The add-on associated with the subscription.
           title: Add-on
         quantity:

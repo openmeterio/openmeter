@@ -165,7 +165,20 @@ interface SubscriptionsOperations {
 
 interface SubscriptionAddonOperations {
   /**
-   * List the addons of a subscription.
+   * Add add-on to a subscription.
+   */
+  @post
+  @operationId("create-subscription-addon")
+  @summary("Create a new subscription add-on")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  create(
+    @path subscriptionId: Shared.ULID,
+    @body request: Shared.CreateRequest<SubscriptionAddon>,
+  ): Shared.CreateResponse<SubscriptionAddon> | Common.ErrorResponses | Common.NotFound;
+
+  /**
+   * List the add-ons of a subscription.
    */
   @get
   @operationId("list-subscription-addons")
