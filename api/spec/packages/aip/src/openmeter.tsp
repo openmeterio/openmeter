@@ -30,7 +30,7 @@ using TypeSpec.OpenAPI;
   "https://{region}.api.konghq.com/v3",
   "Production region",
   {
-    region: "us" | "eu" | "au" | "me" | "in",
+    region: "us" | "eu" | "au" | "me" | "in" = "us",
   }
 )
 @server(

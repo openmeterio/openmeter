@@ -15,7 +15,7 @@ servers:
     description: Production region
     variables:
       region:
-        default: ''
+        default: us
         enum:
           - us
           - eu
