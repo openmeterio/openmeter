@@ -402,15 +402,12 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 	})
 	require.NoError(t, err)
 
-	view, err := tDeps.SubscriptionService.GetView(ctx, s.NamespacedID)
-	require.NoError(t, err)
-
 	// Cancel effective before end of month (e.g., on 20th)
 	cancelAt := beforeFirstOfMonth
 	_, err = tDeps.subscriptionService.Cancel(ctx, s.NamespacedID, subscription.Timing{Custom: &cancelAt})
 	require.NoError(t, err)
 
-	view, err = tDeps.SubscriptionService.GetView(ctx, s.NamespacedID)
+	view, err := tDeps.SubscriptionService.GetView(ctx, s.NamespacedID)
 	require.NoError(t, err)
 
 	// Let's advance time until after
