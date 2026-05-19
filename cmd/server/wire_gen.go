@@ -724,6 +724,19 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	taxCodeConfiguration := conf.TaxCode
+	taxcodeNamespaceHandler, err := common.NewTaxCodeNamespaceHandler(logger, taxcodeService, repository, taxCodeConfiguration)
+	if err != nil {
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
 	v10, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
@@ -801,6 +814,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		SubjectCustomerHook:              v9,
 		Subscription:                     subscriptionServiceWithWorkflow,
 		StreamingConnector:               connector,
+		TaxCodeNamespaceHandler:          taxcodeNamespaceHandler,
 		TaxCodeService:                   taxcodeService,
 		TelemetryServer:                  v10,
 		TerminationChecker:               terminationChecker,
@@ -870,6 +884,7 @@ type Application struct {
 	SubjectCustomerHook              hooks.CustomerSubjectHook
 	Subscription                     common.SubscriptionServiceWithWorkflow
 	StreamingConnector               streaming.Connector
+	TaxCodeNamespaceHandler          *taxcode.NamespaceHandler
 	TaxCodeService                   taxcode.Service
 	TelemetryServer                  common.TelemetryServer
 	TerminationChecker               *common.TerminationChecker

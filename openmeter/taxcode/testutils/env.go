@@ -17,6 +17,7 @@ import (
 type TestEnv struct {
 	Logger  *slog.Logger
 	Service taxcode.Service
+	Adapter taxcode.Repository
 	Client  *entdb.Client
 	db      *testutils.TestDB
 	close   sync.Once
@@ -80,6 +81,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	})
 	require.NoErrorf(t, err, "initializing taxcode service must not fail")
 
+	env.Adapter = adapter
 	env.Service = svc
 
 	return env

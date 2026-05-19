@@ -94,6 +94,7 @@ type Application struct {
 	SubjectCustomerHook              subjecthooks.CustomerSubjectHook
 	Subscription                     common.SubscriptionServiceWithWorkflow
 	StreamingConnector               streaming.Connector
+	TaxCodeNamespaceHandler          *taxcode.NamespaceHandler
 	TaxCodeService                   taxcode.Service
 	TelemetryServer                  common.TelemetryServer
 	TerminationChecker               *common.TerminationChecker
@@ -140,6 +141,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.ProgressManager,
 		common.Server,
 		common.TaxCode,
+		common.TaxCodeNamespaceHandler,
 		common.Subscription,
 		common.Lockr,
 		common.Secret,
