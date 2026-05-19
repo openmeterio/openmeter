@@ -2804,6 +2804,91 @@ func (s *SanitySuite) TestChargeIntentTaxConfigFlowsToEarnings() {
 	})
 }
 
+func (s *SanitySuite) TestChargeIntentTaxBehaviorFlowsToAdvanceAccrualCreditOnly() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charge-intent-taxbehavior-advance")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "txcd-40000006",
+		Name:      "Charge Intent Tax Behavior",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000006"},
+		},
+	})
+	s.Require().NoError(err)
+
+	const amount = 30
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-31T00:00:00Z", time.UTC).AsTime()
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(amount),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Name:              "flat-fee-charge-intent-taxbehavior",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "flat-fee-charge-intent-taxbehavior",
+				TaxConfig: &productcatalog.TaxCodeConfig{
+					TaxCodeID: &tc.ID,
+					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+				},
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(res, 1)
+
+	clock.FreezeTime(servicePeriod.From)
+
+	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+		Customer: cust.GetID(),
+	})
+	s.NoError(err)
+	s.Len(advancedCharges, 1)
+
+	advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusFinal, advancedCharge.Status)
+	s.Require().NotNil(advancedCharge.Intent.TaxConfig)
+	s.Require().NotNil(advancedCharge.Intent.TaxConfig.Behavior)
+	s.Equal(productcatalog.InclusiveTaxBehavior, *advancedCharge.Intent.TaxConfig.Behavior)
+	s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
+	s.Len(advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
+
+	realization := advancedCharge.Realizations.CurrentRun.CreditRealizations[0]
+	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+	s.Equal(2, s.MustFBOEntryCountForTaxBehavior(realization.LedgerTransaction.TransactionGroupID, &ledgerTaxBehavior),
+		"advance-backed collection must post both FBO legs with charge TaxBehavior")
+	s.Equal(0, s.MustFBOEntryCountForTaxBehavior(realization.LedgerTransaction.TransactionGroupID, nil),
+		"advance-backed collection must not use nil-TaxBehavior FBO routes")
+
+	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&tc.ID)).InexactFloat64(),
+		"advance-backed accrued balance must still land in charge TaxCode bucket")
+}
+
 // TestChargeIntentTaxConfigDoesNotOverrideFundingTaxCodeCreditOnly locks the
 // current contract: for credit-only consumption, FBO→Accrued is source-driven.
 // The charge intent's TaxConfig is metadata on the charge entity; it does NOT

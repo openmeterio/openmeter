@@ -260,10 +260,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			CostBasis:      &costBasis,
 			CreditPriority: charge.Intent.Priority,
 		}
-		if charge.Intent.TaxConfig != nil && charge.Intent.TaxConfig.Behavior != nil {
-			b := ledger.TaxBehavior(*charge.Intent.TaxConfig.Behavior)
-			tmpl.TaxBehavior = &b
-		}
+		tmpl.TaxBehavior = taxBehaviorFromIntent(charge.Intent.TaxConfig)
 		templates = append(templates, tmpl)
 	}
 

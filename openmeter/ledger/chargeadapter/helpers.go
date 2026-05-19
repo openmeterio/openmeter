@@ -25,3 +25,12 @@ func taxCodeIDFromIntent(taxConfig *productcatalog.TaxCodeConfig) *string {
 	}
 	return taxConfig.TaxCodeID
 }
+
+func taxBehaviorFromIntent(taxConfig *productcatalog.TaxCodeConfig) *ledger.TaxBehavior {
+	if taxConfig == nil || taxConfig.Behavior == nil {
+		return nil
+	}
+
+	behavior := ledger.TaxBehavior(*taxConfig.Behavior)
+	return &behavior
+}
