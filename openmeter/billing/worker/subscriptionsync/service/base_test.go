@@ -548,7 +548,6 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		if !expectedRealization.Totals.IsZero() {
 			s.Truef(expectedRealization.Totals.Equal(actualRealization.Totals), "%s: realization totals expected %v, got %v", childID, expectedRealization.Totals, actualRealization.Totals)
 		}
-
 	}
 }
 
