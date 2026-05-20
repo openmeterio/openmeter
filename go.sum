@@ -1082,8 +1082,8 @@ github.com/influxdata/go-syslog/v3 v3.0.0 h1:jichmjSZlYK0VMmlz+k4WeOQd7z745YLsvG
 github.com/influxdata/go-syslog/v3 v3.0.0/go.mod h1:tulsOp+CecTAYC27u9miMgq21GqXRW6VdKbOG+QSP4Q=
 github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c h1:qSHzRbhzK8RdXOsAdfDgO49TtqC1oZ+acxPrkfTxcCs=
 github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c/go.mod h1:qj24IKcXYK6Iy9ceXlo3Tc+vtHo9lIhSX5JddghvEPo=
-github.com/invopop/gobl v0.402.0 h1:Q4BIDWqWtt/s6R0GzarUMg4LaxAnyjBidBri3/EeOOU=
-github.com/invopop/gobl v0.402.0/go.mod h1:6jYbcNFgUcBXIsS3PIeZc99rrMLBaGzPsFEg7y2DyrQ=
+github.com/invopop/gobl v0.403.0 h1:jLkqmPbeTxu4gXntjsCtczq3rGg6JnXBwyMF/TkvOhU=
+github.com/invopop/gobl v0.403.0/go.mod h1:6jYbcNFgUcBXIsS3PIeZc99rrMLBaGzPsFEg7y2DyrQ=
 github.com/invopop/jsonschema v0.14.0 h1:MHQqLhvpNUZfw+hM3AZDYK7jxO8FZoQeQM77g8iyZjg=
 github.com/invopop/jsonschema v0.14.0/go.mod h1:ygm6C2EaVNMBDPpaPlnOA2pFAxBnxGjFlMZABxm9n2I=
 github.com/invopop/yaml v0.3.1 h1:f0+ZpmhfBSS4MhG+4HYseMdJhoeeopbSKbq5Rpeelso=
