@@ -959,7 +959,8 @@ paths:
             Defaults to the current time.
           schema:
             $ref: '#/components/schemas/DateTime'
-          style: deepObject
+          explode: false
+          style: form
         - name: filter
           in: query
           required: false

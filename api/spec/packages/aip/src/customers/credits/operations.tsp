@@ -157,7 +157,7 @@ interface CustomerCreditBalancesOperations {
      *
      * Defaults to the current time.
      */
-    @query(#{ style: "deepObject", explode: true })
+    @query
     timestamp?: Shared.DateTime,
 
     @query(#{ style: "deepObject", explode: true })
