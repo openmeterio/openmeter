@@ -341,7 +341,7 @@ func (s *BaseSuite) MustCustomerFBOBalanceForTaxCode(customerID customer.Custome
 		CostBasis:      costBasis,
 		TaxCode:        taxCode,
 		CreditPriority: lo.ToPtr(ledger.DefaultCustomerFBOPriority),
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -361,7 +361,7 @@ func (s *BaseSuite) MustCustomerFBOBalanceForTaxConfig(customerID customer.Custo
 		TaxCode:        taxCode,
 		TaxBehavior:    taxBehavior,
 		CreditPriority: lo.ToPtr(ledger.DefaultCustomerFBOPriority),
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -423,7 +423,7 @@ func (s *BaseSuite) MustCustomerReceivableBalanceForTaxCode(customerID customer.
 		CostBasis:                      costBasis,
 		TaxCode:                        taxCode,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -440,7 +440,7 @@ func (s *BaseSuite) MustCustomerAccruedBalanceForTaxCode(customerID customer.Cus
 		Currency:  code,
 		CostBasis: costBasis,
 		TaxCode:   taxCode,
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()
@@ -530,7 +530,7 @@ func (s *BaseSuite) MustEarningsBalanceForTaxCode(namespace string, code currenc
 		Currency:  code,
 		CostBasis: costBasis,
 		TaxCode:   taxCode,
-	}, nil)
+	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance.Settled()

@@ -12,7 +12,7 @@ import (
 )
 
 // TestLedgerTaxBehaviorMigrationRollback documents the rollback guard in
-// 20260506103900_add_ledger_tax_behavior:
+// 20260520130500_add_ledger_tax_behavior:
 //
 //   - A sub-account route created with TaxBehavior (V2 routing key) has its
 //     routing_key column encoding tax_behavior:exclusive.
@@ -36,7 +36,7 @@ func TestLedgerTaxBehaviorMigrationRollback(t *testing.T) {
 		require.NoError(t, err2)
 	}()
 
-	require.NoError(t, migrator.Migrate(20260506103900))
+	require.NoError(t, migrator.Migrate(20260520130500))
 
 	db := testDB.PGDriver.DB()
 	accountID := ulid.Make().String()
@@ -52,7 +52,7 @@ func TestLedgerTaxBehaviorMigrationRollback(t *testing.T) {
 
 	insertTaxBehaviorRoute(t, db, accountID, routeID, namespace, v2KeyVersion, v2KeyValue)
 
-	err = migrator.Migrate(20260506102300)
+	err = migrator.Migrate(20260519132345)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "cannot rollback: V2 routing key rows exist; downgrade routes first")
 
