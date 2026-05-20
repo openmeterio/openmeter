@@ -84,7 +84,7 @@ func (h *handler) CreateSubscriptionAddon() CreateSubscriptionAddonHandler {
 		commonhttp.JSONResponseEncoderWithStatus[CreateSubscriptionAddonResponse](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("create-plan-addon"),
+			httptransport.WithOperationName("create-subscription-addon"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
