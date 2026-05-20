@@ -12,33 +12,33 @@ type FeatureGate interface {
 	EvaluateJSON(flag string, defaultValue json.RawMessage) (json.RawMessage, error)
 }
 
-var instance FeatureGate = noopFeatureGate{}
+var instance FeatureGate = NoopFeatureGate{}
 
 func GetDefault() FeatureGate {
 	if instance == nil {
-		instance = noopFeatureGate{}
+		instance = NoopFeatureGate{}
 	}
 	return instance
 }
 
-type noopFeatureGate struct{}
+type NoopFeatureGate struct{}
 
-func (n noopFeatureGate) EvaluateBool(string, bool) (bool, error) {
+func (n NoopFeatureGate) EvaluateBool(string, bool) (bool, error) {
 	return true, nil
 }
 
-func (n noopFeatureGate) EvaluateInt(string, int) (int, error) {
+func (n NoopFeatureGate) EvaluateInt(string, int) (int, error) {
 	return 0, nil
 }
 
-func (n noopFeatureGate) EvaluateFloat64(string, float64) (float64, error) {
+func (n NoopFeatureGate) EvaluateFloat64(string, float64) (float64, error) {
 	return 0, nil
 }
 
-func (n noopFeatureGate) EvaluateString(string, string) (string, error) {
+func (n NoopFeatureGate) EvaluateString(string, string) (string, error) {
 	return "", nil
 }
 
-func (n noopFeatureGate) EvaluateJSON(string, json.RawMessage) (json.RawMessage, error) {
+func (n NoopFeatureGate) EvaluateJSON(string, json.RawMessage) (json.RawMessage, error) {
 	return json.RawMessage(`{}`), nil
 }

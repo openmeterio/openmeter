@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	"github.com/openmeterio/openmeter/pkg/ffx"
+	"github.com/openmeterio/openmeter/pkg/gatex"
 	"log/slog"
 )
 
@@ -381,7 +382,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	workerOptions := common.NewBillingWorkerOptions(eventsConfiguration, options, eventbusPublisher, billingRegistry, subscriptionServiceWithWorkflow, subscriptionsyncService, billingFeatureSwitchesConfiguration, logger)
+	noopFeatureGate := gatex.NoopFeatureGate{}
+	workerOptions := common.NewBillingWorkerOptions(eventsConfiguration, options, eventbusPublisher, billingRegistry, subscriptionServiceWithWorkflow, subscriptionsyncService, billingFeatureSwitchesConfiguration, logger, noopFeatureGate)
 	worker, err := common.NewBillingWorker(workerOptions)
 	if err != nil {
 		cleanup7()
