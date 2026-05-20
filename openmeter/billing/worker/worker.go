@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/grouphandler"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
+	"github.com/openmeterio/openmeter/pkg/gatex"
 )
 
 type WorkerOptions struct {
@@ -36,6 +37,8 @@ type WorkerOptions struct {
 
 	SubscriptionService subscription.Service
 	LockdownNamespaces  []string
+
+	FeatureGate gatex.FeatureGate
 }
 
 func (w WorkerOptions) Validate() error {
@@ -79,6 +82,7 @@ type Worker struct {
 	asyncAdvanceChargesHandler *chargesasyncadvance.Handler
 	nonPublishingHandler       *grouphandler.NoPublishingHandler
 	lockdownNamespaces         []string
+	featureGate                gatex.FeatureGate
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
@@ -106,12 +110,18 @@ func New(opts WorkerOptions) (*Worker, error) {
 		}
 	}
 
+	featureGate := opts.FeatureGate
+	if featureGate == nil {
+		featureGate = gatex.GetDefault()
+	}
+
 	worker := &Worker{
 		billingService:             opts.BillingService,
 		subscriptionSync:           opts.BillingSubscriptionSync,
 		asyncAdvanceHandler:        asyncAdvancer,
 		asyncAdvanceChargesHandler: asyncAdvanceChargesHandler,
 		lockdownNamespaces:         opts.LockdownNamespaces,
+		featureGate:                featureGate,
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)

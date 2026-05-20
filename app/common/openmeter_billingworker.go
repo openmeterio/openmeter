@@ -16,6 +16,7 @@ import (
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
+	"github.com/openmeterio/openmeter/pkg/gatex"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
@@ -79,6 +80,7 @@ func NewBillingWorkerOptions(
 	subscriptionSyncService subscriptionsync.Service,
 	billingFsConfig config.BillingFeatureSwitchesConfiguration,
 	logger *slog.Logger,
+	featureGate gatex.FeatureGate,
 ) billingworker.WorkerOptions {
 	return billingworker.WorkerOptions{
 		SystemEventsTopic: eventConfig.SystemEvents.Topic,
@@ -93,6 +95,7 @@ func NewBillingWorkerOptions(
 
 		// Feature switches
 		LockdownNamespaces: billingFsConfig.NamespaceLockdown,
+		FeatureGate:        featureGate,
 	}
 }
 
