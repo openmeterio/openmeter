@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -27,6 +28,134 @@ type chargesWithInvoiceNowActions struct {
 	collectionAlignmentBypassedLines []invoicePendingLinesInput
 }
 
+func chargeIntentMeta(intent charges.ChargeIntent) (meta.Intent, error) {
+	switch intent.Type() {
+	case meta.ChargeTypeFlatFee:
+		ff, err := intent.AsFlatFeeIntent()
+
+		return ff.Intent, err
+	case meta.ChargeTypeUsageBased:
+		ub, err := intent.AsUsageBasedIntent()
+
+		return ub.Intent, err
+	case meta.ChargeTypeCreditPurchase:
+		cp, err := intent.AsCreditPurchaseIntent()
+
+		return cp.Intent, err
+	}
+
+	return meta.Intent{}, fmt.Errorf("unsupported charge type: %s", intent.Type())
+}
+
+func needsDefaultTaxCode(i meta.Intent) bool {
+	return i.TaxConfig == nil || i.TaxConfig.TaxCodeID == nil
+}
+
+func stampTaxCodeID(cfg *productcatalog.TaxCodeConfig, id string) *productcatalog.TaxCodeConfig {
+	if cfg == nil {
+		return &productcatalog.TaxCodeConfig{TaxCodeID: &id}
+	}
+
+	cfg.TaxCodeID = &id
+
+	return cfg
+}
+
+// defaultTaxCodeIDFor picks which namespace default applies to the given charge type.
+// Credit purchases use the credit-grant default; invoicing charges (flat-fee, usage-based) use the invoicing default.
+func defaultTaxCodeIDFor(t meta.ChargeType, defaults taxcode.OrganizationDefaultTaxCodes) string {
+	if t == meta.ChargeTypeCreditPurchase {
+		return defaults.CreditGrantTaxCodeID
+	}
+
+	return defaults.InvoicingTaxCodeID
+}
+
+func rebuildChargeIntentWithTaxCodeID(intent charges.ChargeIntent, defaultID string) (charges.ChargeIntent, error) {
+	switch intent.Type() {
+	case meta.ChargeTypeFlatFee:
+		ff, err := intent.AsFlatFeeIntent()
+		if err != nil {
+			return charges.ChargeIntent{}, err
+		}
+
+		ff.Intent.TaxConfig = stampTaxCodeID(ff.Intent.TaxConfig, defaultID)
+
+		return charges.NewChargeIntent(ff), nil
+	case meta.ChargeTypeUsageBased:
+		ub, err := intent.AsUsageBasedIntent()
+		if err != nil {
+			return charges.ChargeIntent{}, err
+		}
+
+		ub.Intent.TaxConfig = stampTaxCodeID(ub.Intent.TaxConfig, defaultID)
+
+		return charges.NewChargeIntent(ub), nil
+
+	case meta.ChargeTypeCreditPurchase:
+		cp, err := intent.AsCreditPurchaseIntent()
+		if err != nil {
+			return charges.ChargeIntent{}, err
+		}
+
+		cp.Intent.TaxConfig = stampTaxCodeID(cp.Intent.TaxConfig, defaultID)
+
+		return charges.NewChargeIntent(cp), nil
+	}
+
+	return charges.ChargeIntent{}, fmt.Errorf("unsupported charge type: %s", intent.Type())
+}
+
+// applyDefaultTaxCodes fills in nil TaxCodeID on each intent's TaxConfig using the namespace's
+// organization default tax codes. Invoicing default applies to flat-fee and usage-based charges;
+// credit-grant default applies to credit purchase charges. Fails if any intent needs the fallback
+// but the namespace has no defaults provisioned.
+func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, intents charges.ChargeIntents) (charges.ChargeIntents, error) {
+	needsDefault := false
+	for _, intent := range intents {
+		m, err := chargeIntentMeta(intent)
+		if err != nil {
+			return nil, err
+		}
+
+		if needsDefaultTaxCode(m) {
+			needsDefault = true
+			break
+		}
+	}
+
+	if !needsDefault {
+		return intents, nil
+	}
+
+	defaults, err := s.taxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{
+		Namespace: namespace,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("resolving default tax codes for namespace %s: %w", namespace, err)
+	}
+
+	out := make(charges.ChargeIntents, len(intents))
+	for i, intent := range intents {
+		m, err := chargeIntentMeta(intent)
+		if err != nil {
+			return nil, err
+		}
+
+		if !needsDefaultTaxCode(m) {
+			out[i] = intent
+			continue
+		}
+
+		rebuilt, err := rebuildChargeIntentWithTaxCodeID(intent, defaultTaxCodeIDFor(intent.Type(), defaults))
+		if err != nil {
+			return nil, err
+		}
+		out[i] = rebuilt
+	}
+	return out, nil
+}
+
 func (s *service) Create(ctx context.Context, input charges.CreateInput) (charges.Charges, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
@@ -35,6 +164,12 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 	if err := s.validateNamespaceLockdown(input.Namespace); err != nil {
 		return nil, err
 	}
+
+	intentsWithDefaults, err := s.applyDefaultTaxCodes(ctx, input.Namespace, input.Intents)
+	if err != nil {
+		return nil, err
+	}
+	input.Intents = intentsWithDefaults
 
 	result, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (*chargesWithInvoiceNowActions, error) {
 		intentsByType, err := input.Intents.ByType()

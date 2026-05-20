@@ -37,6 +37,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -330,6 +331,7 @@ func NewChargesService(
 	usageBasedSvc usagebased.Service,
 	billingService billing.Service,
 	recognizerService recognizer.Service,
+	taxCodeService taxcode.Service,
 	fsNamespaceLockdown []string,
 ) (charges.Service, error) {
 	chargesSvc, err := chargesservice.New(chargesservice.Config{
@@ -342,6 +344,7 @@ func NewChargesService(
 		UsageBasedService:     usageBasedSvc,
 		BillingService:        billingService,
 		RecognizerService:     recognizerService,
+		TaxCodeService:        taxCodeService,
 		FSNamespaceLockdown:   fsNamespaceLockdown,
 	})
 	if err != nil {
@@ -386,6 +389,7 @@ func newChargesRegistry(
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 	breakageService ledgerbreakage.Service,
+	taxCodeService taxcode.Service,
 	fsNamespaceLockdown []string,
 ) (*ChargesRegistry, error) {
 	metaAdapter, err := NewChargesMetaAdapter(db, logger)
@@ -512,6 +516,7 @@ func newChargesRegistry(
 		usageBasedSvc,
 		billingService,
 		recognizerService,
+		taxCodeService,
 		fsNamespaceLockdown,
 	)
 	if err != nil {

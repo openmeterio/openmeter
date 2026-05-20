@@ -187,6 +187,7 @@ func NewBillingRegistry(
 			accountResolver,
 			accountService,
 			breakageService,
+			taxCodeService,
 			fsConfig.NamespaceLockdown,
 		)
 		if err != nil {

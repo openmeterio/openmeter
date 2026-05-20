@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
 type service struct {
@@ -29,6 +30,7 @@ type service struct {
 	creditPurchaseService creditpurchase.Service
 	usageBasedService     usagebased.Service
 	recognizerService     recognizer.Service
+	taxCodeService        taxcode.Service
 
 	fsNamespaceLockdown []string
 }
@@ -46,6 +48,8 @@ type Config struct {
 	RecognizerService     recognizer.Service
 
 	BillingService billing.Service
+
+	TaxCodeService taxcode.Service
 
 	FSNamespaceLockdown []string
 }
@@ -89,6 +93,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("recognizer service cannot be null"))
 	}
 
+	if c.TaxCodeService == nil {
+		errs = append(errs, errors.New("tax code service cannot be null"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -107,6 +115,7 @@ func New(config Config) (*service, error) {
 		creditPurchaseService: config.CreditPurchaseService,
 		usageBasedService:     config.UsageBasedService,
 		recognizerService:     config.RecognizerService,
+		taxCodeService:        config.TaxCodeService,
 		fsNamespaceLockdown:   config.FSNamespaceLockdown,
 	}
 
