@@ -521,6 +521,18 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		require.NoError(t, err)
 		require.Empty(t, ref.TransactionGroupID)
 	})
+
+	t.Run("event at is required", func(t *testing.T) {
+		env := newUsageBasedHandlerTestEnv(t)
+
+		ref, err := env.handler.OnPaymentSettled(t.Context(), chargeusagebased.OnPaymentSettledInput{
+			Charge:  env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:     env.newRunWithAuthorizedPayment("line-1", alpacadecimal.NewFromInt(10)),
+			EventAt: time.Time{},
+		})
+		require.ErrorContains(t, err, "event at is required")
+		require.Empty(t, ref.TransactionGroupID)
+	})
 }
 
 type usageBasedHandlerTestEnv struct {

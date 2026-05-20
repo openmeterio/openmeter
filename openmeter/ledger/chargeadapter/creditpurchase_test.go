@@ -324,6 +324,11 @@ func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 	require.True(t, env.sumBalance(t, env.accruedSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(40)))
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(60)))
+
+	for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
+		require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
+		require.False(t, bookedAt.UTC().Equal(charge.CreatedAt.UTC()))
+	}
 }
 
 type creditPurchaseHandlerTestEnv struct {

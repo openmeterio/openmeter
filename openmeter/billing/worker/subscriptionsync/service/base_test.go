@@ -606,9 +606,26 @@ func (s *SuiteBase) assertChargeRealizationLedgerTransactions(ctx context.Contex
 	s.T().Helper()
 
 	s.Require().False(expectedRealization.BookedAt.IsZero(), "%s: realization booked_at", childID)
+	if len(actualRealization.LedgerTransactionGroups) == 0 {
+		s.Require().False(expectedChargeRealizationRequiresLedgerTransactionGroups(expectedRealization), "%s: realization ledger transaction groups", childID)
+		return
+	}
 
 	for _, transactionGroup := range actualRealization.LedgerTransactionGroups {
 		s.assertLedgerTransactionGroupBookedAt(ctx, namespace, transactionGroup.ID, expectedRealization.BookedAt, fmt.Sprintf("%s: %s", childID, transactionGroup.Label))
+	}
+}
+
+func expectedChargeRealizationRequiresLedgerTransactionGroups(expectedRealization expectedChargeRealization) bool {
+	if expectedRealization.Totals.IsZero() {
+		return false
+	}
+
+	switch expectedRealization.Status.ShortStatus() {
+	case "draft", "gathering", "delete":
+		return false
+	default:
+		return true
 	}
 }
 
