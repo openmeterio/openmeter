@@ -10,11 +10,15 @@ import (
 func requireLedgerBookedAtEqual(t *testing.T, expected, actual time.Time) {
 	t.Helper()
 
-	require.True(t, actual.UTC().Equal(expected.UTC().Truncate(time.Microsecond)))
+	expectedAt := expected.UTC().Truncate(time.Microsecond)
+	actualAt := actual.UTC().Truncate(time.Microsecond)
+	require.True(t, actualAt.Equal(expectedAt))
 }
 
 func requireLedgerBookedAtNotEqual(t *testing.T, expected, actual time.Time) {
 	t.Helper()
 
-	require.False(t, actual.UTC().Equal(expected.UTC().Truncate(time.Microsecond)))
+	expectedAt := expected.UTC().Truncate(time.Microsecond)
+	actualAt := actual.UTC().Truncate(time.Microsecond)
+	require.False(t, actualAt.Equal(expectedAt))
 }
