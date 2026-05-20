@@ -13,6 +13,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  migration-atlas-sum:
+    name: Migration atlas.sum append-only
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run atlas.sum check unit tests
+        run: python3 -m unittest discover -s .github/tools/migrate -p 'test_*.py'
+
+      - name: Check atlas.sum is append-only
+        run: python3 .github/tools/migrate/check_atlas_sum_append_only.py "${{ github.event.pull_request.base.sha }}"
+
   release-label:
     name: Release note label
     runs-on: ubuntu-latest
