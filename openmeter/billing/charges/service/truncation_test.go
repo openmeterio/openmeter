@@ -40,6 +40,7 @@ func (s *ChargeTimestampTruncationTestSuite) TearDownTest() {
 func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAndProrationInputs() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-truncation-flatfee")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
@@ -97,6 +98,7 @@ func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAnd
 func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersistedCalculationTimestamps() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-truncation-usagebased")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)

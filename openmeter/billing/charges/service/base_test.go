@@ -30,6 +30,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -162,9 +163,41 @@ func (s *BaseSuite) SetupSuite() {
 		RecognizerService:     recognizer.NoopService{},
 
 		BillingService: s.BillingService,
+		TaxCodeService: s.TaxCodeService,
 	})
 	s.NoError(err)
 	s.Charges = chargesService
+}
+
+// ProvisionDefaultTaxCodes creates two tax codes in the namespace (one for invoicing,
+// one for credit grants) and stores them as the namespace's OrganizationDefaultTaxCodes.
+// Every test that creates charges via s.Charges.Create must call this after
+// GetUniqueNamespace because charge creation now requires the namespace to have
+// default tax codes provisioned. Returns the upsert result for tests that need the IDs.
+func (s *BaseSuite) ProvisionDefaultTaxCodes(ctx context.Context, ns string) taxcode.OrganizationDefaultTaxCodes {
+	s.T().Helper()
+
+	invoicing, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "default-invoicing",
+		Name:      "Default Invoicing",
+	})
+	s.Require().NoError(err, "creating default invoicing tax code")
+
+	creditGrant, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "default-credit-grant",
+		Name:      "Default Credit Grant",
+	})
+	s.Require().NoError(err, "creating default credit grant tax code")
+
+	defaults, err := s.TaxCodeService.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
+		Namespace:            ns,
+		InvoicingTaxCodeID:   invoicing.ID,
+		CreditGrantTaxCodeID: creditGrant.ID,
+	})
+	s.Require().NoError(err, "upserting organization default tax codes")
+	return defaults
 }
 
 func (s *BaseSuite) TearDownTest() {
