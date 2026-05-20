@@ -84,7 +84,7 @@ billing:
 
 credits:
   enabled: true
-  enable_credit_then_invoice: false
+  enableCreditThenInvoice: false
 
 apps:
   baseURL: https://example.com
