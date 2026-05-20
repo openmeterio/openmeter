@@ -108,7 +108,7 @@ func (s *Service) ReconcileCredits(ctx context.Context, in ReconcileCreditRealiz
 				return s.handler.OnCreditsOnlyUsageAccruedCorrection(ctx, usagebased.CreditsOnlyUsageAccruedCorrectionInput{
 					Charge:                       in.Charge,
 					Run:                          in.Run,
-					AllocateAt:                   in.AllocateAt,
+					BookedAt:                     in.AllocateAt,
 					Corrections:                  req,
 					LineageSegmentsByRealization: lineageSegmentsByRealization,
 				})
@@ -180,7 +180,7 @@ func (s *Service) CorrectAllCredits(ctx context.Context, in CorrectAllCreditReal
 		return s.handler.OnCreditsOnlyUsageAccruedCorrection(ctx, usagebased.CreditsOnlyUsageAccruedCorrectionInput{
 			Charge:                       in.Charge,
 			Run:                          in.Run,
-			AllocateAt:                   in.AllocateAt,
+			BookedAt:                     in.AllocateAt,
 			Corrections:                  req,
 			LineageSegmentsByRealization: lineageSegmentsByRealization,
 		})

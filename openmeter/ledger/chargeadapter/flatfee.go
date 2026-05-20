@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 // flatFeeHandler maps charge lifecycle events to ledger transaction templates
@@ -63,7 +62,7 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 		ChargeID:          input.Charge.ID,
 		CustomerID:        input.Charge.Intent.CustomerID,
 		Annotations:       chargeAnnotationsForFlatFeeCharge(input.Charge),
-		BookedAt:          input.Charge.Intent.InvoiceAt,
+		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: input.Charge.Intent.InvoiceAt,
 		Currency:          input.Charge.Intent.Currency,
 		SettlementMode:    input.Charge.Intent.SettlementMode,
@@ -114,7 +113,7 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.TransferCustomerReceivableToAccruedTemplate{
-			At:        input.Charge.Intent.InvoiceAt,
+			At:        input.BookedAt,
 			Amount:    amount,
 			Currency:  input.Charge.Intent.Currency,
 			CostBasis: invoiceCostBasis,
@@ -159,7 +158,7 @@ func (h *flatFeeHandler) OnCorrectCreditAllocations(ctx context.Context, input f
 		ChargeID:                     input.Charge.ID,
 		CustomerID:                   input.Charge.Intent.CustomerID,
 		Annotations:                  chargeAnnotationsForFlatFeeCharge(input.Charge),
-		AllocateAt:                   input.AllocateAt,
+		AllocateAt:                   input.BookedAt,
 		Corrections:                  input.Corrections,
 		LineageSegmentsByRealization: input.LineageSegmentsByRealization,
 	})
@@ -190,7 +189,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
-			At:        clock.Now(),
+			At:        input.EventAt,
 			Amount:    input.Amount,
 			Currency:  input.Charge.Intent.Currency,
 			CostBasis: invoiceCostBasis,
@@ -243,7 +242,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
-			At:        clock.Now(),
+			At:        input.EventAt,
 			Amount:    input.Amount,
 			Currency:  input.Charge.Intent.Currency,
 			CostBasis: invoiceCostBasis,

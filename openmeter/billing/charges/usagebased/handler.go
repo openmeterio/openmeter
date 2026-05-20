@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -18,7 +19,7 @@ import (
 type CreditsOnlyUsageAccruedInput struct {
 	Charge           Charge                `json:"charge"`
 	Run              RealizationRun        `json:"run"`
-	AllocateAt       time.Time             `json:"allocateAt"`
+	BookedAt         time.Time             `json:"bookedAt"`
 	AmountToAllocate alpacadecimal.Decimal `json:"amountToAllocate"`
 }
 
@@ -33,8 +34,8 @@ func (i CreditsOnlyUsageAccruedInput) Validate() error {
 		errs = append(errs, fmt.Errorf("run: %w", err))
 	}
 
-	if i.AllocateAt.IsZero() {
-		errs = append(errs, fmt.Errorf("as of is required"))
+	if i.BookedAt.IsZero() {
+		errs = append(errs, fmt.Errorf("booked at is required"))
 	}
 
 	if !i.AmountToAllocate.IsPositive() {
@@ -45,18 +46,51 @@ func (i CreditsOnlyUsageAccruedInput) Validate() error {
 }
 
 type CreditsOnlyUsageAccruedCorrectionInput struct {
-	Charge     Charge         `json:"charge"`
-	Run        RealizationRun `json:"run"`
-	AllocateAt time.Time      `json:"allocateAt"`
+	Charge   Charge         `json:"charge"`
+	Run      RealizationRun `json:"run"`
+	BookedAt time.Time      `json:"bookedAt"`
 
 	Corrections                  creditrealization.CorrectionRequest   `json:"corrections"`
 	LineageSegmentsByRealization lineage.ActiveSegmentsByRealizationID `json:"-"`
+}
+
+func (i CreditsOnlyUsageAccruedCorrectionInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if err := i.Run.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run: %w", err))
+	}
+
+	if i.BookedAt.IsZero() {
+		errs = append(errs, fmt.Errorf("booked at is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i CreditsOnlyUsageAccruedCorrectionInput) ValidateWith(currencyCalculator currencyx.Calculator) error {
+	var errs []error
+
+	if err := i.Validate(); err != nil {
+		return err
+	}
+
+	if err := i.Corrections.ValidateWith(currencyCalculator); err != nil {
+		errs = append(errs, fmt.Errorf("corrections: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type OnInvoiceUsageAccruedInput struct {
 	Charge        Charge                `json:"charge"`
 	Run           RealizationRun        `json:"run"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
+	BookedAt      time.Time             `json:"bookedAt"`
 	Amount        alpacadecimal.Decimal `json:"amount"`
 }
 
@@ -75,6 +109,10 @@ func (i OnInvoiceUsageAccruedInput) Validate() error {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
 	}
 
+	if i.BookedAt.IsZero() {
+		errs = append(errs, fmt.Errorf("booked at is required"))
+	}
+
 	if i.Amount.IsNegative() {
 		errs = append(errs, fmt.Errorf("amount cannot be negative"))
 	}
@@ -83,8 +121,9 @@ func (i OnInvoiceUsageAccruedInput) Validate() error {
 }
 
 type RunEventInput struct {
-	Charge Charge         `json:"charge"`
-	Run    RealizationRun `json:"run"`
+	Charge  Charge         `json:"charge"`
+	Run     RealizationRun `json:"run"`
+	EventAt time.Time      `json:"eventAt"`
 }
 
 func (i RunEventInput) Validate() error {
@@ -96,6 +135,10 @@ func (i RunEventInput) Validate() error {
 
 	if err := i.Run.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("run: %w", err))
+	}
+
+	if i.EventAt.IsZero() {
+		errs = append(errs, fmt.Errorf("event at is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

@@ -185,7 +185,7 @@ func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input bi
 		if _, err := e.service.realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
 			Charge:             charge,
 			Run:                run,
-			AllocateAt:         clock.Now(),
+			AllocateAt:         flatfee.UsageBookedAt(charge.Intent.PaymentTerm, run.ServicePeriod),
 			CurrencyCalculator: currencyCalculator,
 		}); err != nil {
 			return fmt.Errorf("correcting credits for deleted flat fee standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)

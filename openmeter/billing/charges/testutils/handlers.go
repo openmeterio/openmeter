@@ -83,11 +83,11 @@ func (mockCreditPurchaseHandler) OnCreditPurchaseInitiated(context.Context, cred
 	return newMockLedgerTransactionGroupReference(), nil
 }
 
-func (mockCreditPurchaseHandler) OnCreditPurchasePaymentAuthorized(context.Context, creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (mockCreditPurchaseHandler) OnCreditPurchasePaymentAuthorized(context.Context, creditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {
 	return newMockLedgerTransactionGroupReference(), nil
 }
 
-func (mockCreditPurchaseHandler) OnCreditPurchasePaymentSettled(context.Context, creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (mockCreditPurchaseHandler) OnCreditPurchasePaymentSettled(context.Context, creditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {
 	return newMockLedgerTransactionGroupReference(), nil
 }
 

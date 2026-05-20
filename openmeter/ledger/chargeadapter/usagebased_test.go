@@ -41,7 +41,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
 			Charge:           env.newCreditsOnlyCharge(),
 			Run:              env.newRun(),
-			AllocateAt:       env.Now(),
+			BookedAt:         env.Now(),
 			AmountToAllocate: alpacadecimal.NewFromInt(30),
 		})
 		require.NoError(t, err)
@@ -61,7 +61,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
 			Charge:           env.newCreditsOnlyCharge(),
 			Run:              env.newRun(),
-			AllocateAt:       env.Now(),
+			BookedAt:         env.Now(),
 			AmountToAllocate: alpacadecimal.NewFromInt(30),
 		})
 		require.NoError(t, err)
@@ -79,11 +79,14 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
 		priorityOne := env.fundPriority(t, 1, 20)
+		charge := env.newCharge(productcatalog.CreditThenInvoiceSettlementMode)
+		charge.Intent.InvoiceAt = env.Now().Add(24 * time.Hour)
+		run := env.newRun()
 
 		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
-			Charge:           env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
-			Run:              env.newRun(),
-			AllocateAt:       env.Now(),
+			Charge:           charge,
+			Run:              run,
+			BookedAt:         run.ServicePeriodTo,
 			AmountToAllocate: alpacadecimal.NewFromInt(30),
 		})
 		require.NoError(t, err)
@@ -94,6 +97,11 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(20)))
 		require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+
+		for _, bookedAt := range env.transactionBookedAtTimes(t, realizations[0].LedgerTransaction.TransactionGroupID) {
+			require.True(t, bookedAt.UTC().Equal(run.ServicePeriodTo.UTC()))
+			require.False(t, bookedAt.UTC().Equal(charge.Intent.InvoiceAt.UTC()))
+		}
 	})
 
 	t.Run("tracks charge references on transactions", func(t *testing.T) {
@@ -109,7 +117,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
 			Charge:           charge,
 			Run:              env.newRun(),
-			AllocateAt:       env.Now(),
+			BookedAt:         env.Now(),
 			AmountToAllocate: alpacadecimal.NewFromInt(30),
 		})
 		require.NoError(t, err)
@@ -133,12 +141,25 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
 			Charge:           env.newCreditsOnlyCharge(),
 			Run:              env.newRun(),
-			AllocateAt:       env.Now(),
+			BookedAt:         env.Now(),
 			AmountToAllocate: alpacadecimal.Zero,
 		})
 		require.Error(t, err)
 		require.Nil(t, realizations)
 		require.Contains(t, err.Error(), "amount to allocate must be positive")
+	})
+
+	t.Run("booked at is required", func(t *testing.T) {
+		env := newUsageBasedHandlerTestEnv(t)
+
+		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
+			Charge:           env.newCreditsOnlyCharge(),
+			Run:              env.newRun(),
+			BookedAt:         time.Time{},
+			AmountToAllocate: alpacadecimal.NewFromInt(30),
+		})
+		require.ErrorContains(t, err, "booked at is required")
+		require.Nil(t, realizations)
 	})
 }
 
@@ -150,7 +171,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
 			Charge:           env.newCreditsOnlyCharge(),
 			Run:              run,
-			AllocateAt:       env.Now(),
+			BookedAt:         env.Now(),
 			AmountToAllocate: alpacadecimal.NewFromInt(30),
 		})
 		require.NoError(t, err)
@@ -167,7 +188,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedCorrectionInput{
 			Charge:      env.newCreditsOnlyCharge(),
 			Run:         run,
-			AllocateAt:  env.Now(),
+			BookedAt:    env.Now(),
 			Corrections: correctionsRequest,
 		})
 		require.NoError(t, err)
@@ -187,7 +208,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
 			Charge:           env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
 			Run:              run,
-			AllocateAt:       env.Now(),
+			BookedAt:         env.Now(),
 			AmountToAllocate: alpacadecimal.NewFromInt(20),
 		})
 		require.NoError(t, err)
@@ -204,7 +225,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedCorrectionInput{
 			Charge:      env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
 			Run:         run,
-			AllocateAt:  env.Now(),
+			BookedAt:    env.Now(),
 			Corrections: correctionsRequest,
 		})
 		require.NoError(t, err)
@@ -225,7 +246,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
 			Charge:           charge,
 			Run:              run,
-			AllocateAt:       env.Now(),
+			BookedAt:         env.Now(),
 			AmountToAllocate: alpacadecimal.NewFromInt(20),
 		})
 		require.NoError(t, err)
@@ -248,7 +269,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedCorrectionInput{
 			Charge:                       charge,
 			Run:                          run,
-			AllocateAt:                   env.Now(),
+			BookedAt:                     env.Now(),
 			Corrections:                  correctionsRequest,
 			LineageSegmentsByRealization: env.assertRecognizedSegments(t, run.CreditsAllocated, recognitionGroupID),
 		})
@@ -270,7 +291,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		allocations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
 			Charge:           charge,
 			Run:              run,
-			AllocateAt:       env.Now(),
+			BookedAt:         env.Now(),
 			AmountToAllocate: alpacadecimal.NewFromInt(20),
 		})
 		require.NoError(t, err)
@@ -293,7 +314,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedCorrectionInput{
 			Charge:                       charge,
 			Run:                          run,
-			AllocateAt:                   env.Now(),
+			BookedAt:                     env.Now(),
 			Corrections:                  correctionsRequest,
 			LineageSegmentsByRealization: env.assertRecognizedSegments(t, run.CreditsAllocated, recognitionGroupID),
 		})
@@ -305,6 +326,18 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.EarningsSubAccountWithCostBasis(t, &zeroCostBasis)).Equal(alpacadecimal.Zero))
 	})
+
+	t.Run("booked at is required", func(t *testing.T) {
+		env := newUsageBasedHandlerTestEnv(t)
+
+		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedCorrectionInput{
+			Charge:   env.newCreditsOnlyCharge(),
+			Run:      env.newRun(),
+			BookedAt: time.Time{},
+		})
+		require.ErrorContains(t, err, "booked at is required")
+		require.Nil(t, corrections)
+	})
 }
 
 func TestOnUsageBasedInvoiceUsageAccrued(t *testing.T) {
@@ -315,9 +348,50 @@ func TestOnUsageBasedInvoiceUsageAccrued(t *testing.T) {
 			Charge:        env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
 			Run:           env.newRun(),
 			ServicePeriod: timeutil.ClosedPeriod{From: env.Now().Add(-time.Hour), To: env.Now()},
+			BookedAt:      env.Now(),
 			Amount:        alpacadecimal.Zero,
 		})
 		require.NoError(t, err)
+		require.Empty(t, ref.TransactionGroupID)
+	})
+
+	t.Run("credit_then_invoice books invoice usage at service period end", func(t *testing.T) {
+		env := newUsageBasedHandlerTestEnv(t)
+
+		servicePeriod := timeutil.ClosedPeriod{
+			From: env.Now().Add(-2 * time.Hour),
+			To:   env.Now().Add(-time.Hour),
+		}
+		charge := env.newCharge(productcatalog.CreditThenInvoiceSettlementMode)
+		charge.Intent.InvoiceAt = servicePeriod.To.Add(24 * time.Hour)
+
+		ref, err := env.handler.OnInvoiceUsageAccrued(t.Context(), chargeusagebased.OnInvoiceUsageAccruedInput{
+			Charge:        charge,
+			Run:           env.newRunWithLine("line-1"),
+			ServicePeriod: servicePeriod,
+			BookedAt:      servicePeriod.To,
+			Amount:        alpacadecimal.NewFromInt(30),
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, ref.TransactionGroupID)
+
+		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
+			require.True(t, bookedAt.UTC().Equal(servicePeriod.To.UTC()))
+			require.False(t, bookedAt.UTC().Equal(charge.Intent.InvoiceAt.UTC()))
+		}
+	})
+
+	t.Run("booked at is required", func(t *testing.T) {
+		env := newUsageBasedHandlerTestEnv(t)
+
+		ref, err := env.handler.OnInvoiceUsageAccrued(t.Context(), chargeusagebased.OnInvoiceUsageAccruedInput{
+			Charge:        env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:           env.newRun(),
+			ServicePeriod: timeutil.ClosedPeriod{From: env.Now().Add(-time.Hour), To: env.Now()},
+			BookedAt:      time.Time{},
+			Amount:        alpacadecimal.NewFromInt(30),
+		})
+		require.ErrorContains(t, err, "booked at is required")
 		require.Empty(t, ref.TransactionGroupID)
 	})
 }
@@ -331,6 +405,7 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 			Charge:        env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
 			Run:           env.newRunWithLine("line-1"),
 			ServicePeriod: timeutil.ClosedPeriod{From: env.Now().Add(-time.Hour), To: env.Now()},
+			BookedAt:      env.Now(),
 			Amount:        total,
 		})
 		require.NoError(t, err)
@@ -342,8 +417,9 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		defer clock.UnFreeze()
 
 		ref, err := env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
-			Charge: charge,
-			Run:    env.newRunWithInvoiceUsage("line-1", total),
+			Charge:  charge,
+			Run:     env.newRunWithInvoiceUsage("line-1", total),
+			EventAt: env.Now(),
 		})
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
@@ -366,10 +442,23 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
 		ref, err := env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
-			Charge: env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
-			Run:    env.newRunWithInvoiceUsage("line-1", alpacadecimal.Zero),
+			Charge:  env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:     env.newRunWithInvoiceUsage("line-1", alpacadecimal.Zero),
+			EventAt: env.Now(),
 		})
 		require.NoError(t, err)
+		require.Empty(t, ref.TransactionGroupID)
+	})
+
+	t.Run("event at is required", func(t *testing.T) {
+		env := newUsageBasedHandlerTestEnv(t)
+
+		ref, err := env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
+			Charge:  env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:     env.newRunWithInvoiceUsage("line-1", alpacadecimal.NewFromInt(10)),
+			EventAt: time.Time{},
+		})
+		require.ErrorContains(t, err, "event at is required")
 		require.Empty(t, ref.TransactionGroupID)
 	})
 }
@@ -383,6 +472,7 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 			Charge:        env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
 			Run:           env.newRunWithLine("line-1"),
 			ServicePeriod: timeutil.ClosedPeriod{From: env.Now().Add(-time.Hour), To: env.Now()},
+			BookedAt:      env.Now(),
 			Amount:        total,
 		})
 		require.NoError(t, err)
@@ -390,8 +480,9 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		authorizedCharge := env.newCharge(productcatalog.CreditThenInvoiceSettlementMode)
 		authorizedCharge.Intent.InvoiceAt = env.Now().Add(-24 * time.Hour)
 		_, err = env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
-			Charge: authorizedCharge,
-			Run:    env.newRunWithInvoiceUsage("line-1", total),
+			Charge:  authorizedCharge,
+			Run:     env.newRunWithInvoiceUsage("line-1", total),
+			EventAt: env.Now(),
 		})
 		require.NoError(t, err)
 
@@ -402,8 +493,9 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		defer clock.UnFreeze()
 
 		ref, err := env.handler.OnPaymentSettled(t.Context(), chargeusagebased.OnPaymentSettledInput{
-			Charge: settledCharge,
-			Run:    env.newRunWithAuthorizedPayment("line-1", total),
+			Charge:  settledCharge,
+			Run:     env.newRunWithAuthorizedPayment("line-1", total),
+			EventAt: eventTime,
 		})
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
@@ -422,8 +514,9 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
 		ref, err := env.handler.OnPaymentSettled(t.Context(), chargeusagebased.OnPaymentSettledInput{
-			Charge: env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
-			Run:    env.newRunWithAuthorizedPaymentAndInvoiceUsage("line-1", alpacadecimal.NewFromInt(1), alpacadecimal.Zero),
+			Charge:  env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:     env.newRunWithAuthorizedPaymentAndInvoiceUsage("line-1", alpacadecimal.NewFromInt(1), alpacadecimal.Zero),
+			EventAt: env.Now(),
 		})
 		require.NoError(t, err)
 		require.Empty(t, ref.TransactionGroupID)

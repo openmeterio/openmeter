@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -443,7 +442,7 @@ func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Conte
 			Charge:     s.Charge,
 			Run:        *currentRun,
 			Line:       *line,
-			AllocateAt: clock.Now(),
+			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.PaymentTerm, currentRun.ServicePeriod),
 		})
 		if err != nil {
 			return fmt.Errorf("reconcile standard line to intent for %s flat-fee charge[%s]: %w", input.Op, s.Charge.ID, err)
