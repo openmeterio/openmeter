@@ -69,14 +69,17 @@ func (c TaxCodeConfiguration) Validate() error {
 		}
 
 		for j, mapping := range seed.AppMappings {
-			if strings.TrimSpace(mapping.AppType) == "" {
+			trimmedAppType := strings.TrimSpace(mapping.AppType)
+			trimmedTaxCode := strings.TrimSpace(mapping.TaxCode)
+
+			if trimmedAppType == "" {
 				errs = append(errs, fmt.Errorf("seed[%d].appMappings[%d]: appType must not be empty", i, j))
 			}
 
-			if strings.TrimSpace(mapping.TaxCode) == "" {
+			if trimmedTaxCode == "" {
 				errs = append(errs, fmt.Errorf("seed[%d].appMappings[%d]: taxCode must not be empty", i, j))
-			} else if mapping.AppType == "stripe" && !taxcode.TaxCodeStripeRegexp.MatchString(mapping.TaxCode) {
-				errs = append(errs, fmt.Errorf("seed[%d].appMappings[%d]: taxCode %q is not a valid Stripe tax code (must match %s)", i, j, mapping.TaxCode, taxcode.TaxCodeStripeRegexp.String()))
+			} else if trimmedAppType == "stripe" && !taxcode.TaxCodeStripeRegexp.MatchString(trimmedTaxCode) {
+				errs = append(errs, fmt.Errorf("seed[%d].appMappings[%d]: taxCode %q is not a valid Stripe tax code (must match %s)", i, j, trimmedTaxCode, taxcode.TaxCodeStripeRegexp.String()))
 			}
 		}
 	}
