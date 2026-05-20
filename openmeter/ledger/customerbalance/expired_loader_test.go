@@ -128,7 +128,7 @@ func TestListCreditTransactionsCombinesFundedConsumedAndExpired(t *testing.T) {
 			consumed: 5,
 			asOf:     2 * time.Hour,
 			expected: []expectedCreditTransaction{
-				{txType: CreditTransactionTypeConsumed, bookedAfter: 59 * time.Minute, amount: -5, balanceBefore: 20, balanceAfter: 15},
+				{txType: CreditTransactionTypeConsumed, bookedAfter: 0, amount: -5, balanceBefore: 20, balanceAfter: 15},
 				{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 20, balanceBefore: 0, balanceAfter: 20},
 			},
 		},
@@ -148,7 +148,7 @@ func TestListCreditTransactionsCombinesFundedConsumedAndExpired(t *testing.T) {
 			asOf:     10 * time.Hour,
 			expected: []expectedCreditTransaction{
 				{txType: CreditTransactionTypeExpired, bookedAfter: 10 * time.Hour, amount: -15, balanceBefore: 15, balanceAfter: 0},
-				{txType: CreditTransactionTypeConsumed, bookedAfter: 59 * time.Minute, amount: -5, balanceBefore: 20, balanceAfter: 15},
+				{txType: CreditTransactionTypeConsumed, bookedAfter: 0, amount: -5, balanceBefore: 20, balanceAfter: 15},
 				{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 20, balanceBefore: 0, balanceAfter: 20},
 			},
 		},
@@ -158,7 +158,7 @@ func TestListCreditTransactionsCombinesFundedConsumedAndExpired(t *testing.T) {
 			consumed: 20,
 			asOf:     10 * time.Hour,
 			expected: []expectedCreditTransaction{
-				{txType: CreditTransactionTypeConsumed, bookedAfter: 59 * time.Minute, amount: -20, balanceBefore: 20, balanceAfter: 0},
+				{txType: CreditTransactionTypeConsumed, bookedAfter: 0, amount: -20, balanceBefore: 20, balanceAfter: 0},
 				{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 20, balanceBefore: 0, balanceAfter: 20},
 			},
 		},

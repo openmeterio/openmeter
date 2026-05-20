@@ -99,8 +99,8 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, realizations[0].LedgerTransaction.TransactionGroupID) {
-			require.True(t, bookedAt.UTC().Equal(run.ServicePeriodTo.UTC()))
-			require.False(t, bookedAt.UTC().Equal(charge.Intent.InvoiceAt.UTC()))
+			requireLedgerBookedAtEqual(t, run.ServicePeriodTo, bookedAt)
+			requireLedgerBookedAtNotEqual(t, charge.Intent.InvoiceAt, bookedAt)
 		}
 	})
 
@@ -376,8 +376,8 @@ func TestOnUsageBasedInvoiceUsageAccrued(t *testing.T) {
 		require.NotEmpty(t, ref.TransactionGroupID)
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
-			require.True(t, bookedAt.UTC().Equal(servicePeriod.To.UTC()))
-			require.False(t, bookedAt.UTC().Equal(charge.Intent.InvoiceAt.UTC()))
+			requireLedgerBookedAtEqual(t, servicePeriod.To, bookedAt)
+			requireLedgerBookedAtNotEqual(t, charge.Intent.InvoiceAt, bookedAt)
 		}
 	})
 
@@ -433,8 +433,8 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.invoiceEarningsSubAccount(t)).Equal(alpacadecimal.Zero))
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
-			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
-			require.False(t, bookedAt.UTC().Equal(charge.Intent.InvoiceAt.UTC()))
+			requireLedgerBookedAtEqual(t, eventTime, bookedAt)
+			requireLedgerBookedAtNotEqual(t, charge.Intent.InvoiceAt, bookedAt)
 		}
 	})
 
@@ -505,8 +505,8 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.washSubAccount(t)).Equal(alpacadecimal.NewFromInt(-25)))
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
-			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
-			require.False(t, bookedAt.UTC().Equal(settledCharge.Intent.InvoiceAt.UTC()))
+			requireLedgerBookedAtEqual(t, eventTime, bookedAt)
+			requireLedgerBookedAtNotEqual(t, settledCharge.Intent.InvoiceAt, bookedAt)
 		}
 	})
 

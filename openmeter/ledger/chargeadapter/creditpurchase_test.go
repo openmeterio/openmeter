@@ -238,8 +238,8 @@ func TestOnCreditPurchasePaymentAuthorized(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
 
 	for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
-		require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
-		require.False(t, bookedAt.UTC().Equal(charge.CreatedAt.UTC()))
+		requireLedgerBookedAtEqual(t, eventTime, bookedAt)
+		requireLedgerBookedAtNotEqual(t, charge.CreatedAt, bookedAt)
 	}
 
 	ref, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
@@ -284,8 +284,8 @@ func TestOnCreditPurchasePaymentSettled(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
 
 	for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
-		require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
-		require.False(t, bookedAt.UTC().Equal(charge.CreatedAt.UTC()))
+		requireLedgerBookedAtEqual(t, eventTime, bookedAt)
+		requireLedgerBookedAtNotEqual(t, charge.CreatedAt, bookedAt)
 	}
 }
 
@@ -326,8 +326,8 @@ func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(60)))
 
 	for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
-		require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
-		require.False(t, bookedAt.UTC().Equal(charge.CreatedAt.UTC()))
+		requireLedgerBookedAtEqual(t, eventTime, bookedAt)
+		requireLedgerBookedAtNotEqual(t, charge.CreatedAt, bookedAt)
 	}
 }
 

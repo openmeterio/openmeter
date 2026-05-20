@@ -51,8 +51,8 @@ func TestOnAllocateCredits(t *testing.T) {
 			env.transactionGroupAnnotations(t, realizations[0].LedgerTransaction.TransactionGroupID),
 		)
 		for _, bookedAt := range env.transactionBookedAtTimes(t, realizations[0].LedgerTransaction.TransactionGroupID) {
-			require.True(t, bookedAt.UTC().Equal(input.ServicePeriod.From.UTC()))
-			require.False(t, bookedAt.UTC().Equal(input.Charge.Intent.InvoiceAt.UTC()))
+			requireLedgerBookedAtEqual(t, input.ServicePeriod.From, bookedAt)
+			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.InvoiceAt, bookedAt)
 		}
 
 		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.NewFromInt(40)))
@@ -144,8 +144,8 @@ func TestOnAllocateCredits(t *testing.T) {
 		require.Len(t, realizations, 1)
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, realizations[0].LedgerTransaction.TransactionGroupID) {
-			require.True(t, bookedAt.UTC().Equal(input.ServicePeriod.To.UTC()))
-			require.False(t, bookedAt.UTC().Equal(input.Charge.Intent.InvoiceAt.UTC()))
+			requireLedgerBookedAtEqual(t, input.ServicePeriod.To, bookedAt)
+			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.InvoiceAt, bookedAt)
 		}
 	})
 }
@@ -404,8 +404,8 @@ func TestOnFlatFeeStandardInvoiceUsageAccrued(t *testing.T) {
 		require.NotEmpty(t, ref.TransactionGroupID)
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
-			require.True(t, bookedAt.UTC().Equal(input.ServicePeriod.From.UTC()))
-			require.False(t, bookedAt.UTC().Equal(input.Charge.Intent.InvoiceAt.UTC()))
+			requireLedgerBookedAtEqual(t, input.ServicePeriod.From, bookedAt)
+			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.InvoiceAt, bookedAt)
 		}
 	})
 
@@ -421,8 +421,8 @@ func TestOnFlatFeeStandardInvoiceUsageAccrued(t *testing.T) {
 		require.NotEmpty(t, ref.TransactionGroupID)
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
-			require.True(t, bookedAt.UTC().Equal(input.ServicePeriod.To.UTC()))
-			require.False(t, bookedAt.UTC().Equal(input.Charge.Intent.InvoiceAt.UTC()))
+			requireLedgerBookedAtEqual(t, input.ServicePeriod.To, bookedAt)
+			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.InvoiceAt, bookedAt)
 		}
 	})
 
