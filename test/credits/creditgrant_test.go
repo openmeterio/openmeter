@@ -94,6 +94,7 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 func (s *CreditGrantTestSuite) TestCreateInvoiceFundedCreatesInvoiceArtifacts() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-invoice-funded")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -150,6 +151,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedCreatesInvoiceArtifacts() 
 func (s *CreditGrantTestSuite) TestCreatePromotionalGrant() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-promotional")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -188,6 +190,7 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrant() {
 func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-external")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -245,6 +248,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 func (s *CreditGrantTestSuite) TestListCreditGrants() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-list")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -277,6 +281,7 @@ func (s *CreditGrantTestSuite) TestListCreditGrants() {
 func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantPropagatesTaxConfigToInvoiceLine() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-taxconfig-propagation")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -340,11 +345,13 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantPropagatesTaxConfigTo
 	s.Equal("txcd_40000001", line.TaxConfig.Stripe.Code)
 }
 
-// TestCreateInvoiceFundedGrantNilTaxConfigInvoiceLineNil verifies that when TaxConfig is omitted
-// from creditgrant.CreateInput the resulting standard invoice line has nil TaxConfig.
-func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigInvoiceLineNil() {
+// TestCreateInvoiceFundedGrantNilTaxConfigAppliesCreditGrantDefault verifies that when
+// TaxConfig is omitted from creditgrant.CreateInput, the resulting standard invoice line
+// inherits the namespace's default credit-grant tax code stamped during charge creation.
+func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigAppliesCreditGrantDefault() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-taxconfig-nil")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -355,10 +362,13 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigInvoiceLi
 		billingtest.WithManualApproval(),
 	)
 
+	defaults, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: ns})
+	s.Require().NoError(err)
+
 	now := datetime.MustParseTimeInLocation(s.T(), "2026-04-17T11:23:53Z", time.UTC).AsTime()
 	clock.SetTime(now)
 
-	_, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+	_, err = s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
 		Namespace:     ns,
 		CustomerID:    cust.ID,
 		Name:          "$10.00 grant without tax config",
@@ -382,7 +392,9 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigInvoiceLi
 
 	lines := standardInvoices.Items[0].Lines.OrEmpty()
 	s.Require().Len(lines, 1)
-	s.Nil(lines[0].TaxConfig, "standard invoice line TaxConfig must be nil when grant has no TaxConfig")
+	s.Require().NotNil(lines[0].TaxConfig, "standard invoice line TaxConfig must be populated with namespace default credit-grant tax code")
+	s.Require().NotNil(lines[0].TaxConfig.TaxCodeID)
+	s.Equal(defaults.CreditGrantTaxCodeID, *lines[0].TaxConfig.TaxCodeID, "standard invoice line must reference the namespace default credit-grant tax code")
 }
 
 // TestCreateExternalGrantPropagatesTaxConfigToCharge verifies that TaxConfig set on
@@ -392,6 +404,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigInvoiceLi
 func (s *CreditGrantTestSuite) TestCreateExternalGrantPropagatesTaxConfigToCharge() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-external-taxconfig")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -442,6 +455,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantPropagatesTaxConfigToCharg
 func (s *CreditGrantTestSuite) TestCreatePromotionalGrantPropagatesTaxConfigToCharge() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-promotional-taxconfig")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)

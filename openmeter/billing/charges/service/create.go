@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/samber/lo"
@@ -28,103 +29,24 @@ type chargesWithInvoiceNowActions struct {
 	collectionAlignmentBypassedLines []invoicePendingLinesInput
 }
 
-func chargeIntentMeta(intent charges.ChargeIntent) (meta.Intent, error) {
-	switch intent.Type() {
-	case meta.ChargeTypeFlatFee:
-		ff, err := intent.AsFlatFeeIntent()
-
-		return ff.Intent, err
-	case meta.ChargeTypeUsageBased:
-		ub, err := intent.AsUsageBasedIntent()
-
-		return ub.Intent, err
-	case meta.ChargeTypeCreditPurchase:
-		cp, err := intent.AsCreditPurchaseIntent()
-
-		return cp.Intent, err
-	}
-
-	return meta.Intent{}, fmt.Errorf("unsupported charge type: %s", intent.Type())
-}
-
-func needsDefaultTaxCode(i meta.Intent) bool {
-	return i.TaxConfig == nil || i.TaxConfig.TaxCodeID == nil
-}
-
-func stampTaxCodeID(cfg *productcatalog.TaxCodeConfig, id string) *productcatalog.TaxCodeConfig {
-	if cfg == nil {
-		return &productcatalog.TaxCodeConfig{TaxCodeID: &id}
-	}
-
-	cfg.TaxCodeID = &id
-
-	return cfg
-}
-
-// defaultTaxCodeIDFor picks which namespace default applies to the given charge type.
-// Credit purchases use the credit-grant default; invoicing charges (flat-fee, usage-based) use the invoicing default.
-func defaultTaxCodeIDFor(t meta.ChargeType, defaults taxcode.OrganizationDefaultTaxCodes) string {
-	if t == meta.ChargeTypeCreditPurchase {
-		return defaults.CreditGrantTaxCodeID
-	}
-
-	return defaults.InvoicingTaxCodeID
-}
-
-func rebuildChargeIntentWithTaxCodeID(intent charges.ChargeIntent, defaultID string) (charges.ChargeIntent, error) {
-	switch intent.Type() {
-	case meta.ChargeTypeFlatFee:
-		ff, err := intent.AsFlatFeeIntent()
-		if err != nil {
-			return charges.ChargeIntent{}, err
-		}
-
-		ff.Intent.TaxConfig = stampTaxCodeID(ff.Intent.TaxConfig, defaultID)
-
-		return charges.NewChargeIntent(ff), nil
-	case meta.ChargeTypeUsageBased:
-		ub, err := intent.AsUsageBasedIntent()
-		if err != nil {
-			return charges.ChargeIntent{}, err
-		}
-
-		ub.Intent.TaxConfig = stampTaxCodeID(ub.Intent.TaxConfig, defaultID)
-
-		return charges.NewChargeIntent(ub), nil
-
-	case meta.ChargeTypeCreditPurchase:
-		cp, err := intent.AsCreditPurchaseIntent()
-		if err != nil {
-			return charges.ChargeIntent{}, err
-		}
-
-		cp.Intent.TaxConfig = stampTaxCodeID(cp.Intent.TaxConfig, defaultID)
-
-		return charges.NewChargeIntent(cp), nil
-	}
-
-	return charges.ChargeIntent{}, fmt.Errorf("unsupported charge type: %s", intent.Type())
-}
-
 // applyDefaultTaxCodes fills in nil TaxCodeID on each intent's TaxConfig using the namespace's
 // organization default tax codes. Invoicing default applies to flat-fee and usage-based charges;
 // credit-grant default applies to credit purchase charges. Fails if any intent needs the fallback
 // but the namespace has no defaults provisioned.
 func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, intents charges.ChargeIntents) (charges.ChargeIntents, error) {
-	needsDefault := false
-	for _, intent := range intents {
-		m, err := chargeIntentMeta(intent)
+	var needsDefaultIdx []int
+	for i, intent := range intents {
+		m, err := intent.Meta()
 		if err != nil {
 			return nil, err
 		}
 
-		if needsDefaultTaxCode(m) {
-			needsDefault = true
-			break
+		if m.TaxConfig == nil || m.TaxConfig.TaxCodeID == nil {
+			needsDefaultIdx = append(needsDefaultIdx, i)
 		}
 	}
 
-	if !needsDefault {
+	if len(needsDefaultIdx) == 0 {
 		return intents, nil
 	}
 
@@ -135,24 +57,22 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 		return nil, fmt.Errorf("resolving default tax codes for namespace %s: %w", namespace, err)
 	}
 
-	out := make(charges.ChargeIntents, len(intents))
-	for i, intent := range intents {
-		m, err := chargeIntentMeta(intent)
+	out := slices.Clone(intents)
+	for _, idx := range needsDefaultIdx {
+		// credit purchases use the credit-grant default; flat-fee and usage-based use the invoicing default
+		defaultID := defaults.InvoicingTaxCodeID
+		if intents[idx].Type() == meta.ChargeTypeCreditPurchase {
+			defaultID = defaults.CreditGrantTaxCodeID
+		}
+
+		rebuilt, err := intents[idx].WithTaxCodeID(defaultID)
 		if err != nil {
 			return nil, err
 		}
 
-		if !needsDefaultTaxCode(m) {
-			out[i] = intent
-			continue
-		}
-
-		rebuilt, err := rebuildChargeIntentWithTaxCodeID(intent, defaultTaxCodeIDFor(intent.Type(), defaults))
-		if err != nil {
-			return nil, err
-		}
-		out[i] = rebuilt
+		out[idx] = rebuilt
 	}
+
 	return out, nil
 }
 

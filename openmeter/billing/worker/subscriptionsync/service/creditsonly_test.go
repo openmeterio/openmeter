@@ -106,6 +106,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) SetupSuite() {
 		BillingService:        s.BillingService,
 		FeatureService:        s.FeatureService,
 		StreamingConnector:    s.MockStreamingConnector,
+		TaxCodeService:        s.TaxCodeService,
 		FlatFeeHandler:        handlers.FlatFee,
 		CreditPurchaseHandler: handlers.CreditPurchase,
 		UsageBasedHandler:     handlers.UsageBased,

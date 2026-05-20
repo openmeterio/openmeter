@@ -385,6 +385,86 @@ func (c ChargeIntent) GetUniqueReferenceID() (*string, error) {
 	return nil, fmt.Errorf("invalid charge type: %s", c.t)
 }
 
+// Meta returns the shared meta.Intent embedded in every charge type.
+func (i ChargeIntent) Meta() (meta.Intent, error) {
+	switch i.t {
+	case meta.ChargeTypeFlatFee:
+		if i.flatFee == nil {
+			return meta.Intent{}, fmt.Errorf("flat fee is nil")
+		}
+
+		return i.flatFee.Intent, nil
+	case meta.ChargeTypeCreditPurchase:
+		if i.creditPurchase == nil {
+			return meta.Intent{}, fmt.Errorf("credit purchase is nil")
+		}
+
+		return i.creditPurchase.Intent, nil
+	case meta.ChargeTypeUsageBased:
+		if i.usageBased == nil {
+			return meta.Intent{}, fmt.Errorf("usage based is nil")
+		}
+
+		return i.usageBased.Intent, nil
+	}
+
+	return meta.Intent{}, fmt.Errorf("invalid charge type: %s", i.t)
+}
+
+// WithTaxCodeID returns a copy of the intent with TaxCodeID set to id.
+// If TaxConfig is nil a new one is created; all other fields are preserved.
+func (i ChargeIntent) WithTaxCodeID(id string) (ChargeIntent, error) {
+	switch i.t {
+	case meta.ChargeTypeFlatFee:
+		ff, err := i.AsFlatFeeIntent()
+		if err != nil {
+			return ChargeIntent{}, err
+		}
+
+		if ff.Intent.TaxConfig == nil {
+			ff.Intent.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: &id}
+		} else {
+			cfg := *ff.Intent.TaxConfig
+			cfg.TaxCodeID = &id
+			ff.Intent.TaxConfig = &cfg
+		}
+
+		return NewChargeIntent(ff), nil
+	case meta.ChargeTypeUsageBased:
+		ub, err := i.AsUsageBasedIntent()
+		if err != nil {
+			return ChargeIntent{}, err
+		}
+
+		if ub.Intent.TaxConfig == nil {
+			ub.Intent.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: &id}
+		} else {
+			cfg := *ub.Intent.TaxConfig
+			cfg.TaxCodeID = &id
+			ub.Intent.TaxConfig = &cfg
+		}
+
+		return NewChargeIntent(ub), nil
+	case meta.ChargeTypeCreditPurchase:
+		cp, err := i.AsCreditPurchaseIntent()
+		if err != nil {
+			return ChargeIntent{}, err
+		}
+
+		if cp.Intent.TaxConfig == nil {
+			cp.Intent.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: &id}
+		} else {
+			cfg := *cp.Intent.TaxConfig
+			cfg.TaxCodeID = &id
+			cp.Intent.TaxConfig = &cfg
+		}
+
+		return NewChargeIntent(cp), nil
+	}
+
+	return ChargeIntent{}, fmt.Errorf("unsupported charge type: %s", i.t)
+}
+
 type ChargeIntents []ChargeIntent
 
 func (i ChargeIntents) Validate() error {

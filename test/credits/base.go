@@ -144,6 +144,7 @@ func (s *BaseSuite) SetupSuite() {
 		BillingService:        s.BillingService,
 		FeatureService:        s.FeatureService,
 		StreamingConnector:    s.MockStreamingConnector,
+		TaxCodeService:        s.TaxCodeService,
 		FlatFeeHandler:        flatFeeHandler,
 		CreditPurchaseHandler: creditPurchaseHandler,
 		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger}, collectorService),

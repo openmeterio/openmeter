@@ -39,6 +39,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -100,6 +101,7 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 		BillingService:     s.BillingService,
 		FeatureService:     s.FeatureService,
 		StreamingConnector: s.MockStreamingConnector,
+		TaxCodeService:     s.TaxCodeService,
 		FlatFeeHandler: ledgerchargeadapter.NewFlatFeeHandler(
 			ledgerDeps.HistoricalLedger,
 			transactions.ResolverDependencies{
@@ -4957,8 +4959,15 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncFlatFee() {
 	// Then
 	//  the gathering invoice will contain the tax details
 
+	// The namespace's default invoicing tax code is auto-stamped on charges and
+	// propagated lines when the rate card leaves TaxCodeID nil. Set it explicitly
+	// here so the rate card carries the tax code we then assert is propagated.
+	defaults, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	s.Require().NoError(err)
+
 	taxConfig := &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr(defaults.InvoicingTaxCodeID),
 	}
 
 	var subsView subscription.SubscriptionView
@@ -5119,8 +5128,15 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncUsageBased() {
 	// Then
 	//  the gathering invoice will contain the tax details
 
+	// The namespace's default invoicing tax code is auto-stamped on charges and
+	// propagated lines when the rate card leaves TaxCodeID nil. Set it explicitly
+	// here so the rate card carries the tax code we then assert is propagated.
+	defaults, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	s.Require().NoError(err)
+
 	taxConfig := &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr(defaults.InvoicingTaxCodeID),
 	}
 
 	var subsView subscription.SubscriptionView

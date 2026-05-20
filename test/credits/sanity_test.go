@@ -1302,6 +1302,7 @@ func (s *SanitySuite) assertBreakageBalancesAt(input breakageBalanceAssertionInp
 func (s *SanitySuite) setupFlatFeeCreditOnlyDeleteCorrection(namespaceSuffix string) creditOnlyDeleteCorrectionSetup {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace(namespaceSuffix)
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -1327,6 +1328,7 @@ func (s *SanitySuite) setupFlatFeeCreditOnlyDeleteCorrection(namespaceSuffix str
 func (s *SanitySuite) setupUsageBasedCreditOnlyDeleteCorrection(namespaceSuffix string) creditOnlyDeleteCorrectionSetup {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace(namespaceSuffix)
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -1488,6 +1490,7 @@ func (s *SanitySuite) assertFundedRecognizedCreditOnlyDeleted(namespace string, 
 func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfillSanity() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-usagebased-credit-only-delete-partial-backfill")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -1611,6 +1614,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-test")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -1956,6 +1960,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 func (s *SanitySuite) TestCreditPurchasePersistsPriority() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-creditpurchase-persists-priority")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -1987,6 +1992,7 @@ func (s *SanitySuite) TestCreditPurchasePersistsPriority() {
 func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-payment-lifecycle")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -2165,6 +2171,7 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-test-credit-only")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
