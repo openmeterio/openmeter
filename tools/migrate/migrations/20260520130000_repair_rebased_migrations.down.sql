@@ -1,0 +1,6 @@
+-- Intentionally no-op.
+--
+-- This repair migration only makes schema from earlier migrations present when
+-- those earlier versions were skipped by already-migrated production databases.
+-- Dropping these objects on rollback would remove schema that may have been
+-- created by the original migrations on healthy databases.
