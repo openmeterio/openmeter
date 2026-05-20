@@ -27,6 +27,7 @@ type testFilter struct {
 	Enabled   *FilterBoolean     `json:"enabled,omitempty"`
 	Currency  *string            `json:"currency,omitempty"`
 	TxType    *testStringType    `json:"tx_type,omitempty"`
+	Timestamp *time.Time         `json:"timestamp,omitempty"`
 }
 
 func TestParse_FilterString(t *testing.T) {
@@ -344,6 +345,37 @@ func TestParse_StringPtrOperatorRejected(t *testing.T) {
 	t.Run("operator-style key rejected for *string field", func(t *testing.T) {
 		var f testFilter
 		err := Parse(url.Values{"filter[currency][eq]": {"USD"}}, &f)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operator-style keys are not supported")
+	})
+}
+
+func TestParse_TimestampPtr(t *testing.T) {
+	ts := time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)
+
+	t.Run("valid RFC-3339 value", func(t *testing.T) {
+		var f testFilter
+		require.NoError(t, Parse(url.Values{"filter[timestamp]": {"2024-01-02T03:04:05Z"}}, &f))
+		require.NotNil(t, f.Timestamp)
+		assert.Equal(t, ts, *f.Timestamp)
+	})
+
+	t.Run("nil when no filter key present", func(t *testing.T) {
+		var f testFilter
+		require.NoError(t, Parse(url.Values{}, &f))
+		assert.Nil(t, f.Timestamp)
+	})
+
+	t.Run("invalid value is rejected", func(t *testing.T) {
+		var f testFilter
+		err := Parse(url.Values{"filter[timestamp]": {"not-a-time"}}, &f)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "filter[timestamp]")
+	})
+
+	t.Run("operator-style key rejected", func(t *testing.T) {
+		var f testFilter
+		err := Parse(url.Values{"filter[timestamp][eq]": {"2024-01-02T03:04:05Z"}}, &f)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "operator-style keys are not supported")
 	})

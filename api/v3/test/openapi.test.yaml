@@ -94,6 +94,8 @@ components:
           $ref: "#/components/schemas/DateTimeFieldFilter"
         labels:
           $ref: "#/components/schemas/LabelsFieldFilter"
+        timestamp:
+          $ref: "#/components/schemas/DateTime"
       additionalProperties: false
       description: Field filters with all supported types.
     LabelsFieldFilter:
