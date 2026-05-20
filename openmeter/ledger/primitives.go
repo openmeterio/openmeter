@@ -77,10 +77,13 @@ type Account interface {
 type EntryInput interface {
 	PostingAddress() PostingAddress
 	Amount() alpacadecimal.Decimal
+	IdentityKey() string
+	Annotations() models.Annotations
 }
 
 type Entry interface {
 	EntryInput
+	ID() models.NamespacedID
 	TransactionID() models.NamespacedID
 }
 
@@ -89,6 +92,11 @@ type TransactionInput interface {
 	EntryInputs() []EntryInput
 	Annotations() models.Annotations
 	AsGroupInput(namespace string, annotations models.Annotations) TransactionGroupInput
+}
+
+type ImpactFilter struct {
+	AccountType AccountType
+	Route       RouteFilter
 }
 
 // Transaction represents a list of entries booked at the same time
@@ -185,11 +193,15 @@ type ListTransactionsInput struct {
 	// AccountIDs scopes the query to transactions with entries on these accounts.
 	AccountIDs []string
 	Currency   *currencyx.Code
+	AsOf       *time.Time
 
 	CreditMovement ListTransactionsCreditMovement
 
 	// AnnotationFilters matches transactions whose annotations contain all the given key-value pairs.
 	AnnotationFilters map[string]string
+
+	// ExcludeAnnotationFilters excludes transactions whose annotations contain any given key-value pair.
+	ExcludeAnnotationFilters map[string]string
 }
 
 type ListTransactionsResult struct {
@@ -249,6 +261,13 @@ func (i ListTransactionsInput) Validate() error {
 				"error":    err,
 			})
 		}
+	}
+
+	if i.AsOf != nil && i.AsOf.IsZero() {
+		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+			"reason": "as_of_invalid",
+			"as_of":  i.AsOf,
+		})
 	}
 
 	switch i.CreditMovement {

@@ -26,6 +26,8 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldSubAccountID holds the string denoting the sub_account_id field in the database.
 	FieldSubAccountID = "sub_account_id"
+	// FieldIdentityKey holds the string denoting the identity_key field in the database.
+	FieldIdentityKey = "identity_key"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldTransactionID holds the string denoting the transaction_id field in the database.
@@ -61,6 +63,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldSubAccountID,
+	FieldIdentityKey,
 	FieldAmount,
 	FieldTransactionID,
 }
@@ -84,6 +87,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultIdentityKey holds the default value on creation for the "identity_key" field.
+	DefaultIdentityKey string
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -119,6 +124,11 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 // BySubAccountID orders the results by the sub_account_id field.
 func BySubAccountID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubAccountID, opts...).ToFunc()
+}
+
+// ByIdentityKey orders the results by the identity_key field.
+func ByIdentityKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIdentityKey, opts...).ToFunc()
 }
 
 // ByAmount orders the results by the amount field.

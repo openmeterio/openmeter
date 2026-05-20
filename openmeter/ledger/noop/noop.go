@@ -87,11 +87,11 @@ func (Ledger) ListTransactions(context.Context, ledger.ListTransactionsInput) (l
 	return ledger.ListTransactionsResult{}, nil
 }
 
-func (Ledger) GetAccountBalance(context.Context, ledger.Account, ledger.RouteFilter, *ledger.TransactionCursor) (ledger.Balance, error) {
+func (Ledger) GetAccountBalance(context.Context, ledger.Account, ledger.RouteFilter, ledger.BalanceQuery) (ledger.Balance, error) {
 	return balance{}, nil
 }
 
-func (Ledger) GetSubAccountBalance(context.Context, ledger.SubAccount, *ledger.TransactionCursor) (ledger.Balance, error) {
+func (Ledger) GetSubAccountBalance(context.Context, ledger.SubAccount, ledger.BalanceQuery) (ledger.Balance, error) {
 	return balance{}, nil
 }
 
@@ -120,6 +120,7 @@ func (AccountResolver) EnsureBusinessAccounts(context.Context, string) (ledger.B
 		WashAccount:      businessAccount{accountType: ledger.AccountTypeWash},
 		EarningsAccount:  businessAccount{accountType: ledger.AccountTypeEarnings},
 		BrokerageAccount: businessAccount{accountType: ledger.AccountTypeBrokerage},
+		BreakageAccount:  businessAccount{accountType: ledger.AccountTypeBreakage},
 	}, nil
 }
 
@@ -128,6 +129,7 @@ func (AccountResolver) GetBusinessAccounts(context.Context, string) (ledger.Busi
 		WashAccount:      businessAccount{accountType: ledger.AccountTypeWash},
 		EarningsAccount:  businessAccount{accountType: ledger.AccountTypeEarnings},
 		BrokerageAccount: businessAccount{accountType: ledger.AccountTypeBrokerage},
+		BreakageAccount:  businessAccount{accountType: ledger.AccountTypeBreakage},
 	}, nil
 }
 

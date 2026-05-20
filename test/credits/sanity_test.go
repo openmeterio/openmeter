@@ -16,9 +16,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	dbledgerbreakagerecord "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -134,6 +137,710 @@ func (s *SanitySuite) TestUsageBasedFundedCreditOnlyRecognizedRevenueDeleteCorre
 	s.assertFundedRecognizedCreditOnlyDeleted(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable)
 }
 
+func (s *SanitySuite) TestExpiringCreditBreakagePlanReleaseAndExpirySanity() {
+	setup := s.setupExpiringCreditBreakage("charges-sanity-expiring-credit-breakage")
+	defer clock.UnFreeze()
+
+	// Given an expiring promotional grant.
+	clock.FreezeTime(setup.grantAt)
+	funding := s.CreatePromotionalCreditFunding(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  setup.customer.GetID(),
+		Amount:    setup.grantAmount,
+		At:        setup.grantAt,
+		ExpiresAt: &setup.expiresAt,
+		CostBasis: setup.costBasis,
+	})
+	s.NotEmpty(funding.Charge.Realizations.CreditGrantRealization.TransactionGroupID)
+
+	// Then expiry is pre-booked as planned breakage.
+	costBasis := mo.Some(&setup.costBasis)
+	customerID := setup.customer.GetID()
+	s.assertPlannedBreakage(plannedBreakageAssertionInput{
+		ctx:       setup.ctx,
+		namespace: setup.namespace,
+		customer:  customerID,
+		currency:  USD,
+		costBasis: costBasis,
+		amount:    setup.grantAmount,
+		createdAt: setup.grantAt,
+		expiresAt: setup.expiresAt,
+	})
+
+	// When usage consumes part of the expiring credit before expiry.
+	charge := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           setup.ctx,
+		namespace:     setup.namespace,
+		customer:      setup.customer.GetID(),
+		servicePeriod: timeutil.ClosedPeriod{From: setup.usageAt, To: setup.usageAt.Add(time.Hour)},
+		createAt:      setup.usageAt.Add(-time.Hour),
+		advanceAt:     setup.usageAt,
+		amount:        setup.usedAmount,
+		name:          "expiring-credit-breakage-usage",
+	}).charge
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
+	s.AssertDecimalEqual(setup.usedAmount, s.mustFlatFeeCreditRealizations(charge)[0].Amount, "used credit realization amount")
+
+	// Then the used portion releases planned breakage, and only the unused remainder breaks at expiry.
+	s.assertReleasedBreakage(releasedBreakageAssertionInput{
+		ctx:             setup.ctx,
+		namespace:       setup.namespace,
+		customer:        customerID,
+		currency:        USD,
+		costBasis:       costBasis,
+		planAmount:      setup.grantAmount,
+		releaseAmount:   setup.usedAmount,
+		asOf:            setup.usageAt,
+		expectedFBO:     setup.unusedAmount,
+		expectedAccrued: setup.usedAmount,
+	})
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             setup.expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: setup.unusedAmount,
+		label:            "at expiry after usage",
+	})
+}
+
+func (s *SanitySuite) TestExpiringCreditBreakageImmediatelyReleasesAdvanceBackfillSanity() {
+	setup := s.setupUsageBasedCreditOnlyDeleteCorrection("charges-sanity-expiring-credit-breakage-advance-backfill")
+	defer clock.UnFreeze()
+
+	costBasisValue := alpacadecimal.Zero
+	costBasis := mo.Some(&costBasisValue)
+	customerID := setup.customer.GetID()
+	advanceAmount := setup.amount
+	grantAmount := alpacadecimal.NewFromInt(12)
+	unusedPurchaseAmount := grantAmount.Sub(advanceAmount)
+	expiresAt := setup.createAt.Add(7 * 24 * time.Hour)
+	usageAt := setup.servicePeriod.From.Add(24 * time.Hour)
+	chargeCreateAt := setup.createAt
+	backfillAt := chargeCreateAt.Add(time.Hour)
+
+	// Given usage consumes advance because no real credit exists yet.
+	clock.FreezeTime(chargeCreateAt)
+	s.MockStreamingConnector.AddSimpleEvent(
+		setup.featureKey,
+		advanceAmount.InexactFloat64(),
+		usageAt,
+	)
+	chargeRes, err := s.Charges.Create(setup.ctx, charges.CreateInput{
+		Namespace: setup.namespace,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       customerID,
+				Currency:       USD,
+				ServicePeriod:  setup.servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				}),
+				Name:              "expiring-credit-breakage-advance-usage",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "expiring-credit-breakage-advance-usage",
+				FeatureKey:        setup.featureKey,
+			}),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(chargeRes, 1)
+
+	usageCharge, err := chargeRes[0].AsUsageBasedCharge()
+	s.Require().NoError(err)
+	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageCharge.Status))
+	s.AssertDecimalEqual(advanceAmount.Neg(), s.MustCustomerReceivableBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen), "advance receivable before backfill")
+	s.AssertDecimalEqual(advanceAmount, s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)), "advance accrued before backfill")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalance(customerID, USD, costBasis), "FBO before backfill")
+
+	// When a later expiring grant covers the advance and has extra unused value.
+	clock.FreezeTime(backfillAt)
+	s.createPromotionalCreditGrant(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    grantAmount,
+		At:        backfillAt,
+		ExpiresAt: &expiresAt,
+		CostBasis: costBasisValue,
+	})
+
+	// Then the covered advance slice is planned and immediately released from breakage.
+	s.assertAdvanceBackfillBreakageRows(setup.ctx, setup.namespace, customerID, grantAmount, advanceAmount, expiresAt)
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)), "advance accrued after backfill")
+	s.AssertDecimalEqual(advanceAmount, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "attributed accrued after backfill")
+	s.AssertDecimalEqual(unusedPurchaseAmount, s.MustCustomerFBOBalanceAsOf(customerID, USD, costBasis, backfillAt), "available FBO after backfill")
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             backfillAt,
+		expectedFBO:      unusedPurchaseAmount,
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "after advance backfill before expiry",
+	})
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: unusedPurchaseAmount,
+		label:            "at expiry after advance backfill",
+	})
+}
+
+func (s *SanitySuite) TestExpiringCreditBreakageReopensAdvanceBackfillReleaseOnUsageCorrectionSanity() {
+	setup := s.setupUsageBasedCreditOnlyDeleteCorrection("charges-sanity-expiring-credit-breakage-advance-backfill-correction")
+	defer clock.UnFreeze()
+
+	costBasisValue := alpacadecimal.Zero
+	costBasis := mo.Some(&costBasisValue)
+	customerID := setup.customer.GetID()
+	advanceAmount := setup.amount
+	grantAmount := alpacadecimal.NewFromInt(12)
+	unusedPurchaseAmount := grantAmount.Sub(advanceAmount)
+	expiresAt := setup.createAt.Add(7 * 24 * time.Hour)
+	usageAt := setup.servicePeriod.From.Add(24 * time.Hour)
+	chargeCreateAt := setup.createAt
+	backfillAt := chargeCreateAt.Add(time.Hour)
+	correctionAt := backfillAt.Add(time.Hour)
+
+	// Given usage consumes advance because no real credit exists yet.
+	clock.FreezeTime(chargeCreateAt)
+	s.MockStreamingConnector.AddSimpleEvent(
+		setup.featureKey,
+		advanceAmount.InexactFloat64(),
+		usageAt,
+	)
+	chargeRes, err := s.Charges.Create(setup.ctx, charges.CreateInput{
+		Namespace: setup.namespace,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       customerID,
+				Currency:       USD,
+				ServicePeriod:  setup.servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				}),
+				Name:              "expiring-credit-breakage-advance-correction-usage",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "expiring-credit-breakage-advance-correction-usage",
+				FeatureKey:        setup.featureKey,
+			}),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(chargeRes, 1)
+
+	usageCharge, err := chargeRes[0].AsUsageBasedCharge()
+	s.Require().NoError(err)
+	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageCharge.Status))
+
+	// And a later expiring grant covers that advance and has extra unused value.
+	clock.FreezeTime(backfillAt)
+	s.createPromotionalCreditGrant(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    grantAmount,
+		At:        backfillAt,
+		ExpiresAt: &expiresAt,
+		CostBasis: costBasisValue,
+	})
+
+	s.assertAdvanceBackfillBreakageRows(setup.ctx, setup.namespace, customerID, grantAmount, advanceAmount, expiresAt)
+	s.AssertDecimalEqual(unusedPurchaseAmount, s.MustCustomerFBOBalanceAsOf(customerID, USD, costBasis, backfillAt), "available FBO after backfill before correction")
+	s.AssertDecimalEqual(advanceAmount, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "attributed accrued after backfill before correction")
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: unusedPurchaseAmount,
+		label:            "at expiry after advance backfill before correction",
+	})
+
+	// When the original usage is deleted with refund-as-credits.
+	clock.FreezeTime(correctionAt)
+	s.deleteChargeWithRefundAsCredits(setup.ctx, customerID, usageCharge.ID)
+
+	// Then the advance-backed release reopens because the covered credit is unused again.
+	s.assertAdvanceBackfillBreakageReopenedRows(setup.ctx, setup.namespace, customerID, grantAmount, advanceAmount, expiresAt)
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)), "unattributed accrued after advance correction")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "attributed accrued after advance correction")
+	s.AssertDecimalEqual(grantAmount, s.MustCustomerFBOBalanceAsOf(customerID, USD, costBasis, correctionAt), "available FBO after advance correction")
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             correctionAt,
+		expectedFBO:      grantAmount,
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "after advance correction before expiry",
+	})
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: grantAmount,
+		label:            "at expiry after advance correction",
+	})
+}
+
+func (s *SanitySuite) TestExpiringCreditBreakageReopensOnUsageCorrectionSanity() {
+	setup := s.setupExpiringCreditBreakage(
+		"charges-sanity-expiring-credit-breakage-correction",
+		withExpiringCreditBreakageAmounts(alpacadecimal.NewFromInt(12), alpacadecimal.NewFromInt(5)),
+	)
+	defer clock.UnFreeze()
+
+	costBasis := mo.Some(&setup.costBasis)
+	customerID := setup.customer.GetID()
+
+	// Given an expiring promotional grant.
+	clock.FreezeTime(setup.grantAt)
+	s.CreatePromotionalCreditFunding(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    setup.grantAmount,
+		At:        setup.grantAt,
+		ExpiresAt: &setup.expiresAt,
+		CostBasis: setup.costBasis,
+	})
+
+	// Then expiry is pre-booked as planned breakage.
+	s.assertPlannedBreakage(plannedBreakageAssertionInput{
+		ctx:       setup.ctx,
+		namespace: setup.namespace,
+		customer:  customerID,
+		currency:  USD,
+		costBasis: costBasis,
+		amount:    setup.grantAmount,
+		createdAt: setup.grantAt,
+		expiresAt: setup.expiresAt,
+	})
+
+	// When usage consumes part of the expiring credit before expiry.
+	charge := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           setup.ctx,
+		namespace:     setup.namespace,
+		customer:      customerID,
+		servicePeriod: timeutil.ClosedPeriod{From: setup.usageAt, To: setup.usageAt.Add(time.Hour)},
+		createAt:      setup.usageAt.Add(-time.Hour),
+		advanceAt:     setup.usageAt,
+		amount:        setup.usedAmount,
+		name:          "expiring-credit-breakage-correction-usage",
+	}).charge
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
+	s.AssertDecimalEqual(setup.usedAmount, s.mustFlatFeeCreditRealizations(charge)[0].Amount, "used credit realization amount before correction")
+
+	// Then the used portion releases planned breakage.
+	s.assertReleasedBreakage(releasedBreakageAssertionInput{
+		ctx:             setup.ctx,
+		namespace:       setup.namespace,
+		customer:        customerID,
+		currency:        USD,
+		costBasis:       costBasis,
+		planAmount:      setup.grantAmount,
+		releaseAmount:   setup.usedAmount,
+		asOf:            setup.usageAt,
+		expectedFBO:     setup.unusedAmount,
+		expectedAccrued: setup.usedAmount,
+	})
+
+	// When the full usage charge is deleted with refund-as-credits.
+	correctionAt := setup.usageAt.Add(time.Hour)
+	clock.FreezeTime(correctionAt)
+	s.deleteChargeWithRefundAsCredits(setup.ctx, customerID, charge.ID)
+
+	// Then the correction reopens the released breakage and restores FBO.
+	s.assertReopenedBreakage(reopenedBreakageAssertionInput{
+		ctx:             setup.ctx,
+		namespace:       setup.namespace,
+		customer:        customerID,
+		currency:        USD,
+		costBasis:       costBasis,
+		planAmount:      setup.grantAmount,
+		releaseAmount:   setup.usedAmount,
+		reopenAmount:    setup.usedAmount,
+		asOf:            correctionAt,
+		expectedFBO:     setup.grantAmount,
+		expectedAccrued: alpacadecimal.Zero,
+	})
+
+	// Then the full restored amount breaks at expiry.
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             setup.expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: setup.grantAmount,
+		label:            "at expiry after usage correction",
+	})
+}
+
+func (s *SanitySuite) TestExpiringCreditBreakagePartiallyReopensOnUsageShrinkSanity() {
+	setup := s.setupExpiringCreditBreakage(
+		"charges-sanity-expiring-credit-breakage-partial-correction",
+		withExpiringCreditBreakageAmounts(alpacadecimal.NewFromInt(12), alpacadecimal.NewFromInt(8)),
+	)
+	defer clock.UnFreeze()
+
+	costBasis := mo.Some(&setup.costBasis)
+	customerID := setup.customer.GetID()
+	retainedUsage := alpacadecimal.NewFromInt(5)
+	correctedUsage := setup.usedAmount.Sub(retainedUsage)
+
+	// Given an expiring promotional grant.
+	clock.FreezeTime(setup.grantAt)
+	s.CreatePromotionalCreditFunding(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    setup.grantAmount,
+		At:        setup.grantAt,
+		ExpiresAt: &setup.expiresAt,
+		CostBasis: setup.costBasis,
+	})
+
+	// When usage consumes part of the expiring credit before expiry.
+	charge := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           setup.ctx,
+		namespace:     setup.namespace,
+		customer:      customerID,
+		servicePeriod: timeutil.ClosedPeriod{From: setup.usageAt, To: setup.usageAt.Add(time.Hour)},
+		createAt:      setup.usageAt.Add(-time.Hour),
+		advanceAt:     setup.usageAt,
+		amount:        setup.usedAmount,
+		name:          "expiring-credit-breakage-partial-correction-usage",
+	}).charge
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
+	s.assertReleasedBreakage(releasedBreakageAssertionInput{
+		ctx:             setup.ctx,
+		namespace:       setup.namespace,
+		customer:        customerID,
+		currency:        USD,
+		costBasis:       costBasis,
+		planAmount:      setup.grantAmount,
+		releaseAmount:   setup.usedAmount,
+		asOf:            setup.usageAt,
+		expectedFBO:     setup.grantAmount.Sub(setup.usedAmount),
+		expectedAccrued: setup.usedAmount,
+	})
+
+	// When only part of the usage allocation is corrected.
+	correctionAt := setup.usageAt.Add(time.Hour)
+	clock.FreezeTime(correctionAt)
+	s.correctCreditUsageAllocation(setup.ctx, charge, s.mustFlatFeeCreditRealizations(charge)[0], correctedUsage, correctionAt)
+
+	// Then only the corrected part reopens breakage.
+	s.assertReopenedBreakage(reopenedBreakageAssertionInput{
+		ctx:             setup.ctx,
+		namespace:       setup.namespace,
+		customer:        customerID,
+		currency:        USD,
+		costBasis:       costBasis,
+		planAmount:      setup.grantAmount,
+		releaseAmount:   setup.usedAmount,
+		reopenAmount:    correctedUsage,
+		asOf:            correctionAt,
+		expectedFBO:     setup.grantAmount.Sub(retainedUsage),
+		expectedAccrued: retainedUsage,
+	})
+	s.AssertDecimalEqual(retainedUsage, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "accrued after partial reopen")
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             setup.expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: setup.grantAmount.Sub(retainedUsage),
+		label:            "at expiry after partial usage correction",
+	})
+}
+
+func (s *SanitySuite) TestExpiringCreditBreakageReopensLatestExpirationFirstOnUsageShrinkSanity() {
+	setup := s.setupExpiringCreditBreakage(
+		"charges-sanity-expiring-credit-breakage-multi-expiry-correction",
+		withExpiringCreditBreakageAmounts(alpacadecimal.NewFromInt(10), alpacadecimal.NewFromInt(8)),
+	)
+	defer clock.UnFreeze()
+
+	costBasis := mo.Some(&setup.costBasis)
+	customerID := setup.customer.GetID()
+	firstExpiresAt := setup.usageAt.Add(3 * 24 * time.Hour)
+	secondExpiresAt := setup.expiresAt
+	firstGrantAmount := alpacadecimal.NewFromInt(5)
+	secondGrantAmount := alpacadecimal.NewFromInt(5)
+	retainedUsage := alpacadecimal.NewFromInt(4)
+	correctedUsage := setup.usedAmount.Sub(retainedUsage)
+
+	// Given two expiring grants with the same FBO route but different expiration dates.
+	clock.FreezeTime(setup.grantAt)
+	s.createPromotionalCreditGrant(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    firstGrantAmount,
+		At:        setup.grantAt,
+		ExpiresAt: &firstExpiresAt,
+		CostBasis: setup.costBasis,
+	})
+	s.createPromotionalCreditGrant(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    secondGrantAmount,
+		At:        setup.grantAt,
+		ExpiresAt: &secondExpiresAt,
+		CostBasis: setup.costBasis,
+	})
+
+	// When usage consumes across both expirations, breakage is released in expiration order.
+	charge := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           setup.ctx,
+		namespace:     setup.namespace,
+		customer:      customerID,
+		servicePeriod: timeutil.ClosedPeriod{From: setup.usageAt, To: setup.usageAt.Add(time.Hour)},
+		createAt:      setup.usageAt.Add(-time.Hour),
+		advanceAt:     setup.usageAt,
+		amount:        setup.usedAmount,
+		name:          "expiring-credit-breakage-multi-expiry-correction-usage",
+	}).charge
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
+	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
+		{expiresAt: firstExpiresAt, planAmount: firstGrantAmount, releaseAmount: firstGrantAmount},
+		{expiresAt: secondExpiresAt, planAmount: secondGrantAmount, releaseAmount: alpacadecimal.NewFromInt(3)},
+	})
+
+	// When the charge allocation is partially corrected, correction unwinds the latest consumed expiration first.
+	correctionAt := setup.usageAt.Add(time.Hour)
+	clock.FreezeTime(correctionAt)
+	s.correctCreditUsageAllocation(setup.ctx, charge, s.mustFlatFeeCreditRealizations(charge)[0], correctedUsage, correctionAt)
+
+	// Then the later expiration is fully reopened before the earlier expiration is partially reopened.
+	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
+		{expiresAt: firstExpiresAt, planAmount: firstGrantAmount, releaseAmount: firstGrantAmount, reopenAmount: alpacadecimal.NewFromInt(1)},
+		{expiresAt: secondExpiresAt, planAmount: secondGrantAmount, releaseAmount: alpacadecimal.NewFromInt(3), reopenAmount: alpacadecimal.NewFromInt(3)},
+	})
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             correctionAt,
+		expectedFBO:      setup.grantAmount.Sub(retainedUsage),
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "after multi-expiry partial correction before expiry",
+	})
+	s.AssertDecimalEqual(retainedUsage, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "accrued after multi-expiry partial correction")
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             secondExpiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: setup.grantAmount.Sub(retainedUsage),
+		label:            "after all expirations",
+	})
+}
+
+func (s *SanitySuite) TestExpiringCreditBreakageIgnoresNonExpiringSourceOnUsageShrinkSanity() {
+	setup := s.setupExpiringCreditBreakage(
+		"charges-sanity-expiring-credit-breakage-non-expiring-correction",
+		withExpiringCreditBreakageAmounts(alpacadecimal.NewFromInt(10), alpacadecimal.NewFromInt(8)),
+	)
+	defer clock.UnFreeze()
+
+	costBasis := mo.Some(&setup.costBasis)
+	customerID := setup.customer.GetID()
+	expiringAmount := alpacadecimal.NewFromInt(5)
+	nonExpiringAmount := alpacadecimal.NewFromInt(5)
+	retainedUsage := alpacadecimal.NewFromInt(4)
+	correctedUsage := setup.usedAmount.Sub(retainedUsage)
+	nonExpiringCorrectedUsage := setup.usedAmount.Sub(expiringAmount)
+	expiringReopenAmount := correctedUsage.Sub(nonExpiringCorrectedUsage)
+
+	// Given an expiring grant and a non-expiring grant on the same FBO route.
+	clock.FreezeTime(setup.grantAt)
+	s.createPromotionalCreditGrant(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    expiringAmount,
+		At:        setup.grantAt,
+		ExpiresAt: &setup.expiresAt,
+		CostBasis: setup.costBasis,
+	})
+	s.createPromotionalCreditGrant(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    nonExpiringAmount,
+		At:        setup.grantAt,
+		CostBasis: setup.costBasis,
+	})
+
+	// When usage consumes all expiring credit plus some non-expiring credit.
+	charge := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           setup.ctx,
+		namespace:     setup.namespace,
+		customer:      customerID,
+		servicePeriod: timeutil.ClosedPeriod{From: setup.usageAt, To: setup.usageAt.Add(time.Hour)},
+		createAt:      setup.usageAt.Add(-time.Hour),
+		advanceAt:     setup.usageAt,
+		amount:        setup.usedAmount,
+		name:          "expiring-credit-breakage-non-expiring-correction-usage",
+	}).charge
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
+	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
+		{expiresAt: setup.expiresAt, planAmount: expiringAmount, releaseAmount: expiringAmount},
+	})
+
+	// When the allocation is partially corrected, correction first unwinds the non-expiring source.
+	correctionAt := setup.usageAt.Add(time.Hour)
+	clock.FreezeTime(correctionAt)
+	s.correctCreditUsageAllocation(setup.ctx, charge, s.mustFlatFeeCreditRealizations(charge)[0], correctedUsage, correctionAt)
+
+	// Then only the corrected amount that came from expiring credit reopens breakage.
+	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
+		{expiresAt: setup.expiresAt, planAmount: expiringAmount, releaseAmount: expiringAmount, reopenAmount: expiringReopenAmount},
+	})
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             correctionAt,
+		expectedFBO:      setup.grantAmount.Sub(retainedUsage),
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "after non-expiring partial correction before expiry",
+	})
+	s.AssertDecimalEqual(retainedUsage, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "accrued after non-expiring partial correction")
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             setup.expiresAt,
+		expectedFBO:      nonExpiringAmount,
+		expectedBreakage: alpacadecimal.NewFromInt(1),
+		label:            "at expiry after non-expiring partial correction",
+	})
+}
+
+type expiringCreditBreakageSetup struct {
+	ctx          context.Context
+	namespace    string
+	customer     *customer.Customer
+	grantAt      time.Time
+	usageAt      time.Time
+	expiresAt    time.Time
+	grantAmount  alpacadecimal.Decimal
+	usedAmount   alpacadecimal.Decimal
+	unusedAmount alpacadecimal.Decimal
+	costBasis    alpacadecimal.Decimal
+}
+
+type expiringCreditBreakageSetupOption func(*expiringCreditBreakageSetup)
+
+func withExpiringCreditBreakageAmounts(grantAmount, usedAmount alpacadecimal.Decimal) expiringCreditBreakageSetupOption {
+	return func(setup *expiringCreditBreakageSetup) {
+		setup.grantAmount = grantAmount
+		setup.usedAmount = usedAmount
+	}
+}
+
+type createCreditOnlyFlatFeeChargeInput struct {
+	ctx           context.Context
+	namespace     string
+	customer      customer.CustomerID
+	servicePeriod timeutil.ClosedPeriod
+	createAt      time.Time
+	advanceAt     time.Time
+	amount        alpacadecimal.Decimal
+	name          string
+}
+
+type createdCreditOnlyFlatFeeCharge struct {
+	id     string
+	charge flatfee.Charge
+}
+
+func (s *SanitySuite) mustFlatFeeCreditRealizations(charge flatfee.Charge) creditrealization.Realizations {
+	s.T().Helper()
+
+	s.Require().NotNil(charge.Realizations.CurrentRun)
+
+	return charge.Realizations.CurrentRun.CreditRealizations
+}
+
+type breakageRowsByExpiryAssertion struct {
+	expiresAt     time.Time
+	planAmount    alpacadecimal.Decimal
+	releaseAmount alpacadecimal.Decimal
+	reopenAmount  alpacadecimal.Decimal
+}
+
+type plannedBreakageAssertionInput struct {
+	ctx       context.Context
+	namespace string
+	customer  customer.CustomerID
+	currency  currencyx.Code
+	costBasis mo.Option[*alpacadecimal.Decimal]
+	amount    alpacadecimal.Decimal
+	createdAt time.Time
+	expiresAt time.Time
+}
+
+type releasedBreakageAssertionInput struct {
+	ctx             context.Context
+	namespace       string
+	customer        customer.CustomerID
+	currency        currencyx.Code
+	costBasis       mo.Option[*alpacadecimal.Decimal]
+	planAmount      alpacadecimal.Decimal
+	releaseAmount   alpacadecimal.Decimal
+	asOf            time.Time
+	expectedFBO     alpacadecimal.Decimal
+	expectedAccrued alpacadecimal.Decimal
+}
+
+type reopenedBreakageAssertionInput struct {
+	ctx             context.Context
+	namespace       string
+	customer        customer.CustomerID
+	currency        currencyx.Code
+	costBasis       mo.Option[*alpacadecimal.Decimal]
+	planAmount      alpacadecimal.Decimal
+	releaseAmount   alpacadecimal.Decimal
+	reopenAmount    alpacadecimal.Decimal
+	asOf            time.Time
+	expectedFBO     alpacadecimal.Decimal
+	expectedAccrued alpacadecimal.Decimal
+}
+
+type breakageBalanceAssertionInput struct {
+	namespace        string
+	customer         customer.CustomerID
+	currency         currencyx.Code
+	costBasis        mo.Option[*alpacadecimal.Decimal]
+	asOf             time.Time
+	expectedFBO      alpacadecimal.Decimal
+	expectedBreakage alpacadecimal.Decimal
+	label            string
+}
+
 type creditOnlyDeleteCorrectionSetup struct {
 	ctx           context.Context
 	namespace     string
@@ -142,6 +849,454 @@ type creditOnlyDeleteCorrectionSetup struct {
 	createAt      time.Time
 	amount        alpacadecimal.Decimal
 	featureKey    string
+}
+
+func (s *SanitySuite) mustBreakageRows(ctx context.Context, namespace string, customerID customer.CustomerID) []*entdb.LedgerBreakageRecord {
+	s.T().Helper()
+
+	rows, err := s.DBClient.LedgerBreakageRecord.Query().
+		Where(
+			dbledgerbreakagerecord.NamespaceEQ(namespace),
+			dbledgerbreakagerecord.CustomerIDEQ(customerID.ID),
+		).
+		Order(
+			dbledgerbreakagerecord.ByCreatedAt(),
+			dbledgerbreakagerecord.ByID(),
+		).
+		All(ctx)
+	s.NoError(err)
+
+	return rows
+}
+
+func (s *SanitySuite) assertBreakagePlan(ctx context.Context, namespace string, customerID customer.CustomerID, amount alpacadecimal.Decimal, expiresAt time.Time) string {
+	s.T().Helper()
+
+	rows := s.mustBreakageRows(ctx, namespace, customerID)
+	s.Require().Len(rows, 1)
+
+	row := rows[0]
+	s.Equal(ledger.BreakageKindPlan, row.Kind)
+	s.AssertDecimalEqual(amount, row.Amount, "planned breakage row amount")
+	s.True(row.ExpiresAt.Equal(expiresAt), "planned breakage expires_at: %s", row.ExpiresAt)
+
+	return row.ID
+}
+
+func (s *SanitySuite) assertBreakagePlanAndRelease(ctx context.Context, namespace string, customerID customer.CustomerID, planAmount alpacadecimal.Decimal, releaseAmount alpacadecimal.Decimal) {
+	s.T().Helper()
+
+	rows := s.mustBreakageRows(ctx, namespace, customerID)
+	s.Require().Len(rows, 2)
+
+	var planRowID string
+	var releasePlanID *string
+	var releaseSourceEntryID *string
+
+	for _, row := range rows {
+		switch row.Kind {
+		case ledger.BreakageKindPlan:
+			planRowID = row.ID
+			s.AssertDecimalEqual(planAmount, row.Amount, "planned breakage row amount after usage")
+		case ledger.BreakageKindRelease:
+			releasePlanID = row.PlanID
+			releaseSourceEntryID = row.SourceEntryID
+			s.AssertDecimalEqual(releaseAmount, row.Amount, "released breakage row amount")
+		default:
+			s.Failf("unexpected breakage row kind", "kind=%s", row.Kind)
+		}
+	}
+
+	s.Require().NotEmpty(planRowID)
+	s.Require().NotNil(releasePlanID)
+	s.Require().NotNil(releaseSourceEntryID)
+	s.NotEmpty(*releaseSourceEntryID)
+	s.Equal(planRowID, *releasePlanID)
+}
+
+func (s *SanitySuite) assertAdvanceBackfillBreakageRows(ctx context.Context, namespace string, customerID customer.CustomerID, planAmount alpacadecimal.Decimal, releaseAmount alpacadecimal.Decimal, expiresAt time.Time) {
+	s.T().Helper()
+
+	rows := s.mustBreakageRows(ctx, namespace, customerID)
+	s.Require().Len(rows, 2)
+
+	var planRowID string
+	var releasePlanID *string
+
+	for _, row := range rows {
+		s.True(row.ExpiresAt.Equal(expiresAt), "breakage row expires_at: %s", row.ExpiresAt)
+
+		switch row.Kind {
+		case ledger.BreakageKindPlan:
+			planRowID = row.ID
+			s.Equal(ledger.BreakageSourceKindCreditPurchase, row.SourceKind)
+			s.AssertDecimalEqual(planAmount, row.Amount, "planned breakage row amount after advance backfill")
+		case ledger.BreakageKindRelease:
+			releasePlanID = row.PlanID
+			s.Equal(ledger.BreakageSourceKindAdvanceBackfill, row.SourceKind)
+			s.Nil(row.SourceEntryID)
+			s.AssertDecimalEqual(releaseAmount, row.Amount, "released breakage row amount after advance backfill")
+		default:
+			s.Failf("unexpected breakage row kind", "kind=%s", row.Kind)
+		}
+	}
+
+	s.Require().NotEmpty(planRowID)
+	s.Require().NotNil(releasePlanID)
+	s.Equal(planRowID, *releasePlanID)
+}
+
+func (s *SanitySuite) assertAdvanceBackfillBreakageReopenedRows(ctx context.Context, namespace string, customerID customer.CustomerID, planAmount alpacadecimal.Decimal, releaseAmount alpacadecimal.Decimal, expiresAt time.Time) {
+	s.T().Helper()
+
+	rows := s.mustBreakageRows(ctx, namespace, customerID)
+	s.Require().Len(rows, 3)
+
+	var planRowID string
+	var releaseRowID string
+	var releasePlanID *string
+	var reopenPlanID *string
+	var reopenReleaseID *string
+
+	for _, row := range rows {
+		s.True(row.ExpiresAt.Equal(expiresAt), "breakage row expires_at: %s", row.ExpiresAt)
+
+		switch row.Kind {
+		case ledger.BreakageKindPlan:
+			planRowID = row.ID
+			s.Equal(ledger.BreakageSourceKindCreditPurchase, row.SourceKind)
+			s.AssertDecimalEqual(planAmount, row.Amount, "planned breakage row amount after advance correction")
+		case ledger.BreakageKindRelease:
+			releaseRowID = row.ID
+			releasePlanID = row.PlanID
+			s.Equal(ledger.BreakageSourceKindAdvanceBackfill, row.SourceKind)
+			s.Nil(row.SourceEntryID)
+			s.AssertDecimalEqual(releaseAmount, row.Amount, "advance-backfill release amount after correction")
+		case ledger.BreakageKindReopen:
+			reopenPlanID = row.PlanID
+			reopenReleaseID = row.ReleaseID
+			s.Equal(ledger.BreakageSourceKindUsageCorrection, row.SourceKind)
+			s.AssertDecimalEqual(releaseAmount, row.Amount, "advance-backfill reopen amount")
+		default:
+			s.Failf("unexpected breakage row kind", "kind=%s", row.Kind)
+		}
+	}
+
+	s.Require().NotEmpty(planRowID)
+	s.Require().NotEmpty(releaseRowID)
+	s.Require().NotNil(releasePlanID)
+	s.Require().NotNil(reopenPlanID)
+	s.Require().NotNil(reopenReleaseID)
+	s.Equal(planRowID, *releasePlanID)
+	s.Equal(planRowID, *reopenPlanID)
+	s.Equal(releaseRowID, *reopenReleaseID)
+}
+
+func (s *SanitySuite) assertBreakagePlanReleaseAndReopen(ctx context.Context, namespace string, customerID customer.CustomerID, planAmount alpacadecimal.Decimal, releaseAmount alpacadecimal.Decimal, reopenAmount alpacadecimal.Decimal) {
+	s.T().Helper()
+
+	rows := s.mustBreakageRows(ctx, namespace, customerID)
+	s.Require().Len(rows, 3)
+
+	var planRowID string
+	var releaseRowID string
+	var releasePlanID *string
+	var reopenPlanID *string
+	var reopenReleaseID *string
+
+	for _, row := range rows {
+		switch row.Kind {
+		case ledger.BreakageKindPlan:
+			planRowID = row.ID
+			s.AssertDecimalEqual(planAmount, row.Amount, "planned breakage row amount after correction")
+		case ledger.BreakageKindRelease:
+			releaseRowID = row.ID
+			releasePlanID = row.PlanID
+			s.AssertDecimalEqual(releaseAmount, row.Amount, "released breakage row amount after correction")
+			s.Require().NotNil(row.SourceEntryID)
+			s.NotEmpty(*row.SourceEntryID)
+		case ledger.BreakageKindReopen:
+			reopenPlanID = row.PlanID
+			reopenReleaseID = row.ReleaseID
+			s.AssertDecimalEqual(reopenAmount, row.Amount, "reopened breakage row amount")
+		default:
+			s.Failf("unexpected breakage row kind", "kind=%s", row.Kind)
+		}
+	}
+
+	s.Require().NotEmpty(planRowID)
+	s.Require().NotEmpty(releaseRowID)
+	s.Require().NotNil(releasePlanID)
+	s.Require().NotNil(reopenPlanID)
+	s.Require().NotNil(reopenReleaseID)
+	s.Equal(planRowID, *releasePlanID)
+	s.Equal(planRowID, *reopenPlanID)
+	s.Equal(releaseRowID, *reopenReleaseID)
+}
+
+func (s *SanitySuite) assertBreakageRowsByExpiry(ctx context.Context, namespace string, customerID customer.CustomerID, expected []breakageRowsByExpiryAssertion) {
+	s.T().Helper()
+
+	rows := s.mustBreakageRows(ctx, namespace, customerID)
+
+	expectedByExpiry := make(map[string]breakageRowsByExpiryAssertion, len(expected))
+	for _, item := range expected {
+		expectedByExpiry[item.expiresAt.UTC().Format(time.RFC3339Nano)] = item
+	}
+
+	planIDByExpiry := make(map[string]string, len(expected))
+	releaseIDByExpiry := make(map[string]string, len(expected))
+	releasePlanIDByExpiry := make(map[string]*string, len(expected))
+	reopenPlanIDByExpiry := make(map[string]*string, len(expected))
+	reopenReleaseIDByExpiry := make(map[string]*string, len(expected))
+	actualPlanAmountByExpiry := make(map[string]alpacadecimal.Decimal, len(expected))
+	actualReleaseAmountByExpiry := make(map[string]alpacadecimal.Decimal, len(expected))
+	actualReopenAmountByExpiry := make(map[string]alpacadecimal.Decimal, len(expected))
+
+	for _, row := range rows {
+		key := row.ExpiresAt.UTC().Format(time.RFC3339Nano)
+		if _, ok := expectedByExpiry[key]; !ok {
+			s.Failf("unexpected breakage expiry", "expires_at=%s kind=%s amount=%s", row.ExpiresAt, row.Kind, row.Amount)
+			continue
+		}
+
+		switch row.Kind {
+		case ledger.BreakageKindPlan:
+			planIDByExpiry[key] = row.ID
+			actualPlanAmountByExpiry[key] = actualPlanAmountByExpiry[key].Add(row.Amount)
+		case ledger.BreakageKindRelease:
+			releaseIDByExpiry[key] = row.ID
+			releasePlanIDByExpiry[key] = row.PlanID
+			actualReleaseAmountByExpiry[key] = actualReleaseAmountByExpiry[key].Add(row.Amount)
+			s.Require().NotNil(row.SourceEntryID)
+			s.NotEmpty(*row.SourceEntryID)
+		case ledger.BreakageKindReopen:
+			reopenPlanIDByExpiry[key] = row.PlanID
+			reopenReleaseIDByExpiry[key] = row.ReleaseID
+			actualReopenAmountByExpiry[key] = actualReopenAmountByExpiry[key].Add(row.Amount)
+		default:
+			s.Failf("unexpected breakage row kind", "kind=%s", row.Kind)
+		}
+	}
+
+	for key, expectedItem := range expectedByExpiry {
+		s.AssertDecimalEqual(expectedItem.planAmount, actualPlanAmountByExpiry[key], "planned breakage amount at "+key)
+		s.AssertDecimalEqual(expectedItem.releaseAmount, actualReleaseAmountByExpiry[key], "released breakage amount at "+key)
+		s.AssertDecimalEqual(expectedItem.reopenAmount, actualReopenAmountByExpiry[key], "reopened breakage amount at "+key)
+
+		s.Require().NotEmpty(planIDByExpiry[key])
+		if expectedItem.releaseAmount.IsPositive() {
+			s.Require().NotEmpty(releaseIDByExpiry[key])
+			s.Require().NotNil(releasePlanIDByExpiry[key])
+			s.Equal(planIDByExpiry[key], *releasePlanIDByExpiry[key])
+		}
+		if expectedItem.reopenAmount.IsPositive() {
+			s.Require().NotNil(reopenPlanIDByExpiry[key])
+			s.Require().NotNil(reopenReleaseIDByExpiry[key])
+			s.Equal(planIDByExpiry[key], *reopenPlanIDByExpiry[key])
+			s.Equal(releaseIDByExpiry[key], *reopenReleaseIDByExpiry[key])
+		}
+	}
+}
+
+func (s *SanitySuite) setupExpiringCreditBreakage(namespaceSuffix string, opts ...expiringCreditBreakageSetupOption) expiringCreditBreakageSetup {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace(namespaceSuffix)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	grantAmount := alpacadecimal.NewFromInt(10)
+	usedAmount := alpacadecimal.NewFromInt(6)
+
+	setup := expiringCreditBreakageSetup{
+		ctx:          ctx,
+		namespace:    ns,
+		customer:     cust,
+		grantAt:      datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		usageAt:      datetime.MustParseTimeInLocation(s.T(), "2026-01-02T00:00:00Z", time.UTC).AsTime(),
+		expiresAt:    datetime.MustParseTimeInLocation(s.T(), "2026-01-10T00:00:00Z", time.UTC).AsTime(),
+		grantAmount:  grantAmount,
+		usedAmount:   usedAmount,
+		unusedAmount: grantAmount.Sub(usedAmount),
+		costBasis:    alpacadecimal.Zero,
+	}
+
+	for _, opt := range opts {
+		opt(&setup)
+	}
+	setup.unusedAmount = setup.grantAmount.Sub(setup.usedAmount)
+
+	return setup
+}
+
+func (s *SanitySuite) createAndAdvanceCreditOnlyFlatFeeCharge(input createCreditOnlyFlatFeeChargeInput) createdCreditOnlyFlatFeeCharge {
+	s.T().Helper()
+
+	clock.FreezeTime(input.createAt)
+
+	res, err := s.Charges.Create(input.ctx, charges.CreateInput{
+		Namespace: input.namespace,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       input.customer,
+				Currency:       USD,
+				ServicePeriod:  input.servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      input.amount,
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Name:              input.name,
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: input.name,
+			}),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(res, 1)
+
+	chargeID, err := res[0].GetChargeID()
+	s.NoError(err)
+
+	clock.FreezeTime(input.advanceAt)
+
+	advancedCharges, err := s.Charges.AdvanceCharges(input.ctx, charges.AdvanceChargesInput{
+		Customer: input.customer,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(advancedCharges, 1)
+
+	charge, err := advancedCharges[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusFinal, charge.Status)
+
+	return createdCreditOnlyFlatFeeCharge{
+		id:     chargeID.ID,
+		charge: charge,
+	}
+}
+
+func (s *SanitySuite) createPromotionalCreditGrant(ctx context.Context, input CreatePromotionalCreditFundingInput) creditpurchase.Charge {
+	s.T().Helper()
+
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: input.Namespace,
+		Intents: charges.ChargeIntents{
+			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+				Customer:      input.Customer,
+				Currency:      USD,
+				Amount:        input.Amount,
+				ExpiresAt:     input.ExpiresAt,
+				Priority:      input.Priority,
+				ServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
+				Settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+			}),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(res, 1)
+	s.Equal(meta.ChargeTypeCreditPurchase, res[0].Type())
+
+	charge, err := res[0].AsCreditPurchaseCharge()
+	s.Require().NoError(err)
+
+	return charge
+}
+
+func (s *SanitySuite) correctCreditUsageAllocation(ctx context.Context, charge flatfee.Charge, allocation creditrealization.Realization, amount alpacadecimal.Decimal, allocateAt time.Time) {
+	s.T().Helper()
+
+	lineageSegmentsByRealization, err := s.LineageService.LoadActiveSegmentsByRealizationID(ctx, charge.Namespace, []string{allocation.ID})
+	s.Require().NoError(err)
+
+	corrections, err := s.FlatFeeHandler.OnCorrectCreditAllocations(ctx, flatfee.CorrectCreditAllocationsInput{
+		Charge:                       charge,
+		AllocateAt:                   allocateAt,
+		LineageSegmentsByRealization: lineageSegmentsByRealization,
+		Corrections: creditrealization.CorrectionRequest{
+			{
+				Allocation: allocation,
+				Amount:     amount.Neg(),
+			},
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(corrections, 1)
+	s.AssertDecimalEqual(amount.Neg(), corrections[0].Amount, "credit usage correction amount")
+	s.Equal(allocation.ID, corrections[0].CorrectsRealizationID)
+}
+
+func (s *SanitySuite) assertPlannedBreakage(input plannedBreakageAssertionInput) {
+	s.T().Helper()
+
+	s.assertBreakagePlan(input.ctx, input.namespace, input.customer, input.amount, input.expiresAt)
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        input.namespace,
+		customer:         input.customer,
+		currency:         input.currency,
+		costBasis:        input.costBasis,
+		asOf:             input.createdAt,
+		expectedFBO:      input.amount,
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "at creation",
+	})
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        input.namespace,
+		customer:         input.customer,
+		currency:         input.currency,
+		costBasis:        input.costBasis,
+		asOf:             input.expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: input.amount,
+		label:            "at expiry before release",
+	})
+}
+
+func (s *SanitySuite) assertReleasedBreakage(input releasedBreakageAssertionInput) {
+	s.T().Helper()
+
+	s.assertBreakagePlanAndRelease(input.ctx, input.namespace, input.customer, input.planAmount, input.releaseAmount)
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        input.namespace,
+		customer:         input.customer,
+		currency:         input.currency,
+		costBasis:        input.costBasis,
+		asOf:             input.asOf,
+		expectedFBO:      input.expectedFBO,
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "after release before expiry",
+	})
+	s.AssertDecimalEqual(input.expectedAccrued, s.MustCustomerAccruedBalance(input.customer, input.currency, input.costBasis), "accrued after release")
+}
+
+func (s *SanitySuite) assertReopenedBreakage(input reopenedBreakageAssertionInput) {
+	s.T().Helper()
+
+	s.assertBreakagePlanReleaseAndReopen(input.ctx, input.namespace, input.customer, input.planAmount, input.releaseAmount, input.reopenAmount)
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        input.namespace,
+		customer:         input.customer,
+		currency:         input.currency,
+		costBasis:        input.costBasis,
+		asOf:             input.asOf,
+		expectedFBO:      input.expectedFBO,
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "after reopen before expiry",
+	})
+	s.AssertDecimalEqual(input.expectedAccrued, s.MustCustomerAccruedBalance(input.customer, input.currency, input.costBasis), "accrued after reopen")
+}
+
+func (s *SanitySuite) assertBreakageBalancesAt(input breakageBalanceAssertionInput) {
+	s.T().Helper()
+
+	s.AssertDecimalEqual(input.expectedFBO, s.MustCustomerFBOBalanceAsOf(input.customer, input.currency, input.costBasis, input.asOf), "FBO "+input.label)
+	s.AssertDecimalEqual(input.expectedBreakage, s.MustBreakageBalanceAsOf(input.namespace, input.currency, input.costBasis, input.asOf), "breakage "+input.label)
 }
 
 func (s *SanitySuite) setupFlatFeeCreditOnlyDeleteCorrection(namespaceSuffix string) creditOnlyDeleteCorrectionSetup {
@@ -210,45 +1365,19 @@ func (s *SanitySuite) createPromotionalCreditFunding(setup creditOnlyDeleteCorre
 func (s *SanitySuite) createAndAdvanceFlatFeeCreditOnlyCharge(setup creditOnlyDeleteCorrectionSetup) string {
 	s.T().Helper()
 
-	res, err := s.Charges.Create(setup.ctx, charges.CreateInput{
-		Namespace: setup.namespace,
-		Intents: charges.ChargeIntents{
-			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
-				Customer:       setup.customer.GetID(),
-				Currency:       USD,
-				ServicePeriod:  setup.servicePeriod,
-				SettlementMode: productcatalog.CreditOnlySettlementMode,
-				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-					Amount:      setup.amount,
-					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				}),
-				Name:              setup.namespace,
-				ManagedBy:         billing.SubscriptionManagedLine,
-				UniqueReferenceID: setup.namespace,
-			}),
-		},
+	created := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           setup.ctx,
+		namespace:     setup.namespace,
+		customer:      setup.customer.GetID(),
+		servicePeriod: setup.servicePeriod,
+		createAt:      setup.createAt,
+		advanceAt:     setup.servicePeriod.From,
+		amount:        setup.amount,
+		name:          setup.namespace,
 	})
-	s.NoError(err)
-	s.Len(res, 1)
+	s.Len(s.mustFlatFeeCreditRealizations(created.charge), 1)
 
-	flatFeeChargeID, err := res[0].GetChargeID()
-	s.NoError(err)
-
-	clock.FreezeTime(setup.servicePeriod.From)
-
-	advancedCharges, err := s.Charges.AdvanceCharges(setup.ctx, charges.AdvanceChargesInput{
-		Customer: setup.customer.GetID(),
-	})
-	s.NoError(err)
-	s.Len(advancedCharges, 1)
-
-	advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
-	s.NoError(err)
-	s.Equal(flatfee.StatusFinal, advancedCharge.Status)
-	s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
-	s.Len(advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
-
-	return flatFeeChargeID.ID
+	return created.id
 }
 
 func (s *SanitySuite) recordUsageInClosedServicePeriod(setup creditOnlyDeleteCorrectionSetup) {

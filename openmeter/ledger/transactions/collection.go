@@ -25,8 +25,10 @@ type subAccountAmount struct {
 
 // PostingAmount is a preselected amount to post against an address.
 type PostingAmount struct {
-	Address ledger.PostingAddress
-	Amount  alpacadecimal.Decimal
+	Address     ledger.PostingAddress
+	Amount      alpacadecimal.Decimal
+	IdentityKey string
+	Annotations models.Annotations
 }
 
 type accountIdentifier interface {
@@ -128,7 +130,7 @@ func decimalPointersEqual(left, right *alpacadecimal.Decimal) bool {
 }
 
 func settledBalanceForSubAccount(ctx context.Context, deps ResolverDependencies, subAccount ledger.SubAccount) (alpacadecimal.Decimal, error) {
-	balance, err := deps.BalanceQuerier.GetSubAccountBalance(ctx, subAccount, nil)
+	balance, err := deps.BalanceQuerier.GetSubAccountBalance(ctx, subAccount, ledger.BalanceQuery{})
 	if err != nil {
 		return alpacadecimal.Decimal{}, fmt.Errorf("get balance for sub-account %s: %w", subAccount.Address().SubAccountID(), err)
 	}

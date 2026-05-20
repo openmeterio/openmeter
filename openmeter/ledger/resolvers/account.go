@@ -227,6 +227,14 @@ func (s *AccountResolver) GetBusinessAccounts(ctx context.Context, namespace str
 		})
 	}
 
+	breakage, ok := existing[ledger.AccountTypeBreakage]
+	if !ok {
+		return ledger.BusinessAccounts{}, ledger.ErrBusinessAccountMissing.WithAttrs(models.Attributes{
+			"namespace":    namespace,
+			"account_type": ledger.AccountTypeBreakage,
+		})
+	}
+
 	washAcc, ok := wash.(ledger.BusinessAccount)
 	if !ok {
 		return ledger.BusinessAccounts{}, fmt.Errorf("account %s/%s has type %s, expected business account", wash.ID().Namespace, wash.ID().ID, wash.Type())
@@ -242,10 +250,16 @@ func (s *AccountResolver) GetBusinessAccounts(ctx context.Context, namespace str
 		return ledger.BusinessAccounts{}, fmt.Errorf("account %s/%s has type %s, expected business account", brokerage.ID().Namespace, brokerage.ID().ID, brokerage.Type())
 	}
 
+	breakageAcc, ok := breakage.(ledger.BusinessAccount)
+	if !ok {
+		return ledger.BusinessAccounts{}, fmt.Errorf("account %s/%s has type %s, expected business account", breakage.ID().Namespace, breakage.ID().ID, breakage.Type())
+	}
+
 	return ledger.BusinessAccounts{
 		WashAccount:      washAcc,
 		EarningsAccount:  earningsAcc,
 		BrokerageAccount: brokerageAcc,
+		BreakageAccount:  breakageAcc,
 	}, nil
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -139,7 +140,7 @@ func TestGetBalance(t *testing.T) {
 			env := newTestEnv(t)
 			tt.setup(t, env)
 
-			balance, err := env.Service.GetBalance(t.Context(), env.CustomerID, env.Currency, nil)
+			balance, err := env.Service.GetBalance(t.Context(), env.CustomerID, env.Currency, ledger.BalanceQuery{})
 			require.NoError(t, err)
 			assert.True(t, balance.Settled().Equal(alpacadecimal.NewFromInt(tt.wantSettled)), "settled: %s", balance.Settled())
 			assert.True(t, balance.Pending().Equal(alpacadecimal.NewFromInt(tt.wantPending)), "pending: %s", balance.Pending())
@@ -240,12 +241,12 @@ func TestGetBalanceWithDifferentCurrency(t *testing.T) {
 	env.createFlatFeeChargeInCurrency(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, env.sp(), "USD")
 	env.createFlatFeeChargeInCurrency(t, alpacadecimal.NewFromInt(70), productcatalog.CreditOnlySettlementMode, env.sp(), "EUR")
 
-	usdBalance, err := env.Service.GetBalance(t.Context(), env.CustomerID, currencyx.Code("USD"), nil)
+	usdBalance, err := env.Service.GetBalance(t.Context(), env.CustomerID, currencyx.Code("USD"), ledger.BalanceQuery{})
 	require.NoError(t, err)
 	require.True(t, usdBalance.Settled().Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, usdBalance.Pending().Equal(alpacadecimal.NewFromInt(70)))
 
-	eurBalance, err := env.Service.GetBalance(t.Context(), env.CustomerID, currencyx.Code("EUR"), nil)
+	eurBalance, err := env.Service.GetBalance(t.Context(), env.CustomerID, currencyx.Code("EUR"), ledger.BalanceQuery{})
 	require.NoError(t, err)
 	require.True(t, eurBalance.Settled().Equal(alpacadecimal.NewFromInt(200)))
 	require.True(t, eurBalance.Pending().Equal(alpacadecimal.NewFromInt(130)))

@@ -21,6 +21,8 @@ import (
 	creditgrant "github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	creditgrantservice "github.com/openmeterio/openmeter/openmeter/billing/creditgrant/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -68,9 +70,12 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 	})
 	s.Require().NoError(err)
 
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(s.Ledger, s.BalanceQuerier, s.LedgerResolver, s.LedgerAccountService, ledgerbreakage.NewNoopService(), enttx.NewCreator(s.DBClient))
+	s.Require().NoError(err)
+
 	s.CreditPurchaseService, err = creditpurchaseservice.New(creditpurchaseservice.Config{
 		Adapter:     creditPurchaseAdapter,
-		Handler:     ledgerchargeadapter.NewCreditPurchaseHandler(s.Ledger, s.BalanceQuerier, s.LedgerResolver, s.LedgerAccountService),
+		Handler:     creditPurchaseHandler,
 		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
 	})

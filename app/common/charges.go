@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
@@ -28,6 +29,8 @@ import (
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
@@ -35,6 +38,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 func NewChargesMetaAdapter(
@@ -53,19 +57,60 @@ func NewChargesMetaAdapter(
 }
 
 func NewChargesCollectorService(
+	db *entdb.Client,
 	ledgerService ledger.Ledger,
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
-) ledgercollector.Service {
-	return ledgercollector.NewService(ledgercollector.Config{
+) (ledgercollector.Service, error) {
+	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: ledgerService,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: accountResolver,
 			AccountCatalog: accountService,
 			BalanceQuerier: balanceQuerier,
 		},
+		AccountLocker:      accountService,
+		TransactionManager: enttx.NewCreator(db),
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create charges collector service: %w", err)
+	}
+
+	return collectorService, nil
+}
+
+func NewLedgerBreakageService(
+	creditsConfig config.CreditsConfiguration,
+	db *entdb.Client,
+	balanceQuerier ledger.BalanceQuerier,
+	accountResolver ledger.AccountResolver,
+	accountService ledgeraccount.Service,
+) (ledgerbreakage.Service, error) {
+	if !creditsConfig.Enabled {
+		return ledgerbreakage.NewNoopService(), nil
+	}
+
+	breakageAdapter, err := ledgerbreakageadapter.New(ledgerbreakageadapter.Config{
+		Client: db,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ledger breakage adapter: %w", err)
+	}
+
+	breakageService, err := ledgerbreakage.NewService(ledgerbreakage.Config{
+		Adapter: breakageAdapter,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: accountResolver,
+			AccountCatalog: accountService,
+			BalanceQuerier: balanceQuerier,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ledger breakage service: %w", err)
+	}
+
+	return breakageService, nil
 }
 
 func NewChargesFlatFeeHandler(
@@ -87,8 +132,15 @@ func NewChargesCreditPurchaseHandler(
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
-) creditpurchase.Handler {
-	return ledgerchargeadapter.NewCreditPurchaseHandler(ledgerService, balanceQuerier, accountResolver, accountService)
+	breakageService ledgerbreakage.Service,
+	transactionManager transaction.Creator,
+) (creditpurchase.Handler, error) {
+	handler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerService, balanceQuerier, accountResolver, accountService, breakageService, transactionManager)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create charges credit purchase handler: %w", err)
+	}
+
+	return handler, nil
 }
 
 func NewChargesUsageBasedHandler(
@@ -333,6 +385,7 @@ func newChargesRegistry(
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
+	breakageService ledgerbreakage.Service,
 	fsNamespaceLockdown []string,
 ) (*ChargesRegistry, error) {
 	metaAdapter, err := NewChargesMetaAdapter(db, logger)
@@ -350,7 +403,21 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	collectorService := NewChargesCollectorService(ledgerService, balanceQuerier, accountResolver, accountService)
+	transactionManager := enttx.NewCreator(db)
+	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Ledger: ledgerService,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: accountResolver,
+			AccountCatalog: accountService,
+			BalanceQuerier: balanceQuerier,
+		},
+		Breakage:           breakageService,
+		AccountLocker:      accountService,
+		TransactionManager: transactionManager,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create charges collector service: %w", err)
+	}
 
 	recognizerService, err := NewRecognizerService(db, ledgerService, balanceQuerier, accountResolver, accountService, lineageService)
 	if err != nil {
@@ -359,7 +426,17 @@ func newChargesRegistry(
 
 	flatFeeHandler := NewChargesFlatFeeHandler(ledgerService, balanceQuerier, accountResolver, accountService, collectorService)
 	usageBasedHandler := NewChargesUsageBasedHandler(ledgerService, balanceQuerier, accountResolver, accountService, collectorService)
-	creditPurchaseHandler := NewChargesCreditPurchaseHandler(ledgerService, balanceQuerier, accountResolver, accountService)
+	creditPurchaseHandler, err := NewChargesCreditPurchaseHandler(
+		ledgerService,
+		balanceQuerier,
+		accountResolver,
+		accountService,
+		breakageService,
+		transactionManager,
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	flatFeeAdapter, err := NewChargesFlatFeeAdapter(db, logger, metaAdapter)
 	if err != nil {

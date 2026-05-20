@@ -76,6 +76,7 @@ import (
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercustomeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
@@ -178,6 +179,7 @@ const (
 	TypeGrant                                            = "Grant"
 	TypeLLMCostPrice                                     = "LLMCostPrice"
 	TypeLedgerAccount                                    = "LedgerAccount"
+	TypeLedgerBreakageRecord                             = "LedgerBreakageRecord"
 	TypeLedgerCustomerAccount                            = "LedgerCustomerAccount"
 	TypeLedgerEntry                                      = "LedgerEntry"
 	TypeLedgerSubAccount                                 = "LedgerSubAccount"
@@ -36916,6 +36918,7 @@ type ChargeCreditPurchaseMutation struct {
 	description               *string
 	credit_amount             *alpacadecimal.Decimal
 	effective_at              *time.Time
+	expires_at                *time.Time
 	priority                  *int
 	addpriority               *int
 	settlement                *creditpurchase.Settlement
@@ -38176,6 +38179,55 @@ func (m *ChargeCreditPurchaseMutation) ResetEffectiveAt() {
 	delete(m.clearedFields, chargecreditpurchase.FieldEffectiveAt)
 }
 
+// SetExpiresAt sets the "expires_at" field.
+func (m *ChargeCreditPurchaseMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the ChargeCreditPurchase entity.
+// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseMutation) OldExpiresAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ClearExpiresAt clears the value of the "expires_at" field.
+func (m *ChargeCreditPurchaseMutation) ClearExpiresAt() {
+	m.expires_at = nil
+	m.clearedFields[chargecreditpurchase.FieldExpiresAt] = struct{}{}
+}
+
+// ExpiresAtCleared returns if the "expires_at" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) ExpiresAtCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldExpiresAt]
+	return ok
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *ChargeCreditPurchaseMutation) ResetExpiresAt() {
+	m.expires_at = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldExpiresAt)
+}
+
 // SetPriority sets the "priority" field.
 func (m *ChargeCreditPurchaseMutation) SetPriority(i int) {
 	m.priority = &i
@@ -38643,7 +38695,7 @@ func (m *ChargeCreditPurchaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeCreditPurchaseMutation) Fields() []string {
-	fields := make([]string, 0, 30)
+	fields := make([]string, 0, 31)
 	if m.customer != nil {
 		fields = append(fields, chargecreditpurchase.FieldCustomerID)
 	}
@@ -38725,6 +38777,9 @@ func (m *ChargeCreditPurchaseMutation) Fields() []string {
 	if m.effective_at != nil {
 		fields = append(fields, chargecreditpurchase.FieldEffectiveAt)
 	}
+	if m.expires_at != nil {
+		fields = append(fields, chargecreditpurchase.FieldExpiresAt)
+	}
 	if m.priority != nil {
 		fields = append(fields, chargecreditpurchase.FieldPriority)
 	}
@@ -38796,6 +38851,8 @@ func (m *ChargeCreditPurchaseMutation) Field(name string) (ent.Value, bool) {
 		return m.CreditAmount()
 	case chargecreditpurchase.FieldEffectiveAt:
 		return m.EffectiveAt()
+	case chargecreditpurchase.FieldExpiresAt:
+		return m.ExpiresAt()
 	case chargecreditpurchase.FieldPriority:
 		return m.Priority()
 	case chargecreditpurchase.FieldSettlement:
@@ -38865,6 +38922,8 @@ func (m *ChargeCreditPurchaseMutation) OldField(ctx context.Context, name string
 		return m.OldCreditAmount(ctx)
 	case chargecreditpurchase.FieldEffectiveAt:
 		return m.OldEffectiveAt(ctx)
+	case chargecreditpurchase.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
 	case chargecreditpurchase.FieldPriority:
 		return m.OldPriority(ctx)
 	case chargecreditpurchase.FieldSettlement:
@@ -39069,6 +39128,13 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetEffectiveAt(v)
 		return nil
+	case chargecreditpurchase.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
 	case chargecreditpurchase.FieldPriority:
 		v, ok := value.(int)
 		if !ok {
@@ -39171,6 +39237,9 @@ func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
 	if m.FieldCleared(chargecreditpurchase.FieldEffectiveAt) {
 		fields = append(fields, chargecreditpurchase.FieldEffectiveAt)
 	}
+	if m.FieldCleared(chargecreditpurchase.FieldExpiresAt) {
+		fields = append(fields, chargecreditpurchase.FieldExpiresAt)
+	}
 	if m.FieldCleared(chargecreditpurchase.FieldPriority) {
 		fields = append(fields, chargecreditpurchase.FieldPriority)
 	}
@@ -39223,6 +39292,9 @@ func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldEffectiveAt:
 		m.ClearEffectiveAt()
+		return nil
+	case chargecreditpurchase.FieldExpiresAt:
+		m.ClearExpiresAt()
 		return nil
 	case chargecreditpurchase.FieldPriority:
 		m.ClearPriority()
@@ -39315,6 +39387,9 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldEffectiveAt:
 		m.ResetEffectiveAt()
+		return nil
+	case chargecreditpurchase.FieldExpiresAt:
+		m.ResetExpiresAt()
 		return nil
 	case chargecreditpurchase.FieldPriority:
 		m.ResetPriority()
@@ -80282,6 +80357,1590 @@ func (m *LedgerAccountMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown LedgerAccount edge %s", name)
 }
 
+// LedgerBreakageRecordMutation represents an operation that mutates the LedgerBreakageRecord nodes in the graph.
+type LedgerBreakageRecordMutation struct {
+	config
+	op                            Op
+	typ                           string
+	id                            *string
+	namespace                     *string
+	annotations                   *models.Annotations
+	created_at                    *time.Time
+	updated_at                    *time.Time
+	deleted_at                    *time.Time
+	kind                          *ledger.BreakageKind
+	amount                        *alpacadecimal.Decimal
+	customer_id                   *string
+	currency                      *currencyx.Code
+	credit_priority               *int
+	addcredit_priority            *int
+	expires_at                    *time.Time
+	source_kind                   *ledger.BreakageSourceKind
+	source_transaction_group_id   *string
+	source_transaction_id         *string
+	source_entry_id               *string
+	breakage_transaction_group_id *string
+	breakage_transaction_id       *string
+	fbo_sub_account_id            *string
+	breakage_sub_account_id       *string
+	plan_id                       *string
+	release_id                    *string
+	clearedFields                 map[string]struct{}
+	done                          bool
+	oldValue                      func(context.Context) (*LedgerBreakageRecord, error)
+	predicates                    []predicate.LedgerBreakageRecord
+}
+
+var _ ent.Mutation = (*LedgerBreakageRecordMutation)(nil)
+
+// ledgerbreakagerecordOption allows management of the mutation configuration using functional options.
+type ledgerbreakagerecordOption func(*LedgerBreakageRecordMutation)
+
+// newLedgerBreakageRecordMutation creates new mutation for the LedgerBreakageRecord entity.
+func newLedgerBreakageRecordMutation(c config, op Op, opts ...ledgerbreakagerecordOption) *LedgerBreakageRecordMutation {
+	m := &LedgerBreakageRecordMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeLedgerBreakageRecord,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withLedgerBreakageRecordID sets the ID field of the mutation.
+func withLedgerBreakageRecordID(id string) ledgerbreakagerecordOption {
+	return func(m *LedgerBreakageRecordMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *LedgerBreakageRecord
+		)
+		m.oldValue = func(ctx context.Context) (*LedgerBreakageRecord, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().LedgerBreakageRecord.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withLedgerBreakageRecord sets the old LedgerBreakageRecord of the mutation.
+func withLedgerBreakageRecord(node *LedgerBreakageRecord) ledgerbreakagerecordOption {
+	return func(m *LedgerBreakageRecordMutation) {
+		m.oldValue = func(context.Context) (*LedgerBreakageRecord, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m LedgerBreakageRecordMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m LedgerBreakageRecordMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of LedgerBreakageRecord entities.
+func (m *LedgerBreakageRecordMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *LedgerBreakageRecordMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *LedgerBreakageRecordMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().LedgerBreakageRecord.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *LedgerBreakageRecordMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *LedgerBreakageRecordMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *LedgerBreakageRecordMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *LedgerBreakageRecordMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *LedgerBreakageRecordMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *LedgerBreakageRecordMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[ledgerbreakagerecord.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *LedgerBreakageRecordMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[ledgerbreakagerecord.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *LedgerBreakageRecordMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, ledgerbreakagerecord.FieldAnnotations)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *LedgerBreakageRecordMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *LedgerBreakageRecordMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *LedgerBreakageRecordMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *LedgerBreakageRecordMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *LedgerBreakageRecordMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *LedgerBreakageRecordMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *LedgerBreakageRecordMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *LedgerBreakageRecordMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *LedgerBreakageRecordMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[ledgerbreakagerecord.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *LedgerBreakageRecordMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[ledgerbreakagerecord.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *LedgerBreakageRecordMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, ledgerbreakagerecord.FieldDeletedAt)
+}
+
+// SetKind sets the "kind" field.
+func (m *LedgerBreakageRecordMutation) SetKind(lk ledger.BreakageKind) {
+	m.kind = &lk
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *LedgerBreakageRecordMutation) Kind() (r ledger.BreakageKind, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldKind(ctx context.Context) (v ledger.BreakageKind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *LedgerBreakageRecordMutation) ResetKind() {
+	m.kind = nil
+}
+
+// SetAmount sets the "amount" field.
+func (m *LedgerBreakageRecordMutation) SetAmount(a alpacadecimal.Decimal) {
+	m.amount = &a
+}
+
+// Amount returns the value of the "amount" field in the mutation.
+func (m *LedgerBreakageRecordMutation) Amount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAmount returns the old "amount" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// ResetAmount resets all changes to the "amount" field.
+func (m *LedgerBreakageRecordMutation) ResetAmount() {
+	m.amount = nil
+}
+
+// SetCustomerID sets the "customer_id" field.
+func (m *LedgerBreakageRecordMutation) SetCustomerID(s string) {
+	m.customer_id = &s
+}
+
+// CustomerID returns the value of the "customer_id" field in the mutation.
+func (m *LedgerBreakageRecordMutation) CustomerID() (r string, exists bool) {
+	v := m.customer_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomerID returns the old "customer_id" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldCustomerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomerID: %w", err)
+	}
+	return oldValue.CustomerID, nil
+}
+
+// ResetCustomerID resets all changes to the "customer_id" field.
+func (m *LedgerBreakageRecordMutation) ResetCustomerID() {
+	m.customer_id = nil
+}
+
+// SetCurrency sets the "currency" field.
+func (m *LedgerBreakageRecordMutation) SetCurrency(c currencyx.Code) {
+	m.currency = &c
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *LedgerBreakageRecordMutation) Currency() (r currencyx.Code, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldCurrency(ctx context.Context) (v currencyx.Code, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *LedgerBreakageRecordMutation) ResetCurrency() {
+	m.currency = nil
+}
+
+// SetCreditPriority sets the "credit_priority" field.
+func (m *LedgerBreakageRecordMutation) SetCreditPriority(i int) {
+	m.credit_priority = &i
+	m.addcredit_priority = nil
+}
+
+// CreditPriority returns the value of the "credit_priority" field in the mutation.
+func (m *LedgerBreakageRecordMutation) CreditPriority() (r int, exists bool) {
+	v := m.credit_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditPriority returns the old "credit_priority" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldCreditPriority(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditPriority is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditPriority requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditPriority: %w", err)
+	}
+	return oldValue.CreditPriority, nil
+}
+
+// AddCreditPriority adds i to the "credit_priority" field.
+func (m *LedgerBreakageRecordMutation) AddCreditPriority(i int) {
+	if m.addcredit_priority != nil {
+		*m.addcredit_priority += i
+	} else {
+		m.addcredit_priority = &i
+	}
+}
+
+// AddedCreditPriority returns the value that was added to the "credit_priority" field in this mutation.
+func (m *LedgerBreakageRecordMutation) AddedCreditPriority() (r int, exists bool) {
+	v := m.addcredit_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCreditPriority resets all changes to the "credit_priority" field.
+func (m *LedgerBreakageRecordMutation) ResetCreditPriority() {
+	m.credit_priority = nil
+	m.addcredit_priority = nil
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *LedgerBreakageRecordMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *LedgerBreakageRecordMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldExpiresAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *LedgerBreakageRecordMutation) ResetExpiresAt() {
+	m.expires_at = nil
+}
+
+// SetSourceKind sets the "source_kind" field.
+func (m *LedgerBreakageRecordMutation) SetSourceKind(lsk ledger.BreakageSourceKind) {
+	m.source_kind = &lsk
+}
+
+// SourceKind returns the value of the "source_kind" field in the mutation.
+func (m *LedgerBreakageRecordMutation) SourceKind() (r ledger.BreakageSourceKind, exists bool) {
+	v := m.source_kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceKind returns the old "source_kind" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldSourceKind(ctx context.Context) (v ledger.BreakageSourceKind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceKind: %w", err)
+	}
+	return oldValue.SourceKind, nil
+}
+
+// ResetSourceKind resets all changes to the "source_kind" field.
+func (m *LedgerBreakageRecordMutation) ResetSourceKind() {
+	m.source_kind = nil
+}
+
+// SetSourceTransactionGroupID sets the "source_transaction_group_id" field.
+func (m *LedgerBreakageRecordMutation) SetSourceTransactionGroupID(s string) {
+	m.source_transaction_group_id = &s
+}
+
+// SourceTransactionGroupID returns the value of the "source_transaction_group_id" field in the mutation.
+func (m *LedgerBreakageRecordMutation) SourceTransactionGroupID() (r string, exists bool) {
+	v := m.source_transaction_group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceTransactionGroupID returns the old "source_transaction_group_id" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldSourceTransactionGroupID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceTransactionGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceTransactionGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceTransactionGroupID: %w", err)
+	}
+	return oldValue.SourceTransactionGroupID, nil
+}
+
+// ClearSourceTransactionGroupID clears the value of the "source_transaction_group_id" field.
+func (m *LedgerBreakageRecordMutation) ClearSourceTransactionGroupID() {
+	m.source_transaction_group_id = nil
+	m.clearedFields[ledgerbreakagerecord.FieldSourceTransactionGroupID] = struct{}{}
+}
+
+// SourceTransactionGroupIDCleared returns if the "source_transaction_group_id" field was cleared in this mutation.
+func (m *LedgerBreakageRecordMutation) SourceTransactionGroupIDCleared() bool {
+	_, ok := m.clearedFields[ledgerbreakagerecord.FieldSourceTransactionGroupID]
+	return ok
+}
+
+// ResetSourceTransactionGroupID resets all changes to the "source_transaction_group_id" field.
+func (m *LedgerBreakageRecordMutation) ResetSourceTransactionGroupID() {
+	m.source_transaction_group_id = nil
+	delete(m.clearedFields, ledgerbreakagerecord.FieldSourceTransactionGroupID)
+}
+
+// SetSourceTransactionID sets the "source_transaction_id" field.
+func (m *LedgerBreakageRecordMutation) SetSourceTransactionID(s string) {
+	m.source_transaction_id = &s
+}
+
+// SourceTransactionID returns the value of the "source_transaction_id" field in the mutation.
+func (m *LedgerBreakageRecordMutation) SourceTransactionID() (r string, exists bool) {
+	v := m.source_transaction_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceTransactionID returns the old "source_transaction_id" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldSourceTransactionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceTransactionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceTransactionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceTransactionID: %w", err)
+	}
+	return oldValue.SourceTransactionID, nil
+}
+
+// ClearSourceTransactionID clears the value of the "source_transaction_id" field.
+func (m *LedgerBreakageRecordMutation) ClearSourceTransactionID() {
+	m.source_transaction_id = nil
+	m.clearedFields[ledgerbreakagerecord.FieldSourceTransactionID] = struct{}{}
+}
+
+// SourceTransactionIDCleared returns if the "source_transaction_id" field was cleared in this mutation.
+func (m *LedgerBreakageRecordMutation) SourceTransactionIDCleared() bool {
+	_, ok := m.clearedFields[ledgerbreakagerecord.FieldSourceTransactionID]
+	return ok
+}
+
+// ResetSourceTransactionID resets all changes to the "source_transaction_id" field.
+func (m *LedgerBreakageRecordMutation) ResetSourceTransactionID() {
+	m.source_transaction_id = nil
+	delete(m.clearedFields, ledgerbreakagerecord.FieldSourceTransactionID)
+}
+
+// SetSourceEntryID sets the "source_entry_id" field.
+func (m *LedgerBreakageRecordMutation) SetSourceEntryID(s string) {
+	m.source_entry_id = &s
+}
+
+// SourceEntryID returns the value of the "source_entry_id" field in the mutation.
+func (m *LedgerBreakageRecordMutation) SourceEntryID() (r string, exists bool) {
+	v := m.source_entry_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceEntryID returns the old "source_entry_id" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldSourceEntryID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceEntryID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceEntryID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceEntryID: %w", err)
+	}
+	return oldValue.SourceEntryID, nil
+}
+
+// ClearSourceEntryID clears the value of the "source_entry_id" field.
+func (m *LedgerBreakageRecordMutation) ClearSourceEntryID() {
+	m.source_entry_id = nil
+	m.clearedFields[ledgerbreakagerecord.FieldSourceEntryID] = struct{}{}
+}
+
+// SourceEntryIDCleared returns if the "source_entry_id" field was cleared in this mutation.
+func (m *LedgerBreakageRecordMutation) SourceEntryIDCleared() bool {
+	_, ok := m.clearedFields[ledgerbreakagerecord.FieldSourceEntryID]
+	return ok
+}
+
+// ResetSourceEntryID resets all changes to the "source_entry_id" field.
+func (m *LedgerBreakageRecordMutation) ResetSourceEntryID() {
+	m.source_entry_id = nil
+	delete(m.clearedFields, ledgerbreakagerecord.FieldSourceEntryID)
+}
+
+// SetBreakageTransactionGroupID sets the "breakage_transaction_group_id" field.
+func (m *LedgerBreakageRecordMutation) SetBreakageTransactionGroupID(s string) {
+	m.breakage_transaction_group_id = &s
+}
+
+// BreakageTransactionGroupID returns the value of the "breakage_transaction_group_id" field in the mutation.
+func (m *LedgerBreakageRecordMutation) BreakageTransactionGroupID() (r string, exists bool) {
+	v := m.breakage_transaction_group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBreakageTransactionGroupID returns the old "breakage_transaction_group_id" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldBreakageTransactionGroupID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBreakageTransactionGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBreakageTransactionGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBreakageTransactionGroupID: %w", err)
+	}
+	return oldValue.BreakageTransactionGroupID, nil
+}
+
+// ResetBreakageTransactionGroupID resets all changes to the "breakage_transaction_group_id" field.
+func (m *LedgerBreakageRecordMutation) ResetBreakageTransactionGroupID() {
+	m.breakage_transaction_group_id = nil
+}
+
+// SetBreakageTransactionID sets the "breakage_transaction_id" field.
+func (m *LedgerBreakageRecordMutation) SetBreakageTransactionID(s string) {
+	m.breakage_transaction_id = &s
+}
+
+// BreakageTransactionID returns the value of the "breakage_transaction_id" field in the mutation.
+func (m *LedgerBreakageRecordMutation) BreakageTransactionID() (r string, exists bool) {
+	v := m.breakage_transaction_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBreakageTransactionID returns the old "breakage_transaction_id" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldBreakageTransactionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBreakageTransactionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBreakageTransactionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBreakageTransactionID: %w", err)
+	}
+	return oldValue.BreakageTransactionID, nil
+}
+
+// ResetBreakageTransactionID resets all changes to the "breakage_transaction_id" field.
+func (m *LedgerBreakageRecordMutation) ResetBreakageTransactionID() {
+	m.breakage_transaction_id = nil
+}
+
+// SetFboSubAccountID sets the "fbo_sub_account_id" field.
+func (m *LedgerBreakageRecordMutation) SetFboSubAccountID(s string) {
+	m.fbo_sub_account_id = &s
+}
+
+// FboSubAccountID returns the value of the "fbo_sub_account_id" field in the mutation.
+func (m *LedgerBreakageRecordMutation) FboSubAccountID() (r string, exists bool) {
+	v := m.fbo_sub_account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFboSubAccountID returns the old "fbo_sub_account_id" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldFboSubAccountID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFboSubAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFboSubAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFboSubAccountID: %w", err)
+	}
+	return oldValue.FboSubAccountID, nil
+}
+
+// ResetFboSubAccountID resets all changes to the "fbo_sub_account_id" field.
+func (m *LedgerBreakageRecordMutation) ResetFboSubAccountID() {
+	m.fbo_sub_account_id = nil
+}
+
+// SetBreakageSubAccountID sets the "breakage_sub_account_id" field.
+func (m *LedgerBreakageRecordMutation) SetBreakageSubAccountID(s string) {
+	m.breakage_sub_account_id = &s
+}
+
+// BreakageSubAccountID returns the value of the "breakage_sub_account_id" field in the mutation.
+func (m *LedgerBreakageRecordMutation) BreakageSubAccountID() (r string, exists bool) {
+	v := m.breakage_sub_account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBreakageSubAccountID returns the old "breakage_sub_account_id" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldBreakageSubAccountID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBreakageSubAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBreakageSubAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBreakageSubAccountID: %w", err)
+	}
+	return oldValue.BreakageSubAccountID, nil
+}
+
+// ResetBreakageSubAccountID resets all changes to the "breakage_sub_account_id" field.
+func (m *LedgerBreakageRecordMutation) ResetBreakageSubAccountID() {
+	m.breakage_sub_account_id = nil
+}
+
+// SetPlanID sets the "plan_id" field.
+func (m *LedgerBreakageRecordMutation) SetPlanID(s string) {
+	m.plan_id = &s
+}
+
+// PlanID returns the value of the "plan_id" field in the mutation.
+func (m *LedgerBreakageRecordMutation) PlanID() (r string, exists bool) {
+	v := m.plan_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlanID returns the old "plan_id" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldPlanID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlanID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlanID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlanID: %w", err)
+	}
+	return oldValue.PlanID, nil
+}
+
+// ClearPlanID clears the value of the "plan_id" field.
+func (m *LedgerBreakageRecordMutation) ClearPlanID() {
+	m.plan_id = nil
+	m.clearedFields[ledgerbreakagerecord.FieldPlanID] = struct{}{}
+}
+
+// PlanIDCleared returns if the "plan_id" field was cleared in this mutation.
+func (m *LedgerBreakageRecordMutation) PlanIDCleared() bool {
+	_, ok := m.clearedFields[ledgerbreakagerecord.FieldPlanID]
+	return ok
+}
+
+// ResetPlanID resets all changes to the "plan_id" field.
+func (m *LedgerBreakageRecordMutation) ResetPlanID() {
+	m.plan_id = nil
+	delete(m.clearedFields, ledgerbreakagerecord.FieldPlanID)
+}
+
+// SetReleaseID sets the "release_id" field.
+func (m *LedgerBreakageRecordMutation) SetReleaseID(s string) {
+	m.release_id = &s
+}
+
+// ReleaseID returns the value of the "release_id" field in the mutation.
+func (m *LedgerBreakageRecordMutation) ReleaseID() (r string, exists bool) {
+	v := m.release_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReleaseID returns the old "release_id" field's value of the LedgerBreakageRecord entity.
+// If the LedgerBreakageRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerBreakageRecordMutation) OldReleaseID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReleaseID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReleaseID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReleaseID: %w", err)
+	}
+	return oldValue.ReleaseID, nil
+}
+
+// ClearReleaseID clears the value of the "release_id" field.
+func (m *LedgerBreakageRecordMutation) ClearReleaseID() {
+	m.release_id = nil
+	m.clearedFields[ledgerbreakagerecord.FieldReleaseID] = struct{}{}
+}
+
+// ReleaseIDCleared returns if the "release_id" field was cleared in this mutation.
+func (m *LedgerBreakageRecordMutation) ReleaseIDCleared() bool {
+	_, ok := m.clearedFields[ledgerbreakagerecord.FieldReleaseID]
+	return ok
+}
+
+// ResetReleaseID resets all changes to the "release_id" field.
+func (m *LedgerBreakageRecordMutation) ResetReleaseID() {
+	m.release_id = nil
+	delete(m.clearedFields, ledgerbreakagerecord.FieldReleaseID)
+}
+
+// Where appends a list predicates to the LedgerBreakageRecordMutation builder.
+func (m *LedgerBreakageRecordMutation) Where(ps ...predicate.LedgerBreakageRecord) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the LedgerBreakageRecordMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *LedgerBreakageRecordMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.LedgerBreakageRecord, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *LedgerBreakageRecordMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *LedgerBreakageRecordMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (LedgerBreakageRecord).
+func (m *LedgerBreakageRecordMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *LedgerBreakageRecordMutation) Fields() []string {
+	fields := make([]string, 0, 21)
+	if m.namespace != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldNamespace)
+	}
+	if m.annotations != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldAnnotations)
+	}
+	if m.created_at != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldDeletedAt)
+	}
+	if m.kind != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldKind)
+	}
+	if m.amount != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldAmount)
+	}
+	if m.customer_id != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldCustomerID)
+	}
+	if m.currency != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldCurrency)
+	}
+	if m.credit_priority != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldCreditPriority)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldExpiresAt)
+	}
+	if m.source_kind != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldSourceKind)
+	}
+	if m.source_transaction_group_id != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldSourceTransactionGroupID)
+	}
+	if m.source_transaction_id != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldSourceTransactionID)
+	}
+	if m.source_entry_id != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldSourceEntryID)
+	}
+	if m.breakage_transaction_group_id != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldBreakageTransactionGroupID)
+	}
+	if m.breakage_transaction_id != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldBreakageTransactionID)
+	}
+	if m.fbo_sub_account_id != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldFboSubAccountID)
+	}
+	if m.breakage_sub_account_id != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldBreakageSubAccountID)
+	}
+	if m.plan_id != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldPlanID)
+	}
+	if m.release_id != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldReleaseID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *LedgerBreakageRecordMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case ledgerbreakagerecord.FieldNamespace:
+		return m.Namespace()
+	case ledgerbreakagerecord.FieldAnnotations:
+		return m.Annotations()
+	case ledgerbreakagerecord.FieldCreatedAt:
+		return m.CreatedAt()
+	case ledgerbreakagerecord.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case ledgerbreakagerecord.FieldDeletedAt:
+		return m.DeletedAt()
+	case ledgerbreakagerecord.FieldKind:
+		return m.Kind()
+	case ledgerbreakagerecord.FieldAmount:
+		return m.Amount()
+	case ledgerbreakagerecord.FieldCustomerID:
+		return m.CustomerID()
+	case ledgerbreakagerecord.FieldCurrency:
+		return m.Currency()
+	case ledgerbreakagerecord.FieldCreditPriority:
+		return m.CreditPriority()
+	case ledgerbreakagerecord.FieldExpiresAt:
+		return m.ExpiresAt()
+	case ledgerbreakagerecord.FieldSourceKind:
+		return m.SourceKind()
+	case ledgerbreakagerecord.FieldSourceTransactionGroupID:
+		return m.SourceTransactionGroupID()
+	case ledgerbreakagerecord.FieldSourceTransactionID:
+		return m.SourceTransactionID()
+	case ledgerbreakagerecord.FieldSourceEntryID:
+		return m.SourceEntryID()
+	case ledgerbreakagerecord.FieldBreakageTransactionGroupID:
+		return m.BreakageTransactionGroupID()
+	case ledgerbreakagerecord.FieldBreakageTransactionID:
+		return m.BreakageTransactionID()
+	case ledgerbreakagerecord.FieldFboSubAccountID:
+		return m.FboSubAccountID()
+	case ledgerbreakagerecord.FieldBreakageSubAccountID:
+		return m.BreakageSubAccountID()
+	case ledgerbreakagerecord.FieldPlanID:
+		return m.PlanID()
+	case ledgerbreakagerecord.FieldReleaseID:
+		return m.ReleaseID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *LedgerBreakageRecordMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case ledgerbreakagerecord.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case ledgerbreakagerecord.FieldAnnotations:
+		return m.OldAnnotations(ctx)
+	case ledgerbreakagerecord.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case ledgerbreakagerecord.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case ledgerbreakagerecord.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case ledgerbreakagerecord.FieldKind:
+		return m.OldKind(ctx)
+	case ledgerbreakagerecord.FieldAmount:
+		return m.OldAmount(ctx)
+	case ledgerbreakagerecord.FieldCustomerID:
+		return m.OldCustomerID(ctx)
+	case ledgerbreakagerecord.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case ledgerbreakagerecord.FieldCreditPriority:
+		return m.OldCreditPriority(ctx)
+	case ledgerbreakagerecord.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	case ledgerbreakagerecord.FieldSourceKind:
+		return m.OldSourceKind(ctx)
+	case ledgerbreakagerecord.FieldSourceTransactionGroupID:
+		return m.OldSourceTransactionGroupID(ctx)
+	case ledgerbreakagerecord.FieldSourceTransactionID:
+		return m.OldSourceTransactionID(ctx)
+	case ledgerbreakagerecord.FieldSourceEntryID:
+		return m.OldSourceEntryID(ctx)
+	case ledgerbreakagerecord.FieldBreakageTransactionGroupID:
+		return m.OldBreakageTransactionGroupID(ctx)
+	case ledgerbreakagerecord.FieldBreakageTransactionID:
+		return m.OldBreakageTransactionID(ctx)
+	case ledgerbreakagerecord.FieldFboSubAccountID:
+		return m.OldFboSubAccountID(ctx)
+	case ledgerbreakagerecord.FieldBreakageSubAccountID:
+		return m.OldBreakageSubAccountID(ctx)
+	case ledgerbreakagerecord.FieldPlanID:
+		return m.OldPlanID(ctx)
+	case ledgerbreakagerecord.FieldReleaseID:
+		return m.OldReleaseID(ctx)
+	}
+	return nil, fmt.Errorf("unknown LedgerBreakageRecord field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *LedgerBreakageRecordMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case ledgerbreakagerecord.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case ledgerbreakagerecord.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
+	case ledgerbreakagerecord.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case ledgerbreakagerecord.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case ledgerbreakagerecord.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case ledgerbreakagerecord.FieldKind:
+		v, ok := value.(ledger.BreakageKind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
+		return nil
+	case ledgerbreakagerecord.FieldAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAmount(v)
+		return nil
+	case ledgerbreakagerecord.FieldCustomerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomerID(v)
+		return nil
+	case ledgerbreakagerecord.FieldCurrency:
+		v, ok := value.(currencyx.Code)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
+	case ledgerbreakagerecord.FieldCreditPriority:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditPriority(v)
+		return nil
+	case ledgerbreakagerecord.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	case ledgerbreakagerecord.FieldSourceKind:
+		v, ok := value.(ledger.BreakageSourceKind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceKind(v)
+		return nil
+	case ledgerbreakagerecord.FieldSourceTransactionGroupID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceTransactionGroupID(v)
+		return nil
+	case ledgerbreakagerecord.FieldSourceTransactionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceTransactionID(v)
+		return nil
+	case ledgerbreakagerecord.FieldSourceEntryID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceEntryID(v)
+		return nil
+	case ledgerbreakagerecord.FieldBreakageTransactionGroupID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBreakageTransactionGroupID(v)
+		return nil
+	case ledgerbreakagerecord.FieldBreakageTransactionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBreakageTransactionID(v)
+		return nil
+	case ledgerbreakagerecord.FieldFboSubAccountID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFboSubAccountID(v)
+		return nil
+	case ledgerbreakagerecord.FieldBreakageSubAccountID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBreakageSubAccountID(v)
+		return nil
+	case ledgerbreakagerecord.FieldPlanID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlanID(v)
+		return nil
+	case ledgerbreakagerecord.FieldReleaseID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReleaseID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown LedgerBreakageRecord field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *LedgerBreakageRecordMutation) AddedFields() []string {
+	var fields []string
+	if m.addcredit_priority != nil {
+		fields = append(fields, ledgerbreakagerecord.FieldCreditPriority)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *LedgerBreakageRecordMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case ledgerbreakagerecord.FieldCreditPriority:
+		return m.AddedCreditPriority()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *LedgerBreakageRecordMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case ledgerbreakagerecord.FieldCreditPriority:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCreditPriority(v)
+		return nil
+	}
+	return fmt.Errorf("unknown LedgerBreakageRecord numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *LedgerBreakageRecordMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(ledgerbreakagerecord.FieldAnnotations) {
+		fields = append(fields, ledgerbreakagerecord.FieldAnnotations)
+	}
+	if m.FieldCleared(ledgerbreakagerecord.FieldDeletedAt) {
+		fields = append(fields, ledgerbreakagerecord.FieldDeletedAt)
+	}
+	if m.FieldCleared(ledgerbreakagerecord.FieldSourceTransactionGroupID) {
+		fields = append(fields, ledgerbreakagerecord.FieldSourceTransactionGroupID)
+	}
+	if m.FieldCleared(ledgerbreakagerecord.FieldSourceTransactionID) {
+		fields = append(fields, ledgerbreakagerecord.FieldSourceTransactionID)
+	}
+	if m.FieldCleared(ledgerbreakagerecord.FieldSourceEntryID) {
+		fields = append(fields, ledgerbreakagerecord.FieldSourceEntryID)
+	}
+	if m.FieldCleared(ledgerbreakagerecord.FieldPlanID) {
+		fields = append(fields, ledgerbreakagerecord.FieldPlanID)
+	}
+	if m.FieldCleared(ledgerbreakagerecord.FieldReleaseID) {
+		fields = append(fields, ledgerbreakagerecord.FieldReleaseID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *LedgerBreakageRecordMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *LedgerBreakageRecordMutation) ClearField(name string) error {
+	switch name {
+	case ledgerbreakagerecord.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
+	case ledgerbreakagerecord.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case ledgerbreakagerecord.FieldSourceTransactionGroupID:
+		m.ClearSourceTransactionGroupID()
+		return nil
+	case ledgerbreakagerecord.FieldSourceTransactionID:
+		m.ClearSourceTransactionID()
+		return nil
+	case ledgerbreakagerecord.FieldSourceEntryID:
+		m.ClearSourceEntryID()
+		return nil
+	case ledgerbreakagerecord.FieldPlanID:
+		m.ClearPlanID()
+		return nil
+	case ledgerbreakagerecord.FieldReleaseID:
+		m.ClearReleaseID()
+		return nil
+	}
+	return fmt.Errorf("unknown LedgerBreakageRecord nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *LedgerBreakageRecordMutation) ResetField(name string) error {
+	switch name {
+	case ledgerbreakagerecord.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case ledgerbreakagerecord.FieldAnnotations:
+		m.ResetAnnotations()
+		return nil
+	case ledgerbreakagerecord.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case ledgerbreakagerecord.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case ledgerbreakagerecord.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case ledgerbreakagerecord.FieldKind:
+		m.ResetKind()
+		return nil
+	case ledgerbreakagerecord.FieldAmount:
+		m.ResetAmount()
+		return nil
+	case ledgerbreakagerecord.FieldCustomerID:
+		m.ResetCustomerID()
+		return nil
+	case ledgerbreakagerecord.FieldCurrency:
+		m.ResetCurrency()
+		return nil
+	case ledgerbreakagerecord.FieldCreditPriority:
+		m.ResetCreditPriority()
+		return nil
+	case ledgerbreakagerecord.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	case ledgerbreakagerecord.FieldSourceKind:
+		m.ResetSourceKind()
+		return nil
+	case ledgerbreakagerecord.FieldSourceTransactionGroupID:
+		m.ResetSourceTransactionGroupID()
+		return nil
+	case ledgerbreakagerecord.FieldSourceTransactionID:
+		m.ResetSourceTransactionID()
+		return nil
+	case ledgerbreakagerecord.FieldSourceEntryID:
+		m.ResetSourceEntryID()
+		return nil
+	case ledgerbreakagerecord.FieldBreakageTransactionGroupID:
+		m.ResetBreakageTransactionGroupID()
+		return nil
+	case ledgerbreakagerecord.FieldBreakageTransactionID:
+		m.ResetBreakageTransactionID()
+		return nil
+	case ledgerbreakagerecord.FieldFboSubAccountID:
+		m.ResetFboSubAccountID()
+		return nil
+	case ledgerbreakagerecord.FieldBreakageSubAccountID:
+		m.ResetBreakageSubAccountID()
+		return nil
+	case ledgerbreakagerecord.FieldPlanID:
+		m.ResetPlanID()
+		return nil
+	case ledgerbreakagerecord.FieldReleaseID:
+		m.ResetReleaseID()
+		return nil
+	}
+	return fmt.Errorf("unknown LedgerBreakageRecord field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *LedgerBreakageRecordMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *LedgerBreakageRecordMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *LedgerBreakageRecordMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *LedgerBreakageRecordMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *LedgerBreakageRecordMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *LedgerBreakageRecordMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *LedgerBreakageRecordMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown LedgerBreakageRecord unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *LedgerBreakageRecordMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown LedgerBreakageRecord edge %s", name)
+}
+
 // LedgerCustomerAccountMutation represents an operation that mutates the LedgerCustomerAccount nodes in the graph.
 type LedgerCustomerAccountMutation struct {
 	config
@@ -80971,6 +82630,7 @@ type LedgerEntryMutation struct {
 	created_at         *time.Time
 	updated_at         *time.Time
 	deleted_at         *time.Time
+	identity_key       *string
 	amount             *alpacadecimal.Decimal
 	clearedFields      map[string]struct{}
 	transaction        *string
@@ -81328,6 +82988,42 @@ func (m *LedgerEntryMutation) ResetSubAccountID() {
 	m.sub_account = nil
 }
 
+// SetIdentityKey sets the "identity_key" field.
+func (m *LedgerEntryMutation) SetIdentityKey(s string) {
+	m.identity_key = &s
+}
+
+// IdentityKey returns the value of the "identity_key" field in the mutation.
+func (m *LedgerEntryMutation) IdentityKey() (r string, exists bool) {
+	v := m.identity_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdentityKey returns the old "identity_key" field's value of the LedgerEntry entity.
+// If the LedgerEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerEntryMutation) OldIdentityKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdentityKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdentityKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdentityKey: %w", err)
+	}
+	return oldValue.IdentityKey, nil
+}
+
+// ResetIdentityKey resets all changes to the "identity_key" field.
+func (m *LedgerEntryMutation) ResetIdentityKey() {
+	m.identity_key = nil
+}
+
 // SetAmount sets the "amount" field.
 func (m *LedgerEntryMutation) SetAmount(a alpacadecimal.Decimal) {
 	m.amount = &a
@@ -81488,7 +83184,7 @@ func (m *LedgerEntryMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerEntryMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.namespace != nil {
 		fields = append(fields, ledgerentry.FieldNamespace)
 	}
@@ -81506,6 +83202,9 @@ func (m *LedgerEntryMutation) Fields() []string {
 	}
 	if m.sub_account != nil {
 		fields = append(fields, ledgerentry.FieldSubAccountID)
+	}
+	if m.identity_key != nil {
+		fields = append(fields, ledgerentry.FieldIdentityKey)
 	}
 	if m.amount != nil {
 		fields = append(fields, ledgerentry.FieldAmount)
@@ -81533,6 +83232,8 @@ func (m *LedgerEntryMutation) Field(name string) (ent.Value, bool) {
 		return m.DeletedAt()
 	case ledgerentry.FieldSubAccountID:
 		return m.SubAccountID()
+	case ledgerentry.FieldIdentityKey:
+		return m.IdentityKey()
 	case ledgerentry.FieldAmount:
 		return m.Amount()
 	case ledgerentry.FieldTransactionID:
@@ -81558,6 +83259,8 @@ func (m *LedgerEntryMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldDeletedAt(ctx)
 	case ledgerentry.FieldSubAccountID:
 		return m.OldSubAccountID(ctx)
+	case ledgerentry.FieldIdentityKey:
+		return m.OldIdentityKey(ctx)
 	case ledgerentry.FieldAmount:
 		return m.OldAmount(ctx)
 	case ledgerentry.FieldTransactionID:
@@ -81612,6 +83315,13 @@ func (m *LedgerEntryMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSubAccountID(v)
+		return nil
+	case ledgerentry.FieldIdentityKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdentityKey(v)
 		return nil
 	case ledgerentry.FieldAmount:
 		v, ok := value.(alpacadecimal.Decimal)
@@ -81708,6 +83418,9 @@ func (m *LedgerEntryMutation) ResetField(name string) error {
 		return nil
 	case ledgerentry.FieldSubAccountID:
 		m.ResetSubAccountID()
+		return nil
+	case ledgerentry.FieldIdentityKey:
+		m.ResetIdentityKey()
 		return nil
 	case ledgerentry.FieldAmount:
 		m.ResetAmount()

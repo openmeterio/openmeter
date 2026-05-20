@@ -38,6 +38,10 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Immutable(),
+		field.Time("expires_at").
+			Optional().
+			Nillable().
+			Immutable(),
 		field.Int("priority").
 			Optional().
 			Nillable().
