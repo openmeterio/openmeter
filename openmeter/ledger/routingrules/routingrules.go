@@ -201,7 +201,7 @@ func (r RequireSameRouteRule) Validate(tx TxView) error {
 type RequireTaxBehaviorScopeRule struct{}
 
 func (r RequireTaxBehaviorScopeRule) Validate(tx TxView) error {
-	for _, entry := range tx.entries {
+	for _, entry := range tx.Entries() {
 		if entry.AccountType() != ledger.AccountTypeCustomerFBO && entry.Route().TaxBehavior != nil {
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
 				"reason":       "tax_behavior_only_allowed_on_customer_fbo",

@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -201,24 +203,14 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 	}
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 
-	advanceOutstanding, err := h.outstandingAdvanceBalance(ctx, customerID, charge.Intent.Currency)
+	advanceAttributions, err := h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount)
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get outstanding advance balance: %w", err)
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get advance attributions: %w", err)
 	}
 
-	unattributedAccrued, err := h.unattributedAccruedBalance(ctx, customerID, charge.Intent.Currency)
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get unattributed accrued balance: %w", err)
-	}
-
-	advanceAttributionAmount := charge.Intent.CreditAmount
-	if advanceAttributionAmount.GreaterThan(advanceOutstanding) {
-		advanceAttributionAmount = advanceOutstanding
-	}
-
-	accruedAttributionAmount := advanceAttributionAmount
-	if accruedAttributionAmount.GreaterThan(unattributedAccrued) {
-		accruedAttributionAmount = unattributedAccrued
+	advanceAttributionAmount := alpacadecimal.Zero
+	for _, attribution := range advanceAttributions {
+		advanceAttributionAmount = advanceAttributionAmount.Add(attribution.advanceAmount)
 	}
 
 	issuableAmount := charge.Intent.CreditAmount.Sub(advanceAttributionAmount)
@@ -230,25 +222,25 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 
 	var templates []transactions.TransactionTemplate
 
-	if advanceAttributionAmount.IsPositive() {
+	for _, attribution := range advanceAttributions {
 		templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
 			At:        charge.CreatedAt,
-			Amount:    advanceAttributionAmount,
+			Amount:    attribution.advanceAmount,
 			Currency:  charge.Intent.Currency,
-			TaxCode:   taxCodeID,
+			TaxCode:   attribution.taxCode,
 			CostBasis: &costBasis,
 		})
-	}
 
-	if accruedAttributionAmount.IsPositive() {
-		templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
-			At:            charge.CreatedAt,
-			Amount:        accruedAttributionAmount,
-			Currency:      charge.Intent.Currency,
-			TaxCode:       taxCodeID,
-			FromCostBasis: nil,
-			ToCostBasis:   &costBasis,
-		})
+		if attribution.accruedAmount.IsPositive() {
+			templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
+				At:            charge.CreatedAt,
+				Amount:        attribution.accruedAmount,
+				Currency:      charge.Intent.Currency,
+				TaxCode:       attribution.taxCode,
+				FromCostBasis: nil,
+				ToCostBasis:   &costBasis,
+			})
+		}
 	}
 
 	if issuableAmount.IsPositive() {
@@ -310,6 +302,8 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			Amount:                 charge.Intent.CreditAmount,
 			ImmediateReleaseAmount: advanceAttributionAmount,
 			Currency:               charge.Intent.Currency,
+			TaxCode:                taxCodeID,
+			TaxBehavior:            taxBehaviorFromIntent(charge.Intent.TaxConfig),
 			CostBasis:              &costBasis,
 			CreditPriority:         charge.Intent.Priority,
 			ExpiresAt:              *charge.Intent.ExpiresAt,
@@ -358,55 +352,100 @@ func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDepe
 	}
 }
 
-func (h *creditPurchaseHandler) outstandingAdvanceBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code) (alpacadecimal.Decimal, error) {
-	customerAccounts, err := h.accountResolver.GetCustomerAccounts(ctx, customerID)
-	if err != nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("get customer accounts: %w", err)
-	}
-
-	advanceReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency:                       currency,
-		CostBasis:                      nil,
-		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
-	})
-	if err != nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("get advance receivable sub-account: %w", err)
-	}
-
-	balance, err := settledBalanceForSubAccount(ctx, h.balanceQuerier, advanceReceivable)
-	if err != nil {
-		return alpacadecimal.Decimal{}, err
-	}
-
-	if balance.IsNegative() {
-		return balance.Neg(), nil
-	}
-
-	return alpacadecimal.Zero, nil
+type advanceAttribution struct {
+	taxCode       *string
+	advanceAmount alpacadecimal.Decimal
+	accruedAmount alpacadecimal.Decimal
 }
 
-func (h *creditPurchaseHandler) unattributedAccruedBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code) (alpacadecimal.Decimal, error) {
+func (h *creditPurchaseHandler) advanceAttributions(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, amount alpacadecimal.Decimal) ([]advanceAttribution, error) {
 	customerAccounts, err := h.accountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("get customer accounts: %w", err)
+		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	unknownAccrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-		Currency:  currency,
-		CostBasis: nil,
+	openStatus := ledger.TransactionAuthorizationStatusOpen
+	advanceReceivables, err := h.accountCatalog.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
+		Namespace: customerAccounts.ReceivableAccount.ID().Namespace,
+		AccountID: customerAccounts.ReceivableAccount.ID().ID,
+		Route: ledger.RouteFilter{
+			Currency:                       currency,
+			CostBasis:                      mo.Some[*alpacadecimal.Decimal](nil),
+			TransactionAuthorizationStatus: &openStatus,
+		},
 	})
 	if err != nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("get unattributed accrued sub-account: %w", err)
+		return nil, fmt.Errorf("list advance receivable sub-accounts: %w", err)
 	}
 
-	balance, err := settledBalanceForSubAccount(ctx, h.balanceQuerier, unknownAccrued)
+	unattributedAccrued, err := h.unattributedAccruedByTaxCode(ctx, customerAccounts.AccruedAccount, currency)
 	if err != nil {
-		return alpacadecimal.Decimal{}, err
+		return nil, err
 	}
 
-	if balance.IsPositive() {
-		return balance, nil
+	remaining := amount
+	attributions := make([]advanceAttribution, 0, len(advanceReceivables))
+	for _, advanceReceivable := range advanceReceivables {
+		if !remaining.IsPositive() {
+			break
+		}
+
+		balance, err := settledBalanceForSubAccount(ctx, h.balanceQuerier, advanceReceivable)
+		if err != nil {
+			return nil, err
+		}
+		if !balance.IsNegative() {
+			continue
+		}
+
+		attributed := balance.Neg()
+		if attributed.GreaterThan(remaining) {
+			attributed = remaining
+		}
+
+		taxCode := advanceReceivable.Route().TaxCode
+		accrued := unattributedAccrued[lo.FromPtrOr(taxCode, "null")]
+		if accrued.GreaterThan(attributed) {
+			accrued = attributed
+		}
+
+		attributions = append(attributions, advanceAttribution{
+			taxCode:       taxCode,
+			advanceAmount: attributed,
+			accruedAmount: accrued,
+		})
+		remaining = remaining.Sub(attributed)
 	}
 
-	return alpacadecimal.Zero, nil
+	return attributions, nil
+}
+
+func (h *creditPurchaseHandler) unattributedAccruedByTaxCode(ctx context.Context, accruedAccount ledger.CustomerAccruedAccount, currency currencyx.Code) (map[string]alpacadecimal.Decimal, error) {
+	subAccounts, err := h.accountCatalog.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
+		Namespace: accruedAccount.ID().Namespace,
+		AccountID: accruedAccount.ID().ID,
+		Route: ledger.RouteFilter{
+			Currency:  currency,
+			CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list unattributed accrued sub-accounts: %w", err)
+	}
+
+	balances := make(map[string]alpacadecimal.Decimal, len(subAccounts))
+	for _, subAccount := range subAccounts {
+		balance, err := settledBalanceForSubAccount(ctx, h.balanceQuerier, subAccount)
+		if err != nil {
+			return nil, err
+		}
+		if !balance.IsPositive() {
+			continue
+		}
+
+		key := lo.FromPtrOr(subAccount.Route().TaxCode, "null")
+		balances[key] = balances[key].Add(balance)
+	}
+
+	return balances, nil
 }

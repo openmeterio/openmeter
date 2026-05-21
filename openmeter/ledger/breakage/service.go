@@ -103,6 +103,8 @@ type PlanIssuanceInput struct {
 	Amount                 alpacadecimal.Decimal
 	ImmediateReleaseAmount alpacadecimal.Decimal
 	Currency               currencyx.Code
+	TaxCode                *string
+	TaxBehavior            *ledger.TaxBehavior
 	CostBasis              *alpacadecimal.Decimal
 	CreditPriority         *int
 	ExpiresAt              time.Time
@@ -140,6 +142,12 @@ func (i PlanIssuanceInput) Validate() error {
 	if i.CreditPriority != nil {
 		if err := ledger.ValidateCreditPriority(*i.CreditPriority); err != nil {
 			errs = append(errs, fmt.Errorf("credit priority: %w", err))
+		}
+	}
+
+	if i.TaxBehavior != nil {
+		if err := i.TaxBehavior.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tax behavior: %w", err))
 		}
 	}
 
@@ -631,6 +639,8 @@ func (s *service) resolvePlanAddresses(ctx context.Context, input PlanIssuanceIn
 
 	fboSubAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       input.Currency,
+		TaxCode:        input.TaxCode,
+		TaxBehavior:    input.TaxBehavior,
 		CostBasis:      input.CostBasis,
 		CreditPriority: resolveCreditPriority(input.CreditPriority),
 	})

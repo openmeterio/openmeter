@@ -24,6 +24,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbledgerbreakagerecord "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -2562,6 +2563,150 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 	})
 }
 
+func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("credit-purchase-multi-taxcode-advance")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	taxA, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "txcd-40000007",
+		Name:      "Advance Tax Code A",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000007"},
+		},
+	})
+	s.Require().NoError(err)
+
+	taxB, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "txcd-40000008",
+		Name:      "Advance Tax Code B",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000008"},
+		},
+	})
+	s.Require().NoError(err)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.SetTime(servicePeriod.From.Add(-time.Hour))
+	defer clock.UnFreeze()
+
+	// given:
+	// - credit-only charges create advance receivable and accrued exposure in two TaxCode buckets
+	for _, input := range []struct {
+		name   string
+		amount int64
+		taxID  string
+	}{
+		{name: "tax-a-advance", amount: 10, taxID: taxA.ID},
+		{name: "tax-b-advance", amount: 5, taxID: taxB.ID},
+	} {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditOnlySettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(input.amount),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					Name:              input.name,
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: input.name,
+					TaxConfig:         &productcatalog.TaxCodeConfig{TaxCodeID: &input.taxID},
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+	}
+
+	clock.FreezeTime(servicePeriod.From)
+	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+		Customer: cust.GetID(),
+	})
+	s.NoError(err)
+	s.Len(advancedCharges, 2)
+
+	s.Equal(float64(-10), s.MustCustomerReceivableBalanceForTaxCode(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, mo.Some(&taxA.ID)).InexactFloat64())
+	s.Equal(float64(-5), s.MustCustomerReceivableBalanceForTaxCode(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, mo.Some(&taxB.ID)).InexactFloat64())
+	s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxA.ID)).InexactFloat64())
+	s.Equal(float64(5), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxB.ID)).InexactFloat64())
+
+	// when:
+	// - a larger purchased grant backfills both advance buckets
+	purchaseCostBasis := alpacadecimal.NewFromFloat(0.5)
+	purchaseAt := servicePeriod.From.Add(time.Hour)
+	clock.FreezeTime(purchaseAt)
+	purchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+				Customer: cust.GetID(),
+				Currency: USD,
+				Amount:   alpacadecimal.NewFromInt(20),
+				ServicePeriod: timeutil.ClosedPeriod{
+					From: purchaseAt,
+					To:   purchaseAt,
+				},
+				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+					GenericSettlement: creditpurchase.GenericSettlement{
+						Currency:  USD,
+						CostBasis: purchaseCostBasis,
+					},
+					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+				}),
+				TaxConfig: &productcatalog.TaxCodeConfig{TaxCodeID: &taxA.ID},
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(purchaseRes, 1)
+
+	purchase, err := purchaseRes[0].AsCreditPurchaseCharge()
+	s.NoError(err)
+	backingGroup, err := s.Ledger.GetTransactionGroup(ctx, models.NamespacedID{
+		Namespace: ns,
+		ID:        purchase.Realizations.CreditGrantRealization.TransactionGroupID,
+	})
+	s.NoError(err)
+
+	// then:
+	// - attribution and accrued translation stay split by source TaxCode
+	// - only the purchased remainder is newly issued
+	templateCounts := map[string]int{}
+	for _, tx := range backingGroup.Transactions() {
+		code, err := ledger.TransactionTemplateCodeFromAnnotations(tx.Annotations())
+		s.NoError(err)
+		templateCounts[code]++
+	}
+
+	s.Equal(2, templateCounts[transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{})])
+	s.Equal(2, templateCounts[transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{})])
+	s.Equal(1, templateCounts[transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{})])
+
+	s.Equal(float64(0), s.MustCustomerReceivableBalanceForTaxCode(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, mo.Some(&taxA.ID)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerReceivableBalanceForTaxCode(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, mo.Some(&taxB.ID)).InexactFloat64())
+	s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxA.ID)).InexactFloat64())
+	s.Equal(float64(5), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxB.ID)).InexactFloat64())
+	s.Equal(float64(5), s.MustCustomerFBOBalanceForTaxCode(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxA.ID)).InexactFloat64())
+}
+
 // TestTaxCodeFlowsFromCreditPurchaseToEarnings verifies the end-to-end routing of
 // TaxCode: credit purchase → FBO sub-account → accrued → earnings.
 // Credits funded with a TaxCode must land in a TaxCode-keyed earnings sub-account
@@ -2569,6 +2714,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 func (s *SanitySuite) TestTaxCodeFlowsFromCreditPurchaseToEarnings() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("taxcode-earnings-flow")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
