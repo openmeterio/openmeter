@@ -777,7 +777,10 @@ func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx 
 					db_entitlement.CurrentUsagePeriodEndNotNil(),
 					db_entitlement.CurrentUsagePeriodEndLTE(params.Highwatermark),
 					db_entitlement.Or(db_entitlement.DeletedAtIsNil(), db_entitlement.DeletedAtGT(now)),
-					entitlementHasResetAnchor(),
+					db_entitlement.Or(
+						db_entitlement.MeasureUsageFromNotNil(),
+						db_entitlement.HasUsageReset(),
+					),
 				)
 
 			if len(params.Namespaces) > 0 {
@@ -987,13 +990,6 @@ func EntitlementActiveAt(at time.Time) []predicate.Entitlement {
 			db_entitlement.ActiveToGT(at),
 		),
 	}
-}
-
-func entitlementHasResetAnchor() predicate.Entitlement {
-	return db_entitlement.Or(
-		db_entitlement.MeasureUsageFromNotNil(),
-		db_entitlement.HasUsageReset(),
-	)
 }
 
 func withAllUsageResets(q *db.EntitlementQuery, namespaces []string) *db.EntitlementQuery {
