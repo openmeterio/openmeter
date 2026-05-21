@@ -18,6 +18,7 @@ func TestTaxCodeService(t *testing.T) {
 	env.DBSchemaMigrate(t)
 
 	ns := testutils.NameGenerator.Generate().Key
+	env.SetupNamespaceDefaults(t.Context(), t, ns)
 
 	t.Run("SystemManaged", func(t *testing.T) {
 		// Create a system-managed tax code by explicitly setting the annotation.
