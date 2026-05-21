@@ -13,8 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-	"github.com/openmeterio/openmeter/pkg/gate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -33,7 +33,7 @@ type Config struct {
 	FeatureFlags            FeatureFlags
 	Logger                  *slog.Logger
 	Tracer                  trace.Tracer
-	FeatureGate             gate.FeatureGate
+	FeatureGate             featuregate.Gate
 }
 
 func (c Config) Validate() error {

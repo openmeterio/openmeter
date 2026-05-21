@@ -37,8 +37,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
-	"github.com/openmeterio/openmeter/pkg/gate"
 )
 
 // BillingRegistry bundles the billing and charges services. External callers that need
@@ -150,7 +150,7 @@ func NewBillingRegistry(
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 	breakageService ledgerbreakage.Service,
-	featureGate gate.FeatureGate,
+	featureGate featuregate.Gate,
 ) (BillingRegistry, error) {
 	billingService, err := newBillingService(
 		logger,
@@ -287,7 +287,7 @@ func NewBillingSubscriptionSyncAdapter(db *entdb.Client) (subscriptionsync.Adapt
 	})
 }
 
-func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingRegistry BillingRegistry, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer, creditsConfig config.CreditsConfiguration, featureGate gate.FeatureGate) (subscriptionsync.Service, error) {
+func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingRegistry BillingRegistry, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer, creditsConfig config.CreditsConfiguration, featureGate featuregate.Gate) (subscriptionsync.Service, error) {
 	return subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		SubscriptionService:     subsServices.Service,
 		BillingService:          billingRegistry.Billing,

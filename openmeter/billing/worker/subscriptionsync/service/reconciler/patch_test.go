@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/gate"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 )
 
 func TestPatchCollectionRouterResolveDefaultCollection(t *testing.T) {
@@ -89,7 +89,7 @@ func TestPatchCollectionRouterResolveDefaultCollection(t *testing.T) {
 				invoices:                 persistedstate.Invoices{},
 				creditThenInvoiceEnabled: tt.enableCreditThenInvoice,
 				creditsEnabled:           tt.enableCredits,
-				featureGate:              gate.NewNoopFeatureGate(),
+				featureGate:              featuregate.NewNoop(),
 			})
 			require.NoError(t, err)
 

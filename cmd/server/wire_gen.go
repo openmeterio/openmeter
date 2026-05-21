@@ -41,8 +41,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/ffx"
-	"github.com/openmeterio/openmeter/pkg/gate"
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
@@ -352,8 +352,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	featureGate := gate.NewNoopFeatureGate()
-	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGate)
+	gate := featuregate.NewNoop()
+	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, gate)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -833,7 +833,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		TerminationChecker:               terminationChecker,
 		RuntimeMetricsCollector:          runtimeMetricsCollector,
 		Tracer:                           tracer,
-		FeatureGate:                      featureGate,
+		FeatureGate:                      gate,
 	}
 	return application, func() {
 		cleanup9()
@@ -904,7 +904,7 @@ type Application struct {
 	TerminationChecker               *common.TerminationChecker
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector
 	Tracer                           trace.Tracer
-	FeatureGate                      gate.FeatureGate
+	FeatureGate                      featuregate.Gate
 }
 
 func metadata(conf config.Configuration) common.Metadata {

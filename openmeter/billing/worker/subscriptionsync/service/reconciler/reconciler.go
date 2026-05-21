@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/gate"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -32,7 +32,7 @@ type Config struct {
 	ChargesService          charges.Service
 	EnableCreditThenInvoice bool
 	Logger                  *slog.Logger
-	FeatureGate             gate.FeatureGate
+	FeatureGate             featuregate.Gate
 }
 
 func (c Config) Validate() error {
@@ -61,7 +61,7 @@ type Service struct {
 	enableCreditThenInvoice bool
 
 	invoiceUpdater *invoiceupdater.Updater
-	featureGate    gate.FeatureGate
+	featureGate    featuregate.Gate
 }
 
 func New(config Config) (*Service, error) {

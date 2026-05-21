@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/gate"
 )
 
 type Application struct {
@@ -55,7 +54,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Watermill,
 		common.WatermillRouter,
 		wire.Struct(new(Application), "*"),
-		gate.FeatureGateNoopSet,
+		common.FeatureGateNoopSet,
 	)
 	return Application{}, nil, nil
 }

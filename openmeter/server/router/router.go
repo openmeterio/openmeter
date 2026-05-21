@@ -74,8 +74,8 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/gate"
 )
 
 func init() {
@@ -138,7 +138,7 @@ type Config struct {
 	SubscriptionWorkflowService subscriptionworkflow.Service
 	SubjectService              subject.Service
 	TaxCodeService              taxcode.Service
-	FeatureGate                 gate.FeatureGate
+	FeatureGate                 featuregate.Gate
 }
 
 func (c Config) Validate() error {
