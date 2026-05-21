@@ -105,7 +105,6 @@ type Config struct {
 	CostService              cost.Service
 	FeatureConnector         feature.FeatureConnector
 
-	// FeatureGate is an optional feature gate interface
 	FeatureGate gate.FeatureGate
 }
 

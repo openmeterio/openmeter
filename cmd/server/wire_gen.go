@@ -316,8 +316,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	ffxService := ffx.NewContextService()
-	featureGate := gate.NewNoopFeatureGate()
-	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, planService, planaddonService, addonService, eventbusPublisher, locker, ffxService, taxcodeService, featureGate)
+	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, planService, planaddonService, addonService, eventbusPublisher, locker, ffxService, taxcodeService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -353,6 +352,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	featureGate := gate.NewNoopFeatureGate()
 	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGate)
 	if err != nil {
 		cleanup7()
