@@ -2,7 +2,27 @@ package gatex
 
 import (
 	"encoding/json"
+
+	"github.com/google/uuid"
 )
+
+type Org interface {
+	FGContext
+
+	ID() *uuid.UUID
+	PortalID() *uuid.UUID
+	OrgName() *string
+	FeatureSet() *string
+	Tier() *string
+}
+
+type FGContext interface {
+	Key() string
+	Kind() string
+	Anonymous() bool
+	GetCustomAttributes() map[string]any
+	AddCustomAttribute(name string, value any)
+}
 
 type FeatureGate interface {
 	EvaluateBool(flag string, defaultValue bool) (bool, error)
@@ -10,6 +30,9 @@ type FeatureGate interface {
 	EvaluateFloat64(flag string, defaultValue float64) (float64, error)
 	EvaluateString(flag string, defaultValue string) (string, error)
 	EvaluateJSON(flag string, defaultValue json.RawMessage) (json.RawMessage, error)
+
+	WithOrg(org Org) (FeatureGate, error)
+	WithFFContext(custom ...FGContext) (FeatureGate, error)
 }
 
 var instance FeatureGate = NoopFeatureGate{}
@@ -41,4 +64,12 @@ func (n NoopFeatureGate) EvaluateString(string, string) (string, error) {
 
 func (n NoopFeatureGate) EvaluateJSON(string, json.RawMessage) (json.RawMessage, error) {
 	return json.RawMessage(`{}`), nil
+}
+
+func (n NoopFeatureGate) WithFFContext(custom ...FGContext) (FeatureGate, error) {
+	return NoopFeatureGate{}, nil
+}
+
+func (n NoopFeatureGate) WithOrg(org Org) (FeatureGate, error) {
+	return n.WithFFContext(org)
 }
