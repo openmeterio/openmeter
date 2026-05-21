@@ -22,12 +22,6 @@ import (
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	ledgeraccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
-	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
-	ledgersubaccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
-	ledgersubaccountroutedb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
-	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
@@ -328,69 +322,6 @@ func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityAsOf(customerID customer.C
 	return balance.Settled()
 }
 
-// MustCustomerFBOBalanceForTaxCode returns customer FBO balance filtered by cost basis and tax code.
-// Pass mo.None() for all tax codes, mo.Some(nil) for nil-TaxCode routes, or mo.Some(&id) for one TaxCode.
-func (s *BaseSuite) MustCustomerFBOBalanceForTaxCode(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], taxCode mo.Option[*string]) alpacadecimal.Decimal {
-	s.T().Helper()
-
-	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
-	s.NoError(err)
-
-	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
-		Currency:       code,
-		CostBasis:      costBasis,
-		TaxCode:        taxCode,
-		CreditPriority: lo.ToPtr(ledger.DefaultCustomerFBOPriority),
-	}, ledger.BalanceQuery{})
-	s.NoError(err)
-
-	return balance.Settled()
-}
-
-// MustCustomerFBOBalanceForTaxConfig returns customer FBO balance filtered by cost basis,
-// tax code, and tax behavior.
-func (s *BaseSuite) MustCustomerFBOBalanceForTaxConfig(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], taxCode mo.Option[*string], taxBehavior mo.Option[*ledger.TaxBehavior]) alpacadecimal.Decimal {
-	s.T().Helper()
-
-	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
-	s.NoError(err)
-
-	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
-		Currency:       code,
-		CostBasis:      costBasis,
-		TaxCode:        taxCode,
-		TaxBehavior:    taxBehavior,
-		CreditPriority: lo.ToPtr(ledger.DefaultCustomerFBOPriority),
-	}, ledger.BalanceQuery{})
-	s.NoError(err)
-
-	return balance.Settled()
-}
-
-func (s *BaseSuite) MustFBOEntryCountForTaxBehavior(transactionGroupID string, taxBehavior *ledger.TaxBehavior) int {
-	s.T().Helper()
-
-	routePredicates := []predicate.LedgerSubAccountRoute{}
-	if taxBehavior == nil {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxBehaviorIsNil())
-	} else {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxBehavior(*taxBehavior))
-	}
-
-	count, err := s.DBClient.LedgerEntry.Query().
-		Where(
-			ledgerentrydb.HasTransactionWith(ledgertransactiondb.GroupID(transactionGroupID)),
-			ledgerentrydb.HasSubAccountWith(
-				ledgersubaccountdb.HasAccountWith(ledgeraccountdb.AccountType(ledger.AccountTypeCustomerFBO)),
-				ledgersubaccountdb.HasRouteWith(routePredicates...),
-			),
-		).
-		Count(s.T().Context())
-	s.NoError(err)
-
-	return count
-}
-
 // MustCustomerReceivableBalance returns customer receivable balance in a currency
 // for one authorization state. Pass mo.None() for all cost bases, mo.Some(nil)
 // for the explicit nil-cost-basis route, or mo.Some(&costBasis) for one concrete route.
@@ -440,6 +371,25 @@ func (s *BaseSuite) MustCustomerAccruedBalanceForTaxCode(customerID customer.Cus
 		Currency:  code,
 		CostBasis: costBasis,
 		TaxCode:   taxCode,
+	}, ledger.BalanceQuery{})
+	s.NoError(err)
+
+	return balance.Settled()
+}
+
+// MustCustomerAccruedBalanceForTaxConfig returns accrued balance filtered by
+// cost basis, tax code, and tax behavior.
+func (s *BaseSuite) MustCustomerAccruedBalanceForTaxConfig(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], taxCode mo.Option[*string], taxBehavior mo.Option[*ledger.TaxBehavior]) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.NoError(err)
+
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.AccruedAccount, ledger.RouteFilter{
+		Currency:    code,
+		CostBasis:   costBasis,
+		TaxCode:     taxCode,
+		TaxBehavior: taxBehavior,
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 

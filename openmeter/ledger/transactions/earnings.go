@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -91,9 +92,10 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) routePairingKey(addres
 	route := address.Route().Route()
 
 	return routePairingKey{
-		currency:  route.Currency,
-		taxCode:   taxCodeKey(route.TaxCode),
-		costBasis: costBasisKey(route.CostBasis),
+		currency:    route.Currency,
+		taxCode:     lo.FromPtrOr(route.TaxCode, "null"),
+		taxBehavior: string(lo.FromPtrOr(route.TaxBehavior, "null")),
+		costBasis:   costBasisKey(route.CostBasis),
 	}
 }
 
@@ -136,9 +138,10 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolveEarningsSubAccB
 			// Accrued collection can touch multiple source sub-accounts for the
 			// same route. Recognition only needs one earnings destination per route.
 			earnings, err := earningsAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-				Currency:  t.Currency,
-				TaxCode:   collection.subAccount.Route().TaxCode,
-				CostBasis: collection.subAccount.Route().CostBasis,
+				Currency:    t.Currency,
+				TaxCode:     collection.subAccount.Route().TaxCode,
+				TaxBehavior: collection.subAccount.Route().TaxBehavior,
+				CostBasis:   collection.subAccount.Route().CostBasis,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get earnings sub-account: %w", err)

@@ -639,8 +639,6 @@ func (s *service) resolvePlanAddresses(ctx context.Context, input PlanIssuanceIn
 
 	fboSubAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       input.Currency,
-		TaxCode:        input.TaxCode,
-		TaxBehavior:    input.TaxBehavior,
 		CostBasis:      input.CostBasis,
 		CreditPriority: resolveCreditPriority(input.CreditPriority),
 	})

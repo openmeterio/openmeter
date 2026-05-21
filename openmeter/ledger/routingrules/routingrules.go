@@ -198,13 +198,25 @@ func (r RequireSameRouteRule) Validate(tx TxView) error {
 	return requireMatchingRouteFields(tx.EntriesOf(r.Left), tx.EntriesOf(r.Right), r.Left, r.Right, r.Fields)
 }
 
-type RequireTaxBehaviorScopeRule struct{}
+type RequireTaxDimensionScopeRule struct{}
 
-func (r RequireTaxBehaviorScopeRule) Validate(tx TxView) error {
+func (r RequireTaxDimensionScopeRule) Validate(tx TxView) error {
 	for _, entry := range tx.Entries() {
-		if entry.AccountType() != ledger.AccountTypeCustomerFBO && entry.Route().TaxBehavior != nil {
+		if entry.AccountType() == ledger.AccountTypeCustomerFBO && entry.Route().TaxCode != nil {
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
-				"reason":       "tax_behavior_only_allowed_on_customer_fbo",
+				"reason":       "tax_code_not_allowed_on_customer_fbo",
+				"account_type": entry.AccountType(),
+			})
+		}
+
+		switch entry.AccountType() {
+		case ledger.AccountTypeCustomerAccrued, ledger.AccountTypeEarnings:
+			continue
+		}
+
+		if entry.Route().TaxBehavior != nil {
+			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
+				"reason":       "tax_behavior_only_allowed_on_accrued_or_earnings",
 				"account_type": entry.AccountType(),
 			})
 		}
@@ -330,6 +342,8 @@ func (r RequireAccruedCostBasisTranslationRule) Validate(tx TxView) error {
 		ledger.AccountTypeCustomerAccrued,
 		[]RouteField{
 			RouteFieldCurrency,
+			RouteFieldTaxCode,
+			RouteFieldTaxBehavior,
 		},
 	)
 }
@@ -356,8 +370,6 @@ func (r RequireFBOCostBasisTranslationRule) Validate(tx TxView) error {
 		ledger.AccountTypeCustomerFBO,
 		[]RouteField{
 			RouteFieldCurrency,
-			RouteFieldTaxCode,
-			RouteFieldTaxBehavior,
 			RouteFieldFeatures,
 			RouteFieldCreditPriority,
 		},

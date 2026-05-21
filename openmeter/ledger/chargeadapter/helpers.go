@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -31,6 +32,5 @@ func taxBehaviorFromIntent(taxConfig *productcatalog.TaxCodeConfig) *ledger.TaxB
 		return nil
 	}
 
-	behavior := ledger.TaxBehavior(*taxConfig.Behavior)
-	return &behavior
+	return lo.ToPtr(ledger.TaxBehavior(*taxConfig.Behavior))
 }

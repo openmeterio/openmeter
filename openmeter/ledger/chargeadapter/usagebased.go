@@ -68,11 +68,12 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.TransferCustomerReceivableToAccruedTemplate{
-			At:        input.BookedAt,
-			Amount:    amount,
-			Currency:  input.Charge.Intent.Currency,
-			TaxCode:   taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
-			CostBasis: invoiceCostBasis,
+			At:          input.BookedAt,
+			Amount:      amount,
+			Currency:    input.Charge.Intent.Currency,
+			TaxCode:     taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
+			TaxBehavior: taxBehaviorFromIntent(input.Charge.Intent.TaxConfig),
+			CostBasis:   invoiceCostBasis,
 		},
 	)
 	if err != nil {

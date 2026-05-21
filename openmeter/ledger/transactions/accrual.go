@@ -17,9 +17,11 @@ import (
 // TransferCustomerFBOToAccruedTemplate moves preselected customer FBO value
 // into the customer's accrued account.
 type TransferCustomerFBOToAccruedTemplate struct {
-	At       time.Time
-	Currency currencyx.Code
-	Sources  []PostingAmount
+	At          time.Time
+	Currency    currencyx.Code
+	TaxCode     *string
+	TaxBehavior *ledger.TaxBehavior
+	Sources     []PostingAmount
 }
 
 func (t TransferCustomerFBOToAccruedTemplate) Validate() error {
@@ -29,6 +31,12 @@ func (t TransferCustomerFBOToAccruedTemplate) Validate() error {
 
 	if err := ledger.ValidateCurrency(t.Currency); err != nil {
 		return fmt.Errorf("currency: %w", err)
+	}
+
+	if t.TaxBehavior != nil {
+		if err := t.TaxBehavior.Validate(); err != nil {
+			return fmt.Errorf("tax behavior: %w", err)
+		}
 	}
 
 	for i, source := range t.Sources {
@@ -102,7 +110,6 @@ func (t TransferCustomerFBOToAccruedTemplate) routePairingKey(address ledger.Pos
 
 	return routePairingKey{
 		currency:  route.Currency,
-		taxCode:   taxCodeKey(route.TaxCode),
 		costBasis: costBasisKey(route.CostBasis),
 	}
 }
@@ -157,8 +164,9 @@ func (t TransferCustomerFBOToAccruedTemplate) resolve(ctx context.Context, custo
 	}, nil
 }
 
-// resolveAccruedSubAccByRoutePairingKey preserves source attribution: each FBO
-// source routes to the accrued bucket with the same TaxCode and CostBasis.
+// resolveAccruedSubAccByRoutePairingKey preserves source cost attribution while
+// applying the charge tax dimensions to accrued. Customer FBO sources do not
+// carry tax dimensions.
 func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairingKey(
 	ctx context.Context,
 	accruedAccount ledger.CustomerAccruedAccount,
@@ -171,9 +179,10 @@ func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairing
 		current := accruedSubAccByKey[key]
 		if current.Address == nil {
 			accruedSubAccount, err := accruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-				Currency:  t.Currency,
-				TaxCode:   source.Address.Route().Route().TaxCode,
-				CostBasis: source.Address.Route().Route().CostBasis,
+				Currency:    t.Currency,
+				TaxCode:     t.TaxCode,
+				TaxBehavior: t.TaxBehavior,
+				CostBasis:   source.Address.Route().Route().CostBasis,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get accrued sub-account: %w", err)
@@ -227,13 +236,6 @@ func costBasisKey(costBasis *alpacadecimal.Decimal) string {
 	}
 
 	return costBasis.String()
-}
-
-func taxCodeKey(taxCode *string) string {
-	if taxCode == nil {
-		return "null"
-	}
-	return *taxCode
 }
 
 // TransferCustomerFBOAdvanceToAccruedTemplate moves value from the synthetic advance-backed
@@ -344,8 +346,6 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       t.Currency,
-		TaxCode:        t.TaxCode,
-		TaxBehavior:    t.TaxBehavior,
 		CostBasis:      t.CostBasis,
 		CreditPriority: priority,
 	})
@@ -354,9 +354,10 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 	}
 
 	accrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-		Currency:  t.Currency,
-		TaxCode:   t.TaxCode,
-		CostBasis: t.CostBasis,
+		Currency:    t.Currency,
+		TaxCode:     t.TaxCode,
+		TaxBehavior: t.TaxBehavior,
+		CostBasis:   t.CostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get accrued sub-account: %w", err)
@@ -380,11 +381,12 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 // TransferCustomerReceivableToAccruedTemplate acknowledges usage by moving it
 // from receivable into the customer's accrued account.
 type TransferCustomerReceivableToAccruedTemplate struct {
-	At        time.Time
-	Amount    alpacadecimal.Decimal
-	Currency  currencyx.Code
-	TaxCode   *string
-	CostBasis *alpacadecimal.Decimal
+	At          time.Time
+	Amount      alpacadecimal.Decimal
+	Currency    currencyx.Code
+	TaxCode     *string
+	TaxBehavior *ledger.TaxBehavior
+	CostBasis   *alpacadecimal.Decimal
 }
 
 func (t TransferCustomerReceivableToAccruedTemplate) Validate() error {
@@ -406,6 +408,12 @@ func (t TransferCustomerReceivableToAccruedTemplate) Validate() error {
 
 	if err := ledger.ValidateCostBasis(*t.CostBasis); err != nil {
 		return fmt.Errorf("cost basis: %w", err)
+	}
+
+	if t.TaxBehavior != nil {
+		if err := t.TaxBehavior.Validate(); err != nil {
+			return fmt.Errorf("tax behavior: %w", err)
+		}
 	}
 
 	return nil
@@ -442,9 +450,10 @@ func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context
 	}
 
 	accrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-		Currency:  t.Currency,
-		TaxCode:   t.TaxCode,
-		CostBasis: t.CostBasis,
+		Currency:    t.Currency,
+		TaxCode:     t.TaxCode,
+		TaxBehavior: t.TaxBehavior,
+		CostBasis:   t.CostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get accrued sub-account: %w", err)
@@ -472,6 +481,7 @@ type TranslateCustomerAccruedCostBasisTemplate struct {
 	Amount        alpacadecimal.Decimal
 	Currency      currencyx.Code
 	TaxCode       *string
+	TaxBehavior   *ledger.TaxBehavior
 	FromCostBasis *alpacadecimal.Decimal
 	ToCostBasis   *alpacadecimal.Decimal
 }
@@ -501,6 +511,12 @@ func (t TranslateCustomerAccruedCostBasisTemplate) Validate() error {
 
 	if err := ledger.ValidateCostBasis(*t.ToCostBasis); err != nil {
 		return fmt.Errorf("to cost basis: %w", err)
+	}
+
+	if t.TaxBehavior != nil {
+		if err := t.TaxBehavior.Validate(); err != nil {
+			return fmt.Errorf("tax behavior: %w", err)
+		}
 	}
 
 	if decimalPointersEqual(t.FromCostBasis, t.ToCostBasis) {
@@ -571,18 +587,20 @@ func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, 
 	}
 
 	fromAccrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-		Currency:  t.Currency,
-		TaxCode:   t.TaxCode,
-		CostBasis: t.FromCostBasis,
+		Currency:    t.Currency,
+		TaxCode:     t.TaxCode,
+		TaxBehavior: t.TaxBehavior,
+		CostBasis:   t.FromCostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get source accrued sub-account: %w", err)
 	}
 
 	toAccrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-		Currency:  t.Currency,
-		TaxCode:   t.TaxCode,
-		CostBasis: t.ToCostBasis,
+		Currency:    t.Currency,
+		TaxCode:     t.TaxCode,
+		TaxBehavior: t.TaxBehavior,
+		CostBasis:   t.ToCostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get target accrued sub-account: %w", err)

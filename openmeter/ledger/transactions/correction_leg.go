@@ -11,17 +11,16 @@ import (
 )
 
 // routePairingKey pairs source and counterpart sub-accounts during accrual and
-// earnings correction. TaxBehavior is deliberately excluded: it is an FBO-only
-// routing dimension. Accrued and earnings sub-accounts never carry TaxBehavior,
-// so it cannot be used to pair entries across those account types.
+// earnings correction.
 type routePairingKey struct {
-	currency  currencyx.Code
-	taxCode   string
-	costBasis string
+	currency    currencyx.Code
+	taxCode     string
+	taxBehavior string
+	costBasis   string
 }
 
 func (k routePairingKey) String() string {
-	return fmt.Sprintf("currency=%s,tax_code=%s,cost_basis=%s", k.currency, k.taxCode, k.costBasis)
+	return fmt.Sprintf("currency=%s,tax_code=%s,tax_behavior=%s,cost_basis=%s", k.currency, k.taxCode, k.taxBehavior, k.costBasis)
 }
 
 type correctionLeg struct {

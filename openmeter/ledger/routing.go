@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -158,9 +159,9 @@ type Route struct {
 	Version  RoutingKeyVersion
 	Currency currencyx.Code
 	TaxCode  *string
-	// TaxBehavior is an FBO-only routing dimension. Receivable, Accrued,
-	// and Earnings sub-accounts do not carry it. Only IssueCustomerReceivable*
-	// transactions thread it via CustomerFBORouteParams.
+	// TaxBehavior distinguishes taxable accrued and earnings buckets.
+	// Customer FBO routes do not carry tax dimensions; credit sources are
+	// attributed to charge tax configuration when they accrue.
 	TaxBehavior                    *TaxBehavior
 	Features                       []string
 	CostBasis                      *alpacadecimal.Decimal
@@ -356,7 +357,7 @@ func buildRoutingKeyV1Normalized(route Route) (RoutingKey, error) {
 		"features:" + canonicalFeatures(route.Features),
 		"cost_basis:" + optionalDecimalValue(route.CostBasis),
 		"credit_priority:" + optionalIntValue(route.CreditPriority),
-		"transaction_authorization_status:" + optionalTransactionAuthorizationStatusValue(route.TransactionAuthorizationStatus),
+		"transaction_authorization_status:" + string(lo.FromPtrOr(route.TransactionAuthorizationStatus, "null")),
 	}, "|")
 
 	return NewRoutingKey(RoutingKeyVersionV1, value)
@@ -367,11 +368,11 @@ func buildRoutingKeyV2Normalized(route Route) (RoutingKey, error) {
 	value := strings.Join([]string{
 		"currency:" + string(route.Currency),
 		"tax_code:" + optionalStringValue(route.TaxCode),
-		"tax_behavior:" + optionalTaxBehaviorValue(route.TaxBehavior),
+		"tax_behavior:" + string(lo.FromPtrOr(route.TaxBehavior, "null")),
 		"features:" + canonicalFeatures(route.Features),
 		"cost_basis:" + optionalDecimalValue(route.CostBasis),
 		"credit_priority:" + optionalIntValue(route.CreditPriority),
-		"transaction_authorization_status:" + optionalTransactionAuthorizationStatusValue(route.TransactionAuthorizationStatus),
+		"transaction_authorization_status:" + string(lo.FromPtrOr(route.TransactionAuthorizationStatus, "null")),
 	}, "|")
 
 	return NewRoutingKey(RoutingKeyVersionV2, value)
@@ -466,23 +467,9 @@ func optionalIntValue(v *int) string {
 	return strconv.Itoa(*v)
 }
 
-func optionalTransactionAuthorizationStatusValue(v *TransactionAuthorizationStatus) string {
-	if v == nil {
-		return "null"
-	}
-	return string(*v)
-}
-
 func optionalDecimalValue(v *alpacadecimal.Decimal) string {
 	if v == nil {
 		return "null"
 	}
 	return v.String()
-}
-
-func optionalTaxBehaviorValue(v *TaxBehavior) string {
-	if v == nil {
-		return "null"
-	}
-	return string(*v)
 }

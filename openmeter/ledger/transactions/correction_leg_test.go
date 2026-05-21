@@ -3,6 +3,7 @@ package transactions
 import (
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -14,26 +15,26 @@ func TestRoutePairingKeyEquality(t *testing.T) {
 	taxB := "tax_B"
 
 	t.Run("same fields are equal", func(t *testing.T) {
-		k1 := routePairingKey{currency: usd, taxCode: taxCodeKey(&taxA), costBasis: "null"}
-		k2 := routePairingKey{currency: usd, taxCode: taxCodeKey(&taxA), costBasis: "null"}
+		k1 := routePairingKey{currency: usd, taxCode: lo.FromPtrOr(&taxA, "null"), costBasis: "null"}
+		k2 := routePairingKey{currency: usd, taxCode: lo.FromPtrOr(&taxA, "null"), costBasis: "null"}
 		assert.Equal(t, k1, k2)
 	})
 
 	t.Run("different taxCode are not equal", func(t *testing.T) {
-		k1 := routePairingKey{currency: usd, taxCode: taxCodeKey(&taxA), costBasis: "null"}
-		k2 := routePairingKey{currency: usd, taxCode: taxCodeKey(&taxB), costBasis: "null"}
+		k1 := routePairingKey{currency: usd, taxCode: lo.FromPtrOr(&taxA, "null"), costBasis: "null"}
+		k2 := routePairingKey{currency: usd, taxCode: lo.FromPtrOr(&taxB, "null"), costBasis: "null"}
 		assert.NotEqual(t, k1, k2)
 	})
 
 	t.Run("nil taxCode differs from non-nil", func(t *testing.T) {
-		k1 := routePairingKey{currency: usd, taxCode: taxCodeKey(nil), costBasis: "null"}
-		k2 := routePairingKey{currency: usd, taxCode: taxCodeKey(&taxA), costBasis: "null"}
+		k1 := routePairingKey{currency: usd, taxCode: lo.FromPtrOr[string](nil, "null"), costBasis: "null"}
+		k2 := routePairingKey{currency: usd, taxCode: lo.FromPtrOr(&taxA, "null"), costBasis: "null"}
 		assert.NotEqual(t, k1, k2)
 	})
 
 	t.Run("nil taxCode keys are equal", func(t *testing.T) {
-		k1 := routePairingKey{currency: usd, taxCode: taxCodeKey(nil), costBasis: "null"}
-		k2 := routePairingKey{currency: usd, taxCode: taxCodeKey(nil), costBasis: "null"}
+		k1 := routePairingKey{currency: usd, taxCode: lo.FromPtrOr[string](nil, "null"), costBasis: "null"}
+		k2 := routePairingKey{currency: usd, taxCode: lo.FromPtrOr[string](nil, "null"), costBasis: "null"}
 		assert.Equal(t, k1, k2)
 	})
 }
@@ -43,7 +44,7 @@ func TestRoutePairingKeyString(t *testing.T) {
 	tax := "tax_A"
 
 	t.Run("includes taxCode field", func(t *testing.T) {
-		k := routePairingKey{currency: usd, taxCode: taxCodeKey(&tax), costBasis: "null"}
+		k := routePairingKey{currency: usd, taxCode: lo.FromPtrOr(&tax, "null"), costBasis: "null"}
 		s := k.String()
 		assert.Contains(t, s, "tax_code=tax_A")
 		assert.Contains(t, s, "currency=USD")
@@ -51,23 +52,7 @@ func TestRoutePairingKeyString(t *testing.T) {
 	})
 
 	t.Run("null taxCode renders as null", func(t *testing.T) {
-		k := routePairingKey{currency: usd, taxCode: taxCodeKey(nil), costBasis: "null"}
+		k := routePairingKey{currency: usd, taxCode: lo.FromPtrOr[string](nil, "null"), costBasis: "null"}
 		assert.Contains(t, k.String(), "tax_code=null")
-	})
-}
-
-func TestTaxCodeKey(t *testing.T) {
-	t.Run("nil pointer returns null", func(t *testing.T) {
-		assert.Equal(t, "null", taxCodeKey(nil))
-	})
-
-	t.Run("non-nil pointer returns value", func(t *testing.T) {
-		v := "tax_digital_services"
-		assert.Equal(t, "tax_digital_services", taxCodeKey(&v))
-	})
-
-	t.Run("empty string returns empty string", func(t *testing.T) {
-		v := ""
-		assert.Equal(t, "", taxCodeKey(&v))
 	})
 }

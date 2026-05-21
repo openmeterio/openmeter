@@ -244,16 +244,14 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 	}
 
 	if issuableAmount.IsPositive() {
-		tmpl := transactions.IssueCustomerReceivableTemplate{
+		templates = append(templates, transactions.IssueCustomerReceivableTemplate{
 			At:             charge.CreatedAt,
 			Amount:         issuableAmount,
 			Currency:       charge.Intent.Currency,
 			TaxCode:        taxCodeID,
 			CostBasis:      &costBasis,
 			CreditPriority: charge.Intent.Priority,
-		}
-		tmpl.TaxBehavior = taxBehaviorFromIntent(charge.Intent.TaxConfig)
-		templates = append(templates, tmpl)
+		})
 	}
 
 	switch charge.Intent.Settlement.Type() {

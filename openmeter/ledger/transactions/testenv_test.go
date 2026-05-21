@@ -69,30 +69,10 @@ func (e *transactionsTestEnv) fundPriority(t *testing.T, priority int, amount in
 func (e *transactionsTestEnv) fundPriorityWithCostBasis(t *testing.T, priority int, amount int64, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
 	t.Helper()
 
-	return e.fundPriorityWithTaxParams(t, priority, amount, costBasis, nil, nil)
-}
-
-func (e *transactionsTestEnv) fundPriorityWithCostBasisAndTaxCode(t *testing.T, priority int, amount int64, costBasis *alpacadecimal.Decimal, taxCode *string) ledger.SubAccount {
-	t.Helper()
-
-	return e.fundPriorityWithTaxParams(t, priority, amount, costBasis, taxCode, nil)
-}
-
-func (e *transactionsTestEnv) fundPriorityWithCostBasisAndTaxBehavior(t *testing.T, priority int, amount int64, costBasis *alpacadecimal.Decimal, taxBehavior *ledger.TaxBehavior) ledger.SubAccount {
-	t.Helper()
-
-	return e.fundPriorityWithTaxParams(t, priority, amount, costBasis, nil, taxBehavior)
-}
-
-func (e *transactionsTestEnv) fundPriorityWithTaxParams(t *testing.T, priority int, amount int64, costBasis *alpacadecimal.Decimal, taxCode *string, taxBehavior *ledger.TaxBehavior) ledger.SubAccount {
-	t.Helper()
-
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
 		Currency:       e.Currency,
 		CostBasis:      costBasis,
 		CreditPriority: priority,
-		TaxCode:        taxCode,
-		TaxBehavior:    taxBehavior,
 	})
 	require.NoError(t, err)
 
@@ -102,8 +82,6 @@ func (e *transactionsTestEnv) fundPriorityWithTaxParams(t *testing.T, priority i
 			At:             e.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
 			Currency:       e.Currency,
-			TaxCode:        taxCode,
-			TaxBehavior:    taxBehavior,
 			CostBasis:      costBasis,
 			CreditPriority: &priority,
 		},
@@ -111,14 +89,12 @@ func (e *transactionsTestEnv) fundPriorityWithTaxParams(t *testing.T, priority i
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,
-			TaxCode:   taxCode,
 			CostBasis: costBasis,
 		},
 		SettleCustomerReceivableFromPaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,
-			TaxCode:   taxCode,
 			CostBasis: costBasis,
 		},
 	)
