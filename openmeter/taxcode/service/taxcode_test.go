@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -180,5 +181,49 @@ func TestTaxCodeService(t *testing.T) {
 			})
 			require.NoError(t, err)
 		})
+	})
+
+	t.Run("GetByAppMappingPrefersSystemManagedDuplicate", func(t *testing.T) {
+		// given:
+		// - a user-created tax code and a system-managed seed tax code share the same Stripe mapping
+		// when:
+		// - resolving by app mapping
+		// then:
+		// - the system-managed code is preferred over the user-created duplicate
+		duplicateNs := testutils.NameGenerator.Generate().Key
+		stripeCode := "txcd_10103001"
+
+		_, err := env.Service.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
+			Namespace: duplicateNs,
+			Key:       "stripe_txcd_10103001",
+			Name:      stripeCode,
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+			},
+		})
+		require.NoError(t, err)
+
+		systemManaged, err := env.Service.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
+			Namespace: duplicateNs,
+			Key:       "saas_business",
+			Name:      "Software as a Service (SaaS) - Business Use",
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+			},
+			Annotations: models.Annotations{
+				taxcode.AnnotationKeyManagedBy: taxcode.AnnotationValueManagedBySystem,
+				"schema_version":               1,
+			},
+		})
+		require.NoError(t, err)
+
+		got, err := env.Service.GetTaxCodeByAppMapping(t.Context(), taxcode.GetTaxCodeByAppMappingInput{
+			Namespace: duplicateNs,
+			AppType:   app.AppTypeStripe,
+			TaxCode:   stripeCode,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, systemManaged.ID, got.ID)
+		assert.True(t, got.IsManagedBySystem())
 	})
 }
