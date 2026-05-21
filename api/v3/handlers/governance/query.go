@@ -2,6 +2,7 @@ package governance
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -244,7 +245,8 @@ func (h *handler) buildFeatureAccess(ctx context.Context, ns string, featureKeys
 func (h *handler) resolveAbsentFeature(ctx context.Context, ns, featureKey string) (api.GovernanceFeatureAccess, error) {
 	_, err := h.featureConnector.GetFeature(ctx, ns, featureKey, feature.IncludeArchivedFeatureFalse)
 	if err != nil {
-		if models.IsGenericNotFoundError(err) {
+		var fne *feature.FeatureNotFoundError
+		if errors.As(err, &fne) || models.IsGenericNotFoundError(err) {
 			return api.GovernanceFeatureAccess{
 				HasAccess: false,
 				Reason: &api.GovernanceFeatureAccessReason{
