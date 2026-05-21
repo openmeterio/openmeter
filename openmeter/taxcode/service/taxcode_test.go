@@ -80,6 +80,57 @@ func TestTaxCodeService(t *testing.T) {
 		})
 	})
 
+	t.Run("OrganizationDefault", func(t *testing.T) {
+		// given:
+		// - two tax codes set as org defaults (invoicing + credit grant)
+		// - one extra tax code that is not a default
+		// when:
+		// - caller tries to delete an org default tax code
+		// then:
+		// - deletion is blocked with ErrCodeTaxCodeIsOrganizationDefault (409)
+		// - deletion of a non-default tax code succeeds
+		defaultNs := testutils.NameGenerator.Generate().Key
+		invoicing := env.CreateTaxCode(t.Context(), t, defaultNs)
+		creditGrant := env.CreateTaxCode(t.Context(), t, defaultNs)
+		other := env.CreateTaxCode(t.Context(), t, defaultNs)
+
+		_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
+			Namespace:            defaultNs,
+			InvoicingTaxCodeID:   invoicing.ID,
+			CreditGrantTaxCodeID: creditGrant.ID,
+		})
+		require.NoError(t, err)
+
+		t.Run("DeleteInvoicingDefaultIsBlocked", func(t *testing.T) {
+			err := env.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: defaultNs, ID: invoicing.ID},
+			})
+			require.Error(t, err)
+
+			var vi models.ValidationIssue
+			require.ErrorAs(t, err, &vi)
+			assert.Equal(t, taxcode.ErrCodeTaxCodeIsOrganizationDefault, vi.Code())
+		})
+
+		t.Run("DeleteCreditGrantDefaultIsBlocked", func(t *testing.T) {
+			err := env.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: defaultNs, ID: creditGrant.ID},
+			})
+			require.Error(t, err)
+
+			var vi models.ValidationIssue
+			require.ErrorAs(t, err, &vi)
+			assert.Equal(t, taxcode.ErrCodeTaxCodeIsOrganizationDefault, vi.Code())
+		})
+
+		t.Run("DeleteNonDefaultSucceeds", func(t *testing.T) {
+			err := env.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: defaultNs, ID: other.ID},
+			})
+			require.NoError(t, err)
+		})
+	})
+
 	t.Run("UserManaged", func(t *testing.T) {
 		name := testutils.NameGenerator.Generate()
 		tc, err := env.Service.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{

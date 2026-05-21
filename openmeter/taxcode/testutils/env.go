@@ -1,6 +1,7 @@
 package testutils
 
 import (
+	"context"
 	"log/slog"
 	"sync"
 	"testing"
@@ -52,6 +53,18 @@ func (e *TestEnv) Close(t *testing.T) {
 			}
 		}
 	})
+}
+
+func (e *TestEnv) CreateTaxCode(ctx context.Context, t *testing.T, namespace string) taxcode.TaxCode {
+	t.Helper()
+	name := testutils.NameGenerator.Generate()
+	tc, err := e.Service.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       name.Key,
+		Name:      name.Name,
+	})
+	require.NoError(t, err)
+	return tc
 }
 
 func NewTestEnv(t *testing.T) *TestEnv {

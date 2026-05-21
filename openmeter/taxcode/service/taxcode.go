@@ -126,6 +126,15 @@ func (s *Service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCode
 			return models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem)
 		}
 
+		defaults, err := s.adapter.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: input.NamespacedID.Namespace})
+		if err != nil {
+			return err
+		}
+
+		if defaults.CreditGrantTaxCodeID == existing.ID || defaults.InvoicingTaxCodeID == existing.ID {
+			return models.NewGenericConflictError(taxcode.ErrTaxCodeIsOrganizationDefault)
+		}
+
 		return s.adapter.DeleteTaxCode(ctx, input)
 	})
 }
