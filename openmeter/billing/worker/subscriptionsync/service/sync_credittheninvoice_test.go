@@ -43,6 +43,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -136,6 +137,7 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 		FeatureFlags: FeatureFlags{
 			EnableCreditThenInvoice: true,
 		},
+		FeatureGate: featuregate.NewNoop(),
 	})
 	s.NoError(err)
 
