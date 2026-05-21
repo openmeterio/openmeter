@@ -656,7 +656,7 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 	reconcileResult, err := s.Runs.ReconcileCredits(ctx, usagebasedrun.ReconcileCreditRealizationsInput{
 		Charge:             s.Charge,
 		Run:                currentRun,
-		AllocateAt:         storedAtLT,
+		AllocateAt:         currentRun.ServicePeriodTo,
 		TargetAmount:       currentTotals.Total,
 		CurrencyCalculator: s.CurrencyCalculator,
 		ExactAllocation:    false,

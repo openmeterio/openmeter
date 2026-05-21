@@ -87,8 +87,8 @@ var _ creditpurchase.Handler = (*creditPurchaseTestHandler)(nil)
 type creditPurchaseTestHandler struct {
 	onPromotionalCreditPurchase       func(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error)
 	onCreditPurchaseInitiated         func(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error)
-	onCreditPurchasePaymentAuthorized func(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error)
-	onCreditPurchasePaymentSettled    func(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error)
+	onCreditPurchasePaymentAuthorized func(ctx context.Context, input creditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error)
+	onCreditPurchasePaymentSettled    func(ctx context.Context, input creditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error)
 }
 
 func newCreditPurchaseTestHandler() *creditPurchaseTestHandler {
@@ -111,20 +111,20 @@ func (h *creditPurchaseTestHandler) OnCreditPurchaseInitiated(ctx context.Contex
 	return h.onCreditPurchaseInitiated(ctx, charge)
 }
 
-func (h *creditPurchaseTestHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (h *creditPurchaseTestHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, input creditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {
 	if h.onCreditPurchasePaymentAuthorized == nil {
 		return ledgertransaction.GroupReference{}, errors.New("onCreditPurchasePaymentAuthorized is not set")
 	}
 
-	return h.onCreditPurchasePaymentAuthorized(ctx, charge)
+	return h.onCreditPurchasePaymentAuthorized(ctx, input)
 }
 
-func (h *creditPurchaseTestHandler) OnCreditPurchasePaymentSettled(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (h *creditPurchaseTestHandler) OnCreditPurchasePaymentSettled(ctx context.Context, input creditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {
 	if h.onCreditPurchasePaymentSettled == nil {
 		return ledgertransaction.GroupReference{}, errors.New("onCreditPurchasePaymentSettled is not set")
 	}
 
-	return h.onCreditPurchasePaymentSettled(ctx, charge)
+	return h.onCreditPurchasePaymentSettled(ctx, input)
 }
 
 func (h *creditPurchaseTestHandler) Reset() {

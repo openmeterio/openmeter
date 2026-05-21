@@ -281,7 +281,7 @@ func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input bi
 		if _, err := e.service.runs.CorrectAllCredits(ctx, usagebasedrun.CorrectAllCreditRealizationsInput{
 			Charge:             charge,
 			Run:                run,
-			AllocateAt:         now,
+			AllocateAt:         run.ServicePeriodTo,
 			CurrencyCalculator: currencyCalculator,
 		}); err != nil {
 			return fmt.Errorf("correcting credits for deleted usage based standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)

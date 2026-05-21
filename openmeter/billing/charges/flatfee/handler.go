@@ -20,6 +20,7 @@ import (
 type OnAllocateCreditsInput struct {
 	Charge        Charge                `json:"charge"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
+	BookedAt      time.Time             `json:"bookedAt"`
 	// PreTaxAmountToAllocate is the pre-tax amount to allocate from credits.
 	// The input charge's settlement mode governs whether this may create a negative balance.
 	PreTaxAmountToAllocate alpacadecimal.Decimal `json:"preTaxAmountToAllocate"`
@@ -36,6 +37,10 @@ func (i OnAllocateCreditsInput) Validate() error {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
 	}
 
+	if i.BookedAt.IsZero() {
+		errs = append(errs, fmt.Errorf("booked at is required"))
+	}
+
 	if i.PreTaxAmountToAllocate.IsNegative() {
 		errs = append(errs, fmt.Errorf("pre tax amount to allocate cannot be negative"))
 	}
@@ -46,6 +51,7 @@ func (i OnAllocateCreditsInput) Validate() error {
 type OnInvoiceUsageAccruedInput struct {
 	Charge        Charge                `json:"charge"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
+	BookedAt      time.Time             `json:"bookedAt"`
 	Totals        totals.Totals         `json:"totals"`
 }
 
@@ -60,6 +66,10 @@ func (i OnInvoiceUsageAccruedInput) Validate() error {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
 	}
 
+	if i.BookedAt.IsZero() {
+		errs = append(errs, fmt.Errorf("booked at is required"))
+	}
+
 	if err := i.Totals.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("totals: %w", err))
 	}
@@ -68,8 +78,8 @@ func (i OnInvoiceUsageAccruedInput) Validate() error {
 }
 
 type CorrectCreditAllocationsInput struct {
-	Charge     Charge    `json:"charge"`
-	AllocateAt time.Time `json:"allocateAt"`
+	Charge   Charge    `json:"charge"`
+	BookedAt time.Time `json:"bookedAt"`
 
 	Corrections                  creditrealization.CorrectionRequest   `json:"corrections"`
 	LineageSegmentsByRealization lineage.ActiveSegmentsByRealizationID `json:"-"`
@@ -82,8 +92,8 @@ func (i CorrectCreditAllocationsInput) Validate() error {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
 
-	if i.AllocateAt.IsZero() {
-		errs = append(errs, fmt.Errorf("allocate at is required"))
+	if i.BookedAt.IsZero() {
+		errs = append(errs, fmt.Errorf("booked at is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -104,8 +114,9 @@ func (i CorrectCreditAllocationsInput) ValidateWith(currencyCalculator currencyx
 }
 
 type PaymentEventInput struct {
-	Charge Charge                `json:"charge"`
-	Amount alpacadecimal.Decimal `json:"amount"`
+	Charge  Charge                `json:"charge"`
+	EventAt time.Time             `json:"eventAt"`
+	Amount  alpacadecimal.Decimal `json:"amount"`
 }
 
 func (i PaymentEventInput) Validate() error {
@@ -113,6 +124,10 @@ func (i PaymentEventInput) Validate() error {
 
 	if err := i.Charge.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if i.EventAt.IsZero() {
+		errs = append(errs, fmt.Errorf("event at is required"))
 	}
 
 	if i.Amount.IsNegative() {

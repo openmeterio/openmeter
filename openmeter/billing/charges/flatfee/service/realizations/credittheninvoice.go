@@ -114,6 +114,7 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 			handlerInput := flatfee.OnAllocateCreditsInput{
 				Charge:                 charge,
 				ServicePeriod:          in.Line.Period,
+				BookedAt:               flatfee.UsageBookedAt(charge.Intent.PaymentTerm, in.Line.Period),
 				PreTaxAmountToAllocate: creditAllocationTarget,
 			}
 			if err := handlerInput.Validate(); err != nil {

@@ -1209,7 +1209,7 @@ func (s *SanitySuite) createPromotionalCreditGrant(ctx context.Context, input Cr
 	return charge
 }
 
-func (s *SanitySuite) correctCreditUsageAllocation(ctx context.Context, charge flatfee.Charge, allocation creditrealization.Realization, amount alpacadecimal.Decimal, allocateAt time.Time) {
+func (s *SanitySuite) correctCreditUsageAllocation(ctx context.Context, charge flatfee.Charge, allocation creditrealization.Realization, amount alpacadecimal.Decimal, bookedAt time.Time) {
 	s.T().Helper()
 
 	lineageSegmentsByRealization, err := s.LineageService.LoadActiveSegmentsByRealizationID(ctx, charge.Namespace, []string{allocation.ID})
@@ -1217,7 +1217,7 @@ func (s *SanitySuite) correctCreditUsageAllocation(ctx context.Context, charge f
 
 	corrections, err := s.FlatFeeHandler.OnCorrectCreditAllocations(ctx, flatfee.CorrectCreditAllocationsInput{
 		Charge:                       charge,
-		AllocateAt:                   allocateAt,
+		BookedAt:                     bookedAt,
 		LineageSegmentsByRealization: lineageSegmentsByRealization,
 		Corrections: creditrealization.CorrectionRequest{
 			{

@@ -44,9 +44,11 @@ func (s *service) postInvoicePaymentAuthorized(ctx context.Context, charge flatf
 			return err
 		}
 
+		eventAt := clock.Now()
 		ledgerTransactionGroupReference, err := s.handler.OnPaymentAuthorized(ctx, flatfee.OnPaymentAuthorizedInput{
-			Charge: charge,
-			Amount: paymentTotal,
+			Charge:  charge,
+			EventAt: eventAt,
+			Amount:  paymentTotal,
 		})
 		if err != nil {
 			return err
@@ -63,7 +65,7 @@ func (s *service) postInvoicePaymentAuthorized(ctx context.Context, charge flatf
 					GroupReference: ledgertransaction.GroupReference{
 						TransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
 					},
-					Time: clock.Now(),
+					Time: eventAt,
 				},
 				Status: payment.StatusAuthorized,
 			},
@@ -115,9 +117,11 @@ func (s *service) postInvoicePaymentSettled(ctx context.Context, charge flatfee.
 			return err
 		}
 
+		eventAt := clock.Now()
 		ledgerTransactionGroupReference, err := s.handler.OnPaymentSettled(ctx, flatfee.OnPaymentSettledInput{
-			Charge: charge,
-			Amount: paymentTotal,
+			Charge:  charge,
+			EventAt: eventAt,
+			Amount:  paymentTotal,
 		})
 		if err != nil {
 			return err
@@ -127,7 +131,7 @@ func (s *service) postInvoicePaymentSettled(ctx context.Context, charge flatfee.
 			GroupReference: ledgertransaction.GroupReference{
 				TransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
 			},
-			Time: clock.Now(),
+			Time: eventAt,
 		}
 
 		paymentSettlement.Status = payment.StatusSettled

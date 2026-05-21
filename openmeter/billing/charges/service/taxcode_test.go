@@ -424,9 +424,9 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 	_, err = s.BillingService.ApproveInvoice(ctx, invoiceID)
 	s.NoError(err)
 
-	authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+	authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.PaymentEventInput]()
 	s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T())
-	settledCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+	settledCallback := newCountedLedgerTransactionCallback[creditpurchase.PaymentEventInput]()
 	s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T())
 
 	_, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{

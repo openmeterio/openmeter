@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -220,7 +221,14 @@ func TestOnCreditPurchasePaymentAuthorized(t *testing.T) {
 	_, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
 	require.NoError(t, err)
 
-	ref, err := env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), charge)
+	eventTime := charge.CreatedAt.Add(15 * time.Minute)
+	clock.FreezeTime(eventTime)
+	defer clock.UnFreeze()
+
+	ref, err := env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
+		Charge:  charge,
+		EventAt: eventTime,
+	})
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
 
@@ -228,6 +236,18 @@ func TestOnCreditPurchasePaymentAuthorized(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
 	require.True(t, env.sumBalance(t, env.washSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
+
+	for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
+		requireLedgerBookedAtEqual(t, eventTime, bookedAt)
+		requireLedgerBookedAtNotEqual(t, charge.CreatedAt, bookedAt)
+	}
+
+	ref, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
+		Charge:  charge,
+		EventAt: time.Time{},
+	})
+	require.ErrorContains(t, err, "event at is required")
+	require.Empty(t, ref.TransactionGroupID)
 }
 
 func TestOnCreditPurchasePaymentSettled(t *testing.T) {
@@ -241,10 +261,20 @@ func TestOnCreditPurchasePaymentSettled(t *testing.T) {
 		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
 	}, env.transactionTemplateCodes(t, initRef.TransactionGroupID))
 
-	_, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), charge)
+	_, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
+		Charge:  charge,
+		EventAt: charge.CreatedAt.Add(15 * time.Minute),
+	})
 	require.NoError(t, err)
 
-	ref, err := env.handler.OnCreditPurchasePaymentSettled(t.Context(), charge)
+	eventTime := charge.CreatedAt.Add(30 * time.Minute)
+	clock.FreezeTime(eventTime)
+	defer clock.UnFreeze()
+
+	ref, err := env.handler.OnCreditPurchasePaymentSettled(t.Context(), chargecreditpurchase.PaymentEventInput{
+		Charge:  charge,
+		EventAt: eventTime,
+	})
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
 
@@ -252,6 +282,11 @@ func TestOnCreditPurchasePaymentSettled(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
 	require.True(t, env.sumBalance(t, env.washSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
+
+	for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
+		requireLedgerBookedAtEqual(t, eventTime, bookedAt)
+		requireLedgerBookedAtNotEqual(t, charge.CreatedAt, bookedAt)
+	}
 }
 
 func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
@@ -269,10 +304,17 @@ func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
 		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
 	}, env.transactionTemplateCodes(t, initRef.TransactionGroupID))
 
-	_, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), charge)
+	_, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
+		Charge:  charge,
+		EventAt: charge.CreatedAt.Add(15 * time.Minute),
+	})
 	require.NoError(t, err)
 
-	ref, err := env.handler.OnCreditPurchasePaymentSettled(t.Context(), charge)
+	eventTime := charge.CreatedAt.Add(30 * time.Minute)
+	ref, err := env.handler.OnCreditPurchasePaymentSettled(t.Context(), chargecreditpurchase.PaymentEventInput{
+		Charge:  charge,
+		EventAt: eventTime,
+	})
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
 
@@ -282,6 +324,11 @@ func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 	require.True(t, env.sumBalance(t, env.accruedSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(40)))
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(60)))
+
+	for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
+		requireLedgerBookedAtEqual(t, eventTime, bookedAt)
+		requireLedgerBookedAtNotEqual(t, charge.CreatedAt, bookedAt)
+	}
 }
 
 type creditPurchaseHandlerTestEnv struct {
@@ -586,6 +633,30 @@ func (e *creditPurchaseHandlerTestEnv) transactionAnnotations(t *testing.T, grou
 	out := make([]models.Annotations, 0, len(transactions))
 	for _, tx := range transactions {
 		out = append(out, tx.Annotations)
+	}
+
+	return out
+}
+
+func (e *creditPurchaseHandlerTestEnv) transactionBookedAtTimes(t *testing.T, groupID string) []time.Time {
+	t.Helper()
+
+	transactions, err := e.DB.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(e.Namespace),
+			ledgertransactiondb.GroupID(groupID),
+		).
+		Order(
+			ledgertransactiondb.ByCreatedAt(),
+			ledgertransactiondb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+	require.NotEmpty(t, transactions, "expected at least one ledger transaction for group")
+
+	out := make([]time.Time, 0, len(transactions))
+	for _, tx := range transactions {
+		out = append(out, tx.BookedAt)
 	}
 
 	return out

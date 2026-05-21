@@ -17,12 +17,16 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargepayment "github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -46,6 +50,7 @@ type SuiteBase struct {
 	Service *Service
 	Adapter subscriptionsync.Adapter
 	Charges charges.Service
+	Ledger  ledger.Ledger
 
 	Namespace               string
 	Customer                *customer.Customer
@@ -382,6 +387,7 @@ type expectedChargeRealization struct {
 	Period      timeutil.ClosedPeriod
 	Status      billing.StandardInvoiceStatus
 	IsVoided    bool
+	BookedAt    time.Time
 	Price       *productcatalog.Price
 	Totals      totals.Totals
 }
@@ -396,6 +402,11 @@ type chargeRealizationKey struct {
 	Period   timeutil.ClosedPeriod
 	Status   billing.StandardInvoiceStatus
 	IsVoided bool
+}
+
+type actualChargeLedgerTransactionGroup struct {
+	ID    string
+	Label string
 }
 
 func (s *SuiteBase) assertCharges(ctx context.Context, subsView subscription.SubscriptionView, expectedCharges []expectedCharge) {
@@ -540,6 +551,7 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		s.Failf("unsupported charge type", "charge %s has unsupported type %s", chargeID.ID, charge.Type())
 	}
 
+	s.assertChargePaymentLedgerTransactions(ctx, charge, childID)
 	s.assertChargeGatheringLines(ctx, charge, subsView.Subscription.ID, childID, expectedChargeIDs, expectedCharge.Periods[idx], expectedCharge.Price, expectedCharge.GatheringLines)
 
 	expectedRealizations := s.expectedRealizationsForCharge(subsView.Subscription.ID, childID, expectedChargeIDs, expectedCharge.Periods[idx], expectedCharge.Realizations)
@@ -585,6 +597,108 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		if !expectedRealization.Totals.IsZero() {
 			s.Truef(expectedRealization.Totals.Equal(actualRealization.Totals), "%s: realization totals expected %v, got %v", childID, expectedRealization.Totals, actualRealization.Totals)
 		}
+
+		s.assertChargeRealizationLedgerTransactions(ctx, chargeID.Namespace, childID, expectedRealization, actualRealization)
+	}
+}
+
+func (s *SuiteBase) assertChargeRealizationLedgerTransactions(ctx context.Context, namespace string, childID string, expectedRealization expectedChargeRealization, actualRealization actualChargeRealization) {
+	s.T().Helper()
+
+	s.Require().False(expectedRealization.BookedAt.IsZero(), "%s: realization booked_at", childID)
+	if len(actualRealization.LedgerTransactionGroups) == 0 {
+		s.Require().False(expectedChargeRealizationRequiresLedgerTransactionGroups(expectedRealization), "%s: realization ledger transaction groups", childID)
+		return
+	}
+
+	for _, transactionGroup := range actualRealization.LedgerTransactionGroups {
+		s.assertLedgerTransactionGroupBookedAt(ctx, namespace, transactionGroup.ID, expectedRealization.BookedAt, fmt.Sprintf("%s: %s", childID, transactionGroup.Label))
+	}
+}
+
+func expectedChargeRealizationRequiresLedgerTransactionGroups(expectedRealization expectedChargeRealization) bool {
+	if expectedRealization.Totals.IsZero() {
+		return false
+	}
+
+	switch expectedRealization.Status.ShortStatus() {
+	case "draft", "gathering", "delete":
+		return false
+	default:
+		return true
+	}
+}
+
+func (s *SuiteBase) assertChargePaymentLedgerTransactions(ctx context.Context, charge charges.Charge, childID string) {
+	s.T().Helper()
+
+	chargeID, err := charge.GetChargeID()
+	s.NoError(err)
+
+	switch charge.Type() {
+	case chargesmeta.ChargeTypeFlatFee:
+		flatFeeCharge, err := charge.AsFlatFeeCharge()
+		s.NoError(err)
+
+		runs := slices.Clone(flatFeeCharge.Realizations.PriorRuns)
+		if flatFeeCharge.Realizations.CurrentRun != nil {
+			runs = append(runs, *flatFeeCharge.Realizations.CurrentRun)
+		}
+
+		for _, run := range runs {
+			s.assertPaymentLedgerTransactions(ctx, chargeID.Namespace, childID, run.Payment)
+		}
+	case chargesmeta.ChargeTypeUsageBased:
+		usageBasedCharge, err := charge.AsUsageBasedCharge()
+		s.NoError(err)
+
+		for _, run := range usageBasedCharge.Realizations {
+			s.assertPaymentLedgerTransactions(ctx, chargeID.Namespace, childID, run.Payment)
+		}
+	}
+}
+
+func (s *SuiteBase) assertPaymentLedgerTransactions(ctx context.Context, namespace string, childID string, payment *chargepayment.Invoiced) {
+	s.T().Helper()
+
+	if payment == nil {
+		return
+	}
+
+	if payment.Authorized != nil && payment.Authorized.TransactionGroupID != "" {
+		s.assertLedgerTransactionGroupBookedAt(ctx, namespace, payment.Authorized.TransactionGroupID, payment.Authorized.Time, fmt.Sprintf("%s: payment authorization", childID))
+	}
+	if payment.Settled != nil && payment.Settled.TransactionGroupID != "" {
+		s.assertLedgerTransactionGroupBookedAt(ctx, namespace, payment.Settled.TransactionGroupID, payment.Settled.Time, fmt.Sprintf("%s: payment settlement", childID))
+	}
+}
+
+func (s *SuiteBase) assertLedgerTransactionGroupBookedAt(ctx context.Context, namespace string, groupID string, expectedBookedAt time.Time, label string) {
+	s.T().Helper()
+
+	s.Require().NotEmpty(groupID, "%s: ledger transaction group id", label)
+	s.Require().False(expectedBookedAt.IsZero(), "%s: expected booked_at", label)
+	s.Require().NotNil(s.Ledger, "%s: ledger service", label)
+
+	group, err := s.Ledger.GetTransactionGroup(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        groupID,
+	})
+	s.NoError(err, "%s: get ledger transaction group %s", label, groupID)
+
+	transactions := group.Transactions()
+	s.Require().NotEmpty(transactions, "%s: ledger transaction group %s transactions", label, groupID)
+
+	for _, transaction := range transactions {
+		s.Truef(
+			transaction.BookedAt().UTC().Equal(expectedBookedAt.UTC()),
+			"%s: transaction %s in group %s booked_at expected %s, got %s",
+			label,
+			transaction.ID().ID,
+			groupID,
+			expectedBookedAt.UTC(),
+			transaction.BookedAt().UTC(),
+		)
 	}
 }
 
@@ -724,6 +838,7 @@ func (s *SuiteBase) chargeRealizations(ctx context.Context, charge charges.Charg
 				ID:        *run.InvoiceID,
 			}, *run.LineID)
 			realization.IsVoided = run.IsVoidedBillingHistory()
+			realization.LedgerTransactionGroups = s.usageBasedRunLedgerTransactionGroups(run)
 
 			out = append(out, realization)
 		}
@@ -749,6 +864,7 @@ func (s *SuiteBase) chargeRealizations(ctx context.Context, charge charges.Charg
 				ID:        *run.InvoiceID,
 			}, *run.LineID)
 			realization.IsVoided = run.IsVoidedBillingHistory()
+			realization.LedgerTransactionGroups = s.flatFeeRunLedgerTransactionGroups(run)
 
 			out = append(out, realization)
 		}
@@ -757,12 +873,61 @@ func (s *SuiteBase) chargeRealizations(ctx context.Context, charge charges.Charg
 	return out
 }
 
+func (s *SuiteBase) usageBasedRunLedgerTransactionGroups(run usagebased.RealizationRun) []actualChargeLedgerTransactionGroup {
+	s.T().Helper()
+
+	out := make([]actualChargeLedgerTransactionGroup, 0, len(run.CreditsAllocated)+1)
+	for _, realization := range run.CreditsAllocated {
+		if realization.LedgerTransaction.TransactionGroupID == "" {
+			continue
+		}
+
+		out = append(out, actualChargeLedgerTransactionGroup{
+			ID:    realization.LedgerTransaction.TransactionGroupID,
+			Label: fmt.Sprintf("usage-based credit realization %s", realization.ID),
+		})
+	}
+	if run.InvoiceUsage != nil && run.InvoiceUsage.LedgerTransaction != nil && run.InvoiceUsage.LedgerTransaction.TransactionGroupID != "" {
+		out = append(out, actualChargeLedgerTransactionGroup{
+			ID:    run.InvoiceUsage.LedgerTransaction.TransactionGroupID,
+			Label: fmt.Sprintf("usage-based invoice usage %s", run.InvoiceUsage.ID),
+		})
+	}
+
+	return out
+}
+
+func (s *SuiteBase) flatFeeRunLedgerTransactionGroups(run flatfee.RealizationRun) []actualChargeLedgerTransactionGroup {
+	s.T().Helper()
+
+	out := make([]actualChargeLedgerTransactionGroup, 0, len(run.CreditRealizations)+1)
+	for _, realization := range run.CreditRealizations {
+		if realization.LedgerTransaction.TransactionGroupID == "" {
+			continue
+		}
+
+		out = append(out, actualChargeLedgerTransactionGroup{
+			ID:    realization.LedgerTransaction.TransactionGroupID,
+			Label: fmt.Sprintf("flat fee credit realization %s", realization.ID),
+		})
+	}
+	if run.AccruedUsage != nil && run.AccruedUsage.LedgerTransaction != nil && run.AccruedUsage.LedgerTransaction.TransactionGroupID != "" {
+		out = append(out, actualChargeLedgerTransactionGroup{
+			ID:    run.AccruedUsage.LedgerTransaction.TransactionGroupID,
+			Label: fmt.Sprintf("flat fee accrued usage %s", run.AccruedUsage.ID),
+		})
+	}
+
+	return out
+}
+
 type actualChargeRealization struct {
-	Period   timeutil.ClosedPeriod
-	Status   billing.StandardInvoiceStatus
-	IsVoided bool
-	Price    *productcatalog.Price
-	Totals   totals.Totals
+	Period                  timeutil.ClosedPeriod
+	Status                  billing.StandardInvoiceStatus
+	IsVoided                bool
+	Price                   *productcatalog.Price
+	Totals                  totals.Totals
+	LedgerTransactionGroups []actualChargeLedgerTransactionGroup
 }
 
 func (s *SuiteBase) standardLineChargeRealization(ctx context.Context, invoiceID billing.InvoiceID, lineID string) actualChargeRealization {

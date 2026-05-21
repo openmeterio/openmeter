@@ -92,7 +92,7 @@ func (s *Service) allocate(ctx context.Context, in allocateCreditRealizationsInp
 	creditAllocations, err := s.handler.OnCreditsOnlyUsageAccrued(ctx, usagebased.CreditsOnlyUsageAccruedInput{
 		Charge:           in.Charge,
 		Run:              in.Run,
-		AllocateAt:       in.AllocateAt,
+		BookedAt:         in.AllocateAt,
 		AmountToAllocate: in.AmountToAllocate,
 	})
 	if err != nil {

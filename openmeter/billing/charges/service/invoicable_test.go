@@ -1157,7 +1157,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		s.Len(startedCallbacks, 1)
 		s.Equal(float64(3), startedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, startedCallbacks[0].Input.Run.Type)
-		s.True(finalStoredAtLT.Equal(startedCallbacks[0].Input.AllocateAt))
+		s.True(servicePeriod.To.Equal(startedCallbacks[0].Input.BookedAt))
 	})
 
 	s.Run("#3.2 second realization advance is noop", func() {
@@ -1254,7 +1254,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		s.Len(finalizedCallbacks, 1)
 		s.Equal(float64(5), finalizedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, finalizedCallbacks[0].Input.Run.Type)
-		s.True(finalStoredAtLT.Equal(finalizedCallbacks[0].Input.AllocateAt))
+		s.True(servicePeriod.To.Equal(finalizedCallbacks[0].Input.BookedAt))
 	})
 
 	s.Run("#5 final charge advance is noop", func() {
@@ -1384,7 +1384,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 			s.Equal(usageBasedChargeID.ID, input.Charge.ID)
 			s.Equal(productcatalog.CreditOnlySettlementMode, input.Charge.Intent.SettlementMode)
 			s.Equal(usagebased.RealizationRunTypeFinalRealization, input.Run.Type)
-			s.True(finalStoredAtLT.Equal(input.AllocateAt))
+			s.True(servicePeriod.To.Equal(input.BookedAt))
 			s.Equal(float64(20), input.AmountToAllocate.InexactFloat64())
 			s.Equal(float64(10), input.Run.MeteredQuantity.InexactFloat64())
 			s.RequireTotals(billingtest.ExpectedTotals{
@@ -1453,7 +1453,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 			s.Equal(usageBasedChargeID.ID, input.Charge.ID)
 			s.Equal(productcatalog.CreditOnlySettlementMode, input.Charge.Intent.SettlementMode)
 			s.Equal(usagebased.RealizationRunTypeFinalRealization, input.Run.Type)
-			s.True(finalStoredAtLT.Equal(input.AllocateAt))
+			s.True(servicePeriod.To.Equal(input.BookedAt))
 			s.Equal(float64(10), input.Run.MeteredQuantity.InexactFloat64())
 			s.RequireTotals(billingtest.ExpectedTotals{
 				Amount:       20,
@@ -1502,7 +1502,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 		s.Require().NotNil(advancedCharge)
 		s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageBasedFromDB.Status))
 		s.Len(correctedCallbacks, 1)
-		s.True(finalStoredAtLT.Equal(correctedCallbacks[0].Input.AllocateAt))
+		s.True(servicePeriod.To.Equal(correctedCallbacks[0].Input.BookedAt))
 		s.Len(correctedCallbacks[0].Input.Corrections, 1)
 		s.Equal(float64(-9), correctedCallbacks[0].Input.Corrections[0].Amount.InexactFloat64())
 

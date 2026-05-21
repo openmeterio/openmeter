@@ -84,6 +84,7 @@ func (s *Service) ReconcileCredits(ctx context.Context, in ReconcileCreditRealiz
 		handlerInput := flatfee.OnAllocateCreditsInput{
 			Charge:                 in.Charge,
 			ServicePeriod:          in.Run.ServicePeriod,
+			BookedAt:               in.AllocateAt,
 			PreTaxAmountToAllocate: delta,
 		}
 		if err := handlerInput.Validate(); err != nil {
@@ -125,7 +126,7 @@ func (s *Service) ReconcileCredits(ctx context.Context, in ReconcileCreditRealiz
 			func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
 				return s.handler.OnCorrectCreditAllocations(ctx, flatfee.CorrectCreditAllocationsInput{
 					Charge:                       in.Charge,
-					AllocateAt:                   in.AllocateAt,
+					BookedAt:                     in.AllocateAt,
 					Corrections:                  req,
 					LineageSegmentsByRealization: lineageSegmentsByRealization,
 				})
@@ -196,7 +197,7 @@ func (s *Service) CorrectAllCredits(ctx context.Context, in CorrectAllCreditReal
 	corrections, err := in.Run.CreditRealizations.CorrectAll(in.CurrencyCalculator, func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
 		return s.handler.OnCorrectCreditAllocations(ctx, flatfee.CorrectCreditAllocationsInput{
 			Charge:                       in.Charge,
-			AllocateAt:                   in.AllocateAt,
+			BookedAt:                     in.AllocateAt,
 			Corrections:                  req,
 			LineageSegmentsByRealization: lineageSegmentsByRealization,
 		})

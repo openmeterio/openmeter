@@ -62,10 +62,11 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 	return h.issueCreditPurchase(ctx, charge)
 }
 
-func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
-	if err := charge.Validate(); err != nil {
+func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, input chargecreditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {
+	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
+	charge := input.Charge
 
 	costBasis, err := charge.Intent.Settlement.GetCostBasis()
 	if err != nil {
@@ -86,7 +87,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 			Namespace:  charge.Namespace,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
-			At:        charge.CreatedAt,
+			At:        input.EventAt,
 			Amount:    charge.Intent.CreditAmount,
 			Currency:  charge.Intent.Currency,
 			CostBasis: &costBasis,
@@ -116,10 +117,11 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	}, nil
 }
 
-func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
-	if err := charge.Validate(); err != nil {
+func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Context, input chargecreditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {
+	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
+	charge := input.Charge
 
 	costBasis, err := charge.Intent.Settlement.GetCostBasis()
 	if err != nil {
@@ -140,7 +142,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 			Namespace:  charge.Namespace,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
-			At:        charge.CreatedAt,
+			At:        input.EventAt,
 			Amount:    charge.Intent.CreditAmount,
 			Currency:  charge.Intent.Currency,
 			CostBasis: &costBasis,
