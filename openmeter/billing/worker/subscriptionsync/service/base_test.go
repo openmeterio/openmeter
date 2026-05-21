@@ -110,6 +110,7 @@ func (s *SuiteBase) beforeTest(ctx context.Context, suiteName, testName string) 
 	appSandbox := s.InstallSandboxApp(s.T(), s.Namespace)
 
 	s.ProvisionBillingProfile(ctx, s.Namespace, appSandbox.GetID())
+	s.ProvisionDefaultTaxCodes(ctx, s.Namespace)
 
 	apiRequestsTotalMeterSlug := "api-requests-total"
 	apiRequestsTotalMeterID := ulid.Make().String()

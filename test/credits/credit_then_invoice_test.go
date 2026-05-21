@@ -42,6 +42,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchD
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-delete-gathering")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -147,6 +148,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchD
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-delete-standard")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -337,6 +339,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchK
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-delete-immutable")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -528,6 +531,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceCreatePatchCrea
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-create")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -646,6 +650,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-delete-gathering")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -749,6 +754,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-delete-standard")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -928,6 +934,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-delete-standard-partial")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -1096,6 +1103,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchKeep
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-delete-immutable")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -1274,6 +1282,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-partial-payment")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -1514,6 +1523,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDirectPaidTrigg
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-direct-paid")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -1629,6 +1639,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedPa
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-no-fiat-payment-callback")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -1757,6 +1768,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountFinal
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-zero")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -1877,6 +1889,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-shrink-zero-extend")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -2136,6 +2149,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteImmutable
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-delete-immutable-payment")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -2285,6 +2299,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceAsyncPaymentBoo
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-async-prior-payment")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -2480,6 +2495,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActiva
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-in-arrears")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -2624,6 +2640,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteActiveCha
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-delete-active")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -2718,6 +2735,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-shrink-extend-gathering")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -2864,6 +2882,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchUpda
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-shrink-mutable-standard")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -3012,6 +3031,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchCorr
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-cti-shrink-mutable-with-credits")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -3180,6 +3200,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-immutable-shrink-extend-shrink")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -3392,6 +3413,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchU
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-extend-gathering")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -3507,6 +3529,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchU
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-shrink-gathering")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -3620,6 +3643,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-extend-mutable-standard")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -3805,6 +3829,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-shrink-mutable-standard")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -3991,6 +4016,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-shrink-immutable")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -4250,6 +4276,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-extend-final-collection")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -4471,6 +4498,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-extend-immutable")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -4665,6 +4693,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkExtend
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-shrink-extend-shrink")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -5052,6 +5081,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchF
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-extend-tail")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")

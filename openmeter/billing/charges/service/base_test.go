@@ -162,6 +162,7 @@ func (s *BaseSuite) SetupSuite() {
 		RecognizerService:     recognizer.NoopService{},
 
 		BillingService: s.BillingService,
+		TaxCodeService: s.TaxCodeService,
 	})
 	s.NoError(err)
 	s.Charges = chargesService

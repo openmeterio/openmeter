@@ -51,6 +51,7 @@ func (s *TaxCodePersistenceTestSuite) TearDownTest() {
 func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee")
+	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
@@ -104,7 +105,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 		s.Equal(tc.ID, *flatFee.Intent.TaxConfig.TaxCodeID)
 	})
 
-	s.Run("nil tax config reads back as nil", func() {
+	s.Run("nil tax config gets default invoicing tax code stamped", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
 			Intents: charges.ChargeIntents{
@@ -133,7 +134,11 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 		flatFee, err := readBack.AsFlatFeeCharge()
 		s.NoError(err)
 
-		s.Nil(flatFee.Intent.TaxConfig, "TaxConfig must be nil when not set on intent")
+		// nil TaxConfig intents get the namespace default invoicing TaxCodeID stamped.
+		s.Require().NotNil(flatFee.Intent.TaxConfig, "TaxConfig must be stamped with the default invoicing tax code")
+		s.Require().NotNil(flatFee.Intent.TaxConfig.TaxCodeID, "default invoicing TaxCodeID must be stamped")
+		s.Equal(defaults.InvoicingTaxCodeID, *flatFee.Intent.TaxConfig.TaxCodeID)
+		s.Nil(flatFee.Intent.TaxConfig.Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
 	})
 }
 
@@ -142,6 +147,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-usagebased")
+	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
@@ -197,7 +203,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 		s.Equal(tc.ID, *usageBased.Intent.TaxConfig.TaxCodeID)
 	})
 
-	s.Run("nil tax config reads back as nil", func() {
+	s.Run("nil tax config gets default invoicing tax code stamped", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
 			Intents: charges.ChargeIntents{
@@ -226,7 +232,11 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 		usageBased, err := readBack.AsUsageBasedCharge()
 		s.NoError(err)
 
-		s.Nil(usageBased.Intent.TaxConfig, "TaxConfig must be nil when not set on intent")
+		// nil TaxConfig intents get the namespace default invoicing TaxCodeID stamped.
+		s.Require().NotNil(usageBased.Intent.TaxConfig, "TaxConfig must be stamped with the default invoicing tax code")
+		s.Require().NotNil(usageBased.Intent.TaxConfig.TaxCodeID, "default invoicing TaxCodeID must be stamped")
+		s.Equal(defaults.InvoicingTaxCodeID, *usageBased.Intent.TaxConfig.TaxCodeID)
+		s.Nil(usageBased.Intent.TaxConfig.Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
 	})
 }
 
@@ -235,6 +245,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-creditpurchase")
+	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
@@ -289,7 +300,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 		s.Equal(tc.ID, *cp.Intent.TaxConfig.TaxCodeID)
 	})
 
-	s.Run("nil tax config reads back as nil", func() {
+	s.Run("nil tax config gets default credit grant tax code stamped", func() {
 		callback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
 		s.CreditPurchaseTestHandler.onPromotionalCreditPurchase = callback.Handler(s.T())
 
@@ -321,7 +332,11 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 		cp, err := readBack.AsCreditPurchaseCharge()
 		s.NoError(err)
 
-		s.Nil(cp.Intent.TaxConfig, "TaxConfig must be nil when not set on intent")
+		// nil TaxConfig intents get the namespace default credit-grant TaxCodeID stamped.
+		s.Require().NotNil(cp.Intent.TaxConfig, "TaxConfig must be stamped with the default credit grant tax code")
+		s.Require().NotNil(cp.Intent.TaxConfig.TaxCodeID, "default credit grant TaxCodeID must be stamped")
+		s.Equal(defaults.CreditGrantTaxCodeID, *cp.Intent.TaxConfig.TaxCodeID)
+		s.Nil(cp.Intent.TaxConfig.Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
 	})
 }
 
@@ -332,6 +347,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropagatesTaxConfigToGatheringLine() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-creditpurchase-invoice")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -454,11 +470,13 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 	s.Equal(stripeCode, line.TaxConfig.Stripe.Code)
 }
 
-// TestCreditPurchaseInvoiceSettlementNilTaxConfigDoesNotPropagateToGatheringLine verifies that
-// when Intent.TaxConfig is nil the gathering line's TaxConfig is also nil.
-func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxConfigDoesNotPropagateToGatheringLine() {
+// TestCreditPurchaseInvoiceSettlementNilTaxConfigGetsDefaultCreditGrantTaxCodeStamped verifies that
+// when Intent.TaxConfig is nil the gathering line's TaxConfig is populated with the namespace
+// default credit-grant tax code ID stamped by applyDefaultTaxCodes.
+func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxConfigGetsDefaultCreditGrantTaxCodeStamped() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-creditpurchase-invoice-nil")
+	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
@@ -508,7 +526,12 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 	lines := gatheringInvoices.Items[0].Lines.OrEmpty()
 	s.Require().Len(lines, 1)
 
-	s.Nil(lines[0].TaxConfig, "gathering line TaxConfig must be nil when Intent.TaxConfig is nil")
+	// nil TaxConfig credit-purchase intents get the default credit-grant TaxCodeID stamped,
+	// which propagates to the gathering line.
+	s.Require().NotNil(lines[0].TaxConfig, "gathering line TaxConfig must be set from the default credit-grant tax code")
+	s.Require().NotNil(lines[0].TaxConfig.TaxCodeID, "default credit-grant TaxCodeID must be on gathering line")
+	s.Equal(defaults.CreditGrantTaxCodeID, *lines[0].TaxConfig.TaxCodeID)
+	s.Nil(lines[0].TaxConfig.Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
 }
 
 // TestFlatFeeCreditOnlyHandlerReceivesTaxConfig verifies that when a credit-only flat-fee charge
@@ -517,6 +540,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxConfig() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-creditonly")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
@@ -588,6 +612,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxCon
 func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTaxConfig() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-usagebased-creditonly")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
@@ -670,6 +695,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStripeCodeOnStandardInvoice() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-invoice-settled")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -767,6 +793,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-list")
+	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
@@ -865,7 +892,11 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 			s.Require().NoError(err)
 
 			if ff.Intent.Intent.UniqueReferenceID != nil && *ff.Intent.Intent.UniqueReferenceID == "flat-fee-list-no-taxcode" {
-				s.Nil(ff.Intent.TaxConfig, "flat fee charge without tax config must list with nil TaxConfig")
+				// nil TaxConfig intents get the default invoicing TaxCodeID stamped.
+				s.Require().NotNil(ff.Intent.TaxConfig, "flat fee charge without explicit tax config must have default invoicing TaxCodeID stamped")
+				s.Require().NotNil(ff.Intent.TaxConfig.TaxCodeID)
+				s.Equal(defaults.InvoicingTaxCodeID, *ff.Intent.TaxConfig.TaxCodeID)
+				s.Nil(ff.Intent.TaxConfig.Behavior)
 			} else {
 				s.Require().NotNil(ff.Intent.TaxConfig, "flat fee charge must carry TaxConfig in list response")
 				s.Require().NotNil(ff.Intent.TaxConfig.Behavior)
@@ -896,6 +927,7 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPropagatesTaxConfigToGatheringLine() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-gathering")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -960,11 +992,13 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPropagatesTaxC
 	s.Equal(stripeCode, gatheringLine.TaxConfig.Stripe.Code)
 }
 
-// TestFlatFeeInvoiceSettlementNilTaxConfigDoesNotPropagateToGatheringLine verifies that when
-// Intent.TaxConfig is nil the flat-fee CreditThenInvoice gathering line's TaxConfig is also nil.
-func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementNilTaxConfigDoesNotPropagateToGatheringLine() {
+// TestFlatFeeInvoiceSettlementNilTaxConfigGetsDefaultInvoicingTaxCodeStampedOnGatheringLine verifies
+// that when Intent.TaxConfig is nil, the flat-fee CreditThenInvoice gathering line's TaxConfig is
+// populated with the namespace default invoicing tax code ID stamped by applyDefaultTaxCodes.
+func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementNilTaxConfigGetsDefaultInvoicingTaxCodeStampedOnGatheringLine() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-gathering-nil")
+	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
@@ -1007,7 +1041,13 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementNilTaxConfigDo
 
 	lines := gatheringInvoices.Items[0].Lines.OrEmpty()
 	s.Require().Len(lines, 1)
-	s.Nil(lines[0].TaxConfig, "gathering line TaxConfig must be nil when Intent.TaxConfig is nil")
+
+	// nil TaxConfig flat-fee intents get the default invoicing TaxCodeID stamped,
+	// which propagates to the gathering line.
+	s.Require().NotNil(lines[0].TaxConfig, "gathering line TaxConfig must be set from the default invoicing tax code")
+	s.Require().NotNil(lines[0].TaxConfig.TaxCodeID, "default invoicing TaxCodeID must be on gathering line")
+	s.Equal(defaults.InvoicingTaxCodeID, *lines[0].TaxConfig.TaxCodeID)
+	s.Nil(lines[0].TaxConfig.Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
 }
 
 // TestUsageBasedCreditThenInvoicePropagatesTaxConfigToGatheringLine verifies that TaxConfig set on
@@ -1017,6 +1057,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementNilTaxConfigDo
 func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesTaxConfigToGatheringLine() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-usagebased-gathering")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -1089,6 +1130,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesT
 func (s *TaxCodePersistenceTestSuite) TestUsageBasedInvoiceSettlementPopulatesStripeCodeOnStandardInvoice() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-usagebased-invoice-settled")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -1190,12 +1232,25 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedInvoiceSettlementPopulatesSt
 	s.Equal(stripeCode, line.TaxConfig.Stripe.Code)
 }
 
-// TestFlatFeeBehaviorOnlyTaxConfigPropagatesToGatheringLine verifies that a TaxCodeConfig with only
-// Behavior set (no TaxCodeID) propagates correctly to the flat-fee gathering line. Guards against
-// regressions that drop Behavior when TaxCodeID is nil.
-func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigPropagatesToGatheringLine() {
+// TestFlatFeeBehaviorOnlyTaxConfigGetsDefaultTaxCodeStamped verifies that a TaxCodeConfig with only
+// Behavior set (no TaxCodeID) has the namespace default invoicing TaxCodeID stamped by
+// applyDefaultTaxCodes before persistence. The gathering line therefore carries both Behavior and
+// the default TaxCodeID, and Stripe.Code is backfilled from the TaxCode entity's app mapping.
+func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigGetsDefaultTaxCodeStamped() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-gathering-behavior-only")
+
+	// Provision defaults with a Stripe mapping on the invoicing default so that a behavior-only
+	// TaxConfig still resolves to a Stripe code via the default invoicing tax code.
+	const invoicingStripeCode = "txcd_30000003"
+	invoicingTaxCode := s.createTestTaxCodeWithStripeMapping(ctx, ns, "default-invoicing", invoicingStripeCode)
+	creditGrantTaxCode := s.createTestTaxCode(ctx, ns, "default-credit-grant")
+	_, err := s.TaxCodeService.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
+		Namespace:            ns,
+		InvoicingTaxCodeID:   invoicingTaxCode.ID,
+		CreditGrantTaxCodeID: creditGrantTaxCode.ID,
+	})
+	s.Require().NoError(err)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -1209,7 +1264,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigPropagates
 	}
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
-	_, err := s.Charges.Create(ctx, charges.CreateInput{
+	_, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
 			s.createMockChargeIntent(createMockChargeIntentInput{
@@ -1243,19 +1298,35 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigPropagates
 	s.Require().Len(lines, 1)
 	gatheringLine := lines[0]
 
+	// Behavior is preserved from the original intent; default invoicing TaxCodeID is stamped.
 	s.Require().NotNil(gatheringLine.TaxConfig, "gathering line TaxConfig must be set")
 	s.Require().NotNil(gatheringLine.TaxConfig.Behavior, "TaxBehavior must propagate to gathering line")
 	s.Equal(productcatalog.InclusiveTaxBehavior, *gatheringLine.TaxConfig.Behavior)
-	s.Nil(gatheringLine.TaxConfig.TaxCodeID, "TaxCodeID must be nil for behavior-only TaxConfig")
-	s.Nil(gatheringLine.TaxConfig.Stripe, "Stripe must be nil when no TaxCodeID to resolve")
+	s.Require().NotNil(gatheringLine.TaxConfig.TaxCodeID, "default invoicing TaxCodeID must be stamped on gathering line")
+	s.Equal(invoicingTaxCode.ID, *gatheringLine.TaxConfig.TaxCodeID)
+	s.Require().NotNil(gatheringLine.TaxConfig.Stripe, "Stripe.Code must be backfilled from the default invoicing TaxCode entity")
+	s.Equal(invoicingStripeCode, gatheringLine.TaxConfig.Stripe.Code)
 }
 
-// TestUsageBasedBehaviorOnlyTaxConfigPropagatesToGatheringLine verifies that a TaxCodeConfig with
-// only Behavior set (no TaxCodeID) propagates correctly to the usage-based gathering line. Guards
-// against regressions that drop Behavior when TaxCodeID is nil.
-func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigPropagatesToGatheringLine() {
+// TestUsageBasedBehaviorOnlyTaxConfigGetsDefaultTaxCodeStamped verifies that a TaxCodeConfig with
+// only Behavior set (no TaxCodeID) has the namespace default invoicing TaxCodeID stamped by
+// applyDefaultTaxCodes before persistence. The gathering line therefore carries both Behavior and
+// the default TaxCodeID, and Stripe.Code is backfilled from the TaxCode entity's app mapping.
+func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDefaultTaxCodeStamped() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-usagebased-gathering-behavior-only")
+
+	// Provision defaults with a Stripe mapping on the invoicing default so that a behavior-only
+	// TaxConfig still resolves to a Stripe code via the default invoicing tax code.
+	const invoicingStripeCode = "txcd_30000004"
+	invoicingTaxCode := s.createTestTaxCodeWithStripeMapping(ctx, ns, "default-invoicing", invoicingStripeCode)
+	creditGrantTaxCode := s.createTestTaxCode(ctx, ns, "default-credit-grant")
+	_, err := s.TaxCodeService.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
+		Namespace:            ns,
+		InvoicingTaxCodeID:   invoicingTaxCode.ID,
+		CreditGrantTaxCodeID: creditGrantTaxCode.ID,
+	})
+	s.Require().NoError(err)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -1271,7 +1342,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigPropaga
 	}
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
-	_, err := s.Charges.Create(ctx, charges.CreateInput{
+	_, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
 			s.createMockChargeIntent(createMockChargeIntentInput{
@@ -1303,11 +1374,14 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigPropaga
 	s.Require().Len(lines, 1)
 	gatheringLine := lines[0]
 
+	// Behavior is preserved from the original intent; default invoicing TaxCodeID is stamped.
 	s.Require().NotNil(gatheringLine.TaxConfig, "gathering line TaxConfig must be set")
 	s.Require().NotNil(gatheringLine.TaxConfig.Behavior, "TaxBehavior must propagate to gathering line")
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *gatheringLine.TaxConfig.Behavior)
-	s.Nil(gatheringLine.TaxConfig.TaxCodeID, "TaxCodeID must be nil for behavior-only TaxConfig")
-	s.Nil(gatheringLine.TaxConfig.Stripe, "Stripe must be nil when no TaxCodeID to resolve")
+	s.Require().NotNil(gatheringLine.TaxConfig.TaxCodeID, "default invoicing TaxCodeID must be stamped on gathering line")
+	s.Equal(invoicingTaxCode.ID, *gatheringLine.TaxConfig.TaxCodeID)
+	s.Require().NotNil(gatheringLine.TaxConfig.Stripe, "Stripe.Code must be backfilled from the default invoicing TaxCode entity")
+	s.Equal(invoicingStripeCode, gatheringLine.TaxConfig.Stripe.Code)
 }
 
 func (s *TaxCodePersistenceTestSuite) createTestTaxCode(ctx context.Context, ns, key string) taxcode.TaxCode {
