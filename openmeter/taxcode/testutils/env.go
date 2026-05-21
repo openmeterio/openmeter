@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
