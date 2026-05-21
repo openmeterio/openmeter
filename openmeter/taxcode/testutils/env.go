@@ -1,12 +1,14 @@
 package testutils
 
 import (
+	"context"
 	"log/slog"
 	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
@@ -52,6 +54,47 @@ func (e *TestEnv) Close(t *testing.T) {
 			}
 		}
 	})
+}
+
+// CreateTaxCode creates a tax code; if opts is provided its first element overrides the
+// input — Namespace, Key, and Name are generated when empty.
+func (e *TestEnv) CreateTaxCode(ctx context.Context, t *testing.T, namespace string, opts ...taxcode.CreateTaxCodeInput) taxcode.TaxCode {
+	t.Helper()
+	var input taxcode.CreateTaxCodeInput
+	if len(opts) > 0 {
+		input = opts[0]
+	}
+	generated := testutils.NameGenerator.Generate()
+	input.Namespace = namespace
+	if input.Key == "" {
+		input.Key = generated.Key
+	}
+	if input.Name == "" {
+		input.Name = generated.Name
+	}
+	tc, err := e.Service.CreateTaxCode(ctx, input)
+	require.NoError(t, err)
+	return tc
+}
+
+// SetupNamespaceDefaults provisions two seed tax codes and upserts the org-default tax codes for namespace.
+func (e *TestEnv) SetupNamespaceDefaults(ctx context.Context, t *testing.T, namespace string) {
+	t.Helper()
+	invoicing := e.CreateTaxCode(ctx, t, namespace, taxcode.CreateTaxCodeInput{
+		Name: "Provider Default",
+	})
+	creditGrant := e.CreateTaxCode(ctx, t, namespace, taxcode.CreateTaxCodeInput{
+		Name: "Non-Taxable",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_00000000"},
+		},
+	})
+	_, err := e.Service.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
+		Namespace:            namespace,
+		InvoicingTaxCodeID:   invoicing.ID,
+		CreditGrantTaxCodeID: creditGrant.ID,
+	})
+	require.NoError(t, err)
 }
 
 func NewTestEnv(t *testing.T) *TestEnv {

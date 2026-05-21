@@ -132,3 +132,17 @@ func IsOrganizationDefaultTaxCodesNotFoundError(err error) bool {
 	var vi models.ValidationIssue
 	return errors.As(err, &vi) && vi.Code() == ErrCodeOrganizationDefaultTaxCodesNotFound
 }
+
+const ErrCodeTaxCodeIsOrganizationDefault models.ErrorCode = "tax_code_is_organization_default"
+
+var ErrTaxCodeIsOrganizationDefault = models.NewValidationIssue(
+	ErrCodeTaxCodeIsOrganizationDefault,
+	"tax code is set as an organization default and cannot be deleted",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict),
+)
+
+func IsTaxCodeIsOrganizationDefaultError(err error) bool {
+	var vi models.ValidationIssue
+	return errors.As(err, &vi) && vi.Code() == ErrCodeTaxCodeIsOrganizationDefault
+}
