@@ -32,6 +32,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/gate"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
 
@@ -107,6 +108,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.TelemetryLoggerNoAdditionalMiddlewares,
 		common.WatermillNoPublisher,
 		wire.Struct(new(Application), "*"),
+		gate.FeatureGateNoopSet,
 	)
 
 	return Application{}, nil, nil

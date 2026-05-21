@@ -65,7 +65,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/gatex"
+	"github.com/openmeterio/openmeter/pkg/gate"
 	"github.com/openmeterio/openmeter/pkg/server"
 )
 
@@ -106,7 +106,7 @@ type Config struct {
 	FeatureConnector         feature.FeatureConnector
 
 	// FeatureGate is an optional feature gate interface
-	FeatureGate gatex.FeatureGate
+	FeatureGate gate.FeatureGate
 }
 
 func (c *Config) Validate() error {

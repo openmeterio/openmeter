@@ -29,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
+	"github.com/openmeterio/openmeter/pkg/gate"
 )
 
 var Subscription = wire.NewSet(
@@ -56,6 +57,7 @@ func NewSubscriptionServices(
 	lockr *lockr.Locker,
 	featureFlags ffx.Service,
 	taxCodeService taxcode.Service,
+	featureGate gate.FeatureGate,
 ) (SubscriptionServiceWithWorkflow, error) {
 	subscriptionRepo := subscriptionrepo.NewSubscriptionRepo(db)
 	subscriptionPhaseRepo := subscriptionrepo.NewSubscriptionPhaseRepo(db)

@@ -1,9 +1,14 @@
-package gatex
+package gate
 
 import (
 	"encoding/json"
 
 	"github.com/google/uuid"
+	"github.com/google/wire"
+)
+
+var FeatureGateNoopSet = wire.NewSet(
+	NewNoopFeatureGate,
 )
 
 type Org interface {
@@ -35,13 +40,8 @@ type FeatureGate interface {
 	WithFFContext(custom ...FGContext) (FeatureGate, error)
 }
 
-var instance FeatureGate = NoopFeatureGate{}
-
-func GetDefault() FeatureGate {
-	if instance == nil {
-		instance = NoopFeatureGate{}
-	}
-	return instance
+func NewNoopFeatureGate() FeatureGate {
+	return NoopFeatureGate{}
 }
 
 type NoopFeatureGate struct{}

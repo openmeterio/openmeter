@@ -43,6 +43,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/ffx"
+	"github.com/openmeterio/openmeter/pkg/gate"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
 
@@ -100,6 +101,7 @@ type Application struct {
 	TerminationChecker               *common.TerminationChecker
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector
 	Tracer                           trace.Tracer
+	FeatureGate                      gate.FeatureGate
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
@@ -154,6 +156,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewTerminationChecker,
 		common.WatermillNoPublisher,
 		wire.Struct(new(Application), "*"),
+		gate.FeatureGateNoopSet,
 	)
 
 	return Application{}, nil, nil

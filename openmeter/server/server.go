@@ -22,7 +22,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/portal/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/pkg/contextx"
-	"github.com/openmeterio/openmeter/pkg/gatex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/server"
 )
@@ -141,7 +140,7 @@ func NewServer(config *Config) (*Server, error) {
 		Middlewares:              v3Middlewares,
 		PostAuthMiddlewares:      config.PostAuthMiddlewares,
 		ResponseValidation:       config.ResponseValidation,
-		FeatureGate:              gatex.GetDefault(),
+		FeatureGate:              config.RouterConfig.FeatureGate,
 	})
 	if err != nil {
 		slog.Error("failed to create v3 API", "error", err)

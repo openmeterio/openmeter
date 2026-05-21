@@ -75,6 +75,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/gate"
 )
 
 func init() {
@@ -137,6 +138,7 @@ type Config struct {
 	SubscriptionWorkflowService subscriptionworkflow.Service
 	SubjectService              subject.Service
 	TaxCodeService              taxcode.Service
+	FeatureGate                 gate.FeatureGate
 }
 
 func (c Config) Validate() error {
@@ -243,6 +245,10 @@ func (c Config) Validate() error {
 
 	if c.TaxCodeService == nil {
 		return errors.New("tax code service is required")
+	}
+
+	if c.FeatureGate == nil {
+		return errors.New("feature gate is required")
 	}
 
 	return nil
