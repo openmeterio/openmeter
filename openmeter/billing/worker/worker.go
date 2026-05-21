@@ -18,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/grouphandler"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
-	"github.com/openmeterio/openmeter/pkg/gate"
 )
 
 type WorkerOptions struct {
@@ -37,8 +36,6 @@ type WorkerOptions struct {
 
 	SubscriptionService subscription.Service
 	LockdownNamespaces  []string
-
-	FeatureGate gate.FeatureGate
 }
 
 func (w WorkerOptions) Validate() error {
