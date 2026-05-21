@@ -1102,6 +1102,7 @@ func (s *SanitySuite) assertBreakageRowsByExpiry(ctx context.Context, namespace 
 func (s *SanitySuite) setupExpiringCreditBreakage(namespaceSuffix string, opts ...expiringCreditBreakageSetupOption) expiringCreditBreakageSetup {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace(namespaceSuffix)
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
