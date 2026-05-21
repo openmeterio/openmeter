@@ -470,5 +470,5 @@ func (s *Server) UpdateOrganizationDefaultTaxCodes(w http.ResponseWriter, r *htt
 // Governance
 
 func (s *Server) QueryGovernanceAccess(w http.ResponseWriter, r *http.Request, params api.QueryGovernanceAccessParams) {
-	unimplemented.QueryGovernanceAccess(w, r, params)
+	s.governanceHandler.QueryGovernanceAccess().With(params).ServeHTTP(w, r)
 }
