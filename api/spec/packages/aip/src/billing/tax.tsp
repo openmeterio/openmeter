@@ -51,7 +51,7 @@ model TaxConfig {
    * `stripe.code` is ignored.
    */
   @summary("Tax code")
-  tax_code?: Tax.TaxCodeReference;
+  tax_code?: Shared.ResourceReference<Tax.TaxCode>;
 }
 
 /**

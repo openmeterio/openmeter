@@ -2542,6 +2542,9 @@ paths:
             - `id`
             - `active_from` (default)
             - `active_to`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
           schema:
             $ref: '#/components/schemas/SortQuery'
           explode: false
@@ -4284,49 +4287,9 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: Granted credit amount.
         purchase:
-          type: object
-          properties:
-            currency:
-              allOf:
-                - $ref: '#/components/schemas/CurrencyCode'
-              description: Currency of the purchase amount.
-            per_unit_cost_basis:
-              allOf:
-                - $ref: '#/components/schemas/Numeric'
-              description: |-
-                Cost basis per credit unit used to calculate the purchase amount.
-
-                If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
-                is $50.00. The value must be greater than 0. If the cost basis is 0, use
-                `funding_method=none` instead.
-
-                Defaults to 1.0.
-              default: '1.0'
-            amount:
-              allOf:
-                - $ref: '#/components/schemas/Numeric'
-              description: The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`.
-              readOnly: true
-            availability_policy:
-              allOf:
-                - $ref: '#/components/schemas/BillingCreditAvailabilityPolicy'
-              description: |-
-                Controls when credits become available for consumption.
-
-                Defaults to `on_creation`.
-              default: on_creation
-            settlement_status:
-              allOf:
-                - $ref: '#/components/schemas/BillingCreditPurchasePaymentSettlementStatus'
-              description: Current payment settlement status.
-              readOnly: true
-          required:
-            - currency
-            - amount
-          additionalProperties: false
-          description: |-
-            Purchase and payment terms of the grant. Present when a funding workflow applies
-            (funding_method is not `none`).
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditGrantPurchase'
+          description: Present when a funding workflow applies (funding_method is not `none`).
         tax_config:
           allOf:
             - $ref: '#/components/schemas/BillingCreditGrantTaxConfig'
@@ -4338,41 +4301,12 @@ components:
             credit grant tax code is applied, if that's not set the global default taxcode
             is used.
         invoice:
-          type: object
-          properties:
-            id:
-              allOf:
-                - $ref: '#/components/schemas/ULID'
-              description: Identifier of the invoice associated with the grant.
-              readOnly: true
-            line:
-              type: object
-              properties:
-                id:
-                  $ref: '#/components/schemas/ULID'
-              required:
-                - id
-              additionalProperties: false
-              description: Identifier of the invoice line associated with the grant.
-              readOnly: true
-          additionalProperties: false
-          description: Invoice references for the grant. Available when `funding_method` is `invoice`.
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditGrantInvoiceReference'
+          description: Available when `funding_method` is `invoice`.
           readOnly: true
         filters:
-          type: object
-          properties:
-            features:
-              type: array
-              items:
-                $ref: '#/components/schemas/ResourceKey'
-              description: |-
-                Limit the credit grant to specific features. If no features are specified, the
-                credit grant can be used for any feature.
-              example:
-                - input_tokens
-                - output_tokens
-          additionalProperties: false
-          description: Filters for the credit grant.
+          $ref: '#/components/schemas/BillingCreditGrantFilters'
         priority:
           type: integer
           format: int16
@@ -4405,6 +4339,83 @@ components:
         Credits are drawn down against charges according to the settlement mode
         configured on the rate card.
       title: Credit grant
+    BillingCreditGrantFilters:
+      type: object
+      properties:
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceKey'
+          description: |-
+            Limit the credit grant to specific features. If no features are specified, the
+            credit grant can be used for any feature.
+          example:
+            - input_tokens
+            - output_tokens
+      additionalProperties: false
+      description: Filters for the credit grant.
+    BillingCreditGrantInvoiceReference:
+      type: object
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: Identifier of the invoice associated with the grant.
+          readOnly: true
+        line:
+          type: object
+          properties:
+            id:
+              $ref: '#/components/schemas/ULID'
+          required:
+            - id
+          additionalProperties: false
+          description: Identifier of the invoice line associated with the grant.
+          readOnly: true
+      additionalProperties: false
+      description: Invoice references for the grant.
+    BillingCreditGrantPurchase:
+      type: object
+      required:
+        - currency
+        - amount
+      properties:
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Currency of the purchase amount.
+        per_unit_cost_basis:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Cost basis per credit unit used to calculate the purchase amount.
+
+            If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
+            is $50.00. The value must be greater than 0. If the cost basis is 0, use
+            `funding_method=none` instead.
+
+            Defaults to 1.0.
+          default: '1.0'
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`.
+          readOnly: true
+        availability_policy:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditAvailabilityPolicy'
+          description: |-
+            Controls when credits become available for consumption.
+
+            Defaults to `on_creation`.
+          default: on_creation
+        settlement_status:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditPurchasePaymentSettlementStatus'
+          description: Current payment settlement status.
+          readOnly: true
+      additionalProperties: false
+      description: Purchase and payment terms of the grant.
     BillingCreditGrantStatus:
       type: string
       enum:
@@ -4433,7 +4444,7 @@ components:
           description: Tax behavior applied to the invoice line item.
         tax_code:
           allOf:
-            - $ref: '#/components/schemas/BillingTaxCodeReference'
+            - $ref: '#/components/schemas/TaxCodeReference'
           description: Tax code applied to the invoice line item.
       additionalProperties: false
       description: |-
@@ -6270,14 +6281,6 @@ components:
           title: Tax code
       additionalProperties: false
       description: Mapping of app types to tax codes.
-    BillingTaxCodeReference:
-      type: object
-      properties:
-        id: {}
-      additionalProperties: false
-      allOf:
-        - $ref: '#/components/schemas/TaxCodeReference'
-      description: Reference to a tax code.
     BillingTaxConfig:
       type: object
       properties:
@@ -6310,7 +6313,7 @@ components:
           deprecated: true
         tax_code:
           allOf:
-            - $ref: '#/components/schemas/BillingTaxCodeReference'
+            - $ref: '#/components/schemas/TaxCodeReference'
           description: |-
             Tax code reference.
 
@@ -6989,6 +6992,52 @@ components:
           description: Granted credit amount.
       additionalProperties: false
       description: CreditAdjustment create request.
+    CreateCreditGrantFilters:
+      type: object
+      properties:
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceKey'
+          description: |-
+            Limit the credit grant to specific features. If no features are specified, the
+            credit grant can be used for any feature.
+          example:
+            - input_tokens
+            - output_tokens
+      additionalProperties: false
+      description: Filters for the credit grant.
+    CreateCreditGrantPurchase:
+      type: object
+      required:
+        - currency
+      properties:
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Currency of the purchase amount.
+        per_unit_cost_basis:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Cost basis per credit unit used to calculate the purchase amount.
+
+            If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
+            is $50.00. The value must be greater than 0. If the cost basis is 0, use
+            `funding_method=none` instead.
+
+            Defaults to 1.0.
+          default: '1.0'
+        availability_policy:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditAvailabilityPolicy'
+          description: |-
+            Controls when credits become available for consumption.
+
+            Defaults to `on_creation`.
+          default: on_creation
+      additionalProperties: false
+      description: Purchase and payment terms of the grant.
     CreateCreditGrantRequest:
       type: object
       required:
@@ -7020,48 +7069,19 @@ components:
           description: Funding method of the grant.
         currency:
           allOf:
-            - $ref: '#/components/schemas/BillingCurrencyCode'
+            - $ref: '#/components/schemas/CreateCurrencyCode'
           description: The currency of the granted credits.
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Granted credit amount.
         purchase:
-          type: object
-          properties:
-            currency:
-              allOf:
-                - $ref: '#/components/schemas/CurrencyCode'
-              description: Currency of the purchase amount.
-            per_unit_cost_basis:
-              allOf:
-                - $ref: '#/components/schemas/Numeric'
-              description: |-
-                Cost basis per credit unit used to calculate the purchase amount.
-
-                If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
-                is $50.00. The value must be greater than 0. If the cost basis is 0, use
-                `funding_method=none` instead.
-
-                Defaults to 1.0.
-              default: '1.0'
-            availability_policy:
-              allOf:
-                - $ref: '#/components/schemas/BillingCreditAvailabilityPolicy'
-              description: |-
-                Controls when credits become available for consumption.
-
-                Defaults to `on_creation`.
-              default: on_creation
-          required:
-            - currency
-          additionalProperties: false
-          description: |-
-            Purchase and payment terms of the grant. Present when a funding workflow applies
-            (funding_method is not `none`).
+          allOf:
+            - $ref: '#/components/schemas/CreateCreditGrantPurchase'
+          description: Present when a funding workflow applies (funding_method is not `none`).
         tax_config:
           allOf:
-            - $ref: '#/components/schemas/BillingCreditGrantTaxConfig'
+            - $ref: '#/components/schemas/CreateCreditGrantTaxConfig'
           description: |-
             Tax configuration for the grant.
 
@@ -7070,20 +7090,7 @@ components:
             credit grant tax code is applied, if that's not set the global default taxcode
             is used.
         filters:
-          type: object
-          properties:
-            features:
-              type: array
-              items:
-                $ref: '#/components/schemas/ResourceKey'
-              description: |-
-                Limit the credit grant to specific features. If no features are specified, the
-                credit grant can be used for any feature.
-              example:
-                - input_tokens
-                - output_tokens
-          additionalProperties: false
-          description: Filters for the credit grant.
+          $ref: '#/components/schemas/CreateCreditGrantFilters'
         priority:
           type: integer
           format: int16
@@ -7100,6 +7107,30 @@ components:
             Defaults to never expiring.
       additionalProperties: false
       description: CreditGrant create request.
+    CreateCreditGrantTaxConfig:
+      type: object
+      properties:
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxBehavior'
+          description: Tax behavior applied to the invoice line item.
+        tax_code:
+          allOf:
+            - $ref: '#/components/schemas/CreateResourceReference'
+          description: Tax code applied to the invoice line item.
+      additionalProperties: false
+      description: |-
+        Tax configuration for a credit grant.
+
+        Tax configuration should be provided to ensure correct revenue recognition,
+        including for externally funded grants.
+      title: Tax configuration for a credit grant
+    CreateCurrencyCode:
+      type: string
+      allOf:
+        - $ref: '#/components/schemas/CurrencyCode'
+      description: Fiat or custom currency code.
+      x-go-type: string
     CreateCurrencyCustomRequest:
       type: object
       required:
@@ -7387,6 +7418,15 @@ components:
           title: Plan phases
       additionalProperties: false
       description: Plan create request.
+    CreateResourceReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      additionalProperties: false
+      description: TaxCode reference.
     CreateTaxCodeRequest:
       type: object
       required:
@@ -9381,6 +9421,7 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/ULID'
+      additionalProperties: false
       description: TaxCode reference.
     TaxCodeReferenceItem:
       type: object
@@ -9389,6 +9430,7 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/ULID'
+      additionalProperties: false
       description: TaxCode reference.
     ULID:
       type: string
