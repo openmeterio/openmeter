@@ -209,6 +209,11 @@ etoe: ## Run e2e tests
 	$(call print-target)
 	$(MAKE) -C e2e test-local
 
+.PHONY: etoe-httpexpect
+etoe-httpexpect: ## Run httpexpect e2e tests against local stack (stack must already be up)
+	$(call print-target)
+	$(MAKE) -C e2e test-httpexpect-local
+
 .PHONY: etoe-slow
 etoe-slow: ## Run e2e tests with slow tests enabled
 	$(call print-target)
