@@ -123,7 +123,7 @@ require (
 	github.com/authzed/grpcutil v0.0.0-20260105210157-e237581949c2 // indirect
 	github.com/awalterschulze/goderive v0.5.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/rds/auth v1.6.13 // indirect
-	github.com/aws/aws-sdk-go-v2/service/bedrockruntime v1.41.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/bedrockruntime v1.50.4 // indirect
 	github.com/bhmj/xpression v0.9.4 // indirect
 	github.com/bitfield/gotestdox v0.2.2 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
