@@ -1,6 +1,6 @@
 module github.com/openmeterio/openmeter
 
-go 1.25.6
+go 1.26.0
 
 // ee: https://github.com/oklog/run/pull/35
 replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527-c72029d4b634
@@ -87,11 +87,11 @@ require (
 	go.opentelemetry.io/proto/otlp v1.10.0
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
 	google.golang.org/grpc v1.81.1
-	google.golang.org/protobuf v1.36.11
-	k8s.io/api v0.35.4
-	k8s.io/apimachinery v0.35.4
-	k8s.io/client-go v0.35.4
-	sigs.k8s.io/controller-runtime v0.23.3
+	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
+	k8s.io/api v0.36.0
+	k8s.io/apimachinery v0.36.0
+	k8s.io/client-go v0.36.0
+	sigs.k8s.io/controller-runtime v0.24.1
 )
 
 require (
@@ -147,7 +147,7 @@ require (
 	github.com/elastic/elastic-transport-go/v8 v8.7.0 // indirect
 	github.com/elastic/go-elasticsearch/v8 v8.19.0 // indirect
 	github.com/elastic/go-elasticsearch/v9 v9.2.0 // indirect
-	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
+	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.37.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.3 // indirect
@@ -248,11 +248,11 @@ require (
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gotest.tools/gotestsum v1.13.0 // indirect
-	k8s.io/apiextensions-apiserver v0.35.3 // indirect
-	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
-	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
+	k8s.io/apiextensions-apiserver v0.36.0 // indirect
+	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a // indirect
+	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v6 v6.3.2-0.20260122202528-d9cc6641c482 // indirect
+	sigs.k8s.io/structured-merge-diff/v6 v6.3.2 // indirect
 )
 
 require (
