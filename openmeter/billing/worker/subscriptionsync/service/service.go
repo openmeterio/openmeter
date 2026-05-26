@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -32,6 +33,7 @@ type Config struct {
 	FeatureFlags            FeatureFlags
 	Logger                  *slog.Logger
 	Tracer                  trace.Tracer
+	FeatureGate             featuregate.Gate
 }
 
 func (c Config) Validate() error {
@@ -53,6 +55,9 @@ func (c Config) Validate() error {
 
 	if c.Tracer == nil {
 		return fmt.Errorf("tracer is required")
+	}
+	if c.FeatureGate == nil {
+		return fmt.Errorf("feature gate is required")
 	}
 
 	return nil
@@ -80,6 +85,7 @@ func New(config Config) (*Service, error) {
 		ChargesService:          config.ChargesService,
 		EnableCreditThenInvoice: config.FeatureFlags.EnableCreditThenInvoice,
 		Logger:                  config.Logger,
+		FeatureGate:             config.FeatureGate,
 	})
 	if err != nil {
 		return nil, err

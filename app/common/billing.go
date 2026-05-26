@@ -37,6 +37,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
@@ -149,6 +150,7 @@ func NewBillingRegistry(
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 	breakageService ledgerbreakage.Service,
+	featureGate featuregate.Gate,
 ) (BillingRegistry, error) {
 	billingService, err := newBillingService(
 		logger,
@@ -208,7 +210,7 @@ func NewBillingRegistry(
 	if err != nil {
 		return BillingRegistry{}, err
 	}
-	subscriptionSyncService, err := NewBillingSubscriptionSyncService(logger, subscriptionServices, billingRegistry, subscriptionSyncAdapter, tracer, creditsConfig)
+	subscriptionSyncService, err := NewBillingSubscriptionSyncService(logger, subscriptionServices, billingRegistry, subscriptionSyncAdapter, tracer, creditsConfig, featureGate)
 	if err != nil {
 		return BillingRegistry{}, err
 	}
@@ -285,7 +287,7 @@ func NewBillingSubscriptionSyncAdapter(db *entdb.Client) (subscriptionsync.Adapt
 	})
 }
 
-func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingRegistry BillingRegistry, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer, creditsConfig config.CreditsConfiguration) (subscriptionsync.Service, error) {
+func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingRegistry BillingRegistry, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer, creditsConfig config.CreditsConfiguration, featureGate featuregate.Gate) (subscriptionsync.Service, error) {
 	return subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		SubscriptionService:     subsServices.Service,
 		BillingService:          billingRegistry.Billing,
@@ -294,7 +296,8 @@ func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices Subscri
 		FeatureFlags: subscriptionsyncservice.FeatureFlags{
 			EnableCreditThenInvoice: creditsConfig.EnableCreditThenInvoice,
 		},
-		Logger: logger,
-		Tracer: tracer,
+		Logger:      logger,
+		Tracer:      tracer,
+		FeatureGate: featureGate,
 	})
 }

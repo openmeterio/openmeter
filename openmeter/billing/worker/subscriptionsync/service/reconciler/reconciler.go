@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -31,6 +32,7 @@ type Config struct {
 	ChargesService          charges.Service
 	EnableCreditThenInvoice bool
 	Logger                  *slog.Logger
+	FeatureGate             featuregate.Gate
 }
 
 func (c Config) Validate() error {
@@ -45,6 +47,9 @@ func (c Config) Validate() error {
 	if c.EnableCreditThenInvoice && c.ChargesService == nil {
 		return fmt.Errorf("charges service is required when credit then invoice is enabled")
 	}
+	if c.FeatureGate == nil {
+		return fmt.Errorf("feature gate is required")
+	}
 
 	return nil
 }
@@ -56,6 +61,7 @@ type Service struct {
 	enableCreditThenInvoice bool
 
 	invoiceUpdater *invoiceupdater.Updater
+	featureGate    featuregate.Gate
 }
 
 func New(config Config) (*Service, error) {
@@ -69,6 +75,7 @@ func New(config Config) (*Service, error) {
 		invoiceUpdater:          invoiceupdater.New(config.BillingService, config.Logger),
 		chargesService:          config.ChargesService,
 		enableCreditThenInvoice: config.EnableCreditThenInvoice && config.ChargesService != nil,
+		featureGate:             config.FeatureGate,
 	}, nil
 }
 
@@ -220,6 +227,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			invoices:                 input.Persisted.Invoices,
 			creditThenInvoiceEnabled: s.enableCreditThenInvoice,
 			creditsEnabled:           s.chargesService != nil,
+			featureGate:              s.featureGate,
 		})
 	if err != nil {
 		return nil, fmt.Errorf("creating collection by type: %w", err)

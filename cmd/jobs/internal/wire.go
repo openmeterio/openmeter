@@ -107,6 +107,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.TelemetryLoggerNoAdditionalMiddlewares,
 		common.WatermillNoPublisher,
 		wire.Struct(new(Application), "*"),
+		common.FeatureGateNoopSet,
 	)
 
 	return Application{}, nil, nil

@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -62,6 +63,7 @@ type patchCollectionRouter struct {
 	usageBasedChargeCollection *usageBasedChargeCollection
 	creditThenInvoiceEnabled   bool
 	creditsEnabled             bool
+	featureGate                featuregate.Gate
 }
 
 type patchCollectionRouterConfig struct {
@@ -69,6 +71,7 @@ type patchCollectionRouterConfig struct {
 	invoices                 persistedstate.Invoices
 	creditThenInvoiceEnabled bool
 	creditsEnabled           bool
+	featureGate              featuregate.Gate
 }
 
 func (c patchCollectionRouterConfig) Validate() error {
@@ -77,6 +80,9 @@ func (c patchCollectionRouterConfig) Validate() error {
 	}
 	if c.invoices == nil {
 		return fmt.Errorf("invoices is required")
+	}
+	if c.featureGate == nil {
+		return fmt.Errorf("feature gate is required")
 	}
 	return nil
 }
@@ -98,6 +104,7 @@ func newPatchCollectionRouter(cfg patchCollectionRouterConfig) (*patchCollection
 		usageBasedChargeCollection: newUsageBasedChargeCollection(cfg.capacity),
 		creditThenInvoiceEnabled:   cfg.creditThenInvoiceEnabled,
 		creditsEnabled:             cfg.creditsEnabled,
+		featureGate:                cfg.featureGate,
 	}, nil
 }
 

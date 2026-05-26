@@ -24,6 +24,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -53,6 +54,7 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		SubscriptionService:     s.SubscriptionService,
+		FeatureGate:             featuregate.NewNoop(),
 	})
 	s.NoError(err)
 	s.NotNil(service)

@@ -195,6 +195,7 @@ func main() {
 			ChargeService:               app.BillingRegistry.ChargesServiceOrNil(),
 			TaxCodeService:              app.TaxCodeService,
 			StreamingConnector:          app.StreamingConnector,
+			FeatureGate:                 app.FeatureGate,
 		},
 		RouterHooks:         lo.FromPtr(app.RouterHooks),
 		PostAuthMiddlewares: app.PostAuthMiddlewares,

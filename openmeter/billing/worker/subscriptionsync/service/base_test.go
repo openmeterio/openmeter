@@ -38,6 +38,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -73,6 +74,7 @@ func (s *SuiteBase) SetupSuite() {
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: adapter,
 		SubscriptionService:     s.SubscriptionService,
+		FeatureGate:             featuregate.NewNoop(),
 	})
 	s.NoError(err)
 
@@ -94,6 +96,7 @@ func (s *SuiteBase) setupChargesService(config chargestestutils.Config) {
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: s.Adapter,
 		SubscriptionService:     s.SubscriptionService,
+		FeatureGate:             featuregate.NewNoop(),
 	})
 	s.NoError(err)
 
