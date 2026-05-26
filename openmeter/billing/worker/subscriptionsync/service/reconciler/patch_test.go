@@ -121,3 +121,52 @@ func testTargetStateItem(settlementMode productcatalog.SettlementMode, rateCard 
 		},
 	}
 }
+
+func TestIsCreditEnabled(t *testing.T) {
+	t.Parallel()
+
+	t.Run("happy_path", func(t *testing.T) {
+		router, err := newPatchCollectionRouter(patchCollectionRouterConfig{
+			capacity:                 1,
+			invoices:                 persistedstate.Invoices{},
+			creditThenInvoiceEnabled: false,
+			creditsEnabled:           true,
+			featureGate:              featuregate.NewNoop(),
+		})
+		require.NoError(t, err)
+
+		enabled, err := router.isCreditsEnabled("test")
+		require.NoError(t, err)
+		require.True(t, enabled)
+	})
+
+	t.Run("no_feature_gate_client", func(t *testing.T) {
+		router, err := newPatchCollectionRouter(patchCollectionRouterConfig{
+			capacity:                 1,
+			invoices:                 persistedstate.Invoices{},
+			creditThenInvoiceEnabled: false,
+			creditsEnabled:           true,
+			featureGate:              nil, // If feature gate is nil, it should default to enabled.
+		})
+		require.NoError(t, err)
+
+		enabled, err := router.isCreditsEnabled("test")
+		require.NoError(t, err)
+		require.True(t, enabled)
+	})
+
+	t.Run("credit_flag_disabled", func(t *testing.T) {
+		router, err := newPatchCollectionRouter(patchCollectionRouterConfig{
+			capacity:                 1,
+			invoices:                 persistedstate.Invoices{},
+			creditThenInvoiceEnabled: false,
+			creditsEnabled:           false,
+			featureGate:              featuregate.NewNoop(),
+		})
+		require.NoError(t, err)
+
+		enabled, err := router.isCreditsEnabled("test")
+		require.NoError(t, err)
+		require.False(t, enabled)
+	})
+}

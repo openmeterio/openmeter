@@ -81,9 +81,6 @@ func (c patchCollectionRouterConfig) Validate() error {
 	if c.invoices == nil {
 		return fmt.Errorf("invoices is required")
 	}
-	if c.featureGate == nil {
-		return fmt.Errorf("feature gate is required")
-	}
 	return nil
 }
 
@@ -123,8 +120,24 @@ func (c patchCollectionRouter) GetCollectionFor(item persistedstate.Item) (Patch
 	}
 }
 
-func (c patchCollectionRouter) ResolveDefaultCollection(target targetstate.StateItem) (PatchCollection, error) {
+func (c patchCollectionRouter) isCreditsEnabled(ns string) (bool, error) {
 	if !c.creditsEnabled {
+		return false, nil
+	}
+	if c.featureGate == nil {
+		return true, nil
+	}
+	gate, err := c.featureGate.WithOrg(featuregate.NamespaceOrg(ns))
+	if err != nil {
+		return false, err
+	}
+	return gate.EvaluateBool(featuregate.FlagMeteringPrepaidCredits, false)
+}
+
+func (c patchCollectionRouter) ResolveDefaultCollection(target targetstate.StateItem) (PatchCollection, error) {
+	if enabled, err := c.isCreditsEnabled(target.SubscriptionItem.NamespacedID.Namespace); err != nil {
+		return c.lineCollection, err
+	} else if !enabled {
 		return c.lineCollection, nil
 	}
 
