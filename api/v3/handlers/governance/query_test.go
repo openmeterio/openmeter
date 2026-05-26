@@ -189,9 +189,9 @@ func TestQueryGovernanceAccess_UnknownCustomerKey(t *testing.T) {
 	ns := newTestNamespace(t)
 
 	resp, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
-		Namespace:    ns,
-		CustomerKeys: []string{"ghost"},
-		PageSize:     defaultPageSize,
+		Namespace: ns,
+		Body:      api.GovernanceQueryRequest{Customer: api.GovernanceQueryRequestCustomers{Keys: []string{"ghost"}}},
+		PageSize:  defaultPageSize,
 	})
 	require.NoError(t, err)
 	assert.Empty(t, resp.Data)
@@ -210,9 +210,9 @@ func TestQueryGovernanceAccess_KnownCustomerNoEntitlements(t *testing.T) {
 	cust := createCustomer(t, deps, ns, "acme", []string{"acme"})
 
 	resp, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
-		Namespace:    ns,
-		CustomerKeys: []string{cust.GetUsageAttribution().SubjectKeys[0]},
-		PageSize:     defaultPageSize,
+		Namespace: ns,
+		Body:      api.GovernanceQueryRequest{Customer: api.GovernanceQueryRequestCustomers{Keys: []string{cust.GetUsageAttribution().SubjectKeys[0]}}},
+		PageSize:  defaultPageSize,
 	})
 	require.NoError(t, err)
 	require.Len(t, resp.Data, 1)
@@ -231,10 +231,12 @@ func TestQueryGovernanceAccess_BooleanEntitlement_HasAccess(t *testing.T) {
 	createBooleanFeatureAndEntitlement(t, deps, ns, "premium", cust)
 
 	resp, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
-		Namespace:    ns,
-		CustomerKeys: []string{"acme"},
-		FeatureKeys:  []string{"premium"},
-		PageSize:     defaultPageSize,
+		Namespace: ns,
+		Body: api.GovernanceQueryRequest{
+			Customer: api.GovernanceQueryRequestCustomers{Keys: []string{"acme"}},
+			Feature:  &api.GovernanceQueryRequestFeatures{Keys: []string{"premium"}},
+		},
+		PageSize: defaultPageSize,
 	})
 	require.NoError(t, err)
 	require.Len(t, resp.Data, 1)
@@ -256,10 +258,12 @@ func TestQueryGovernanceAccess_FeatureNotFound(t *testing.T) {
 	_ = cust
 
 	resp, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
-		Namespace:    ns,
-		CustomerKeys: []string{"acme"},
-		FeatureKeys:  []string{"does-not-exist"},
-		PageSize:     defaultPageSize,
+		Namespace: ns,
+		Body: api.GovernanceQueryRequest{
+			Customer: api.GovernanceQueryRequestCustomers{Keys: []string{"acme"}},
+			Feature:  &api.GovernanceQueryRequestFeatures{Keys: []string{"does-not-exist"}},
+		},
+		PageSize: defaultPageSize,
 	})
 	require.NoError(t, err)
 	require.Len(t, resp.Data, 1)
@@ -282,10 +286,12 @@ func TestQueryGovernanceAccess_FeatureUnavailable(t *testing.T) {
 	createOrphanFeature(t, deps, ns, "enterprise")
 
 	resp, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
-		Namespace:    ns,
-		CustomerKeys: []string{"acme"},
-		FeatureKeys:  []string{"enterprise"},
-		PageSize:     defaultPageSize,
+		Namespace: ns,
+		Body: api.GovernanceQueryRequest{
+			Customer: api.GovernanceQueryRequestCustomers{Keys: []string{"acme"}},
+			Feature:  &api.GovernanceQueryRequestFeatures{Keys: []string{"enterprise"}},
+		},
+		PageSize: defaultPageSize,
 	})
 	require.NoError(t, err)
 	require.Len(t, resp.Data, 1)
@@ -307,9 +313,9 @@ func TestQueryGovernanceAccess_MultipleKeysSameCustomer(t *testing.T) {
 	createCustomer(t, deps, ns, "acme", []string{"acme-sub"})
 
 	resp, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
-		Namespace:    ns,
-		CustomerKeys: []string{"acme", "acme-sub"},
-		PageSize:     defaultPageSize,
+		Namespace: ns,
+		Body:      api.GovernanceQueryRequest{Customer: api.GovernanceQueryRequestCustomers{Keys: []string{"acme", "acme-sub"}}},
+		PageSize:  defaultPageSize,
 	})
 	require.NoError(t, err)
 	assert.Empty(t, resp.Errors)
@@ -329,10 +335,12 @@ func TestQueryGovernanceAccess_MixedHitsAndMisses(t *testing.T) {
 	createBooleanFeatureAndEntitlement(t, deps, ns, "feature-a", cust)
 
 	resp, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
-		Namespace:    ns,
-		CustomerKeys: []string{"acme", "unknown-key"},
-		FeatureKeys:  []string{"feature-a"},
-		PageSize:     defaultPageSize,
+		Namespace: ns,
+		Body: api.GovernanceQueryRequest{
+			Customer: api.GovernanceQueryRequestCustomers{Keys: []string{"acme", "unknown-key"}},
+			Feature:  &api.GovernanceQueryRequestFeatures{Keys: []string{"feature-a"}},
+		},
+		PageSize: defaultPageSize,
 	})
 	require.NoError(t, err)
 	require.Len(t, resp.Data, 1)
@@ -354,10 +362,9 @@ func TestQueryGovernanceAccess_NoFeatureKeysReturnsAll(t *testing.T) {
 	createBooleanFeatureAndEntitlement(t, deps, ns, "feat-2", cust)
 
 	resp, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
-		Namespace:    ns,
-		CustomerKeys: []string{"acme"},
-		FeatureKeys:  nil, // no filter — return all
-		PageSize:     defaultPageSize,
+		Namespace: ns,
+		Body:      api.GovernanceQueryRequest{Customer: api.GovernanceQueryRequestCustomers{Keys: []string{"acme"}}},
+		PageSize:  defaultPageSize,
 	})
 	require.NoError(t, err)
 	require.Len(t, resp.Data, 1)

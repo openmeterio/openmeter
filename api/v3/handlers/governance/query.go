@@ -35,12 +35,10 @@ type (
 )
 
 type queryGovernanceAccessRequest struct {
-	Namespace      string
-	CustomerKeys   []string
-	FeatureKeys    []string // nil means all features
-	IncludeCredits bool
-	PageSize       int
-	Cursor         *pagination.Cursor
+	Namespace string
+	Body      api.GovernanceQueryRequest
+	PageSize  int
+	Cursor    *pagination.Cursor
 }
 
 func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
@@ -88,15 +86,10 @@ func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 			}
 
 			req := queryGovernanceAccessRequest{
-				Namespace:      ns,
-				CustomerKeys:   body.Customer.Keys,
-				IncludeCredits: lo.FromPtrOr(body.IncludeCredits, false),
-				PageSize:       pageSize,
-				Cursor:         cursor,
-			}
-
-			if body.Feature != nil {
-				req.FeatureKeys = body.Feature.Keys
+				Namespace: ns,
+				Body:      body,
+				PageSize:  pageSize,
+				Cursor:    cursor,
 			}
 
 			return req, nil
@@ -120,11 +113,16 @@ type resolvedCustomer struct {
 }
 
 func (h *handler) processGovernanceQuery(ctx context.Context, req queryGovernanceAccessRequest) (QueryGovernanceAccessResponse, error) {
+	var featureKeys []string
+	if req.Body.Feature != nil {
+		featureKeys = req.Body.Feature.Keys
+	}
+
 	// Resolve each input key to a customer; deduplicate by customer ID.
 	customerMap := make(map[string]*resolvedCustomer)
 	var queryErrors []api.GovernanceQueryError
 
-	for _, key := range req.CustomerKeys {
+	for _, key := range req.Body.Customer.Keys {
 		cus, err := h.customerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
 			Namespace: req.Namespace,
 			Key:       key,
@@ -192,7 +190,7 @@ func (h *handler) processGovernanceQuery(ctx context.Context, req queryGovernanc
 			return QueryGovernanceAccessResponse{}, fmt.Errorf("get access for customer %s: %w", rc.Customer.ID, err)
 		}
 
-		featureAccess, err := h.buildFeatureAccess(ctx, req.Namespace, req.FeatureKeys, access)
+		featureAccess, err := h.buildFeatureAccess(ctx, req.Namespace, featureKeys, access)
 		if err != nil {
 			return QueryGovernanceAccessResponse{}, fmt.Errorf("build feature access for customer %s: %w", rc.Customer.ID, err)
 		}
