@@ -320,7 +320,7 @@ require (
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.4 // indirect
 	github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1 // indirect
 	github.com/nsqio/go-nsq v1.1.0 // indirect
-	github.com/oapi-codegen/runtime v1.4.0 // indirect
+	github.com/oapi-codegen/runtime v1.4.1 // indirect
 	github.com/oasdiff/yaml v0.0.9 // indirect
 	github.com/oasdiff/yaml3 v0.0.12 // indirect
 	github.com/oklog/ulid/v2 v2.1.1 // indirect
