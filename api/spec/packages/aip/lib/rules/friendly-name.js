@@ -1,4 +1,4 @@
-import { createRule, paramMessage } from '@typespec/compiler'
+import { createRule, getFriendlyName, paramMessage } from '@typespec/compiler'
 
 export const friendlyNameRule = createRule({
   name: 'friendly-name',
@@ -10,9 +10,7 @@ export const friendlyNameRule = createRule({
   },
   create: (context) => ({
     interface: (node) => {
-      const hasFriendlyName = node.decorators.some(
-        (d) => d.decorator.name === '$friendlyName',
-      )
+      const hasFriendlyName = !!getFriendlyName(context.program, node)
       const isEndpointsOrOperations =
         node.name.endsWith('Endpoints') || node.name.endsWith('Operations')
 
@@ -40,10 +38,7 @@ export const friendlyNameRule = createRule({
       }
     },
     model: (node) => {
-      if (
-        node.name &&
-        !node.decorators.some((d) => d.decorator.name === '$friendlyName')
-      ) {
+      if (node.name && !getFriendlyName(context.program, node)) {
         context.reportDiagnostic({
           format: {
             type: node.kind,
@@ -55,10 +50,7 @@ export const friendlyNameRule = createRule({
       }
     },
     enum: (node) => {
-      if (
-        node.name &&
-        !node.decorators.some((d) => d.decorator.name === '$friendlyName')
-      ) {
+      if (node.name && !getFriendlyName(context.program, node)) {
         context.reportDiagnostic({
           format: {
             type: node.kind,
@@ -70,10 +62,7 @@ export const friendlyNameRule = createRule({
       }
     },
     union: (node) => {
-      if (
-        node.name &&
-        !node.decorators.some((d) => d.decorator.name === '$friendlyName')
-      ) {
+      if (node.name && !getFriendlyName(context.program, node)) {
         context.reportDiagnostic({
           format: {
             type: node.kind,

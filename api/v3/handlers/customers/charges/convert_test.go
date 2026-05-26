@@ -50,7 +50,7 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 				TaxCodeID: lo.ToPtr("01JTEST00000000000000000001"),
 			},
 			want: &api.BillingTaxConfig{
-				TaxCode:   &api.BillingTaxCodeReference{Id: "01JTEST00000000000000000001"},
+				TaxCode:   &api.TaxCodeReference{Id: "01JTEST00000000000000000001"},
 				TaxCodeId: lo.ToPtr(api.ULID("01JTEST00000000000000000001")),
 			},
 		},
@@ -62,7 +62,7 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 			},
 			want: &api.BillingTaxConfig{
 				Behavior:  lo.ToPtr(api.BillingTaxBehaviorExclusive),
-				TaxCode:   &api.BillingTaxCodeReference{Id: "01JTEST00000000000000000002"},
+				TaxCode:   &api.TaxCodeReference{Id: "01JTEST00000000000000000002"},
 				TaxCodeId: lo.ToPtr(api.ULID("01JTEST00000000000000000002")),
 			},
 		},

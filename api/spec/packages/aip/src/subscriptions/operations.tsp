@@ -95,6 +95,9 @@ interface SubscriptionsOperations {
      * - `id`
      * - `active_from` (default)
      * - `active_to`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
      */
     @query(#{ name: "sort" })
     sort?: Common.SortQuery,

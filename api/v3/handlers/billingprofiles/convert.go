@@ -100,7 +100,7 @@ func toAPIBillingTaxConfigFull(config *productcatalog.TaxConfig) (*api.BillingTa
 		return result, err
 	}
 	if result.TaxCodeId != nil {
-		result.TaxCode = &api.BillingTaxCodeReference{Id: *result.TaxCodeId}
+		result.TaxCode = &api.TaxCodeReference{Id: *result.TaxCodeId}
 	}
 	return result, nil
 }
