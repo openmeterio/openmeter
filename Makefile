@@ -1,5 +1,7 @@
 # A Self-Documenting Makefile: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
+ROOT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+
 # Docker-local svix secret, only used for testing
 SVIX_JWT_SECRET = DUMMY_JWT_SECRET
 
@@ -107,29 +109,38 @@ build-dir:
 .PHONY: build
 build: build-server build-sink-worker build-benthos-collector build-balance-worker build-billing-worker build-notification-service build-jobs ## Build all binaries
 
+COLLECTOR_DIR := $(ROOT_DIR)/collector
+COLLECTOR_RELEASE_OUTPUT_DIR := $(ROOT_DIR)/build/release/benthos-collector_$(GOOS)_$(GOARCH)
+
+collector-release-output-dir:
+	$(if $(GOOS),,$(error GOOS is not set))
+	$(if $(GOARCH),,$(error GOARCH is not set))
+	@mkdir -p $(COLLECTOR_RELEASE_OUTPUT_DIR)
+
 # Cross-compile the benthos-collector binary for release archives.
 # Usage: make build-benthos-collector-release GOOS=linux GOARCH=amd64 VERSION=v1.2.3
 #   Produces build/release/benthos-collector_<GOOS>_<GOARCH>/benthos (+ README.md, LICENSE)
 .PHONY: build-benthos-collector-release
-build-benthos-collector-release: ## Cross-compile benthos-collector for release (set GOOS/GOARCH/VERSION)
+build-benthos-collector-release: | collector-release-output-dir ## Cross-compile benthos-collector for release (set GOOS/GOARCH/VERSION)
 	$(call print-target)
-	@if [ -z "$(GOOS)" ] || [ -z "$(GOARCH)" ]; then echo "ERROR: GOOS and GOARCH are required"; exit 1; fi
-	@version="$${VERSION:-unknown}" && \
-		outdir="build/release/benthos-collector_$(GOOS)_$(GOARCH)" && \
-		rm -rf "$$outdir" && mkdir -p "$$outdir" && \
+	$(if $(GOOS),,$(error GOOS is not set))
+	$(if $(GOARCH),,$(error GOARCH is not set))
+	@rm -rf "$(COLLECTOR_RELEASE_OUTPUT_DIR)"/* && \
 		CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
-			go build -trimpath \
-			-ldflags "-s -w -X main.version=$${version}" \
-			-o "$$outdir/benthos" ./cmd/benthos-collector && \
-		cp README.md LICENSE "$$outdir/"
+			go build -C $(COLLECTOR_DIR) -trimpath \
+			-ldflags "-s -w -X main.version=$(or $(VERSION),unknown)" \
+			-o "$(COLLECTOR_RELEASE_OUTPUT_DIR)/benthos" ./cmd && \
+		cp README.md LICENSE "$(COLLECTOR_RELEASE_OUTPUT_DIR)/"
+
+COLLECTOR_RELEASE_NAME := benthos-collector_$(GOOS)_$(GOARCH)
 
 # Produces build/release/benthos-collector_<GOOS>_<GOARCH>.tar.gz from the directory above.
 .PHONY: archive-benthos-collector-release
 archive-benthos-collector-release: ## Archive the cross-compiled benthos-collector (set GOOS/GOARCH)
 	$(call print-target)
-	@if [ -z "$(GOOS)" ] || [ -z "$(GOARCH)" ]; then echo "ERROR: GOOS and GOARCH are required"; exit 1; fi
-	@name="benthos-collector_$(GOOS)_$(GOARCH)" && \
-		tar -C build/release -czf "build/release/$${name}.tar.gz" "$$name"
+	$(if $(GOOS),,$(error GOOS is not set))
+	$(if $(GOARCH),,$(error GOARCH is not set))
+	@tar -C build/release -czf "build/release/$(COLLECTOR_RELEASE_NAME).tar.gz" "$(COLLECTOR_RELEASE_NAME)"
 
 .PHONY: build-server
 build-server: | build-dir ## Build server binary
@@ -144,7 +155,7 @@ build-sink-worker: | build-dir ## Build sink-worker binary
 .PHONY: build-benthos-collector
 build-benthos-collector: | build-dir ## Build benthos collector binary
 	$(call print-target)
-	go build -o build/benthos-collector ${GO_BUILD_FLAGS} ./cmd/benthos-collector
+	go build -C $(COLLECTOR_DIR) -o ../build/benthos-collector ${GO_BUILD_FLAGS} ./cmd
 
 .PHONY: build-balance-worker
 build-balance-worker: | build-dir ## Build balance-worker binary

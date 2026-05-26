@@ -19,6 +19,12 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
     go mod download -x
 
+COPY --link collector/go.mod collector/go.sum ./collector/
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/go/cache \
+    go mod download -C ./collector -x
+
 ARG VERSION
 
 COPY --link . .
@@ -27,7 +33,7 @@ RUN chmod +x entrypoint.sh
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
-    go build -ldflags "-X main.version=${VERSION}" -o /usr/local/bin/benthos ./cmd/benthos-collector
+    go build -C ./collector -ldflags "-X main.version=${VERSION}" -o /usr/local/bin/benthos ./cmd
 
 FROM alpine:3.23.4@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11
 
