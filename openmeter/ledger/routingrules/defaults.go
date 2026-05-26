@@ -73,7 +73,6 @@ var DefaultValidator = Validator{
 			Right: ledger.AccountTypeCustomerAccrued,
 			Fields: []RouteField{
 				RouteFieldCurrency,
-				RouteFieldTaxCode,
 				RouteFieldCostBasis,
 			},
 		},

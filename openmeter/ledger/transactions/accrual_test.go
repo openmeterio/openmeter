@@ -159,6 +159,7 @@ func TestTransferCustomerFBOAdvanceToAccruedTemplate_UnknownCostBasisAdvanceNetE
 
 func TestTransferCustomerFBOAdvanceToAccruedTemplate_AppliesTaxBehaviorToAccrued(t *testing.T) {
 	env := newTransactionsTestEnv(t)
+	taxCode := "tax_A"
 	taxBehavior := ledger.TaxBehaviorExclusive
 
 	inputs := env.resolveAndCommit(
@@ -172,6 +173,7 @@ func TestTransferCustomerFBOAdvanceToAccruedTemplate_AppliesTaxBehaviorToAccrued
 			At:          env.Now(),
 			Amount:      alpacadecimal.NewFromInt(30),
 			Currency:    env.Currency,
+			TaxCode:     &taxCode,
 			TaxBehavior: &taxBehavior,
 		},
 	)
@@ -179,6 +181,7 @@ func TestTransferCustomerFBOAdvanceToAccruedTemplate_AppliesTaxBehaviorToAccrued
 
 	accruedWithTaxBehavior, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
 		Currency:    env.Currency,
+		TaxCode:     &taxCode,
 		TaxBehavior: &taxBehavior,
 	})
 	require.NoError(t, err)

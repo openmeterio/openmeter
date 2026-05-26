@@ -170,7 +170,6 @@ func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input Colle
 			At:       input.BookedAt,
 			Amount:   amount,
 			Currency: input.Currency,
-			TaxCode:  input.TaxCode,
 		},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:          input.BookedAt,

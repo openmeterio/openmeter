@@ -196,7 +196,6 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 			At:        input.EventAt,
 			Amount:    input.Amount,
 			Currency:  input.Charge.Intent.Currency,
-			TaxCode:   taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
 			CostBasis: invoiceCostBasis,
 		},
 	)
@@ -250,7 +249,6 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 			At:        input.EventAt,
 			Amount:    input.Amount,
 			Currency:  input.Charge.Intent.Currency,
-			TaxCode:   taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
 			CostBasis: invoiceCostBasis,
 		},
 	)

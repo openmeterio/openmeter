@@ -218,8 +218,6 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		issuableAmount = alpacadecimal.Zero
 	}
 
-	taxCodeID := taxCodeIDFromIntent(charge.Intent.TaxConfig)
-
 	var templates []transactions.TransactionTemplate
 
 	for _, attribution := range advanceAttributions {
@@ -227,7 +225,6 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			At:        charge.CreatedAt,
 			Amount:    attribution.advanceAmount,
 			Currency:  charge.Intent.Currency,
-			TaxCode:   attribution.taxCode,
 			CostBasis: &costBasis,
 		})
 
@@ -237,6 +234,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 				Amount:        attribution.accruedAmount,
 				Currency:      charge.Intent.Currency,
 				TaxCode:       attribution.taxCode,
+				TaxBehavior:   attribution.taxBehavior,
 				FromCostBasis: nil,
 				ToCostBasis:   &costBasis,
 			})
@@ -248,7 +246,6 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			At:             charge.CreatedAt,
 			Amount:         issuableAmount,
 			Currency:       charge.Intent.Currency,
-			TaxCode:        taxCodeID,
 			CostBasis:      &costBasis,
 			CreditPriority: charge.Intent.Priority,
 		})
@@ -263,14 +260,12 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 				At:        charge.CreatedAt,
 				Amount:    charge.Intent.CreditAmount,
 				Currency:  charge.Intent.Currency,
-				TaxCode:   taxCodeID,
 				CostBasis: &costBasis,
 			},
 			transactions.SettleCustomerReceivableFromPaymentTemplate{
 				At:        charge.CreatedAt,
 				Amount:    charge.Intent.CreditAmount,
 				Currency:  charge.Intent.Currency,
-				TaxCode:   taxCodeID,
 				CostBasis: &costBasis,
 			},
 		)
@@ -300,8 +295,6 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			Amount:                 charge.Intent.CreditAmount,
 			ImmediateReleaseAmount: advanceAttributionAmount,
 			Currency:               charge.Intent.Currency,
-			TaxCode:                taxCodeID,
-			TaxBehavior:            taxBehaviorFromIntent(charge.Intent.TaxConfig),
 			CostBasis:              &costBasis,
 			CreditPriority:         charge.Intent.Priority,
 			ExpiresAt:              *charge.Intent.ExpiresAt,
@@ -352,8 +345,20 @@ func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDepe
 
 type advanceAttribution struct {
 	taxCode       *string
+	taxBehavior   *ledger.TaxBehavior
 	advanceAmount alpacadecimal.Decimal
 	accruedAmount alpacadecimal.Decimal
+}
+
+type unattributedAccruedBalance struct {
+	taxCode     *string
+	taxBehavior *ledger.TaxBehavior
+	amount      alpacadecimal.Decimal
+}
+
+type taxDimensionKey struct {
+	taxCode     string
+	taxBehavior string
 }
 
 func (h *creditPurchaseHandler) advanceAttributions(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, amount alpacadecimal.Decimal) ([]advanceAttribution, error) {
@@ -376,7 +381,7 @@ func (h *creditPurchaseHandler) advanceAttributions(ctx context.Context, custome
 		return nil, fmt.Errorf("list advance receivable sub-accounts: %w", err)
 	}
 
-	unattributedAccrued, err := h.unattributedAccruedByTaxCode(ctx, customerAccounts.AccruedAccount, currency)
+	unattributedAccrued, err := h.unattributedAccruedBalances(ctx, customerAccounts.AccruedAccount, currency)
 	if err != nil {
 		return nil, err
 	}
@@ -401,24 +406,42 @@ func (h *creditPurchaseHandler) advanceAttributions(ctx context.Context, custome
 			attributed = remaining
 		}
 
-		taxCode := advanceReceivable.Route().TaxCode
-		accrued := unattributedAccrued[lo.FromPtrOr(taxCode, "null")]
-		if accrued.GreaterThan(attributed) {
-			accrued = attributed
+		accruedRemaining := attributed
+		for i := range unattributedAccrued {
+			if !accruedRemaining.IsPositive() {
+				break
+			}
+
+			accrued := unattributedAccrued[i].amount
+			if !accrued.IsPositive() {
+				continue
+			}
+			if accrued.GreaterThan(accruedRemaining) {
+				accrued = accruedRemaining
+			}
+
+			attributions = append(attributions, advanceAttribution{
+				taxCode:       unattributedAccrued[i].taxCode,
+				taxBehavior:   unattributedAccrued[i].taxBehavior,
+				advanceAmount: accrued,
+				accruedAmount: accrued,
+			})
+			unattributedAccrued[i].amount = unattributedAccrued[i].amount.Sub(accrued)
+			accruedRemaining = accruedRemaining.Sub(accrued)
 		}
 
-		attributions = append(attributions, advanceAttribution{
-			taxCode:       taxCode,
-			advanceAmount: attributed,
-			accruedAmount: accrued,
-		})
+		if accruedRemaining.IsPositive() {
+			attributions = append(attributions, advanceAttribution{
+				advanceAmount: accruedRemaining,
+			})
+		}
 		remaining = remaining.Sub(attributed)
 	}
 
 	return attributions, nil
 }
 
-func (h *creditPurchaseHandler) unattributedAccruedByTaxCode(ctx context.Context, accruedAccount ledger.CustomerAccruedAccount, currency currencyx.Code) (map[string]alpacadecimal.Decimal, error) {
+func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context, accruedAccount ledger.CustomerAccruedAccount, currency currencyx.Code) ([]unattributedAccruedBalance, error) {
 	subAccounts, err := h.accountCatalog.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
 		Namespace: accruedAccount.ID().Namespace,
 		AccountID: accruedAccount.ID().ID,
@@ -431,7 +454,8 @@ func (h *creditPurchaseHandler) unattributedAccruedByTaxCode(ctx context.Context
 		return nil, fmt.Errorf("list unattributed accrued sub-accounts: %w", err)
 	}
 
-	balances := make(map[string]alpacadecimal.Decimal, len(subAccounts))
+	balancesByKey := make(map[taxDimensionKey]unattributedAccruedBalance, len(subAccounts))
+	keys := make([]taxDimensionKey, 0, len(subAccounts))
 	for _, subAccount := range subAccounts {
 		balance, err := settledBalanceForSubAccount(ctx, h.balanceQuerier, subAccount)
 		if err != nil {
@@ -441,9 +465,29 @@ func (h *creditPurchaseHandler) unattributedAccruedByTaxCode(ctx context.Context
 			continue
 		}
 
-		key := lo.FromPtrOr(subAccount.Route().TaxCode, "null")
-		balances[key] = balances[key].Add(balance)
+		route := subAccount.Route()
+		key := taxDimensionRouteKey(route)
+		if _, ok := balancesByKey[key]; !ok {
+			keys = append(keys, key)
+			balancesByKey[key] = unattributedAccruedBalance{
+				taxCode:     route.TaxCode,
+				taxBehavior: route.TaxBehavior,
+			}
+		}
+
+		current := balancesByKey[key]
+		current.amount = current.amount.Add(balance)
+		balancesByKey[key] = current
 	}
 
-	return balances, nil
+	return lo.Map(keys, func(key taxDimensionKey, _ int) unattributedAccruedBalance {
+		return balancesByKey[key]
+	}), nil
+}
+
+func taxDimensionRouteKey(route ledger.Route) taxDimensionKey {
+	return taxDimensionKey{
+		taxCode:     lo.FromPtrOr(route.TaxCode, "null"),
+		taxBehavior: string(lo.FromPtrOr(route.TaxBehavior, "null")),
+	}
 }

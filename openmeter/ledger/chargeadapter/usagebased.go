@@ -132,7 +132,6 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 			At:        input.EventAt,
 			Amount:    receivableReplenishment,
 			Currency:  input.Charge.Intent.Currency,
-			TaxCode:   taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
 			CostBasis: invoiceCostBasis,
 		},
 	)
@@ -193,7 +192,6 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 			At:        input.EventAt,
 			Amount:    input.Run.InvoiceUsage.Totals.Total,
 			Currency:  input.Charge.Intent.Currency,
-			TaxCode:   taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
 			CostBasis: invoiceCostBasis,
 		},
 	)

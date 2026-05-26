@@ -2607,12 +2607,13 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 	// given:
 	// - credit-only charges create advance receivable and accrued exposure in two TaxCode buckets
 	for _, input := range []struct {
-		name   string
-		amount int64
-		taxID  string
+		name     string
+		amount   int64
+		taxID    string
+		behavior productcatalog.TaxBehavior
 	}{
-		{name: "tax-a-advance", amount: 10, taxID: taxA.ID},
-		{name: "tax-b-advance", amount: 5, taxID: taxB.ID},
+		{name: "tax-a-advance", amount: 10, taxID: taxA.ID, behavior: productcatalog.InclusiveTaxBehavior},
+		{name: "tax-b-advance", amount: 5, taxID: taxB.ID, behavior: productcatalog.ExclusiveTaxBehavior},
 	} {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
@@ -2629,7 +2630,10 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 					Name:              input.name,
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: input.name,
-					TaxConfig:         &productcatalog.TaxCodeConfig{TaxCodeID: &input.taxID},
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						TaxCodeID: &input.taxID,
+						Behavior:  lo.ToPtr(input.behavior),
+					},
 				}),
 			},
 		})
@@ -2644,10 +2648,11 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 	s.NoError(err)
 	s.Len(advancedCharges, 2)
 
-	s.Equal(float64(-10), s.MustCustomerReceivableBalanceForTaxCode(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, mo.Some(&taxA.ID)).InexactFloat64())
-	s.Equal(float64(-5), s.MustCustomerReceivableBalanceForTaxCode(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, mo.Some(&taxB.ID)).InexactFloat64())
-	s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxA.ID)).InexactFloat64())
-	s.Equal(float64(5), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxB.ID)).InexactFloat64())
+	taxABehavior := ledger.TaxBehaviorInclusive
+	taxBBehavior := ledger.TaxBehaviorExclusive
+	s.Equal(float64(-15), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxA.ID), mo.Some(&taxABehavior)).InexactFloat64())
+	s.Equal(float64(5), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxB.ID), mo.Some(&taxBBehavior)).InexactFloat64())
 
 	// when:
 	// - a larger purchased grant backfills both advance buckets
@@ -2672,7 +2677,10 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				}),
-				TaxConfig: &productcatalog.TaxCodeConfig{TaxCodeID: &taxA.ID},
+				TaxConfig: &productcatalog.TaxCodeConfig{
+					TaxCodeID: &taxA.ID,
+					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+				},
 			}),
 		},
 	})
@@ -2701,10 +2709,11 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 	s.Equal(2, templateCounts[transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{})])
 	s.Equal(1, templateCounts[transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{})])
 
-	s.Equal(float64(0), s.MustCustomerReceivableBalanceForTaxCode(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, mo.Some(&taxA.ID)).InexactFloat64())
-	s.Equal(float64(0), s.MustCustomerReceivableBalanceForTaxCode(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, mo.Some(&taxB.ID)).InexactFloat64())
-	s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxA.ID)).InexactFloat64())
-	s.Equal(float64(5), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxB.ID)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxA.ID), mo.Some(&taxABehavior)).InexactFloat64())
+	s.Equal(float64(5), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxB.ID), mo.Some(&taxBBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxA.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxB.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
 	s.Equal(float64(5), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&purchaseCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64())
 }
 
@@ -2784,13 +2793,16 @@ func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
 	s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
 	s.Len(advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
 
+	costBasis := alpacadecimal.Zero
+	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+
 	clock.FreezeTime(servicePeriod.To)
 	s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
 
 	// then:
 	// - earnings keep the full tax route expected by the charge
-	costBasis := alpacadecimal.Zero
-	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
 	s.Equal(float64(amount), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID)).InexactFloat64())
 	s.Equal(float64(0), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some[*string](nil)).InexactFloat64())
 	s.Equal(float64(amount), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
@@ -2882,12 +2894,15 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceTaxConfigFlowsToEarnings() {
 	s.Equal(flatfee.StatusFinal, finalCharge.Status)
 	s.requireChargeTaxConfig(finalCharge.Intent.TaxConfig, tc.ID, productcatalog.InclusiveTaxBehavior)
 
+	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+
 	clock.FreezeTime(servicePeriod.To)
 	s.mustRecognizeAttributableAccrued(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
 
 	// then:
 	// - earnings keep the full tax route expected by the charge
-	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
 	s.Equal(float64(amount), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID)).InexactFloat64())
 	s.Equal(float64(0), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&invoiceCostBasis), mo.Some[*string](nil)).InexactFloat64())
 	s.Equal(float64(amount), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
@@ -2988,12 +3003,15 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 	s.Len(advancedCharge.Realizations, 1)
 	s.Len(advancedCharge.Realizations[0].CreditsAllocated, 1)
 
+	costBasis := alpacadecimal.Zero
+	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+
 	s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
 
 	// then:
 	// - earnings keep the full tax route expected by the charge
-	costBasis := alpacadecimal.Zero
-	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
 	s.Equal(float64(amount), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID)).InexactFloat64())
 	s.Equal(float64(0), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some[*string](nil)).InexactFloat64())
 	s.Equal(float64(amount), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
@@ -3094,11 +3112,14 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoiceTaxConfigFlowsToEarnings() 
 	s.Equal(usagebased.StatusFinal, finalCharge.Status)
 	s.requireChargeTaxConfig(finalCharge.Intent.TaxConfig, tc.ID, productcatalog.InclusiveTaxBehavior)
 
+	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+
 	s.mustRecognizeAttributableAccrued(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
 
 	// then:
 	// - earnings keep the full tax route expected by the charge
-	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
 	s.Equal(float64(amount), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID)).InexactFloat64())
 	s.Equal(float64(0), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&invoiceCostBasis), mo.Some[*string](nil)).InexactFloat64())
 	s.Equal(float64(amount), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
@@ -3218,7 +3239,10 @@ func (s *SanitySuite) TestTaxCodeFlowsFromCreditPurchaseToEarnings() {
 			Amount:    alpacadecimal.NewFromInt(amount),
 			At:        setupAt,
 			CostBasis: alpacadecimal.Zero,
-			TaxConfig: &productcatalog.TaxCodeConfig{TaxCodeID: &tc.ID},
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				TaxCodeID: &tc.ID,
+				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			},
 		})
 		s.NotEmpty(result.Charge.Realizations.CreditGrantRealization.TransactionGroupID)
 
@@ -3244,7 +3268,10 @@ func (s *SanitySuite) TestTaxCodeFlowsFromCreditPurchaseToEarnings() {
 					Name:              "flat-fee-taxcode-test",
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flat-fee-taxcode-test",
-					TaxConfig:         &productcatalog.TaxCodeConfig{TaxCodeID: &tc.ID},
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						TaxCodeID: &tc.ID,
+						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+					},
 				}),
 			},
 		})
@@ -3340,7 +3367,10 @@ func (s *SanitySuite) TestChargeIntentTaxConfigFlowsToEarnings() {
 			Amount:    alpacadecimal.NewFromInt(amount),
 			At:        setupAt,
 			CostBasis: alpacadecimal.Zero,
-			TaxConfig: &productcatalog.TaxCodeConfig{TaxCodeID: &tc.ID},
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				TaxCodeID: &tc.ID,
+				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			},
 		})
 		s.NotEmpty(result.Charge.Realizations.CreditGrantRealization.TransactionGroupID)
 
@@ -3365,7 +3395,10 @@ func (s *SanitySuite) TestChargeIntentTaxConfigFlowsToEarnings() {
 					Name:              "flat-fee-charge-intent-tax",
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flat-fee-charge-intent-tax",
-					TaxConfig:         &productcatalog.TaxCodeConfig{TaxCodeID: &tc.ID}, // tax on the charge intent
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						TaxCodeID: &tc.ID,
+						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+					}, // tax on the charge intent
 				}),
 			},
 		})
@@ -3541,7 +3574,10 @@ func (s *SanitySuite) TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly
 			Amount:    alpacadecimal.NewFromInt(amount),
 			At:        setupAt,
 			CostBasis: alpacadecimal.Zero,
-			TaxConfig: &productcatalog.TaxCodeConfig{TaxCodeID: &taxA.ID},
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				TaxCodeID: &taxA.ID,
+				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			},
 		})
 
 		nilCostBasis := alpacadecimal.Zero
@@ -3565,7 +3601,10 @@ func (s *SanitySuite) TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly
 					Name:              "flat-fee-mismatched-taxconfig",
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flat-fee-mismatched-taxconfig",
-					TaxConfig:         &productcatalog.TaxCodeConfig{TaxCodeID: &taxB.ID},
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						TaxCodeID: &taxB.ID,
+						Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+					},
 				}),
 			},
 		})
@@ -3678,7 +3717,10 @@ func (s *SanitySuite) TestTaxCodeFlowsFromInvoicedChargeToAccrued() {
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "usage-based-invoice-tax",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
-					TaxConfig:         &productcatalog.TaxCodeConfig{TaxCodeID: &tc.ID},
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						TaxCodeID: &tc.ID,
+						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+					},
 				}),
 			},
 		})
@@ -3706,15 +3748,16 @@ func (s *SanitySuite) TestTaxCodeFlowsFromInvoicedChargeToAccrued() {
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 
-		// Accrual leg must place balance in TaxCode-keyed accrued bucket
-		s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID)).InexactFloat64(),
-			"accrued must land in TaxCode bucket for invoice-backed usage charge")
-		s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some[*string](nil)).InexactFloat64(),
-			"nil-TaxCode accrued must remain zero")
+		// Accrual leg must place balance in the charge TaxCode/TaxBehavior bucket.
+		ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+		s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64(),
+			"accrued must land in TaxCode/TaxBehavior bucket for invoice-backed usage charge")
+		s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64(),
+			"nil-TaxBehavior accrued must remain zero")
 
-		// Receivable funded in TaxCode bucket
-		s.Equal(float64(-10), s.MustCustomerReceivableBalanceForTaxCode(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen, mo.Some(&tc.ID)).InexactFloat64(),
-			"open receivable must sit in TaxCode bucket")
+		// Receivable stays tax-neutral; tax dimensions enter when usage accrues.
+		s.Equal(float64(-10), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64(),
+			"open receivable must sit in tax-neutral route")
 	})
 
 	s.Run("payment authorized and settled", func() {
@@ -3723,11 +3766,11 @@ func (s *SanitySuite) TestTaxCodeFlowsFromInvoicedChargeToAccrued() {
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
 
-		// After auth, open receivable in TaxCode bucket drained, authorized receivable in TaxCode bucket holds -10
-		s.Equal(float64(0), s.MustCustomerReceivableBalanceForTaxCode(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen, mo.Some(&tc.ID)).InexactFloat64(),
-			"open receivable in TaxCode bucket must reconcile to zero after auth")
-		s.Equal(float64(-10), s.MustCustomerReceivableBalanceForTaxCode(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized, mo.Some(&tc.ID)).InexactFloat64(),
-			"authorized receivable must sit in TaxCode bucket")
+		// After auth, open receivable drains and authorized receivable holds the invoice amount.
+		s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64(),
+			"open receivable must reconcile to zero after auth")
+		s.Equal(float64(-10), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64(),
+			"authorized receivable must sit in tax-neutral route")
 
 		invoice, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
 			InvoiceID: invoice.GetInvoiceID(),
@@ -3736,15 +3779,16 @@ func (s *SanitySuite) TestTaxCodeFlowsFromInvoicedChargeToAccrued() {
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
 
-		// After settle, authorized receivable in TaxCode bucket clears
-		s.Equal(float64(0), s.MustCustomerReceivableBalanceForTaxCode(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized, mo.Some(&tc.ID)).InexactFloat64(),
-			"authorized receivable in TaxCode bucket must clear after settle")
+		// After settle, authorized receivable clears.
+		s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64(),
+			"authorized receivable must clear after settle")
 	})
 
 	s.Run("accrued in TaxCode bucket survives through final settlement", func() {
-		s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID)).InexactFloat64(),
-			"accrued must remain in TaxCode bucket after settlement")
-		s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some[*string](nil)).InexactFloat64(),
-			"nil-TaxCode accrued must remain zero")
+		ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+		s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64(),
+			"accrued must remain in TaxCode/TaxBehavior bucket after settlement")
+		s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64(),
+			"nil-TaxBehavior accrued must remain zero")
 	})
 }

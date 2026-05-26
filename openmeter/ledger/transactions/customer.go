@@ -126,7 +126,6 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
-		TaxCode:                        t.TaxCode,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -203,7 +202,6 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
-		TaxCode:                        t.TaxCode,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -293,7 +291,6 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 
 	authorizedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
-		TaxCode:                        t.TaxCode,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -303,7 +300,6 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 
 	openReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
-		TaxCode:                        t.TaxCode,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -422,7 +418,6 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 
 	advanceReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
-		TaxCode:                        t.TaxCode,
 		CostBasis:                      nil,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -432,7 +427,6 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 
 	attributedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
-		TaxCode:                        t.TaxCode,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})

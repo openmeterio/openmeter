@@ -202,23 +202,21 @@ type RequireTaxDimensionScopeRule struct{}
 
 func (r RequireTaxDimensionScopeRule) Validate(tx TxView) error {
 	for _, entry := range tx.Entries() {
-		if entry.AccountType() == ledger.AccountTypeCustomerFBO && entry.Route().TaxCode != nil {
-			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
-				"reason":       "tax_code_not_allowed_on_customer_fbo",
-				"account_type": entry.AccountType(),
-			})
-		}
-
 		switch entry.AccountType() {
 		case ledger.AccountTypeCustomerAccrued, ledger.AccountTypeEarnings:
-			continue
-		}
-
-		if entry.Route().TaxBehavior != nil {
-			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
-				"reason":       "tax_behavior_only_allowed_on_accrued_or_earnings",
-				"account_type": entry.AccountType(),
-			})
+			if (entry.Route().TaxCode == nil) != (entry.Route().TaxBehavior == nil) {
+				return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
+					"reason":       "tax_dimensions_must_be_complete_on_accrued_or_earnings",
+					"account_type": entry.AccountType(),
+				})
+			}
+		default:
+			if entry.Route().TaxCode != nil || entry.Route().TaxBehavior != nil {
+				return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
+					"reason":       "tax_dimensions_only_allowed_on_accrued_or_earnings",
+					"account_type": entry.AccountType(),
+				})
+			}
 		}
 	}
 

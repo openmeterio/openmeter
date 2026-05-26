@@ -441,7 +441,6 @@ func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context
 
 	receivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
-		TaxCode:                        t.TaxCode,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})

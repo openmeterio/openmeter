@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -422,11 +423,11 @@ func TestDefaultValidator_AllowsFBOToTaxedAccrued(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDefaultValidator_RejectsReceivableToAccruedTaxCodeMismatch(t *testing.T) {
+func TestDefaultValidator_RejectsTaxCodeOnReceivable(t *testing.T) {
 	validator := routingrules.DefaultValidator
 	openStatus := ledger.TransactionAuthorizationStatusOpen
 	taxA := "tax_A"
-	taxB := "tax_B"
+	taxBehavior := ledger.TaxBehaviorInclusive
 
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
@@ -438,9 +439,10 @@ func TestDefaultValidator_RejectsReceivableToAccruedTaxCodeMismatch(t *testing.T
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
-			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-taxB", ledger.Route{
-				Currency: currencyx.Code("USD"),
-				TaxCode:  &taxB,
+			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-taxA", ledger.Route{
+				Currency:    currencyx.Code("USD"),
+				TaxCode:     &taxA,
+				TaxBehavior: &taxBehavior,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},
@@ -454,19 +456,22 @@ func TestDefaultValidator_RejectsAccruedToEarningsTaxCodeMismatch(t *testing.T) 
 	validator := routingrules.DefaultValidator
 	taxA := "tax_A"
 	taxB := "tax_B"
+	taxBehavior := ledger.TaxBehaviorInclusive
 
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-taxA", ledger.Route{
-				Currency: currencyx.Code("USD"),
-				TaxCode:  &taxA,
+				Currency:    currencyx.Code("USD"),
+				TaxCode:     &taxA,
+				TaxBehavior: &taxBehavior,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeEarnings, "sub-earn-taxB", ledger.Route{
-				Currency: currencyx.Code("USD"),
-				TaxCode:  &taxB,
+				Currency:    currencyx.Code("USD"),
+				TaxCode:     &taxB,
+				TaxBehavior: &taxBehavior,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},
@@ -485,6 +490,7 @@ func TestDefaultValidator_RejectsAccruedToEarningsTaxBehaviorMismatch(t *testing
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-inclusive", ledger.Route{
 				Currency:    currencyx.Code("USD"),
+				TaxCode:     lo.ToPtr("tax_A"),
 				TaxBehavior: &inclusive,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
@@ -492,6 +498,7 @@ func TestDefaultValidator_RejectsAccruedToEarningsTaxBehaviorMismatch(t *testing
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeEarnings, "sub-earn-exclusive", ledger.Route{
 				Currency:    currencyx.Code("USD"),
+				TaxCode:     lo.ToPtr("tax_A"),
 				TaxBehavior: &exclusive,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
@@ -506,20 +513,21 @@ func TestDefaultValidator_AllowsReceivableToAccruedMatchingTaxCode(t *testing.T)
 	validator := routingrules.DefaultValidator
 	openStatus := ledger.TransactionAuthorizationStatusOpen
 	tax := "tax_A"
+	taxBehavior := ledger.TaxBehaviorInclusive
 
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
-			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-tax", ledger.Route{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec", ledger.Route{
 				Currency:                       currencyx.Code("USD"),
-				TaxCode:                        &tax,
 				TransactionAuthorizationStatus: &openStatus,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-tax", ledger.Route{
-				Currency: currencyx.Code("USD"),
-				TaxCode:  &tax,
+				Currency:    currencyx.Code("USD"),
+				TaxCode:     &tax,
+				TaxBehavior: &taxBehavior,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},
@@ -531,19 +539,22 @@ func TestDefaultValidator_AllowsReceivableToAccruedMatchingTaxCode(t *testing.T)
 func TestDefaultValidator_AllowsAccruedToEarningsMatchingTaxCode(t *testing.T) {
 	validator := routingrules.DefaultValidator
 	tax := "tax_A"
+	taxBehavior := ledger.TaxBehaviorInclusive
 
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-tax", ledger.Route{
-				Currency: currencyx.Code("USD"),
-				TaxCode:  &tax,
+				Currency:    currencyx.Code("USD"),
+				TaxCode:     &tax,
+				TaxBehavior: &taxBehavior,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeEarnings, "sub-earn-tax", ledger.Route{
-				Currency: currencyx.Code("USD"),
-				TaxCode:  &tax,
+				Currency:    currencyx.Code("USD"),
+				TaxCode:     &tax,
+				TaxBehavior: &taxBehavior,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},
