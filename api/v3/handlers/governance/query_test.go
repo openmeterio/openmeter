@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -16,7 +17,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/registry"
@@ -27,8 +30,10 @@ import (
 	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func newTestNamespace(t *testing.T) string {
@@ -36,15 +41,17 @@ func newTestNamespace(t *testing.T) string {
 	return ulid.Make().String()
 }
 
-// migrateOnce serialises schema migrations to avoid concurrent-write errors from ent.
+// migrateOnce serializes schema migrations to avoid concurrent-write errors from ent.
 var migrateOnce sync.Mutex
 
 type testDeps struct {
-	dbClient        *testutils.TestDB
-	subjectService  subject.Service
-	customerService customer.Service
-	featureRepo     feature.FeatureRepo
-	registry        *registry.Entitlement
+	dbClient           *testutils.TestDB
+	subjectService     subject.Service
+	customerService    customer.Service
+	meterService       meter.ManageService
+	featureRepo        feature.FeatureRepo
+	registry           *registry.Entitlement
+	streamingConnector *streamingtestutils.MockStreamingConnector
 }
 
 func (d *testDeps) close(t *testing.T) {
@@ -92,9 +99,11 @@ func setupTestDeps(t *testing.T) *testDeps {
 	locker, err := lockr.NewLocker(&lockr.LockerConfig{Logger: logger})
 	require.NoError(t, err)
 
+	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
+
 	reg := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     dbClient,
-		StreamingConnector: streamingtestutils.NewMockStreamingConnector(t),
+		StreamingConnector: streamingConnector,
 		Logger:             logger,
 		Tracer:             noop.NewTracerProvider().Tracer("test"),
 		MeterService:       meterService,
@@ -107,11 +116,13 @@ func setupTestDeps(t *testing.T) *testDeps {
 	})
 
 	return &testDeps{
-		dbClient:        testdb,
-		subjectService:  subjectSvc,
-		customerService: customerSvc,
-		featureRepo:     reg.FeatureRepo,
-		registry:        reg,
+		dbClient:           testdb,
+		subjectService:     subjectSvc,
+		customerService:    customerSvc,
+		meterService:       meterService,
+		featureRepo:        reg.FeatureRepo,
+		registry:           reg,
+		streamingConnector: streamingConnector,
 	}
 }
 
@@ -371,4 +382,134 @@ func TestQueryGovernanceAccess_NoFeatureKeysReturnsAll(t *testing.T) {
 	assert.Len(t, resp.Data[0].Features, 2)
 	assert.True(t, resp.Data[0].Features["feat-1"].HasAccess)
 	assert.True(t, resp.Data[0].Features["feat-2"].HasAccess)
+}
+
+// createMeterInPG writes a meter row to ent DB (FK constraint on features.meter_id).
+// The mock meter adapter only stores in memory; this must be called after CreateMeter.
+func createMeterInPG(t *testing.T, dbClient *entdb.Client, mtr meter.Meter) {
+	t.Helper()
+	_, err := dbClient.Meter.Create().
+		SetID(mtr.ID).
+		SetNamespace(mtr.Namespace).
+		SetName(mtr.Name).
+		SetKey(mtr.Key).
+		SetAggregation(mtr.Aggregation).
+		SetEventType(mtr.EventType).
+		SetNillableValueProperty(mtr.ValueProperty).
+		Save(t.Context())
+	require.NoError(t, err)
+}
+
+func createMeter(t *testing.T, deps *testDeps, ns, key string) meter.Meter {
+	t.Helper()
+	mtr, err := deps.meterService.CreateMeter(t.Context(), meter.CreateMeterInput{
+		Namespace:     ns,
+		Name:          key,
+		Key:           key,
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "test",
+		ValueProperty: lo.ToPtr("$.value"),
+	})
+	require.NoError(t, err)
+	createMeterInPG(t, deps.dbClient.EntDriver.Client(), mtr)
+	return mtr
+}
+
+func createMeteredFeatureAndEntitlement(t *testing.T, deps *testDeps, ns, featureKey string, mtr meter.Meter, cust *customer.Customer, issueAfterReset *float64) {
+	t.Helper()
+	feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+		Key:       featureKey,
+		Name:      featureKey,
+		Namespace: ns,
+		MeterID:   lo.ToPtr(mtr.ID),
+	})
+	require.NoError(t, err)
+
+	_, err = deps.registry.Entitlement.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+		Namespace:        ns,
+		UsageAttribution: cust.GetUsageAttribution(),
+		FeatureKey:       lo.ToPtr(featureKey),
+		FeatureID:        lo.ToPtr(feat.ID),
+		EntitlementType:  entitlement.EntitlementTypeMetered,
+		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+			Interval: timeutil.RecurrencePeriodDaily,
+			Anchor:   clock.Now(),
+		})),
+		IssueAfterReset: issueAfterReset,
+	}, nil)
+	require.NoError(t, err)
+}
+
+func TestQueryGovernanceAccess_MeteredEntitlement_HasAccess(t *testing.T) {
+	deps := setupTestDeps(t)
+	t.Cleanup(func() { deps.close(t) })
+
+	now := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.SetTime(now)
+	defer clock.ResetTime()
+
+	h := newTestHandler(deps)
+	ns := newTestNamespace(t)
+
+	mtr := createMeter(t, deps, ns, "api-calls")
+	cust := createCustomer(t, deps, ns, "acme", []string{"acme"})
+	// IssueAfterReset=10.0 → balance starts at 10, HasAccess=true
+	createMeteredFeatureAndEntitlement(t, deps, ns, "premium", mtr, cust, lo.ToPtr(10.0))
+
+	// Add an event so the streaming mock has data for the meter.
+	deps.streamingConnector.AddSimpleEvent(mtr.Key, 1, now)
+
+	clock.SetTime(now.Add(time.Hour))
+
+	resp, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
+		Namespace: ns,
+		Body: api.GovernanceQueryRequest{
+			Customer: api.GovernanceQueryRequestCustomers{Keys: []string{"acme"}},
+			Feature:  &api.GovernanceQueryRequestFeatures{Keys: []string{"premium"}},
+		},
+		PageSize: defaultPageSize,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Data, 1)
+	assert.Empty(t, resp.Errors)
+	featureAccess := resp.Data[0].Features["premium"]
+	assert.True(t, featureAccess.HasAccess)
+	assert.Nil(t, featureAccess.Reason)
+}
+
+func TestQueryGovernanceAccess_MeteredEntitlement_Exhausted(t *testing.T) {
+	deps := setupTestDeps(t)
+	t.Cleanup(func() { deps.close(t) })
+
+	now := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.SetTime(now)
+	defer clock.ResetTime()
+
+	h := newTestHandler(deps)
+	ns := newTestNamespace(t)
+
+	mtr := createMeter(t, deps, ns, "api-calls")
+	cust := createCustomer(t, deps, ns, "acme", []string{"acme"})
+	// No IssueAfterReset → balance=0, HasAccess=false → UsageLimitReached
+	createMeteredFeatureAndEntitlement(t, deps, ns, "premium", mtr, cust, nil)
+
+	deps.streamingConnector.AddSimpleEvent(mtr.Key, 1, now)
+
+	clock.SetTime(now.Add(time.Hour))
+
+	resp, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
+		Namespace: ns,
+		Body: api.GovernanceQueryRequest{
+			Customer: api.GovernanceQueryRequestCustomers{Keys: []string{"acme"}},
+			Feature:  &api.GovernanceQueryRequestFeatures{Keys: []string{"premium"}},
+		},
+		PageSize: defaultPageSize,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Data, 1)
+	assert.Empty(t, resp.Errors)
+	featureAccess := resp.Data[0].Features["premium"]
+	assert.False(t, featureAccess.HasAccess)
+	require.NotNil(t, featureAccess.Reason)
+	assert.Equal(t, api.GovernanceFeatureAccessReasonCodeUsageLimitReached, featureAccess.Reason.Code)
 }
