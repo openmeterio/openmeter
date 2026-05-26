@@ -103,7 +103,7 @@ require (
 	github.com/authzed/grpcutil v0.0.0-20250221190651-1985b19b35b8 // indirect
 	github.com/aws/aws-lambda-go v1.50.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.41.5 // indirect
-	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.1 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.8 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.31.12 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.16 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.20.14 // indirect
@@ -115,7 +115,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.21 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.9 // indirect
-	github.com/aws/aws-sdk-go-v2/service/bedrockruntime v1.41.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/bedrockruntime v1.50.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.51.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.51.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.31.0 // indirect
