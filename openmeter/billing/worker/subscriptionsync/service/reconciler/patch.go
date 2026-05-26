@@ -135,9 +135,12 @@ func (c patchCollectionRouter) isCreditsEnabled(ns string) (bool, error) {
 }
 
 func (c patchCollectionRouter) ResolveDefaultCollection(target targetstate.StateItem) (PatchCollection, error) {
-	if enabled, err := c.isCreditsEnabled(target.SubscriptionItem.NamespacedID.Namespace); err != nil {
-		return c.lineCollection, err
-	} else if !enabled {
+	enabled, err := c.isCreditsEnabled(target.SubscriptionItem.NamespacedID.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	if !enabled {
 		return c.lineCollection, nil
 	}
 
