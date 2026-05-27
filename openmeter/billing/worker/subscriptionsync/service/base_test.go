@@ -97,6 +97,7 @@ func (s *SuiteBase) setupChargesService(config chargestestutils.Config) {
 		SubscriptionSyncAdapter: s.Adapter,
 		SubscriptionService:     s.SubscriptionService,
 		FeatureGate:             featuregate.NewNoop(),
+		FeatureFlags:            FeatureFlags{CreditsFlag: "test-credit"},
 	})
 	s.NoError(err)
 

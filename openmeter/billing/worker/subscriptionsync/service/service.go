@@ -22,6 +22,8 @@ type FeatureFlags struct {
 	EnableFlatFeeInAdvanceProrating bool
 	EnableFlatFeeInArrearsProrating bool
 	EnableCreditThenInvoice         bool
+
+	CreditsFlag string
 }
 
 type Config struct {
@@ -56,9 +58,6 @@ func (c Config) Validate() error {
 	if c.Tracer == nil {
 		return fmt.Errorf("tracer is required")
 	}
-	if c.FeatureGate == nil {
-		return fmt.Errorf("feature gate is required")
-	}
 
 	return nil
 }
@@ -86,6 +85,7 @@ func New(config Config) (*Service, error) {
 		EnableCreditThenInvoice: config.FeatureFlags.EnableCreditThenInvoice,
 		Logger:                  config.Logger,
 		FeatureGate:             config.FeatureGate,
+		CreditsFlag:             config.FeatureFlags.CreditsFlag,
 	})
 	if err != nil {
 		return nil, err

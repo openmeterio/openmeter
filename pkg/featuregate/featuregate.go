@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 )
 
 type Org interface {
@@ -67,4 +68,46 @@ func (n Noop) WithFFContext(custom ...Context) (Gate, error) {
 
 func (n Noop) WithOrg(org Org) (Gate, error) {
 	return n.WithFFContext(org)
+}
+
+type NamespaceOrg string
+
+var _ Org = NamespaceOrg("")
+
+func (n NamespaceOrg) AddCustomAttribute(name string, value any) {}
+
+func (n NamespaceOrg) Anonymous() bool {
+	return false
+}
+
+func (n NamespaceOrg) FeatureSet() *string {
+	return nil
+}
+
+func (n NamespaceOrg) GetCustomAttributes() map[string]any {
+	return nil
+}
+
+func (n NamespaceOrg) ID() *uuid.UUID {
+	return lo.ToPtr(uuid.NewSHA1(uuid.NameSpaceURL, []byte(n)))
+}
+
+func (n NamespaceOrg) Key() string {
+	return string(n)
+}
+
+func (n NamespaceOrg) Kind() string {
+	return "namespace"
+}
+
+func (n NamespaceOrg) OrgName() *string {
+	return lo.ToPtr(string(n))
+}
+
+func (n NamespaceOrg) PortalID() *uuid.UUID {
+	return n.ID()
+}
+
+func (n NamespaceOrg) Tier() *string {
+	return nil
 }
