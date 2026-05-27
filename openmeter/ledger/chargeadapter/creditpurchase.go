@@ -353,6 +353,7 @@ type advanceAttribution struct {
 }
 
 type unattributedAccruedBalance struct {
+	key         taxDimensionKey
 	taxCode     *string
 	taxBehavior *ledger.TaxBehavior
 	amount      alpacadecimal.Decimal
@@ -389,6 +390,11 @@ func (h *creditPurchaseHandler) advanceAttributions(ctx context.Context, custome
 		return nil, err
 	}
 
+	calculator, err := currency.Calculator()
+	if err != nil {
+		return nil, fmt.Errorf("get currency calculator: %w", err)
+	}
+
 	remaining := amount
 	attributions := make([]advanceAttribution, 0, len(advanceReceivables))
 	for _, advanceReceivable := range advanceReceivables {
@@ -409,33 +415,40 @@ func (h *creditPurchaseHandler) advanceAttributions(ctx context.Context, custome
 			attributed = remaining
 		}
 
-		accruedRemaining := attributed
-		for i := range unattributedAccrued {
-			if !accruedRemaining.IsPositive() {
-				break
-			}
-
-			accrued := unattributedAccrued[i].amount
-			if !accrued.IsPositive() {
-				continue
-			}
-			if accrued.GreaterThan(accruedRemaining) {
-				accrued = accruedRemaining
-			}
-
-			attributions = append(attributions, advanceAttribution{
-				taxCode:       unattributedAccrued[i].taxCode,
-				taxBehavior:   unattributedAccrued[i].taxBehavior,
-				advanceAmount: accrued,
-				accruedAmount: accrued,
-			})
-			unattributedAccrued[i].amount = unattributedAccrued[i].amount.Sub(accrued)
-			accruedRemaining = accruedRemaining.Sub(accrued)
+		accruedAttributable := attributed
+		totalUnattributedAccrued := totalUnattributedAccruedBalance(unattributedAccrued)
+		if accruedAttributable.GreaterThan(totalUnattributedAccrued) {
+			accruedAttributable = totalUnattributedAccrued
 		}
 
-		if accruedRemaining.IsPositive() {
+		if accruedAttributable.IsPositive() {
+			accruedAttributions, err := allocateAccruedAttribution(calculator, accruedAttributable, unattributedAccrued)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, allocation := range accruedAttributions {
+				for i := range unattributedAccrued {
+					if unattributedAccrued[i].key != allocation.Key {
+						continue
+					}
+
+					attributions = append(attributions, advanceAttribution{
+						taxCode:       unattributedAccrued[i].taxCode,
+						taxBehavior:   unattributedAccrued[i].taxBehavior,
+						advanceAmount: allocation.Amount,
+						accruedAmount: allocation.Amount,
+					})
+					unattributedAccrued[i].amount = unattributedAccrued[i].amount.Sub(allocation.Amount)
+					break
+				}
+			}
+		}
+
+		unattributedAdvanceAmount := attributed.Sub(accruedAttributable)
+		if unattributedAdvanceAmount.IsPositive() {
 			attributions = append(attributions, advanceAttribution{
-				advanceAmount: accruedRemaining,
+				advanceAmount: unattributedAdvanceAmount,
 			})
 		}
 		remaining = remaining.Sub(attributed)
@@ -473,6 +486,7 @@ func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context,
 		if _, ok := balancesByKey[key]; !ok {
 			keys = append(keys, key)
 			balancesByKey[key] = unattributedAccruedBalance{
+				key:         key,
 				taxCode:     route.TaxCode,
 				taxBehavior: route.TaxBehavior,
 			}
@@ -488,6 +502,46 @@ func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context,
 	return lo.Map(keys, func(key taxDimensionKey, _ int) unattributedAccruedBalance {
 		return balancesByKey[key]
 	}), nil
+}
+
+func allocateAccruedAttribution(
+	calculator currencyx.Calculator,
+	amount alpacadecimal.Decimal,
+	unattributedAccrued []unattributedAccruedBalance,
+) ([]currencyx.AmountAllocation[taxDimensionKey], error) {
+	items := make([]currencyx.AmountAllocationItem[taxDimensionKey], 0, len(unattributedAccrued))
+	for _, balance := range unattributedAccrued {
+		if !balance.amount.IsPositive() {
+			continue
+		}
+
+		items = append(items, currencyx.AmountAllocationItem[taxDimensionKey]{
+			Key:    balance.key,
+			Amount: balance.amount,
+		})
+	}
+
+	allocations, err := currencyx.AllocateByAmount(calculator, currencyx.AmountAllocationInput[taxDimensionKey]{
+		Amount:     amount,
+		Items:      items,
+		CompareKey: compareTaxDimensionKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("allocate accrued attribution: %w", err)
+	}
+
+	return allocations, nil
+}
+
+func totalUnattributedAccruedBalance(unattributedAccrued []unattributedAccruedBalance) alpacadecimal.Decimal {
+	total := alpacadecimal.Zero
+	for _, balance := range unattributedAccrued {
+		if balance.amount.IsPositive() {
+			total = total.Add(balance.amount)
+		}
+	}
+
+	return total
 }
 
 func taxDimensionRouteKey(route ledger.Route) taxDimensionKey {
