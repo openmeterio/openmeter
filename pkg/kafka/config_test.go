@@ -245,22 +245,32 @@ func TestTimeDurationMilliSeconds(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			var timeMs TimeDurationMilliSeconds
+			t.Run("UnmarshalText", func(t *testing.T) {
+				err := timeMs.UnmarshalText([]byte(test.Value))
 
-			err := timeMs.UnmarshalText([]byte(test.Value))
-			assert.Equal(t, test.ExpectedError, err)
-			if err == nil {
-				assert.Equal(t, test.ExpectedValue, timeMs)
-				assert.Equal(t, test.ExpectedString, timeMs.String())
-				assert.Equal(t, test.ExpectedDuration, timeMs.Duration())
-			}
+				if test.ExpectedError != nil {
+					assert.Equal(t, test.ExpectedError.Error(), err.Error())
+				}
 
-			err = timeMs.UnmarshalJSON([]byte(test.Value))
-			assert.Equal(t, test.ExpectedError, err)
-			if err == nil {
-				assert.Equal(t, test.ExpectedValue, timeMs)
-				assert.Equal(t, test.ExpectedString, timeMs.String())
-				assert.Equal(t, test.ExpectedDuration, timeMs.Duration())
-			}
+				if err == nil {
+					assert.Equal(t, test.ExpectedValue, timeMs)
+					assert.Equal(t, test.ExpectedString, timeMs.String())
+					assert.Equal(t, test.ExpectedDuration, timeMs.Duration())
+				}
+			})
+
+			t.Run("UnmarshalJSON", func(t *testing.T) {
+				err := timeMs.UnmarshalJSON([]byte(test.Value))
+
+				if test.ExpectedError != nil {
+					assert.Equal(t, test.ExpectedError.Error(), err.Error())
+				}
+
+				if err == nil {
+					assert.Equal(t, test.ExpectedValue, timeMs)
+					assert.Equal(t, test.ExpectedString, timeMs.String())
+				}
+			})
 		})
 	}
 }
@@ -269,51 +279,51 @@ func TestPartitioner(t *testing.T) {
 	tests := []struct {
 		Name string
 
-		Value          string
-		ExpectedError  error
-		ExplectedValue Partitioner
+		Value         string
+		ExpectedError error
+		ExpectedValue Partitioner
 	}{
 		{
-			Name:           "Random",
-			Value:          "random",
-			ExpectedError:  nil,
-			ExplectedValue: PartitionerRandom,
+			Name:          "Random",
+			Value:         "random",
+			ExpectedError: nil,
+			ExpectedValue: PartitionerRandom,
 		},
 		{
-			Name:           "Consistent",
-			Value:          "consistent",
-			ExpectedError:  nil,
-			ExplectedValue: PartitionerConsistent,
+			Name:          "Consistent",
+			Value:         "consistent",
+			ExpectedError: nil,
+			ExpectedValue: PartitionerConsistent,
 		},
 		{
-			Name:           "ConsistentRandom",
-			Value:          "consistent_random",
-			ExpectedError:  nil,
-			ExplectedValue: PartitionerConsistentRandom,
+			Name:          "ConsistentRandom",
+			Value:         "consistent_random",
+			ExpectedError: nil,
+			ExpectedValue: PartitionerConsistentRandom,
 		},
 		{
-			Name:           "Murmur2",
-			Value:          "murmur2",
-			ExpectedError:  nil,
-			ExplectedValue: PartitionerMurmur2,
+			Name:          "Murmur2",
+			Value:         "murmur2",
+			ExpectedError: nil,
+			ExpectedValue: PartitionerMurmur2,
 		},
 		{
-			Name:           "Murmur2Random",
-			Value:          "murmur2_random",
-			ExpectedError:  nil,
-			ExplectedValue: PartitionerMurmur2Random,
+			Name:          "Murmur2Random",
+			Value:         "murmur2_random",
+			ExpectedError: nil,
+			ExpectedValue: PartitionerMurmur2Random,
 		},
 		{
-			Name:           "Fnv1a",
-			Value:          "fnv1a",
-			ExpectedError:  nil,
-			ExplectedValue: PartitionerFnv1a,
+			Name:          "Fnv1a",
+			Value:         "fnv1a",
+			ExpectedError: nil,
+			ExpectedValue: PartitionerFnv1a,
 		},
 		{
-			Name:           "Fnv1aRandom",
-			Value:          "fnv1a_random",
-			ExpectedError:  nil,
-			ExplectedValue: PartitionerFnv1aRandom,
+			Name:          "Fnv1aRandom",
+			Value:         "fnv1a_random",
+			ExpectedError: nil,
+			ExpectedValue: PartitionerFnv1aRandom,
 		},
 		{
 			Name:          "Invalid",
@@ -329,13 +339,13 @@ func TestPartitioner(t *testing.T) {
 			err := partitioner.UnmarshalText([]byte(test.Value))
 			assert.Equal(t, test.ExpectedError, err)
 			if err == nil {
-				assert.Equal(t, test.ExplectedValue, partitioner)
+				assert.Equal(t, test.ExpectedValue, partitioner)
 			}
 
 			err = partitioner.UnmarshalJSON([]byte(test.Value))
 			assert.Equal(t, test.ExpectedError, err)
 			if err == nil {
-				assert.Equal(t, test.ExplectedValue, partitioner)
+				assert.Equal(t, test.ExpectedValue, partitioner)
 			}
 		})
 	}
@@ -345,51 +355,51 @@ func TestAutoOffsetReset(t *testing.T) {
 	tests := []struct {
 		Name string
 
-		Value          string
-		ExpectedError  error
-		ExplectedValue AutoOffsetReset
+		Value         string
+		ExpectedError error
+		ExpectedValue AutoOffsetReset
 	}{
 		{
-			Name:           "Smallest",
-			Value:          "smallest",
-			ExpectedError:  nil,
-			ExplectedValue: AutoOffsetResetSmallest,
+			Name:          "Smallest",
+			Value:         "smallest",
+			ExpectedError: nil,
+			ExpectedValue: AutoOffsetResetSmallest,
 		},
 		{
-			Name:           "Earliest",
-			Value:          "earliest",
-			ExpectedError:  nil,
-			ExplectedValue: AutoOffsetResetEarliest,
+			Name:          "Earliest",
+			Value:         "earliest",
+			ExpectedError: nil,
+			ExpectedValue: AutoOffsetResetEarliest,
 		},
 		{
-			Name:           "Beginning",
-			Value:          "beginning",
-			ExpectedError:  nil,
-			ExplectedValue: AutoOffsetResetBeginning,
+			Name:          "Beginning",
+			Value:         "beginning",
+			ExpectedError: nil,
+			ExpectedValue: AutoOffsetResetBeginning,
 		},
 		{
-			Name:           "Largest",
-			Value:          "largest",
-			ExpectedError:  nil,
-			ExplectedValue: AutoOffsetResetLargest,
+			Name:          "Largest",
+			Value:         "largest",
+			ExpectedError: nil,
+			ExpectedValue: AutoOffsetResetLargest,
 		},
 		{
-			Name:           "Latest",
-			Value:          "latest",
-			ExpectedError:  nil,
-			ExplectedValue: AutoOffsetResetLatest,
+			Name:          "Latest",
+			Value:         "latest",
+			ExpectedError: nil,
+			ExpectedValue: AutoOffsetResetLatest,
 		},
 		{
-			Name:           "End",
-			Value:          "end",
-			ExpectedError:  nil,
-			ExplectedValue: AutoOffsetResetEnd,
+			Name:          "End",
+			Value:         "end",
+			ExpectedError: nil,
+			ExpectedValue: AutoOffsetResetEnd,
 		},
 		{
-			Name:           "Error",
-			Value:          "error",
-			ExpectedError:  nil,
-			ExplectedValue: AutoOffsetResetError,
+			Name:          "Error",
+			Value:         "error",
+			ExpectedError: nil,
+			ExpectedValue: AutoOffsetResetError,
 		},
 		{
 			Name:          "Invalid",
@@ -405,13 +415,13 @@ func TestAutoOffsetReset(t *testing.T) {
 			err := autoOffsetReset.UnmarshalText([]byte(test.Value))
 			assert.Equal(t, test.ExpectedError, err)
 			if err == nil {
-				assert.Equal(t, test.ExplectedValue, autoOffsetReset)
+				assert.Equal(t, test.ExpectedValue, autoOffsetReset)
 			}
 
 			err = autoOffsetReset.UnmarshalJSON([]byte(test.Value))
 			assert.Equal(t, test.ExpectedError, err)
 			if err == nil {
-				assert.Equal(t, test.ExplectedValue, autoOffsetReset)
+				assert.Equal(t, test.ExpectedValue, autoOffsetReset)
 			}
 		})
 	}
