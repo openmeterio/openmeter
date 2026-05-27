@@ -1,8 +1,10 @@
 package chargeadapter
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -380,6 +382,7 @@ func (h *creditPurchaseHandler) advanceAttributions(ctx context.Context, custome
 	if err != nil {
 		return nil, fmt.Errorf("list advance receivable sub-accounts: %w", err)
 	}
+	slices.SortStableFunc(advanceReceivables, compareSubAccountRoute)
 
 	unattributedAccrued, err := h.unattributedAccruedBalances(ctx, customerAccounts.AccruedAccount, currency)
 	if err != nil {
@@ -480,6 +483,8 @@ func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context,
 		balancesByKey[key] = current
 	}
 
+	slices.SortFunc(keys, compareTaxDimensionKey)
+
 	return lo.Map(keys, func(key taxDimensionKey, _ int) unattributedAccruedBalance {
 		return balancesByKey[key]
 	}), nil
@@ -490,4 +495,20 @@ func taxDimensionRouteKey(route ledger.Route) taxDimensionKey {
 		taxCode:     lo.FromPtrOr(route.TaxCode, "null"),
 		taxBehavior: string(lo.FromPtrOr(route.TaxBehavior, "null")),
 	}
+}
+
+func compareTaxDimensionKey(left, right taxDimensionKey) int {
+	if c := cmp.Compare(left.taxCode, right.taxCode); c != 0 {
+		return c
+	}
+
+	return cmp.Compare(left.taxBehavior, right.taxBehavior)
+}
+
+func compareSubAccountRoute(left, right ledger.SubAccount) int {
+	if c := cmp.Compare(left.Address().Route().RoutingKey().Value(), right.Address().Route().RoutingKey().Value()); c != 0 {
+		return c
+	}
+
+	return cmp.Compare(left.Address().SubAccountID(), right.Address().SubAccountID())
 }

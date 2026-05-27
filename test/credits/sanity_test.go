@@ -2655,9 +2655,10 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 	s.Equal(float64(5), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxB.ID), mo.Some(&taxBBehavior)).InexactFloat64())
 
 	// when:
-	// - a larger purchased grant backfills both advance buckets
+	// - a smaller purchased grant partially backfills the first deterministic advance bucket
 	purchaseCostBasis := alpacadecimal.NewFromFloat(0.5)
 	purchaseAt := servicePeriod.From.Add(time.Hour)
+	purchaseAmount := int64(5)
 	clock.FreezeTime(purchaseAt)
 	purchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
@@ -2665,7 +2666,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer: cust.GetID(),
 				Currency: USD,
-				Amount:   alpacadecimal.NewFromInt(20),
+				Amount:   alpacadecimal.NewFromInt(purchaseAmount),
 				ServicePeriod: timeutil.ClosedPeriod{
 					From: purchaseAt,
 					To:   purchaseAt,
@@ -2696,8 +2697,8 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 	s.NoError(err)
 
 	// then:
-	// - attribution and accrued translation stay split by source TaxCode
-	// - only the purchased remainder is newly issued
+	// - partial attribution chooses the first TaxCode/TaxBehavior bucket deterministically
+	// - the purchased grant is fully consumed by advance backfill
 	templateCounts := map[string]int{}
 	for _, tx := range backingGroup.Transactions() {
 		code, err := ledger.TransactionTemplateCodeFromAnnotations(tx.Annotations())
@@ -2705,16 +2706,28 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 		templateCounts[code]++
 	}
 
-	s.Equal(2, templateCounts[transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{})])
-	s.Equal(2, templateCounts[transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{})])
-	s.Equal(1, templateCounts[transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{})])
+	s.Equal(1, templateCounts[transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{})])
+	s.Equal(1, templateCounts[transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{})])
+	s.Equal(0, templateCounts[transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{})])
 
-	s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
-	s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxA.ID), mo.Some(&taxABehavior)).InexactFloat64())
-	s.Equal(float64(5), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxB.ID), mo.Some(&taxBBehavior)).InexactFloat64())
+	expectedBackfilledTaxID := taxA.ID
+	expectedBackfilledBehavior := taxABehavior
+	expectedRemainingTaxA := float64(5)
+	expectedRemainingTaxB := float64(5)
+	if taxB.ID < taxA.ID {
+		expectedBackfilledTaxID = taxB.ID
+		expectedBackfilledBehavior = taxBBehavior
+		expectedRemainingTaxA = float64(10)
+		expectedRemainingTaxB = float64(0)
+	}
+
+	s.Equal(float64(-10), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(purchaseAmount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&expectedBackfilledTaxID), mo.Some(&expectedBackfilledBehavior)).InexactFloat64())
 	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxA.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
 	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxB.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
-	s.Equal(float64(5), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&purchaseCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64())
+	s.Equal(expectedRemainingTaxA, s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxA.ID), mo.Some(&taxABehavior)).InexactFloat64())
+	s.Equal(expectedRemainingTaxB, s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxB.ID), mo.Some(&taxBBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&purchaseCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64())
 }
 
 func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
