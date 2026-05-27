@@ -615,13 +615,42 @@ type BillingInvoiceSplitLineGroup struct {
 func (BillingInvoiceSplitLineGroup) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.ResourceMixin{},
-		InvoiceLineBaseMixin{},
-		TaxMixin{},
 	}
 }
 
 func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
 	return []ent.Field{
+		field.String("currency").
+			GoType(currencyx.Code("")).
+			NotEmpty().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "varchar(3)",
+			}),
+
+		// Deprecated fields: split line groups no longer carry tax configuration.
+		// Tax configuration is stored on invoice lines and detailed lines.
+		field.JSON("tax_config", productcatalog.TaxConfig{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Deprecated("split line groups no longer carry tax configuration; use invoice line tax fields instead"),
+
+		field.String("tax_code_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Deprecated("split line groups no longer carry tax configuration; use invoice line tax fields instead"),
+
+		field.Enum("tax_behavior").
+			GoType(productcatalog.TaxBehavior("")).
+			Optional().
+			Nillable().
+			Deprecated("split line groups no longer carry tax configuration; use invoice line tax fields instead"),
+
 		field.Time("service_period_start"),
 		field.Time("service_period_end"),
 
@@ -689,6 +718,7 @@ func (BillingInvoiceSplitLineGroup) Indexes() []ent.Index {
 			Annotations(
 				entsql.IndexWhere("unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
 			).Unique(),
+		index.Fields("tax_code_id"),
 	}
 }
 

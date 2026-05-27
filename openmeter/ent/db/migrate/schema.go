@@ -1151,17 +1151,17 @@ var (
 				Columns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[1], BillingInvoiceSplitLineGroupsColumns[0]},
 			},
 			{
-				Name:    "billinginvoicesplitlinegroup_tax_code_id",
-				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[23]},
-			},
-			{
 				Name:    "billinginvoicesplitlinegroup_namespace_unique_reference_id",
 				Unique:  true,
 				Columns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[1], BillingInvoiceSplitLineGroupsColumns[13]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
+			},
+			{
+				Name:    "billinginvoicesplitlinegroup_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[23]},
 			},
 		},
 	}

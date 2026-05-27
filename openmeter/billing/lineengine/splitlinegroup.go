@@ -43,7 +43,6 @@ func (e *Engine) SplitGatheringLine(ctx context.Context, in billing.SplitGatheri
 					To:   line.ServicePeriod.To,
 				},
 				RatecardDiscounts: line.RateCardDiscounts,
-				TaxConfig:         line.TaxConfig,
 			},
 			UniqueReferenceID: line.ChildUniqueReferenceID,
 			Currency:          line.Currency,
