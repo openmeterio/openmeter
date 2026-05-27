@@ -1,6 +1,7 @@
 package reconciler
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
@@ -64,6 +65,7 @@ type patchCollectionRouter struct {
 	creditThenInvoiceEnabled   bool
 	creditsEnabled             bool
 	featureGate                featuregate.Gate
+	creditsFlag                string
 }
 
 type patchCollectionRouterConfig struct {
@@ -72,6 +74,7 @@ type patchCollectionRouterConfig struct {
 	creditThenInvoiceEnabled bool
 	creditsEnabled           bool
 	featureGate              featuregate.Gate
+	creditsFlag              string
 }
 
 func (c patchCollectionRouterConfig) Validate() error {
@@ -102,6 +105,7 @@ func newPatchCollectionRouter(cfg patchCollectionRouterConfig) (*patchCollection
 		creditThenInvoiceEnabled:   cfg.creditThenInvoiceEnabled,
 		creditsEnabled:             cfg.creditsEnabled,
 		featureGate:                cfg.featureGate,
+		creditsFlag:                cfg.creditsFlag,
 	}, nil
 }
 
@@ -127,11 +131,14 @@ func (c patchCollectionRouter) isCreditsEnabled(ns string) (bool, error) {
 	if c.featureGate == nil {
 		return true, nil
 	}
+	if c.creditsFlag == "" {
+		return false, errors.New("feature flag for credit is not set")
+	}
 	gate, err := c.featureGate.WithOrg(featuregate.NamespaceOrg(ns))
 	if err != nil {
 		return false, err
 	}
-	return gate.EvaluateBool(featuregate.FlagMeteringPrepaidCredits, false)
+	return gate.EvaluateBool(c.creditsFlag, false)
 }
 
 func (c patchCollectionRouter) ResolveDefaultCollection(target targetstate.StateItem) (PatchCollection, error) {

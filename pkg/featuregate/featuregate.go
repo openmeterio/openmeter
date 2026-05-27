@@ -7,10 +7,6 @@ import (
 	"github.com/samber/lo"
 )
 
-const (
-	FlagMeteringPrepaidCredits = "metering-prepaid-credits"
-)
-
 type Org interface {
 	Context
 

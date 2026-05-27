@@ -33,6 +33,7 @@ type Config struct {
 	EnableCreditThenInvoice bool
 	Logger                  *slog.Logger
 	FeatureGate             featuregate.Gate
+	CreditsFlag             string
 }
 
 func (c Config) Validate() error {
@@ -47,9 +48,6 @@ func (c Config) Validate() error {
 	if c.EnableCreditThenInvoice && c.ChargesService == nil {
 		return fmt.Errorf("charges service is required when credit then invoice is enabled")
 	}
-	if c.FeatureGate == nil {
-		return fmt.Errorf("feature gate is required")
-	}
 
 	return nil
 }
@@ -62,6 +60,7 @@ type Service struct {
 
 	invoiceUpdater *invoiceupdater.Updater
 	featureGate    featuregate.Gate
+	creditsFlag    string
 }
 
 func New(config Config) (*Service, error) {
@@ -76,6 +75,7 @@ func New(config Config) (*Service, error) {
 		chargesService:          config.ChargesService,
 		enableCreditThenInvoice: config.EnableCreditThenInvoice && config.ChargesService != nil,
 		featureGate:             config.FeatureGate,
+		creditsFlag:             config.CreditsFlag,
 	}, nil
 }
 
@@ -228,6 +228,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			creditThenInvoiceEnabled: s.enableCreditThenInvoice,
 			creditsEnabled:           s.chargesService != nil,
 			featureGate:              s.featureGate,
+			creditsFlag:              s.creditsFlag,
 		})
 	if err != nil {
 		return nil, fmt.Errorf("creating collection by type: %w", err)

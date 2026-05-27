@@ -7,8 +7,9 @@ import (
 )
 
 type CreditsConfiguration struct {
-	Enabled                 bool `yaml:"enabled"`
-	EnableCreditThenInvoice bool `yaml:"enableCreditThenInvoice"`
+	Enabled                 bool   `yaml:"enabled"`
+	EnableCreditThenInvoice bool   `yaml:"enableCreditThenInvoice"`
+	CreditsFlag             string `yaml:"creditsFlag"`
 }
 
 func (c CreditsConfiguration) Validate() error {
@@ -19,7 +20,10 @@ func (c CreditsConfiguration) Validate() error {
 	return errors.Join(errs...)
 }
 
-func ConfigureCredits(v *viper.Viper) {
-	v.SetDefault("credits.enabled", false)
-	v.SetDefault("credits.enableCreditThenInvoice", false)
+func ConfigureCredits(v *viper.Viper, prefixes ...string) {
+	prefixer := NewViperKeyPrefixer(prefixes...)
+
+	v.SetDefault(prefixer("enabled"), false)
+	v.SetDefault(prefixer("enableCreditThenInvoice"), false)
+	v.SetDefault(prefixer("creditsFlag"), "billing_credits")
 }
