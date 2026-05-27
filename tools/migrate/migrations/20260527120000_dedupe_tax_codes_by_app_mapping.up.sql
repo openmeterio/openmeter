@@ -1,0 +1,74 @@
+-- Deduplicate tax_codes rows that share the same Stripe app_mapping content.
+--
+-- Two write paths can produce duplicate (namespace, app_type, app_tax_code) groups:
+-- the OSS seeder (system-managed keys like "saas_business") and the dual-write path
+-- GetOrCreateByAppMapping (auto-keyed as "stripe_txcd_XXXXXXXX"). The read-side
+-- tie-break already returns the right row, but duplicate rows remain on disk and
+-- downstream tax_code_id FK columns may still point at losers. This migration
+-- soft-deletes every loser and repoints all FKs to the winner in one transaction.
+
+-- Step 1: materialise loser → winner pairs into a temp table.
+-- Winner selection mirrors the read-side tie-break: system-managed rows first,
+-- then oldest created_at, then smallest id.
+DROP TABLE IF EXISTS _tax_code_dedup_map;
+CREATE TEMP TABLE _tax_code_dedup_map AS
+WITH expanded AS (
+  SELECT
+    t.id,
+    t.namespace,
+    t.created_at,
+    (m->>'app_type') AS app_type,
+    (m->>'tax_code') AS app_tax_code,
+    COALESCE(t.annotations->>'managed_by', '') = 'system' AS is_system
+  FROM tax_codes t,
+       LATERAL jsonb_array_elements(COALESCE(t.app_mappings, '[]'::jsonb)) AS m
+  WHERE t.deleted_at IS NULL
+    AND t.app_mappings IS NOT NULL
+),
+ranked AS (
+  SELECT *,
+    ROW_NUMBER() OVER (
+      PARTITION BY namespace, app_type, app_tax_code
+      ORDER BY is_system DESC, created_at ASC, id ASC
+    ) AS rn,
+    COUNT(*) OVER (PARTITION BY namespace, app_type, app_tax_code) AS group_size
+  FROM expanded
+),
+winners AS (
+  SELECT namespace, app_type, app_tax_code, id AS winner_id
+  FROM ranked WHERE rn = 1 AND group_size > 1
+)
+SELECT DISTINCT r.id AS loser_id, w.winner_id
+FROM ranked r
+JOIN winners w USING (namespace, app_type, app_tax_code)
+WHERE r.rn > 1;
+
+CREATE INDEX ON _tax_code_dedup_map (loser_id);
+
+-- Step 2: repoint every tax_code_id FK column to the winner.
+UPDATE billing_workflow_configs                 SET tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE billing_workflow_configs.tax_code_id               = m.loser_id;
+UPDATE billing_customer_overrides               SET tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE billing_customer_overrides.tax_code_id             = m.loser_id;
+UPDATE billing_invoice_lines                    SET tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE billing_invoice_lines.tax_code_id                  = m.loser_id;
+UPDATE billing_invoice_split_line_groups        SET tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE billing_invoice_split_line_groups.tax_code_id      = m.loser_id;
+UPDATE billing_standard_invoice_detailed_lines  SET tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE billing_standard_invoice_detailed_lines.tax_code_id = m.loser_id;
+UPDATE charge_usage_based_run_detailed_line     SET tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE charge_usage_based_run_detailed_line.tax_code_id     = m.loser_id;
+UPDATE charge_flat_fee_run_detailed_lines       SET tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE charge_flat_fee_run_detailed_lines.tax_code_id      = m.loser_id;
+UPDATE subscription_items                       SET tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE subscription_items.tax_code_id                      = m.loser_id;
+UPDATE plan_rate_cards                          SET tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE plan_rate_cards.tax_code_id                         = m.loser_id;
+UPDATE addon_rate_cards                         SET tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE addon_rate_cards.tax_code_id                        = m.loser_id;
+UPDATE charge_flat_fees                         SET tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE charge_flat_fees.tax_code_id                        = m.loser_id;
+UPDATE charge_usage_based                       SET tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE charge_usage_based.tax_code_id                      = m.loser_id;
+UPDATE charge_credit_purchases                  SET tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE charge_credit_purchases.tax_code_id                 = m.loser_id;
+UPDATE organization_default_tax_codes           SET invoicing_tax_code_id    = m.winner_id FROM _tax_code_dedup_map m WHERE organization_default_tax_codes.invoicing_tax_code_id    = m.loser_id;
+UPDATE organization_default_tax_codes           SET credit_grant_tax_code_id = m.winner_id FROM _tax_code_dedup_map m WHERE organization_default_tax_codes.credit_grant_tax_code_id = m.loser_id;
+
+-- Step 3: soft-delete losers.
+UPDATE tax_codes
+  SET deleted_at = NOW(), updated_at = NOW()
+  WHERE id IN (SELECT loser_id FROM _tax_code_dedup_map)
+    AND deleted_at IS NULL;
+
+-- Step 4: drop the temp table explicitly. Without ON COMMIT DROP (which atlas
+-- migrate validate cannot model under its autocommit dry-run), session-scoped
+-- temp tables would otherwise live until the migration connection closes.
+DROP TABLE _tax_code_dedup_map;
