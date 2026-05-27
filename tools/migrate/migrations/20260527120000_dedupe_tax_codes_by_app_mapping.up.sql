@@ -43,6 +43,28 @@ FROM ranked r
 JOIN winners w USING (namespace, app_type, app_tax_code)
 WHERE r.rn > 1;
 
+-- Sanity check: a single loser_id must map to exactly one winner_id. A
+-- multi-mapping tax_codes row can be ranked as a loser in two partitions
+-- whose winners differ; the subsequent UPDATE ... FROM _tax_code_dedup_map
+-- would then non-deterministically pick one winner per child row. Abort
+-- fast instead so a human can inspect the data.
+DO $$
+DECLARE
+  conflicting_count int;
+BEGIN
+  SELECT COUNT(*) INTO conflicting_count
+  FROM (
+    SELECT loser_id
+    FROM _tax_code_dedup_map
+    GROUP BY loser_id
+    HAVING COUNT(DISTINCT winner_id) > 1
+  ) c;
+
+  IF conflicting_count > 0 THEN
+    RAISE EXCEPTION 'tax_code dedup: % loser row(s) map to multiple distinct winner rows; aborting migration', conflicting_count;
+  END IF;
+END $$;
+
 CREATE INDEX ON _tax_code_dedup_map (loser_id);
 
 -- Step 2: repoint every tax_code_id FK column to the winner.
