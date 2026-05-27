@@ -27,7 +27,7 @@ type SubscriptionAddon struct {
 	// An ISO-8601 timestamp representation of entity deletion date.
 	DeletedAt *time.Time `json:"deleted_at,omitzero"`
 	// The add-on associated with the subscription.
-	Addon CustomerReference `json:"addon"`
+	Addon AddonReference `json:"addon"`
 	// The quantity of the add-on. Always 1 for single instance add-ons.
 	Quantity int64 `json:"quantity"`
 	// An ISO-8601 timestamp representation of which point in time the quantity was
@@ -99,9 +99,9 @@ func (s *SubscriptionAddon) GetDeletedAt() *time.Time {
 	return s.DeletedAt
 }
 
-func (s *SubscriptionAddon) GetAddon() CustomerReference {
+func (s *SubscriptionAddon) GetAddon() AddonReference {
 	if s == nil {
-		return CustomerReference{}
+		return AddonReference{}
 	}
 	return s.Addon
 }

@@ -28,7 +28,7 @@ type PlanAddon struct {
 	// An ISO-8601 timestamp representation of entity deletion date.
 	DeletedAt *time.Time `json:"deleted_at,omitzero"`
 	// The add-on associated with the plan.
-	Addon CustomerReference `json:"addon"`
+	Addon AddonReference `json:"addon"`
 	// The key of the plan phase from which the add-on becomes available for purchase.
 	FromPlanPhase string `json:"from_plan_phase"`
 	// The maximum number of times the add-on can be purchased for the plan. For
@@ -99,9 +99,9 @@ func (p *PlanAddon) GetDeletedAt() *time.Time {
 	return p.DeletedAt
 }
 
-func (p *PlanAddon) GetAddon() CustomerReference {
+func (p *PlanAddon) GetAddon() AddonReference {
 	if p == nil {
-		return CustomerReference{}
+		return AddonReference{}
 	}
 	return p.Addon
 }

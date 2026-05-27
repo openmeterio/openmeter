@@ -89,11 +89,13 @@ interface BuildCtx {
   /** TypeSpec Type identity -> Go name, so the same Type always maps to the same Decl. */
   readonly typeToName: Map<Type, string>;
   /**
-   * Maps raw TypeSpec type names (e.g. "AppStripe") to the canonical Go name
-   * we picked for them (e.g. "BillingAppStripe"). Lets a second Type instance
-   * arriving with the same raw name (typically a synthetic copy in a union
-   * variant context, lacking the @friendlyName decorator) collapse to the
-   * already-emitted Decl.
+   * Maps resolved Go names to themselves. Lets a second Type instance that
+   * resolves to the same Go name (e.g. a synthetic copy in a union variant
+   * context that produces the same finalName as a canonical model already
+   * emitted) collapse onto the already-emitted Decl. Keyed on resolved Go
+   * name — not raw TypeSpec name — so that template instantiations with
+   * distinct @friendlyName values (CreateRequest<Plan> -> CreatePlanRequest,
+   * CreateRequest<Meter> -> CreateMeterRequest) get distinct decls.
    */
   readonly rawNameToGoName: Map<string, string>;
   /** Types currently being built, to break cycles. */
@@ -256,24 +258,30 @@ function emitDecl(ctx: BuildCtx, t: Type): GoType | undefined {
   if (prior) return named(prior, COMPONENTS_PKG);
 
   const rawName = t.name;
-  // If a sibling Type instance with the same raw TypeSpec name already
-  // resolved to a Go name, reuse it. This collapses synthetic copies
-  // (e.g. union variant instances that lack @friendlyName) onto the canonical
-  // Decl picked the first time we saw the name.
-  const aliased = ctx.rawNameToGoName.get(rawName);
+  // Resolve the final Go name first: @friendlyName takes precedence for
+  // template instances (e.g. Shared.CreateRequest<Plan> -> CreatePlanRequest;
+  // Shared.PagePaginatedResponse<Meter> -> MeterPagePaginatedResponse), with
+  // the raw TypeSpec name as a fallback for ordinary models.
+  const friendly = getFriendlyName(ctx.program, t as Model | Enum | Union | Scalar);
+  const finalName =
+    friendly && typeof friendly === "string" && friendly.trim() ? friendly : rawName;
+  const name = pascal(finalName);
+
+  // If a sibling Type instance previously resolved to the same Go name,
+  // reuse its Decl. The cache is keyed on the resolved Go name (not just the
+  // raw TypeSpec name) so that distinct template instantiations with distinct
+  // friendly names emit distinct decls, while synthetic copies that would
+  // produce the same Go name (e.g. a union variant of AppStripe lacking a
+  // friendly name, sharing finalName="AppStripe" with the canonical model)
+  // still collapse onto the canonical Decl.
+  const aliased = ctx.rawNameToGoName.get(name);
   if (aliased) {
     ctx.typeToName.set(t, aliased);
     return named(aliased, COMPONENTS_PKG);
   }
 
-  // Prefer @friendlyName for template instances (e.g. Shared.PagePaginatedResponse<Meter>
-  // -> MeterPagePaginatedResponse). Falls back to the raw type name otherwise.
-  const friendly = getFriendlyName(ctx.program, t as Model | Enum | Union | Scalar);
-  const finalName =
-    friendly && typeof friendly === "string" && friendly.trim() ? friendly : rawName;
-  const name = pascal(finalName);
   ctx.typeToName.set(t, name);
-  ctx.rawNameToGoName.set(rawName, name);
+  ctx.rawNameToGoName.set(name, name);
   if (ctx.seen.has(name)) return named(name, COMPONENTS_PKG);
   if (ctx.inProgress.has(t)) return named(name, COMPONENTS_PKG);
   ctx.inProgress.add(t);

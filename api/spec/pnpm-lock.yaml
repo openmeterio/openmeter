@@ -103,9 +103,6 @@ importers:
       uri-template:
         specifier: ^2.0.0
         version: 2.0.0
-      zod:
-        specifier: '>=4'
-        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: ~18.19.75

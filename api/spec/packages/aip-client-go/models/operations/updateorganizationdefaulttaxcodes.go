@@ -5,7 +5,7 @@ package operations
 import "github.com/openmeterio/openmeter/api/spec/packages/aip-client-go/models/components"
 
 type UpdateOrganizationDefaultTaxCodesRequest struct {
-	Body components.UpdateMeterRequest `request:"mediaType=application/json"`
+	Body components.UpdateOrganizationDefaultTaxCodesRequest `request:"mediaType=application/json"`
 }
 
 type UpdateOrganizationDefaultTaxCodesResponse struct {

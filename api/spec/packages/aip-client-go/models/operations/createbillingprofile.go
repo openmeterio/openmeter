@@ -5,7 +5,7 @@ package operations
 import "github.com/openmeterio/openmeter/api/spec/packages/aip-client-go/models/components"
 
 type CreateBillingProfileRequest struct {
-	Profile components.CreateMeterRequest `request:"mediaType=application/json"`
+	Profile components.CreateBillingProfileRequest `request:"mediaType=application/json"`
 }
 
 type CreateBillingProfileResponse struct {

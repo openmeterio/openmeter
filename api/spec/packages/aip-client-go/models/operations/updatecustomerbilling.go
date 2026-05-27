@@ -5,7 +5,7 @@ package operations
 import "github.com/openmeterio/openmeter/api/spec/packages/aip-client-go/models/components"
 
 type UpdateCustomerBillingRequest struct {
-	Body components.UpsertCustomerRequest `request:"mediaType=application/json"`
+	Body components.UpsertCustomerBillingDataRequest `request:"mediaType=application/json"`
 }
 
 type UpdateCustomerBillingResponse struct {

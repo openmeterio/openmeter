@@ -5,7 +5,7 @@ package operations
 import "github.com/openmeterio/openmeter/api/spec/packages/aip-client-go/models/components"
 
 type CreateFeatureRequest struct {
-	Feature components.CreateMeterRequest `request:"mediaType=application/json"`
+	Feature components.CreateFeatureRequest `request:"mediaType=application/json"`
 }
 
 type CreateFeatureResponse struct {

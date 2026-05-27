@@ -5,7 +5,7 @@ package operations
 import "github.com/openmeterio/openmeter/api/spec/packages/aip-client-go/models/components"
 
 type CreateCustomCurrencyRequest struct {
-	Body components.CreateMeterRequest `request:"mediaType=application/json"`
+	Body components.CreateCurrencyCustomRequest `request:"mediaType=application/json"`
 }
 
 type CreateCustomCurrencyResponse struct {

@@ -7,7 +7,7 @@ import "github.com/openmeterio/openmeter/api/spec/packages/aip-client-go/interna
 // The tax config of the rate card.
 type BillingRateCardTaxConfig struct {
 	Behavior *BillingTaxBehavior `json:"behavior,omitzero"`
-	Code     CustomerReference   `json:"code"`
+	Code     TaxCodeReference    `json:"code"`
 }
 
 func (b BillingRateCardTaxConfig) MarshalJSON() ([]byte, error) {
@@ -28,9 +28,9 @@ func (b *BillingRateCardTaxConfig) GetBehavior() *BillingTaxBehavior {
 	return b.Behavior
 }
 
-func (b *BillingRateCardTaxConfig) GetCode() CustomerReference {
+func (b *BillingRateCardTaxConfig) GetCode() TaxCodeReference {
 	if b == nil {
-		return CustomerReference{}
+		return TaxCodeReference{}
 	}
 	return b.Code
 }

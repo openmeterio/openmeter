@@ -17,7 +17,7 @@ type BillingRateCard struct {
 	Labels      *Labels `json:"labels,omitzero"`
 	Key         string  `json:"key"`
 	// The feature associated with the rate card.
-	Feature *CustomerReference `json:"feature,omitzero"`
+	Feature *FeatureReference `json:"feature,omitzero"`
 	// The billing cadence of the rate card. When null, the charge is one-time
 	// (non-recurring). Only valid for flat prices.
 	BillingCadence *string `json:"billing_cadence,omitzero"`
@@ -74,7 +74,7 @@ func (b *BillingRateCard) GetKey() string {
 	return b.Key
 }
 
-func (b *BillingRateCard) GetFeature() *CustomerReference {
+func (b *BillingRateCard) GetFeature() *FeatureReference {
 	if b == nil {
 		return nil
 	}

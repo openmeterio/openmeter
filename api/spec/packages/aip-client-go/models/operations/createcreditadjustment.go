@@ -5,7 +5,7 @@ package operations
 import "github.com/openmeterio/openmeter/api/spec/packages/aip-client-go/models/components"
 
 type CreateCreditAdjustmentRequest struct {
-	CreditAdjustment components.CreateMeterRequest `request:"mediaType=application/json"`
+	CreditAdjustment components.CreateCreditAdjustmentRequest `request:"mediaType=application/json"`
 }
 
 type CreateCreditAdjustmentResponse struct {

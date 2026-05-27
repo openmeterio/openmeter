@@ -63,11 +63,25 @@ export function emitVendoredFiles(module: string): VendoredFile[] {
     if (!rel.endsWith(".go")) return;
     if (rel.endsWith("_test.go")) return;
     let src = readFileSync(full, "utf8");
+    src = stripTemplateBuildTag(src);
     src = src.replaceAll(REFERENCE_MODULE, module);
     src = rewriteBanner(src);
     out.push({ path: rel.split("\\").join("/"), content: src });
   });
   return out;
+}
+
+/**
+ * Template `.go` files in `src/templates/` carry a `//go:build ignore` build
+ * constraint so the host repo's `go vet ./...` and `go mod tidy` skip them
+ * (they reference a fictional `openmeter-go-sdk` import path and only become
+ * compilable Go after this emitter substitutes the consumer's module path).
+ * Strip the build tag and its trailing blank line on copy so the emitted
+ * file is normal Go again.
+ */
+const BUILD_IGNORE_PATTERN = /^\/\/go:build ignore\s*\n\s*\n/m;
+function stripTemplateBuildTag(src: string): string {
+  return src.replace(BUILD_IGNORE_PATTERN, "");
 }
 
 /**
