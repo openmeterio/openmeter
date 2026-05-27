@@ -90,6 +90,7 @@ func TestPatchCollectionRouterResolveDefaultCollection(t *testing.T) {
 				creditThenInvoiceEnabled: tt.enableCreditThenInvoice,
 				creditsEnabled:           tt.enableCredits,
 				featureGate:              featuregate.NewNoop(),
+				creditsFlag:              "test-credit",
 			})
 			require.NoError(t, err)
 
@@ -132,6 +133,7 @@ func TestIsCreditEnabled(t *testing.T) {
 			creditThenInvoiceEnabled: false,
 			creditsEnabled:           true,
 			featureGate:              featuregate.NewNoop(),
+			creditsFlag:              "test-credit",
 		})
 		require.NoError(t, err)
 

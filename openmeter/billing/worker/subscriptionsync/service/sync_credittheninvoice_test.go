@@ -136,6 +136,7 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 		SubscriptionService:     s.SubscriptionService,
 		FeatureFlags: FeatureFlags{
 			EnableCreditThenInvoice: true,
+			CreditsFlag:             "billing_credits",
 		},
 		FeatureGate: featuregate.NewNoop(),
 	})
