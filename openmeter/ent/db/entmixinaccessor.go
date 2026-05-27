@@ -605,22 +605,6 @@ func (e *BillingInvoiceSplitLineGroup) GetDescription() *string {
 	return e.Description
 }
 
-func (e *BillingInvoiceSplitLineGroup) GetCurrency() currencyx.Code {
-	return e.Currency
-}
-
-func (e *BillingInvoiceSplitLineGroup) GetTaxConfig() productcatalog.TaxConfig {
-	return e.TaxConfig
-}
-
-func (e *BillingInvoiceSplitLineGroup) GetTaxCodeID() *string {
-	return e.TaxCodeID
-}
-
-func (e *BillingInvoiceSplitLineGroup) GetTaxBehavior() *productcatalog.TaxBehavior {
-	return e.TaxBehavior
-}
-
 func (e *BillingInvoiceUsageBasedLineConfig) GetID() string {
 	return e.ID
 }

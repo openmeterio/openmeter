@@ -23,8 +23,7 @@ type SplitLineGroupMutableFields struct {
 
 	ServicePeriod timeutil.ClosedPeriod `json:"period"`
 
-	RatecardDiscounts Discounts                 `json:"ratecardDiscounts"`
-	TaxConfig         *productcatalog.TaxConfig `json:"taxConfig,omitempty"`
+	RatecardDiscounts Discounts `json:"ratecardDiscounts"`
 }
 
 func (i SplitLineGroupMutableFields) ValidateForPrice(price *productcatalog.Price) error {
@@ -42,22 +41,12 @@ func (i SplitLineGroupMutableFields) ValidateForPrice(price *productcatalog.Pric
 		errs = append(errs, err)
 	}
 
-	if i.TaxConfig != nil {
-		if err := i.TaxConfig.Validate(); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
 	return errors.Join(errs...)
 }
 
 func (i SplitLineGroupMutableFields) Clone() SplitLineGroupMutableFields {
 	clone := i
 	clone.RatecardDiscounts = i.RatecardDiscounts.Clone()
-
-	if i.TaxConfig != nil {
-		clone.TaxConfig = lo.ToPtr(i.TaxConfig.Clone())
-	}
 
 	return clone
 }

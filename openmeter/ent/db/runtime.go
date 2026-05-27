@@ -645,8 +645,6 @@ func init() {
 	billinginvoicesplitlinegroupMixin := schema.BillingInvoiceSplitLineGroup{}.Mixin()
 	billinginvoicesplitlinegroupMixinFields0 := billinginvoicesplitlinegroupMixin[0].Fields()
 	_ = billinginvoicesplitlinegroupMixinFields0
-	billinginvoicesplitlinegroupMixinFields1 := billinginvoicesplitlinegroupMixin[1].Fields()
-	_ = billinginvoicesplitlinegroupMixinFields1
 	billinginvoicesplitlinegroupFields := schema.BillingInvoiceSplitLineGroup{}.Fields()
 	_ = billinginvoicesplitlinegroupFields
 	// billinginvoicesplitlinegroupDescNamespace is the schema descriptor for namespace field.
@@ -664,14 +662,14 @@ func init() {
 	// billinginvoicesplitlinegroup.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	billinginvoicesplitlinegroup.UpdateDefaultUpdatedAt = billinginvoicesplitlinegroupDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// billinginvoicesplitlinegroupDescCurrency is the schema descriptor for currency field.
-	billinginvoicesplitlinegroupDescCurrency := billinginvoicesplitlinegroupMixinFields1[0].Descriptor()
+	billinginvoicesplitlinegroupDescCurrency := billinginvoicesplitlinegroupFields[0].Descriptor()
 	// billinginvoicesplitlinegroup.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	billinginvoicesplitlinegroup.CurrencyValidator = billinginvoicesplitlinegroupDescCurrency.Validators[0].(func(string) error)
 	// billinginvoicesplitlinegroupDescRatecardDiscounts is the schema descriptor for ratecard_discounts field.
-	billinginvoicesplitlinegroupDescRatecardDiscounts := billinginvoicesplitlinegroupFields[3].Descriptor()
+	billinginvoicesplitlinegroupDescRatecardDiscounts := billinginvoicesplitlinegroupFields[7].Descriptor()
 	billinginvoicesplitlinegroup.ValueScanner.RatecardDiscounts = billinginvoicesplitlinegroupDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
 	// billinginvoicesplitlinegroupDescPrice is the schema descriptor for price field.
-	billinginvoicesplitlinegroupDescPrice := billinginvoicesplitlinegroupFields[5].Descriptor()
+	billinginvoicesplitlinegroupDescPrice := billinginvoicesplitlinegroupFields[9].Descriptor()
 	billinginvoicesplitlinegroup.ValueScanner.Price = billinginvoicesplitlinegroupDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// billinginvoicesplitlinegroupDescID is the schema descriptor for id field.
 	billinginvoicesplitlinegroupDescID := billinginvoicesplitlinegroupMixinFields0[0].Descriptor()
