@@ -191,7 +191,7 @@ func TestComplete(t *testing.T) {
 		Credits: CreditsConfiguration{
 			Enabled:                 false,
 			EnableCreditThenInvoice: false,
-			CreditsFlag:             "billing_credits",
+			FeatureFlag:             "billing_credits",
 		},
 		Sink: SinkConfiguration{
 			GroupId:                 "openmeter-sink-worker",

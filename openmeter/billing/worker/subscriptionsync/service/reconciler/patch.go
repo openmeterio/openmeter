@@ -1,7 +1,6 @@
 package reconciler
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 
@@ -132,7 +131,7 @@ func (c patchCollectionRouter) isCreditsEnabled(ns string) (bool, error) {
 		return true, nil
 	}
 	if c.creditsFlag == "" {
-		return false, errors.New("feature flag for credit is not set")
+		return true, nil
 	}
 	gate, err := c.featureGate.WithOrg(featuregate.NamespaceOrg(ns))
 	if err != nil {

@@ -295,7 +295,7 @@ func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices Subscri
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		FeatureFlags: subscriptionsyncservice.FeatureFlags{
 			EnableCreditThenInvoice: creditsConfig.EnableCreditThenInvoice,
-			CreditsFlag:             creditsConfig.CreditsFlag,
+			CreditsFlag:             creditsConfig.FeatureFlag,
 		},
 		Logger:      logger,
 		Tracer:      tracer,
