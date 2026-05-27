@@ -201,6 +201,10 @@ func AllocateByAmount[T any](calculator Calculator, input AmountAllocationInput[
 		distributed := false
 
 		for i := range candidates {
+			if remaining.LessThan(unit) {
+				break
+			}
+
 			next := candidates[i].allocated.Add(unit)
 			if next.GreaterThan(candidates[i].amount) {
 				continue
@@ -209,7 +213,6 @@ func AllocateByAmount[T any](calculator Calculator, input AmountAllocationInput[
 			candidates[i].allocated = next
 			remaining = remaining.Sub(unit)
 			distributed = true
-			break
 		}
 
 		if !distributed {

@@ -244,8 +244,8 @@ func TestAllocateByAmount(t *testing.T) {
 
 		requireAmountAllocationsEqual(t, []currencyx.AmountAllocation[string]{
 			{Key: "C", Amount: dec("0.01")},
-			{Key: "A", Amount: dec("0.03")},
-			{Key: "B", Amount: dec("0.01")},
+			{Key: "A", Amount: dec("0.02")},
+			{Key: "B", Amount: dec("0.02")},
 		}, allocations)
 	})
 
@@ -263,8 +263,8 @@ func TestAllocateByAmount(t *testing.T) {
 		require.NoError(t, err)
 
 		requireAmountAllocationsEqual(t, []currencyx.AmountAllocation[string]{
-			{Key: "A", Amount: dec("3")},
-			{Key: "B", Amount: dec("1")},
+			{Key: "A", Amount: dec("2")},
+			{Key: "B", Amount: dec("2")},
 			{Key: "C", Amount: dec("1")},
 		}, allocations)
 	})
