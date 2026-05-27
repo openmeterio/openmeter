@@ -302,7 +302,6 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Equal(createdTC.ID, *dbDetailedLine.TaxCodeID, "detailed line tax_code_id must match")
 	s.Require().NotNil(dbDetailedLine.TaxBehavior, "tax_behavior column must be populated on the detailed line row")
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *dbDetailedLine.TaxBehavior, "detailed line tax_behavior must match")
-
 }
 
 func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, customer *customer.Customer) billing.StandardInvoice {
