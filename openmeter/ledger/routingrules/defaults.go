@@ -5,6 +5,7 @@ import "github.com/openmeterio/openmeter/openmeter/ledger"
 var DefaultValidator = Validator{
 	Rules: []RoutingRule{
 		RequireUniqueSubAccountsRule{},
+		RequireTaxDimensionScopeRule{},
 		AllowedAccountSetsRule{
 			Sets: [][]ledger.AccountType{
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable},
@@ -55,7 +56,6 @@ var DefaultValidator = Validator{
 			Right: ledger.AccountTypeCustomerReceivable,
 			Fields: []RouteField{
 				RouteFieldCurrency,
-				RouteFieldTaxCode,
 				RouteFieldFeatures,
 				RouteFieldCostBasis,
 			},
@@ -81,6 +81,8 @@ var DefaultValidator = Validator{
 			Right: ledger.AccountTypeEarnings,
 			Fields: []RouteField{
 				RouteFieldCurrency,
+				RouteFieldTaxCode,
+				RouteFieldTaxBehavior,
 				RouteFieldCostBasis,
 			},
 		},

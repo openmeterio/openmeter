@@ -136,6 +136,14 @@ func optionalTransactionAuthorizationStatusEqual(left *ledger.TransactionAuthori
 	return *left == *right
 }
 
+func optionalTaxBehaviorEqual(left *ledger.TaxBehavior, right *ledger.TaxBehavior) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+
+	return *left == *right
+}
+
 func optionalDecimalEqual(left *alpacadecimal.Decimal, right *alpacadecimal.Decimal) bool {
 	if left == nil || right == nil {
 		return left == nil && right == nil

@@ -18,6 +18,8 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 
 	taxCode := "tax-standard"
 	otherTaxCode := "tax-reduced"
+	taxBehavior := ledger.TaxBehaviorInclusive
+	otherTaxBehavior := ledger.TaxBehaviorExclusive
 	priority := 10
 	otherPriority := 20
 	costBasis := alpacadecimal.NewFromInt(1)
@@ -28,6 +30,7 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 	entry := mustImpactTestEntry(t, ledger.AccountTypeCustomerFBO, ledger.Route{
 		Currency:                       currencyx.Code("USD"),
 		TaxCode:                        &taxCode,
+		TaxBehavior:                    &taxBehavior,
 		Features:                       []string{"feature-a", "feature-b"},
 		CostBasis:                      &costBasis,
 		CreditPriority:                 &priority,
@@ -72,14 +75,39 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 		{
 			name: "tax code matches",
 			filter: ledger.ImpactFilter{
-				Route: ledger.RouteFilter{TaxCode: &taxCode},
+				Route: ledger.RouteFilter{TaxCode: mo.Some(&taxCode)},
 			},
 			want: true,
 		},
 		{
 			name: "tax code mismatch",
 			filter: ledger.ImpactFilter{
-				Route: ledger.RouteFilter{TaxCode: &otherTaxCode},
+				Route: ledger.RouteFilter{TaxCode: mo.Some(&otherTaxCode)},
+			},
+		},
+		{
+			name: "nil tax code required rejects non-nil route tax code",
+			filter: ledger.ImpactFilter{
+				Route: ledger.RouteFilter{TaxCode: mo.Some[*string](nil)},
+			},
+		},
+		{
+			name: "tax behavior matches",
+			filter: ledger.ImpactFilter{
+				Route: ledger.RouteFilter{TaxBehavior: mo.Some(&taxBehavior)},
+			},
+			want: true,
+		},
+		{
+			name: "tax behavior mismatch",
+			filter: ledger.ImpactFilter{
+				Route: ledger.RouteFilter{TaxBehavior: mo.Some(&otherTaxBehavior)},
+			},
+		},
+		{
+			name: "nil tax behavior required rejects non-nil route tax behavior",
+			filter: ledger.ImpactFilter{
+				Route: ledger.RouteFilter{TaxBehavior: mo.Some[*ledger.TaxBehavior](nil)},
 			},
 		},
 		{
@@ -153,7 +181,8 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 				AccountType: ledger.AccountTypeCustomerFBO,
 				Route: ledger.RouteFilter{
 					Currency:       currencyx.Code("USD"),
-					TaxCode:        &taxCode,
+					TaxCode:        mo.Some(&taxCode),
+					TaxBehavior:    mo.Some(&taxBehavior),
 					Features:       []string{"feature-b", "feature-a"},
 					CostBasis:      mo.Some(&costBasis),
 					CreditPriority: &priority,
@@ -176,6 +205,7 @@ func TestEntryMatchesImpactFilter_NilRouteFields(t *testing.T) {
 	t.Parallel()
 
 	taxCode := "tax-standard"
+	taxBehavior := ledger.TaxBehaviorInclusive
 	priority := 10
 	authStatus := ledger.TransactionAuthorizationStatusOpen
 
@@ -191,8 +221,28 @@ func TestEntryMatchesImpactFilter_NilRouteFields(t *testing.T) {
 		{
 			name: "tax code required but route has nil",
 			filter: ledger.ImpactFilter{
-				Route: ledger.RouteFilter{TaxCode: &taxCode},
+				Route: ledger.RouteFilter{TaxCode: mo.Some(&taxCode)},
 			},
+		},
+		{
+			name: "nil tax code required and route has nil",
+			filter: ledger.ImpactFilter{
+				Route: ledger.RouteFilter{TaxCode: mo.Some[*string](nil)},
+			},
+			want: true,
+		},
+		{
+			name: "tax behavior required but route has nil",
+			filter: ledger.ImpactFilter{
+				Route: ledger.RouteFilter{TaxBehavior: mo.Some(&taxBehavior)},
+			},
+		},
+		{
+			name: "nil tax behavior required and route has nil",
+			filter: ledger.ImpactFilter{
+				Route: ledger.RouteFilter{TaxBehavior: mo.Some[*ledger.TaxBehavior](nil)},
+			},
+			want: true,
 		},
 		{
 			name: "nil cost basis required and route has nil",
@@ -393,7 +443,7 @@ func mustImpactTestEntry(t *testing.T, accountType ledger.AccountType, route led
 	normalizedRoute, err := route.Normalize()
 	require.NoError(t, err)
 
-	routingKey, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, normalizedRoute)
+	routingKey, err := ledger.BuildRoutingKey(normalizedRoute)
 	require.NoError(t, err)
 
 	subAccountRoute, err := ledger.NewSubAccountRouteFromData("route-id", routingKey, normalizedRoute)

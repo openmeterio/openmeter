@@ -65,6 +65,8 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: input.Charge.Intent.InvoiceAt,
 		Currency:          input.Charge.Intent.Currency,
+		TaxCode:           taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
+		TaxBehavior:       taxBehaviorFromIntent(input.Charge.Intent.TaxConfig),
 		SettlementMode:    input.Charge.Intent.SettlementMode,
 		ServicePeriod:     input.ServicePeriod,
 		Amount:            input.PreTaxAmountToAllocate,
@@ -113,10 +115,12 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.TransferCustomerReceivableToAccruedTemplate{
-			At:        input.BookedAt,
-			Amount:    amount,
-			Currency:  input.Charge.Intent.Currency,
-			CostBasis: invoiceCostBasis,
+			At:          input.BookedAt,
+			Amount:      amount,
+			Currency:    input.Charge.Intent.Currency,
+			TaxCode:     taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
+			TaxBehavior: taxBehaviorFromIntent(input.Charge.Intent.TaxConfig),
+			CostBasis:   invoiceCostBasis,
 		},
 	)
 	if err != nil {

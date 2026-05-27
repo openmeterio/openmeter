@@ -122,9 +122,11 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 		c.deps,
 		c.resolutionScope(input),
 		transactions.TransferCustomerFBOToAccruedTemplate{
-			At:       input.BookedAt,
-			Currency: input.Currency,
-			Sources:  sources,
+			At:          input.BookedAt,
+			Currency:    input.Currency,
+			TaxCode:     input.TaxCode,
+			TaxBehavior: input.TaxBehavior,
+			Sources:     sources,
 		},
 	)
 	if err != nil {
@@ -170,9 +172,11 @@ func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input Colle
 			Currency: input.Currency,
 		},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-			At:       input.BookedAt,
-			Amount:   amount,
-			Currency: input.Currency,
+			At:          input.BookedAt,
+			Amount:      amount,
+			Currency:    input.Currency,
+			TaxCode:     input.TaxCode,
+			TaxBehavior: input.TaxBehavior,
 		},
 	)
 	if err != nil {

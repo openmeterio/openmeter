@@ -10,13 +10,17 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
+// routePairingKey pairs source and counterpart sub-accounts during accrual and
+// earnings correction.
 type routePairingKey struct {
-	currency  currencyx.Code
-	costBasis string
+	currency    currencyx.Code
+	taxCode     string
+	taxBehavior string
+	costBasis   string
 }
 
 func (k routePairingKey) String() string {
-	return fmt.Sprintf("currency=%s,cost_basis=%s", k.currency, k.costBasis)
+	return fmt.Sprintf("currency=%s,tax_code=%s,tax_behavior=%s,cost_basis=%s", k.currency, k.taxCode, k.taxBehavior, k.costBasis)
 }
 
 type correctionLeg struct {

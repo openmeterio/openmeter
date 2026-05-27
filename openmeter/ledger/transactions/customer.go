@@ -17,6 +17,7 @@ type IssueCustomerReceivableTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
 	CreditPriority *int
@@ -153,6 +154,7 @@ type SettleCustomerReceivableFromPaymentTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 }
 
@@ -241,6 +243,7 @@ type AuthorizeCustomerReceivablePaymentTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 }
 
@@ -325,6 +328,7 @@ type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 }
 
