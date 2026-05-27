@@ -8,5 +8,5 @@ type GetLlmCostPriceRequest struct{}
 
 type GetLlmCostPriceResponse struct {
 	HTTPMeta components.HTTPMetadata
-	Body     *components.BillingPrice
+	Body     *components.LlmCostPrice
 }

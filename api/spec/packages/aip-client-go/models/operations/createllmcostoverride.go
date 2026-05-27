@@ -10,5 +10,5 @@ type CreateLlmCostOverrideRequest struct {
 
 type CreateLlmCostOverrideResponse struct {
 	HTTPMeta components.HTTPMetadata
-	Body     *components.BillingPrice
+	Body     *components.LlmCostPrice
 }

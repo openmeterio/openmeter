@@ -5,7 +5,7 @@ package operations
 import "github.com/openmeterio/openmeter/api/spec/packages/aip-client-go/models/components"
 
 type UpdatePlanRequest struct {
-	Plan components.UpsertCustomerRequest `request:"mediaType=application/json"`
+	Plan components.UpsertPlanRequest `request:"mediaType=application/json"`
 }
 
 type UpdatePlanResponse struct {

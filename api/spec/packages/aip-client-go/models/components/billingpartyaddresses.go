@@ -7,7 +7,7 @@ import "github.com/openmeterio/openmeter/api/spec/packages/aip-client-go/interna
 // A collection of addresses for the party.
 type BillingPartyAddresses struct {
 	// Billing address.
-	BillingAddress BillingAddress `json:"billing_address"`
+	BillingAddress Address `json:"billing_address"`
 }
 
 func (b BillingPartyAddresses) MarshalJSON() ([]byte, error) {
@@ -21,9 +21,9 @@ func (b *BillingPartyAddresses) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (b *BillingPartyAddresses) GetBillingAddress() BillingAddress {
+func (b *BillingPartyAddresses) GetBillingAddress() Address {
 	if b == nil {
-		return BillingAddress{}
+		return Address{}
 	}
 	return b.BillingAddress
 }

@@ -5,7 +5,7 @@ package operations
 import "github.com/openmeterio/openmeter/api/spec/packages/aip-client-go/models/components"
 
 type UpsertTaxCodeRequest struct {
-	TaxCode components.UpsertCustomerRequest `request:"mediaType=application/json"`
+	TaxCode components.UpsertTaxCodeRequest `request:"mediaType=application/json"`
 }
 
 type UpsertTaxCodeResponse struct {

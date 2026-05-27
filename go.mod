@@ -5,6 +5,12 @@ go 1.25.5
 // ee: https://github.com/oklog/run/pull/35
 replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527-c72029d4b634
 
+// Local path to the generated Go SDK (separate go module) so e2e dogfood tests
+// can import it without publishing.
+replace github.com/openmeterio/openmeter/api/spec/packages/aip-client-go => ./api/spec/packages/aip-client-go
+
+require github.com/openmeterio/openmeter/api/spec/packages/aip-client-go v0.0.0
+
 require (
 	cirello.io/pglock v1.16.1
 	entgo.io/ent v0.14.6

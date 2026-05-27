@@ -175,7 +175,7 @@ func (s *OpenMeterLlmCostPrices) GetLlmCostPrice(ctx context.Context, priceId st
 		if err != nil {
 			return nil, err
 		}
-		var out components.BillingPrice
+		var out components.LlmCostPrice
 		if err := json.Unmarshal(body, &out); err != nil {
 			return nil, err
 		}

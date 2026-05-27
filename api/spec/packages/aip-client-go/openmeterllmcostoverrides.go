@@ -181,7 +181,7 @@ func (s *OpenMeterLlmCostOverrides) CreateLlmCostOverride(ctx context.Context, r
 		if err != nil {
 			return nil, err
 		}
-		var out components.BillingPrice
+		var out components.LlmCostPrice
 		if err := json.Unmarshal(body, &out); err != nil {
 			return nil, err
 		}

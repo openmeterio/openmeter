@@ -14,9 +14,9 @@ import (
 // organization. Provisioned automatically when the organization is created.
 type OrganizationDefaultTaxCodes struct {
 	// Default tax code for invoicing.
-	InvoicingTaxCode CustomerReference `json:"invoicing_tax_code"`
+	InvoicingTaxCode TaxCodeReference `json:"invoicing_tax_code"`
 	// Default tax code for credit grants.
-	CreditGrantTaxCode CustomerReference `json:"credit_grant_tax_code"`
+	CreditGrantTaxCode TaxCodeReference `json:"credit_grant_tax_code"`
 	// Timestamp of creation.
 	CreatedAt time.Time `json:"created_at"`
 	// Timestamp of last update.
@@ -34,16 +34,16 @@ func (o *OrganizationDefaultTaxCodes) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (o *OrganizationDefaultTaxCodes) GetInvoicingTaxCode() CustomerReference {
+func (o *OrganizationDefaultTaxCodes) GetInvoicingTaxCode() TaxCodeReference {
 	if o == nil {
-		return CustomerReference{}
+		return TaxCodeReference{}
 	}
 	return o.InvoicingTaxCode
 }
 
-func (o *OrganizationDefaultTaxCodes) GetCreditGrantTaxCode() CustomerReference {
+func (o *OrganizationDefaultTaxCodes) GetCreditGrantTaxCode() TaxCodeReference {
 	if o == nil {
-		return CustomerReference{}
+		return TaxCodeReference{}
 	}
 	return o.CreditGrantTaxCode
 }
