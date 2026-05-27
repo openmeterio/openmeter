@@ -204,9 +204,9 @@ func (r RequireTaxDimensionScopeRule) Validate(tx TxView) error {
 	for _, entry := range tx.Entries() {
 		switch entry.AccountType() {
 		case ledger.AccountTypeCustomerAccrued, ledger.AccountTypeEarnings:
-			if (entry.Route().TaxCode == nil) != (entry.Route().TaxBehavior == nil) {
+			if entry.Route().TaxCode == nil && entry.Route().TaxBehavior != nil {
 				return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
-					"reason":       "tax_dimensions_must_be_complete_on_accrued_or_earnings",
+					"reason":       "tax_behavior_requires_tax_code_on_accrued_or_earnings",
 					"account_type": entry.AccountType(),
 				})
 			}

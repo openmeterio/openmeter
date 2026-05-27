@@ -21,7 +21,7 @@ func settledBalanceForSubAccount(ctx context.Context, querier ledger.BalanceQuer
 }
 
 func taxCodeIDFromIntent(taxConfig *productcatalog.TaxCodeConfig) *string {
-	if taxConfig == nil || taxConfig.TaxCodeID == nil || taxConfig.Behavior == nil {
+	if taxConfig == nil {
 		return nil
 	}
 	return taxConfig.TaxCodeID
