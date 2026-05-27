@@ -39,6 +39,11 @@ func (h SlogHandler) Handle(err error) {
 		return
 	}
 
+	if isAPIError(err) {
+		h.Logger.Warn(err.Error())
+		return
+	}
+
 	// Warn errors are logged as warnings.
 	if wErr, ok := lo.ErrorsAs[*warnError](err); ok {
 		h.Logger.Warn(wErr.Error())
@@ -52,6 +57,11 @@ func (h SlogHandler) Handle(err error) {
 func (h SlogHandler) HandleContext(ctx context.Context, err error) {
 	// Context canceled errors are logged as warnings.
 	if errors.Is(err, context.Canceled) {
+		h.Logger.WarnContext(ctx, err.Error())
+		return
+	}
+
+	if isAPIError(err) {
 		h.Logger.WarnContext(ctx, err.Error())
 		return
 	}
