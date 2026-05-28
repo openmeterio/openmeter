@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"time"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/samber/lo"
@@ -35,10 +36,11 @@ type (
 )
 
 type queryGovernanceAccessRequest struct {
-	Namespace string
-	Body      api.GovernanceQueryRequest
-	PageSize  int
-	Cursor    *pagination.Cursor
+	Namespace    string
+	Body         api.GovernanceQueryRequest
+	PageSize     int
+	AfterCursor  *pagination.Cursor
+	BeforeCursor *pagination.Cursor
 }
 
 func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
@@ -55,7 +57,7 @@ func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 			}
 
 			pageSize := defaultPageSize
-			var cursor *pagination.Cursor
+			var afterCursor, beforeCursor *pagination.Cursor
 
 			if params.Page != nil {
 				if params.Page.Size != nil {
@@ -72,6 +74,17 @@ func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 					}
 				}
 
+				if params.Page.After != nil && params.Page.Before != nil {
+					return queryGovernanceAccessRequest{}, apierrors.NewBadRequestError(ctx,
+						fmt.Errorf("page[after] and page[before] are mutually exclusive"),
+						apierrors.InvalidParameters{{
+							Field:  "page[after]",
+							Reason: "cannot be combined with page[before]",
+							Source: apierrors.InvalidParamSourceQuery,
+						}},
+					)
+				}
+
 				if params.Page.After != nil {
 					decoded, err := pagination.DecodeCursor(*params.Page.After)
 					if err != nil {
@@ -81,15 +94,28 @@ func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 							Source: apierrors.InvalidParamSourceQuery,
 						}})
 					}
-					cursor = decoded
+					afterCursor = decoded
+				}
+
+				if params.Page.Before != nil {
+					decoded, err := pagination.DecodeCursor(*params.Page.Before)
+					if err != nil {
+						return queryGovernanceAccessRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{
+							Field:  "page[before]",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						}})
+					}
+					beforeCursor = decoded
 				}
 			}
 
 			req := queryGovernanceAccessRequest{
-				Namespace: ns,
-				Body:      body,
-				PageSize:  pageSize,
-				Cursor:    cursor,
+				Namespace:    ns,
+				Body:         body,
+				PageSize:     pageSize,
+				AfterCursor:  afterCursor,
+				BeforeCursor: beforeCursor,
 			}
 
 			return req, nil
@@ -160,24 +186,47 @@ func (h *handler) processGovernanceQuery(ctx context.Context, req queryGovernanc
 		return customers[i].Customer.ID < customers[j].Customer.ID
 	})
 
-	// Apply cursor: skip everything at or before the cursor position.
-	if req.Cursor != nil {
-		afterCursor := *req.Cursor
-		start := len(customers) // default: nothing left if cursor is beyond all items
+	// Apply cursor pagination.
+	var hasPrev, hasNext bool
+	if req.BeforeCursor != nil {
+		// Backward: take the last pageSize items strictly before the cursor.
+		bc := *req.BeforeCursor
+		end := 0
 		for i, rc := range customers {
-			c := pagination.NewCursor(rc.Customer.CreatedAt, rc.Customer.ID)
-			if c.Time.After(afterCursor.Time) || (c.Time.Equal(afterCursor.Time) && c.ID > afterCursor.ID) {
-				start = i
+			c := pagination.NewCursor(rc.Customer.CreatedAt.Truncate(time.Second), rc.Customer.ID)
+			if c.Time.After(bc.Time) || (c.Time.Equal(bc.Time) && c.ID >= bc.ID) {
 				break
 			}
+			end = i + 1
 		}
+		candidates := customers[:end]
+		hasPrev = len(candidates) > req.PageSize
+		if hasPrev {
+			candidates = candidates[len(candidates)-req.PageSize:]
+		}
+		// next is always set in backward mode: the before-cursor item itself is forward.
+		hasNext = true
+		customers = candidates
+	} else {
+		// Forward (after cursor or first page).
+		start := 0
+		if req.AfterCursor != nil {
+			ac := *req.AfterCursor
+			start = len(customers) // beyond all items if cursor is past the end
+			for i, rc := range customers {
+				c := pagination.NewCursor(rc.Customer.CreatedAt.Truncate(time.Second), rc.Customer.ID)
+				if c.Time.After(ac.Time) || (c.Time.Equal(ac.Time) && c.ID > ac.ID) {
+					start = i
+					break
+				}
+			}
+		}
+		hasPrev = start > 0
 		customers = customers[start:]
-	}
-
-	// Apply page size.
-	hasMore := len(customers) > req.PageSize
-	if hasMore {
-		customers = customers[:req.PageSize]
+		hasNext = len(customers) > req.PageSize
+		if hasNext {
+			customers = customers[:req.PageSize]
+		}
 	}
 
 	// Compute feature access for each paged customer.
@@ -206,7 +255,7 @@ func (h *handler) processGovernanceQuery(ctx context.Context, req queryGovernanc
 	return QueryGovernanceAccessResponse{
 		Data:   results,
 		Errors: queryErrors,
-		Meta:   buildCursorMeta(customers, req.PageSize, hasMore),
+		Meta:   buildCursorMeta(customers, req.PageSize, hasPrev, hasNext),
 	}, nil
 }
 
@@ -296,7 +345,7 @@ func (h *handler) resolveAbsentFeature(ctx context.Context, ns, featureKey strin
 	}, nil
 }
 
-func buildCursorMeta(customers []*resolvedCustomer, pageSize int, hasMore bool) api.CursorMeta {
+func buildCursorMeta(customers []*resolvedCustomer, pageSize int, hasPrev, hasNext bool) api.CursorMeta {
 	meta := api.CursorMeta{
 		Page: api.CursorMetaPage{
 			Next:     nullable.NewNullNullable[string](),
@@ -308,12 +357,15 @@ func buildCursorMeta(customers []*resolvedCustomer, pageSize int, hasMore bool) 
 	if len(customers) > 0 {
 		first := customers[0]
 		last := customers[len(customers)-1]
-		firstCursor := pagination.NewCursor(first.Customer.CreatedAt, first.Customer.ID)
-		lastCursor := pagination.NewCursor(last.Customer.CreatedAt, last.Customer.ID)
+		firstCursor := pagination.NewCursor(first.Customer.CreatedAt.Truncate(time.Second), first.Customer.ID)
+		lastCursor := pagination.NewCursor(last.Customer.CreatedAt.Truncate(time.Second), last.Customer.ID)
 		meta.Page.First = lo.ToPtr(firstCursor.Encode())
 		meta.Page.Last = lo.ToPtr(lastCursor.Encode())
-		if hasMore {
+		if hasNext {
 			meta.Page.Next = nullable.NewNullableWithValue(lastCursor.Encode())
+		}
+		if hasPrev {
+			meta.Page.Previous = nullable.NewNullableWithValue(firstCursor.Encode())
 		}
 	}
 

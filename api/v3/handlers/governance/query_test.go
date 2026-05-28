@@ -33,6 +33,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
+	pagination "github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -519,4 +520,101 @@ func TestQueryGovernanceAccess_MeteredEntitlement_Exhausted(t *testing.T) {
 	assert.False(t, featureAccess.HasAccess)
 	require.NotNil(t, featureAccess.Reason)
 	assert.Equal(t, api.GovernanceFeatureAccessReasonCodeUsageLimitReached, featureAccess.Reason.Code)
+}
+
+func TestQueryGovernanceAccess_Pagination(t *testing.T) {
+	// given: 3 customers (c1, c2, c3 in creation order); pageSize=1
+	deps := setupTestDeps(t)
+	t.Cleanup(func() { deps.close(t) })
+
+	now := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.SetTime(now)
+	defer clock.ResetTime()
+
+	h := newTestHandler(deps)
+	ns := newTestNamespace(t)
+
+	createCustomer(t, deps, ns, "c1", []string{"c1"})
+	clock.SetTime(now.Add(time.Second))
+	createCustomer(t, deps, ns, "c2", []string{"c2"})
+	clock.SetTime(now.Add(2 * time.Second))
+	createCustomer(t, deps, ns, "c3", []string{"c3"})
+
+	allKeys := []string{"c1", "c2", "c3"}
+
+	decodeCursor := func(encoded string) *pagination.Cursor {
+		c, err := pagination.DecodeCursor(encoded)
+		require.NoError(t, err)
+		return c
+	}
+
+	// Page 1: [c1] — no previous, next points to c1
+	page1, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
+		Namespace: ns,
+		Body:      api.GovernanceQueryRequest{Customer: api.GovernanceQueryRequestCustomers{Keys: allKeys}},
+		PageSize:  1,
+	})
+	require.NoError(t, err)
+	require.Len(t, page1.Data, 1)
+	assert.Equal(t, "c1", page1.Data[0].Matched[0])
+	assert.True(t, page1.Meta.Page.Previous.IsNull(), "no previous on first page")
+	require.False(t, page1.Meta.Page.Next.IsNull(), "next must be set on page 1")
+
+	next1, _ := page1.Meta.Page.Next.Get()
+
+	// Page 2: [c2] — previous set, next set
+	page2, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
+		Namespace:   ns,
+		Body:        api.GovernanceQueryRequest{Customer: api.GovernanceQueryRequestCustomers{Keys: allKeys}},
+		PageSize:    1,
+		AfterCursor: decodeCursor(next1),
+	})
+	require.NoError(t, err)
+	require.Len(t, page2.Data, 1)
+	assert.Equal(t, "c2", page2.Data[0].Matched[0])
+	require.False(t, page2.Meta.Page.Previous.IsNull(), "previous must be set on page 2")
+	require.False(t, page2.Meta.Page.Next.IsNull(), "next must be set on page 2")
+
+	next2, _ := page2.Meta.Page.Next.Get()
+	prev2, _ := page2.Meta.Page.Previous.Get()
+
+	// Page 3 (last): [c3] — previous set, no next
+	page3, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
+		Namespace:   ns,
+		Body:        api.GovernanceQueryRequest{Customer: api.GovernanceQueryRequestCustomers{Keys: allKeys}},
+		PageSize:    1,
+		AfterCursor: decodeCursor(next2),
+	})
+	require.NoError(t, err)
+	require.Len(t, page3.Data, 1)
+	assert.Equal(t, "c3", page3.Data[0].Matched[0])
+	require.False(t, page3.Meta.Page.Previous.IsNull(), "previous must be set on last page")
+	assert.True(t, page3.Meta.Page.Next.IsNull(), "no next on last page")
+
+	// Cursor past end → empty data
+	require.NotNil(t, page3.Meta.Page.Last, "last cursor must be set")
+	last3 := *page3.Meta.Page.Last
+	pastEnd, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
+		Namespace:   ns,
+		Body:        api.GovernanceQueryRequest{Customer: api.GovernanceQueryRequestCustomers{Keys: allKeys}},
+		PageSize:    1,
+		AfterCursor: decodeCursor(last3),
+	})
+	require.NoError(t, err)
+	assert.Empty(t, pastEnd.Data)
+	assert.True(t, pastEnd.Meta.Page.Next.IsNull())
+	assert.True(t, pastEnd.Meta.Page.Previous.IsNull())
+
+	// Backward from page 2's previous cursor → [c1], no previous, next set
+	pageBack, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
+		Namespace:    ns,
+		Body:         api.GovernanceQueryRequest{Customer: api.GovernanceQueryRequestCustomers{Keys: allKeys}},
+		PageSize:     1,
+		BeforeCursor: decodeCursor(prev2),
+	})
+	require.NoError(t, err)
+	require.Len(t, pageBack.Data, 1)
+	assert.Equal(t, "c1", pageBack.Data[0].Matched[0])
+	assert.True(t, pageBack.Meta.Page.Previous.IsNull(), "no previous before c1")
+	assert.False(t, pageBack.Meta.Page.Next.IsNull(), "next must be set in backward result")
 }
