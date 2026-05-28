@@ -361,7 +361,8 @@ func TestQueryGovernanceAccess_MixedHitsAndMisses(t *testing.T) {
 }
 
 func TestQueryGovernanceAccess_NoFeatureKeysReturnsAll(t *testing.T) {
-	// When feature.keys is omitted, all entitlements are returned.
+	// When feature.keys is omitted, all org features are returned — including ones
+	// the customer has no entitlement for (marked FEATURE_UNAVAILABLE).
 	deps := setupTestDeps(t)
 	t.Cleanup(func() { deps.close(t) })
 
@@ -371,6 +372,8 @@ func TestQueryGovernanceAccess_NoFeatureKeysReturnsAll(t *testing.T) {
 	cust := createCustomer(t, deps, ns, "acme", []string{"acme"})
 	createBooleanFeatureAndEntitlement(t, deps, ns, "feat-1", cust)
 	createBooleanFeatureAndEntitlement(t, deps, ns, "feat-2", cust)
+	// feat-3 exists in the org but the customer has no entitlement for it.
+	createOrphanFeature(t, deps, ns, "feat-3")
 
 	resp, err := h.processGovernanceQuery(t.Context(), queryGovernanceAccessRequest{
 		Namespace: ns,
@@ -379,9 +382,13 @@ func TestQueryGovernanceAccess_NoFeatureKeysReturnsAll(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, resp.Data, 1)
-	assert.Len(t, resp.Data[0].Features, 2)
+	assert.Len(t, resp.Data[0].Features, 3)
 	assert.True(t, resp.Data[0].Features["feat-1"].HasAccess)
 	assert.True(t, resp.Data[0].Features["feat-2"].HasAccess)
+	feat3 := resp.Data[0].Features["feat-3"]
+	assert.False(t, feat3.HasAccess)
+	require.NotNil(t, feat3.Reason)
+	assert.Equal(t, api.GovernanceFeatureAccessReasonCodeFeatureUnavailable, feat3.Reason.Code)
 }
 
 // createMeterInPG writes a meter row to ent DB (FK constraint on features.meter_id).

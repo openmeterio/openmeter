@@ -211,13 +211,29 @@ func (h *handler) processGovernanceQuery(ctx context.Context, req queryGovernanc
 }
 
 // buildFeatureAccess returns the feature access map for a single customer.
-// If featureKeys is non-empty, only those keys are evaluated; otherwise all entitlements are returned.
+// If featureKeys is non-empty, only those keys are evaluated.
+// If featureKeys is empty, all non-archived features in the org are returned;
+// features the customer has no entitlement for are marked FEATURE_UNAVAILABLE.
 func (h *handler) buildFeatureAccess(ctx context.Context, ns string, featureKeys []string, access entitlement.Access) (map[string]api.GovernanceFeatureAccess, error) {
 	result := make(map[string]api.GovernanceFeatureAccess)
 
 	if len(featureKeys) == 0 {
-		for key, ev := range access.Entitlements {
-			result[key] = mapEntitlementToAccess(ev.Value)
+		orgFeatures, err := h.listAllOrgFeatures(ctx, ns)
+		if err != nil {
+			return nil, err
+		}
+		for _, f := range orgFeatures {
+			if ev, ok := access.Entitlements[f.Key]; ok {
+				result[f.Key] = mapEntitlementToAccess(ev.Value)
+			} else {
+				result[f.Key] = api.GovernanceFeatureAccess{
+					HasAccess: false,
+					Reason: &api.GovernanceFeatureAccessReason{
+						Code:    api.GovernanceFeatureAccessReasonCodeFeatureUnavailable,
+						Message: fmt.Sprintf("feature %q is not available for this customer", f.Key),
+					},
+				}
+			}
 		}
 		return result, nil
 	}
@@ -236,6 +252,21 @@ func (h *handler) buildFeatureAccess(ctx context.Context, ns string, featureKeys
 	}
 
 	return result, nil
+}
+
+// listAllOrgFeatures fetches all non-archived features in the namespace.
+// Uses the deprecated Limit field to fetch in one shot; acceptable for prototype scale.
+func (h *handler) listAllOrgFeatures(ctx context.Context, ns string) ([]feature.Feature, error) {
+	const featureFetchLimit = 10_000
+	res, err := h.featureConnector.ListFeatures(ctx, feature.ListFeaturesParams{
+		Namespace:       ns,
+		IncludeArchived: false,
+		Limit:           featureFetchLimit,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list org features: %w", err)
+	}
+	return res.Items, nil
 }
 
 // resolveAbsentFeature determines the reason a requested feature key is absent from GetAccess results:
