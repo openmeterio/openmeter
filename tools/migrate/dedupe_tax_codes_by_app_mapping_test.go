@@ -2,6 +2,7 @@ package migrate_test
 
 import (
 	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
@@ -49,6 +50,19 @@ func TestDedupeTaxCodesByAppMappingMigration(t *testing.T) {
 
 	// organization_default_tax_codes: both FK columns pointing at group1Loser.
 	orgDTCID := ulid.Make().String()
+
+	// IDs for the billing_invoice_lines chain.
+	// Three apps (tax, invoicing, payment), a billing profile, a dedicated
+	// workflow config (separate from wfcRowID which has a tax_code_id FK), and
+	// a billing invoice are the minimum parent rows required.
+	taxAppID := ulid.Make().String()
+	invoicingAppID := ulid.Make().String()
+	paymentAppID := ulid.Make().String()
+	profileWfcID := ulid.Make().String() // workflow config for the billing profile
+	billingProfileID := ulid.Make().String()
+	invoiceWfcID := ulid.Make().String() // workflow config snapshot for the invoice
+	billingInvoiceID := ulid.Make().String()
+	billingLineID := ulid.Make().String()
 
 	runner{
 		stops: stops{
@@ -121,20 +135,27 @@ func TestDedupeTaxCodesByAppMappingMigration(t *testing.T) {
 					require.NoError(t, err)
 
 					// billing_workflow_configs row pointing at group1Loser.
+					// invoice_default_tax_settings carries the loser id as a JSONB scalar —
+					// this exercises the Step 2 JSONB repoint for billing_workflow_configs.
+					// Pass the full JSON string as $4 to avoid parameter type ambiguity that
+					// arises when $3 is inferred as char(26) but also used in JSONB context.
+					wfcTaxSettings := fmt.Sprintf(`{"tax_code_id":%q}`, group1Loser)
 					_, err = db.Exec(`
 						INSERT INTO billing_workflow_configs (
 							id, namespace, created_at, updated_at,
 							collection_alignment, line_collection_period,
 							invoice_auto_advance, invoice_draft_period,
 							invoice_due_after, invoice_collection_method,
-							invoice_progressive_billing, tax_code_id
+							invoice_progressive_billing, tax_code_id,
+							invoice_default_tax_settings
 						) VALUES (
 							$1, $2, NOW(), NOW(),
 							'subscription', 'P1M',
 							true, 'P1D',
 							'P30D', 'charge_automatically',
-							false, $3
-						)`, wfcRowID, namespace, group1Loser)
+							false, $3,
+							$4::jsonb
+						)`, wfcRowID, namespace, group1Loser, wfcTaxSettings)
 					require.NoError(t, err)
 
 					// plan → plan_phases → plan_rate_cards chain.
@@ -204,14 +225,20 @@ func TestDedupeTaxCodesByAppMappingMigration(t *testing.T) {
 						)`, subPhaseID, namespace, subID)
 					require.NoError(t, err)
 
+					// subscription_items: tax_config carries the loser id as a JSONB scalar —
+					// exercises the Step 2 JSONB repoint for subscription_items.
+					// Pass the full JSON string as $5 to avoid parameter type ambiguity.
+					subItemTaxConfig := fmt.Sprintf(`{"tax_code_id":%q}`, group1Loser)
 					_, err = db.Exec(`
 						INSERT INTO subscription_items (
 							id, namespace, created_at, updated_at,
-							active_from, key, name, phase_id, tax_code_id
+							active_from, key, name, phase_id, tax_code_id,
+							tax_config
 						) VALUES (
 							$1, $2, NOW(), NOW(),
-							'2024-01-01 00:00:00', 'item-1', 'Item 1', $3, $4
-						)`, subItemID, namespace, subPhaseID, group1Loser)
+							'2024-01-01 00:00:00', 'item-1', 'Item 1', $3, $4,
+							$5::jsonb
+						)`, subItemID, namespace, subPhaseID, group1Loser, subItemTaxConfig)
 					require.NoError(t, err)
 
 					// charge_flat_fees row pointing at group1Loser.
@@ -247,6 +274,123 @@ func TestDedupeTaxCodesByAppMappingMigration(t *testing.T) {
 						) VALUES (
 							$1, $2, NOW(), NOW(), $3, $3
 						)`, orgDTCID, namespace, group1Loser)
+					require.NoError(t, err)
+
+					// billing_invoice_lines: exercises Step 2 JSONB scalar repoint and the
+					// Step 3 full entity snapshot rewrite. The tax_config carries both
+					// tax_code_id (scalar) and tax_code (a minimal TaxCode snapshot using the
+					// loser's id/key/name). After the migration both must reference the winner.
+					//
+					// Parent chain: apps → billing_workflow_configs → billing_profiles,
+					// apps → billing_invoices → billing_invoice_lines.
+					for _, row := range []struct {
+						id, name, appType, status string
+					}{
+						{taxAppID, "Stripe Tax", "stripe", "active"},
+						{invoicingAppID, "Stripe Invoicing", "stripe", "active"},
+						{paymentAppID, "Stripe Payment", "stripe", "active"},
+					} {
+						_, err = db.Exec(`
+							INSERT INTO apps (id, namespace, created_at, updated_at, name, type, status)
+							VALUES ($1, $2, NOW(), NOW(), $3, $4, $5)
+						`, row.id, namespace, row.name, row.appType, row.status)
+						require.NoError(t, err)
+					}
+
+					_, err = db.Exec(`
+						INSERT INTO billing_workflow_configs (
+							id, namespace, created_at, updated_at,
+							collection_alignment, line_collection_period,
+							invoice_auto_advance, invoice_draft_period,
+							invoice_due_after, invoice_collection_method,
+							invoice_progressive_billing
+						) VALUES (
+							$1, $2, NOW(), NOW(),
+							'subscription', 'P1M',
+							true, 'P1D',
+							'P30D', 'charge_automatically',
+							false
+						)`, profileWfcID, namespace)
+					require.NoError(t, err)
+
+					_, err = db.Exec(`
+						INSERT INTO billing_profiles (
+							id, namespace, created_at, updated_at,
+							name, supplier_name, "default",
+							tax_app_id, invoicing_app_id, payment_app_id,
+							workflow_config_id
+						) VALUES (
+							$1, $2, NOW(), NOW(),
+							'Test Profile', 'Test Supplier', true,
+							$3, $4, $5, $6
+						)`, billingProfileID, namespace, taxAppID, invoicingAppID, paymentAppID, profileWfcID)
+					require.NoError(t, err)
+
+					_, err = db.Exec(`
+						INSERT INTO billing_workflow_configs (
+							id, namespace, created_at, updated_at,
+							collection_alignment, line_collection_period,
+							invoice_auto_advance, invoice_draft_period,
+							invoice_due_after, invoice_collection_method,
+							invoice_progressive_billing
+						) VALUES (
+							$1, $2, NOW(), NOW(),
+							'subscription', 'P1M',
+							true, 'P1D',
+							'P30D', 'charge_automatically',
+							false
+						)`, invoiceWfcID, namespace)
+					require.NoError(t, err)
+
+					_, err = db.Exec(`
+						INSERT INTO billing_invoices (
+							id, namespace, created_at, updated_at,
+							supplier_name, customer_name, number, type, status, currency,
+							amount, taxes_total, taxes_inclusive_total, taxes_exclusive_total,
+							charges_total, discounts_total, credits_total, total,
+							tax_app_id, invoicing_app_id, payment_app_id,
+							source_billing_profile_id, workflow_config_id, customer_id
+						) VALUES (
+							$1, $2, NOW(), NOW(),
+							'Test Supplier', 'Test Customer', 'INV-001', 'gathering', 'gathering', 'USD',
+							0, 0, 0, 0, 0, 0, 0, 0,
+							$3, $4, $5,
+							$6, $7, $8
+						)`, billingInvoiceID, namespace,
+						taxAppID, invoicingAppID, paymentAppID,
+						billingProfileID, invoiceWfcID, customerID)
+					require.NoError(t, err)
+
+					// The loser snapshot embedded in tax_config.tax_code uses realistic
+					// timestamps (t1/t2) and the loser's app_mappings. After the migration
+					// the snapshot must be replaced with the winner's fields.
+					loserSnapshot := fmt.Sprintf(
+						`{"namespace":%q,"id":%q,"createdAt":%q,"updatedAt":%q,"key":"stripe_txcd_10103001","name":"Stripe txcd_10103001 (auto)","app_mappings":[{"app_type":"stripe","tax_code":"txcd_10103001"}]}`,
+						namespace, group1Loser,
+						t1.Format(time.RFC3339),
+						t1.Format(time.RFC3339),
+					)
+					// Pass the full tax_config JSON as $4 to avoid parameter type ambiguity.
+					// The JSONB contains both the scalar tax_code_id and the full entity snapshot.
+					lineTaxConfig := fmt.Sprintf(`{"tax_code_id":%q,"tax_code":%s}`, group1Loser, loserSnapshot)
+					_, err = db.Exec(`
+						INSERT INTO billing_invoice_lines (
+							id, namespace, created_at, updated_at,
+							name, currency, type, status,
+							amount, taxes_total, taxes_inclusive_total, taxes_exclusive_total,
+							charges_total, discounts_total, credits_total, total,
+							period_start, period_end, managed_by, invoice_at,
+							tax_code_id, tax_config,
+							invoice_id
+						) VALUES (
+							$1, $2, NOW(), NOW(),
+							'Test Line', 'USD', 'flat_fee', 'valid',
+							100, 0, 0, 0, 100, 0, 0, 100,
+							'2024-01-01 00:00:00', '2024-02-01 00:00:00',
+							'subscription', '2024-02-01 00:00:00',
+							$3, $4::jsonb,
+							$5
+						)`, billingLineID, namespace, group1Loser, lineTaxConfig, billingInvoiceID)
 					require.NoError(t, err)
 				},
 			},
@@ -301,6 +445,15 @@ func TestDedupeTaxCodesByAppMappingMigration(t *testing.T) {
 					require.NoError(t, err)
 					require.Equal(t, group1Winner, taxCodeID, "billing_workflow_configs.tax_code_id should be repointed to group1Winner")
 
+					// billing_workflow_configs JSONB scalar must also be repointed.
+					var wfcJSONBTaxCodeID string
+					err = db.QueryRow(`
+						SELECT invoice_default_tax_settings ->> 'tax_code_id'
+						FROM billing_workflow_configs WHERE id = $1
+					`, wfcRowID).Scan(&wfcJSONBTaxCodeID)
+					require.NoError(t, err)
+					require.Equal(t, group1Winner, wfcJSONBTaxCodeID, "billing_workflow_configs.invoice_default_tax_settings.tax_code_id should be repointed to group1Winner")
+
 					// plan_rate_cards FK must now point at group1Winner.
 					err = db.QueryRow(`
 						SELECT tax_code_id FROM plan_rate_cards WHERE id = $1
@@ -314,6 +467,15 @@ func TestDedupeTaxCodesByAppMappingMigration(t *testing.T) {
 					`, subItemID).Scan(&taxCodeID)
 					require.NoError(t, err)
 					require.Equal(t, group1Winner, taxCodeID, "subscription_items.tax_code_id should be repointed to group1Winner")
+
+					// subscription_items JSONB scalar must also be repointed.
+					var subItemJSONBTaxCodeID string
+					err = db.QueryRow(`
+						SELECT tax_config ->> 'tax_code_id'
+						FROM subscription_items WHERE id = $1
+					`, subItemID).Scan(&subItemJSONBTaxCodeID)
+					require.NoError(t, err)
+					require.Equal(t, group1Winner, subItemJSONBTaxCodeID, "subscription_items.tax_config.tax_code_id should be repointed to group1Winner")
 
 					// charge_flat_fees FK must now point at group1Winner.
 					err = db.QueryRow(`
@@ -331,6 +493,36 @@ func TestDedupeTaxCodesByAppMappingMigration(t *testing.T) {
 					require.NoError(t, err)
 					require.Equal(t, group1Winner, invTaxCodeID, "organization_default_tax_codes.invoicing_tax_code_id should be repointed to group1Winner")
 					require.Equal(t, group1Winner, cgTaxCodeID, "organization_default_tax_codes.credit_grant_tax_code_id should be repointed to group1Winner")
+
+					// billing_invoice_lines: scalar tax_code_id FK must be repointed.
+					err = db.QueryRow(`
+						SELECT tax_code_id FROM billing_invoice_lines WHERE id = $1
+					`, billingLineID).Scan(&taxCodeID)
+					require.NoError(t, err)
+					require.Equal(t, group1Winner, taxCodeID, "billing_invoice_lines.tax_code_id should be repointed to group1Winner")
+
+					// billing_invoice_lines: JSONB scalar tax_config.tax_code_id must be repointed.
+					var lineTaxConfigID string
+					err = db.QueryRow(`
+						SELECT tax_config ->> 'tax_code_id'
+						FROM billing_invoice_lines WHERE id = $1
+					`, billingLineID).Scan(&lineTaxConfigID)
+					require.NoError(t, err)
+					require.Equal(t, group1Winner, lineTaxConfigID, "billing_invoice_lines.tax_config.tax_code_id should be repointed to group1Winner")
+
+					// billing_invoice_lines: full entity snapshot (tax_config.tax_code) must
+					// reflect the winner's id, key, and name (Step 3 snapshot rewrite).
+					var snapshotID, snapshotKey, snapshotName string
+					err = db.QueryRow(`
+						SELECT tax_config -> 'tax_code' ->> 'id',
+						       tax_config -> 'tax_code' ->> 'key',
+						       tax_config -> 'tax_code' ->> 'name'
+						FROM billing_invoice_lines WHERE id = $1
+					`, billingLineID).Scan(&snapshotID, &snapshotKey, &snapshotName)
+					require.NoError(t, err)
+					require.Equal(t, group1Winner, snapshotID, "billing_invoice_lines snapshot id should be rewritten to group1Winner")
+					require.Equal(t, "saas_business", snapshotKey, "billing_invoice_lines snapshot key should match group1Winner's key")
+					require.Equal(t, "SaaS Business", snapshotName, "billing_invoice_lines snapshot name should match group1Winner's name")
 				},
 			},
 		},
