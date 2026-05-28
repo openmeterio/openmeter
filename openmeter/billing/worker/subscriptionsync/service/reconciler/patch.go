@@ -80,9 +80,15 @@ func (c patchCollectionRouterConfig) Validate() error {
 	if c.capacity <= 0 {
 		return fmt.Errorf("capacity is required")
 	}
+
 	if c.invoices == nil {
 		return fmt.Errorf("invoices is required")
 	}
+
+	if c.featureGate == nil {
+		return fmt.Errorf("feature gate is required")
+	}
+
 	return nil
 }
 
@@ -133,11 +139,7 @@ func (c patchCollectionRouter) isCreditsEnabled(ns string) (bool, error) {
 	if c.creditsFlag == "" {
 		return true, nil
 	}
-	gate, err := c.featureGate.WithOrg(featuregate.NamespaceOrg(ns))
-	if err != nil {
-		return false, err
-	}
-	return gate.EvaluateBool(c.creditsFlag, false)
+	return c.featureGate.EvaluateBool(ns, c.creditsFlag, false)
 }
 
 func (c patchCollectionRouter) ResolveDefaultCollection(target targetstate.StateItem) (PatchCollection, error) {

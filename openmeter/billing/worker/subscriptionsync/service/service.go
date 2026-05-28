@@ -59,6 +59,10 @@ func (c Config) Validate() error {
 		return fmt.Errorf("tracer is required")
 	}
 
+	if c.FeatureGate == nil {
+		return fmt.Errorf("feature gate is required")
+	}
+
 	return nil
 }
 

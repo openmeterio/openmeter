@@ -49,6 +49,10 @@ func (c Config) Validate() error {
 		return fmt.Errorf("charges service is required when credit then invoice is enabled")
 	}
 
+	if c.FeatureGate == nil {
+		return fmt.Errorf("feature gate is required")
+	}
+
 	return nil
 }
 
