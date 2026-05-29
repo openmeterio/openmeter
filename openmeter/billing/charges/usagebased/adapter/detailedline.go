@@ -37,7 +37,6 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge usagebased.Char
 				dbchargeusagebasedrundetailedline.RunIDIn(runIDs...),
 				dbchargeusagebasedrundetailedline.DeletedAtIsNil(),
 			).
-			WithTaxCode().
 			All(ctx)
 		if err != nil {
 			return usagebased.Charge{}, err

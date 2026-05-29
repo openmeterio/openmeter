@@ -37,7 +37,6 @@ func (a *adapter) FetchCurrentRunDetailedLines(ctx context.Context, charge flatf
 				dbchargeflatfeerundetailedline.RunIDEQ(currentRunID.ID),
 				dbchargeflatfeerundetailedline.DeletedAtIsNil(),
 			).
-			WithTaxCode().
 			All(ctx)
 		if err != nil {
 			return flatfee.Charge{}, err
