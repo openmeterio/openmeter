@@ -922,18 +922,29 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// From existing lines, one is removed and the rest are updated.
 
 		filteredUpdatedLines := lo.FilterMap(stripeInvoice.Lines.Data, func(line *stripe.InvoiceLineItem, idx int) (*stripeclient.StripeInvoiceItemWithID, bool) {
+			params := &stripe.InvoiceItemParams{
+				Amount:      &line.Amount,
+				Description: &line.Description,
+				Period: &stripe.InvoiceItemPeriodParams{
+					Start: &line.Period.Start,
+					End:   &line.Period.End,
+				},
+				Metadata: line.Metadata,
+			}
+
+			switch line.Description {
+			case "UBP - AI Usecase: usage in period (103,000,025 x $0.000001)":
+				params.TaxBehavior = lo.ToPtr(string(stripe.PriceCurrencyOptionsTaxBehaviorInclusive))
+				params.TaxCode = lo.ToPtr(defaultStripeTaxCode)
+			case "UBP - FLAT per any usage":
+				params.TaxBehavior = lo.ToPtr(string(stripe.PriceCurrencyOptionsTaxBehaviorExclusive))
+				params.TaxCode = lo.ToPtr(overrideStripeTaxCode)
+			}
+
 			// No changes to the line items.
 			return &stripeclient.StripeInvoiceItemWithID{
-				ID: line.ID,
-				InvoiceItemParams: &stripe.InvoiceItemParams{
-					Amount:      &line.Amount,
-					Description: &line.Description,
-					Period: &stripe.InvoiceItemPeriodParams{
-						Start: &line.Period.Start,
-						End:   &line.Period.End,
-					},
-					Metadata: line.Metadata,
-				},
+				ID:                line.ID,
+				InvoiceItemParams: params,
 			}, line.ID != stripeLineIDToRemove
 		})
 
