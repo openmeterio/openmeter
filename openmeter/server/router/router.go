@@ -440,6 +440,7 @@ func NewRouter(config Config) (*Router, error) {
 		staticNamespaceDecoder,
 		config.Plan,
 		config.Credits,
+		config.FeatureGate,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
@@ -481,6 +482,7 @@ func NewRouter(config Config) (*Router, error) {
 			CustomerService:             config.Customer,
 			Logger:                      config.Logger,
 			Credits:                     config.Credits,
+			FeatureGate:                 config.FeatureGate,
 		},
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)

@@ -121,7 +121,12 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 				return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("failed to create plan request: %w", err))
 			}
 
-			if !h.credits.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
+			creditEnabled, err := h.isCreditsEnabled(ns)
+			if err != nil {
+				return CreatePlanRequest{}, fmt.Errorf("failed to create plan request: %w", err)
+			}
+
+			if !creditEnabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
 				return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 			}
 
@@ -182,7 +187,12 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 			req.IgnoreNonCriticalIssues = true
 
 			// Validate credit_only settlement mode when credits are disabled
-			if !h.credits.Enabled && req.SettlementMode != nil && *req.SettlementMode == productcatalog.CreditOnlySettlementMode {
+			creditEnabled, err := h.isCreditsEnabled(ns)
+			if err != nil {
+				return UpdatePlanRequest{}, fmt.Errorf("failed to update plan request: %w", err)
+			}
+
+			if !creditEnabled && req.SettlementMode != nil && *req.SettlementMode == productcatalog.CreditOnlySettlementMode {
 				return UpdatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 			}
 
