@@ -778,14 +778,14 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		lineWithDefaultTax, found := lo.Find(expectedInvoiceAddLines, func(line *stripe.InvoiceItemParams) bool {
 			return lo.FromPtr(line.Description) == "UBP - AI Usecase: usage in period (103,000,025 x $0.000001)"
 		})
-		s.True(found)
+		s.Require().True(found)
 		s.Equal(string(stripe.PriceCurrencyOptionsTaxBehaviorInclusive), lo.FromPtr(lineWithDefaultTax.TaxBehavior))
 		s.Equal(defaultStripeTaxCode, lo.FromPtr(lineWithDefaultTax.TaxCode))
 
 		lineWithOverrideTax, found := lo.Find(expectedInvoiceAddLines, func(line *stripe.InvoiceItemParams) bool {
 			return lo.FromPtr(line.Description) == "UBP - FLAT per any usage"
 		})
-		s.True(found)
+		s.Require().True(found)
 		s.Equal(string(stripe.PriceCurrencyOptionsTaxBehaviorExclusive), lo.FromPtr(lineWithOverrideTax.TaxBehavior))
 		s.Equal(overrideStripeTaxCode, lo.FromPtr(lineWithOverrideTax.TaxCode))
 
