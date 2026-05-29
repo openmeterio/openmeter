@@ -30,7 +30,23 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 		// Let's activate the state machine for the credit purchase charge
 		switch charge.Intent.Settlement.Type() {
 		case creditpurchase.SettlementTypePromotional:
-			charge, err = s.onPromotionalCreditPurchase(ctx, charge)
+			stateMachine, stateMachineErr := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
+				Charge:  charge,
+				Adapter: s.adapter,
+				Service: s,
+			})
+			if stateMachineErr != nil {
+				return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("new promotional state machine: %w", stateMachineErr)
+			}
+
+			advancedCharge, stateMachineErr := stateMachine.AdvanceUntilStateStable(ctx)
+			if stateMachineErr != nil {
+				return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("advance promotional state machine: %w", stateMachineErr)
+			}
+
+			if advancedCharge != nil {
+				charge = *advancedCharge
+			}
 		case creditpurchase.SettlementTypeInvoice:
 			// noop, as we will transition to active state when the invoice is created, as
 			// - invocing based charges are driven by the invoice state machine
