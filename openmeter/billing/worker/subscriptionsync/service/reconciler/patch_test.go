@@ -143,18 +143,14 @@ func TestIsCreditEnabled(t *testing.T) {
 	})
 
 	t.Run("no_feature_gate_client", func(t *testing.T) {
-		router, err := newPatchCollectionRouter(patchCollectionRouterConfig{
+		_, err := newPatchCollectionRouter(patchCollectionRouterConfig{
 			capacity:                 1,
 			invoices:                 persistedstate.Invoices{},
 			creditThenInvoiceEnabled: false,
 			creditsEnabled:           true,
-			featureGate:              nil, // If feature gate is nil, it should default to enabled.
+			featureGate:              nil,
 		})
-		require.NoError(t, err)
-
-		enabled, err := router.isCreditsEnabled("test")
-		require.NoError(t, err)
-		require.True(t, enabled)
+		require.Error(t, err)
 	})
 
 	t.Run("credit_flag_disabled", func(t *testing.T) {
