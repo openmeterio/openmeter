@@ -2,22 +2,19 @@ package service
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -45,6 +42,17 @@ func TestPromotionalCreditPurchaseStateMachineAdvancesCreatedChargeToFinal(t *te
 	})
 	require.NoError(t, err)
 
+	lineageService.On("BackfillAdvanceLineageSegments",
+		mock.Anything,
+		lineage.BackfillAdvanceLineageSegmentsInput{
+			Namespace:                 charge.Namespace,
+			CustomerID:                charge.Intent.CustomerID,
+			Currency:                  charge.Intent.Currency,
+			Amount:                    charge.Intent.CreditAmount,
+			BackingTransactionGroupID: "ledger-tx-1",
+		}).
+		Return(nil).Once()
+
 	advancedCharge, err := stateMachine.AdvanceUntilStateStable(t.Context())
 
 	require.NoError(t, err)
@@ -59,12 +67,6 @@ func TestPromotionalCreditPurchaseStateMachineAdvancesCreatedChargeToFinal(t *te
 	require.Equal(t, charge.GetChargeID(), adapter.createdGrantChargeID)
 	require.Equal(t, "ledger-tx-1", adapter.createdGrantInput.TransactionGroupID)
 	require.False(t, adapter.createdGrantInput.GrantedAt.IsZero())
-	require.Equal(t, 1, lineageService.backfillCalls)
-	require.Equal(t, charge.Namespace, lineageService.backfillInput.Namespace)
-	require.Equal(t, charge.Intent.CustomerID, lineageService.backfillInput.CustomerID)
-	require.Equal(t, charge.Intent.Currency, lineageService.backfillInput.Currency)
-	require.True(t, charge.Intent.CreditAmount.Equal(lineageService.backfillInput.Amount))
-	require.Equal(t, "ledger-tx-1", lineageService.backfillInput.BackingTransactionGroupID)
 }
 
 func TestPromotionalCreditPurchaseStateMachineAdvancesActiveChargeToFinal(t *testing.T) {
@@ -187,6 +189,8 @@ func newPromotionalStateMachineTestCharge(status creditpurchase.Status) creditpu
 }
 
 type promotionalStateMachineAdapter struct {
+	creditpurchase.Adapter
+
 	updateChargeCalls      int
 	updatedBase            creditpurchase.ChargeBase
 	createCreditGrantCalls int
@@ -194,30 +198,10 @@ type promotionalStateMachineAdapter struct {
 	createdGrantInput      creditpurchase.CreateCreditGrantInput
 }
 
-func (a *promotionalStateMachineAdapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChargeInput) (creditpurchase.Charge, error) {
-	return creditpurchase.Charge{}, errors.New("unexpected CreateCharge call")
-}
-
 func (a *promotionalStateMachineAdapter) UpdateCharge(ctx context.Context, charge creditpurchase.ChargeBase) (creditpurchase.ChargeBase, error) {
 	a.updateChargeCalls++
 	a.updatedBase = charge
 	return charge, nil
-}
-
-func (a *promotionalStateMachineAdapter) GetByIDs(ctx context.Context, ids creditpurchase.GetByIDsInput) ([]creditpurchase.Charge, error) {
-	return nil, errors.New("unexpected GetByIDs call")
-}
-
-func (a *promotionalStateMachineAdapter) GetByID(ctx context.Context, id creditpurchase.GetByIDInput) (creditpurchase.Charge, error) {
-	return creditpurchase.Charge{}, errors.New("unexpected GetByID call")
-}
-
-func (a *promotionalStateMachineAdapter) ListCharges(ctx context.Context, input creditpurchase.ListChargesInput) (pagination.Result[creditpurchase.Charge], error) {
-	return pagination.Result[creditpurchase.Charge]{}, errors.New("unexpected ListCharges call")
-}
-
-func (a *promotionalStateMachineAdapter) ListFundedCreditActivities(ctx context.Context, input creditpurchase.ListFundedCreditActivitiesInput) (creditpurchase.ListFundedCreditActivitiesResult, error) {
-	return creditpurchase.ListFundedCreditActivitiesResult{}, errors.New("unexpected ListFundedCreditActivities call")
 }
 
 func (a *promotionalStateMachineAdapter) CreateCreditGrant(ctx context.Context, chargeID meta.ChargeID, input creditpurchase.CreateCreditGrantInput) (ledgertransaction.TimedGroupReference, error) {
@@ -232,85 +216,27 @@ func (a *promotionalStateMachineAdapter) CreateCreditGrant(ctx context.Context, 
 	}, nil
 }
 
-func (a *promotionalStateMachineAdapter) CreateExternalPayment(ctx context.Context, chargeID meta.ChargeID, input payment.ExternalCreateInput) (payment.External, error) {
-	return payment.External{}, errors.New("unexpected CreateExternalPayment call")
-}
-
-func (a *promotionalStateMachineAdapter) UpdateExternalPayment(ctx context.Context, input payment.External) (payment.External, error) {
-	return input, errors.New("unexpected UpdateExternalPayment call")
-}
-
-func (a *promotionalStateMachineAdapter) CreateInvoicedPayment(ctx context.Context, chargeID meta.ChargeID, input payment.InvoicedCreate) (payment.Invoiced, error) {
-	return payment.Invoiced{}, errors.New("unexpected CreateInvoicedPayment call")
-}
-
-func (a *promotionalStateMachineAdapter) UpdateInvoicedPayment(ctx context.Context, input payment.Invoiced) (payment.Invoiced, error) {
-	return input, errors.New("unexpected UpdateInvoicedPayment call")
-}
-
-func (a *promotionalStateMachineAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
-	return nil, nil, errors.New("unexpected Tx call")
-}
-
 type promotionalStateMachineHandler struct {
-	transactionGroupID string
-	promotionalCalls   int
-	promotionalCharge  creditpurchase.Charge
+	creditpurchase.Handler
+	mock.Mock
 }
 
 func (h *promotionalStateMachineHandler) OnPromotionalCreditPurchase(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
-	h.promotionalCalls++
-	h.promotionalCharge = charge
-	return ledgertransaction.GroupReference{TransactionGroupID: h.transactionGroupID}, nil
-}
-
-func (h *promotionalStateMachineHandler) OnCreditPurchaseInitiated(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
-	return ledgertransaction.GroupReference{}, errors.New("unexpected OnCreditPurchaseInitiated call")
-}
-
-func (h *promotionalStateMachineHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, input creditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {
-	return ledgertransaction.GroupReference{}, errors.New("unexpected OnCreditPurchasePaymentAuthorized call")
-}
-
-func (h *promotionalStateMachineHandler) OnCreditPurchasePaymentSettled(ctx context.Context, input creditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {
-	return ledgertransaction.GroupReference{}, errors.New("unexpected OnCreditPurchasePaymentSettled call")
+	args := h.Called(ctx, charge)
+	return args.Get(0).(ledgertransaction.GroupReference), args.Error(1)
 }
 
 type promotionalStateMachineLineage struct {
-	backfillCalls int
-	backfillInput lineage.BackfillAdvanceLineageSegmentsInput
-}
-
-func (l *promotionalStateMachineLineage) CreateInitialLineages(ctx context.Context, input lineage.CreateInitialLineagesInput) error {
-	return errors.New("unexpected CreateInitialLineages call")
-}
-
-func (l *promotionalStateMachineLineage) LoadActiveSegmentsByRealizationID(ctx context.Context, namespace string, realizationIDs []string) (lineage.ActiveSegmentsByRealizationID, error) {
-	return nil, errors.New("unexpected LoadActiveSegmentsByRealizationID call")
-}
-
-func (l *promotionalStateMachineLineage) LoadLineagesByCustomer(ctx context.Context, input lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
-	return nil, errors.New("unexpected LoadLineagesByCustomer call")
-}
-
-func (l *promotionalStateMachineLineage) PersistCorrectionLineageSegments(ctx context.Context, input lineage.PersistCorrectionLineageSegmentsInput) error {
-	return errors.New("unexpected PersistCorrectionLineageSegments call")
+	lineage.Service
+	mock.Mock
 }
 
 func (l *promotionalStateMachineLineage) BackfillAdvanceLineageSegments(ctx context.Context, input lineage.BackfillAdvanceLineageSegmentsInput) error {
-	l.backfillCalls++
-	l.backfillInput = input
-	return nil
+	args := l.Called(ctx, input)
+	return args.Error(0)
 }
 
-func (l *promotionalStateMachineLineage) CloseSegment(ctx context.Context, segmentID string, closedAt time.Time) error {
-	return errors.New("unexpected CloseSegment call")
-}
-
-func (l *promotionalStateMachineLineage) CreateSegment(ctx context.Context, input lineage.CreateSegmentInput) error {
-	return errors.New("unexpected CreateSegment call")
-}
-
-var _ creditpurchase.Adapter = (*promotionalStateMachineAdapter)(nil)
-var _ creditpurchase.Handler = (*promotionalStateMachineHandler)(nil)
-var _ lineage.Service = (*promotionalStateMachineLineage)(nil)
+var (
+	_ creditpurchase.Handler = (*promotionalStateMachineHandler)(nil)
+	_ lineage.Service        = (*promotionalStateMachineLineage)(nil)
+)
