@@ -63,7 +63,6 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 			},
 		},
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state machine: %w", err)
 	}

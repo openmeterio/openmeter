@@ -8,9 +8,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
 
 func (s *service) grantPromotionalCredit(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
+	if charge.Realizations.CreditGrantRealization != nil && charge.Realizations.CreditGrantRealization.TransactionGroupID != "" {
+		return creditpurchase.Charge{}, fmt.Errorf("promotional credit grant already realized [charge_id=%s, transaction_group_id=%s]", charge.ID, charge.Realizations.CreditGrantRealization.TransactionGroupID)
+	}
+
 	ledgerTransactionGroupReference, err := s.handler.OnPromotionalCreditPurchase(ctx, charge)
 	if err != nil {
 		return creditpurchase.Charge{}, err
@@ -75,15 +80,13 @@ func (s *PromotionalCreditpurchaseStateMachine) configureStates() {
 		Permit(meta.TriggerNext, creditpurchase.StatusFinal)
 
 	s.Configure(creditpurchase.StatusFinal).
-		OnEntry(func(ctx context.Context, _ ...any) error {
-			return s.GrantPromotionalCredit(ctx)
-		})
+		OnEntry(statelessx.EntryFunc(s.GrantPromotionalCredit))
 }
 
 func (s *PromotionalCreditpurchaseStateMachine) GrantPromotionalCredit(ctx context.Context) error {
 	charge, err := s.Service.grantPromotionalCredit(ctx, s.Charge)
 	if err != nil {
-		return fmt.Errorf("grant promotional credit: %w", err)
+		return err
 	}
 
 	s.Charge = charge

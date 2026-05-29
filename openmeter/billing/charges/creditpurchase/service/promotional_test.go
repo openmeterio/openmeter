@@ -25,13 +25,68 @@ func TestPromotionalCreditPurchaseStateMachineAdvancesCreatedChargeToFinal(t *te
 	// - the promotional state machine advances until stable
 	// then:
 	// - it grants the promotional credits, backfills lineage, and persists the final status
+	stateMachine, charge, adapter, lineageService := newPromotionalStateMachineTestMachine(
+		t,
+		creditpurchase.StatusCreated,
+	)
+
+	advancedCharge, err := stateMachine.AdvanceUntilStateStable(t.Context())
+
+	require.NoError(t, err)
+	require.NotNil(t, advancedCharge)
+	require.Equal(t, creditpurchase.StatusFinal, advancedCharge.Status)
+	require.Equal(t, creditpurchase.StatusFinal, adapter.updatedBase.Status)
+	require.NotNil(t, advancedCharge.Realizations.CreditGrantRealization)
+	require.NotEmpty(t, advancedCharge.Realizations.CreditGrantRealization.TransactionGroupID)
+	require.Equal(t, 1, adapter.createCreditGrantCalls)
+	require.Equal(t, charge.GetChargeID(), adapter.createdGrantChargeID)
+	require.Equal(t, advancedCharge.Realizations.CreditGrantRealization.TransactionGroupID, adapter.createdGrantInput.TransactionGroupID)
+	require.False(t, adapter.createdGrantInput.GrantedAt.IsZero())
+	lineageService.AssertExpectations(t)
+}
+
+func TestPromotionalCreditPurchaseStateMachineAdvancesActiveChargeToFinal(t *testing.T) {
+	// given:
+	// - an active promotional credit-purchase charge
+	// when:
+	// - the promotional state machine advances until stable
+	// then:
+	// - it still grants once and persists the final status
+	stateMachine, _, adapter, lineageService := newPromotionalStateMachineTestMachine(
+		t,
+		creditpurchase.StatusActive,
+	)
+
+	advancedCharge, err := stateMachine.AdvanceUntilStateStable(t.Context())
+
+	require.NoError(t, err)
+	require.NotNil(t, advancedCharge)
+	require.Equal(t, creditpurchase.StatusFinal, advancedCharge.Status)
+	require.Equal(t, 1, adapter.createCreditGrantCalls)
+	require.Equal(t, 1, adapter.updateChargeCalls)
+	lineageService.AssertExpectations(t)
+}
+
+func TestPromotionalCreditPurchaseStateMachineRejectsExistingCreditGrant(t *testing.T) {
+	// given:
+	// - a promotional charge that already has a credit grant realization
+	// when:
+	// - the promotional state machine attempts to grant credits
+	// then:
+	// - it fails before creating another grant
 	charge := newPromotionalStateMachineTestCharge(creditpurchase.StatusCreated)
+	charge.Realizations.CreditGrantRealization = &ledgertransaction.TimedGroupReference{
+		GroupReference: ledgertransaction.GroupReference{
+			TransactionGroupID: "existing-ledger-tx",
+		},
+		Time: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+	}
+
 	adapter := &promotionalStateMachineAdapter{}
-	handler := &promotionalStateMachineHandler{transactionGroupID: "ledger-tx-1"}
 	lineageService := &promotionalStateMachineLineage{}
 	svc := &service{
 		adapter: adapter,
-		handler: handler,
+		handler: &promotionalStateMachineHandler{},
 		lineage: lineageService,
 	}
 
@@ -42,64 +97,14 @@ func TestPromotionalCreditPurchaseStateMachineAdvancesCreatedChargeToFinal(t *te
 	})
 	require.NoError(t, err)
 
-	lineageService.On("BackfillAdvanceLineageSegments",
-		mock.Anything,
-		lineage.BackfillAdvanceLineageSegmentsInput{
-			Namespace:                 charge.Namespace,
-			CustomerID:                charge.Intent.CustomerID,
-			Currency:                  charge.Intent.Currency,
-			Amount:                    charge.Intent.CreditAmount,
-			BackingTransactionGroupID: "ledger-tx-1",
-		}).
-		Return(nil).Once()
-
 	advancedCharge, err := stateMachine.AdvanceUntilStateStable(t.Context())
 
-	require.NoError(t, err)
-	require.NotNil(t, advancedCharge)
-	require.Equal(t, creditpurchase.StatusFinal, advancedCharge.Status)
-	require.Equal(t, creditpurchase.StatusFinal, adapter.updatedBase.Status)
-	require.Equal(t, 1, handler.promotionalCalls)
-	require.Equal(t, charge.ID, handler.promotionalCharge.ID)
-	require.NotNil(t, advancedCharge.Realizations.CreditGrantRealization)
-	require.Equal(t, "ledger-tx-1", advancedCharge.Realizations.CreditGrantRealization.TransactionGroupID)
-	require.Equal(t, 1, adapter.createCreditGrantCalls)
-	require.Equal(t, charge.GetChargeID(), adapter.createdGrantChargeID)
-	require.Equal(t, "ledger-tx-1", adapter.createdGrantInput.TransactionGroupID)
-	require.False(t, adapter.createdGrantInput.GrantedAt.IsZero())
-}
-
-func TestPromotionalCreditPurchaseStateMachineAdvancesActiveChargeToFinal(t *testing.T) {
-	// given:
-	// - an active promotional credit-purchase charge
-	// when:
-	// - the promotional state machine advances until stable
-	// then:
-	// - it still grants once and persists the final status
-	charge := newPromotionalStateMachineTestCharge(creditpurchase.StatusActive)
-	adapter := &promotionalStateMachineAdapter{}
-	handler := &promotionalStateMachineHandler{transactionGroupID: "ledger-tx-2"}
-	svc := &service{
-		adapter: adapter,
-		handler: handler,
-		lineage: &promotionalStateMachineLineage{},
-	}
-
-	stateMachine, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:  charge,
-		Adapter: adapter,
-		Service: svc,
-	})
-	require.NoError(t, err)
-
-	advancedCharge, err := stateMachine.AdvanceUntilStateStable(t.Context())
-
-	require.NoError(t, err)
-	require.NotNil(t, advancedCharge)
-	require.Equal(t, creditpurchase.StatusFinal, advancedCharge.Status)
-	require.Equal(t, 1, handler.promotionalCalls)
-	require.Equal(t, 1, adapter.createCreditGrantCalls)
-	require.Equal(t, 1, adapter.updateChargeCalls)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "promotional credit grant already realized")
+	require.Nil(t, advancedCharge)
+	require.Zero(t, adapter.createCreditGrantCalls)
+	require.Zero(t, adapter.updateChargeCalls)
+	lineageService.AssertNotCalled(t, "BackfillAdvanceLineageSegments", mock.Anything, mock.Anything)
 }
 
 func TestPromotionalCreditPurchaseStateMachineReturnsNilForFinalCharge(t *testing.T) {
@@ -110,10 +115,9 @@ func TestPromotionalCreditPurchaseStateMachineReturnsNilForFinalCharge(t *testin
 	// then:
 	// - it is already stable and does not call side-effect handlers
 	adapter := &promotionalStateMachineAdapter{}
-	handler := &promotionalStateMachineHandler{transactionGroupID: "ledger-tx-3"}
 	svc := &service{
 		adapter: adapter,
-		handler: handler,
+		handler: &promotionalStateMachineHandler{},
 		lineage: &promotionalStateMachineLineage{},
 	}
 
@@ -128,7 +132,6 @@ func TestPromotionalCreditPurchaseStateMachineReturnsNilForFinalCharge(t *testin
 
 	require.NoError(t, err)
 	require.Nil(t, advancedCharge)
-	require.Zero(t, handler.promotionalCalls)
 	require.Zero(t, adapter.createCreditGrantCalls)
 	require.Zero(t, adapter.updateChargeCalls)
 }
@@ -151,6 +154,50 @@ func TestPromotionalCreditPurchaseStateMachineRejectsNonPromotionalCharge(t *tes
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "is not promotional")
+}
+
+func newPromotionalStateMachineTestMachine(
+	t *testing.T,
+	status creditpurchase.Status,
+) (*PromotionalCreditpurchaseStateMachine, creditpurchase.Charge, *promotionalStateMachineAdapter, *promotionalStateMachineLineage) {
+	t.Helper()
+
+	charge := newPromotionalStateMachineTestCharge(status)
+	adapter := &promotionalStateMachineAdapter{}
+	lineageService := &promotionalStateMachineLineage{}
+	handler := &promotionalStateMachineHandler{
+		onPromotionalCreditPurchase: func(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+			return ledgertransaction.GroupReference{
+				TransactionGroupID: "ledger-tx-1",
+			}, nil
+		},
+	}
+	svc := &service{
+		adapter: adapter,
+		handler: handler,
+		lineage: lineageService,
+	}
+
+	lineageService.On("BackfillAdvanceLineageSegments",
+		mock.Anything,
+		mock.MatchedBy(func(input lineage.BackfillAdvanceLineageSegmentsInput) bool {
+			return input.Namespace == charge.Namespace &&
+				input.CustomerID == charge.Intent.CustomerID &&
+				input.Currency == charge.Intent.Currency &&
+				input.Amount.Equal(charge.Intent.CreditAmount) &&
+				input.BackingTransactionGroupID != ""
+		})).
+		Return(nil).
+		Once()
+
+	stateMachine, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
+		Charge:  charge,
+		Adapter: adapter,
+		Service: svc,
+	})
+	require.NoError(t, err)
+
+	return stateMachine, charge, adapter, lineageService
 }
 
 func newPromotionalStateMachineTestCharge(status creditpurchase.Status) creditpurchase.Charge {
@@ -218,12 +265,16 @@ func (a *promotionalStateMachineAdapter) CreateCreditGrant(ctx context.Context, 
 
 type promotionalStateMachineHandler struct {
 	creditpurchase.Handler
-	mock.Mock
+
+	onPromotionalCreditPurchase func(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error)
 }
 
 func (h *promotionalStateMachineHandler) OnPromotionalCreditPurchase(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
-	args := h.Called(ctx, charge)
-	return args.Get(0).(ledgertransaction.GroupReference), args.Error(1)
+	if h.onPromotionalCreditPurchase == nil {
+		return ledgertransaction.GroupReference{}, nil
+	}
+
+	return h.onPromotionalCreditPurchase(ctx, charge)
 }
 
 type promotionalStateMachineLineage struct {
