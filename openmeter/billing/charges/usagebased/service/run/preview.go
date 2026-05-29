@@ -50,6 +50,10 @@ func (i BuildCreditThenInvoiceGatheringPreviewRunInput) Validate() error {
 		errs = append(errs, errors.New("feature meter is required"))
 	}
 
+	if i.FeatureMeter.Feature.ID == "" {
+		errs = append(errs, errors.New("feature id is required"))
+	}
+
 	if err := i.Type.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("type: %w", err))
 	}

@@ -229,7 +229,9 @@ func (l GatheringLines) ToStandardLines(invoiceID string) (StandardLines, error)
 	})
 }
 
-func ValidateStandardLineIDsMatchGatheringLinesExactly(expected GatheringLines, actual StandardLines) error {
+// ValidateStandardLineIDsMatchGatheringLinesUnordered validates that a standard-line result
+// preserves the same gathering-line IDs, regardless of output order.
+func ValidateStandardLineIDsMatchGatheringLinesUnordered(expected GatheringLines, actual StandardLines) error {
 	expectedIDs := lo.Map(expected, func(line GatheringLine, _ int) string {
 		return line.ID
 	})

@@ -71,6 +71,14 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeGatheringPreviewPopulatesTotalsW
 	clock.FreezeTime(servicePeriod.From)
 	defer clock.UnFreeze()
 
+	creditAllocationCallback := newCountedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]()
+	s.FlatFeeTestHandler.onAllocateCredits = creditAllocationCallback.Handler(
+		s.T(),
+		func(flatfee.OnAllocateCreditsInput, ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
+			return nil
+		},
+	)
+
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: []charges.ChargeIntent{
@@ -116,6 +124,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeGatheringPreviewPopulatesTotalsW
 	chargeAfterPreview := mustGetFlatFeeChargeWithExpands(&s.BaseSuite, flatFeeChargeID, meta.Expands{meta.ExpandRealizations})
 	s.Nil(chargeAfterPreview.Realizations.CurrentRun)
 	s.Empty(chargeAfterPreview.Realizations.PriorRuns)
+	s.Zero(creditAllocationCallback.nrInvocations)
 }
 
 func (s *InvoicableChargesTestSuite) TestUsageBasedGatheringPreviewPopulatesTotalsWithoutRealizationRun() {

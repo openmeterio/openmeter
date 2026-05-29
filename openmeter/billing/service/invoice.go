@@ -247,7 +247,7 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 			return nil, fmt.Errorf("validating build standard invoice lines with live data output for engine %s: %w", item.Engine.GetLineEngineType(), err)
 		}
 
-		if err := billing.ValidateStandardLineIDsMatchGatheringLinesExactly(item.Lines, stdLines); err != nil {
+		if err := billing.ValidateStandardLineIDsMatchGatheringLinesUnordered(item.Lines, stdLines); err != nil {
 			return nil, fmt.Errorf("validating build standard invoice lines with live data ids for engine %s: %w", item.Engine.GetLineEngineType(), err)
 		}
 
