@@ -562,7 +562,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		}
 
 		getLine := func(description string) *billing.DetailedLine {
-			for _, line := range invoice.GetLeafLinesWithConsolidatedTaxBehavior() {
+			for _, lineWithTax := range invoice.GetLeafLinesWithResolvedTaxConfig() {
+				line := lineWithTax.DetailedLine
 				name := line.Name
 				if line.Description != nil {
 					name = fmt.Sprintf("%s (%s)", name, *line.Description)

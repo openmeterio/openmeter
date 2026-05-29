@@ -85,7 +85,6 @@ func NewDetailedLinesFromBilling(
 				Category:               category,
 				CreditsApplied:         line.CreditsApplied,
 				Totals:                 line.Totals,
-				TaxConfig:              intent.TaxConfig.ToTaxConfig(),
 			},
 		}
 	})

@@ -30,10 +30,16 @@ type ChargeUsageBasedRunDetailedLine struct {
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
+	//
+	// Deprecated: Field "tax_config" was marked as deprecated in the schema.
 	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// TaxCodeID holds the value of the "tax_code_id" field.
+	//
+	// Deprecated: detailed lines inherit tax configuration from their parent standard line
 	TaxCodeID *string `json:"tax_code_id,omitempty"`
 	// TaxBehavior holds the value of the "tax_behavior" field.
+	//
+	// Deprecated: detailed lines inherit tax configuration from their parent standard line
 	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// ServicePeriodStart holds the value of the "service_period_start" field.
 	ServicePeriodStart time.Time `json:"service_period_start,omitempty"`

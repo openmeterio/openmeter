@@ -21,7 +21,6 @@ func deriveEqualBase(this, that *Base) bool {
 			this.PerUnitAmount.Equal(that.PerUnitAmount) &&
 			this.Quantity.Equal(that.Quantity) &&
 			this.Totals.Equal(that.Totals) &&
-			this.TaxConfig.Equal(that.TaxConfig) &&
 			this.ExternalIDs.Equal(that.ExternalIDs) &&
 			deriveEqual_(this.CreditsApplied, that.CreditsApplied)
 }
