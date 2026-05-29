@@ -37,14 +37,15 @@ func TestLineEngine(t *testing.T) {
 type mockCollectionCompletedLineEngine struct {
 	engineType ombilling.LineEngineType
 
-	buildStandardInvoiceLines func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
-	onStandardInvoiceCreated  func(ctx context.Context, input ombilling.OnStandardInvoiceCreatedInput) (ombilling.StandardLines, error)
-	onCollectionCompleted     func(ctx context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error)
-	onMutableLinesDeleted     func(ctx context.Context, input ombilling.OnMutableStandardLinesDeletedInput) error
-	onUnsupportedCreditNote   func(ctx context.Context, input ombilling.OnUnsupportedCreditNoteInput) error
-	onInvoiceIssued           func(ctx context.Context, input ombilling.OnInvoiceIssuedInput) error
-	onPaymentAuthorized       func(ctx context.Context, input ombilling.OnPaymentAuthorizedInput) error
-	onPaymentSettled          func(ctx context.Context, input ombilling.OnPaymentSettledInput) error
+	buildStandardInvoiceLines             func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
+	buildStandardInvoiceLinesWithLiveData func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
+	onStandardInvoiceCreated              func(ctx context.Context, input ombilling.OnStandardInvoiceCreatedInput) (ombilling.StandardLines, error)
+	onCollectionCompleted                 func(ctx context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error)
+	onMutableLinesDeleted                 func(ctx context.Context, input ombilling.OnMutableStandardLinesDeletedInput) error
+	onUnsupportedCreditNote               func(ctx context.Context, input ombilling.OnUnsupportedCreditNoteInput) error
+	onInvoiceIssued                       func(ctx context.Context, input ombilling.OnInvoiceIssuedInput) error
+	onPaymentAuthorized                   func(ctx context.Context, input ombilling.OnPaymentAuthorizedInput) error
+	onPaymentSettled                      func(ctx context.Context, input ombilling.OnPaymentSettledInput) error
 }
 
 func mustAsNewStandardLines(input ombilling.BuildStandardInvoiceLinesInput) ombilling.StandardLines {
@@ -83,6 +84,14 @@ func (m *mockCollectionCompletedLineEngine) BuildStandardInvoiceLines(ctx contex
 	}
 
 	return m.buildStandardInvoiceLines(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+	if m.buildStandardInvoiceLinesWithLiveData != nil {
+		return m.buildStandardInvoiceLinesWithLiveData(ctx, input)
+	}
+
+	return mustAsNewStandardLines(input), nil
 }
 
 func (m *mockCollectionCompletedLineEngine) OnCollectionCompleted(ctx context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {

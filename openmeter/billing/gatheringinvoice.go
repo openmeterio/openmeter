@@ -218,6 +218,32 @@ type GatheringInvoiceAvailableActions struct {
 
 type GatheringLines []GatheringLine
 
+func (l GatheringLines) ToStandardLines(invoiceID string) (StandardLines, error) {
+	return slicesx.MapWithErr(l, func(gatheringLine GatheringLine) (*StandardLine, error) {
+		stdLine, err := gatheringLine.AsNewStandardLine(invoiceID)
+		if err != nil {
+			return nil, fmt.Errorf("converting gathering line to standard line: %w", err)
+		}
+
+		return stdLine, nil
+	})
+}
+
+func ValidateStandardLineIDsMatchGatheringLinesExactly(expected GatheringLines, actual StandardLines) error {
+	expectedIDs := lo.Map(expected, func(line GatheringLine, _ int) string {
+		return line.ID
+	})
+	actualIDs := lo.Map(actual, func(line *StandardLine, _ int) string {
+		return line.ID
+	})
+
+	if !lo.ElementsMatch(expectedIDs, actualIDs) {
+		return fmt.Errorf("line ids mismatch: expected %v, got %v", expectedIDs, actualIDs)
+	}
+
+	return nil
+}
+
 func (l GatheringLines) Validate() error {
 	return errors.Join(
 		lo.Map(l, func(l GatheringLine, _ int) error {

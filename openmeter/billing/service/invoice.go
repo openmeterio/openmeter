@@ -210,22 +210,60 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 		return nil, fmt.Errorf("resolving feature meters: %w", err)
 	}
 
-	inScopeLines := make([]*billing.StandardLine, 0, len(invoice.Lines.OrEmpty()))
+	inScopeGatheringLines := make(billing.GatheringLines, 0, len(invoice.Lines.OrEmpty()))
 	for _, line := range invoice.Lines.OrEmpty() {
 		if line.DeletedAt != nil {
 			continue
 		}
 
-		newStandardLine, err := line.AsNewStandardLine(out.ID)
-		if err != nil {
-			return nil, fmt.Errorf("converting gathering line to standard line: %w", err)
+		if err := s.lineEngines.populateGatheringLineEngine(&line); err != nil {
+			return nil, fmt.Errorf("populating gathering line engine: %w", err)
 		}
 
-		inScopeLines = append(inScopeLines, newStandardLine)
+		inScopeGatheringLines = append(inScopeGatheringLines, line)
 	}
 
-	if err := s.snapshotLineQuantitiesInParallel(ctx, out.Customer, inScopeLines, featureMeters); err != nil {
-		return nil, fmt.Errorf("snapshotting lines: %w", err)
+	linesWithEngines, err := s.lineEngines.groupGatheringLinesByEngine(inScopeGatheringLines)
+	if err != nil {
+		return nil, fmt.Errorf("grouping gathering lines by engine: %w", err)
+	}
+
+	standardLinesByID := make(map[string]*billing.StandardLine, len(inScopeGatheringLines))
+	for _, item := range linesWithEngines {
+		engineInput := billing.BuildStandardInvoiceLinesInput{
+			Invoice:        *out,
+			GatheringLines: item.Lines,
+		}
+		if err := engineInput.Validate(); err != nil {
+			return nil, fmt.Errorf("validating build standard invoice lines with live data input for engine %s: %w", item.Engine.GetLineEngineType(), err)
+		}
+
+		stdLines, err := item.Engine.BuildStandardLinesForGatheringPreview(ctx, engineInput)
+		if err != nil {
+			return nil, fmt.Errorf("building standard invoice lines with live data for engine %s: %w", item.Engine.GetLineEngineType(), err)
+		}
+
+		if err := stdLines.Validate(); err != nil {
+			return nil, fmt.Errorf("validating build standard invoice lines with live data output for engine %s: %w", item.Engine.GetLineEngineType(), err)
+		}
+
+		if err := billing.ValidateStandardLineIDsMatchGatheringLinesExactly(item.Lines, stdLines); err != nil {
+			return nil, fmt.Errorf("validating build standard invoice lines with live data ids for engine %s: %w", item.Engine.GetLineEngineType(), err)
+		}
+
+		for _, stdLine := range stdLines {
+			standardLinesByID[stdLine.ID] = stdLine
+		}
+	}
+
+	inScopeLines := make([]*billing.StandardLine, 0, len(inScopeGatheringLines))
+	for _, line := range inScopeGatheringLines {
+		stdLine, ok := standardLinesByID[line.ID]
+		if !ok {
+			return nil, fmt.Errorf("standard line for gathering line[%s] is missing", line.ID)
+		}
+
+		inScopeLines = append(inScopeLines, stdLine)
 	}
 
 	hasInvoicableLines, err := s.hasInvoicableLines(ctx, hasInvoicableLinesInput{

@@ -266,6 +266,54 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.Equal(partialInvoice.ID, invoicesResult.Items[0].ID)
 	})
 
+	s.Run("when gathering invoice is previewed with an active partial run", func() {
+		// given:
+		// - the partial realization run is still active
+		// - a remaining gathering line exists for the rest of the service period
+		// when:
+		// - billing lists the gathering invoice with live preview expansion
+		// then:
+		// - preview uses the active run as prior billing history and does not create a new run
+		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Namespaces:       []string{ns},
+			Customers:        []string{cust.ID},
+			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
+			Expand: billing.InvoiceExpands{}.
+				With(billing.InvoiceExpandLines).
+				With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
+		})
+		s.NoError(err)
+		s.Require().Len(invoices.Items, 1)
+
+		previewInvoice, err := invoices.Items[0].AsStandardInvoice()
+		s.NoError(err)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount: 2.5,
+			Total:  2.5,
+		}, previewInvoice.Totals)
+
+		s.Require().True(previewInvoice.Lines.IsPresent())
+		s.Require().Len(previewInvoice.Lines.OrEmpty(), 1)
+		previewLine := previewInvoice.Lines.OrEmpty()[0]
+		s.Require().NotNil(previewLine.UsageBased)
+		s.Require().NotNil(previewLine.UsageBased.MeteredQuantity)
+		s.Require().NotNil(previewLine.UsageBased.Quantity)
+		s.Require().NotNil(previewLine.UsageBased.MeteredPreLinePeriodQuantity)
+		s.Require().NotNil(previewLine.UsageBased.PreLinePeriodQuantity)
+		s.Equal(float64(5), lo.FromPtr(previewLine.UsageBased.MeteredQuantity).InexactFloat64())
+		s.Equal(float64(5), lo.FromPtr(previewLine.UsageBased.Quantity).InexactFloat64())
+		s.Equal(float64(15), lo.FromPtr(previewLine.UsageBased.MeteredPreLinePeriodQuantity).InexactFloat64())
+		s.Equal(float64(15), lo.FromPtr(previewLine.UsageBased.PreLinePeriodQuantity).InexactFloat64())
+		s.NotEmpty(previewLine.DetailedLines)
+
+		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(usagebased.StatusActivePartialInvoiceWaitingForCollection, charge.Status)
+		s.Len(charge.Realizations, 1)
+		currentRun, runErr := charge.GetCurrentRealizationRun()
+		s.NoError(runErr)
+		s.Equal(partialRunID, currentRun.ID.ID)
+	})
+
 	s.Run("when the first partial invoice is advanced and approved", func() {
 		// given:
 		// - the first partial invoice is ready to be collected and manually approved
