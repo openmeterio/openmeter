@@ -402,4 +402,143 @@ func TestChange(t *testing.T) {
 			require.ErrorContains(t, err, fmt.Sprintf("plan %s@%d is not active at", plan2.Key, plan2.Version))
 		})
 	})
+
+	t.Run("Should apply the settlement mode override when creating from a plan reference", func(t *testing.T) {
+		withDeps(t, func(t *testing.T, deps tDeps) {
+			examplePlanInput := subscriptiontestutils.GetExamplePlanInput(t)
+			require.Equal(t, productcatalog.CreditThenInvoiceSettlementMode, examplePlanInput.Plan.SettlementMode)
+
+			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
+			clock.SetTime(now)
+			defer clock.ResetTime()
+
+			ctx := context.Background()
+
+			svc := service.New(service.Config{
+				SubscriptionService: deps.subSvc,
+				WorkflowService:     deps.wfSvc,
+				Logger:              logger,
+				PlanService:         deps.subDeps.PlanService,
+				CustomerService:     deps.subDeps.CustomerService,
+			})
+
+			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)
+			deps.subDeps.FeatureConnector.CreateExampleFeatures(t, deps.subDeps.ExampleMeterID)
+
+			plan1 := deps.subDeps.PlanHelper.CreatePlan(t, examplePlanInput)
+
+			p1Inp := plansubscription.PlanInput{}
+			p1Inp.FromRef(&plansubscription.PlanRefInput{
+				Key:     plan1.ToCreateSubscriptionPlanInput().Plan.Key,
+				Version: &plan1.ToCreateSubscriptionPlanInput().Plan.Version,
+			})
+
+			sub, err := svc.Create(ctx, plansubscription.CreateSubscriptionRequest{
+				PlanInput:      p1Inp,
+				SettlementMode: lo.ToPtr(productcatalog.CreditOnlySettlementMode),
+				WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+						Name: "test",
+						Timing: subscription.Timing{
+							Custom: lo.ToPtr(now.Add(time.Second)),
+						},
+					},
+					Namespace:  cust.Namespace,
+					CustomerID: cust.ID,
+				},
+			})
+			require.Nil(t, err, "error creating subscription: %v", err)
+
+			require.Equal(t, productcatalog.CreditOnlySettlementMode, sub.SettlementMode)
+		})
+	})
+
+	t.Run("Should apply the settlement mode override when changing to a plan reference", func(t *testing.T) {
+		withDeps(t, func(t *testing.T, deps tDeps) {
+			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
+
+			now := testutils.GetRFC3339Time(t, "2021-01-01T00:01:10Z")
+			clock.SetTime(now)
+			defer clock.ResetTime()
+
+			ctx := context.Background()
+
+			svc := service.New(service.Config{
+				SubscriptionService: deps.subSvc,
+				WorkflowService:     deps.wfSvc,
+				Logger:              logger,
+				PlanService:         deps.subDeps.PlanService,
+				CustomerService:     deps.subDeps.CustomerService,
+			})
+
+			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)
+			deps.subDeps.FeatureConnector.CreateExampleFeatures(t, deps.subDeps.ExampleMeterID)
+
+			plan1 := deps.subDeps.PlanHelper.CreatePlan(t, examplePlanInput1)
+
+			p1Inp := plansubscription.PlanInput{}
+			p1Inp.FromRef(&plansubscription.PlanRefInput{
+				Key:     plan1.ToCreateSubscriptionPlanInput().Plan.Key,
+				Version: &plan1.ToCreateSubscriptionPlanInput().Plan.Version,
+			})
+
+			sub, err := svc.Create(ctx, plansubscription.CreateSubscriptionRequest{
+				PlanInput: p1Inp,
+				WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+					ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+						Name: "test",
+						Timing: subscription.Timing{
+							Custom: lo.ToPtr(now.Add(time.Second)),
+						},
+					},
+					Namespace:  cust.Namespace,
+					CustomerID: cust.ID,
+				},
+			})
+			require.Nil(t, err, "error creating subscription: %v", err)
+			require.Equal(t, productcatalog.CreditThenInvoiceSettlementMode, sub.SettlementMode)
+
+			p2Input := examplePlanInput1
+			p2Input.Plan.PlanMeta.Name = "New Plan"
+			p2Input.Plan.PlanMeta.Key = "new_plan"
+			p2Input.Plan.Phases = lo.Map(p2Input.Plan.Phases, func(phase productcatalog.Phase, _ int) productcatalog.Phase { return phase })
+
+			plan2, err := deps.subDeps.PlanService.CreatePlan(ctx, p2Input)
+			require.Nil(t, err)
+
+			eFrom := clock.Now().Add(5 * time.Second)
+
+			plan2, err = deps.subDeps.PlanService.PublishPlan(ctx, plan.PublishPlanInput{
+				NamespacedID: plan2.NamespacedID,
+				EffectivePeriod: productcatalog.EffectivePeriod{
+					EffectiveFrom: &eFrom,
+				},
+			})
+			require.Nil(t, err)
+			require.NotNil(t, plan2)
+
+			clock.SetTime(eFrom.Add(time.Second))
+
+			pInp := plansubscription.PlanInput{}
+			pInp.FromRef(&plansubscription.PlanRefInput{
+				Key:     plan2.Key,
+				Version: &plan2.Version,
+			})
+
+			resp, err := svc.Change(ctx, plansubscription.ChangeSubscriptionRequest{
+				ID:             sub.NamespacedID,
+				PlanInput:      pInp,
+				SettlementMode: lo.ToPtr(productcatalog.CreditOnlySettlementMode),
+				WorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+					Timing: subscription.Timing{
+						Enum: lo.ToPtr(subscription.TimingImmediate),
+					},
+					Name: sub.Name,
+				},
+			})
+			require.Nil(t, err)
+
+			require.Equal(t, productcatalog.CreditOnlySettlementMode, resp.Next.Subscription.SettlementMode)
+		})
+	})
 }
