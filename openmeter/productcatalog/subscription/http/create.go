@@ -142,6 +142,11 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to get customer: %w", err)
 				}
 
+				var settlementMode *productcatalog.SettlementMode
+				if parsedBody.SettlementMode != nil {
+					settlementMode = lo.ToPtr(productcatalog.SettlementMode(*parsedBody.SettlementMode))
+				}
+
 				return CreateSubscriptionRequest{
 					WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
 						ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
@@ -156,8 +161,9 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 						CustomerID:    customer.ID,
 						BillingAnchor: parsedBody.BillingAnchor,
 					},
-					PlanInput:     plan,
-					StartingPhase: parsedBody.StartingPhase,
+					PlanInput:      plan,
+					StartingPhase:  parsedBody.StartingPhase,
+					SettlementMode: settlementMode,
 				}, nil
 			}
 		},
