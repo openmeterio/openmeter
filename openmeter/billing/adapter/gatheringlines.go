@@ -221,7 +221,7 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 			}
 
 			if line.TaxConfig != nil {
-				create = create.SetTaxConfig(*line.TaxConfig).
+				create = create.SetTaxConfig(*billing.FromProductCatalog(line.TaxConfig)).
 					SetNillableTaxCodeID(line.TaxConfig.TaxCodeID).
 					SetNillableTaxBehavior(line.TaxConfig.Behavior)
 			}
@@ -310,7 +310,7 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 			Currency: dbLine.Currency,
 
 			TaxConfig: productcatalog.BackfillTaxConfig(
-				lo.EmptyableToPtr(dbLine.TaxConfig),
+				lo.EmptyableToPtr(dbLine.TaxConfig).ToProductCatalog(),
 				dbLine.TaxBehavior,
 				taxCodeFromInvoiceLineEdge(dbLine),
 			),

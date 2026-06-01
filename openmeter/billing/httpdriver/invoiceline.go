@@ -160,7 +160,7 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 			},
 
 			InvoiceAt:         line.InvoiceAt,
-			TaxConfig:         rateCardParsed.TaxConfig,
+			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
 			RateCardDiscounts: rateCardParsed.Discounts,
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -362,7 +362,7 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 			To:   line.Period.To,
 		},
 
-		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
+		TaxConfig: mapTaxConfigToAPI(line.TaxConfig.ToProductCatalog()),
 
 		FeatureKey:                   lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		MeteredQuantity:              decimalPtrToStringPtrIfNotEqual(line.UsageBased.MeteredQuantity, line.UsageBased.Quantity),
@@ -373,7 +373,7 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 		Price: lo.ToPtr(price),
 
 		RateCard: &api.InvoiceUsageBasedRateCard{
-			TaxConfig:  mapTaxConfigToAPI(line.TaxConfig),
+			TaxConfig:  mapTaxConfigToAPI(line.TaxConfig.ToProductCatalog()),
 			Price:      lo.ToPtr(price),
 			FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		},
@@ -634,7 +634,7 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Standar
 			},
 
 			InvoiceAt:         line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
-			TaxConfig:         rateCardParsed.TaxConfig,
+			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
 			RateCardDiscounts: rateCardParsed.Discounts,
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -679,7 +679,7 @@ func standardLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate,
 			},
 			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
 
-			TaxConfig:         rateCardParsed.TaxConfig,
+			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
 			RateCardDiscounts: rateCardParsed.Discounts,
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -760,7 +760,7 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	existing.Period.To = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
 	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
-	existing.TaxConfig = rateCardParsed.TaxConfig
+	existing.TaxConfig = billing.FromProductCatalog(rateCardParsed.TaxConfig)
 	existing.UsageBased.Price = rateCardParsed.Price
 	existing.UsageBased.FeatureKey = rateCardParsed.FeatureKey
 

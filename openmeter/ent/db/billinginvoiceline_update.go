@@ -135,13 +135,13 @@ func (_u *BillingInvoiceLineUpdate) ClearDescription() *BillingInvoiceLineUpdate
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (_u *BillingInvoiceLineUpdate) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
+func (_u *BillingInvoiceLineUpdate) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpdate {
 	_u.mutation.SetTaxConfig(v)
 	return _u
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
+func (_u *BillingInvoiceLineUpdate) SetNillableTaxConfig(v *billing.TaxConfig) *BillingInvoiceLineUpdate {
 	if v != nil {
 		_u.SetTaxConfig(*v)
 	}
@@ -2085,13 +2085,13 @@ func (_u *BillingInvoiceLineUpdateOne) ClearDescription() *BillingInvoiceLineUpd
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (_u *BillingInvoiceLineUpdateOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
+func (_u *BillingInvoiceLineUpdateOne) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetTaxConfig(v)
 	return _u
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdateOne) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
+func (_u *BillingInvoiceLineUpdateOne) SetNillableTaxConfig(v *billing.TaxConfig) *BillingInvoiceLineUpdateOne {
 	if v != nil {
 		_u.SetTaxConfig(*v)
 	}

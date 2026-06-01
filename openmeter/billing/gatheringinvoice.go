@@ -717,9 +717,9 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 		return nil, fmt.Errorf("cloning annotations: %w", err)
 	}
 
-	var taxConfig *productcatalog.TaxConfig
+	var taxConfig *TaxConfig
 	if g.TaxConfig != nil {
-		taxConfig = lo.ToPtr(g.TaxConfig.Clone())
+		taxConfig = FromProductCatalog(lo.ToPtr(g.TaxConfig.Clone()))
 	}
 
 	var subscription *SubscriptionReference

@@ -445,7 +445,7 @@ func (e *BillingInvoiceLine) GetCurrency() currencyx.Code {
 	return e.Currency
 }
 
-func (e *BillingInvoiceLine) GetTaxConfig() productcatalog.TaxConfig {
+func (e *BillingInvoiceLine) GetTaxConfig() billing.TaxConfig {
 	return e.TaxConfig
 }
 

@@ -14,6 +14,63 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// TestBug2_TaxConfigEqualDetectsTaxCode is the regression guard for the fix: billing.TaxConfig.Equal
+// now includes the resolved TaxCode entity. Two configs that are identical except for TaxCode
+// (one nil, one stamped) must compare as NOT equal, so the adapter diff guard re-upserts the line
+// and the snapshot is persisted to the tax_config JSONB column.
+func TestBug2_TaxConfigEqualDetectsTaxCode(t *testing.T) {
+	tc1 := taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "tc-1"},
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
+		},
+	}
+
+	// Persisted state: TaxCodeID set, but the TaxCode entity snapshot is absent.
+	persistedState := &billing.TaxConfig{
+		Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr("tc-1"),
+		TaxCode:   nil,
+	}
+
+	// In-memory state after SnapshotTaxConfigIntoLines stamps the entity. Identical except TaxCode.
+	expectedState := &billing.TaxConfig{
+		Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr("tc-1"),
+		TaxCode:   &tc1,
+	}
+
+	assert.False(t, persistedState.Equal(expectedState),
+		"Equal must detect the stamped TaxCode so the line is re-upserted and the snapshot persisted")
+
+	// Deep-equal sub-case: two configs whose TaxCode has the same ID/namespace/key/name but
+	// different AppMappings must compare as NOT equal (shallow ID comparison would miss this).
+	tc2 := taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "tc-1"},
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_20000000"},
+		},
+	}
+
+	leftConfig := &billing.TaxConfig{
+		Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr("tc-1"),
+		TaxCode:   &tc1,
+	}
+	rightConfig := &billing.TaxConfig{
+		Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr("tc-1"),
+		TaxCode:   &tc2,
+	}
+
+	assert.False(t, leftConfig.Equal(rightConfig),
+		"Equal must detect different AppMappings even when TaxCode.ID is the same")
+}
+
 func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 	tc1 := taxcode.TaxCode{
 		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "tc-1"},
@@ -47,7 +104,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 	newLine := func(tc *productcatalog.TaxConfig) *billing.StandardLine {
 		return &billing.StandardLine{
 			StandardLineBase: billing.StandardLineBase{
-				TaxConfig: tc,
+				TaxConfig: billing.FromProductCatalog(tc),
 			},
 		}
 	}
@@ -56,7 +113,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 		name      string
 		invoice   billing.StandardInvoice
 		deps      StandardInvoiceCalculatorDependencies
-		wantTC    *productcatalog.TaxConfig
+		wantTC    *billing.TaxConfig
 		wantNoErr bool
 	}{
 		{
@@ -69,7 +126,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 				}),
 			),
 			deps:      StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
-			wantTC:    &productcatalog.TaxConfig{Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"}},
+			wantTC:    &billing.TaxConfig{Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"}},
 			wantNoErr: true,
 		},
 		{
@@ -82,7 +139,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 				}),
 			),
 			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
-			wantTC: &productcatalog.TaxConfig{
+			wantTC: &billing.TaxConfig{
 				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				TaxCodeID: lo.ToPtr("tc-1"),
 				TaxCode:   &tc1,
@@ -100,10 +157,43 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 				}),
 			),
 			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
-			wantTC: &productcatalog.TaxConfig{
+			wantTC: &billing.TaxConfig{
 				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				TaxCodeID: lo.ToPtr("already-set"),
 				TaxCode:   &tc1,
+			},
+			wantNoErr: true,
+		},
+		{
+			// Reproduces the dedup production scenario:
+			// line.TaxCodeID points to the loser UUID (written by a code path that resolved
+			// the tax code outside of GetOrCreateByAppMapping), while deps.TaxCodes maps the
+			// Stripe code to the winner entity.
+			//
+			// Expected: TaxCode snapshot IS stamped with winner data (so reads of tax_config.tax_code
+			// return the correct entity); TaxCodeID is NOT overwritten (stays as loser) because the
+			// non-nil guard prevents it. The dedup migration and a separate backfill are needed to
+			// repair the TaxCodeID → winner realignment.
+			//
+			// If this test fails (TaxCode is nil), the bug is inside SnapshotTaxConfigIntoLines itself.
+			// If this test passes, the production missing-snapshot bug is in a layer outside this
+			// function (persistence path or a code path that bypasses calculateInvoice entirely).
+			name: "dedup scenario: loser TaxCodeID is preserved but winner entity snapshot is stamped",
+			invoice: newInvoice(
+				billing.StandardInvoiceStatusDraftCollecting,
+				nil,
+				newLine(&productcatalog.TaxConfig{
+					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+					TaxCodeID: lo.ToPtr("loser-uuid"),
+				}),
+			),
+			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
+			wantTC: &billing.TaxConfig{
+				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+				Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+				TaxCodeID: lo.ToPtr("loser-uuid"), // not overwritten to winner
+				TaxCode:   &tc1,                   // winner entity IS stamped
 			},
 			wantNoErr: true,
 		},
@@ -117,7 +207,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 				}),
 			),
 			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{}},
-			wantTC: &productcatalog.TaxConfig{
+			wantTC: &billing.TaxConfig{
 				Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 			},
 			wantNoErr: true,
@@ -133,7 +223,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 				newLine(nil),
 			),
 			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
-			wantTC: &productcatalog.TaxConfig{
+			wantTC: &billing.TaxConfig{
 				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				TaxCodeID: lo.ToPtr("tc-1"),
@@ -156,7 +246,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 				"txcd_10000000": tc1,
 				"txcd_20000000": tc2,
 			}},
-			wantTC: &productcatalog.TaxConfig{
+			wantTC: &billing.TaxConfig{
 				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_20000000"},
 				TaxCodeID: lo.ToPtr("tc-2"),
 				TaxCode:   &tc2,
@@ -173,7 +263,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 				}),
 			),
 			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
-			wantTC: &productcatalog.TaxConfig{
+			wantTC: &billing.TaxConfig{
 				Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 			},
 			wantNoErr: true,

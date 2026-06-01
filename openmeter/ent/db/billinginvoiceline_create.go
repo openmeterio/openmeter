@@ -133,13 +133,13 @@ func (_c *BillingInvoiceLineCreate) SetCurrency(v currencyx.Code) *BillingInvoic
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (_c *BillingInvoiceLineCreate) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineCreate {
+func (_c *BillingInvoiceLineCreate) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineCreate {
 	_c.mutation.SetTaxConfig(v)
 	return _c
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_c *BillingInvoiceLineCreate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingInvoiceLineCreate {
+func (_c *BillingInvoiceLineCreate) SetNillableTaxConfig(v *billing.TaxConfig) *BillingInvoiceLineCreate {
 	if v != nil {
 		_c.SetTaxConfig(*v)
 	}
@@ -1537,7 +1537,7 @@ func (u *BillingInvoiceLineUpsert) ClearDescription() *BillingInvoiceLineUpsert 
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsert) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsert {
+func (u *BillingInvoiceLineUpsert) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldTaxConfig, v)
 	return u
 }
@@ -2213,7 +2213,7 @@ func (u *BillingInvoiceLineUpsertOne) ClearDescription() *BillingInvoiceLineUpse
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsertOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsertOne {
+func (u *BillingInvoiceLineUpsertOne) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetTaxConfig(v)
 	})
@@ -3143,7 +3143,7 @@ func (u *BillingInvoiceLineUpsertBulk) ClearDescription() *BillingInvoiceLineUps
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsertBulk) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsertBulk {
+func (u *BillingInvoiceLineUpsertBulk) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetTaxConfig(v)
 	})

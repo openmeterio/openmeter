@@ -168,6 +168,8 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftSyncFailed).
 		OnActive(statelessx.AllOf(
+			out.snapshotLineTaxConfigs,
+			out.requireDBSave,
 			out.syncDraftInvoice,
 		))
 
@@ -229,6 +231,8 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusIssuingSyncFailed).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		OnActive(statelessx.AllOf(
+			out.snapshotLineTaxConfigs,
+			out.requireDBSave,
 			out.finalizeInvoice,
 		))
 
@@ -769,6 +773,35 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 		TaxCodes:      taxCodes,
 		LineEngines:   m.Service.lineEngines,
 	})
+}
+
+// snapshotLineTaxConfigs re-stamps the resolved TaxCode entity onto each line's TaxConfig
+// immediately before the invoice is synced to / finalized by the external invoicing app, so the
+// persisted and externally-sent snapshot reflects the tax code's point-in-time state at the
+// moment of sync rather than the possibly-stale snapshot taken during the draft calculation states.
+//
+// It runs in the OnActive of draft.syncing and issuing.syncing. StatusDetails.Immutable flips to
+// true at draft.syncing (the state drops TriggerUpdated), but the line is only truly immutable once
+// finalized at issuing.syncing; this refresh is a controlled, system-driven update, not a user edit.
+func (m *InvoiceStateMachine) snapshotLineTaxConfigs(ctx context.Context) error {
+	taxCodes, err := m.Service.resolveTaxCodes(ctx, resolveTaxCodesInput{
+		Namespace: m.Invoice.Namespace,
+		Invoice:   &m.Invoice,
+		// Read-only: the tax codes were already resolved/created during the draft states; we must
+		// not mint new tax_codes rows during sync/finalization.
+		ReadOnly: true,
+	})
+	if err != nil {
+		return fmt.Errorf("resolving tax codes: %w", err)
+	}
+
+	if err := invoicecalc.SnapshotTaxConfigIntoLines(&m.Invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
+		TaxCodes: taxCodes,
+	}); err != nil {
+		return fmt.Errorf("snapshotting tax configs: %w", err)
+	}
+
+	return nil
 }
 
 // syncDraftInvoice syncs the draft invoice with the external system.

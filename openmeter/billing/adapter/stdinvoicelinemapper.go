@@ -318,28 +318,28 @@ func taxCodeFromInvoiceLineEdge(dbLine *db.BillingInvoiceLine) *taxcode.TaxCode 
 // TODO[later]: change the billing-facing types to expose TaxCodeSnapshot and TaxCodeReference
 // fields explicitly so it is obvious what is the immutable invoice snapshot and what is the live
 // reference to the tax entity.
-func backfillTaxConfigReferences(snapshottedTaxConfig *productcatalog.TaxConfig, persistedTaxBehavior *productcatalog.TaxBehavior, resolvedTaxCode *taxcode.TaxCode) *productcatalog.TaxConfig {
-	backfilledTaxConfig := productcatalog.BackfillTaxConfig(snapshottedTaxConfig, persistedTaxBehavior, resolvedTaxCode)
+func backfillTaxConfigReferences(snapshottedTaxConfig *billing.TaxConfig, persistedTaxBehavior *productcatalog.TaxBehavior, resolvedTaxCode *taxcode.TaxCode) *billing.TaxConfig {
+	backfilledTaxConfig := productcatalog.BackfillTaxConfig(snapshottedTaxConfig.ToProductCatalog(), persistedTaxBehavior, resolvedTaxCode)
 
 	if backfilledTaxConfig == nil || resolvedTaxCode == nil {
-		return backfilledTaxConfig
+		return billing.FromProductCatalog(backfilledTaxConfig)
 	}
 
 	if backfilledTaxConfig.TaxCodeID != nil && *backfilledTaxConfig.TaxCodeID != resolvedTaxCode.ID {
-		return backfilledTaxConfig
+		return billing.FromProductCatalog(backfilledTaxConfig)
 	}
 
 	if backfilledTaxConfig.Stripe != nil {
 		mapping, ok := resolvedTaxCode.GetAppMapping(app.AppTypeStripe)
 		if !ok || mapping.TaxCode != backfilledTaxConfig.Stripe.Code {
-			return backfilledTaxConfig
+			return billing.FromProductCatalog(backfilledTaxConfig)
 		}
 	}
 
-	cloned := backfilledTaxConfig.Clone()
-	cloned.TaxCode = resolvedTaxCode
+	result := billing.FromProductCatalog(backfilledTaxConfig)
+	result.TaxCode = resolvedTaxCode
 
-	return &cloned
+	return result
 }
 
 func (a *adapter) mapStandardInvoiceDetailedLineAmountDiscountFromDB(dbDiscount *db.BillingStandardInvoiceDetailedLineAmountDiscount) (billing.AmountLineDiscountManaged, error) {

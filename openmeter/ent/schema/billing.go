@@ -292,7 +292,7 @@ func (InvoiceLineBaseMixin) Fields() []ent.Field {
 				dialect.Postgres: "varchar(3)",
 			}),
 
-		field.JSON("tax_config", productcatalog.TaxConfig{}).
+		field.JSON("tax_config", billing.TaxConfig{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
