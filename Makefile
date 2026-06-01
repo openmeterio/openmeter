@@ -319,6 +319,7 @@ fmt: ## Format code
 mod: ## go mod tidy
 	$(call print-target)
 	go mod tidy
+	go mod tidy -C collector
 
 .PHONY: seed
 seed: ## Seed OpenMeter with test data
