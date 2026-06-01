@@ -301,13 +301,11 @@ Rule of thumb: **if the target is a Go identifier, start with CodeGraph. If it's
 
 ### Keeping the index fresh
 
-Run `codegraph sync` after significant code changes (new files, renames, major refactors). Run `codegraph index` for a full rebuild if the index seems stale or after branch switches.
+At the start of work, refresh CodeGraph before exploring Go code. If `.codegraph/` exists, run `codegraph sync`; if it does not exist, run `codegraph init -i` without asking first. Run `codegraph index` for a full rebuild if the index seems stale or after branch switches.
 
 ### If `.codegraph/` does NOT exist
 
-At the start of a session, ask the user if they'd like to initialize CodeGraph:
-
-> I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph? It indexes ~1,800 Go files and takes about 5 seconds.
+Initialize it with `codegraph init -i` before doing code exploration. It indexes the Go codebase quickly and keeps symbol-aware lookup available.
 
 ## Skills
 
