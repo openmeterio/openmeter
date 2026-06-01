@@ -49,6 +49,171 @@ func (s *InvoicableChargesTestSuite) TearDownTest() {
 	s.BaseSuite.TearDownTest()
 }
 
+func (s *InvoicableChargesTestSuite) TestFlatFeeGatheringPreviewPopulatesTotalsWithoutRealizationRun() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-gathering-preview")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	creditAllocationCallback := newCountedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]()
+	s.FlatFeeTestHandler.onAllocateCredits = creditAllocationCallback.Handler(
+		s.T(),
+		func(flatfee.OnAllocateCreditsInput, ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
+			return nil
+		},
+	)
+
+	created, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(100),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-gathering-preview",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "flat-fee-gathering-preview",
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Require().Len(created, 1)
+
+	flatFeeCharge, err := created[0].AsFlatFeeCharge()
+	s.NoError(err)
+	flatFeeChargeID := flatFeeCharge.GetChargeID()
+
+	s.assertGatheringPreview(assertGatheringPreviewInput{
+		Namespace:  ns,
+		CustomerID: cust.ID,
+		ExpectedInvoiceTotals: billingtest.ExpectedTotals{
+			Amount: 100,
+			Total:  100,
+		},
+		ExpectedLineTotals: billingtest.ExpectedTotals{
+			Amount: 100,
+			Total:  100,
+		},
+		AssertLine: func(previewLine *billing.StandardLine) {
+			s.Equal(flatFeeChargeID.ID, lo.FromPtr(previewLine.ChargeID))
+			s.Empty(previewLine.CreditsApplied)
+		},
+	})
+
+	chargeAfterPreview := mustGetFlatFeeChargeWithExpands(&s.BaseSuite, flatFeeChargeID, meta.Expands{meta.ExpandRealizations})
+	s.Nil(chargeAfterPreview.Realizations.CurrentRun)
+	s.Empty(chargeAfterPreview.Realizations.PriorRuns)
+	s.Zero(creditAllocationCallback.nrInvocations)
+}
+
+func (s *InvoicableChargesTestSuite) TestUsageBasedGatheringPreviewPopulatesTotalsWithoutRealizationRun() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-usage-based-gathering-preview")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	meterSlug := apiRequestsTotal.Feature.Key
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	created, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(2),
+				}),
+				name:              "usage-based-gathering-preview",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "usage-based-gathering-preview",
+				featureKey:        meterSlug,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Require().Len(created, 1)
+
+	usageBasedCharge, err := created[0].AsUsageBasedCharge()
+	s.NoError(err)
+	usageBasedChargeID := usageBasedCharge.GetChargeID()
+
+	s.MockStreamingConnector.AddSimpleEvent(
+		meterSlug,
+		15,
+		datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+	)
+
+	s.assertGatheringPreview(assertGatheringPreviewInput{
+		Namespace:  ns,
+		CustomerID: cust.ID,
+		ExpectedInvoiceTotals: billingtest.ExpectedTotals{
+			Amount: 30,
+			Total:  30,
+		},
+		ExpectedLineTotals: billingtest.ExpectedTotals{
+			Amount: 30,
+			Total:  30,
+		},
+		AssertLine: func(previewLine *billing.StandardLine) {
+			s.Require().NotNil(previewLine.UsageBased)
+			s.Require().NotNil(previewLine.UsageBased.MeteredQuantity)
+			s.Require().NotNil(previewLine.UsageBased.Quantity)
+			s.Require().NotNil(previewLine.UsageBased.MeteredPreLinePeriodQuantity)
+			s.Require().NotNil(previewLine.UsageBased.PreLinePeriodQuantity)
+			s.Equal(float64(15), lo.FromPtr(previewLine.UsageBased.MeteredQuantity).InexactFloat64())
+			s.Equal(float64(15), lo.FromPtr(previewLine.UsageBased.Quantity).InexactFloat64())
+			s.Equal(float64(0), lo.FromPtr(previewLine.UsageBased.MeteredPreLinePeriodQuantity).InexactFloat64())
+			s.Equal(float64(0), lo.FromPtr(previewLine.UsageBased.PreLinePeriodQuantity).InexactFloat64())
+		},
+	})
+
+	chargeAfterPreview := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+	s.Nil(chargeAfterPreview.State.CurrentRealizationRunID)
+	s.Empty(chargeAfterPreview.Realizations)
+}
+
 func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceImmutableProration() {
 	for _, creditNotesAvailable := range []bool{true, false} {
 		name := "credit notes unavailable"

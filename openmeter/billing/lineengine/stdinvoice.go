@@ -8,7 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type QuantitySnapshotter interface {
@@ -16,6 +15,22 @@ type QuantitySnapshotter interface {
 }
 
 func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
+	stdLines, err := e.buildStandardInvoiceLinesWithQuantitySnapshot(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	return e.CalculateLines(billing.CalculateLinesInput{
+		Invoice: input.Invoice,
+		Lines:   stdLines,
+	})
+}
+
+func (e *Engine) BuildStandardLinesForGatheringPreview(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
+	return e.buildStandardInvoiceLinesWithQuantitySnapshot(ctx, input)
+}
+
+func (e *Engine) buildStandardInvoiceLinesWithQuantitySnapshot(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
 	if input.Invoice.ID == "" {
 		return nil, fmt.Errorf("invoice id is required")
 	}
@@ -24,14 +39,7 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 		return nil, fmt.Errorf("gathering lines are required")
 	}
 
-	stdLines, err := slicesx.MapWithErr(input.GatheringLines, func(gatheringLine billing.GatheringLine) (*billing.StandardLine, error) {
-		newStandardLine, err := gatheringLine.AsNewStandardLine(input.Invoice.ID)
-		if err != nil {
-			return nil, fmt.Errorf("converting gathering line to standard line: %w", err)
-		}
-
-		return newStandardLine, nil
-	})
+	stdLines, err := input.GatheringLines.ToStandardLines(input.Invoice.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -44,10 +52,7 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 		return nil, fmt.Errorf("snapshotting line quantities: %w", err)
 	}
 
-	return e.CalculateLines(billing.CalculateLinesInput{
-		Invoice: input.Invoice,
-		Lines:   stdLines,
-	})
+	return stdLines, nil
 }
 
 func (e *Engine) CalculateLines(input billing.CalculateLinesInput) (billing.StandardLines, error) {
