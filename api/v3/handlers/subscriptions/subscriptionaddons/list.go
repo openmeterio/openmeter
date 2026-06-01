@@ -90,13 +90,16 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 				return ListSubscriptionAddonsResponse{}, err
 			}
 
-			items := make([]apiv3.SubscriptionAddon, 0, len(res.Items))
-			for _, item := range res.Items {
-				converted, err := toAPISubscriptionAddon(item)
-				if err != nil {
-					return ListSubscriptionAddonsResponse{}, err
-				}
-				items = append(items, converted)
+			view, err := h.subscriptionService.GetView(ctx, req.SubscriptionID)
+			if err != nil {
+				return ListSubscriptionAddonsResponse{}, err
+			}
+
+			items, err := lo.MapErr(res.Items, func(item subscriptionaddon.SubscriptionAddon, _ int) (apiv3.SubscriptionAddon, error) {
+				return toAPISubscriptionAddon(view, item)
+			})
+			if err != nil {
+				return ListSubscriptionAddonsResponse{}, err
 			}
 
 			return response.NewPagePaginationResponse(items, response.PageMetaPage{

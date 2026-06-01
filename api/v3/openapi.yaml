@@ -9371,6 +9371,8 @@ components:
         - quantity
         - quantity_at
         - active_from
+        - timeline
+        - rate_cards
       properties:
         id:
           allOf:
@@ -9437,6 +9439,29 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: An ISO-8601 timestamp representation of the cadence end of the resource.
           readOnly: true
+        timeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionAddonTimelineSegment'
+          description: The timeline of the add-on. The returned periods are sorted and continuous.
+          title: Timeline
+          example:
+            - quantity: 1
+              active_from: '2025-01-01T00:00:00Z'
+              active_to: '2025-01-02T00:00:00Z'
+            - quantity: 0
+              active_from: '2025-01-02T00:00:00Z'
+              active_to: '2025-01-03T00:00:00Z'
+            - quantity: 1
+              active_from: '2025-01-03T00:00:00Z'
+          readOnly: true
+        rate_cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionAddonRateCard'
+          description: The rate cards of the add-on.
+          title: Rate cards
+          readOnly: true
       additionalProperties: false
       description: Addon purchased with a subscription.
     SubscriptionAddonPagePaginatedResponse:
@@ -9453,6 +9478,51 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
+    SubscriptionAddonRateCard:
+      type: object
+      required:
+        - rate_card
+        - affected_subscription_item_ids
+      properties:
+        rate_card:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCard'
+          description: The rate card.
+          title: Rate card
+        affected_subscription_item_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/ULID'
+          description: The IDs of the subscription items that this rate card belongs to.
+          title: Affected subscription item IDs
+          readOnly: true
+      additionalProperties: false
+      description: A rate card for a subscription add-on.
+    SubscriptionAddonTimelineSegment:
+      type: object
+      required:
+        - active_from
+        - quantity
+      properties:
+        active_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of the cadence start of the resource.
+          readOnly: true
+        active_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of the cadence end of the resource.
+          readOnly: true
+        quantity:
+          type: integer
+          minimum: 0
+          description: The quantity of the add-on for the given period.
+          title: Quantity
+          example: 1
+          readOnly: true
+      additionalProperties: false
+      description: A subscription add-on event.
     SubscriptionPagePaginatedResponse:
       type: object
       required:

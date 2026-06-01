@@ -50,12 +50,12 @@ func (h *handler) CreateSubscriptionAddon() CreateSubscriptionAddonHandler {
 			}, nil
 		},
 		func(ctx context.Context, request CreateSubscriptionAddonRequest) (CreateSubscriptionAddonResponse, error) {
-			_, added, err := h.SubscriptionWorkflowService.AddAddon(ctx, request.SubscriptionID, request.AddonInput)
+			view, added, err := h.SubscriptionWorkflowService.AddAddon(ctx, request.SubscriptionID, request.AddonInput)
 			if err != nil {
 				return CreateSubscriptionAddonResponse{}, err
 			}
 
-			return toAPISubscriptionAddon(added)
+			return toAPISubscriptionAddon(view, added)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateSubscriptionAddonResponse](http.StatusCreated),
 		httptransport.AppendOptions(

@@ -8,12 +8,16 @@ import (
 	"github.com/samber/lo"
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	"github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
+	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -40,7 +44,7 @@ func mapCreateSubscriptionAddonRequestToInput(req apiv3.CreateSubscriptionAddonR
 	return r, nil
 }
 
-func toAPISubscriptionAddon(addon subscriptionaddon.SubscriptionAddon) (apiv3.SubscriptionAddon, error) {
+func toAPISubscriptionAddon(view subscription.SubscriptionView, addon subscriptionaddon.SubscriptionAddon) (apiv3.SubscriptionAddon, error) {
 	now := clock.Now()
 
 	inst, found := addon.GetInstanceAt(now)
@@ -60,6 +64,25 @@ func toAPISubscriptionAddon(addon subscriptionaddon.SubscriptionAddon) (apiv3.Su
 		return agg.Union(item)
 	}, pers[0])
 
+	affectedMap := addondiff.GetAffectedItemIDs(view, addon)
+
+	rateCards, err := slicesx.MapWithErr(addon.RateCards, func(r subscriptionaddon.SubscriptionAddonRateCard) (apiv3.SubscriptionAddonRateCard, error) {
+		rc, err := plans.ToAPIBillingRateCard(r.AddonRateCard.RateCard)
+		if err != nil {
+			return apiv3.SubscriptionAddonRateCard{}, fmt.Errorf("failed to cast RateCard: %w", err)
+		}
+
+		ids := affectedMap[r.AddonRateCard.RateCard.Key()]
+
+		return apiv3.SubscriptionAddonRateCard{
+			RateCard:                    rc,
+			AffectedSubscriptionItemIds: ids,
+		}, nil
+	})
+	if err != nil {
+		return apiv3.SubscriptionAddon{}, fmt.Errorf("failed to cast RateCards: %w", err)
+	}
+
 	return apiv3.SubscriptionAddon{
 		Id:          addon.ID,
 		Name:        addon.Name,
@@ -75,5 +98,13 @@ func toAPISubscriptionAddon(addon subscriptionaddon.SubscriptionAddon) (apiv3.Su
 		QuantityAt: now,
 		ActiveFrom: lo.FromPtrOr(union.From, now),
 		ActiveTo:   union.To,
+		Timeline: lo.Map(addon.GetInstances(), func(i subscriptionaddon.SubscriptionAddonInstance, _ int) apiv3.SubscriptionAddonTimelineSegment {
+			return apiv3.SubscriptionAddonTimelineSegment{
+				Quantity:   i.Quantity,
+				ActiveFrom: i.CadencedModel.ActiveFrom,
+				ActiveTo:   i.CadencedModel.ActiveTo,
+			}
+		}),
+		RateCards: rateCards,
 	}, nil
 }
