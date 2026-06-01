@@ -319,6 +319,10 @@ func taxCodeFromInvoiceLineEdge(dbLine *db.BillingInvoiceLine) *taxcode.TaxCode 
 // fields explicitly so it is obvious what is the immutable invoice snapshot and what is the live
 // reference to the tax entity.
 func backfillTaxConfigReferences(snapshottedTaxConfig *billing.TaxConfig, persistedTaxBehavior *productcatalog.TaxBehavior, resolvedTaxCode *taxcode.TaxCode) *billing.TaxConfig {
+	if snapshottedTaxConfig == nil {
+		return billing.FromProductCatalog(productcatalog.BackfillTaxConfig(nil, persistedTaxBehavior, resolvedTaxCode))
+	}
+
 	backfilledTaxConfig := productcatalog.BackfillTaxConfig(snapshottedTaxConfig.ToProductCatalog(), persistedTaxBehavior, resolvedTaxCode)
 
 	if backfilledTaxConfig == nil || resolvedTaxCode == nil {
