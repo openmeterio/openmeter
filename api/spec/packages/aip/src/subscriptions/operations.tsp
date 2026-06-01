@@ -182,7 +182,8 @@ interface SubscriptionAddonOperations {
   ):
     | Shared.CreateResponse<SubscriptionAddon>
     | Common.ErrorResponses
-    | Common.NotFound;
+    | Common.NotFound
+    | Common.Conflict;
 
   /**
    * List the add-ons of a subscription.
