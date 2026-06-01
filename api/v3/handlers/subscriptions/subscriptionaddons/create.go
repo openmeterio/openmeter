@@ -59,22 +59,13 @@ func (h *handler) CreateSubscriptionAddon() CreateSubscriptionAddonHandler {
 				return CreateSubscriptionAddonResponse{}, err
 			}
 
-			var added subscriptionaddon.SubscriptionAddon
-
-			// If the addon is already present, we'll change the quantity instead as a convenience
-			if sAdd, ok := lo.Find(subsAdds.Items, func(subAdd subscriptionaddon.SubscriptionAddon) bool {
+			if _, ok := lo.Find(subsAdds.Items, func(subAdd subscriptionaddon.SubscriptionAddon) bool {
 				return subAdd.Addon.ID == request.AddonInput.AddonID
 			}); ok {
-				_, added, err = h.SubscriptionWorkflowService.ChangeAddonQuantity(ctx, request.SubscriptionID, subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
-					SubscriptionAddonID: sAdd.NamespacedID,
-					Quantity:            request.AddonInput.InitialQuantity,
-					Timing:              request.AddonInput.Timing,
-				})
-			} else {
-				// Otherwise, we'll create it as per usual
-				_, added, err = h.SubscriptionWorkflowService.AddAddon(ctx, request.SubscriptionID, request.AddonInput)
+				return CreateSubscriptionAddonResponse{}, apierrors.NewConflictError(ctx, err, "subscription addon already exists")
 			}
 
+			_, added, err := h.SubscriptionWorkflowService.AddAddon(ctx, request.SubscriptionID, request.AddonInput)
 			if err != nil {
 				return CreateSubscriptionAddonResponse{}, err
 			}

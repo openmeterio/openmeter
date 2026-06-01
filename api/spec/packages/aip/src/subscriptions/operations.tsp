@@ -175,7 +175,11 @@ interface SubscriptionAddonOperations {
   create(
     @path subscriptionId: Shared.ULID,
     @body request: Shared.CreateRequest<SubscriptionAddon>,
-  ): Shared.CreateResponse<SubscriptionAddon> | Common.ErrorResponses | Common.NotFound;
+  ):
+    | Shared.CreateResponse<SubscriptionAddon>
+    | Common.ErrorResponses
+    | Common.NotFound
+    | Common.Conflict;
 
   /**
    * List the add-ons of a subscription.
