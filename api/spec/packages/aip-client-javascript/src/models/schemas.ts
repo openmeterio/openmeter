@@ -3347,19 +3347,6 @@ export const subscriptionChange = z
 
 export const createSubscriptionAddonRequest = z
   .object({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
     labels: labels.optional(),
     addon: addonReference,
     quantity: z
@@ -3377,6 +3364,10 @@ export const createSubscriptionAddonRequest = z
 export const subscriptionAddon = z
   .object({
     id: ulid,
+    labels: labels.optional(),
+    created_at: dateTime,
+    updated_at: dateTime,
+    deleted_at: dateTime.optional(),
     name: z
       .string()
       .min(1)
@@ -3390,10 +3381,6 @@ export const subscriptionAddon = z
       .describe(
         'Optional description of the resource. Maximum 1024 characters.',
       ),
-    labels: labels.optional(),
-    created_at: dateTime,
-    updated_at: dateTime,
-    deleted_at: dateTime.optional(),
     addon: addonReference,
     quantity: z
       .number()

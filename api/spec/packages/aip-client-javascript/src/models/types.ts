@@ -2216,10 +2216,6 @@ export interface SubscriptionChange {
 
 /** SubscriptionAddon create request. */
 export interface CreateSubscriptionAddonRequest {
-  /** Display name of the resource. Between 1 and 256 characters. */
-  name: string
-  /** Optional description of the resource. Maximum 1024 characters. */
-  description?: string
   labels?: Labels
   /** The add-on associated with the subscription. */
   addon: AddonReference
@@ -2232,10 +2228,6 @@ export interface CreateSubscriptionAddonRequest {
 /** Addon purchased with a subscription. */
 export interface SubscriptionAddon {
   id: string
-  /** Display name of the resource. Between 1 and 256 characters. */
-  name: string
-  /** Optional description of the resource. Maximum 1024 characters. */
-  description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
   created_at: string
@@ -2243,6 +2235,10 @@ export interface SubscriptionAddon {
   updated_at: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deleted_at?: string
+  /** Display name of the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
   /** The add-on associated with the subscription. */
   addon: AddonReference
   /** The quantity of the add-on. Always 1 for single instance add-ons. */
