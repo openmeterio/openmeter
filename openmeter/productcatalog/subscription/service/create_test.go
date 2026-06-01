@@ -64,6 +64,7 @@ func TestCreateSettlementModeOverride(t *testing.T) {
 			})
 
 			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)
+			deps.subDeps.FeatureConnector.CreateExampleFeatures(t, deps.subDeps.ExampleMeterID)
 
 			// Build a custom plan input; clear Key/Version so PlanFromPlanInput accepts it.
 			planInput := subscriptiontestutils.GetExamplePlanInput(t)
@@ -116,6 +117,7 @@ func TestCreateSettlementModeOverride(t *testing.T) {
 			})
 
 			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)
+			deps.subDeps.FeatureConnector.CreateExampleFeatures(t, deps.subDeps.ExampleMeterID)
 
 			examplePlanInput := subscriptiontestutils.GetExamplePlanInput(t)
 			require.Equal(t, productcatalog.CreditThenInvoiceSettlementMode, examplePlanInput.Plan.SettlementMode, "precondition: plan default must be CreditThenInvoice")
