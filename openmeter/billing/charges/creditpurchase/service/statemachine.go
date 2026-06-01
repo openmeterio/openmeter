@@ -35,6 +35,9 @@ func (c StateMachineConfig) Validate() error {
 	if c.Charge.ID == "" {
 		return fmt.Errorf("charge ID is required")
 	}
+	if c.Adapter == nil {
+		return fmt.Errorf("adapter is required")
+	}
 	return nil
 }
 

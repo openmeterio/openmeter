@@ -156,6 +156,38 @@ func TestPromotionalCreditPurchaseStateMachineRejectsNonPromotionalCharge(t *tes
 	require.ErrorContains(t, err, "is not promotional")
 }
 
+func TestPromotionalCreditPurchaseStateMachineRejectsMissingAdapter(t *testing.T) {
+	// given:
+	// - a promotional credit-purchase charge without persistence
+	// when:
+	// - the promotional state machine is constructed
+	// then:
+	// - construction fails before lifecycle methods can dereference the adapter
+	_, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
+		Charge:  newPromotionalStateMachineTestCharge(creditpurchase.StatusCreated),
+		Service: &service{},
+	})
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "adapter is required")
+}
+
+func TestPromotionalCreditPurchaseStateMachineRejectsMissingService(t *testing.T) {
+	// given:
+	// - a promotional credit-purchase charge without runtime service dependencies
+	// when:
+	// - the promotional state machine is constructed
+	// then:
+	// - construction fails before final-state entry can dereference the service
+	_, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
+		Charge:  newPromotionalStateMachineTestCharge(creditpurchase.StatusCreated),
+		Adapter: &promotionalStateMachineAdapter{},
+	})
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "service is required")
+}
+
 func newPromotionalStateMachineTestMachine(
 	t *testing.T,
 	status creditpurchase.Status,

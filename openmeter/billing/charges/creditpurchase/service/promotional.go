@@ -55,6 +55,10 @@ func NewPromotionalCreditPurchaseStateMachine(config StateMachineConfig) (*Promo
 		return nil, fmt.Errorf("validate: %w", err)
 	}
 
+	if config.Service == nil {
+		return nil, fmt.Errorf("service is required")
+	}
+
 	if config.Charge.Intent.Settlement.Type() != creditpurchase.SettlementTypePromotional {
 		return nil, fmt.Errorf("charge %s is not promotional", config.Charge.ID)
 	}
