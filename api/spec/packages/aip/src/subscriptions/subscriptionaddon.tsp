@@ -8,7 +8,26 @@ namespace Subscriptions;
 #suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "active_from and active_to should not be grouped"
 @friendlyName("SubscriptionAddon")
 model SubscriptionAddon {
-  ...Shared.Resource;
+  ...OmitProperties<Shared.Resource, "name" | "description">;
+
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  @visibility(Lifecycle.Read)
+  @minLength(1)
+  @maxLength(256)
+  name: string;
+
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  @maxLength(1024)
+  @visibility(Lifecycle.Read)
+  description?: string;
 
   /**
    * The add-on associated with the subscription.

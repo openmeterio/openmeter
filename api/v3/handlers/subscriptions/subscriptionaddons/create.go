@@ -7,12 +7,10 @@ import (
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
-	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
 )
 
 type (
@@ -52,19 +50,6 @@ func (h *handler) CreateSubscriptionAddon() CreateSubscriptionAddonHandler {
 			}, nil
 		},
 		func(ctx context.Context, request CreateSubscriptionAddonRequest) (CreateSubscriptionAddonResponse, error) {
-			subsAdds, err := h.addonService.List(ctx, request.SubscriptionID.Namespace, subscriptionaddon.ListSubscriptionAddonsInput{
-				SubscriptionID: request.SubscriptionID.ID,
-			})
-			if err != nil {
-				return CreateSubscriptionAddonResponse{}, err
-			}
-
-			if _, ok := lo.Find(subsAdds.Items, func(subAdd subscriptionaddon.SubscriptionAddon) bool {
-				return subAdd.Addon.ID == request.AddonInput.AddonID
-			}); ok {
-				return CreateSubscriptionAddonResponse{}, apierrors.NewConflictError(ctx, err, "subscription addon already exists")
-			}
-
 			_, added, err := h.SubscriptionWorkflowService.AddAddon(ctx, request.SubscriptionID, request.AddonInput)
 			if err != nil {
 				return CreateSubscriptionAddonResponse{}, err
