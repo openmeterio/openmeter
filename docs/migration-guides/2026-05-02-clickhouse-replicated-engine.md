@@ -169,6 +169,11 @@ make up-replicated
 # Run the integration tests (gated by TEST_CLICKHOUSE_REPLICATED):
 TEST_CLICKHOUSE_DSN=clickhouse://default:default@127.0.0.1:39000/openmeter \
 TEST_CLICKHOUSE_REPLICATED=1 \
+TEST_CLICKHOUSE_REPLICATED_CLUSTER=openmeter_cluster \
+TEST_CLICKHOUSE_REPLICATED_ZK_PATH=/clickhouse/tables/{shard}/{database}/{table} \
+TEST_CLICKHOUSE_REPLICATED_REPLICA_NAME={replica} \
+TEST_CLICKHOUSE_REPLICATED_NODE2_DSN=clickhouse://default:default@127.0.0.1:39001/openmeter \
+TEST_CLICKHOUSE_REPLICATED_REPLICA_COUNT=2 \
   go test -tags=dynamic -run='TestEventsTableEngine$' \
   ./openmeter/streaming/clickhouse/...
 
