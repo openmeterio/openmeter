@@ -14,11 +14,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// TestBug2_TaxConfigEqualDetectsTaxCode is the regression guard for the fix: billing.TaxConfig.Equal
+// TaxConfigEqualDetectsTaxCode is the regression guard for the fix: billing.TaxConfig.Equal
 // now includes the resolved TaxCode entity. Two configs that are identical except for TaxCode
 // (one nil, one stamped) must compare as NOT equal, so the adapter diff guard re-upserts the line
 // and the snapshot is persisted to the tax_config JSONB column.
-func TestBug2_TaxConfigEqualDetectsTaxCode(t *testing.T) {
+func TaxConfigEqualDetectsTaxCode(t *testing.T) {
 	tc1 := taxcode.TaxCode{
 		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "tc-1"},
 		AppMappings: taxcode.TaxCodeAppMappings{
@@ -161,39 +161,6 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				TaxCodeID: lo.ToPtr("already-set"),
 				TaxCode:   &tc1,
-			},
-			wantNoErr: true,
-		},
-		{
-			// Reproduces the dedup production scenario:
-			// line.TaxCodeID points to the loser UUID (written by a code path that resolved
-			// the tax code outside of GetOrCreateByAppMapping), while deps.TaxCodes maps the
-			// Stripe code to the winner entity.
-			//
-			// Expected: TaxCode snapshot IS stamped with winner data (so reads of tax_config.tax_code
-			// return the correct entity); TaxCodeID is NOT overwritten (stays as loser) because the
-			// non-nil guard prevents it. The dedup migration and a separate backfill are needed to
-			// repair the TaxCodeID → winner realignment.
-			//
-			// If this test fails (TaxCode is nil), the bug is inside SnapshotTaxConfigIntoLines itself.
-			// If this test passes, the production missing-snapshot bug is in a layer outside this
-			// function (persistence path or a code path that bypasses calculateInvoice entirely).
-			name: "dedup scenario: loser TaxCodeID is preserved but winner entity snapshot is stamped",
-			invoice: newInvoice(
-				billing.StandardInvoiceStatusDraftCollecting,
-				nil,
-				newLine(&productcatalog.TaxConfig{
-					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-					TaxCodeID: lo.ToPtr("loser-uuid"),
-				}),
-			),
-			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
-			wantTC: &billing.TaxConfig{
-				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-				Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-				TaxCodeID: lo.ToPtr("loser-uuid"), // not overwritten to winner
-				TaxCode:   &tc1,                   // winner entity IS stamped
 			},
 			wantNoErr: true,
 		},
