@@ -12120,6 +12120,9 @@ class PlanSubscriptionChange(_Model):
      normalized according to the billing cadence to the nearest recurrence before start time. If not
      provided, the previous subscription billing anchor will be used.
     :vartype billing_anchor: ~datetime.datetime
+    :ivar settlement_mode: The settlement mode of the subscription. Known values are:
+     "credit_then_invoice" and "credit_only".
+    :vartype settlement_mode: str or ~openmeter.models.BillingSettlementMode
     """
 
     timing: "_types.SubscriptionTiming" = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -12147,6 +12150,11 @@ class PlanSubscriptionChange(_Model):
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the previous
      subscription billing anchor will be used."""
+    settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = rest_field(
+        name="settlementMode", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """The settlement mode of the subscription. Known values are: \"credit_then_invoice\" and
+     \"credit_only\"."""
 
     @overload
     def __init__(
@@ -12160,6 +12168,7 @@ class PlanSubscriptionChange(_Model):
         name: Optional[str] = None,
         description: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
+        settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = None,
     ) -> None: ...
 
     @overload
@@ -12189,6 +12198,9 @@ class PlanSubscriptionCreate(_Model):
     :vartype name: str
     :ivar description: Description for the Subscription.
     :vartype description: str
+    :ivar settlement_mode: The settlement mode of the subscription. Known values are:
+     "credit_then_invoice" and "credit_only".
+    :vartype settlement_mode: str or ~openmeter.models.BillingSettlementMode
     :ivar timing: Timing configuration for the change, when the change should take effect. The
      default is immediate. Is either a Union[str, "_models.SubscriptionTimingEnum"] type or a
      datetime.datetime type.
@@ -12202,9 +12214,6 @@ class PlanSubscriptionCreate(_Model):
      normalized according to the billing cadence to the nearest recurrence before start time. If not
      provided, the subscription start time will be used.
     :vartype billing_anchor: ~datetime.datetime
-    :ivar settlement_mode: The settlement mode of the subscription. Known values are:
-     "credit_then_invoice" and "credit_only".
-    :vartype settlement_mode: str or ~openmeter.models.BillingSettlementMode
     """
 
     alignment: Optional["_models.Alignment"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -12222,6 +12231,11 @@ class PlanSubscriptionCreate(_Model):
     """The name of the Subscription. If not provided the plan name is used."""
     description: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Description for the Subscription."""
+    settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = rest_field(
+        name="settlementMode", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """The settlement mode of the subscription. Known values are: \"credit_then_invoice\" and
+     \"credit_only\"."""
     timing: Optional["_types.SubscriptionTiming"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
@@ -12242,11 +12256,6 @@ class PlanSubscriptionCreate(_Model):
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the subscription
      start time will be used."""
-    settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = rest_field(
-        name="settlementMode", visibility=["read", "create", "update", "delete", "query"]
-    )
-    """The settlement mode of the subscription. Known values are: \"credit_then_invoice\" and
-     \"credit_only\"."""
 
     @overload
     def __init__(
@@ -12258,11 +12267,11 @@ class PlanSubscriptionCreate(_Model):
         starting_phase: Optional[str] = None,
         name: Optional[str] = None,
         description: Optional[str] = None,
+        settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = None,
         timing: Optional["_types.SubscriptionTiming"] = None,
         customer_id: Optional[str] = None,
         customer_key: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
-        settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = None,
     ) -> None: ...
 
     @overload
