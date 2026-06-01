@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	health "github.com/AppsFlyer/go-sundheit"
@@ -14,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-slog/otelslog"
 	"github.com/google/wire"
+	"github.com/oklog/ulid/v2"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -278,21 +280,53 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 
 					routePattern := chi.RouteContext(r.Context()).RoutePattern()
 
+					// Record the route template as http.route on the span and request
+					// metrics — the canonical low-cardinality routing dimension. The span
+					// *name* is set separately by WithSpanNameFormatter below: otelhttp
+					// fixes the name at tracer.Start and a post-start SetName here is a
+					// no-op in this setup, so we cannot rename the span from this point.
 					span := trace.SpanFromContext(r.Context())
-					span.SetName(routePattern)
 					span.SetAttributes(semconv.URLPath(r.URL.String()), semconv.HTTPRoute(routePattern))
 
-					labeler, ok := otelhttp.LabelerFromContext(r.Context())
-					if ok {
+					if labeler, ok := otelhttp.LabelerFromContext(r.Context()); ok {
 						labeler.Add(semconv.HTTPRoute(routePattern))
 					}
 				}),
 				"",
 				otelhttp.WithMeterProvider(meterProvider),
 				otelhttp.WithTracerProvider(tracerProvider),
+				otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+					// Name the server span "METHOD /route/{template}". chi's route pattern
+					// is the exact, low-cardinality template (path params appear as
+					// "{param}", so both ids and arbitrary keys collapse). It is already
+					// resolved by the time otelhttp calls this formatter. Fall back to the
+					// ULID-collapsed raw path when no route matched (e.g. 404s).
+					name := lowCardinalityPath(r.URL.Path)
+					if rctx := chi.RouteContext(r.Context()); rctx != nil {
+						if pat := rctx.RoutePattern(); pat != "" {
+							name = pat
+						}
+					}
+					return r.Method + " " + name
+				}),
 			)
 		})
 	}
+}
+
+// lowCardinalityPath collapses ULID path segments to ":id" so span names stay
+// bounded. OpenMeter resource IDs are ULIDs, so this keeps parameterized routes
+// (e.g. "/api/v3/openmeter/customers/01KFTS.../billing") from exploding span-name
+// cardinality, yielding "/api/v3/openmeter/customers/:id/billing". The exact route
+// template is carried separately in the http.route attribute.
+func lowCardinalityPath(path string) string {
+	segments := strings.Split(path, "/")
+	for i, seg := range segments {
+		if _, err := ulid.ParseStrict(seg); err == nil {
+			segments[i] = ":id"
+		}
+	}
+	return strings.Join(segments, "/")
 }
 
 type RuntimeMetricsCollector struct{}

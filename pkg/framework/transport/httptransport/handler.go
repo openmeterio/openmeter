@@ -5,7 +5,9 @@ import (
 	"errors"
 	"net/http"
 
+	"go.opentelemetry.io/otel"
 	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -17,6 +19,11 @@ import (
 var defaultHandlerOptions = []HandlerOption{
 	WithErrorEncoder(commonhttp.GenericErrorEncoder()),
 }
+
+// tracer reads the globally configured TracerProvider (set during telemetry init).
+// Used to start an application-level span named after the handler operation, as a
+// child of the otelhttp server span.
+var tracer = otel.Tracer("github.com/openmeterio/openmeter/pkg/framework/transport/httptransport")
 
 type Handler[Request any, Response any] interface {
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
@@ -79,7 +86,15 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 
 	// TODO: rewrite this as a generic hook
 	if h.operationNameFunc != nil {
-		ctx = contextx.WithAttr(ctx, string(semconv.HTTPRouteKey), h.operationNameFunc(ctx))
+		name := h.operationNameFunc(ctx)
+		ctx = contextx.WithAttr(ctx, string(semconv.HTTPRouteKey), name)
+
+		// Start an application-level span named after the operation, as a child of
+		// the otelhttp server span. The server span stays route-named; this one
+		// carries the operation identity (e.g. "query-governance-access").
+		var span trace.Span
+		ctx, span = tracer.Start(ctx, name)
+		defer span.End()
 	}
 
 	request, err := h.decodeRequest(ctx, r)
