@@ -30,18 +30,18 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 		// Let's activate the state machine for the credit purchase charge
 		switch charge.Intent.Settlement.Type() {
 		case creditpurchase.SettlementTypePromotional:
-			stateMachine, stateMachineErr := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
+			stateMachine, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
 				Charge:  charge,
 				Adapter: s.adapter,
 				Service: s,
 			})
-			if stateMachineErr != nil {
-				return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("new promotional state machine: %w", stateMachineErr)
+			if err != nil {
+				return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("new promotional state machine: %w", err)
 			}
 
-			advancedCharge, stateMachineErr := stateMachine.AdvanceUntilStateStable(ctx)
-			if stateMachineErr != nil {
-				return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("advance promotional state machine: %w", stateMachineErr)
+			advancedCharge, err := stateMachine.AdvanceUntilStateStable(ctx)
+			if err != nil {
+				return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("advance promotional state machine: %w", err)
 			}
 
 			if advancedCharge != nil {
