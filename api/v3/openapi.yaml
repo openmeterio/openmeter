@@ -6022,6 +6022,18 @@ components:
             If not provided, the subscription will be created with the subscription's
             creation time as the billing anchor.
           title: Billing anchor
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: |-
+            Settlement mode for billing.
+
+            Values:
+
+            - `credit_then_invoice`: Credits are applied first, then any remainder is
+            invoiced.
+            - `credit_only`: Usage is settled exclusively against credits.
+          title: Settlement Mode
         timing:
           allOf:
             - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
@@ -6123,6 +6135,18 @@ components:
             If not provided, the subscription will be created with the subscription's
             creation time as the billing anchor.
           title: Billing anchor
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: |-
+            Settlement mode for billing.
+
+            Values:
+
+            - `credit_then_invoice`: Credits are applied first, then any remainder is
+            invoiced.
+            - `credit_only`: Usage is settled exclusively against credits.
+          title: Settlement Mode
       additionalProperties: false
       description: Subscription create request.
     BillingSubscriptionEditTiming:

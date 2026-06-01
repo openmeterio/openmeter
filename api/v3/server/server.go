@@ -312,7 +312,7 @@ func NewServer(config *Config) (*Server, error) {
 	customersCreditsHandler := customerscreditshandler.New(resolveNamespace, config.CustomerService, customerBalanceFacade, creditGrantService, ledgerService, accountResolver, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, config.StreamingConnector, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
-	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, httptransport.WithErrorHandler(config.ErrorHandler))
+	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, config.FeatureGate, config.Credits, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionAddonsHandler := subscriptionaddonshandler.New(resolveNamespace, config.SubscriptionAddonService, httptransport.WithErrorHandler(config.ErrorHandler))
 	billingProfilesHandler := billingprofileshandler.New(resolveNamespace, config.BillingService, httptransport.WithErrorHandler(config.ErrorHandler))
 	plansHandler := planshandler.New(resolveNamespace, config.PlanService, httptransport.WithErrorHandler(config.ErrorHandler))
@@ -423,12 +423,14 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 				ResponseValidationErrorHook: func(err error, r *http.Request) {
 					// Raw err can echo offending response field values (customer PII, billing identifiers).
 					// Keep that detail behind DEBUG; emit a sanitized summary at WARN.
-					slog.WarnContext(r.Context(), "response validation failed",
+					slog.WarnContext(
+						r.Context(), "response validation failed",
 						slog.String("method", r.Method),
 						slog.String("path", r.URL.Path),
 						slog.String("error_type", fmt.Sprintf("%T", err)),
 					)
-					slog.DebugContext(r.Context(), "response validation details",
+					slog.DebugContext(
+						r.Context(), "response validation details",
 						slog.String("method", r.Method),
 						slog.String("path", r.URL.Path),
 						slog.Any("error", err),

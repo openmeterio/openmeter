@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -39,10 +42,25 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				return CreateSubscriptionRequest{}, err
 			}
 
+			var settlementMode *productcatalog.SettlementMode
+			if body.SettlementMode != nil {
+				settlementMode = lo.ToPtr(productcatalog.SettlementMode(*body.SettlementMode))
+			}
+
+			creditEnabled, err := h.isCreditsEnabled(ns)
+			if err != nil {
+				return CreateSubscriptionRequest{}, fmt.Errorf("failed to create subscription: %w", err)
+			}
+
+			if !creditEnabled && lo.FromPtr(settlementMode) == productcatalog.CreditOnlySettlementMode {
+				return CreateSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
+			}
+
 			// Validate that either customer ID or customer key is provided
 			if body.Customer.Id == nil && body.Customer.Key == nil {
 				reason := "one of customer.id or customer.key is required"
-				return CreateSubscriptionRequest{}, apierrors.NewBadRequestError(ctx,
+				return CreateSubscriptionRequest{}, apierrors.NewBadRequestError(
+					ctx,
 					errors.New(reason),
 					[]apierrors.InvalidParameter{
 						{
@@ -71,7 +89,8 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			if body.Plan.Id == nil && body.Plan.Key == nil {
 				reason := "one of plan.id or plan.key is required"
 				// We use bad request error because not implemented does not provide the error context
-				return CreateSubscriptionRequest{}, apierrors.NewBadRequestError(ctx,
+				return CreateSubscriptionRequest{}, apierrors.NewBadRequestError(
+					ctx,
 					errors.New(reason),
 					[]apierrors.InvalidParameter{
 						{
@@ -116,8 +135,9 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			}
 
 			return plansubscription.CreateSubscriptionRequest{
-				WorkflowInput: workflowInput,
-				PlanInput:     planInput,
+				WorkflowInput:  workflowInput,
+				PlanInput:      planInput,
+				SettlementMode: settlementMode,
 			}, nil
 		},
 		func(ctx context.Context, request plansubscription.CreateSubscriptionRequest) (CreateSubscriptionResponse, error) {

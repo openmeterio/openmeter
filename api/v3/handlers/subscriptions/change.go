@@ -3,11 +3,15 @@ package subscriptions
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+
+	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -17,9 +21,10 @@ import (
 
 type (
 	ChangeSubscriptionRequest struct {
-		ID            models.NamespacedID
-		PlanInput     plansubscription.PlanInput
-		WorkflowInput subscriptionworkflow.ChangeSubscriptionWorkflowInput
+		ID             models.NamespacedID
+		PlanInput      plansubscription.PlanInput
+		WorkflowInput  subscriptionworkflow.ChangeSubscriptionWorkflowInput
+		SettlementMode *productcatalog.SettlementMode
 	}
 	ChangeSubscriptionResponse = api.BillingSubscriptionChangeResponse
 	ChangeSubscriptionParams   = string
@@ -41,6 +46,20 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				return ChangeSubscriptionRequest{}, err
 			}
 
+			var settlementMode *productcatalog.SettlementMode
+			if body.SettlementMode != nil {
+				settlementMode = lo.ToPtr(productcatalog.SettlementMode(*body.SettlementMode))
+			}
+
+			creditEnabled, err := h.isCreditsEnabled(ns)
+			if err != nil {
+				return ChangeSubscriptionRequest{}, fmt.Errorf("failed to create subscription: %w", err)
+			}
+
+			if !creditEnabled && lo.FromPtr(settlementMode) == productcatalog.CreditOnlySettlementMode {
+				return ChangeSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
+			}
+
 			id := models.NamespacedID{
 				Namespace: ns,
 				ID:        subscriptionID,
@@ -55,7 +74,8 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 			// Currently only plan-based subscription change is supported, so plan ref is required.
 			if body.Plan.Id == nil && body.Plan.Key == nil {
 				reason := "one of plan.id or plan.key is required"
-				return ChangeSubscriptionRequest{}, apierrors.NewBadRequestError(ctx,
+				return ChangeSubscriptionRequest{}, apierrors.NewBadRequestError(
+					ctx,
 					errors.New(reason),
 					[]apierrors.InvalidParameter{
 						{
@@ -107,16 +127,18 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 			}
 
 			return ChangeSubscriptionRequest{
-				ID:            id,
-				PlanInput:     planInput,
-				WorkflowInput: workflowInput,
+				ID:             id,
+				PlanInput:      planInput,
+				WorkflowInput:  workflowInput,
+				SettlementMode: settlementMode,
 			}, nil
 		},
 		func(ctx context.Context, req ChangeSubscriptionRequest) (ChangeSubscriptionResponse, error) {
 			resp, err := h.planSubscriptionService.Change(ctx, plansubscription.ChangeSubscriptionRequest{
-				ID:            req.ID,
-				WorkflowInput: req.WorkflowInput,
-				PlanInput:     req.PlanInput,
+				ID:             req.ID,
+				WorkflowInput:  req.WorkflowInput,
+				PlanInput:      req.PlanInput,
+				SettlementMode: req.SettlementMode,
 			})
 			if err != nil {
 				return ChangeSubscriptionResponse{}, err
