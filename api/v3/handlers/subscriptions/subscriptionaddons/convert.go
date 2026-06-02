@@ -3,7 +3,6 @@ package subscriptionaddons
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -47,10 +46,8 @@ func mapCreateSubscriptionAddonRequestToInput(req apiv3.CreateSubscriptionAddonR
 func toAPISubscriptionAddon(view subscription.SubscriptionView, addon subscriptionaddon.SubscriptionAddon) (apiv3.SubscriptionAddon, error) {
 	now := clock.Now()
 
-	inst, found := addon.GetInstanceAt(now)
-	if !found {
-		return apiv3.SubscriptionAddon{}, models.NewGenericNotFoundError(fmt.Errorf("no instance is active at %s", now.Format(time.RFC3339)))
-	}
+	// inst.Quantity is 0 when no instance is active at now (e.g. addon scheduled for next_billing_cycle).
+	inst, _ := addon.GetInstanceAt(now)
 
 	pers := lo.Map(addon.GetInstances(), func(i subscriptionaddon.SubscriptionAddonInstance, _ int) timeutil.OpenPeriod {
 		return i.AsPeriod()
@@ -73,6 +70,9 @@ func toAPISubscriptionAddon(view subscription.SubscriptionView, addon subscripti
 		}
 
 		ids := affectedMap[r.AddonRateCard.RateCard.Key()]
+		if ids == nil {
+			ids = []string{}
+		}
 
 		return apiv3.SubscriptionAddonRateCard{
 			RateCard:                    rc,

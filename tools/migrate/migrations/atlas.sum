@@ -1,4 +1,4 @@
-h1:bYuJGnA3sMdWl6FydQ5bBNYOc5xDtNsueug33uRf+Jg=
+h1:EKM3k/11GRUdrp192eVT1LtQctqvDHSNG/eV68Cifmo=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -208,3 +208,4 @@ h1:bYuJGnA3sMdWl6FydQ5bBNYOc5xDtNsueug33uRf+Jg=
 20260527120000_dedupe_tax_codes_by_app_mapping.up.sql h1:/tOMj6sA5vrD6+xJLZXeJaxnY4fJoxhfDGzRCPqWeEA=
 20260604143000_ledger_route_features_text_array.up.sql h1:SGRfUphA+5GuVdTMF3MgRIEJYq7jmYSe+cdTUdMqvHc=
 20260605120000_add_credit_feature_filters.up.sql h1:sPiCQHgkfUehzR6JyoPpwROA5WWGmqE03OmygmuFva0=
+20260608085650_add_subscription_addon_unique_index.up.sql h1:S5x+4HCmzeKSmiKq1YxyTmC5vDQeBvw+FDiCFvUucB4=
