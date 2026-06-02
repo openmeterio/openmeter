@@ -19,7 +19,7 @@ type handler struct {
 	resolveNamespace            func(ctx context.Context) (string, error)
 	addonService                subscriptionaddon.Service
 	subscriptionService         subscription.Service
-	SubscriptionWorkflowService subscriptionworkflow.Service
+	subscriptionWorkflowService subscriptionworkflow.Service
 	options                     []httptransport.HandlerOption
 }
 
@@ -34,7 +34,7 @@ func New(
 		resolveNamespace:            resolveNamespace,
 		addonService:                addonService,
 		subscriptionService:         subscriptionService,
-		SubscriptionWorkflowService: subscriptionWorkflowService,
+		subscriptionWorkflowService: subscriptionWorkflowService,
 		options:                     options,
 	}
 }
