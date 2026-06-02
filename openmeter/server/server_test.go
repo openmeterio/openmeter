@@ -34,7 +34,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
-	"github.com/openmeterio/openmeter/openmeter/governance"
+	governanceservice "github.com/openmeterio/openmeter/openmeter/governance/service"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -745,7 +745,7 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 	subjectService := &NoopSubjectService{}
 
 	// Create governance service from the noop collaborators
-	governanceService, err := governance.New(governance.Config{
+	governanceService, err := governanceservice.New(governanceservice.Config{
 		CustomerService:    customerService,
 		EntitlementService: &NoopEntitlementConnector{},
 		FeatureConnector:   featureService,

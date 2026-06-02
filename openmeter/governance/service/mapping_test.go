@@ -1,4 +1,4 @@
-package governance
+package service
 
 import (
 	"testing"
@@ -9,6 +9,7 @@ import (
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
+	"github.com/openmeterio/openmeter/openmeter/governance"
 )
 
 func TestMapEntitlementToAccess(t *testing.T) {
@@ -16,7 +17,7 @@ func TestMapEntitlementToAccess(t *testing.T) {
 		name          string
 		value         entitlement.EntitlementValue
 		wantHasAccess bool
-		wantCode      *ReasonCode
+		wantCode      *governance.ReasonCode
 	}{
 		{
 			name:          "metered with balance — has access",
@@ -27,7 +28,7 @@ func TestMapEntitlementToAccess(t *testing.T) {
 			name:          "metered exhausted — usage limit reached",
 			value:         &meteredentitlement.MeteredEntitlementValue{Balance: 0},
 			wantHasAccess: false,
-			wantCode:      ptr(ReasonUsageLimitReached),
+			wantCode:      ptr(governance.ReasonUsageLimitReached),
 		},
 		{
 			// BooleanEntitlementValue is always HasAccess=true; the gateway returns
@@ -47,7 +48,7 @@ func TestMapEntitlementToAccess(t *testing.T) {
 			name:          "no access value — feature unavailable",
 			value:         &entitlement.NoAccessValue{},
 			wantHasAccess: false,
-			wantCode:      ptr(ReasonFeatureUnavailable),
+			wantCode:      ptr(governance.ReasonFeatureUnavailable),
 		},
 	}
 

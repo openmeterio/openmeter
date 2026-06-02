@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/governance"
+	governanceservice "github.com/openmeterio/openmeter/openmeter/governance/service"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 )
 
@@ -16,7 +17,7 @@ func NewGovernanceService(
 	customerService customer.Service,
 	entitlementRegistry *registry.Entitlement,
 ) (governance.Service, error) {
-	return governance.New(governance.Config{
+	return governanceservice.New(governanceservice.Config{
 		CustomerService:    customerService,
 		EntitlementService: entitlementRegistry.Entitlement,
 		FeatureConnector:   entitlementRegistry.Feature,

@@ -1,13 +1,10 @@
 package governance
 
 import (
-	"context"
 	"errors"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
 	pagination "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
@@ -65,6 +62,8 @@ type QueryError struct {
 	Message     string
 }
 
+var _ models.Validator = (*QueryAccessInput)(nil)
+
 // QueryAccessInput is the input for evaluating governance access.
 type QueryAccessInput struct {
 	Namespace string
@@ -119,47 +118,4 @@ type QueryResult struct {
 	// First/Last are the cursors of the first and last item on the current page.
 	First *pagination.Cursor
 	Last  *pagination.Cursor
-}
-
-// Service evaluates feature access for customers by composing the customer, entitlement,
-// and feature services. It owns no persistence of its own.
-type Service interface {
-	QueryAccess(ctx context.Context, input QueryAccessInput) (QueryResult, error)
-}
-
-// Config holds the collaborating services for the governance Service.
-type Config struct {
-	CustomerService    customer.Service
-	EntitlementService entitlement.Service
-	FeatureConnector   feature.FeatureConnector
-}
-
-func (c Config) Validate() error {
-	var errs []error
-
-	if c.CustomerService == nil {
-		errs = append(errs, errors.New("customer service is required"))
-	}
-
-	if c.EntitlementService == nil {
-		errs = append(errs, errors.New("entitlement service is required"))
-	}
-
-	if c.FeatureConnector == nil {
-		errs = append(errs, errors.New("feature connector is required"))
-	}
-
-	return errors.Join(errs...)
-}
-
-func New(config Config) (Service, error) {
-	if err := config.Validate(); err != nil {
-		return nil, err
-	}
-
-	return &service{
-		customerService:    config.CustomerService,
-		entitlementService: config.EntitlementService,
-		featureConnector:   config.FeatureConnector,
-	}, nil
 }
