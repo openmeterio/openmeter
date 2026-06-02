@@ -277,6 +277,37 @@ func (c *v3Client) ListPlanAddons(planID string, opts ...listOption) (int, *apiv
 	return decodeTyped[apiv3.PlanAddonPagePaginatedResponse](c, status, raw, problem, http.StatusOK)
 }
 
+// --- Customers ---
+
+func (c *v3Client) CreateCustomer(body apiv3.CreateCustomerRequest) (int, *apiv3.BillingCustomer, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPost, "/customers", body)
+	return decodeTyped[apiv3.BillingCustomer](c, status, raw, problem, http.StatusCreated)
+}
+
+// --- Subscriptions ---
+
+func (c *v3Client) CreateSubscription(body apiv3.BillingSubscriptionCreate) (int, *apiv3.BillingSubscription, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPost, "/subscriptions", body)
+	return decodeTyped[apiv3.BillingSubscription](c, status, raw, problem, http.StatusCreated)
+}
+
+// --- Subscription addons ---
+
+func (c *v3Client) CreateSubscriptionAddon(subscriptionID string, body apiv3.CreateSubscriptionAddonRequest) (int, *apiv3.SubscriptionAddon, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPost, "/subscriptions/"+subscriptionID+"/addons", body)
+	return decodeTyped[apiv3.SubscriptionAddon](c, status, raw, problem, http.StatusCreated)
+}
+
+func (c *v3Client) GetSubscriptionAddon(subscriptionID, subscriptionAddonID string) (int, *apiv3.SubscriptionAddon, *v3Problem) {
+	status, raw, problem := c.do(http.MethodGet, "/subscriptions/"+subscriptionID+"/addons/"+subscriptionAddonID, nil)
+	return decodeTyped[apiv3.SubscriptionAddon](c, status, raw, problem, http.StatusOK)
+}
+
+func (c *v3Client) ListSubscriptionAddons(subscriptionID string, opts ...listOption) (int, *apiv3.SubscriptionAddonPagePaginatedResponse, *v3Problem) {
+	status, raw, problem := c.do(http.MethodGet, "/subscriptions/"+subscriptionID+"/addons"+buildPageQuery(opts), nil)
+	return decodeTyped[apiv3.SubscriptionAddonPagePaginatedResponse](c, status, raw, problem, http.StatusOK)
+}
+
 // --- List pagination options ---
 
 // listOptions controls pagination query params for list endpoints. The server
