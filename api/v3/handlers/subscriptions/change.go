@@ -53,7 +53,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 
 			creditEnabled, err := h.isCreditsEnabled(ns)
 			if err != nil {
-				return ChangeSubscriptionRequest{}, fmt.Errorf("failed to create subscription: %w", err)
+				return ChangeSubscriptionRequest{}, fmt.Errorf("failed to change subscription: %w", err)
 			}
 
 			if !creditEnabled && lo.FromPtr(settlementMode) == productcatalog.CreditOnlySettlementMode {
