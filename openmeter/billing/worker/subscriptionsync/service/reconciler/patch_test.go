@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 )
 
 func TestPatchCollectionRouterResolveDefaultCollection(t *testing.T) {
@@ -88,6 +89,8 @@ func TestPatchCollectionRouterResolveDefaultCollection(t *testing.T) {
 				invoices:                 persistedstate.Invoices{},
 				creditThenInvoiceEnabled: tt.enableCreditThenInvoice,
 				creditsEnabled:           tt.enableCredits,
+				featureGate:              featuregate.NewNoop(),
+				creditsFlag:              "test-credit",
 			})
 			require.NoError(t, err)
 
@@ -118,4 +121,50 @@ func testTargetStateItem(settlementMode productcatalog.SettlementMode, rateCard 
 			SettlementMode: settlementMode,
 		},
 	}
+}
+
+func TestIsCreditEnabled(t *testing.T) {
+	t.Parallel()
+
+	t.Run("happy_path", func(t *testing.T) {
+		router, err := newPatchCollectionRouter(patchCollectionRouterConfig{
+			capacity:                 1,
+			invoices:                 persistedstate.Invoices{},
+			creditThenInvoiceEnabled: false,
+			creditsEnabled:           true,
+			featureGate:              featuregate.NewNoop(),
+			creditsFlag:              "test-credit",
+		})
+		require.NoError(t, err)
+
+		enabled, err := router.isCreditsEnabled("test")
+		require.NoError(t, err)
+		require.True(t, enabled)
+	})
+
+	t.Run("no_feature_gate_client", func(t *testing.T) {
+		_, err := newPatchCollectionRouter(patchCollectionRouterConfig{
+			capacity:                 1,
+			invoices:                 persistedstate.Invoices{},
+			creditThenInvoiceEnabled: false,
+			creditsEnabled:           true,
+			featureGate:              nil,
+		})
+		require.Error(t, err)
+	})
+
+	t.Run("credit_flag_disabled", func(t *testing.T) {
+		router, err := newPatchCollectionRouter(patchCollectionRouterConfig{
+			capacity:                 1,
+			invoices:                 persistedstate.Invoices{},
+			creditThenInvoiceEnabled: false,
+			creditsEnabled:           false,
+			featureGate:              featuregate.NewNoop(),
+		})
+		require.NoError(t, err)
+
+		enabled, err := router.isCreditsEnabled("test")
+		require.NoError(t, err)
+		require.False(t, enabled)
+	})
 }

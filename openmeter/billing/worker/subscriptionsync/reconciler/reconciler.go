@@ -127,36 +127,47 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 			break
 		}
 
-		syncStates, err := r.subscriptionSync.GetSyncStates(ctx, lo.Map(subscriptions.Items, func(item subscription.Subscription, _ int) models.NamespacedID {
-			return models.NamespacedID{
-				ID:        item.ID,
-				Namespace: item.Namespace,
-			}
-		}))
+		mapped, err := r.mapToSubscriptionWithSyncState(ctx, subscriptions.Items)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get sync states: %w", err)
+			return nil, fmt.Errorf("failed to map subscriptions to subscription with sync state: %w", err)
 		}
 
-		syncStatesBySubscriptionID := lo.SliceToMap(syncStates, func(syncState subscriptionsync.SyncState) (models.NamespacedID, subscriptionsync.SyncState) {
-			return models.NamespacedID{
-				ID:        syncState.SubscriptionID.ID,
-				Namespace: syncState.SubscriptionID.Namespace,
-			}, syncState
+		out = append(out, mapped...)
+
+		pageIndex++
+	}
+
+	pageIndex = 1
+
+	for {
+		subscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
+			Namespaces: in.Namespaces,
+			CustomerID: customerID,
+			// TODO: Later we might want to have a lookback for deleted subscriptions as well, but as of 2026-05-19
+			// we had a delete bug, so we need to reconcile all deleted subscriptions.
+			DeletedAt: &filter.FilterTime{
+				Lte: lo.ToPtr(clock.Now()),
+			},
+			IncludeDeleted: true,
+			Page: pagination.Page{
+				PageNumber: pageIndex,
+				PageSize:   defaultWindowSize,
+			},
 		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list subscriptions: %w", err)
+		}
 
-		out = append(out, lo.Map(subscriptions.Items, func(item subscription.Subscription, _ int) SubscriptionWithSyncState {
-			existingSyncState, ok := syncStatesBySubscriptionID[item.NamespacedID]
+		if len(subscriptions.Items) == 0 {
+			break
+		}
 
-			var syncState *subscriptionsync.SyncState
-			if ok {
-				syncState = lo.ToPtr(existingSyncState)
-			}
+		mapped, err := r.mapToSubscriptionWithSyncState(ctx, subscriptions.Items)
+		if err != nil {
+			return nil, fmt.Errorf("failed to map subscriptions to subscription with sync state: %w", err)
+		}
 
-			return SubscriptionWithSyncState{
-				Subscription: item,
-				SyncState:    syncState,
-			}
-		})...)
+		out = append(out, mapped...)
 
 		pageIndex++
 	}
@@ -164,30 +175,41 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 	return out, nil
 }
 
-func (r *Reconciler) ReconcileSubscription(ctx context.Context, subsID models.NamespacedID) error {
-	subsView, err := r.subscriptionService.GetView(ctx, subsID)
+func (r *Reconciler) mapToSubscriptionWithSyncState(ctx context.Context, subs []subscription.Subscription) ([]SubscriptionWithSyncState, error) {
+	syncStates, err := r.subscriptionSync.GetSyncStates(ctx, lo.Map(subs, func(item subscription.Subscription, _ int) models.NamespacedID {
+		return models.NamespacedID{
+			ID:        item.ID,
+			Namespace: item.Namespace,
+		}
+	}))
 	if err != nil {
-		return fmt.Errorf("failed to get subscription: %w", err)
+		return nil, fmt.Errorf("failed to get sync states: %w", err)
 	}
 
-	cus, err := r.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-		CustomerID: &customer.CustomerID{
-			ID:        subsView.Customer.ID,
-			Namespace: subsID.Namespace,
-		},
+	syncStatesBySubscriptionID := lo.SliceToMap(syncStates, func(syncState subscriptionsync.SyncState) (models.NamespacedID, subscriptionsync.SyncState) {
+		return models.NamespacedID{
+			ID:        syncState.SubscriptionID.ID,
+			Namespace: syncState.SubscriptionID.Namespace,
+		}, syncState
 	})
-	if err != nil {
-		return fmt.Errorf("failed to get customer: %w", err)
-	}
 
-	// TODO: remove this check to make sure that deleted customers are fully invoiced
-	if cus != nil && cus.IsDeleted() {
-		r.logger.WarnContext(ctx, "customer is deleted, skipping reconciliation", "customer_id", subsView.Customer.ID)
+	return lo.Map(subs, func(item subscription.Subscription, _ int) SubscriptionWithSyncState {
+		existingSyncState, ok := syncStatesBySubscriptionID[item.NamespacedID]
 
-		return nil
-	}
+		var syncState *subscriptionsync.SyncState
+		if ok {
+			syncState = lo.ToPtr(existingSyncState)
+		}
 
-	return r.subscriptionSync.SynchronizeSubscription(ctx, subsView, time.Now())
+		return SubscriptionWithSyncState{
+			Subscription: item,
+			SyncState:    syncState,
+		}
+	}), nil
+}
+
+func (r *Reconciler) ReconcileSubscription(ctx context.Context, subsID models.NamespacedID) error {
+	return r.subscriptionSync.SyncByID(ctx, subsID, time.Now())
 }
 
 type ReconcilerAllInput struct {

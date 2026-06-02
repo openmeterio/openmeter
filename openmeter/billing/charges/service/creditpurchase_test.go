@@ -47,6 +47,7 @@ func (s *CreditPurchaseTestSuite) TearDownTest() {
 func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-promotional-credit-purchase")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -98,6 +99,7 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
 func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementCurrency() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-credit-purchase-mismatched-settlement-currency")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -207,6 +209,7 @@ func CreateCreditPurchaseIntent(t *testing.T, input createCreditPurchaseIntentIn
 func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettled() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-external-authorized-credit-purchase-auto-settled")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -240,8 +243,9 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 	})
 
 	// Then the authorized callback should be called, with a grant realization and no payment settlement
-	authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
-	s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
+	authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.PaymentEventInput]()
+	s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, input creditpurchase.PaymentEventInput) {
+		charge := input.Charge
 		assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeExternal)
 		assert.NotNil(t, charge.Realizations.CreditGrantRealization, "credit grant realization should be set")
 		assert.Equal(t, initiatedCallback.id, charge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
@@ -250,8 +254,9 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 	})
 
 	// Then the settled callback should be called, with a grant realization and a payment settlement
-	settledCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
-	s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
+	settledCallback := newCountedLedgerTransactionCallback[creditpurchase.PaymentEventInput]()
+	s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, input creditpurchase.PaymentEventInput) {
+		charge := input.Charge
 		assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeExternal)
 		assert.NotNil(t, charge.Realizations.ExternalPaymentSettlement, "external payment settlement should be set")
 
@@ -307,6 +312,7 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySettled() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-external-authorized-credit-purchase-manually-settled")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -370,8 +376,9 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 		defer s.CreditPurchaseTestHandler.Reset()
 
 		// Then the authorized callback should be called, with a grant realization and no payment settlement
-		authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
-		s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
+		authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.PaymentEventInput]()
+		s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, input creditpurchase.PaymentEventInput) {
+			charge := input.Charge
 			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeExternal)
 			assert.NotNil(t, charge.Realizations.CreditGrantRealization, "credit grant realization should be set")
 			assert.Equal(t, initatedTrnsID, charge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
@@ -397,8 +404,9 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 		defer s.CreditPurchaseTestHandler.Reset()
 
 		// Then the settled callback should be called, with a grant realization and a payment settlement
-		settledCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
-		s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
+		settledCallback := newCountedLedgerTransactionCallback[creditpurchase.PaymentEventInput]()
+		s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, input creditpurchase.PaymentEventInput) {
+			charge := input.Charge
 			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeExternal)
 			assert.NotNil(t, charge.Realizations.ExternalPaymentSettlement, "external payment settlement should be set")
 
@@ -424,6 +432,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 	defer clock.UnFreeze()
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-standard-invoice-credit-purchase")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -539,8 +548,9 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		defer s.CreditPurchaseTestHandler.Reset()
 
 		// Then the authorized callback should be called, with a grant realization and no payment settlement
-		authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
-		s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
+		authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.PaymentEventInput]()
+		s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, input creditpurchase.PaymentEventInput) {
+			charge := input.Charge
 			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeInvoice)
 			assert.NotNil(t, charge.Realizations.CreditGrantRealization, "credit grant realization should be set")
 			assert.Equal(t, initatedTrnsID, charge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
@@ -609,12 +619,13 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 
 	s.Run("settled", func() {
 		defer s.CreditPurchaseTestHandler.Reset()
-		authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+		authorizedCallback := newCountedLedgerTransactionCallback[creditpurchase.PaymentEventInput]()
 		s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T())
 
 		// Then the settled callback should be called, with a grant realization and a payment settlement
-		settledCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
-		s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
+		settledCallback := newCountedLedgerTransactionCallback[creditpurchase.PaymentEventInput]()
+		s.CreditPurchaseTestHandler.onCreditPurchasePaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, input creditpurchase.PaymentEventInput) {
+			charge := input.Charge
 			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeInvoice)
 			assert.NotNil(t, charge.Realizations.InvoiceSettlement, "invoice settlement should be set")
 
@@ -659,6 +670,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 	// The gathering line is created but not immediately invoiced.
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-standard-invoice-credit-purchase-deferred")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	clock.FreezeTime(datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime())
 	defer clock.ResetTime()

@@ -11,6 +11,11 @@ import (
 )
 
 func populateFlatFeeStandardLineFromRun(stdLine *billing.StandardLine, run flatfee.RealizationRun) error {
+	currencyCalculator, err := stdLine.Currency.Calculator()
+	if err != nil {
+		return fmt.Errorf("creating currency calculator: %w", err)
+	}
+
 	creditsApplied, err := run.CreditRealizations.AsCreditsApplied()
 	if err != nil {
 		return err
@@ -23,12 +28,18 @@ func populateFlatFeeStandardLineFromRun(stdLine *billing.StandardLine, run flatf
 		return fmt.Errorf("mapping run detailed lines: %w", err)
 	}
 
-	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(mappedDetailedLines)
-	stdLine.Totals = stdLine.DetailedLines.SumTotals()
+	mappedDetailedLines, err = mappedDetailedLines.WithCreditsApplied(stdLine.CreditsApplied, currencyCalculator)
+	if err != nil {
+		return fmt.Errorf("applying run credits to detailed lines: %w", err)
+	}
 
-	if !stdLine.Totals.Equal(run.Totals) {
+	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(mappedDetailedLines)
+	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(currencyCalculator)
+
+	expectedTotals := run.Totals.RoundToPrecision(currencyCalculator)
+	if !stdLine.Totals.Equal(expectedTotals) {
 		return fmt.Errorf("mapped line totals do not match run totals [line_id=%s run_id=%s line_total=%s run_total=%s]",
-			stdLine.ID, run.ID.ID, stdLine.Totals.Total.String(), run.Totals.Total.String())
+			stdLine.ID, run.ID.ID, stdLine.Totals.Total.String(), expectedTotals.Total.String())
 	}
 
 	return nil

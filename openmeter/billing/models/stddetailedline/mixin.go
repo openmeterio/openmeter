@@ -43,22 +43,27 @@ func (mixinBase) Fields() []ent.Field {
 				dialect.Postgres: "varchar(3)",
 			}),
 
+		// TODO: remove these deprecated detailed-line tax fields after the parent-line
+		// inherited tax config rollout has been deployed to production.
 		field.JSON("tax_config", productcatalog.TaxConfig{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
-			Optional(),
+			Optional().
+			Deprecated("detailed lines inherit tax configuration from their parent standard line"),
 
 		field.String("tax_code_id").
 			Optional().
 			Nillable().
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
-			}),
+			}).
+			Deprecated("detailed lines inherit tax configuration from their parent standard line"),
 		field.Enum("tax_behavior").
 			GoType(productcatalog.TaxBehavior("")).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("detailed lines inherit tax configuration from their parent standard line"),
 
 		field.Time("service_period_start"),
 		field.Time("service_period_end"),

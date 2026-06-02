@@ -312,3 +312,40 @@ func (s *ListFundedCreditActivitiesSuite) TestFiltersByCurrency() {
 	s.Equal(idUSD, result.Items[0].ChargeID)
 	s.Equal(usd, result.Items[0].Currency)
 }
+
+func (s *ListFundedCreditActivitiesSuite) TestFiltersByAsOf() {
+	ctx := context.Background()
+	ns := "test-funded-activity-as-of"
+	customerID := s.createCustomer(ns)
+	base := time.Now().UTC().Truncate(time.Microsecond)
+
+	idVisible := s.insertCreditPurchaseWithGrant(
+		ns,
+		customerID,
+		currencyx.Code("USD"),
+		base,
+		base.Add(time.Hour),
+		"visible-funded",
+		nil,
+	)
+	s.insertCreditPurchaseWithGrant(
+		ns,
+		customerID,
+		currencyx.Code("USD"),
+		base,
+		base.Add(2*time.Hour),
+		"future-funded",
+		nil,
+	)
+
+	asOf := base.Add(time.Hour)
+	result, err := ListFundedCreditActivities(ctx, s.dbClient, creditpurchase.ListFundedCreditActivitiesInput{
+		Customer: customer.CustomerID{Namespace: ns, ID: customerID},
+		Limit:    10,
+		AsOf:     &asOf,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(result.Items, 1)
+	s.Equal(idVisible, result.Items[0].ChargeID)
+	s.Equal("visible-funded", result.Items[0].Name)
+}

@@ -10,24 +10,30 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
+// routePairingKey pairs source and counterpart sub-accounts during accrual and
+// earnings correction.
 type routePairingKey struct {
-	currency  currencyx.Code
-	costBasis string
+	currency    currencyx.Code
+	taxCode     string
+	taxBehavior string
+	costBasis   string
 }
 
 func (k routePairingKey) String() string {
-	return fmt.Sprintf("currency=%s,cost_basis=%s", k.currency, k.costBasis)
+	return fmt.Sprintf("currency=%s,tax_code=%s,tax_behavior=%s,cost_basis=%s", k.currency, k.taxCode, k.taxBehavior, k.costBasis)
 }
 
 type correctionLeg struct {
 	sourceAddress      ledger.PostingAddress
+	sourceEntryID      string
 	counterpartAddress ledger.PostingAddress
 	amount             alpacadecimal.Decimal
 }
 
 type correctionPosting struct {
-	address ledger.PostingAddress
-	amount  alpacadecimal.Decimal
+	address     ledger.PostingAddress
+	amount      alpacadecimal.Decimal
+	identityKey string
 }
 
 func allocateCorrectionLegs(
@@ -66,6 +72,7 @@ func allocateCorrectionLegs(
 
 		legs = append(legs, correctionLeg{
 			sourceAddress:      entry.PostingAddress(),
+			sourceEntryID:      entry.ID().ID,
 			counterpartAddress: counterpartAddress,
 			amount:             entryAmount,
 		})
@@ -78,19 +85,23 @@ func allocateCorrectionLegs(
 
 	postings := make([]correctionPosting, 0, len(legs)*2)
 	postingsBySubAccountID := make(map[string]int, len(legs)*2)
-	// Coalesce here so correction mapping cannot emit duplicate sub-account
-	// postings, which routing rules reject.
-	addPosting := func(address ledger.PostingAddress, amount alpacadecimal.Decimal) {
+	// Source postings keep one entry per corrected source entry so correction
+	// ordering remains visible. Counterpart postings can still coalesce because
+	// they are only the balancing side for the source unwind.
+	addPosting := func(address ledger.PostingAddress, amount alpacadecimal.Decimal, identityKey string, coalesce bool) {
 		subAccountID := address.SubAccountID()
-		if idx, ok := postingsBySubAccountID[subAccountID]; ok {
+		if idx, ok := postingsBySubAccountID[subAccountID]; ok && coalesce {
 			postings[idx].amount = postings[idx].amount.Add(amount)
 			return
 		}
 
-		postingsBySubAccountID[subAccountID] = len(postings)
+		if coalesce {
+			postingsBySubAccountID[subAccountID] = len(postings)
+		}
 		postings = append(postings, correctionPosting{
-			address: address,
-			amount:  amount,
+			address:     address,
+			amount:      amount,
+			identityKey: identityKey,
 		})
 	}
 
@@ -101,8 +112,13 @@ func allocateCorrectionLegs(
 			leg.amount = remaining
 		}
 
-		addPosting(leg.sourceAddress, leg.amount)
-		addPosting(leg.counterpartAddress, leg.amount.Neg())
+		addPosting(
+			leg.sourceAddress,
+			leg.amount,
+			NewCorrectionSourceIdentityKey(leg.sourceEntryID),
+			false,
+		)
+		addPosting(leg.counterpartAddress, leg.amount.Neg(), "", true)
 		remaining = remaining.Sub(leg.amount)
 	}
 
@@ -117,8 +133,9 @@ func mapCorrectionPostingsToEntryInputs(postings []correctionPosting) []*EntryIn
 	entryInputs := make([]*EntryInput, 0, len(postings))
 	for _, posting := range postings {
 		entryInputs = append(entryInputs, &EntryInput{
-			address: posting.address,
-			amount:  posting.amount,
+			address:     posting.address,
+			amount:      posting.amount,
+			identityKey: posting.identityKey,
 		})
 	}
 

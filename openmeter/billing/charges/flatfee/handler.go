@@ -17,13 +17,16 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type OnAssignedToInvoiceInput struct {
-	Charge            Charge                `json:"charge"`
-	ServicePeriod     timeutil.ClosedPeriod `json:"servicePeriod"`
-	PreTaxTotalAmount alpacadecimal.Decimal `json:"totalAmount"`
+type OnAllocateCreditsInput struct {
+	Charge        Charge                `json:"charge"`
+	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
+	BookedAt      time.Time             `json:"bookedAt"`
+	// PreTaxAmountToAllocate is the pre-tax amount to allocate from credits.
+	// The input charge's settlement mode governs whether this may create a negative balance.
+	PreTaxAmountToAllocate alpacadecimal.Decimal `json:"preTaxAmountToAllocate"`
 }
 
-func (i OnAssignedToInvoiceInput) Validate() error {
+func (i OnAllocateCreditsInput) Validate() error {
 	var errs []error
 
 	if err := i.Charge.Validate(); err != nil {
@@ -34,8 +37,12 @@ func (i OnAssignedToInvoiceInput) Validate() error {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
 	}
 
-	if i.PreTaxTotalAmount.IsNegative() {
-		errs = append(errs, fmt.Errorf("pre tax total amount cannot be negative"))
+	if i.BookedAt.IsZero() {
+		errs = append(errs, fmt.Errorf("booked at is required"))
+	}
+
+	if i.PreTaxAmountToAllocate.IsNegative() {
+		errs = append(errs, fmt.Errorf("pre tax amount to allocate cannot be negative"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -44,6 +51,7 @@ func (i OnAssignedToInvoiceInput) Validate() error {
 type OnInvoiceUsageAccruedInput struct {
 	Charge        Charge                `json:"charge"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
+	BookedAt      time.Time             `json:"bookedAt"`
 	Totals        totals.Totals         `json:"totals"`
 }
 
@@ -58,6 +66,10 @@ func (i OnInvoiceUsageAccruedInput) Validate() error {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
 	}
 
+	if i.BookedAt.IsZero() {
+		errs = append(errs, fmt.Errorf("booked at is required"))
+	}
+
 	if err := i.Totals.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("totals: %w", err))
 	}
@@ -65,48 +77,29 @@ func (i OnInvoiceUsageAccruedInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type OnCreditsOnlyUsageAccruedInput struct {
-	Charge           Charge                `json:"charge"`
-	AmountToAllocate alpacadecimal.Decimal `json:"amountToAllocate"`
-}
-
-func (i OnCreditsOnlyUsageAccruedInput) Validate() error {
-	var errs []error
-
-	if err := i.Charge.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("charge: %w", err))
-	}
-
-	if i.AmountToAllocate.IsNegative() {
-		errs = append(errs, fmt.Errorf("amount to allocate cannot be negative"))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
-type CreditsOnlyUsageAccruedCorrectionInput struct {
-	Charge     Charge    `json:"charge"`
-	AllocateAt time.Time `json:"allocateAt"`
+type CorrectCreditAllocationsInput struct {
+	Charge   Charge    `json:"charge"`
+	BookedAt time.Time `json:"bookedAt"`
 
 	Corrections                  creditrealization.CorrectionRequest   `json:"corrections"`
 	LineageSegmentsByRealization lineage.ActiveSegmentsByRealizationID `json:"-"`
 }
 
-func (i CreditsOnlyUsageAccruedCorrectionInput) Validate() error {
+func (i CorrectCreditAllocationsInput) Validate() error {
 	var errs []error
 
 	if err := i.Charge.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
 
-	if i.AllocateAt.IsZero() {
-		errs = append(errs, fmt.Errorf("allocate at is required"))
+	if i.BookedAt.IsZero() {
+		errs = append(errs, fmt.Errorf("booked at is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i CreditsOnlyUsageAccruedCorrectionInput) ValidateWith(currencyCalculator currencyx.Calculator) error {
+func (i CorrectCreditAllocationsInput) ValidateWith(currencyCalculator currencyx.Calculator) error {
 	var errs []error
 
 	if err := i.Validate(); err != nil {
@@ -121,8 +114,9 @@ func (i CreditsOnlyUsageAccruedCorrectionInput) ValidateWith(currencyCalculator 
 }
 
 type PaymentEventInput struct {
-	Charge Charge                `json:"charge"`
-	Amount alpacadecimal.Decimal `json:"amount"`
+	Charge  Charge                `json:"charge"`
+	EventAt time.Time             `json:"eventAt"`
+	Amount  alpacadecimal.Decimal `json:"amount"`
 }
 
 func (i PaymentEventInput) Validate() error {
@@ -130,6 +124,10 @@ func (i PaymentEventInput) Validate() error {
 
 	if err := i.Charge.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if i.EventAt.IsZero() {
+		errs = append(errs, fmt.Errorf("event at is required"))
 	}
 
 	if i.Amount.IsNegative() {
@@ -145,18 +143,14 @@ type (
 )
 
 type Handler interface {
-	// OnFlatFeeAssignedToInvoice is called when a flat fee is being assigned to an invoice
-	OnAssignedToInvoice(ctx context.Context, input OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error)
+	// OnAllocateCredits is called when a flat fee allocates credits.
+	OnAllocateCredits(ctx context.Context, input OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error)
 
 	// OnFlatFeeStandardInvoiceUsageAccrued is called when the remaining usage is sent to the customer on a standard invoice.
 	OnInvoiceUsageAccrued(ctx context.Context, input OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
 
-	// OnCreditsOnlyUsageAccrued is called when a credit-only flat fee reaches invoice_at
-	// and the full amount needs to be allocated as credits.
-	OnCreditsOnlyUsageAccrued(ctx context.Context, input OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
-
-	// OnCreditsOnlyUsageAccruedCorrection is called when a credit allocation needs to be corrected.
-	OnCreditsOnlyUsageAccruedCorrection(ctx context.Context, input CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error)
+	// OnCorrectCreditAllocations is called when a credit allocation needs to be corrected.
+	OnCorrectCreditAllocations(ctx context.Context, input CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error)
 
 	// OnFlatFeePaymentAuthorized is called when a flat fee payment is authorized.
 	OnPaymentAuthorized(ctx context.Context, input OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)

@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -22,11 +23,12 @@ type CreditTransactionType string
 const (
 	CreditTransactionTypeFunded   CreditTransactionType = "funded"
 	CreditTransactionTypeConsumed CreditTransactionType = "consumed"
+	CreditTransactionTypeExpired  CreditTransactionType = "expired"
 )
 
 func (t CreditTransactionType) Validate() error {
 	switch t {
-	case CreditTransactionTypeFunded, CreditTransactionTypeConsumed:
+	case CreditTransactionTypeFunded, CreditTransactionTypeConsumed, CreditTransactionTypeExpired:
 		return nil
 	default:
 		return fmt.Errorf("invalid credit transaction type: %s", t)
@@ -41,6 +43,7 @@ type ListCreditTransactionsInput struct {
 
 	Type     *CreditTransactionType
 	Currency *currencyx.Code
+	AsOf     *time.Time
 }
 
 func (i ListCreditTransactionsInput) Validate() error {
@@ -80,6 +83,10 @@ func (i ListCreditTransactionsInput) Validate() error {
 		if err := i.Currency.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
+	}
+
+	if i.AsOf != nil && i.AsOf.IsZero() {
+		errs = append(errs, fmt.Errorf("asOf must not be zero"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -134,6 +141,7 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 		CustomerID: input.CustomerID,
 		AccountID:  accountID,
 		Currency:   input.Currency,
+		AsOf:       creditTransactionsAsOf(input.AsOf),
 	}
 
 	loadedLists := make([][]CreditTransaction, 0, len(loaders))
@@ -161,7 +169,9 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 	s.applyChargeMetadataToCreditTransactions(ctx, input.CustomerID.Namespace, items)
 
 	if len(items) > 0 {
-		runningBalance, err := s.GetBalance(ctx, input.CustomerID, items[0].Currency, lo.ToPtr(creditTransactionCursor(items[0])))
+		runningBalance, err := s.GetBalance(ctx, input.CustomerID, items[0].Currency, ledger.BalanceQuery{
+			After: lo.ToPtr(creditTransactionCursor(items[0])),
+		})
 		if err != nil {
 			return ListCreditTransactionsResult{}, fmt.Errorf("get FBO balance after transaction %s: %w", items[0].ID.ID, err)
 		}
@@ -199,6 +209,14 @@ func emptyCreditTransactions() ListCreditTransactionsResult {
 	}
 }
 
+func creditTransactionsAsOf(asOf *time.Time) time.Time {
+	if asOf != nil {
+		return *asOf
+	}
+
+	return clock.Now()
+}
+
 func (s *service) customerFBOAccountID(ctx context.Context, customerID customer.CustomerID) (string, error) {
 	accounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
@@ -228,35 +246,48 @@ func creditTransactionsFromLedgerTransactions(txs []ledger.Transaction) ([]Credi
 }
 
 func creditTransactionFromLedgerTransaction(tx ledger.Transaction) (CreditTransaction, error) {
-	entry, err := creditTransactionEntry(tx)
+	fboImpact, currency, err := creditTransactionFBOImpact(tx)
 	if err != nil {
 		return CreditTransaction{}, err
 	}
-
-	amount := entry.Amount()
 
 	return CreditTransaction{
 		ID:          tx.ID(),
 		CreatedAt:   tx.Cursor().CreatedAt,
 		BookedAt:    tx.BookedAt(),
-		Type:        creditTransactionType(amount),
-		Currency:    entry.PostingAddress().Route().Route().Currency,
-		Amount:      amount,
+		Type:        creditTransactionType(fboImpact),
+		Currency:    currency,
+		Amount:      fboImpact,
 		Name:        "",
 		Annotations: tx.Annotations(),
 	}, nil
 }
 
-func creditTransactionEntry(tx ledger.Transaction) (ledger.Entry, error) {
+func creditTransactionFBOImpact(tx ledger.Transaction) (alpacadecimal.Decimal, currencyx.Code, error) {
+	amount := ledger.TransactionImpact(tx, ledger.ImpactFilter{
+		AccountType: ledger.AccountTypeCustomerFBO,
+	})
+	var currency currencyx.Code
+
 	for _, entry := range tx.Entries() {
 		if entry.PostingAddress().AccountType() != ledger.AccountTypeCustomerFBO {
 			continue
 		}
 
-		return entry, nil
+		entryCurrency := entry.PostingAddress().Route().Route().Currency
+		if currency == "" {
+			currency = entryCurrency
+		}
+		if currency != entryCurrency {
+			return alpacadecimal.Decimal{}, "", fmt.Errorf("transaction %s has multiple customer FBO currencies", tx.ID().ID)
+		}
 	}
 
-	return nil, fmt.Errorf("no customer FBO entry found in transaction %s", tx.ID().ID)
+	if currency == "" {
+		return alpacadecimal.Decimal{}, "", fmt.Errorf("no customer FBO entry found in transaction %s", tx.ID().ID)
+	}
+
+	return amount, currency, nil
 }
 
 func applyCreditTransactionBalances(items []CreditTransaction, after alpacadecimal.Decimal) {

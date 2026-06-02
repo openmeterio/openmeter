@@ -64,6 +64,7 @@ import (
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/server"
 )
@@ -103,6 +104,8 @@ type Config struct {
 	ChargeService            billingcharges.ChargeService
 	CostService              cost.Service
 	FeatureConnector         feature.FeatureConnector
+
+	FeatureGate featuregate.Gate
 }
 
 func (c *Config) Validate() error {
@@ -212,6 +215,10 @@ func (c *Config) Validate() error {
 
 	if c.AddonService == nil {
 		errs = append(errs, errors.New("addon service is required"))
+	}
+
+	if c.SubscriptionAddonService == nil {
+		errs = append(errs, errors.New("subscription addon service is required"))
 	}
 
 	return errors.Join(errs...)

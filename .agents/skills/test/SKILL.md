@@ -38,6 +38,12 @@ For running a specific test directly:
 POSTGRES_HOST=127.0.0.1 go test -tags=dynamic ./openmeter/<domain>/...
 ```
 
+When a Postgres-backed test fails, the suite output often includes a `testdbconf:` URL for the per-test database. Use that URL with `psql` to inspect the failed test state before rerunning, because the database is still useful for RCA. Quote the connection string if it contains query parameters, for example:
+
+```bash
+psql 'postgres://pgtdbuser:pgtdbpass@127.0.0.1:5432/testdb_tpl_...?sslmode=disable'
+```
+
 ## Key Test Utilities
 
 From `openmeter/testutils/`:

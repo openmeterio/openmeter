@@ -54,6 +54,52 @@ func (e *LineEngine) BuildStandardInvoiceLines(ctx context.Context, input billin
 	return stdLines, nil
 }
 
+func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
+	}
+
+	stdLines, err := input.GatheringLines.ToStandardLines(input.Invoice.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	chargesByID, err := e.getChargesForStandardLineEvent(ctx, billing.StandardLineEventInput{
+		Invoice: input.Invoice,
+		Lines:   stdLines,
+	}, meta.Expands{
+		meta.ExpandRealizations,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, stdLine := range stdLines {
+		charge, ok := chargesByID[*stdLine.ChargeID]
+		if !ok {
+			return nil, fmt.Errorf("flat fee charge[%s] not found for gathering preview line[%s]", *stdLine.ChargeID, stdLine.ID)
+		}
+
+		previewResult, err := e.service.realizations.BuildCreditThenInvoiceGatheringPreviewRun(flatfeerealizations.BuildCreditThenInvoiceGatheringPreviewRunInput{
+			Charge: charge,
+			Line:   *stdLine,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("building gathering preview run for line[%s]: %w", stdLine.ID, err)
+		}
+
+		if err := populateFlatFeeStandardLineFromRun(stdLine, previewResult.Run); err != nil {
+			return nil, fmt.Errorf("populating gathering preview line[%s] from run: %w", stdLine.ID, err)
+		}
+
+		if err := stdLine.Validate(); err != nil {
+			return nil, fmt.Errorf("validating gathering preview line[%s]: %w", stdLine.ID, err)
+		}
+	}
+
+	return stdLines, nil
+}
+
 func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("validating input: %w", err)
@@ -185,7 +231,7 @@ func (e *LineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input bi
 		if _, err := e.service.realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
 			Charge:             charge,
 			Run:                run,
-			AllocateAt:         clock.Now(),
+			AllocateAt:         flatfee.UsageBookedAt(charge.Intent.PaymentTerm, run.ServicePeriod),
 			CurrencyCalculator: currencyCalculator,
 		}); err != nil {
 			return fmt.Errorf("correcting credits for deleted flat fee standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)
@@ -283,10 +329,11 @@ func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine
 	}
 
 	stateMachine, err := e.service.newStateMachine(StateMachineConfig{
-		Charge:       charge,
-		Adapter:      e.service.adapter,
-		Realizations: e.service.realizations,
-		Service:      e.service,
+		Charge:               charge,
+		Adapter:              e.service.adapter,
+		Realizations:         e.service.realizations,
+		Service:              e.service,
+		CreditNotesSupported: e.service.creditNotesSupported.Load(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)

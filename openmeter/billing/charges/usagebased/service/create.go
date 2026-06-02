@@ -127,10 +127,9 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 
 			TaxConfig: intent.TaxConfig.ToTaxConfig(),
 
-			ChargeID:               lo.ToPtr(charge.ID),
-			Engine:                 billing.LineEngineTypeChargeUsageBased,
-			ChildUniqueReferenceID: intent.UniqueReferenceID,
-			Subscription:           subscription,
+			ChargeID:     lo.ToPtr(charge.ID),
+			Engine:       billing.LineEngineTypeChargeUsageBased,
+			Subscription: subscription,
 		},
 	}
 

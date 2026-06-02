@@ -8,6 +8,7 @@ import (
 	appconfig "github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -34,6 +35,7 @@ type handler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
 	credits          appconfig.CreditsConfiguration
+	featureGate      featuregate.Gate
 }
 
 func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
@@ -49,6 +51,7 @@ func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	service plan.Service,
 	credits appconfig.CreditsConfiguration,
+	featureGate featuregate.Gate,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
@@ -56,5 +59,6 @@ func New(
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		credits:          credits,
+		featureGate:      featureGate,
 	}
 }

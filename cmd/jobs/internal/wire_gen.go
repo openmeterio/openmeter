@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/secret"
@@ -31,6 +32,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	"go.opentelemetry.io/otel/metric"
@@ -253,7 +255,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	productCatalogConfiguration := conf.ProductCatalog
+	featureResolver, err := featureresolver.New(featureConnector)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	repository, err := common.NewTaxCodeAdapter(logger, client)
 	if err != nil {
 		cleanup7()
@@ -276,7 +288,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector, taxcodeService, eventbusPublisher)
+	planService, err := common.NewPlanService(logger, client, featureResolver, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -287,7 +299,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	addonService, err := common.NewAddonService(logger, client, featureConnector, taxcodeService, eventbusPublisher)
+	addonService, err := common.NewAddonService(logger, client, featureResolver, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -335,7 +347,19 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	customerAccountRepo := common.NewLedgerResolversRepo(client)
 	customerLedgerProvisioner := common.NewLedgerResolversService(creditsConfiguration, accountService, customerAccountRepo, locker)
 	accountResolver := common.NewLedgerAccountResolver(customerLedgerProvisioner)
-	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService)
+	breakageService, err := common.NewLedgerBreakageService(creditsConfiguration, client, balanceQuerier, accountResolver, accountService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	gate := featuregate.NewNoop()
+	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, gate)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -423,7 +447,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	subscriptionsyncService, err := common.NewBillingSubscriptionSyncService(logger, subscriptionServiceWithWorkflow, billingRegistry, subscriptionsyncAdapter, tracer, creditsConfiguration)
+	subscriptionsyncService, err := common.NewBillingSubscriptionSyncService(logger, subscriptionServiceWithWorkflow, billingRegistry, subscriptionsyncAdapter, tracer, creditsConfiguration, gate)
 	if err != nil {
 		cleanup7()
 		cleanup6()

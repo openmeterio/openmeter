@@ -88,7 +88,6 @@ interface MetersOperations {
    * Update a meter.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @put
   @operationId("update-meter")
   @summary("Update meter")
@@ -123,7 +122,6 @@ interface MetersQueryOperations {
    * when `customer_id` is in the query's `group_by_dimensions`.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @post
   @operationId("query-meter")
   @summary("Query meter")
@@ -135,7 +133,6 @@ interface MetersQueryOperations {
 
   #suppress "@openmeter/api-spec-aip/operation-summary" "Avoid duplicating the summary in OpenAPI yaml"
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @opExample(
     #{
       returnType: #{

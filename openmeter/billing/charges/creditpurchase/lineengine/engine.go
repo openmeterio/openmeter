@@ -78,6 +78,10 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 	})
 }
 
+func (e *Engine) BuildStandardLinesForGatheringPreview(_ context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
+	return input.GatheringLines.ToStandardLines(input.Invoice.ID)
+}
+
 func (e *Engine) OnCollectionCompleted(_ context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {
 	return input.Lines, nil
 }

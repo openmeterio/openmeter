@@ -10,6 +10,12 @@ import (
 
 type ActionFn func(context.Context) error
 
+func EntryFunc(fn ActionFn) func(context.Context, ...any) error {
+	return func(ctx context.Context, _ ...any) error {
+		return fn(ctx)
+	}
+}
+
 // allOf chains multiple action functions into a single action function, all functions
 // will be called, regardless of their error state.
 // The reported errors will be joined into a single error object.

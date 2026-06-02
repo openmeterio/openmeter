@@ -27,6 +27,7 @@ import (
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
@@ -125,12 +126,15 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	})
 	require.NoError(t, err)
 
+	featureResolver, err := featureresolver.New(deps.FeatureService)
+	require.NoErrorf(t, err, "failed to create feature resolver: %v", err)
+
 	planService, err := planservice.New(planservice.Config{
-		Feature:   deps.FeatureService,
-		Adapter:   planAdapter,
-		TaxCode:   taxCodeService,
-		Logger:    slog.Default(),
-		Publisher: publisher,
+		FeatureResolver: featureResolver,
+		Adapter:         planAdapter,
+		TaxCode:         taxCodeService,
+		Logger:          slog.Default(),
+		Publisher:       publisher,
 	})
 	require.NoError(t, err)
 
@@ -173,11 +177,11 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	require.NoError(t, err)
 
 	addonService, err := addonservice.New(addonservice.Config{
-		Adapter:   addonRepo,
-		Logger:    slog.Default(),
-		Publisher: publisher,
-		Feature:   deps.FeatureService,
-		TaxCode:   taxCodeService,
+		Adapter:         addonRepo,
+		Logger:          slog.Default(),
+		Publisher:       publisher,
+		FeatureResolver: featureResolver,
+		TaxCode:         taxCodeService,
 	})
 	require.NoError(t, err)
 

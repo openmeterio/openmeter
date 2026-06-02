@@ -74,6 +74,14 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 				}, nil
 			}
 
+			// Zero-amount flat-fee charges are tracked as charges, but they
+			// must not materialize billable invoice lines.
+			if charge.State.AmountAfterProration.IsZero() {
+				return flatfee.ChargeWithGatheringLine{
+					Charge: charge,
+				}, nil
+			}
+
 			gatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
 				Charge:        charge,
 				ServicePeriod: charge.Intent.ServicePeriod,
@@ -183,10 +191,9 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 
 			TaxConfig: lineIntent.TaxConfig.ToTaxConfig(),
 
-			Engine:                 billing.LineEngineTypeChargeFlatFee,
-			ChargeID:               lo.ToPtr(flatFee.ID),
-			ChildUniqueReferenceID: lineIntent.UniqueReferenceID,
-			Subscription:           subscription,
+			Engine:       billing.LineEngineTypeChargeFlatFee,
+			ChargeID:     lo.ToPtr(flatFee.ID),
+			Subscription: subscription,
 		},
 	}
 

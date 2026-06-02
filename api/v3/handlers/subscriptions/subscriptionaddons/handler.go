@@ -9,22 +9,23 @@ import (
 
 type Handler interface {
 	ListSubscriptionAddons() ListSubscriptionAddonsHandler
+	GetSubscriptionAddon() GetSubscriptionAddonHandler
 }
 
 type handler struct {
-	resolveNamespace         func(ctx context.Context) (string, error)
-	subscriptionAddonService subscriptionaddon.Service
-	options                  []httptransport.HandlerOption
+	resolveNamespace func(ctx context.Context) (string, error)
+	addonService     subscriptionaddon.Service
+	options          []httptransport.HandlerOption
 }
 
 func New(
 	resolveNamespace func(ctx context.Context) (string, error),
-	subscriptionAddonService subscriptionaddon.Service,
+	addonService subscriptionaddon.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
-		resolveNamespace:         resolveNamespace,
-		subscriptionAddonService: subscriptionAddonService,
-		options:                  options,
+		resolveNamespace: resolveNamespace,
+		addonService:     addonService,
+		options:          options,
 	}
 }

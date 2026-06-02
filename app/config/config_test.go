@@ -191,6 +191,7 @@ func TestComplete(t *testing.T) {
 		Credits: CreditsConfiguration{
 			Enabled:                 false,
 			EnableCreditThenInvoice: false,
+			FeatureFlag:             "",
 		},
 		Sink: SinkConfiguration{
 			GroupId:                 "openmeter-sink-worker",
@@ -446,6 +447,26 @@ func TestComplete(t *testing.T) {
 			`^reserved\..*$`,
 			`^_\..*$`,
 			`^openmeter\..*$`,
+		},
+		TaxCode: TaxCodeConfiguration{
+			Seeds: []TaxCodeSeed{
+				{
+					Key:              "default",
+					Name:             "Provider default",
+					DefaultInvoicing: true,
+				},
+				{
+					Key:                "nontaxable",
+					Name:               "Nontaxable",
+					DefaultCreditGrant: true,
+					AppMappings: []TaxCodeAppMapping{
+						{
+							AppType: "stripe",
+							TaxCode: "txcd_00000000",
+						},
+					},
+				},
+			},
 		},
 	}
 

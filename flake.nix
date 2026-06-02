@@ -31,7 +31,7 @@
             languages = {
               go = {
                 enable = true;
-                package = pkgs.go_1_25;
+                package = pkgs.go_1_26;
               };
 
               python = {
@@ -71,6 +71,7 @@
             git-hooks.package = pkgs.prek;
 
             packages = with pkgs; [
+              git
               gnumake
               mage
 
@@ -116,10 +117,10 @@
               # We can consider adding a pkgs.buildNpmPackage for spectral-cli if build takes a lot of time, but for now
               # this is a quick fix to get it working.
               (writeShellScriptBin "spectral" ''
-                exec ${pkgs.nodejs_24}/bin/npx -y @stoplight/spectral-cli@6.13.1 "$@"
+                exec ${pkgs.corepack_24}/bin/pnpx @stoplight/spectral-cli@6.16.0 "$@"
               '')
               (writeShellScriptBin "codegraph" ''
-                exec ${pkgs.nodejs_24}/bin/npx -y @colbymchenry/codegraph@0.7.3 "$@"
+                exec ${pkgs.corepack_24}/bin/pnpx @colbymchenry/codegraph@0.9.6 "$@"
               '')
 
               # python

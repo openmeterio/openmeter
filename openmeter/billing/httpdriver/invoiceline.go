@@ -227,9 +227,9 @@ func mapTaxConfigToAPI(to *productcatalog.TaxConfig) *api.TaxConfig {
 	return lo.ToPtr(productcataloghttp.FromTaxConfig(*to))
 }
 
-func mapDetailedLinesToAPI(lines billing.DetailedLines, invoiceAt time.Time) (*[]api.InvoiceDetailedLine, error) {
+func mapDetailedLinesToAPI(lines billing.DetailedLines, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (*[]api.InvoiceDetailedLine, error) {
 	mappedLines, err := slicesx.MapWithErr(lines, func(line billing.DetailedLine) (api.InvoiceDetailedLine, error) {
-		return mapDetailedLineToAPI(line, invoiceAt)
+		return mapDetailedLineToAPI(line, invoiceAt, taxConfig)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to map detailed lines: %w", err)
@@ -238,7 +238,7 @@ func mapDetailedLinesToAPI(lines billing.DetailedLines, invoiceAt time.Time) (*[
 	return lo.ToPtr(mappedLines), nil
 }
 
-func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time) (api.InvoiceDetailedLine, error) {
+func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (api.InvoiceDetailedLine, error) {
 	amountDiscountsAPI, err := mapInvoiceLineAmountDiscountsToAPI(line.AmountDiscounts)
 	if err != nil {
 		return api.InvoiceDetailedLine{}, fmt.Errorf("failed to map amount discounts: %w", err)
@@ -279,11 +279,11 @@ func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time) (api.I
 		PerUnitAmount: lo.ToPtr(line.PerUnitAmount.String()),
 		Quantity:      lo.ToPtr(line.Quantity.String()),
 		Category:      lo.ToPtr(api.InvoiceDetailedLineCostCategory(line.Category)),
-		TaxConfig:     mapTaxConfigToAPI(line.TaxConfig),
+		TaxConfig:     mapTaxConfigToAPI(taxConfig),
 		PaymentTerm:   lo.ToPtr(api.PricePaymentTerm(line.PaymentTerm)),
 
 		RateCard: &api.InvoiceDetailedLineRateCard{
-			TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
+			TaxConfig: mapTaxConfigToAPI(taxConfig),
 			Price: &api.FlatPriceWithPaymentTerm{
 				Type:        api.FlatPriceWithPaymentTermTypeFlat,
 				PaymentTerm: lo.ToPtr(api.PricePaymentTerm(line.PaymentTerm)),
@@ -324,7 +324,7 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
 	}
 
-	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.InvoiceAt)
+	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.InvoiceAt, line.TaxConfig)
 	if err != nil {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
 	}

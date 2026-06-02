@@ -37,11 +37,12 @@ import (
 var m sync.Mutex
 
 type deps struct {
-	entRepo      entitlement.EntitlementRepo
-	featureRepo  feature.FeatureRepo
-	subjectRepo  subject.Service
-	customerRepo customer.Adapter
-	meterRepo    *meteradapter.Adapter
+	entRepo        entitlement.EntitlementRepo
+	featureRepo    feature.FeatureRepo
+	subjectRepo    subject.Service
+	customerRepo   customer.Adapter
+	meterRepo      *meteradapter.Adapter
+	usageResetRepo meteredentitlement.UsageResetRepo
 }
 
 func setup(t *testing.T) (deps deps, cleanup func()) {
@@ -74,6 +75,7 @@ func setup(t *testing.T) (deps deps, cleanup func()) {
 	require.NotNilf(t, deps.meterRepo, "meter adapter must not be nil")
 
 	deps.entRepo = adapter.NewPostgresEntitlementRepo(dbClient)
+	deps.usageResetRepo = adapter.NewPostgresUsageResetRepo(dbClient)
 	deps.featureRepo = featureadapter.NewPostgresFeatureRepo(dbClient, logger)
 
 	// customer adapter for creating customers in tests
@@ -329,12 +331,11 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 	ns := "ns1"
 	featureKey := "feature1"
 
-	t.Run("Should return entitlements with expired usage period", func(t *testing.T) {
-		ctx := context.Background()
+	t.Run("Should return only resettable metered entitlements with expired usage period", func(t *testing.T) {
+		ctx := t.Context()
 		repo, cleanup := setup(t)
 		defer cleanup()
 
-		// Let's create an example feature
 		feature, err := repo.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: ns,
 			Key:       featureKey,
@@ -342,66 +343,127 @@ func TestListActiveEntitlementsWithExpiredUsagePeriod(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Let's set the current time
 		now := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 		clock.SetTime(now)
 		defer clock.ResetTime()
 
-		// First, create the subjects
+		expiredPeriod := &timeutil.ClosedPeriod{
+			From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
+		}
+		activePeriod := &timeutil.ClosedPeriod{
+			From: time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC),
+			To:   time.Date(2025, 4, 1, 0, 0, 0, 0, time.UTC),
+		}
+		usagePeriod := lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+			Interval: timeutil.RecurrencePeriodMonth,
+			Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+		}))
+
 		cust1 := createCustomerWithSubject(t, repo.subjectRepo, repo.customerRepo, ns, "subject1")
 		cust2 := createCustomerWithSubject(t, repo.subjectRepo, repo.customerRepo, ns, "subject2")
+		custStatic := createCustomerWithSubject(t, repo.subjectRepo, repo.customerRepo, ns, "subject-static")
+		custBoolean := createCustomerWithSubject(t, repo.subjectRepo, repo.customerRepo, ns, "subject-boolean")
+		custMalformed := createCustomerWithSubject(t, repo.subjectRepo, repo.customerRepo, ns, "subject-malformed")
+		custResetAnchor := createCustomerWithSubject(t, repo.subjectRepo, repo.customerRepo, ns, "subject-reset-anchor")
 
-		// Then create two entitlements, one with expired usage period and one with no expired usage period
 		ent1, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
-			Namespace:        ns,
-			FeatureID:        feature.ID,
-			FeatureKey:       featureKey,
-			UsageAttribution: cust1.GetUsageAttribution(),
-			EntitlementType:  entitlement.EntitlementTypeMetered,
-			MeasureUsageFrom: lo.ToPtr(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
-			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
-				Interval: timeutil.RecurrencePeriodMonth,
-				Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			})),
-			CurrentUsagePeriod: &timeutil.ClosedPeriod{
-				From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-				To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
-			},
+			Namespace:          ns,
+			FeatureID:          feature.ID,
+			FeatureKey:         featureKey,
+			UsageAttribution:   cust1.GetUsageAttribution(),
+			EntitlementType:    entitlement.EntitlementTypeMetered,
+			MeasureUsageFrom:   lo.ToPtr(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
+			UsagePeriod:        usagePeriod,
+			CurrentUsagePeriod: expiredPeriod,
 		})
 		require.NoError(t, err)
 		require.NotNil(t, ent1)
 
 		ent2, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
-			Namespace:        ns,
-			FeatureID:        feature.ID,
-			FeatureKey:       featureKey,
-			UsageAttribution: cust2.GetUsageAttribution(),
-			EntitlementType:  entitlement.EntitlementTypeMetered,
-			MeasureUsageFrom: lo.ToPtr(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
-			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
-				Interval: timeutil.RecurrencePeriodMonth,
-				Anchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-			})),
-			CurrentUsagePeriod: &timeutil.ClosedPeriod{
-				From: time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC),
-				To:   time.Date(2025, 4, 1, 0, 0, 0, 0, time.UTC),
-			},
+			Namespace:          ns,
+			FeatureID:          feature.ID,
+			FeatureKey:         featureKey,
+			UsageAttribution:   cust2.GetUsageAttribution(),
+			EntitlementType:    entitlement.EntitlementTypeMetered,
+			MeasureUsageFrom:   lo.ToPtr(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
+			UsagePeriod:        usagePeriod,
+			CurrentUsagePeriod: activePeriod,
 		})
 		require.NoError(t, err)
 		require.NotNil(t, ent2)
 
+		staticEnt, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
+			Namespace:          ns,
+			FeatureID:          feature.ID,
+			FeatureKey:         featureKey,
+			UsageAttribution:   custStatic.GetUsageAttribution(),
+			EntitlementType:    entitlement.EntitlementTypeStatic,
+			Config:             lo.ToPtr(`{"on":true}`),
+			UsagePeriod:        usagePeriod,
+			CurrentUsagePeriod: expiredPeriod,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, staticEnt)
+
+		booleanEnt, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
+			Namespace:          ns,
+			FeatureID:          feature.ID,
+			FeatureKey:         featureKey,
+			UsageAttribution:   custBoolean.GetUsageAttribution(),
+			EntitlementType:    entitlement.EntitlementTypeBoolean,
+			UsagePeriod:        usagePeriod,
+			CurrentUsagePeriod: expiredPeriod,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, booleanEnt)
+
+		malformedEnt, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
+			Namespace:          ns,
+			FeatureID:          feature.ID,
+			FeatureKey:         featureKey,
+			UsageAttribution:   custMalformed.GetUsageAttribution(),
+			EntitlementType:    entitlement.EntitlementTypeMetered,
+			UsagePeriod:        usagePeriod,
+			CurrentUsagePeriod: expiredPeriod,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, malformedEnt)
+
+		resetAnchorEnt, err := repo.entRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
+			Namespace:          ns,
+			FeatureID:          feature.ID,
+			FeatureKey:         featureKey,
+			UsageAttribution:   custResetAnchor.GetUsageAttribution(),
+			EntitlementType:    entitlement.EntitlementTypeMetered,
+			UsagePeriod:        usagePeriod,
+			CurrentUsagePeriod: expiredPeriod,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resetAnchorEnt)
+
+		err = repo.usageResetRepo.Save(ctx, meteredentitlement.UsageResetUpdate{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: ns,
+			},
+			EntitlementID:       resetAnchorEnt.ID,
+			ResetTime:           time.Date(2025, 1, 15, 0, 0, 0, 0, time.UTC),
+			Anchor:              time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+			UsagePeriodInterval: timeutil.RecurrencePeriodMonth.ISOString(),
+		})
+		require.NoError(t, err)
+
 		now = time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC)
 		clock.SetTime(now)
-		defer clock.ResetTime()
 
-		// Let's check that the entitlement with expired usage period is returned
 		ents, err := repo.entRepo.ListActiveEntitlementsWithExpiredUsagePeriod(ctx, entitlement.ListExpiredEntitlementsParams{
 			Namespaces:    []string{ns},
 			Highwatermark: now,
 		})
 		require.NoError(t, err)
-		require.Equal(t, 1, len(ents))
+		require.Len(t, ents, 2)
 		require.Equal(t, ent1.ID, ents[0].ID)
+		require.Equal(t, resetAnchorEnt.ID, ents[1].ID)
 	})
 
 	t.Run("Should return entitlements with cursor and limit", func(t *testing.T) {

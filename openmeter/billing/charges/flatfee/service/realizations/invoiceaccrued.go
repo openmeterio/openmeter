@@ -81,6 +81,7 @@ func (s *Service) AccrueInvoiceUsage(ctx context.Context, in AccrueInvoiceUsageI
 			ledgerTransactionRef, err := s.handler.OnInvoiceUsageAccrued(ctx, flatfee.OnInvoiceUsageAccruedInput{
 				Charge:        in.Charge,
 				ServicePeriod: line.Period,
+				BookedAt:      flatfee.UsageBookedAt(in.Charge.Intent.PaymentTerm, line.Period),
 				Totals:        line.Totals,
 			})
 			if err != nil {

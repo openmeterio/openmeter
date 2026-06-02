@@ -157,6 +157,104 @@ func TestTransferCustomerFBOAdvanceToAccruedTemplate_UnknownCostBasisAdvanceNetE
 	require.True(t, env.SumBalance(t, env.AccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
 }
 
+func TestTransferCustomerFBOAdvanceToAccruedTemplate_AppliesTaxBehaviorToAccrued(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+	taxCode := "tax_A"
+	taxBehavior := ledger.TaxBehaviorExclusive
+
+	inputs := env.resolveAndCommit(
+		t,
+		IssueCustomerReceivableTemplate{
+			At:       env.Now(),
+			Amount:   alpacadecimal.NewFromInt(30),
+			Currency: env.Currency,
+		},
+		TransferCustomerFBOAdvanceToAccruedTemplate{
+			At:          env.Now(),
+			Amount:      alpacadecimal.NewFromInt(30),
+			Currency:    env.Currency,
+			TaxCode:     &taxCode,
+			TaxBehavior: &taxBehavior,
+		},
+	)
+	require.Len(t, inputs, 2)
+
+	accruedWithTaxBehavior, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:    env.Currency,
+		TaxCode:     &taxCode,
+		TaxBehavior: &taxBehavior,
+	})
+	require.NoError(t, err)
+
+	require.True(t, env.SumBalance(t, env.FBOSubAccount(t, ledger.DefaultCustomerFBOPriority)).Equal(alpacadecimal.Zero))
+	require.True(t, env.SumBalance(t, accruedWithTaxBehavior).Equal(alpacadecimal.NewFromInt(30)))
+	require.True(t, env.SumBalance(t, env.AccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+}
+
+func TestTransferCustomerFBOToAccruedTemplate_AppliesTaxConfigToAccrued(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+	costBasis := alpacadecimal.NewFromInt(1)
+
+	taxA := "tax_A"
+	taxBehavior := ledger.TaxBehaviorInclusive
+
+	// Tax dimensions come from accrual, not from selected FBO sources.
+	fboA := env.fundPriorityWithCostBasis(t, 1, 30, &costBasis)
+	fboB := env.fundPriorityWithCostBasis(t, 2, 50, &costBasis)
+
+	inputs := env.resolveAndCommit(
+		t,
+		TransferCustomerFBOToAccruedTemplate{
+			At:          env.Now(),
+			Currency:    env.Currency,
+			TaxCode:     &taxA,
+			TaxBehavior: &taxBehavior,
+			Sources: []PostingAmount{
+				{Address: fboA.Address(), Amount: alpacadecimal.NewFromInt(30)},
+				{Address: fboB.Address(), Amount: alpacadecimal.NewFromInt(50)},
+			},
+		},
+	)
+	require.Len(t, inputs, 1)
+
+	// Both FBO sources fully drained.
+	require.True(t, env.SumBalance(t, fboA).Equal(alpacadecimal.Zero))
+	require.True(t, env.SumBalance(t, fboB).Equal(alpacadecimal.Zero))
+
+	accrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:    env.Currency,
+		CostBasis:   &costBasis,
+		TaxCode:     &taxA,
+		TaxBehavior: &taxBehavior,
+	})
+	require.NoError(t, err)
+	require.True(t, env.SumBalance(t, accrued).Equal(alpacadecimal.NewFromInt(80)))
+}
+
+func TestTransferCustomerFBOToAccruedTemplate_NilTaxConfigUsesNilAccruedRoute(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+
+	fboA := env.fundPriority(t, 1, 40)
+	fboB := env.fundPriority(t, 2, 20)
+
+	inputs := env.resolveAndCommit(
+		t,
+		TransferCustomerFBOToAccruedTemplate{
+			At:       env.Now(),
+			Currency: env.Currency,
+			Sources: []PostingAmount{
+				{Address: fboA.Address(), Amount: alpacadecimal.NewFromInt(40)},
+				{Address: fboB.Address(), Amount: alpacadecimal.NewFromInt(20)},
+			},
+		},
+	)
+	require.Len(t, inputs, 1)
+
+	require.True(t, env.SumBalance(t, fboA).Equal(alpacadecimal.Zero))
+	require.True(t, env.SumBalance(t, fboB).Equal(alpacadecimal.Zero))
+	require.True(t, env.SumBalance(t, env.AccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(60)))
+}
+
 func TestTranslateCustomerAccruedCostBasisTemplate(t *testing.T) {
 	env := newTransactionsTestEnv(t)
 	purchasedCostBasis := alpacadecimal.NewFromInt(1)

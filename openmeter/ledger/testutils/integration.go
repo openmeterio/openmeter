@@ -145,8 +145,15 @@ func (e *IntegrationEnv) AccruedSubAccount(t *testing.T) ledger.SubAccount {
 func (e *IntegrationEnv) AccruedSubAccountWithCostBasis(t *testing.T, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
 	t.Helper()
 
+	return e.AccruedSubAccountWithCostBasisAndTaxCode(t, costBasis, nil)
+}
+
+func (e *IntegrationEnv) AccruedSubAccountWithCostBasisAndTaxCode(t *testing.T, costBasis *alpacadecimal.Decimal, taxCode *string) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := e.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
 		Currency:  e.Currency,
+		TaxCode:   taxCode,
 		CostBasis: costBasis,
 	})
 	require.NoError(t, err)
@@ -201,10 +208,22 @@ func (e *IntegrationEnv) BrokerageSubAccount(t *testing.T) ledger.SubAccount {
 	return subAccount
 }
 
+func (e *IntegrationEnv) BreakageSubAccountWithCostBasis(t *testing.T, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.BusinessAccounts.BreakageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
+		Currency:  e.Currency,
+		CostBasis: costBasis,
+	})
+	require.NoError(t, err)
+
+	return subAccount
+}
+
 func (e *IntegrationEnv) SumBalance(t *testing.T, subAccount ledger.SubAccount) alpacadecimal.Decimal {
 	t.Helper()
 
-	sum, err := e.Deps.HistoricalLedger.GetSubAccountBalance(t.Context(), subAccount, nil)
+	sum, err := e.Deps.HistoricalLedger.GetSubAccountBalance(t.Context(), subAccount, ledger.BalanceQuery{})
 	require.NoError(t, err)
 
 	return sum.Settled()

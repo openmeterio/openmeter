@@ -95,6 +95,9 @@ interface SubscriptionsOperations {
      * - `id`
      * - `active_from` (default)
      * - `active_to`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
      */
     @query(#{ name: "sort" })
     sort?: Common.SortQuery,
@@ -167,6 +170,7 @@ interface SubscriptionAddonOperations {
   @get
   @operationId("list-subscription-addons")
   @summary("List subscription addons")
+  @extension(Shared.UnstableExtension, true)
   list(
     @path subscriptionId: Shared.ULID,
     ...Common.PagePaginationQuery,
@@ -174,4 +178,17 @@ interface SubscriptionAddonOperations {
     @query(#{ name: "sort" })
     sort?: Common.SortQuery,
   ): Shared.PagePaginatedResponse<SubscriptionAddon> | Common.NotFound | Common.ErrorResponses;
+
+  /**
+   * Get an add-on association for a subscription.
+   */
+  @get
+  @route("/{subscriptionAddonId}")
+  @operationId("get-subscription-addon")
+  @summary("Get add-on association for subscription")
+  @extension(Shared.UnstableExtension, true)
+  getAddon(
+    @path subscriptionId: Shared.ULID,
+    @path subscriptionAddonId: Shared.ULID,
+  ): Shared.GetResponse<SubscriptionAddon> | Common.ErrorResponses | Common.NotFound;
 }

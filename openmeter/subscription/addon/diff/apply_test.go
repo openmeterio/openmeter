@@ -288,11 +288,11 @@ func TestApply(t *testing.T) {
 				t,
 				&deps.deps,
 				subscriptiontestutils.BuildTestPlanInput(t).
-					AddPhase(nil, &subscriptiontestutils.ExampleRateCard5ForAddons).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard5ForAddons.Clone()).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
-				}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard6),
+				}, productcatalog.AddonInstanceTypeMultiple, subscriptiontestutils.ExampleAddonRateCard6.Clone()),
 				models.CadencedModel{
 					ActiveFrom: now,
 					ActiveTo:   nil,
@@ -321,11 +321,11 @@ func TestApply(t *testing.T) {
 				t,
 				&deps.deps,
 				subscriptiontestutils.BuildTestPlanInput(t).
-					AddPhase(nil, &subscriptiontestutils.ExampleRateCard4ForAddons).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard4ForAddons.Clone()).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
-				}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard6),
+				}, productcatalog.AddonInstanceTypeMultiple, subscriptiontestutils.ExampleAddonRateCard6.Clone()),
 				models.CadencedModel{
 					ActiveFrom: now,
 					ActiveTo:   nil,
@@ -357,11 +357,11 @@ func TestApply(t *testing.T) {
 				t,
 				&deps.deps,
 				subscriptiontestutils.BuildTestPlanInput(t).
-					AddPhase(nil, &subscriptiontestutils.ExampleRateCard2).
+					AddPhase(nil, subscriptiontestutils.ExampleRateCard2.Clone()).
 					Build(),
 				subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
-				}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard6),
+				}, productcatalog.AddonInstanceTypeMultiple, subscriptiontestutils.ExampleAddonRateCard6.Clone()),
 				models.CadencedModel{
 					ActiveFrom: now,
 					ActiveTo:   nil,

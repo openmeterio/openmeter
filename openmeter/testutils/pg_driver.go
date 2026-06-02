@@ -104,13 +104,18 @@ func WithDriverOptions(opts []pgdriver.Option) Option {
 func InitPostgresDB(t *testing.T, opts ...Option) *TestDB {
 	t.Helper()
 
+	port := os.Getenv("POSTGRES_PORT")
+	if port == "" {
+		port = "5432"
+	}
+
 	o := options{
 		config: pgtestdb.Config{
 			DriverName: "pgx",
 			User:       "postgres",
 			Password:   "postgres",
 			Host:       os.Getenv("POSTGRES_HOST"),
-			Port:       "5432",
+			Port:       port,
 			Options:    "sslmode=disable",
 		},
 		migrator: &NoopMigrator{}, // TODO: fix migrations

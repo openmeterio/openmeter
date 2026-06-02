@@ -605,22 +605,6 @@ func (e *BillingInvoiceSplitLineGroup) GetDescription() *string {
 	return e.Description
 }
 
-func (e *BillingInvoiceSplitLineGroup) GetCurrency() currencyx.Code {
-	return e.Currency
-}
-
-func (e *BillingInvoiceSplitLineGroup) GetTaxConfig() productcatalog.TaxConfig {
-	return e.TaxConfig
-}
-
-func (e *BillingInvoiceSplitLineGroup) GetTaxCodeID() *string {
-	return e.TaxCodeID
-}
-
-func (e *BillingInvoiceSplitLineGroup) GetTaxBehavior() *productcatalog.TaxBehavior {
-	return e.TaxBehavior
-}
-
 func (e *BillingInvoiceUsageBasedLineConfig) GetID() string {
 	return e.ID
 }
@@ -2322,6 +2306,30 @@ func (e *LedgerAccount) GetUpdatedAt() time.Time {
 }
 
 func (e *LedgerAccount) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *LedgerBreakageRecord) GetID() string {
+	return e.ID
+}
+
+func (e *LedgerBreakageRecord) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *LedgerBreakageRecord) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *LedgerBreakageRecord) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *LedgerBreakageRecord) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *LedgerBreakageRecord) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 

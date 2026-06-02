@@ -2,7 +2,9 @@ package customerscredits
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"time"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
@@ -18,6 +20,7 @@ type (
 	GetCustomerCreditBalanceRequest struct {
 		CustomerID customer.CustomerID
 		Currencies customerbalance.CurrencyFilter
+		AsOf       time.Time
 	}
 	GetCustomerCreditBalanceResponse = api.BillingCreditBalances
 	GetCustomerCreditBalanceParams   struct {
@@ -35,17 +38,41 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 				return GetCustomerCreditBalanceRequest{}, err
 			}
 
+			asOf := clock.Now()
+			if args.Params.Timestamp != nil {
+				asOf = *args.Params.Timestamp
+			}
+
 			request := GetCustomerCreditBalanceRequest{
 				CustomerID: customer.CustomerID{
 					Namespace: namespace,
 					ID:        args.CustomerID,
 				},
+				AsOf: asOf,
 			}
 
 			if args.Params.Filter != nil && args.Params.Filter.Currency != nil {
-				currency := currencyx.Code(*args.Params.Filter.Currency)
-				request.Currencies = customerbalance.CurrencyFilter{
-					Codes: []currencyx.Code{currency},
+				f := args.Params.Filter.Currency
+				if f.Neq != nil {
+					return GetCustomerCreditBalanceRequest{}, apierrors.NewBadRequestError(
+						ctx,
+						errors.New("neq operator is not supported for currency"),
+						apierrors.InvalidParameters{{
+							Field:  "filter[currency]",
+							Reason: "neq operator is not supported",
+							Source: apierrors.InvalidParamSourceQuery,
+						}},
+					)
+				}
+				codes := make([]currencyx.Code, 0, 1+len(f.Oeq))
+				if f.Eq != nil {
+					codes = append(codes, currencyx.Code(*f.Eq))
+				}
+				for _, v := range f.Oeq {
+					codes = append(codes, currencyx.Code(v))
+				}
+				if len(codes) > 0 {
+					request.Currencies = customerbalance.CurrencyFilter{Codes: codes}
 				}
 			}
 
@@ -62,6 +89,7 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 			balancesByCurrency, err := h.balanceFacade.GetBalances(ctx, customerbalance.GetBalancesInput{
 				CustomerID: request.CustomerID,
 				Currencies: request.Currencies,
+				AsOf:       &request.AsOf,
 			})
 			if err != nil {
 				return GetCustomerCreditBalanceResponse{}, err
@@ -73,7 +101,7 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 			}
 
 			return GetCustomerCreditBalanceResponse{
-				RetrievedAt: clock.Now(),
+				RetrievedAt: request.AsOf,
 				Balances:    balances,
 			}, nil
 		},

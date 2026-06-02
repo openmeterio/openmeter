@@ -137,7 +137,7 @@ model GetCreditBalanceParamsFilter {
   /**
    * Filter credit balance by currency.
    */
-  currency?: Currencies.CurrencyCode;
+  currency?: Common.StringFieldFilterExact;
 }
 
 interface CustomerCreditBalancesOperations {
@@ -151,6 +151,14 @@ interface CustomerCreditBalancesOperations {
   @summary("Get a customer's credit balance")
   get(
     @path customerId: Shared.ULID,
+
+    /**
+     * Return the credit balance as of this timestamp.
+     *
+     * Defaults to the current time.
+     */
+    @query
+    timestamp?: Shared.DateTime,
 
     @query(#{ style: "deepObject", explode: true })
     filter?: GetCreditBalanceParamsFilter,

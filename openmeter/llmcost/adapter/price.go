@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -172,6 +173,10 @@ func (a *adapter) CreateOverride(ctx context.Context, input llmcost.CreateOverri
 			SetNillableEffectiveTo(input.EffectiveTo).
 			Save(ctx)
 		if err != nil {
+			if entdb.IsConstraintError(err) {
+				err = models.NewGenericConflictError(err)
+			}
+
 			return llmcost.Price{}, fmt.Errorf("failed to create override: %w", err)
 		}
 

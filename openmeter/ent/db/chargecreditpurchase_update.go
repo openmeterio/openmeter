@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -147,6 +148,26 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableManagedBy(v *billing.InvoiceLin
 	if v != nil {
 		_u.SetManagedBy(*v)
 	}
+	return _u
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (_u *ChargeCreditPurchaseUpdate) SetSubscriptionItemID(v string) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetSubscriptionItemID(v)
+	return _u
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableSubscriptionItemID(v *string) *ChargeCreditPurchaseUpdate {
+	if v != nil {
+		_u.SetSubscriptionItemID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearSubscriptionItemID() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearSubscriptionItemID()
 	return _u
 }
 
@@ -393,6 +414,11 @@ func (_u *ChargeCreditPurchaseUpdate) SetCreditGrant(v *ChargeCreditPurchaseCred
 	return _u.SetCreditGrantID(v.ID)
 }
 
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *ChargeCreditPurchaseUpdate) SetSubscriptionItem(v *SubscriptionItem) *ChargeCreditPurchaseUpdate {
+	return _u.SetSubscriptionItemID(v.ID)
+}
+
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
 func (_u *ChargeCreditPurchaseUpdate) SetTaxCode(v *TaxCode) *ChargeCreditPurchaseUpdate {
 	return _u.SetTaxCodeID(v.ID)
@@ -418,6 +444,12 @@ func (_u *ChargeCreditPurchaseUpdate) ClearInvoicedPayment() *ChargeCreditPurcha
 // ClearCreditGrant clears the "credit_grant" edge to the ChargeCreditPurchaseCreditGrant entity.
 func (_u *ChargeCreditPurchaseUpdate) ClearCreditGrant() *ChargeCreditPurchaseUpdate {
 	_u.mutation.ClearCreditGrant()
+	return _u
+}
+
+// ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *ChargeCreditPurchaseUpdate) ClearSubscriptionItem() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearSubscriptionItem()
 	return _u
 }
 
@@ -583,6 +615,9 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 	if _u.mutation.EffectiveAtCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldEffectiveAt, field.TypeTime)
 	}
+	if _u.mutation.ExpiresAtCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldExpiresAt, field.TypeTime)
+	}
 	if _u.mutation.PriorityCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldPriority, field.TypeInt)
 	}
@@ -676,6 +711,35 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecreditgrant.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionItemCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.SubscriptionItemTable,
+			Columns: []string{chargecreditpurchase.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.SubscriptionItemTable,
+			Columns: []string{chargecreditpurchase.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -841,6 +905,26 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetNillableManagedBy(v *billing.Invoice
 	if v != nil {
 		_u.SetManagedBy(*v)
 	}
+	return _u
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetSubscriptionItemID(v string) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetSubscriptionItemID(v)
+	return _u
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableSubscriptionItemID(v *string) *ChargeCreditPurchaseUpdateOne {
+	if v != nil {
+		_u.SetSubscriptionItemID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearSubscriptionItemID() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearSubscriptionItemID()
 	return _u
 }
 
@@ -1087,6 +1171,11 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetCreditGrant(v *ChargeCreditPurchaseC
 	return _u.SetCreditGrantID(v.ID)
 }
 
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *ChargeCreditPurchaseUpdateOne) SetSubscriptionItem(v *SubscriptionItem) *ChargeCreditPurchaseUpdateOne {
+	return _u.SetSubscriptionItemID(v.ID)
+}
+
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
 func (_u *ChargeCreditPurchaseUpdateOne) SetTaxCode(v *TaxCode) *ChargeCreditPurchaseUpdateOne {
 	return _u.SetTaxCodeID(v.ID)
@@ -1112,6 +1201,12 @@ func (_u *ChargeCreditPurchaseUpdateOne) ClearInvoicedPayment() *ChargeCreditPur
 // ClearCreditGrant clears the "credit_grant" edge to the ChargeCreditPurchaseCreditGrant entity.
 func (_u *ChargeCreditPurchaseUpdateOne) ClearCreditGrant() *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.ClearCreditGrant()
+	return _u
+}
+
+// ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearSubscriptionItem() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearSubscriptionItem()
 	return _u
 }
 
@@ -1307,6 +1402,9 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	if _u.mutation.EffectiveAtCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldEffectiveAt, field.TypeTime)
 	}
+	if _u.mutation.ExpiresAtCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldExpiresAt, field.TypeTime)
+	}
 	if _u.mutation.PriorityCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldPriority, field.TypeInt)
 	}
@@ -1400,6 +1498,35 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecreditgrant.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionItemCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.SubscriptionItemTable,
+			Columns: []string{chargecreditpurchase.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.SubscriptionItemTable,
+			Columns: []string{chargecreditpurchase.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

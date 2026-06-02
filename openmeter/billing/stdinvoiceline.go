@@ -66,6 +66,10 @@ func (i StandardLineBase) GetParentID() (string, bool) {
 	return *i.ParentLineID, true
 }
 
+func (i StandardLineBase) GetChargeID() *string {
+	return i.ChargeID
+}
+
 func (i StandardLineBase) Validate() error {
 	var errs []error
 

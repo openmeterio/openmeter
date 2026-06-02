@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -25,159 +25,6 @@ func (s service) ListPlans(ctx context.Context, params plan.ListPlansInput) (pag
 	}
 
 	return fn(ctx)
-}
-
-// resolveFeatures resolves the FeatureKey and FeatureID references for each RateCard
-// - If FeatureID is provided (but not FeatureKey), it will populate FeatureKey
-// - If FeatureKey is provided (but not FeatureID), it will populate FeatureID
-// - If both FeatureKey and FeatureID are provided, it will validate that the provided key matches the value in the DB
-//
-// FIXME: this is a bit brittle, if any type implementing productcatalog.RateCard is not a pointer...
-func (s service) resolveFeatures(ctx context.Context, namespace string, rateCards *productcatalog.RateCards) error {
-	if rateCards == nil || len(*rateCards) == 0 {
-		return nil
-	}
-	rateCardFeatureKeysOrIDs := make([]string, 0)
-	for _, rateCard := range *rateCards {
-		fK := rateCard.AsMeta().FeatureKey
-		fID := rateCard.AsMeta().FeatureID
-
-		if fK != nil {
-			rateCardFeatureKeysOrIDs = append(rateCardFeatureKeysOrIDs, *fK)
-		}
-
-		if fID != nil {
-			rateCardFeatureKeysOrIDs = append(rateCardFeatureKeysOrIDs, *fID)
-		}
-	}
-
-	if len(rateCardFeatureKeysOrIDs) == 0 {
-		return nil
-	}
-
-	featureList, err := s.feature.ListFeatures(ctx, feature.ListFeaturesParams{
-		IDsOrKeys: rateCardFeatureKeysOrIDs,
-		Namespace: namespace,
-		Page:      pagination.Page{}, // lets return all features
-	})
-	if err != nil {
-		return fmt.Errorf("failed to list Features for RateCards: %w", err)
-	}
-
-	// Let's make a clone of it
-	rateCardsClone := rateCards.Clone()
-
-	for _, rateCard := range rateCardsClone {
-		fK := rateCard.AsMeta().FeatureKey
-		fID := rateCard.AsMeta().FeatureID
-
-		if fID == nil && fK == nil {
-			// We don't need to do anything, no feature is provided
-			continue
-		}
-
-		var (
-			featureByID    feature.Feature
-			featureByKey   feature.Feature
-			featureByIDOk  bool
-			featureByKeyOk bool
-		)
-
-		if fID != nil {
-			featureByID, featureByIDOk = lo.Find(featureList.Items, func(feat feature.Feature) bool {
-				return feat.ID == *fID
-			})
-		}
-
-		if fK != nil {
-			featureByKey, featureByKeyOk = lo.Find(featureList.Items, func(feat feature.Feature) bool {
-				return feat.Key == *fK
-			})
-		}
-
-		if fID != nil && fK != nil {
-			// We need to check that the two match (ID takes precedence)
-			if !featureByIDOk {
-				return models.NewGenericNotFoundError(fmt.Errorf("feature with ID %s not found", *fID))
-			}
-
-			if featureByID.Key != *fK {
-				return models.NewGenericNotFoundError(fmt.Errorf("feature with ID %s has key %s, but expected %s", *fID, featureByID.Key, *fK))
-			}
-		} else if fID != nil && fK == nil {
-			// We need to populate FeatureKey
-			if !featureByIDOk {
-				return models.NewGenericNotFoundError(fmt.Errorf("feature with ID %s not found", *fID))
-			}
-
-			// FIXME: merging like this is a pain, we should just use pointers...
-			mNew := rateCard.AsMeta()
-			mNew.FeatureKey = lo.ToPtr(featureByID.Key)
-			var rcNew productcatalog.RateCard
-
-			switch rateCard.Type() {
-			case productcatalog.FlatFeeRateCardType:
-				rcNew = &productcatalog.FlatFeeRateCard{
-					RateCardMeta:   mNew,
-					BillingCadence: rateCard.GetBillingCadence(),
-				}
-			case productcatalog.UsageBasedRateCardType:
-				bc := rateCard.GetBillingCadence()
-				if bc == nil {
-					return fmt.Errorf("BillingCadence is required for UsageBasedRateCard")
-				}
-
-				rcNew = &productcatalog.UsageBasedRateCard{
-					RateCardMeta:   mNew,
-					BillingCadence: *bc,
-				}
-			default:
-				return fmt.Errorf("unsupported RateCard type: %s", rateCard.Type())
-			}
-
-			if err = rateCard.Merge(rcNew); err != nil {
-				return fmt.Errorf("failed to merge RateCard: %w", err)
-			}
-		} else if fID == nil && fK != nil {
-			// We need to populate FeatureID
-			if !featureByKeyOk {
-				return models.NewGenericNotFoundError(fmt.Errorf("feature with key %s not found", *fK))
-			}
-
-			// FIXME: merging like this is a pain, we should just use pointers...
-			mNew := rateCard.AsMeta()
-			mNew.FeatureID = lo.ToPtr(featureByKey.ID)
-			var rcNew productcatalog.RateCard
-
-			switch rateCard.Type() {
-			case productcatalog.FlatFeeRateCardType:
-				rcNew = &productcatalog.FlatFeeRateCard{
-					RateCardMeta:   mNew,
-					BillingCadence: rateCard.GetBillingCadence(),
-				}
-			case productcatalog.UsageBasedRateCardType:
-				bc := rateCard.GetBillingCadence()
-				if bc == nil {
-					return fmt.Errorf("billing cadence is required for usage-based rate card")
-				}
-
-				rcNew = &productcatalog.UsageBasedRateCard{
-					RateCardMeta:   mNew,
-					BillingCadence: *bc,
-				}
-			default:
-				return fmt.Errorf("unsupported RateCard type: %s", rateCard.Type())
-			}
-
-			if err = rateCard.Merge(rcNew); err != nil {
-				return fmt.Errorf("failed to merge RateCard: %w", err)
-			}
-		}
-	}
-
-	*rateCards = rateCardsClone
-
-	return nil
 }
 
 // resolveTaxCodes ensures that each RateCard with a Stripe tax code in its TaxConfig
@@ -278,16 +125,21 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 		logger.Debug("creating Plan")
 
 		if len(params.Phases) > 0 {
-			for i := range params.Phases {
-				if err = s.resolveFeatures(ctx, params.Namespace, &params.Phases[i].RateCards); err != nil {
-					if models.IsGenericNotFoundError(err) {
-						err = models.NewGenericValidationError(err)
-					}
+			for idx := range params.Phases {
+				phaseFieldSelector := models.NewFieldSelectorGroup(
+					models.NewFieldSelector("phases").
+						WithExpression(
+							models.NewFieldAttrValue("key", &params.Phases[idx].Key),
+						),
+				)
 
-					return nil, fmt.Errorf("failed to expand Features for RateCards in PlanPhase: %w", err)
+				if err = featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, &params.Phases[idx].RateCards); err != nil {
+					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
+						fmt.Errorf("failed to expand features for ratecards in plan phase [plan.key=%s plan.phase.key=%s]: %w",
+							params.Key, params.Phases[idx].Key, err))
 				}
 
-				if err = s.resolveTaxCodes(ctx, params.Namespace, &params.Phases[i].RateCards); err != nil {
+				if err = s.resolveTaxCodes(ctx, params.Namespace, &params.Phases[idx].RateCards); err != nil {
 					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
 				}
 			}
@@ -425,17 +277,21 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		logger.Debug("updating Plan")
 
 		if params.Phases != nil && len(*params.Phases) > 0 {
-			for i := range *params.Phases {
-				if err := s.resolveFeatures(ctx, params.Namespace, &(*params.Phases)[i].RateCards); err != nil {
-					if models.IsGenericNotFoundError(err) {
-						err = models.NewGenericValidationError(err)
-					}
+			for idx := range *params.Phases {
+				phaseFieldSelector := models.NewFieldSelectorGroup(
+					models.NewFieldSelector("phases").
+						WithExpression(
+							models.NewFieldAttrValue("key", &(*params.Phases)[idx].Key),
+						),
+				)
 
-					return nil, fmt.Errorf("failed to expand Features for RateCards in PlanPhase: %w", err)
+				if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
+					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
+						fmt.Errorf("failed to expand features for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
+							params.ID, (*params.Phases)[idx].Key, err))
 				}
-			}
-			for i := range *params.Phases {
-				if err := s.resolveTaxCodes(ctx, params.Namespace, &(*params.Phases)[i].RateCards); err != nil {
+
+				if err := s.resolveTaxCodes(ctx, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
 					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
 				}
 			}
@@ -572,9 +428,10 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		}
 
 		// Validate plan with features
-		resolver := productcatalog.NewNamespacedFeatureResolver(s.feature, params.Namespace)
-
-		if err = pp.ValidateWith(productcatalog.ValidatePlanWithFeatures(ctx, resolver)); err != nil {
+		err = pp.ValidateWith(
+			productcatalog.ValidatePlanWithFeatures(ctx, s.featureResolver.WithNamespace(params.Namespace)),
+		)
+		if err != nil {
 			errs = append(errs, fmt.Errorf("invalid plan [id=%s key=%s version=%d]: %w",
 				p.ID, p.Key, p.Version, err),
 			)

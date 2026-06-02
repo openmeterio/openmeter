@@ -101,7 +101,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 		).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating).
-		Permit(billing.TriggerSnapshotQuantities, billing.StandardInvoiceStatusDraftCollecting)
+		Permit(billing.TriggerForceCollect, billing.StandardInvoiceStatusDraftCollecting)
 
 	stateMachine.Configure(billing.StandardInvoiceStatusDraftCollecting).
 		Permit(billing.TriggerNext, billing.StandardInvoiceStatusDraftValidating).
@@ -409,7 +409,7 @@ func (m *InvoiceStateMachine) StatusDetails(ctx context.Context) (billing.Standa
 		outErr = errors.Join(outErr, err)
 	}
 
-	if availableActions.SnapshotQuantities, err = m.calculateAvailableActionDetails(ctx, billing.TriggerSnapshotQuantities); err != nil {
+	if availableActions.SnapshotQuantities, err = m.calculateAvailableActionDetails(ctx, billing.TriggerForceCollect); err != nil {
 		outErr = errors.Join(outErr, err)
 	}
 

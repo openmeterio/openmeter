@@ -3,7 +3,9 @@ package tracex
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 
+	"go.opentelemetry.io/otel/attribute"
 	otelcodes "go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -40,12 +42,18 @@ func Start[T any](ctx context.Context, tracer trace.Tracer, spanName string, opt
 
 func (s *Span[T]) Wrap(fn func(ctx context.Context) (T, error), opts ...Option) (T, error) {
 	defer func() {
-		if panicErr := recover(); panicErr != nil {
-			s.span.RecordError(fmt.Errorf("panic: %v", panicErr))
+		if r := recover(); r != nil {
+			s.span.RecordError(
+				fmt.Errorf("panic: %v", r),
+				trace.WithStackTrace(true),
+				trace.WithAttributes(
+					attribute.String("panic.stacktrace", fmt.Sprintf("%v", string(debug.Stack()))),
+				),
+			)
 			s.span.SetStatus(otelcodes.Error, "panic")
 			s.span.End()
 
-			panic(panicErr)
+			panic(r)
 		}
 	}()
 

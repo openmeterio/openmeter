@@ -2,6 +2,7 @@ package customerbalance
 
 import (
 	"context"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -15,6 +16,7 @@ type creditTransactionLoaderInput struct {
 	CustomerID customer.CustomerID
 	AccountID  string
 	Currency   *currencyx.Code
+	AsOf       time.Time
 }
 
 type creditTransactionLoaderResult struct {
@@ -31,6 +33,7 @@ type creditTransactionLoaderFactory func(*service) creditTransactionLoader
 var creditTransactionLoaderOrder = []CreditTransactionType{
 	CreditTransactionTypeFunded,
 	CreditTransactionTypeConsumed,
+	CreditTransactionTypeExpired,
 }
 
 var creditTransactionLoaderFactories = map[CreditTransactionType]creditTransactionLoaderFactory{
@@ -38,6 +41,7 @@ var creditTransactionLoaderFactories = map[CreditTransactionType]creditTransacti
 	CreditTransactionTypeConsumed: func(s *service) creditTransactionLoader {
 		return newLedgerCreditTransactionLoader(s, ledger.ListTransactionsCreditMovementNegative)
 	},
+	CreditTransactionTypeExpired: newExpiredCreditTransactionLoader,
 }
 
 func (s *service) creditTransactionLoaders(txType *CreditTransactionType) ([]creditTransactionLoader, error) {

@@ -92,7 +92,11 @@ func (s *service) HandleExternalPaymentAuthorized(ctx context.Context, charge cr
 				WithAttrs(charge.Realizations.ExternalPaymentSettlement.ErrorAttributes())
 		}
 
-		ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, charge)
+		eventAt := clock.Now()
+		ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, creditpurchase.PaymentEventInput{
+			Charge:  charge,
+			EventAt: eventAt,
+		})
 		if err != nil {
 			return creditpurchase.Charge{}, err
 		}
@@ -104,7 +108,7 @@ func (s *service) HandleExternalPaymentAuthorized(ctx context.Context, charge cr
 				Amount:        charge.Intent.CreditAmount,
 				Authorized: &ledgertransaction.TimedGroupReference{
 					GroupReference: ledgerTransactionGroupReference,
-					Time:           clock.Now(),
+					Time:           eventAt,
 				},
 				Status: payment.StatusAuthorized,
 			},
@@ -136,14 +140,18 @@ func (s *service) HandleExternalPaymentSettled(ctx context.Context, charge credi
 				WithAttrs(paymentSettlement.ErrorAttributes())
 		}
 
-		ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentSettled(ctx, charge)
+		eventAt := clock.Now()
+		ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentSettled(ctx, creditpurchase.PaymentEventInput{
+			Charge:  charge,
+			EventAt: eventAt,
+		})
 		if err != nil {
 			return creditpurchase.Charge{}, err
 		}
 
 		paymentSettlement.Settled = &ledgertransaction.TimedGroupReference{
 			GroupReference: ledgerTransactionGroupReference,
-			Time:           clock.Now(),
+			Time:           eventAt,
 		}
 
 		paymentSettlement.Status = payment.StatusSettled

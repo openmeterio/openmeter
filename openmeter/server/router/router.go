@@ -74,6 +74,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
@@ -137,6 +138,7 @@ type Config struct {
 	SubscriptionWorkflowService subscriptionworkflow.Service
 	SubjectService              subject.Service
 	TaxCodeService              taxcode.Service
+	FeatureGate                 featuregate.Gate
 }
 
 func (c Config) Validate() error {
@@ -243,6 +245,10 @@ func (c Config) Validate() error {
 
 	if c.TaxCodeService == nil {
 		return errors.New("tax code service is required")
+	}
+
+	if c.FeatureGate == nil {
+		return errors.New("feature gate is required")
 	}
 
 	return nil
@@ -434,6 +440,7 @@ func NewRouter(config Config) (*Router, error) {
 		staticNamespaceDecoder,
 		config.Plan,
 		config.Credits,
+		config.FeatureGate,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
@@ -475,6 +482,7 @@ func NewRouter(config Config) (*Router, error) {
 			CustomerService:             config.Customer,
 			Logger:                      config.Logger,
 			Credits:                     config.Credits,
+			FeatureGate:                 config.FeatureGate,
 		},
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)

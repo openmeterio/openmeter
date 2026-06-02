@@ -125,9 +125,6 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldCurrency,
-	FieldTaxConfig,
-	FieldTaxCodeID,
-	FieldTaxBehavior,
 	FieldServicePeriodStart,
 	FieldServicePeriodEnd,
 	FieldQuantity,
@@ -162,6 +159,11 @@ var Columns = []string{
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for _, f := range [...]string{FieldTaxConfig, FieldTaxCodeID, FieldTaxBehavior} {
+		if column == f {
 			return true
 		}
 	}

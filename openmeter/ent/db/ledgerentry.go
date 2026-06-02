@@ -34,6 +34,8 @@ type LedgerEntry struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// SubAccountID holds the value of the "sub_account_id" field.
 	SubAccountID string `json:"sub_account_id,omitempty"`
+	// IdentityKey holds the value of the "identity_key" field.
+	IdentityKey string `json:"identity_key,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// TransactionID holds the value of the "transaction_id" field.
@@ -86,7 +88,7 @@ func (*LedgerEntry) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case ledgerentry.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case ledgerentry.FieldID, ledgerentry.FieldNamespace, ledgerentry.FieldSubAccountID, ledgerentry.FieldTransactionID:
+		case ledgerentry.FieldID, ledgerentry.FieldNamespace, ledgerentry.FieldSubAccountID, ledgerentry.FieldIdentityKey, ledgerentry.FieldTransactionID:
 			values[i] = new(sql.NullString)
 		case ledgerentry.FieldCreatedAt, ledgerentry.FieldUpdatedAt, ledgerentry.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -149,6 +151,12 @@ func (_m *LedgerEntry) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field sub_account_id", values[i])
 			} else if value.Valid {
 				_m.SubAccountID = value.String
+			}
+		case ledgerentry.FieldIdentityKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field identity_key", values[i])
+			} else if value.Valid {
+				_m.IdentityKey = value.String
 			}
 		case ledgerentry.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -227,6 +235,9 @@ func (_m *LedgerEntry) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("sub_account_id=")
 	builder.WriteString(_m.SubAccountID)
+	builder.WriteString(", ")
+	builder.WriteString("identity_key=")
+	builder.WriteString(_m.IdentityKey)
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Amount))

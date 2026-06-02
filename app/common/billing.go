@@ -30,12 +30,14 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
@@ -68,6 +70,7 @@ type ChargesRegistry struct {
 var Billing = wire.NewSet(
 	BillingAdapter,
 	NewBillingRatingService,
+	NewLedgerBreakageService,
 	NewBillingRegistry,
 	NewBillingCustomerOverrideService,
 )
@@ -146,6 +149,8 @@ func NewBillingRegistry(
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
+	breakageService ledgerbreakage.Service,
+	featureGate featuregate.Gate,
 ) (BillingRegistry, error) {
 	billingService, err := newBillingService(
 		logger,
@@ -183,6 +188,8 @@ func NewBillingRegistry(
 			balanceQuerier,
 			accountResolver,
 			accountService,
+			breakageService,
+			taxCodeService,
 			fsConfig.NamespaceLockdown,
 		)
 		if err != nil {
@@ -203,7 +210,7 @@ func NewBillingRegistry(
 	if err != nil {
 		return BillingRegistry{}, err
 	}
-	subscriptionSyncService, err := NewBillingSubscriptionSyncService(logger, subscriptionServices, billingRegistry, subscriptionSyncAdapter, tracer, creditsConfig)
+	subscriptionSyncService, err := NewBillingSubscriptionSyncService(logger, subscriptionServices, billingRegistry, subscriptionSyncAdapter, tracer, creditsConfig, featureGate)
 	if err != nil {
 		return BillingRegistry{}, err
 	}
@@ -280,7 +287,7 @@ func NewBillingSubscriptionSyncAdapter(db *entdb.Client) (subscriptionsync.Adapt
 	})
 }
 
-func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingRegistry BillingRegistry, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer, creditsConfig config.CreditsConfiguration) (subscriptionsync.Service, error) {
+func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingRegistry BillingRegistry, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer, creditsConfig config.CreditsConfiguration, featureGate featuregate.Gate) (subscriptionsync.Service, error) {
 	return subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		SubscriptionService:     subsServices.Service,
 		BillingService:          billingRegistry.Billing,
@@ -288,8 +295,10 @@ func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices Subscri
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		FeatureFlags: subscriptionsyncservice.FeatureFlags{
 			EnableCreditThenInvoice: creditsConfig.EnableCreditThenInvoice,
+			CreditsFlag:             creditsConfig.FeatureFlag,
 		},
-		Logger: logger,
-		Tracer: tracer,
+		Logger:      logger,
+		Tracer:      tracer,
+		FeatureGate: featureGate,
 	})
 }

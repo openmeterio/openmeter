@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"go.opentelemetry.io/otel/trace"
 
@@ -12,13 +13,17 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type FeatureFlags struct {
 	EnableFlatFeeInAdvanceProrating bool
 	EnableFlatFeeInArrearsProrating bool
 	EnableCreditThenInvoice         bool
+
+	CreditsFlag string
 }
 
 type Config struct {
@@ -30,6 +35,7 @@ type Config struct {
 	FeatureFlags            FeatureFlags
 	Logger                  *slog.Logger
 	Tracer                  trace.Tracer
+	FeatureGate             featuregate.Gate
 }
 
 func (c Config) Validate() error {
@@ -51,6 +57,10 @@ func (c Config) Validate() error {
 
 	if c.Tracer == nil {
 		return fmt.Errorf("tracer is required")
+	}
+
+	if c.FeatureGate == nil {
+		return fmt.Errorf("feature gate is required")
 	}
 
 	return nil
@@ -78,6 +88,8 @@ func New(config Config) (*Service, error) {
 		ChargesService:          config.ChargesService,
 		EnableCreditThenInvoice: config.FeatureFlags.EnableCreditThenInvoice,
 		Logger:                  config.Logger,
+		FeatureGate:             config.FeatureGate,
+		CreditsFlag:             config.FeatureFlags.CreditsFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -98,4 +110,22 @@ func (s *Service) GetSyncStates(ctx context.Context, input subscriptionsync.GetS
 	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) ([]subscriptionsync.SyncState, error) {
 		return s.subscriptionSyncAdapter.GetSyncStates(ctx, input)
 	})
+}
+
+func (s *Service) SyncByViewAndInvoiceCustomer(ctx context.Context, view subscription.SubscriptionView, asOf time.Time) error {
+	return s.synchronizeSubscriptionAndInvoiceCustomer(ctx, newSubscriptionReferenceOrView(view), asOf)
+}
+
+func (s *Service) SyncByIDAndInvoiceCustomer(ctx context.Context, subscriptionID models.NamespacedID, asOf time.Time) error {
+	return s.synchronizeSubscriptionAndInvoiceCustomer(ctx, newSubscriptionReferenceOrView(subscriptionID), asOf)
+}
+
+func (s *Service) SyncByView(ctx context.Context, view subscription.SubscriptionView, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
+	_, err := s.synchronizeSubscription(ctx, newSubscriptionReferenceOrView(view), asOf, opts...)
+	return err
+}
+
+func (s *Service) SyncByID(ctx context.Context, subscriptionID models.NamespacedID, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
+	_, err := s.synchronizeSubscription(ctx, newSubscriptionReferenceOrView(subscriptionID), asOf, opts...)
+	return err
 }

@@ -6,18 +6,19 @@ import (
 
 	"github.com/google/wire"
 
-	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/cost"
 	costadapter "github.com/openmeterio/openmeter/openmeter/cost/adapter"
 	costservice "github.com/openmeterio/openmeter/openmeter/cost/service"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogpgadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	addonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
@@ -39,6 +40,7 @@ var ProductCatalog = wire.NewSet(
 
 var Feature = wire.NewSet(
 	NewFeatureConnector,
+	NewFeatureResolver,
 )
 
 var Cost = wire.NewSet(
@@ -67,6 +69,8 @@ func NewFeatureConnector(
 	return feature.NewFeatureConnector(featureRepo, meterService, publisher)
 }
 
+var NewFeatureResolver = featureresolver.New
+
 func NewCostService(
 	featureConnector feature.FeatureConnector,
 	meterService meter.Service,
@@ -83,8 +87,7 @@ func NewCostService(
 func NewPlanService(
 	logger *slog.Logger,
 	db *entdb.Client,
-	productCatalogConf config.ProductCatalogConfiguration,
-	featureConnector feature.FeatureConnector,
+	featureResolver productcatalog.FeatureResolver,
 	taxCodeService taxcode.Service,
 	publisher eventbus.Publisher,
 ) (plan.Service, error) {
@@ -97,18 +100,18 @@ func NewPlanService(
 	}
 
 	return planservice.New(planservice.Config{
-		Adapter:   adapter,
-		Feature:   featureConnector,
-		TaxCode:   taxCodeService,
-		Logger:    logger.With("subsystem", "productcatalog.plan"),
-		Publisher: publisher,
+		Adapter:         adapter,
+		FeatureResolver: featureResolver,
+		TaxCode:         taxCodeService,
+		Logger:          logger.With("subsystem", "productcatalog.plan"),
+		Publisher:       publisher,
 	})
 }
 
 func NewAddonService(
 	logger *slog.Logger,
 	db *entdb.Client,
-	featureConnector feature.FeatureConnector,
+	featureResolver productcatalog.FeatureResolver,
 	taxCodeService taxcode.Service,
 	publisher eventbus.Publisher,
 ) (addon.Service, error) {
@@ -121,11 +124,11 @@ func NewAddonService(
 	}
 
 	return addonservice.New(addonservice.Config{
-		Adapter:   adapter,
-		Feature:   featureConnector,
-		TaxCode:   taxCodeService,
-		Logger:    logger.With("subsystem", "productcatalog.addon"),
-		Publisher: publisher,
+		Adapter:         adapter,
+		FeatureResolver: featureResolver,
+		TaxCode:         taxCodeService,
+		Logger:          logger.With("subsystem", "productcatalog.addon"),
+		Publisher:       publisher,
 	})
 }
 

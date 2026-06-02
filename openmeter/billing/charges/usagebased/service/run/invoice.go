@@ -82,6 +82,7 @@ func (s *Service) BookAccruedInvoiceUsage(ctx context.Context, in BookAccruedInv
 		Charge:        in.Charge,
 		Run:           in.Run,
 		ServicePeriod: in.Line.Period,
+		BookedAt:      in.Line.Period.To,
 		Amount:        in.Line.Totals.Total,
 	}
 

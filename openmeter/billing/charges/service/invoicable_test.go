@@ -49,9 +49,394 @@ func (s *InvoicableChargesTestSuite) TearDownTest() {
 	s.BaseSuite.TearDownTest()
 }
 
+func (s *InvoicableChargesTestSuite) TestFlatFeeGatheringPreviewPopulatesTotalsWithoutRealizationRun() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-gathering-preview")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	creditAllocationCallback := newCountedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]()
+	s.FlatFeeTestHandler.onAllocateCredits = creditAllocationCallback.Handler(
+		s.T(),
+		func(flatfee.OnAllocateCreditsInput, ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
+			return nil
+		},
+	)
+
+	created, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(100),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-gathering-preview",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "flat-fee-gathering-preview",
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Require().Len(created, 1)
+
+	flatFeeCharge, err := created[0].AsFlatFeeCharge()
+	s.NoError(err)
+	flatFeeChargeID := flatFeeCharge.GetChargeID()
+
+	s.assertGatheringPreview(assertGatheringPreviewInput{
+		Namespace:  ns,
+		CustomerID: cust.ID,
+		ExpectedInvoiceTotals: billingtest.ExpectedTotals{
+			Amount: 100,
+			Total:  100,
+		},
+		ExpectedLineTotals: billingtest.ExpectedTotals{
+			Amount: 100,
+			Total:  100,
+		},
+		AssertLine: func(previewLine *billing.StandardLine) {
+			s.Equal(flatFeeChargeID.ID, lo.FromPtr(previewLine.ChargeID))
+			s.Empty(previewLine.CreditsApplied)
+		},
+	})
+
+	chargeAfterPreview := mustGetFlatFeeChargeWithExpands(&s.BaseSuite, flatFeeChargeID, meta.Expands{meta.ExpandRealizations})
+	s.Nil(chargeAfterPreview.Realizations.CurrentRun)
+	s.Empty(chargeAfterPreview.Realizations.PriorRuns)
+	s.Zero(creditAllocationCallback.nrInvocations)
+}
+
+func (s *InvoicableChargesTestSuite) TestUsageBasedGatheringPreviewPopulatesTotalsWithoutRealizationRun() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-usage-based-gathering-preview")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	meterSlug := apiRequestsTotal.Feature.Key
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	created, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(2),
+				}),
+				name:              "usage-based-gathering-preview",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "usage-based-gathering-preview",
+				featureKey:        meterSlug,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Require().Len(created, 1)
+
+	usageBasedCharge, err := created[0].AsUsageBasedCharge()
+	s.NoError(err)
+	usageBasedChargeID := usageBasedCharge.GetChargeID()
+
+	s.MockStreamingConnector.AddSimpleEvent(
+		meterSlug,
+		15,
+		datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+	)
+
+	s.assertGatheringPreview(assertGatheringPreviewInput{
+		Namespace:  ns,
+		CustomerID: cust.ID,
+		ExpectedInvoiceTotals: billingtest.ExpectedTotals{
+			Amount: 30,
+			Total:  30,
+		},
+		ExpectedLineTotals: billingtest.ExpectedTotals{
+			Amount: 30,
+			Total:  30,
+		},
+		AssertLine: func(previewLine *billing.StandardLine) {
+			s.Require().NotNil(previewLine.UsageBased)
+			s.Require().NotNil(previewLine.UsageBased.MeteredQuantity)
+			s.Require().NotNil(previewLine.UsageBased.Quantity)
+			s.Require().NotNil(previewLine.UsageBased.MeteredPreLinePeriodQuantity)
+			s.Require().NotNil(previewLine.UsageBased.PreLinePeriodQuantity)
+			s.Equal(float64(15), lo.FromPtr(previewLine.UsageBased.MeteredQuantity).InexactFloat64())
+			s.Equal(float64(15), lo.FromPtr(previewLine.UsageBased.Quantity).InexactFloat64())
+			s.Equal(float64(0), lo.FromPtr(previewLine.UsageBased.MeteredPreLinePeriodQuantity).InexactFloat64())
+			s.Equal(float64(0), lo.FromPtr(previewLine.UsageBased.PreLinePeriodQuantity).InexactFloat64())
+		},
+	})
+
+	chargeAfterPreview := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+	s.Nil(chargeAfterPreview.State.CurrentRealizationRunID)
+	s.Empty(chargeAfterPreview.Realizations)
+}
+
+func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceImmutableProration() {
+	for _, creditNotesAvailable := range []bool{true, false} {
+		name := "credit notes unavailable"
+		if creditNotesAvailable {
+			name = "credit notes available"
+		}
+
+		s.Run(name, func() {
+			flatFeeService := s.Charges.flatFeeService.(interface {
+				SetCreditNotesSupportedByLineUpdater(*testing.T, bool) error
+			})
+			s.NoError(flatFeeService.SetCreditNotesSupportedByLineUpdater(s.T(), creditNotesAvailable))
+
+			runFlatFeeCreditThenInvoiceImmutableProrationScenario(&s.BaseSuite, creditNotesAvailable)
+		})
+	}
+}
+
+func runFlatFeeCreditThenInvoiceImmutableProrationScenario(s *BaseSuite, expectReplacementGatheringLine bool) {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-then-invoice-immutable-proration")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	shrunkServicePeriodTo := datetime.MustParseTimeInLocation(s.T(), "2026-01-16T00:00:00Z", time.UTC).AsTime()
+
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	var (
+		flatFeeChargeID meta.ChargeID
+		invoice         billing.StandardInvoice
+		lineID          billing.LineID
+	)
+
+	s.Run("given a fully credited immutable flat fee invoice", func() {
+		// given:
+		// - a credit-then-invoice flat fee has a fully credited immutable invoice line
+		s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
+			return creditrealization.CreateAllocationInputs{
+				{
+					ServicePeriod: input.ServicePeriod,
+					Amount:        input.PreTaxAmountToAllocate,
+					LedgerTransaction: ledgertransaction.GroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				},
+			}, nil
+		}
+		defer s.FlatFeeTestHandler.Reset()
+
+		created, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: []charges.ChargeIntent{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       cust.GetID(),
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(31),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					name:              "flat-fee-credit-then-invoice-immutable-proration",
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: "flat-fee-credit-then-invoice-immutable-proration",
+					proRating: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(created, 1)
+
+		flatFeeCharge, err := created[0].AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.From),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		invoice = invoices[0]
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+		lineID = invoice.Lines.OrEmpty()[0].GetLineID()
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.True(invoice.StatusDetails.Immutable)
+
+		charge := mustGetFlatFeeChargeWithExpands(s, flatFeeChargeID, meta.Expands{meta.ExpandRealizations})
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.True(charge.Realizations.CurrentRun.Immutable)
+		s.Equal(lineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+	})
+
+	s.Run("when immutable invoice proration is requested", func() {
+		// when:
+		// - the charge is shrunk to a prorated amount
+		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			NewServicePeriodTo:     shrunkServicePeriodTo,
+			NewFullServicePeriodTo: servicePeriod.To,
+			NewBillingPeriodTo:     shrunkServicePeriodTo,
+			NewInvoiceAt:           servicePeriod.From,
+		})
+		s.NoError(err)
+
+		s.NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: cust.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				flatFeeChargeID.ID: patch,
+			},
+		}))
+
+		// then:
+		// - the immutable invoice is not rewritten and records a warning
+		fetchedInvoice, err := s.BillingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand: billing.InvoiceExpands{
+				billing.InvoiceExpandLines,
+			},
+		})
+		s.NoError(err)
+		standardInvoice, err := fetchedInvoice.AsStandardInvoice()
+		s.NoError(err)
+		line := standardInvoice.Lines.GetByID(lineID.ID)
+		s.Require().NotNil(line)
+		s.Nil(line.DeletedAt)
+		s.Require().Len(standardInvoice.ValidationIssues, 1)
+		s.Equal(billing.ImmutableInvoiceHandlingNotSupportedErrorCode, standardInvoice.ValidationIssues[0].Code)
+		s.Equal(billing.ComponentName("charges.invoiceupdater"), standardInvoice.ValidationIssues[0].Component)
+
+		activeGatheringLines := activeGatheringLinesForCharge(s, ns, cust.ID, flatFeeChargeID.ID)
+
+		if expectReplacementGatheringLine {
+			charge := mustGetFlatFeeChargeWithExpands(s, flatFeeChargeID, meta.Expands{meta.ExpandRealizations})
+			s.Equal(flatfee.StatusCreated, charge.Status)
+			s.Nil(charge.Realizations.CurrentRun)
+			s.Require().Len(activeGatheringLines, 1)
+			s.Equal(servicePeriod.From, activeGatheringLines[0].ServicePeriod.From)
+			s.Equal(shrunkServicePeriodTo, activeGatheringLines[0].ServicePeriod.To)
+			return
+		}
+
+		charge := mustGetFlatFeeChargeWithExpands(s, flatFeeChargeID, meta.Expands{meta.ExpandRealizations})
+		s.Equal(flatfee.StatusFinal, charge.Status)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.Equal(lineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
+		s.Empty(activeGatheringLines)
+	})
+}
+
+func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountCreatesNoGatheringLine() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-then-invoice-zero-amount")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	created, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(0),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-credit-then-invoice-zero-amount",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "flat-fee-credit-then-invoice-zero-amount",
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Require().Len(created, 1)
+	s.Equal(meta.ChargeTypeFlatFee, created[0].Type())
+
+	flatFeeCharge, err := created[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusCreated, flatFeeCharge.Status)
+	s.Equal(float64(0), flatFeeCharge.State.AmountAfterProration.InexactFloat64())
+	s.Empty(activeGatheringLinesForCharge(&s.BaseSuite, ns, cust.ID, flatFeeCharge.ID))
+}
+
 func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-partial-credit-realizations")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -130,13 +515,13 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 
 		testTrnsGroupID := ulid.Make().String()
 		creditRealizationCallbackInvocations := 0
-		s.FlatFeeTestHandler.onAssignedToInvoice = func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
+		s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 			creditRealizationCallbackInvocations++
 
 			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.ServicePeriod,
-					Amount:        input.PreTaxTotalAmount.Mul(alpacadecimal.NewFromFloat(0.3)), // 30% as credits
+					Amount:        input.PreTaxAmountToAllocate.Mul(alpacadecimal.NewFromFloat(0.3)), // 30% as credits
 					LedgerTransaction: ledgertransaction.GroupReference{
 						TransactionGroupID: testTrnsGroupID,
 					},
@@ -325,6 +710,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInAdvanceWithPromotionalCredits() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-then-invoice-in-advance-promotional")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -397,10 +783,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInAdvanceWithPr
 	s.Run("when the charge becomes active and draft invoice is created", func() {
 		defer s.FlatFeeTestHandler.Reset()
 
-		creditAllocationCallback := newCountedCreditAllocationCallback[flatfee.OnAssignedToInvoiceInput]()
-		s.FlatFeeTestHandler.onAssignedToInvoice = creditAllocationCallback.Handler(
+		creditAllocationCallback := newCountedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]()
+		s.FlatFeeTestHandler.onAllocateCredits = creditAllocationCallback.Handler(
 			s.T(),
-			func(input flatfee.OnAssignedToInvoiceInput, ledgerTransaction ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
+			func(input flatfee.OnAllocateCreditsInput, ledgerTransaction ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
 				return creditrealization.CreateAllocationInputs{
 					{
 						ServicePeriod:     input.ServicePeriod,
@@ -409,10 +795,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInAdvanceWithPr
 					},
 				}
 			},
-			func(t *testing.T, input flatfee.OnAssignedToInvoiceInput) {
+			func(t *testing.T, input flatfee.OnAllocateCreditsInput) {
 				assert.Equal(t, flatFeeChargeID.ID, input.Charge.ID)
 				assert.Equal(t, servicePeriod, input.ServicePeriod)
-				assert.Equal(t, float64(7), input.PreTaxTotalAmount.InexactFloat64())
+				assert.Equal(t, float64(7), input.PreTaxAmountToAllocate.InexactFloat64())
 			},
 		)
 
@@ -475,6 +861,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInAdvanceWithPr
 func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDoesNotAccrueInvoiceUsage() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-then-invoice-fully-credited")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -528,11 +915,11 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 	s.Run("invoice pending lines fully settled by credits", func() {
 		defer s.FlatFeeTestHandler.Reset()
 
-		s.FlatFeeTestHandler.onAssignedToInvoice = func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
+		s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.ServicePeriod,
-					Amount:        input.PreTaxTotalAmount,
+					Amount:        input.PreTaxAmountToAllocate,
 					LedgerTransaction: ledgertransaction.GroupReference{
 						TransactionGroupID: ulid.Make().String(),
 					},
@@ -599,6 +986,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZeroChargesAccruesInvoiceUsage() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-then-invoice-zero-amount-charges")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -628,7 +1016,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZe
 		// - billing invoices pending lines at the service period start
 		// then:
 		// - the draft invoice has one standard line and the charge has a mutable run
-		s.FlatFeeTestHandler.onAssignedToInvoice = func(context.Context, flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
+		s.FlatFeeTestHandler.onAllocateCredits = func(context.Context, flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 			return nil, nil
 		}
 
@@ -729,6 +1117,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZe
 func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-only-lifecycle")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -940,7 +1329,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		s.Len(startedCallbacks, 1)
 		s.Equal(float64(3), startedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, startedCallbacks[0].Input.Run.Type)
-		s.True(finalStoredAtLT.Equal(startedCallbacks[0].Input.AllocateAt))
+		s.True(servicePeriod.To.Equal(startedCallbacks[0].Input.BookedAt))
 	})
 
 	s.Run("#3.2 second realization advance is noop", func() {
@@ -1037,7 +1426,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		s.Len(finalizedCallbacks, 1)
 		s.Equal(float64(5), finalizedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, finalizedCallbacks[0].Input.Run.Type)
-		s.True(finalStoredAtLT.Equal(finalizedCallbacks[0].Input.AllocateAt))
+		s.True(servicePeriod.To.Equal(finalizedCallbacks[0].Input.BookedAt))
 	})
 
 	s.Run("#5 final charge advance is noop", func() {
@@ -1057,6 +1446,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-only-lifecycle-volume-tiered-correction")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -1167,7 +1557,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 			s.Equal(usageBasedChargeID.ID, input.Charge.ID)
 			s.Equal(productcatalog.CreditOnlySettlementMode, input.Charge.Intent.SettlementMode)
 			s.Equal(usagebased.RealizationRunTypeFinalRealization, input.Run.Type)
-			s.True(finalStoredAtLT.Equal(input.AllocateAt))
+			s.True(servicePeriod.To.Equal(input.BookedAt))
 			s.Equal(float64(20), input.AmountToAllocate.InexactFloat64())
 			s.Equal(float64(10), input.Run.MeteredQuantity.InexactFloat64())
 			s.RequireTotals(billingtest.ExpectedTotals{
@@ -1236,7 +1626,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 			s.Equal(usageBasedChargeID.ID, input.Charge.ID)
 			s.Equal(productcatalog.CreditOnlySettlementMode, input.Charge.Intent.SettlementMode)
 			s.Equal(usagebased.RealizationRunTypeFinalRealization, input.Run.Type)
-			s.True(finalStoredAtLT.Equal(input.AllocateAt))
+			s.True(servicePeriod.To.Equal(input.BookedAt))
 			s.Equal(float64(10), input.Run.MeteredQuantity.InexactFloat64())
 			s.RequireTotals(billingtest.ExpectedTotals{
 				Amount:       20,
@@ -1285,7 +1675,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 		s.Require().NotNil(advancedCharge)
 		s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageBasedFromDB.Status))
 		s.Len(correctedCallbacks, 1)
-		s.True(finalStoredAtLT.Equal(correctedCallbacks[0].Input.AllocateAt))
+		s.True(servicePeriod.To.Equal(correctedCallbacks[0].Input.BookedAt))
 		s.Len(correctedCallbacks[0].Input.Corrections, 1)
 		s.Equal(float64(-9), correctedCallbacks[0].Input.Corrections[0].Amount.InexactFloat64())
 
@@ -1322,6 +1712,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-then-invoice")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -1619,6 +2010,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCreditedDoesNotAccrueInvoiceUsage() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-then-invoice-fully-credited")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -1808,6 +2200,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyActive() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-create-immediately-active")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -1885,6 +2278,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceDirectPaidFl
 
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-then-invoice-direct-paid")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -2024,6 +2418,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-create-immediately-final")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -2135,6 +2530,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-only-lifecycle")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -2231,18 +2627,18 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 		defer s.FlatFeeTestHandler.Reset()
 
 		type callbackInvocation struct {
-			Input flatfee.OnCreditsOnlyUsageAccruedInput
+			Input flatfee.OnAllocateCreditsInput
 		}
 
 		var callbacks []callbackInvocation
 
-		s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+		s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 			callbacks = append(callbacks, callbackInvocation{Input: input})
 
 			return creditrealization.CreateAllocationInputs{
 				{
 					ServicePeriod: input.Charge.Intent.ServicePeriod,
-					Amount:        input.AmountToAllocate,
+					Amount:        input.PreTaxAmountToAllocate,
 					LedgerTransaction: ledgertransaction.GroupReference{
 						TransactionGroupID: ulid.Make().String(),
 					},
@@ -2271,7 +2667,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 
 		// The handler was called exactly once with the correct amount.
 		s.Len(callbacks, 1)
-		s.Equal(float64(100), callbacks[0].Input.AmountToAllocate.InexactFloat64())
+		s.Equal(float64(100), callbacks[0].Input.PreTaxAmountToAllocate.InexactFloat64())
 
 		// Credit realizations were persisted.
 		s.Require().NotNil(fetchedFF.Realizations.CurrentRun)
@@ -2299,6 +2695,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-only-create-immediately-final")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -2316,11 +2713,11 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
 	}
 
-	s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+	s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 		return creditrealization.CreateAllocationInputs{
 			{
 				ServicePeriod: input.Charge.Intent.ServicePeriod,
-				Amount:        input.AmountToAllocate,
+				Amount:        input.PreTaxAmountToAllocate,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: ulid.Make().String(),
 				},
@@ -2380,6 +2777,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsActivatesAtSe
 
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-only-in-arrears")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -2398,12 +2796,12 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsActivatesAtSe
 	}
 	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
 
-	creditsOnlyUsageAccruedCallback := newCountedCreditAllocationCallback[flatfee.OnCreditsOnlyUsageAccruedInput]()
-	s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = creditsOnlyUsageAccruedCallback.Handler(s.T(), func(input flatfee.OnCreditsOnlyUsageAccruedInput, ledgerTransaction ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
+	allocateCreditsCallback := newCountedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]()
+	s.FlatFeeTestHandler.onAllocateCredits = allocateCreditsCallback.Handler(s.T(), func(input flatfee.OnAllocateCreditsInput, ledgerTransaction ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
 		return creditrealization.CreateAllocationInputs{
 			{
 				ServicePeriod:     input.Charge.Intent.ServicePeriod,
-				Amount:            input.AmountToAllocate,
+				Amount:            input.PreTaxAmountToAllocate,
 				LedgerTransaction: ledgerTransaction,
 			},
 		}
@@ -2439,7 +2837,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsActivatesAtSe
 	s.NotNil(createdCharge.State.AdvanceAfter)
 	s.True(servicePeriod.From.Equal(*createdCharge.State.AdvanceAfter))
 	s.Nil(createdCharge.Realizations.CurrentRun)
-	s.Zero(creditsOnlyUsageAccruedCallback.nrInvocations)
+	s.Zero(allocateCreditsCallback.nrInvocations)
 
 	clock.FreezeTime(servicePeriod.From)
 	advancedCharges := s.mustAdvanceFlatFeeCharges(ctx, cust.GetID())
@@ -2450,7 +2848,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsActivatesAtSe
 	s.NotNil(activeCharge.State.AdvanceAfter)
 	s.True(servicePeriod.To.Equal(*activeCharge.State.AdvanceAfter))
 	s.Nil(activeCharge.Realizations.CurrentRun)
-	s.Zero(creditsOnlyUsageAccruedCallback.nrInvocations)
+	s.Zero(allocateCreditsCallback.nrInvocations)
 
 	clock.FreezeTime(servicePeriod.To)
 	advancedCharges = s.mustAdvanceFlatFeeCharges(ctx, cust.GetID())
@@ -2462,7 +2860,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsActivatesAtSe
 	s.Require().NotNil(finalCharge.Realizations.CurrentRun)
 	s.Len(finalCharge.Realizations.CurrentRun.CreditRealizations, 1)
 	s.Equal(float64(75), finalCharge.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
-	s.Equal(1, creditsOnlyUsageAccruedCallback.nrInvocations)
+	s.Equal(1, allocateCreditsCallback.nrInvocations)
 }
 
 func (s *InvoicableChargesTestSuite) mustAdvanceFlatFeeCharges(ctx context.Context, customerID customer.CustomerID) charges.Charges {
@@ -2549,6 +2947,47 @@ func (s *InvoicableChargesTestSuite) mustGetFlatFeeChargeByIDWithDetailedLines(c
 	s.NoError(err)
 
 	return flatFeeCharge
+}
+
+func mustGetFlatFeeChargeWithExpands(s *BaseSuite, chargeID meta.ChargeID, expands meta.Expands) flatfee.Charge {
+	s.T().Helper()
+
+	charge, err := s.Charges.GetByID(s.T().Context(), charges.GetByIDInput{
+		ChargeID: chargeID,
+		Expands:  expands,
+	})
+	s.NoError(err)
+
+	flatFeeCharge, err := charge.AsFlatFeeCharge()
+	s.NoError(err)
+
+	return flatFeeCharge
+}
+
+func activeGatheringLinesForCharge(s *BaseSuite, namespace, customerID, chargeID string) []billing.GatheringLine {
+	s.T().Helper()
+
+	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(s.T().Context(), billing.ListGatheringInvoicesInput{
+		Namespaces: []string{namespace},
+		Customers:  []string{customerID},
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+		},
+	})
+	s.NoError(err)
+
+	var lines []billing.GatheringLine
+	for _, invoice := range gatheringInvoices.Items {
+		for _, line := range invoice.Lines.OrEmpty() {
+			if line.DeletedAt != nil || line.ChargeID == nil || *line.ChargeID != chargeID {
+				continue
+			}
+
+			lines = append(lines, line)
+		}
+	}
+
+	return lines
 }
 
 type assertFlatFeeCreditThenInvoiceLineAndRunInput struct {

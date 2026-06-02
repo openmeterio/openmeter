@@ -637,6 +637,37 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 	return profile
 }
 
+// ProvisionDefaultTaxCodes creates the invoicing and credit-grant tax codes for the
+// namespace and stores them as the organization defaults. Tests that create charges
+// via the real charges service must call this for the namespace, because charge
+// creation auto-stamps the namespace's default tax code when the caller's TaxConfig
+// has no TaxCodeID.
+func (s *BaseSuite) ProvisionDefaultTaxCodes(ctx context.Context, ns string) taxcode.OrganizationDefaultTaxCodes {
+	s.T().Helper()
+
+	invoicing, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "default-invoicing",
+		Name:      "Default Invoicing",
+	})
+	s.Require().NoError(err, "creating default invoicing tax code")
+
+	creditGrant, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "default-credit-grant",
+		Name:      "Default Credit Grant",
+	})
+	s.Require().NoError(err, "creating default credit grant tax code")
+
+	defaults, err := s.TaxCodeService.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
+		Namespace:            ns,
+		InvoicingTaxCodeID:   invoicing.ID,
+		CreditGrantTaxCodeID: creditGrant.ID,
+	})
+	s.Require().NoError(err, "upserting organization default tax codes")
+	return defaults
+}
+
 type SetupCustomInvoicingResponse struct {
 	App app.App
 }

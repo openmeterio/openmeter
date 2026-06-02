@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -62,6 +63,8 @@ type patchCollectionRouter struct {
 	usageBasedChargeCollection *usageBasedChargeCollection
 	creditThenInvoiceEnabled   bool
 	creditsEnabled             bool
+	featureGate                featuregate.Gate
+	creditsFlag                string
 }
 
 type patchCollectionRouterConfig struct {
@@ -69,15 +72,23 @@ type patchCollectionRouterConfig struct {
 	invoices                 persistedstate.Invoices
 	creditThenInvoiceEnabled bool
 	creditsEnabled           bool
+	featureGate              featuregate.Gate
+	creditsFlag              string
 }
 
 func (c patchCollectionRouterConfig) Validate() error {
 	if c.capacity <= 0 {
 		return fmt.Errorf("capacity is required")
 	}
+
 	if c.invoices == nil {
 		return fmt.Errorf("invoices is required")
 	}
+
+	if c.featureGate == nil {
+		return fmt.Errorf("feature gate is required")
+	}
+
 	return nil
 }
 
@@ -98,6 +109,8 @@ func newPatchCollectionRouter(cfg patchCollectionRouterConfig) (*patchCollection
 		usageBasedChargeCollection: newUsageBasedChargeCollection(cfg.capacity),
 		creditThenInvoiceEnabled:   cfg.creditThenInvoiceEnabled,
 		creditsEnabled:             cfg.creditsEnabled,
+		featureGate:                cfg.featureGate,
+		creditsFlag:                cfg.creditsFlag,
 	}, nil
 }
 
@@ -116,8 +129,26 @@ func (c patchCollectionRouter) GetCollectionFor(item persistedstate.Item) (Patch
 	}
 }
 
-func (c patchCollectionRouter) ResolveDefaultCollection(target targetstate.StateItem) (PatchCollection, error) {
+func (c patchCollectionRouter) isCreditsEnabled(ns string) (bool, error) {
 	if !c.creditsEnabled {
+		return false, nil
+	}
+	if c.featureGate == nil {
+		return true, nil
+	}
+	if c.creditsFlag == "" {
+		return true, nil
+	}
+	return c.featureGate.EvaluateBool(ns, c.creditsFlag, false)
+}
+
+func (c patchCollectionRouter) ResolveDefaultCollection(target targetstate.StateItem) (PatchCollection, error) {
+	enabled, err := c.isCreditsEnabled(target.SubscriptionItem.NamespacedID.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	if !enabled {
 		return c.lineCollection, nil
 	}
 

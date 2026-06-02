@@ -317,7 +317,7 @@ func (h *handler) ProgressInvoice(action ProgressAction) ProgressInvoiceHandler 
 			case InvoiceProgressActionAdvance:
 				invoice, err = h.service.AdvanceInvoice(ctx, request.Invoice)
 			case InvoiceProgressActionSnapshotQuantities:
-				invoice, err = h.service.SnapshotQuantities(ctx, request.Invoice)
+				invoice, err = h.service.ForceCollectInvoice(ctx, request.Invoice)
 			default:
 				return ProgressInvoiceResponse{}, fmt.Errorf("invalid action: %s", action)
 			}

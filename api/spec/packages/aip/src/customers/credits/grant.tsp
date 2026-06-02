@@ -109,7 +109,7 @@ model CreditGrantTaxConfig {
   /**
    * Tax code applied to the invoice line item.
    */
-  tax_code?: Tax.TaxCodeReference;
+  tax_code?: Shared.ResourceReference<Tax.TaxCode>;
 }
 
 /**
@@ -143,63 +143,10 @@ model CreditGrant {
   amount: Shared.Numeric;
 
   /**
-   * Purchase and payment terms of the grant. Present when a funding workflow applies
-   * (funding_method is not `none`).
+   * Present when a funding workflow applies (funding_method is not `none`).
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
-  purchase?: {
-    /**
-     * Currency of the purchase amount.
-     */
-    @visibility(Lifecycle.Read, Lifecycle.Create)
-    currency: Shared.CurrencyCode;
-
-    /**
-     * Cost basis per credit unit used to calculate the purchase amount.
-     *
-     * If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
-     * is $50.00. The value must be greater than 0. If the cost basis is 0, use
-     * `funding_method=none` instead.
-     *
-     * Defaults to 1.0.
-     */
-    @visibility(Lifecycle.Read, Lifecycle.Create)
-    per_unit_cost_basis?: Shared.Numeric = "1.0";
-
-    /**
-     * The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`.
-     */
-    @visibility(Lifecycle.Read)
-    amount: Shared.Numeric;
-
-    /**
-     * Controls when credits become available for consumption.
-     *
-     * Defaults to `on_creation`.
-     */
-    @visibility(Lifecycle.Read, Lifecycle.Create)
-    availability_policy?: CreditAvailabilityPolicy = CreditAvailabilityPolicy.OnCreation;
-
-    // TODO: add this option later
-    // /**
-    //  * The initial payment settlement status when creating a grant with
-    //  * `external` funding method.
-    //  *
-    //  * Governs the payment state of the grant on creation. If the external
-    //  * system tracks payment status, synchronize their state with this system
-    //  * so that revenue recognition works as expected.
-    //  *
-    //  * Defaults to `settled` (the external payment is assumed to be already settled on creation).
-    //  */
-    // @visibility(Lifecycle.Create)
-    // external_payment_initial_settlement_status?: CreditPurchasePaymentSettlementStatus = CreditPurchasePaymentSettlementStatus.Settled;
-
-    /**
-     * Current payment settlement status.
-     */
-    @visibility(Lifecycle.Read)
-    settlement_status?: CreditPurchasePaymentSettlementStatus;
-  };
+  purchase?: CreditGrantPurchase;
 
   /**
    * Tax configuration for the grant.
@@ -213,37 +160,14 @@ model CreditGrant {
   tax_config?: CreditGrantTaxConfig;
 
   /**
-   * Invoice references for the grant. Available when `funding_method` is `invoice`.
+   * Available when `funding_method` is `invoice`.
    */
   @visibility(Lifecycle.Read)
-  invoice?: {
-    /**
-     * Identifier of the invoice associated with the grant.
-     */
-    @visibility(Lifecycle.Read)
-    id?: Shared.ULID;
+  invoice?: CreditGrantInvoiceReference;
 
-    /**
-     * Identifier of the invoice line associated with the grant.
-     */
-    @visibility(Lifecycle.Read)
-    line?: {
-      id: Shared.ULID;
-    };
-  };
-
-  /**
-   * Filters for the credit grant.
-   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "nested model"
   @visibility(Lifecycle.Read, Lifecycle.Create)
-  filters?: {
-    /**
-     * Limit the credit grant to specific features. If no features are specified, the
-     * credit grant can be used for any feature.
-     */
-    @example(#["input_tokens", "output_tokens"])
-    features?: Shared.ResourceKey[];
-  };
+  filters?: CreditGrantFilters;
 
   /**
    * Draw-down priority of the grant. Lower values have higher priority.
@@ -261,20 +185,21 @@ model CreditGrant {
   // @visibility(Lifecycle.Create, Lifecycle.Read)
   // effective_at?: Shared.DateTime;
 
-  // /**
-  //  * The duration after which the credit grant expires.
-  //  *
-  //  * Defaults to never expiring.
-  //  */
-  // @visibility(Lifecycle.Create, Lifecycle.Read)
-  // expires_after?: Shared.ISO8601Duration;
+  /**
+   * The duration after which the credit grant expires.
+   *
+   * Defaults to never expiring.
+   */
+  @visibility(Lifecycle.Create)
+  expires_after?: Shared.ISO8601Duration;
 
-  // /**
-  //  * The timestamp when the credit grant expires.
-  //  * Calculated from `effective_at` and `expires_after` if provided.
-  //  */
-  // @visibility(Lifecycle.Read)
-  // expires_at?: Shared.DateTime;
+  /**
+   * The timestamp when the credit grant expires.
+   *
+   * Calculated from the grant effective time and `expires_after` if provided.
+   */
+  @visibility(Lifecycle.Read)
+  expires_at?: Shared.DateTime;
 
   /**
    * Timestamp when the grant was voided.
@@ -287,4 +212,95 @@ model CreditGrant {
    */
   @visibility(Lifecycle.Read)
   status: CreditGrantStatus;
+}
+
+/**
+ * Purchase and payment terms of the grant.
+ */
+@friendlyName("BillingCreditGrantPurchase")
+model CreditGrantPurchase {
+  /**
+   * Currency of the purchase amount.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  currency: Shared.CurrencyCode;
+
+  /**
+   * Cost basis per credit unit used to calculate the purchase amount.
+   *
+   * If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
+   * is $50.00. The value must be greater than 0. If the cost basis is 0, use
+   * `funding_method=none` instead.
+   *
+   * Defaults to 1.0.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  per_unit_cost_basis?: Shared.Numeric = "1.0";
+
+  /**
+   * The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`.
+   */
+  @visibility(Lifecycle.Read)
+  amount: Shared.Numeric;
+
+  /**
+   * Controls when credits become available for consumption.
+   *
+   * Defaults to `on_creation`.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  availability_policy?: CreditAvailabilityPolicy = CreditAvailabilityPolicy.OnCreation;
+
+  // TODO: add this option later
+  // /**
+  //  * The initial payment settlement status when creating a grant with
+  //  * `external` funding method.
+  //  *
+  //  * Governs the payment state of the grant on creation. If the external
+  //  * system tracks payment status, synchronize their state with this system
+  //  * so that revenue recognition works as expected.
+  //  *
+  //  * Defaults to `settled` (the external payment is assumed to be already settled on creation).
+  //  */
+  // @visibility(Lifecycle.Create)
+  // external_payment_initial_settlement_status?: CreditPurchasePaymentSettlementStatus = CreditPurchasePaymentSettlementStatus.Settled;
+
+  /**
+   * Current payment settlement status.
+   */
+  @visibility(Lifecycle.Read)
+  settlement_status?: CreditPurchasePaymentSettlementStatus;
+}
+
+/**
+ * Filters for the credit grant.
+ */
+@friendlyName("BillingCreditGrantFilters")
+model CreditGrantFilters {
+  /**
+   * Limit the credit grant to specific features. If no features are specified, the
+   * credit grant can be used for any feature.
+   */
+  @example(#["input_tokens", "output_tokens"])
+  features?: Shared.ResourceKey[];
+}
+
+/**
+ * Invoice references for the grant.
+ */
+@friendlyName("BillingCreditGrantInvoiceReference")
+model CreditGrantInvoiceReference {
+  /**
+   * Identifier of the invoice associated with the grant.
+   */
+  @visibility(Lifecycle.Read)
+  id?: Shared.ULID;
+
+  /**
+   * Identifier of the invoice line associated with the grant.
+   */
+  @visibility(Lifecycle.Read)
+  line?: {
+    id: Shared.ULID;
+  };
 }

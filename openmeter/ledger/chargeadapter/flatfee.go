@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 // flatFeeHandler maps charge lifecycle events to ledger transaction templates
@@ -39,35 +38,38 @@ func NewFlatFeeHandler(
 	}
 }
 
-// OnFlatFeeAssignedToInvoice is called when a flat fee is being assigned to an invoice.
 // This acknowledges FBO-backed usage on the ledger by consuming value from prioritized
 // customer FBO subaccounts and moving it into customer_accrued. This is NOT revenue recognition.
-func (h *flatFeeHandler) OnAssignedToInvoice(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
+func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
-	if input.PreTaxTotalAmount.IsZero() {
+	if input.PreTaxAmountToAllocate.IsZero() {
 		return nil, nil
 	}
 
 	if err := validateSettlementMode(
 		input.Charge.Intent.SettlementMode,
 		productcatalog.CreditThenInvoiceSettlementMode,
+		productcatalog.CreditOnlySettlementMode,
 	); err != nil {
-		return nil, fmt.Errorf("assigned to invoice: %w", err)
+		return nil, fmt.Errorf("allocate credits: %w", err)
 	}
 
 	realizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{
-		Namespace:      input.Charge.Namespace,
-		ChargeID:       input.Charge.ID,
-		CustomerID:     input.Charge.Intent.CustomerID,
-		Annotations:    chargeAnnotationsForFlatFeeCharge(input.Charge),
-		At:             input.Charge.Intent.InvoiceAt,
-		Currency:       input.Charge.Intent.Currency,
-		SettlementMode: input.Charge.Intent.SettlementMode,
-		ServicePeriod:  input.ServicePeriod,
-		Amount:         input.PreTaxTotalAmount,
+		Namespace:         input.Charge.Namespace,
+		ChargeID:          input.Charge.ID,
+		CustomerID:        input.Charge.Intent.CustomerID,
+		Annotations:       chargeAnnotationsForFlatFeeCharge(input.Charge),
+		BookedAt:          input.BookedAt,
+		SourceBalanceAsOf: input.Charge.Intent.InvoiceAt,
+		Currency:          input.Charge.Intent.Currency,
+		TaxCode:           taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
+		TaxBehavior:       taxBehaviorFromIntent(input.Charge.Intent.TaxConfig),
+		SettlementMode:    input.Charge.Intent.SettlementMode,
+		ServicePeriod:     input.ServicePeriod,
+		Amount:            input.PreTaxAmountToAllocate,
 	})
 	if err != nil {
 		return nil, err
@@ -113,10 +115,12 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.TransferCustomerReceivableToAccruedTemplate{
-			At:        input.Charge.Intent.InvoiceAt,
-			Amount:    amount,
-			Currency:  input.Charge.Intent.Currency,
-			CostBasis: invoiceCostBasis,
+			At:          input.BookedAt,
+			Amount:      amount,
+			Currency:    input.Charge.Intent.Currency,
+			TaxCode:     taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
+			TaxBehavior: taxBehaviorFromIntent(input.Charge.Intent.TaxConfig),
+			CostBasis:   invoiceCostBasis,
 		},
 	)
 	if err != nil {
@@ -143,43 +147,7 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 	}, nil
 }
 
-// OnCreditsOnlyUsageAccrued is called when a credit-only flat fee becomes active.
-// It consumes value from prioritized customer FBO subaccounts and moves it into customer_accrued.
-func (h *flatFeeHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
-	if err := input.Validate(); err != nil {
-		return nil, err
-	}
-
-	if input.AmountToAllocate.IsZero() {
-		return nil, nil
-	}
-
-	if err := validateSettlementMode(input.Charge.Intent.SettlementMode, productcatalog.CreditOnlySettlementMode); err != nil {
-		return nil, fmt.Errorf("credits only usage accrued: %w", err)
-	}
-
-	realizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{
-		Namespace:      input.Charge.Namespace,
-		ChargeID:       input.Charge.ID,
-		CustomerID:     input.Charge.Intent.CustomerID,
-		Annotations:    chargeAnnotationsForFlatFeeCharge(input.Charge),
-		At:             input.Charge.Intent.InvoiceAt,
-		Currency:       input.Charge.Intent.Currency,
-		SettlementMode: input.Charge.Intent.SettlementMode,
-		ServicePeriod:  input.Charge.Intent.ServicePeriod,
-		Amount:         input.AmountToAllocate,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if len(realizations) == 0 {
-		return nil, nil
-	}
-
-	return realizations, nil
-}
-
-func (h *flatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context, input flatfee.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
+func (h *flatFeeHandler) OnCorrectCreditAllocations(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
 	currencyCalculator, err := input.Charge.Intent.Currency.Calculator()
 	if err != nil {
 		return nil, fmt.Errorf("get currency calculator: %w", err)
@@ -194,7 +162,7 @@ func (h *flatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context
 		ChargeID:                     input.Charge.ID,
 		CustomerID:                   input.Charge.Intent.CustomerID,
 		Annotations:                  chargeAnnotationsForFlatFeeCharge(input.Charge),
-		AllocateAt:                   input.AllocateAt,
+		AllocateAt:                   input.BookedAt,
 		Corrections:                  input.Corrections,
 		LineageSegmentsByRealization: input.LineageSegmentsByRealization,
 	})
@@ -225,7 +193,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
-			At:        clock.Now(),
+			At:        input.EventAt,
 			Amount:    input.Amount,
 			Currency:  input.Charge.Intent.Currency,
 			CostBasis: invoiceCostBasis,
@@ -278,7 +246,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
-			At:        clock.Now(),
+			At:        input.EventAt,
 			Amount:    input.Amount,
 			Currency:  input.Charge.Intent.Currency,
 			CostBasis: invoiceCostBasis,

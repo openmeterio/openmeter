@@ -4,7 +4,7 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -12,10 +12,11 @@ import (
 
 type Config struct {
 	Adapter   plan.Repository
-	Feature   feature.FeatureConnector
 	TaxCode   taxcode.Service
 	Logger    *slog.Logger
 	Publisher eventbus.Publisher
+
+	FeatureResolver productcatalog.FeatureResolver
 }
 
 func New(config Config) (plan.Service, error) {
@@ -23,8 +24,8 @@ func New(config Config) (plan.Service, error) {
 		return nil, errors.New("plan adapter is required")
 	}
 
-	if config.Feature == nil {
-		return nil, errors.New("feature connector is required")
+	if config.FeatureResolver == nil {
+		return nil, errors.New("feature resolver is required")
 	}
 
 	if config.Logger == nil {
@@ -41,10 +42,11 @@ func New(config Config) (plan.Service, error) {
 
 	return &service{
 		adapter:   config.Adapter,
-		feature:   config.Feature,
 		taxCode:   config.TaxCode,
 		logger:    config.Logger,
 		publisher: config.Publisher,
+
+		featureResolver: config.FeatureResolver,
 	}, nil
 }
 
@@ -52,8 +54,9 @@ var _ plan.Service = (*service)(nil)
 
 type service struct {
 	adapter   plan.Repository
-	feature   feature.FeatureConnector
 	taxCode   taxcode.Service
 	logger    *slog.Logger
 	publisher eventbus.Publisher
+
+	featureResolver productcatalog.FeatureResolver
 }

@@ -2704,3 +2704,122 @@ func TestFilterString_Match(t *testing.T) {
 		})
 	}
 }
+
+// TestFilterULID_SelectAndSelectWhereExpr_RecursesIntoAndOr covers the recursion
+// FilterULID.Select / SelectWhereExpr perform through their own And/Or fields,
+// which the API converter populates when multiple operators are supplied.
+func TestFilterULID_SelectAndSelectWhereExpr_RecursesIntoAndOr(t *testing.T) {
+	ulid1 := ulid.Make().String()
+	ulid2 := ulid.Make().String()
+	ulid3 := ulid.Make().String()
+
+	tests := []struct {
+		name         string
+		filter       filter.FilterULID
+		field        string
+		wantExprSQL  string
+		wantExprArgs []any
+		wantEntSQL   string
+		wantEntArgs  []any
+	}{
+		{
+			name: "And-wrapped eq + ne",
+			filter: filter.FilterULID{
+				And: &[]filter.FilterULID{
+					{FilterString: filter.FilterString{Eq: &ulid1}},
+					{FilterString: filter.FilterString{Ne: &ulid2}},
+				},
+			},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE (test_field = ? AND test_field <> ?)",
+			wantExprArgs: []any{ulid1, ulid2},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1 AND "test_table"."test_field" <> $2`,
+			wantEntArgs:  []any{ulid1, ulid2},
+		},
+		{
+			name: "Or-wrapped eq + in",
+			filter: filter.FilterULID{
+				Or: &[]filter.FilterULID{
+					{FilterString: filter.FilterString{Eq: &ulid1}},
+					{FilterString: filter.FilterString{In: &[]string{ulid2, ulid3}}},
+				},
+			},
+			field:        "test_field",
+			wantExprSQL:  "SELECT * FROM table WHERE (test_field = ? OR test_field IN (?))",
+			wantExprArgs: []any{ulid1, []string{ulid2, ulid3}},
+			wantEntSQL:   `SELECT * FROM "test_table" WHERE "test_table"."test_field" = $1 OR "test_table"."test_field" IN ($2, $3)`,
+			wantEntArgs:  []any{ulid1, ulid2, ulid3},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q := sqlbuilder.Select("*").From("table")
+			expr := tt.filter.SelectWhereExpr(tt.field, q)
+			if !assert.NotEmpty(t, expr, "SQL expression should not be empty") {
+				return
+			}
+			q.Where(expr)
+			exprSQL, exprArgs := q.Build()
+			assert.Equal(t, tt.wantExprSQL, exprSQL)
+			assert.Equal(t, tt.wantExprArgs, exprArgs)
+
+			predicate := tt.filter.Select(tt.field)
+			if !assert.NotNil(t, predicate, "predicate should not be nil") {
+				return
+			}
+			s := newSelectBuilder()
+			predicate(s)
+			entSQL, entArgs := s.Query()
+			assert.Equal(t, tt.wantEntSQL, entSQL)
+			assert.Equal(t, tt.wantEntArgs, entArgs)
+		})
+	}
+}
+
+func TestFilterULID_IsEmpty(t *testing.T) {
+	ulid1 := ulid.Make().String()
+
+	tests := []struct {
+		name   string
+		filter filter.FilterULID
+		want   bool
+	}{
+		{
+			name:   "empty filter",
+			filter: filter.FilterULID{},
+			want:   true,
+		},
+		{
+			name: "eq filter",
+			filter: filter.FilterULID{
+				FilterString: filter.FilterString{Eq: &ulid1},
+			},
+			want: false,
+		},
+		{
+			name: "And filter (only outer field set)",
+			filter: filter.FilterULID{
+				And: &[]filter.FilterULID{
+					{FilterString: filter.FilterString{Eq: &ulid1}},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "Or filter (only outer field set)",
+			filter: filter.FilterULID{
+				Or: &[]filter.FilterULID{
+					{FilterString: filter.FilterString{Eq: &ulid1}},
+				},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.filter.IsEmpty())
+		})
+	}
+}

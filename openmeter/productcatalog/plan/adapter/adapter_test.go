@@ -172,7 +172,6 @@ func TestPostgresAdapter(t *testing.T) {
 				pctestutils.WithPlanPhases(planPhases...),
 				func(t *testing.T, p *productcatalog.Plan) {
 					t.Helper()
-
 					p.Key = "test-credit-only"
 					p.SettlementMode = productcatalog.CreditOnlySettlementMode
 				},

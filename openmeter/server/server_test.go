@@ -60,6 +60,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -784,6 +785,7 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 			SubjectService: subjectService,
 			// Use the llmcost service
 			LLMCostService: &NoopLLMCostService{},
+			FeatureGate:    featuregate.NewNoop(),
 		},
 		RouterHooks: RouterHooks{},
 	}
@@ -832,6 +834,10 @@ func (n NoopChargeService) GetByIDs(_ context.Context, _ billingcharges.GetByIDs
 
 func (n NoopChargeService) Create(_ context.Context, _ billingcharges.CreateInput) (billingcharges.Charges, error) {
 	return nil, nil
+}
+
+func (n NoopChargeService) UpdateSubscriptionItemID(_ context.Context, charge billingcharges.Charge, _ string) (billingcharges.Charge, error) {
+	return charge, nil
 }
 
 func (n NoopChargeService) AdvanceCharges(_ context.Context, _ billingcharges.AdvanceChargesInput) (billingcharges.Charges, error) {
@@ -1680,7 +1686,7 @@ func (n NoopSubscriptionAddonService) ChangeQuantity(ctx context.Context, subscr
 	return nil, nil
 }
 
-func (n NoopSubscriptionAddonService) Get(ctx context.Context, addonId models.NamespacedID) (*subscriptionaddon.SubscriptionAddon, error) {
+func (n NoopSubscriptionAddonService) Get(ctx context.Context, params subscriptionaddon.GetSubscriptionAddonInput) (*subscriptionaddon.SubscriptionAddon, error) {
 	return nil, nil
 }
 
@@ -1883,7 +1889,7 @@ func (n NoopBillingService) AdvanceInvoice(ctx context.Context, input billing.Ad
 	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopBillingService) SnapshotQuantities(ctx context.Context, input billing.SnapshotQuantitiesInput) (billing.StandardInvoice, error) {
+func (n NoopBillingService) ForceCollectInvoice(ctx context.Context, input billing.ForceCollectInvoiceInput) (billing.StandardInvoice, error) {
 	return billing.StandardInvoice{}, nil
 }
 

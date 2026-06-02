@@ -128,7 +128,7 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 		if _, err := s.Realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
 			Charge:             s.Charge,
 			Run:                *s.Charge.Realizations.CurrentRun,
-			AllocateAt:         clock.Now(),
+			AllocateAt:         flatfee.UsageBookedAt(s.Charge.Intent.PaymentTerm, s.Charge.Realizations.CurrentRun.ServicePeriod),
 			CurrencyCalculator: currencyCalculator,
 		}); err != nil {
 			return fmt.Errorf("correct credits: %w", err)

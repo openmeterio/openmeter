@@ -215,6 +215,12 @@ type LineEngine interface {
 	// BuildStandardInvoiceLines materializes gathering lines into standard lines for a target invoice.
 	// Returned standard lines must reuse the exact same line IDs as the input gathering lines.
 	BuildStandardInvoiceLines(ctx context.Context, input BuildStandardInvoiceLinesInput) (StandardLines, error)
+	// BuildStandardLinesForGatheringPreview materializes gathering lines from BuildStandardInvoiceLinesInput
+	// into transient StandardLines for a read-only standard invoice preview. Implementations must be
+	// side-effect free: they must not persist realization state, modify or allocate credits, mutate
+	// input IDs, emit events, or perform external billing side effects. Returned StandardLines must
+	// reuse the exact same line IDs as the input gathering lines.
+	BuildStandardLinesForGatheringPreview(ctx context.Context, input BuildStandardInvoiceLinesInput) (StandardLines, error)
 	// OnStandardInvoiceCreated is invoked after the standard invoice and its standard lines have been persisted.
 	OnStandardInvoiceCreated(ctx context.Context, input OnStandardInvoiceCreatedInput) (StandardLines, error)
 	// OnCollectionCompleted is invoked when a standard invoice collection window closes.

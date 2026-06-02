@@ -1,22 +1,29 @@
 openapi: 3.0.0
 info:
-  title: OpenMeter API
-  version: 1.0.0
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: https://openmeter.cloud/terms-of-service
+  title: OpenMeter and Konnect Metering & Billing API
+  version: 0.0.1
   description: |-
-    OpenMeter is a cloud native usage metering and billing service. The OpenMeter
-    API allows you to ingest events, query meter usage, and manage resources.
+    OpenMeter is a cloud native usage metering and billing service. The API allows
+    you to ingest events, query meter usage, and manage resources.
 servers:
   - url: http://localhost:{port}/api/v3
     description: Local
     variables:
       port:
         default: '8888'
+  - url: https://{region}.api.konghq.com/v3
+    description: Production region
+    variables:
+      region:
+        default: us
+        enum:
+          - us
+          - eu
+          - au
+          - me
+          - in
   - url: https://openmeter.cloud/api/v3
-    description: Cloud
+    description: OpenMeter Cloud
     variables: {}
 tags:
   - name: OpenMeter Governance
@@ -93,7 +100,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
     post:
       operationId: create-addon
@@ -120,7 +126,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateAddonRequest'
-      x-internal: true
       x-unstable: true
   /openmeter/addons/{addonId}:
     put:
@@ -158,7 +163,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertAddonRequest'
-      x-internal: true
       x-unstable: true
     get:
       operationId: get-addon
@@ -189,7 +193,6 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
     delete:
       operationId: delete-addon
@@ -214,7 +217,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
   /openmeter/addons/{addonId}/archive:
     post:
@@ -244,7 +246,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
   /openmeter/addons/{addonId}/publish:
     post:
@@ -274,7 +275,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
   /openmeter/apps:
     get:
@@ -950,6 +950,17 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/ULID'
+        - name: timestamp
+          in: query
+          required: false
+          description: |-
+            Return the credit balance as of this timestamp.
+
+            Defaults to the current time.
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
         - name: filter
           in: query
           required: false
@@ -1301,7 +1312,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - Metering Events
-      x-internal: true
       x-unstable: true
     post:
       operationId: ingest-metering-events
@@ -1386,7 +1396,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Features
-      x-internal: true
       x-unstable: true
     post:
       operationId: create-feature
@@ -1413,7 +1422,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateFeatureRequest'
-      x-internal: true
       x-unstable: true
   /openmeter/features/{featureId}:
     get:
@@ -1445,7 +1453,6 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Features
-      x-internal: true
       x-unstable: true
     patch:
       operationId: update-feature
@@ -1480,7 +1487,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateFeatureRequest'
-      x-internal: true
       x-unstable: true
     delete:
       operationId: delete-feature
@@ -1505,7 +1511,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Features
-      x-internal: true
       x-unstable: true
   /openmeter/features/{featureId}/cost/query:
     post:
@@ -1541,7 +1546,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MeterQueryRequest'
-      x-internal: true
       x-unstable: true
   /openmeter/governance/query:
     post:
@@ -1610,7 +1614,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter LLM Cost
-      x-internal: true
       x-unstable: true
     post:
       operationId: create-llm-cost-override
@@ -1637,7 +1640,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LLMCostOverrideCreate'
-      x-internal: true
       x-unstable: true
   /openmeter/llm-cost/overrides/{priceId}:
     delete:
@@ -1663,7 +1665,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter LLM Cost
-      x-internal: true
       x-unstable: true
   /openmeter/llm-cost/prices:
     get:
@@ -1712,7 +1713,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter LLM Cost
-      x-internal: true
       x-unstable: true
   /openmeter/llm-cost/prices/{priceId}:
     get:
@@ -1744,7 +1744,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter LLM Cost
-      x-internal: true
       x-unstable: true
   /openmeter/meters:
     post:
@@ -1882,7 +1881,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateMeterRequest'
-      x-internal: true
       x-unstable: true
     delete:
       operationId: delete-meter
@@ -1962,7 +1960,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-      x-internal: true
       x-unstable: true
       tags:
         - Meters
@@ -2016,7 +2013,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
     post:
       operationId: create-plan
@@ -2043,7 +2039,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreatePlanRequest'
-      x-internal: true
       x-unstable: true
   /openmeter/plans/{planId}:
     put:
@@ -2081,7 +2076,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertPlanRequest'
-      x-internal: true
       x-unstable: true
     get:
       operationId: get-plan
@@ -2112,7 +2106,6 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
     delete:
       operationId: delete-plan
@@ -2137,7 +2130,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
   /openmeter/plans/{planId}/addons:
     get:
@@ -2168,7 +2160,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
     post:
       operationId: create-plan-addon
@@ -2203,7 +2194,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreatePlanAddonRequest'
-      x-internal: true
       x-unstable: true
   /openmeter/plans/{planId}/addons/{planAddonId}:
     get:
@@ -2238,7 +2228,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
     put:
       operationId: update-plan-addon
@@ -2278,7 +2267,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertPlanAddonRequest'
-      x-internal: true
       x-unstable: true
     delete:
       operationId: delete-plan-addon
@@ -2308,7 +2296,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
   /openmeter/plans/{planId}/archive:
     post:
@@ -2338,7 +2325,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
   /openmeter/plans/{planId}/publish:
     post:
@@ -2368,7 +2354,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
   /openmeter/profiles:
     get:
@@ -2557,6 +2542,9 @@ paths:
             - `id`
             - `active_from` (default)
             - `active_to`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
           schema:
             $ref: '#/components/schemas/SortQuery'
           explode: false
@@ -2648,6 +2636,41 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
+      x-unstable: true
+  /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}:
+    get:
+      operationId: get-subscription-addon
+      summary: Get add-on association for subscription
+      description: Get an add-on association for a subscription.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: subscriptionAddonId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: SubscriptionAddon response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionAddon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Subscriptions
+      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/cancel:
     post:
       operationId: cancel-subscription
@@ -4264,49 +4287,9 @@ components:
             - $ref: '#/components/schemas/Numeric'
           description: Granted credit amount.
         purchase:
-          type: object
-          properties:
-            currency:
-              allOf:
-                - $ref: '#/components/schemas/CurrencyCode'
-              description: Currency of the purchase amount.
-            per_unit_cost_basis:
-              allOf:
-                - $ref: '#/components/schemas/Numeric'
-              description: |-
-                Cost basis per credit unit used to calculate the purchase amount.
-
-                If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
-                is $50.00. The value must be greater than 0. If the cost basis is 0, use
-                `funding_method=none` instead.
-
-                Defaults to 1.0.
-              default: '1.0'
-            amount:
-              allOf:
-                - $ref: '#/components/schemas/Numeric'
-              description: The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`.
-              readOnly: true
-            availability_policy:
-              allOf:
-                - $ref: '#/components/schemas/BillingCreditAvailabilityPolicy'
-              description: |-
-                Controls when credits become available for consumption.
-
-                Defaults to `on_creation`.
-              default: on_creation
-            settlement_status:
-              allOf:
-                - $ref: '#/components/schemas/BillingCreditPurchasePaymentSettlementStatus'
-              description: Current payment settlement status.
-              readOnly: true
-          required:
-            - currency
-            - amount
-          additionalProperties: false
-          description: |-
-            Purchase and payment terms of the grant. Present when a funding workflow applies
-            (funding_method is not `none`).
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditGrantPurchase'
+          description: Present when a funding workflow applies (funding_method is not `none`).
         tax_config:
           allOf:
             - $ref: '#/components/schemas/BillingCreditGrantTaxConfig'
@@ -4318,41 +4301,12 @@ components:
             credit grant tax code is applied, if that's not set the global default taxcode
             is used.
         invoice:
-          type: object
-          properties:
-            id:
-              allOf:
-                - $ref: '#/components/schemas/ULID'
-              description: Identifier of the invoice associated with the grant.
-              readOnly: true
-            line:
-              type: object
-              properties:
-                id:
-                  $ref: '#/components/schemas/ULID'
-              required:
-                - id
-              additionalProperties: false
-              description: Identifier of the invoice line associated with the grant.
-              readOnly: true
-          additionalProperties: false
-          description: Invoice references for the grant. Available when `funding_method` is `invoice`.
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditGrantInvoiceReference'
+          description: Available when `funding_method` is `invoice`.
           readOnly: true
         filters:
-          type: object
-          properties:
-            features:
-              type: array
-              items:
-                $ref: '#/components/schemas/ResourceKey'
-              description: |-
-                Limit the credit grant to specific features. If no features are specified, the
-                credit grant can be used for any feature.
-              example:
-                - input_tokens
-                - output_tokens
-          additionalProperties: false
-          description: Filters for the credit grant.
+          $ref: '#/components/schemas/BillingCreditGrantFilters'
         priority:
           type: integer
           format: int16
@@ -4360,6 +4314,14 @@ components:
           maximum: 1000
           description: Draw-down priority of the grant. Lower values have higher priority.
           default: 10
+        expires_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The timestamp when the credit grant expires.
+
+            Calculated from the grant effective time and `expires_after` if provided.
+          readOnly: true
         voided_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -4377,6 +4339,83 @@ components:
         Credits are drawn down against charges according to the settlement mode
         configured on the rate card.
       title: Credit grant
+    BillingCreditGrantFilters:
+      type: object
+      properties:
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceKey'
+          description: |-
+            Limit the credit grant to specific features. If no features are specified, the
+            credit grant can be used for any feature.
+          example:
+            - input_tokens
+            - output_tokens
+      additionalProperties: false
+      description: Filters for the credit grant.
+    BillingCreditGrantInvoiceReference:
+      type: object
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: Identifier of the invoice associated with the grant.
+          readOnly: true
+        line:
+          type: object
+          properties:
+            id:
+              $ref: '#/components/schemas/ULID'
+          required:
+            - id
+          additionalProperties: false
+          description: Identifier of the invoice line associated with the grant.
+          readOnly: true
+      additionalProperties: false
+      description: Invoice references for the grant.
+    BillingCreditGrantPurchase:
+      type: object
+      required:
+        - currency
+        - amount
+      properties:
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Currency of the purchase amount.
+        per_unit_cost_basis:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Cost basis per credit unit used to calculate the purchase amount.
+
+            If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
+            is $50.00. The value must be greater than 0. If the cost basis is 0, use
+            `funding_method=none` instead.
+
+            Defaults to 1.0.
+          default: '1.0'
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`.
+          readOnly: true
+        availability_policy:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditAvailabilityPolicy'
+          description: |-
+            Controls when credits become available for consumption.
+
+            Defaults to `on_creation`.
+          default: on_creation
+        settlement_status:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditPurchasePaymentSettlementStatus'
+          description: Current payment settlement status.
+          readOnly: true
+      additionalProperties: false
+      description: Purchase and payment terms of the grant.
     BillingCreditGrantStatus:
       type: string
       enum:
@@ -4405,7 +4444,7 @@ components:
           description: Tax behavior applied to the invoice line item.
         tax_code:
           allOf:
-            - $ref: '#/components/schemas/BillingTaxCodeReference'
+            - $ref: '#/components/schemas/TaxCodeReference'
           description: Tax code applied to the invoice line item.
       additionalProperties: false
       description: |-
@@ -4512,11 +4551,13 @@ components:
       enum:
         - funded
         - consumed
+        - expired
       description: |-
         The type of the credit transaction.
 
         - `funded`: Credit granted and available for consumption.
         - `consumed`: Credit consumed by usage or fees.
+        - `expired`: Credit removed because it expired before being used.
     BillingCurrency:
       type: object
       oneOf:
@@ -6240,14 +6281,6 @@ components:
           title: Tax code
       additionalProperties: false
       description: Mapping of app types to tax codes.
-    BillingTaxCodeReference:
-      type: object
-      properties:
-        id: {}
-      additionalProperties: false
-      allOf:
-        - $ref: '#/components/schemas/TaxCodeReference'
-      description: Reference to a tax code.
     BillingTaxConfig:
       type: object
       properties:
@@ -6280,7 +6313,7 @@ components:
           deprecated: true
         tax_code:
           allOf:
-            - $ref: '#/components/schemas/BillingTaxCodeReference'
+            - $ref: '#/components/schemas/TaxCodeReference'
           description: |-
             Tax code reference.
 
@@ -6959,6 +6992,52 @@ components:
           description: Granted credit amount.
       additionalProperties: false
       description: CreditAdjustment create request.
+    CreateCreditGrantFilters:
+      type: object
+      properties:
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceKey'
+          description: |-
+            Limit the credit grant to specific features. If no features are specified, the
+            credit grant can be used for any feature.
+          example:
+            - input_tokens
+            - output_tokens
+      additionalProperties: false
+      description: Filters for the credit grant.
+    CreateCreditGrantPurchase:
+      type: object
+      required:
+        - currency
+      properties:
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Currency of the purchase amount.
+        per_unit_cost_basis:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Cost basis per credit unit used to calculate the purchase amount.
+
+            If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
+            is $50.00. The value must be greater than 0. If the cost basis is 0, use
+            `funding_method=none` instead.
+
+            Defaults to 1.0.
+          default: '1.0'
+        availability_policy:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditAvailabilityPolicy'
+          description: |-
+            Controls when credits become available for consumption.
+
+            Defaults to `on_creation`.
+          default: on_creation
+      additionalProperties: false
+      description: Purchase and payment terms of the grant.
     CreateCreditGrantRequest:
       type: object
       required:
@@ -6990,48 +7069,19 @@ components:
           description: Funding method of the grant.
         currency:
           allOf:
-            - $ref: '#/components/schemas/BillingCurrencyCode'
+            - $ref: '#/components/schemas/CreateCurrencyCode'
           description: The currency of the granted credits.
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: Granted credit amount.
         purchase:
-          type: object
-          properties:
-            currency:
-              allOf:
-                - $ref: '#/components/schemas/CurrencyCode'
-              description: Currency of the purchase amount.
-            per_unit_cost_basis:
-              allOf:
-                - $ref: '#/components/schemas/Numeric'
-              description: |-
-                Cost basis per credit unit used to calculate the purchase amount.
-
-                If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
-                is $50.00. The value must be greater than 0. If the cost basis is 0, use
-                `funding_method=none` instead.
-
-                Defaults to 1.0.
-              default: '1.0'
-            availability_policy:
-              allOf:
-                - $ref: '#/components/schemas/BillingCreditAvailabilityPolicy'
-              description: |-
-                Controls when credits become available for consumption.
-
-                Defaults to `on_creation`.
-              default: on_creation
-          required:
-            - currency
-          additionalProperties: false
-          description: |-
-            Purchase and payment terms of the grant. Present when a funding workflow applies
-            (funding_method is not `none`).
+          allOf:
+            - $ref: '#/components/schemas/CreateCreditGrantPurchase'
+          description: Present when a funding workflow applies (funding_method is not `none`).
         tax_config:
           allOf:
-            - $ref: '#/components/schemas/BillingCreditGrantTaxConfig'
+            - $ref: '#/components/schemas/CreateCreditGrantTaxConfig'
           description: |-
             Tax configuration for the grant.
 
@@ -7040,20 +7090,7 @@ components:
             credit grant tax code is applied, if that's not set the global default taxcode
             is used.
         filters:
-          type: object
-          properties:
-            features:
-              type: array
-              items:
-                $ref: '#/components/schemas/ResourceKey'
-              description: |-
-                Limit the credit grant to specific features. If no features are specified, the
-                credit grant can be used for any feature.
-              example:
-                - input_tokens
-                - output_tokens
-          additionalProperties: false
-          description: Filters for the credit grant.
+          $ref: '#/components/schemas/CreateCreditGrantFilters'
         priority:
           type: integer
           format: int16
@@ -7061,8 +7098,39 @@ components:
           maximum: 1000
           description: Draw-down priority of the grant. Lower values have higher priority.
           default: 10
+        expires_after:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: |-
+            The duration after which the credit grant expires.
+
+            Defaults to never expiring.
       additionalProperties: false
       description: CreditGrant create request.
+    CreateCreditGrantTaxConfig:
+      type: object
+      properties:
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxBehavior'
+          description: Tax behavior applied to the invoice line item.
+        tax_code:
+          allOf:
+            - $ref: '#/components/schemas/CreateResourceReference'
+          description: Tax code applied to the invoice line item.
+      additionalProperties: false
+      description: |-
+        Tax configuration for a credit grant.
+
+        Tax configuration should be provided to ensure correct revenue recognition,
+        including for externally funded grants.
+      title: Tax configuration for a credit grant
+    CreateCurrencyCode:
+      type: string
+      allOf:
+        - $ref: '#/components/schemas/CurrencyCode'
+      description: Fiat or custom currency code.
+      x-go-type: string
     CreateCurrencyCustomRequest:
       type: object
       required:
@@ -7350,6 +7418,15 @@ components:
           title: Plan phases
       additionalProperties: false
       description: Plan create request.
+    CreateResourceReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      additionalProperties: false
+      description: TaxCode reference.
     CreateTaxCodeRequest:
       type: object
       required:
@@ -7744,7 +7821,7 @@ components:
       properties:
         currency:
           allOf:
-            - $ref: '#/components/schemas/BillingCurrencyCode'
+            - $ref: '#/components/schemas/StringFieldFilterExact'
           description: Filter credit balance by currency.
       additionalProperties: false
       description: Filter options for getting a credit balance.
@@ -9344,6 +9421,7 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/ULID'
+      additionalProperties: false
       description: TaxCode reference.
     TaxCodeReferenceItem:
       type: object
@@ -9352,6 +9430,7 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/ULID'
+      additionalProperties: false
       description: TaxCode reference.
     ULID:
       type: string

@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -670,6 +671,148 @@ func (s *CustomerHandlerTestSuite) TestList(ctx context.Context, t *testing.T) {
 	require.Equal(t, 1, list.Page.PageNumber, "Customers page must be 0")
 	require.Equal(t, createCustomer2.ID, list.Items[0].ID, "Customer 2 must be first in order")
 	require.Equal(t, createCustomer1.ID, list.Items[1].ID, "Customer 1 must be second in order")
+}
+
+// TestListBillingProfileFilter tests that the billing_profile_id filter operates
+// on the customer's effective billing profile — i.e. customers without an
+// explicit override are matched when the filtered id is the namespace default.
+func (s *CustomerHandlerTestSuite) TestListBillingProfileFilter(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	customerService := s.Env.Customer()
+	billingService := s.Env.Billing()
+
+	sandboxApp := s.installSandboxApp(t, s.namespace)
+	defaultProfile := s.createDefaultProfile(t, sandboxApp, s.namespace)
+
+	pinnedInput := minimalCreateProfileInputTemplate(sandboxApp.GetID())
+	pinnedInput.Namespace = s.namespace
+	pinnedInput.Default = false
+	pinnedInput.Name = "Pinned Profile"
+	pinnedProfile, err := billingService.CreateProfile(ctx, pinnedInput)
+	require.NoError(t, err, "creating pinned profile must not fail")
+
+	// noOverride: relies on the namespace default profile.
+	noOverride, err := customerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr("no-override"),
+			Name: "No Override",
+		},
+	})
+	require.NoError(t, err)
+
+	// overrideNullProfile: has an override row with billing_profile_id IS NULL,
+	// which also resolves to the namespace default profile.
+	overrideNullProfile, err := customerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr("override-null-profile"),
+			Name: "Override Null Profile",
+		},
+	})
+	require.NoError(t, err)
+	_, err = billingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+		Namespace:  s.namespace,
+		CustomerID: overrideNullProfile.ID,
+		Collection: billing.CollectionOverrideConfig{
+			Interval: lo.ToPtr(datetime.MustParseDuration(t, "PT1H")),
+		},
+	})
+	require.NoError(t, err, "upserting customer override without profile id must not fail")
+
+	// overrideDefault: has an override pointing explicitly at the default profile.
+	overrideDefault, err := customerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr("override-default"),
+			Name: "Override Default",
+		},
+	})
+	require.NoError(t, err)
+	_, err = billingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+		Namespace:  s.namespace,
+		CustomerID: overrideDefault.ID,
+		ProfileID:  defaultProfile.ID,
+	})
+	require.NoError(t, err, "upserting customer override pinned to default must not fail")
+
+	// overridePinned: has an override pointing at the non-default pinned profile.
+	overridePinned, err := customerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr("override-pinned"),
+			Name: "Override Pinned",
+		},
+	})
+	require.NoError(t, err)
+	_, err = billingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+		Namespace:  s.namespace,
+		CustomerID: overridePinned.ID,
+		ProfileID:  pinnedProfile.ID,
+	})
+	require.NoError(t, err, "upserting customer override pinned to non-default must not fail")
+
+	// overrideSoftDeleted: had an override pinned to the non-default profile,
+	// then deleted. The soft-deleted row must not affect the effective profile,
+	// so the customer falls back to the namespace default.
+	overrideSoftDeleted, err := customerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr("override-soft-deleted"),
+			Name: "Override Soft Deleted",
+		},
+	})
+	require.NoError(t, err)
+	_, err = billingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+		Namespace:  s.namespace,
+		CustomerID: overrideSoftDeleted.ID,
+		ProfileID:  pinnedProfile.ID,
+	})
+	require.NoError(t, err)
+	require.NoError(t, billingService.DeleteCustomerOverride(ctx, billing.DeleteCustomerOverrideInput{
+		Customer: customer.CustomerID{Namespace: s.namespace, ID: overrideSoftDeleted.ID},
+	}), "deleting customer override must not fail")
+
+	page := pagination.Page{PageNumber: 1, PageSize: 50}
+	idsOf := func(items []customer.Customer) []string {
+		ids := make([]string, 0, len(items))
+		for _, c := range items {
+			ids = append(ids, c.ID)
+		}
+		return ids
+	}
+
+	// eq default covers the bug: customers with no override, with override
+	// pinned to default, with override.billing_profile_id IS NULL, and with a
+	// soft-deleted override all resolve to the default profile and must match.
+	t.Run("eq default", func(t *testing.T) {
+		list, err := customerService.ListCustomers(ctx, customer.ListCustomersInput{
+			Namespace:        s.namespace,
+			Page:             page,
+			BillingProfileID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &defaultProfile.ID}},
+		})
+		require.NoError(t, err)
+		require.ElementsMatch(t, []string{
+			noOverride.ID,
+			overrideNullProfile.ID,
+			overrideDefault.ID,
+			overrideSoftDeleted.ID,
+		}, idsOf(list.Items))
+	})
+
+	// eq pinned guards against over-matching from the default branch — only
+	// customers with an explicit live override pointing at the pinned profile
+	// should match.
+	t.Run("eq pinned", func(t *testing.T) {
+		list, err := customerService.ListCustomers(ctx, customer.ListCustomersInput{
+			Namespace:        s.namespace,
+			Page:             page,
+			BillingProfileID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &pinnedProfile.ID}},
+		})
+		require.NoError(t, err)
+		require.ElementsMatch(t, []string{overridePinned.ID}, idsOf(list.Items))
+	})
 }
 
 // TestListCustomerUsageAttributions tests the listing of customer usage attributions
