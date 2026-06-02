@@ -133,8 +133,8 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 					Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				}),
 			),
-			deps:   StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
-			wantTC: &billing.TaxConfig{TaxConfig: productcatalog.TaxConfig{Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"}}},
+			deps:      StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
+			wantTC:    &billing.TaxConfig{TaxConfig: productcatalog.TaxConfig{Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"}}},
 			wantNoErr: true,
 		},
 		{

@@ -87,7 +87,8 @@ type TaxCode struct {
 }
 
 // Equal returns true when both TaxCode values carry identical semantic data.
-// ManagedModel timestamps (CreatedAt, UpdatedAt, DeletedAt) are excluded; all other fields are compared.
+// Compares ID, Namespace, Key, Name, Description, and AppMappings.
+// ManagedModel timestamps, Metadata, and Annotations are excluded.
 func (t *TaxCode) Equal(v *TaxCode) bool {
 	if t == nil && v == nil {
 		return true
