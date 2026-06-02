@@ -1228,10 +1228,12 @@ func TestSettlementMode(t *testing.T) {
 	})
 
 	t.Run("Should reject a custom subscription with credit_only settlement mode when credit is disabled", func(t *testing.T) {
-		// The credit check fires before getCustomer, so a non-existent customer ID is fine here.
+		// The credit check fires before getCustomer, so a valid-format but non-existent
+		// customer ID is fine here. The ID must still match the ULID pattern or request
+		// validation rejects it before the handler runs.
 		create := api.SubscriptionCreate{}
 		err := create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
-			CustomerId: lo.ToPtr("non-existent-customer-id"),
+			CustomerId: lo.ToPtr("01G65Z755AFWAKHE12NY0CQ9FH"),
 			CustomPlan: api.CustomPlanInput{
 				Name:           "Credit Only Custom Plan",
 				Currency:       "USD",
@@ -1264,8 +1266,10 @@ func TestSettlementMode(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		// The credit check fires before the subscription lookup, so a non-existent ID is fine here.
-		res, err := client.ChangeSubscriptionWithResponse(ctx, "non-existent-subscription-id", req)
+		// The credit check fires before the subscription lookup, so a valid-format but
+		// non-existent subscription ID is fine here. The ID must still match the ULID
+		// pattern or path validation rejects it before the handler runs.
+		res, err := client.ChangeSubscriptionWithResponse(ctx, "01G65Z755AFWAKHE12NY0CQ9FH", req)
 		require.Nil(t, err)
 		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
 	})
@@ -1326,11 +1330,13 @@ func TestSettlementMode(t *testing.T) {
 		ct := &api.SubscriptionTiming{}
 		require.NoError(t, ct.FromSubscriptionTimingEnum(api.SubscriptionTimingEnumImmediate))
 
-		// The credit check fires before the customer lookup and plan resolution, so a non-existent customer is fine here.
+		// The credit check fires before the customer lookup and plan resolution, so a
+		// valid-format but non-existent customer ID is fine here. The ID must still match
+		// the ULID pattern or request validation rejects it before the handler runs.
 		create := api.SubscriptionCreate{}
 		err := create.FromPlanSubscriptionCreate(api.PlanSubscriptionCreate{
 			Timing:         ct,
-			CustomerId:     lo.ToPtr("non-existent-customer-id"),
+			CustomerId:     lo.ToPtr("01G65Z755AFWAKHE12NY0CQ9FH"),
 			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
 			Plan: api.PlanReferenceInput{
 				Key:     "test_plan_settlement_plan_ref",
@@ -1360,8 +1366,10 @@ func TestSettlementMode(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		// The credit check fires before the subscription lookup, so a non-existent ID is fine here.
-		res, err := client.ChangeSubscriptionWithResponse(ctx, "non-existent-subscription-id", req)
+		// The credit check fires before the subscription lookup, so a valid-format but
+		// non-existent subscription ID is fine here. The ID must still match the ULID
+		// pattern or path validation rejects it before the handler runs.
+		res, err := client.ChangeSubscriptionWithResponse(ctx, "01G65Z755AFWAKHE12NY0CQ9FH", req)
 		require.Nil(t, err)
 		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
 		assert.Contains(t, string(res.Body), "credits are not enabled on this deployment of OpenMeter")
