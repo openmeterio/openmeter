@@ -47,6 +47,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/governance"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
@@ -94,6 +95,7 @@ type Config struct {
 	AccountResolver          ledger.AccountResolver
 	CustomerBalanceFacade    *customerbalance.Facade
 	EntitlementService       entitlement.Service
+	GovernanceService        governance.Service
 	PlanService              plan.Service
 	PlanAddonService         planaddon.Service
 	PlanSubscriptionService  plansubscription.PlanSubscriptionService
@@ -158,6 +160,10 @@ func (c *Config) Validate() error {
 
 	if c.EntitlementService == nil {
 		errs = append(errs, errors.New("entitlement service is required"))
+	}
+
+	if c.GovernanceService == nil {
+		errs = append(errs, errors.New("governance service is required"))
 	}
 
 	if c.PlanService == nil {
@@ -320,7 +326,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	featuresH := featureshandler.New(resolveNamespace, config.FeatureConnector, config.MeterService, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))
-	governanceH := governancehandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, config.FeatureConnector, httptransport.WithErrorHandler(config.ErrorHandler))
+	governanceH := governancehandler.New(resolveNamespace, config.GovernanceService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	var llmcostH llmcosthandler.Handler
 	if config.LLMCostService != nil {

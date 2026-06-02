@@ -3,9 +3,7 @@ package governance
 import (
 	"context"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/governance"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
@@ -14,25 +12,19 @@ type Handler interface {
 }
 
 type handler struct {
-	resolveNamespace   func(ctx context.Context) (string, error)
-	customerService    customer.Service
-	entitlementService entitlement.Service
-	featureConnector   feature.FeatureConnector
-	options            []httptransport.HandlerOption
+	resolveNamespace  func(ctx context.Context) (string, error)
+	governanceService governance.Service
+	options           []httptransport.HandlerOption
 }
 
 func New(
 	resolveNamespace func(ctx context.Context) (string, error),
-	customerService customer.Service,
-	entitlementService entitlement.Service,
-	featureConnector feature.FeatureConnector,
+	governanceService governance.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
-		resolveNamespace:   resolveNamespace,
-		customerService:    customerService,
-		entitlementService: entitlementService,
-		featureConnector:   featureConnector,
-		options:            options,
+		resolveNamespace:  resolveNamespace,
+		governanceService: governanceService,
+		options:           options,
 	}
 }

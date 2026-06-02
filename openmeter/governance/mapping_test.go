@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -17,7 +16,7 @@ func TestMapEntitlementToAccess(t *testing.T) {
 		name          string
 		value         entitlement.EntitlementValue
 		wantHasAccess bool
-		wantCode      *api.GovernanceFeatureAccessReasonCode
+		wantCode      *ReasonCode
 	}{
 		{
 			name:          "metered with balance — has access",
@@ -28,7 +27,7 @@ func TestMapEntitlementToAccess(t *testing.T) {
 			name:          "metered exhausted — usage limit reached",
 			value:         &meteredentitlement.MeteredEntitlementValue{Balance: 0},
 			wantHasAccess: false,
-			wantCode:      ptr(api.GovernanceFeatureAccessReasonCodeUsageLimitReached),
+			wantCode:      ptr(ReasonUsageLimitReached),
 		},
 		{
 			// BooleanEntitlementValue is always HasAccess=true; the gateway returns
@@ -48,7 +47,7 @@ func TestMapEntitlementToAccess(t *testing.T) {
 			name:          "no access value — feature unavailable",
 			value:         &entitlement.NoAccessValue{},
 			wantHasAccess: false,
-			wantCode:      ptr(api.GovernanceFeatureAccessReasonCodeFeatureUnavailable),
+			wantCode:      ptr(ReasonFeatureUnavailable),
 		},
 	}
 

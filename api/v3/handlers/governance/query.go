@@ -2,25 +2,14 @@ package governance
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
-	"sort"
-	"time"
-
-	"github.com/oapi-codegen/nullable"
-	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
-	customershandler "github.com/openmeterio/openmeter/api/v3/handlers/customers"
-	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/openmeter/governance"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 	pagination "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
@@ -32,96 +21,46 @@ const (
 type (
 	QueryGovernanceAccessParams   = api.QueryGovernanceAccessParams
 	QueryGovernanceAccessResponse = api.GovernanceQueryResponse
-	QueryGovernanceAccessHandler  = httptransport.HandlerWithArgs[queryGovernanceAccessRequest, QueryGovernanceAccessResponse, QueryGovernanceAccessParams]
+	QueryGovernanceAccessHandler  = httptransport.HandlerWithArgs[governance.QueryAccessInput, QueryGovernanceAccessResponse, QueryGovernanceAccessParams]
 )
-
-type queryGovernanceAccessRequest struct {
-	Namespace    string
-	Body         api.GovernanceQueryRequest
-	PageSize     int
-	AfterCursor  *pagination.Cursor
-	BeforeCursor *pagination.Cursor
-}
 
 func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params QueryGovernanceAccessParams) (queryGovernanceAccessRequest, error) {
+		func(ctx context.Context, r *http.Request, params QueryGovernanceAccessParams) (governance.QueryAccessInput, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return queryGovernanceAccessRequest{}, err
+				return governance.QueryAccessInput{}, err
 			}
 
 			var body api.GovernanceQueryRequest
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return queryGovernanceAccessRequest{}, err
+				return governance.QueryAccessInput{}, err
 			}
 
-			pageSize := defaultPageSize
-			var afterCursor, beforeCursor *pagination.Cursor
-
-			if params.Page != nil {
-				if params.Page.Size != nil {
-					pageSize = *params.Page.Size
-					if pageSize < 1 || pageSize > maxPageSize {
-						return queryGovernanceAccessRequest{}, apierrors.NewBadRequestError(ctx,
-							fmt.Errorf("page[size] must be between 1 and %d", maxPageSize),
-							apierrors.InvalidParameters{{
-								Field:  "page[size]",
-								Reason: fmt.Sprintf("must be between 1 and %d", maxPageSize),
-								Source: apierrors.InvalidParamSourceQuery,
-							}},
-						)
-					}
-				}
-
-				if params.Page.After != nil && params.Page.Before != nil {
-					return queryGovernanceAccessRequest{}, apierrors.NewBadRequestError(ctx,
-						fmt.Errorf("page[after] and page[before] are mutually exclusive"),
-						apierrors.InvalidParameters{{
-							Field:  "page[after]",
-							Reason: "cannot be combined with page[before]",
-							Source: apierrors.InvalidParamSourceQuery,
-						}},
-					)
-				}
-
-				if params.Page.After != nil {
-					decoded, err := pagination.DecodeCursor(*params.Page.After)
-					if err != nil {
-						return queryGovernanceAccessRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{
-							Field:  "page[after]",
-							Reason: err.Error(),
-							Source: apierrors.InvalidParamSourceQuery,
-						}})
-					}
-					afterCursor = decoded
-				}
-
-				if params.Page.Before != nil {
-					decoded, err := pagination.DecodeCursor(*params.Page.Before)
-					if err != nil {
-						return queryGovernanceAccessRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{
-							Field:  "page[before]",
-							Reason: err.Error(),
-							Source: apierrors.InvalidParamSourceQuery,
-						}})
-					}
-					beforeCursor = decoded
-				}
-			}
-
-			req := queryGovernanceAccessRequest{
+			input := governance.QueryAccessInput{
 				Namespace:    ns,
-				Body:         body,
-				PageSize:     pageSize,
-				AfterCursor:  afterCursor,
-				BeforeCursor: beforeCursor,
+				CustomerKeys: body.Customer.Keys,
+				PageSize:     defaultPageSize,
+			}
+			if body.Feature != nil {
+				input.FeatureKeys = body.Feature.Keys
+			}
+			if body.IncludeCredits != nil {
+				input.IncludeCredits = *body.IncludeCredits
 			}
 
-			return req, nil
+			if err := applyPaging(ctx, &input, params); err != nil {
+				return governance.QueryAccessInput{}, err
+			}
+
+			return input, nil
 		},
-		func(ctx context.Context, req queryGovernanceAccessRequest) (QueryGovernanceAccessResponse, error) {
-			return h.processGovernanceQuery(ctx, req)
+		func(ctx context.Context, input governance.QueryAccessInput) (QueryGovernanceAccessResponse, error) {
+			res, err := h.governanceService.QueryAccess(ctx, input)
+			if err != nil {
+				return QueryGovernanceAccessResponse{}, err
+			}
+			return ToAPIGovernanceQueryResponse(res, input.PageSize), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[QueryGovernanceAccessResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -132,242 +71,64 @@ func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 	)
 }
 
-// resolvedCustomer groups matched input keys for a single customer.
-type resolvedCustomer struct {
-	Customer customer.Customer
-	Matched  []string
+// applyPaging parses page[size]/page[after]/page[before] into the service input.
+func applyPaging(ctx context.Context, input *governance.QueryAccessInput, params QueryGovernanceAccessParams) error {
+	if params.Page == nil {
+		return nil
+	}
+
+	if params.Page.Size != nil {
+		if *params.Page.Size < 1 || *params.Page.Size > maxPageSize {
+			return apierrors.NewBadRequestError(ctx,
+				fmt.Errorf("page[size] must be between 1 and %d", maxPageSize),
+				apierrors.InvalidParameters{{
+					Field:  "page[size]",
+					Reason: fmt.Sprintf("must be between 1 and %d", maxPageSize),
+					Source: apierrors.InvalidParamSourceQuery,
+				}},
+			)
+		}
+		input.PageSize = *params.Page.Size
+	}
+
+	if params.Page.After != nil && params.Page.Before != nil {
+		return apierrors.NewBadRequestError(ctx,
+			fmt.Errorf("page[after] and page[before] are mutually exclusive"),
+			apierrors.InvalidParameters{{
+				Field:  "page[after]",
+				Reason: "cannot be combined with page[before]",
+				Source: apierrors.InvalidParamSourceQuery,
+			}},
+		)
+	}
+
+	if params.Page.After != nil {
+		cursor, err := decodeCursorParam(ctx, "page[after]", *params.Page.After)
+		if err != nil {
+			return err
+		}
+		input.After = cursor
+	}
+
+	if params.Page.Before != nil {
+		cursor, err := decodeCursorParam(ctx, "page[before]", *params.Page.Before)
+		if err != nil {
+			return err
+		}
+		input.Before = cursor
+	}
+
+	return nil
 }
 
-func (h *handler) processGovernanceQuery(ctx context.Context, req queryGovernanceAccessRequest) (QueryGovernanceAccessResponse, error) {
-	var featureKeys []string
-	if req.Body.Feature != nil {
-		featureKeys = req.Body.Feature.Keys
-	}
-
-	// Resolve each input key to a customer; deduplicate by customer ID.
-	customerMap := make(map[string]*resolvedCustomer)
-	var queryErrors []api.GovernanceQueryError
-
-	for _, key := range req.Body.Customer.Keys {
-		cus, err := h.customerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-			Namespace: req.Namespace,
-			Key:       key,
-		})
-		if err != nil {
-			if models.IsGenericNotFoundError(err) {
-				queryErrors = append(queryErrors, api.GovernanceQueryError{
-					Customer: lo.ToPtr(key),
-					Code:     api.GovernanceQueryErrorCodeCustomerNotFound,
-					Message:  "customer not found",
-				})
-				continue
-			}
-			return QueryGovernanceAccessResponse{}, fmt.Errorf("resolve customer key %q: %w", key, err)
-		}
-
-		if rc, ok := customerMap[cus.ID]; ok {
-			rc.Matched = append(rc.Matched, key)
-		} else {
-			customerMap[cus.ID] = &resolvedCustomer{
-				Customer: *cus,
-				Matched:  []string{key},
-			}
-		}
-	}
-
-	// Sort by (CreatedAt, ID) for stable cursor pagination.
-	customers := lo.Values(customerMap)
-	sort.Slice(customers, func(i, j int) bool {
-		ti := customers[i].Customer.CreatedAt
-		tj := customers[j].Customer.CreatedAt
-		if !ti.Equal(tj) {
-			return ti.Before(tj)
-		}
-		return customers[i].Customer.ID < customers[j].Customer.ID
-	})
-
-	// Apply cursor pagination.
-	var hasPrev, hasNext bool
-	if req.BeforeCursor != nil {
-		// Backward: take the last pageSize items strictly before the cursor.
-		bc := *req.BeforeCursor
-		end := 0
-		for i, rc := range customers {
-			c := pagination.NewCursor(rc.Customer.CreatedAt.Truncate(time.Second), rc.Customer.ID)
-			if c.Time.After(bc.Time) || (c.Time.Equal(bc.Time) && c.ID >= bc.ID) {
-				break
-			}
-			end = i + 1
-		}
-		candidates := customers[:end]
-		hasPrev = len(candidates) > req.PageSize
-		if hasPrev {
-			candidates = candidates[len(candidates)-req.PageSize:]
-		}
-		// next is always set in backward mode: the before-cursor item itself is forward.
-		hasNext = true
-		customers = candidates
-	} else {
-		// Forward (after cursor or first page).
-		start := 0
-		if req.AfterCursor != nil {
-			ac := *req.AfterCursor
-			start = len(customers) // beyond all items if cursor is past the end
-			for i, rc := range customers {
-				c := pagination.NewCursor(rc.Customer.CreatedAt.Truncate(time.Second), rc.Customer.ID)
-				if c.Time.After(ac.Time) || (c.Time.Equal(ac.Time) && c.ID > ac.ID) {
-					start = i
-					break
-				}
-			}
-		}
-		hasPrev = start > 0
-		customers = customers[start:]
-		hasNext = len(customers) > req.PageSize
-		if hasNext {
-			customers = customers[:req.PageSize]
-		}
-	}
-
-	// Compute feature access for each paged customer.
-	now := clock.Now()
-	results := make([]api.GovernanceQueryResult, 0, len(customers))
-
-	for _, rc := range customers {
-		access, err := h.entitlementService.GetAccess(ctx, req.Namespace, rc.Customer.ID)
-		if err != nil {
-			return QueryGovernanceAccessResponse{}, fmt.Errorf("get access for customer %s: %w", rc.Customer.ID, err)
-		}
-
-		featureAccess, err := h.buildFeatureAccess(ctx, req.Namespace, featureKeys, access)
-		if err != nil {
-			return QueryGovernanceAccessResponse{}, fmt.Errorf("build feature access for customer %s: %w", rc.Customer.ID, err)
-		}
-
-		results = append(results, api.GovernanceQueryResult{
-			Matched:   rc.Matched,
-			Customer:  customershandler.ToAPIBillingCustomer(rc.Customer),
-			Features:  featureAccess,
-			UpdatedAt: now,
-		})
-	}
-
-	return QueryGovernanceAccessResponse{
-		Data:   results,
-		Errors: queryErrors,
-		Meta:   buildCursorMeta(customers, req.PageSize, hasPrev, hasNext),
-	}, nil
-}
-
-// buildFeatureAccess returns the feature access map for a single customer.
-// If featureKeys is non-empty, only those keys are evaluated.
-// If featureKeys is empty, all non-archived features in the org are returned;
-// features the customer has no entitlement for are marked FEATURE_UNAVAILABLE.
-func (h *handler) buildFeatureAccess(ctx context.Context, ns string, featureKeys []string, access entitlement.Access) (map[string]api.GovernanceFeatureAccess, error) {
-	result := make(map[string]api.GovernanceFeatureAccess)
-
-	if len(featureKeys) == 0 {
-		orgFeatures, err := h.listAllOrgFeatures(ctx, ns)
-		if err != nil {
-			return nil, err
-		}
-		for _, f := range orgFeatures {
-			if ev, ok := access.Entitlements[f.Key]; ok {
-				result[f.Key] = mapEntitlementToAccess(ev.Value)
-			} else {
-				result[f.Key] = api.GovernanceFeatureAccess{
-					HasAccess: false,
-					Reason: &api.GovernanceFeatureAccessReason{
-						Code:    api.GovernanceFeatureAccessReasonCodeFeatureUnavailable,
-						Message: fmt.Sprintf("feature %q is not available for this customer", f.Key),
-					},
-				}
-			}
-		}
-		return result, nil
-	}
-
-	for _, key := range featureKeys {
-		ev, ok := access.Entitlements[key]
-		if !ok {
-			access, err := h.resolveAbsentFeature(ctx, ns, key)
-			if err != nil {
-				return nil, err
-			}
-			result[key] = access
-			continue
-		}
-		result[key] = mapEntitlementToAccess(ev.Value)
-	}
-
-	return result, nil
-}
-
-// listAllOrgFeatures fetches all non-archived features in the namespace.
-// Uses the deprecated Limit field to fetch in one shot; acceptable for prototype scale.
-func (h *handler) listAllOrgFeatures(ctx context.Context, ns string) ([]feature.Feature, error) {
-	const featureFetchLimit = 10_000
-	res, err := h.featureConnector.ListFeatures(ctx, feature.ListFeaturesParams{
-		Namespace:       ns,
-		IncludeArchived: false,
-		Limit:           featureFetchLimit,
-	})
+func decodeCursorParam(ctx context.Context, field, raw string) (*pagination.Cursor, error) {
+	cursor, err := pagination.DecodeCursor(raw)
 	if err != nil {
-		return nil, fmt.Errorf("list org features: %w", err)
+		return nil, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{
+			Field:  field,
+			Reason: err.Error(),
+			Source: apierrors.InvalidParamSourceQuery,
+		}})
 	}
-	return res.Items, nil
-}
-
-// resolveAbsentFeature determines the reason a requested feature key is absent from GetAccess results:
-// either the feature doesn't exist in the org (FeatureNotFound) or the customer has no entitlement for it (FeatureUnavailable).
-func (h *handler) resolveAbsentFeature(ctx context.Context, ns, featureKey string) (api.GovernanceFeatureAccess, error) {
-	_, err := h.featureConnector.GetFeature(ctx, ns, featureKey, feature.IncludeArchivedFeatureFalse)
-	if err != nil {
-		var fne *feature.FeatureNotFoundError
-		if errors.As(err, &fne) || models.IsGenericNotFoundError(err) {
-			return api.GovernanceFeatureAccess{
-				HasAccess: false,
-				Reason: &api.GovernanceFeatureAccessReason{
-					Code:    api.GovernanceFeatureAccessReasonCodeFeatureNotFound,
-					Message: fmt.Sprintf("feature %q not found", featureKey),
-				},
-			}, nil
-		}
-		return api.GovernanceFeatureAccess{}, fmt.Errorf("get feature %q: %w", featureKey, err)
-	}
-
-	return api.GovernanceFeatureAccess{
-		HasAccess: false,
-		Reason: &api.GovernanceFeatureAccessReason{
-			Code:    api.GovernanceFeatureAccessReasonCodeFeatureUnavailable,
-			Message: fmt.Sprintf("feature %q is not available for this customer", featureKey),
-		},
-	}, nil
-}
-
-func buildCursorMeta(customers []*resolvedCustomer, pageSize int, hasPrev, hasNext bool) api.CursorMeta {
-	meta := api.CursorMeta{
-		Page: api.CursorMetaPage{
-			Next:     nullable.NewNullNullable[string](),
-			Previous: nullable.NewNullNullable[string](),
-			Size:     float32(pageSize),
-		},
-	}
-
-	if len(customers) > 0 {
-		first := customers[0]
-		last := customers[len(customers)-1]
-		firstCursor := pagination.NewCursor(first.Customer.CreatedAt.Truncate(time.Second), first.Customer.ID)
-		lastCursor := pagination.NewCursor(last.Customer.CreatedAt.Truncate(time.Second), last.Customer.ID)
-		meta.Page.First = lo.ToPtr(firstCursor.Encode())
-		meta.Page.Last = lo.ToPtr(lastCursor.Encode())
-		if hasNext {
-			meta.Page.Next = nullable.NewNullableWithValue(lastCursor.Encode())
-		}
-		if hasPrev {
-			meta.Page.Previous = nullable.NewNullableWithValue(firstCursor.Encode())
-		}
-	}
-
-	return meta
+	return cursor, nil
 }
