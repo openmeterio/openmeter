@@ -168,6 +168,20 @@ interface SubscriptionsOperations {
 }
 
 interface SubscriptionAddonOperations {
+  /*
+   * Updates a subscription addon (allows changing the quantity: purchasing more instances or cancelling the current instances)
+   */
+  @patch
+  @operationId("update-subscription-addon")
+  @summary("Update subscription addon")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  update(
+    @path subscriptionId: Shared.ULID,
+    @path subscriptionAddonId: Shared.ULID,
+    @body request: Shared.UpdateRequest<SubscriptionAddon>,
+  ): Shared.UpdateResponse<SubscriptionAddon> | Common.ErrorResponses | Common.NotFound;
+
   /**
    * List the addons of a subscription.
    */

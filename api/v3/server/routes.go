@@ -110,6 +110,13 @@ func (s *Server) ChangeSubscription(w http.ResponseWriter, r *http.Request, subs
 }
 
 // Subscription Addons
+func (s *Server) UpdateSubscriptionAddon(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID, subscriptionAddonId api.ULID) {
+	s.subscriptionAddonsHandler.UpdateSubscriptionAddon().With(subscriptionaddonshandler.UpdateSubscriptionAddonParams{
+		SubscriptionID:      subscriptionId,
+		SubscriptionAddonID: subscriptionAddonId,
+	}).ServeHTTP(w, r)
+}
+
 func (s *Server) ListSubscriptionAddons(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID, params api.ListSubscriptionAddonsParams) {
 	s.subscriptionAddonsHandler.ListSubscriptionAddons().With(subscriptionaddonshandler.ListSubscriptionAddonsParams{
 		SubscriptionID: subscriptionId,

@@ -2638,6 +2638,45 @@ paths:
         - OpenMeter Subscriptions
       x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}:
+    patch:
+      operationId: update-subscription-addon
+      summary: Update subscription addon
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: subscriptionAddonId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: SubscriptionAddon updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionAddon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSubscriptionAddonRequest'
+      x-internal: true
+      x-unstable: true
     get:
       operationId: get-subscription-addon
       summary: Get add-on association for subscription
@@ -9345,7 +9384,7 @@ components:
           readOnly: true
         addon:
           allOf:
-            - $ref: '#/components/schemas/AddonReferenceItem'
+            - $ref: '#/components/schemas/AddonReference'
           description: The add-on associated with the subscription.
           title: Add-on
         quantity:
@@ -9544,6 +9583,40 @@ components:
           title: Credit grant tax code
       additionalProperties: false
       description: OrganizationDefaultTaxCodes update request.
+    UpdateSubscriptionAddonRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        quantity:
+          type: integer
+          minimum: 1
+          description: The quantity of the add-on. Always 1 for single instance add-ons.
+          title: Quantity
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
+          description: |-
+            The timing of the operation. After the create or update, a new entry will be
+            created in the timeline.
+          title: Timing
+      additionalProperties: false
+      description: SubscriptionAddon update request.
     UpsertAddonRequest:
       type: object
       required:

@@ -43,4 +43,12 @@ model SubscriptionAddon {
    */
   @visibility(Lifecycle.Read)
   active_to?: Shared.DateTime;
+
+  /**
+   * The timing of the operation. After the create or update, a new entry will be
+   * created in the timeline.
+   */
+  @summary("Timing")
+  @visibility(Lifecycle.Create, Lifecycle.Update)
+  timing: SubscriptionEditTiming;
 }
