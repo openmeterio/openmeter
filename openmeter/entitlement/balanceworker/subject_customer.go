@@ -45,6 +45,16 @@ func resolveCustomerAndSubject(ctx context.Context, customerService customer.Ser
 		Key:       subjKey,
 	})
 	if err != nil {
+		// Subjects are no longer persisted as their own entity, so a missing row is
+		// expected. Fall back to a synthetic subject carrying just the key so the
+		// snapshot event still reports the usage-attribution key downstream.
+		if models.IsGenericNotFoundError(err) {
+			return *cus, &subject.Subject{
+				Namespace: namespace,
+				Key:       subjKey,
+			}, nil
+		}
+
 		return customer.Customer{}, nil, fmt.Errorf("failed to get subject: %w", err)
 	}
 

@@ -222,9 +222,9 @@ func TestRecognizeEarningsCorrection_MultipleCostBases(t *testing.T) {
 func findForwardTransaction(t *testing.T, group ledger.TransactionGroup, template TransactionTemplate) ledger.Transaction {
 	t.Helper()
 
-	name := templateName(template)
+	name := TemplateCode(template)
 	for _, tx := range group.Transactions() {
-		txName, err := ledger.TransactionTemplateNameFromAnnotations(tx.Annotations())
+		txName, err := ledger.TransactionTemplateCodeFromAnnotations(tx.Annotations())
 		if err != nil {
 			continue
 		}

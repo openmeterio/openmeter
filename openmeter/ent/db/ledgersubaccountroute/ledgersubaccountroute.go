@@ -32,6 +32,8 @@ const (
 	FieldCurrency = "currency"
 	// FieldTaxCode holds the string denoting the tax_code field in the database.
 	FieldTaxCode = "tax_code"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// FieldFeatures holds the string denoting the features field in the database.
 	FieldFeatures = "features"
 	// FieldCostBasis holds the string denoting the cost_basis field in the database.
@@ -74,6 +76,7 @@ var Columns = []string{
 	FieldRoutingKey,
 	FieldCurrency,
 	FieldTaxCode,
+	FieldTaxBehavior,
 	FieldFeatures,
 	FieldCostBasis,
 	FieldCreditPriority,
@@ -154,6 +157,11 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 // ByTaxCode orders the results by the tax_code field.
 func ByTaxCode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTaxCode, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByCostBasis orders the results by the cost_basis field.

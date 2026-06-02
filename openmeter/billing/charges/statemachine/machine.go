@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/qmuntal/stateless"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -39,6 +41,8 @@ type StateMachine[CHARGE any] interface {
 	CanFire(ctx context.Context, trigger meta.Trigger) (bool, error)
 	FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error
 	GetCharge() CHARGE
+	InvoicePatches() []invoiceupdater.Patch
+	DrainInvoicePatches() []invoiceupdater.Patch
 }
 
 func (c Config[CHARGE, BASE, STATUS]) Validate() error {
@@ -56,9 +60,10 @@ func (c Config[CHARGE, BASE, STATUS]) Validate() error {
 }
 
 type Machine[CHARGE ChargeLike[CHARGE, BASE, STATUS], BASE any, STATUS Status] struct {
-	Charge       CHARGE
-	stateMachine *stateless.StateMachine
-	config       Config[CHARGE, BASE, STATUS]
+	Charge         CHARGE
+	stateMachine   *stateless.StateMachine
+	config         Config[CHARGE, BASE, STATUS]
+	invoicePatches []invoiceupdater.Patch
 }
 
 func New[CHARGE ChargeLike[CHARGE, BASE, STATUS], BASE any, STATUS Status](config Config[CHARGE, BASE, STATUS]) (*Machine[CHARGE, BASE, STATUS], error) {
@@ -101,6 +106,20 @@ func (m *Machine[CHARGE, BASE, STATUS]) CanFire(ctx context.Context, trigger met
 
 func (m *Machine[CHARGE, BASE, STATUS]) GetCharge() CHARGE {
 	return m.Charge
+}
+
+func (m *Machine[CHARGE, BASE, STATUS]) InvoicePatches() []invoiceupdater.Patch {
+	return slices.Clone(m.invoicePatches)
+}
+
+func (m *Machine[CHARGE, BASE, STATUS]) DrainInvoicePatches() []invoiceupdater.Patch {
+	patches := m.invoicePatches
+	m.invoicePatches = nil
+	return patches
+}
+
+func (m *Machine[CHARGE, BASE, STATUS]) AddInvoicePatch(patches ...invoiceupdater.Patch) {
+	m.invoicePatches = append(m.invoicePatches, patches...)
 }
 
 var ErrUnsupportedOperation = models.NewGenericPreConditionFailedError(fmt.Errorf("unsupported operation"))

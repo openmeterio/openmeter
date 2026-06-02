@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/ffx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -233,7 +234,7 @@ func (v SubscriptionUniqueConstraintValidator) pipelineAfter(ctx context.Context
 func (v SubscriptionUniqueConstraintValidator) collectCustomerSubscriptionsStarting(ctx context.Context, namespace string, customerID string, starting time.Time) ([]subscription.Subscription, error) {
 	return pagination.CollectAll(ctx, pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[subscription.Subscription], error) {
 		return v.Config.QueryService.List(ctx, subscription.ListSubscriptionsInput{
-			CustomerIDs:    []string{customerID},
+			CustomerID:     &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerID}},
 			Namespaces:     []string{namespace},
 			ActiveInPeriod: &timeutil.StartBoundedPeriod{From: starting},
 		})

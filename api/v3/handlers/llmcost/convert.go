@@ -82,13 +82,8 @@ func domainPriceToAPI(p llmcost.Price) api.LLMCostPrice {
 		Pricing:       domainPricingToAPI(p.Pricing),
 	}
 
-	if !p.CreatedAt.IsZero() {
-		out.CreatedAt = &p.CreatedAt
-	}
-
-	if !p.UpdatedAt.IsZero() {
-		out.UpdatedAt = &p.UpdatedAt
-	}
+	out.CreatedAt = p.CreatedAt
+	out.UpdatedAt = p.UpdatedAt
 
 	return out
 }

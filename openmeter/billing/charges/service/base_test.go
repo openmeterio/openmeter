@@ -151,6 +151,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.NoError(err)
 
 	chargesService, err := New(Config{
+		Logger:  slog.Default(),
 		Adapter: chargesAdapter,
 
 		FeatureService:        s.FeatureService,
@@ -161,6 +162,7 @@ func (s *BaseSuite) SetupSuite() {
 		RecognizerService:     recognizer.NoopService{},
 
 		BillingService: s.BillingService,
+		TaxCodeService: s.TaxCodeService,
 	})
 	s.NoError(err)
 	s.Charges = chargesService
@@ -186,6 +188,7 @@ type createMockChargeIntentInput struct {
 	managedBy         billing.InvoiceLineManagedBy
 	uniqueReferenceID string
 	taxConfig         *productcatalog.TaxCodeConfig
+	proRating         productcatalog.ProRatingConfig
 }
 
 func (i *createMockChargeIntentInput) Validate() error {
@@ -250,9 +253,10 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 			PaymentTerm:    price.PaymentTerm,
 			FeatureKey:     input.featureKey,
 			InvoiceAt:      invoiceAt,
-			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.InvoiceOnlySettlementMode),
+			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 
 			AmountBeforeProration: price.Amount,
+			ProRating:             input.proRating,
 		}
 		return charges.NewChargeIntent(flatFeeIntent)
 	}
@@ -262,7 +266,7 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 		FeatureKey:     input.featureKey,
 		Price:          lo.FromPtr(input.price),
 		InvoiceAt:      invoiceAt,
-		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.InvoiceOnlySettlementMode),
+		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 	}
 	return charges.NewChargeIntent(usageBasedIntent)
 }

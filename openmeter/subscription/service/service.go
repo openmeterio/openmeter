@@ -551,19 +551,31 @@ func (s *service) ExpandViews(ctx context.Context, subs []subscription.Subscript
 	var featsOfItems pagination.Result[feature.Feature]
 
 	{
-		itemsWithFeatures := lo.Filter(items, func(i subscription.SubscriptionItem, _ int) bool {
-			return i.RateCard.AsMeta().FeatureKey != nil
-		})
+		uniqFeatureKeyOrIDs := func() []string {
+			keyOrIDS := make(map[string]struct{}, len(items))
 
-		uniqFeatureKeys := lo.Uniq(slicesx.Map(itemsWithFeatures, func(i subscription.SubscriptionItem) string {
-			return lo.FromPtr(i.RateCard.AsMeta().FeatureKey)
-		}))
+			for _, item := range items {
+				fKey, fID := lo.FromPtr(item.RateCard.AsMeta().FeatureKey), lo.FromPtr(item.RateCard.AsMeta().FeatureID)
 
-		if len(uniqFeatureKeys) > 0 {
+				if fKey != "" {
+					keyOrIDS[fKey] = struct{}{}
+				}
+
+				if fID != "" {
+					keyOrIDS[fID] = struct{}{}
+				}
+			}
+
+			return lo.MapToSlice(keyOrIDS, func(key string, _ struct{}) string {
+				return key
+			})
+		}()
+
+		if len(uniqFeatureKeyOrIDs) > 0 {
 			featsOfItems, err = s.FeatureService.ListFeatures(ctx, feature.ListFeaturesParams{
 				Namespace:       cus.Namespace,
 				IncludeArchived: true,
-				IDsOrKeys:       uniqFeatureKeys,
+				IDsOrKeys:       uniqFeatureKeyOrIDs,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get features of items: %w", err)
@@ -637,12 +649,24 @@ func (s *service) ExpandViews(ctx context.Context, subs []subscription.Subscript
 	featsOfItemsBySub := lo.MapEntries(itemsBySub, func(key string, items []subscription.SubscriptionItem) (string, []feature.Feature) {
 		found := make([]feature.Feature, 0)
 		for _, item := range items {
-			if item.RateCard.AsMeta().FeatureKey == nil {
+			fKey, fID := lo.FromPtr(item.RateCard.AsMeta().FeatureKey), lo.FromPtr(item.RateCard.AsMeta().FeatureID)
+
+			if fKey == "" && fID == "" {
 				continue
 			}
 
 			feat, ok := lo.Find(featsOfItems.Items, func(f feature.Feature) bool {
-				return f.Key == lo.FromPtr(item.RateCard.AsMeta().FeatureKey)
+				var featFound bool
+
+				if fKey != "" {
+					featFound = f.Key == fKey
+				}
+
+				if fID != "" {
+					featFound = f.ID == fID
+				}
+
+				return featFound
 			})
 			if ok {
 				found = append(found, feat)

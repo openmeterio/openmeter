@@ -17,6 +17,7 @@ type IssueCustomerReceivableTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
 	CreditPriority *int
@@ -56,6 +57,10 @@ func (t IssueCustomerReceivableTemplate) Validate() error {
 
 func (t IssueCustomerReceivableTemplate) typeGuard() guard {
 	return true
+}
+
+func (t IssueCustomerReceivableTemplate) code() TransactionTemplateCode {
+	return TemplateCodeIssueCustomerReceivable
 }
 
 var _ CustomerTransactionTemplate = (IssueCustomerReceivableTemplate{})
@@ -143,15 +148,17 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	}, nil
 }
 
-// FundCustomerReceivableTemplate funds the authorized receivable sub-account from wash.
-type FundCustomerReceivableTemplate struct {
+// SettleCustomerReceivableFromPaymentTemplate records settled payment funds by
+// clearing authorized receivable from wash.
+type SettleCustomerReceivableFromPaymentTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 }
 
-func (t FundCustomerReceivableTemplate) Validate() error {
+func (t SettleCustomerReceivableFromPaymentTemplate) Validate() error {
 	if t.At.IsZero() {
 		return fmt.Errorf("at is required")
 	}
@@ -173,17 +180,21 @@ func (t FundCustomerReceivableTemplate) Validate() error {
 	return nil
 }
 
-var _ CustomerTransactionTemplate = (FundCustomerReceivableTemplate{})
+var _ CustomerTransactionTemplate = (SettleCustomerReceivableFromPaymentTemplate{})
 
-func (t FundCustomerReceivableTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+func (t SettleCustomerReceivableFromPaymentTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
+	return nil, templateCorrectionNotImplemented(TemplateCode(t))
 }
 
-func (t FundCustomerReceivableTemplate) typeGuard() guard {
+func (t SettleCustomerReceivableFromPaymentTemplate) typeGuard() guard {
 	return true
 }
 
-func (t FundCustomerReceivableTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
+func (t SettleCustomerReceivableFromPaymentTemplate) code() TransactionTemplateCode {
+	return TemplateCodeSettleCustomerReceivableFromPayment
+}
+
+func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get customer accounts: %w", err)
@@ -226,15 +237,17 @@ func (t FundCustomerReceivableTemplate) resolve(ctx context.Context, customerID 
 	}, nil
 }
 
-// SettleCustomerReceivablePaymentTemplate moves authorized receivable staging into the open receivable route.
-type SettleCustomerReceivablePaymentTemplate struct {
+// AuthorizeCustomerReceivablePaymentTemplate moves open receivable into the
+// authorized receivable route without moving funds across the external cash boundary.
+type AuthorizeCustomerReceivablePaymentTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 }
 
-func (t SettleCustomerReceivablePaymentTemplate) Validate() error {
+func (t AuthorizeCustomerReceivablePaymentTemplate) Validate() error {
 	if t.At.IsZero() {
 		return fmt.Errorf("at is required")
 	}
@@ -256,17 +269,21 @@ func (t SettleCustomerReceivablePaymentTemplate) Validate() error {
 	return nil
 }
 
-func (t SettleCustomerReceivablePaymentTemplate) typeGuard() guard {
+func (t AuthorizeCustomerReceivablePaymentTemplate) typeGuard() guard {
 	return true
 }
 
-var _ CustomerTransactionTemplate = (SettleCustomerReceivablePaymentTemplate{})
-
-func (t SettleCustomerReceivablePaymentTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+func (t AuthorizeCustomerReceivablePaymentTemplate) code() TransactionTemplateCode {
+	return TemplateCodeAuthorizeCustomerReceivablePayment
 }
 
-func (t SettleCustomerReceivablePaymentTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
+var _ CustomerTransactionTemplate = (AuthorizeCustomerReceivablePaymentTemplate{})
+
+func (t AuthorizeCustomerReceivablePaymentTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
+	return nil, templateCorrectionNotImplemented(TemplateCode(t))
+}
+
+func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get customer accounts: %w", err)
@@ -311,6 +328,7 @@ type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
+	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
 }
 
@@ -340,6 +358,10 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) Validate() error {
 
 func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) typeGuard() guard {
 	return true
+}
+
+func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) code() TransactionTemplateCode {
+	return TemplateCodeAttributeCustomerAdvanceReceivableCostBasis
 }
 
 var _ CustomerTransactionTemplate = (AttributeCustomerAdvanceReceivableCostBasisTemplate{})
@@ -469,10 +491,14 @@ func (t CoverCustomerReceivableTemplate) typeGuard() guard {
 	return true
 }
 
+func (t CoverCustomerReceivableTemplate) code() TransactionTemplateCode {
+	return TemplateCodeCoverCustomerReceivable
+}
+
 var _ CustomerTransactionTemplate = (CoverCustomerReceivableTemplate{})
 
 func (t CoverCustomerReceivableTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+	return nil, templateCorrectionNotImplemented(TemplateCode(t))
 }
 
 func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {

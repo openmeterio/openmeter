@@ -40,18 +40,29 @@ func (f FuncRule) Validate(tx TxView) error {
 
 type RequireUniqueSubAccountsRule struct{}
 
+type entryIdentityKey struct {
+	subAccountID string
+	identityKey  string
+}
+
 func (r RequireUniqueSubAccountsRule) Validate(tx TxView) error {
-	seen := make(map[string]struct{}, len(tx.Entries()))
+	seen := make(map[entryIdentityKey]struct{}, len(tx.Entries()))
 	for _, entry := range tx.Entries() {
 		subAccountID := entry.Entry().PostingAddress().SubAccountID()
-		if _, ok := seen[subAccountID]; ok {
+		identityKey := entry.Entry().IdentityKey()
+		key := entryIdentityKey{
+			subAccountID: subAccountID,
+			identityKey:  identityKey,
+		}
+		if _, ok := seen[key]; ok {
 			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
-				"reason":         "duplicate_sub_account_entry",
+				"reason":         "duplicate_entry_identity",
 				"sub_account_id": subAccountID,
+				"identity_key":   identityKey,
 			})
 		}
 
-		seen[subAccountID] = struct{}{}
+		seen[key] = struct{}{}
 	}
 
 	return nil
@@ -166,6 +177,7 @@ type RouteField string
 const (
 	RouteFieldCurrency                       RouteField = "currency"
 	RouteFieldTaxCode                        RouteField = "tax_code"
+	RouteFieldTaxBehavior                    RouteField = "tax_behavior"
 	RouteFieldFeatures                       RouteField = "features"
 	RouteFieldCostBasis                      RouteField = "cost_basis"
 	RouteFieldCreditPriority                 RouteField = "credit_priority"
@@ -184,6 +196,31 @@ func (r RequireSameRouteRule) Validate(tx TxView) error {
 	}
 
 	return requireMatchingRouteFields(tx.EntriesOf(r.Left), tx.EntriesOf(r.Right), r.Left, r.Right, r.Fields)
+}
+
+type RequireTaxDimensionScopeRule struct{}
+
+func (r RequireTaxDimensionScopeRule) Validate(tx TxView) error {
+	for _, entry := range tx.Entries() {
+		switch entry.AccountType() {
+		case ledger.AccountTypeCustomerAccrued, ledger.AccountTypeEarnings:
+			if entry.Route().TaxCode == nil && entry.Route().TaxBehavior != nil {
+				return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
+					"reason":       "tax_behavior_requires_tax_code_on_accrued_or_earnings",
+					"account_type": entry.AccountType(),
+				})
+			}
+		default:
+			if entry.Route().TaxCode != nil || entry.Route().TaxBehavior != nil {
+				return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
+					"reason":       "tax_dimensions_only_allowed_on_accrued_or_earnings",
+					"account_type": entry.AccountType(),
+				})
+			}
+		}
+	}
+
+	return nil
 }
 
 type RequireAccountAuthorizationStatusRule struct {
@@ -206,6 +243,8 @@ func sameRouteField(left ledger.Route, right ledger.Route, field RouteField) (bo
 		return left.Currency == right.Currency, nil
 	case RouteFieldTaxCode:
 		return optionalStringEqual(left.TaxCode, right.TaxCode), nil
+	case RouteFieldTaxBehavior:
+		return optionalTaxBehaviorEqual(left.TaxBehavior, right.TaxBehavior), nil
 	case RouteFieldFeatures:
 		return stringSliceEqual(left.Features, right.Features), nil
 	case RouteFieldCostBasis:
@@ -301,6 +340,8 @@ func (r RequireAccruedCostBasisTranslationRule) Validate(tx TxView) error {
 		ledger.AccountTypeCustomerAccrued,
 		[]RouteField{
 			RouteFieldCurrency,
+			RouteFieldTaxCode,
+			RouteFieldTaxBehavior,
 		},
 	)
 }
@@ -321,13 +362,12 @@ func (r RequireFBOCostBasisTranslationRule) Validate(tx TxView) error {
 		})
 	}
 
-	return requireKnownToUnknownCostBasisTranslation(
+	return requireKnownToUnknownCostBasisTranslationEitherDirection(
 		positiveEntries,
 		negativeEntries,
 		ledger.AccountTypeCustomerFBO,
 		[]RouteField{
 			RouteFieldCurrency,
-			RouteFieldTaxCode,
 			RouteFieldFeatures,
 			RouteFieldCreditPriority,
 		},

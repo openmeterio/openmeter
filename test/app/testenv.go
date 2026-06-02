@@ -260,7 +260,12 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 		Logger: slog.Default(),
 	})
 	require.NoError(t, err)
-	taxCodeService := taxcodeservice.New(taxCodeAdapter, slog.Default())
+
+	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
+		Adapter: taxCodeAdapter,
+		Logger:  slog.Default(),
+	})
+	require.NoError(t, err)
 
 	// Billing
 	billingAdapter, err := billingadapter.New(billingadapter.Config{

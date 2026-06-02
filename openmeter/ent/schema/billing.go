@@ -491,10 +491,11 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Ref("billing_invoice_lines").
 			Field("charge_id").
 			Unique(),
-		edge.To("charge_flat_fee_payment", ChargeFlatFeePayment.Type).
+		edge.To("charge_flat_fee_run_payment", ChargeFlatFeeRunPayment.Type).
 			Unique(),
-		edge.To("charge_flat_fee_credit_allocations", ChargeFlatFeeCreditAllocations.Type),
-		edge.To("charge_flat_fee_invoiced_usage", ChargeFlatFeeInvoicedUsage.Type),
+		edge.To("charge_flat_fee_run_credit_allocations", ChargeFlatFeeRunCreditAllocations.Type),
+		edge.To("charge_flat_fee_runs", ChargeFlatFeeRun.Type).
+			Unique(),
 		edge.To("charge_usage_based_run", ChargeUsageBasedRuns.Type).
 			Unique(),
 		edge.To("charge_credit_purchase_invoiced_payment", ChargeCreditPurchaseInvoicedPayment.Type).
@@ -614,13 +615,42 @@ type BillingInvoiceSplitLineGroup struct {
 func (BillingInvoiceSplitLineGroup) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.ResourceMixin{},
-		InvoiceLineBaseMixin{},
-		TaxMixin{},
 	}
 }
 
 func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
 	return []ent.Field{
+		field.String("currency").
+			GoType(currencyx.Code("")).
+			NotEmpty().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "varchar(3)",
+			}),
+
+		// Deprecated fields: split line groups no longer carry tax configuration.
+		// Tax configuration is stored on invoice lines and detailed lines.
+		field.JSON("tax_config", productcatalog.TaxConfig{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Deprecated("split line groups no longer carry tax configuration; use invoice line tax fields instead"),
+
+		field.String("tax_code_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Deprecated("split line groups no longer carry tax configuration; use invoice line tax fields instead"),
+
+		field.Enum("tax_behavior").
+			GoType(productcatalog.TaxBehavior("")).
+			Optional().
+			Nillable().
+			Deprecated("split line groups no longer carry tax configuration; use invoice line tax fields instead"),
+
 		field.Time("service_period_start"),
 		field.Time("service_period_end"),
 
@@ -688,6 +718,7 @@ func (BillingInvoiceSplitLineGroup) Indexes() []ent.Index {
 			Annotations(
 				entsql.IndexWhere("unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
 			).Unique(),
+		index.Fields("tax_code_id"),
 	}
 }
 
@@ -1186,6 +1217,8 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("billing_invoice_validation_issues", BillingInvoiceValidationIssue.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("charge_flat_fee_runs", ChargeFlatFeeRun.Type),
+		edge.To("charge_usage_based_runs", ChargeUsageBasedRuns.Type),
 		edge.From("billing_invoice_customer", Customer.Type).
 			Ref("billing_invoice").
 			Field("customer_id").

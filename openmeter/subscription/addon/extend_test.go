@@ -874,6 +874,21 @@ func TestExtendRestore(t *testing.T) {
 
 type nonPointerRateCard struct{}
 
+func (n nonPointerRateCard) HasFeature() bool {
+	return false
+}
+
+func (n nonPointerRateCard) GetFeatureID() *string {
+	return nil
+}
+
+func (n nonPointerRateCard) GetFeatureKey() *string {
+	return nil
+}
+
+func (n nonPointerRateCard) SetFeature(_, _ *string) {
+}
+
 var _ productcatalog.RateCard = nonPointerRateCard{}
 
 func (n nonPointerRateCard) IsBillable() bool {

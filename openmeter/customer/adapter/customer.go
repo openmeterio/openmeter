@@ -11,6 +11,11 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	appcustominvoicingcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
+	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	billingcustomeroverridedb "github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	billingprofiledb "github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
@@ -54,18 +59,40 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		query = filter.ApplyToQuery(query, input.Name, customerdb.FieldName)
 		query = filter.ApplyToQuery(query, input.PrimaryEmail, customerdb.FieldPrimaryEmail)
 
-		if input.Subject != nil {
-			query = query.Where(customerdb.HasSubjectsWith(
-				customersubjectsdb.SubjectKeyContainsFold(*input.Subject),
-				customersubjectsdb.Or(
-					customersubjectsdb.DeletedAtIsNil(),
-					customersubjectsdb.DeletedAtGTE(now),
-				),
-			))
+		if input.PlanKey != nil {
+			applyActiveSubscriptionFilterWithPlanKey(query, now, input.PlanKey)
 		}
 
-		if input.PlanKey != nil {
-			applyActiveSubscriptionFilterWithPlanKey(query, now, *input.PlanKey)
+		if input.UsageAttributionSubjectKey != nil {
+			if p := filter.SelectPredicate[predicate.CustomerSubjects](
+				filter.Filter(*input.UsageAttributionSubjectKey),
+				customersubjectsdb.FieldSubjectKey,
+			); p != nil {
+				query = query.Where(customerdb.HasSubjectsWith(
+					*p,
+					customersubjectsdb.Or(
+						customersubjectsdb.DeletedAtIsNil(),
+						customersubjectsdb.DeletedAtGTE(now),
+					),
+				))
+			}
+		}
+
+		if input.BillingProfileID != nil {
+			defaultProfileID, err := repo.db.BillingProfile.Query().
+				Where(
+					billingprofiledb.Namespace(input.Namespace),
+					billingprofiledb.Default(true),
+					billingprofiledb.DeletedAtIsNil(),
+				).
+				FirstID(ctx)
+			if err != nil {
+				return pagination.Result[customer.Customer]{}, fmt.Errorf("resolving default billing profile id: %w", err)
+			}
+
+			if p := buildBillingProfileIDPredicate(*input.BillingProfileID, defaultProfileID); p != nil {
+				query = query.Where(*p)
+			}
 		}
 
 		if len(input.CustomerIDs) > 0 {
@@ -365,6 +392,39 @@ func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCusto
 			Exec(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to delete customer subjects: %w", err)
+		}
+
+		// Soft delete the app customer associations
+		err = repo.db.AppCustomer.Update().
+			Where(appcustomerdb.CustomerID(input.ID)).
+			Where(appcustomerdb.Namespace(input.Namespace)).
+			Where(appcustomerdb.DeletedAtIsNil()).
+			SetDeletedAt(deletedAt).
+			Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to delete app customer: %w", err)
+		}
+
+		// Soft delete the app stripe customer associations
+		err = repo.db.AppStripeCustomer.Update().
+			Where(appstripecustomerdb.CustomerID(input.ID)).
+			Where(appstripecustomerdb.Namespace(input.Namespace)).
+			Where(appstripecustomerdb.DeletedAtIsNil()).
+			SetDeletedAt(deletedAt).
+			Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to delete app stripe customer: %w", err)
+		}
+
+		// Soft delete the app custom invoicing customer associations
+		err = repo.db.AppCustomInvoicingCustomer.Update().
+			Where(appcustominvoicingcustomerdb.CustomerID(input.ID)).
+			Where(appcustominvoicingcustomerdb.Namespace(input.Namespace)).
+			Where(appcustominvoicingcustomerdb.DeletedAtIsNil()).
+			SetDeletedAt(deletedAt).
+			Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to delete app custom invoicing customer: %w", err)
 		}
 
 		return nil
@@ -727,12 +787,14 @@ func applyActiveSubscriptionFilter(query *entdb.SubscriptionQuery, at time.Time)
 	query.Where(activeSubscriptionFilter(at)...)
 }
 
-func applyActiveSubscriptionFilterWithPlanKey(query *entdb.CustomerQuery, at time.Time, planKey string) {
-	predicates := activeSubscriptionFilter(at)
+func applyActiveSubscriptionFilterWithPlanKey(query *entdb.CustomerQuery, at time.Time, planKey *filter.FilterString) {
+	p := filter.SelectPredicate[predicate.Plan](filter.Filter(*planKey), plandb.FieldKey)
+	if p == nil {
+		return
+	}
 
-	predicates = append(predicates, subscriptiondb.HasPlanWith(
-		plandb.Key(planKey),
-	))
+	predicates := activeSubscriptionFilter(at)
+	predicates = append(predicates, subscriptiondb.HasPlanWith(*p))
 
 	query.Where(
 		customerdb.HasSubscriptionWith(predicates...),
@@ -752,4 +814,57 @@ func activeSubscriptionFilter(at time.Time) []predicate.Subscription {
 		),
 		subscriptiondb.CreatedAtLTE(at),
 	}
+}
+
+// buildBillingProfileIDPredicate builds a customer predicate that filters on
+// the customer's *effective* billing profile id — i.e.
+// COALESCE(override.billing_profile_id, namespace_default_profile.id).
+//
+// The filter is routed through filter.Select on both
+// billing_customer_override.billing_profile_id (for customers with an explicit
+// live override) and billing_profile.id (via an EXISTS subquery, for customers
+// who resolve to the namespace default).
+func buildBillingProfileIDPredicate(f filter.FilterULID, defaultProfileID string) *predicate.Customer {
+	overrideSelector := f.Select(billingcustomeroverridedb.FieldBillingProfileID)
+	if overrideSelector == nil {
+		return nil
+	}
+
+	preds := []predicate.Customer{
+		customerdb.HasBillingCustomerOverrideWith(
+			billingcustomeroverridedb.DeletedAtIsNil(),
+			predicate.BillingCustomerOverride(overrideSelector),
+		),
+	}
+
+	if defaultSelector := f.Select(billingprofiledb.FieldID); defaultSelector != nil {
+		// Resolves to the default profile: no live override OR a live override
+		// with NULL profile_id.
+		resolvesToDefault := customerdb.Or(
+			customerdb.Not(customerdb.HasBillingCustomerOverrideWith(
+				billingcustomeroverridedb.DeletedAtIsNil(),
+			)),
+			customerdb.HasBillingCustomerOverrideWith(
+				billingcustomeroverridedb.DeletedAtIsNil(),
+				billingcustomeroverridedb.BillingProfileIDIsNil(),
+			),
+		)
+
+		// EXISTS subquery that pins the namespace default profile row by id
+		// and applies the user's filter to that row's id. This lets eq, ne,
+		// in (and the And/Or wrappers) all flow through filter.Select.
+		defaultMatchesFilter := predicate.Customer(func(s *sql.Selector) {
+			bp := sql.Table(billingprofiledb.Table)
+			sub := sql.Select(bp.C(billingprofiledb.FieldID)).
+				From(bp).
+				Where(sql.EQ(bp.C(billingprofiledb.FieldID), defaultProfileID))
+			predicate.BillingProfile(defaultSelector)(sub)
+			s.Where(sql.Exists(sub))
+		})
+
+		preds = append(preds, customerdb.And(resolvesToDefault, defaultMatchesFilter))
+	}
+
+	p := customerdb.Or(preds...)
+	return &p
 }

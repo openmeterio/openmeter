@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pglockx"
 	"github.com/openmeterio/openmeter/pkg/redis"
 )
 
@@ -196,6 +197,7 @@ func TestComplete(t *testing.T) {
 		Credits: CreditsConfiguration{
 			Enabled:                 false,
 			EnableCreditThenInvoice: false,
+			FeatureFlag:             "",
 		},
 		Sink: SinkConfiguration{
 			GroupId:                 "openmeter-sink-worker",
@@ -402,6 +404,11 @@ func TestComplete(t *testing.T) {
 			SendingTimeout:    time.Hour,
 			PendingTimeout:    2 * time.Hour,
 			ReconcilerWorkers: 10,
+			Lock: pglockx.Config{
+				LeaseTime:         7 * time.Minute,
+				HeartbeatInterval: 29 * time.Second,
+				Owner:             "lock-owner",
+			},
 		},
 		Svix: svix.SvixConfig{
 			APIKey:    "test-svix-token",
@@ -418,6 +425,9 @@ func TestComplete(t *testing.T) {
 			ReadTimeout:       60 * time.Second,
 			WriteTimeout:      90 * time.Second,
 			IdleTimeout:       120 * time.Second,
+			ResponseValidation: ResponseValidationConfig{
+				Mode: ResponseValidationModeOff,
+			},
 		},
 		ProgressManager: ProgressManagerConfiguration{
 			Enabled:    false,
@@ -443,6 +453,26 @@ func TestComplete(t *testing.T) {
 			`^reserved\..*$`,
 			`^_\..*$`,
 			`^openmeter\..*$`,
+		},
+		TaxCode: TaxCodeConfiguration{
+			Seeds: []TaxCodeSeed{
+				{
+					Key:              "default",
+					Name:             "Provider default",
+					DefaultInvoicing: true,
+				},
+				{
+					Key:                "nontaxable",
+					Name:               "Nontaxable",
+					DefaultCreditGrant: true,
+					AppMappings: []TaxCodeAppMapping{
+						{
+							AppType: "stripe",
+							TaxCode: "txcd_00000000",
+						},
+					},
+				},
+			},
 		},
 	}
 

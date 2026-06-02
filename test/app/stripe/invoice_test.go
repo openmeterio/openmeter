@@ -22,7 +22,16 @@ import (
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
+	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -46,6 +55,8 @@ type StripeInvoiceTestSuite struct {
 	Fixture          *Fixture
 	SecretService    secret.Service
 	StripeAppClient  *StripeAppClientMock
+	Charges          charges.Service
+	LedgerResolver   *ledgerresolvers.AccountResolver
 }
 
 func TestStripeInvoicing(t *testing.T) {
@@ -104,6 +115,40 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 	s.Require().NoError(err, "failed to create app stripe service")
 
 	s.AppStripeService = appStripeService
+
+	ledgerDeps, err := ledgertestutils.InitDeps(s.DBClient, slog.Default())
+	s.Require().NoError(err, "failed to initialize ledger dependencies")
+
+	s.LedgerResolver = ledgerDeps.ResolversService
+
+	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Ledger: ledgerDeps.HistoricalLedger,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: ledgerDeps.ResolversService,
+			AccountCatalog: ledgerDeps.AccountService,
+			BalanceQuerier: ledgerDeps.HistoricalLedger,
+		},
+		AccountLocker:      ledgerDeps.AccountService,
+		TransactionManager: enttx.NewCreator(s.DBClient),
+	})
+	s.Require().NoError(err)
+
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerDeps.HistoricalLedger, ledgerDeps.HistoricalLedger, ledgerDeps.ResolversService, ledgerDeps.AccountService, ledgerbreakage.NewNoopService(), enttx.NewCreator(s.DBClient))
+	s.Require().NoError(err)
+
+	chargeStack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
+		Client:                s.DBClient,
+		Logger:                slog.Default(),
+		BillingService:        s.BillingService,
+		FeatureService:        s.FeatureService,
+		StreamingConnector:    s.MockStreamingConnector,
+		TaxCodeService:        s.TaxCodeService,
+		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(ledgerDeps.HistoricalLedger, transactions.ResolverDependencies{AccountService: ledgerDeps.ResolversService, AccountCatalog: ledgerDeps.AccountService, BalanceQuerier: ledgerDeps.HistoricalLedger}, collectorService),
+		CreditPurchaseHandler: creditPurchaseHandler,
+		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(ledgerDeps.HistoricalLedger, transactions.ResolverDependencies{AccountService: ledgerDeps.ResolversService, AccountCatalog: ledgerDeps.AccountService, BalanceQuerier: ledgerDeps.HistoricalLedger}, collectorService),
+	})
+	s.Require().NoError(err, "failed to initialize charges service")
+	s.Charges = chargeStack.ChargesService
 
 	// Fixture
 	s.Fixture = NewFixture(s.AppService, s.CustomerService, stripeClient, stripeAppClient)

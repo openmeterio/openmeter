@@ -1,39 +1,61 @@
 package chargeadapter
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 // creditPurchaseHandler maps credit purchase lifecycle events to ledger transaction templates.
 type creditPurchaseHandler struct {
 	ledger          ledger.Ledger
+	balanceQuerier  ledger.BalanceQuerier
 	accountResolver ledger.AccountResolver
-	accountService  ledgeraccount.Service
+	accountCatalog  ledger.AccountCatalog
+
+	breakage           breakage.Service
+	transactionManager transaction.Creator
 }
 
 var _ chargecreditpurchase.Handler = (*creditPurchaseHandler)(nil)
 
 func NewCreditPurchaseHandler(
 	ledger ledger.Ledger,
+	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
-	accountService ledgeraccount.Service,
-) chargecreditpurchase.Handler {
-	return &creditPurchaseHandler{
-		ledger:          ledger,
-		accountResolver: accountResolver,
-		accountService:  accountService,
+	accountCatalog ledger.AccountCatalog,
+	breakageService breakage.Service,
+	transactionManager transaction.Creator,
+) (chargecreditpurchase.Handler, error) {
+	if breakageService == nil {
+		breakageService = breakage.NewNoopService()
 	}
+	if transactionManager == nil {
+		return nil, fmt.Errorf("transaction manager is required")
+	}
+
+	return &creditPurchaseHandler{
+		ledger:             ledger,
+		balanceQuerier:     balanceQuerier,
+		accountResolver:    accountResolver,
+		accountCatalog:     accountCatalog,
+		breakage:           breakageService,
+		transactionManager: transactionManager,
+	}, nil
 }
 
 func (h *creditPurchaseHandler) OnPromotionalCreditPurchase(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
@@ -44,10 +66,11 @@ func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, c
 	return h.issueCreditPurchase(ctx, charge)
 }
 
-func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
-	if err := charge.Validate(); err != nil {
+func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, input chargecreditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {
+	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
+	charge := input.Charge
 
 	costBasis, err := charge.Intent.Settlement.GetCostBasis()
 	if err != nil {
@@ -67,8 +90,8 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 			CustomerID: customerID,
 			Namespace:  charge.Namespace,
 		},
-		transactions.FundCustomerReceivableTemplate{
-			At:        charge.CreatedAt,
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
+			At:        input.EventAt,
 			Amount:    charge.Intent.CreditAmount,
 			Currency:  charge.Intent.Currency,
 			CostBasis: &costBasis,
@@ -98,10 +121,11 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	}, nil
 }
 
-func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
-	if err := charge.Validate(); err != nil {
+func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Context, input chargecreditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {
+	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
+	charge := input.Charge
 
 	costBasis, err := charge.Intent.Settlement.GetCostBasis()
 	if err != nil {
@@ -121,8 +145,8 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 			CustomerID: customerID,
 			Namespace:  charge.Namespace,
 		},
-		transactions.SettleCustomerReceivablePaymentTemplate{
-			At:        charge.CreatedAt,
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
+			At:        input.EventAt,
 			Amount:    charge.Intent.CreditAmount,
 			Currency:  charge.Intent.Currency,
 			CostBasis: &costBasis,
@@ -156,6 +180,12 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 // It attributes outstanding advance receivables and unattributed accrued balances to the given cost basis,
 // then issues new receivables for any remaining amount.
 func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+	return transaction.Run(ctx, h.transactionManager, func(ctx context.Context) (ledgertransaction.GroupReference, error) {
+		return h.issueCreditPurchaseGroup(ctx, charge)
+	})
+}
+
+func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
 	if err := charge.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
@@ -175,24 +205,14 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 	}
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 
-	advanceOutstanding, err := h.outstandingAdvanceBalance(ctx, customerID, charge.Intent.Currency)
+	advanceAttributions, err := h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount)
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get outstanding advance balance: %w", err)
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get advance attributions: %w", err)
 	}
 
-	unattributedAccrued, err := h.unattributedAccruedBalance(ctx, customerID, charge.Intent.Currency)
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get unattributed accrued balance: %w", err)
-	}
-
-	advanceAttributionAmount := charge.Intent.CreditAmount
-	if advanceAttributionAmount.GreaterThan(advanceOutstanding) {
-		advanceAttributionAmount = advanceOutstanding
-	}
-
-	accruedAttributionAmount := advanceAttributionAmount
-	if accruedAttributionAmount.GreaterThan(unattributedAccrued) {
-		accruedAttributionAmount = unattributedAccrued
+	advanceAttributionAmount := alpacadecimal.Zero
+	for _, attribution := range advanceAttributions {
+		advanceAttributionAmount = advanceAttributionAmount.Add(attribution.advanceAmount)
 	}
 
 	issuableAmount := charge.Intent.CreditAmount.Sub(advanceAttributionAmount)
@@ -202,23 +222,25 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 
 	var templates []transactions.TransactionTemplate
 
-	if advanceAttributionAmount.IsPositive() {
+	for _, attribution := range advanceAttributions {
 		templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
 			At:        charge.CreatedAt,
-			Amount:    advanceAttributionAmount,
+			Amount:    attribution.advanceAmount,
 			Currency:  charge.Intent.Currency,
 			CostBasis: &costBasis,
 		})
-	}
 
-	if accruedAttributionAmount.IsPositive() {
-		templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
-			At:            charge.CreatedAt,
-			Amount:        accruedAttributionAmount,
-			Currency:      charge.Intent.Currency,
-			FromCostBasis: nil,
-			ToCostBasis:   &costBasis,
-		})
+		if attribution.accruedAmount.IsPositive() {
+			templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
+				At:            charge.CreatedAt,
+				Amount:        attribution.accruedAmount,
+				Currency:      charge.Intent.Currency,
+				TaxCode:       attribution.taxCode,
+				TaxBehavior:   attribution.taxBehavior,
+				FromCostBasis: nil,
+				ToCostBasis:   &costBasis,
+			})
+		}
 	}
 
 	if issuableAmount.IsPositive() {
@@ -236,13 +258,13 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 		// Promotional grants settle immediately through wash so the credited FBO balance
 		// does not leave an unsettled receivable behind.
 		templates = append(templates,
-			transactions.FundCustomerReceivableTemplate{
+			transactions.AuthorizeCustomerReceivablePaymentTemplate{
 				At:        charge.CreatedAt,
 				Amount:    charge.Intent.CreditAmount,
 				Currency:  charge.Intent.Currency,
 				CostBasis: &costBasis,
 			},
-			transactions.SettleCustomerReceivablePaymentTemplate{
+			transactions.SettleCustomerReceivableFromPaymentTemplate{
 				At:        charge.CreatedAt,
 				Amount:    charge.Intent.CreditAmount,
 				Currency:  charge.Intent.Currency,
@@ -253,10 +275,6 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 		// Deferred settlement modes are handled by later lifecycle events.
 	default:
 		return ledgertransaction.GroupReference{}, fmt.Errorf("unsupported settlement type: %s", charge.Intent.Settlement.Type())
-	}
-
-	if len(templates) == 0 {
-		return ledgertransaction.GroupReference{}, nil
 	}
 
 	inputs, err := transactions.ResolveTransactions(
@@ -270,6 +288,29 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 	)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	var pendingBreakage []breakage.PendingRecord
+	if charge.Intent.ExpiresAt != nil {
+		breakageInputs, pending, err := h.breakage.PlanIssuance(ctx, breakage.PlanIssuanceInput{
+			CustomerID:             customerID,
+			Amount:                 charge.Intent.CreditAmount,
+			ImmediateReleaseAmount: advanceAttributionAmount,
+			Currency:               charge.Intent.Currency,
+			CostBasis:              &costBasis,
+			CreditPriority:         charge.Intent.Priority,
+			ExpiresAt:              *charge.Intent.ExpiresAt,
+		})
+		if err != nil {
+			return ledgertransaction.GroupReference{}, fmt.Errorf("resolve breakage plan: %w", err)
+		}
+
+		inputs = append(inputs, breakageInputs...)
+		pendingBreakage = append(pendingBreakage, pending...)
+	}
+
+	if len(inputs) == 0 {
+		return ledgertransaction.GroupReference{}, nil
 	}
 
 	for i, input := range inputs {
@@ -287,6 +328,10 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
 	}
 
+	if err := h.breakage.PersistCommittedRecords(ctx, pendingBreakage, transactionGroup); err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("persist breakage records: %w", err)
+	}
+
 	return ledgertransaction.GroupReference{
 		TransactionGroupID: transactionGroup.ID().ID,
 	}, nil
@@ -294,60 +339,230 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge 
 
 func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDependencies {
 	return transactions.ResolverDependencies{
-		AccountService:    h.accountResolver,
-		SubAccountService: h.accountService,
+		AccountService: h.accountResolver,
+		AccountCatalog: h.accountCatalog,
+		BalanceQuerier: h.balanceQuerier,
 	}
 }
 
-func (h *creditPurchaseHandler) outstandingAdvanceBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code) (alpacadecimal.Decimal, error) {
-	customerAccounts, err := h.accountResolver.GetCustomerAccounts(ctx, customerID)
-	if err != nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("get customer accounts: %w", err)
-	}
-
-	advanceReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency:                       currency,
-		CostBasis:                      nil,
-		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
-	})
-	if err != nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("get advance receivable sub-account: %w", err)
-	}
-
-	balance, err := settledBalanceForSubAccount(ctx, advanceReceivable)
-	if err != nil {
-		return alpacadecimal.Decimal{}, err
-	}
-
-	if balance.IsNegative() {
-		return balance.Neg(), nil
-	}
-
-	return alpacadecimal.Zero, nil
+type advanceAttribution struct {
+	taxCode       *string
+	taxBehavior   *ledger.TaxBehavior
+	advanceAmount alpacadecimal.Decimal
+	accruedAmount alpacadecimal.Decimal
 }
 
-func (h *creditPurchaseHandler) unattributedAccruedBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code) (alpacadecimal.Decimal, error) {
+type unattributedAccruedBalance struct {
+	key         taxDimensionKey
+	taxCode     *string
+	taxBehavior *ledger.TaxBehavior
+	amount      alpacadecimal.Decimal
+}
+
+type taxDimensionKey struct {
+	taxCode     string
+	taxBehavior string
+}
+
+func (h *creditPurchaseHandler) advanceAttributions(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, amount alpacadecimal.Decimal) ([]advanceAttribution, error) {
 	customerAccounts, err := h.accountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("get customer accounts: %w", err)
+		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	unknownAccrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-		Currency:  currency,
-		CostBasis: nil,
+	openStatus := ledger.TransactionAuthorizationStatusOpen
+	advanceReceivables, err := h.accountCatalog.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
+		Namespace: customerAccounts.ReceivableAccount.ID().Namespace,
+		AccountID: customerAccounts.ReceivableAccount.ID().ID,
+		Route: ledger.RouteFilter{
+			Currency:                       currency,
+			CostBasis:                      mo.Some[*alpacadecimal.Decimal](nil),
+			TransactionAuthorizationStatus: &openStatus,
+		},
 	})
 	if err != nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("get unattributed accrued sub-account: %w", err)
+		return nil, fmt.Errorf("list advance receivable sub-accounts: %w", err)
 	}
+	slices.SortStableFunc(advanceReceivables, compareSubAccountRoute)
 
-	balance, err := settledBalanceForSubAccount(ctx, unknownAccrued)
+	unattributedAccrued, err := h.unattributedAccruedBalances(ctx, customerAccounts.AccruedAccount, currency)
 	if err != nil {
-		return alpacadecimal.Decimal{}, err
+		return nil, err
 	}
 
-	if balance.IsPositive() {
-		return balance, nil
+	calculator, err := currency.Calculator()
+	if err != nil {
+		return nil, fmt.Errorf("get currency calculator: %w", err)
 	}
 
-	return alpacadecimal.Zero, nil
+	remaining := amount
+	attributions := make([]advanceAttribution, 0, len(advanceReceivables))
+	for _, advanceReceivable := range advanceReceivables {
+		if !remaining.IsPositive() {
+			break
+		}
+
+		balance, err := settledBalanceForSubAccount(ctx, h.balanceQuerier, advanceReceivable)
+		if err != nil {
+			return nil, err
+		}
+		if !balance.IsNegative() {
+			continue
+		}
+
+		attributed := balance.Neg()
+		if attributed.GreaterThan(remaining) {
+			attributed = remaining
+		}
+
+		accruedAttributable := attributed
+		totalUnattributedAccrued := totalUnattributedAccruedBalance(unattributedAccrued)
+		if accruedAttributable.GreaterThan(totalUnattributedAccrued) {
+			accruedAttributable = totalUnattributedAccrued
+		}
+
+		if accruedAttributable.IsPositive() {
+			accruedAttributions, err := allocateAccruedAttribution(calculator, accruedAttributable, unattributedAccrued)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, allocation := range accruedAttributions {
+				for i := range unattributedAccrued {
+					if unattributedAccrued[i].key != allocation.Key {
+						continue
+					}
+
+					attributions = append(attributions, advanceAttribution{
+						taxCode:       unattributedAccrued[i].taxCode,
+						taxBehavior:   unattributedAccrued[i].taxBehavior,
+						advanceAmount: allocation.Amount,
+						accruedAmount: allocation.Amount,
+					})
+					unattributedAccrued[i].amount = unattributedAccrued[i].amount.Sub(allocation.Amount)
+					break
+				}
+			}
+		}
+
+		unattributedAdvanceAmount := attributed.Sub(accruedAttributable)
+		if unattributedAdvanceAmount.IsPositive() {
+			attributions = append(attributions, advanceAttribution{
+				advanceAmount: unattributedAdvanceAmount,
+			})
+		}
+		remaining = remaining.Sub(attributed)
+	}
+
+	return attributions, nil
+}
+
+func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context, accruedAccount ledger.CustomerAccruedAccount, currency currencyx.Code) ([]unattributedAccruedBalance, error) {
+	subAccounts, err := h.accountCatalog.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
+		Namespace: accruedAccount.ID().Namespace,
+		AccountID: accruedAccount.ID().ID,
+		Route: ledger.RouteFilter{
+			Currency:  currency,
+			CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list unattributed accrued sub-accounts: %w", err)
+	}
+
+	balancesByKey := make(map[taxDimensionKey]unattributedAccruedBalance, len(subAccounts))
+	keys := make([]taxDimensionKey, 0, len(subAccounts))
+	for _, subAccount := range subAccounts {
+		balance, err := settledBalanceForSubAccount(ctx, h.balanceQuerier, subAccount)
+		if err != nil {
+			return nil, err
+		}
+		if !balance.IsPositive() {
+			continue
+		}
+
+		route := subAccount.Route()
+		key := taxDimensionRouteKey(route)
+		if _, ok := balancesByKey[key]; !ok {
+			keys = append(keys, key)
+			balancesByKey[key] = unattributedAccruedBalance{
+				key:         key,
+				taxCode:     route.TaxCode,
+				taxBehavior: route.TaxBehavior,
+			}
+		}
+
+		current := balancesByKey[key]
+		current.amount = current.amount.Add(balance)
+		balancesByKey[key] = current
+	}
+
+	slices.SortFunc(keys, compareTaxDimensionKey)
+
+	return lo.Map(keys, func(key taxDimensionKey, _ int) unattributedAccruedBalance {
+		return balancesByKey[key]
+	}), nil
+}
+
+func allocateAccruedAttribution(
+	calculator currencyx.Calculator,
+	amount alpacadecimal.Decimal,
+	unattributedAccrued []unattributedAccruedBalance,
+) ([]currencyx.AmountAllocation[taxDimensionKey], error) {
+	items := make([]currencyx.AmountAllocationItem[taxDimensionKey], 0, len(unattributedAccrued))
+	for _, balance := range unattributedAccrued {
+		if !balance.amount.IsPositive() {
+			continue
+		}
+
+		items = append(items, currencyx.AmountAllocationItem[taxDimensionKey]{
+			Key:    balance.key,
+			Amount: balance.amount,
+		})
+	}
+
+	allocations, err := currencyx.AllocateByAmount(calculator, currencyx.AmountAllocationInput[taxDimensionKey]{
+		Amount:     amount,
+		Items:      items,
+		CompareKey: compareTaxDimensionKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("allocate accrued attribution: %w", err)
+	}
+
+	return allocations, nil
+}
+
+func totalUnattributedAccruedBalance(unattributedAccrued []unattributedAccruedBalance) alpacadecimal.Decimal {
+	total := alpacadecimal.Zero
+	for _, balance := range unattributedAccrued {
+		if balance.amount.IsPositive() {
+			total = total.Add(balance.amount)
+		}
+	}
+
+	return total
+}
+
+func taxDimensionRouteKey(route ledger.Route) taxDimensionKey {
+	return taxDimensionKey{
+		taxCode:     lo.FromPtrOr(route.TaxCode, "null"),
+		taxBehavior: string(lo.FromPtrOr(route.TaxBehavior, "null")),
+	}
+}
+
+func compareTaxDimensionKey(left, right taxDimensionKey) int {
+	if c := cmp.Compare(left.taxCode, right.taxCode); c != 0 {
+		return c
+	}
+
+	return cmp.Compare(left.taxBehavior, right.taxBehavior)
+}
+
+func compareSubAccountRoute(left, right ledger.SubAccount) int {
+	if c := cmp.Compare(left.Address().Route().RoutingKey().Value(), right.Address().Route().RoutingKey().Value()); c != 0 {
+		return c
+	}
+
+	return cmp.Compare(left.Address().SubAccountID(), right.Address().SubAccountID())
 }

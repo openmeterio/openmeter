@@ -1,7 +1,8 @@
 package ledger
 
 import (
-	"context"
+	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -9,14 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
-
-type Querier interface {
-	// QueryEntries queries ledger entries for the given parameters.
-	// QueryEntries(ctx context.Context, query Query) (pagination.Result[LedgerEntry], error)
-
-	// SumEntries sums the resultset of a Query. Account is mandatory.
-	SumEntries(ctx context.Context, query Query) (QuerySummedResult, error)
-}
 
 type Query struct {
 	Namespace string
@@ -78,6 +71,20 @@ func (p Query) Validate() error {
 		}
 	}
 
+	if p.Filters.AsOf != nil && p.Filters.AsOf.IsZero() {
+		return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
+			"reason": "as_of_invalid",
+			"as_of":  p.Filters.AsOf,
+			"error":  fmt.Errorf("as_of must not be zero"),
+		})
+	}
+
+	if p.Filters.After != nil && p.Filters.AsOf != nil {
+		return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
+			"reason": "after_as_of_both_set",
+		})
+	}
+
 	if _, err := p.Filters.Route.Normalize(); err != nil {
 		return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
 			"reason": "route_invalid",
@@ -93,6 +100,7 @@ type Filters struct {
 	// BookedAtPeriod is inclusive-exclusive... should it be? Maybe finally add period inclusivity params?
 	BookedAtPeriod *timeutil.OpenPeriod
 	After          *TransactionCursor
+	AsOf           *time.Time
 	TransactionID  *string
 	// AccountID narrows the query to a single account via its sub-accounts.
 	AccountID *string

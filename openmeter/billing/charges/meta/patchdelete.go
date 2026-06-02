@@ -33,6 +33,10 @@ func (p PatchDelete) GetPolicy() PatchDeletePolicy {
 	return p.policy
 }
 
+func (p PatchDelete) Op() PatchType {
+	return PatchTypeDelete
+}
+
 func (p PatchDelete) Trigger() stateless.Trigger {
 	return TriggerDelete
 }

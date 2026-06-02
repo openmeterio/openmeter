@@ -103,8 +103,9 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 		bookedAt := time.Now()
 
 		deps := transactions.ResolverDependencies{
-			AccountService:    resolversSvc,
-			SubAccountService: deps.AccountService,
+			AccountService: resolversSvc,
+			AccountCatalog: deps.AccountService,
+			BalanceQuerier: deps.HistoricalLedger,
 		}
 
 		scope := transactions.ResolutionScope{

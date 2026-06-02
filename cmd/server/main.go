@@ -119,6 +119,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	err = app.NamespaceManager.RegisterHandler(app.TaxCodeNamespaceHandler)
+	if err != nil {
+		logger.Error("failed to register tax code namespace handler", "error", err)
+		os.Exit(1)
+	}
+
 	// Initialize Namespace
 	err = initNamespace(app.NamespaceManager, logger)
 	if err != nil {
@@ -189,9 +195,11 @@ func main() {
 			ChargeService:               app.BillingRegistry.ChargesServiceOrNil(),
 			TaxCodeService:              app.TaxCodeService,
 			StreamingConnector:          app.StreamingConnector,
+			FeatureGate:                 app.FeatureGate,
 		},
 		RouterHooks:         lo.FromPtr(app.RouterHooks),
 		PostAuthMiddlewares: app.PostAuthMiddlewares,
+		ResponseValidation:  conf.Server.ResponseValidation,
 	})
 	if err != nil {
 		logger.Error("failed to create server", "error", err)

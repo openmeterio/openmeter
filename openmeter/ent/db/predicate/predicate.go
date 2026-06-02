@@ -209,17 +209,20 @@ func ChargeFlatFeeOrErr(p ChargeFlatFee, err error) ChargeFlatFee {
 	}
 }
 
-// ChargeFlatFeeCreditAllocations is the predicate function for chargeflatfeecreditallocations builders.
-type ChargeFlatFeeCreditAllocations func(*sql.Selector)
+// ChargeFlatFeeRun is the predicate function for chargeflatfeerun builders.
+type ChargeFlatFeeRun func(*sql.Selector)
 
-// ChargeFlatFeeDetailedLine is the predicate function for chargeflatfeedetailedline builders.
-type ChargeFlatFeeDetailedLine func(*sql.Selector)
+// ChargeFlatFeeRunCreditAllocations is the predicate function for chargeflatfeeruncreditallocations builders.
+type ChargeFlatFeeRunCreditAllocations func(*sql.Selector)
 
-// ChargeFlatFeeInvoicedUsage is the predicate function for chargeflatfeeinvoicedusage builders.
-type ChargeFlatFeeInvoicedUsage func(*sql.Selector)
+// ChargeFlatFeeRunDetailedLine is the predicate function for chargeflatfeerundetailedline builders.
+type ChargeFlatFeeRunDetailedLine func(*sql.Selector)
 
-// ChargeFlatFeePayment is the predicate function for chargeflatfeepayment builders.
-type ChargeFlatFeePayment func(*sql.Selector)
+// ChargeFlatFeeRunInvoicedUsage is the predicate function for chargeflatfeeruninvoicedusage builders.
+type ChargeFlatFeeRunInvoicedUsage func(*sql.Selector)
+
+// ChargeFlatFeeRunPayment is the predicate function for chargeflatfeerunpayment builders.
+type ChargeFlatFeeRunPayment func(*sql.Selector)
 
 // ChargeUsageBased is the predicate function for chargeusagebased builders.
 type ChargeUsageBased func(*sql.Selector)
@@ -308,6 +311,9 @@ func LLMCostPriceOrErr(p LLMCostPrice, err error) LLMCostPrice {
 // LedgerAccount is the predicate function for ledgeraccount builders.
 type LedgerAccount func(*sql.Selector)
 
+// LedgerBreakageRecord is the predicate function for ledgerbreakagerecord builders.
+type LedgerBreakageRecord func(*sql.Selector)
+
 // LedgerCustomerAccount is the predicate function for ledgercustomeraccount builders.
 type LedgerCustomerAccount func(*sql.Selector)
 
@@ -362,6 +368,9 @@ func NotificationRuleOrErr(p NotificationRule, err error) NotificationRule {
 		p(s)
 	}
 }
+
+// OrganizationDefaultTaxCodes is the predicate function for organizationdefaulttaxcodes builders.
+type OrganizationDefaultTaxCodes func(*sql.Selector)
 
 // Plan is the predicate function for plan builders.
 type Plan func(*sql.Selector)

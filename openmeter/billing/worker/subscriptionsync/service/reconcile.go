@@ -12,12 +12,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 )
 
-func (s *Service) buildSyncPlan(ctx context.Context, subsView subscription.SubscriptionView, asOf time.Time, customerDeletedAt *time.Time, currency currencyx.Calculator) (*reconciler.Plan, error) {
+// buildSyncPlan builds a sync plan for a subscription. If the subscription is deleted subsView should be nil.
+func (s *Service) buildSyncPlan(ctx context.Context, subs subscription.Subscription, subsView *subscription.SubscriptionView, asOf time.Time, customerDeletedAt *time.Time, currency currencyx.Calculator, dryRun bool) (*reconciler.Plan, error) {
 	span := tracex.Start[*reconciler.Plan](ctx, s.tracer, "billing.worker.subscription.sync.buildSyncPlan")
 
 	return span.Wrap(func(ctx context.Context) (*reconciler.Plan, error) {
 		persistedLoader := persistedstate.NewLoader(s.billingService, s.chargesService)
-		persisted, err := persistedLoader.LoadForSubscription(ctx, subsView.Subscription)
+		persisted, err := persistedLoader.LoadForSubscription(ctx, subs)
 		if err != nil {
 			return nil, err
 		}
@@ -33,11 +34,16 @@ func (s *Service) buildSyncPlan(ctx context.Context, subsView subscription.Subsc
 			return nil, err
 		}
 
+		persisted, err = s.repairChargeSubscriptionReferences(ctx, persisted, target, dryRun)
+		if err != nil {
+			return nil, err
+		}
+
 		return s.reconciler.Plan(ctx, reconciler.PlanInput{
-			Subscription: subsView.Subscription,
-			Currency:     currency,
-			Target:       target,
-			Persisted:    persisted,
+			SubscriptionSettlementMode: subs.SettlementMode,
+			Currency:                   currency,
+			Target:                     target,
+			Persisted:                  persisted,
 		})
 	})
 }

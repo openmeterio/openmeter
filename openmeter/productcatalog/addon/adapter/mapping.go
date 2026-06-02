@@ -98,6 +98,16 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 		Discounts:           lo.FromPtr(r.Discounts),
 	}
 
+	// This is a workaround to make sure that the feature key is set if the feature id is set.
+	if r.FeatureID != nil && r.FeatureKey == nil {
+		ratecardFeature, err := r.Edges.FeaturesOrErr()
+		if err != nil {
+			return nil, errors.New("feature is not loaded for ratecard")
+		}
+
+		meta.FeatureKey = &ratecardFeature.Key
+	}
+
 	// Map TaxCode if eagerly loaded.
 	taxCodeRow, err := r.Edges.TaxCodeOrErr()
 	if err == nil {

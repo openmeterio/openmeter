@@ -6,8 +6,8 @@ namespace Currencies;
 using TypeSpec.OpenAPI;
 
 /**
- * Currency type for custom currencies.
- * It should be a unique code but not conflicting with any existing standard currency codes.
+ * Currency type for custom currencies. It should be a unique code but not
+ * conflicting with any existing standard currency codes.
  */
 @friendlyName("BillingCurrencyType")
 enum CurrencyType {
@@ -55,7 +55,8 @@ model CurrencyBase<T extends CurrencyType> {
   type: T;
 
   /**
-   * The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".
+   * The name of the currency. It should be a human-readable string that represents
+   * the name of the currency, such as "US Dollar" or "Euro".
    */
   @visibility(Lifecycle.Create, Lifecycle.Read)
   @minLength(1)
@@ -71,7 +72,8 @@ model CurrencyBase<T extends CurrencyType> {
   description?: string;
 
   /**
-   * The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.
+   * The symbol of the currency. It should be a string that represents the symbol of
+   * the currency, such as "$" for US Dollar or "€" for Euro.
    */
   @visibility(Lifecycle.Create, Lifecycle.Read)
   @minLength(1)
@@ -91,8 +93,8 @@ model CurrencyFiat {
 }
 
 /**
- * Custom currency code.
- * It should be a unique code but not conflicting with any existing fiat currency codes.
+ * Custom currency code. It should be a unique code but not conflicting with any
+ * existing fiat currency codes.
  */
 @friendlyName("BillingCurrencyCodeCustom")
 @minLength(3)
@@ -114,5 +116,5 @@ model CurrencyCustom {
    * An ISO-8601 timestamp representation of the custom currency creation date.
    */
   @visibility(Lifecycle.Read)
-  created_at?: Shared.DateTime;
+  created_at: Shared.DateTime;
 }

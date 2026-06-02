@@ -14,7 +14,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	charges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaseadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/adapter"
+	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
@@ -27,6 +29,9 @@ import (
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
@@ -57,7 +62,9 @@ const (
 type testEnv struct {
 	*ledgertestutils.IntegrationEnv
 
+	BreakageService   ledgerbreakage.Service
 	Service           *service
+	creditPurchase    creditpurchase.Service
 	flatFeeService    flatfee.Service
 	usageBasedService usagebased.Service
 	featureMeters     feature.FeatureMeters
@@ -161,13 +168,33 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
-	collectorService := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: base.Deps.HistoricalLedger,
+	breakageAdapter, err := ledgerbreakageadapter.New(ledgerbreakageadapter.Config{
+		Client: base.DB,
+	})
+	require.NoError(t, err)
+
+	breakageService, err := ledgerbreakage.NewService(ledgerbreakage.Config{
+		Adapter: breakageAdapter,
 		Dependencies: transactions.ResolverDependencies{
-			AccountService:    base.Deps.ResolversService,
-			SubAccountService: base.Deps.AccountService,
+			AccountService: base.Deps.ResolversService,
+			AccountCatalog: base.Deps.AccountService,
+			BalanceQuerier: base.Deps.HistoricalLedger,
 		},
 	})
+	require.NoError(t, err)
+
+	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Ledger: base.Deps.HistoricalLedger,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: base.Deps.ResolversService,
+			AccountCatalog: base.Deps.AccountService,
+			BalanceQuerier: base.Deps.HistoricalLedger,
+		},
+		Breakage:           breakageService,
+		AccountLocker:      base.Deps.AccountService,
+		TransactionManager: enttx.NewCreator(base.DB),
+	})
+	require.NoError(t, err)
 
 	usageAdapter, err := usagebasedadapter.New(usagebasedadapter.Config{
 		Client:      base.DB,
@@ -188,8 +215,9 @@ func newTestEnv(t *testing.T) *testEnv {
 		Handler: ledgerchargeadapter.NewFlatFeeHandler(
 			base.Deps.HistoricalLedger,
 			transactions.ResolverDependencies{
-				AccountService:    base.Deps.ResolversService,
-				SubAccountService: base.Deps.AccountService,
+				AccountService: base.Deps.ResolversService,
+				AccountCatalog: base.Deps.AccountService,
+				BalanceQuerier: base.Deps.HistoricalLedger,
 			},
 			collectorService,
 		),
@@ -205,8 +233,9 @@ func newTestEnv(t *testing.T) *testEnv {
 		Handler: ledgerchargeadapter.NewUsageBasedHandler(
 			base.Deps.HistoricalLedger,
 			transactions.ResolverDependencies{
-				AccountService:    base.Deps.ResolversService,
-				SubAccountService: base.Deps.AccountService,
+				AccountService: base.Deps.ResolversService,
+				AccountCatalog: base.Deps.AccountService,
+				BalanceQuerier: base.Deps.HistoricalLedger,
 			},
 			collectorService,
 		),
@@ -233,6 +262,24 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
+		base.Deps.HistoricalLedger,
+		base.Deps.HistoricalLedger,
+		base.Deps.ResolversService,
+		base.Deps.AccountService,
+		breakageService,
+		enttx.NewCreator(base.DB),
+	)
+	require.NoError(t, err)
+
+	creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
+		Adapter:     creditPurchaseAdapter,
+		Handler:     creditPurchaseHandler,
+		Lineage:     lineageService,
+		MetaAdapter: metaAdapter,
+	})
+	require.NoError(t, err)
+
 	service, err := New(Config{
 		AccountResolver:   base.Deps.ResolversService,
 		SubAccountService: base.Deps.AccountService,
@@ -241,15 +288,19 @@ func newTestEnv(t *testing.T) *testEnv {
 			flatFeeService:    flatFeeService,
 			usageBasedService: usageService,
 		},
-		CreditPurchaseSvc: creditPurchaseAdapter,
+		CreditPurchaseSvc: creditPurchaseService,
 		UsageBasedService: usageService,
 		Ledger:            base.Deps.HistoricalLedger,
+		BalanceQuerier:    base.Deps.HistoricalLedger,
+		Breakage:          breakageService,
 	})
 	require.NoError(t, err)
 
 	env := &testEnv{
 		IntegrationEnv:    base,
+		BreakageService:   breakageService,
 		Service:           service,
+		creditPurchase:    creditPurchaseService,
 		flatFeeService:    flatFeeService,
 		usageBasedService: usageService,
 		featureMeters:     featureMeters,
@@ -288,8 +339,9 @@ func (e *testEnv) bookFBOBalanceInCurrency(t *testing.T, amount alpacadecimal.De
 	inputs, err := transactions.ResolveTransactions(
 		t.Context(),
 		transactions.ResolverDependencies{
-			AccountService:    e.Deps.ResolversService,
-			SubAccountService: e.Deps.AccountService,
+			AccountService: e.Deps.ResolversService,
+			AccountCatalog: e.Deps.AccountService,
+			BalanceQuerier: e.Deps.HistoricalLedger,
 		},
 		transactions.ResolutionScope{
 			CustomerID: e.CustomerID,
@@ -317,19 +369,20 @@ func (e *testEnv) fundOpenReceivableInCurrency(t *testing.T, amount alpacadecima
 	inputs, err := transactions.ResolveTransactions(
 		t.Context(),
 		transactions.ResolverDependencies{
-			AccountService:    e.Deps.ResolversService,
-			SubAccountService: e.Deps.AccountService,
+			AccountService: e.Deps.ResolversService,
+			AccountCatalog: e.Deps.AccountService,
+			BalanceQuerier: e.Deps.HistoricalLedger,
 		},
 		transactions.ResolutionScope{
 			CustomerID: e.CustomerID,
 			Namespace:  e.Namespace,
 		},
-		transactions.FundCustomerReceivableTemplate{
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
 		},
-		transactions.SettleCustomerReceivablePaymentTemplate{
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,

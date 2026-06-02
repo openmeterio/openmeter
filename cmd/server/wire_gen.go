@@ -28,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
@@ -40,6 +41,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	"go.opentelemetry.io/otel/metric"
@@ -148,6 +150,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	featureConnector := common.NewFeatureConnector(logger, client, service, eventbusPublisher)
+	featureResolver, err := featureresolver.New(featureConnector)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	repository, err := common.NewTaxCodeAdapter(logger, client)
 	if err != nil {
 		cleanup6()
@@ -158,8 +170,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	taxcodeService := common.NewTaxCodeService(logger, repository)
-	addonService, err := common.NewAddonService(logger, client, featureConnector, taxcodeService, eventbusPublisher)
+	taxcodeService, err := common.NewTaxCodeService(logger, repository)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	addonService, err := common.NewAddonService(logger, client, featureResolver, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -272,8 +293,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	productCatalogConfiguration := conf.ProductCatalog
-	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector, taxcodeService, eventbusPublisher)
+	planService, err := common.NewPlanService(logger, client, featureResolver, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -311,15 +331,29 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	creditsConfiguration := conf.Credits
 	repo := common.NewLedgerHistoricalRepo(client)
 	accountRepo := common.NewLedgerAccountRepo(client)
+	accountService := common.NewLedgerAccountService(creditsConfiguration, accountRepo, locker)
+	accountCatalog := common.NewLedgerAccountCatalog(accountService)
+	accountLocker := common.NewLedgerAccountLocker(accountService)
 	routingValidator := common.NewLedgerRoutingValidator()
-	ledgerReadWriter := common.NewLedgerHistoricalLedger(creditsConfiguration, repo, accountRepo, locker, routingValidator)
+	ledgerReadWriter := common.NewLedgerHistoricalLedger(creditsConfiguration, repo, accountCatalog, accountLocker, routingValidator)
 	ledger := common.NewLedgerService(ledgerReadWriter)
-	querier := common.NewLedgerQuerier(ledgerReadWriter)
-	accountService := common.NewLedgerAccountService(creditsConfiguration, accountRepo, locker, querier)
+	balanceQuerier := common.NewLedgerBalanceQuerier(ledgerReadWriter)
 	customerAccountRepo := common.NewLedgerResolversRepo(client)
 	customerLedgerProvisioner := common.NewLedgerResolversService(creditsConfiguration, accountService, customerAccountRepo, locker)
 	accountResolver := common.NewLedgerAccountResolver(customerLedgerProvisioner)
-	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, accountResolver, accountService)
+	breakageService, err := common.NewLedgerBreakageService(creditsConfiguration, client, balanceQuerier, accountResolver, accountService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	gate := featuregate.NewNoop()
+	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, gate)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -487,7 +521,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	customerbalanceService, err := common.NewCustomerBalanceService(creditsConfiguration, ledger, accountResolver, accountService, billingRegistry)
+	customerbalanceService, err := common.NewCustomerBalanceService(creditsConfiguration, ledger, balanceQuerier, accountResolver, accountService, billingRegistry, breakageService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -686,11 +720,25 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	telemetryMiddlewareHook := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
 	routerHooks := common.NewRouterHooks(telemetryMiddlewareHook)
+	productCatalogConfiguration := conf.ProductCatalog
 	subscriptionConfiguration := productCatalogConfiguration.Subscription
 	namespaceDecoder := common.NewStaticNamespaceDecoder(namespaceConfiguration)
 	ffxConfigContextMiddleware := common.NewFFXConfigContextMiddleware(subscriptionConfiguration, namespaceDecoder, logger)
 	postAuthMiddlewares := common.NewPostAuthMiddlewares(ffxConfigContextMiddleware)
 	v9, err := common.NewSubjectCustomerHook(subjectService, customerService, logger, tracer)
+	if err != nil {
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	taxCodeConfiguration := conf.TaxCode
+	taxcodeNamespaceHandler, err := common.NewTaxCodeNamespaceHandler(logger, taxcodeService, repository, taxCodeConfiguration)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -779,11 +827,13 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		SubjectCustomerHook:              v9,
 		Subscription:                     subscriptionServiceWithWorkflow,
 		StreamingConnector:               connector,
+		TaxCodeNamespaceHandler:          taxcodeNamespaceHandler,
 		TaxCodeService:                   taxcodeService,
 		TelemetryServer:                  v10,
 		TerminationChecker:               terminationChecker,
 		RuntimeMetricsCollector:          runtimeMetricsCollector,
 		Tracer:                           tracer,
+		FeatureGate:                      gate,
 	}
 	return application, func() {
 		cleanup9()
@@ -848,11 +898,13 @@ type Application struct {
 	SubjectCustomerHook              hooks.CustomerSubjectHook
 	Subscription                     common.SubscriptionServiceWithWorkflow
 	StreamingConnector               streaming.Connector
+	TaxCodeNamespaceHandler          *taxcode.NamespaceHandler
 	TaxCodeService                   taxcode.Service
 	TelemetryServer                  common.TelemetryServer
 	TerminationChecker               *common.TerminationChecker
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector
 	Tracer                           trace.Tracer
+	FeatureGate                      featuregate.Gate
 }
 
 func metadata(conf config.Configuration) common.Metadata {

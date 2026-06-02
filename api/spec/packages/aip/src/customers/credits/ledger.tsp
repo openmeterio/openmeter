@@ -8,6 +8,7 @@ namespace Customers;
  *
  * - `funded`: Credit granted and available for consumption.
  * - `consumed`: Credit consumed by usage or fees.
+ * - `expired`: Credit removed because it expired before being used.
  */
 @friendlyName("BillingCreditTransactionType")
 enum CreditTransactionType {
@@ -16,6 +17,9 @@ enum CreditTransactionType {
 
   // Credit consumed by usage or fees.
   Consumed: "consumed",
+
+  // Credit removed because it expired before being used.
+  Expired: "expired",
 }
 
 // /**
@@ -60,7 +64,8 @@ enum CreditTransactionType {
 // }
 
 /**
- * A credit transaction represents a single credit movement on the customer's balance.
+ * A credit transaction represents a single credit movement on the customer's
+ * balance.
  *
  * Credit transactions are immutable.
  */
@@ -96,8 +101,8 @@ model CreditTransaction {
   currency: Currencies.CurrencyCode;
 
   /**
-   * Signed amount of the credit movement.
-   * Positive values add balance, negative values reduce balance.
+   * Signed amount of the credit movement. Positive values add balance, negative
+   * values reduce balance.
    */
   @visibility(Lifecycle.Read)
   amount: Shared.Numeric;

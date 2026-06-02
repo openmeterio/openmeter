@@ -47,16 +47,18 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 	})
 }
 
-func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patch meta.Patch) (*usagebased.Charge, error) {
+func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patch meta.Patch) (meta.TriggerPatchResult[usagebased.Charge], error) {
 	if err := patch.Validate(); err != nil {
-		return nil, fmt.Errorf("patch: %w", err)
+		return meta.TriggerPatchResult[usagebased.Charge]{}, fmt.Errorf("patch: %w", err)
 	}
 
 	if err := chargeID.Validate(); err != nil {
-		return nil, fmt.Errorf("chargeID: %w", err)
+		return meta.TriggerPatchResult[usagebased.Charge]{}, fmt.Errorf("chargeID: %w", err)
 	}
 
-	return s.withLockedCharge(ctx, chargeID, func(ctx context.Context, charge usagebased.Charge) (*usagebased.Charge, error) {
+	var result meta.TriggerPatchResult[usagebased.Charge]
+
+	charge, err := s.withLockedCharge(ctx, chargeID, func(ctx context.Context, charge usagebased.Charge) (*usagebased.Charge, error) {
 		stateMachineConfig, err := s.getStateMachineConfigForPatch(ctx, charge)
 		if err != nil {
 			return nil, fmt.Errorf("get state machine config: %w", err)
@@ -72,8 +74,17 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 		}
 
 		charge = stateMachine.GetCharge()
+		result.InvoicePatches = stateMachine.DrainInvoicePatches()
+
 		return &charge, nil
 	})
+	if err != nil {
+		return meta.TriggerPatchResult[usagebased.Charge]{}, err
+	}
+
+	result.Charge = charge
+
+	return result, nil
 }
 
 func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, error) {
@@ -160,13 +171,6 @@ func (s *service) withLockedCharge(ctx context.Context, chargeID meta.ChargeID, 
 		})
 		if err != nil {
 			return nil, fmt.Errorf("get charge: %w", err)
-		}
-
-		if charge.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode &&
-			charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
-			return nil, models.NewGenericNotImplementedError(
-				fmt.Errorf("charge %s has unsupported settlement mode %s", charge.ID, charge.Intent.SettlementMode),
-			)
 		}
 
 		return fn(ctx, charge)

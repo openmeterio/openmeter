@@ -33,8 +33,9 @@ func newRecognizerTestEnv(t *testing.T) *recognizerTestEnv {
 
 	base := ledgertestutils.NewIntegrationEnv(t, "recognizer")
 	deps := transactions.ResolverDependencies{
-		AccountService:    base.Deps.ResolversService,
-		SubAccountService: base.Deps.AccountService,
+		AccountService: base.Deps.ResolversService,
+		AccountCatalog: base.Deps.AccountService,
+		BalanceQuerier: base.Deps.HistoricalLedger,
 	}
 
 	lngeAdapter, err := lineageadapter.New(lineageadapter.Config{
@@ -68,8 +69,9 @@ func testID() string {
 
 func (e *recognizerTestEnv) resolverDeps() transactions.ResolverDependencies {
 	return transactions.ResolverDependencies{
-		AccountService:    e.Deps.ResolversService,
-		SubAccountService: e.Deps.AccountService,
+		AccountService: e.Deps.ResolversService,
+		AccountCatalog: e.Deps.AccountService,
+		BalanceQuerier: e.Deps.HistoricalLedger,
 	}
 }
 

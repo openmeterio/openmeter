@@ -60,8 +60,8 @@ type TaxCodeEdges struct {
 	BillingStandardInvoiceDetailedLines []*BillingStandardInvoiceDetailedLine `json:"billing_standard_invoice_detailed_lines,omitempty"`
 	// ChargeUsageBasedRunDetailedLines holds the value of the charge_usage_based_run_detailed_lines edge.
 	ChargeUsageBasedRunDetailedLines []*ChargeUsageBasedRunDetailedLine `json:"charge_usage_based_run_detailed_lines,omitempty"`
-	// ChargeFlatFeeDetailedLines holds the value of the charge_flat_fee_detailed_lines edge.
-	ChargeFlatFeeDetailedLines []*ChargeFlatFeeDetailedLine `json:"charge_flat_fee_detailed_lines,omitempty"`
+	// ChargeFlatFeeRunDetailedLines holds the value of the charge_flat_fee_run_detailed_lines edge.
+	ChargeFlatFeeRunDetailedLines []*ChargeFlatFeeRunDetailedLine `json:"charge_flat_fee_run_detailed_lines,omitempty"`
 	// SubscriptionItems holds the value of the subscription_items edge.
 	SubscriptionItems []*SubscriptionItem `json:"subscription_items,omitempty"`
 	// PlanRateCards holds the value of the plan_rate_cards edge.
@@ -74,9 +74,13 @@ type TaxCodeEdges struct {
 	ChargeUsageBased []*ChargeUsageBased `json:"charge_usage_based,omitempty"`
 	// ChargeCreditPurchases holds the value of the charge_credit_purchases edge.
 	ChargeCreditPurchases []*ChargeCreditPurchase `json:"charge_credit_purchases,omitempty"`
+	// OrganizationDefaultInvoicing holds the value of the organization_default_invoicing edge.
+	OrganizationDefaultInvoicing []*OrganizationDefaultTaxCodes `json:"organization_default_invoicing,omitempty"`
+	// OrganizationDefaultCreditGrant holds the value of the organization_default_credit_grant edge.
+	OrganizationDefaultCreditGrant []*OrganizationDefaultTaxCodes `json:"organization_default_credit_grant,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [13]bool
+	loadedTypes [15]bool
 }
 
 // BillingWorkflowConfigsOrErr returns the BillingWorkflowConfigs value or an error if the edge
@@ -133,13 +137,13 @@ func (e TaxCodeEdges) ChargeUsageBasedRunDetailedLinesOrErr() ([]*ChargeUsageBas
 	return nil, &NotLoadedError{edge: "charge_usage_based_run_detailed_lines"}
 }
 
-// ChargeFlatFeeDetailedLinesOrErr returns the ChargeFlatFeeDetailedLines value or an error if the edge
+// ChargeFlatFeeRunDetailedLinesOrErr returns the ChargeFlatFeeRunDetailedLines value or an error if the edge
 // was not loaded in eager-loading.
-func (e TaxCodeEdges) ChargeFlatFeeDetailedLinesOrErr() ([]*ChargeFlatFeeDetailedLine, error) {
+func (e TaxCodeEdges) ChargeFlatFeeRunDetailedLinesOrErr() ([]*ChargeFlatFeeRunDetailedLine, error) {
 	if e.loadedTypes[6] {
-		return e.ChargeFlatFeeDetailedLines, nil
+		return e.ChargeFlatFeeRunDetailedLines, nil
 	}
-	return nil, &NotLoadedError{edge: "charge_flat_fee_detailed_lines"}
+	return nil, &NotLoadedError{edge: "charge_flat_fee_run_detailed_lines"}
 }
 
 // SubscriptionItemsOrErr returns the SubscriptionItems value or an error if the edge
@@ -194,6 +198,24 @@ func (e TaxCodeEdges) ChargeCreditPurchasesOrErr() ([]*ChargeCreditPurchase, err
 		return e.ChargeCreditPurchases, nil
 	}
 	return nil, &NotLoadedError{edge: "charge_credit_purchases"}
+}
+
+// OrganizationDefaultInvoicingOrErr returns the OrganizationDefaultInvoicing value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) OrganizationDefaultInvoicingOrErr() ([]*OrganizationDefaultTaxCodes, error) {
+	if e.loadedTypes[13] {
+		return e.OrganizationDefaultInvoicing, nil
+	}
+	return nil, &NotLoadedError{edge: "organization_default_invoicing"}
+}
+
+// OrganizationDefaultCreditGrantOrErr returns the OrganizationDefaultCreditGrant value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) OrganizationDefaultCreditGrantOrErr() ([]*OrganizationDefaultTaxCodes, error) {
+	if e.loadedTypes[14] {
+		return e.OrganizationDefaultCreditGrant, nil
+	}
+	return nil, &NotLoadedError{edge: "organization_default_credit_grant"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -339,9 +361,9 @@ func (_m *TaxCode) QueryChargeUsageBasedRunDetailedLines() *ChargeUsageBasedRunD
 	return NewTaxCodeClient(_m.config).QueryChargeUsageBasedRunDetailedLines(_m)
 }
 
-// QueryChargeFlatFeeDetailedLines queries the "charge_flat_fee_detailed_lines" edge of the TaxCode entity.
-func (_m *TaxCode) QueryChargeFlatFeeDetailedLines() *ChargeFlatFeeDetailedLineQuery {
-	return NewTaxCodeClient(_m.config).QueryChargeFlatFeeDetailedLines(_m)
+// QueryChargeFlatFeeRunDetailedLines queries the "charge_flat_fee_run_detailed_lines" edge of the TaxCode entity.
+func (_m *TaxCode) QueryChargeFlatFeeRunDetailedLines() *ChargeFlatFeeRunDetailedLineQuery {
+	return NewTaxCodeClient(_m.config).QueryChargeFlatFeeRunDetailedLines(_m)
 }
 
 // QuerySubscriptionItems queries the "subscription_items" edge of the TaxCode entity.
@@ -372,6 +394,16 @@ func (_m *TaxCode) QueryChargeUsageBased() *ChargeUsageBasedQuery {
 // QueryChargeCreditPurchases queries the "charge_credit_purchases" edge of the TaxCode entity.
 func (_m *TaxCode) QueryChargeCreditPurchases() *ChargeCreditPurchaseQuery {
 	return NewTaxCodeClient(_m.config).QueryChargeCreditPurchases(_m)
+}
+
+// QueryOrganizationDefaultInvoicing queries the "organization_default_invoicing" edge of the TaxCode entity.
+func (_m *TaxCode) QueryOrganizationDefaultInvoicing() *OrganizationDefaultTaxCodesQuery {
+	return NewTaxCodeClient(_m.config).QueryOrganizationDefaultInvoicing(_m)
+}
+
+// QueryOrganizationDefaultCreditGrant queries the "organization_default_credit_grant" edge of the TaxCode entity.
+func (_m *TaxCode) QueryOrganizationDefaultCreditGrant() *OrganizationDefaultTaxCodesQuery {
+	return NewTaxCodeClient(_m.config).QueryOrganizationDefaultCreditGrant(_m)
 }
 
 // Update returns a builder for updating this TaxCode.

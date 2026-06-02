@@ -752,11 +752,11 @@ type AssociatedLineCountsAdapterResponse struct {
 }
 
 type (
-	AdvanceInvoiceInput     = InvoiceID
-	ApproveInvoiceInput     = InvoiceID
-	PaymentAuthorizedInput  = InvoiceID
-	RetryInvoiceInput       = InvoiceID
-	SnapshotQuantitiesInput = InvoiceID
+	AdvanceInvoiceInput      = InvoiceID
+	ApproveInvoiceInput      = InvoiceID
+	ForceCollectInvoiceInput = InvoiceID
+	PaymentAuthorizedInput   = InvoiceID
+	RetryInvoiceInput        = InvoiceID
 )
 
 type UpdateStandardInvoiceAdapterInput = StandardInvoice

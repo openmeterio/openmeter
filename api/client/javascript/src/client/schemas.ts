@@ -6866,6 +6866,12 @@ export interface components {
        *     discounts that are affecting multiple lines.
        */
       readonly discounts?: components['schemas']['InvoiceLineDiscounts']
+      /**
+       * @description Credit allocations applied to this line.
+       *
+       *     Credits are deducted from the line total before taxes are applied.
+       */
+      readonly creditAllocations?: components['schemas']['InvoiceLineCreditAllocation'][]
       /** @description The invoice this item belongs to. */
       invoice?: components['schemas']['InvoiceReference']
       /** @description The currency of this line. */
@@ -7046,6 +7052,12 @@ export interface components {
        *     discounts that are affecting multiple lines.
        */
       readonly discounts?: components['schemas']['InvoiceLineDiscounts']
+      /**
+       * @description Credit allocations applied to this line.
+       *
+       *     Credits are deducted from the line total before taxes are applied.
+       */
+      readonly creditAllocations?: components['schemas']['InvoiceLineCreditAllocation'][]
       /** @description The invoice this item belongs to. */
       invoice?: components['schemas']['InvoiceReference']
       /** @description The currency of this line. */
@@ -7168,6 +7180,16 @@ export interface components {
       readonly invoicing?: string
       /** @description The external ID of the invoice in the tax app if available. */
       readonly tax?: string
+    }
+    /** @description InvoiceLineCreditAllocation represents a credit amount allocated to the line before taxes are applied. */
+    InvoiceLineCreditAllocation: {
+      /**
+       * Amount in the currency of the invoice
+       * @description Amount allocated from credits.
+       */
+      readonly amount: components['schemas']['Numeric']
+      /** @description Text description as to why the credit was allocated. */
+      readonly description?: string
     }
     /** @description InvoiceLineDiscounts represents the discounts applied to the invoice line by type. */
     InvoiceLineDiscounts: {
@@ -7648,6 +7670,8 @@ export interface components {
       readonly chargesTotal: components['schemas']['Numeric']
       /** @description The amount of value of the line that are due to discounts. */
       readonly discountsTotal: components['schemas']['Numeric']
+      /** @description The amount of value of the line that are due to credits. */
+      readonly creditsTotal: components['schemas']['Numeric']
       /** @description The total amount of taxes that are included in the line. */
       readonly taxesInclusiveTotal: components['schemas']['Numeric']
       /** @description The total amount of taxes that are added on top of amount from the line. */
@@ -12683,6 +12707,8 @@ export type InvoiceLineAmountDiscount =
   components['schemas']['InvoiceLineAmountDiscount']
 export type InvoiceLineAppExternalIds =
   components['schemas']['InvoiceLineAppExternalIds']
+export type InvoiceLineCreditAllocation =
+  components['schemas']['InvoiceLineCreditAllocation']
 export type InvoiceLineDiscounts = components['schemas']['InvoiceLineDiscounts']
 export type InvoiceLineManagedBy = components['schemas']['InvoiceLineManagedBy']
 export type InvoiceLineReplaceUpdate =

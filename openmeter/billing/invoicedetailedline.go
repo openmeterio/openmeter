@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -30,7 +33,7 @@ func (l DetailedLineBase) Validate() error {
 		errs = append(errs, errors.New("invoiceID is required"))
 	}
 
-	if err := l.Base.Validate(); err != nil {
+	if err := l.Base.Validate(stddetailedline.IgnoreQuantityChecks()); err != nil {
 		errs = append(errs, fmt.Errorf("base: %w", err))
 	}
 
@@ -107,6 +110,66 @@ func (l DetailedLines) Clone() DetailedLines {
 	return l.Map(func(dl DetailedLine) DetailedLine {
 		return dl.Clone()
 	})
+}
+
+func (l DetailedLines) SumTotals() totals.Totals {
+	return totals.Sum(lo.Map(l, func(line DetailedLine, _ int) totals.Totals {
+		return line.Totals
+	})...)
+}
+
+// WithReversedCredits returns cloned detailed lines with credit applications
+// removed and totals recalculated as if no credits had been applied.
+func (l DetailedLines) WithReversedCredits() DetailedLines {
+	return l.Map(func(line DetailedLine) DetailedLine {
+		line = line.Clone()
+		line.CreditsApplied = nil
+		line.Totals.CreditsTotal = alpacadecimal.Zero
+		line.Totals.Total = line.Totals.CalculateTotal()
+
+		return line
+	})
+}
+
+func (l DetailedLines) WithCreditsApplied(
+	creditsApplied CreditsApplied,
+	currencyCalculator currencyx.Calculator,
+) (DetailedLines, error) {
+	detailedLines := l.WithReversedCredits()
+
+	for _, creditToApply := range creditsApplied {
+		creditValueRemaining := currencyCalculator.RoundToPrecision(creditToApply.Amount)
+
+		for idx := range detailedLines {
+			if creditValueRemaining.IsZero() {
+				break
+			}
+
+			totalAmount := currencyCalculator.RoundToPrecision(detailedLines[idx].Totals.Total)
+			if !totalAmount.IsPositive() {
+				continue
+			}
+
+			if totalAmount.LessThanOrEqual(creditValueRemaining) {
+				creditValueRemaining = currencyCalculator.RoundToPrecision(creditValueRemaining.Sub(totalAmount))
+				detailedLines[idx].CreditsApplied = append(detailedLines[idx].CreditsApplied, creditToApply.CloneWithAmount(totalAmount))
+				detailedLines[idx].Totals.CreditsTotal = currencyCalculator.RoundToPrecision(detailedLines[idx].Totals.CreditsTotal.Add(totalAmount))
+				detailedLines[idx].Totals.Total = currencyCalculator.RoundToPrecision(detailedLines[idx].Totals.Total.Sub(totalAmount))
+			} else {
+				detailedLines[idx].CreditsApplied = append(detailedLines[idx].CreditsApplied, creditToApply.CloneWithAmount(creditValueRemaining))
+				detailedLines[idx].Totals.CreditsTotal = currencyCalculator.RoundToPrecision(detailedLines[idx].Totals.CreditsTotal.Add(creditValueRemaining))
+				detailedLines[idx].Totals.Total = currencyCalculator.RoundToPrecision(detailedLines[idx].Totals.Total.Sub(creditValueRemaining))
+				creditValueRemaining = alpacadecimal.Zero
+				break
+			}
+		}
+
+		if creditValueRemaining.IsPositive() {
+			return nil, ErrInvoiceLineCreditsNotConsumedFully
+		}
+	}
+
+	return detailedLines, nil
 }
 
 func (l DetailedLines) Validate() error {

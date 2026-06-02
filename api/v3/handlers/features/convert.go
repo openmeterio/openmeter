@@ -23,16 +23,13 @@ func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 		Name:        f.Name,
 		Description: f.Description,
 		Labels:      labels.FromMetadata(f.Metadata),
-		CreatedAt:   &f.CreatedAt,
-		UpdatedAt:   &f.UpdatedAt,
+		CreatedAt:   f.CreatedAt,
+		UpdatedAt:   f.UpdatedAt,
 		DeletedAt:   f.ArchivedAt,
 	}
 
 	if f.MeterID != nil {
-		resp.Meter = &struct {
-			Filters *map[string]api.QueryFilterStringMapItem `json:"filters,omitempty"`
-			Id      api.ULID                                 `json:"id"`
-		}{
+		resp.Meter = &api.FeatureMeterReference{
 			Id: *f.MeterID,
 		}
 

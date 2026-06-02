@@ -81,8 +81,7 @@ func (metaMixin) Fields() []ent.Field {
 
 		field.String("subscription_item_id").
 			Optional().
-			Nillable().
-			Immutable(),
+			Nillable(),
 
 		field.Time("advance_after").
 			Optional().

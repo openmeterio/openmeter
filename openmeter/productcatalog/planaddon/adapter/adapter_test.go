@@ -68,7 +68,7 @@ func TestPostgresAdapter(t *testing.T) {
 				features = append(features, feat)
 			}
 
-			planV1Input := pctestutils.NewTestPlan(t, namespace, []productcatalog.Phase{
+			planV1Input := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanPhases([]productcatalog.Phase{
 				{
 					PhaseMeta: productcatalog.PhaseMeta{
 						Key:         "invalid",
@@ -211,7 +211,7 @@ func TestPostgresAdapter(t *testing.T) {
 						},
 					},
 				},
-			}...)
+			}...))
 
 			var planV1 *plan.Plan
 

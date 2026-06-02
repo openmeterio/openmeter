@@ -5,10 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
+	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 type stateMachine struct {
@@ -16,6 +19,9 @@ type stateMachine struct {
 
 	Adapter      flatfee.Adapter
 	Realizations *flatfeerealizations.Service
+	Service      *service
+
+	CreditNotesSupported bool
 }
 
 type StateMachine = chargestatemachine.StateMachine[flatfee.Charge]
@@ -25,6 +31,9 @@ type StateMachineConfig struct {
 
 	Adapter      flatfee.Adapter
 	Realizations *flatfeerealizations.Service
+	Service      *service
+
+	CreditNotesSupported bool
 }
 
 func (c StateMachineConfig) Validate() error {
@@ -42,6 +51,10 @@ func (c StateMachineConfig) Validate() error {
 		errs = append(errs, errors.New("realizations service is required"))
 	}
 
+	if c.Service == nil {
+		errs = append(errs, errors.New("service is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -51,8 +64,10 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 	}
 
 	out := &stateMachine{
-		Adapter:      config.Adapter,
-		Realizations: config.Realizations,
+		Adapter:              config.Adapter,
+		Realizations:         config.Realizations,
+		Service:              config.Service,
+		CreditNotesSupported: config.CreditNotesSupported,
 	}
 
 	machine, err := chargestatemachine.New(chargestatemachine.Config[flatfee.Charge, flatfee.ChargeBase, flatfee.Status]{
@@ -76,4 +91,35 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 	out.Machine = machine
 
 	return out, nil
+}
+
+func (s *stateMachine) IsInsideServicePeriod() bool {
+	return !clock.Now().Before(s.Charge.Intent.ServicePeriod.From)
+}
+
+func (s *stateMachine) IsInsideServicePeriodAndZeroAmount() bool {
+	return s.IsInsideServicePeriod() && s.Charge.State.AmountAfterProration.IsZero()
+}
+
+func (s *stateMachine) IsInsideServicePeriodAndNonZeroAmount() bool {
+	return s.IsInsideServicePeriod() && !s.Charge.State.AmountAfterProration.IsZero()
+}
+
+func (s *stateMachine) IsZeroAmount() bool {
+	return s.Charge.State.AmountAfterProration.IsZero()
+}
+
+func (s *stateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error {
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.From))
+	return nil
+}
+
+func (s *stateMachine) AdvanceAfterServicePeriodTo(ctx context.Context) error {
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To))
+	return nil
+}
+
+func (s *stateMachine) ClearAdvanceAfter(ctx context.Context) error {
+	s.Charge.State.AdvanceAfter = nil
+	return nil
 }

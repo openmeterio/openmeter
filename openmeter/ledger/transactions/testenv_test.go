@@ -22,8 +22,9 @@ func newTransactionsTestEnv(t *testing.T) *transactionsTestEnv {
 
 func (e *transactionsTestEnv) resolverDeps() ResolverDependencies {
 	return ResolverDependencies{
-		AccountService:    e.Deps.ResolversService,
-		SubAccountService: e.Deps.AccountService,
+		AccountService: e.Deps.ResolversService,
+		AccountCatalog: e.Deps.AccountService,
+		BalanceQuerier: e.Deps.HistoricalLedger,
 	}
 }
 
@@ -84,13 +85,13 @@ func (e *transactionsTestEnv) fundPriorityWithCostBasis(t *testing.T, priority i
 			CostBasis:      costBasis,
 			CreditPriority: &priority,
 		},
-		FundCustomerReceivableTemplate{
+		AuthorizeCustomerReceivablePaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,
 			CostBasis: costBasis,
 		},
-		SettleCustomerReceivablePaymentTemplate{
+		SettleCustomerReceivableFromPaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,

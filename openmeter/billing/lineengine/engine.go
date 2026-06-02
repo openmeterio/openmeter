@@ -11,7 +11,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
-var _ billing.LineEngine = (*Engine)(nil)
+var (
+	_ billing.LineEngine     = (*Engine)(nil)
+	_ billing.LineCalculator = (*Engine)(nil)
+)
 
 type Config struct {
 	SplitLineGroupAdapter SplitLineGroupAdapter
@@ -87,6 +90,14 @@ func (e *Engine) OnCollectionCompleted(ctx context.Context, input billing.OnColl
 	}
 
 	return input.Lines, nil
+}
+
+func (e *Engine) OnMutableStandardLinesDeleted(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {
+	return nil
+}
+
+func (e *Engine) OnUnsupportedCreditNote(_ context.Context, _ billing.OnUnsupportedCreditNoteInput) error {
+	return nil
 }
 
 func (e *Engine) OnStandardInvoiceCreated(_ context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {

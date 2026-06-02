@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
+
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
@@ -47,7 +49,15 @@ func (a *adapter) UpsertCustomerData(ctx context.Context, input appcustominvoici
 			SetCustomerID(input.CustomerDataID.CustomerID).
 			SetNamespace(input.CustomerDataID.Namespace).
 			SetAppID(input.CustomerDataID.AppID).
-			OnConflictColumns(appcustominvoicingcustomer.FieldCustomerID, appcustominvoicingcustomer.FieldNamespace, appcustominvoicingcustomer.FieldAppID).
+			// Upsert
+			OnConflict(
+				sql.ConflictColumns(
+					appcustominvoicingcustomer.FieldCustomerID,
+					appcustominvoicingcustomer.FieldNamespace,
+					appcustominvoicingcustomer.FieldAppID,
+				),
+				sql.ConflictWhere(sql.IsNull(appcustominvoicingcustomer.FieldDeletedAt)),
+			).
 			UpdateMetadata().
 			UpdateDeletedAt().
 			Exec(ctx)
@@ -66,6 +76,7 @@ func (a *adapter) DeleteCustomerData(ctx context.Context, input appcustominvoici
 				appcustominvoicingcustomer.CustomerID(input.CustomerID),
 				appcustominvoicingcustomer.Namespace(input.Namespace),
 				appcustominvoicingcustomer.AppID(input.AppID),
+				appcustominvoicingcustomer.DeletedAtIsNil(),
 			).
 			Exec(ctx)
 	})

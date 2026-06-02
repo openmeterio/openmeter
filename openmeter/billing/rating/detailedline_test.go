@@ -12,6 +12,28 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
+func TestDetailedLineValidateAllowsNegativeQuantity(t *testing.T) {
+	line := DetailedLine{
+		Name:                   "usage correction",
+		Quantity:               alpacadecimal.NewFromInt(-1),
+		PerUnitAmount:          alpacadecimal.NewFromInt(10),
+		ChildUniqueReferenceID: "usage-correction",
+	}
+
+	require.NoError(t, line.Validate())
+}
+
+func TestDetailedLineValidateRejectsNegativePerUnitAmount(t *testing.T) {
+	line := DetailedLine{
+		Name:                   "usage correction",
+		Quantity:               alpacadecimal.NewFromInt(1),
+		PerUnitAmount:          alpacadecimal.NewFromInt(-10),
+		ChildUniqueReferenceID: "usage-correction",
+	}
+
+	require.ErrorContains(t, line.Validate(), "amount must be zero or positive")
+}
+
 func TestAddDiscountForOverage(t *testing.T) {
 	currency, err := currencyx.Code(currency.USD).Calculator()
 	require.NoError(t, err)

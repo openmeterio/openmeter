@@ -37,7 +37,7 @@ func (h *handler) CreateCurrency() CreateCurrencyHandler {
 		func(ctx context.Context, request CreateCurrencyRequest) (CreateCurrencyResponse, error) {
 			resp, err := h.currencyService.CreateCurrency(ctx, request)
 			if err != nil {
-				return CreateCurrencyResponse{}, apierrors.NewConflictError(ctx, err, "Currency already exists")
+				return CreateCurrencyResponse{}, err
 			}
 			return ToAPIBillingCurrency(resp)
 		},

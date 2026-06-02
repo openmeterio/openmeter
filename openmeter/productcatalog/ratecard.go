@@ -42,6 +42,11 @@ type RateCard interface {
 	Compatible(RateCard) error
 	GetBillingCadence() *datetime.ISODuration
 	IsBillable() bool
+
+	HasFeature() bool
+	GetFeatureID() *string
+	GetFeatureKey() *string
+	SetFeature(id, key *string)
 }
 
 type RateCardSerde struct {
@@ -88,6 +93,23 @@ type RateCardMeta struct {
 
 	// Discounts defines a list of discounts for the RateCard
 	Discounts Discounts `json:"discounts,omitempty"`
+}
+
+func (r RateCardMeta) HasFeature() bool {
+	return lo.FromPtr(r.FeatureID) != "" || lo.FromPtr(r.FeatureKey) != ""
+}
+
+func (r RateCardMeta) GetFeatureID() *string {
+	return r.FeatureID
+}
+
+func (r RateCardMeta) GetFeatureKey() *string {
+	return r.FeatureKey
+}
+
+func (r *RateCardMeta) SetFeature(id, key *string) {
+	r.FeatureID = id
+	r.FeatureKey = key
 }
 
 func (r RateCardMeta) Clone() RateCardMeta {
@@ -191,7 +213,7 @@ func (r RateCardMeta) Validate() error {
 	var errs []error
 
 	if r.EntitlementTemplate != nil {
-		if r.FeatureKey == nil {
+		if !r.HasFeature() {
 			errs = append(errs, ErrRateCardEntitlementTemplateWithNoFeature)
 		}
 
@@ -223,6 +245,13 @@ func (r RateCardMeta) Validate() error {
 					models.NewFieldSelectorGroup(models.NewFieldSelector("price")),
 					err),
 			))
+		}
+
+		// Ratecard with usage-based price type must have feature key.
+		if r.Price.Type() != FlatPriceType {
+			if !r.HasFeature() {
+				errs = append(errs, ErrRateCardUsageBasedPriceWithNoFeature)
+			}
 		}
 	}
 

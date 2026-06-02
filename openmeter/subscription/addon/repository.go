@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 // SubscriptionAddon
@@ -22,12 +23,15 @@ type CreateSubscriptionAddonRepositoryInput struct {
 type ListSubscriptionAddonRepositoryInput struct {
 	SubscriptionID string `json:"subscriptionID"`
 
+	OrderBy OrderBy
+	Order   sortx.Order
+
 	pagination.Page
 }
 
 type SubscriptionAddonRepository interface {
 	Create(ctx context.Context, namespace string, input CreateSubscriptionAddonRepositoryInput) (*models.NamespacedID, error)
-	Get(ctx context.Context, id models.NamespacedID) (*SubscriptionAddon, error)
+	Get(ctx context.Context, params GetSubscriptionAddonInput) (*SubscriptionAddon, error)
 	List(ctx context.Context, namespace string, filter ListSubscriptionAddonRepositoryInput) (pagination.Result[SubscriptionAddon], error)
 }
 

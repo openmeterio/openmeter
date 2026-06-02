@@ -1,7 +1,6 @@
 package account
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -28,7 +27,7 @@ type SubAccountRouteData struct {
 	RoutingKey        string
 }
 
-func NewSubAccountFromData(data SubAccountData, account *Account) (*SubAccount, error) {
+func NewSubAccountFromData(data SubAccountData) (*SubAccount, error) {
 	routingKey, err := ledger.NewRoutingKey(data.RouteMeta.RoutingKeyVersion, data.RouteMeta.RoutingKey)
 	if err != nil {
 		return nil, fmt.Errorf("routing key: %w", err)
@@ -47,14 +46,12 @@ func NewSubAccountFromData(data SubAccountData, account *Account) (*SubAccount, 
 
 	return &SubAccount{
 		data:    data,
-		account: account,
 		address: addr,
 	}, nil
 }
 
 type SubAccount struct {
 	data    SubAccountData
-	account *Account
 	address *Address
 }
 
@@ -68,19 +65,9 @@ func (s *SubAccount) Route() ledger.Route {
 	return s.data.Route
 }
 
-func (s *SubAccount) AccountID() string {
-	return s.data.AccountID
-}
-
-func (s *SubAccount) GetBalance(ctx context.Context) (ledger.Balance, error) {
-	if s.account == nil {
-		return nil, fmt.Errorf("parent account is required")
+func (s *SubAccount) AccountID() models.NamespacedID {
+	return models.NamespacedID{
+		Namespace: s.data.Namespace,
+		ID:        s.data.AccountID,
 	}
-
-	res, err := s.account.GetBalance(ctx, s.data.Route.Filter(), nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get balance for sub-account %s: %w", s.data.ID, err)
-	}
-
-	return res, nil
 }

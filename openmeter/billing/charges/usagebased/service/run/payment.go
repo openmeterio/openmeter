@@ -60,9 +60,17 @@ func (s *Service) BookInvoicedPaymentAuthorized(ctx context.Context, in BookInvo
 		return BookInvoicedPaymentAuthorizedResult{}, err
 	}
 
+	if in.Run.NoFiatTransactionRequired {
+		return BookInvoicedPaymentAuthorizedResult{
+			Run: in.Run,
+		}, nil
+	}
+
+	eventAt := clock.Now()
 	input := usagebased.OnPaymentAuthorizedInput{
-		Charge: in.Charge,
-		Run:    in.Run,
+		Charge:  in.Charge,
+		Run:     in.Run,
+		EventAt: eventAt,
 	}
 	if err := input.Validate(); err != nil {
 		return BookInvoicedPaymentAuthorizedResult{}, fmt.Errorf("validate on payment authorized input: %w", err)
@@ -84,7 +92,7 @@ func (s *Service) BookInvoicedPaymentAuthorized(ctx context.Context, in BookInvo
 				GroupReference: ledgertransaction.GroupReference{
 					TransactionGroupID: ledgerTransactionRef.TransactionGroupID,
 				},
-				Time: clock.Now(),
+				Time: eventAt,
 			},
 			Status: payment.StatusAuthorized,
 		},
@@ -133,6 +141,10 @@ func (i SettleInvoicedPaymentInput) Validate() error {
 		return fmt.Errorf("run %s already linked to a different line", i.Run.ID.ID)
 	}
 
+	if i.Run.NoFiatTransactionRequired {
+		return nil
+	}
+
 	if i.Run.Payment == nil {
 		return payment.ErrCannotSettleNotAuthorizedPayment.WithAttrs(i.Charge.ErrorAttributes())
 	}
@@ -158,9 +170,17 @@ func (s *Service) SettleInvoicedPayment(ctx context.Context, in SettleInvoicedPa
 		return SettleInvoicedPaymentResult{}, err
 	}
 
+	if in.Run.NoFiatTransactionRequired {
+		return SettleInvoicedPaymentResult{
+			Run: in.Run,
+		}, nil
+	}
+
+	eventAt := clock.Now()
 	input := usagebased.OnPaymentSettledInput{
-		Charge: in.Charge,
-		Run:    in.Run,
+		Charge:  in.Charge,
+		Run:     in.Run,
+		EventAt: eventAt,
 	}
 	if err := input.Validate(); err != nil {
 		return SettleInvoicedPaymentResult{}, fmt.Errorf("validate on payment settled input: %w", err)
@@ -176,7 +196,7 @@ func (s *Service) SettleInvoicedPayment(ctx context.Context, in SettleInvoicedPa
 		GroupReference: ledgertransaction.GroupReference{
 			TransactionGroupID: ledgerTransactionRef.TransactionGroupID,
 		},
-		Time: clock.Now(),
+		Time: eventAt,
 	}
 	paymentRealization.Status = payment.StatusSettled
 

@@ -51,6 +51,7 @@ type Configuration struct {
 	Billing            BillingConfiguration
 	Apps               AppsConfiguration
 	Svix               SvixConfig
+	TaxCode            TaxCodeConfiguration
 }
 
 // Validate validates the configuration.
@@ -172,6 +173,10 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "credit"))
 	}
 
+	if err := c.TaxCode.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "taxcode"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -213,7 +218,7 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureEvents(v)
 	ConfigureBalanceWorker(v)
 	ConfigureNotification(v)
-	ConfigureCredits(v)
+	ConfigureCredits(v, "credits")
 	ConfigureBilling(v, flags)
 	ConfigureProductCatalog(v)
 	ConfigureApps(v, flags)
@@ -222,5 +227,6 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureServer(v, "server")
 	ConfigureProgressManager(v)
 	ConfigureCustomer(v, "customer")
-	ConfigureCredits(v)
+	ConfigureCredits(v, "credits")
+	ConfigureTaxCode(v)
 }

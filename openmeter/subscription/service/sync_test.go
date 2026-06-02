@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -12,10 +13,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestEdit(t *testing.T) {
@@ -304,8 +308,9 @@ func TestEdit(t *testing.T) {
 				sub, err := deps.Service.Create(ctx, deps.Customer.Namespace, spec)
 				require.Nil(t, err)
 
-				_, err = deps.Service.GetView(ctx, sub.NamespacedID)
+				v1, err := deps.Service.GetView(ctx, sub.NamespacedID)
 				require.Nil(t, err)
+				require.NotEmpty(t, v1.Subscription.ID)
 
 				// Let's validate we have an item with an entitlement template
 				require.Equal(t, 3, len(spec.Phases))
@@ -334,8 +339,9 @@ func TestEdit(t *testing.T) {
 					item,
 				}
 
-				_, err = deps.Service.Update(ctx, sub.NamespacedID, spec)
+				u, err := deps.Service.Update(ctx, sub.NamespacedID, spec)
 				require.Nil(t, err)
+				require.NotEmpty(t, u.ID)
 
 				v2, err := deps.Service.GetView(ctx, sub.NamespacedID)
 				require.Nil(t, err)
@@ -372,4 +378,112 @@ func TestEdit(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestDeleteScheduledDowngradeCanExpandDeletedSubscriptionForSync(t *testing.T) {
+	ctx := t.Context()
+	currentTime := time.Date(2026, 5, 15, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(currentTime)
+	defer clock.UnFreeze()
+
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+	defer dbDeps.Cleanup(t)
+
+	deps := subscriptiontestutils.NewService(t, dbDeps)
+	customerEntity := deps.CustomerAdapter.CreateExampleCustomer(t)
+	_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+	billingAnchor := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	premiumPlanInput := subscriptiontestutils.GetExamplePlanInput(t)
+	premiumPlanInput.Key = "premium-plan"
+	premiumPlanInput.Name = "Premium"
+	premiumPlan := deps.PlanHelper.CreatePlan(t, premiumPlanInput)
+
+	basicPlanInput := subscriptiontestutils.GetExamplePlanInput(t)
+	basicPlanInput.Key = "basic-plan"
+	basicPlanInput.Name = "Basic"
+	basicPlan := deps.PlanHelper.CreatePlan(t, basicPlanInput)
+
+	var premiumSubscription subscription.SubscriptionView
+	var scheduledSubscription subscription.SubscriptionView
+
+	t.Run("given a customer with a premium subscription", func(t *testing.T) {
+		// given:
+		// - a customer with a premium subscription anchored to the first day of the month
+		// - a lower-priced basic plan available for the next billing cycle
+		// when:
+		// - the premium subscription is created from its plan
+		// then:
+		// - the active subscription exists
+		var err error
+		premiumSubscription, err = deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{
+					Custom: &currentTime,
+				},
+			},
+			Namespace:     subscriptiontestutils.ExampleNamespace,
+			CustomerID:    customerEntity.ID,
+			BillingAnchor: &billingAnchor,
+		}, premiumPlan)
+		require.NoError(t, err)
+		require.NotNil(t, premiumSubscription)
+	})
+
+	t.Run("when a downgrade is scheduled for the next billing cycle", func(t *testing.T) {
+		// given:
+		// - an active premium subscription
+		// when:
+		// - the customer schedules a downgrade to the basic plan
+		// then:
+		// - the current subscription is capped
+		// - a scheduled basic subscription is created
+		currentSubscription, nextSubscription, err := deps.WorkflowService.ChangeToPlan(ctx, premiumSubscription.Subscription.NamespacedID, subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{
+				Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
+			},
+		}, basicPlan)
+		require.NoError(t, err)
+		require.NotNil(t, currentSubscription.ActiveTo)
+		require.NotNil(t, nextSubscription)
+
+		scheduledSubscription = nextSubscription
+		require.Equal(t, subscription.SubscriptionStatusScheduled, scheduledSubscription.Subscription.GetStatusAt(clock.Now()))
+	})
+
+	t.Run("when the scheduled downgrade is deleted", func(t *testing.T) {
+		// given:
+		// - a scheduled downgrade subscription
+		// when:
+		// - the customer cancels the scheduled downgrade
+		// then:
+		// - the default read path no longer returns the deleted subscription
+		// - the deleted subscription can still be listed and expanded for billing-side cleanup
+		require.NoError(t, deps.SubscriptionService.Delete(ctx, scheduledSubscription.Subscription.NamespacedID))
+
+		_, err := deps.SubscriptionService.GetView(ctx, scheduledSubscription.Subscription.NamespacedID)
+		require.Error(t, err)
+
+		deletedSubscription := getSubscriptionViewIncludingDeleted(t, ctx, deps.SubscriptionService, scheduledSubscription.Subscription.NamespacedID)
+		require.Equal(t, scheduledSubscription.Subscription.ID, deletedSubscription.Subscription.ID)
+		require.NotNil(t, deletedSubscription.Subscription.DeletedAt)
+	})
+}
+
+func getSubscriptionViewIncludingDeleted(t *testing.T, ctx context.Context, service subscription.Service, subscriptionID models.NamespacedID) subscription.SubscriptionView {
+	t.Helper()
+
+	subscriptions, err := service.List(ctx, subscription.ListSubscriptionsInput{
+		Namespaces:     []string{subscriptionID.Namespace},
+		ID:             &filter.FilterULID{FilterString: filter.FilterString{Eq: &subscriptionID.ID}},
+		IncludeDeleted: true,
+	})
+	require.NoError(t, err)
+	require.Len(t, subscriptions.Items, 1)
+
+	views, err := service.ExpandViews(ctx, subscriptions.Items)
+	require.NoError(t, err)
+	require.Len(t, views, 1)
+
+	return views[0]
 }

@@ -125,6 +125,24 @@ kafka:
   # **Not recommended for production environments.**
   enabled: true
 
+  # Bitnami moved its free versioned container images from `docker.io/bitnami/*` to
+  # `docker.io/bitnamilegacy/*` (see https://github.com/bitnami/charts/issues/35164).
+  # The sub-chart still pins the old `bitnami/*` repositories, so override every image
+  # repository here. Tags are inherited from the sub-chart.
+  image:
+    repository: bitnamilegacy/kafka
+  externalAccess:
+    autoDiscovery:
+      image:
+        repository: bitnamilegacy/kubectl
+  volumePermissions:
+    image:
+      repository: bitnamilegacy/os-shell
+  metrics:
+    jmx:
+      image:
+        repository: bitnamilegacy/jmx-exporter
+
   listeners:
     client:
       name: plain
@@ -215,6 +233,28 @@ redis:
 
   nameOverride: redis
 
+  # Bitnami moved its free versioned container images from `docker.io/bitnami/*` to
+  # `docker.io/bitnamilegacy/*` (see https://github.com/bitnami/charts/issues/35164).
+  # The sub-chart still pins the old `bitnami/*` repositories, so override every image
+  # repository here. Tags are inherited from the sub-chart.
+  image:
+    repository: bitnamilegacy/redis
+  sentinel:
+    image:
+      repository: bitnamilegacy/redis-sentinel
+  metrics:
+    image:
+      repository: bitnamilegacy/redis-exporter
+  volumePermissions:
+    image:
+      repository: bitnamilegacy/os-shell
+  sysctl:
+    image:
+      repository: bitnamilegacy/os-shell
+  kubectl:
+    image:
+      repository: bitnamilegacy/kubectl
+
 postgresql:
   # -- Specifies whether Postgres (using the [Bitnami Chart](https://github.com/bitnami/charts/tree/main/bitnami/postgresql) should be installed.
   # **Not recommended for production environments.**
@@ -222,6 +262,19 @@ postgresql:
   enabled: true
 
   nameOverride: postgres
+
+  # Bitnami moved its free versioned container images from `docker.io/bitnami/*` to
+  # `docker.io/bitnamilegacy/*` (see https://github.com/bitnami/charts/issues/35164).
+  # The sub-chart still pins the old `bitnami/*` repositories, so override every image
+  # repository here. Tags are inherited from the sub-chart.
+  image:
+    repository: bitnamilegacy/postgresql
+  volumePermissions:
+    image:
+      repository: bitnamilegacy/os-shell
+  metrics:
+    image:
+      repository: bitnamilegacy/postgres-exporter
 
   primary:
     initdb:

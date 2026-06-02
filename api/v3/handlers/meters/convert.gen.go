@@ -34,7 +34,7 @@ func init() {
 	ToAPIMeter = func(source meter.Meter) v3.Meter {
 		var v3Meter v3.Meter
 		v3Meter.Aggregation = ToAPIMeterAggregation(source.Aggregation)
-		v3Meter.CreatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.CreatedAt)
+		v3Meter.CreatedAt = timeTimeToTimeTime(source.ManagedResource.ManagedModel.CreatedAt)
 		v3Meter.DeletedAt = source.ManagedResource.ManagedModel.DeletedAt
 		v3Meter.Description = source.ManagedResource.Description
 		v3Meter.Dimensions = &source.GroupBy
@@ -44,7 +44,7 @@ func init() {
 		v3Meter.Key = source.Key
 		v3Meter.Labels = ConvertMetadataAnnotationsToLabels(source)
 		v3Meter.Name = source.ManagedResource.Name
-		v3Meter.UpdatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
+		v3Meter.UpdatedAt = timeTimeToTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
 		v3Meter.ValueProperty = source.ValueProperty
 		return v3Meter
 	}
@@ -74,6 +74,6 @@ func responsePageMetaToV3PaginatedMeta(source response.PageMeta) v3.PaginatedMet
 	v3PaginatedMeta.Page = responsePageMetaPageToV3PageMeta(source.Page)
 	return v3PaginatedMeta
 }
-func timeTimeToPTimeTime(source time.Time) *time.Time {
-	return &source
+func timeTimeToTimeTime(source time.Time) time.Time {
+	return source
 }

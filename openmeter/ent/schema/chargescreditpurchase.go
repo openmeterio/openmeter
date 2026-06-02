@@ -38,6 +38,10 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Immutable(),
+		field.Time("expires_at").
+			Optional().
+			Nillable().
+			Immutable(),
 		field.Int("priority").
 			Optional().
 			Nillable().
@@ -83,7 +87,6 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 		edge.From("subscription_item", SubscriptionItem.Type).
 			Ref("charges_credit_purchase").
 			Field("subscription_item_id").
-			Immutable().
 			Unique(),
 		edge.From("customer", Customer.Type).
 			Field("customer_id").

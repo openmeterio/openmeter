@@ -81,14 +81,14 @@ func (a *adapter) createPhase(ctx context.Context, params createPhaseInput) (*pl
 			if err = a.db.PlanRateCard.CreateBulk(bulk...).Exec(ctx); err != nil {
 				return nil, fmt.Errorf("failed to bulk create RateCards for PlanPhase %s: %w", planPhaseRow.ID, err)
 			}
+		}
 
-			planPhaseRow, err = a.db.PlanPhase.Query().
-				Where(phasedb.Namespace(params.Namespace), phasedb.ID(planPhaseRow.ID)).
-				WithRatecards(rateCardEagerLoadFeaturesFn, rateCardEagerLoadTaxCodesFn).
-				First(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get PlanPhase: %w", err)
-			}
+		planPhaseRow, err = a.db.PlanPhase.Query().
+			Where(phasedb.Namespace(params.Namespace), phasedb.ID(planPhaseRow.ID)).
+			WithRatecards(rateCardEagerLoadFeaturesFn, rateCardEagerLoadTaxCodesFn).
+			First(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get PlanPhase: %w", err)
 		}
 
 		planPhase, err := fromPlanPhaseRow(*planPhaseRow)

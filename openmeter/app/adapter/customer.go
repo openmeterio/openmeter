@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
@@ -87,10 +89,13 @@ func (a *adapter) EnsureCustomer(ctx context.Context, input app.EnsureCustomerIn
 					SetCustomerID(input.CustomerID.ID).
 					SetNillableDeletedAt(nil).
 					// Upsert
-					OnConflictColumns(
-						appcustomerdb.FieldNamespace,
-						appcustomerdb.FieldAppID,
-						appcustomerdb.FieldCustomerID,
+					OnConflict(
+						sql.ConflictColumns(
+							appcustomerdb.FieldNamespace,
+							appcustomerdb.FieldAppID,
+							appcustomerdb.FieldCustomerID,
+						),
+						sql.ConflictWhere(sql.IsNull(appcustomerdb.FieldDeletedAt)),
 					).
 					UpdateDeletedAt().
 					Exec(ctx)

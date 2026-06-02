@@ -5,7 +5,9 @@ import "./plan.tsp";
 namespace ProductCatalog;
 
 /**
- * The status of the add-on defined by the effectiveFrom and effectiveTo properties.
+ * The status of the add-on defined by the `effective_from` and `effective_to`
+ * properties.
+ *
  * - `draft`: The add-on has not yet been published and can be edited.
  * - `active`: The add-on is published and available for use.
  * - `archived`: The add-on is no longer available for use.
@@ -19,6 +21,7 @@ enum AddonStatus {
 
 /**
  * The instanceType of the add-on.
+ *
  * - `single`: Can be added to a subscription only once.
  * - `multiple`: Can be added to a subscription more than once.
  */
@@ -29,7 +32,8 @@ enum AddonInstanceType {
 }
 
 /**
- * Add-on allows extending subscriptions with compatible plans with additional ratecards.
+ * Add-on allows extending subscriptions with compatible plans with additional
+ * ratecards.
  */
 #suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "effective_from and effective_to are standard AIP temporal fields"
 @friendlyName("Addon")
@@ -37,8 +41,9 @@ model Addon {
   ...Shared.Resource;
 
   /**
-   * A key is a semi-unique string that is used to identify the add-on.
-   * It is used to reference the latest `active` version of the add-on and is unique with the version number.
+   * A key is a semi-unique string that is used to identify the add-on. It is used to
+   * reference the latest `active` version of the add-on and is unique with the
+   * version number.
    */
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   @visibility(Lifecycle.Read, Lifecycle.Create)
@@ -68,25 +73,28 @@ model Addon {
   currency: Currencies.CurrencyCode;
 
   /**
-   * The date and time when the add-on becomes effective. When not specified, the add-on is a draft.
+   * The date and time when the add-on becomes effective. When not specified, the
+   * add-on is a draft.
    */
   @visibility(Lifecycle.Read)
   @summary("Effective start date")
   effective_from?: Shared.DateTime;
 
   /**
-   * The date and time when the add-on is no longer effective. When not specified, the add-on is effective indefinitely.
+   * The date and time when the add-on is no longer effective. When not specified,
+   * the add-on is effective indefinitely.
    */
   @visibility(Lifecycle.Read)
   @summary("Effective end date")
   effective_to?: Shared.DateTime;
 
   /**
-   * The status of the add-on.
-   * Computed based on the effective start and end dates:
-   *  - draft = no effectiveFrom
-   *  - active = effectiveFrom <= now < effectiveTo
-   *  - archived  = effectiveTo <= now
+   * The status of the add-on. Computed based on the effective start and end dates:
+   *
+   * - `draft`: `effective_from` is not set.
+   * - `active`: `effective_from <= now` and (`effective_to` is not set or
+   *   `now < effective_to`).
+   * - `archived`: `effective_to <= now`.
    */
   @summary("Status")
   @visibility(Lifecycle.Read)

@@ -77,6 +77,9 @@ func (AppCustomInvoicingCustomer) Fields() []ent.Field {
 func (AppCustomInvoicingCustomer) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "app_id", "customer_id").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
 			Unique(),
 	}
 }

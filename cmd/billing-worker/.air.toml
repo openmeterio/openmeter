@@ -3,7 +3,7 @@ testdata_dir = "testdata"
 tmp_dir = "tmp"
 
 [build]
-  args_bin = ["--config", "./config.yaml", "--telemetry-address", ":10002"]
+  args_bin = ["--config", "./config.yaml", "--telemetry-address", ":10004"]
   bin = "./tmp/openmeter-billing-worker"
   cmd = "go build -gcflags=\"all=-N -l\" -tags dynamic -o ./tmp/openmeter-billing-worker ./cmd/billing-worker"
   delay = 0

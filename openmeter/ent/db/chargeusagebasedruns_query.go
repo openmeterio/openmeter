@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
@@ -27,18 +28,20 @@ import (
 // ChargeUsageBasedRunsQuery is the builder for querying ChargeUsageBasedRuns entities.
 type ChargeUsageBasedRunsQuery struct {
 	config
-	ctx                    *QueryContext
-	order                  []chargeusagebasedruns.OrderOption
-	inters                 []Interceptor
-	predicates             []predicate.ChargeUsageBasedRuns
-	withUsageBased         *ChargeUsageBasedQuery
-	withFeature            *FeatureQuery
-	withBillingInvoiceLine *BillingInvoiceLineQuery
-	withCreditAllocations  *ChargeUsageBasedRunCreditAllocationsQuery
-	withDetailedLines      *ChargeUsageBasedRunDetailedLineQuery
-	withInvoicedUsage      *ChargeUsageBasedRunInvoicedUsageQuery
-	withPayment            *ChargeUsageBasedRunPaymentQuery
-	modifiers              []func(*sql.Selector)
+	ctx                        *QueryContext
+	order                      []chargeusagebasedruns.OrderOption
+	inters                     []Interceptor
+	predicates                 []predicate.ChargeUsageBasedRuns
+	withUsageBased             *ChargeUsageBasedQuery
+	withFeature                *FeatureQuery
+	withBillingInvoiceLine     *BillingInvoiceLineQuery
+	withBillingInvoice         *BillingInvoiceQuery
+	withCreditAllocations      *ChargeUsageBasedRunCreditAllocationsQuery
+	withDetailedLines          *ChargeUsageBasedRunDetailedLineQuery
+	withCorrectedDetailedLines *ChargeUsageBasedRunDetailedLineQuery
+	withInvoicedUsage          *ChargeUsageBasedRunInvoicedUsageQuery
+	withPayment                *ChargeUsageBasedRunPaymentQuery
+	modifiers                  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -141,6 +144,28 @@ func (_q *ChargeUsageBasedRunsQuery) QueryBillingInvoiceLine() *BillingInvoiceLi
 	return query
 }
 
+// QueryBillingInvoice chains the current query on the "billing_invoice" edge.
+func (_q *ChargeUsageBasedRunsQuery) QueryBillingInvoice() *BillingInvoiceQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, selector),
+			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedruns.BillingInvoiceTable, chargeusagebasedruns.BillingInvoiceColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // QueryCreditAllocations chains the current query on the "credit_allocations" edge.
 func (_q *ChargeUsageBasedRunsQuery) QueryCreditAllocations() *ChargeUsageBasedRunCreditAllocationsQuery {
 	query := (&ChargeUsageBasedRunCreditAllocationsClient{config: _q.config}).Query()
@@ -178,6 +203,28 @@ func (_q *ChargeUsageBasedRunsQuery) QueryDetailedLines() *ChargeUsageBasedRunDe
 			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, selector),
 			sqlgraph.To(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedruns.DetailedLinesTable, chargeusagebasedruns.DetailedLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCorrectedDetailedLines chains the current query on the "corrected_detailed_lines" edge.
+func (_q *ChargeUsageBasedRunsQuery) QueryCorrectedDetailedLines() *ChargeUsageBasedRunDetailedLineQuery {
+	query := (&ChargeUsageBasedRunDetailedLineClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, selector),
+			sqlgraph.To(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedruns.CorrectedDetailedLinesTable, chargeusagebasedruns.CorrectedDetailedLinesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -416,18 +463,20 @@ func (_q *ChargeUsageBasedRunsQuery) Clone() *ChargeUsageBasedRunsQuery {
 		return nil
 	}
 	return &ChargeUsageBasedRunsQuery{
-		config:                 _q.config,
-		ctx:                    _q.ctx.Clone(),
-		order:                  append([]chargeusagebasedruns.OrderOption{}, _q.order...),
-		inters:                 append([]Interceptor{}, _q.inters...),
-		predicates:             append([]predicate.ChargeUsageBasedRuns{}, _q.predicates...),
-		withUsageBased:         _q.withUsageBased.Clone(),
-		withFeature:            _q.withFeature.Clone(),
-		withBillingInvoiceLine: _q.withBillingInvoiceLine.Clone(),
-		withCreditAllocations:  _q.withCreditAllocations.Clone(),
-		withDetailedLines:      _q.withDetailedLines.Clone(),
-		withInvoicedUsage:      _q.withInvoicedUsage.Clone(),
-		withPayment:            _q.withPayment.Clone(),
+		config:                     _q.config,
+		ctx:                        _q.ctx.Clone(),
+		order:                      append([]chargeusagebasedruns.OrderOption{}, _q.order...),
+		inters:                     append([]Interceptor{}, _q.inters...),
+		predicates:                 append([]predicate.ChargeUsageBasedRuns{}, _q.predicates...),
+		withUsageBased:             _q.withUsageBased.Clone(),
+		withFeature:                _q.withFeature.Clone(),
+		withBillingInvoiceLine:     _q.withBillingInvoiceLine.Clone(),
+		withBillingInvoice:         _q.withBillingInvoice.Clone(),
+		withCreditAllocations:      _q.withCreditAllocations.Clone(),
+		withDetailedLines:          _q.withDetailedLines.Clone(),
+		withCorrectedDetailedLines: _q.withCorrectedDetailedLines.Clone(),
+		withInvoicedUsage:          _q.withInvoicedUsage.Clone(),
+		withPayment:                _q.withPayment.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -467,6 +516,17 @@ func (_q *ChargeUsageBasedRunsQuery) WithBillingInvoiceLine(opts ...func(*Billin
 	return _q
 }
 
+// WithBillingInvoice tells the query-builder to eager-load the nodes that are connected to
+// the "billing_invoice" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedRunsQuery) WithBillingInvoice(opts ...func(*BillingInvoiceQuery)) *ChargeUsageBasedRunsQuery {
+	query := (&BillingInvoiceClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBillingInvoice = query
+	return _q
+}
+
 // WithCreditAllocations tells the query-builder to eager-load the nodes that are connected to
 // the "credit_allocations" edge. The optional arguments are used to configure the query builder of the edge.
 func (_q *ChargeUsageBasedRunsQuery) WithCreditAllocations(opts ...func(*ChargeUsageBasedRunCreditAllocationsQuery)) *ChargeUsageBasedRunsQuery {
@@ -486,6 +546,17 @@ func (_q *ChargeUsageBasedRunsQuery) WithDetailedLines(opts ...func(*ChargeUsage
 		opt(query)
 	}
 	_q.withDetailedLines = query
+	return _q
+}
+
+// WithCorrectedDetailedLines tells the query-builder to eager-load the nodes that are connected to
+// the "corrected_detailed_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedRunsQuery) WithCorrectedDetailedLines(opts ...func(*ChargeUsageBasedRunDetailedLineQuery)) *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunDetailedLineClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCorrectedDetailedLines = query
 	return _q
 }
 
@@ -589,12 +660,14 @@ func (_q *ChargeUsageBasedRunsQuery) sqlAll(ctx context.Context, hooks ...queryH
 	var (
 		nodes       = []*ChargeUsageBasedRuns{}
 		_spec       = _q.querySpec()
-		loadedTypes = [7]bool{
+		loadedTypes = [9]bool{
 			_q.withUsageBased != nil,
 			_q.withFeature != nil,
 			_q.withBillingInvoiceLine != nil,
+			_q.withBillingInvoice != nil,
 			_q.withCreditAllocations != nil,
 			_q.withDetailedLines != nil,
+			_q.withCorrectedDetailedLines != nil,
 			_q.withInvoicedUsage != nil,
 			_q.withPayment != nil,
 		}
@@ -638,6 +711,12 @@ func (_q *ChargeUsageBasedRunsQuery) sqlAll(ctx context.Context, hooks ...queryH
 			return nil, err
 		}
 	}
+	if query := _q.withBillingInvoice; query != nil {
+		if err := _q.loadBillingInvoice(ctx, query, nodes, nil,
+			func(n *ChargeUsageBasedRuns, e *BillingInvoice) { n.Edges.BillingInvoice = e }); err != nil {
+			return nil, err
+		}
+	}
 	if query := _q.withCreditAllocations; query != nil {
 		if err := _q.loadCreditAllocations(ctx, query, nodes,
 			func(n *ChargeUsageBasedRuns) { n.Edges.CreditAllocations = []*ChargeUsageBasedRunCreditAllocations{} },
@@ -652,6 +731,15 @@ func (_q *ChargeUsageBasedRunsQuery) sqlAll(ctx context.Context, hooks ...queryH
 			func(n *ChargeUsageBasedRuns) { n.Edges.DetailedLines = []*ChargeUsageBasedRunDetailedLine{} },
 			func(n *ChargeUsageBasedRuns, e *ChargeUsageBasedRunDetailedLine) {
 				n.Edges.DetailedLines = append(n.Edges.DetailedLines, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCorrectedDetailedLines; query != nil {
+		if err := _q.loadCorrectedDetailedLines(ctx, query, nodes,
+			func(n *ChargeUsageBasedRuns) { n.Edges.CorrectedDetailedLines = []*ChargeUsageBasedRunDetailedLine{} },
+			func(n *ChargeUsageBasedRuns, e *ChargeUsageBasedRunDetailedLine) {
+				n.Edges.CorrectedDetailedLines = append(n.Edges.CorrectedDetailedLines, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -761,6 +849,38 @@ func (_q *ChargeUsageBasedRunsQuery) loadBillingInvoiceLine(ctx context.Context,
 	}
 	return nil
 }
+func (_q *ChargeUsageBasedRunsQuery) loadBillingInvoice(ctx context.Context, query *BillingInvoiceQuery, nodes []*ChargeUsageBasedRuns, init func(*ChargeUsageBasedRuns), assign func(*ChargeUsageBasedRuns, *BillingInvoice)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeUsageBasedRuns)
+	for i := range nodes {
+		if nodes[i].InvoiceID == nil {
+			continue
+		}
+		fk := *nodes[i].InvoiceID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(billinginvoice.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "invoice_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (_q *ChargeUsageBasedRunsQuery) loadCreditAllocations(ctx context.Context, query *ChargeUsageBasedRunCreditAllocationsQuery, nodes []*ChargeUsageBasedRuns, init func(*ChargeUsageBasedRuns), assign func(*ChargeUsageBasedRuns, *ChargeUsageBasedRunCreditAllocations)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*ChargeUsageBasedRuns)
@@ -816,6 +936,39 @@ func (_q *ChargeUsageBasedRunsQuery) loadDetailedLines(ctx context.Context, quer
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "run_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeUsageBasedRunsQuery) loadCorrectedDetailedLines(ctx context.Context, query *ChargeUsageBasedRunDetailedLineQuery, nodes []*ChargeUsageBasedRuns, init func(*ChargeUsageBasedRuns), assign func(*ChargeUsageBasedRuns, *ChargeUsageBasedRunDetailedLine)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeUsageBasedRuns)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeusagebasedrundetailedline.FieldCorrectsRunID)
+	}
+	query.Where(predicate.ChargeUsageBasedRunDetailedLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargeusagebasedruns.CorrectedDetailedLinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CorrectsRunID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "corrects_run_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "corrects_run_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -912,6 +1065,9 @@ func (_q *ChargeUsageBasedRunsQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withBillingInvoiceLine != nil {
 			_spec.Node.AddColumnOnce(chargeusagebasedruns.FieldLineID)
+		}
+		if _q.withBillingInvoice != nil {
+			_spec.Node.AddColumnOnce(chargeusagebasedruns.FieldInvoiceID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

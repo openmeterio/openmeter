@@ -2,41 +2,33 @@ package credits
 
 import (
 	"context"
-	"errors"
-	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
-	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	dbledgerbreakagerecord "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
-	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
-	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
-	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
-	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
-	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
-	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -45,85 +37,15 @@ import (
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
-const USD = currencyx.Code(currency.USD)
-
-type CreditsTestSuite struct {
-	billingtest.BaseSuite
-
-	Charges              charges.Service
-	Ledger               ledger.Ledger
-	LedgerAccountService ledgeraccount.Service
-	LedgerResolver       *ledgerresolvers.AccountResolver
-	RevenueRecognizer    recognizer.Service
+func TestSanitySuite(t *testing.T) {
+	suite.Run(t, new(SanitySuite))
 }
 
-func TestCreditsTestSuite(t *testing.T) {
-	suite.Run(t, new(CreditsTestSuite))
+type SanitySuite struct {
+	BaseSuite
 }
 
-func (s *CreditsTestSuite) SetupSuite() {
-	s.BaseSuite.SetupSuite()
-
-	logger := omtestutils.NewLogger(s.T())
-
-	deps, err := ledgertestutils.InitDeps(s.DBClient, logger)
-	s.NoError(err)
-
-	s.Ledger = deps.HistoricalLedger
-	s.LedgerAccountService = deps.AccountService
-	s.LedgerResolver = deps.ResolversService
-
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
-		Client: s.DBClient,
-	})
-	s.NoError(err)
-
-	lineageService, err := lineageservice.New(lineageservice.Config{
-		Adapter: lineageAdapter,
-	})
-	s.NoError(err)
-
-	revenueRecognizer, err := recognizer.NewService(recognizer.Config{
-		Ledger: deps.HistoricalLedger,
-		Dependencies: transactions.ResolverDependencies{
-			AccountService:    deps.ResolversService,
-			SubAccountService: deps.AccountService,
-		},
-		Lineage:            lineageService,
-		TransactionManager: enttx.NewCreator(s.DBClient),
-	})
-	s.NoError(err)
-	s.RevenueRecognizer = revenueRecognizer
-
-	collectorService := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: deps.HistoricalLedger,
-		Dependencies: transactions.ResolverDependencies{
-			AccountService:    deps.ResolversService,
-			SubAccountService: deps.AccountService,
-		},
-	})
-
-	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
-		Client:                s.DBClient,
-		Logger:                logger,
-		BillingService:        s.BillingService,
-		FeatureService:        s.FeatureService,
-		StreamingConnector:    s.MockStreamingConnector,
-		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, SubAccountService: deps.AccountService}, collectorService),
-		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.ResolversService, deps.AccountService),
-		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(deps.HistoricalLedger, transactions.ResolverDependencies{AccountService: deps.ResolversService, SubAccountService: deps.AccountService}, collectorService),
-	})
-	s.NoError(err)
-	s.Charges = stack.ChargesService
-}
-
-func (s *CreditsTestSuite) TearDownTest() {
-	s.MockStreamingConnector.Reset()
-	clock.UnFreeze()
-	clock.ResetTime()
-}
-
-func (s *CreditsTestSuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
+func (s *SanitySuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
 	setup := s.setupFlatFeeCreditOnlyDeleteCorrection("charges-sanity-flatfee-credit-only-delete")
 
 	clock.FreezeTime(setup.createAt)
@@ -142,7 +64,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
 	s.assertUnfundedCreditOnlyDeleted(setup.customer.GetID())
 }
 
-func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
+func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
 	setup := s.setupUsageBasedCreditOnlyDeleteCorrection("charges-sanity-usagebased-credit-only-delete")
 
 	clock.FreezeTime(setup.createAt)
@@ -164,7 +86,7 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
 	s.assertUnfundedCreditOnlyDeleted(setup.customer.GetID())
 }
 
-func (s *CreditsTestSuite) TestFlatFeeFundedCreditOnlyRecognizedRevenueDeleteCorrectionSanity() {
+func (s *SanitySuite) TestFlatFeeFundedCreditOnlyRecognizedRevenueDeleteCorrectionSanity() {
 	setup := s.setupFlatFeeCreditOnlyDeleteCorrection("charges-sanity-flatfee-funded-credit-only-recognized-delete")
 	zeroCostBasis := alpacadecimal.Zero
 
@@ -190,7 +112,7 @@ func (s *CreditsTestSuite) TestFlatFeeFundedCreditOnlyRecognizedRevenueDeleteCor
 	s.assertFundedRecognizedCreditOnlyDeleted(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable)
 }
 
-func (s *CreditsTestSuite) TestUsageBasedFundedCreditOnlyRecognizedRevenueDeleteCorrectionSanity() {
+func (s *SanitySuite) TestUsageBasedFundedCreditOnlyRecognizedRevenueDeleteCorrectionSanity() {
 	setup := s.setupUsageBasedCreditOnlyDeleteCorrection("charges-sanity-usagebased-funded-credit-only-recognized-delete")
 	zeroCostBasis := alpacadecimal.Zero
 
@@ -219,6 +141,710 @@ func (s *CreditsTestSuite) TestUsageBasedFundedCreditOnlyRecognizedRevenueDelete
 	s.assertFundedRecognizedCreditOnlyDeleted(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable)
 }
 
+func (s *SanitySuite) TestExpiringCreditBreakagePlanReleaseAndExpirySanity() {
+	setup := s.setupExpiringCreditBreakage("charges-sanity-expiring-credit-breakage")
+	defer clock.UnFreeze()
+
+	// Given an expiring promotional grant.
+	clock.FreezeTime(setup.grantAt)
+	funding := s.CreatePromotionalCreditFunding(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  setup.customer.GetID(),
+		Amount:    setup.grantAmount,
+		At:        setup.grantAt,
+		ExpiresAt: &setup.expiresAt,
+		CostBasis: setup.costBasis,
+	})
+	s.NotEmpty(funding.Charge.Realizations.CreditGrantRealization.TransactionGroupID)
+
+	// Then expiry is pre-booked as planned breakage.
+	costBasis := mo.Some(&setup.costBasis)
+	customerID := setup.customer.GetID()
+	s.assertPlannedBreakage(plannedBreakageAssertionInput{
+		ctx:       setup.ctx,
+		namespace: setup.namespace,
+		customer:  customerID,
+		currency:  USD,
+		costBasis: costBasis,
+		amount:    setup.grantAmount,
+		createdAt: setup.grantAt,
+		expiresAt: setup.expiresAt,
+	})
+
+	// When usage consumes part of the expiring credit before expiry.
+	charge := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           setup.ctx,
+		namespace:     setup.namespace,
+		customer:      setup.customer.GetID(),
+		servicePeriod: timeutil.ClosedPeriod{From: setup.usageAt, To: setup.usageAt.Add(time.Hour)},
+		createAt:      setup.usageAt.Add(-time.Hour),
+		advanceAt:     setup.usageAt,
+		amount:        setup.usedAmount,
+		name:          "expiring-credit-breakage-usage",
+	}).charge
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
+	s.AssertDecimalEqual(setup.usedAmount, s.mustFlatFeeCreditRealizations(charge)[0].Amount, "used credit realization amount")
+
+	// Then the used portion releases planned breakage, and only the unused remainder breaks at expiry.
+	s.assertReleasedBreakage(releasedBreakageAssertionInput{
+		ctx:             setup.ctx,
+		namespace:       setup.namespace,
+		customer:        customerID,
+		currency:        USD,
+		costBasis:       costBasis,
+		planAmount:      setup.grantAmount,
+		releaseAmount:   setup.usedAmount,
+		asOf:            setup.usageAt,
+		expectedFBO:     setup.unusedAmount,
+		expectedAccrued: setup.usedAmount,
+	})
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             setup.expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: setup.unusedAmount,
+		label:            "at expiry after usage",
+	})
+}
+
+func (s *SanitySuite) TestExpiringCreditBreakageImmediatelyReleasesAdvanceBackfillSanity() {
+	setup := s.setupUsageBasedCreditOnlyDeleteCorrection("charges-sanity-expiring-credit-breakage-advance-backfill")
+	defer clock.UnFreeze()
+
+	costBasisValue := alpacadecimal.Zero
+	costBasis := mo.Some(&costBasisValue)
+	customerID := setup.customer.GetID()
+	advanceAmount := setup.amount
+	grantAmount := alpacadecimal.NewFromInt(12)
+	unusedPurchaseAmount := grantAmount.Sub(advanceAmount)
+	expiresAt := setup.createAt.Add(7 * 24 * time.Hour)
+	usageAt := setup.servicePeriod.From.Add(24 * time.Hour)
+	chargeCreateAt := setup.createAt
+	backfillAt := chargeCreateAt.Add(time.Hour)
+
+	// Given usage consumes advance because no real credit exists yet.
+	clock.FreezeTime(chargeCreateAt)
+	s.MockStreamingConnector.AddSimpleEvent(
+		setup.featureKey,
+		advanceAmount.InexactFloat64(),
+		usageAt,
+	)
+	chargeRes, err := s.Charges.Create(setup.ctx, charges.CreateInput{
+		Namespace: setup.namespace,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       customerID,
+				Currency:       USD,
+				ServicePeriod:  setup.servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				}),
+				Name:              "expiring-credit-breakage-advance-usage",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "expiring-credit-breakage-advance-usage",
+				FeatureKey:        setup.featureKey,
+			}),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(chargeRes, 1)
+
+	usageCharge, err := chargeRes[0].AsUsageBasedCharge()
+	s.Require().NoError(err)
+	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageCharge.Status))
+	s.AssertDecimalEqual(advanceAmount.Neg(), s.MustCustomerReceivableBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen), "advance receivable before backfill")
+	s.AssertDecimalEqual(advanceAmount, s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)), "advance accrued before backfill")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalance(customerID, USD, costBasis), "FBO before backfill")
+
+	// When a later expiring grant covers the advance and has extra unused value.
+	clock.FreezeTime(backfillAt)
+	s.createPromotionalCreditGrant(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    grantAmount,
+		At:        backfillAt,
+		ExpiresAt: &expiresAt,
+		CostBasis: costBasisValue,
+	})
+
+	// Then the covered advance slice is planned and immediately released from breakage.
+	s.assertAdvanceBackfillBreakageRows(setup.ctx, setup.namespace, customerID, grantAmount, advanceAmount, expiresAt)
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)), "advance accrued after backfill")
+	s.AssertDecimalEqual(advanceAmount, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "attributed accrued after backfill")
+	s.AssertDecimalEqual(unusedPurchaseAmount, s.MustCustomerFBOBalanceAsOf(customerID, USD, costBasis, backfillAt), "available FBO after backfill")
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             backfillAt,
+		expectedFBO:      unusedPurchaseAmount,
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "after advance backfill before expiry",
+	})
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: unusedPurchaseAmount,
+		label:            "at expiry after advance backfill",
+	})
+}
+
+func (s *SanitySuite) TestExpiringCreditBreakageReopensAdvanceBackfillReleaseOnUsageCorrectionSanity() {
+	setup := s.setupUsageBasedCreditOnlyDeleteCorrection("charges-sanity-expiring-credit-breakage-advance-backfill-correction")
+	defer clock.UnFreeze()
+
+	costBasisValue := alpacadecimal.Zero
+	costBasis := mo.Some(&costBasisValue)
+	customerID := setup.customer.GetID()
+	advanceAmount := setup.amount
+	grantAmount := alpacadecimal.NewFromInt(12)
+	unusedPurchaseAmount := grantAmount.Sub(advanceAmount)
+	expiresAt := setup.createAt.Add(7 * 24 * time.Hour)
+	usageAt := setup.servicePeriod.From.Add(24 * time.Hour)
+	chargeCreateAt := setup.createAt
+	backfillAt := chargeCreateAt.Add(time.Hour)
+	correctionAt := backfillAt.Add(time.Hour)
+
+	// Given usage consumes advance because no real credit exists yet.
+	clock.FreezeTime(chargeCreateAt)
+	s.MockStreamingConnector.AddSimpleEvent(
+		setup.featureKey,
+		advanceAmount.InexactFloat64(),
+		usageAt,
+	)
+	chargeRes, err := s.Charges.Create(setup.ctx, charges.CreateInput{
+		Namespace: setup.namespace,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       customerID,
+				Currency:       USD,
+				ServicePeriod:  setup.servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				}),
+				Name:              "expiring-credit-breakage-advance-correction-usage",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "expiring-credit-breakage-advance-correction-usage",
+				FeatureKey:        setup.featureKey,
+			}),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(chargeRes, 1)
+
+	usageCharge, err := chargeRes[0].AsUsageBasedCharge()
+	s.Require().NoError(err)
+	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageCharge.Status))
+
+	// And a later expiring grant covers that advance and has extra unused value.
+	clock.FreezeTime(backfillAt)
+	s.createPromotionalCreditGrant(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    grantAmount,
+		At:        backfillAt,
+		ExpiresAt: &expiresAt,
+		CostBasis: costBasisValue,
+	})
+
+	s.assertAdvanceBackfillBreakageRows(setup.ctx, setup.namespace, customerID, grantAmount, advanceAmount, expiresAt)
+	s.AssertDecimalEqual(unusedPurchaseAmount, s.MustCustomerFBOBalanceAsOf(customerID, USD, costBasis, backfillAt), "available FBO after backfill before correction")
+	s.AssertDecimalEqual(advanceAmount, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "attributed accrued after backfill before correction")
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: unusedPurchaseAmount,
+		label:            "at expiry after advance backfill before correction",
+	})
+
+	// When the original usage is deleted with refund-as-credits.
+	clock.FreezeTime(correctionAt)
+	s.deleteChargeWithRefundAsCredits(setup.ctx, customerID, usageCharge.ID)
+
+	// Then the advance-backed release reopens because the covered credit is unused again.
+	s.assertAdvanceBackfillBreakageReopenedRows(setup.ctx, setup.namespace, customerID, grantAmount, advanceAmount, expiresAt)
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)), "unattributed accrued after advance correction")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "attributed accrued after advance correction")
+	s.AssertDecimalEqual(grantAmount, s.MustCustomerFBOBalanceAsOf(customerID, USD, costBasis, correctionAt), "available FBO after advance correction")
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             correctionAt,
+		expectedFBO:      grantAmount,
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "after advance correction before expiry",
+	})
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: grantAmount,
+		label:            "at expiry after advance correction",
+	})
+}
+
+func (s *SanitySuite) TestExpiringCreditBreakageReopensOnUsageCorrectionSanity() {
+	setup := s.setupExpiringCreditBreakage(
+		"charges-sanity-expiring-credit-breakage-correction",
+		withExpiringCreditBreakageAmounts(alpacadecimal.NewFromInt(12), alpacadecimal.NewFromInt(5)),
+	)
+	defer clock.UnFreeze()
+
+	costBasis := mo.Some(&setup.costBasis)
+	customerID := setup.customer.GetID()
+
+	// Given an expiring promotional grant.
+	clock.FreezeTime(setup.grantAt)
+	s.CreatePromotionalCreditFunding(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    setup.grantAmount,
+		At:        setup.grantAt,
+		ExpiresAt: &setup.expiresAt,
+		CostBasis: setup.costBasis,
+	})
+
+	// Then expiry is pre-booked as planned breakage.
+	s.assertPlannedBreakage(plannedBreakageAssertionInput{
+		ctx:       setup.ctx,
+		namespace: setup.namespace,
+		customer:  customerID,
+		currency:  USD,
+		costBasis: costBasis,
+		amount:    setup.grantAmount,
+		createdAt: setup.grantAt,
+		expiresAt: setup.expiresAt,
+	})
+
+	// When usage consumes part of the expiring credit before expiry.
+	charge := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           setup.ctx,
+		namespace:     setup.namespace,
+		customer:      customerID,
+		servicePeriod: timeutil.ClosedPeriod{From: setup.usageAt, To: setup.usageAt.Add(time.Hour)},
+		createAt:      setup.usageAt.Add(-time.Hour),
+		advanceAt:     setup.usageAt,
+		amount:        setup.usedAmount,
+		name:          "expiring-credit-breakage-correction-usage",
+	}).charge
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
+	s.AssertDecimalEqual(setup.usedAmount, s.mustFlatFeeCreditRealizations(charge)[0].Amount, "used credit realization amount before correction")
+
+	// Then the used portion releases planned breakage.
+	s.assertReleasedBreakage(releasedBreakageAssertionInput{
+		ctx:             setup.ctx,
+		namespace:       setup.namespace,
+		customer:        customerID,
+		currency:        USD,
+		costBasis:       costBasis,
+		planAmount:      setup.grantAmount,
+		releaseAmount:   setup.usedAmount,
+		asOf:            setup.usageAt,
+		expectedFBO:     setup.unusedAmount,
+		expectedAccrued: setup.usedAmount,
+	})
+
+	// When the full usage charge is deleted with refund-as-credits.
+	correctionAt := setup.usageAt.Add(time.Hour)
+	clock.FreezeTime(correctionAt)
+	s.deleteChargeWithRefundAsCredits(setup.ctx, customerID, charge.ID)
+
+	// Then the correction reopens the released breakage and restores FBO.
+	s.assertReopenedBreakage(reopenedBreakageAssertionInput{
+		ctx:             setup.ctx,
+		namespace:       setup.namespace,
+		customer:        customerID,
+		currency:        USD,
+		costBasis:       costBasis,
+		planAmount:      setup.grantAmount,
+		releaseAmount:   setup.usedAmount,
+		reopenAmount:    setup.usedAmount,
+		asOf:            correctionAt,
+		expectedFBO:     setup.grantAmount,
+		expectedAccrued: alpacadecimal.Zero,
+	})
+
+	// Then the full restored amount breaks at expiry.
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             setup.expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: setup.grantAmount,
+		label:            "at expiry after usage correction",
+	})
+}
+
+func (s *SanitySuite) TestExpiringCreditBreakagePartiallyReopensOnUsageShrinkSanity() {
+	setup := s.setupExpiringCreditBreakage(
+		"charges-sanity-expiring-credit-breakage-partial-correction",
+		withExpiringCreditBreakageAmounts(alpacadecimal.NewFromInt(12), alpacadecimal.NewFromInt(8)),
+	)
+	defer clock.UnFreeze()
+
+	costBasis := mo.Some(&setup.costBasis)
+	customerID := setup.customer.GetID()
+	retainedUsage := alpacadecimal.NewFromInt(5)
+	correctedUsage := setup.usedAmount.Sub(retainedUsage)
+
+	// Given an expiring promotional grant.
+	clock.FreezeTime(setup.grantAt)
+	s.CreatePromotionalCreditFunding(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    setup.grantAmount,
+		At:        setup.grantAt,
+		ExpiresAt: &setup.expiresAt,
+		CostBasis: setup.costBasis,
+	})
+
+	// When usage consumes part of the expiring credit before expiry.
+	charge := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           setup.ctx,
+		namespace:     setup.namespace,
+		customer:      customerID,
+		servicePeriod: timeutil.ClosedPeriod{From: setup.usageAt, To: setup.usageAt.Add(time.Hour)},
+		createAt:      setup.usageAt.Add(-time.Hour),
+		advanceAt:     setup.usageAt,
+		amount:        setup.usedAmount,
+		name:          "expiring-credit-breakage-partial-correction-usage",
+	}).charge
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
+	s.assertReleasedBreakage(releasedBreakageAssertionInput{
+		ctx:             setup.ctx,
+		namespace:       setup.namespace,
+		customer:        customerID,
+		currency:        USD,
+		costBasis:       costBasis,
+		planAmount:      setup.grantAmount,
+		releaseAmount:   setup.usedAmount,
+		asOf:            setup.usageAt,
+		expectedFBO:     setup.grantAmount.Sub(setup.usedAmount),
+		expectedAccrued: setup.usedAmount,
+	})
+
+	// When only part of the usage allocation is corrected.
+	correctionAt := setup.usageAt.Add(time.Hour)
+	clock.FreezeTime(correctionAt)
+	s.correctCreditUsageAllocation(setup.ctx, charge, s.mustFlatFeeCreditRealizations(charge)[0], correctedUsage, correctionAt)
+
+	// Then only the corrected part reopens breakage.
+	s.assertReopenedBreakage(reopenedBreakageAssertionInput{
+		ctx:             setup.ctx,
+		namespace:       setup.namespace,
+		customer:        customerID,
+		currency:        USD,
+		costBasis:       costBasis,
+		planAmount:      setup.grantAmount,
+		releaseAmount:   setup.usedAmount,
+		reopenAmount:    correctedUsage,
+		asOf:            correctionAt,
+		expectedFBO:     setup.grantAmount.Sub(retainedUsage),
+		expectedAccrued: retainedUsage,
+	})
+	s.AssertDecimalEqual(retainedUsage, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "accrued after partial reopen")
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             setup.expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: setup.grantAmount.Sub(retainedUsage),
+		label:            "at expiry after partial usage correction",
+	})
+}
+
+func (s *SanitySuite) TestExpiringCreditBreakageReopensLatestExpirationFirstOnUsageShrinkSanity() {
+	setup := s.setupExpiringCreditBreakage(
+		"charges-sanity-expiring-credit-breakage-multi-expiry-correction",
+		withExpiringCreditBreakageAmounts(alpacadecimal.NewFromInt(10), alpacadecimal.NewFromInt(8)),
+	)
+	defer clock.UnFreeze()
+
+	costBasis := mo.Some(&setup.costBasis)
+	customerID := setup.customer.GetID()
+	firstExpiresAt := setup.usageAt.Add(3 * 24 * time.Hour)
+	secondExpiresAt := setup.expiresAt
+	firstGrantAmount := alpacadecimal.NewFromInt(5)
+	secondGrantAmount := alpacadecimal.NewFromInt(5)
+	retainedUsage := alpacadecimal.NewFromInt(4)
+	correctedUsage := setup.usedAmount.Sub(retainedUsage)
+
+	// Given two expiring grants with the same FBO route but different expiration dates.
+	clock.FreezeTime(setup.grantAt)
+	s.createPromotionalCreditGrant(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    firstGrantAmount,
+		At:        setup.grantAt,
+		ExpiresAt: &firstExpiresAt,
+		CostBasis: setup.costBasis,
+	})
+	s.createPromotionalCreditGrant(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    secondGrantAmount,
+		At:        setup.grantAt,
+		ExpiresAt: &secondExpiresAt,
+		CostBasis: setup.costBasis,
+	})
+
+	// When usage consumes across both expirations, breakage is released in expiration order.
+	charge := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           setup.ctx,
+		namespace:     setup.namespace,
+		customer:      customerID,
+		servicePeriod: timeutil.ClosedPeriod{From: setup.usageAt, To: setup.usageAt.Add(time.Hour)},
+		createAt:      setup.usageAt.Add(-time.Hour),
+		advanceAt:     setup.usageAt,
+		amount:        setup.usedAmount,
+		name:          "expiring-credit-breakage-multi-expiry-correction-usage",
+	}).charge
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
+	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
+		{expiresAt: firstExpiresAt, planAmount: firstGrantAmount, releaseAmount: firstGrantAmount},
+		{expiresAt: secondExpiresAt, planAmount: secondGrantAmount, releaseAmount: alpacadecimal.NewFromInt(3)},
+	})
+
+	// When the charge allocation is partially corrected, correction unwinds the latest consumed expiration first.
+	correctionAt := setup.usageAt.Add(time.Hour)
+	clock.FreezeTime(correctionAt)
+	s.correctCreditUsageAllocation(setup.ctx, charge, s.mustFlatFeeCreditRealizations(charge)[0], correctedUsage, correctionAt)
+
+	// Then the later expiration is fully reopened before the earlier expiration is partially reopened.
+	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
+		{expiresAt: firstExpiresAt, planAmount: firstGrantAmount, releaseAmount: firstGrantAmount, reopenAmount: alpacadecimal.NewFromInt(1)},
+		{expiresAt: secondExpiresAt, planAmount: secondGrantAmount, releaseAmount: alpacadecimal.NewFromInt(3), reopenAmount: alpacadecimal.NewFromInt(3)},
+	})
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             correctionAt,
+		expectedFBO:      setup.grantAmount.Sub(retainedUsage),
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "after multi-expiry partial correction before expiry",
+	})
+	s.AssertDecimalEqual(retainedUsage, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "accrued after multi-expiry partial correction")
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             secondExpiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: setup.grantAmount.Sub(retainedUsage),
+		label:            "after all expirations",
+	})
+}
+
+func (s *SanitySuite) TestExpiringCreditBreakageIgnoresNonExpiringSourceOnUsageShrinkSanity() {
+	setup := s.setupExpiringCreditBreakage(
+		"charges-sanity-expiring-credit-breakage-non-expiring-correction",
+		withExpiringCreditBreakageAmounts(alpacadecimal.NewFromInt(10), alpacadecimal.NewFromInt(8)),
+	)
+	defer clock.UnFreeze()
+
+	costBasis := mo.Some(&setup.costBasis)
+	customerID := setup.customer.GetID()
+	expiringAmount := alpacadecimal.NewFromInt(5)
+	nonExpiringAmount := alpacadecimal.NewFromInt(5)
+	retainedUsage := alpacadecimal.NewFromInt(4)
+	correctedUsage := setup.usedAmount.Sub(retainedUsage)
+	nonExpiringCorrectedUsage := setup.usedAmount.Sub(expiringAmount)
+	expiringReopenAmount := correctedUsage.Sub(nonExpiringCorrectedUsage)
+
+	// Given an expiring grant and a non-expiring grant on the same FBO route.
+	clock.FreezeTime(setup.grantAt)
+	s.createPromotionalCreditGrant(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    expiringAmount,
+		At:        setup.grantAt,
+		ExpiresAt: &setup.expiresAt,
+		CostBasis: setup.costBasis,
+	})
+	s.createPromotionalCreditGrant(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    nonExpiringAmount,
+		At:        setup.grantAt,
+		CostBasis: setup.costBasis,
+	})
+
+	// When usage consumes all expiring credit plus some non-expiring credit.
+	charge := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           setup.ctx,
+		namespace:     setup.namespace,
+		customer:      customerID,
+		servicePeriod: timeutil.ClosedPeriod{From: setup.usageAt, To: setup.usageAt.Add(time.Hour)},
+		createAt:      setup.usageAt.Add(-time.Hour),
+		advanceAt:     setup.usageAt,
+		amount:        setup.usedAmount,
+		name:          "expiring-credit-breakage-non-expiring-correction-usage",
+	}).charge
+	s.Require().Len(s.mustFlatFeeCreditRealizations(charge), 1)
+	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
+		{expiresAt: setup.expiresAt, planAmount: expiringAmount, releaseAmount: expiringAmount},
+	})
+
+	// When the allocation is partially corrected, correction first unwinds the non-expiring source.
+	correctionAt := setup.usageAt.Add(time.Hour)
+	clock.FreezeTime(correctionAt)
+	s.correctCreditUsageAllocation(setup.ctx, charge, s.mustFlatFeeCreditRealizations(charge)[0], correctedUsage, correctionAt)
+
+	// Then only the corrected amount that came from expiring credit reopens breakage.
+	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
+		{expiresAt: setup.expiresAt, planAmount: expiringAmount, releaseAmount: expiringAmount, reopenAmount: expiringReopenAmount},
+	})
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             correctionAt,
+		expectedFBO:      setup.grantAmount.Sub(retainedUsage),
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "after non-expiring partial correction before expiry",
+	})
+	s.AssertDecimalEqual(retainedUsage, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "accrued after non-expiring partial correction")
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        setup.namespace,
+		customer:         customerID,
+		currency:         USD,
+		costBasis:        costBasis,
+		asOf:             setup.expiresAt,
+		expectedFBO:      nonExpiringAmount,
+		expectedBreakage: alpacadecimal.NewFromInt(1),
+		label:            "at expiry after non-expiring partial correction",
+	})
+}
+
+type expiringCreditBreakageSetup struct {
+	ctx          context.Context
+	namespace    string
+	customer     *customer.Customer
+	grantAt      time.Time
+	usageAt      time.Time
+	expiresAt    time.Time
+	grantAmount  alpacadecimal.Decimal
+	usedAmount   alpacadecimal.Decimal
+	unusedAmount alpacadecimal.Decimal
+	costBasis    alpacadecimal.Decimal
+}
+
+type expiringCreditBreakageSetupOption func(*expiringCreditBreakageSetup)
+
+func withExpiringCreditBreakageAmounts(grantAmount, usedAmount alpacadecimal.Decimal) expiringCreditBreakageSetupOption {
+	return func(setup *expiringCreditBreakageSetup) {
+		setup.grantAmount = grantAmount
+		setup.usedAmount = usedAmount
+	}
+}
+
+type createCreditOnlyFlatFeeChargeInput struct {
+	ctx           context.Context
+	namespace     string
+	customer      customer.CustomerID
+	servicePeriod timeutil.ClosedPeriod
+	createAt      time.Time
+	advanceAt     time.Time
+	amount        alpacadecimal.Decimal
+	name          string
+}
+
+type createdCreditOnlyFlatFeeCharge struct {
+	id     string
+	charge flatfee.Charge
+}
+
+func (s *SanitySuite) mustFlatFeeCreditRealizations(charge flatfee.Charge) creditrealization.Realizations {
+	s.T().Helper()
+
+	s.Require().NotNil(charge.Realizations.CurrentRun)
+
+	return charge.Realizations.CurrentRun.CreditRealizations
+}
+
+type breakageRowsByExpiryAssertion struct {
+	expiresAt     time.Time
+	planAmount    alpacadecimal.Decimal
+	releaseAmount alpacadecimal.Decimal
+	reopenAmount  alpacadecimal.Decimal
+}
+
+type plannedBreakageAssertionInput struct {
+	ctx       context.Context
+	namespace string
+	customer  customer.CustomerID
+	currency  currencyx.Code
+	costBasis mo.Option[*alpacadecimal.Decimal]
+	amount    alpacadecimal.Decimal
+	createdAt time.Time
+	expiresAt time.Time
+}
+
+type releasedBreakageAssertionInput struct {
+	ctx             context.Context
+	namespace       string
+	customer        customer.CustomerID
+	currency        currencyx.Code
+	costBasis       mo.Option[*alpacadecimal.Decimal]
+	planAmount      alpacadecimal.Decimal
+	releaseAmount   alpacadecimal.Decimal
+	asOf            time.Time
+	expectedFBO     alpacadecimal.Decimal
+	expectedAccrued alpacadecimal.Decimal
+}
+
+type reopenedBreakageAssertionInput struct {
+	ctx             context.Context
+	namespace       string
+	customer        customer.CustomerID
+	currency        currencyx.Code
+	costBasis       mo.Option[*alpacadecimal.Decimal]
+	planAmount      alpacadecimal.Decimal
+	releaseAmount   alpacadecimal.Decimal
+	reopenAmount    alpacadecimal.Decimal
+	asOf            time.Time
+	expectedFBO     alpacadecimal.Decimal
+	expectedAccrued alpacadecimal.Decimal
+}
+
+type breakageBalanceAssertionInput struct {
+	namespace        string
+	customer         customer.CustomerID
+	currency         currencyx.Code
+	costBasis        mo.Option[*alpacadecimal.Decimal]
+	asOf             time.Time
+	expectedFBO      alpacadecimal.Decimal
+	expectedBreakage alpacadecimal.Decimal
+	label            string
+}
+
 type creditOnlyDeleteCorrectionSetup struct {
 	ctx           context.Context
 	namespace     string
@@ -229,12 +855,462 @@ type creditOnlyDeleteCorrectionSetup struct {
 	featureKey    string
 }
 
-func (s *CreditsTestSuite) setupFlatFeeCreditOnlyDeleteCorrection(namespaceSuffix string) creditOnlyDeleteCorrectionSetup {
+func (s *SanitySuite) mustBreakageRows(ctx context.Context, namespace string, customerID customer.CustomerID) []*entdb.LedgerBreakageRecord {
+	s.T().Helper()
+
+	rows, err := s.DBClient.LedgerBreakageRecord.Query().
+		Where(
+			dbledgerbreakagerecord.NamespaceEQ(namespace),
+			dbledgerbreakagerecord.CustomerIDEQ(customerID.ID),
+		).
+		Order(
+			dbledgerbreakagerecord.ByCreatedAt(),
+			dbledgerbreakagerecord.ByID(),
+		).
+		All(ctx)
+	s.NoError(err)
+
+	return rows
+}
+
+func (s *SanitySuite) assertBreakagePlan(ctx context.Context, namespace string, customerID customer.CustomerID, amount alpacadecimal.Decimal, expiresAt time.Time) string {
+	s.T().Helper()
+
+	rows := s.mustBreakageRows(ctx, namespace, customerID)
+	s.Require().Len(rows, 1)
+
+	row := rows[0]
+	s.Equal(ledger.BreakageKindPlan, row.Kind)
+	s.AssertDecimalEqual(amount, row.Amount, "planned breakage row amount")
+	s.True(row.ExpiresAt.Equal(expiresAt), "planned breakage expires_at: %s", row.ExpiresAt)
+
+	return row.ID
+}
+
+func (s *SanitySuite) assertBreakagePlanAndRelease(ctx context.Context, namespace string, customerID customer.CustomerID, planAmount alpacadecimal.Decimal, releaseAmount alpacadecimal.Decimal) {
+	s.T().Helper()
+
+	rows := s.mustBreakageRows(ctx, namespace, customerID)
+	s.Require().Len(rows, 2)
+
+	var planRowID string
+	var releasePlanID *string
+	var releaseSourceEntryID *string
+
+	for _, row := range rows {
+		switch row.Kind {
+		case ledger.BreakageKindPlan:
+			planRowID = row.ID
+			s.AssertDecimalEqual(planAmount, row.Amount, "planned breakage row amount after usage")
+		case ledger.BreakageKindRelease:
+			releasePlanID = row.PlanID
+			releaseSourceEntryID = row.SourceEntryID
+			s.AssertDecimalEqual(releaseAmount, row.Amount, "released breakage row amount")
+		default:
+			s.Failf("unexpected breakage row kind", "kind=%s", row.Kind)
+		}
+	}
+
+	s.Require().NotEmpty(planRowID)
+	s.Require().NotNil(releasePlanID)
+	s.Require().NotNil(releaseSourceEntryID)
+	s.NotEmpty(*releaseSourceEntryID)
+	s.Equal(planRowID, *releasePlanID)
+}
+
+func (s *SanitySuite) assertAdvanceBackfillBreakageRows(ctx context.Context, namespace string, customerID customer.CustomerID, planAmount alpacadecimal.Decimal, releaseAmount alpacadecimal.Decimal, expiresAt time.Time) {
+	s.T().Helper()
+
+	rows := s.mustBreakageRows(ctx, namespace, customerID)
+	s.Require().Len(rows, 2)
+
+	var planRowID string
+	var releasePlanID *string
+
+	for _, row := range rows {
+		s.True(row.ExpiresAt.Equal(expiresAt), "breakage row expires_at: %s", row.ExpiresAt)
+
+		switch row.Kind {
+		case ledger.BreakageKindPlan:
+			planRowID = row.ID
+			s.Equal(ledger.BreakageSourceKindCreditPurchase, row.SourceKind)
+			s.AssertDecimalEqual(planAmount, row.Amount, "planned breakage row amount after advance backfill")
+		case ledger.BreakageKindRelease:
+			releasePlanID = row.PlanID
+			s.Equal(ledger.BreakageSourceKindAdvanceBackfill, row.SourceKind)
+			s.Nil(row.SourceEntryID)
+			s.AssertDecimalEqual(releaseAmount, row.Amount, "released breakage row amount after advance backfill")
+		default:
+			s.Failf("unexpected breakage row kind", "kind=%s", row.Kind)
+		}
+	}
+
+	s.Require().NotEmpty(planRowID)
+	s.Require().NotNil(releasePlanID)
+	s.Equal(planRowID, *releasePlanID)
+}
+
+func (s *SanitySuite) assertAdvanceBackfillBreakageReopenedRows(ctx context.Context, namespace string, customerID customer.CustomerID, planAmount alpacadecimal.Decimal, releaseAmount alpacadecimal.Decimal, expiresAt time.Time) {
+	s.T().Helper()
+
+	rows := s.mustBreakageRows(ctx, namespace, customerID)
+	s.Require().Len(rows, 3)
+
+	var planRowID string
+	var releaseRowID string
+	var releasePlanID *string
+	var reopenPlanID *string
+	var reopenReleaseID *string
+
+	for _, row := range rows {
+		s.True(row.ExpiresAt.Equal(expiresAt), "breakage row expires_at: %s", row.ExpiresAt)
+
+		switch row.Kind {
+		case ledger.BreakageKindPlan:
+			planRowID = row.ID
+			s.Equal(ledger.BreakageSourceKindCreditPurchase, row.SourceKind)
+			s.AssertDecimalEqual(planAmount, row.Amount, "planned breakage row amount after advance correction")
+		case ledger.BreakageKindRelease:
+			releaseRowID = row.ID
+			releasePlanID = row.PlanID
+			s.Equal(ledger.BreakageSourceKindAdvanceBackfill, row.SourceKind)
+			s.Nil(row.SourceEntryID)
+			s.AssertDecimalEqual(releaseAmount, row.Amount, "advance-backfill release amount after correction")
+		case ledger.BreakageKindReopen:
+			reopenPlanID = row.PlanID
+			reopenReleaseID = row.ReleaseID
+			s.Equal(ledger.BreakageSourceKindUsageCorrection, row.SourceKind)
+			s.AssertDecimalEqual(releaseAmount, row.Amount, "advance-backfill reopen amount")
+		default:
+			s.Failf("unexpected breakage row kind", "kind=%s", row.Kind)
+		}
+	}
+
+	s.Require().NotEmpty(planRowID)
+	s.Require().NotEmpty(releaseRowID)
+	s.Require().NotNil(releasePlanID)
+	s.Require().NotNil(reopenPlanID)
+	s.Require().NotNil(reopenReleaseID)
+	s.Equal(planRowID, *releasePlanID)
+	s.Equal(planRowID, *reopenPlanID)
+	s.Equal(releaseRowID, *reopenReleaseID)
+}
+
+func (s *SanitySuite) assertBreakagePlanReleaseAndReopen(ctx context.Context, namespace string, customerID customer.CustomerID, planAmount alpacadecimal.Decimal, releaseAmount alpacadecimal.Decimal, reopenAmount alpacadecimal.Decimal) {
+	s.T().Helper()
+
+	rows := s.mustBreakageRows(ctx, namespace, customerID)
+	s.Require().Len(rows, 3)
+
+	var planRowID string
+	var releaseRowID string
+	var releasePlanID *string
+	var reopenPlanID *string
+	var reopenReleaseID *string
+
+	for _, row := range rows {
+		switch row.Kind {
+		case ledger.BreakageKindPlan:
+			planRowID = row.ID
+			s.AssertDecimalEqual(planAmount, row.Amount, "planned breakage row amount after correction")
+		case ledger.BreakageKindRelease:
+			releaseRowID = row.ID
+			releasePlanID = row.PlanID
+			s.AssertDecimalEqual(releaseAmount, row.Amount, "released breakage row amount after correction")
+			s.Require().NotNil(row.SourceEntryID)
+			s.NotEmpty(*row.SourceEntryID)
+		case ledger.BreakageKindReopen:
+			reopenPlanID = row.PlanID
+			reopenReleaseID = row.ReleaseID
+			s.AssertDecimalEqual(reopenAmount, row.Amount, "reopened breakage row amount")
+		default:
+			s.Failf("unexpected breakage row kind", "kind=%s", row.Kind)
+		}
+	}
+
+	s.Require().NotEmpty(planRowID)
+	s.Require().NotEmpty(releaseRowID)
+	s.Require().NotNil(releasePlanID)
+	s.Require().NotNil(reopenPlanID)
+	s.Require().NotNil(reopenReleaseID)
+	s.Equal(planRowID, *releasePlanID)
+	s.Equal(planRowID, *reopenPlanID)
+	s.Equal(releaseRowID, *reopenReleaseID)
+}
+
+func (s *SanitySuite) assertBreakageRowsByExpiry(ctx context.Context, namespace string, customerID customer.CustomerID, expected []breakageRowsByExpiryAssertion) {
+	s.T().Helper()
+
+	rows := s.mustBreakageRows(ctx, namespace, customerID)
+
+	expectedByExpiry := make(map[string]breakageRowsByExpiryAssertion, len(expected))
+	for _, item := range expected {
+		expectedByExpiry[item.expiresAt.UTC().Format(time.RFC3339Nano)] = item
+	}
+
+	planIDByExpiry := make(map[string]string, len(expected))
+	releaseIDByExpiry := make(map[string]string, len(expected))
+	releasePlanIDByExpiry := make(map[string]*string, len(expected))
+	reopenPlanIDByExpiry := make(map[string]*string, len(expected))
+	reopenReleaseIDByExpiry := make(map[string]*string, len(expected))
+	actualPlanAmountByExpiry := make(map[string]alpacadecimal.Decimal, len(expected))
+	actualReleaseAmountByExpiry := make(map[string]alpacadecimal.Decimal, len(expected))
+	actualReopenAmountByExpiry := make(map[string]alpacadecimal.Decimal, len(expected))
+
+	for _, row := range rows {
+		key := row.ExpiresAt.UTC().Format(time.RFC3339Nano)
+		if _, ok := expectedByExpiry[key]; !ok {
+			s.Failf("unexpected breakage expiry", "expires_at=%s kind=%s amount=%s", row.ExpiresAt, row.Kind, row.Amount)
+			continue
+		}
+
+		switch row.Kind {
+		case ledger.BreakageKindPlan:
+			planIDByExpiry[key] = row.ID
+			actualPlanAmountByExpiry[key] = actualPlanAmountByExpiry[key].Add(row.Amount)
+		case ledger.BreakageKindRelease:
+			releaseIDByExpiry[key] = row.ID
+			releasePlanIDByExpiry[key] = row.PlanID
+			actualReleaseAmountByExpiry[key] = actualReleaseAmountByExpiry[key].Add(row.Amount)
+			s.Require().NotNil(row.SourceEntryID)
+			s.NotEmpty(*row.SourceEntryID)
+		case ledger.BreakageKindReopen:
+			reopenPlanIDByExpiry[key] = row.PlanID
+			reopenReleaseIDByExpiry[key] = row.ReleaseID
+			actualReopenAmountByExpiry[key] = actualReopenAmountByExpiry[key].Add(row.Amount)
+		default:
+			s.Failf("unexpected breakage row kind", "kind=%s", row.Kind)
+		}
+	}
+
+	for key, expectedItem := range expectedByExpiry {
+		s.AssertDecimalEqual(expectedItem.planAmount, actualPlanAmountByExpiry[key], "planned breakage amount at "+key)
+		s.AssertDecimalEqual(expectedItem.releaseAmount, actualReleaseAmountByExpiry[key], "released breakage amount at "+key)
+		s.AssertDecimalEqual(expectedItem.reopenAmount, actualReopenAmountByExpiry[key], "reopened breakage amount at "+key)
+
+		s.Require().NotEmpty(planIDByExpiry[key])
+		if expectedItem.releaseAmount.IsPositive() {
+			s.Require().NotEmpty(releaseIDByExpiry[key])
+			s.Require().NotNil(releasePlanIDByExpiry[key])
+			s.Equal(planIDByExpiry[key], *releasePlanIDByExpiry[key])
+		}
+		if expectedItem.reopenAmount.IsPositive() {
+			s.Require().NotNil(reopenPlanIDByExpiry[key])
+			s.Require().NotNil(reopenReleaseIDByExpiry[key])
+			s.Equal(planIDByExpiry[key], *reopenPlanIDByExpiry[key])
+			s.Equal(releaseIDByExpiry[key], *reopenReleaseIDByExpiry[key])
+		}
+	}
+}
+
+func (s *SanitySuite) setupExpiringCreditBreakage(namespaceSuffix string, opts ...expiringCreditBreakageSetupOption) expiringCreditBreakageSetup {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace(namespaceSuffix)
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	grantAmount := alpacadecimal.NewFromInt(10)
+	usedAmount := alpacadecimal.NewFromInt(6)
+
+	setup := expiringCreditBreakageSetup{
+		ctx:          ctx,
+		namespace:    ns,
+		customer:     cust,
+		grantAt:      datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		usageAt:      datetime.MustParseTimeInLocation(s.T(), "2026-01-02T00:00:00Z", time.UTC).AsTime(),
+		expiresAt:    datetime.MustParseTimeInLocation(s.T(), "2026-01-10T00:00:00Z", time.UTC).AsTime(),
+		grantAmount:  grantAmount,
+		usedAmount:   usedAmount,
+		unusedAmount: grantAmount.Sub(usedAmount),
+		costBasis:    alpacadecimal.Zero,
+	}
+
+	for _, opt := range opts {
+		opt(&setup)
+	}
+	setup.unusedAmount = setup.grantAmount.Sub(setup.usedAmount)
+
+	return setup
+}
+
+func (s *SanitySuite) createAndAdvanceCreditOnlyFlatFeeCharge(input createCreditOnlyFlatFeeChargeInput) createdCreditOnlyFlatFeeCharge {
+	s.T().Helper()
+
+	clock.FreezeTime(input.createAt)
+
+	res, err := s.Charges.Create(input.ctx, charges.CreateInput{
+		Namespace: input.namespace,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       input.customer,
+				Currency:       USD,
+				ServicePeriod:  input.servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      input.amount,
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Name:              input.name,
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: input.name,
+			}),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(res, 1)
+
+	chargeID, err := res[0].GetChargeID()
+	s.NoError(err)
+
+	clock.FreezeTime(input.advanceAt)
+
+	advancedCharges, err := s.Charges.AdvanceCharges(input.ctx, charges.AdvanceChargesInput{
+		Customer: input.customer,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(advancedCharges, 1)
+
+	charge, err := advancedCharges[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusFinal, charge.Status)
+
+	return createdCreditOnlyFlatFeeCharge{
+		id:     chargeID.ID,
+		charge: charge,
+	}
+}
+
+func (s *SanitySuite) createPromotionalCreditGrant(ctx context.Context, input CreatePromotionalCreditFundingInput) creditpurchase.Charge {
+	s.T().Helper()
+
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: input.Namespace,
+		Intents: charges.ChargeIntents{
+			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+				Customer:      input.Customer,
+				Currency:      USD,
+				Amount:        input.Amount,
+				ExpiresAt:     input.ExpiresAt,
+				Priority:      input.Priority,
+				ServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
+				Settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+			}),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(res, 1)
+	s.Equal(meta.ChargeTypeCreditPurchase, res[0].Type())
+
+	charge, err := res[0].AsCreditPurchaseCharge()
+	s.Require().NoError(err)
+
+	return charge
+}
+
+func (s *SanitySuite) correctCreditUsageAllocation(ctx context.Context, charge flatfee.Charge, allocation creditrealization.Realization, amount alpacadecimal.Decimal, bookedAt time.Time) {
+	s.T().Helper()
+
+	lineageSegmentsByRealization, err := s.LineageService.LoadActiveSegmentsByRealizationID(ctx, charge.Namespace, []string{allocation.ID})
+	s.Require().NoError(err)
+
+	corrections, err := s.FlatFeeHandler.OnCorrectCreditAllocations(ctx, flatfee.CorrectCreditAllocationsInput{
+		Charge:                       charge,
+		BookedAt:                     bookedAt,
+		LineageSegmentsByRealization: lineageSegmentsByRealization,
+		Corrections: creditrealization.CorrectionRequest{
+			{
+				Allocation: allocation,
+				Amount:     amount.Neg(),
+			},
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(corrections, 1)
+	s.AssertDecimalEqual(amount.Neg(), corrections[0].Amount, "credit usage correction amount")
+	s.Equal(allocation.ID, corrections[0].CorrectsRealizationID)
+}
+
+func (s *SanitySuite) assertPlannedBreakage(input plannedBreakageAssertionInput) {
+	s.T().Helper()
+
+	s.assertBreakagePlan(input.ctx, input.namespace, input.customer, input.amount, input.expiresAt)
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        input.namespace,
+		customer:         input.customer,
+		currency:         input.currency,
+		costBasis:        input.costBasis,
+		asOf:             input.createdAt,
+		expectedFBO:      input.amount,
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "at creation",
+	})
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        input.namespace,
+		customer:         input.customer,
+		currency:         input.currency,
+		costBasis:        input.costBasis,
+		asOf:             input.expiresAt,
+		expectedFBO:      alpacadecimal.Zero,
+		expectedBreakage: input.amount,
+		label:            "at expiry before release",
+	})
+}
+
+func (s *SanitySuite) assertReleasedBreakage(input releasedBreakageAssertionInput) {
+	s.T().Helper()
+
+	s.assertBreakagePlanAndRelease(input.ctx, input.namespace, input.customer, input.planAmount, input.releaseAmount)
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        input.namespace,
+		customer:         input.customer,
+		currency:         input.currency,
+		costBasis:        input.costBasis,
+		asOf:             input.asOf,
+		expectedFBO:      input.expectedFBO,
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "after release before expiry",
+	})
+	s.AssertDecimalEqual(input.expectedAccrued, s.MustCustomerAccruedBalance(input.customer, input.currency, input.costBasis), "accrued after release")
+}
+
+func (s *SanitySuite) assertReopenedBreakage(input reopenedBreakageAssertionInput) {
+	s.T().Helper()
+
+	s.assertBreakagePlanReleaseAndReopen(input.ctx, input.namespace, input.customer, input.planAmount, input.releaseAmount, input.reopenAmount)
+	s.assertBreakageBalancesAt(breakageBalanceAssertionInput{
+		namespace:        input.namespace,
+		customer:         input.customer,
+		currency:         input.currency,
+		costBasis:        input.costBasis,
+		asOf:             input.asOf,
+		expectedFBO:      input.expectedFBO,
+		expectedBreakage: alpacadecimal.Zero,
+		label:            "after reopen before expiry",
+	})
+	s.AssertDecimalEqual(input.expectedAccrued, s.MustCustomerAccruedBalance(input.customer, input.currency, input.costBasis), "accrued after reopen")
+}
+
+func (s *SanitySuite) assertBreakageBalancesAt(input breakageBalanceAssertionInput) {
+	s.T().Helper()
+
+	s.AssertDecimalEqual(input.expectedFBO, s.MustCustomerFBOBalanceAsOf(input.customer, input.currency, input.costBasis, input.asOf), "FBO "+input.label)
+	s.AssertDecimalEqual(input.expectedBreakage, s.MustBreakageBalanceAsOf(input.namespace, input.currency, input.costBasis, input.asOf), "breakage "+input.label)
+}
+
+func (s *SanitySuite) setupFlatFeeCreditOnlyDeleteCorrection(namespaceSuffix string) creditOnlyDeleteCorrectionSetup {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace(namespaceSuffix)
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
 		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
@@ -254,11 +1330,12 @@ func (s *CreditsTestSuite) setupFlatFeeCreditOnlyDeleteCorrection(namespaceSuffi
 	}
 }
 
-func (s *CreditsTestSuite) setupUsageBasedCreditOnlyDeleteCorrection(namespaceSuffix string) creditOnlyDeleteCorrectionSetup {
+func (s *SanitySuite) setupUsageBasedCreditOnlyDeleteCorrection(namespaceSuffix string) creditOnlyDeleteCorrectionSetup {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace(namespaceSuffix)
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
@@ -278,75 +1355,39 @@ func (s *CreditsTestSuite) setupUsageBasedCreditOnlyDeleteCorrection(namespaceSu
 	}
 }
 
-func (s *CreditsTestSuite) createPromotionalCreditFunding(setup creditOnlyDeleteCorrectionSetup, costBasis alpacadecimal.Decimal) alpacadecimal.Decimal {
+func (s *SanitySuite) createPromotionalCreditFunding(setup creditOnlyDeleteCorrectionSetup, costBasis alpacadecimal.Decimal) alpacadecimal.Decimal {
 	s.T().Helper()
 
-	res, err := s.Charges.Create(setup.ctx, charges.CreateInput{
+	result := s.CreatePromotionalCreditFunding(setup.ctx, CreatePromotionalCreditFundingInput{
 		Namespace: setup.namespace,
-		Intents: charges.ChargeIntents{
-			s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
-				customer: setup.customer.GetID(),
-				currency: USD,
-				amount:   setup.amount,
-				servicePeriod: timeutil.ClosedPeriod{
-					From: setup.createAt,
-					To:   setup.createAt,
-				},
-				settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
-			}),
-		},
+		Customer:  setup.customer.GetID(),
+		Amount:    setup.amount,
+		At:        setup.createAt,
+		CostBasis: costBasis,
 	})
-	s.NoError(err)
-	s.Len(res, 1)
-	s.True(s.mustCustomerFBOBalance(setup.customer.GetID(), USD, mo.Some(&costBasis)).Equal(setup.amount))
 
-	return s.mustCustomerReceivableBalance(setup.customer.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen)
+	return result.OpenReceivable
 }
 
-func (s *CreditsTestSuite) createAndAdvanceFlatFeeCreditOnlyCharge(setup creditOnlyDeleteCorrectionSetup) string {
+func (s *SanitySuite) createAndAdvanceFlatFeeCreditOnlyCharge(setup creditOnlyDeleteCorrectionSetup) string {
 	s.T().Helper()
 
-	res, err := s.Charges.Create(setup.ctx, charges.CreateInput{
-		Namespace: setup.namespace,
-		Intents: charges.ChargeIntents{
-			s.createMockChargeIntent(createMockChargeIntentInput{
-				customer:       setup.customer.GetID(),
-				currency:       USD,
-				servicePeriod:  setup.servicePeriod,
-				settlementMode: productcatalog.CreditOnlySettlementMode,
-				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-					Amount:      setup.amount,
-					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				}),
-				name:              setup.namespace,
-				managedBy:         billing.SubscriptionManagedLine,
-				uniqueReferenceID: setup.namespace,
-			}),
-		},
+	created := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           setup.ctx,
+		namespace:     setup.namespace,
+		customer:      setup.customer.GetID(),
+		servicePeriod: setup.servicePeriod,
+		createAt:      setup.createAt,
+		advanceAt:     setup.servicePeriod.From,
+		amount:        setup.amount,
+		name:          setup.namespace,
 	})
-	s.NoError(err)
-	s.Len(res, 1)
+	s.Len(s.mustFlatFeeCreditRealizations(created.charge), 1)
 
-	flatFeeChargeID, err := res[0].GetChargeID()
-	s.NoError(err)
-
-	clock.FreezeTime(setup.servicePeriod.From)
-
-	advancedCharges, err := s.Charges.AdvanceCharges(setup.ctx, charges.AdvanceChargesInput{
-		Customer: setup.customer.GetID(),
-	})
-	s.NoError(err)
-	s.Len(advancedCharges, 1)
-
-	advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
-	s.NoError(err)
-	s.Equal(flatfee.StatusFinal, advancedCharge.Status)
-	s.Len(advancedCharge.Realizations.CreditRealizations, 1)
-
-	return flatFeeChargeID.ID
+	return created.id
 }
 
-func (s *CreditsTestSuite) recordUsageInClosedServicePeriod(setup creditOnlyDeleteCorrectionSetup) {
+func (s *SanitySuite) recordUsageInClosedServicePeriod(setup creditOnlyDeleteCorrectionSetup) {
 	s.T().Helper()
 
 	s.MockStreamingConnector.AddSimpleEvent(
@@ -356,24 +1397,24 @@ func (s *CreditsTestSuite) recordUsageInClosedServicePeriod(setup creditOnlyDele
 	)
 }
 
-func (s *CreditsTestSuite) createFinalizedUsageBasedCreditOnlyCharge(setup creditOnlyDeleteCorrectionSetup) string {
+func (s *SanitySuite) createFinalizedUsageBasedCreditOnlyCharge(setup creditOnlyDeleteCorrectionSetup) string {
 	s.T().Helper()
 
 	res, err := s.Charges.Create(setup.ctx, charges.CreateInput{
 		Namespace: setup.namespace,
 		Intents: charges.ChargeIntents{
-			s.createMockChargeIntent(createMockChargeIntentInput{
-				customer:       setup.customer.GetID(),
-				currency:       USD,
-				servicePeriod:  setup.servicePeriod,
-				settlementMode: productcatalog.CreditOnlySettlementMode,
-				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       setup.customer.GetID(),
+				Currency:       USD,
+				ServicePeriod:  setup.servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromInt(1),
 				}),
-				name:              setup.namespace,
-				managedBy:         billing.SubscriptionManagedLine,
-				uniqueReferenceID: setup.namespace,
-				featureKey:        setup.featureKey,
+				Name:              setup.namespace,
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: setup.namespace,
+				FeatureKey:        setup.featureKey,
 			}),
 		},
 	})
@@ -384,13 +1425,14 @@ func (s *CreditsTestSuite) createFinalizedUsageBasedCreditOnlyCharge(setup credi
 	s.NoError(err)
 	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageBasedCharge.Status))
 	s.Len(usageBasedCharge.Realizations, 1)
+	s.True(usageBasedCharge.Realizations[0].NoFiatTransactionRequired)
 	s.Len(usageBasedCharge.Realizations[0].CreditsAllocated, 1)
 	s.True(usageBasedCharge.Realizations[0].CreditsAllocated[0].Amount.Equal(setup.amount))
 
 	return usageBasedCharge.ID
 }
 
-func (s *CreditsTestSuite) deleteChargeWithRefundAsCredits(ctx context.Context, customerID customer.CustomerID, chargeID string) {
+func (s *SanitySuite) deleteChargeWithRefundAsCredits(ctx context.Context, customerID customer.CustomerID, chargeID string) {
 	s.T().Helper()
 
 	err := s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
@@ -402,59 +1444,60 @@ func (s *CreditsTestSuite) deleteChargeWithRefundAsCredits(ctx context.Context, 
 	s.NoError(err)
 }
 
-func (s *CreditsTestSuite) assertUnfundedCreditOnlyRealization(customerID customer.CustomerID, amount alpacadecimal.Decimal) {
+func (s *SanitySuite) assertUnfundedCreditOnlyRealization(customerID customer.CustomerID, amount alpacadecimal.Decimal) {
 	s.T().Helper()
 
-	s.True(s.mustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(amount.Neg()))
-	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(amount))
+	s.True(s.MustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(amount.Neg()))
+	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(amount))
 }
 
-func (s *CreditsTestSuite) assertUnfundedCreditOnlyDeleted(customerID customer.CustomerID) {
+func (s *SanitySuite) assertUnfundedCreditOnlyDeleted(customerID customer.CustomerID) {
 	s.T().Helper()
 
-	s.True(s.mustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerFBOBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerFBOBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
 }
 
-func (s *CreditsTestSuite) assertFundedCreditOnlyAccrued(customerID customer.CustomerID, amount alpacadecimal.Decimal, costBasis alpacadecimal.Decimal, startOpenReceivable alpacadecimal.Decimal) {
+func (s *SanitySuite) assertFundedCreditOnlyAccrued(customerID customer.CustomerID, amount alpacadecimal.Decimal, costBasis alpacadecimal.Decimal, startOpenReceivable alpacadecimal.Decimal) {
 	s.T().Helper()
 
-	s.True(s.mustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(startOpenReceivable))
-	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(amount))
+	s.True(s.MustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(startOpenReceivable))
+	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(amount))
 }
 
-func (s *CreditsTestSuite) recognizeFundedCreditOnlyRevenue(namespace string, customerID customer.CustomerID, amount alpacadecimal.Decimal, costBasis alpacadecimal.Decimal) {
+func (s *SanitySuite) recognizeFundedCreditOnlyRevenue(namespace string, customerID customer.CustomerID, amount alpacadecimal.Decimal, costBasis alpacadecimal.Decimal) {
 	s.T().Helper()
 
-	s.mustRecognizeRevenue(customerID, USD, amount)
-	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
-	s.True(s.mustEarningsBalanceForCostBasis(namespace, USD, mo.Some(&costBasis)).Equal(amount))
-	s.True(s.mustEarningsBalanceForCostBasis(namespace, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.mustEarningsBalance(namespace, USD).Equal(amount))
+	s.MustRecognizeRevenue(customerID, USD, amount)
+	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some(&costBasis)).Equal(amount))
+	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.MustEarningsBalance(namespace, USD).Equal(amount))
 }
 
-func (s *CreditsTestSuite) assertFundedRecognizedCreditOnlyDeleted(namespace string, customerID customer.CustomerID, amount alpacadecimal.Decimal, costBasis alpacadecimal.Decimal, startOpenReceivable alpacadecimal.Decimal) {
+func (s *SanitySuite) assertFundedRecognizedCreditOnlyDeleted(namespace string, customerID customer.CustomerID, amount alpacadecimal.Decimal, costBasis alpacadecimal.Decimal, startOpenReceivable alpacadecimal.Decimal) {
 	s.T().Helper()
 
-	s.True(s.mustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(startOpenReceivable))
-	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(amount))
-	s.True(s.mustCustomerFBOBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.mustEarningsBalanceForCostBasis(namespace, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
-	s.True(s.mustEarningsBalanceForCostBasis(namespace, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.mustEarningsBalance(namespace, USD).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(startOpenReceivable))
+	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(amount))
+	s.True(s.MustCustomerFBOBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.MustEarningsBalance(namespace, USD).Equal(alpacadecimal.Zero))
 }
 
-func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfillSanity() {
+func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfillSanity() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-usagebased-credit-only-delete-partial-backfill")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
@@ -480,18 +1523,18 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBa
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
-			s.createMockChargeIntent(createMockChargeIntentInput{
-				customer:       cust.GetID(),
-				currency:       USD,
-				servicePeriod:  servicePeriod,
-				settlementMode: productcatalog.CreditOnlySettlementMode,
-				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromInt(1),
 				}),
-				name:              "usage-based-credit-only-delete-partial-backfill",
-				managedBy:         billing.SubscriptionManagedLine,
-				uniqueReferenceID: "usage-based-credit-only-delete-partial-backfill",
-				featureKey:        apiRequestsTotal.Feature.Key,
+				Name:              "usage-based-credit-only-delete-partial-backfill",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "usage-based-credit-only-delete-partial-backfill",
+				FeatureKey:        apiRequestsTotal.Feature.Key,
 			}),
 		},
 	})
@@ -508,18 +1551,18 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBa
 	remainingUncovered := allocatedAmount.Sub(purchaseAmount)
 
 	// Then the full amount sits on the nil-cost-basis receivable/accrued path.
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(allocatedAmount.Neg()))
-	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(allocatedAmount))
+	s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(allocatedAmount.Neg()))
+	s.True(s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(allocatedAmount))
 
-	creditPurchaseIntent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
-		customer: cust.GetID(),
-		currency: USD,
-		amount:   purchaseAmount,
-		servicePeriod: timeutil.ClosedPeriod{
+	creditPurchaseIntent := s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+		Customer: cust.GetID(),
+		Currency: USD,
+		Amount:   purchaseAmount,
+		ServicePeriod: timeutil.ClosedPeriod{
 			From: createAt,
 			To:   createAt,
 		},
-		settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+		Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 			GenericSettlement: creditpurchase.GenericSettlement{
 				Currency:  USD,
 				CostBasis: alpacadecimal.NewFromFloat(0.5),
@@ -549,11 +1592,11 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBa
 	s.Len(backingGroup.Transactions(), 2)
 
 	// Then only the purchased portion moves onto the purchased-credit cost-basis route.
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(allocatedAmount.Neg()))
-	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(remainingUncovered))
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).Equal(purchaseAmount.Neg()))
-	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(purchaseAmount))
-	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(allocatedAmount.Neg()))
+	s.True(s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(remainingUncovered))
+	s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).Equal(purchaseAmount.Neg()))
+	s.True(s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(purchaseAmount))
+	s.True(s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
 
 	// When the original charge is deleted with refund-as-credits.
 	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
@@ -565,21 +1608,22 @@ func (s *CreditsTestSuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBa
 	s.NoError(err)
 
 	// Then the purchased part is returned as available credit and the original accrued usage is cleared.
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(purchaseAmount.Neg()))
-	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(purchaseAmount))
-	s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).Equal(purchaseAmount.Neg()))
+	s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(purchaseAmount.Neg()))
+	s.True(s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(purchaseAmount))
+	s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).Equal(purchaseAmount.Neg()))
 }
 
-func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
+func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-test")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
 
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -602,55 +1646,37 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 	clock.SetTime(setupAt)
 
 	s.Run("the customer receives a promotional credit grant", func() {
-		intent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
-			customer: cust.GetID(),
-			currency: USD,
-			amount:   alpacadecimal.NewFromFloat(30),
-			servicePeriod: timeutil.ClosedPeriod{
-				From: setupAt,
-				To:   setupAt,
-			},
-			settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
-		})
-
-		res, err := s.Charges.Create(ctx, charges.CreateInput{
+		result := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
-				intent,
-			},
+			Customer:  cust.GetID(),
+			Amount:    alpacadecimal.NewFromFloat(30),
+			At:        setupAt,
+			CostBasis: alpacadecimal.Zero,
 		})
-		s.NoError(err)
-
-		s.Len(res, 1)
-		s.Equal(meta.ChargeTypeCreditPurchase, res[0].Type())
-		cpCharge, err := res[0].AsCreditPurchaseCharge()
-		s.NoError(err)
 
 		// This should match the ledger's transaction group ID
-		s.NotEmpty(cpCharge.Realizations.CreditGrantRealization.TransactionGroupID)
+		s.NotEmpty(result.Charge.Realizations.CreditGrantRealization.TransactionGroupID)
 
 		// LEDGER:
 		// - OnPromotionalCreditPurchase is called
 		// - At this point the customer must have 30 USD promotional credits
 
 		// Validate balances
-		zeroCostBasis := alpacadecimal.Zero
 		purchasedCostBasis := alpacadecimal.NewFromFloat(0.5)
-		s.Equal(float64(30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)).InexactFloat64())
-		s.Equal(float64(0), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&purchasedCostBasis)).InexactFloat64())
+		s.Equal(float64(0), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&purchasedCostBasis)).InexactFloat64())
 	})
 
 	var externalCreditPurchaseChargeID meta.ChargeID
 	s.Run("and customer purchases 50 USD credits as 0.5 costbasis", func() {
-		intent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
-			customer: cust.GetID(),
-			currency: USD,
-			amount:   alpacadecimal.NewFromFloat(50),
-			servicePeriod: timeutil.ClosedPeriod{
+		intent := s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+			Customer: cust.GetID(),
+			Currency: USD,
+			Amount:   alpacadecimal.NewFromFloat(50),
+			ServicePeriod: timeutil.ClosedPeriod{
 				From: setupAt,
 				To:   setupAt,
 			},
-			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+			Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
 					Currency:  USD,
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
@@ -681,8 +1707,8 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		// Validate balances
 		costBasis := alpacadecimal.NewFromFloat(0.5)
-		s.Equal(float64(50), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).InexactFloat64())
-		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+		s.Equal(float64(50), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).InexactFloat64())
+		s.Equal(float64(-50), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 
 		externalCreditPurchaseChargeID = cpCharge.GetChargeID()
 	})
@@ -699,7 +1725,8 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(payment.StatusAuthorized, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
-		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+		s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+		s.Equal(float64(-50), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64())
 	})
 
 	s.Run("the customer settles the credit purchase payment", func() {
@@ -714,7 +1741,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(payment.StatusSettled, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
-		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+		s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 	})
 
 	// TOTAL credits balance: 30 + 50 = 80 USD
@@ -735,16 +1762,16 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		earnings             alpacadecimal.Decimal
 	}
 	flatFeeStart := flatFeeLedgerSnapshot{
-		promoFBO:             s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)),
-		externalFBO:          s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)),
-		promoReceivable:      s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen),
-		externalReceivable:   s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen),
-		totalOpenReceivable:  s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen),
-		accrued:              s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()),
-		authorizedReceivable: s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized),
-		totalWash:            s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()),
-		externalWash:         s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)),
-		earnings:             s.mustEarningsBalance(ns, USD),
+		promoFBO:             s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)),
+		externalFBO:          s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)),
+		promoReceivable:      s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen),
+		externalReceivable:   s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen),
+		totalOpenReceivable:  s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen),
+		accrued:              s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()),
+		authorizedReceivable: s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized),
+		totalWash:            s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()),
+		externalWash:         s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)),
+		earnings:             s.MustEarningsBalance(ns, USD),
 	}
 	assertDelta := func(label string, start, delta, actual alpacadecimal.Decimal) {
 		s.T().Helper()
@@ -756,18 +1783,18 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
 			Intents: charges.ChargeIntents{
-				s.createMockChargeIntent(createMockChargeIntentInput{
-					customer:       cust.GetID(),
-					currency:       USD,
-					servicePeriod:  servicePeriod,
-					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-					price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 						Amount:      alpacadecimal.NewFromFloat(100),
 						PaymentTerm: productcatalog.InAdvancePaymentTerm,
 					}),
-					name:              flatFeeName,
-					managedBy:         billing.SubscriptionManagedLine,
-					uniqueReferenceID: flatFeeName,
+					Name:              flatFeeName,
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: flatFeeName,
 				}),
 			},
 		})
@@ -803,35 +1830,36 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.Equal(flatFeeChargeID.ID, *stdLine.ChargeID)
 		stdLineID = stdLine.GetLineID()
 
-		charge := s.mustGetChargeByID(flatFeeChargeID)
+		charge := s.MustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
 
 		s.Equal(flatFeeChargeID.ID, updatedFlatFeeCharge.ID)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
 
 		// LEDGER:
-		// - OnFlatFeeAssignedToInvoice is called with the pre tax total amount of USD 100
+		// - OnAllocateCredits is called with the pre tax amount to allocate of USD 100
 		// - Two credit realizations should happen for the two different credit types
 
 		// Validate the credit realizations
 		// The charge should have $80 realized as credits
-		s.Len(updatedFlatFeeCharge.Realizations.CreditRealizations, 2)
-		promotionalCreditRealization := updatedFlatFeeCharge.Realizations.CreditRealizations[0]
+		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations, 2)
+		promotionalCreditRealization := updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations[0]
 		s.Equal(float64(30), promotionalCreditRealization.Amount.InexactFloat64())
 
-		customerCreditRealization := updatedFlatFeeCharge.Realizations.CreditRealizations[1]
+		customerCreditRealization := updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations[1]
 		s.Equal(float64(50), customerCreditRealization.Amount.InexactFloat64())
 
-		assertDelta("promo FBO after invoice assignment", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
-		assertDelta("external FBO after invoice assignment", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
-		assertDelta("promo receivable after invoice assignment", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("external receivable after invoice assignment", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("total open receivable after invoice assignment", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("accrued after invoice assignment", flatFeeStart.accrued, alpacadecimal.NewFromInt(80), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
-		assertDelta("authorized receivable after invoice assignment", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
-		assertDelta("total wash after invoice assignment", flatFeeStart.totalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
-		assertDelta("external wash after invoice assignment", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
-		assertDelta("earnings after invoice assignment", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
+		assertDelta("promo FBO after invoice assignment", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
+		assertDelta("external FBO after invoice assignment", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
+		assertDelta("promo receivable after invoice assignment", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("external receivable after invoice assignment", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("total open receivable after invoice assignment", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("accrued after invoice assignment", flatFeeStart.accrued, alpacadecimal.NewFromInt(80), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("authorized receivable after invoice assignment", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
+		assertDelta("total wash after invoice assignment", flatFeeStart.totalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("external wash after invoice assignment", flatFeeStart.externalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
+		assertDelta("earnings after invoice assignment", flatFeeStart.earnings, alpacadecimal.Zero, s.MustEarningsBalance(ns, USD))
 
 		stdInvoiceID = invoice.GetInvoiceID()
 		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
@@ -842,7 +1870,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 
-		charge := s.mustGetChargeByID(flatFeeChargeID)
+		charge := s.MustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
 
@@ -852,25 +1880,26 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		// - Payment authorization is deferred until the payment app advances the invoice beyond pending
 
 		// Invoice usage accrued callback should have been invoked
-		accruedUsage := updatedFlatFeeCharge.Realizations.AccruedUsage
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		accruedUsage := updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage
 		s.NotNil(accruedUsage)
+		s.Equal(flatfee.StatusActiveAwaitingPaymentSettlement, updatedFlatFeeCharge.Status)
 		s.Equal(servicePeriod, accruedUsage.ServicePeriod, "service period should be the same as the input")
-		s.False(accruedUsage.Mutable, "accrued usage should not be mutable")
-		s.NotNil(accruedUsage.LineID, "line ID should be set")
-		s.Equal(stdLineID.ID, *accruedUsage.LineID, "line ID should be the same as the standard line")
+		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.LineID, "run line ID should be set")
+		s.Equal(stdLineID.ID, *updatedFlatFeeCharge.Realizations.CurrentRun.LineID, "run line ID should be the same as the standard line")
 		s.Equal(float64(20), accruedUsage.Totals.Total.InexactFloat64(), "totals should be the same as the input")
 		s.Equal(float64(80), accruedUsage.Totals.CreditsTotal.InexactFloat64(), "totals should be the same as the input")
 
-		assertDelta("promo FBO after payment authorization", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
-		assertDelta("external FBO after payment authorization", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
-		assertDelta("promo receivable after payment processing pending", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("external receivable after payment processing pending", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("total open receivable after payment processing pending", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("authorized receivable after payment processing pending", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
-		assertDelta("accrued after payment processing pending", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
-		assertDelta("total wash after payment processing pending", flatFeeStart.totalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
-		assertDelta("external wash after payment processing pending", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
-		assertDelta("earnings after payment processing pending", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
+		assertDelta("promo FBO after payment authorization", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
+		assertDelta("external FBO after payment authorization", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
+		assertDelta("promo receivable after payment processing pending", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("external receivable after payment processing pending", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("total open receivable after payment processing pending", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("authorized receivable after payment processing pending", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
+		assertDelta("accrued after payment processing pending", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("total wash after payment processing pending", flatFeeStart.totalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("external wash after payment processing pending", flatFeeStart.externalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
+		assertDelta("earnings after payment processing pending", flatFeeStart.earnings, alpacadecimal.Zero, s.MustEarningsBalance(ns, USD))
 	})
 
 	s.Run("payment is authorized", func() {
@@ -881,23 +1910,24 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		// LEDGER:
 		// - OnFlatFeePaymentAuthorized is called with the remaining USD 20
 
-		charge := s.mustGetChargeByID(flatFeeChargeID)
+		charge := s.MustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(flatfee.StatusActive, updatedFlatFeeCharge.Status)
-		s.NotNil(updatedFlatFeeCharge.Realizations.Payment)
-		s.Equal(payment.StatusAuthorized, updatedFlatFeeCharge.Realizations.Payment.Status)
-		s.NotNil(updatedFlatFeeCharge.Realizations.Payment.Authorized)
-		s.Nil(updatedFlatFeeCharge.Realizations.Payment.Settled)
+		s.Equal(flatfee.StatusActiveAwaitingPaymentSettlement, updatedFlatFeeCharge.Status)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment)
+		s.Equal(payment.StatusAuthorized, updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Status)
+		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Authorized)
+		s.Nil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Settled)
 
-		assertDelta("promo receivable after payment authorization", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("external receivable after payment authorization", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("total open receivable after payment authorization", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("authorized receivable after payment authorization", flatFeeStart.authorizedReceivable, alpacadecimal.NewFromInt(20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
-		assertDelta("accrued after payment authorization", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
-		assertDelta("total wash after payment authorization", flatFeeStart.totalWash, alpacadecimal.NewFromInt(-20), s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
-		assertDelta("external wash after payment authorization", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
-		assertDelta("earnings after payment authorization", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
+		assertDelta("promo receivable after payment authorization", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("external receivable after payment authorization", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("total open receivable after payment authorization", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("authorized receivable after payment authorization", flatFeeStart.authorizedReceivable, alpacadecimal.NewFromInt(-20), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
+		assertDelta("accrued after payment authorization", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("total wash after payment authorization", flatFeeStart.totalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("external wash after payment authorization", flatFeeStart.externalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
+		assertDelta("earnings after payment authorization", flatFeeStart.earnings, alpacadecimal.Zero, s.MustEarningsBalance(ns, USD))
 	})
 
 	s.Run("payment is settled", func() {
@@ -911,73 +1941,66 @@ func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 		// LEDGER:
 		// - OnFlatFeePaymentSettled is called with the USD 20
 
-		charge := s.mustGetChargeByID(flatFeeChargeID)
+		charge := s.MustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
 		s.Equal(flatfee.StatusFinal, updatedFlatFeeCharge.Status)
-		s.NotNil(updatedFlatFeeCharge.Realizations.Payment)
-		s.Equal(payment.StatusSettled, updatedFlatFeeCharge.Realizations.Payment.Status)
-		s.NotNil(updatedFlatFeeCharge.Realizations.Payment.Authorized)
-		s.NotNil(updatedFlatFeeCharge.Realizations.Payment.Settled)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment)
+		s.Equal(payment.StatusSettled, updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Status)
+		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Authorized)
+		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.Payment.Settled)
 
-		assertDelta("promo receivable after payment settlement", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("external receivable after payment settlement", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("total open receivable after payment settlement", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("authorized receivable after payment settlement", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
-		assertDelta("accrued after payment settlement", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
-		assertDelta("total wash after payment settlement", flatFeeStart.totalWash, alpacadecimal.NewFromInt(-20), s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
-		assertDelta("external wash after payment settlement", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
-		assertDelta("earnings after payment settlement", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
+		assertDelta("promo receivable after payment settlement", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("external receivable after payment settlement", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("total open receivable after payment settlement", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("authorized receivable after payment settlement", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
+		assertDelta("accrued after payment settlement", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("total wash after payment settlement", flatFeeStart.totalWash, alpacadecimal.NewFromInt(-20), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("external wash after payment settlement", flatFeeStart.externalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
+		assertDelta("earnings after payment settlement", flatFeeStart.earnings, alpacadecimal.Zero, s.MustEarningsBalance(ns, USD))
 	})
 }
 
-func (s *CreditsTestSuite) TestCreditPurchasePersistsPriority() {
+func (s *SanitySuite) TestCreditPurchasePersistsPriority() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-creditpurchase-persists-priority")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
 
 	priority := 7
 	at := datetime.MustParseTimeInLocation(s.T(), "2026-01-01T12:34:56Z", time.UTC).AsTime()
 
-	intent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
-		customer:      cust.GetID(),
-		currency:      USD,
-		amount:        alpacadecimal.NewFromInt(25),
-		priority:      &priority,
-		servicePeriod: timeutil.ClosedPeriod{From: at, To: at},
-		settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
-	})
-
-	res, err := s.Charges.Create(ctx, charges.CreateInput{
+	result := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
-			intent,
-		},
+		Customer:  cust.GetID(),
+		Amount:    alpacadecimal.NewFromInt(25),
+		At:        at,
+		CostBasis: alpacadecimal.Zero,
+		Priority:  &priority,
 	})
-	s.NoError(err)
-	s.Len(res, 1)
 
-	cpCharge, err := res[0].AsCreditPurchaseCharge()
-	s.NoError(err)
+	cpCharge := result.Charge
 	s.NotNil(cpCharge.Realizations.CreditGrantRealization)
 
-	fetchedCharge, err := s.mustGetChargeByID(cpCharge.GetChargeID()).AsCreditPurchaseCharge()
+	fetchedCharge, err := s.MustGetChargeByID(cpCharge.GetChargeID()).AsCreditPurchaseCharge()
 	s.NoError(err)
 	s.Equal(&priority, fetchedCharge.Intent.Priority)
 
 	zeroCostBasis := alpacadecimal.Zero
-	s.True(s.mustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&zeroCostBasis), priority).Equal(alpacadecimal.NewFromInt(25)))
-	s.True(s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&zeroCostBasis), priority).Equal(alpacadecimal.NewFromInt(25)))
+	s.True(s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)).Equal(alpacadecimal.Zero))
 }
 
-func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
+func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-payment-lifecycle")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
 		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
@@ -1003,21 +2026,13 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 	defer clock.UnFreeze()
 
 	s.Run("the customer receives a promotional credit grant", func() {
-		grantIntent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
-			customer:      cust.GetID(),
-			currency:      USD,
-			amount:        alpacadecimal.NewFromInt(5),
-			servicePeriod: timeutil.ClosedPeriod{From: createAt, To: createAt},
-			settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
-		})
-		grantRes, err := s.Charges.Create(ctx, charges.CreateInput{
+		s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
-				grantIntent,
-			},
+			Customer:  cust.GetID(),
+			Amount:    alpacadecimal.NewFromInt(5),
+			At:        createAt,
+			CostBasis: promoCostBasis,
 		})
-		s.NoError(err)
-		s.Len(grantRes, 1)
 	})
 
 	s.Run("a credit-then-invoice usage based charge is created with initial metered usage", func() {
@@ -1030,18 +2045,18 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
 			Intents: charges.ChargeIntents{
-				s.createMockChargeIntent(createMockChargeIntentInput{
-					customer:       cust.GetID(),
-					currency:       USD,
-					servicePeriod:  servicePeriod,
-					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-					price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromFloat(0.1),
 					}),
-					name:              "usage-based-credit-then-invoice-payment-lifecycle",
-					managedBy:         billing.SubscriptionManagedLine,
-					uniqueReferenceID: "usage-based-credit-then-invoice-payment-lifecycle",
-					featureKey:        apiRequestsTotal.Feature.Key,
+					Name:              "usage-based-credit-then-invoice-payment-lifecycle",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "usage-based-credit-then-invoice-payment-lifecycle",
+					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
 			},
 		})
@@ -1091,7 +2106,7 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 
-		usageBasedCharge := s.mustGetChargeByID(usageBasedChargeID)
+		usageBasedCharge := s.MustGetChargeByID(usageBasedChargeID)
 		updatedCharge, err := usageBasedCharge.AsUsageBasedCharge()
 		s.NoError(err)
 		s.Equal(usagebased.StatusActiveAwaitingPaymentSettlement, updatedCharge.Status)
@@ -1101,12 +2116,12 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 
 		// Promotional grants settle immediately through wash, so only the
 		// invoice-backed receivable remains open at this point.
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
-		s.True(s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(12.5)))
-		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-5)))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
+		s.True(s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(12.5)))
+		s.True(s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-5)))
 	})
 
 	s.Run("the payment is authorized", func() {
@@ -1115,7 +2130,7 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
 
-		usageBasedCharge := s.mustGetChargeByID(usageBasedChargeID)
+		usageBasedCharge := s.MustGetChargeByID(usageBasedChargeID)
 		updatedCharge, err := usageBasedCharge.AsUsageBasedCharge()
 		s.NoError(err)
 		s.Equal(usagebased.StatusActiveAwaitingPaymentSettlement, updatedCharge.Status)
@@ -1124,12 +2139,12 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.NotNil(updatedCharge.Realizations[0].Payment.Authorized)
 		s.Nil(updatedCharge.Realizations[0].Payment.Settled)
 
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(7.5)))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(7.5)))
-		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-12.5)))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(-7.5)))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(-7.5)))
+		s.True(s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-5)))
 	})
 
 	s.Run("the payment is settled and the charge reaches final", func() {
@@ -1141,7 +2156,7 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
 
-		usageBasedCharge := s.mustGetChargeByID(usageBasedChargeID)
+		usageBasedCharge := s.MustGetChargeByID(usageBasedChargeID)
 		updatedCharge, err := usageBasedCharge.AsUsageBasedCharge()
 		s.NoError(err)
 		s.Equal(usagebased.StatusFinal, updatedCharge.Status)
@@ -1149,22 +2164,23 @@ func (s *CreditsTestSuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.Equal(payment.StatusSettled, updatedCharge.Realizations[0].Payment.Status)
 		s.NotNil(updatedCharge.Realizations[0].Payment.Settled)
 
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
-		s.True(s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
-		s.True(s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-12.5)))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
+		s.True(s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-12.5)))
 	})
 }
 
-func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
+func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-test-credit-only")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
-	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
 
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -1187,48 +2203,30 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 	clock.SetTime(setupAt)
 
 	s.Run("the customer receives a promotional credit grant", func() {
-		intent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
-			customer: cust.GetID(),
-			currency: USD,
-			amount:   alpacadecimal.NewFromFloat(30),
-			servicePeriod: timeutil.ClosedPeriod{
-				From: setupAt,
-				To:   setupAt,
-			},
-			settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
-		})
-
-		res, err := s.Charges.Create(ctx, charges.CreateInput{
+		result := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
-				intent,
-			},
+			Customer:  cust.GetID(),
+			Amount:    alpacadecimal.NewFromFloat(30),
+			At:        setupAt,
+			CostBasis: alpacadecimal.Zero,
 		})
-		s.NoError(err)
+		s.NotEmpty(result.Charge.Realizations.CreditGrantRealization.TransactionGroupID)
 
-		s.Len(res, 1)
-		s.Equal(meta.ChargeTypeCreditPurchase, res[0].Type())
-		cpCharge, err := res[0].AsCreditPurchaseCharge()
-		s.NoError(err)
-		s.NotEmpty(cpCharge.Realizations.CreditGrantRealization.TransactionGroupID)
-
-		zeroCostBasis := alpacadecimal.Zero
 		purchasedCostBasis := alpacadecimal.NewFromFloat(0.5)
-		s.Equal(float64(30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)).InexactFloat64())
-		s.Equal(float64(0), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&purchasedCostBasis)).InexactFloat64())
+		s.Equal(float64(0), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&purchasedCostBasis)).InexactFloat64())
 	})
 
 	var externalCreditPurchaseChargeID meta.ChargeID
 	s.Run("and customer purchases 50 USD credits as 0.5 costbasis", func() {
-		intent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
-			customer: cust.GetID(),
-			currency: USD,
-			amount:   alpacadecimal.NewFromFloat(50),
-			servicePeriod: timeutil.ClosedPeriod{
+		intent := s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+			Customer: cust.GetID(),
+			Currency: USD,
+			Amount:   alpacadecimal.NewFromFloat(50),
+			ServicePeriod: timeutil.ClosedPeriod{
 				From: setupAt,
 				To:   setupAt,
 			},
-			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+			Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
 					Currency:  USD,
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
@@ -1252,8 +2250,8 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.NotEmpty(cpCharge.Realizations.CreditGrantRealization.TransactionGroupID)
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
-		s.Equal(float64(50), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).InexactFloat64())
-		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+		s.Equal(float64(50), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).InexactFloat64())
+		s.Equal(float64(-50), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 
 		externalCreditPurchaseChargeID = cpCharge.GetChargeID()
 	})
@@ -1267,7 +2265,8 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(payment.StatusAuthorized, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
-		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+		s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+		s.Equal(float64(-50), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64())
 	})
 
 	s.Run("the customer settles the credit purchase payment", func() {
@@ -1279,7 +2278,7 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(payment.StatusSettled, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
-		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+		s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 	})
 
 	var flatFeeChargeID meta.ChargeID
@@ -1299,17 +2298,17 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		earnings             alpacadecimal.Decimal
 	}
 	flatFeeStart := flatFeeLedgerSnapshot{
-		promoFBO:             s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)),
-		externalFBO:          s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)),
-		unknownFBO:           s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)),
-		promoReceivable:      s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen),
-		externalReceivable:   s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen),
-		totalOpenReceivable:  s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen),
-		accrued:              s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()),
-		authorizedReceivable: s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized),
-		totalWash:            s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()),
-		externalWash:         s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)),
-		earnings:             s.mustEarningsBalance(ns, USD),
+		promoFBO:             s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)),
+		externalFBO:          s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)),
+		unknownFBO:           s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)),
+		promoReceivable:      s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen),
+		externalReceivable:   s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen),
+		totalOpenReceivable:  s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen),
+		accrued:              s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()),
+		authorizedReceivable: s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized),
+		totalWash:            s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()),
+		externalWash:         s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)),
+		earnings:             s.MustEarningsBalance(ns, USD),
 	}
 	assertDelta := func(label string, start, delta, actual alpacadecimal.Decimal) {
 		s.T().Helper()
@@ -1321,18 +2320,18 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
 			Intents: charges.ChargeIntents{
-				s.createMockChargeIntent(createMockChargeIntentInput{
-					customer:       cust.GetID(),
-					currency:       USD,
-					servicePeriod:  servicePeriod,
-					settlementMode: productcatalog.CreditOnlySettlementMode,
-					price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditOnlySettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 						Amount:      alpacadecimal.NewFromFloat(100),
 						PaymentTerm: productcatalog.InAdvancePaymentTerm,
 					}),
-					name:              flatFeeName,
-					managedBy:         billing.SubscriptionManagedLine,
-					uniqueReferenceID: flatFeeName,
+					Name:              flatFeeName,
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: flatFeeName,
 				}),
 			},
 		})
@@ -1357,13 +2356,13 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 
 		// Credit-only flat fees bypass invoice creation and are only allocated once the charge advances at InvoiceAt,
 		// so creating the charge early should leave every ledger bucket untouched.
-		assertDelta("promo FBO after credit-only create", flatFeeStart.promoFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
-		assertDelta("external FBO after credit-only create", flatFeeStart.externalFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
-		assertDelta("unknown FBO after credit-only create", flatFeeStart.unknownFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
-		assertDelta("authorized receivable after credit-only create", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
-		assertDelta("total open receivable after credit-only create", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("accrued after credit-only create", flatFeeStart.accrued, alpacadecimal.Zero, s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
-		assertDelta("earnings after credit-only create", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
+		assertDelta("promo FBO after credit-only create", flatFeeStart.promoFBO, alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
+		assertDelta("external FBO after credit-only create", flatFeeStart.externalFBO, alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
+		assertDelta("unknown FBO after credit-only create", flatFeeStart.unknownFBO, alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+		assertDelta("authorized receivable after credit-only create", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
+		assertDelta("total open receivable after credit-only create", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("accrued after credit-only create", flatFeeStart.accrued, alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("earnings after credit-only create", flatFeeStart.earnings, alpacadecimal.Zero, s.MustEarningsBalance(ns, USD))
 	})
 
 	clock.SetTime(servicePeriod.From)
@@ -1378,14 +2377,16 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.NoError(err)
 		s.Equal(flatFeeChargeID.ID, advancedFlatFee.ID)
 		s.Equal(flatfee.StatusFinal, advancedFlatFee.Status)
+		s.Require().NotNil(advancedFlatFee.Realizations.CurrentRun)
 		// We expect three realizations here: promotional credit, purchased credit, and the synthetic shortfall coverage.
-		s.Len(advancedFlatFee.Realizations.CreditRealizations, 3)
+		s.Len(advancedFlatFee.Realizations.CurrentRun.CreditRealizations, 3)
 
-		fetchedCharge := s.mustGetChargeByID(flatFeeChargeID)
+		fetchedCharge := s.MustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := fetchedCharge.AsFlatFeeCharge()
 		s.NoError(err)
 		s.Equal(flatfee.StatusFinal, updatedFlatFeeCharge.Status)
-		s.Len(updatedFlatFeeCharge.Realizations.CreditRealizations, 3)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations, 3)
 
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 			Namespaces: []string{ns},
@@ -1401,25 +2402,25 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		// - the uncovered remainder becomes open receivable immediately
 		// - authorized receivable stays empty because no payment authorization happens
 		// - wash and earnings stay unchanged because this flow never enters the invoice payment lifecycle
-		assertDelta("promo FBO after credit-only advance", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
-		assertDelta("external FBO after credit-only advance", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
-		assertDelta("unknown FBO after credit-only advance", flatFeeStart.unknownFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
-		assertDelta("promo receivable after credit-only advance", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("external receivable after credit-only advance", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("total open receivable after credit-only advance", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-		assertDelta("authorized receivable after credit-only advance", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
+		assertDelta("promo FBO after credit-only advance", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
+		assertDelta("external FBO after credit-only advance", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
+		assertDelta("unknown FBO after credit-only advance", flatFeeStart.unknownFBO, alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+		assertDelta("promo receivable after credit-only advance", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("external receivable after credit-only advance", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("total open receivable after credit-only advance", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+		assertDelta("authorized receivable after credit-only advance", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized))
 		s.True(
-			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromInt(-20)),
+			s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromInt(-20)),
 			"the uncovered credit_only shortfall should live in the exact open advance receivable route",
 		)
 		s.True(
-			s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.NewFromInt(20)),
+			s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.NewFromInt(20)),
 			"the uncovered shortfall should also remain in unattributed accrued until a later purchase backfills it",
 		)
-		assertDelta("accrued after credit-only advance", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
-		assertDelta("total wash after credit-only advance", flatFeeStart.totalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
-		assertDelta("external wash after credit-only advance", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
-		assertDelta("earnings after credit-only advance", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
+		assertDelta("accrued after credit-only advance", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("total wash after credit-only advance", flatFeeStart.totalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
+		assertDelta("external wash after credit-only advance", flatFeeStart.externalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
+		assertDelta("earnings after credit-only advance", flatFeeStart.earnings, alpacadecimal.Zero, s.MustEarningsBalance(ns, USD))
 	})
 
 	s.Run("the customer later purchases credits and backfills the prior advance", func() {
@@ -1435,28 +2436,28 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		}
 
 		start := backfillSnapshot{
-			externalFBO:            s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)),
-			externalOpenReceivable: s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen),
-			advanceOpenReceivable:  s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen),
-			advanceAuthorized:      s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusAuthorized),
-			externalAccrued:        s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)),
-			unattributedAccrued:    s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)),
-			totalAccrued:           s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()),
-			externalWash:           s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)),
+			externalFBO:            s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)),
+			externalOpenReceivable: s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen),
+			advanceOpenReceivable:  s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen),
+			advanceAuthorized:      s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusAuthorized),
+			externalAccrued:        s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)),
+			unattributedAccrued:    s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)),
+			totalAccrued:           s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()),
+			externalWash:           s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)),
 		}
 
 		const laterPurchaseAmount = 50
 		clock.SetTime(servicePeriod.From.Add(time.Hour))
 
-		intent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
-			customer: cust.GetID(),
-			currency: USD,
-			amount:   alpacadecimal.NewFromInt(laterPurchaseAmount),
-			servicePeriod: timeutil.ClosedPeriod{
+		intent := s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+			Customer: cust.GetID(),
+			Currency: USD,
+			Amount:   alpacadecimal.NewFromInt(laterPurchaseAmount),
+			ServicePeriod: timeutil.ClosedPeriod{
 				From: clock.Now(),
 				To:   clock.Now(),
 			},
-			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+			Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
 					Currency:  USD,
 					CostBasis: externalCostBasis,
@@ -1482,21 +2483,21 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		// - the prior advance receivable is re-attributed into the purchased cost-basis bucket
 		// - unattributed accrued is translated into the purchased cost-basis bucket
 		// - only the remainder becomes newly issued purchased credit
-		assertDelta("external FBO after later purchase initiation", start.externalFBO, alpacadecimal.NewFromInt(30), s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
+		assertDelta("external FBO after later purchase initiation", start.externalFBO, alpacadecimal.NewFromInt(30), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
 		s.True(
-			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(start.externalOpenReceivable.Sub(alpacadecimal.NewFromInt(50))),
+			s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(start.externalOpenReceivable.Sub(alpacadecimal.NewFromInt(50))),
 			"the purchased cost-basis open receivable should now represent the full purchase amount",
 		)
 		s.True(
-			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
+			s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
 			"the prior advance receivable should be fully re-attributed out of the nil cost-basis bucket at initiation",
 		)
 		s.True(
-			s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero),
+			s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero),
 			"the unattributed accrued bucket should be translated immediately during attribution",
 		)
 		s.True(
-			s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)).Equal(start.externalAccrued.Add(alpacadecimal.NewFromInt(20))),
+			s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)).Equal(start.externalAccrued.Add(alpacadecimal.NewFromInt(20))),
 			"the backfilled portion should already be visible in the purchased cost-basis accrued bucket after initiation",
 		)
 
@@ -1507,13 +2508,14 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.NoError(err)
 		s.Equal(payment.StatusAuthorized, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 
-		// Authorization now only stages settlement funding; attribution already happened during purchase initiation.
+		// Authorization only moves the purchased receivable into the authorized bucket;
+		// attribution already happened during purchase initiation.
 		s.True(
-			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromInt(50)),
+			s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromInt(-50)),
 			"the purchased amount should be visible in the exact authorized receivable route before settlement",
 		)
 		s.True(
-			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusAuthorized).Equal(start.advanceAuthorized),
+			s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusAuthorized).Equal(start.advanceAuthorized),
 			"the legacy advance route should still have no authorized staging",
 		)
 
@@ -1524,325 +2526,1272 @@ func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
 		s.NoError(err)
 		s.Equal(payment.StatusSettled, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 
-		// Settlement is now just the normal authorized -> open move in the purchased cost-basis bucket.
+		// Settlement is the cash movement from wash that clears the authorized receivable.
 		// The earlier attribution stays intact, and the purchased receivable fully nets out here.
 		s.True(
-			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
+			s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
 			"the exact open advance receivable bucket should stay cleared after initiation-time attribution",
 		)
 		s.True(
-			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero),
+			s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero),
 			"the exact authorized advance bucket should stay empty",
 		)
 		s.True(
-			s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero),
+			s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero),
 			"the unattributed accrued bucket should remain empty after initiation-time translation",
 		)
 		s.True(
-			s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)).Equal(start.externalAccrued.Add(alpacadecimal.NewFromInt(20))),
+			s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)).Equal(start.externalAccrued.Add(alpacadecimal.NewFromInt(20))),
 			"the backfilled portion should remain attributed in the purchased cost-basis bucket",
 		)
 		s.True(
-			s.mustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)).Equal(start.externalFBO.Add(alpacadecimal.NewFromInt(30))),
+			s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)).Equal(start.externalFBO.Add(alpacadecimal.NewFromInt(30))),
 			"only the purchase remainder should stay behind as newly available credit",
 		)
 		s.True(
-			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
+			s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero),
 			"the purchased cost-basis receivable should net back to zero after settlement and advance funding",
 		)
 		s.True(
-			s.mustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero),
+			s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero),
 			"the purchased authorized receivable route should be cleared by settlement",
 		)
 		s.True(
-			s.mustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).Equal(start.totalAccrued),
+			s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).Equal(start.totalAccrued),
 			"settlement should only translate accrued between buckets, not change the total accrued amount",
 		)
-		assertDelta("external wash after later purchase settlement", start.externalWash, alpacadecimal.NewFromInt(-50), s.mustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
+		assertDelta("external wash after later purchase settlement", start.externalWash, alpacadecimal.NewFromInt(-50), s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
 	})
 }
 
-type createMockChargeIntentInput struct {
-	customer          customer.CustomerID
-	currency          currencyx.Code
-	servicePeriod     timeutil.ClosedPeriod
-	price             *productcatalog.Price
-	featureKey        string
-	name              string
-	settlementMode    productcatalog.SettlementMode
-	managedBy         billing.InvoiceLineManagedBy
-	uniqueReferenceID string
-}
+func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("credit-purchase-multi-taxcode-advance")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
-func (i *createMockChargeIntentInput) Validate() error {
-	if i.price == nil {
-		return errors.New("price is required")
-	}
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 
-	if i.customer.Namespace == "" {
-		return errors.New("customer namespace is required")
-	}
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
 
-	if i.customer.ID == "" {
-		return errors.New("customer id is required")
-	}
-
-	if i.currency == "" {
-		return errors.New("currency is required")
-	}
-
-	return nil
-}
-
-func (s *CreditsTestSuite) createMockChargeIntent(input createMockChargeIntentInput) charges.ChargeIntent {
-	s.T().Helper()
-	s.NoError(input.Validate())
-
-	isFlatFee := input.price.Type() == productcatalog.FlatPriceType
-	invoiceAt := input.servicePeriod.To
-
-	if isFlatFee {
-		price, err := input.price.AsFlat()
-		s.NoError(err)
-
-		switch price.PaymentTerm {
-		case productcatalog.InAdvancePaymentTerm:
-			invoiceAt = input.servicePeriod.From
-		case productcatalog.InArrearsPaymentTerm:
-			invoiceAt = input.servicePeriod.To
-		default:
-			s.T().Fatalf("invalid payment term: %s", price.PaymentTerm)
-		}
-	}
-
-	intentMeta := meta.Intent{
-		Name:              input.name,
-		ManagedBy:         input.managedBy,
-		ServicePeriod:     input.servicePeriod,
-		FullServicePeriod: input.servicePeriod,
-		BillingPeriod:     input.servicePeriod,
-		UniqueReferenceID: lo.EmptyableToPtr(input.uniqueReferenceID),
-		CustomerID:        input.customer.ID,
-		Currency:          input.currency,
-	}
-
-	if isFlatFee {
-		price, err := input.price.AsFlat()
-		s.NoError(err)
-
-		flatFeeIntent := flatfee.Intent{
-			Intent:         intentMeta,
-			PaymentTerm:    price.PaymentTerm,
-			FeatureKey:     input.featureKey,
-			InvoiceAt:      invoiceAt,
-			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.InvoiceOnlySettlementMode),
-
-			AmountBeforeProration: price.Amount,
-		}
-		return charges.NewChargeIntent(flatFeeIntent)
-	}
-
-	usageBasedIntent := usagebased.Intent{
-		Intent:         intentMeta,
-		Price:          *input.price,
-		InvoiceAt:      invoiceAt,
-		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.InvoiceOnlySettlementMode),
-		FeatureKey:     input.featureKey,
-	}
-
-	return charges.NewChargeIntent(usageBasedIntent)
-}
-
-func (s *CreditsTestSuite) createLedgerBackedCustomer(ns string, subjectKey string) *customer.Customer {
-	s.T().Helper()
-
-	_, err := s.LedgerResolver.EnsureBusinessAccounts(s.T().Context(), ns)
-	s.NoError(err)
-
-	cust := s.CreateTestCustomer(ns, subjectKey)
-	_, err = s.LedgerResolver.CreateCustomerAccounts(s.T().Context(), cust.GetID())
-	s.NoError(err)
-
-	return cust
-}
-
-// Use this helper for customer FBO balance in a currency. Pass mo.None() for
-// all cost bases, mo.Some(nil) for the explicit nil-cost-basis route, or
-// mo.Some(&costBasis) for one concrete cost-basis route.
-func (s *CreditsTestSuite) mustCustomerFBOBalance(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal]) alpacadecimal.Decimal {
-	return s.mustCustomerFBOBalanceWithPriority(customerID, code, costBasis, ledger.DefaultCustomerFBOPriority)
-}
-
-// Use this helper for customer FBO balance in a currency when the test also
-// needs to filter by a specific credit priority. Pass mo.None() for all cost
-// bases, mo.Some(nil) for the explicit nil-cost-basis route, or
-// mo.Some(&costBasis) for one concrete cost-basis route.
-func (s *CreditsTestSuite) mustCustomerFBOBalanceWithPriority(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], priority int) alpacadecimal.Decimal {
-	s.T().Helper()
-
-	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
-	s.NoError(err)
-
-	balance, err := customerAccounts.FBOAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
-		Currency:       code,
-		CostBasis:      costBasis,
-		CreditPriority: lo.ToPtr(priority),
-	}, nil)
-	s.NoError(err)
-
-	return balance.Settled()
-}
-
-// Use this helper for customer receivable balance in a currency and one
-// authorization state. Pass mo.None() for all cost bases, mo.Some(nil) for the
-// explicit nil-cost-basis route, or mo.Some(&costBasis) for one concrete route.
-func (s *CreditsTestSuite) mustCustomerReceivableBalance(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], status ledger.TransactionAuthorizationStatus) alpacadecimal.Decimal {
-	s.T().Helper()
-
-	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
-	s.NoError(err)
-
-	balance, err := customerAccounts.ReceivableAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
-		Currency:                       code,
-		CostBasis:                      costBasis,
-		TransactionAuthorizationStatus: lo.ToPtr(status),
-	}, nil)
-	s.NoError(err)
-
-	return balance.Settled()
-}
-
-// Use this helper for customer accrued balance in a currency. Pass mo.None() for
-// all cost bases, mo.Some(nil) for the explicit nil-cost-basis route, or
-// mo.Some(&costBasis) for one concrete cost-basis route.
-func (s *CreditsTestSuite) mustCustomerAccruedBalance(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal]) alpacadecimal.Decimal {
-	s.T().Helper()
-
-	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
-	s.NoError(err)
-
-	balance, err := customerAccounts.AccruedAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
-		Currency:  code,
-		CostBasis: costBasis,
-	}, nil)
-	s.NoError(err)
-
-	return balance.Settled()
-}
-
-// Use this helper for aggregate wash balance in a currency. Pass mo.None() for
-// all cost bases, mo.Some(nil) for the explicit nil-cost-basis route, or
-// mo.Some(&costBasis) for one concrete cost-basis route.
-func (s *CreditsTestSuite) mustWashBalance(namespace string, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal]) alpacadecimal.Decimal {
-	s.T().Helper()
-
-	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
-	s.NoError(err)
-
-	balance, err := businessAccounts.WashAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
-		Currency:  code,
-		CostBasis: costBasis,
-	}, nil)
-	s.NoError(err)
-
-	return balance.Settled()
-}
-
-func (s *CreditsTestSuite) mustEarningsBalance(namespace string, code currencyx.Code) alpacadecimal.Decimal {
-	return s.mustEarningsBalanceForCostBasis(namespace, code, mo.None[*alpacadecimal.Decimal]())
-}
-
-// Use this helper for earnings balance in a currency. Pass mo.None() for all
-// cost bases, mo.Some(nil) for the explicit nil-cost-basis route, or
-// mo.Some(&costBasis) for one concrete cost-basis route.
-func (s *CreditsTestSuite) mustEarningsBalanceForCostBasis(namespace string, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal]) alpacadecimal.Decimal {
-	s.T().Helper()
-
-	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
-	s.NoError(err)
-
-	balance, err := businessAccounts.EarningsAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
-		Currency:  code,
-		CostBasis: costBasis,
-	}, nil)
-	s.NoError(err)
-
-	return balance.Settled()
-}
-
-func (s *CreditsTestSuite) mustRecognizeRevenue(customerID customer.CustomerID, code currencyx.Code, amount alpacadecimal.Decimal) {
-	s.T().Helper()
-
-	result, err := s.RevenueRecognizer.RecognizeEarnings(s.T().Context(), recognizer.RecognizeEarningsInput{
-		CustomerID: customerID,
-		At:         clock.Now(),
-		Currency:   code,
-	})
-	s.NoError(err)
-	s.True(result.RecognizedAmount.Equal(amount), "recognized=%s expected=%s", result.RecognizedAmount, amount)
-}
-
-func (s *CreditsTestSuite) mustGetChargeByID(chargeID meta.ChargeID) charges.Charge {
-	s.T().Helper()
-	charge, err := s.Charges.GetByID(s.T().Context(), charges.GetByIDInput{
-		ChargeID: chargeID,
-		Expands:  meta.Expands{meta.ExpandRealizations},
-	})
-	s.NoError(err)
-	return charge
-}
-
-type createCreditPurchaseIntentInput struct {
-	customer      customer.CustomerID
-	currency      currencyx.Code
-	amount        alpacadecimal.Decimal
-	effectiveAt   *time.Time
-	priority      *int
-	servicePeriod timeutil.ClosedPeriod
-	settlement    creditpurchase.Settlement
-}
-
-func (i createCreditPurchaseIntentInput) Validate() error {
-	if err := i.customer.Validate(); err != nil {
-		return fmt.Errorf("customer: %w", err)
-	}
-
-	if i.currency == "" {
-		return errors.New("currency is required")
-	}
-
-	if !i.amount.IsPositive() {
-		return errors.New("amount must be positive")
-	}
-
-	if err := i.servicePeriod.Validate(); err != nil {
-		return fmt.Errorf("service period: %w", err)
-	}
-
-	if err := i.settlement.Validate(); err != nil {
-		return fmt.Errorf("settlement: %w", err)
-	}
-
-	return nil
-}
-
-func (s *CreditsTestSuite) createCreditPurchaseIntent(input createCreditPurchaseIntentInput) charges.ChargeIntent {
-	s.T().Helper()
-	s.NoError(input.Validate())
-
-	return charges.NewChargeIntent(creditpurchase.Intent{
-		Intent: meta.Intent{
-			Name:              "Credit Purchase",
-			ManagedBy:         billing.ManuallyManagedLine,
-			CustomerID:        input.customer.ID,
-			Currency:          input.currency,
-			ServicePeriod:     input.servicePeriod,
-			BillingPeriod:     input.servicePeriod,
-			FullServicePeriod: input.servicePeriod,
+	taxA, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "txcd-40000007",
+		Name:      "Advance Tax Code A",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000007"},
 		},
-		CreditAmount: input.amount,
-		EffectiveAt:  input.effectiveAt,
-		Priority:     input.priority,
-		Settlement:   input.settlement,
+	})
+	s.Require().NoError(err)
+
+	taxB, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "txcd-40000008",
+		Name:      "Advance Tax Code B",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000008"},
+		},
+	})
+	s.Require().NoError(err)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.SetTime(servicePeriod.From.Add(-time.Hour))
+	defer clock.UnFreeze()
+
+	// given:
+	// - credit-only charges create advance receivable and accrued exposure in two TaxCode buckets
+	for _, input := range []struct {
+		name     string
+		amount   int64
+		taxID    string
+		behavior productcatalog.TaxBehavior
+	}{
+		{name: "tax-a-advance", amount: 10, taxID: taxA.ID, behavior: productcatalog.InclusiveTaxBehavior},
+		{name: "tax-b-advance", amount: 5, taxID: taxB.ID, behavior: productcatalog.ExclusiveTaxBehavior},
+	} {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditOnlySettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(input.amount),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					Name:              input.name,
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: input.name,
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						TaxCodeID: &input.taxID,
+						Behavior:  lo.ToPtr(input.behavior),
+					},
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+	}
+
+	clock.FreezeTime(servicePeriod.From)
+	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+		Customer: cust.GetID(),
+	})
+	s.NoError(err)
+	s.Len(advancedCharges, 2)
+
+	taxABehavior := ledger.TaxBehaviorInclusive
+	taxBBehavior := ledger.TaxBehaviorExclusive
+	s.Equal(float64(-15), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxA.ID), mo.Some(&taxABehavior)).InexactFloat64())
+	s.Equal(float64(5), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxB.ID), mo.Some(&taxBBehavior)).InexactFloat64())
+
+	// when:
+	// - a smaller purchased grant partially backfills the first deterministic advance bucket
+	purchaseCostBasis := alpacadecimal.NewFromFloat(0.5)
+	purchaseAt := servicePeriod.From.Add(time.Hour)
+	purchaseAmount := int64(5)
+	clock.FreezeTime(purchaseAt)
+	purchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+				Customer: cust.GetID(),
+				Currency: USD,
+				Amount:   alpacadecimal.NewFromInt(purchaseAmount),
+				ServicePeriod: timeutil.ClosedPeriod{
+					From: purchaseAt,
+					To:   purchaseAt,
+				},
+				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+					GenericSettlement: creditpurchase.GenericSettlement{
+						Currency:  USD,
+						CostBasis: purchaseCostBasis,
+					},
+					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+				}),
+				TaxConfig: &productcatalog.TaxCodeConfig{
+					TaxCodeID: &taxA.ID,
+					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+				},
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(purchaseRes, 1)
+
+	purchase, err := purchaseRes[0].AsCreditPurchaseCharge()
+	s.NoError(err)
+	backingGroup, err := s.Ledger.GetTransactionGroup(ctx, models.NamespacedID{
+		Namespace: ns,
+		ID:        purchase.Realizations.CreditGrantRealization.TransactionGroupID,
+	})
+	s.NoError(err)
+
+	// then:
+	// - partial attribution is split proportionally across TaxCode/TaxBehavior buckets
+	// - the purchased grant is fully consumed by advance backfill
+	templateCounts := map[string]int{}
+	for _, tx := range backingGroup.Transactions() {
+		code, err := ledger.TransactionTemplateCodeFromAnnotations(tx.Annotations())
+		s.NoError(err)
+		templateCounts[code]++
+	}
+
+	s.Equal(2, templateCounts[transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{})])
+	s.Equal(2, templateCounts[transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{})])
+	s.Equal(0, templateCounts[transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{})])
+
+	s.Equal(float64(-10), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(3.33), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxA.ID), mo.Some(&taxABehavior)).InexactFloat64())
+	s.Equal(float64(1.67), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxB.ID), mo.Some(&taxBBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxA.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxB.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+	s.Equal(float64(6.67), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxA.ID), mo.Some(&taxABehavior)).InexactFloat64())
+	s.Equal(float64(3.33), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxB.ID), mo.Some(&taxBBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&purchaseCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64())
+}
+
+func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("flatfee-credit-taxconfig-earnings")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	tc := s.createTaxCodeForEarningsFlow(ctx, ns, "txcd-41000001", "Flat Fee Credit Tax")
+	taxConfig := &productcatalog.TaxCodeConfig{
+		TaxCodeID: &tc.ID,
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+	}
+
+	const amount = 30
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-31T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	// given:
+	// - a charge is created before tax-configured credit is available
+	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(amount),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Name:              "flatfee-credit-taxconfig-earnings",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "flatfee-credit-taxconfig-earnings",
+				TaxConfig:         taxConfig,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(createdCharges, 1)
+
+	s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+		Namespace: ns,
+		Customer:  cust.GetID(),
+		Amount:    alpacadecimal.NewFromInt(amount),
+		At:        createAt,
+		CostBasis: alpacadecimal.Zero,
+		TaxConfig: taxConfig,
+	})
+
+	// when:
+	// - the flat fee is paid with credit and its accrued amount is recognized
+	clock.FreezeTime(servicePeriod.From)
+	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+		Customer: cust.GetID(),
+	})
+	s.NoError(err)
+	s.Len(advancedCharges, 1)
+
+	advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusFinal, advancedCharge.Status)
+	s.requireChargeTaxConfig(advancedCharge.Intent.TaxConfig, tc.ID, productcatalog.InclusiveTaxBehavior)
+	s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
+	s.Len(advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
+
+	costBasis := alpacadecimal.Zero
+	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+
+	clock.FreezeTime(servicePeriod.To)
+	s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
+
+	// then:
+	// - earnings keep the full tax route expected by the charge
+	s.Equal(float64(amount), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID)).InexactFloat64())
+	s.Equal(float64(0), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some[*string](nil)).InexactFloat64())
+	s.Equal(float64(amount), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+}
+
+func (s *SanitySuite) TestFlatFeeCreditThenInvoiceTaxConfigFlowsToEarnings() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("flatfee-invoice-taxconfig-earnings")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	tc := s.createTaxCodeForEarningsFlow(ctx, ns, "txcd-41000002", "Flat Fee Invoice Tax")
+	taxConfig := &productcatalog.TaxCodeConfig{
+		TaxCodeID: &tc.ID,
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+	}
+
+	const amount = 30
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-31T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	invoiceCostBasis := alpacadecimal.NewFromInt(1)
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	// given:
+	// - a tax-configured flat-fee charge starts the invoice flow
+	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  servicePeriod,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(amount),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Name:              "flatfee-invoice-taxconfig-earnings",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "flatfee-invoice-taxconfig-earnings",
+				TaxConfig:         taxConfig,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(createdCharges, 1)
+	chargeID, err := createdCharges[0].GetChargeID()
+	s.NoError(err)
+
+	// when:
+	// - the invoice is paid and the accrued usage is recognized
+	clock.FreezeTime(servicePeriod.From)
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     lo.ToPtr(servicePeriod.From),
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+	invoice := invoices[0]
+
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+	s.NoError(err)
+	s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+	invoice, err = s.BillingService.PaymentAuthorized(ctx, invoice.GetInvoiceID())
+	s.NoError(err)
+	s.Equal(billing.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+
+	invoice, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+		InvoiceID: invoice.GetInvoiceID(),
+		Trigger:   billing.TriggerPaid,
+	})
+	s.NoError(err)
+	s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
+
+	finalCharge, err := s.MustGetChargeByID(chargeID).AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusFinal, finalCharge.Status)
+	s.requireChargeTaxConfig(finalCharge.Intent.TaxConfig, tc.ID, productcatalog.InclusiveTaxBehavior)
+
+	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+
+	clock.FreezeTime(servicePeriod.To)
+	s.mustRecognizeAttributableAccrued(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
+
+	// then:
+	// - earnings keep the full tax route expected by the charge
+	s.Equal(float64(amount), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID)).InexactFloat64())
+	s.Equal(float64(0), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&invoiceCostBasis), mo.Some[*string](nil)).InexactFloat64())
+	s.Equal(float64(amount), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+}
+
+func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("usage-credit-taxconfig-earnings")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	tc := s.createTaxCodeForEarningsFlow(ctx, ns, "txcd-41000003", "Usage Credit Tax")
+	taxConfig := &productcatalog.TaxCodeConfig{
+		TaxCodeID: &tc.ID,
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+	}
+
+	const amount = 10
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	// given:
+	// - a usage-based charge is created before credit funding and meter realization
+	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(0.1),
+				}),
+				Name:              "usage-credit-taxconfig-earnings",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "usage-credit-taxconfig-earnings",
+				FeatureKey:        apiRequestsTotal.Feature.Key,
+				TaxConfig:         taxConfig,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(createdCharges, 1)
+
+	s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+		Namespace: ns,
+		Customer:  cust.GetID(),
+		Amount:    alpacadecimal.NewFromInt(amount),
+		At:        createAt,
+		CostBasis: alpacadecimal.Zero,
+		TaxConfig: taxConfig,
+	})
+	s.MockStreamingConnector.AddSimpleEvent(
+		apiRequestsTotal.Feature.Key,
+		100,
+		datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+	)
+
+	// when:
+	// - usage is paid with credit and recognized as earnings
+	clock.FreezeTime(servicePeriod.To.Add(time.Second))
+	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+		Customer: cust.GetID(),
+	})
+	s.NoError(err)
+	s.Len(advancedCharges, 1)
+
+	advancedCharge, err := advancedCharges[0].AsUsageBasedCharge()
+	s.NoError(err)
+	s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, advancedCharge.Status)
+	s.Require().NotNil(advancedCharge.State.AdvanceAfter)
+
+	clock.FreezeTime(advancedCharge.State.AdvanceAfter.Add(time.Second))
+	advancedCharges, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+		Customer: cust.GetID(),
+	})
+	s.NoError(err)
+	s.Len(advancedCharges, 1)
+
+	advancedCharge, err = advancedCharges[0].AsUsageBasedCharge()
+	s.NoError(err)
+	s.Equal(usagebased.StatusFinal, advancedCharge.Status)
+	s.requireChargeTaxConfig(advancedCharge.Intent.TaxConfig, tc.ID, productcatalog.InclusiveTaxBehavior)
+	s.Len(advancedCharge.Realizations, 1)
+	s.Len(advancedCharge.Realizations[0].CreditsAllocated, 1)
+
+	costBasis := alpacadecimal.Zero
+	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+
+	s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
+
+	// then:
+	// - earnings keep the full tax route expected by the charge
+	s.Equal(float64(amount), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID)).InexactFloat64())
+	s.Equal(float64(0), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some[*string](nil)).InexactFloat64())
+	s.Equal(float64(amount), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+}
+
+func (s *SanitySuite) TestUsageBasedCreditThenInvoiceTaxConfigFlowsToEarnings() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("usage-invoice-taxconfig-earnings")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	tc := s.createTaxCodeForEarningsFlow(ctx, ns, "txcd-41000004", "Usage Invoice Tax")
+	taxConfig := &productcatalog.TaxCodeConfig{
+		TaxCodeID: &tc.ID,
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+	}
+
+	const amount = 10
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	invoiceCostBasis := alpacadecimal.NewFromInt(1)
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	// given:
+	// - a tax-configured usage-based charge starts the invoice flow
+	s.MockStreamingConnector.AddSimpleEvent(
+		apiRequestsTotal.Feature.Key,
+		100,
+		datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+	)
+	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  servicePeriod,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(0.1),
+				}),
+				Name:              "usage-invoice-taxconfig-earnings",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "usage-invoice-taxconfig-earnings",
+				FeatureKey:        apiRequestsTotal.Feature.Key,
+				TaxConfig:         taxConfig,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(createdCharges, 1)
+	chargeID, err := createdCharges[0].GetChargeID()
+	s.NoError(err)
+
+	// when:
+	// - the invoice is paid and the accrued usage is recognized
+	clock.FreezeTime(servicePeriod.To.Add(time.Second))
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     lo.ToPtr(servicePeriod.To),
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+	invoice := invoices[0]
+
+	clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+	invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+	s.NoError(err)
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+	s.NoError(err)
+	s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+	invoice, err = s.BillingService.PaymentAuthorized(ctx, invoice.GetInvoiceID())
+	s.NoError(err)
+	s.Equal(billing.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+
+	invoice, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+		InvoiceID: invoice.GetInvoiceID(),
+		Trigger:   billing.TriggerPaid,
+	})
+	s.NoError(err)
+	s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
+
+	finalCharge, err := s.MustGetChargeByID(chargeID).AsUsageBasedCharge()
+	s.NoError(err)
+	s.Equal(usagebased.StatusFinal, finalCharge.Status)
+	s.requireChargeTaxConfig(finalCharge.Intent.TaxConfig, tc.ID, productcatalog.InclusiveTaxBehavior)
+
+	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+
+	s.mustRecognizeAttributableAccrued(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
+
+	// then:
+	// - earnings keep the full tax route expected by the charge
+	s.Equal(float64(amount), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID)).InexactFloat64())
+	s.Equal(float64(0), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&invoiceCostBasis), mo.Some[*string](nil)).InexactFloat64())
+	s.Equal(float64(amount), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(float64(0), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+}
+
+func (s *SanitySuite) createTaxCodeForEarningsFlow(ctx context.Context, namespace string, key string, name string) taxcode.TaxCode {
+	s.T().Helper()
+
+	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       key,
+		Name:      name,
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: strings.Replace(key, "-", "_", 1)},
+		},
+	})
+	s.Require().NoError(err)
+
+	return tc
+}
+
+func (s *SanitySuite) requireChargeTaxConfig(config *productcatalog.TaxCodeConfig, taxCodeID string, behavior productcatalog.TaxBehavior) {
+	s.T().Helper()
+
+	s.Require().NotNil(config)
+	s.Require().NotNil(config.TaxCodeID)
+	s.Equal(taxCodeID, *config.TaxCodeID)
+	s.Require().NotNil(config.Behavior)
+	s.Equal(behavior, *config.Behavior)
+}
+
+func (s *SanitySuite) mustRecognizeAttributableAccrued(customerID customer.CustomerID, currency currencyx.Code, amount alpacadecimal.Decimal) {
+	s.T().Helper()
+
+	inputs, err := transactions.ResolveTransactions(
+		s.T().Context(),
+		transactions.ResolverDependencies{
+			AccountService: s.LedgerResolver,
+			AccountCatalog: s.LedgerAccountService,
+			BalanceQuerier: s.BalanceQuerier,
+		},
+		transactions.ResolutionScope{
+			CustomerID: customerID,
+			Namespace:  customerID.Namespace,
+		},
+		transactions.RecognizeEarningsFromAttributableAccruedTemplate{
+			At:       clock.Now(),
+			Amount:   amount,
+			Currency: currency,
+		},
+	)
+	s.Require().NoError(err)
+	s.Require().NotEmpty(inputs)
+
+	_, err = s.Ledger.CommitGroup(s.T().Context(), transactions.GroupInputs(customerID.Namespace, nil, inputs...))
+	s.Require().NoError(err)
+}
+
+func (s *SanitySuite) mustEarningsBalanceForTaxConfig(namespace string, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], taxCode mo.Option[*string], taxBehavior mo.Option[*ledger.TaxBehavior]) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
+	s.Require().NoError(err)
+
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.EarningsAccount, ledger.RouteFilter{
+		Currency:    code,
+		CostBasis:   costBasis,
+		TaxCode:     taxCode,
+		TaxBehavior: taxBehavior,
+	}, ledger.BalanceQuery{})
+	s.Require().NoError(err)
+
+	return balance.Settled()
+}
+
+// TestTaxCodeFlowsFromCreditPurchaseToEarnings verifies that credits funded by a
+// credit purchase can settle a tax-configured charge. Tax routing starts when
+// charge usage accrues; customer FBO sources are not tax buckets.
+func (s *SanitySuite) TestTaxCodeFlowsFromCreditPurchaseToEarnings() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("taxcode-earnings-flow")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "txcd-40000001",
+		Name:      "Test Tax Code",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000001"},
+		},
+	})
+	s.Require().NoError(err)
+
+	const amount = 30
+
+	setupAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-31T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.SetTime(setupAt)
+
+	s.Run("fund customer FBO with TaxCode via promotional credit", func() {
+		result := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+			Namespace: ns,
+			Customer:  cust.GetID(),
+			Amount:    alpacadecimal.NewFromInt(amount),
+			At:        setupAt,
+			CostBasis: alpacadecimal.Zero,
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				TaxCodeID: &tc.ID,
+				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			},
+		})
+		s.NotEmpty(result.Charge.Realizations.CreditGrantRealization.TransactionGroupID)
+
+		nilCostBasis := alpacadecimal.Zero
+		s.Equal(float64(amount), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&nilCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64(),
+			"FBO balance must equal funded amount")
+	})
+
+	var flatFeeChargeID string
+	s.Run("create and advance flat fee credit-only charge", func() {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditOnlySettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(amount),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					Name:              "flat-fee-taxcode-test",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "flat-fee-taxcode-test",
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						TaxCodeID: &tc.ID,
+						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+					},
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		chargeID, err := res[0].GetChargeID()
+		s.NoError(err)
+		flatFeeChargeID = chargeID.ID
+
+		clock.FreezeTime(servicePeriod.From)
+
+		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: cust.GetID(),
+		})
+		s.NoError(err)
+		s.Len(advancedCharges, 1)
+
+		advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(flatfee.StatusFinal, advancedCharge.Status)
+		s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
+		s.Len(advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
+
+		// Accrued must hold the consumed amount; FBO must be drained
+		nilCostBasis := alpacadecimal.Zero
+		s.Equal(float64(0), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&nilCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64(),
+			"FBO balance must be drained after charge collection")
+		s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some(&nilCostBasis), mo.Some(&tc.ID)).InexactFloat64(),
+			"accrued must hold the collected amount in the charge TaxCode bucket")
+	})
+
+	_ = flatFeeChargeID
+
+	s.Run("recognize revenue and assert earnings land in TaxCode sub-account", func() {
+		clock.FreezeTime(servicePeriod.To)
+
+		s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
+
+		nilCostBasis := alpacadecimal.Zero
+
+		// Earnings keyed by TaxCode must receive the full amount
+		taxCodeEarnings := s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&nilCostBasis), mo.Some(&tc.ID))
+		s.Equal(float64(amount), taxCodeEarnings.InexactFloat64(),
+			"earnings for TaxCode sub-account must equal recognized amount")
+
+		// Nil-TaxCode earnings sub-account must remain zero
+		nilTaxCodeEarnings := s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&nilCostBasis), mo.Some[*string](nil))
+		s.Equal(float64(0), nilTaxCodeEarnings.InexactFloat64(),
+			"nil-TaxCode earnings sub-account must be untouched")
+	})
+}
+
+// TestChargeIntentTaxConfigFlowsToEarnings verifies the credit-only charge tax
+// config is applied when value leaves customer FBO and reaches accrued and
+// earnings.
+func (s *SanitySuite) TestChargeIntentTaxConfigFlowsToEarnings() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charge-intent-taxconfig-earnings")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "txcd-40000002",
+		Name:      "Charge Intent Tax Code",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000002"},
+		},
+	})
+	s.Require().NoError(err)
+
+	const amount = 30
+
+	setupAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-31T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.SetTime(setupAt)
+
+	s.Run("fund customer FBO with TaxCode via promotional credit", func() {
+		result := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+			Namespace: ns,
+			Customer:  cust.GetID(),
+			Amount:    alpacadecimal.NewFromInt(amount),
+			At:        setupAt,
+			CostBasis: alpacadecimal.Zero,
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				TaxCodeID: &tc.ID,
+				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			},
+		})
+		s.NotEmpty(result.Charge.Realizations.CreditGrantRealization.TransactionGroupID)
+
+		nilCostBasis := alpacadecimal.Zero
+		s.Equal(float64(amount), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&nilCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64(),
+			"FBO balance must equal funded amount")
+	})
+
+	s.Run("create and advance flat-fee credit-only charge with matching TaxConfig on intent", func() {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditOnlySettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(amount),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					Name:              "flat-fee-charge-intent-tax",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "flat-fee-charge-intent-tax",
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						TaxCodeID: &tc.ID,
+						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+					}, // tax on the charge intent
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		clock.FreezeTime(servicePeriod.From)
+
+		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: cust.GetID(),
+		})
+		s.NoError(err)
+		s.Len(advancedCharges, 1)
+
+		advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(flatfee.StatusFinal, advancedCharge.Status)
+
+		nilCostBasis := alpacadecimal.Zero
+		s.Equal(float64(0), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&nilCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64(),
+			"FBO balance must be drained")
+		s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some(&nilCostBasis), mo.Some(&tc.ID)).InexactFloat64(),
+			"accrued must land in TaxCode bucket")
+	})
+
+	s.Run("recognize revenue and assert earnings land in TaxCode bucket", func() {
+		clock.FreezeTime(servicePeriod.To)
+
+		s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
+
+		nilCostBasis := alpacadecimal.Zero
+
+		taxCodeEarnings := s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&nilCostBasis), mo.Some(&tc.ID))
+		s.Equal(float64(amount), taxCodeEarnings.InexactFloat64(),
+			"earnings must land in TaxCode bucket")
+
+		nilTaxCodeEarnings := s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&nilCostBasis), mo.Some[*string](nil))
+		s.Equal(float64(0), nilTaxCodeEarnings.InexactFloat64(),
+			"nil-TaxCode earnings must remain zero")
+	})
+}
+
+func (s *SanitySuite) TestChargeIntentTaxBehaviorFlowsToAdvanceAccrualCreditOnly() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charge-intent-taxbehavior-advance")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "txcd-40000006",
+		Name:      "Charge Intent Tax Behavior",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000006"},
+		},
+	})
+	s.Require().NoError(err)
+
+	const amount = 30
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-31T00:00:00Z", time.UTC).AsTime()
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(amount),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Name:              "flat-fee-charge-intent-taxbehavior",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "flat-fee-charge-intent-taxbehavior",
+				TaxConfig: &productcatalog.TaxCodeConfig{
+					TaxCodeID: &tc.ID,
+					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+				},
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(res, 1)
+
+	clock.FreezeTime(servicePeriod.From)
+
+	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+		Customer: cust.GetID(),
+	})
+	s.NoError(err)
+	s.Len(advancedCharges, 1)
+
+	advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusFinal, advancedCharge.Status)
+	s.Require().NotNil(advancedCharge.Intent.TaxConfig)
+	s.Require().NotNil(advancedCharge.Intent.TaxConfig.Behavior)
+	s.Equal(productcatalog.InclusiveTaxBehavior, *advancedCharge.Intent.TaxConfig.Behavior)
+	s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
+	s.Len(advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
+
+	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64(),
+		"advance-backed accrued balance must land in charge tax bucket")
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64(),
+		"advance-backed accrued balance must not use nil-TaxBehavior routes")
+}
+
+// TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly locks the
+// credit-only contract: customer FBO is not tax-routed. Charge tax config is
+// applied when value accrues and is preserved into earnings.
+func (s *SanitySuite) TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charge-intent-taxconfig-contract")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	taxA, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "txcd-40000004",
+		Name:      "Funding Tax Code A",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000004"},
+		},
+	})
+	s.Require().NoError(err)
+
+	taxB, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "txcd-40000005",
+		Name:      "Charge Intent Tax Code B",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000005"},
+		},
+	})
+	s.Require().NoError(err)
+
+	const amount = 30
+
+	setupAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-31T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.SetTime(setupAt)
+
+	s.Run("fund FBO with TaxCode=A", func() {
+		s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+			Namespace: ns,
+			Customer:  cust.GetID(),
+			Amount:    alpacadecimal.NewFromInt(amount),
+			At:        setupAt,
+			CostBasis: alpacadecimal.Zero,
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				TaxCodeID: &taxA.ID,
+				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			},
+		})
+
+		nilCostBasis := alpacadecimal.Zero
+		s.Equal(float64(amount), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&nilCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64(),
+			"FBO balance must equal funded amount")
+	})
+
+	s.Run("create and advance flat-fee credit-only charge with TaxConfig=B (different from funding)", func() {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditOnlySettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(amount),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					Name:              "flat-fee-mismatched-taxconfig",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "flat-fee-mismatched-taxconfig",
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						TaxCodeID: &taxB.ID,
+						Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+					},
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		clock.FreezeTime(servicePeriod.From)
+
+		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: cust.GetID(),
+		})
+		s.NoError(err)
+		s.Len(advancedCharges, 1)
+
+		advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(flatfee.StatusFinal, advancedCharge.Status)
+
+		// Charge entity preserves Intent.TaxConfig=B (metadata survives)
+		s.Require().NotNil(advancedCharge.Intent.TaxConfig)
+		s.Require().NotNil(advancedCharge.Intent.TaxConfig.TaxCodeID)
+		s.Equal(taxB.ID, *advancedCharge.Intent.TaxConfig.TaxCodeID)
+
+		nilCostBasis := alpacadecimal.Zero
+		s.Equal(float64(0), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&nilCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64(),
+			"FBO balance must be drained")
+		s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some(&nilCostBasis), mo.Some(&taxA.ID)).InexactFloat64(),
+			"funding TaxCode must not define accrued routing")
+		s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxCode(cust.GetID(), USD, mo.Some(&nilCostBasis), mo.Some(&taxB.ID)).InexactFloat64(),
+			"charge TaxCode must define accrued routing")
+	})
+
+	s.Run("recognize revenue and confirm earnings follow charge TaxCode=B", func() {
+		clock.FreezeTime(servicePeriod.To)
+
+		s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
+
+		nilCostBasis := alpacadecimal.Zero
+
+		s.Equal(float64(0), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&nilCostBasis), mo.Some(&taxA.ID)).InexactFloat64(),
+			"funding TaxCode must not define earnings routing")
+		s.Equal(float64(amount), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&nilCostBasis), mo.Some(&taxB.ID)).InexactFloat64(),
+			"charge TaxCode must define earnings routing")
+	})
+}
+
+// TestTaxCodeFlowsFromInvoicedChargeToAccrued verifies that charge.Intent.TaxConfig
+// flows through the credit-then-invoice path: accrual → payment authorization →
+// settlement. Receivable and accrued buckets must reconcile cleanly within the
+// TaxCode-keyed routes.
+//
+// This test covers the invoice variant GAlexIHU asked about (comment #3249148560)
+// and the route-split bug flagged on chargeadapter/usagebased.go:134
+// (#3249298648).
+func (s *SanitySuite) TestTaxCodeFlowsFromInvoicedChargeToAccrued() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("invoice-charge-taxconfig-earnings")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "txcd-40000003",
+		Name:      "Invoice Tax Code",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000003"},
+		},
+	})
+	s.Require().NoError(err)
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	invoiceCostBasis := alpacadecimal.NewFromInt(1)
+
+	var invoice billing.StandardInvoice
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	s.Run("create credit-then-invoice usage-based charge with TaxConfig on intent", func() {
+		s.MockStreamingConnector.AddSimpleEvent(
+			apiRequestsTotal.Feature.Key,
+			100,
+			datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+		)
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromFloat(0.1),
+					}),
+					Name:              "usage-based-invoice-tax",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "usage-based-invoice-tax",
+					FeatureKey:        apiRequestsTotal.Feature.Key,
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						TaxCodeID: &tc.ID,
+						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+					},
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+	})
+
+	s.Run("invoice is created, advanced, approved into payment pending", func() {
+		clock.FreezeTime(servicePeriod.To.Add(time.Second))
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.To),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		invoice = invoices[0]
+
+		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+		// Accrual leg must place balance in the charge TaxCode/TaxBehavior bucket.
+		ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+		s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64(),
+			"accrued must land in TaxCode/TaxBehavior bucket for invoice-backed usage charge")
+		s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64(),
+			"nil-TaxBehavior accrued must remain zero")
+
+		// Receivable stays tax-neutral; tax dimensions enter when usage accrues.
+		s.Equal(float64(-10), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64(),
+			"open receivable must sit in tax-neutral route")
+	})
+
+	s.Run("payment authorized and settled", func() {
+		var err error
+		invoice, err = s.BillingService.PaymentAuthorized(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+
+		// After auth, open receivable drains and authorized receivable holds the invoice amount.
+		s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64(),
+			"open receivable must reconcile to zero after auth")
+		s.Equal(float64(-10), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64(),
+			"authorized receivable must sit in tax-neutral route")
+
+		invoice, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+			InvoiceID: invoice.GetInvoiceID(),
+			Trigger:   billing.TriggerPaid,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
+
+		// After settle, authorized receivable clears.
+		s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64(),
+			"authorized receivable must clear after settle")
+	})
+
+	s.Run("accrued in TaxCode bucket survives through final settlement", func() {
+		ledgerTaxBehavior := ledger.TaxBehaviorInclusive
+		s.Equal(float64(10), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64(),
+			"accrued must remain in TaxCode/TaxBehavior bucket after settlement")
+		s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64(),
+			"nil-TaxBehavior accrued must remain zero")
 	})
 }

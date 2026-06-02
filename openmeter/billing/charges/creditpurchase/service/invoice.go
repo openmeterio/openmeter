@@ -53,7 +53,11 @@ func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge credi
 		return fmt.Errorf("invoice settlement already authorized - settlement already exists: %s", charge.Realizations.InvoiceSettlement.InvoiceID)
 	}
 
-	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, charge)
+	eventAt := clock.Now()
+	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, creditpurchase.PaymentEventInput{
+		Charge:  charge,
+		EventAt: eventAt,
+	})
 	if err != nil {
 		return err
 	}
@@ -65,7 +69,7 @@ func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge credi
 			Amount:        charge.Intent.CreditAmount,
 			Authorized: &ledgertransaction.TimedGroupReference{
 				GroupReference: ledgerTransactionGroupReference,
-				Time:           clock.Now(),
+				Time:           eventAt,
 			},
 			Status: payment.StatusAuthorized,
 		},
@@ -95,14 +99,18 @@ func (s *service) PostInvoicePaymentSettled(ctx context.Context, charge creditpu
 
 	paymentSettlement := *charge.Realizations.InvoiceSettlement
 
-	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentSettled(ctx, charge)
+	eventAt := clock.Now()
+	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentSettled(ctx, creditpurchase.PaymentEventInput{
+		Charge:  charge,
+		EventAt: eventAt,
+	})
 	if err != nil {
 		return err
 	}
 
 	paymentSettlement.Settled = &ledgertransaction.TimedGroupReference{
 		GroupReference: ledgerTransactionGroupReference,
-		Time:           clock.Now(),
+		Time:           eventAt,
 	}
 
 	paymentSettlement.Status = payment.StatusSettled

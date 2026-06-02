@@ -31,6 +31,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -89,7 +90,12 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 		Logger: slog.Default(),
 	})
 	require.NoError(t, err)
-	taxCodeService := taxcodeservice.New(taxCodeAdapter, slog.Default())
+
+	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
+		Adapter: taxCodeAdapter,
+		Logger:  slog.Default(),
+	})
+	require.NoError(t, err)
 
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
@@ -122,6 +128,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		SubscriptionService:     deps.SubscriptionService,
+		FeatureGate:             featuregate.NewNoop(),
 	})
 	require.NoError(t, err)
 

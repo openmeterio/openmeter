@@ -8,7 +8,7 @@ import (
 )
 
 func NewNode[T any](value T) *Node[T] {
-	if reflect.ValueOf(value).Kind() != reflect.Ptr {
+	if reflect.ValueOf(value).Kind() != reflect.Pointer {
 		panic("Node value has to be a pointer")
 	}
 

@@ -21,8 +21,8 @@ func ToAPIBillingSubscription(subscription subscription.Subscription) api.Billin
 		BillingAnchor: subscription.BillingAnchor,
 		Status:        api.BillingSubscriptionStatus(subscription.GetStatusAt(clock.Now())),
 		Labels:        labels.FromMetadataAnnotations(subscription.Metadata, subscription.Annotations),
-		CreatedAt:     &subscription.CreatedAt,
-		UpdatedAt:     &subscription.UpdatedAt,
+		CreatedAt:     subscription.CreatedAt,
+		UpdatedAt:     subscription.UpdatedAt,
 		DeletedAt:     subscription.DeletedAt,
 	}
 

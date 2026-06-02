@@ -36,8 +36,11 @@ func (c Config) Validate() error {
 	if c.Dependencies.AccountService == nil {
 		errs = append(errs, errors.New("account service is required"))
 	}
-	if c.Dependencies.SubAccountService == nil {
-		errs = append(errs, errors.New("sub-account service is required"))
+	if c.Dependencies.AccountCatalog == nil {
+		errs = append(errs, errors.New("account catalog is required"))
+	}
+	if c.Dependencies.BalanceQuerier == nil {
+		errs = append(errs, errors.New("balance querier is required"))
 	}
 	if c.Lineage == nil {
 		errs = append(errs, errors.New("lineage service is required"))

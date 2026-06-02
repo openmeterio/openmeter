@@ -24,6 +24,10 @@ func (*spyCustomerTemplate) typeGuard() guard {
 	return true
 }
 
+func (*spyCustomerTemplate) code() TransactionTemplateCode {
+	return "test.spy"
+}
+
 func (*spyCustomerTemplate) resolve(context.Context, customer.CustomerID, ResolverDependencies) (ledger.TransactionInput, error) {
 	return nil, nil
 }
@@ -53,40 +57,11 @@ func TestResolveTransactions_callsResolverValidate(t *testing.T) {
 	require.Equal(t, 1, spy.validateCalls, "TransactionTemplate.Validate must be invoked for each template")
 }
 
-type annotatedCustomerTemplate struct{}
-
-func (annotatedCustomerTemplate) Validate() error {
-	return nil
-}
-
-func (annotatedCustomerTemplate) typeGuard() guard {
-	return true
-}
-
-func (annotatedCustomerTemplate) resolve(_ context.Context, _ customer.CustomerID, _ ResolverDependencies) (ledger.TransactionInput, error) {
-	return &TransactionInput{}, nil
-}
-
-func (annotatedCustomerTemplate) correct(CorrectionScope) ([]ledger.TransactionInput, error) {
-	return nil, nil
-}
-
 func TestResolveTransactions_addsTemplateAnnotations(t *testing.T) {
 	t.Parallel()
 
-	inputs, err := ResolveTransactions(
-		t.Context(),
-		ResolverDependencies{},
-		ResolutionScope{
-			CustomerID: customer.CustomerID{
-				Namespace: "ns",
-				ID:        "cust",
-			},
-		},
-		annotatedCustomerTemplate{},
-	)
+	input, err := annotateTemplateTransaction(&TransactionInput{}, IssueCustomerReceivableTemplate{}, ledger.TransactionDirectionForward)
 	require.NoError(t, err)
-	require.Len(t, inputs, 1)
-	require.Equal(t, "annotatedCustomerTemplate", inputs[0].Annotations()[ledger.AnnotationTransactionTemplateName])
-	require.Equal(t, string(ledger.TransactionDirectionForward), inputs[0].Annotations()[ledger.AnnotationTransactionDirection])
+	require.Equal(t, string(TemplateCodeIssueCustomerReceivable), input.Annotations()[ledger.AnnotationTransactionTemplateCode])
+	require.Equal(t, string(ledger.TransactionDirectionForward), input.Annotations()[ledger.AnnotationTransactionDirection])
 }

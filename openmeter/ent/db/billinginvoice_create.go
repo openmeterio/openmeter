@@ -21,6 +21,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -737,6 +739,36 @@ func (_c *BillingInvoiceCreate) AddBillingInvoiceValidationIssues(v ...*BillingI
 	return _c.AddBillingInvoiceValidationIssueIDs(ids...)
 }
 
+// AddChargeFlatFeeRunIDs adds the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity by IDs.
+func (_c *BillingInvoiceCreate) AddChargeFlatFeeRunIDs(ids ...string) *BillingInvoiceCreate {
+	_c.mutation.AddChargeFlatFeeRunIDs(ids...)
+	return _c
+}
+
+// AddChargeFlatFeeRuns adds the "charge_flat_fee_runs" edges to the ChargeFlatFeeRun entity.
+func (_c *BillingInvoiceCreate) AddChargeFlatFeeRuns(v ...*ChargeFlatFeeRun) *BillingInvoiceCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargeFlatFeeRunIDs(ids...)
+}
+
+// AddChargeUsageBasedRunIDs adds the "charge_usage_based_runs" edge to the ChargeUsageBasedRuns entity by IDs.
+func (_c *BillingInvoiceCreate) AddChargeUsageBasedRunIDs(ids ...string) *BillingInvoiceCreate {
+	_c.mutation.AddChargeUsageBasedRunIDs(ids...)
+	return _c
+}
+
+// AddChargeUsageBasedRuns adds the "charge_usage_based_runs" edges to the ChargeUsageBasedRuns entity.
+func (_c *BillingInvoiceCreate) AddChargeUsageBasedRuns(v ...*ChargeUsageBasedRuns) *BillingInvoiceCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargeUsageBasedRunIDs(ids...)
+}
+
 // SetBillingInvoiceCustomerID sets the "billing_invoice_customer" edge to the Customer entity by ID.
 func (_c *BillingInvoiceCreate) SetBillingInvoiceCustomerID(id string) *BillingInvoiceCreate {
 	_c.mutation.SetBillingInvoiceCustomerID(id)
@@ -1282,6 +1314,38 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicevalidationissue.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeFlatFeeRunsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.ChargeFlatFeeRunsTable,
+			Columns: []string{billinginvoice.ChargeFlatFeeRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerun.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeUsageBasedRunsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.ChargeUsageBasedRunsTable,
+			Columns: []string{billinginvoice.ChargeUsageBasedRunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

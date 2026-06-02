@@ -9,6 +9,7 @@ namespace Customers;
  * Type of a charge.
  *
  * Values:
+ *
  * - `flat_fee`: A fixed-amount charge.
  * - `usage_based`: A usage-priced charge.
  */
@@ -23,6 +24,7 @@ enum ChargeType {
  * Lifecycle status of a charge.
  *
  * Values:
+ *
  * - `created`: The charge has been created but is not active yet.
  * - `active`: The charge is active.
  * - `final`: The charge is fully finalized and no further changes are expected.
@@ -40,7 +42,8 @@ enum ChargeStatus {
 /**
  * Discounts applicable to flat fee charges.
  *
- * This is the same as `ProductCatalog.Discounts` but without the `usage` field, which is not applicable to flat fee charges.
+ * This is the same as `ProductCatalog.Discounts` but without the `usage` field,
+ * which is not applicable to flat fee charges.
  */
 @friendlyName("BillingFlatFeeDiscounts")
 @summary("Flat fee charge discounts")
@@ -79,7 +82,8 @@ model ChargeBase<T extends ChargeType> {
   managed_by: Shared.ResourceManagedBy;
 
   /**
-   * The subscription that originated the charge, when the charge was created from a subscription item.
+   * The subscription that originated the charge, when the charge was created from a
+   * subscription item.
    */
   @visibility(Lifecycle.Read)
   @summary("Subscription")
@@ -128,7 +132,8 @@ model ChargeBase<T extends ChargeType> {
   billing_period: Shared.ClosedPeriod;
 
   /**
-   * The earliest time when the charge should be advanced again by background processing.
+   * The earliest time when the charge should be advanced again by background
+   * processing.
    */
   @visibility(Lifecycle.Read)
   @summary("Advance after")
@@ -154,6 +159,13 @@ model ChargeBase<T extends ChargeType> {
   @visibility(Lifecycle.Read)
   @summary("Settlement mode")
   settlement_mode: ProductCatalog.SettlementMode;
+
+  /**
+   * Tax configuration of the charge.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Tax configuration")
+  tax_config?: Billing.TaxConfig;
 }
 
 /**
@@ -249,7 +261,9 @@ model UsageBasedCharge {
 
   // Status fields
 
-  /** Aggregated booked and realtime totals for the charge. */
+  /**
+   * Aggregated booked and realtime totals for the charge.
+   */
   @visibility(Lifecycle.Read)
   @summary("Totals for the charge")
   totals: ChargeTotals;
@@ -277,6 +291,7 @@ union Charge {
  * Expands for customer charges.
  *
  * Values:
+ *
  * - `real_time_usage`: The charge's real-time usage.
  */
 @friendlyName("BillingChargesExpand")

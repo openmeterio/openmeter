@@ -42,6 +42,13 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps St
 			return fmt.Errorf("getting line engine[%s]: %w", lineEngineType, err)
 		}
 
+		// If the line engine doesn't implement the LineCalculator interface, we skip recalculation, and expect that the
+		// OnStandardInvoiceCreated/OnCollectionCompleted lifecycle event will return the fully calculated state.
+		lineCalculator, ok := lineEngine.(billing.LineCalculator)
+		if !ok {
+			continue
+		}
+
 		input := billing.CalculateLinesInput{
 			Invoice: *invoice,
 			Lines:   stdLines,
@@ -50,7 +57,7 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps St
 			return fmt.Errorf("validating calculate lines input for engine[%s]: %w", lineEngineType, err)
 		}
 
-		updatedLines, err := lineEngine.CalculateLines(input)
+		updatedLines, err := lineCalculator.CalculateLines(input)
 		if err != nil {
 			return fmt.Errorf("calculating lines for engine[%s]: %w", lineEngineType, err)
 		}

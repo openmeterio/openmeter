@@ -14,14 +14,10 @@ const (
 	Label = "charge_usage_based_run_invoiced_usage"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldLineID holds the string denoting the line_id field in the database.
-	FieldLineID = "line_id"
 	// FieldServicePeriodFrom holds the string denoting the service_period_from field in the database.
 	FieldServicePeriodFrom = "service_period_from"
 	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
 	FieldServicePeriodTo = "service_period_to"
-	// FieldMutable holds the string denoting the mutable field in the database.
-	FieldMutable = "mutable"
 	// FieldLedgerTransactionGroupID holds the string denoting the ledger_transaction_group_id field in the database.
 	FieldLedgerTransactionGroupID = "ledger_transaction_group_id"
 	// FieldNamespace holds the string denoting the namespace field in the database.
@@ -68,10 +64,8 @@ const (
 // Columns holds all SQL columns for chargeusagebasedruninvoicedusage fields.
 var Columns = []string{
 	FieldID,
-	FieldLineID,
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
-	FieldMutable,
 	FieldLedgerTransactionGroupID,
 	FieldNamespace,
 	FieldCreatedAt,
@@ -100,8 +94,6 @@ func ValidColumn(column string) bool {
 }
 
 var (
-	// LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
-	LineIDValidator func(string) error
 	// LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
 	LedgerTransactionGroupIDValidator func(string) error
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
@@ -124,11 +116,6 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
-// ByLineID orders the results by the line_id field.
-func ByLineID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLineID, opts...).ToFunc()
-}
-
 // ByServicePeriodFrom orders the results by the service_period_from field.
 func ByServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldServicePeriodFrom, opts...).ToFunc()
@@ -137,11 +124,6 @@ func ByServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
 // ByServicePeriodTo orders the results by the service_period_to field.
 func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldServicePeriodTo, opts...).ToFunc()
-}
-
-// ByMutable orders the results by the mutable field.
-func ByMutable(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldMutable, opts...).ToFunc()
 }
 
 // ByLedgerTransactionGroupID orders the results by the ledger_transaction_group_id field.

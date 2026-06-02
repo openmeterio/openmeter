@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	dbchargeflatfeerun "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -75,6 +76,36 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 		}
 
 		return MapChargeBaseFromDB(dbUpdatedChargeBase), nil
+	})
+}
+
+func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge flatfee.Charge, newSubscriptionItemID string) (flatfee.Charge, error) {
+	if err := charge.ManagedModel.Validate(); err != nil {
+		return flatfee.Charge{}, err
+	}
+
+	if err := charge.Validate(); err != nil {
+		return flatfee.Charge{}, err
+	}
+
+	if newSubscriptionItemID == "" {
+		return flatfee.Charge{}, fmt.Errorf("subscription item ID is required")
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.Charge, error) {
+		// TODO: make subscription_item_id immutable again once subscription edits
+		// no longer recreate the item ID for logical item updates.
+		updatedChargeBase, err := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
+			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace)).
+			SetSubscriptionItemID(newSubscriptionItemID).
+			Save(ctx)
+		if err != nil {
+			return flatfee.Charge{}, err
+		}
+
+		charge.ChargeBase = MapChargeBaseFromDB(updatedChargeBase)
+
+		return charge, nil
 	})
 }
 
@@ -197,7 +228,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 
 		if input.Expands.Has(meta.ExpandDetailedLines) {
 			return slicesx.MapWithErr(out, func(charge flatfee.Charge) (flatfee.Charge, error) {
-				return tx.FetchDetailedLines(ctx, charge)
+				return tx.FetchCurrentRunDetailedLines(ctx, charge)
 			})
 		}
 
@@ -234,7 +265,7 @@ func (a *adapter) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flat
 		}
 
 		if input.Expands.Has(meta.ExpandDetailedLines) {
-			return tx.FetchDetailedLines(ctx, charge)
+			return tx.FetchCurrentRunDetailedLines(ctx, charge)
 		}
 
 		return charge, nil
@@ -242,9 +273,16 @@ func (a *adapter) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flat
 }
 
 func expandRealizations(query *db.ChargeFlatFeeQuery) *db.ChargeFlatFeeQuery {
-	return query.WithCreditAllocations().
-		WithInvoicedUsage().
-		WithPayment()
+	return query.WithRuns(func(query *db.ChargeFlatFeeRunQuery) {
+		query.
+			Order(
+				dbchargeflatfeerun.ByServicePeriodTo(),
+				dbchargeflatfeerun.ByCreatedAt(),
+			).
+			WithCreditAllocations().
+			WithInvoicedUsage().
+			WithPayment()
+	})
 }
 
 func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithInitialStatus) (*db.ChargeFlatFeeCreate, error) {
@@ -280,9 +318,10 @@ func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithI
 	}
 
 	create, err = chargemeta.Create[*db.ChargeFlatFeeCreate](create, chargemeta.CreateInput{
-		Namespace: ns,
-		Intent:    intent.Intent.Intent,
-		Status:    metaStatus,
+		Namespace:    ns,
+		Intent:       intent.Intent.Intent,
+		Status:       metaStatus,
+		AdvanceAfter: meta.NormalizeOptionalTimestamp(intent.InitialAdvanceAfter),
 	})
 	if err != nil {
 		return nil, err

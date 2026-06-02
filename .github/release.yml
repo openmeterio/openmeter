@@ -3,6 +3,9 @@ changelog:
     labels:
       - release-note/ignore
   categories:
+    - title: Security Fixes 🚨
+      labels:
+        - release-note/security-fix
     - title: Exciting New Features 🎉
       labels:
         - kind/feature

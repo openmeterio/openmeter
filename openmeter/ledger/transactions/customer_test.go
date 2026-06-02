@@ -45,7 +45,7 @@ func TestIssueCustomerReceivableTemplate_DefaultPriority(t *testing.T) {
 	require.True(t, env.SumBalance(t, env.ReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-15)))
 }
 
-func TestFundCustomerReceivableTemplate(t *testing.T) {
+func TestAuthorizeCustomerReceivablePaymentTemplate(t *testing.T) {
 	env := newTransactionsTestEnv(t)
 
 	env.resolveAndCommit(
@@ -59,7 +59,7 @@ func TestFundCustomerReceivableTemplate(t *testing.T) {
 
 	inputs := env.resolveAndCommit(
 		t,
-		FundCustomerReceivableTemplate{
+		AuthorizeCustomerReceivablePaymentTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(40),
 			Currency: env.Currency,
@@ -67,9 +67,9 @@ func TestFundCustomerReceivableTemplate(t *testing.T) {
 	)
 	require.Len(t, inputs, 1)
 
-	require.True(t, env.SumBalance(t, env.ReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-40)))
-	require.True(t, env.SumBalance(t, env.ReceivableSubAccountWithStatus(t, ledger.TransactionAuthorizationStatusAuthorized)).Equal(alpacadecimal.NewFromInt(40)))
-	require.True(t, env.SumBalance(t, env.WashSubAccount(t)).Equal(alpacadecimal.NewFromInt(-40)))
+	require.True(t, env.SumBalance(t, env.ReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
+	require.True(t, env.SumBalance(t, env.ReceivableSubAccountWithStatus(t, ledger.TransactionAuthorizationStatusAuthorized)).Equal(alpacadecimal.NewFromInt(-40)))
+	require.True(t, env.SumBalance(t, env.WashSubAccount(t)).Equal(alpacadecimal.Zero))
 	require.True(t, env.SumBalance(t, env.FBOSubAccount(t, ledger.DefaultCustomerFBOPriority)).Equal(alpacadecimal.NewFromInt(40)))
 }
 
@@ -102,7 +102,7 @@ func TestCoverCustomerReceivableTemplate(t *testing.T) {
 	require.True(t, env.SumBalance(t, env.ReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
 }
 
-func TestSettleCustomerReceivablePaymentTemplate(t *testing.T) {
+func TestSettleCustomerReceivableFromPaymentTemplate(t *testing.T) {
 	env := newTransactionsTestEnv(t)
 
 	env.resolveAndCommit(
@@ -112,7 +112,7 @@ func TestSettleCustomerReceivablePaymentTemplate(t *testing.T) {
 			Amount:   alpacadecimal.NewFromInt(40),
 			Currency: env.Currency,
 		},
-		FundCustomerReceivableTemplate{
+		AuthorizeCustomerReceivablePaymentTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(40),
 			Currency: env.Currency,
@@ -121,7 +121,7 @@ func TestSettleCustomerReceivablePaymentTemplate(t *testing.T) {
 
 	inputs := env.resolveAndCommit(
 		t,
-		SettleCustomerReceivablePaymentTemplate{
+		SettleCustomerReceivableFromPaymentTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(40),
 			Currency: env.Currency,
@@ -144,12 +144,6 @@ func TestAttributeCustomerAdvanceReceivableCostBasisTemplate(t *testing.T) {
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(40),
 			Currency: env.Currency,
-		},
-		FundCustomerReceivableTemplate{
-			At:        env.Now(),
-			Amount:    alpacadecimal.NewFromInt(40),
-			Currency:  env.Currency,
-			CostBasis: &purchasedCostBasis,
 		},
 	)
 

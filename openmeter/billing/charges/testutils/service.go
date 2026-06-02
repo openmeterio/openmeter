@@ -28,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
@@ -39,6 +40,7 @@ type Config struct {
 	FeatureService     feature.FeatureConnector
 	StreamingConnector streaming.Connector
 	RecognizerService  recognizer.Service
+	TaxCodeService     taxcode.Service
 
 	FlatFeeHandler        flatfee.Handler
 	CreditPurchaseHandler creditpurchase.Handler
@@ -74,6 +76,10 @@ func (c Config) Validate() error {
 
 	if c.UsageBasedHandler == nil {
 		errs = append(errs, fmt.Errorf("usage based handler is required"))
+	}
+
+	if c.TaxCodeService == nil {
+		errs = append(errs, fmt.Errorf("tax code service is required"))
 	}
 
 	return errors.Join(errs...)
@@ -224,6 +230,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	}
 
 	chargesService, err := chargesservice.New(chargesservice.Config{
+		Logger:                logger,
 		Adapter:               rootAdapter,
 		FeatureService:        config.FeatureService,
 		MetaAdapter:           metaAdapter,
@@ -232,6 +239,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		UsageBasedService:     usageBasedService,
 		RecognizerService:     config.RecognizerService,
 		BillingService:        config.BillingService,
+		TaxCodeService:        config.TaxCodeService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating charges service: %w", err)

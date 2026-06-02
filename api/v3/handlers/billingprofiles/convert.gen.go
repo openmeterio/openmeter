@@ -132,7 +132,7 @@ func init() {
 	ToAPIBillingProfile = func(source billing.Profile) (v3.BillingProfile, error) {
 		var v3BillingProfile v3.BillingProfile
 		v3BillingProfile.Apps = pBillingProfileAppsToV3BillingProfileAppReferences(source.Apps)
-		v3BillingProfile.CreatedAt = timeTimeToPTimeTime(source.BaseProfile.CreatedAt)
+		v3BillingProfile.CreatedAt = timeTimeToTimeTime(source.BaseProfile.CreatedAt)
 		v3BillingProfile.Default = source.BaseProfile.Default
 		v3BillingProfile.DeletedAt = source.BaseProfile.DeletedAt
 		v3BillingProfile.Description = source.BaseProfile.Description
@@ -140,7 +140,7 @@ func init() {
 		v3BillingProfile.Labels = ConvertMetadataToLabels(source.BaseProfile.Metadata)
 		v3BillingProfile.Name = source.BaseProfile.Name
 		v3BillingProfile.Supplier = ToAPIBillingParty(source.BaseProfile.Supplier)
-		v3BillingProfile.UpdatedAt = timeTimeToPTimeTime(source.BaseProfile.UpdatedAt)
+		v3BillingProfile.UpdatedAt = timeTimeToTimeTime(source.BaseProfile.UpdatedAt)
 		v3BillingWorkflow, err := ToAPIBillingWorkflow(source.BaseProfile.WorkflowConfig)
 		if err != nil {
 			return v3BillingProfile, err
@@ -238,6 +238,6 @@ func pV3BillingTaxConfigStripeToPProductcatalogStripeTaxConfig(source *v3.Billin
 	}
 	return pProductcatalogStripeTaxConfig
 }
-func timeTimeToPTimeTime(source time.Time) *time.Time {
-	return &source
+func timeTimeToTimeTime(source time.Time) time.Time {
+	return source
 }

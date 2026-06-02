@@ -2,8 +2,12 @@ package creditpurchase
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // CreditPurchaseHandler is the interface for handling credit purchase charges.
@@ -37,9 +41,28 @@ type Handler interface {
 
 	// OnCreditPurchasePaymentAuthorized is called when a credit purchase payment is authorized for a credit
 	// purchase.
-	OnCreditPurchasePaymentAuthorized(ctx context.Context, charge Charge) (ledgertransaction.GroupReference, error)
+	OnCreditPurchasePaymentAuthorized(ctx context.Context, input PaymentEventInput) (ledgertransaction.GroupReference, error)
 
 	// OnCreditPurchasePaymentSettled is called when a credit purchase payment is settled for a credit
 	// purchase.
-	OnCreditPurchasePaymentSettled(ctx context.Context, charge Charge) (ledgertransaction.GroupReference, error)
+	OnCreditPurchasePaymentSettled(ctx context.Context, input PaymentEventInput) (ledgertransaction.GroupReference, error)
+}
+
+type PaymentEventInput struct {
+	Charge  Charge    `json:"charge"`
+	EventAt time.Time `json:"eventAt"`
+}
+
+func (i PaymentEventInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if i.EventAt.IsZero() {
+		errs = append(errs, fmt.Errorf("event at is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

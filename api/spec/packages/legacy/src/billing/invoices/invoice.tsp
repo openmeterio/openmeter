@@ -562,6 +562,14 @@ model InvoiceLineBase {
   discounts?: InvoiceLineDiscounts;
 
   /**
+   * Credit allocations applied to this line.
+   *
+   * Credits are deducted from the line total before taxes are applied.
+   */
+  @visibility(Lifecycle.Read)
+  creditAllocations?: InvoiceLineCreditAllocation[];
+
+  /**
    * The invoice this item belongs to.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
@@ -850,6 +858,12 @@ model InvoiceTotals {
    */
   @visibility(Lifecycle.Read)
   discountsTotal: Numeric;
+
+  /**
+   * The amount of value of the line that are due to credits.
+   */
+  @visibility(Lifecycle.Read)
+  creditsTotal: Numeric;
 
   /**
    * The total amount of taxes that are included in the line.

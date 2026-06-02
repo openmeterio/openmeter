@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"time"
+
+	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -144,10 +147,7 @@ func (g *GrantBurnDownHistory) GetUsageInPeriodUntilSegment(segmentIndex int) (b
 		// We need the segment right after the last reset
 		if lastResetSegmentIndex+1 < len(g.segments) {
 			firstSeg := g.segments[lastResetSegmentIndex+1]
-			usage = balance.SnapshottedUsage{
-				Since: firstSeg.From,
-				Usage: 0.0,
-			}
+			usage = usageAtReset(firstSeg.From)
 		}
 	}
 
@@ -161,6 +161,54 @@ func (g *GrantBurnDownHistory) GetUsageInPeriodUntilSegment(segmentIndex int) (b
 
 func (g *GrantBurnDownHistory) Segments() []GrantBurnDownHistorySegment {
 	return g.segments
+}
+
+func (g GrantBurnDownHistory) ChunkByResets() []GrantBurnDownHistory {
+	if len(g.segments) == 0 {
+		return nil
+	}
+
+	chunks := make([]GrantBurnDownHistory, 0, 1)
+	current := GrantBurnDownHistory{
+		usageAtStart: g.usageAtStart,
+		segments:     make([]GrantBurnDownHistorySegment, 0, len(g.segments)),
+	}
+
+	for _, seg := range g.segments {
+		current.segments = append(current.segments, seg)
+		if seg.TerminationReasons.UsageReset {
+			chunks = append(chunks, current)
+			current = GrantBurnDownHistory{
+				usageAtStart: usageAtReset(seg.To),
+				segments:     make([]GrantBurnDownHistorySegment, 0, len(g.segments)),
+			}
+		}
+	}
+
+	if len(current.segments) > 0 {
+		chunks = append(chunks, current)
+	}
+
+	return chunks
+}
+
+func (g GrantBurnDownHistory) TotalGrantUsage() alpacadecimal.Decimal {
+	total := alpacadecimal.NewFromFloat(0)
+
+	for _, seg := range g.segments {
+		for _, usage := range seg.GrantUsages {
+			total = total.Add(alpacadecimal.NewFromFloat(usage.Usage))
+		}
+	}
+
+	return total
+}
+
+func usageAtReset(at time.Time) balance.SnapshottedUsage {
+	return balance.SnapshottedUsage{
+		Since: at,
+		Usage: 0.0,
+	}
 }
 
 func (g *GrantBurnDownHistory) TotalUsageInHistory() float64 {

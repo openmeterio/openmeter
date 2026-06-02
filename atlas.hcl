@@ -4,6 +4,7 @@ env "local" {
   migration {
     dir = "${local.migrations_dir}"
     format = "${local.migrations_format}"
+    exclude = "${local.migration_exlude}"
   }
 
   format {
@@ -30,6 +31,7 @@ env "ci" {
   migration {
     dir = "${local.migrations_dir}"
     format = "${local.migrations_format}"
+    exclude = "${local.migration_exlude}"
   }
 
   format {
@@ -53,6 +55,8 @@ locals {
     // Define common connection URLs
     local_url = "postgres://postgres:postgres@localhost:5432/postgres?search_path=public&sslmode=disable"
     ci_url = "postgres://postgres:postgres@postgres:5432/postgres?search_path=public&sslmode=disable"
+
+    migration_exlude = ["distributed_locks[type=table]"]
 }
 
 lint {

@@ -10,7 +10,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-var _ billing.LineEngine = (*Engine)(nil)
+var (
+	_ billing.LineEngine     = (*Engine)(nil)
+	_ billing.LineCalculator = (*Engine)(nil)
+)
 
 type Config struct {
 	RatingService rating.Service
@@ -75,12 +78,24 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 	})
 }
 
+func (e *Engine) BuildStandardLinesForGatheringPreview(_ context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
+	return input.GatheringLines.ToStandardLines(input.Invoice.ID)
+}
+
 func (e *Engine) OnCollectionCompleted(_ context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {
 	return input.Lines, nil
 }
 
 func (e *Engine) OnStandardInvoiceCreated(_ context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
 	return input.Lines, nil
+}
+
+func (e *Engine) OnMutableStandardLinesDeleted(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {
+	return nil
+}
+
+func (e *Engine) OnUnsupportedCreditNote(_ context.Context, _ billing.OnUnsupportedCreditNoteInput) error {
+	return nil
 }
 
 func (e *Engine) OnInvoiceIssued(_ context.Context, _ billing.OnInvoiceIssuedInput) error {

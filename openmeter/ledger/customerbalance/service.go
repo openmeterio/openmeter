@@ -14,14 +14,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type Service interface {
-	GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, after *ledger.TransactionCursor) (ledger.Balance, error)
+	GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, query ledger.BalanceQuery) (ledger.Balance, error)
 	ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error)
 	GetFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error)
 }
@@ -40,7 +40,7 @@ type creditPurchaseActivityService interface {
 }
 
 type subAccountLister interface {
-	ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubAccountsInput) ([]*ledgeraccount.SubAccount, error)
+	ListSubAccounts(ctx context.Context, input ledger.ListSubAccountsInput) ([]ledger.SubAccount, error)
 }
 
 type usageBasedTotalsService interface {
@@ -63,6 +63,8 @@ type service struct {
 	CreditPurchaseSvc creditPurchaseActivityService
 	UsageBasedService usageBasedTotalsService
 	Ledger            ledger.Ledger
+	BalanceQuerier    ledger.BalanceQuerier
+	Breakage          ledgerbreakage.Service
 
 	balanceCalculator chargePendingBalanceCalculator
 }
@@ -76,6 +78,8 @@ type Config struct {
 	CreditPurchaseSvc creditPurchaseActivityService
 	UsageBasedService usageBasedTotalsService
 	Ledger            ledger.Ledger
+	BalanceQuerier    ledger.BalanceQuerier
+	Breakage          ledgerbreakage.Service
 }
 
 func (c Config) Validate() error {
@@ -105,12 +109,21 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("ledger is required"))
 	}
 
+	if c.BalanceQuerier == nil {
+		errs = append(errs, errors.New("balance querier is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
 func New(config Config) (*service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
+	}
+
+	breakageService := config.Breakage
+	if breakageService == nil {
+		breakageService = ledgerbreakage.NewNoopService()
 	}
 
 	return &service{
@@ -120,33 +133,37 @@ func New(config Config) (*service, error) {
 		CreditPurchaseSvc: config.CreditPurchaseSvc,
 		UsageBasedService: config.UsageBasedService,
 		Ledger:            config.Ledger,
+		BalanceQuerier:    config.BalanceQuerier,
+		Breakage:          breakageService,
 		balanceCalculator: chargePendingBalanceCalculator{},
 	}, nil
 }
 
-func (s *service) GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, after *ledger.TransactionCursor) (ledger.Balance, error) {
+func (s *service) GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, query ledger.BalanceQuery) (ledger.Balance, error) {
+	query = currentBalanceQuery(query)
+
 	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	bookedBalance, err := customerAccounts.FBOAccount.GetBalance(ctx, ledger.RouteFilter{
+	bookedBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.FBOAccount, ledger.RouteFilter{
 		Currency: currency,
-	}, after)
+	}, query)
 	if err != nil {
 		return nil, fmt.Errorf("get booked balance: %w", err)
 	}
 
-	advanceBalance, err := customerAccounts.ReceivableAccount.GetBalance(ctx, ledger.RouteFilter{
+	advanceBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.ReceivableAccount, ledger.RouteFilter{
 		Currency:  currency,
 		CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
-	}, after)
+	}, query)
 	if err != nil {
 		return nil, fmt.Errorf("get advance balance: %w", err)
 	}
 
 	// Pending balance remains a current projection from open charges.
-	// Historical cursoring only affects the booked/settled side for now.
+	// Historical cursor/as-of filtering only affects the booked/settled side for now.
 	impacts, err := s.getChargePendingBalanceImpacts(ctx, customerID, currency)
 	if err != nil {
 		return nil, fmt.Errorf("get charge pending balance impacts: %w", err)
@@ -160,20 +177,25 @@ func (s *service) GetBalance(ctx context.Context, customerID customer.CustomerID
 	}, nil
 }
 
+func currentBalanceQuery(query ledger.BalanceQuery) ledger.BalanceQuery {
+	if query.After != nil || query.AsOf != nil {
+		return query
+	}
+
+	asOf := clock.Now()
+	query.AsOf = &asOf
+	return query
+}
+
 func (s *service) GetFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error) {
 	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	fboAccount, ok := customerAccounts.FBOAccount.(*ledgeraccount.CustomerFBOAccount)
-	if !ok {
-		return nil, fmt.Errorf("customer FBO account: unexpected type %T", customerAccounts.FBOAccount)
-	}
-
-	subAccounts, err := s.SubAccountService.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{
-		Namespace: fboAccount.ID().Namespace,
-		AccountID: fboAccount.ID().ID,
+	subAccounts, err := s.SubAccountService.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
+		Namespace: customerAccounts.FBOAccount.ID().Namespace,
+		AccountID: customerAccounts.FBOAccount.ID().ID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("list sub accounts: %w", err)

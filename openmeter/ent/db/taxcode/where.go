@@ -668,21 +668,21 @@ func HasChargeUsageBasedRunDetailedLinesWith(preds ...predicate.ChargeUsageBased
 	})
 }
 
-// HasChargeFlatFeeDetailedLines applies the HasEdge predicate on the "charge_flat_fee_detailed_lines" edge.
-func HasChargeFlatFeeDetailedLines() predicate.TaxCode {
+// HasChargeFlatFeeRunDetailedLines applies the HasEdge predicate on the "charge_flat_fee_run_detailed_lines" edge.
+func HasChargeFlatFeeRunDetailedLines() predicate.TaxCode {
 	return predicate.TaxCode(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeDetailedLinesTable, ChargeFlatFeeDetailedLinesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeRunDetailedLinesTable, ChargeFlatFeeRunDetailedLinesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasChargeFlatFeeDetailedLinesWith applies the HasEdge predicate on the "charge_flat_fee_detailed_lines" edge with a given conditions (other predicates).
-func HasChargeFlatFeeDetailedLinesWith(preds ...predicate.ChargeFlatFeeDetailedLine) predicate.TaxCode {
+// HasChargeFlatFeeRunDetailedLinesWith applies the HasEdge predicate on the "charge_flat_fee_run_detailed_lines" edge with a given conditions (other predicates).
+func HasChargeFlatFeeRunDetailedLinesWith(preds ...predicate.ChargeFlatFeeRunDetailedLine) predicate.TaxCode {
 	return predicate.TaxCode(func(s *sql.Selector) {
-		step := newChargeFlatFeeDetailedLinesStep()
+		step := newChargeFlatFeeRunDetailedLinesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -821,6 +821,52 @@ func HasChargeCreditPurchases() predicate.TaxCode {
 func HasChargeCreditPurchasesWith(preds ...predicate.ChargeCreditPurchase) predicate.TaxCode {
 	return predicate.TaxCode(func(s *sql.Selector) {
 		step := newChargeCreditPurchasesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOrganizationDefaultInvoicing applies the HasEdge predicate on the "organization_default_invoicing" edge.
+func HasOrganizationDefaultInvoicing() predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, OrganizationDefaultInvoicingTable, OrganizationDefaultInvoicingColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrganizationDefaultInvoicingWith applies the HasEdge predicate on the "organization_default_invoicing" edge with a given conditions (other predicates).
+func HasOrganizationDefaultInvoicingWith(preds ...predicate.OrganizationDefaultTaxCodes) predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := newOrganizationDefaultInvoicingStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOrganizationDefaultCreditGrant applies the HasEdge predicate on the "organization_default_credit_grant" edge.
+func HasOrganizationDefaultCreditGrant() predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, OrganizationDefaultCreditGrantTable, OrganizationDefaultCreditGrantColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrganizationDefaultCreditGrantWith applies the HasEdge predicate on the "organization_default_credit_grant" edge with a given conditions (other predicates).
+func HasOrganizationDefaultCreditGrantWith(preds ...predicate.OrganizationDefaultTaxCodes) predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := newOrganizationDefaultCreditGrantStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

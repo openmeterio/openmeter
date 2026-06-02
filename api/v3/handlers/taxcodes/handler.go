@@ -13,6 +13,9 @@ type Handler interface {
 	CreateTaxCode() CreateTaxCodeHandler
 	UpdateTaxCode() UpdateTaxCodeHandler
 	DeleteTaxCode() DeleteTaxCodeHandler
+
+	GetOrganizationDefaultTaxCodes() GetOrganizationDefaultTaxCodesHandler
+	UpsertOrganizationDefaultTaxCodes() UpsertOrganizationDefaultTaxCodesHandler
 }
 
 type handler struct {

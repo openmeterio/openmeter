@@ -256,6 +256,51 @@ func TestReset(t *testing.T) {
 		assert.False(t, res.History.Segments()[1].TerminationReasons.UsageReset)
 	})
 
+	t.Run("Should include grant recurrence in starting balance", func(t *testing.T) {
+		eng, use := setup(t)
+		use(10.0, t1.Add(time.Hour))
+
+		g1 := grant1
+		g1.Recurrence = &timeutil.Recurrence{
+			Interval: timeutil.RecurrencePeriodDaily,
+			Anchor:   t1,
+		}
+
+		resetTime := t1.AddDate(0, 0, 1)
+
+		res, err := eng.Run(
+			context.Background(),
+			engine.RunParams{
+				Meter:  meter,
+				Grants: []grant.Grant{g1},
+				StartingSnapshot: balance.Snapshot{
+					Balances: balance.Map{
+						g1.ID: 100.0,
+					},
+					Overage: 0,
+					At:      t1,
+				},
+				Until:  resetTime,
+				Resets: timeutil.NewSimpleTimeline([]time.Time{resetTime}),
+			},
+		)
+		assert.NoError(t, err)
+
+		// There cannot be any usage right at reset
+		assert.Equal(t, 0.0, res.Snapshot.Usage.Usage)
+		assert.Equal(t, resetTime, res.Snapshot.Usage.Since)
+
+		// Should have 2 periods, start - reset, reset - end where reset = end, 2nd period is 0 length
+		assert.Equal(t, 2, len(res.History.Segments()), "expected: %+v, got %+v, history: %+v", 2, len(res.History.Segments()), res.History.Segments())
+
+		assert.True(t, res.History.Segments()[0].TerminationReasons.UsageReset)
+		assert.False(t, res.History.Segments()[1].TerminationReasons.UsageReset)
+		assert.Equal(t, 100.0, res.History.Segments()[1].BalanceAtStart[g1.ID])
+
+		// The starting balance should be the amount of the grant
+		assert.Equal(t, 100.0, res.Snapshot.Balances[g1.ID])
+	})
+
 	t.Run("Should error if a reset is provided for the starting snapshot", func(t *testing.T) {
 		eng, use := setup(t)
 		use(10.0, t1.Add(time.Hour))

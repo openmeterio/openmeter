@@ -91,6 +91,10 @@ type ChargeUsageBasedRunDetailedLine struct {
 	ChargeID string `json:"charge_id,omitempty"`
 	// RunID holds the value of the "run_id" field.
 	RunID string `json:"run_id,omitempty"`
+	// PricerReferenceID holds the value of the "pricer_reference_id" field.
+	PricerReferenceID string `json:"pricer_reference_id,omitempty"`
+	// CorrectsRunID holds the value of the "corrects_run_id" field.
+	CorrectsRunID *string `json:"corrects_run_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeUsageBasedRunDetailedLineQuery when eager-loading is set.
 	Edges        ChargeUsageBasedRunDetailedLineEdges `json:"edges"`
@@ -103,11 +107,13 @@ type ChargeUsageBasedRunDetailedLineEdges struct {
 	Charge *ChargeUsageBased `json:"charge,omitempty"`
 	// Run holds the value of the run edge.
 	Run *ChargeUsageBasedRuns `json:"run,omitempty"`
+	// CorrectsRun holds the value of the corrects_run edge.
+	CorrectsRun *ChargeUsageBasedRuns `json:"corrects_run,omitempty"`
 	// TaxCode holds the value of the tax_code edge.
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // ChargeOrErr returns the Charge value or an error if the edge
@@ -132,12 +138,23 @@ func (e ChargeUsageBasedRunDetailedLineEdges) RunOrErr() (*ChargeUsageBasedRuns,
 	return nil, &NotLoadedError{edge: "run"}
 }
 
+// CorrectsRunOrErr returns the CorrectsRun value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedRunDetailedLineEdges) CorrectsRunOrErr() (*ChargeUsageBasedRuns, error) {
+	if e.CorrectsRun != nil {
+		return e.CorrectsRun, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: chargeusagebasedruns.Label}
+	}
+	return nil, &NotLoadedError{edge: "corrects_run"}
+}
+
 // TaxCodeOrErr returns the TaxCode value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeUsageBasedRunDetailedLineEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[3] {
 		return nil, &NotFoundError{label: dbtaxcode.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_code"}
@@ -154,7 +171,7 @@ func (*ChargeUsageBasedRunDetailedLine) scanValues(columns []string) ([]any, err
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeusagebasedrundetailedline.FieldIndex:
 			values[i] = new(sql.NullInt64)
-		case chargeusagebasedrundetailedline.FieldID, chargeusagebasedrundetailedline.FieldCurrency, chargeusagebasedrundetailedline.FieldTaxCodeID, chargeusagebasedrundetailedline.FieldTaxBehavior, chargeusagebasedrundetailedline.FieldInvoicingAppExternalID, chargeusagebasedrundetailedline.FieldChildUniqueReferenceID, chargeusagebasedrundetailedline.FieldCategory, chargeusagebasedrundetailedline.FieldPaymentTerm, chargeusagebasedrundetailedline.FieldNamespace, chargeusagebasedrundetailedline.FieldName, chargeusagebasedrundetailedline.FieldDescription, chargeusagebasedrundetailedline.FieldChargeID, chargeusagebasedrundetailedline.FieldRunID:
+		case chargeusagebasedrundetailedline.FieldID, chargeusagebasedrundetailedline.FieldCurrency, chargeusagebasedrundetailedline.FieldTaxCodeID, chargeusagebasedrundetailedline.FieldTaxBehavior, chargeusagebasedrundetailedline.FieldInvoicingAppExternalID, chargeusagebasedrundetailedline.FieldChildUniqueReferenceID, chargeusagebasedrundetailedline.FieldCategory, chargeusagebasedrundetailedline.FieldPaymentTerm, chargeusagebasedrundetailedline.FieldNamespace, chargeusagebasedrundetailedline.FieldName, chargeusagebasedrundetailedline.FieldDescription, chargeusagebasedrundetailedline.FieldChargeID, chargeusagebasedrundetailedline.FieldRunID, chargeusagebasedrundetailedline.FieldPricerReferenceID, chargeusagebasedrundetailedline.FieldCorrectsRunID:
 			values[i] = new(sql.NullString)
 		case chargeusagebasedrundetailedline.FieldServicePeriodStart, chargeusagebasedrundetailedline.FieldServicePeriodEnd, chargeusagebasedrundetailedline.FieldCreatedAt, chargeusagebasedrundetailedline.FieldUpdatedAt, chargeusagebasedrundetailedline.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -385,6 +402,19 @@ func (_m *ChargeUsageBasedRunDetailedLine) assignValues(columns []string, values
 			} else if value.Valid {
 				_m.RunID = value.String
 			}
+		case chargeusagebasedrundetailedline.FieldPricerReferenceID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field pricer_reference_id", values[i])
+			} else if value.Valid {
+				_m.PricerReferenceID = value.String
+			}
+		case chargeusagebasedrundetailedline.FieldCorrectsRunID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field corrects_run_id", values[i])
+			} else if value.Valid {
+				_m.CorrectsRunID = new(string)
+				*_m.CorrectsRunID = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -406,6 +436,11 @@ func (_m *ChargeUsageBasedRunDetailedLine) QueryCharge() *ChargeUsageBasedQuery 
 // QueryRun queries the "run" edge of the ChargeUsageBasedRunDetailedLine entity.
 func (_m *ChargeUsageBasedRunDetailedLine) QueryRun() *ChargeUsageBasedRunsQuery {
 	return NewChargeUsageBasedRunDetailedLineClient(_m.config).QueryRun(_m)
+}
+
+// QueryCorrectsRun queries the "corrects_run" edge of the ChargeUsageBasedRunDetailedLine entity.
+func (_m *ChargeUsageBasedRunDetailedLine) QueryCorrectsRun() *ChargeUsageBasedRunsQuery {
+	return NewChargeUsageBasedRunDetailedLineClient(_m.config).QueryCorrectsRun(_m)
 }
 
 // QueryTaxCode queries the "tax_code" edge of the ChargeUsageBasedRunDetailedLine entity.
@@ -543,6 +578,14 @@ func (_m *ChargeUsageBasedRunDetailedLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("run_id=")
 	builder.WriteString(_m.RunID)
+	builder.WriteString(", ")
+	builder.WriteString("pricer_reference_id=")
+	builder.WriteString(_m.PricerReferenceID)
+	builder.WriteString(", ")
+	if v := _m.CorrectsRunID; v != nil {
+		builder.WriteString("corrects_run_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -46,7 +46,7 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 				BillingPeriod:     fullMonth,
 			},
 			InvoiceAt:             fullMonthStart,
-			SettlementMode:        productcatalog.InvoiceOnlySettlementMode,
+			SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,
 			PaymentTerm:           productcatalog.InAdvancePaymentTerm,
 			AmountBeforeProration: amount100,
 			ProRating: productcatalog.ProRatingConfig{

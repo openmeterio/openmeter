@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -265,7 +266,7 @@ func (s *service) Restore(ctx context.Context, subscriptionID models.NamespacedI
 		// Let's get all subs scheduled afterward
 		scheduled, err := pagination.CollectAll(ctx, pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[subscription.Subscription], error) {
 			return s.Service.List(ctx, subscription.ListSubscriptionsInput{
-				CustomerIDs:    []string{sub.Subscription.CustomerId},
+				CustomerID:     &filter.FilterULID{FilterString: filter.FilterString{Eq: &sub.Subscription.CustomerId}},
 				Namespaces:     []string{sub.Subscription.Namespace},
 				ActiveInPeriod: &timeutil.StartBoundedPeriod{From: now},
 				Page:           page,

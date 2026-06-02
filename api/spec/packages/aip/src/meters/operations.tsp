@@ -61,6 +61,21 @@ interface MetersOperations {
     ...Common.PagePaginationQuery,
 
     /**
+     * Sort meters returned in the response. Supported sort attributes are:
+     *
+     * - `key`
+     * - `name`
+     * - `aggregation`
+     * - `createdAt` (default)
+     * - `updatedAt`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
      * Filter meters returned in the response.
      *
      * To filter meters by key add the following query param: filter[key]=my-meter-key
@@ -73,7 +88,6 @@ interface MetersOperations {
    * Update a meter.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @put
   @operationId("update-meter")
   @summary("Update meter")
@@ -104,12 +118,10 @@ interface MetersQueryOperations {
    * `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, value`
    *
    * The `subject` column is emitted only when `subject` is in the query's
-   * `group_by_dimensions`.
-   * The three `customer_*` columns are emitted together only when `customer_id`
-   * is in the query's `group_by_dimensions`.
+   * `group_by_dimensions`. The three `customer_*` columns are emitted together only
+   * when `customer_id` is in the query's `group_by_dimensions`.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @post
   @operationId("query-meter")
   @summary("Query meter")
@@ -121,7 +133,6 @@ interface MetersQueryOperations {
 
   #suppress "@openmeter/api-spec-aip/operation-summary" "Avoid duplicating the summary in OpenAPI yaml"
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @opExample(
     #{
       returnType: #{

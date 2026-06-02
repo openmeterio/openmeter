@@ -26,7 +26,7 @@ You are helping the user add or modify API endpoints in OpenMeter.
 api/spec/packages/aip/src/
 ├── main.tsp              # Top-level imports
 ├── openmeter.tsp         # Service definition, routes, and interface wiring
-├── konnect.tsp           # Konnect-specific service definition
+├── konnect.tsp           # Konnect-specific service definition (must mirror openmeter.tsp's tags + route interfaces)
 ├── common/               # Shared types: errors, pagination, parameters
 ├── shared/               # Shared resources: ULID, request/response wrappers, tags
 ├── meters/               # Domain: models + operations
@@ -47,6 +47,8 @@ Each domain typically has:
 
 Routes are wired in `api/spec/packages/aip/src/openmeter.tsp` via interface declarations with `@route` and `@tag` decorators.
 
+`api/spec/packages/aip/src/konnect.tsp` is the parallel Konnect-flavoured service definition. The two files are **not** identical — Konnect has its own service metadata, namespace name, `@useAuth` configuration, security scheme models, and intentionally exposes a narrower subset of the OpenMeter surface. But for any domain that *is* exposed in both, every new domain `import`, `@tagMetadata(...)` entry, and `@route` / `@tag` interface must be added to both files in the same edit. Diff the two files before generating to spot accidental drift; existing differences are expected, but a tag/route you just added showing up in only one file is a bug.
+
 ## Workflow
 
 Follow these steps in order:
@@ -57,8 +59,8 @@ For a new domain/resource:
 
 1. Create a new directory under `api/spec/packages/aip/src/<domain>/`
 2. Add `index.tsp`, model file(s), and `operations.tsp`
-3. Import the domain in `api/spec/packages/aip/src/openmeter.tsp`
-4. Wire up the route interface in `openmeter.tsp`
+3. Import the domain in `api/spec/packages/aip/src/openmeter.tsp` **and** `api/spec/packages/aip/src/konnect.tsp` (unless the domain is intentionally OpenMeter-only — confirm with the user before excluding it from Konnect)
+4. Wire up the route interface (and any new `@tagMetadata`) in **both** `openmeter.tsp` and `konnect.tsp`. After editing, run `diff openmeter.tsp konnect.tsp` and check that your new imports / tags / interfaces appear on both sides — pre-existing differences (service metadata, namespace name, `@useAuth`, security scheme models) are intentional and unrelated to your change.
 
 For modifying an existing endpoint:
 
@@ -342,7 +344,9 @@ OpenMeter v3 APIs follow [Kong's AIP](https://kong-aip.netlify.app/list/) conven
 | `rules/aip-158-pagination.md`     | Page-based and cursor-based pagination                                           |
 | `rules/aip-160-filtering.md`      | Filter query syntax, `Common.*FieldFilter` types, label dot-notation             |
 | `rules/aip-129-labels.md`         | Label key constraints, PATCH-with-null semantics                                 |
-| `rules/aip-193-errors.md`         | RFC-7807 error responses, `Common.ErrorResponses`, 403-before-404 rule           |
+| `rules/aip-193-errors.md`         | AIP-193 RFC-7807 error responses, `invalid_parameters`, 403-before-404 rule      |
+| `rules/openmeter-error-types.md`  | OpenMeter `Common.*` error types wiring AIP-193 onto operations                  |
+| `rules/inline-errors.md`          | Inline (partial / non-fatal) errors via `Shared.BaseError<T>` for 2xx responses  |
 | `rules/aip-composition.md`        | Composition-over-inheritance (spread, `model is`, `@discriminator`)              |
 | `rules/aip-docs.md`               | `@doc`/`/** */` requirements, `@operationId`, `@summary`                         |
 | `rules/aip-181-stability.md`      | `x-private` / `x-unstable` / `x-internal` stability markers                      |

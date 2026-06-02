@@ -82,6 +82,24 @@ type Charge struct {
 	Realizations Realizations `json:"realizations"`
 }
 
+func (c Charge) GetStatus() Status {
+	return c.Status
+}
+
+func (c Charge) WithStatus(status Status) Charge {
+	c.Status = status
+	return c
+}
+
+func (c Charge) GetBase() ChargeBase {
+	return c.ChargeBase
+}
+
+func (c Charge) WithBase(base ChargeBase) Charge {
+	c.ChargeBase = base
+	return c
+}
+
 func (c Charge) Validate() error {
 	var errs []error
 
@@ -104,6 +122,7 @@ type Intent struct {
 	// Warning/TODO[later]: Currently this is not supported in credit purchase handler and the charge will be created
 	// with booked_at set to CreatedAt.
 	EffectiveAt *time.Time `json:"effectiveAt"`
+	ExpiresAt   *time.Time `json:"expiresAt"`
 	Priority    *int       `json:"priority"`
 
 	// Settlement intent
@@ -113,6 +132,7 @@ type Intent struct {
 func (i Intent) Normalized() Intent {
 	i.Intent = i.Intent.Normalized()
 	i.EffectiveAt = meta.NormalizeOptionalTimestamp(i.EffectiveAt)
+	i.ExpiresAt = meta.NormalizeOptionalTimestamp(i.ExpiresAt)
 
 	calc, err := i.Currency.Calculator()
 	if err == nil {
@@ -160,6 +180,10 @@ func (i Intent) Validate() error {
 
 	if i.EffectiveAt != nil {
 		return errors.New("effective at is not yet supported")
+	}
+
+	if i.ExpiresAt != nil && !i.ExpiresAt.After(i.CalculateEffectiveAt()) {
+		errs = append(errs, fmt.Errorf("expires at must be after effective at"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

@@ -1,8 +1,6 @@
 package planaddons
 
 import (
-	"github.com/samber/lo"
-
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
@@ -17,8 +15,8 @@ func ToAPIPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
 		Addon:            api.AddonReferenceItem{Id: a.Addon.ID},
 		FromPlanPhase:    a.PlanAddonConfig.FromPlanPhase,
 		MaxQuantity:      a.PlanAddonConfig.MaxQuantity,
-		CreatedAt:        lo.ToPtr(a.CreatedAt),
-		UpdatedAt:        lo.ToPtr(a.UpdatedAt),
+		CreatedAt:        a.CreatedAt,
+		UpdatedAt:        a.UpdatedAt,
 		DeletedAt:        a.DeletedAt,
 		Labels:           labels.FromMetadata(a.Metadata),
 		ValidationErrors: ToAPIProductCatalogValidationErrors(validationIssues),

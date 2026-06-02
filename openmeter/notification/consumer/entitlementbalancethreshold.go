@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"iter"
 	"log/slog"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/samber/lo"
 	"github.com/zeebo/xxh3"
-	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/api"
 	customerhttphandler "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"

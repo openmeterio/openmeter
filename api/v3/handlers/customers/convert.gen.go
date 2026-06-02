@@ -64,7 +64,7 @@ func init() {
 	ToAPIBillingCustomer = func(source customer.Customer) v3.BillingCustomer {
 		var v3BillingCustomer v3.BillingCustomer
 		v3BillingCustomer.BillingAddress = pModelsAddressToPV3BillingAddress(source.BillingAddress)
-		v3BillingCustomer.CreatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.CreatedAt)
+		v3BillingCustomer.CreatedAt = timeTimeToTimeTime(source.ManagedResource.ManagedModel.CreatedAt)
 		if source.Currency != nil {
 			xstring := string(*source.Currency)
 			v3BillingCustomer.Currency = &xstring
@@ -78,7 +78,7 @@ func init() {
 		v3BillingCustomer.Labels = ConvertMetadataAnnotationsToLabels(source)
 		v3BillingCustomer.Name = source.ManagedResource.Name
 		v3BillingCustomer.PrimaryEmail = source.PrimaryEmail
-		v3BillingCustomer.UpdatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
+		v3BillingCustomer.UpdatedAt = timeTimeToTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
 		v3BillingCustomer.UsageAttribution = pCustomerCustomerUsageAttributionToPV3BillingCustomerUsageAttribution(source.UsageAttribution)
 		return v3BillingCustomer
 	}
@@ -162,6 +162,6 @@ func responsePageMetaToV3PaginatedMeta(source response.PageMeta) v3.PaginatedMet
 	v3PaginatedMeta.Page = responsePageMetaPageToV3PageMeta(source.Page)
 	return v3PaginatedMeta
 }
-func timeTimeToPTimeTime(source time.Time) *time.Time {
-	return &source
+func timeTimeToTimeTime(source time.Time) time.Time {
+	return source
 }

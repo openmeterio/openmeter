@@ -159,6 +159,10 @@ notification:
   sendingTimeout: 1h
   pendingTimeout: 2h
   reconcilerWorkers: 10
+  lock:
+    owner: lock-owner
+    leaseTime: 7m
+    heartbeatInterval: 29s
 
 svix:
   apiKey: test-svix-token
@@ -169,3 +173,15 @@ productCatalog:
   subscription:
     multiSubscriptionNamespaces:
       - "multi-subscription"
+
+taxcode:
+  seeds:
+    - key: default
+      name: Provider default
+      defaultInvoicing: true
+    - key: nontaxable
+      name: Nontaxable
+      defaultCreditGrant: true
+      appMappings:
+        - appType: stripe
+          taxCode: txcd_00000000

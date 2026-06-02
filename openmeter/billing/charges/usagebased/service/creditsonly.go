@@ -12,7 +12,6 @@ import (
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
 
@@ -125,7 +124,7 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 			if _, err := s.Runs.CorrectAllCredits(ctx, usagebasedrun.CorrectAllCreditRealizationsInput{
 				Charge:             s.Charge,
 				Run:                run,
-				AllocateAt:         clock.Now(),
+				AllocateAt:         run.ServicePeriodTo,
 				CurrencyCalculator: s.CurrencyCalculator,
 			}); err != nil {
 				return fmt.Errorf("correct credits for run %s: %w", run.ID.ID, err)
@@ -151,14 +150,15 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 	}
 
 	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{
-		Charge:             s.Charge,
-		CustomerOverride:   s.CustomerOverride,
-		FeatureMeter:       s.FeatureMeter,
-		Type:               usagebased.RealizationRunTypeFinalRealization,
-		StoredAtLT:         storedAtLT,
-		ServicePeriodTo:    meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To),
-		CreditAllocation:   usagebasedrun.CreditAllocationExact,
-		CurrencyCalculator: s.CurrencyCalculator,
+		Charge:                    s.Charge,
+		CustomerOverride:          s.CustomerOverride,
+		FeatureMeter:              s.FeatureMeter,
+		Type:                      usagebased.RealizationRunTypeFinalRealization,
+		StoredAtLT:                storedAtLT,
+		ServicePeriodTo:           meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To),
+		CreditAllocation:          usagebasedrun.CreditAllocationExact,
+		CurrencyCalculator:        s.CurrencyCalculator,
+		NoFiatTransactionRequired: true,
 	})
 	if err != nil {
 		return err
@@ -197,7 +197,7 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 	if _, err := s.Runs.ReconcileCredits(ctx, usagebasedrun.ReconcileCreditRealizationsInput{
 		Charge:             s.Charge,
 		Run:                currentRun,
-		AllocateAt:         storedAtLT,
+		AllocateAt:         currentRun.ServicePeriodTo,
 		TargetAmount:       targetCreditsTotal,
 		CurrencyCalculator: s.CurrencyCalculator,
 		ExactAllocation:    true,
@@ -214,10 +214,11 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 	currentRun.DetailedLines = mo.Some(ratingResult.DetailedLines)
 
 	currentRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
-		ID:              currentRun.ID,
-		StoredAtLT:      mo.Some(storedAtLT),
-		MeteredQuantity: mo.Some(ratingResult.Quantity),
-		Totals:          mo.Some(currentTotals),
+		ID:                        currentRun.ID,
+		StoredAtLT:                mo.Some(storedAtLT),
+		MeteredQuantity:           mo.Some(ratingResult.Quantity),
+		Totals:                    mo.Some(currentTotals),
+		NoFiatTransactionRequired: mo.Some(true),
 	})
 	if err != nil {
 		return fmt.Errorf("update realization run: %w", err)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -34,6 +35,7 @@ var (
 	ErrFilterMultipleOperators  = errors.New("filter is invalid: multiple operators are set")
 	ErrFilterComplexityExceeded = errors.New("filter complexity exceeds maximum allowed depth")
 	ErrFilterFormatMismatch     = errors.New("filter is invalid: format mismatch")
+	ErrOperationNotSupported    = errors.New("filter is invalid: operation not supported")
 )
 
 var (
@@ -112,6 +114,10 @@ func (f FilterString) ValidateWithComplexity(maxDepth int) error {
 func (f FilterString) validateWithComplexity(maxDepth int) error {
 	if err := validateSingleOperator(f); err != nil {
 		return err
+	}
+
+	if slices.Contains(collectStringValues(f), "") {
+		return ErrFilterFormatMismatch
 	}
 
 	if f.And == nil && f.Or == nil {
@@ -260,6 +266,80 @@ func (f FilterString) Select(field string) func(*sql.Selector) {
 		})...)
 	default:
 		return nil
+	}
+}
+
+// Match reports whether the filter matches the given string value. A nil
+// receiver and an empty filter match every value. Semantics mirror Select /
+// SelectWhereExpr: Contains/Ncontains are case-insensitive; Like/Ilike treat
+// the pattern as SQL LIKE (% and _ wildcards); Exists checks for a non-empty
+// value.
+func (f *FilterString) Match(value string) (bool, error) {
+	if f == nil || f.IsEmpty() {
+		return true, nil
+	}
+	return f.matches(value)
+}
+
+// LoFilterPredicate returns an lo.Filter-compatible predicate that evaluates
+// the filter against a string field value.
+func (f *FilterString) LoFilterPredicate() func(value string, _ int) (bool, error) {
+	return func(value string, _ int) (bool, error) { return f.Match(value) }
+}
+
+func (f FilterString) matches(value string) (bool, error) {
+	switch {
+	case f.Eq != nil:
+		return value == *f.Eq, nil
+	case f.Ne != nil:
+		return value != *f.Ne, nil
+	case f.Exists != nil:
+		return *f.Exists == (value != ""), nil
+	case f.In != nil:
+		return slices.Contains(*f.In, value), nil
+	case f.Nin != nil:
+		return !slices.Contains(*f.Nin, value), nil
+	case f.Contains != nil:
+		return strings.Contains(strings.ToLower(value), strings.ToLower(*f.Contains)), nil
+	case f.Ncontains != nil:
+		return !strings.Contains(strings.ToLower(value), strings.ToLower(*f.Ncontains)), nil
+	case f.Like != nil:
+		return false, ErrOperationNotSupported
+	case f.Nlike != nil:
+		return false, ErrOperationNotSupported
+	case f.Ilike != nil:
+		return false, ErrOperationNotSupported
+	case f.Nilike != nil:
+		return false, ErrOperationNotSupported
+	case f.Gt != nil:
+		return value > *f.Gt, nil
+	case f.Gte != nil:
+		return value >= *f.Gte, nil
+	case f.Lt != nil:
+		return value < *f.Lt, nil
+	case f.Lte != nil:
+		return value <= *f.Lte, nil
+	case f.And != nil:
+		for _, child := range *f.And {
+			if match, err := child.matches(value); err != nil {
+				return false, err
+			} else if !match {
+				return false, nil
+			}
+		}
+		return true, nil
+	case f.Or != nil:
+		var orErr error
+		for _, child := range *f.Or {
+			if match, err := child.matches(value); err != nil {
+				orErr = err
+			} else if match {
+				return true, nil
+			}
+		}
+		return false, orErr
+	default:
+		return true, nil
 	}
 }
 
@@ -868,17 +948,41 @@ func (f FilterULID) validateWithComplexity(maxDepth int) error {
 
 // IsEmpty returns true if the filter is empty.
 func (f FilterULID) IsEmpty() bool {
-	return isEmptyFilter(f.FilterString)
+	return f.FilterString.IsEmpty() && f.And == nil && f.Or == nil
 }
 
 // SelectWhereExpr converts the filter to a SQL WHERE expression.
 func (f FilterULID) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
-	return f.FilterString.SelectWhereExpr(field, q)
+	switch {
+	case f.And != nil:
+		return q.And(lo.Map(*f.And, func(child FilterULID, _ int) string {
+			return child.SelectWhereExpr(field, q)
+		})...)
+	case f.Or != nil:
+		return q.Or(lo.Map(*f.Or, func(child FilterULID, _ int) string {
+			return child.SelectWhereExpr(field, q)
+		})...)
+	default:
+		return f.FilterString.SelectWhereExpr(field, q)
+	}
 }
 
 // Select converts the filter to an Ent selector predicate.
 func (f FilterULID) Select(field string) func(*sql.Selector) {
-	return f.FilterString.Select(field)
+	switch {
+	case f.And != nil:
+		return sql.AndPredicates(lo.FilterMap(*f.And, func(child FilterULID, _ int) (func(*sql.Selector), bool) {
+			p := child.Select(field)
+			return p, p != nil
+		})...)
+	case f.Or != nil:
+		return sql.OrPredicates(lo.FilterMap(*f.Or, func(child FilterULID, _ int) (func(*sql.Selector), bool) {
+			p := child.Select(field)
+			return p, p != nil
+		})...)
+	default:
+		return f.FilterString.Select(field)
+	}
 }
 
 // collectStringValues collects the string values into a slice from the filter

@@ -86,8 +86,14 @@ func (AppStripeCustomer) Fields() []ent.Field {
 func (AppStripeCustomer) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "app_id", "customer_id").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
 			Unique(),
 		index.Fields("app_id", "stripe_customer_id").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
 			Unique(),
 	}
 }

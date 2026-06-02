@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -34,9 +33,10 @@ func (s *AdvanceChargesTestSuite) TearDownTest() {
 	s.BaseSuite.TearDownTest()
 }
 
-func (s *AdvanceChargesTestSuite) TestAdvanceChargesSkipsNonUsageBasedCharges() {
-	ctx := context.Background()
+func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyForAlreadyActiveCreditCharges() {
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-usage-only")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -87,6 +87,11 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesSkipsNonUsageBasedCharges() 
 	s.NoError(err)
 	s.Len(createdCharges, 2)
 
+	// Create auto-advances credit-then-invoice flat fee charges that start now.
+	flatFeeCharge, err := createdCharges[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(flatFeeCharge.Status))
+
 	// Create auto-advances credit-only usage-based charges: the returned charge is already active.
 	usageBasedCharge, err := createdCharges[1].AsUsageBasedCharge()
 	s.NoError(err)
@@ -94,16 +99,18 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesSkipsNonUsageBasedCharges() 
 	s.NotNil(usageBasedCharge.State.AdvanceAfter)
 	s.True(servicePeriod.To.Equal(*usageBasedCharge.State.AdvanceAfter))
 
-	// AdvanceCharges is a noop: the usage-based charge is already active and not yet past the service period.
+	// AdvanceCharges is a noop: both charges are already active and not yet past the service period.
 	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 		Customer: cust.GetID(),
 	})
 	s.NoError(err)
 	s.Empty(advancedCharges)
 
-	// The flat fee was not touched by either create or advance.
 	fetchedFlatFee := s.mustGetChargeByID(lo.Must(createdCharges[0].GetChargeID()))
 	s.Equal(meta.ChargeTypeFlatFee, fetchedFlatFee.Type())
+	fetchedFlatFeeCharge, err := fetchedFlatFee.AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatFeeCharge.Status, fetchedFlatFeeCharge.Status)
 
 	// DB state matches what Create returned.
 	fetchedUsageBased := s.mustGetChargeByID(usageBasedCharge.GetChargeID())
@@ -114,9 +121,10 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesSkipsNonUsageBasedCharges() 
 	s.True(servicePeriod.To.Equal(*usageBasedFromDB.State.AdvanceAfter))
 }
 
-func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyWhenCustomerHasNoUsageBasedCharges() {
-	ctx := context.Background()
+func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceFlatFeeAtServicePeriodStart() {
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-empty")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -128,6 +136,8 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyWhenCustomerHasN
 		From: datetime.MustParseTimeInLocation(s.T(), "2026-03-01T00:00:00Z", time.UTC).AsTime(),
 		To:   datetime.MustParseTimeInLocation(s.T(), "2026-04-01T00:00:00Z", time.UTC).AsTime(),
 	}
+
+	clock.SetTime(servicePeriod.From.Add(-time.Second))
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
@@ -149,16 +159,23 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyWhenCustomerHasN
 	})
 	s.NoError(err)
 
+	clock.SetTime(servicePeriod.From)
+
 	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 		Customer: cust.GetID(),
 	})
 	s.NoError(err)
-	s.Empty(advancedCharges)
+	s.Len(advancedCharges, 1)
+
+	flatFeeCharge, err := advancedCharges[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(flatFeeCharge.Status))
 }
 
 func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceUsageBasedChargesAtServicePeriodStart() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-credit-then-invoice")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)

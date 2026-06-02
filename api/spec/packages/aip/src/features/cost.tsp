@@ -15,8 +15,8 @@ model FeatureCostQueryRow {
   usage: Shared.Numeric;
 
   /**
-   * The computed cost amount (usage × unit cost).
-   * Null when pricing is not available for the given combination of dimensions.
+   * The computed cost amount (usage × unit cost). Null when pricing is not available
+   * for the given combination of dimensions.
    */
   #suppress "@openmeter/api-spec-aip/no-nullable" "cost is nullable"
   cost: Shared.Numeric | null;
@@ -27,7 +27,8 @@ model FeatureCostQueryRow {
   currency: Shared.CurrencyCode;
 
   /**
-   * Detail message when cost amount is null, explaining why the cost could not be resolved.
+   * Detail message when cost amount is null, explaining why the cost could not be
+   * resolved.
    */
   detail?: string;
 
@@ -42,8 +43,8 @@ model FeatureCostQueryRow {
   to: Shared.DateTime;
 
   /**
-   * The dimensions the value is aggregated over.
-   * `subject` and `customer_id` are reserved dimensions.
+   * The dimensions the value is aggregated over. `subject` and `customer_id` are
+   * reserved dimensions.
    */
   dimensions: Record<string>;
 }

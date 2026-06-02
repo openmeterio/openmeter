@@ -81,10 +81,16 @@ const (
 	FieldChargeID = "charge_id"
 	// FieldRunID holds the string denoting the run_id field in the database.
 	FieldRunID = "run_id"
+	// FieldPricerReferenceID holds the string denoting the pricer_reference_id field in the database.
+	FieldPricerReferenceID = "pricer_reference_id"
+	// FieldCorrectsRunID holds the string denoting the corrects_run_id field in the database.
+	FieldCorrectsRunID = "corrects_run_id"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
 	// EdgeRun holds the string denoting the run edge name in mutations.
 	EdgeRun = "run"
+	// EdgeCorrectsRun holds the string denoting the corrects_run edge name in mutations.
+	EdgeCorrectsRun = "corrects_run"
 	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
 	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the chargeusagebasedrundetailedline in the database.
@@ -103,6 +109,13 @@ const (
 	RunInverseTable = "charge_usage_based_runs"
 	// RunColumn is the table column denoting the run relation/edge.
 	RunColumn = "run_id"
+	// CorrectsRunTable is the table that holds the corrects_run relation/edge.
+	CorrectsRunTable = "charge_usage_based_run_detailed_line"
+	// CorrectsRunInverseTable is the table name for the ChargeUsageBasedRuns entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedruns" package.
+	CorrectsRunInverseTable = "charge_usage_based_runs"
+	// CorrectsRunColumn is the table column denoting the corrects_run relation/edge.
+	CorrectsRunColumn = "corrects_run_id"
 	// TaxCodeTable is the table that holds the tax_code relation/edge.
 	TaxCodeTable = "charge_usage_based_run_detailed_line"
 	// TaxCodeInverseTable is the table name for the TaxCode entity.
@@ -147,6 +160,8 @@ var Columns = []string{
 	FieldTotal,
 	FieldChargeID,
 	FieldRunID,
+	FieldPricerReferenceID,
+	FieldCorrectsRunID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -172,6 +187,10 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// PricerReferenceIDValidator is a validator for the "pricer_reference_id" field. It is called by the builders before save.
+	PricerReferenceIDValidator func(string) error
+	// CorrectsRunIDValidator is a validator for the "corrects_run_id" field. It is called by the builders before save.
+	CorrectsRunIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -358,6 +377,16 @@ func ByRunID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRunID, opts...).ToFunc()
 }
 
+// ByPricerReferenceID orders the results by the pricer_reference_id field.
+func ByPricerReferenceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPricerReferenceID, opts...).ToFunc()
+}
+
+// ByCorrectsRunID orders the results by the corrects_run_id field.
+func ByCorrectsRunID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCorrectsRunID, opts...).ToFunc()
+}
+
 // ByChargeField orders the results by charge field.
 func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -369,6 +398,13 @@ func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 func ByRunField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newRunStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByCorrectsRunField orders the results by corrects_run field.
+func ByCorrectsRunField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCorrectsRunStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -390,6 +426,13 @@ func newRunStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(RunInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, RunTable, RunColumn),
+	)
+}
+func newCorrectsRunStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CorrectsRunInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, CorrectsRunTable, CorrectsRunColumn),
 	)
 }
 func newTaxCodeStep() *sqlgraph.Step {

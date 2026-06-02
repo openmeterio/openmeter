@@ -32,21 +32,8 @@ func (mixin) Mixin() []ent.Mixin {
 
 func (mixin) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("line_id").
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}).
-			Optional().
-			NotEmpty().
-			Nillable(),
-
 		field.Time("service_period_from"),
 		field.Time("service_period_to"),
-
-		// Mutable flag indicates if the accrued usage can be reallocated as credits or if this needs to happen via
-		// the invoicing flow.
-		field.Bool("mutable"),
-
 		field.String("ledger_transaction_group_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
@@ -65,8 +52,6 @@ type Creator[T any] interface {
 	totals.Setter[T]
 	SetServicePeriodFrom(servicePeriodFrom time.Time) T
 	SetServicePeriodTo(servicePeriodTo time.Time) T
-	SetMutable(mutable bool) T
-	SetNillableLineID(lineID *string) T
 	SetNillableLedgerTransactionGroupID(ledgerTransactionGroupID *string) T
 }
 
@@ -78,10 +63,8 @@ func Create[T Creator[T]](creator T, ns string, invoicedUsage AccruedUsage) T {
 
 	creator = creator.SetAnnotations(invoicedUsage.Annotations).
 		SetNamespace(ns).
-		SetNillableLineID(invoicedUsage.LineID).
 		SetServicePeriodFrom(invoicedUsage.ServicePeriod.From.In(time.UTC)).
 		SetServicePeriodTo(invoicedUsage.ServicePeriod.To.In(time.UTC)).
-		SetMutable(invoicedUsage.Mutable).
 		SetNillableLedgerTransactionGroupID(trnsGroupID)
 
 	creator = totals.Set(creator, invoicedUsage.Totals)
@@ -95,10 +78,8 @@ type Getter interface {
 	entutils.IDMixinGetter
 	entutils.AnnotationsMixinGetter
 	totals.TotalsGetter
-	GetLineID() *string
 	GetServicePeriodFrom() time.Time
 	GetServicePeriodTo() time.Time
-	GetMutable() bool
 	GetLedgerTransactionGroupID() *string
 }
 
@@ -117,12 +98,10 @@ func MapAccruedUsageFromDB(dbEntity Getter) AccruedUsage {
 		},
 		ManagedModel: entutils.MapTimeMixinFromDB(dbEntity),
 		Annotations:  dbEntity.GetAnnotations(),
-		LineID:       dbEntity.GetLineID(),
 		ServicePeriod: timeutil.ClosedPeriod{
 			From: dbEntity.GetServicePeriodFrom().In(time.UTC),
 			To:   dbEntity.GetServicePeriodTo().In(time.UTC),
 		},
-		Mutable:           dbEntity.GetMutable(),
 		LedgerTransaction: ledgerTransaction,
 		Totals:            totals.FromDB(dbEntity),
 	}

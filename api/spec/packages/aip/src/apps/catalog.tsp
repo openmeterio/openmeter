@@ -5,7 +5,9 @@ namespace Apps;
 
 /**
  * Available apps for billing integrations to connect with third-party services.
- * Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc.
+ * Apps can have various capabilities like syncing data from or to external
+ * systems, integrating with third-party services for tax calculation, delivery of
+ * invoices, collection of payments, etc.
  */
 @friendlyName("BillingAppCatalogItem")
 @example(#{

@@ -24,6 +24,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -53,6 +54,7 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		SubscriptionService:     s.SubscriptionService,
+		FeatureGate:             featuregate.NewNoop(),
 	})
 	s.NoError(err)
 	s.NotNil(service)
@@ -328,7 +330,29 @@ func (s *SubscriptionTestSuite) createCustomerWithSubscription(ctx context.Conte
 	s.NoError(err)
 	s.NotNil(subsView)
 
-	s.NoError(s.SubscriptionSyncService.SynchronizeSubscription(ctx, subsView, clock.Now()))
+	s.NoError(s.SubscriptionSyncService.SyncByView(ctx, subsView, clock.Now()))
 
 	return cust
+}
+
+func (s *SubscriptionTestSuite) listGatheringLines(ctx context.Context, namespace string, customerID string) []billing.GatheringLine {
+	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+		Namespaces: []string{namespace},
+		Customers:  []string{customerID},
+		Expand:     billing.NewGatheringInvoiceExpands(billing.GatheringInvoiceExpandLines),
+	})
+	s.NoError(err)
+
+	var lines []billing.GatheringLine
+	for _, invoice := range invoices.Items {
+		lines = append(lines, invoice.Lines.OrEmpty()...)
+	}
+
+	return lines
+}
+
+func nonDeletedGatheringLinesForSubscription(lines []billing.GatheringLine, subscriptionID string) []billing.GatheringLine {
+	return lo.Filter(lines, func(line billing.GatheringLine, _ int) bool {
+		return line.DeletedAt == nil && line.Subscription != nil && line.Subscription.SubscriptionID == subscriptionID
+	})
 }

@@ -20,12 +20,13 @@ type testFilter struct {
 	Field     *FilterString      `json:"field,omitempty"`
 	Name      *FilterString      `json:"name,omitempty"`
 	Email     *FilterString      `json:"email,omitempty"`
-	Labels    *FilterString      `json:"labels,omitempty"`
+	Labels    *FilterLabels      `json:"labels,omitempty"`
 	Status    *FilterStringExact `json:"status,omitempty"`
 	Count     *FilterNumeric     `json:"count,omitempty"`
 	CreatedAt *FilterDateTime    `json:"created_at,omitempty"`
 	Enabled   *FilterBoolean     `json:"enabled,omitempty"`
-	Currency  *string            `json:"currency,omitempty"`
+	StrPtr    *string            `json:"str_ptr,omitempty"`
+	TimePtr   *time.Time         `json:"time_ptr,omitempty"`
 	TxType    *testStringType    `json:"tx_type,omitempty"`
 }
 
@@ -248,6 +249,20 @@ func TestParse_FilterDateTime(t *testing.T) {
 		assert.Equal(t, time.Date(2024, 12, 31, 23, 59, 59, 0, time.UTC), *f.CreatedAt.Lte)
 	})
 
+	t.Run("gte and lte closed range", func(t *testing.T) {
+		var f testFilter
+		qs := url.Values{
+			"filter[created_at][gte]": {"2024-01-01T00:00:00Z"},
+			"filter[created_at][lte]": {"2024-12-31T23:59:59Z"},
+		}
+		require.NoError(t, Parse(qs, &f))
+		require.NotNil(t, f.CreatedAt)
+		require.NotNil(t, f.CreatedAt.Gte)
+		require.NotNil(t, f.CreatedAt.Lte)
+		assert.Equal(t, time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), *f.CreatedAt.Gte)
+		assert.Equal(t, time.Date(2024, 12, 31, 23, 59, 59, 0, time.UTC), *f.CreatedAt.Lte)
+	})
+
 	t.Run("invalid datetime is rejected", func(t *testing.T) {
 		var f testFilter
 		err := Parse(url.Values{"filter[created_at][eq]": {"not-a-date"}}, &f)
@@ -299,8 +314,30 @@ func TestParse_FilterBoolean(t *testing.T) {
 func TestParse_StringPtr(t *testing.T) {
 	t.Run("simple string value", func(t *testing.T) {
 		var f testFilter
-		require.NoError(t, Parse(url.Values{"filter[currency]": {"USD"}}, &f))
-		assert.Equal(t, lo.ToPtr("USD"), f.Currency)
+		require.NoError(t, Parse(url.Values{"filter[str_ptr]": {"USD"}}, &f))
+		assert.Equal(t, lo.ToPtr("USD"), f.StrPtr)
+	})
+}
+
+func TestParse_TimePtr(t *testing.T) {
+	t.Run("simple datetime value", func(t *testing.T) {
+		var f testFilter
+		require.NoError(t, Parse(url.Values{"filter[time_ptr]": {"2026-05-11T10:30:00Z"}}, &f))
+		require.NotNil(t, f.TimePtr)
+		assert.Equal(t, time.Date(2026, 5, 11, 10, 30, 0, 0, time.UTC), *f.TimePtr)
+	})
+
+	t.Run("operator-style key rejected", func(t *testing.T) {
+		var f testFilter
+		err := Parse(url.Values{"filter[time_ptr][eq]": {"2026-05-11T10:30:00Z"}}, &f)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operator-style keys are not supported")
+	})
+
+	t.Run("invalid datetime rejected", func(t *testing.T) {
+		var f testFilter
+		err := Parse(url.Values{"filter[time_ptr]": {"not-a-date"}}, &f)
+		assert.ErrorIs(t, err, ErrInvalidDateTime)
 	})
 }
 
@@ -329,7 +366,7 @@ func TestParse_NamedStringType(t *testing.T) {
 func TestParse_StringPtrOperatorRejected(t *testing.T) {
 	t.Run("operator-style key rejected for *string field", func(t *testing.T) {
 		var f testFilter
-		err := Parse(url.Values{"filter[currency][eq]": {"USD"}}, &f)
+		err := Parse(url.Values{"filter[str_ptr][eq]": {"USD"}}, &f)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "operator-style keys are not supported")
 	})
@@ -568,7 +605,7 @@ func TestParse_MultiValueKeyRejected(t *testing.T) {
 
 	t.Run("stringPtr duplicate", func(t *testing.T) {
 		var f testFilter
-		err := Parse(url.Values{"filter[currency]": {"USD", "EUR"}}, &f)
+		err := Parse(url.Values{"filter[str_ptr]": {"USD", "EUR"}}, &f)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "repeated query parameter")
 	})

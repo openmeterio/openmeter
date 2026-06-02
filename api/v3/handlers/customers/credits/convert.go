@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -29,10 +30,11 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 		Description:   charge.Intent.Description,
 		Amount:        charge.Intent.CreditAmount.String(),
 		Currency:      api.BillingCurrencyCode(charge.Intent.Currency),
+		ExpiresAt:     charge.Intent.ExpiresAt,
 		FundingMethod: toAPIBillingCreditFundingMethod(charge.Intent.Settlement),
 		Status:        toAPIBillingCreditGrantStatus(charge),
-		CreatedAt:     lo.ToPtr(charge.CreatedAt),
-		UpdatedAt:     lo.ToPtr(charge.UpdatedAt),
+		CreatedAt:     charge.CreatedAt,
+		UpdatedAt:     charge.UpdatedAt,
 		DeletedAt:     charge.DeletedAt,
 		Labels:        labels.FromMetadata(charge.Intent.Metadata),
 	}
@@ -76,17 +78,9 @@ func toAPIBillingCreditGrantStatus(charge creditpurchase.Charge) api.BillingCred
 	}
 }
 
-type creditGrantPurchase = struct {
-	Amount             api.Numeric                                       `json:"amount"`
-	AvailabilityPolicy *api.BillingCreditAvailabilityPolicy              `json:"availability_policy,omitempty"`
-	Currency           api.CurrencyCode                                  `json:"currency"`
-	PerUnitCostBasis   *api.Numeric                                      `json:"per_unit_cost_basis,omitempty"`
-	SettlementStatus   *api.BillingCreditPurchasePaymentSettlementStatus `json:"settlement_status,omitempty"`
-}
-
 // toAPICreditGrantPurchase builds the purchase block for funded grants (invoice or external).
 // Returns nil for promotional grants (funding_method=none).
-func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*creditGrantPurchase, error) {
+func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditGrantPurchase, error) {
 	settlement := charge.Intent.Settlement
 
 	switch settlement.Type() {
@@ -108,7 +102,7 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*creditGrantPurchas
 			settlementStatus = toAPIBillingCreditPurchasePaymentSettlementStatus(charge.Realizations.InvoiceSettlement.Status)
 		}
 
-		return &creditGrantPurchase{
+		return &api.BillingCreditGrantPurchase{
 			Amount:           purchaseAmount.String(),
 			Currency:         api.CurrencyCode(inv.Currency),
 			PerUnitCostBasis: &costBasis,
@@ -137,7 +131,7 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*creditGrantPurchas
 			settlementStatus = toAPIBillingCreditPurchasePaymentSettlementStatus(charge.Realizations.ExternalPaymentSettlement.Status)
 		}
 
-		return &creditGrantPurchase{
+		return &api.BillingCreditGrantPurchase{
 			Amount:             purchaseAmount.String(),
 			Currency:           api.CurrencyCode(ext.Currency),
 			PerUnitCostBasis:   &costBasis,
@@ -186,11 +180,7 @@ func toAPIBillingCreditGrantTaxConfig(charge creditpurchase.Charge) *api.Billing
 	}
 
 	if charge.Intent.TaxConfig.TaxCodeID != nil {
-		tc.TaxCode = &struct {
-			Id api.ULID `json:"id"`
-		}{
-			Id: *charge.Intent.TaxConfig.TaxCodeID,
-		}
+		tc.TaxCode = &api.TaxCodeReference{Id: *charge.Intent.TaxConfig.TaxCodeID}
 	}
 
 	return tc
@@ -216,7 +206,7 @@ func fromAPIBillingCreditAvailabilityPolicy(policy api.BillingCreditAvailability
 	}
 }
 
-func fromAPIBillingCreditGrantTaxConfig(tc *api.BillingCreditGrantTaxConfig) *productcatalog.TaxConfig {
+func fromAPIBillingCreditGrantTaxConfig(tc *api.CreateCreditGrantTaxConfig) *productcatalog.TaxConfig {
 	if tc == nil {
 		return nil
 	}
@@ -317,6 +307,15 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 		Labels:        lo.FromPtrOr(body.Labels, api.Labels{}),
 	}
 
+	if body.ExpiresAfter != nil {
+		expiresAfter, err := datetime.ISODurationString(*body.ExpiresAfter).Parse()
+		if err != nil {
+			return creditgrant.CreateInput{}, fmt.Errorf("invalid expires_after: %w", err)
+		}
+
+		req.ExpiresAfter = &expiresAfter
+	}
+
 	if body.Purchase != nil {
 		purchase := &creditgrant.PurchaseTerms{
 			Currency: currencyx.Code(body.Purchase.Currency),
@@ -404,6 +403,8 @@ func fromAPIBillingCreditTransactionType(filter *api.BillingCreditTransactionTyp
 		txType = customerbalance.CreditTransactionTypeFunded
 	case api.BillingCreditTransactionTypeConsumed:
 		txType = customerbalance.CreditTransactionTypeConsumed
+	case api.BillingCreditTransactionTypeExpired:
+		txType = customerbalance.CreditTransactionTypeExpired
 	default:
 		return nil
 	}
@@ -424,7 +425,7 @@ func toAPIBillingCreditTransactions(items []customerbalance.CreditTransaction) [
 func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) api.BillingCreditTransaction {
 	apiTx := api.BillingCreditTransaction{
 		Id:          tx.ID.ID,
-		CreatedAt:   &tx.CreatedAt,
+		CreatedAt:   tx.CreatedAt,
 		BookedAt:    tx.BookedAt,
 		Type:        toAPIBillingCreditTransactionType(tx.Type),
 		Currency:    api.BillingCurrencyCode(tx.Currency),
@@ -453,6 +454,8 @@ func toAPIBillingCreditTransactionType(txType customerbalance.CreditTransactionT
 	switch txType {
 	case customerbalance.CreditTransactionTypeFunded:
 		return api.BillingCreditTransactionTypeFunded
+	case customerbalance.CreditTransactionTypeExpired:
+		return api.BillingCreditTransactionTypeExpired
 	default:
 		return api.BillingCreditTransactionTypeConsumed
 	}

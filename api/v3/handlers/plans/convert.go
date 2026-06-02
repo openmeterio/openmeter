@@ -43,7 +43,7 @@ func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 
 	resp := api.BillingPlan{
 		BillingCadence:   p.BillingCadence.String(),
-		CreatedAt:        lo.ToPtr(p.CreatedAt),
+		CreatedAt:        p.CreatedAt,
 		Currency:         p.Currency.String(),
 		DeletedAt:        p.DeletedAt,
 		Description:      p.Description,
@@ -52,7 +52,7 @@ func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 		Id:               p.ID,
 		Key:              p.Key,
 		Name:             p.Name,
-		UpdatedAt:        lo.ToPtr(p.UpdatedAt),
+		UpdatedAt:        p.UpdatedAt,
 		Version:          p.Version,
 		ProRatingEnabled: lo.ToPtr(p.ProRatingConfig.Enabled),
 		ValidationErrors: ToAPIProductCatalogValidationErrors(validationIssues),

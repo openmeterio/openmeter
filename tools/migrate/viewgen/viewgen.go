@@ -108,7 +108,7 @@ func RenderSQL(views []ViewDef) []byte {
 		if i > 0 {
 			buf.WriteString("\n\n")
 		}
-		buf.WriteString(fmt.Sprintf("CREATE VIEW %q AS\n%s;", view.Name, view.Query))
+		fmt.Fprintf(&buf, "CREATE VIEW %q AS\n%s;", view.Name, view.Query)
 	}
 	buf.WriteByte('\n')
 	return buf.Bytes()

@@ -56,11 +56,15 @@ func (t ConvertCurrencyTemplate) Validate() error {
 var _ CustomerTransactionTemplate = (ConvertCurrencyTemplate{})
 
 func (t ConvertCurrencyTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(templateName(t))
+	return nil, templateCorrectionNotImplemented(TemplateCode(t))
 }
 
 func (t ConvertCurrencyTemplate) typeGuard() guard {
 	return true
+}
+
+func (t ConvertCurrencyTemplate) code() TransactionTemplateCode {
+	return TemplateCodeConvertCurrency
 }
 
 func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {

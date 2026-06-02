@@ -98,6 +98,27 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 					})
 				}
 				req.PrimaryEmail = primaryEmail
+				usageAttributionSubjectKey, err := filters.FromAPIFilterString(params.Filter.UsageAttributionSubjectKey)
+				if err != nil {
+					return ListCustomersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[usage_attribution_subject_key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.UsageAttributionSubjectKey = usageAttributionSubjectKey
+				planKey, err := filters.FromAPIFilterString(params.Filter.PlanKey)
+				if err != nil {
+					return ListCustomersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[plan_key]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.PlanKey = planKey
+				billingProfileID, err := filters.FromAPIFilterULID(params.Filter.BillingProfileId)
+				if err != nil {
+					return ListCustomersRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[billing_profile_id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.BillingProfileID = billingProfileID
 			}
 
 			return req, nil

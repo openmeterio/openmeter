@@ -306,6 +306,12 @@ func (_c *ChargeUsageBasedCreate) SetFeatureID(v string) *ChargeUsageBasedCreate
 	return _c
 }
 
+// SetRatingEngine sets the "rating_engine" field.
+func (_c *ChargeUsageBasedCreate) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedCreate {
+	_c.mutation.SetRatingEngine(v)
+	return _c
+}
+
 // SetPrice sets the "price" field.
 func (_c *ChargeUsageBasedCreate) SetPrice(v *productcatalog.Price) *ChargeUsageBasedCreate {
 	_c.mutation.SetPrice(v)
@@ -599,6 +605,14 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.RatingEngine(); !ok {
+		return &ValidationError{Name: "rating_engine", err: errors.New(`db: missing required field "ChargeUsageBased.rating_engine"`)}
+	}
+	if v, ok := _c.mutation.RatingEngine(); ok {
+		if err := chargeusagebased.RatingEngineValidator(v); err != nil {
+			return &ValidationError{Name: "rating_engine", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.rating_engine": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Price(); !ok {
 		return &ValidationError{Name: "price", err: errors.New(`db: missing required field "ChargeUsageBased.price"`)}
 	}
@@ -759,6 +773,10 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 	if value, ok := _c.mutation.FeatureKey(); ok {
 		_spec.SetField(chargeusagebased.FieldFeatureKey, field.TypeString, value)
 		_node.FeatureKey = value
+	}
+	if value, ok := _c.mutation.RatingEngine(); ok {
+		_spec.SetField(chargeusagebased.FieldRatingEngine, field.TypeEnum, value)
+		_node.RatingEngine = value
 	}
 	if value, ok := _c.mutation.Price(); ok {
 		vv, err := chargeusagebased.ValueScanner.Price.Value(value)
@@ -1087,6 +1105,24 @@ func (u *ChargeUsageBasedUpsert) UpdateManagedBy() *ChargeUsageBasedUpsert {
 	return u
 }
 
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *ChargeUsageBasedUpsert) SetSubscriptionItemID(v string) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldSubscriptionItemID, v)
+	return u
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateSubscriptionItemID() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldSubscriptionItemID)
+	return u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *ChargeUsageBasedUpsert) ClearSubscriptionItemID() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldSubscriptionItemID)
+	return u
+}
+
 // SetAdvanceAfter sets the "advance_after" field.
 func (u *ChargeUsageBasedUpsert) SetAdvanceAfter(v time.Time) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldAdvanceAfter, v)
@@ -1237,6 +1273,18 @@ func (u *ChargeUsageBasedUpsert) ClearDescription() *ChargeUsageBasedUpsert {
 	return u
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (u *ChargeUsageBasedUpsert) SetInvoiceAt(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldInvoiceAt, v)
+	return u
+}
+
+// UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateInvoiceAt() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldInvoiceAt)
+	return u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (u *ChargeUsageBasedUpsert) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldDiscounts, v)
@@ -1264,6 +1312,18 @@ func (u *ChargeUsageBasedUpsert) SetFeatureID(v string) *ChargeUsageBasedUpsert 
 // UpdateFeatureID sets the "feature_id" field to the value that was provided on create.
 func (u *ChargeUsageBasedUpsert) UpdateFeatureID() *ChargeUsageBasedUpsert {
 	u.SetExcluded(chargeusagebased.FieldFeatureID)
+	return u
+}
+
+// SetRatingEngine sets the "rating_engine" field.
+func (u *ChargeUsageBasedUpsert) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldRatingEngine, v)
+	return u
+}
+
+// UpdateRatingEngine sets the "rating_engine" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateRatingEngine() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldRatingEngine)
 	return u
 }
 
@@ -1329,17 +1389,11 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
 			s.SetIgnore(chargeusagebased.FieldSubscriptionPhaseID)
 		}
-		if _, exists := u.create.mutation.SubscriptionItemID(); exists {
-			s.SetIgnore(chargeusagebased.FieldSubscriptionItemID)
-		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeusagebased.FieldNamespace)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(chargeusagebased.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.InvoiceAt(); exists {
-			s.SetIgnore(chargeusagebased.FieldInvoiceAt)
 		}
 		if _, exists := u.create.mutation.SettlementMode(); exists {
 			s.SetIgnore(chargeusagebased.FieldSettlementMode)
@@ -1490,6 +1544,27 @@ func (u *ChargeUsageBasedUpsertOne) SetManagedBy(v billing.InvoiceLineManagedBy)
 func (u *ChargeUsageBasedUpsertOne) UpdateManagedBy() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateManagedBy()
+	})
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *ChargeUsageBasedUpsertOne) SetSubscriptionItemID(v string) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetSubscriptionItemID(v)
+	})
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateSubscriptionItemID() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateSubscriptionItemID()
+	})
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *ChargeUsageBasedUpsertOne) ClearSubscriptionItemID() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearSubscriptionItemID()
 	})
 }
 
@@ -1668,6 +1743,20 @@ func (u *ChargeUsageBasedUpsertOne) ClearDescription() *ChargeUsageBasedUpsertOn
 	})
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (u *ChargeUsageBasedUpsertOne) SetInvoiceAt(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetInvoiceAt(v)
+	})
+}
+
+// UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateInvoiceAt() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateInvoiceAt()
+	})
+}
+
 // SetDiscounts sets the "discounts" field.
 func (u *ChargeUsageBasedUpsertOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
@@ -1700,6 +1789,20 @@ func (u *ChargeUsageBasedUpsertOne) SetFeatureID(v string) *ChargeUsageBasedUpse
 func (u *ChargeUsageBasedUpsertOne) UpdateFeatureID() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateFeatureID()
+	})
+}
+
+// SetRatingEngine sets the "rating_engine" field.
+func (u *ChargeUsageBasedUpsertOne) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetRatingEngine(v)
+	})
+}
+
+// UpdateRatingEngine sets the "rating_engine" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateRatingEngine() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateRatingEngine()
 	})
 }
 
@@ -1939,17 +2042,11 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
 				s.SetIgnore(chargeusagebased.FieldSubscriptionPhaseID)
 			}
-			if _, exists := b.mutation.SubscriptionItemID(); exists {
-				s.SetIgnore(chargeusagebased.FieldSubscriptionItemID)
-			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeusagebased.FieldNamespace)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(chargeusagebased.FieldCreatedAt)
-			}
-			if _, exists := b.mutation.InvoiceAt(); exists {
-				s.SetIgnore(chargeusagebased.FieldInvoiceAt)
 			}
 			if _, exists := b.mutation.SettlementMode(); exists {
 				s.SetIgnore(chargeusagebased.FieldSettlementMode)
@@ -2101,6 +2198,27 @@ func (u *ChargeUsageBasedUpsertBulk) SetManagedBy(v billing.InvoiceLineManagedBy
 func (u *ChargeUsageBasedUpsertBulk) UpdateManagedBy() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateManagedBy()
+	})
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (u *ChargeUsageBasedUpsertBulk) SetSubscriptionItemID(v string) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetSubscriptionItemID(v)
+	})
+}
+
+// UpdateSubscriptionItemID sets the "subscription_item_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateSubscriptionItemID() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateSubscriptionItemID()
+	})
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearSubscriptionItemID() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearSubscriptionItemID()
 	})
 }
 
@@ -2279,6 +2397,20 @@ func (u *ChargeUsageBasedUpsertBulk) ClearDescription() *ChargeUsageBasedUpsertB
 	})
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (u *ChargeUsageBasedUpsertBulk) SetInvoiceAt(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetInvoiceAt(v)
+	})
+}
+
+// UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateInvoiceAt() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateInvoiceAt()
+	})
+}
+
 // SetDiscounts sets the "discounts" field.
 func (u *ChargeUsageBasedUpsertBulk) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
@@ -2311,6 +2443,20 @@ func (u *ChargeUsageBasedUpsertBulk) SetFeatureID(v string) *ChargeUsageBasedUps
 func (u *ChargeUsageBasedUpsertBulk) UpdateFeatureID() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateFeatureID()
+	})
+}
+
+// SetRatingEngine sets the "rating_engine" field.
+func (u *ChargeUsageBasedUpsertBulk) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetRatingEngine(v)
+	})
+}
+
+// UpdateRatingEngine sets the "rating_engine" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateRatingEngine() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateRatingEngine()
 	})
 }
 

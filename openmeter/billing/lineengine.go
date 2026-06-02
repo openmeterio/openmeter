@@ -129,11 +129,13 @@ func (i StandardLineEventInput) Validate() error {
 }
 
 type (
-	OnStandardInvoiceCreatedInput = StandardLineEventInput
-	OnCollectionCompletedInput    = StandardLineEventInput
-	OnInvoiceIssuedInput          = StandardLineEventInput
-	OnPaymentAuthorizedInput      = StandardLineEventInput
-	OnPaymentSettledInput         = StandardLineEventInput
+	OnStandardInvoiceCreatedInput      = StandardLineEventInput
+	OnCollectionCompletedInput         = StandardLineEventInput
+	OnMutableStandardLinesDeletedInput = StandardLineEventInput
+	OnUnsupportedCreditNoteInput       = StandardLineEventInput
+	OnInvoiceIssuedInput               = StandardLineEventInput
+	OnPaymentAuthorizedInput           = StandardLineEventInput
+	OnPaymentSettledInput              = StandardLineEventInput
 )
 
 type IsLineBillableAsOfInput struct {
@@ -213,18 +215,31 @@ type LineEngine interface {
 	// BuildStandardInvoiceLines materializes gathering lines into standard lines for a target invoice.
 	// Returned standard lines must reuse the exact same line IDs as the input gathering lines.
 	BuildStandardInvoiceLines(ctx context.Context, input BuildStandardInvoiceLinesInput) (StandardLines, error)
+	// BuildStandardLinesForGatheringPreview materializes gathering lines from BuildStandardInvoiceLinesInput
+	// into transient StandardLines for a read-only standard invoice preview. Implementations must be
+	// side-effect free: they must not persist realization state, modify or allocate credits, mutate
+	// input IDs, emit events, or perform external billing side effects. Returned StandardLines must
+	// reuse the exact same line IDs as the input gathering lines.
+	BuildStandardLinesForGatheringPreview(ctx context.Context, input BuildStandardInvoiceLinesInput) (StandardLines, error)
 	// OnStandardInvoiceCreated is invoked after the standard invoice and its standard lines have been persisted.
 	OnStandardInvoiceCreated(ctx context.Context, input OnStandardInvoiceCreatedInput) (StandardLines, error)
 	// OnCollectionCompleted is invoked when a standard invoice collection window closes.
 	OnCollectionCompleted(ctx context.Context, input OnCollectionCompletedInput) (StandardLines, error)
-	// CalculateLines recalculates detailed lines and totals for standard-invoice lines owned by this engine.
-	CalculateLines(input CalculateLinesInput) (StandardLines, error)
+	// OnMutableStandardLinesDeleted is invoked after mutable standard invoice lines are marked deleted.
+	OnMutableStandardLinesDeleted(ctx context.Context, input OnMutableStandardLinesDeletedInput) error
+	// OnUnsupportedCreditNote is invoked when a line deletion targets an immutable invoice but credit-note support is not available yet.
+	OnUnsupportedCreditNote(ctx context.Context, input OnUnsupportedCreditNoteInput) error
 	// OnInvoiceIssued is invoked when a standard invoice reaches the issued state.
 	OnInvoiceIssued(ctx context.Context, input OnInvoiceIssuedInput) error
 	// OnPaymentAuthorized is invoked when a standard invoice reaches the payment authorized state.
 	OnPaymentAuthorized(ctx context.Context, input OnPaymentAuthorizedInput) error
 	// OnPaymentSettled is invoked when a standard invoice reaches the paid state.
 	OnPaymentSettled(ctx context.Context, input OnPaymentSettledInput) error
+}
+
+type LineCalculator interface {
+	// CalculateLines recalculates detailed lines and totals for standard-invoice lines owned by this engine.
+	CalculateLines(input CalculateLinesInput) (StandardLines, error)
 }
 
 func LineEngineValidationComponent(engineType LineEngineType) ComponentName {

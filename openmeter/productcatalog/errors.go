@@ -366,6 +366,16 @@ var ErrRateCardBillingCadenceUnaligned = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeRateCardUsageBasedPriceWithNoFeature models.ErrorCode = "usage_based_price_with_no_feature"
+
+var ErrRateCardUsageBasedPriceWithNoFeature = models.NewValidationIssue(
+	ErrCodeRateCardUsageBasedPriceWithNoFeature,
+	"usage-based price requires feature to be associated with",
+	models.WithFieldString("featureKey"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 // Addon errors
 
 const ErrCodeAddonKeyEmpty models.ErrorCode = "addon_key_empty"

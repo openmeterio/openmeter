@@ -28,26 +28,25 @@ model ListFeaturesParamsFilter {
 
 interface FeatureOperations {
   /**
-   *  List all features.
+   * List all features.
    */
   @get
   @operationId("list-features")
   @summary("List features")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   list(
     ...Common.PagePaginationQuery,
 
     /**
-     * Sort features returned in the response.
-     * Supported sort attributes are:
+     * Sort features returned in the response. Supported sort attributes are:
+     *
      * - `key`
      * - `name`
      * - `created_at` (default)
      * - `updated_at`
      *
-     * The `asc` suffix is optional as the default sort order is ascending.
-     * The `desc` suffix is used to specify a descending order.
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
      */
     @query(#{ name: "sort" })
     sort?: Common.SortQuery,
@@ -55,7 +54,8 @@ interface FeatureOperations {
     /**
      * Filter features returned in the response.
      *
-     * To filter features by meter_id add the following query param: filter[meter_id][oeq]=<id>
+     * To filter features by meter_id add the following query param:
+     * filter[meter_id][oeq]=<id>
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListFeaturesParamsFilter,
@@ -68,7 +68,6 @@ interface FeatureOperations {
   @operationId("create-feature")
   @summary("Create feature")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   create(
     @body
     feature: Shared.CreateRequest<Feature>,
@@ -82,7 +81,6 @@ interface FeatureOperations {
   @operationId("get-feature")
   @summary("Get feature")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   get(@path featureId: Shared.ULID):
     | Shared.GetResponse<Feature>
     | Common.ErrorResponses
@@ -90,15 +88,13 @@ interface FeatureOperations {
     | Common.NotFound;
 
   /**
-   * Update a feature by id.
-   * Currently only the unit_cost field can be updated.
+   * Update a feature by id. Currently only the unit_cost field can be updated.
    */
   @patch
   @route("/{featureId}")
   @operationId("update-feature")
   @summary("Update feature")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   update(
     @path featureId: Shared.ULID,
     @body feature: FeatureUpdateRequest,
@@ -112,7 +108,6 @@ interface FeatureOperations {
   @operationId("delete-feature")
   @summary("Delete feature")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   delete(
     @path featureId: Shared.ULID,
   ): Shared.DeleteResponse | Common.ErrorResponses | Common.NotFound;
@@ -123,7 +118,6 @@ interface FeatureCostOperations {
    * Query the cost of a feature.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @post
   @route("/query")
   @operationId("query-feature-cost")

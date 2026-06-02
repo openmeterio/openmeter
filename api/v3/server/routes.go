@@ -8,6 +8,7 @@ import (
 	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
+	subscriptionaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions/subscriptionaddons"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 )
 
@@ -106,6 +107,21 @@ func (s *Server) UnscheduleCancelation(w http.ResponseWriter, r *http.Request, s
 
 func (s *Server) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
 	s.subscriptionsHandler.ChangeSubscription().With(subscriptionId).ServeHTTP(w, r)
+}
+
+// Subscription Addons
+func (s *Server) ListSubscriptionAddons(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID, params api.ListSubscriptionAddonsParams) {
+	s.subscriptionAddonsHandler.ListSubscriptionAddons().With(subscriptionaddonshandler.ListSubscriptionAddonsParams{
+		SubscriptionID: subscriptionId,
+		Params:         params,
+	}).ServeHTTP(w, r)
+}
+
+func (s *Server) GetSubscriptionAddon(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID, subscriptionAddonId api.ULID) {
+	s.subscriptionAddonsHandler.GetSubscriptionAddon().With(subscriptionaddonshandler.GetSubscriptionAddonParams{
+		SubscriptionID:      subscriptionId,
+		SubscriptionAddonID: subscriptionAddonId,
+	}).ServeHTTP(w, r)
 }
 
 // Apps
@@ -439,4 +455,20 @@ func (s *Server) ListCustomerCharges(w http.ResponseWriter, r *http.Request, cus
 		CustomerID: customerId,
 		Params:     params,
 	}).ServeHTTP(w, r)
+}
+
+// Organization Default Tax Codes
+
+func (s *Server) GetOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {
+	s.taxcodesHandler.GetOrganizationDefaultTaxCodes().ServeHTTP(w, r)
+}
+
+func (s *Server) UpdateOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {
+	s.taxcodesHandler.UpsertOrganizationDefaultTaxCodes().ServeHTTP(w, r)
+}
+
+// Governance
+
+func (s *Server) QueryGovernanceAccess(w http.ResponseWriter, r *http.Request, params api.QueryGovernanceAccessParams) {
+	unimplemented.QueryGovernanceAccess(w, r, params)
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type subscriptionAddonRepo struct {
@@ -50,18 +51,23 @@ func (r *subscriptionAddonRepo) Create(ctx context.Context, namespace string, in
 }
 
 // Get retrieves a subscription addon by ID
-func (r *subscriptionAddonRepo) Get(ctx context.Context, id models.NamespacedID) (*subscriptionaddon.SubscriptionAddon, error) {
+func (r *subscriptionAddonRepo) Get(ctx context.Context, params subscriptionaddon.GetSubscriptionAddonInput) (*subscriptionaddon.SubscriptionAddon, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionAddonRepo) (*subscriptionaddon.SubscriptionAddon, error) {
-		entity, err := querySubscriptionAddon(repo.db.SubscriptionAddon.Query()).
-			Where(
-				dbsubscriptionaddon.ID(id.ID),
-				dbsubscriptionaddon.Namespace(id.Namespace),
-			).
-			Only(ctx)
+		query := querySubscriptionAddon(repo.db.SubscriptionAddon.Query())
+
+		query = query.Where(
+			dbsubscriptionaddon.ID(params.NamespacedID.ID),
+			dbsubscriptionaddon.Namespace(params.NamespacedID.Namespace),
+		)
+		if params.SubscriptionID != "" {
+			query = query.Where(dbsubscriptionaddon.SubscriptionID(params.SubscriptionID))
+		}
+
+		entity, err := query.Only(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
 				return nil, models.NewGenericNotFoundError(
-					fmt.Errorf("subscription addon %s not found", id.ID),
+					fmt.Errorf("subscription addon %s not found", params.NamespacedID.ID),
 				)
 			}
 
@@ -85,6 +91,22 @@ func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filt
 				dbsubscriptionaddon.Namespace(namespace),
 				dbsubscriptionaddon.SubscriptionID(filter.SubscriptionID),
 			)
+
+		order := entutils.GetOrdering(sortx.OrderAsc)
+		if !filter.Order.IsDefaultValue() {
+			order = entutils.GetOrdering(filter.Order)
+		}
+
+		switch filter.OrderBy {
+		case subscriptionaddon.OrderByID:
+			query = query.Order(dbsubscriptionaddon.ByID(order...))
+		case subscriptionaddon.OrderByUpdatedAt:
+			query = query.Order(dbsubscriptionaddon.ByUpdatedAt(order...))
+		case subscriptionaddon.OrderByCreatedAt:
+			fallthrough
+		default:
+			query = query.Order(dbsubscriptionaddon.ByCreatedAt(order...))
+		}
 
 		// Let's return everything if no pagination is requested
 		if filter.Page.IsZero() {

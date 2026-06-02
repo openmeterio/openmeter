@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -57,37 +57,17 @@ func (h *Handler) reconcileEvent(ctx context.Context, event *notification.Event)
 	return tracex.StartWithNoValue(ctx, h.tracer, "event_handler.reconcile_event").Wrap(fn)
 }
 
-const (
-	reconcileLockKey = "notification.event_handler.reconcile_lock"
-
-	// nextAttemptDelay is a jitter to delay reconciliation of events to give time for downstream service providers to
-	// update their states with the result of the latest attempts which usually happen asynchronously.
-	// This way we can limit the number of missing state updates which could happen if we try to reconcile/synchronize
-	// states right around the *nextAttempt* time provided the downstream service in the previous reconciliation attempt.
-	nextAttemptDelay = 10 * time.Second
-)
+// nextAttemptDelay is a jitter to delay reconciliation of events to give time for downstream service providers to
+// update their states with the result of the latest attempts which usually happen asynchronously.
+// This way we can limit the number of missing state updates which could happen if we try to reconcile/synchronize
+// states right around the *nextAttempt* time provided the downstream service in the previous reconciliation attempt.
+const nextAttemptDelay = 10 * time.Second
 
 func (h *Handler) Reconcile(ctx context.Context) error {
 	fn := func(ctx context.Context) error {
 		span := trace.SpanFromContext(ctx)
 
 		span.AddEvent("acquiring lock")
-
-		releaser, err := h.lockr.TryLockWithScopes(ctx, reconcileLockKey)
-		if err != nil {
-			if errors.Is(err, lockr.ErrNoLockAcquired) {
-				h.logger.DebugContext(ctx, "lock not acquired, skipping reconciliation")
-
-				return nil
-			}
-
-			return fmt.Errorf("failed to acquire lock: %w", err)
-		}
-		defer func() {
-			if err := releaser(ctx); err != nil {
-				h.logger.ErrorContext(ctx, "failed to release lock", "error", err)
-			}
-		}()
 
 		span.AddEvent("lock acquired")
 
@@ -134,6 +114,14 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 
 				wg.Go(func() {
 					defer workerPool.Release(1)
+
+					defer func() {
+						if err := recover(); err != nil {
+							h.logger.ErrorContext(ctx, "notification event handler worker panicked",
+								"error", err,
+								"code.stacktrace", string(debug.Stack()))
+						}
+					}()
 
 					if rErr := h.reconcileEvent(ctx, &event); rErr != nil {
 						h.logger.ErrorContext(ctx, "failed to reconcile notification event",

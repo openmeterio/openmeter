@@ -431,6 +431,7 @@ func (e BillingCreditPurchasePaymentSettlementStatus) Valid() bool {
 // Defines values for BillingCreditTransactionType.
 const (
 	BillingCreditTransactionTypeConsumed BillingCreditTransactionType = "consumed"
+	BillingCreditTransactionTypeExpired  BillingCreditTransactionType = "expired"
 	BillingCreditTransactionTypeFunded   BillingCreditTransactionType = "funded"
 )
 
@@ -438,6 +439,8 @@ const (
 func (e BillingCreditTransactionType) Valid() bool {
 	switch e {
 	case BillingCreditTransactionTypeConsumed:
+		return true
+	case BillingCreditTransactionTypeExpired:
 		return true
 	case BillingCreditTransactionTypeFunded:
 		return true
@@ -881,6 +884,51 @@ func (e BillingWorkflowPaymentSendInvoiceSettingsCollectionMethod) Valid() bool 
 	}
 }
 
+// Defines values for GovernanceFeatureAccessReasonCode.
+const (
+	GovernanceFeatureAccessReasonCodeFeatureNotFound    GovernanceFeatureAccessReasonCode = "feature_not_found"
+	GovernanceFeatureAccessReasonCodeFeatureUnavailable GovernanceFeatureAccessReasonCode = "feature_unavailable"
+	GovernanceFeatureAccessReasonCodeNoCreditAvailable  GovernanceFeatureAccessReasonCode = "no_credit_available"
+	GovernanceFeatureAccessReasonCodeUnknown            GovernanceFeatureAccessReasonCode = "unknown"
+	GovernanceFeatureAccessReasonCodeUsageLimitReached  GovernanceFeatureAccessReasonCode = "usage_limit_reached"
+)
+
+// Valid indicates whether the value is a known member of the GovernanceFeatureAccessReasonCode enum.
+func (e GovernanceFeatureAccessReasonCode) Valid() bool {
+	switch e {
+	case GovernanceFeatureAccessReasonCodeFeatureNotFound:
+		return true
+	case GovernanceFeatureAccessReasonCodeFeatureUnavailable:
+		return true
+	case GovernanceFeatureAccessReasonCodeNoCreditAvailable:
+		return true
+	case GovernanceFeatureAccessReasonCodeUnknown:
+		return true
+	case GovernanceFeatureAccessReasonCodeUsageLimitReached:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GovernanceQueryErrorCode.
+const (
+	GovernanceQueryErrorCodeCustomerNotFound GovernanceQueryErrorCode = "customer_not_found"
+	GovernanceQueryErrorCodeUnknown          GovernanceQueryErrorCode = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the GovernanceQueryErrorCode enum.
+func (e GovernanceQueryErrorCode) Valid() bool {
+	switch e {
+	case GovernanceQueryErrorCodeCustomerNotFound:
+		return true
+	case GovernanceQueryErrorCodeUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for InvalidParameterChoiceItemRule.
 const (
 	InvalidParameterChoiceItemRuleEnum InvalidParameterChoiceItemRule = "enum"
@@ -1154,10 +1202,11 @@ func (e ResourceManagedBy) Valid() bool {
 	}
 }
 
-// Addon Add-on allows extending subscriptions with compatible plans with additional ratecards.
+// Addon Add-on allows extending subscriptions with compatible plans with additional
+// ratecards.
 type Addon struct {
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// Currency The currency code of the add-on.
 	Currency BillingCurrencyCode `json:"currency"`
@@ -1170,18 +1219,21 @@ type Addon struct {
 	// Maximum 1024 characters.
 	Description *string `json:"description,omitempty"`
 
-	// EffectiveFrom The date and time when the add-on becomes effective. When not specified, the add-on is a draft.
+	// EffectiveFrom The date and time when the add-on becomes effective. When not specified, the
+	// add-on is a draft.
 	EffectiveFrom *DateTime `json:"effective_from,omitempty"`
 
-	// EffectiveTo The date and time when the add-on is no longer effective. When not specified, the add-on is effective indefinitely.
+	// EffectiveTo The date and time when the add-on is no longer effective. When not specified,
+	// the add-on is effective indefinitely.
 	EffectiveTo *DateTime `json:"effective_to,omitempty"`
 	Id          ULID      `json:"id"`
 
 	// InstanceType The InstanceType of the add-ons. Can be "single" or "multiple".
 	InstanceType AddonInstanceType `json:"instance_type"`
 
-	// Key A key is a semi-unique string that is used to identify the add-on.
-	// It is used to reference the latest `active` version of the add-on and is unique with the version number.
+	// Key A key is a semi-unique string that is used to identify the add-on. It is used to
+	// reference the latest `active` version of the add-on and is unique with the
+	// version number.
 	Key ResourceKey `json:"key"`
 
 	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
@@ -1197,15 +1249,16 @@ type Addon struct {
 	// RateCards The rate cards of the add-on.
 	RateCards []BillingRateCard `json:"rate_cards"`
 
-	// Status The status of the add-on.
-	// Computed based on the effective start and end dates:
-	// - draft = no effectiveFrom
-	// - active = effectiveFrom <= now < effectiveTo
-	// - archived  = effectiveTo <= now
+	// Status The status of the add-on. Computed based on the effective start and end dates:
+	//
+	// - `draft`: `effective_from` is not set.
+	// - `active`: `effective_from <= now` and (`effective_to` is not set or
+	// `now < effective_to`).
+	// - `archived`: `effective_to <= now`.
 	Status AddonStatus `json:"status"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 
 	// ValidationErrors List of validation errors.
 	ValidationErrors *[]ProductCatalogValidationError `json:"validation_errors,omitempty"`
@@ -1215,6 +1268,7 @@ type Addon struct {
 }
 
 // AddonInstanceType The instanceType of the add-on.
+//
 // - `single`: Can be added to a subscription only once.
 // - `multiple`: Can be added to a subscription more than once.
 type AddonInstanceType string
@@ -1239,7 +1293,9 @@ type AddonReferenceItem struct {
 	Id ULID `json:"id"`
 }
 
-// AddonStatus The status of the add-on defined by the effectiveFrom and effectiveTo properties.
+// AddonStatus The status of the add-on defined by the `effective_from` and `effective_to`
+// properties.
+//
 // - `draft`: The add-on has not yet been published and can be edited.
 // - `active`: The add-on is published and available for use.
 // - `archived`: The add-on is no longer available for use.
@@ -1250,7 +1306,8 @@ type Address struct {
 	// City City.
 	City *string `json:"city,omitempty"`
 
-	// Country Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.
+	// Country Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)
+	// alpha-2 format.
 	Country *CountryCode `json:"country,omitempty"`
 
 	// Line1 First line of the address.
@@ -1337,7 +1394,8 @@ type BillingAddress struct {
 	// City City.
 	City *string `json:"city,omitempty"`
 
-	// Country Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.
+	// Country Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)
+	// alpha-2 format.
 	Country *CountryCode `json:"country,omitempty"`
 
 	// Line1 First line of the address.
@@ -1362,7 +1420,9 @@ type BillingApp struct {
 }
 
 // BillingAppCatalogItem Available apps for billing integrations to connect with third-party services.
-// Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc.
+// Apps can have various capabilities like syncing data from or to external
+// systems, integrating with third-party services for tax calculation, delivery of
+// invoices, collection of payments, etc.
 type BillingAppCatalogItem struct {
 	// Description Description of the app.
 	Description string `json:"description"`
@@ -1401,22 +1461,26 @@ type BillingAppCustomerDataStripe struct {
 	Labels *Labels `json:"labels,omitempty"`
 }
 
-// BillingAppExternalInvoicing External Invoicing app enables integration with third-party invoicing or payment system.
+// BillingAppExternalInvoicing External Invoicing app enables integration with third-party invoicing or payment
+// system.
 //
-// The app supports a bi-directional synchronization pattern where OpenMeter Billing manages
-// the invoice lifecycle while the external system handles invoice presentation and payment collection.
+// The app supports a bi-directional synchronization pattern where OpenMeter
+// Billing manages the invoice lifecycle while the external system handles invoice
+// presentation and payment collection.
 //
 // Integration workflow:
-// 1. The billing system creates invoices and transitions them through lifecycle states (draft → issuing → issued)
+//
+// 1. The billing system creates invoices and transitions them through lifecycle
+// states (draft → issuing → issued)
 // 2. The integration receives webhook notifications about invoice state changes
 // 3. The integration calls back to provide external system IDs and metadata
 // 4. The integration reports payment events back via the payment status API
 //
-// State synchronization is controlled by hooks that pause invoice progression until the
-// external system confirms synchronization via API callbacks.
+// State synchronization is controlled by hooks that pause invoice progression
+// until the external system confirms synchronization via API callbacks.
 type BillingAppExternalInvoicing struct {
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// Definition The app catalog definition that this installed app is based on.
 	Definition BillingAppCatalogItem `json:"definition"`
@@ -1431,9 +1495,10 @@ type BillingAppExternalInvoicing struct {
 
 	// EnableDraftSyncHook Enable draft synchronization hook.
 	//
-	// When enabled, invoices will pause at the draft state and wait for the integration
-	// to call the draft synchronized endpoint before progressing to the issuing state.
-	// This allows the external system to validate and prepare the invoice data.
+	// When enabled, invoices will pause at the draft state and wait for the
+	// integration to call the draft synchronized endpoint before progressing to the
+	// issuing state. This allows the external system to validate and prepare the
+	// invoice data.
 	//
 	// When disabled, invoices automatically progress through the draft state based on
 	// the configured workflow timing.
@@ -1441,10 +1506,10 @@ type BillingAppExternalInvoicing struct {
 
 	// EnableIssuingSyncHook Enable issuing synchronization hook.
 	//
-	// When enabled, invoices will pause at the issuing state and wait for the integration
-	// to call the issuing synchronized endpoint before progressing to the issued state.
-	// This ensures the external invoicing system has successfully created and finalized
-	// the invoice before it is marked as issued.
+	// When enabled, invoices will pause at the issuing state and wait for the
+	// integration to call the issuing synchronized endpoint before progressing to the
+	// issued state. This ensures the external invoicing system has successfully
+	// created and finalized the invoice before it is marked as issued.
 	//
 	// When disabled, invoices automatically progress through the issuing state and are
 	// immediately marked as issued.
@@ -1468,7 +1533,7 @@ type BillingAppExternalInvoicing struct {
 	Type BillingAppExternalInvoicingType `json:"type"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 }
 
 // BillingAppExternalInvoicingType The app type.
@@ -1483,7 +1548,7 @@ type BillingAppReference struct {
 // BillingAppSandbox Sandbox app can be used for testing billing features.
 type BillingAppSandbox struct {
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// Definition The app catalog definition that this installed app is based on.
 	Definition BillingAppCatalogItem `json:"definition"`
@@ -1514,7 +1579,7 @@ type BillingAppSandbox struct {
 	Type BillingAppSandboxType `json:"type"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 }
 
 // BillingAppSandboxType The app type.
@@ -1529,7 +1594,7 @@ type BillingAppStripe struct {
 	AccountId string `json:"account_id"`
 
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// Definition The app catalog definition that this installed app is based on.
 	Definition BillingAppCatalogItem `json:"definition"`
@@ -1566,7 +1631,7 @@ type BillingAppStripe struct {
 	Type BillingAppStripeType `json:"type"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 }
 
 // BillingAppStripeType The app type.
@@ -1617,8 +1682,8 @@ type BillingAppStripeCreateCheckoutSessionConsentCollection struct {
 
 	// Promotions Enables collection of promotional communication consent.
 	//
-	// Only available to US merchants. When set to "auto", Checkout determines
-	// whether to show the option based on the customer's locale.
+	// Only available to US merchants. When set to "auto", Checkout determines whether
+	// to show the option based on the customer's locale.
 	Promotions *BillingAppStripeCreateCheckoutSessionConsentCollectionPromotions `json:"promotions,omitempty"`
 
 	// TermsOfService Requires customers to accept terms of service before payment.
@@ -1668,11 +1733,13 @@ type BillingAppStripeCreateCheckoutSessionRedirectOnCompletion string
 
 // BillingAppStripeCreateCheckoutSessionRequestOptions Configuration options for creating a Stripe Checkout Session.
 //
-// Based on Stripe's [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create).
+// Based on Stripe's
+// [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create).
 type BillingAppStripeCreateCheckoutSessionRequestOptions struct {
 	// BillingAddressCollection Whether to collect the customer's billing address.
 	//
-	// Defaults to auto, which only collects the address when necessary for tax calculation.
+	// Defaults to auto, which only collects the address when necessary for tax
+	// calculation.
 	BillingAddressCollection *BillingAppStripeCreateCheckoutSessionBillingAddressCollection `json:"billing_address_collection,omitempty"`
 
 	// CancelUrl URL to redirect customers who cancel the checkout session.
@@ -1721,19 +1788,20 @@ type BillingAppStripeCreateCheckoutSessionRequestOptions struct {
 
 	// RedirectOnCompletion Redirect behavior for embedded checkout sessions.
 	//
-	// Controls when to redirect users after completion.
-	// See: https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
+	// Controls when to redirect users after completion. See:
+	// https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
 	RedirectOnCompletion *BillingAppStripeCreateCheckoutSessionRedirectOnCompletion `json:"redirect_on_completion,omitempty"`
 
 	// ReturnUrl Return URL for embedded checkout sessions after payment authentication.
 	//
-	// Required if ui_mode is "embedded" and redirect-based payment methods are enabled.
+	// Required if ui_mode is "embedded" and redirect-based payment methods are
+	// enabled.
 	ReturnUrl *string `json:"return_url,omitempty"`
 
 	// SuccessUrl Success URL to redirect customers after completing payment or setup.
 	//
-	// Not allowed when ui_mode is "embedded".
-	// See: https://docs.stripe.com/payments/checkout/custom-success-page
+	// Not allowed when ui_mode is "embedded". See:
+	// https://docs.stripe.com/payments/checkout/custom-success-page
 	SuccessUrl *string `json:"success_url,omitempty"`
 
 	// TaxIdCollection Configuration for collecting tax IDs during checkout.
@@ -1741,15 +1809,15 @@ type BillingAppStripeCreateCheckoutSessionRequestOptions struct {
 
 	// UiMode The UI mode for the checkout session.
 	//
-	// "hosted" displays a Stripe-hosted page. "embedded" integrates directly into your app.
-	// Defaults to "hosted".
+	// "hosted" displays a Stripe-hosted page. "embedded" integrates directly into your
+	// app. Defaults to "hosted".
 	UiMode *BillingAppStripeCheckoutSessionUIMode `json:"ui_mode,omitempty"`
 }
 
 // BillingAppStripeCreateCheckoutSessionResult Result of creating a Stripe Checkout Session.
 //
-// Contains all the information needed to redirect customers to the checkout
-// or initialize an embedded checkout flow.
+// Contains all the information needed to redirect customers to the checkout or
+// initialize an embedded checkout flow.
 type BillingAppStripeCreateCheckoutSessionResult struct {
 	// CancelUrl The cancel URL where customers are redirected if they cancel.
 	CancelUrl *string `json:"cancel_url,omitempty"`
@@ -1761,8 +1829,8 @@ type BillingAppStripeCreateCheckoutSessionResult struct {
 
 	// ClientSecret Client secret for initializing Stripe.js on the client side.
 	//
-	// Required for embedded checkout sessions.
-	// See: https://docs.stripe.com/payments/checkout/custom-success-page
+	// Required for embedded checkout sessions. See:
+	// https://docs.stripe.com/payments/checkout/custom-success-page
 	ClientSecret *string `json:"client_secret,omitempty"`
 
 	// CreatedAt Timestamp when the checkout session was created.
@@ -1799,7 +1867,8 @@ type BillingAppStripeCreateCheckoutSessionResult struct {
 
 	// Status The status of the checkout session.
 	//
-	// See: https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
+	// See:
+	// https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
 	Status *string `json:"status,omitempty"`
 
 	// StripeCustomerId The Stripe customer ID.
@@ -1830,59 +1899,71 @@ type BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired string
 
 // BillingAppStripeCreateCustomerPortalSessionOptions Request to create a Stripe Customer Portal Session.
 type BillingAppStripeCreateCustomerPortalSessionOptions struct {
-	// ConfigurationId The ID of an existing [Stripe configuration](https://docs.stripe.com/api/customer_portal/configurations) to use for this session,
-	// describing its functionality and features.
-	// If not specified, the session uses the default configuration.
+	// ConfigurationId The ID of an existing
+	// [Stripe configuration](https://docs.stripe.com/api/customer_portal/configurations)
+	// to use for this session, describing its functionality and features. If not
+	// specified, the session uses the default configuration.
 	ConfigurationId *string `json:"configuration_id,omitempty"`
 
-	// Locale The IETF [language tag](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-locale) of the locale customer portal is displayed in.
-	// If blank or `auto`, the customer's preferred_locales or browser's locale is used.
+	// Locale The IETF
+	// [language tag](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-locale)
+	// of the locale customer portal is displayed in. If blank or `auto`, the
+	// customer's preferred_locales or browser's locale is used.
 	Locale *string `json:"locale,omitempty"`
 
-	// ReturnUrl The [URL to redirect](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-return_url) the customer to after they have completed
-	// their requested actions.
+	// ReturnUrl The
+	// [URL to redirect](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-return_url)
+	// the customer to after they have completed their requested actions.
 	ReturnUrl *string `json:"return_url,omitempty"`
 }
 
-// BillingAppStripeCreateCustomerPortalSessionResult Result of creating a [Stripe Customer Portal Session](https://docs.stripe.com/api/customer_portal/sessions/object).
+// BillingAppStripeCreateCustomerPortalSessionResult Result of creating a
+// [Stripe Customer Portal Session](https://docs.stripe.com/api/customer_portal/sessions/object).
 //
-// Contains all the information needed to redirect the customer to the Stripe Customer Portal.
+// Contains all the information needed to redirect the customer to the Stripe
+// Customer Portal.
 type BillingAppStripeCreateCustomerPortalSessionResult struct {
 	// ConfigurationId Configuration used to customize the customer portal.
 	//
-	// See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration
+	// See:
+	// https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration
 	ConfigurationId string `json:"configuration_id"`
 
 	// CreatedAt Created at.
 	//
-	// See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created
+	// See:
+	// https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created
 	CreatedAt DateTime `json:"created_at"`
 
 	// Id The ID of the customer portal session.
 	//
-	// See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id
+	// See:
+	// https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id
 	Id string `json:"id"`
 
 	// Livemode Livemode.
 	//
-	// See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode
+	// See:
+	// https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode
 	Livemode bool `json:"livemode"`
 
 	// Locale The IETF language tag of the locale customer portal is displayed in.
 	//
-	// See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale
+	// See:
+	// https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale
 	Locale string `json:"locale"`
 
 	// ReturnUrl Return URL.
 	//
-	// See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-return_url
+	// See:
+	// https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-return_url
 	ReturnUrl string `json:"return_url"`
 
 	// StripeCustomerId The ID of the stripe customer.
 	StripeCustomerId string `json:"stripe_customer_id"`
 
-	// Url The URL to redirect the customer to after they have completed
-	// their requested actions.
+	// Url The URL to redirect the customer to after they have completed their requested
+	// actions.
 	Url string `json:"url"`
 }
 
@@ -1897,6 +1978,7 @@ type BillingCharge struct {
 // BillingChargeStatus Lifecycle status of a charge.
 //
 // Values:
+//
 // - `created`: The charge has been created but is not active yet.
 // - `active`: The charge is active.
 // - `final`: The charge is fully finalized and no further changes are expected.
@@ -1919,16 +2001,18 @@ type BillingChargeTotals struct {
 // BillingChargesExpand Expands for customer charges.
 //
 // Values:
+//
 // - `real_time_usage`: The charge's real-time usage.
 type BillingChargesExpand string
 
 // BillingCostBasis Describes currency basis supported by billing system.
 type BillingCostBasis struct {
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
-	// EffectiveFrom An ISO-8601 timestamp representation of the date from which the cost basis is effective.
-	// If not provided, it will be effective immediately and will set to `now` by the system.
+	// EffectiveFrom An ISO-8601 timestamp representation of the date from which the cost basis is
+	// effective. If not provided, it will be effective immediately and will be set to
+	// `now` by the system.
 	EffectiveFrom *DateTime `json:"effective_from,omitempty"`
 
 	// FiatCode The fiat currency code for the cost basis.
@@ -1939,9 +2023,11 @@ type BillingCostBasis struct {
 	Rate Numeric `json:"rate"`
 }
 
-// BillingCreditAdjustment A credit adjustment can be used to make manual adjustments to a customer's credit balance.
+// BillingCreditAdjustment A credit adjustment can be used to make manual adjustments to a customer's
+// credit balance.
 //
 // Supported use-cases:
+//
 // - Usage correction
 type BillingCreditAdjustment struct {
 	// Description Optional description of the resource.
@@ -1980,19 +2066,20 @@ type BillingCreditBalances struct {
 //
 // - `none`: No funding workflow applies, for example promotional grants
 // - `invoice`: The grant is funded by an in-system invoice flow
-// - `external`: The grant is funded outside the system (e.g., wire transfer, external invoice, or manual reconciliation)
+// - `external`: The grant is funded outside the system (e.g., wire transfer,
+// external invoice, or manual reconciliation)
 type BillingCreditFundingMethod string
 
 // BillingCreditGrant A credit grant allocates credits to a customer.
 //
-// Credits are drawn down against charges according to the
-// settlement mode configured on the rate card.
+// Credits are drawn down against charges according to the settlement mode
+// configured on the rate card.
 type BillingCreditGrant struct {
 	// Amount Granted credit amount.
 	Amount Numeric `json:"amount"`
 
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// Currency The currency of the granted credits.
 	Currency BillingCurrencyCode `json:"currency"`
@@ -2005,29 +2092,20 @@ type BillingCreditGrant struct {
 	// Maximum 1024 characters.
 	Description *string `json:"description,omitempty"`
 
+	// ExpiresAt The timestamp when the credit grant expires.
+	//
+	// Calculated from the grant effective time and `expires_after` if provided.
+	ExpiresAt *DateTime `json:"expires_at,omitempty"`
+
 	// Filters Filters for the credit grant.
-	Filters *struct {
-		// Features Limit the credit grant to specific features.
-		// If no features are specified, the credit grant can be used for any feature.
-		Features *[]ResourceKey `json:"features,omitempty"`
-	} `json:"filters,omitempty"`
+	Filters *BillingCreditGrantFilters `json:"filters,omitempty"`
 
 	// FundingMethod Funding method of the grant.
 	FundingMethod BillingCreditFundingMethod `json:"funding_method"`
 	Id            ULID                       `json:"id"`
 
-	// Invoice Invoice references for the grant.
-	// Available when `funding_method` is `invoice`.
-	Invoice *struct {
-		// Id Identifier of the invoice associated with the grant.
-		Id *ULID `json:"id,omitempty"`
-
-		// Line Identifier of the invoice line associated with the grant.
-		Line *struct {
-			// Id ULID (Universally Unique Lexicographically Sortable Identifier).
-			Id ULID `json:"id"`
-		} `json:"line,omitempty"`
-	} `json:"invoice,omitempty"`
+	// Invoice Available when `funding_method` is `invoice`.
+	Invoice *BillingCreditGrantInvoiceReference `json:"invoice,omitempty"`
 
 	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
 	//
@@ -2039,60 +2117,84 @@ type BillingCreditGrant struct {
 	// Between 1 and 256 characters.
 	Name string `json:"name"`
 
-	// Priority Draw-down priority of the grant.
-	// Lower values have higher priority.
+	// Priority Draw-down priority of the grant. Lower values have higher priority.
 	Priority *int16 `json:"priority,omitempty"`
 
-	// Purchase Purchase and payment terms of the grant.
-	// Present when a funding workflow applies (funding_method is not `none`).
-	Purchase *struct {
-		// Amount The purchase amount.
-		// Calculated from `per_unit_cost_basis` and credit `amount`.
-		Amount Numeric `json:"amount"`
-
-		// AvailabilityPolicy Controls when credits become available for consumption.
-		//
-		// Defaults to `on_creation`.
-		AvailabilityPolicy *BillingCreditAvailabilityPolicy `json:"availability_policy,omitempty"`
-
-		// Currency Currency of the purchase amount.
-		Currency CurrencyCode `json:"currency"`
-
-		// PerUnitCostBasis Cost basis per credit unit used to calculate the purchase amount.
-		//
-		// If `per_unit_cost_basis` is 0.50 and credit amount is $100.00,
-		// the total charge is $50.00.
-		// The value must be greater than 0. If the cost basis is 0, use
-		// `funding_method=none` instead.
-		//
-		// Defaults to 1.0.
-		PerUnitCostBasis *Numeric `json:"per_unit_cost_basis,omitempty"`
-
-		// SettlementStatus Current payment settlement status.
-		SettlementStatus *BillingCreditPurchasePaymentSettlementStatus `json:"settlement_status,omitempty"`
-	} `json:"purchase,omitempty"`
+	// Purchase Present when a funding workflow applies (funding_method is not `none`).
+	Purchase *BillingCreditGrantPurchase `json:"purchase,omitempty"`
 
 	// Status Current lifecycle status of the grant.
 	Status BillingCreditGrantStatus `json:"status"`
 
 	// TaxConfig Tax configuration for the grant.
 	//
-	// For `invoice` and `external` funding methods, tax configuration should be provided to ensure correct revenue recognition.
-	// When not provided, the default credit grant tax code is applied, if that's not set the global default taxcode is used.
+	// For `invoice` and `external` funding methods, tax configuration should be
+	// provided to ensure correct revenue recognition. When not provided, the default
+	// credit grant tax code is applied, if that's not set the global default taxcode
+	// is used.
 	TaxConfig *BillingCreditGrantTaxConfig `json:"tax_config,omitempty"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 
 	// VoidedAt Timestamp when the grant was voided.
 	VoidedAt *DateTime `json:"voided_at,omitempty"`
 }
 
+// BillingCreditGrantFilters Filters for the credit grant.
+type BillingCreditGrantFilters struct {
+	// Features Limit the credit grant to specific features. If no features are specified, the
+	// credit grant can be used for any feature.
+	Features *[]ResourceKey `json:"features,omitempty"`
+}
+
+// BillingCreditGrantInvoiceReference Invoice references for the grant.
+type BillingCreditGrantInvoiceReference struct {
+	// Id Identifier of the invoice associated with the grant.
+	Id *ULID `json:"id,omitempty"`
+
+	// Line Identifier of the invoice line associated with the grant.
+	Line *struct {
+		// Id ULID (Universally Unique Lexicographically Sortable Identifier).
+		Id ULID `json:"id"`
+	} `json:"line,omitempty"`
+}
+
+// BillingCreditGrantPurchase Purchase and payment terms of the grant.
+type BillingCreditGrantPurchase struct {
+	// Amount The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`.
+	Amount Numeric `json:"amount"`
+
+	// AvailabilityPolicy Controls when credits become available for consumption.
+	//
+	// Defaults to `on_creation`.
+	AvailabilityPolicy *BillingCreditAvailabilityPolicy `json:"availability_policy,omitempty"`
+
+	// Currency Currency of the purchase amount.
+	Currency CurrencyCode `json:"currency"`
+
+	// PerUnitCostBasis Cost basis per credit unit used to calculate the purchase amount.
+	//
+	// If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
+	// is $50.00. The value must be greater than 0. If the cost basis is 0, use
+	// `funding_method=none` instead.
+	//
+	// Defaults to 1.0.
+	PerUnitCostBasis *Numeric `json:"per_unit_cost_basis,omitempty"`
+
+	// SettlementStatus Current payment settlement status.
+	SettlementStatus *BillingCreditPurchasePaymentSettlementStatus `json:"settlement_status,omitempty"`
+}
+
 // BillingCreditGrantStatus Credit grant lifecycle status.
 //
-// - `pending`: The credit block has been created but is not yet valid. (`effective_at` is in the future or availability_policy is not met)
-// - `active`: The credit block is currently valid and eligible for consumption. (`effective_at` is in the past, `expires_at` is in the future and availability_policy is met)
-// - `expired`: The credit block expired with remaining unused balance, `expires_at` time has passed.
+// - `pending`: The credit block has been created but is not yet valid.
+// (`effective_at` is in the future or availability_policy is not met)
+// - `active`: The credit block is currently valid and eligible for consumption.
+// (`effective_at` is in the past, `expires_at` is in the future and
+// availability_policy is met)
+// - `expired`: The credit block expired with remaining unused balance,
+// `expires_at` time has passed.
 // - `voided`: The credit block was voided. Remaining balance is forfeited.
 type BillingCreditGrantStatus string
 
@@ -2105,10 +2207,7 @@ type BillingCreditGrantTaxConfig struct {
 	Behavior *BillingTaxBehavior `json:"behavior,omitempty"`
 
 	// TaxCode Tax code applied to the invoice line item.
-	TaxCode *struct {
-		// Id ULID (Universally Unique Lexicographically Sortable Identifier).
-		Id ULID `json:"id"`
-	} `json:"tax_code,omitempty"`
+	TaxCode *TaxCodeReference `json:"tax_code,omitempty"`
 }
 
 // BillingCreditPurchasePaymentSettlementStatus Credit purchase payment settlement status.
@@ -2118,12 +2217,13 @@ type BillingCreditGrantTaxConfig struct {
 // - `settled`: Payment has been settled.
 type BillingCreditPurchasePaymentSettlementStatus string
 
-// BillingCreditTransaction A credit transaction represents a single credit movement on the customer's balance.
+// BillingCreditTransaction A credit transaction represents a single credit movement on the customer's
+// balance.
 //
 // Credit transactions are immutable.
 type BillingCreditTransaction struct {
-	// Amount Signed amount of the credit movement.
-	// Positive values add balance, negative values reduce balance.
+	// Amount Signed amount of the credit movement. Positive values add balance, negative
+	// values reduce balance.
 	Amount Numeric `json:"amount"`
 
 	// AvailableBalance The available balance before and after the transaction.
@@ -2139,7 +2239,7 @@ type BillingCreditTransaction struct {
 	BookedAt DateTime `json:"booked_at"`
 
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// Currency Currency of the balance affected by the transaction.
 	Currency BillingCurrencyCode `json:"currency"`
@@ -2168,6 +2268,7 @@ type BillingCreditTransaction struct {
 //
 // - `funded`: Credit granted and available for consumption.
 // - `consumed`: Credit consumed by usage or fees.
+// - `expired`: Credit removed because it expired before being used.
 type BillingCreditTransactionType string
 
 // BillingCurrency Fiat or custom currency.
@@ -2175,31 +2276,34 @@ type BillingCurrency struct {
 	union json.RawMessage
 }
 
-// BillingCurrencyCode Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
-// Custom three-letter currency codes are also supported for convenience.
+// BillingCurrencyCode Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)
+// currency code. Custom three-letter currency codes are also supported for
+// convenience.
 type BillingCurrencyCode = CurrencyCode
 
-// BillingCurrencyCodeCustom Custom currency code.
-// It should be a unique code but not conflicting with any existing fiat currency codes.
+// BillingCurrencyCodeCustom Custom currency code. It should be a unique code but not conflicting with any
+// existing fiat currency codes.
 type BillingCurrencyCodeCustom = string
 
 // BillingCurrencyCustom Describes custom currency.
 type BillingCurrencyCustom struct {
-	// Code Custom currency code.
-	// It should be a unique code but not conflicting with any existing fiat currency codes.
+	// Code Custom currency code. It should be a unique code but not conflicting with any
+	// existing fiat currency codes.
 	Code BillingCurrencyCodeCustom `json:"code"`
 
 	// CreatedAt An ISO-8601 timestamp representation of the custom currency creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// Description Description of the currency.
 	Description *string `json:"description,omitempty"`
 	Id          ULID    `json:"id"`
 
-	// Name The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".
+	// Name The name of the currency. It should be a human-readable string that represents
+	// the name of the currency, such as "US Dollar" or "Euro".
 	Name string `json:"name"`
 
-	// Symbol The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.
+	// Symbol The symbol of the currency. It should be a string that represents the symbol of
+	// the currency, such as "$" for US Dollar or "€" for Euro.
 	Symbol *string `json:"symbol,omitempty"`
 
 	// Type The type of the currency.
@@ -2217,10 +2321,12 @@ type BillingCurrencyFiat struct {
 	Description *string `json:"description,omitempty"`
 	Id          ULID    `json:"id"`
 
-	// Name The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".
+	// Name The name of the currency. It should be a human-readable string that represents
+	// the name of the currency, such as "US Dollar" or "Euro".
 	Name string `json:"name"`
 
-	// Symbol The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.
+	// Symbol The symbol of the currency. It should be a string that represents the symbol of
+	// the currency, such as "$" for US Dollar or "€" for Euro.
 	Symbol *string `json:"symbol,omitempty"`
 
 	// Type The type of the currency.
@@ -2230,21 +2336,20 @@ type BillingCurrencyFiat struct {
 // BillingCurrencyFiatType The type of the currency.
 type BillingCurrencyFiatType string
 
-// BillingCurrencyType Currency type for custom currencies.
-// It should be a unique code but not conflicting with any existing standard currency codes.
+// BillingCurrencyType Currency type for custom currencies. It should be a unique code but not
+// conflicting with any existing standard currency codes.
 type BillingCurrencyType string
 
-// BillingCustomer Customers can be individuals or organizations that can subscribe to plans and have access to features.
+// BillingCustomer Customers can be individuals or organizations that can subscribe to plans and
+// have access to features.
 type BillingCustomer struct {
-	// BillingAddress The billing address of the customer.
-	// Used for tax and invoicing.
+	// BillingAddress The billing address of the customer. Used for tax and invoicing.
 	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
 
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
-	// Currency Currency of the customer.
-	// Used for billing, tax and invoicing.
+	// Currency Currency of the customer. Used for billing, tax and invoicing.
 	Currency *CurrencyCode `json:"currency,omitempty"`
 
 	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
@@ -2256,7 +2361,8 @@ type BillingCustomer struct {
 	Description *string `json:"description,omitempty"`
 	Id          ULID    `json:"id"`
 
-	// Key ExternalResourceKey is a unique string that is used to identify a resource in an external system.
+	// Key ExternalResourceKey is a unique string that is used to identify a resource in an
+	// external system.
 	Key ExternalResourceKey `json:"key"`
 
 	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
@@ -2273,7 +2379,7 @@ type BillingCustomer struct {
 	PrimaryEmail *string `json:"primary_email,omitempty"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 
 	// UsageAttribution Mapping to attribute metered usage to the customer by the event subject.
 	UsageAttribution *BillingCustomerUsageAttribution `json:"usage_attribution,omitempty"`
@@ -2299,47 +2405,46 @@ type BillingCustomerReference struct {
 // BillingCustomerStripeCreateCheckoutSessionRequest Request to create a Stripe Checkout Session for the customer.
 //
 // Checkout Sessions are used to collect payment method information from customers
-// in a secure, Stripe-hosted interface. This integration uses setup mode to collect
-// payment methods that can be charged later for subscription billing.
+// in a secure, Stripe-hosted interface. This integration uses setup mode to
+// collect payment methods that can be charged later for subscription billing.
 type BillingCustomerStripeCreateCheckoutSessionRequest struct {
 	// StripeOptions Options for configuring the Stripe Checkout Session.
 	//
-	// These options are passed directly to Stripe's [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
+	// These options are passed directly to Stripe's
+	// [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
 	StripeOptions BillingAppStripeCreateCheckoutSessionRequestOptions `json:"stripe_options"`
 }
 
 // BillingCustomerStripeCreateCustomerPortalSessionRequest Request to create a Stripe Customer Portal Session for the customer.
 //
-// Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods,
-// change their billing address and access their invoice history.
-// Only returns URL if the customer billing profile is linked to a stripe app and customer.
+// Useful to redirect the customer to the Stripe Customer Portal to manage their
+// payment methods, change their billing address and access their invoice history.
+// Only returns URL if the customer billing profile is linked to a stripe app and
+// customer.
 type BillingCustomerStripeCreateCustomerPortalSessionRequest struct {
 	// StripeOptions Options for configuring the Stripe Customer Portal Session.
 	StripeOptions BillingAppStripeCreateCustomerPortalSessionOptions `json:"stripe_options"`
 }
 
-// BillingCustomerUsageAttribution Mapping to attribute metered usage to the customer.
-// One customer can have zero or more subjects,
-// but one subject can only belong to one customer.
+// BillingCustomerUsageAttribution Mapping to attribute metered usage to the customer. One customer can have zero
+// or more subjects, but one subject can only belong to one customer.
 type BillingCustomerUsageAttribution struct {
-	// SubjectKeys The subjects that are attributed to the customer.
-	// Can be empty when no usage event subjects are associated with the customer.
+	// SubjectKeys The subjects that are attributed to the customer. Can be empty when no usage
+	// event subjects are associated with the customer.
 	SubjectKeys []UsageAttributionSubjectKey `json:"subject_keys"`
 }
 
 // BillingEntitlementAccessResult Entitlement access result.
 type BillingEntitlementAccessResult struct {
-	// Config Only available for static entitlements.
-	// Config is the JSON parsable configuration of the entitlement.
-	// Useful to describe per customer configuration.
+	// Config Only available for static entitlements. Config is the JSON parsable
+	// configuration of the entitlement. Useful to describe per customer configuration.
 	Config *string `json:"config,omitempty"`
 
 	// FeatureKey The feature key of the entitlement.
 	FeatureKey ResourceKey `json:"feature_key"`
 
-	// HasAccess Whether the customer has access to the feature.
-	// Always true for `boolean` and `static` entitlements.
-	// Depends on balance for `metered` entitlements.
+	// HasAccess Whether the customer has access to the feature. Always true for `boolean` and
+	// `static` entitlements. Depends on balance for `metered` entitlements.
 	HasAccess bool `json:"has_access"`
 
 	// Type The type of the entitlement.
@@ -2352,44 +2457,38 @@ type BillingEntitlementType string
 // BillingFeatureLLMTokenType Token type for LLM cost lookup.
 type BillingFeatureLLMTokenType string
 
-// BillingFeatureLLMUnitCost LLM cost lookup configuration.
-// Each dimension (provider, model, token type) can be specified as either
-// a static value or a meter group-by property name (mutually exclusive).
+// BillingFeatureLLMUnitCost LLM cost lookup configuration. Each dimension (provider, model, token type) can
+// be specified as either a static value or a meter group-by property name
+// (mutually exclusive).
 type BillingFeatureLLMUnitCost struct {
-	// Model Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet").
-	// Use this when the feature tracks a single model.
-	// Mutually exclusive with `model_property`.
+	// Model Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet"). Use this when the
+	// feature tracks a single model. Mutually exclusive with `model_property`.
 	Model *string `json:"model,omitempty"`
 
-	// ModelProperty Meter group-by property that holds the model ID.
-	// Use this when the meter has a group-by dimension for model.
-	// Mutually exclusive with `model`.
+	// ModelProperty Meter group-by property that holds the model ID. Use this when the meter has a
+	// group-by dimension for model. Mutually exclusive with `model`.
 	ModelProperty *string `json:"model_property,omitempty"`
 
-	// Pricing Resolved per-token pricing from the LLM cost database.
-	// Populated in responses when the provider and model can be determined,
-	// either from static values or from meter group-by filters with exact matches.
+	// Pricing Resolved per-token pricing from the LLM cost database. Populated in responses
+	// when the provider and model can be determined, either from static values or from
+	// meter group-by filters with exact matches.
 	Pricing *BillingFeatureLLMUnitCostPricing `json:"pricing,omitempty"`
 
-	// Provider Static LLM provider value (e.g., "openai", "anthropic").
-	// Use this when the feature tracks a single provider.
-	// Mutually exclusive with `provider_property`.
+	// Provider Static LLM provider value (e.g., "openai", "anthropic"). Use this when the
+	// feature tracks a single provider. Mutually exclusive with `provider_property`.
 	Provider *string `json:"provider,omitempty"`
 
-	// ProviderProperty Meter group-by property that holds the LLM provider.
-	// Use this when the meter has a group-by dimension for provider.
-	// Mutually exclusive with `provider`.
+	// ProviderProperty Meter group-by property that holds the LLM provider. Use this when the meter has
+	// a group-by dimension for provider. Mutually exclusive with `provider`.
 	ProviderProperty *string `json:"provider_property,omitempty"`
 
-	// TokenType Static token type value.
-	// Use this when the feature tracks a single token type (e.g., only input tokens).
-	// `request` is an alias for `input`, `response` is an alias for `output`.
-	// Mutually exclusive with `token_type_property`.
+	// TokenType Static token type value. Use this when the feature tracks a single token type
+	// (e.g., only input tokens). `request` is an alias for `input`, `response` is an
+	// alias for `output`. Mutually exclusive with `token_type_property`.
 	TokenType *BillingFeatureLLMTokenType `json:"token_type,omitempty"`
 
-	// TokenTypeProperty Meter group-by property that holds the token type.
-	// Use this when the meter has a group-by dimension for token type.
-	// Mutually exclusive with `token_type`.
+	// TokenTypeProperty Meter group-by property that holds the token type. Use this when the meter has a
+	// group-by dimension for token type. Mutually exclusive with `token_type`.
 	TokenTypeProperty *string `json:"token_type_property,omitempty"`
 
 	// Type The type discriminator for LLM unit cost.
@@ -2429,15 +2528,16 @@ type BillingFeatureManualUnitCost struct {
 // BillingFeatureManualUnitCostType The type discriminator for manual unit cost.
 type BillingFeatureManualUnitCostType string
 
-// BillingFeatureUnitCost Per-unit cost configuration for a feature.
-// Either a fixed manual amount or a dynamic LLM cost lookup.
+// BillingFeatureUnitCost Per-unit cost configuration for a feature. Either a fixed manual amount or a
+// dynamic LLM cost lookup.
 type BillingFeatureUnitCost struct {
 	union json.RawMessage
 }
 
 // BillingFlatFeeCharge A flat fee charge for a customer.
 type BillingFlatFeeCharge struct {
-	// AdvanceAfter The earliest time when the charge should be advanced again by background processing.
+	// AdvanceAfter The earliest time when the charge should be advanced again by background
+	// processing.
 	AdvanceAfter *DateTime `json:"advance_after,omitempty"`
 
 	// AmountAfterProration The amount after proration of the charge.
@@ -2447,7 +2547,7 @@ type BillingFlatFeeCharge struct {
 	BillingPeriod ClosedPeriod `json:"billing_period"`
 
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// Currency The currency of the charge.
 	Currency CurrencyCode `json:"currency"`
@@ -2507,8 +2607,12 @@ type BillingFlatFeeCharge struct {
 	// Status The lifecycle status of the charge.
 	Status BillingChargeStatus `json:"status"`
 
-	// Subscription The subscription that originated the charge, when the charge was created from a subscription item.
+	// Subscription The subscription that originated the charge, when the charge was created from a
+	// subscription item.
 	Subscription *BillingSubscriptionReference `json:"subscription,omitempty"`
+
+	// TaxConfig Tax configuration of the charge.
+	TaxConfig *BillingTaxConfig `json:"tax_config,omitempty"`
 
 	// Type The type of the charge.
 	Type BillingFlatFeeChargeType `json:"type"`
@@ -2517,7 +2621,7 @@ type BillingFlatFeeCharge struct {
 	UniqueReferenceId *string `json:"unique_reference_id,omitempty"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 }
 
 // BillingFlatFeeChargeType The type of the charge.
@@ -2525,7 +2629,8 @@ type BillingFlatFeeChargeType string
 
 // BillingFlatFeeDiscounts Discounts applicable to flat fee charges.
 //
-// This is the same as `ProductCatalog.Discounts` but without the `usage` field, which is not applicable to flat fee charges.
+// This is the same as `ProductCatalog.Discounts` but without the `usage` field,
+// which is not applicable to flat fee charges.
 type BillingFlatFeeDiscounts struct {
 	// Percentage Percentage discount applied to the price (0–100).
 	Percentage *float32 `json:"percentage,omitempty"`
@@ -2545,8 +2650,8 @@ type BillingParty struct {
 	// Name Legal name or representation of the party.
 	Name *string `json:"name,omitempty"`
 
-	// TaxId The entity's legal identification used for tax purposes. They may have
-	// other numbers, but we're only interested in those valid for tax purposes.
+	// TaxId The entity's legal identification used for tax purposes. They may have other
+	// numbers, but we're only interested in those valid for tax purposes.
 	TaxId *BillingPartyTaxIdentity `json:"tax_id,omitempty"`
 }
 
@@ -2556,7 +2661,8 @@ type BillingPartyAddresses struct {
 	BillingAddress Address `json:"billing_address"`
 }
 
-// BillingPartyTaxIdentity Identity stores the details required to identify an entity for tax purposes in a specific country.
+// BillingPartyTaxIdentity Identity stores the details required to identify an entity for tax purposes in a
+// specific country.
 type BillingPartyTaxIdentity struct {
 	// Code Normalized tax identification code shown on the original identity document.
 	Code *BillingTaxIdentificationCode `json:"code,omitempty"`
@@ -2568,7 +2674,7 @@ type BillingPlan struct {
 	BillingCadence ISO8601Duration `json:"billing_cadence"`
 
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// Currency The currency code of the plan.
 	Currency CurrencyCode `json:"currency"`
@@ -2581,17 +2687,18 @@ type BillingPlan struct {
 	// Maximum 1024 characters.
 	Description *string `json:"description,omitempty"`
 
-	// EffectiveFrom The date and time when the plan becomes `active`.
-	// When not specified, the plan is in `draft` status.
+	// EffectiveFrom The date and time when the plan becomes `active`. When not specified, the plan
+	// is in `draft` status.
 	EffectiveFrom *DateTime `json:"effective_from,omitempty"`
 
-	// EffectiveTo A scheduled date and time when the plan becomes `archived`.
-	// When not specified, the plan is in `active` status indefinitely.
+	// EffectiveTo A scheduled date and time when the plan becomes `archived`. When not specified,
+	// the plan is in `active` status indefinitely.
 	EffectiveTo *DateTime `json:"effective_to,omitempty"`
 	Id          ULID      `json:"id"`
 
-	// Key A key is a semi-unique string that is used to identify the plan.
-	// It is used to reference the latest `active` version of the plan and is unique with the version number.
+	// Key A key is a semi-unique string that is used to identify the plan. It is used to
+	// reference the latest `active` version of the plan and is unique with the version
+	// number.
 	Key ResourceKey `json:"key"`
 
 	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
@@ -2604,43 +2711,44 @@ type BillingPlan struct {
 	// Between 1 and 256 characters.
 	Name string `json:"name"`
 
-	// Phases The plan phases define the pricing ramp for a subscription.
-	// A phase switch occurs only at the end of a billing period.
-	// At least one phase is required.
+	// Phases The plan phases define the pricing ramp for a subscription. A phase switch
+	// occurs only at the end of a billing period. At least one phase is required.
 	Phases []BillingPlanPhase `json:"phases"`
 
 	// ProRatingEnabled Whether pro-rating is enabled for this plan.
-	//
-	// TODO: WIP — pro-rating mode and exact semantics will be defined in a later iteration.
 	ProRatingEnabled *bool `json:"pro_rating_enabled,omitempty"`
 
-	// Status The status of the plan.
-	// Computed based on the effective start and end dates:
-	// - draft = no effectiveFrom
-	// - active = effectiveFrom <= now < effectiveTo
-	// - archived / inactive = effectiveTo <= now
-	// - scheduled = now < effectiveFrom < effectiveTo
+	// Status The status of the plan. Computed based on the effective start and end dates:
+	//
+	// - `draft`: `effective_from` is not set.
+	// - `scheduled`: `now < effective_from`.
+	// - `active`: `effective_from <= now` and (`effective_to` is not set or
+	// `now < effective_to`).
+	// - `archived`: `effective_to <= now`.
 	Status BillingPlanStatus `json:"status"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 
-	// ValidationErrors List of validation errors in `draft` state that prevent the plan from being published.
+	// ValidationErrors List of validation errors in `draft` state that prevent the plan from being
+	// published.
 	ValidationErrors *[]ProductCatalogValidationError `json:"validation_errors,omitempty"`
 
-	// Version Plans are versioned to allow you to make changes without affecting running subscriptions.
+	// Version Plans are versioned to allow you to make changes without affecting running
+	// subscriptions.
 	Version int `json:"version"`
 }
 
-// BillingPlanPhase The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+// BillingPlanPhase The plan phase or pricing ramp allows changing a plan's rate cards over time as
+// a subscription progresses.
 type BillingPlanPhase struct {
 	// Description Optional description of the resource.
 	//
 	// Maximum 1024 characters.
 	Description *string `json:"description,omitempty"`
 
-	// Duration The duration of the phase.
-	// When not specified, the phase runs indefinitely. Only the last phase may omit the duration.
+	// Duration The duration of the phase. When not specified, the phase runs indefinitely. Only
+	// the last phase may omit the duration.
 	Duration *ISO8601Duration `json:"duration,omitempty"`
 
 	// Key A key is a unique string that is used to identify a resource.
@@ -2661,6 +2769,7 @@ type BillingPlanPhase struct {
 }
 
 // BillingPlanStatus The status of a plan.
+//
 // - `draft`: The plan has not yet been published and can be edited.
 // - `active`: The plan is published and can be used in subscriptions.
 // - `archived`: The plan is no longer available for use.
@@ -2695,14 +2804,13 @@ type BillingPriceFreeType string
 
 // BillingPriceGraduated Graduated tiered price.
 //
-// Each tier's rate applies only to the usage within that tier.
-// Pricing can change as cumulative usage crosses tier boundaries.
+// Each tier's rate applies only to the usage within that tier. Pricing can change
+// as cumulative usage crosses tier boundaries.
 //
-// When UnitConfig is present on the rate card, tier boundaries (up_to_amount)
-// are expressed in converted billing units.
+// When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
+// expressed in converted billing units.
 type BillingPriceGraduated struct {
-	// Tiers The tiers of the graduated price.
-	// At least one tier is required.
+	// Tiers The tiers of the graduated price. At least one tier is required.
 	Tiers []BillingPriceTier `json:"tiers"`
 
 	// Type The type of the price.
@@ -2717,28 +2825,25 @@ type BillingPricePaymentTerm string
 
 // BillingPriceTier A price tier used in graduated and volume pricing.
 //
-// At least one price component (flat_price or unit_price) must be set.
-// When UnitConfig is present on the rate card, up_to_amount is expressed
-// in converted billing units.
+// At least one price component (flat_price or unit_price) must be set. When
+// UnitConfig is present on the rate card, up_to_amount is expressed in converted
+// billing units.
 type BillingPriceTier struct {
-	// FlatPrice The flat price component of the tier.
-	// Charged once when the tier is entered.
+	// FlatPrice The flat price component of the tier. Charged once when the tier is entered.
 	FlatPrice *BillingPriceFlat `json:"flat_price,omitempty"`
 
-	// UnitPrice The unit price component of the tier.
-	// Charged per billing unit within the tier.
+	// UnitPrice The unit price component of the tier. Charged per billing unit within the tier.
 	UnitPrice *BillingPriceUnit `json:"unit_price,omitempty"`
 
-	// UpToAmount Up to and including this quantity will be contained in the tier.
-	// If undefined, the tier is open-ended (the last tier).
+	// UpToAmount Up to and including this quantity will be contained in the tier. If undefined,
+	// the tier is open-ended (the last tier).
 	UpToAmount *Numeric `json:"up_to_amount,omitempty"`
 }
 
 // BillingPriceUnit Unit price.
 //
-// Charges a fixed rate per billing unit.
-// When UnitConfig is present on the rate card, billing units are the
-// converted quantities (e.g. GB instead of bytes).
+// Charges a fixed rate per billing unit. When UnitConfig is present on the rate
+// card, billing units are the converted quantities (e.g. GB instead of bytes).
 type BillingPriceUnit struct {
 	// Amount The amount of the unit price.
 	Amount Numeric `json:"amount"`
@@ -2752,14 +2857,13 @@ type BillingPriceUnitType string
 
 // BillingPriceVolume Volume tiered price.
 //
-// The maximum quantity within a period determines the per-unit price for
-// all units in that period.
+// The maximum quantity within a period determines the per-unit price for all units
+// in that period.
 //
-// When UnitConfig is present on the rate card, tier boundaries (up_to_amount)
-// are expressed in converted billing units.
+// When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
+// expressed in converted billing units.
 type BillingPriceVolume struct {
-	// Tiers The tiers of the volume price.
-	// At least one tier is required.
+	// Tiers The tiers of the volume price. At least one tier is required.
 	Tiers []BillingPriceTier `json:"tiers"`
 
 	// Type The type of the price.
@@ -2769,13 +2873,14 @@ type BillingPriceVolume struct {
 // BillingPriceVolumeType The type of the price.
 type BillingPriceVolumeType string
 
-// BillingProfile Billing profiles contain the settings for billing and controls invoice generation.
+// BillingProfile Billing profiles contain the settings for billing and controls invoice
+// generation.
 type BillingProfile struct {
 	// Apps The applications used by this billing profile.
 	Apps BillingProfileAppReferences `json:"apps"`
 
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// Default Whether this is the default profile.
 	Default bool `json:"default"`
@@ -2799,11 +2904,12 @@ type BillingProfile struct {
 	// Between 1 and 256 characters.
 	Name string `json:"name"`
 
-	// Supplier The name and contact information for the supplier this billing profile represents
+	// Supplier The name and contact information for the supplier this billing profile
+	// represents
 	Supplier BillingParty `json:"supplier"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 
 	// Workflow The billing workflow settings for this profile
 	Workflow BillingWorkflow `json:"workflow"`
@@ -2837,12 +2943,12 @@ type BillingProfileReference struct {
 
 // BillingRateCard A rate card defines the pricing and entitlement of a feature or service.
 type BillingRateCard struct {
-	// BillingCadence The billing cadence of the rate card.
-	// When null, the charge is one-time (non-recurring). Only valid for flat prices.
+	// BillingCadence The billing cadence of the rate card. When null, the charge is one-time
+	// (non-recurring). Only valid for flat prices.
 	BillingCadence *ISO8601Duration `json:"billing_cadence,omitempty"`
 
-	// Commitments Spend commitments for this rate card.
-	// Only applicable to usage-based prices (unit, graduated, volume).
+	// Commitments Spend commitments for this rate card. Only applicable to usage-based prices
+	// (unit, graduated, volume).
 	Commitments *BillingSpendCommitments `json:"commitments,omitempty"`
 
 	// Description Optional description of the resource.
@@ -2869,8 +2975,8 @@ type BillingRateCard struct {
 	// Between 1 and 256 characters.
 	Name string `json:"name"`
 
-	// PaymentTerm The payment term of the rate card.
-	// In advance payment term can only be used for flat prices.
+	// PaymentTerm The payment term of the rate card. In advance payment term can only be used for
+	// flat prices.
 	PaymentTerm *BillingPricePaymentTerm `json:"payment_term,omitempty"`
 
 	// Price The price of the rate card.
@@ -2885,9 +2991,9 @@ type BillingRateCardDiscounts struct {
 	// Percentage Percentage discount applied to the price (0–100).
 	Percentage *float32 `json:"percentage,omitempty"`
 
-	// Usage Number of usage units granted free before billing starts.
-	// Only applies to usage-based lines (not flat fees). Usage is treated as zero
-	// until this amount is exhausted.
+	// Usage Number of usage units granted free before billing starts. Only applies to
+	// usage-based lines (not flat fees). Usage is treated as zero until this amount is
+	// exhausted.
 	Usage *Numeric `json:"usage,omitempty"`
 }
 
@@ -2900,15 +3006,18 @@ type BillingRateCardProrationConfiguration struct {
 // BillingRateCardProrationMode The proration mode of the rate card.
 //
 // Values:
+//
 // - `no_proration`: No proration.
-// - `prorate_prices`: Prorate the price based on the time remaining in the billing period.
+// - `prorate_prices`: Prorate the price based on the time remaining in the billing
+// period.
 type BillingRateCardProrationMode string
 
 // BillingRateCardTaxConfig The tax config of the rate card.
 type BillingRateCardTaxConfig struct {
 	// Behavior Tax behavior.
 	//
-	// This enum is used to specify whether tax is included in the price or excluded from the price.
+	// This enum is used to specify whether tax is included in the price or excluded
+	// from the price.
 	Behavior *BillingTaxBehavior `json:"behavior,omitempty"`
 
 	// Code TaxCode reference.
@@ -2918,12 +3027,14 @@ type BillingRateCardTaxConfig struct {
 // BillingSettlementMode Settlement mode for billing.
 //
 // Values:
-// - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced.
+//
+// - `credit_then_invoice`: Credits are applied first, then any remainder is
+// invoiced.
 // - `credit_only`: Usage is settled exclusively against credits.
 type BillingSettlementMode string
 
-// BillingSpendCommitments Spend commitments for a rate card.
-// The customer is committed to spend at least the minimum amount and at most the maximum amount.
+// BillingSpendCommitments Spend commitments for a rate card. The customer is committed to spend at least
+// the minimum amount and at most the maximum amount.
 type BillingSpendCommitments struct {
 	// MaximumAmount The customer is limited to spend at most the amount.
 	MaximumAmount *Numeric `json:"maximum_amount,omitempty"`
@@ -2934,16 +3045,17 @@ type BillingSpendCommitments struct {
 
 // BillingSubscription Subscription.
 type BillingSubscription struct {
-	// BillingAnchor A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle.
-	// It affects when charges occur and how prorations are calculated.
-	// Common anchors:
+	// BillingAnchor A billing anchor is the fixed point in time that determines the subscription's
+	// recurring billing cycle. It affects when charges occur and how prorations are
+	// calculated. Common anchors:
+	//
 	// - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
 	// - Subscription anniversary (day customer signed up)
 	// - Custom date (customer-specified day)
 	BillingAnchor DateTime `json:"billing_anchor"`
 
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// CustomerId The customer ID of the subscription.
 	CustomerId ULID `json:"customer_id"`
@@ -2957,15 +3069,14 @@ type BillingSubscription struct {
 	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
 	Labels *Labels `json:"labels,omitempty"`
 
-	// PlanId The plan ID of the subscription.
-	// Set if subscription is created from a plan.
+	// PlanId The plan ID of the subscription. Set if subscription is created from a plan.
 	PlanId *ULID `json:"plan_id,omitempty"`
 
 	// Status The status of the subscription.
 	Status BillingSubscriptionStatus `json:"status"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 }
 
 // BillingSubscriptionCancel Request for canceling a subscription.
@@ -2976,28 +3087,30 @@ type BillingSubscriptionCancel struct {
 
 // BillingSubscriptionChange Request for changing a subscription.
 type BillingSubscriptionChange struct {
-	// BillingAnchor A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle.
-	// It affects when charges occur and how prorations are calculated.
-	// Common anchors:
+	// BillingAnchor A billing anchor is the fixed point in time that determines the subscription's
+	// recurring billing cycle. It affects when charges occur and how prorations are
+	// calculated. Common anchors:
+	//
 	// - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
 	// - Subscription anniversary (day customer signed up)
 	// - Custom date (customer-specified day)
 	//
-	// If not provided, the subscription will be created with the subscription's creation time as the billing anchor.
+	// If not provided, the subscription will be created with the subscription's
+	// creation time as the billing anchor.
 	BillingAnchor *DateTime `json:"billing_anchor,omitempty"`
 
 	// Customer The customer to create the subscription for.
 	Customer struct {
 		// Id The ID of the customer to create the subscription for.
 		//
-		// Either customer ID or customer key must be provided.
-		// If both are provided, the ID will be used.
+		// Either customer ID or customer key must be provided. If both are provided, the
+		// ID will be used.
 		Id *ULID `json:"id,omitempty"`
 
 		// Key The key of the customer to create the subscription for.
 		//
-		// Either customer ID or customer key must be provided.
-		// If both are provided, the ID will be used.
+		// Either customer ID or customer key must be provided. If both are provided, the
+		// ID will be used.
 		Key *ExternalResourceKey `json:"key,omitempty"`
 	} `json:"customer"`
 
@@ -3008,27 +3121,27 @@ type BillingSubscriptionChange struct {
 
 	// Plan The plan reference of the subscription.
 	Plan struct {
-		// Id The plan ID of the subscription.
-		// Set if subscription is created from a plan.
+		// Id The plan ID of the subscription. Set if subscription is created from a plan.
 		//
-		// ID or Key of the plan is required if creating a subscription from a plan.
-		// If both are provided, the ID will be used.
+		// ID or Key of the plan is required if creating a subscription from a plan. If
+		// both are provided, the ID will be used.
 		Id *ULID `json:"id,omitempty"`
 
-		// Key The plan Key of the subscription, if any.
-		// Set if subscription is created from a plan.
+		// Key The plan Key of the subscription, if any. Set if subscription is created from a
+		// plan.
 		//
-		// ID or Key of the plan is required if creating a subscription from a plan.
-		// If both are provided, the ID will be used.
+		// ID or Key of the plan is required if creating a subscription from a plan. If
+		// both are provided, the ID will be used.
 		Key *ResourceKey `json:"key,omitempty"`
 
-		// Version The plan version of the subscription, if any.
-		// If not provided, the latest version of the plan will be used.
+		// Version The plan version of the subscription, if any. If not provided, the latest
+		// version of the plan will be used.
 		Version *int `json:"version,omitempty"`
 	} `json:"plan"`
 
-	// Timing Timing configuration for the change, when the change should take effect.
-	// For changing a subscription, the accepted values depend on the subscription configuration.
+	// Timing Timing configuration for the change, when the change should take effect. For
+	// changing a subscription, the accepted values depend on the subscription
+	// configuration.
 	Timing BillingSubscriptionEditTiming `json:"timing"`
 }
 
@@ -3043,28 +3156,30 @@ type BillingSubscriptionChangeResponse struct {
 
 // BillingSubscriptionCreate Subscription create request.
 type BillingSubscriptionCreate struct {
-	// BillingAnchor A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle.
-	// It affects when charges occur and how prorations are calculated.
-	// Common anchors:
+	// BillingAnchor A billing anchor is the fixed point in time that determines the subscription's
+	// recurring billing cycle. It affects when charges occur and how prorations are
+	// calculated. Common anchors:
+	//
 	// - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
 	// - Subscription anniversary (day customer signed up)
 	// - Custom date (customer-specified day)
 	//
-	// If not provided, the subscription will be created with the subscription's creation time as the billing anchor.
+	// If not provided, the subscription will be created with the subscription's
+	// creation time as the billing anchor.
 	BillingAnchor *DateTime `json:"billing_anchor,omitempty"`
 
 	// Customer The customer to create the subscription for.
 	Customer struct {
 		// Id The ID of the customer to create the subscription for.
 		//
-		// Either customer ID or customer key must be provided.
-		// If both are provided, the ID will be used.
+		// Either customer ID or customer key must be provided. If both are provided, the
+		// ID will be used.
 		Id *ULID `json:"id,omitempty"`
 
 		// Key The key of the customer to create the subscription for.
 		//
-		// Either customer ID or customer key must be provided.
-		// If both are provided, the ID will be used.
+		// Either customer ID or customer key must be provided. If both are provided, the
+		// ID will be used.
 		Key *ExternalResourceKey `json:"key,omitempty"`
 	} `json:"customer"`
 
@@ -3075,39 +3190,39 @@ type BillingSubscriptionCreate struct {
 
 	// Plan The plan reference of the subscription.
 	Plan struct {
-		// Id The plan ID of the subscription.
-		// Set if subscription is created from a plan.
+		// Id The plan ID of the subscription. Set if subscription is created from a plan.
 		//
-		// ID or Key of the plan is required if creating a subscription from a plan.
-		// If both are provided, the ID will be used.
+		// ID or Key of the plan is required if creating a subscription from a plan. If
+		// both are provided, the ID will be used.
 		Id *ULID `json:"id,omitempty"`
 
-		// Key The plan Key of the subscription, if any.
-		// Set if subscription is created from a plan.
+		// Key The plan Key of the subscription, if any. Set if subscription is created from a
+		// plan.
 		//
-		// ID or Key of the plan is required if creating a subscription from a plan.
-		// If both are provided, the ID will be used.
+		// ID or Key of the plan is required if creating a subscription from a plan. If
+		// both are provided, the ID will be used.
 		Key *ResourceKey `json:"key,omitempty"`
 
-		// Version The plan version of the subscription, if any.
-		// If not provided, the latest version of the plan will be used.
+		// Version The plan version of the subscription, if any. If not provided, the latest
+		// version of the plan will be used.
 		Version *int `json:"version,omitempty"`
 	} `json:"plan"`
 }
 
-// BillingSubscriptionEditTiming Subscription edit timing defined when the changes should take effect.
-// If the provided configuration is not supported by the subscription, an error will be returned.
+// BillingSubscriptionEditTiming Subscription edit timing defined when the changes should take effect. If the
+// provided configuration is not supported by the subscription, an error will be
+// returned.
 type BillingSubscriptionEditTiming struct {
 	union json.RawMessage
 }
 
-// BillingSubscriptionEditTimingEnum Subscription edit timing.
-// When immediate, the requested changes take effect immediately.
-// When next_billing_cycle, the requested changes take effect at the next billing cycle.
+// BillingSubscriptionEditTimingEnum Subscription edit timing. When immediate, the requested changes take effect
+// immediately. When next_billing_cycle, the requested changes take effect at the
+// next billing cycle.
 type BillingSubscriptionEditTimingEnum string
 
-// BillingSubscriptionReference Subscription reference represents a reference to the specific subscription item this
-// entity represents.
+// BillingSubscriptionReference Subscription reference represents a reference to the specific subscription item
+// this entity represents.
 type BillingSubscriptionReference struct {
 	// Id The ID of the subscription.
 	Id ULID `json:"id"`
@@ -3130,7 +3245,8 @@ type BillingSubscriptionStatus string
 
 // BillingTaxBehavior Tax behavior.
 //
-// This enum is used to specify whether tax is included in the price or excluded from the price.
+// This enum is used to specify whether tax is included in the price or excluded
+// from the price.
 type BillingTaxBehavior string
 
 // BillingTaxCode Tax codes by provider.
@@ -3139,7 +3255,7 @@ type BillingTaxCode struct {
 	AppMappings []BillingTaxCodeAppMapping `json:"app_mappings"`
 
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
 	DeletedAt *DateTime `json:"deleted_at,omitempty"`
@@ -3164,7 +3280,7 @@ type BillingTaxCode struct {
 	Name string `json:"name"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 }
 
 // BillingTaxCodeAppMapping Mapping of app types to tax codes.
@@ -3180,8 +3296,8 @@ type BillingTaxCodeAppMapping struct {
 type BillingTaxConfig struct {
 	// Behavior Tax behavior.
 	//
-	// If not specified the billing profile is used to determine the tax behavior.
-	// If not specified in the billing profile, the provider's default behavior is used.
+	// If not specified the billing profile is used to determine the tax behavior. If
+	// not specified in the billing profile, the provider's default behavior is used.
 	Behavior *BillingTaxBehavior `json:"behavior,omitempty"`
 
 	// ExternalInvoicing External invoicing tax config.
@@ -3192,10 +3308,15 @@ type BillingTaxConfig struct {
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Stripe *BillingTaxConfigStripe `json:"stripe,omitempty"`
 
-	// TaxCodeId Tax code reference.
+	// TaxCode Tax code reference.
 	//
-	// When both `tax_code_id` and `stripe.code` are provided, `tax_code_id` takes precedence:
-	// the referenced tax code entity is used and `stripe.code` is ignored.
+	// When both `tax_code` and `tax_code_id` are provided, `tax_code` takes
+	// precedence. When `stripe.code` is also provided, `tax_code` still wins and
+	// `stripe.code` is ignored.
+	TaxCode *TaxCodeReference `json:"tax_code,omitempty"`
+
+	// TaxCodeId Tax code ID.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	TaxCodeId *ULID `json:"tax_code_id,omitempty"`
 }
 
@@ -3211,7 +3332,8 @@ type BillingTaxConfigStripe struct {
 	Code string `json:"code"`
 }
 
-// BillingTaxIdentificationCode Tax identifier code is a normalized tax code shown on the original identity document.
+// BillingTaxIdentificationCode Tax identifier code is a normalized tax code shown on the original identity
+// document.
 type BillingTaxIdentificationCode = string
 
 // BillingTotals Totals contains the summaries of all calculations for a billing resource.
@@ -3243,14 +3365,15 @@ type BillingTotals struct {
 
 // BillingUsageBasedCharge A usage-based charge for a customer.
 type BillingUsageBasedCharge struct {
-	// AdvanceAfter The earliest time when the charge should be advanced again by background processing.
+	// AdvanceAfter The earliest time when the charge should be advanced again by background
+	// processing.
 	AdvanceAfter *DateTime `json:"advance_after,omitempty"`
 
 	// BillingPeriod The billing period the charge belongs to.
 	BillingPeriod ClosedPeriod `json:"billing_period"`
 
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// Currency The currency of the charge.
 	Currency CurrencyCode `json:"currency"`
@@ -3304,8 +3427,12 @@ type BillingUsageBasedCharge struct {
 	// Status The lifecycle status of the charge.
 	Status BillingChargeStatus `json:"status"`
 
-	// Subscription The subscription that originated the charge, when the charge was created from a subscription item.
+	// Subscription The subscription that originated the charge, when the charge was created from a
+	// subscription item.
 	Subscription *BillingSubscriptionReference `json:"subscription,omitempty"`
+
+	// TaxConfig Tax configuration of the charge.
+	TaxConfig *BillingTaxConfig `json:"tax_config,omitempty"`
 
 	// Totals Aggregated booked and realtime totals for the charge.
 	Totals BillingChargeTotals `json:"totals"`
@@ -3317,7 +3444,7 @@ type BillingUsageBasedCharge struct {
 	UniqueReferenceId *string `json:"unique_reference_id,omitempty"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 }
 
 // BillingUsageBasedChargeType The type of the charge.
@@ -3340,14 +3467,15 @@ type BillingWorkflow struct {
 
 // BillingWorkflowCollectionAlignment The alignment for collecting the pending line items into an invoice.
 //
-// Defaults to subscription, which means that we are to create a new invoice every time the
-// a subscription period starts (for in advance items) or ends (for in arrears items).
+// Defaults to subscription, which means that we are to create a new invoice every
+// time the a subscription period starts (for in advance items) or ends (for in
+// arrears items).
 type BillingWorkflowCollectionAlignment struct {
 	union json.RawMessage
 }
 
-// BillingWorkflowCollectionAlignmentAnchored BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items
-// into an invoice.
+// BillingWorkflowCollectionAlignmentAnchored BillingWorkflowCollectionAlignmentAnchored specifies the alignment for
+// collecting the pending line items into an invoice.
 type BillingWorkflowCollectionAlignmentAnchored struct {
 	// RecurringPeriod The recurring period for the alignment.
 	RecurringPeriod RecurringPeriod `json:"recurring_period"`
@@ -3359,8 +3487,8 @@ type BillingWorkflowCollectionAlignmentAnchored struct {
 // BillingWorkflowCollectionAlignmentAnchoredType The type of alignment.
 type BillingWorkflowCollectionAlignmentAnchoredType string
 
-// BillingWorkflowCollectionAlignmentSubscription BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items
-// into an invoice.
+// BillingWorkflowCollectionAlignmentSubscription BillingWorkflowCollectionAlignmentSubscription specifies the alignment for
+// collecting the pending line items into an invoice.
 type BillingWorkflowCollectionAlignmentSubscription struct {
 	// Type The type of alignment.
 	Type BillingWorkflowCollectionAlignmentSubscriptionType `json:"type"`
@@ -3369,15 +3497,17 @@ type BillingWorkflowCollectionAlignmentSubscription struct {
 // BillingWorkflowCollectionAlignmentSubscriptionType The type of alignment.
 type BillingWorkflowCollectionAlignmentSubscriptionType string
 
-// BillingWorkflowCollectionSettings Workflow collection specifies how to collect the pending line items for an invoice.
+// BillingWorkflowCollectionSettings Workflow collection specifies how to collect the pending line items for an
+// invoice.
 type BillingWorkflowCollectionSettings struct {
 	// Alignment The alignment for collecting the pending line items into an invoice.
 	Alignment *BillingWorkflowCollectionAlignment `json:"alignment,omitempty"`
 
-	// Interval This grace period can be used to delay the collection of the pending line items specified in
-	// alignment.
+	// Interval This grace period can be used to delay the collection of the pending line items
+	// specified in alignment.
 	//
-	// This is useful, in case of multiple subscriptions having slightly different billing periods.
+	// This is useful, in case of multiple subscriptions having slightly different
+	// billing periods.
 	Interval *string `json:"interval,omitempty"`
 }
 
@@ -3393,7 +3523,8 @@ type BillingWorkflowInvoicingSettings struct {
 	ProgressiveBilling *bool `json:"progressive_billing,omitempty"`
 }
 
-// BillingWorkflowPaymentChargeAutomaticallySettings Payment settings for a billing workflow when the collection method is charge automatically.
+// BillingWorkflowPaymentChargeAutomaticallySettings Payment settings for a billing workflow when the collection method is charge
+// automatically.
 type BillingWorkflowPaymentChargeAutomaticallySettings struct {
 	// CollectionMethod The collection method for the invoice.
 	CollectionMethod BillingWorkflowPaymentChargeAutomaticallySettingsCollectionMethod `json:"collection_method"`
@@ -3402,13 +3533,14 @@ type BillingWorkflowPaymentChargeAutomaticallySettings struct {
 // BillingWorkflowPaymentChargeAutomaticallySettingsCollectionMethod The collection method for the invoice.
 type BillingWorkflowPaymentChargeAutomaticallySettingsCollectionMethod string
 
-// BillingWorkflowPaymentSendInvoiceSettings Payment settings for a billing workflow when the collection method is send invoice.
+// BillingWorkflowPaymentSendInvoiceSettings Payment settings for a billing workflow when the collection method is send
+// invoice.
 type BillingWorkflowPaymentSendInvoiceSettings struct {
 	// CollectionMethod The collection method for the invoice.
 	CollectionMethod BillingWorkflowPaymentSendInvoiceSettingsCollectionMethod `json:"collection_method"`
 
-	// DueAfter The period after which the invoice is due.
-	// With some payment solutions it's only applicable for manual collection method.
+	// DueAfter The period after which the invoice is due. With some payment solutions it's only
+	// applicable for manual collection method.
 	DueAfter *string `json:"due_after,omitempty"`
 }
 
@@ -3425,14 +3557,14 @@ type BillingWorkflowTaxSettings struct {
 	// DefaultTaxConfig Default tax configuration to apply to the invoices for line items.
 	DefaultTaxConfig *BillingTaxConfig `json:"default_tax_config,omitempty"`
 
-	// Enabled Enable automatic tax calculation when tax is supported by the app.
-	// For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
+	// Enabled Enable automatic tax calculation when tax is supported by the app. For example,
+	// with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// Enforced Enforce tax calculation when tax is supported by the app.
-	// When enabled, the billing system will not allow to create an invoice without tax calculation.
-	// Enforcement is different per apps, for example, Stripe app requires customer
-	// to have a tax location when starting a paid subscription.
+	// Enforced Enforce tax calculation when tax is supported by the app. When enabled, the
+	// billing system will not allow to create an invoice without tax calculation.
+	// Enforcement is different per apps, for example, Stripe app requires customer to
+	// have a tax location when starting a paid subscription.
 	Enforced *bool `json:"enforced,omitempty"`
 }
 
@@ -3476,8 +3608,8 @@ type CostBasisPagePaginatedResponse struct {
 	Meta PaginatedMeta `json:"meta"`
 }
 
-// CountryCode [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
-// Custom two-letter country codes are also supported for convenience.
+// CountryCode [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country
+// code. Custom two-letter country codes are also supported for convenience.
 type CountryCode = string
 
 // CreateAddonRequest Addon create request.
@@ -3493,8 +3625,9 @@ type CreateAddonRequest struct {
 	// InstanceType The InstanceType of the add-ons. Can be "single" or "multiple".
 	InstanceType AddonInstanceType `json:"instance_type"`
 
-	// Key A key is a semi-unique string that is used to identify the add-on.
-	// It is used to reference the latest `active` version of the add-on and is unique with the version number.
+	// Key A key is a semi-unique string that is used to identify the add-on. It is used to
+	// reference the latest `active` version of the add-on and is unique with the
+	// version number.
 	Key ResourceKey `json:"key"`
 
 	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
@@ -3534,7 +3667,8 @@ type CreateBillingProfileRequest struct {
 	// Between 1 and 256 characters.
 	Name string `json:"name"`
 
-	// Supplier The name and contact information for the supplier this billing profile represents
+	// Supplier The name and contact information for the supplier this billing profile
+	// represents
 	Supplier BillingParty `json:"supplier"`
 
 	// Workflow The billing workflow settings for this profile
@@ -3543,8 +3677,9 @@ type CreateBillingProfileRequest struct {
 
 // CreateCostBasisRequest CostBasis create request.
 type CreateCostBasisRequest struct {
-	// EffectiveFrom An ISO-8601 timestamp representation of the date from which the cost basis is effective.
-	// If not provided, it will be effective immediately and will set to `now` by the system.
+	// EffectiveFrom An ISO-8601 timestamp representation of the date from which the cost basis is
+	// effective. If not provided, it will be effective immediately and will be set to
+	// `now` by the system.
 	EffectiveFrom *DateTime `json:"effective_from,omitempty"`
 
 	// FiatCode The fiat currency code for the cost basis.
@@ -3578,25 +3713,53 @@ type CreateCreditAdjustmentRequest struct {
 	Name string `json:"name"`
 }
 
+// CreateCreditGrantFilters Filters for the credit grant.
+type CreateCreditGrantFilters struct {
+	// Features Limit the credit grant to specific features. If no features are specified, the
+	// credit grant can be used for any feature.
+	Features *[]ResourceKey `json:"features,omitempty"`
+}
+
+// CreateCreditGrantPurchase Purchase and payment terms of the grant.
+type CreateCreditGrantPurchase struct {
+	// AvailabilityPolicy Controls when credits become available for consumption.
+	//
+	// Defaults to `on_creation`.
+	AvailabilityPolicy *BillingCreditAvailabilityPolicy `json:"availability_policy,omitempty"`
+
+	// Currency Currency of the purchase amount.
+	Currency CurrencyCode `json:"currency"`
+
+	// PerUnitCostBasis Cost basis per credit unit used to calculate the purchase amount.
+	//
+	// If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
+	// is $50.00. The value must be greater than 0. If the cost basis is 0, use
+	// `funding_method=none` instead.
+	//
+	// Defaults to 1.0.
+	PerUnitCostBasis *Numeric `json:"per_unit_cost_basis,omitempty"`
+}
+
 // CreateCreditGrantRequest CreditGrant create request.
 type CreateCreditGrantRequest struct {
 	// Amount Granted credit amount.
 	Amount Numeric `json:"amount"`
 
 	// Currency The currency of the granted credits.
-	Currency BillingCurrencyCode `json:"currency"`
+	Currency CreateCurrencyCode `json:"currency"`
 
 	// Description Optional description of the resource.
 	//
 	// Maximum 1024 characters.
 	Description *string `json:"description,omitempty"`
 
+	// ExpiresAfter The duration after which the credit grant expires.
+	//
+	// Defaults to never expiring.
+	ExpiresAfter *ISO8601Duration `json:"expires_after,omitempty"`
+
 	// Filters Filters for the credit grant.
-	Filters *struct {
-		// Features Limit the credit grant to specific features.
-		// If no features are specified, the credit grant can be used for any feature.
-		Features *[]ResourceKey `json:"features,omitempty"`
-	} `json:"filters,omitempty"`
+	Filters *CreateCreditGrantFilters `json:"filters,omitempty"`
 
 	// FundingMethod Funding method of the grant.
 	FundingMethod BillingCreditFundingMethod `json:"funding_method"`
@@ -3611,63 +3774,62 @@ type CreateCreditGrantRequest struct {
 	// Between 1 and 256 characters.
 	Name string `json:"name"`
 
-	// Priority Draw-down priority of the grant.
-	// Lower values have higher priority.
+	// Priority Draw-down priority of the grant. Lower values have higher priority.
 	Priority *int16 `json:"priority,omitempty"`
 
-	// Purchase Purchase and payment terms of the grant.
-	// Present when a funding workflow applies (funding_method is not `none`).
-	Purchase *struct {
-		// AvailabilityPolicy Controls when credits become available for consumption.
-		//
-		// Defaults to `on_creation`.
-		AvailabilityPolicy *BillingCreditAvailabilityPolicy `json:"availability_policy,omitempty"`
-
-		// Currency Currency of the purchase amount.
-		Currency CurrencyCode `json:"currency"`
-
-		// PerUnitCostBasis Cost basis per credit unit used to calculate the purchase amount.
-		//
-		// If `per_unit_cost_basis` is 0.50 and credit amount is $100.00,
-		// the total charge is $50.00.
-		// The value must be greater than 0. If the cost basis is 0, use
-		// `funding_method=none` instead.
-		//
-		// Defaults to 1.0.
-		PerUnitCostBasis *Numeric `json:"per_unit_cost_basis,omitempty"`
-	} `json:"purchase,omitempty"`
+	// Purchase Present when a funding workflow applies (funding_method is not `none`).
+	Purchase *CreateCreditGrantPurchase `json:"purchase,omitempty"`
 
 	// TaxConfig Tax configuration for the grant.
 	//
-	// For `invoice` and `external` funding methods, tax configuration should be provided to ensure correct revenue recognition.
-	// When not provided, the default credit grant tax code is applied, if that's not set the global default taxcode is used.
-	TaxConfig *BillingCreditGrantTaxConfig `json:"tax_config,omitempty"`
+	// For `invoice` and `external` funding methods, tax configuration should be
+	// provided to ensure correct revenue recognition. When not provided, the default
+	// credit grant tax code is applied, if that's not set the global default taxcode
+	// is used.
+	TaxConfig *CreateCreditGrantTaxConfig `json:"tax_config,omitempty"`
 }
+
+// CreateCreditGrantTaxConfig Tax configuration for a credit grant.
+//
+// Tax configuration should be provided to ensure correct revenue recognition,
+// including for externally funded grants.
+type CreateCreditGrantTaxConfig struct {
+	// Behavior Tax behavior applied to the invoice line item.
+	Behavior *BillingTaxBehavior `json:"behavior,omitempty"`
+
+	// TaxCode Tax code applied to the invoice line item.
+	TaxCode *CreateResourceReference `json:"tax_code,omitempty"`
+}
+
+// CreateCurrencyCode Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)
+// currency code. Custom three-letter currency codes are also supported for
+// convenience.
+type CreateCurrencyCode = CurrencyCode
 
 // CreateCurrencyCustomRequest CurrencyCustom create request.
 type CreateCurrencyCustomRequest struct {
-	// Code Custom currency code.
-	// It should be a unique code but not conflicting with any existing fiat currency codes.
+	// Code Custom currency code. It should be a unique code but not conflicting with any
+	// existing fiat currency codes.
 	Code BillingCurrencyCodeCustom `json:"code"`
 
 	// Description Description of the currency.
 	Description *string `json:"description,omitempty"`
 
-	// Name The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".
+	// Name The name of the currency. It should be a human-readable string that represents
+	// the name of the currency, such as "US Dollar" or "Euro".
 	Name string `json:"name"`
 
-	// Symbol The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.
+	// Symbol The symbol of the currency. It should be a string that represents the symbol of
+	// the currency, such as "$" for US Dollar or "€" for Euro.
 	Symbol *string `json:"symbol,omitempty"`
 }
 
 // CreateCustomerRequest Customer create request.
 type CreateCustomerRequest struct {
-	// BillingAddress The billing address of the customer.
-	// Used for tax and invoicing.
+	// BillingAddress The billing address of the customer. Used for tax and invoicing.
 	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
 
-	// Currency Currency of the customer.
-	// Used for billing, tax and invoicing.
+	// Currency Currency of the customer. Used for billing, tax and invoicing.
 	Currency *CurrencyCode `json:"currency,omitempty"`
 
 	// Description Optional description of the resource.
@@ -3675,7 +3837,8 @@ type CreateCustomerRequest struct {
 	// Maximum 1024 characters.
 	Description *string `json:"description,omitempty"`
 
-	// Key ExternalResourceKey is a unique string that is used to identify a resource in an external system.
+	// Key ExternalResourceKey is a unique string that is used to identify a resource in an
+	// external system.
 	Key ExternalResourceKey `json:"key"`
 
 	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
@@ -3710,24 +3873,18 @@ type CreateFeatureRequest struct {
 	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
 	Labels *Labels `json:"labels,omitempty"`
 
-	// Meter The meter that the feature is associated with and and based on which usage is calculated.
-	// If not specified, the feature is static.
-	Meter *struct {
-		// Filters Filters to apply to the dimensions of the meter.
-		Filters *map[string]QueryFilterStringMapItem `json:"filters,omitempty"`
-
-		// Id The ID of the meter to associate with this feature.
-		Id ULID `json:"id"`
-	} `json:"meter,omitempty"`
+	// Meter The meter that the feature is associated with and based on which usage is
+	// calculated. If not specified, the feature is static.
+	Meter *FeatureMeterReference `json:"meter,omitempty"`
 
 	// Name Display name of the resource.
 	//
 	// Between 1 and 256 characters.
 	Name string `json:"name"`
 
-	// UnitCost Optional per-unit cost configuration.
-	// Use "manual" for a fixed per-unit cost, or "llm" to look up cost
-	// from the LLM cost database based on meter group-by properties.
+	// UnitCost Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
+	// "llm" to look up cost from the LLM cost database based on meter group-by
+	// properties.
 	UnitCost *BillingFeatureUnitCost `json:"unit_cost,omitempty"`
 }
 
@@ -3749,9 +3906,8 @@ type CreateMeterRequest struct {
 	// EventType The event type to include in the aggregation.
 	EventType string `json:"event_type"`
 
-	// EventsFrom The date since the meter should include events.
-	// Useful to skip old events.
-	// If not specified, all historical events are included.
+	// EventsFrom The date since the meter should include events. Useful to skip old events. If
+	// not specified, all historical events are included.
 	EventsFrom *DateTime `json:"events_from,omitempty"`
 
 	// Key A key is a unique string that is used to identify a resource.
@@ -3767,11 +3923,14 @@ type CreateMeterRequest struct {
 	// Between 1 and 256 characters.
 	Name string `json:"name"`
 
-	// ValueProperty JSONPath expression to extract the value from the ingested event's data property.
+	// ValueProperty JSONPath expression to extract the value from the ingested event's data
+	// property.
 	//
-	// The ingested value for sum, avg, min, and max aggregations is a number or a string that can be parsed to a number.
+	// The ingested value for sum, avg, min, and max aggregations is a number or a
+	// string that can be parsed to a number.
 	//
-	// For unique_count aggregation, the ingested value must be a string. For count aggregation the value_property is ignored.
+	// For unique_count aggregation, the ingested value must be a string. For count
+	// aggregation the value_property is ignored.
 	ValueProperty *string `json:"value_property,omitempty"`
 }
 
@@ -3793,9 +3952,9 @@ type CreatePlanAddonRequest struct {
 	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
 	Labels *Labels `json:"labels,omitempty"`
 
-	// MaxQuantity The maximum number of times the add-on can be purchased for the plan.
-	// For single-instance add-ons this field must be omitted.
-	// For multi-instance add-ons when omitted, unlimited quantity can be purchased.
+	// MaxQuantity The maximum number of times the add-on can be purchased for the plan. For
+	// single-instance add-ons this field must be omitted. For multi-instance add-ons
+	// when omitted, unlimited quantity can be purchased.
 	MaxQuantity *int `json:"max_quantity,omitempty"`
 
 	// Name Display name of the resource.
@@ -3817,8 +3976,9 @@ type CreatePlanRequest struct {
 	// Maximum 1024 characters.
 	Description *string `json:"description,omitempty"`
 
-	// Key A key is a semi-unique string that is used to identify the plan.
-	// It is used to reference the latest `active` version of the plan and is unique with the version number.
+	// Key A key is a semi-unique string that is used to identify the plan. It is used to
+	// reference the latest `active` version of the plan and is unique with the version
+	// number.
 	Key ResourceKey `json:"key"`
 
 	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
@@ -3831,15 +3991,18 @@ type CreatePlanRequest struct {
 	// Between 1 and 256 characters.
 	Name string `json:"name"`
 
-	// Phases The plan phases define the pricing ramp for a subscription.
-	// A phase switch occurs only at the end of a billing period.
-	// At least one phase is required.
+	// Phases The plan phases define the pricing ramp for a subscription. A phase switch
+	// occurs only at the end of a billing period. At least one phase is required.
 	Phases []BillingPlanPhase `json:"phases"`
 
 	// ProRatingEnabled Whether pro-rating is enabled for this plan.
-	//
-	// TODO: WIP — pro-rating mode and exact semantics will be defined in a later iteration.
 	ProRatingEnabled *bool `json:"pro_rating_enabled,omitempty"`
+}
+
+// CreateResourceReference TaxCode reference.
+type CreateResourceReference struct {
+	// Id ULID (Universally Unique Lexicographically Sortable Identifier).
+	Id ULID `json:"id"`
 }
 
 // CreateTaxCodeRequest TaxCode create request.
@@ -3868,13 +4031,13 @@ type CreateTaxCodeRequest struct {
 
 // CreditBalance The credit balance by currency.
 type CreditBalance struct {
-	// Available Credits that can be consumed right now.
-	// Derived from cleared grants after applying eligibility and restriction rules.
+	// Available Credits that can be consumed right now. Derived from cleared grants after
+	// applying eligibility and restriction rules.
 	Available Numeric             `json:"available"`
 	Currency  BillingCurrencyCode `json:"currency"`
 
-	// Pending Credits that have been granted but cannot yet be consumed.
-	// Includes grants awaiting payment clearance or with a future effective date.
+	// Pending Credits that have been granted but cannot yet be consumed. Includes grants
+	// awaiting payment clearance or with a future effective date.
 	Pending Numeric `json:"pending"`
 }
 
@@ -3899,13 +4062,15 @@ type CurrencyAmount struct {
 	// Amount Numeric represents an arbitrary precision number.
 	Amount Numeric `json:"amount"`
 
-	// Currency Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
-	// Custom three-letter currency codes are also supported for convenience.
+	// Currency Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)
+	// currency code. Custom three-letter currency codes are also supported for
+	// convenience.
 	Currency CurrencyCode `json:"currency"`
 }
 
-// CurrencyCode Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
-// Custom three-letter currency codes are also supported for convenience.
+// CurrencyCode Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html)
+// currency code. Custom three-letter currency codes are also supported for
+// convenience.
 type CurrencyCode = string
 
 // CurrencyPagePaginatedResponse Page paginated response.
@@ -3939,6 +4104,18 @@ type CursorMetaPage struct {
 	Size float32 `json:"size"`
 }
 
+// CursorPaginationQueryPage Determines which page of the collection to retrieve.
+type CursorPaginationQueryPage struct {
+	// After Request the next page of data, starting with the item after this parameter.
+	After *string `json:"after,omitempty"`
+
+	// Before Request the previous page of data, starting with the item before this parameter.
+	Before *string `json:"before,omitempty"`
+
+	// Size The number of items to include per page.
+	Size *int `json:"size,omitempty"`
+}
+
 // CustomerPagePaginatedResponse Page paginated response.
 type CustomerPagePaginatedResponse struct {
 	Data []BillingCustomer `json:"data"`
@@ -3953,20 +4130,22 @@ type CustomerReference struct {
 	Id ULID `json:"id"`
 }
 
-// DateTime [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
+// DateTime [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in
+// UTC.
 type DateTime = time.Time
 
-// DateTimeFieldFilter Filters on the given datetime (RFC-3339) field value.
-// All properties are optional; provide exactly one to specify the comparison.
+// DateTimeFieldFilter Filters on the given datetime (RFC-3339) field value. All properties are
+// optional; provide exactly one to specify the comparison.
 type DateTimeFieldFilter = filters.FilterDateTime
 
-// ExternalResourceKey ExternalResourceKey is a unique string that is used to identify a resource in an external system.
+// ExternalResourceKey ExternalResourceKey is a unique string that is used to identify a resource in an
+// external system.
 type ExternalResourceKey = string
 
 // Feature A capability or billable dimension offered by a provider.
 type Feature struct {
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
 	DeletedAt *DateTime `json:"deleted_at,omitempty"`
@@ -3985,28 +4164,22 @@ type Feature struct {
 	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
 	Labels *Labels `json:"labels,omitempty"`
 
-	// Meter The meter that the feature is associated with and and based on which usage is calculated.
-	// If not specified, the feature is static.
-	Meter *struct {
-		// Filters Filters to apply to the dimensions of the meter.
-		Filters *map[string]QueryFilterStringMapItem `json:"filters,omitempty"`
-
-		// Id The ID of the meter to associate with this feature.
-		Id ULID `json:"id"`
-	} `json:"meter,omitempty"`
+	// Meter The meter that the feature is associated with and based on which usage is
+	// calculated. If not specified, the feature is static.
+	Meter *FeatureMeterReference `json:"meter,omitempty"`
 
 	// Name Display name of the resource.
 	//
 	// Between 1 and 256 characters.
 	Name string `json:"name"`
 
-	// UnitCost Optional per-unit cost configuration.
-	// Use "manual" for a fixed per-unit cost, or "llm" to look up cost
-	// from the LLM cost database based on meter group-by properties.
+	// UnitCost Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
+	// "llm" to look up cost from the LLM cost database based on meter group-by
+	// properties.
 	UnitCost *BillingFeatureUnitCost `json:"unit_cost,omitempty"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 }
 
 // FeatureCostQueryResult Result of a feature cost query.
@@ -4023,18 +4196,19 @@ type FeatureCostQueryResult struct {
 
 // FeatureCostQueryRow A row in the result of a feature cost query.
 type FeatureCostQueryRow struct {
-	// Cost The computed cost amount (usage × unit cost).
-	// Null when pricing is not available for the given combination of dimensions.
+	// Cost The computed cost amount (usage × unit cost). Null when pricing is not available
+	// for the given combination of dimensions.
 	Cost nullable.Nullable[Numeric] `json:"cost"`
 
 	// Currency The currency code of the cost amount.
 	Currency CurrencyCode `json:"currency"`
 
-	// Detail Detail message when cost amount is null, explaining why the cost could not be resolved.
+	// Detail Detail message when cost amount is null, explaining why the cost could not be
+	// resolved.
 	Detail *string `json:"detail,omitempty"`
 
-	// Dimensions The dimensions the value is aggregated over.
-	// `subject` and `customer_id` are reserved dimensions.
+	// Dimensions The dimensions the value is aggregated over. `subject` and `customer_id` are
+	// reserved dimensions.
 	Dimensions map[string]string `json:"dimensions"`
 
 	// From The start of the time bucket the value is aggregated over.
@@ -4045,6 +4219,15 @@ type FeatureCostQueryRow struct {
 
 	// Usage The metered usage value for the period.
 	Usage Numeric `json:"usage"`
+}
+
+// FeatureMeterReference Reference to a meter associated with a feature.
+type FeatureMeterReference struct {
+	// Filters Filters to apply to the dimensions of the meter.
+	Filters *map[string]QueryFilterStringMapItem `json:"filters,omitempty"`
+
+	// Id The ID of the meter to associate with this feature.
+	Id ULID `json:"id"`
 }
 
 // FeaturePagePaginatedResponse Page paginated response.
@@ -4073,10 +4256,7 @@ type ForbiddenError struct {
 // GetCreditBalanceParamsFilter Filter options for getting a credit balance.
 type GetCreditBalanceParamsFilter struct {
 	// Currency Filter credit balance by currency.
-	Currency *BillingCurrencyCode `json:"currency,omitempty"`
-
-	// Feature Filter by specific feature.
-	Feature *ResourceKey `json:"feature,omitempty"`
+	Currency *StringFieldFilterExact `json:"currency,omitempty"`
 }
 
 // GoneError defines model for GoneError.
@@ -4088,7 +4268,121 @@ type GoneError struct {
 	Type     interface{} `json:"type,omitempty"`
 }
 
-// ISO8601Duration [ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm) string.
+// GovernanceFeatureAccess Access status for a single feature.
+type GovernanceFeatureAccess struct {
+	// HasAccess Whether the customer currently has access to the feature.
+	//
+	// `true` for boolean and static entitlements that are available, and for metered
+	// entitlements with remaining balance. `false` when the feature is unavailable,
+	// the usage limit has been reached, or (when applicable) credits have been
+	// exhausted.
+	HasAccess bool `json:"has_access"`
+
+	// Reason Optional reason when the customer does not have access to the feature. Populated
+	// when `has_access` is `false`.
+	Reason *GovernanceFeatureAccessReason `json:"reason,omitempty"`
+}
+
+// GovernanceFeatureAccessReason Reason a feature is not accessible to a customer.
+type GovernanceFeatureAccessReason struct {
+	// Attributes Additional structured context.
+	Attributes *map[string]interface{} `json:"attributes,omitempty"`
+
+	// Code Machine-readable error code.
+	Code GovernanceFeatureAccessReasonCode `json:"code"`
+
+	// Message Human-readable description of the error.
+	Message string `json:"message"`
+}
+
+// GovernanceFeatureAccessReasonCode Machine-readable reason code for denied feature access.
+type GovernanceFeatureAccessReasonCode string
+
+// GovernanceQueryError Query error within a partially successful governance query response.
+type GovernanceQueryError struct {
+	// Attributes Additional structured context.
+	Attributes *map[string]interface{} `json:"attributes,omitempty"`
+
+	// Code Machine-readable error code.
+	Code GovernanceQueryErrorCode `json:"code"`
+
+	// Customer The customer identifier from the request that produced this error.
+	Customer *string `json:"customer,omitempty"`
+
+	// Message Human-readable description of the error.
+	Message string `json:"message"`
+}
+
+// GovernanceQueryErrorCode Error code for a governance query failure.
+type GovernanceQueryErrorCode string
+
+// GovernanceQueryRequest Query to evaluate feature access for a list of customers.
+type GovernanceQueryRequest struct {
+	Customer GovernanceQueryRequestCustomers `json:"customer"`
+	Feature  *GovernanceQueryRequestFeatures `json:"feature,omitempty"`
+
+	// IncludeCredits Whether to include credit balance availability for each resolved customer. When
+	// true, each feature evaluation includes credit balance checks.
+	//
+	// Defaults to `false`.
+	IncludeCredits *bool `json:"include_credits,omitempty"`
+}
+
+// GovernanceQueryRequestCustomers List of customer identifiers to evaluate access for.
+type GovernanceQueryRequestCustomers struct {
+	// Keys Each entry can be a customer `key` or a usage-attribution subject `key`.
+	// Identifiers that cannot be resolved to a customer are reported in the response
+	// `errors` array.
+	Keys []string `json:"keys"`
+}
+
+// GovernanceQueryRequestFeatures Optional list of feature keys to evaluate access for. If omitted, all features
+// available in the organization are returned. Providing this list is recommended
+// to reduce the response size and the load on the backend services.
+type GovernanceQueryRequestFeatures struct {
+	// Keys List of feature keys to evaluate access for.
+	Keys []string `json:"keys"`
+}
+
+// GovernanceQueryResponse Response of the governance query.
+type GovernanceQueryResponse struct {
+	// Data Access evaluation results, one entry per resolved customer.
+	Data []GovernanceQueryResult `json:"data"`
+
+	// Errors Partial errors encountered while processing the request.
+	Errors []GovernanceQueryError `json:"errors"`
+
+	// Meta Pagination metadata. The endpoint may return a partial response if the full
+	// response would exceed server-side limits.
+	Meta CursorMeta `json:"meta"`
+}
+
+// GovernanceQueryResult Access evaluation result for a single resolved customer.
+type GovernanceQueryResult struct {
+	// Customer The customer the matched identifiers resolved to.
+	Customer BillingCustomer `json:"customer"`
+
+	// Features Map of features with their access status.
+	//
+	// Map keys are the feature keys requested in `feature.keys`, or every feature
+	// `key` available in the organization when the feature filter was omitted.
+	Features map[string]GovernanceFeatureAccess `json:"features"`
+
+	// Matched The list of identifiers from the request that resolved to this customer. Each
+	// entry is either the customer `key` or one of its usage-attribution subject
+	// `key`s.
+	//
+	// Duplicate or aliased identifiers that resolve to the same customer collapse to a
+	// single result entry, with every requested identifier listed here.
+	Matched []string `json:"matched"`
+
+	// UpdatedAt Timestamp of the most recent change to the customer's access state reflected in
+	// this result.
+	UpdatedAt DateTime `json:"updated_at"`
+}
+
+// ISO8601Duration [ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm)
+// string.
 type ISO8601Duration = string
 
 // IngestedEventPaginatedResponse Cursor paginated response.
@@ -4203,10 +4497,9 @@ type LLMCostModelPricing struct {
 	ReasoningPerToken *Numeric `json:"reasoning_per_token,omitempty"`
 }
 
-// LLMCostOverrideCreate Input for creating a per-namespace price override.
-// Unique per provider, model and currency.
-// If an override already exists for the given provider, model and currency, it will be updated.
-// If an override does not exist, it will be created.
+// LLMCostOverrideCreate Input for creating a per-namespace price override. Unique per provider, model
+// and currency. If an override already exists for the given provider, model and
+// currency, it will be updated. If an override does not exist, it will be created.
 type LLMCostOverrideCreate struct {
 	// Currency Currency code.
 	Currency CurrencyCode `json:"currency"`
@@ -4230,11 +4523,11 @@ type LLMCostOverrideCreate struct {
 	Provider string `json:"provider"`
 }
 
-// LLMCostPrice An LLM cost price record, representing the cost per token
-// for a specific model from a specific provider.
+// LLMCostPrice An LLM cost price record, representing the cost per token for a specific model
+// from a specific provider.
 type LLMCostPrice struct {
 	// CreatedAt Creation timestamp.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// Currency Currency code (currently always "USD").
 	Currency CurrencyCode `json:"currency"`
@@ -4242,7 +4535,7 @@ type LLMCostPrice struct {
 	// EffectiveFrom When this price becomes effective.
 	EffectiveFrom DateTime `json:"effective_from"`
 
-	// EffectiveTo When this price expires (null = current).
+	// EffectiveTo When this price expires. Omitted when the price is currently effective.
 	EffectiveTo *DateTime `json:"effective_to,omitempty"`
 
 	// Id Unique identifier.
@@ -4261,7 +4554,7 @@ type LLMCostPrice struct {
 	Source LLMCostPriceSource `json:"source"`
 
 	// UpdatedAt Last update timestamp.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 }
 
 // LLMCostPriceSource Identifies where an LLM cost price came from.
@@ -4283,24 +4576,24 @@ type Labels map[string]string
 
 // ListAddonsParamsFilter Filter options for listing add-ons.
 type ListAddonsParamsFilter struct {
-	// Currency Filters on the given string field value by exact match.
-	// All properties are optional; provide exactly one to specify the comparison.
+	// Currency Filters on the given string field value by exact match. All properties are
+	// optional; provide exactly one to specify the comparison.
 	Currency *StringFieldFilterExact `json:"currency,omitempty"`
 
-	// Id Filters on the given ULID field value by exact match.
-	// All properties are optional; provide exactly one to specify the comparison.
+	// Id Filters on the given ULID field value by exact match. All properties are
+	// optional; provide exactly one to specify the comparison.
 	Id *ULIDFieldFilter `json:"id,omitempty"`
 
-	// Key Filters on the given string field value by either exact or fuzzy match.
-	// All properties are optional; provide exactly one to specify the comparison.
+	// Key Filters on the given string field value by either exact or fuzzy match. All
+	// properties are optional; provide exactly one to specify the comparison.
 	Key *StringFieldFilter `json:"key,omitempty"`
 
-	// Name Filters on the given string field value by either exact or fuzzy match.
-	// All properties are optional; provide exactly one to specify the comparison.
+	// Name Filters on the given string field value by either exact or fuzzy match. All
+	// properties are optional; provide exactly one to specify the comparison.
 	Name *StringFieldFilter `json:"name,omitempty"`
 
-	// Status Filters on the given string field value by exact match.
-	// All properties are optional; provide exactly one to specify the comparison.
+	// Status Filters on the given string field value by exact match. All properties are
+	// optional; provide exactly one to specify the comparison.
 	Status *StringFieldFilterExact `json:"status,omitempty"`
 }
 
@@ -4309,6 +4602,7 @@ type ListChargesParamsFilter struct {
 	// Status Filter charges by status.
 	//
 	// Supported statuses are:
+	//
 	// - `created`
 	// - `active`
 	// - `final`
@@ -4344,7 +4638,12 @@ type ListCreditTransactionsParamsFilter struct {
 
 // ListCurrenciesParamsFilter Filter options for listing currencies.
 type ListCurrenciesParamsFilter struct {
-	// Type Filter currencies by type.
+	// Code Filters on the given string field value by either exact or fuzzy match. All
+	// properties are optional; provide exactly one to specify the comparison.
+	Code *StringFieldFilter `json:"code,omitempty"`
+
+	// Type Currency type for custom currencies. It should be a unique code but not
+	// conflicting with any existing standard currency codes.
 	Type *BillingCurrencyType `json:"type,omitempty"`
 }
 
@@ -4356,14 +4655,29 @@ type ListCustomerEntitlementAccessResponseData struct {
 
 // ListCustomersParamsFilter Filter options for listing customers.
 type ListCustomersParamsFilter struct {
-	// Key Filter customers by key.
+	// BillingProfileId Filters on the given ULID field value by exact match. All properties are
+	// optional; provide exactly one to specify the comparison.
+	BillingProfileId *ULIDFieldFilter `json:"billing_profile_id,omitempty"`
+
+	// Key Filters on the given string field value by either exact or fuzzy match. All
+	// properties are optional; provide exactly one to specify the comparison.
 	Key *StringFieldFilter `json:"key,omitempty"`
 
-	// Name Filter customers by name.
+	// Name Filters on the given string field value by either exact or fuzzy match. All
+	// properties are optional; provide exactly one to specify the comparison.
 	Name *StringFieldFilter `json:"name,omitempty"`
 
-	// PrimaryEmail Filter customers by primary email.
+	// PlanKey Filters on the given string field value by either exact or fuzzy match. All
+	// properties are optional; provide exactly one to specify the comparison.
+	PlanKey *StringFieldFilter `json:"plan_key,omitempty"`
+
+	// PrimaryEmail Filters on the given string field value by either exact or fuzzy match. All
+	// properties are optional; provide exactly one to specify the comparison.
 	PrimaryEmail *StringFieldFilter `json:"primary_email,omitempty"`
+
+	// UsageAttributionSubjectKey Filters on the given string field value by either exact or fuzzy match. All
+	// properties are optional; provide exactly one to specify the comparison.
+	UsageAttributionSubjectKey *StringFieldFilter `json:"usage_attribution_subject_key,omitempty"`
 }
 
 // ListEventsParamsFilter Filter options for listing ingested events.
@@ -4395,16 +4709,16 @@ type ListEventsParamsFilter struct {
 
 // ListFeatureParamsFilter Filter options for listing features.
 type ListFeatureParamsFilter struct {
-	// Key Filters on the given string field value by either exact or fuzzy match.
-	// All properties are optional; provide exactly one to specify the comparison.
+	// Key Filters on the given string field value by either exact or fuzzy match. All
+	// properties are optional; provide exactly one to specify the comparison.
 	Key *StringFieldFilter `json:"key,omitempty"`
 
-	// MeterId Filters on the given ULID field value by exact match.
-	// All properties are optional; provide exactly one to specify the comparison.
+	// MeterId Filters on the given ULID field value by exact match. All properties are
+	// optional; provide exactly one to specify the comparison.
 	MeterId *ULIDFieldFilter `json:"meter_id,omitempty"`
 
-	// Name Filters on the given string field value by either exact or fuzzy match.
-	// All properties are optional; provide exactly one to specify the comparison.
+	// Name Filters on the given string field value by either exact or fuzzy match. All
+	// properties are optional; provide exactly one to specify the comparison.
 	Name *StringFieldFilter `json:"name,omitempty"`
 }
 
@@ -4437,20 +4751,43 @@ type ListMetersParamsFilter struct {
 
 // ListPlansParamsFilter Filter options for listing plans.
 type ListPlansParamsFilter struct {
-	// Currency Filters on the given string field value by exact match.
-	// All properties are optional; provide exactly one to specify the comparison.
+	// Currency Filters on the given string field value by exact match. All properties are
+	// optional; provide exactly one to specify the comparison.
 	Currency *StringFieldFilterExact `json:"currency,omitempty"`
 
-	// Key Filters on the given string field value by either exact or fuzzy match.
-	// All properties are optional; provide exactly one to specify the comparison.
+	// Key Filters on the given string field value by either exact or fuzzy match. All
+	// properties are optional; provide exactly one to specify the comparison.
 	Key *StringFieldFilter `json:"key,omitempty"`
 
-	// Name Filters on the given string field value by either exact or fuzzy match.
-	// All properties are optional; provide exactly one to specify the comparison.
+	// Name Filters on the given string field value by either exact or fuzzy match. All
+	// properties are optional; provide exactly one to specify the comparison.
 	Name *StringFieldFilter `json:"name,omitempty"`
 
-	// Status Filters on the given string field value by exact match.
-	// All properties are optional; provide exactly one to specify the comparison.
+	// Status Filters on the given string field value by exact match. All properties are
+	// optional; provide exactly one to specify the comparison.
+	Status *StringFieldFilterExact `json:"status,omitempty"`
+}
+
+// ListSubscriptionsParamsFilter Filter options for listing subscriptions.
+type ListSubscriptionsParamsFilter struct {
+	// CustomerId Filters on the given ULID field value by exact match. All properties are
+	// optional; provide exactly one to specify the comparison.
+	CustomerId *ULIDFieldFilter `json:"customer_id,omitempty"`
+
+	// Id Filters on the given ULID field value by exact match. All properties are
+	// optional; provide exactly one to specify the comparison.
+	Id *ULIDFieldFilter `json:"id,omitempty"`
+
+	// PlanId Filters on the given ULID field value by exact match. All properties are
+	// optional; provide exactly one to specify the comparison.
+	PlanId *ULIDFieldFilter `json:"plan_id,omitempty"`
+
+	// PlanKey Filters on the given string field value by exact match. All properties are
+	// optional; provide exactly one to specify the comparison.
+	PlanKey *StringFieldFilterExact `json:"plan_key,omitempty"`
+
+	// Status Filters on the given string field value by exact match. All properties are
+	// optional; provide exactly one to specify the comparison.
 	Status *StringFieldFilterExact `json:"status,omitempty"`
 }
 
@@ -4460,7 +4797,7 @@ type Meter struct {
 	Aggregation MeterAggregation `json:"aggregation"`
 
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
 	DeletedAt *DateTime `json:"deleted_at,omitempty"`
@@ -4478,9 +4815,8 @@ type Meter struct {
 	// EventType The event type to include in the aggregation.
 	EventType string `json:"event_type"`
 
-	// EventsFrom The date since the meter should include events.
-	// Useful to skip old events.
-	// If not specified, all historical events are included.
+	// EventsFrom The date since the meter should include events. Useful to skip old events. If
+	// not specified, all historical events are included.
 	EventsFrom *DateTime `json:"events_from,omitempty"`
 	Id         ULID      `json:"id"`
 
@@ -4498,13 +4834,16 @@ type Meter struct {
 	Name string `json:"name"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 
-	// ValueProperty JSONPath expression to extract the value from the ingested event's data property.
+	// ValueProperty JSONPath expression to extract the value from the ingested event's data
+	// property.
 	//
-	// The ingested value for sum, avg, min, and max aggregations is a number or a string that can be parsed to a number.
+	// The ingested value for sum, avg, min, and max aggregations is a number or a
+	// string that can be parsed to a number.
 	//
-	// For unique_count aggregation, the ingested value must be a string. For count aggregation the value_property is ignored.
+	// For unique_count aggregation, the ingested value must be a string. For count
+	// aggregation the value_property is ignored.
 	ValueProperty *string `json:"value_property,omitempty"`
 }
 
@@ -4521,13 +4860,13 @@ type MeterPagePaginatedResponse struct {
 
 // MeterQueryFilters Filters to apply to a meter query.
 type MeterQueryFilters struct {
-	// Dimensions Filters to apply to the dimensions of the query.
-	// For `subject` and `customer_id` only equals ("eq", "in") comparisons are supported.
+	// Dimensions Filters to apply to the dimensions of the query. For `subject` and `customer_id`
+	// only equals ("eq", "in") comparisons are supported.
 	Dimensions *map[string]QueryFilterStringMapItem `json:"dimensions,omitempty"`
 }
 
-// MeterQueryGranularity The granularity of the time grouping.
-// Time durations are specified in ISO 8601 format.
+// MeterQueryGranularity The granularity of the time grouping. Time durations are specified in ISO 8601
+// format.
 type MeterQueryGranularity string
 
 // MeterQueryRequest A meter query request.
@@ -4538,16 +4877,16 @@ type MeterQueryRequest struct {
 	// From The start of the period the usage is queried from.
 	From *DateTime `json:"from,omitempty"`
 
-	// Granularity The size of the time buckets to group the usage into.
-	// If not specified, the usage is aggregated over the entire period.
+	// Granularity The size of the time buckets to group the usage into. If not specified, the
+	// usage is aggregated over the entire period.
 	Granularity *MeterQueryGranularity `json:"granularity,omitempty"`
 
 	// GroupByDimensions The dimensions to group the results by.
 	GroupByDimensions *[]string `json:"group_by_dimensions,omitempty"`
 
-	// TimeZone The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
-	// The time zone is used to determine the start and end of the time buckets.
-	// If not specified, the UTC timezone will be used.
+	// TimeZone The value is the name of the time zone as defined in the IANA Time Zone Database
+	// (http://www.iana.org/time-zones). The time zone is used to determine the start
+	// and end of the time buckets. If not specified, the UTC timezone will be used.
 	TimeZone *string `json:"time_zone,omitempty"`
 
 	// To The end of the period the usage is queried to.
@@ -4556,8 +4895,7 @@ type MeterQueryRequest struct {
 
 // MeterQueryResult Meter query result.
 type MeterQueryResult struct {
-	// Data The usage data.
-	// If no data is available, an empty array is returned.
+	// Data The usage data. If no data is available, an empty array is returned.
 	Data []MeterQueryRow `json:"data"`
 
 	// From The start of the period the usage is queried from.
@@ -4569,8 +4907,8 @@ type MeterQueryResult struct {
 
 // MeterQueryRow A row in the result of a meter query.
 type MeterQueryRow struct {
-	// Dimensions The dimensions the value is aggregated over.
-	// `subject` and `customer_id` are reserved dimensions.
+	// Dimensions The dimensions the value is aggregated over. `subject` and `customer_id` are
+	// reserved dimensions.
 	Dimensions map[string]string `json:"dimensions"`
 
 	// From The start of the time bucket the value is aggregated over.
@@ -4585,11 +4923,11 @@ type MeterQueryRow struct {
 
 // MeteringEvent Metering event following the CloudEvents specification.
 type MeteringEvent struct {
-	// Data The event payload.
-	// Optional, if present it must be a JSON object.
+	// Data The event payload. Optional, if present it must be a JSON object.
 	Data nullable.Nullable[map[string]interface{}] `json:"data,omitempty"`
 
-	// Datacontenttype Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.
+	// Datacontenttype Content type of the CloudEvents data value. Only the value "application/json" is
+	// allowed over HTTP.
 	Datacontenttype nullable.Nullable[MeteringEventDatacontenttype] `json:"datacontenttype,omitempty"`
 
 	// Dataschema Identifies the schema that data adheres to.
@@ -4604,17 +4942,20 @@ type MeteringEvent struct {
 	// Specversion The version of the CloudEvents specification which the event uses.
 	Specversion string `json:"specversion"`
 
-	// Subject Describes the subject of the event in the context of the event producer (identified by source).
+	// Subject Describes the subject of the event in the context of the event producer
+	// (identified by source).
 	Subject string `json:"subject"`
 
 	// Time Timestamp of when the occurrence happened. Must adhere to RFC 3339.
 	Time nullable.Nullable[DateTime] `json:"time,omitempty"`
 
-	// Type Contains a value describing the type of event related to the originating occurrence.
+	// Type Contains a value describing the type of event related to the originating
+	// occurrence.
 	Type string `json:"type"`
 }
 
-// MeteringEventDatacontenttype Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.
+// MeteringEventDatacontenttype Content type of the CloudEvents data value. Only the value "application/json" is
+// allowed over HTTP.
 type MeteringEventDatacontenttype string
 
 // MeteringIngestedEvent An ingested metering event with ingestion metadata.
@@ -4659,6 +5000,24 @@ type NotFoundError struct {
 // Numeric Numeric represents an arbitrary precision number.
 type Numeric = string
 
+// OrganizationDefaultTaxCodes Organization-level default tax code references.
+//
+// Stores the default tax codes applied to specific billing contexts for this
+// organization. Provisioned automatically when the organization is created.
+type OrganizationDefaultTaxCodes struct {
+	// CreatedAt Timestamp of creation.
+	CreatedAt DateTime `json:"created_at"`
+
+	// CreditGrantTaxCode Default tax code for credit grants.
+	CreditGrantTaxCode TaxCodeReference `json:"credit_grant_tax_code"`
+
+	// InvoicingTaxCode Default tax code for invoicing.
+	InvoicingTaxCode TaxCodeReference `json:"invoicing_tax_code"`
+
+	// UpdatedAt Timestamp of last update.
+	UpdatedAt DateTime `json:"updated_at"`
+}
+
 // PageMeta Contains pagination query parameters and the total number of objects returned.
 type PageMeta struct {
 	Number float32 `json:"number"`
@@ -4672,14 +5031,14 @@ type PaginatedMeta struct {
 	Page PageMeta `json:"page"`
 }
 
-// PlanAddon PlanAddon represents an association between a plan and an add-on,
-// controlling which add-ons are available for purchase within a plan.
+// PlanAddon PlanAddon represents an association between a plan and an add-on, controlling
+// which add-ons are available for purchase within a plan.
 type PlanAddon struct {
 	// Addon The add-on associated with the plan.
 	Addon AddonReferenceItem `json:"addon"`
 
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt *DateTime `json:"created_at,omitempty"`
+	CreatedAt DateTime `json:"created_at"`
 
 	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
 	DeletedAt *DateTime `json:"deleted_at,omitempty"`
@@ -4698,9 +5057,9 @@ type PlanAddon struct {
 	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
 	Labels *Labels `json:"labels,omitempty"`
 
-	// MaxQuantity The maximum number of times the add-on can be purchased for the plan.
-	// For single-instance add-ons this field must be omitted.
-	// For multi-instance add-ons when omitted, unlimited quantity can be purchased.
+	// MaxQuantity The maximum number of times the add-on can be purchased for the plan. For
+	// single-instance add-ons this field must be omitted. For multi-instance add-ons
+	// when omitted, unlimited quantity can be purchased.
 	MaxQuantity *int `json:"max_quantity,omitempty"`
 
 	// Name Display name of the resource.
@@ -4709,7 +5068,7 @@ type PlanAddon struct {
 	Name string `json:"name"`
 
 	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+	UpdatedAt DateTime `json:"updated_at"`
 
 	// ValidationErrors List of validation errors.
 	ValidationErrors *[]ProductCatalogValidationError `json:"validation_errors,omitempty"`
@@ -4741,21 +5100,21 @@ type PricePagePaginatedResponse struct {
 
 // ProductCatalogValidationError Validation errors providing detailed description of the issue.
 type ProductCatalogValidationError struct {
-	// Attributes Additional attributes.
+	// Attributes Additional structured context.
 	Attributes *map[string]interface{} `json:"attributes,omitempty"`
 
-	// Code The machine readable code of the error.
+	// Code Machine-readable error code.
 	Code string `json:"code"`
 
 	// Field The path to the field.
 	Field string `json:"field"`
 
-	// Message The human readable description of the error.
+	// Message Human-readable description of the error.
 	Message string `json:"message"`
 }
 
-// QueryFilterString A query filter for a string attribute.
-// Operators are mutually exclusive, only one operator is allowed at a time.
+// QueryFilterString A query filter for a string attribute. Operators are mutually exclusive, only
+// one operator is allowed at a time.
 type QueryFilterString struct {
 	// And Combines the provided filters with a logical AND.
 	And *[]QueryFilterString `json:"and,omitempty"`
@@ -4782,8 +5141,8 @@ type QueryFilterString struct {
 	Or *[]QueryFilterString `json:"or,omitempty"`
 }
 
-// QueryFilterStringMapItem A query filter for an item in a string map attribute.
-// Operators are mutually exclusive, only one operator is allowed at a time.
+// QueryFilterStringMapItem A query filter for an item in a string map attribute. Operators are mutually
+// exclusive, only one operator is allowed at a time.
 type QueryFilterStringMapItem struct {
 	// And Combines the provided filters with a logical AND.
 	And *[]QueryFilterString `json:"and,omitempty"`
@@ -4828,6 +5187,7 @@ type ResourceKey = string
 // ResourceManagedBy Identifies which system manages a resource.
 //
 // Values:
+//
 // - `manual`: The resource is managed manually (overridden by our API users).
 // - `system`: The resource is managed by the system.
 // - `subscription`: The resource is managed by the subscription.
@@ -4839,13 +5199,65 @@ type ResourceManagedBy string
 // JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
 type SortQuery = string
 
-// StringFieldFilter Filters on the given string field value by either exact or fuzzy match.
-// All properties are optional; provide exactly one to specify the comparison.
+// StringFieldFilter Filters on the given string field value by either exact or fuzzy match. All
+// properties are optional; provide exactly one to specify the comparison.
 type StringFieldFilter = filters.FilterString
 
-// StringFieldFilterExact Filters on the given string field value by exact match.
-// All properties are optional; provide exactly one to specify the comparison.
+// StringFieldFilterExact Filters on the given string field value by exact match. All properties are
+// optional; provide exactly one to specify the comparison.
 type StringFieldFilterExact = filters.FilterStringExact
+
+// SubscriptionAddon Addon purchased with a subscription.
+type SubscriptionAddon struct {
+	// ActiveFrom An ISO-8601 timestamp representation of the cadence start of the resource.
+	ActiveFrom DateTime `json:"active_from"`
+
+	// ActiveTo An ISO-8601 timestamp representation of the cadence end of the resource.
+	ActiveTo *DateTime `json:"active_to,omitempty"`
+
+	// Addon The add-on associated with the subscription.
+	Addon AddonReferenceItem `json:"addon"`
+
+	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt DateTime `json:"created_at"`
+
+	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *DateTime `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+	Id          ULID    `json:"id"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// Quantity The quantity of the add-on. Always 1 for single instance add-ons.
+	Quantity int `json:"quantity"`
+
+	// QuantityAt An ISO-8601 timestamp representation of which point in time the quantity was
+	// resolved to.
+	QuantityAt DateTime `json:"quantity_at"`
+
+	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt DateTime `json:"updated_at"`
+}
+
+// SubscriptionAddonPagePaginatedResponse Page paginated response.
+type SubscriptionAddonPagePaginatedResponse struct {
+	Data []SubscriptionAddon `json:"data"`
+
+	// Meta returns the pagination information
+	Meta PaginatedMeta `json:"meta"`
+}
 
 // SubscriptionPagePaginatedResponse Page paginated response.
 type SubscriptionPagePaginatedResponse struct {
@@ -4863,6 +5275,12 @@ type TaxCodePagePaginatedResponse struct {
 	Meta PaginatedMeta `json:"meta"`
 }
 
+// TaxCodeReference TaxCode reference.
+type TaxCodeReference struct {
+	// Id ULID (Universally Unique Lexicographically Sortable Identifier).
+	Id ULID `json:"id"`
+}
+
 // TaxCodeReferenceItem TaxCode reference.
 type TaxCodeReferenceItem struct {
 	// Id ULID (Universally Unique Lexicographically Sortable Identifier).
@@ -4872,8 +5290,8 @@ type TaxCodeReferenceItem struct {
 // ULID ULID (Universally Unique Lexicographically Sortable Identifier).
 type ULID = string
 
-// ULIDFieldFilter Filters on the given ULID field value by exact match.
-// All properties are optional; provide exactly one to specify the comparison.
+// ULIDFieldFilter Filters on the given ULID field value by exact match. All properties are
+// optional; provide exactly one to specify the comparison.
 type ULIDFieldFilter = filters.FilterULID
 
 // UnauthorizedError defines model for UnauthorizedError.
@@ -4885,18 +5303,20 @@ type UnauthorizedError struct {
 	Type     interface{} `json:"type,omitempty"`
 }
 
-// UpdateCreditGrantExternalSettlementRequest Request body for updating the external payment settlement status of a credit grant.
+// UpdateCreditGrantExternalSettlementRequest Request body for updating the external payment settlement status of a credit
+// grant.
 type UpdateCreditGrantExternalSettlementRequest struct {
 	// Status The new payment settlement status.
 	Status BillingCreditPurchasePaymentSettlementStatus `json:"status"`
 }
 
-// UpdateFeatureRequest Request body for updating a feature.
-// Currently only the unit_cost field can be updated.
+// UpdateFeatureRequest Request body for updating a feature. Currently only the unit_cost field can be
+// updated.
 type UpdateFeatureRequest struct {
-	// UnitCost Optional per-unit cost configuration.
-	// Use "manual" for a fixed per-unit cost, or "llm" to look up cost
-	// from the LLM cost database based on meter group-by properties.
+	// UnitCost Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
+	// "llm" to look up cost from the LLM cost database based on meter group-by
+	// properties. Set to `null` to clear the existing unit cost; omit to leave it
+	// unchanged.
 	UnitCost nullable.Nullable[BillingFeatureUnitCost] `json:"unit_cost,omitempty"`
 }
 
@@ -4921,6 +5341,15 @@ type UpdateMeterRequest struct {
 	//
 	// Between 1 and 256 characters.
 	Name *string `json:"name,omitempty"`
+}
+
+// UpdateOrganizationDefaultTaxCodesRequest OrganizationDefaultTaxCodes update request.
+type UpdateOrganizationDefaultTaxCodesRequest struct {
+	// CreditGrantTaxCode Default tax code for credit grants.
+	CreditGrantTaxCode *TaxCodeReference `json:"credit_grant_tax_code,omitempty"`
+
+	// InvoicingTaxCode Default tax code for invoicing.
+	InvoicingTaxCode *TaxCodeReference `json:"invoicing_tax_code,omitempty"`
 }
 
 // UpsertAddonRequest Addon upsert request.
@@ -4976,7 +5405,8 @@ type UpsertBillingProfileRequest struct {
 	// Between 1 and 256 characters.
 	Name string `json:"name"`
 
-	// Supplier The name and contact information for the supplier this billing profile represents
+	// Supplier The name and contact information for the supplier this billing profile
+	// represents
 	Supplier BillingParty `json:"supplier"`
 
 	// Workflow The billing workflow settings for this profile
@@ -4996,12 +5426,10 @@ type UpsertCustomerBillingDataRequest struct {
 
 // UpsertCustomerRequest Customer upsert request.
 type UpsertCustomerRequest struct {
-	// BillingAddress The billing address of the customer.
-	// Used for tax and invoicing.
+	// BillingAddress The billing address of the customer. Used for tax and invoicing.
 	BillingAddress *BillingAddress `json:"billing_address,omitempty"`
 
-	// Currency Currency of the customer.
-	// Used for billing, tax and invoicing.
+	// Currency Currency of the customer. Used for billing, tax and invoicing.
 	Currency *CurrencyCode `json:"currency,omitempty"`
 
 	// Description Optional description of the resource.
@@ -5041,9 +5469,9 @@ type UpsertPlanAddonRequest struct {
 	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
 	Labels *Labels `json:"labels,omitempty"`
 
-	// MaxQuantity The maximum number of times the add-on can be purchased for the plan.
-	// For single-instance add-ons this field must be omitted.
-	// For multi-instance add-ons when omitted, unlimited quantity can be purchased.
+	// MaxQuantity The maximum number of times the add-on can be purchased for the plan. For
+	// single-instance add-ons this field must be omitted. For multi-instance add-ons
+	// when omitted, unlimited quantity can be purchased.
 	MaxQuantity *int `json:"max_quantity,omitempty"`
 
 	// Name Display name of the resource.
@@ -5069,14 +5497,11 @@ type UpsertPlanRequest struct {
 	// Between 1 and 256 characters.
 	Name string `json:"name"`
 
-	// Phases The plan phases define the pricing ramp for a subscription.
-	// A phase switch occurs only at the end of a billing period.
-	// At least one phase is required.
+	// Phases The plan phases define the pricing ramp for a subscription. A phase switch
+	// occurs only at the end of a billing period. At least one phase is required.
 	Phases []BillingPlanPhase `json:"phases"`
 
 	// ProRatingEnabled Whether pro-rating is enabled for this plan.
-	//
-	// TODO: WIP — pro-rating mode and exact semantics will be defined in a later iteration.
 	ProRatingEnabled *bool `json:"pro_rating_enabled,omitempty"`
 }
 
@@ -5104,17 +5529,8 @@ type UpsertTaxCodeRequest struct {
 // UsageAttributionSubjectKey Subject key.
 type UsageAttributionSubjectKey = string
 
-// CursorPaginationQuery defines model for CursorPaginationQuery.
-type CursorPaginationQuery struct {
-	// After Request the next page of data, starting with the item after this parameter.
-	After *string `json:"after,omitempty"`
-
-	// Before Request the previous page of data, starting with the item before this parameter.
-	Before *string `json:"before,omitempty"`
-
-	// Size The number of items to include per page.
-	Size *int `json:"size,omitempty"`
-}
+// CursorPaginationQuery Determines which page of the collection to retrieve.
+type CursorPaginationQuery = CursorPaginationQueryPage
 
 // PagePaginationQuery defines model for PagePaginationQuery.
 type PagePaginationQuery struct {
@@ -5148,16 +5564,16 @@ type ListAddonsParams struct {
 	// Page Determines which page of the collection to retrieve.
 	Page *PagePaginationQuery `json:"page,omitempty"`
 
-	// Sort Sort add-ons returned in the response.
-	// Supported sort attributes are:
+	// Sort Sort add-ons returned in the response. Supported sort attributes are:
+	//
 	// - `id`
 	// - `key`
 	// - `name`
 	// - `created_at` (default)
 	// - `updated_at`
 	//
-	// The `asc` suffix is optional as the default sort order is ascending.
-	// The `desc` suffix is used to specify a descending order.
+	// The `asc` suffix is optional as the default sort order is ascending. The `desc`
+	// suffix is used to specify a descending order.
 	Sort *SortQuery `form:"sort,omitempty" json:"sort,omitempty"`
 
 	// Filter Filter add-ons returned in the response.
@@ -5175,6 +5591,15 @@ type ListCurrenciesParams struct {
 	// Page Determines which page of the collection to retrieve.
 	Page *PagePaginationQuery `json:"page,omitempty"`
 
+	// Sort Sort currencies returned in the response. Supported sort attributes are:
+	//
+	// - `code` (default)
+	// - `name`
+	//
+	// The `asc` suffix is optional as the default sort order is ascending. The `desc`
+	// suffix is used to specify a descending order.
+	Sort *SortQuery `form:"sort,omitempty" json:"sort,omitempty"`
+
 	// Filter Filter currencies returned in the response.
 	//
 	// To filter currencies by type add the following query param: filter[type]=custom
@@ -5185,7 +5610,8 @@ type ListCurrenciesParams struct {
 type ListCostBasesParams struct {
 	// Filter Filter cost bases returned in the response.
 	//
-	// To filter cost bases by fiat currency code add the following query param: filter[fiat_code]=USD
+	// To filter cost bases by fiat currency code add the following query param:
+	// filter[fiat_code]=USD
 	Filter *ListCostBasesParamsFilter `json:"filter,omitempty"`
 
 	// Page Determines which page of the collection to retrieve.
@@ -5197,14 +5623,14 @@ type ListCustomersParams struct {
 	// Page Determines which page of the collection to retrieve.
 	Page *PagePaginationQuery `json:"page,omitempty"`
 
-	// Sort Sort customers returned in the response.
-	// Supported sort attributes are:
+	// Sort Sort customers returned in the response. Supported sort attributes are:
+	//
 	// - `id`
 	// - `name` (default)
 	// - `created_at`
 	//
-	// The `asc` suffix is optional as the default sort order is ascending.
-	// The `desc` suffix is used to specify a descending order.
+	// The `asc` suffix is optional as the default sort order is ascending. The `desc`
+	// suffix is used to specify a descending order.
 	Sort *SortQuery `form:"sort,omitempty" json:"sort,omitempty"`
 
 	// Filter Filter customers returned in the response.
@@ -5221,6 +5647,7 @@ type ListCustomerChargesParams struct {
 	// Sort Sort charges returned in the response.
 	//
 	// Supported sort attributes are:
+	//
 	// - `id`
 	// - `created_at`
 	// - `service_period.from`
@@ -5229,16 +5656,25 @@ type ListCustomerChargesParams struct {
 
 	// Filter Filter charges.
 	//
-	// To filter charges by status add the following query param: `filter[status][oeq]=created,active`
+	// To filter charges by status add the following query param:
+	// `filter[status][oeq]=created,active`
 	Filter *ListChargesParamsFilter `json:"filter,omitempty"`
 
-	// Expand Expands
+	// Expand Expand full objects for referenced entities.
+	//
+	// Supported values are:
+	//
+	// - `real_time_usage`: Expand the charge's real-time usage.
 	Expand *[]BillingChargesExpand `form:"expand,omitempty" json:"expand,omitempty"`
 }
 
 // GetCustomerCreditBalanceParams defines parameters for GetCustomerCreditBalance.
 type GetCustomerCreditBalanceParams struct {
-	Filter *GetCreditBalanceParamsFilter `json:"filter,omitempty"`
+	// Timestamp Return the credit balance as of this timestamp.
+	//
+	// Defaults to the current time.
+	Timestamp *DateTime                     `form:"timestamp,omitempty" json:"timestamp,omitempty"`
+	Filter    *GetCreditBalanceParamsFilter `json:"filter,omitempty"`
 }
 
 // ListCreditGrantsParams defines parameters for ListCreditGrants.
@@ -5252,7 +5688,6 @@ type ListCreditGrantsParams struct {
 
 // ListCreditTransactionsParams defines parameters for ListCreditTransactions.
 type ListCreditTransactionsParams struct {
-	// Page Determines which page of the collection to retrieve.
 	Page *CursorPaginationQuery `json:"page,omitempty"`
 
 	// Filter Filter credit transactions returned in the response.
@@ -5261,23 +5696,23 @@ type ListCreditTransactionsParams struct {
 
 // ListMeteringEventsParams defines parameters for ListMeteringEvents.
 type ListMeteringEventsParams struct {
-	// Page Determines which page of the collection to retrieve.
 	Page *CursorPaginationQuery `json:"page,omitempty"`
 
 	// Filter Filter events returned in the response.
 	//
-	// To filter events by subject add the following query param: filter[subject][eq]=customer-1
+	// To filter events by subject add the following query param:
+	// filter[subject][eq]=customer-1
 	Filter *ListEventsParamsFilter `json:"filter,omitempty"`
 
-	// Sort Sort events returned in the response.
-	// Supported sort attributes are:
+	// Sort Sort events returned in the response. Supported sort attributes are:
+	//
 	// - `time` (default)
 	// - `ingested_at`
 	// - `stored_at`
 	//
-	// When omitted, events are sorted by `time desc` (most recent first).
-	// When a sort field is provided without a suffix, it sorts descending.
-	// Append the `asc` suffix to sort ascending, or the `desc` suffix to sort descending.
+	// When omitted, events are sorted by `time desc` (most recent first). When a sort
+	// field is provided without a suffix, it sorts descending. Append the `asc` suffix
+	// to sort ascending, or the `desc` suffix to sort descending.
 	Sort *SortQuery `form:"sort,omitempty" json:"sort,omitempty"`
 }
 
@@ -5297,21 +5732,27 @@ type ListFeaturesParams struct {
 	// Page Determines which page of the collection to retrieve.
 	Page *PagePaginationQuery `json:"page,omitempty"`
 
-	// Sort Sort features returned in the response.
-	// Supported sort attributes are:
+	// Sort Sort features returned in the response. Supported sort attributes are:
+	//
 	// - `key`
 	// - `name`
 	// - `created_at` (default)
 	// - `updated_at`
 	//
-	// The `asc` suffix is optional as the default sort order is ascending.
-	// The `desc` suffix is used to specify a descending order.
+	// The `asc` suffix is optional as the default sort order is ascending. The `desc`
+	// suffix is used to specify a descending order.
 	Sort *SortQuery `form:"sort,omitempty" json:"sort,omitempty"`
 
 	// Filter Filter features returned in the response.
 	//
-	// To filter features by meter_id add the following query param: filter[meter_id][oeq]=<id>
+	// To filter features by meter_id add the following query param:
+	// filter[meter_id][oeq]=<id>
 	Filter *ListFeatureParamsFilter `json:"filter,omitempty"`
+}
+
+// QueryGovernanceAccessParams defines parameters for QueryGovernanceAccess.
+type QueryGovernanceAccessParams struct {
+	Page *CursorPaginationQuery `json:"page,omitempty"`
 }
 
 // ListLlmCostOverridesParams defines parameters for ListLlmCostOverrides.
@@ -5327,16 +5768,16 @@ type ListLlmCostPricesParams struct {
 	// Filter Filter prices.
 	Filter *ListLLMCostPricesParamsFilter `json:"filter,omitempty"`
 
-	// Sort Sort prices returned in the response.
-	// Supported sort attributes are:
+	// Sort Sort prices returned in the response. Supported sort attributes are:
+	//
 	// - `id`
 	// - `provider.id`
 	// - `model.id` (default)
 	// - `effective_from`
 	// - `effective_to`
 	//
-	// The `asc` suffix is optional as the default sort order is ascending.
-	// The `desc` suffix is used to specify a descending order.
+	// The `asc` suffix is optional as the default sort order is ascending. The `desc`
+	// suffix is used to specify a descending order.
 	Sort *SortQuery `form:"sort,omitempty" json:"sort,omitempty"`
 
 	// Page Determines which page of the collection to retrieve.
@@ -5347,6 +5788,18 @@ type ListLlmCostPricesParams struct {
 type ListMetersParams struct {
 	// Page Determines which page of the collection to retrieve.
 	Page *PagePaginationQuery `json:"page,omitempty"`
+
+	// Sort Sort meters returned in the response. Supported sort attributes are:
+	//
+	// - `key`
+	// - `name`
+	// - `aggregation`
+	// - `createdAt` (default)
+	// - `updatedAt`
+	//
+	// The `asc` suffix is optional as the default sort order is ascending. The `desc`
+	// suffix is used to specify a descending order.
+	Sort *SortQuery `form:"sort,omitempty" json:"sort,omitempty"`
 
 	// Filter Filter meters returned in the response.
 	//
@@ -5359,8 +5812,8 @@ type ListPlansParams struct {
 	// Page Determines which page of the collection to retrieve.
 	Page *PagePaginationQuery `json:"page,omitempty"`
 
-	// Sort Sort plans returned in the response.
-	// Supported sort attributes are:
+	// Sort Sort plans returned in the response. Supported sort attributes are:
+	//
 	// - `id`
 	// - `key`
 	// - `version`
@@ -5389,11 +5842,25 @@ type ListSubscriptionsParams struct {
 	// Page Determines which page of the collection to retrieve.
 	Page *PagePaginationQuery `json:"page,omitempty"`
 
+	// Sort Sort subscriptions returned in the response. Supported sort attributes are:
+	//
+	// - `id`
+	// - `active_from` (default)
+	// - `active_to`
+	//
+	// The `asc` suffix is optional as the default sort order is ascending. The `desc`
+	// suffix is used to specify a descending order.
+	Sort *SortQuery `form:"sort,omitempty" json:"sort,omitempty"`
+
 	// Filter Filter subscriptions.
-	Filter *struct {
-		// CustomerId Filter subscriptions by customer ID.
-		CustomerId *ULID `json:"customer_id,omitempty"`
-	} `json:"filter,omitempty"`
+	Filter *ListSubscriptionsParamsFilter `json:"filter,omitempty"`
+}
+
+// ListSubscriptionAddonsParams defines parameters for ListSubscriptionAddons.
+type ListSubscriptionAddonsParams struct {
+	// Page Determines which page of the collection to retrieve.
+	Page *PagePaginationQuery `json:"page,omitempty"`
+	Sort *SortQuery           `form:"sort,omitempty" json:"sort,omitempty"`
 }
 
 // ListTaxCodesParams defines parameters for ListTaxCodes.
@@ -5444,6 +5911,9 @@ type CreateCreditGrantJSONRequestBody = CreateCreditGrantRequest
 // UpdateCreditGrantExternalSettlementJSONRequestBody defines body for UpdateCreditGrantExternalSettlement for application/json ContentType.
 type UpdateCreditGrantExternalSettlementJSONRequestBody = UpdateCreditGrantExternalSettlementRequest
 
+// UpdateOrganizationDefaultTaxCodesJSONRequestBody defines body for UpdateOrganizationDefaultTaxCodes for application/json ContentType.
+type UpdateOrganizationDefaultTaxCodesJSONRequestBody = UpdateOrganizationDefaultTaxCodesRequest
+
 // IngestMeteringEventsApplicationCloudeventsPlusJSONRequestBody defines body for IngestMeteringEvents for application/cloudevents+json ContentType.
 type IngestMeteringEventsApplicationCloudeventsPlusJSONRequestBody = MeteringEvent
 
@@ -5461,6 +5931,9 @@ type UpdateFeatureJSONRequestBody = UpdateFeatureRequest
 
 // QueryFeatureCostJSONRequestBody defines body for QueryFeatureCost for application/json ContentType.
 type QueryFeatureCostJSONRequestBody = MeterQueryRequest
+
+// QueryGovernanceAccessJSONRequestBody defines body for QueryGovernanceAccess for application/json ContentType.
+type QueryGovernanceAccessJSONRequestBody = GovernanceQueryRequest
 
 // CreateLlmCostOverrideJSONRequestBody defines body for CreateLlmCostOverride for application/json ContentType.
 type CreateLlmCostOverrideJSONRequestBody = LLMCostOverrideCreate
@@ -6550,6 +7023,12 @@ type ServerInterface interface {
 	// List customer entitlement access
 	// (GET /openmeter/customers/{customerId}/entitlement-access)
 	ListCustomerEntitlementAccess(w http.ResponseWriter, r *http.Request, customerId ULID)
+	// Get organization default tax codes
+	// (GET /openmeter/defaults/tax-codes)
+	GetOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request)
+	// Update organization default tax codes
+	// (PUT /openmeter/defaults/tax-codes)
+	UpdateOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request)
 	// List metering events
 	// (GET /openmeter/events)
 	ListMeteringEvents(w http.ResponseWriter, r *http.Request, params ListMeteringEventsParams)
@@ -6574,6 +7053,9 @@ type ServerInterface interface {
 	// Query feature cost
 	// (POST /openmeter/features/{featureId}/cost/query)
 	QueryFeatureCost(w http.ResponseWriter, r *http.Request, featureId ULID)
+	// Query governance access
+	// (POST /openmeter/governance/query)
+	QueryGovernanceAccess(w http.ResponseWriter, r *http.Request, params QueryGovernanceAccessParams)
 	// List LLM cost overrides
 	// (GET /openmeter/llm-cost/overrides)
 	ListLlmCostOverrides(w http.ResponseWriter, r *http.Request, params ListLlmCostOverridesParams)
@@ -6667,6 +7149,12 @@ type ServerInterface interface {
 	// Get subscription
 	// (GET /openmeter/subscriptions/{subscriptionId})
 	GetSubscription(w http.ResponseWriter, r *http.Request, subscriptionId ULID)
+	// List subscription addons
+	// (GET /openmeter/subscriptions/{subscriptionId}/addons)
+	ListSubscriptionAddons(w http.ResponseWriter, r *http.Request, subscriptionId ULID, params ListSubscriptionAddonsParams)
+	// Get add-on association for subscription
+	// (GET /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId})
+	GetSubscriptionAddon(w http.ResponseWriter, r *http.Request, subscriptionId ULID, subscriptionAddonId ULID)
 	// Cancel subscription
 	// (POST /openmeter/subscriptions/{subscriptionId}/cancel)
 	CancelSubscription(w http.ResponseWriter, r *http.Request, subscriptionId ULID)
@@ -6889,6 +7377,18 @@ func (_ Unimplemented) ListCustomerEntitlementAccess(w http.ResponseWriter, r *h
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Get organization default tax codes
+// (GET /openmeter/defaults/tax-codes)
+func (_ Unimplemented) GetOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update organization default tax codes
+// (PUT /openmeter/defaults/tax-codes)
+func (_ Unimplemented) UpdateOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // List metering events
 // (GET /openmeter/events)
 func (_ Unimplemented) ListMeteringEvents(w http.ResponseWriter, r *http.Request, params ListMeteringEventsParams) {
@@ -6934,6 +7434,12 @@ func (_ Unimplemented) UpdateFeature(w http.ResponseWriter, r *http.Request, fea
 // Query feature cost
 // (POST /openmeter/features/{featureId}/cost/query)
 func (_ Unimplemented) QueryFeatureCost(w http.ResponseWriter, r *http.Request, featureId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Query governance access
+// (POST /openmeter/governance/query)
+func (_ Unimplemented) QueryGovernanceAccess(w http.ResponseWriter, r *http.Request, params QueryGovernanceAccessParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -7120,6 +7626,18 @@ func (_ Unimplemented) CreateSubscription(w http.ResponseWriter, r *http.Request
 // Get subscription
 // (GET /openmeter/subscriptions/{subscriptionId})
 func (_ Unimplemented) GetSubscription(w http.ResponseWriter, r *http.Request, subscriptionId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List subscription addons
+// (GET /openmeter/subscriptions/{subscriptionId}/addons)
+func (_ Unimplemented) ListSubscriptionAddons(w http.ResponseWriter, r *http.Request, subscriptionId ULID, params ListSubscriptionAddonsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get add-on association for subscription
+// (GET /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId})
+func (_ Unimplemented) GetSubscriptionAddon(w http.ResponseWriter, r *http.Request, subscriptionId ULID, subscriptionAddonId ULID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -7427,6 +7945,14 @@ func (siw *ServerInterfaceWrapper) ListCurrencies(w http.ResponseWriter, r *http
 	err = runtime.BindQueryParameterWithOptions("deepObject", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "object", Format: ""})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
 		return
 	}
 
@@ -7891,6 +8417,14 @@ func (siw *ServerInterfaceWrapper) GetCustomerCreditBalance(w http.ResponseWrite
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetCustomerCreditBalanceParams
 
+	// ------------- Optional query parameter "timestamp" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, false, "timestamp", r.URL.Query(), &params.Timestamp, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "timestamp", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "filter" -------------
 
 	err = filters.Parse(r.URL.Query(), &params.Filter)
@@ -8116,6 +8650,34 @@ func (siw *ServerInterfaceWrapper) ListCustomerEntitlementAccess(w http.Response
 	handler.ServeHTTP(w, r)
 }
 
+// GetOrganizationDefaultTaxCodes operation middleware
+func (siw *ServerInterfaceWrapper) GetOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOrganizationDefaultTaxCodes(w, r)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateOrganizationDefaultTaxCodes operation middleware
+func (siw *ServerInterfaceWrapper) UpdateOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateOrganizationDefaultTaxCodes(w, r)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListMeteringEvents operation middleware
 func (siw *ServerInterfaceWrapper) ListMeteringEvents(w http.ResponseWriter, r *http.Request) {
 
@@ -8330,6 +8892,33 @@ func (siw *ServerInterfaceWrapper) QueryFeatureCost(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// QueryGovernanceAccess operation middleware
+func (siw *ServerInterfaceWrapper) QueryGovernanceAccess(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params QueryGovernanceAccessParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("deepObject", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "object", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.QueryGovernanceAccess(w, r, params)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListLlmCostOverrides operation middleware
 func (siw *ServerInterfaceWrapper) ListLlmCostOverrides(w http.ResponseWriter, r *http.Request) {
 
@@ -8485,6 +9074,14 @@ func (siw *ServerInterfaceWrapper) ListMeters(w http.ResponseWriter, r *http.Req
 	err = runtime.BindQueryParameterWithOptions("deepObject", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "object", Format: ""})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
 		return
 	}
 
@@ -9098,6 +9695,14 @@ func (siw *ServerInterfaceWrapper) ListSubscriptions(w http.ResponseWriter, r *h
 		return
 	}
 
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "filter" -------------
 
 	err = filters.Parse(r.URL.Query(), &params.Filter)
@@ -9147,6 +9752,84 @@ func (siw *ServerInterfaceWrapper) GetSubscription(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetSubscription(w, r, subscriptionId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSubscriptionAddons operation middleware
+func (siw *ServerInterfaceWrapper) ListSubscriptionAddons(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subscriptionId" -------------
+	var subscriptionId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscriptionId", chi.URLParam(r, "subscriptionId"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscriptionId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSubscriptionAddonsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("deepObject", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "object", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSubscriptionAddons(w, r, subscriptionId, params)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSubscriptionAddon operation middleware
+func (siw *ServerInterfaceWrapper) GetSubscriptionAddon(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "subscriptionId" -------------
+	var subscriptionId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscriptionId", chi.URLParam(r, "subscriptionId"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscriptionId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "subscriptionAddonId" -------------
+	var subscriptionAddonId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscriptionAddonId", chi.URLParam(r, "subscriptionAddonId"), &subscriptionAddonId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscriptionAddonId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSubscriptionAddon(w, r, subscriptionId, subscriptionAddonId)
 	}))
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -9565,6 +10248,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/openmeter/customers/{customerId}/entitlement-access", wrapper.ListCustomerEntitlementAccess)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/defaults/tax-codes", wrapper.GetOrganizationDefaultTaxCodes)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/openmeter/defaults/tax-codes", wrapper.UpdateOrganizationDefaultTaxCodes)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/openmeter/events", wrapper.ListMeteringEvents)
 	})
 	r.Group(func(r chi.Router) {
@@ -9587,6 +10276,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/openmeter/features/{featureId}/cost/query", wrapper.QueryFeatureCost)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/openmeter/governance/query", wrapper.QueryGovernanceAccess)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/openmeter/llm-cost/overrides", wrapper.ListLlmCostOverrides)
@@ -9682,6 +10374,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/openmeter/subscriptions/{subscriptionId}", wrapper.GetSubscription)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/subscriptions/{subscriptionId}/addons", wrapper.ListSubscriptionAddons)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}", wrapper.GetSubscriptionAddon)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/openmeter/subscriptions/{subscriptionId}/cancel", wrapper.CancelSubscription)
 	})
 	r.Group(func(r chi.Router) {
@@ -9712,598 +10410,656 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -26,6 +26,7 @@ type ChargeService interface {
 	GetByID(ctx context.Context, input GetByIDInput) (Charge, error)
 	GetByIDs(ctx context.Context, input GetByIDsInput) (Charges, error)
 	Create(ctx context.Context, input CreateInput) (Charges, error)
+	UpdateSubscriptionItemID(ctx context.Context, charge Charge, newSubscriptionItemID string) (Charge, error)
 
 	AdvanceCharges(ctx context.Context, input AdvanceChargesInput) (Charges, error)
 	ListCustomersToAdvance(ctx context.Context, input ListCustomersToAdvanceInput) (pagination.Result[customer.CustomerID], error)

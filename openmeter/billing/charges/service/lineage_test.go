@@ -58,6 +58,7 @@ func (s *CreditRealizationLineageTestSuite) TestFlatFeeCreditOnlyAllocationCreat
 
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-realization-lineage")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -73,7 +74,7 @@ func (s *CreditRealizationLineageTestSuite) TestFlatFeeCreditOnlyAllocationCreat
 		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
 	}
 
-	s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+	s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 		return creditrealization.CreateAllocationInputs{
 			{
 				ServicePeriod: input.Charge.Intent.ServicePeriod,
@@ -122,13 +123,14 @@ func (s *CreditRealizationLineageTestSuite) TestFlatFeeCreditOnlyAllocationCreat
 
 	charge, err := s.mustGetChargeByID(chargeID).AsFlatFeeCharge()
 	s.NoError(err)
-	s.Len(charge.Realizations.CreditRealizations, 2)
+	s.Require().NotNil(charge.Realizations.CurrentRun)
+	s.Len(charge.Realizations.CurrentRun.CreditRealizations, 2)
 
-	lineages := s.mustListLineages(ns, realizationIDs(charge.Realizations.CreditRealizations))
+	lineages := s.mustListLineages(ns, realizationIDs(charge.Realizations.CurrentRun.CreditRealizations))
 	s.Require().Len(lineages, 2)
 
-	s.assertInitialLineage(lineages[charge.Realizations.CreditRealizations[0].ID], chargeID.ID, charge.Realizations.CreditRealizations[0].Amount, creditrealization.LineageOriginKindRealCredit, creditrealization.LineageSegmentStateRealCredit)
-	s.assertInitialLineage(lineages[charge.Realizations.CreditRealizations[1].ID], chargeID.ID, charge.Realizations.CreditRealizations[1].Amount, creditrealization.LineageOriginKindAdvance, creditrealization.LineageSegmentStateAdvanceUncovered)
+	s.assertInitialLineage(lineages[charge.Realizations.CurrentRun.CreditRealizations[0].ID], chargeID.ID, charge.Realizations.CurrentRun.CreditRealizations[0].Amount, creditrealization.LineageOriginKindRealCredit, creditrealization.LineageSegmentStateRealCredit)
+	s.assertInitialLineage(lineages[charge.Realizations.CurrentRun.CreditRealizations[1].ID], chargeID.ID, charge.Realizations.CurrentRun.CreditRealizations[1].Amount, creditrealization.LineageOriginKindAdvance, creditrealization.LineageSegmentStateAdvanceUncovered)
 }
 
 func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCreatesInitialLineage() {
@@ -136,6 +138,7 @@ func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCr
 
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-usagebased-credit-realization-lineage")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)

@@ -91,6 +91,17 @@ Rules:
 
 These are distinct fields and must not be conflated.
 
+### Usage-Based Quantities
+
+`StandardLine.UsageBased.MeteredQuantity` and `Quantity` represent the quantity for the standard line's own billing period, not a cumulative service-period quantity. For progressively billed lines, `PreLinePeriodQuantity` and `MeteredPreLinePeriodQuantity` carry the quantity already represented before the current standard line.
+
+Billing's quantity snapshot path (`service/quantitysnapshot.go`) calculates this as:
+
+- `PreLinePeriodQty`: usage from the split/progressive group service-period start up to the current line start
+- `LinePeriodQty`: usage up to the current line end minus `PreLinePeriodQty`
+
+Charge-backed usage-based lines must follow the same standard-line semantics when lifecycle hooks update line contents. Usage-based charge runs store cumulative `RealizationRun.MeteredQuantity`; charge mappers must translate it to billing line-period/pre-line-period quantities before setting `StandardLine.UsageBased` fields.
+
 ## Service / Adapter Pattern
 
 `billing.Service` is a **composite interface** of 10 sub-interfaces defined in `service.go`:

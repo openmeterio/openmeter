@@ -28,7 +28,7 @@ func (f FieldAttrValue) valueString() string {
 
 	switch v := f.value.(type) {
 	case int, int32, int64, float32, float64:
-		b.WriteString(fmt.Sprintf("%v", v))
+		fmt.Fprintf(&b, "%v", v)
 	case string:
 		b.WriteString(v)
 	case fmt.Stringer:

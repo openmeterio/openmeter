@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebased "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	dbchargeusagebasedruns "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -35,6 +36,8 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetDiscounts(&charge.Intent.Discounts).
 			SetFeatureID(charge.State.FeatureID).
+			SetInvoiceAt(meta.NormalizeTimestamp(charge.Intent.InvoiceAt).In(time.UTC)).
+			SetRatingEngine(charge.State.RatingEngine).
 			SetStatus(metaStatus).
 			SetStatusDetailed(charge.Status).
 			SetOrClearCurrentRealizationRunID(charge.State.CurrentRealizationRunID)
@@ -55,6 +58,36 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 		}
 
 		return MapChargeBaseFromDB(dbUpdatedChargeBase), nil
+	})
+}
+
+func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge usagebased.Charge, newSubscriptionItemID string) (usagebased.Charge, error) {
+	if err := charge.ManagedModel.Validate(); err != nil {
+		return usagebased.Charge{}, err
+	}
+
+	if err := charge.Validate(); err != nil {
+		return usagebased.Charge{}, err
+	}
+
+	if newSubscriptionItemID == "" {
+		return usagebased.Charge{}, fmt.Errorf("subscription item ID is required")
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.Charge, error) {
+		// TODO: make subscription_item_id immutable again once subscription edits
+		// no longer recreate the item ID for logical item updates.
+		updatedChargeBase, err := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
+			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
+			SetSubscriptionItemID(newSubscriptionItemID).
+			Save(ctx)
+		if err != nil {
+			return usagebased.Charge{}, err
+		}
+
+		charge.ChargeBase = MapChargeBaseFromDB(updatedChargeBase)
+
+		return charge, nil
 	})
 }
 
@@ -135,7 +168,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 			Where(dbchargeusagebased.IDIn(input.IDs...))
 
 		if input.Expands.Has(meta.ExpandRealizations) {
-			query = expandRealizations(query)
+			query = expandRealizations(query, input.Expands)
 		}
 
 		entities, err := query.All(ctx)
@@ -179,7 +212,7 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 			Where(dbchargeusagebased.ID(input.ChargeID.ID))
 
 		if input.Expands.Has(meta.ExpandRealizations) {
-			query = expandRealizations(query)
+			query = expandRealizations(query, input.Expands)
 		}
 
 		entity, err := query.First(ctx)
@@ -207,9 +240,13 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 	})
 }
 
-func expandRealizations(query *db.ChargeUsageBasedQuery) *db.ChargeUsageBasedQuery {
+func expandRealizations(query *db.ChargeUsageBasedQuery, expands meta.Expands) *db.ChargeUsageBasedQuery {
 	return query.WithRuns(
 		func(runs *db.ChargeUsageBasedRunsQuery) {
+			if !expands.Has(meta.ExpandDeletedRealizations) {
+				runs = runs.Where(dbchargeusagebasedruns.DeletedAtIsNil())
+			}
+
 			runs.WithCreditAllocations().
 				WithInvoicedUsage().
 				WithPayment()
@@ -221,6 +258,7 @@ func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, in
 	create := a.db.ChargeUsageBased.Create().
 		SetDiscounts(&intent.Discounts).
 		SetFeatureID(intent.FeatureID).
+		SetRatingEngine(intent.RatingEngine).
 		SetPrice(&intent.Price).
 		SetStatusDetailed(usagebased.Status(meta.ChargeStatusCreated)).
 		SetFeatureKey(intent.FeatureKey).

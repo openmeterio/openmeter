@@ -14,8 +14,13 @@ const (
 	AnnotationSubscriptionItemID  = "ledger.subscription.item.id"
 	AnnotationFeatureID           = "ledger.feature.id"
 
-	AnnotationTransactionTemplateName = "ledger.transaction.template_name"
+	AnnotationTransactionTemplateCode = "ledger.transaction.template_code"
 	AnnotationTransactionDirection    = "ledger.transaction.direction"
+	AnnotationCollectionType          = "ledger.collection.type"
+	AnnotationCollectionSourceOrder   = "ledger.collection.source_order"
+	AnnotationBreakageKind            = "ledger.breakage.kind"
+	AnnotationBreakageRecordID        = "ledger.breakage.record_id"
+	AnnotationBreakagePlanID          = "ledger.breakage.plan_id"
 )
 
 type ChargeTransactionAnnotationsInput struct {
@@ -33,6 +38,44 @@ const (
 	TransactionDirectionForward    TransactionDirection = "forward"
 	TransactionDirectionCorrection TransactionDirection = "correction"
 )
+
+const CollectionTypeBreakage = "breakage"
+
+type BreakageKind string
+
+const (
+	BreakageKindPlan    BreakageKind = "plan"
+	BreakageKindRelease BreakageKind = "release"
+	BreakageKindReopen  BreakageKind = "reopen"
+)
+
+func (BreakageKind) Values() []string {
+	return []string{
+		string(BreakageKindPlan),
+		string(BreakageKindRelease),
+		string(BreakageKindReopen),
+	}
+}
+
+type BreakageSourceKind string
+
+const (
+	BreakageSourceKindCreditPurchase           BreakageSourceKind = "credit_purchase"
+	BreakageSourceKindUsage                    BreakageSourceKind = "usage"
+	BreakageSourceKindUsageCorrection          BreakageSourceKind = "usage_correction"
+	BreakageSourceKindCreditPurchaseCorrection BreakageSourceKind = "credit_purchase_correction"
+	BreakageSourceKindAdvanceBackfill          BreakageSourceKind = "advance_backfill"
+)
+
+func (BreakageSourceKind) Values() []string {
+	return []string{
+		string(BreakageSourceKindCreditPurchase),
+		string(BreakageSourceKindUsage),
+		string(BreakageSourceKindUsageCorrection),
+		string(BreakageSourceKindCreditPurchaseCorrection),
+		string(BreakageSourceKindAdvanceBackfill),
+	}
+}
 
 func ChargeAnnotations(chargeID models.NamespacedID) models.Annotations {
 	return models.Annotations{
@@ -63,25 +106,39 @@ func ChargeTransactionAnnotations(input ChargeTransactionAnnotationsInput) model
 	return annotations
 }
 
-func TransactionAnnotations(templateName string, direction TransactionDirection) models.Annotations {
+func TransactionAnnotations(templateCode string, direction TransactionDirection) models.Annotations {
 	return models.Annotations{
-		AnnotationTransactionTemplateName: templateName,
+		AnnotationTransactionTemplateCode: templateCode,
 		AnnotationTransactionDirection:    string(direction),
 	}
 }
 
-func TransactionTemplateNameFromAnnotations(annotations models.Annotations) (string, error) {
-	raw, ok := annotations[AnnotationTransactionTemplateName]
+func BreakageAnnotations(kind BreakageKind, recordID string, planID *string) models.Annotations {
+	annotations := models.Annotations{
+		AnnotationCollectionType:   CollectionTypeBreakage,
+		AnnotationBreakageKind:     string(kind),
+		AnnotationBreakageRecordID: recordID,
+	}
+
+	if planID != nil && *planID != "" {
+		annotations[AnnotationBreakagePlanID] = *planID
+	}
+
+	return annotations
+}
+
+func TransactionTemplateCodeFromAnnotations(annotations models.Annotations) (string, error) {
+	raw, ok := annotations[AnnotationTransactionTemplateCode]
 	if !ok {
-		return "", fmt.Errorf("transaction template name annotation is required")
+		return "", fmt.Errorf("transaction template code annotation is required")
 	}
 
-	name, ok := raw.(string)
-	if !ok || name == "" {
-		return "", fmt.Errorf("transaction template name annotation is invalid")
+	code, ok := raw.(string)
+	if !ok || code == "" {
+		return "", fmt.Errorf("transaction template code annotation is invalid")
 	}
 
-	return name, nil
+	return code, nil
 }
 
 func TransactionDirectionFromAnnotations(annotations models.Annotations) (TransactionDirection, error) {

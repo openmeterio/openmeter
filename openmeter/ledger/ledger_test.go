@@ -28,6 +28,14 @@ func (e exampleEntryInput) Amount() alpacadecimal.Decimal {
 	return e.amount
 }
 
+func (e exampleEntryInput) IdentityKey() string {
+	return ""
+}
+
+func (e exampleEntryInput) Annotations() models.Annotations {
+	return nil
+}
+
 var _ ledger.EntryInput = exampleEntryInput{}
 
 func TestTwoAccountTransaction(t *testing.T) {
@@ -99,10 +107,11 @@ func TestGetAccountBalance(t *testing.T) {
 	t.Skipf("This is just to assert the types, it would fail on unimplemented")
 
 	var acc ledger.Account
+	var querier ledger.BalanceQuerier
 
-	balance, err := acc.GetBalance(t.Context(), ledger.RouteFilter{
+	balance, err := querier.GetAccountBalance(t.Context(), acc, ledger.RouteFilter{
 		Currency: currencyx.Code("USD"),
-	}, nil)
+	}, ledger.BalanceQuery{})
 	require.NoError(t, err)
 	require.NotNil(t, balance)
 }

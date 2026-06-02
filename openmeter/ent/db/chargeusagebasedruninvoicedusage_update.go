@@ -30,26 +30,6 @@ func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) Where(ps ...predicate.ChargeUs
 	return _u
 }
 
-// SetLineID sets the "line_id" field.
-func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) SetLineID(v string) *ChargeUsageBasedRunInvoicedUsageUpdate {
-	_u.mutation.SetLineID(v)
-	return _u
-}
-
-// SetNillableLineID sets the "line_id" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) SetNillableLineID(v *string) *ChargeUsageBasedRunInvoicedUsageUpdate {
-	if v != nil {
-		_u.SetLineID(*v)
-	}
-	return _u
-}
-
-// ClearLineID clears the value of the "line_id" field.
-func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) ClearLineID() *ChargeUsageBasedRunInvoicedUsageUpdate {
-	_u.mutation.ClearLineID()
-	return _u
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRunInvoicedUsageUpdate {
 	_u.mutation.SetServicePeriodFrom(v)
@@ -74,20 +54,6 @@ func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) SetServicePeriodTo(v time.Time
 func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) SetNillableServicePeriodTo(v *time.Time) *ChargeUsageBasedRunInvoicedUsageUpdate {
 	if v != nil {
 		_u.SetServicePeriodTo(*v)
-	}
-	return _u
-}
-
-// SetMutable sets the "mutable" field.
-func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) SetMutable(v bool) *ChargeUsageBasedRunInvoicedUsageUpdate {
-	_u.mutation.SetMutable(v)
-	return _u
-}
-
-// SetNillableMutable sets the "mutable" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) SetNillableMutable(v *bool) *ChargeUsageBasedRunInvoicedUsageUpdate {
-	if v != nil {
-		_u.SetMutable(*v)
 	}
 	return _u
 }
@@ -305,11 +271,6 @@ func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) check() error {
-	if v, ok := _u.mutation.LineID(); ok {
-		if err := chargeusagebasedruninvoicedusage.LineIDValidator(v); err != nil {
-			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunInvoicedUsage.line_id": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.LedgerTransactionGroupID(); ok {
 		if err := chargeusagebasedruninvoicedusage.LedgerTransactionGroupIDValidator(v); err != nil {
 			return &ValidationError{Name: "ledger_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunInvoicedUsage.ledger_transaction_group_id": %w`, err)}
@@ -333,20 +294,11 @@ func (_u *ChargeUsageBasedRunInvoicedUsageUpdate) sqlSave(ctx context.Context) (
 			}
 		}
 	}
-	if value, ok := _u.mutation.LineID(); ok {
-		_spec.SetField(chargeusagebasedruninvoicedusage.FieldLineID, field.TypeString, value)
-	}
-	if _u.mutation.LineIDCleared() {
-		_spec.ClearField(chargeusagebasedruninvoicedusage.FieldLineID, field.TypeString)
-	}
 	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargeusagebasedruninvoicedusage.FieldServicePeriodFrom, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.ServicePeriodTo(); ok {
 		_spec.SetField(chargeusagebasedruninvoicedusage.FieldServicePeriodTo, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.Mutable(); ok {
-		_spec.SetField(chargeusagebasedruninvoicedusage.FieldMutable, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.LedgerTransactionGroupID(); ok {
 		_spec.SetField(chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID, field.TypeString, value)
@@ -413,26 +365,6 @@ type ChargeUsageBasedRunInvoicedUsageUpdateOne struct {
 	mutation *ChargeUsageBasedRunInvoicedUsageMutation
 }
 
-// SetLineID sets the "line_id" field.
-func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetLineID(v string) *ChargeUsageBasedRunInvoicedUsageUpdateOne {
-	_u.mutation.SetLineID(v)
-	return _u
-}
-
-// SetNillableLineID sets the "line_id" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetNillableLineID(v *string) *ChargeUsageBasedRunInvoicedUsageUpdateOne {
-	if v != nil {
-		_u.SetLineID(*v)
-	}
-	return _u
-}
-
-// ClearLineID clears the value of the "line_id" field.
-func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) ClearLineID() *ChargeUsageBasedRunInvoicedUsageUpdateOne {
-	_u.mutation.ClearLineID()
-	return _u
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRunInvoicedUsageUpdateOne {
 	_u.mutation.SetServicePeriodFrom(v)
@@ -457,20 +389,6 @@ func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetServicePeriodTo(v time.T
 func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetNillableServicePeriodTo(v *time.Time) *ChargeUsageBasedRunInvoicedUsageUpdateOne {
 	if v != nil {
 		_u.SetServicePeriodTo(*v)
-	}
-	return _u
-}
-
-// SetMutable sets the "mutable" field.
-func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetMutable(v bool) *ChargeUsageBasedRunInvoicedUsageUpdateOne {
-	_u.mutation.SetMutable(v)
-	return _u
-}
-
-// SetNillableMutable sets the "mutable" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetNillableMutable(v *bool) *ChargeUsageBasedRunInvoicedUsageUpdateOne {
-	if v != nil {
-		_u.SetMutable(*v)
 	}
 	return _u
 }
@@ -701,11 +619,6 @@ func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) check() error {
-	if v, ok := _u.mutation.LineID(); ok {
-		if err := chargeusagebasedruninvoicedusage.LineIDValidator(v); err != nil {
-			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunInvoicedUsage.line_id": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.LedgerTransactionGroupID(); ok {
 		if err := chargeusagebasedruninvoicedusage.LedgerTransactionGroupIDValidator(v); err != nil {
 			return &ValidationError{Name: "ledger_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunInvoicedUsage.ledger_transaction_group_id": %w`, err)}
@@ -746,20 +659,11 @@ func (_u *ChargeUsageBasedRunInvoicedUsageUpdateOne) sqlSave(ctx context.Context
 			}
 		}
 	}
-	if value, ok := _u.mutation.LineID(); ok {
-		_spec.SetField(chargeusagebasedruninvoicedusage.FieldLineID, field.TypeString, value)
-	}
-	if _u.mutation.LineIDCleared() {
-		_spec.ClearField(chargeusagebasedruninvoicedusage.FieldLineID, field.TypeString)
-	}
 	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargeusagebasedruninvoicedusage.FieldServicePeriodFrom, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.ServicePeriodTo(); ok {
 		_spec.SetField(chargeusagebasedruninvoicedusage.FieldServicePeriodTo, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.Mutable(); ok {
-		_spec.SetField(chargeusagebasedruninvoicedusage.FieldMutable, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.LedgerTransactionGroupID(); ok {
 		_spec.SetField(chargeusagebasedruninvoicedusage.FieldLedgerTransactionGroupID, field.TypeString, value)

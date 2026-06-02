@@ -5,6 +5,7 @@ import "github.com/openmeterio/openmeter/openmeter/ledger"
 var DefaultValidator = Validator{
 	Rules: []RoutingRule{
 		RequireUniqueSubAccountsRule{},
+		RequireTaxDimensionScopeRule{},
 		AllowedAccountSetsRule{
 			Sets: [][]ledger.AccountType{
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable},
@@ -16,6 +17,7 @@ var DefaultValidator = Validator{
 				{ledger.AccountTypeCustomerReceivable, ledger.AccountTypeWash},
 				{ledger.AccountTypeCustomerAccrued, ledger.AccountTypeEarnings},
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeBrokerage},
+				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeBreakage},
 			},
 		},
 		RequireFlowDirectionRule{
@@ -34,6 +36,10 @@ var DefaultValidator = Validator{
 			From: ledger.AccountTypeWash,
 			To:   ledger.AccountTypeCustomerReceivable,
 		},
+		RequireFlowDirectionRule{
+			From: ledger.AccountTypeCustomerFBO,
+			To:   ledger.AccountTypeBreakage,
+		},
 		RequireAccountAuthorizationStatusRule{
 			WhenHasAccountTypes: []ledger.AccountType{
 				ledger.AccountTypeWash,
@@ -50,7 +56,6 @@ var DefaultValidator = Validator{
 			Right: ledger.AccountTypeCustomerReceivable,
 			Fields: []RouteField{
 				RouteFieldCurrency,
-				RouteFieldTaxCode,
 				RouteFieldFeatures,
 				RouteFieldCostBasis,
 			},
@@ -76,12 +81,22 @@ var DefaultValidator = Validator{
 			Right: ledger.AccountTypeEarnings,
 			Fields: []RouteField{
 				RouteFieldCurrency,
+				RouteFieldTaxCode,
+				RouteFieldTaxBehavior,
 				RouteFieldCostBasis,
 			},
 		},
 		RequireSameRouteRule{
 			Left:  ledger.AccountTypeCustomerReceivable,
 			Right: ledger.AccountTypeWash,
+			Fields: []RouteField{
+				RouteFieldCurrency,
+				RouteFieldCostBasis,
+			},
+		},
+		RequireSameRouteRule{
+			Left:  ledger.AccountTypeCustomerFBO,
+			Right: ledger.AccountTypeBreakage,
 			Fields: []RouteField{
 				RouteFieldCurrency,
 				RouteFieldCostBasis,

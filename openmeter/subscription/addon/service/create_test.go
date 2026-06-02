@@ -328,7 +328,7 @@ func TestAddonServiceCreate(t *testing.T) {
 			planInp := subscriptiontestutils.GetExamplePlanInput(t)
 			addonInp := subscriptiontestutils.BuildAddonForTesting(t, productcatalog.EffectivePeriod{
 				EffectiveFrom: lo.ToPtr(now),
-			}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard1)
+			}, productcatalog.AddonInstanceTypeMultiple, subscriptiontestutils.ExampleAddonRateCard1.Clone())
 
 			_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
@@ -493,7 +493,9 @@ func TestAddonServiceCreate(t *testing.T) {
 			require.Nil(t, err)
 
 			// Now, let's fetch the subscription addon
-			subAdd2, err := deps.SubscriptionAddonService.Get(context.Background(), subAdd1.NamespacedID)
+			subAdd2, err := deps.SubscriptionAddonService.Get(t.Context(), subscriptionaddon.GetSubscriptionAddonInput{
+				NamespacedID: subAdd1.NamespacedID,
+			})
 			require.Nil(t, err)
 
 			t.Run("Should create addon as specified", func(t *testing.T) {

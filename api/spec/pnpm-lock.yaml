@@ -9,7 +9,7 @@ overrides:
 
 patchedDependencies:
   '@typespec/compiler':
-    hash: 686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc
+    hash: 3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7
     path: patches/@typespec__compiler.patch
   '@typespec/http':
     hash: e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410
@@ -21,7 +21,7 @@ patchedDependencies:
     hash: f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827
     path: patches/@typespec__openapi.patch
   '@typespec/openapi3':
-    hash: 9e491a6ec6e4554b27aa219f126fa03debda8f78f528d6ed14d43e0b792c29f4
+    hash: cef18a91d29848030707929c70aa810dbb5d532466155d211d4f49e1ac7a7d95
     path: patches/@typespec__openapi3.patch
 
 importers:
@@ -45,25 +45,28 @@ importers:
         version: 25.6.0
       '@typespec/compiler':
         specifier: 1.11.0
-        version: 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
+        version: 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
       '@typespec/http':
         specifier: 1.11.0
-        version: 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
+        version: 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
       '@typespec/json-schema':
         specifier: 1.11.0
-        version: 1.11.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
+        version: 1.11.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
       '@typespec/openapi':
         specifier: 1.11.0
-        version: 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
+        version: 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
       '@typespec/openapi3':
         specifier: 1.11.0
-        version: 1.11.0(patch_hash=9e491a6ec6e4554b27aa219f126fa03debda8f78f528d6ed14d43e0b792c29f4)(ae22031e93b70811715a6f3478d0b37b)
+        version: 1.11.0(patch_hash=cef18a91d29848030707929c70aa810dbb5d532466155d211d4f49e1ac7a7d95)(5f2669e3e051c9aaa5b74a0d41c94671)
       '@typespec/prettier-plugin-typespec':
         specifier: 1.11.0
         version: 1.11.0
       '@typespec/rest':
         specifier: 0.81.0
-        version: 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
+        version: 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
+      prettier:
+        specifier: 3.8.3
+        version: 3.8.3
       yaml:
         specifier: 2.8.3
         version: 2.8.3
@@ -72,34 +75,34 @@ importers:
     devDependencies:
       '@azure-tools/typespec-client-generator-core':
         specifier: 0.67.2
-        version: 0.67.2(cdfe87f2160a3a0c6a4a3d49c0daee85)
+        version: 0.67.2(91e753954175341210197fdedfcdf6b7)
       '@types/node':
         specifier: 25.6.0
         version: 25.6.0
       '@typespec/compiler':
         specifier: 1.11.0
-        version: 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
+        version: 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
       '@typespec/http':
         specifier: 1.11.0
-        version: 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
+        version: 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
       '@typespec/http-client-python':
         specifier: 0.28.3
-        version: 0.28.3(patch_hash=9dcf4fca858e9dbe3b04ba9a577a6a45b074b6ebbab97ab781834c3b609a22b5)(c2ca90c340af53b5650fa3905ab9c113)
+        version: 0.28.3(patch_hash=9dcf4fca858e9dbe3b04ba9a577a6a45b074b6ebbab97ab781834c3b609a22b5)(f77ac9f79cfd762dcbfc11aced7802ba)
       '@typespec/openapi':
         specifier: 1.11.0
-        version: 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
+        version: 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
       '@typespec/openapi3':
         specifier: 1.11.0
-        version: 1.11.0(patch_hash=9e491a6ec6e4554b27aa219f126fa03debda8f78f528d6ed14d43e0b792c29f4)(ae22031e93b70811715a6f3478d0b37b)
+        version: 1.11.0(patch_hash=cef18a91d29848030707929c70aa810dbb5d532466155d211d4f49e1ac7a7d95)(5f2669e3e051c9aaa5b74a0d41c94671)
       '@typespec/prettier-plugin-typespec':
         specifier: 1.11.0
         version: 1.11.0
       '@typespec/rest':
         specifier: 0.81.0
-        version: 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
+        version: 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
       '@typespec/versioning':
         specifier: 0.81.0
-        version: 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
+        version: 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
 
 packages:
 
@@ -1689,55 +1692,55 @@ packages:
 
 snapshots:
 
-  '@azure-tools/typespec-autorest@0.62.0(28ca78c169b75b7f7b5ab1ecc978f5f2)':
+  '@azure-tools/typespec-autorest@0.62.0(caf48f91db84e91763991da90d153ec0)':
     dependencies:
-      '@azure-tools/typespec-azure-core': 0.62.0(b9754a5e984ea3d19e9c9b3f73b01d42)
-      '@azure-tools/typespec-azure-resource-manager': 0.62.0(ef14f75551bce5604090a413dfe61341)
-      '@azure-tools/typespec-client-generator-core': 0.67.2(cdfe87f2160a3a0c6a4a3d49c0daee85)
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
-      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/openapi': 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/rest': 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/versioning': 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
+      '@azure-tools/typespec-azure-core': 0.62.0(9ecf9edbabdecf098c264eedf679b762)
+      '@azure-tools/typespec-azure-resource-manager': 0.62.0(89bf4c41e9a441b4ca2ed45e2365d286)
+      '@azure-tools/typespec-client-generator-core': 0.67.2(91e753954175341210197fdedfcdf6b7)
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
+      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
+      '@typespec/openapi': 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
+      '@typespec/rest': 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
+      '@typespec/versioning': 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
     optionalDependencies:
-      '@typespec/xml': 0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
+      '@typespec/xml': 0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
 
-  '@azure-tools/typespec-azure-core@0.62.0(b9754a5e984ea3d19e9c9b3f73b01d42)':
+  '@azure-tools/typespec-azure-core@0.62.0(9ecf9edbabdecf098c264eedf679b762)':
     dependencies:
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
-      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/rest': 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
+      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
+      '@typespec/rest': 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
 
-  '@azure-tools/typespec-azure-resource-manager@0.62.0(ef14f75551bce5604090a413dfe61341)':
+  '@azure-tools/typespec-azure-resource-manager@0.62.0(89bf4c41e9a441b4ca2ed45e2365d286)':
     dependencies:
-      '@azure-tools/typespec-azure-core': 0.62.0(b9754a5e984ea3d19e9c9b3f73b01d42)
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
-      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/openapi': 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/rest': 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/versioning': 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
+      '@azure-tools/typespec-azure-core': 0.62.0(9ecf9edbabdecf098c264eedf679b762)
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
+      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
+      '@typespec/openapi': 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
+      '@typespec/rest': 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
+      '@typespec/versioning': 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
       change-case: 5.4.4
       pluralize: 8.0.0
 
-  '@azure-tools/typespec-azure-rulesets@0.62.0(@azure-tools/typespec-azure-core@0.62.0(b9754a5e984ea3d19e9c9b3f73b01d42))(@azure-tools/typespec-azure-resource-manager@0.62.0(ef14f75551bce5604090a413dfe61341))(@azure-tools/typespec-client-generator-core@0.67.2(cdfe87f2160a3a0c6a4a3d49c0daee85))(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))':
+  '@azure-tools/typespec-azure-rulesets@0.62.0(@azure-tools/typespec-azure-core@0.62.0(9ecf9edbabdecf098c264eedf679b762))(@azure-tools/typespec-azure-resource-manager@0.62.0(89bf4c41e9a441b4ca2ed45e2365d286))(@azure-tools/typespec-client-generator-core@0.67.2(91e753954175341210197fdedfcdf6b7))(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))':
     dependencies:
-      '@azure-tools/typespec-azure-core': 0.62.0(b9754a5e984ea3d19e9c9b3f73b01d42)
-      '@azure-tools/typespec-azure-resource-manager': 0.62.0(ef14f75551bce5604090a413dfe61341)
-      '@azure-tools/typespec-client-generator-core': 0.67.2(cdfe87f2160a3a0c6a4a3d49c0daee85)
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
+      '@azure-tools/typespec-azure-core': 0.62.0(9ecf9edbabdecf098c264eedf679b762)
+      '@azure-tools/typespec-azure-resource-manager': 0.62.0(89bf4c41e9a441b4ca2ed45e2365d286)
+      '@azure-tools/typespec-client-generator-core': 0.67.2(91e753954175341210197fdedfcdf6b7)
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
 
-  '@azure-tools/typespec-client-generator-core@0.67.2(cdfe87f2160a3a0c6a4a3d49c0daee85)':
+  '@azure-tools/typespec-client-generator-core@0.67.2(91e753954175341210197fdedfcdf6b7)':
     dependencies:
-      '@azure-tools/typespec-azure-core': 0.62.0(b9754a5e984ea3d19e9c9b3f73b01d42)
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
-      '@typespec/events': 0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/openapi': 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/rest': 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/sse': 0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/events@0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/streams': 0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@typespec/versioning': 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@typespec/xml': 0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
+      '@azure-tools/typespec-azure-core': 0.62.0(9ecf9edbabdecf098c264eedf679b762)
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
+      '@typespec/events': 0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
+      '@typespec/openapi': 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
+      '@typespec/rest': 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
+      '@typespec/sse': 0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/events@0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
+      '@typespec/streams': 0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@typespec/versioning': 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@typespec/xml': 0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
       change-case: 5.4.4
       pluralize: 8.0.0
       yaml: 2.8.3
@@ -2230,11 +2233,11 @@ snapshots:
   '@types/trusted-types@2.0.7':
     optional: true
 
-  '@typespec/asset-emitter@0.79.1(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))':
+  '@typespec/asset-emitter@0.79.1(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))':
     dependencies:
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
 
-  '@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)':
+  '@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)':
     dependencies:
       '@babel/code-frame': 7.29.0
       '@inquirer/prompts': 8.4.2(@types/node@25.6.0)
@@ -2256,26 +2259,26 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@typespec/events@0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))':
+  '@typespec/events@0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))':
     dependencies:
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
 
-  '@typespec/http-client-python@0.28.3(patch_hash=9dcf4fca858e9dbe3b04ba9a577a6a45b074b6ebbab97ab781834c3b609a22b5)(c2ca90c340af53b5650fa3905ab9c113)':
+  '@typespec/http-client-python@0.28.3(patch_hash=9dcf4fca858e9dbe3b04ba9a577a6a45b074b6ebbab97ab781834c3b609a22b5)(f77ac9f79cfd762dcbfc11aced7802ba)':
     dependencies:
-      '@azure-tools/typespec-autorest': 0.62.0(28ca78c169b75b7f7b5ab1ecc978f5f2)
-      '@azure-tools/typespec-azure-core': 0.62.0(b9754a5e984ea3d19e9c9b3f73b01d42)
-      '@azure-tools/typespec-azure-resource-manager': 0.62.0(ef14f75551bce5604090a413dfe61341)
-      '@azure-tools/typespec-azure-rulesets': 0.62.0(@azure-tools/typespec-azure-core@0.62.0(b9754a5e984ea3d19e9c9b3f73b01d42))(@azure-tools/typespec-azure-resource-manager@0.62.0(ef14f75551bce5604090a413dfe61341))(@azure-tools/typespec-client-generator-core@0.67.2(cdfe87f2160a3a0c6a4a3d49c0daee85))(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@azure-tools/typespec-client-generator-core': 0.67.2(cdfe87f2160a3a0c6a4a3d49c0daee85)
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
-      '@typespec/events': 0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/openapi': 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/rest': 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/sse': 0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/events@0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/streams': 0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@typespec/versioning': 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@typespec/xml': 0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
+      '@azure-tools/typespec-autorest': 0.62.0(caf48f91db84e91763991da90d153ec0)
+      '@azure-tools/typespec-azure-core': 0.62.0(9ecf9edbabdecf098c264eedf679b762)
+      '@azure-tools/typespec-azure-resource-manager': 0.62.0(89bf4c41e9a441b4ca2ed45e2365d286)
+      '@azure-tools/typespec-azure-rulesets': 0.62.0(@azure-tools/typespec-azure-core@0.62.0(9ecf9edbabdecf098c264eedf679b762))(@azure-tools/typespec-azure-resource-manager@0.62.0(89bf4c41e9a441b4ca2ed45e2365d286))(@azure-tools/typespec-client-generator-core@0.67.2(91e753954175341210197fdedfcdf6b7))(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@azure-tools/typespec-client-generator-core': 0.67.2(91e753954175341210197fdedfcdf6b7)
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
+      '@typespec/events': 0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
+      '@typespec/openapi': 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
+      '@typespec/rest': 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
+      '@typespec/sse': 0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/events@0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
+      '@typespec/streams': 0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@typespec/versioning': 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@typespec/xml': 0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
       js-yaml: 4.1.1
       marked: 15.0.12
       pyodide: 0.26.2
@@ -2285,68 +2288,68 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))':
+  '@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))':
     dependencies:
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
     optionalDependencies:
-      '@typespec/streams': 0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
+      '@typespec/streams': 0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
 
-  '@typespec/json-schema@1.11.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))':
+  '@typespec/json-schema@1.11.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))':
     dependencies:
-      '@typespec/asset-emitter': 0.79.1(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
+      '@typespec/asset-emitter': 0.79.1(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
       yaml: 2.8.3
 
-  '@typespec/openapi3@1.11.0(patch_hash=9e491a6ec6e4554b27aa219f126fa03debda8f78f528d6ed14d43e0b792c29f4)(ae22031e93b70811715a6f3478d0b37b)':
+  '@typespec/openapi3@1.11.0(patch_hash=cef18a91d29848030707929c70aa810dbb5d532466155d211d4f49e1ac7a7d95)(5f2669e3e051c9aaa5b74a0d41c94671)':
     dependencies:
       '@scalar/json-magic': 0.11.7
       '@scalar/openapi-parser': 0.24.17
       '@scalar/openapi-types': 0.5.4
-      '@typespec/asset-emitter': 0.79.1(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
-      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/openapi': 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
+      '@typespec/asset-emitter': 0.79.1(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
+      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
+      '@typespec/openapi': 1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
       yaml: 2.8.3
     optionalDependencies:
-      '@typespec/events': 0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@typespec/json-schema': 1.11.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@typespec/sse': 0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/events@0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/streams': 0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@typespec/versioning': 0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@typespec/xml': 0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
+      '@typespec/events': 0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@typespec/json-schema': 1.11.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@typespec/sse': 0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/events@0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
+      '@typespec/streams': 0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@typespec/versioning': 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@typespec/xml': 0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
 
-  '@typespec/openapi@1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))':
+  '@typespec/openapi@1.11.0(patch_hash=f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))':
     dependencies:
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
-      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
+      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
 
   '@typespec/prettier-plugin-typespec@1.11.0':
     dependencies:
       prettier: 3.8.3
 
-  '@typespec/rest@0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))':
+  '@typespec/rest@0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))':
     dependencies:
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
-      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
+      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
 
-  '@typespec/sse@0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/events@0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))':
+  '@typespec/sse@0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/events@0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))':
     dependencies:
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
-      '@typespec/events': 0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
-      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)))
-      '@typespec/streams': 0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
+      '@typespec/events': 0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
+      '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
+      '@typespec/streams': 0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))
 
-  '@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))':
+  '@typespec/streams@0.75.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))':
     dependencies:
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
 
-  '@typespec/versioning@0.81.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))':
+  '@typespec/versioning@0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))':
     dependencies:
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
 
-  '@typespec/xml@0.76.0(@typespec/compiler@1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0))':
+  '@typespec/xml@0.76.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))':
     dependencies:
-      '@typespec/compiler': 1.11.0(patch_hash=686e482800756581f422013baf6c7c49e3f6363a064606c0d353a0e72053e4bc)(@types/node@25.6.0)
+      '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
 
   abort-controller@3.0.0:
     dependencies:

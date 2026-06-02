@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -28,20 +27,6 @@ func TestCreditTransactionLoaders_InvalidType(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestFBOAccountIDFromCustomerAccounts_ReturnsOnlyFBO(t *testing.T) {
-	fbo := mustCustomerFBOAccount(t, "ns", "fbo-account")
-	receivable := mustCustomerReceivableAccount(t, "ns", "receivable-account")
-	accrued := mustCustomerAccruedAccount(t, "ns", "accrued-account")
-
-	accountID := fboAccountIDFromCustomerAccounts(ledger.CustomerAccounts{
-		FBOAccount:        fbo,
-		ReceivableAccount: receivable,
-		AccruedAccount:    accrued,
-	})
-
-	require.Equal(t, "fbo-account", accountID)
-}
-
 func TestCreditTransactionFromLedgerTransaction_UsesFBOEntry(t *testing.T) {
 	usd := currencyx.Code("USD")
 	tx := mustHistoricalTransaction(t, []ledgerhistorical.EntryData{
@@ -54,6 +39,21 @@ func TestCreditTransactionFromLedgerTransaction_UsesFBOEntry(t *testing.T) {
 	require.Equal(t, CreditTransactionTypeConsumed, item.Type)
 	require.Equal(t, currencyx.Code("USD"), item.Currency)
 	require.True(t, item.Amount.Equal(alpacadecimal.NewFromInt(-10)))
+}
+
+func TestCreditTransactionFromLedgerTransaction_AggregatesScopedFBOEntries(t *testing.T) {
+	usd := currencyx.Code("USD")
+	tx := mustHistoricalTransaction(t, []ledgerhistorical.EntryData{
+		mustEntryData(t, "entry-fbo-1", ledger.AccountTypeCustomerFBO, usd, alpacadecimal.NewFromInt(-10)),
+		mustEntryData(t, "entry-fbo-2", ledger.AccountTypeCustomerFBO, usd, alpacadecimal.NewFromInt(-5)),
+		mustEntryData(t, "entry-accrued", ledger.AccountTypeCustomerAccrued, usd, alpacadecimal.NewFromInt(15)),
+	})
+
+	item, err := creditTransactionFromLedgerTransaction(tx)
+	require.NoError(t, err)
+	require.Equal(t, CreditTransactionTypeConsumed, item.Type)
+	require.Equal(t, currencyx.Code("USD"), item.Currency)
+	require.True(t, item.Amount.Equal(alpacadecimal.NewFromInt(-15)))
 }
 
 func TestApplyCreditTransactionBalances(t *testing.T) {
@@ -160,51 +160,6 @@ func TestMergeSortedLists_ByCursorDesc(t *testing.T) {
 	require.Equal(t, "tx-3", merged[3].ID.ID)
 }
 
-func mustCustomerFBOAccount(t *testing.T, namespace, id string) *ledgeraccount.CustomerFBOAccount {
-	t.Helper()
-
-	account := mustAccount(t, namespace, id, ledger.AccountTypeCustomerFBO)
-	fbo, err := account.AsCustomerFBOAccount()
-	require.NoError(t, err)
-
-	return fbo
-}
-
-func mustCustomerReceivableAccount(t *testing.T, namespace, id string) *ledgeraccount.CustomerReceivableAccount {
-	t.Helper()
-
-	account := mustAccount(t, namespace, id, ledger.AccountTypeCustomerReceivable)
-	receivable, err := account.AsCustomerReceivableAccount()
-	require.NoError(t, err)
-
-	return receivable
-}
-
-func mustCustomerAccruedAccount(t *testing.T, namespace, id string) *ledgeraccount.CustomerAccruedAccount {
-	t.Helper()
-
-	account := mustAccount(t, namespace, id, ledger.AccountTypeCustomerAccrued)
-	accrued, err := account.AsCustomerAccruedAccount()
-	require.NoError(t, err)
-
-	return accrued
-}
-
-func mustAccount(t *testing.T, namespace, id string, accountType ledger.AccountType) *ledgeraccount.Account {
-	t.Helper()
-
-	account, err := ledgeraccount.NewAccountFromData(ledgeraccount.AccountData{
-		ID: models.NamespacedID{
-			Namespace: namespace,
-			ID:        id,
-		},
-		AccountType: accountType,
-	}, ledgeraccount.AccountLiveServices{})
-	require.NoError(t, err)
-
-	return account
-}
-
 func mustHistoricalTransaction(t *testing.T, entries []ledgerhistorical.EntryData) ledger.Transaction {
 	t.Helper()
 
@@ -223,7 +178,7 @@ func mustEntryData(t *testing.T, id string, accountType ledger.AccountType, curr
 	t.Helper()
 
 	route := ledger.Route{Currency: currency}
-	key, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, route)
+	key, err := ledger.BuildRoutingKey(route)
 	require.NoError(t, err)
 
 	return ledgerhistorical.EntryData{

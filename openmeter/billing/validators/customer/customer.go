@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
 var _ customer.RequestValidator = (*Validator)(nil)
@@ -46,8 +47,9 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 
 	// Let's sync any subscriptions pending for this customer
 	subs, err := v.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-		Namespaces:  []string{input.Namespace},
-		CustomerIDs: []string{input.ID},
+		Namespaces:     []string{input.Namespace},
+		CustomerID:     &filter.FilterULID{FilterString: filter.FilterString{Eq: &input.ID}},
+		IncludeDeleted: true,
 	})
 	if err != nil {
 		return err
@@ -56,13 +58,8 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 	watermark := time.Now().Add(-24 * time.Hour)
 
 	for _, sub := range subs.Items {
-		if sub.ActiveTo == nil || watermark.Before(*sub.ActiveTo) {
-			view, err := v.subscriptionService.GetView(ctx, sub.NamespacedID)
-			if err != nil {
-				return err
-			}
-
-			if err := v.syncService.SynchronizeSubscription(ctx, view, time.Now()); err != nil {
+		if sub.ActiveTo == nil || sub.DeletedAt != nil || watermark.Before(*sub.ActiveTo) {
+			if err := v.syncService.SyncByID(ctx, sub.NamespacedID, time.Now()); err != nil {
 				return err
 			}
 		}

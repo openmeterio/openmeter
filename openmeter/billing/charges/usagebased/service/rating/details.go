@@ -3,7 +3,6 @@ package rating
 import (
 	"cmp"
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -13,10 +12,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/delta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/periodpreserving"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -105,24 +104,123 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 		return GetDetailedRatingForUsageResult{}, fmt.Errorf("get current quantity: %w", err)
 	}
 
-	// Let's fetch invoice based realizations that are before the current run's service period to
+	// Let's fetch invoice based realizations that are before the current run's service period to.
 	eligibleRealizations := lo.Filter(charge.Realizations, func(run usagebased.RealizationRun, _ int) bool {
-		if run.Type != usagebased.RealizationRunTypeFinalRealization && run.Type != usagebased.RealizationRunTypePartialInvoice {
+		// Voided realizations have had their billing effect undone, so rating must
+		// not treat their periods as previously invoiced when calculating late usage.
+		if run.IsVoidedBillingHistory() {
 			return false
 		}
 
 		return run.ServicePeriodTo.Before(in.ServicePeriodTo)
 	})
 
+	switch charge.State.RatingEngine {
+	case usagebased.RatingEngineDelta:
+		alreadyBilledDetailedLines := make(usagebased.DetailedLines, 0, len(eligibleRealizations))
+		for _, realization := range eligibleRealizations {
+			alreadyBilledDetailedLines = append(alreadyBilledDetailedLines, realization.DetailedLines.OrEmpty()...)
+		}
+
+		out, err := s.deltaRater.Rate(ctx, delta.Input{
+			Intent: charge.Intent,
+			CurrentPeriod: delta.CurrentPeriod{
+				MeteredQuantity: currentQuantity,
+				ServicePeriod:   currentBillingPeriod(currentRunServicePeriod, eligibleRealizations),
+			},
+			AlreadyBilledDetailedLines: alreadyBilledDetailedLines,
+		})
+		if err != nil {
+			return GetDetailedRatingForUsageResult{}, err
+		}
+
+		return GetDetailedRatingForUsageResult{
+			Totals:        out.DetailedLines.SumTotals(),
+			DetailedLines: out.DetailedLines,
+			Quantity:      currentQuantity,
+		}, nil
+	case usagebased.RatingEnginePeriodPreserving:
+		return s.ratePeriodPreservingDetails(ctx, ratePeriodPreservingDetailsInput{
+			Input:                   in,
+			Charge:                  charge,
+			EligibleRealizations:    eligibleRealizations,
+			CurrentQuantity:         currentQuantity,
+			CurrentRunServicePeriod: currentRunServicePeriod,
+		})
+	default:
+		return GetDetailedRatingForUsageResult{}, fmt.Errorf("unsupported rating engine: %s", charge.State.RatingEngine)
+	}
+}
+
+func (s *service) ensureDetailedLinesLoadedForRating(ctx context.Context, charge usagebased.Charge, servicePeriodTo time.Time) (usagebased.Charge, error) {
+	if len(charge.Realizations) == 0 {
+		return charge, nil
+	}
+
+	if !lo.EveryBy(charge.Realizations, func(run usagebased.RealizationRun) bool {
+		// Voided realizations are no longer part of the billable history, so rating
+		// does not require detailed lines for them.
+		if run.IsVoidedBillingHistory() {
+			return true
+		}
+
+		return !run.ServicePeriodTo.Before(servicePeriodTo) || run.DetailedLines.IsPresent()
+	}) {
+		expandedCharge, err := s.detailedLinesFetcher.FetchDetailedLines(ctx, charge)
+		if err != nil {
+			return usagebased.Charge{}, fmt.Errorf("fetch detailed lines: %w", err)
+		}
+
+		charge = expandedCharge
+	}
+
+	for idx, run := range charge.Realizations {
+		// Voided realizations are no longer part of the billable history, so rating
+		// does not require detailed lines for them.
+		if run.IsVoidedBillingHistory() {
+			continue
+		}
+
+		// Extra safety: the fetcher contract should return all prior-run detailed
+		// lines, but rating must not proceed with incomplete prior runs as we will overcharge
+		// customers.
+		if run.ServicePeriodTo.Before(servicePeriodTo) && !run.DetailedLines.IsPresent() {
+			return usagebased.Charge{}, fmt.Errorf("prior runs[%d]: detailed lines must be expanded", idx)
+		}
+	}
+
+	return charge, nil
+}
+
+func currentBillingPeriod(currentRunServicePeriod timeutil.ClosedPeriod, eligibleRealizations usagebased.RealizationRuns) timeutil.ClosedPeriod {
+	currentBillingPeriod := currentRunServicePeriod
+	for _, realization := range eligibleRealizations {
+		if realization.ServicePeriodTo.After(currentBillingPeriod.From) {
+			currentBillingPeriod.From = realization.ServicePeriodTo
+		}
+	}
+
+	return currentBillingPeriod
+}
+
+type ratePeriodPreservingDetailsInput struct {
+	Input                   GetDetailedRatingForUsageInput
+	Charge                  usagebased.Charge
+	EligibleRealizations    usagebased.RealizationRuns
+	CurrentQuantity         alpacadecimal.Decimal
+	CurrentRunServicePeriod timeutil.ClosedPeriod
+}
+
+func (s *service) ratePeriodPreservingDetails(ctx context.Context, in ratePeriodPreservingDetailsInput) (GetDetailedRatingForUsageResult, error) {
 	// Let's sort the eligible realizations by service period to
-	slices.SortStableFunc(eligibleRealizations, func(a, b usagebased.RealizationRun) int {
+	slices.SortStableFunc(in.EligibleRealizations, func(a, b usagebased.RealizationRun) int {
 		return cmp.Compare(a.ServicePeriodTo.UnixNano(), b.ServicePeriodTo.UnixNano())
 	})
 
-	servicePeriodFrom := charge.Intent.ServicePeriod.From
-	priorPeriods := make([]ratingPriorPeriod, 0, len(eligibleRealizations))
+	servicePeriodFrom := in.Charge.Intent.ServicePeriod.From
+	priorPeriods := make([]periodpreserving.PriorPeriod, 0, len(in.EligibleRealizations))
 
-	for _, realization := range eligibleRealizations {
+	for _, realization := range in.EligibleRealizations {
 		servicePeriod := timeutil.ClosedPeriod{
 			From: servicePeriodFrom,
 			To:   realization.ServicePeriodTo,
@@ -148,16 +246,23 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 		// - Aggregate the two results
 
 		priorPeriodQty, err := s.snapshotQuantity(ctx, snapshotQuantityInput{
-			Customer:      in.Customer.Customer,
-			FeatureMeter:  in.FeatureMeter,
-			ServicePeriod: servicePeriod,
-			StoredAtLT:    in.StoredAtLT,
+			Customer:     in.Input.Customer.Customer,
+			FeatureMeter: in.Input.FeatureMeter,
+			// The invariant for *meter queries* is that it contains the aggregate quantity between [intent.ServicePeriodFrom ... servicePeriod.To) capped by StoredAtLT.
+			// The service period captured inside the PriorPeriod only contains the prior period's service period from billing perspective, but rating engines need the
+			// cumulative quantity for proper operation.
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: in.Charge.Intent.ServicePeriod.From,
+				To:   realization.ServicePeriodTo,
+			},
+			StoredAtLT: in.Input.StoredAtLT,
 		})
 		if err != nil {
 			return GetDetailedRatingForUsageResult{}, fmt.Errorf("get prior period quantity: %w", err)
 		}
 
-		priorPeriods = append(priorPeriods, ratingPriorPeriod{
+		priorPeriods = append(priorPeriods, periodpreserving.PriorPeriod{
+			RunID:           realization.ID,
 			MeteredQuantity: priorPeriodQty,
 			ServicePeriod:   servicePeriod,
 			DetailedLines:   realization.DetailedLines.OrEmpty(),
@@ -166,101 +271,22 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 		servicePeriodFrom = servicePeriod.To
 	}
 
-	return s.rateWithLateEvents(ctx, rateWithLateEventsInput{
-		Intent: charge.Intent,
-		CurrentPeriod: ratingCurrentPeriod{
-			MeteredQuantity: currentQuantity,
-			ServicePeriod:   currentRunServicePeriod,
+	billingPeriod := currentBillingPeriod(in.CurrentRunServicePeriod, in.EligibleRealizations)
+	out, err := s.periodPreservingRater.Rate(ctx, periodpreserving.Input{
+		Intent: in.Charge.Intent,
+		CurrentPeriod: periodpreserving.CurrentPeriod{
+			MeteredQuantity: in.CurrentQuantity,
+			ServicePeriod:   billingPeriod,
 		},
-		PriorPeriod: priorPeriods,
+		PriorPeriods: priorPeriods,
 	})
-}
-
-type rateWithLateEventsInput struct {
-	Intent usagebased.Intent
-
-	CurrentPeriod ratingCurrentPeriod
-	PriorPeriod   []ratingPriorPeriod
-}
-
-func (i rateWithLateEventsInput) Validate() error {
-	var errs []error
-	if err := i.Intent.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("intent: %w", err))
-	}
-
-	intentServicePeriod := i.Intent.ServicePeriod
-	if !intentServicePeriod.ContainsPeriodInclusive(i.CurrentPeriod.ServicePeriod) {
-		errs = append(errs, fmt.Errorf("current period service period must be contained in intent service period: [%s..%s] vs [%s..%s]",
-			intentServicePeriod.From.Format(time.RFC3339), intentServicePeriod.To.Format(time.RFC3339),
-			i.CurrentPeriod.ServicePeriod.From.Format(time.RFC3339), i.CurrentPeriod.ServicePeriod.To.Format(time.RFC3339)))
-	}
-
-	for _, priorPeriod := range i.PriorPeriod {
-		if !intentServicePeriod.ContainsPeriodInclusive(priorPeriod.ServicePeriod) {
-			errs = append(errs, fmt.Errorf("prior period service period must be contained in intent service period: [%s..%s] vs [%s..%s]",
-				intentServicePeriod.From.Format(time.RFC3339), intentServicePeriod.To.Format(time.RFC3339),
-				priorPeriod.ServicePeriod.From.Format(time.RFC3339), priorPeriod.ServicePeriod.To.Format(time.RFC3339)))
-		}
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
-type ratingCurrentPeriod struct {
-	// MeteredQuantity is the metered quantity for [intent.ServicePeriodFrom ... servicePeriod.To) capped by StoredAtLT of the current run
-	MeteredQuantity alpacadecimal.Decimal
-
-	// ServicePeriod is the service period for the current period (from is intent.ServicePeriod.From if this is the first run or
-	// the previous run's servicePeriod.To if this is not the first run)
-	ServicePeriod timeutil.ClosedPeriod
-}
-
-type ratingPriorPeriod struct {
-	// MeteredQuantity is the metered quantity for [intent.ServicePeriodFrom ... servicePeriod.To) capped by StoredAtLT of the current run
-	MeteredQuantity alpacadecimal.Decimal
-
-	// ServicePeriod is the service period for the prior period (from is intent.ServicePeriod.From, for the first item or
-	// servicePeriod.From of the previous item)
-	ServicePeriod timeutil.ClosedPeriod
-
-	// DetailedLines are the detailed lines billed for the prior period
-	DetailedLines usagebased.DetailedLines
-}
-
-func (s *service) rateWithLateEvents(ctx context.Context, in rateWithLateEventsInput) (GetDetailedRatingForUsageResult, error) {
-	if err := in.Validate(); err != nil {
+	if err != nil {
 		return GetDetailedRatingForUsageResult{}, err
 	}
 
-	var opts []billingrating.GenerateDetailedLinesOption
-	// Minimum commitment is charged only on the final run, not on interim snapshots.
-	if in.CurrentPeriod.ServicePeriod.To.Before(in.Intent.ServicePeriod.To) {
-		opts = append(opts, billingrating.WithMinimumCommitmentIgnored())
-	}
-
-	// TODO[later]: Implement the proper rating logic using prior period usage qtys for late event processing
-	ratingResult, err := s.ratingService.GenerateDetailedLines(usagebased.RateableIntent{
-		Intent:        in.Intent,
-		ServicePeriod: in.CurrentPeriod.ServicePeriod,
-		MeterValue:    in.CurrentPeriod.MeteredQuantity,
-	}, opts...)
-	if err != nil {
-		return GetDetailedRatingForUsageResult{}, fmt.Errorf("rating: %w", err)
-	}
-
-	ratingResult.DetailedLines = withServicePeriodInDetailedLineChildUniqueReferenceIDs(
-		ratingResult.DetailedLines,
-		in.CurrentPeriod.ServicePeriod,
-	)
-
 	return GetDetailedRatingForUsageResult{
-		Totals: ratingResult.Totals,
-		DetailedLines: mapBillingRatingDetailedLinesToUsageBasedDetailedLines(
-			in.Intent,
-			in.CurrentPeriod.ServicePeriod,
-			ratingResult.DetailedLines,
-		),
-		Quantity: in.CurrentPeriod.MeteredQuantity,
+		Totals:        out.DetailedLines.SumTotals(),
+		DetailedLines: out.DetailedLines,
+		Quantity:      in.CurrentQuantity,
 	}, nil
 }

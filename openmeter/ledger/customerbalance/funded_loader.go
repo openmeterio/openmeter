@@ -24,6 +24,7 @@ func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 		After:    toFundedCreditActivityCursor(input.After),
 		Before:   toFundedCreditActivityCursor(input.Before),
 		Currency: input.Currency,
+		AsOf:     &input.AsOf,
 	})
 	if err != nil {
 		return creditTransactionLoaderResult{}, err

@@ -2,8 +2,11 @@ package service
 
 import (
 	"errors"
+	"sync/atomic"
+	"testing"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
@@ -57,35 +60,51 @@ func New(config Config) (flatfee.Service, error) {
 	}
 
 	realizations, err := flatfeerealizations.New(flatfeerealizations.Config{
-		Adapter: config.Adapter,
-		Handler: config.Handler,
-		Lineage: config.Lineage,
+		Adapter:       config.Adapter,
+		Handler:       config.Handler,
+		Lineage:       config.Lineage,
+		RatingService: config.RatingService,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &service{
-		adapter:       config.Adapter,
-		handler:       config.Handler,
-		metaAdapter:   config.MetaAdapter,
-		locker:        config.Locker,
-		realizations:  realizations,
-		ratingService: config.RatingService,
-	}, nil
+	svc := &service{
+		adapter:      config.Adapter,
+		handler:      config.Handler,
+		metaAdapter:  config.MetaAdapter,
+		locker:       config.Locker,
+		realizations: realizations,
+	}
+	svc.creditNotesSupported.Store(charges.CreditNotesSupportedByLineUpdater)
+
+	return svc, nil
 }
 
 type service struct {
-	adapter       flatfee.Adapter
-	handler       flatfee.Handler
-	metaAdapter   meta.Adapter
-	locker        *lockr.Locker
-	realizations  *flatfeerealizations.Service
-	ratingService rating.Service
+	adapter              flatfee.Adapter
+	handler              flatfee.Handler
+	metaAdapter          meta.Adapter
+	locker               *lockr.Locker
+	realizations         *flatfeerealizations.Service
+	creditNotesSupported atomic.Bool
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {
 	return &LineEngine{
 		service: s,
 	}
+}
+
+// SetCreditNotesSupportedByLineUpdater sets the credit notes supported by the line updater.
+// This is used to test the credit notes supported by the line updater, but must not be used
+// in production code.
+func (s *service) SetCreditNotesSupportedByLineUpdater(t *testing.T, supported bool) error {
+	if t == nil {
+		return errors.New("testing is nil")
+	}
+
+	t.Helper()
+	s.creditNotesSupported.Store(supported)
+	return nil
 }

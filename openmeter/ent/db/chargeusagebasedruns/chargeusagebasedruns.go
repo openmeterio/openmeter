@@ -46,6 +46,8 @@ const (
 	FieldFeatureID = "feature_id"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
+	// FieldInitialType holds the string denoting the initial_type field in the database.
+	FieldInitialType = "initial_type"
 	// FieldStoredAtLt holds the string denoting the stored_at_lt field in the database.
 	FieldStoredAtLt = "stored_at_lt"
 	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
@@ -54,18 +56,26 @@ const (
 	FieldDetailedLinesPresent = "detailed_lines_present"
 	// FieldLineID holds the string denoting the line_id field in the database.
 	FieldLineID = "line_id"
+	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
+	FieldInvoiceID = "invoice_id"
 	// FieldMeteredQuantity holds the string denoting the metered_quantity field in the database.
 	FieldMeteredQuantity = "metered_quantity"
+	// FieldNoFiatTransactionRequired holds the string denoting the no_fiat_transaction_required field in the database.
+	FieldNoFiatTransactionRequired = "no_fiat_transaction_required"
 	// EdgeUsageBased holds the string denoting the usage_based edge name in mutations.
 	EdgeUsageBased = "usage_based"
 	// EdgeFeature holds the string denoting the feature edge name in mutations.
 	EdgeFeature = "feature"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
 	EdgeBillingInvoiceLine = "billing_invoice_line"
+	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
+	EdgeBillingInvoice = "billing_invoice"
 	// EdgeCreditAllocations holds the string denoting the credit_allocations edge name in mutations.
 	EdgeCreditAllocations = "credit_allocations"
 	// EdgeDetailedLines holds the string denoting the detailed_lines edge name in mutations.
 	EdgeDetailedLines = "detailed_lines"
+	// EdgeCorrectedDetailedLines holds the string denoting the corrected_detailed_lines edge name in mutations.
+	EdgeCorrectedDetailedLines = "corrected_detailed_lines"
 	// EdgeInvoicedUsage holds the string denoting the invoiced_usage edge name in mutations.
 	EdgeInvoicedUsage = "invoiced_usage"
 	// EdgePayment holds the string denoting the payment edge name in mutations.
@@ -93,6 +103,13 @@ const (
 	BillingInvoiceLineInverseTable = "billing_invoice_lines"
 	// BillingInvoiceLineColumn is the table column denoting the billing_invoice_line relation/edge.
 	BillingInvoiceLineColumn = "line_id"
+	// BillingInvoiceTable is the table that holds the billing_invoice relation/edge.
+	BillingInvoiceTable = "charge_usage_based_runs"
+	// BillingInvoiceInverseTable is the table name for the BillingInvoice entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoice" package.
+	BillingInvoiceInverseTable = "billing_invoices"
+	// BillingInvoiceColumn is the table column denoting the billing_invoice relation/edge.
+	BillingInvoiceColumn = "invoice_id"
 	// CreditAllocationsTable is the table that holds the credit_allocations relation/edge.
 	CreditAllocationsTable = "charge_usage_based_run_credit_allocations"
 	// CreditAllocationsInverseTable is the table name for the ChargeUsageBasedRunCreditAllocations entity.
@@ -107,6 +124,13 @@ const (
 	DetailedLinesInverseTable = "charge_usage_based_run_detailed_line"
 	// DetailedLinesColumn is the table column denoting the detailed_lines relation/edge.
 	DetailedLinesColumn = "run_id"
+	// CorrectedDetailedLinesTable is the table that holds the corrected_detailed_lines relation/edge.
+	CorrectedDetailedLinesTable = "charge_usage_based_run_detailed_line"
+	// CorrectedDetailedLinesInverseTable is the table name for the ChargeUsageBasedRunDetailedLine entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedrundetailedline" package.
+	CorrectedDetailedLinesInverseTable = "charge_usage_based_run_detailed_line"
+	// CorrectedDetailedLinesColumn is the table column denoting the corrected_detailed_lines relation/edge.
+	CorrectedDetailedLinesColumn = "corrects_run_id"
 	// InvoicedUsageTable is the table that holds the invoiced_usage relation/edge.
 	InvoicedUsageTable = "charge_usage_based_run_invoiced_usages"
 	// InvoicedUsageInverseTable is the table name for the ChargeUsageBasedRunInvoicedUsage entity.
@@ -141,11 +165,14 @@ var Columns = []string{
 	FieldChargeID,
 	FieldFeatureID,
 	FieldType,
+	FieldInitialType,
 	FieldStoredAtLt,
 	FieldServicePeriodTo,
 	FieldDetailedLinesPresent,
 	FieldLineID,
+	FieldInvoiceID,
 	FieldMeteredQuantity,
+	FieldNoFiatTransactionRequired,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -171,6 +198,8 @@ var (
 	FeatureIDValidator func(string) error
 	// LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
 	LineIDValidator func(string) error
+	// InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
+	InvoiceIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -178,10 +207,20 @@ var (
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
 func TypeValidator(_type usagebased.RealizationRunType) error {
 	switch _type {
-	case "final_realization", "partial_invoice":
+	case "final_realization", "partial_invoice", "invalid_due_to_unsupported_credit_note":
 		return nil
 	default:
 		return fmt.Errorf("chargeusagebasedruns: invalid enum value for type field: %q", _type)
+	}
+}
+
+// InitialTypeValidator is a validator for the "initial_type" field enum values. It is called by the builders before save.
+func InitialTypeValidator(it usagebased.RealizationRunType) error {
+	switch it {
+	case "final_realization", "partial_invoice", "invalid_due_to_unsupported_credit_note":
+		return nil
+	default:
+		return fmt.Errorf("chargeusagebasedruns: invalid enum value for initial_type field: %q", it)
 	}
 }
 
@@ -268,6 +307,11 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
+// ByInitialType orders the results by the initial_type field.
+func ByInitialType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInitialType, opts...).ToFunc()
+}
+
 // ByStoredAtLt orders the results by the stored_at_lt field.
 func ByStoredAtLt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStoredAtLt, opts...).ToFunc()
@@ -288,9 +332,19 @@ func ByLineID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLineID, opts...).ToFunc()
 }
 
+// ByInvoiceID orders the results by the invoice_id field.
+func ByInvoiceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoiceID, opts...).ToFunc()
+}
+
 // ByMeteredQuantity orders the results by the metered_quantity field.
 func ByMeteredQuantity(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMeteredQuantity, opts...).ToFunc()
+}
+
+// ByNoFiatTransactionRequired orders the results by the no_fiat_transaction_required field.
+func ByNoFiatTransactionRequired(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNoFiatTransactionRequired, opts...).ToFunc()
 }
 
 // ByUsageBasedField orders the results by usage_based field.
@@ -311,6 +365,13 @@ func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
 func ByBillingInvoiceLineField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceLineStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByBillingInvoiceField orders the results by billing_invoice field.
+func ByBillingInvoiceField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -339,6 +400,20 @@ func ByDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
 func ByDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByCorrectedDetailedLinesCount orders the results by corrected_detailed_lines count.
+func ByCorrectedDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCorrectedDetailedLinesStep(), opts...)
+	}
+}
+
+// ByCorrectedDetailedLines orders the results by corrected_detailed_lines terms.
+func ByCorrectedDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCorrectedDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -376,6 +451,13 @@ func newBillingInvoiceLineStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2O, true, BillingInvoiceLineTable, BillingInvoiceLineColumn),
 	)
 }
+func newBillingInvoiceStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoiceInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceTable, BillingInvoiceColumn),
+	)
+}
 func newCreditAllocationsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -388,6 +470,13 @@ func newDetailedLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(DetailedLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesTable, DetailedLinesColumn),
+	)
+}
+func newCorrectedDetailedLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CorrectedDetailedLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CorrectedDetailedLinesTable, CorrectedDetailedLinesColumn),
 	)
 }
 func newInvoicedUsageStep() *sqlgraph.Step {

@@ -37,12 +37,15 @@ func TestLineEngine(t *testing.T) {
 type mockCollectionCompletedLineEngine struct {
 	engineType ombilling.LineEngineType
 
-	buildStandardInvoiceLines func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
-	onStandardInvoiceCreated  func(ctx context.Context, input ombilling.OnStandardInvoiceCreatedInput) (ombilling.StandardLines, error)
-	onCollectionCompleted     func(ctx context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error)
-	onInvoiceIssued           func(ctx context.Context, input ombilling.OnInvoiceIssuedInput) error
-	onPaymentAuthorized       func(ctx context.Context, input ombilling.OnPaymentAuthorizedInput) error
-	onPaymentSettled          func(ctx context.Context, input ombilling.OnPaymentSettledInput) error
+	buildStandardInvoiceLines             func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
+	buildStandardLinesForGatheringPreview func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
+	onStandardInvoiceCreated              func(ctx context.Context, input ombilling.OnStandardInvoiceCreatedInput) (ombilling.StandardLines, error)
+	onCollectionCompleted                 func(ctx context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error)
+	onMutableLinesDeleted                 func(ctx context.Context, input ombilling.OnMutableStandardLinesDeletedInput) error
+	onUnsupportedCreditNote               func(ctx context.Context, input ombilling.OnUnsupportedCreditNoteInput) error
+	onInvoiceIssued                       func(ctx context.Context, input ombilling.OnInvoiceIssuedInput) error
+	onPaymentAuthorized                   func(ctx context.Context, input ombilling.OnPaymentAuthorizedInput) error
+	onPaymentSettled                      func(ctx context.Context, input ombilling.OnPaymentSettledInput) error
 }
 
 func mustAsNewStandardLines(input ombilling.BuildStandardInvoiceLinesInput) ombilling.StandardLines {
@@ -83,6 +86,14 @@ func (m *mockCollectionCompletedLineEngine) BuildStandardInvoiceLines(ctx contex
 	return m.buildStandardInvoiceLines(ctx, input)
 }
 
+func (m *mockCollectionCompletedLineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+	if m.buildStandardLinesForGatheringPreview != nil {
+		return m.buildStandardLinesForGatheringPreview(ctx, input)
+	}
+
+	return mustAsNewStandardLines(input), nil
+}
+
 func (m *mockCollectionCompletedLineEngine) OnCollectionCompleted(ctx context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
 	if m.onCollectionCompleted == nil {
 		return nil, errors.New("onCollectionCompleted is not set")
@@ -97,6 +108,22 @@ func (m *mockCollectionCompletedLineEngine) OnStandardInvoiceCreated(ctx context
 	}
 
 	return m.onStandardInvoiceCreated(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) OnMutableStandardLinesDeleted(ctx context.Context, input ombilling.OnMutableStandardLinesDeletedInput) error {
+	if m.onMutableLinesDeleted == nil {
+		return nil
+	}
+
+	return m.onMutableLinesDeleted(ctx, input)
+}
+
+func (m *mockCollectionCompletedLineEngine) OnUnsupportedCreditNote(ctx context.Context, input ombilling.OnUnsupportedCreditNoteInput) error {
+	if m.onUnsupportedCreditNote == nil {
+		return nil
+	}
+
+	return m.onUnsupportedCreditNote(ctx, input)
 }
 
 func (m *mockCollectionCompletedLineEngine) OnInvoiceIssued(ctx context.Context, input ombilling.OnInvoiceIssuedInput) error {
@@ -292,6 +319,109 @@ func (s *LineEngineTestSuite) mustGetInvoiceAppType(ctx context.Context, invoice
 	s.Require().NoError(err)
 
 	return invoicingApp.GetType()
+}
+
+func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-line-engine-gathering-preview-callback")
+	mockEngine := &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+	meterSlug := fmt.Sprintf("%s-meter", namespace)
+	meterID := ulid.Make().String()
+
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T11:13:14Z"))
+	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-02T13:13:14Z"))
+	clock.SetTime(periodEnd)
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	mockEngine.buildStandardInvoiceLines = func(context.Context, ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+		return nil, errors.New("standard invoice build path must not be used for gathering preview")
+	}
+
+	previewCallbackCalled := false
+	mockEngine.buildStandardLinesForGatheringPreview = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+		previewCallbackCalled = true
+		lines := mustAsNewStandardLines(input)
+		lines[0].Name = "preview callback line"
+
+		return lines, nil
+	}
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithCollectionInterval(datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0)))
+
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{{
+		ManagedResource: models.ManagedResource{
+			ID: meterID,
+			NamespacedModel: models.NamespacedModel{
+				Namespace: namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Line Engine Gathering Preview Test Meter",
+		},
+		Key:           meterSlug,
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "test",
+		ValueProperty: lo.ToPtr("$.value"),
+	}})
+	s.Require().NoError(err)
+
+	testFeature := lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      fmt.Sprintf("%s-feature", namespace),
+		Key:       fmt.Sprintf("%s-feature", namespace),
+		MeterID:   lo.ToPtr(meterID),
+	}))
+
+	customerEntity := s.CreateTestCustomer(namespace, "test-subject-1")
+	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
+		Customer: customer.CustomerID{
+			Namespace: customerEntity.Namespace,
+			ID:        customerEntity.ID,
+		},
+		Currency: currencyx.Code(currency.USD),
+		Lines: []ombilling.GatheringLine{{
+			GatheringLineBase: ombilling.GatheringLineBase{
+				ManagedResource: models.ManagedResource{
+					NamespacedModel: models.NamespacedModel{Namespace: namespace},
+					Name:            "gathering preview callback source line",
+				},
+				ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+				InvoiceAt:     periodEnd,
+				ManagedBy:     ombilling.ManuallyManagedLine,
+				FeatureKey:    testFeature.Key,
+				Engine:        mockEngine.GetLineEngineType(),
+				Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(1),
+				})),
+			},
+		}},
+	})
+	s.Require().NoError(err)
+
+	invoices, err := s.BillingService.ListInvoices(ctx, ombilling.ListInvoicesInput{
+		Namespaces:       []string{namespace},
+		Customers:        []string{customerEntity.ID},
+		ExtendedStatuses: []ombilling.StandardInvoiceStatus{ombilling.StandardInvoiceStatusGathering},
+		Expand: ombilling.InvoiceExpands{}.
+			With(ombilling.InvoiceExpandLines).
+			With(ombilling.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices.Items, 1)
+
+	previewInvoice, err := invoices.Items[0].AsStandardInvoice()
+	s.Require().NoError(err)
+	s.Require().True(previewInvoice.Lines.IsPresent())
+	s.Require().Len(previewInvoice.Lines.OrEmpty(), 1)
+	s.True(previewCallbackCalled)
+	s.Equal("preview callback line", previewInvoice.Lines.OrEmpty()[0].Name)
 }
 
 func (s *LineEngineTestSuite) TestCollectionCompletedErrorsBecomeValidationIssues() {

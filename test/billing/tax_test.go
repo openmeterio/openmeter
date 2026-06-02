@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	billinginvoicelinedb "github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	billinginvoicesplitlinegroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -303,18 +302,6 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Equal(createdTC.ID, *dbDetailedLine.TaxCodeID, "detailed line tax_code_id must match")
 	s.Require().NotNil(dbDetailedLine.TaxBehavior, "tax_behavior column must be populated on the detailed line row")
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *dbDetailedLine.TaxBehavior, "detailed line tax_behavior must match")
-
-	// Verify the normalized columns on the split line group row.
-	// Note: tax_code_id is NULL on split line groups because TaxCodeID resolution happens
-	// at the invoice line level (SnapshotTaxConfigIntoLines), not at the split group level.
-	// Only tax_behavior is populated because it's set directly from TaxConfig.Behavior.
-	dbSplitGroup, err := s.DBClient.BillingInvoiceSplitLineGroup.Query().
-		Where(billinginvoicesplitlinegroupdb.ID(*ubpSplitLine.SplitLineGroupID)).
-		Only(ctx)
-	s.Require().NoError(err)
-	s.Nil(dbSplitGroup.TaxCodeID, "tax_code_id is not resolved at split line group level")
-	s.Require().NotNil(dbSplitGroup.TaxBehavior, "tax_behavior column must be populated on the split line group row")
-	s.Equal(productcatalog.ExclusiveTaxBehavior, *dbSplitGroup.TaxBehavior, "split line group tax_behavior must match")
 }
 
 func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, customer *customer.Customer) billing.StandardInvoice {

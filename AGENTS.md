@@ -140,6 +140,27 @@ When invoking commands through Codex tools, prefer direct command execution. Do 
 
 In tests, prefer `t.Context()` when a `testing.T` or `testing.TB` is available instead of introducing `context.Background()`. This keeps cancellation and test-scoped lifecycle tied to the test harness.
 
+Prefer one consistent test harness style over mixed ad hoc structures. Use production-backed paths, such as rating-backed or service-backed fixtures, when the real path can express the scenario; keep hand-assembled fixtures for cases that cannot be produced realistically. If a behavior is a suite-wide rule, hardcode it into the shared harness instead of exposing it as per-test knobs.
+
+Avoid redundant test helpers and duplicate setup paths. Prefer parameterizing one helper over maintaining near-identical helpers, use literal helper names that state exactly what they do, and inline two-line single-use helpers that do not need `defer`. Clean up dead test helpers immediately after refactors.
+
+For service and lifecycle subtests, start each subtest body with concise intent comments when the scenario is non-trivial:
+
+```go
+// given:
+// - ...
+// when:
+// - ...
+// then:
+// - ...
+```
+
+When using `clock.FreezeTime(...)` in tests, immediately pair it with `defer clock.UnFreeze()` in the same scope so later assertions or subtests do not inherit frozen time accidentally.
+
+When asserting `alpacadecimal.Decimal` equality in tests, prefer `require.Equal(t, expectedFloat64, actual.InexactFloat64())` over boolean assertions like `require.True(t, expected.Equal(actual))` when precision requirements allow it. Prefer simple `float64(5)`-style literals over verbose decimal construction for expected values. Inline one-off expected balance structs at the assertion site; name expected balances only when reused or when the name carries useful phase semantics across subtests.
+
+After each meaningful test-related change, run focused `go vet` and focused `go test` for the touched package.
+
 Examples:
 
 ```bash
@@ -187,9 +208,33 @@ All builds use `GO_BUILD_FLAGS=-tags=dynamic`.
 
 See the `/service` skill for service/adapter patterns, constructors, input types, errors, transactions, hooks, logging, multi-tenancy, and DI wiring. See the `/api` skill for HTTP handler patterns and ValidationIssue. See the `/ent` skill for Ent ORM patterns and Postgres type gotchas. See the `/ledger` skill for ledger package architecture, wiring, and testing. See the `/subscription` skill for subscription domain model, sync algorithm, patch system, workflow layer, and addon sub-system. See the `/notification` skill for notification event pipeline, Kafka consumers, Svix webhook delivery, reconciliation loop, and payload versioning.
 
+Do not extract helper functions only to hide a couple of simple operations or short guard checks. If the helper would only wrap 2-4 lines and its name does not add meaningful domain or business intent, keep the code inline even when there is some duplication. Readers can inspect the function body to see what the code does; prefer function names that explain the domain reason for the call over names that merely restate the implementation steps. When you encounter a leftover pass-through wrapper that only calls another function without adding behavior, remove it and call the underlying function directly, even if it is outside the immediate change area.
+
+For `Validate() error` methods, prefer collecting all validation issues into `var errs []error` and returning `models.NewNillableGenericValidationError(errors.Join(errs...))` instead of returning on the first invalid field. Preserve field context with wrapped errors like `fmt.Errorf("field: %w", err)` and use plain `errors.New(...)` for simple local checks.
+
 In `openmeter/billing/charges/.../adapter`, keep Ent access transaction-aware even in shared helper functions. If a helper accepts a raw `*entdb.Client`, still wrap its body with `entutils.TransactingRepo(...)` / `TransactingRepoWithNoValue(...)` so it rebinds to the transaction already carried in `ctx` instead of depending on the caller to pass a tx-specific client.
 
 Do not introduce `context.Background()` or `context.TODO()` to sidestep missing context propagation in application code. Either propagate the caller's context through the full call path, or remove the unused `context.Context` parameter from the API if the operation is purely local and does not need cancellation, deadlines, or request-scoped values.
+
+Never use `panic` in non-test code paths. If a new failure mode is possible, change the function signature to return an error and propagate it explicitly.
+
+In production constructors and initialization, do not use `slog.Default()` as a fallback dependency. Require a `*slog.Logger` in config/provider inputs and inject it explicitly.
+
+Prefer standard library helpers and existing dependencies over local wrappers: use `slices.Clone(s)` for defensive slice copies instead of `append([]T(nil), s...)`; use `lo.ToPtr(...)` for pointer literals; and use `lo.Must(...)` only for `(value, err)` flows where panic-on-failure is intentional in test setup. Do not add local wrappers such as `ptr`, `loPtr`, `must`, or `loMust` when `github.com/samber/lo` already covers the need.
+
+Keep helper functions honest and narrow. If a production helper is only called once and is just a short guard or a few straightforward lines, inline it unless the name carries meaningful domain semantics. Do not add helpers for trivial single-use struct literals, do not hide aggregate mutation inside construction helpers, and return the domain value a helper actually builds rather than a broader wrapper needed by one caller.
+
+Prefer explicit input structs for helpers that combine an aggregate with derived lifecycle values, such as period or timestamp overrides. This makes it clear which fields are construction inputs and which fields are persisted aggregate state.
+
+For files and functions that convert between domain, API, and DB representations, use the `/go-types-conversion` skill. In prose, prefer `map` / `mapped` terminology for domain representation translation and avoid `project` / `projected` for that meaning; function names must still follow the skill's `FromAPI...`, `ToAPI...`, `FromDB...`, and `ToDB...` conventions.
+
+Add a docstring to domain helpers when the name compresses important business semantics that are easy to misread at call sites. Explain the observable business contract and why excluded cases are excluded, not the implementation mechanics.
+
+When refactoring or reverting code, preserve existing explanatory comments by default. Remove or rewrite a comment only when the code change makes it false, stale, or misleading.
+
+For slice-wide invariants where the exact offending element is not important, prefer collecting distinct values with `lo.Map` + `lo.Uniq` and validating cardinality over stateful "first seen value" loops.
+
+When `make generate` or `atlas migrate --env local diff ...` adds incidental `go.sum` entries, such as `tablewriter`, drop those `go.sum` changes unless the task explicitly requires a dependency change.
 
 ## Key Dependencies
 
@@ -256,13 +301,11 @@ Rule of thumb: **if the target is a Go identifier, start with CodeGraph. If it's
 
 ### Keeping the index fresh
 
-Run `codegraph sync` after significant code changes (new files, renames, major refactors). Run `codegraph index` for a full rebuild if the index seems stale or after branch switches.
+At the start of work, refresh CodeGraph before exploring Go code. If `.codegraph/` exists, run `codegraph sync`; if it does not exist, run `codegraph init -i` without asking first. Run `codegraph index` for a full rebuild if the index seems stale or after branch switches.
 
 ### If `.codegraph/` does NOT exist
 
-At the start of a session, ask the user if they'd like to initialize CodeGraph:
-
-> I notice this project doesn't have CodeGraph initialized. Would you like me to run `codegraph init -i` to build a code knowledge graph? It indexes ~1,800 Go files and takes about 5 seconds.
+Initialize it with `codegraph init -i` before doing code exploration. It indexes the Go codebase quickly and keeps symbol-aware lookup available.
 
 ## Skills
 

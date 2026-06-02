@@ -2,7 +2,9 @@ version: 2
 
 updates:
   - package-ecosystem: gomod
-    directory: /
+    directories:
+      - "/"
+      - "/collector"
     open-pull-requests-limit: 10
     schedule:
       interval: daily
@@ -11,6 +13,7 @@ updates:
     labels:
       - area/dependencies
       - dependency/go
+      - release-note/dependency-update
     groups:
       k8s:
         patterns:
@@ -77,6 +80,7 @@ updates:
     labels:
       - area/dependencies
       - dependency/docker
+      - release-note/dependency-update
 
   - package-ecosystem: npm
     open-pull-requests-limit: 0
@@ -88,6 +92,7 @@ updates:
     labels:
       - area/dependencies
       - dependency/javascript
+      - release-note/dependency-update
     groups:
       production-dependencies:
         dependency-type: "production"
@@ -107,6 +112,7 @@ updates:
     labels:
       - area/dependencies
       - dependency/python
+      - release-note/dependency-update
     groups:
       production-dependencies:
         dependency-type: "production"

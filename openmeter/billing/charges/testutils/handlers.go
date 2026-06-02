@@ -31,25 +31,25 @@ type mockFlatFeeHandler struct{}
 
 var _ flatfee.Handler = (*mockFlatFeeHandler)(nil)
 
-func (mockFlatFeeHandler) OnAssignedToInvoice(context.Context, flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error) {
-	return nil, nil
+func (mockFlatFeeHandler) OnAllocateCredits(_ context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
+	if input.PreTaxAmountToAllocate.IsZero() {
+		return nil, nil
+	}
+
+	return creditrealization.CreateAllocationInputs{
+		{
+			ServicePeriod:     input.ServicePeriod,
+			LedgerTransaction: newMockLedgerTransactionGroupReference(),
+			Amount:            input.PreTaxAmountToAllocate,
+		},
+	}, nil
 }
 
 func (mockFlatFeeHandler) OnInvoiceUsageAccrued(context.Context, flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error) {
 	return newMockLedgerTransactionGroupReference(), nil
 }
 
-func (mockFlatFeeHandler) OnCreditsOnlyUsageAccrued(_ context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
-	return creditrealization.CreateAllocationInputs{
-		{
-			ServicePeriod:     input.Charge.Intent.ServicePeriod,
-			LedgerTransaction: newMockLedgerTransactionGroupReference(),
-			Amount:            input.AmountToAllocate,
-		},
-	}, nil
-}
-
-func (mockFlatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(_ context.Context, input flatfee.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
+func (mockFlatFeeHandler) OnCorrectCreditAllocations(_ context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
 	return lo.Map(input.Corrections, func(correction creditrealization.CorrectionRequestItem, _ int) creditrealization.CreateCorrectionInput {
 		return creditrealization.CreateCorrectionInput{
 			LedgerTransaction:     newMockLedgerTransactionGroupReference(),
@@ -59,11 +59,11 @@ func (mockFlatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(_ context.Context,
 	}), nil
 }
 
-func (mockFlatFeeHandler) OnPaymentAuthorized(context.Context, flatfee.Charge) (ledgertransaction.GroupReference, error) {
+func (mockFlatFeeHandler) OnPaymentAuthorized(context.Context, flatfee.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
 	return newMockLedgerTransactionGroupReference(), nil
 }
 
-func (mockFlatFeeHandler) OnPaymentSettled(context.Context, flatfee.Charge) (ledgertransaction.GroupReference, error) {
+func (mockFlatFeeHandler) OnPaymentSettled(context.Context, flatfee.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
 	return newMockLedgerTransactionGroupReference(), nil
 }
 
@@ -83,11 +83,11 @@ func (mockCreditPurchaseHandler) OnCreditPurchaseInitiated(context.Context, cred
 	return newMockLedgerTransactionGroupReference(), nil
 }
 
-func (mockCreditPurchaseHandler) OnCreditPurchasePaymentAuthorized(context.Context, creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (mockCreditPurchaseHandler) OnCreditPurchasePaymentAuthorized(context.Context, creditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {
 	return newMockLedgerTransactionGroupReference(), nil
 }
 
-func (mockCreditPurchaseHandler) OnCreditPurchasePaymentSettled(context.Context, creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (mockCreditPurchaseHandler) OnCreditPurchasePaymentSettled(context.Context, creditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {
 	return newMockLedgerTransactionGroupReference(), nil
 }
 

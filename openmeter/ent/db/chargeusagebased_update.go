@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -146,6 +147,26 @@ func (_u *ChargeUsageBasedUpdate) SetNillableManagedBy(v *billing.InvoiceLineMan
 	if v != nil {
 		_u.SetManagedBy(*v)
 	}
+	return _u
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (_u *ChargeUsageBasedUpdate) SetSubscriptionItemID(v string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetSubscriptionItemID(v)
+	return _u
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableSubscriptionItemID(v *string) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetSubscriptionItemID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (_u *ChargeUsageBasedUpdate) ClearSubscriptionItemID() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearSubscriptionItemID()
 	return _u
 }
 
@@ -293,6 +314,20 @@ func (_u *ChargeUsageBasedUpdate) ClearDescription() *ChargeUsageBasedUpdate {
 	return _u
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (_u *ChargeUsageBasedUpdate) SetInvoiceAt(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetInvoiceAt(v)
+	return _u
+}
+
+// SetNillableInvoiceAt sets the "invoice_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableInvoiceAt(v *time.Time) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetInvoiceAt(*v)
+	}
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *ChargeUsageBasedUpdate) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpdate {
 	_u.mutation.SetDiscounts(v)
@@ -315,6 +350,20 @@ func (_u *ChargeUsageBasedUpdate) SetFeatureID(v string) *ChargeUsageBasedUpdate
 func (_u *ChargeUsageBasedUpdate) SetNillableFeatureID(v *string) *ChargeUsageBasedUpdate {
 	if v != nil {
 		_u.SetFeatureID(*v)
+	}
+	return _u
+}
+
+// SetRatingEngine sets the "rating_engine" field.
+func (_u *ChargeUsageBasedUpdate) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedUpdate {
+	_u.mutation.SetRatingEngine(v)
+	return _u
+}
+
+// SetNillableRatingEngine sets the "rating_engine" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableRatingEngine(v *usagebased.RatingEngine) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetRatingEngine(*v)
 	}
 	return _u
 }
@@ -402,6 +451,11 @@ func (_u *ChargeUsageBasedUpdate) SetCurrentRun(v *ChargeUsageBasedRuns) *Charge
 	return _u.SetCurrentRunID(v.ID)
 }
 
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *ChargeUsageBasedUpdate) SetSubscriptionItem(v *SubscriptionItem) *ChargeUsageBasedUpdate {
+	return _u.SetSubscriptionItemID(v.ID)
+}
+
 // SetFeature sets the "feature" edge to the Feature entity.
 func (_u *ChargeUsageBasedUpdate) SetFeature(v *Feature) *ChargeUsageBasedUpdate {
 	return _u.SetFeatureID(v.ID)
@@ -462,6 +516,12 @@ func (_u *ChargeUsageBasedUpdate) RemoveDetailedLines(v ...*ChargeUsageBasedRunD
 // ClearCurrentRun clears the "current_run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedUpdate) ClearCurrentRun() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearCurrentRun()
+	return _u
+}
+
+// ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *ChargeUsageBasedUpdate) ClearSubscriptionItem() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearSubscriptionItem()
 	return _u
 }
 
@@ -538,6 +598,11 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 	if v, ok := _u.mutation.FeatureID(); ok {
 		if err := chargeusagebased.FeatureIDValidator(v); err != nil {
 			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.RatingEngine(); ok {
+		if err := chargeusagebased.RatingEngineValidator(v); err != nil {
+			return &ValidationError{Name: "rating_engine", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.rating_engine": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
@@ -635,6 +700,9 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargeusagebased.FieldDescription, field.TypeString)
 	}
+	if value, ok := _u.mutation.InvoiceAt(); ok {
+		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
+	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)
 		if err != nil {
@@ -644,6 +712,9 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.RatingEngine(); ok {
+		_spec.SetField(chargeusagebased.FieldRatingEngine, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)
@@ -760,6 +831,35 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionItemCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionItemTable,
+			Columns: []string{chargeusagebased.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionItemTable,
+			Columns: []string{chargeusagebased.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -957,6 +1057,26 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableManagedBy(v *billing.InvoiceLine
 	return _u
 }
 
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (_u *ChargeUsageBasedUpdateOne) SetSubscriptionItemID(v string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetSubscriptionItemID(v)
+	return _u
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableSubscriptionItemID(v *string) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetSubscriptionItemID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionItemID clears the value of the "subscription_item_id" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearSubscriptionItemID() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearSubscriptionItemID()
+	return _u
+}
+
 // SetAdvanceAfter sets the "advance_after" field.
 func (_u *ChargeUsageBasedUpdateOne) SetAdvanceAfter(v time.Time) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetAdvanceAfter(v)
@@ -1101,6 +1221,20 @@ func (_u *ChargeUsageBasedUpdateOne) ClearDescription() *ChargeUsageBasedUpdateO
 	return _u
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (_u *ChargeUsageBasedUpdateOne) SetInvoiceAt(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetInvoiceAt(v)
+	return _u
+}
+
+// SetNillableInvoiceAt sets the "invoice_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableInvoiceAt(v *time.Time) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetInvoiceAt(*v)
+	}
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *ChargeUsageBasedUpdateOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetDiscounts(v)
@@ -1123,6 +1257,20 @@ func (_u *ChargeUsageBasedUpdateOne) SetFeatureID(v string) *ChargeUsageBasedUpd
 func (_u *ChargeUsageBasedUpdateOne) SetNillableFeatureID(v *string) *ChargeUsageBasedUpdateOne {
 	if v != nil {
 		_u.SetFeatureID(*v)
+	}
+	return _u
+}
+
+// SetRatingEngine sets the "rating_engine" field.
+func (_u *ChargeUsageBasedUpdateOne) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetRatingEngine(v)
+	return _u
+}
+
+// SetNillableRatingEngine sets the "rating_engine" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableRatingEngine(v *usagebased.RatingEngine) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetRatingEngine(*v)
 	}
 	return _u
 }
@@ -1210,6 +1358,11 @@ func (_u *ChargeUsageBasedUpdateOne) SetCurrentRun(v *ChargeUsageBasedRuns) *Cha
 	return _u.SetCurrentRunID(v.ID)
 }
 
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *ChargeUsageBasedUpdateOne) SetSubscriptionItem(v *SubscriptionItem) *ChargeUsageBasedUpdateOne {
+	return _u.SetSubscriptionItemID(v.ID)
+}
+
 // SetFeature sets the "feature" edge to the Feature entity.
 func (_u *ChargeUsageBasedUpdateOne) SetFeature(v *Feature) *ChargeUsageBasedUpdateOne {
 	return _u.SetFeatureID(v.ID)
@@ -1270,6 +1423,12 @@ func (_u *ChargeUsageBasedUpdateOne) RemoveDetailedLines(v ...*ChargeUsageBasedR
 // ClearCurrentRun clears the "current_run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedUpdateOne) ClearCurrentRun() *ChargeUsageBasedUpdateOne {
 	_u.mutation.ClearCurrentRun()
+	return _u
+}
+
+// ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
+func (_u *ChargeUsageBasedUpdateOne) ClearSubscriptionItem() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearSubscriptionItem()
 	return _u
 }
 
@@ -1359,6 +1518,11 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 	if v, ok := _u.mutation.FeatureID(); ok {
 		if err := chargeusagebased.FeatureIDValidator(v); err != nil {
 			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.RatingEngine(); ok {
+		if err := chargeusagebased.RatingEngineValidator(v); err != nil {
+			return &ValidationError{Name: "rating_engine", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.rating_engine": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
@@ -1473,6 +1637,9 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargeusagebased.FieldDescription, field.TypeString)
 	}
+	if value, ok := _u.mutation.InvoiceAt(); ok {
+		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
+	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)
 		if err != nil {
@@ -1482,6 +1649,9 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.RatingEngine(); ok {
+		_spec.SetField(chargeusagebased.FieldRatingEngine, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)
@@ -1598,6 +1768,35 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionItemCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionItemTable,
+			Columns: []string{chargeusagebased.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionItemTable,
+			Columns: []string{chargeusagebased.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

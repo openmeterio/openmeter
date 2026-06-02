@@ -89,8 +89,7 @@ func TestUsagePeriodGetPeriodAt(t *testing.T) {
 	})
 
 	t.Run("should return the first period if querying before the first recurrence", func(t *testing.T) {
-		now := clock.Now()
-
+		now := time.Date(2025, time.June, 18, 11, 23, 0, 0, time.UTC)
 		t1 := now.AddDate(0, -3, 0)
 		t2 := now
 		startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -117,7 +116,7 @@ func TestUsagePeriodGetPeriodAt(t *testing.T) {
 
 		timeInPast := gofakeit.DateRange(
 			datetime.NewDateTime(t1).AddDateNoOverflow(-1, 0, 1).Time,
-			datetime.NewDateTime(t1).AddDateNoOverflow(0, 0, -1).Time)
+			t1.Add(-time.Hour))
 
 		period, err := up.GetCurrentPeriodAt(timeInPast)
 		require.NoError(t, err)
@@ -138,6 +137,40 @@ func TestUsagePeriodGetPeriodAt(t *testing.T) {
 		expected: %+v
 		got: %+v
 		`, now, startOfDay, t1, t1StartOfDay, t2, timeInPast, expected, period)
+	})
+
+	t.Run("should return a truncated first period when effective start is before the anchor boundary", func(t *testing.T) {
+		loc, err := time.LoadLocation("Europe/Budapest")
+		require.NoError(t, err)
+
+		now := time.Date(2026, time.May, 13, 0, 57, 36, 678845000, loc)
+		t1 := now.AddDate(0, -3, 0)
+		t2 := now
+		startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		t1StartOfDay := time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
+
+		rec1 := timeutil.Recurrence{
+			Interval: timeutil.RecurrencePeriodMonth,
+			Anchor:   startOfDay.Add(time.Hour),
+		}
+
+		rec2 := timeutil.Recurrence{
+			Interval: timeutil.RecurrencePeriodMonth,
+			Anchor:   startOfDay.Add(time.Hour * 2),
+		}
+
+		up := entitlement.NewUsagePeriod([]timeutil.Timed[timeutil.Recurrence]{
+			timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return t1 })(rec1),
+			timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return t2 })(rec2),
+		})
+
+		period, err := up.GetCurrentPeriodAt(time.Date(2026, time.January, 29, 6, 6, 9, 197511065, time.UTC))
+		require.NoError(t, err)
+
+		require.Equal(t, timeutil.ClosedPeriod{
+			From: t1,
+			To:   t1StartOfDay.Add(time.Hour),
+		}, period)
 	})
 
 	t.Run("should find the correct recurrence to use when multiple are present", func(t *testing.T) {

@@ -15,6 +15,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.opentelemetry.io/otel/trace/noop"
@@ -221,7 +222,12 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 		Logger: slog.Default(),
 	})
 	require.NoError(t, err)
-	taxCodeService := taxcodeservice.New(taxCodeAdapter, slog.Default())
+
+	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
+		Adapter: taxCodeAdapter,
+		Logger:  slog.Default(),
+	})
+	require.NoError(t, err)
 	s.TaxCodeService = taxCodeService
 
 	// Billing
@@ -630,6 +636,37 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 	return profile
 }
 
+// ProvisionDefaultTaxCodes creates the invoicing and credit-grant tax codes for the
+// namespace and stores them as the organization defaults. Tests that create charges
+// via the real charges service must call this for the namespace, because charge
+// creation auto-stamps the namespace's default tax code when the caller's TaxConfig
+// has no TaxCodeID.
+func (s *BaseSuite) ProvisionDefaultTaxCodes(ctx context.Context, ns string) taxcode.OrganizationDefaultTaxCodes {
+	s.T().Helper()
+
+	invoicing, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "default-invoicing",
+		Name:      "Default Invoicing",
+	})
+	s.Require().NoError(err, "creating default invoicing tax code")
+
+	creditGrant, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "default-credit-grant",
+		Name:      "Default Credit Grant",
+	})
+	s.Require().NoError(err, "creating default credit grant tax code")
+
+	defaults, err := s.TaxCodeService.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
+		Namespace:            ns,
+		InvoicingTaxCodeID:   invoicing.ID,
+		CreditGrantTaxCodeID: creditGrant.ID,
+	})
+	s.Require().NoError(err, "upserting organization default tax codes")
+	return defaults
+}
+
 type SetupCustomInvoicingResponse struct {
 	App app.App
 }
@@ -730,7 +767,23 @@ type ExpectedTotals struct {
 func (s *BaseSuite) RequireTotals(expected ExpectedTotals, actual totals.Totals) {
 	s.T().Helper()
 
-	s.Require().Equal(expected, ExpectedTotals{
+	require.Equal(s.T(), expected, totalsToExpected(actual))
+}
+
+func (s *BaseSuite) AssertTotals(expected ExpectedTotals, actual totals.Totals) {
+	s.T().Helper()
+
+	AssertTotals(s.T(), expected, actual)
+}
+
+func AssertTotals(t *testing.T, expected ExpectedTotals, actual totals.Totals) {
+	t.Helper()
+
+	assert.Equal(t, expected, totalsToExpected(actual))
+}
+
+func totalsToExpected(actual totals.Totals) ExpectedTotals {
+	return ExpectedTotals{
 		Amount:              actual.Amount.InexactFloat64(),
 		ChargesTotal:        actual.ChargesTotal.InexactFloat64(),
 		DiscountsTotal:      actual.DiscountsTotal.InexactFloat64(),
@@ -739,5 +792,11 @@ func (s *BaseSuite) RequireTotals(expected ExpectedTotals, actual totals.Totals)
 		TaxesTotal:          actual.TaxesTotal.InexactFloat64(),
 		Total:               actual.Total.InexactFloat64(),
 		CreditsTotal:        actual.CreditsTotal.InexactFloat64(),
-	})
+	}
+}
+
+func (s *BaseSuite) AssertDecimalEqual(expected, actual alpacadecimal.Decimal, label string) {
+	s.T().Helper()
+
+	s.True(actual.Equal(expected), "%s: expected %s, got %s", label, expected.String(), actual.String())
 }

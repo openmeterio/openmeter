@@ -19,7 +19,7 @@ func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard, annotat
 		return fmt.Errorf("target must not be nil")
 	}
 
-	if typ.Kind() != reflect.Ptr {
+	if typ.Kind() != reflect.Pointer {
 		return fmt.Errorf("target must be a pointer")
 	}
 
@@ -109,7 +109,7 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annot
 		return fmt.Errorf("target must not be nil")
 	}
 
-	if typ.Kind() != reflect.Ptr {
+	if typ.Kind() != reflect.Pointer {
 		return fmt.Errorf("target must be a pointer")
 	}
 

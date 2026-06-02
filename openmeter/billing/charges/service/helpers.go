@@ -59,8 +59,10 @@ func chargesByType(in charges.Charges) (chargesByTypeResult, error) {
 
 type InvocableCharge interface {
 	GetChargeID() meta.ChargeID
-	TriggerPatch(ctx context.Context, patch meta.Patch) (*charges.Charge, error)
+	TriggerPatch(ctx context.Context, patch meta.Patch) (TriggerPatchResult, error)
 }
+
+type TriggerPatchResult = meta.TriggerPatchResult[charges.Charge]
 
 func (s *service) newInvocableCharges(si charges.ChargeSearchItems) (map[string]InvocableCharge, error) {
 	result := make(map[string]InvocableCharge, len(si))
@@ -94,17 +96,20 @@ type flatFeeInvocableCharge struct {
 	flatFeeService flatfee.Service
 }
 
-func (c *flatFeeInvocableCharge) TriggerPatch(ctx context.Context, patch meta.Patch) (*charges.Charge, error) {
+func (c *flatFeeInvocableCharge) TriggerPatch(ctx context.Context, patch meta.Patch) (TriggerPatchResult, error) {
 	res, err := c.flatFeeService.TriggerPatch(ctx, c.chargeID, patch)
 	if err != nil {
-		return nil, err
+		return TriggerPatchResult{}, err
 	}
 
-	if res == nil {
-		return nil, nil
+	if res.Charge == nil {
+		return TriggerPatchResult{}, nil
 	}
 
-	return lo.ToPtr(charges.NewCharge(*res)), nil
+	return TriggerPatchResult{
+		InvoicePatches: res.InvoicePatches,
+		Charge:         lo.ToPtr(charges.NewCharge(*res.Charge)),
+	}, nil
 }
 
 func (c *flatFeeInvocableCharge) GetChargeID() meta.ChargeID {
@@ -118,17 +123,20 @@ type usageBasedInvocableCharge struct {
 	usageBasedService usagebased.Service
 }
 
-func (c *usageBasedInvocableCharge) TriggerPatch(ctx context.Context, patch meta.Patch) (*charges.Charge, error) {
+func (c *usageBasedInvocableCharge) TriggerPatch(ctx context.Context, patch meta.Patch) (TriggerPatchResult, error) {
 	res, err := c.usageBasedService.TriggerPatch(ctx, c.chargeID, patch)
 	if err != nil {
-		return nil, err
+		return TriggerPatchResult{}, err
 	}
 
-	if res == nil {
-		return nil, nil
+	if res.Charge == nil {
+		return TriggerPatchResult{}, nil
 	}
 
-	return lo.ToPtr(charges.NewCharge(*res)), nil
+	return TriggerPatchResult{
+		InvoicePatches: res.InvoicePatches,
+		Charge:         lo.ToPtr(charges.NewCharge(*res.Charge)),
+	}, nil
 }
 
 func (c *usageBasedInvocableCharge) GetChargeID() meta.ChargeID {

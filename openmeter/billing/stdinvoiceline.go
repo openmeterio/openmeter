@@ -66,6 +66,10 @@ func (i StandardLineBase) GetParentID() (string, bool) {
 	return *i.ParentLineID, true
 }
 
+func (i StandardLineBase) GetChargeID() *string {
+	return i.ChargeID
+}
+
 func (i StandardLineBase) Validate() error {
 	var errs []error
 
@@ -605,6 +609,10 @@ func (i StandardLine) Validate() error {
 
 	if err := i.StandardLineBase.Validate(); err != nil {
 		errs = append(errs, err)
+	}
+
+	if err := i.Totals.ValidateTotalNonNegative(); err != nil {
+		errs = append(errs, fmt.Errorf("totals: %w", err))
 	}
 
 	if err := i.Discounts.Validate(); err != nil {

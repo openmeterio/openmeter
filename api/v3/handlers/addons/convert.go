@@ -96,7 +96,7 @@ func FromAPIAddonInstanceType(source apiv3.AddonInstanceType) (productcatalog.Ad
 func ToAPIAddon(source addon.Addon) (apiv3.Addon, error) {
 	var result apiv3.Addon
 
-	result.CreatedAt = lo.ToPtr(source.ManagedModel.CreatedAt)
+	result.CreatedAt = source.ManagedModel.CreatedAt
 	result.Currency = string(source.AddonMeta.Currency)
 	result.DeletedAt = source.ManagedModel.DeletedAt
 	result.Description = source.AddonMeta.Description
@@ -120,7 +120,7 @@ func ToAPIAddon(source addon.Addon) (apiv3.Addon, error) {
 	}
 	result.Status = status
 
-	result.UpdatedAt = lo.ToPtr(source.ManagedModel.UpdatedAt)
+	result.UpdatedAt = source.ManagedModel.UpdatedAt
 
 	validationErrors, err := ToAPIProductCatalogValidationErrors(source)
 	if err != nil {

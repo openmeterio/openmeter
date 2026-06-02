@@ -64,9 +64,24 @@ type Base struct {
 	CreditsApplied creditsapplied.CreditsApplied `json:"creditsApplied,omitempty"`
 }
 
-var _ models.Validator = (*Base)(nil)
+type validateOptions struct {
+	ignoreQuantityChecks bool
+}
 
-func (l Base) Validate() error {
+type ValidateOption func(*validateOptions)
+
+func IgnoreQuantityChecks() ValidateOption {
+	return func(o *validateOptions) {
+		o.ignoreQuantityChecks = true
+	}
+}
+
+func (l Base) Validate(opts ...ValidateOption) error {
+	options := validateOptions{}
+	for _, opt := range opts {
+		opt(&options)
+	}
+
 	errs := []error{}
 
 	if err := l.Category.Validate(); err != nil {
@@ -81,7 +96,7 @@ func (l Base) Validate() error {
 		errs = append(errs, errors.New("price should be positive or zero"))
 	}
 
-	if l.Quantity.IsNegative() {
+	if !options.ignoreQuantityChecks && l.Quantity.IsNegative() {
 		errs = append(errs, errors.New("quantity should be positive or zero"))
 	}
 

@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -18,6 +19,7 @@ func TestTaxCodeService(t *testing.T) {
 	env.DBSchemaMigrate(t)
 
 	ns := testutils.NameGenerator.Generate().Key
+	env.SetupNamespaceDefaults(t.Context(), t, ns)
 
 	t.Run("SystemManaged", func(t *testing.T) {
 		// Create a system-managed tax code by explicitly setting the annotation.
@@ -80,6 +82,57 @@ func TestTaxCodeService(t *testing.T) {
 		})
 	})
 
+	t.Run("OrganizationDefault", func(t *testing.T) {
+		// given:
+		// - two tax codes set as org defaults (invoicing + credit grant)
+		// - one extra tax code that is not a default
+		// when:
+		// - caller tries to delete an org default tax code
+		// then:
+		// - deletion is blocked with ErrCodeTaxCodeIsOrganizationDefault (409)
+		// - deletion of a non-default tax code succeeds
+		defaultNs := testutils.NameGenerator.Generate().Key
+		invoicing := env.CreateTaxCode(t.Context(), t, defaultNs)
+		creditGrant := env.CreateTaxCode(t.Context(), t, defaultNs)
+		other := env.CreateTaxCode(t.Context(), t, defaultNs)
+
+		_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
+			Namespace:            defaultNs,
+			InvoicingTaxCodeID:   invoicing.ID,
+			CreditGrantTaxCodeID: creditGrant.ID,
+		})
+		require.NoError(t, err)
+
+		t.Run("DeleteInvoicingDefaultIsBlocked", func(t *testing.T) {
+			err := env.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: defaultNs, ID: invoicing.ID},
+			})
+			require.Error(t, err)
+
+			var vi models.ValidationIssue
+			require.ErrorAs(t, err, &vi)
+			assert.Equal(t, taxcode.ErrCodeTaxCodeIsOrganizationDefault, vi.Code())
+		})
+
+		t.Run("DeleteCreditGrantDefaultIsBlocked", func(t *testing.T) {
+			err := env.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: defaultNs, ID: creditGrant.ID},
+			})
+			require.Error(t, err)
+
+			var vi models.ValidationIssue
+			require.ErrorAs(t, err, &vi)
+			assert.Equal(t, taxcode.ErrCodeTaxCodeIsOrganizationDefault, vi.Code())
+		})
+
+		t.Run("DeleteNonDefaultSucceeds", func(t *testing.T) {
+			err := env.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: defaultNs, ID: other.ID},
+			})
+			require.NoError(t, err)
+		})
+	})
+
 	t.Run("UserManaged", func(t *testing.T) {
 		name := testutils.NameGenerator.Generate()
 		tc, err := env.Service.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
@@ -128,5 +181,49 @@ func TestTaxCodeService(t *testing.T) {
 			})
 			require.NoError(t, err)
 		})
+	})
+
+	t.Run("GetByAppMappingPrefersSystemManagedDuplicate", func(t *testing.T) {
+		// given:
+		// - a user-created tax code and a system-managed seed tax code share the same Stripe mapping
+		// when:
+		// - resolving by app mapping
+		// then:
+		// - the system-managed code is preferred over the user-created duplicate
+		duplicateNs := testutils.NameGenerator.Generate().Key
+		stripeCode := "txcd_10103001"
+
+		_, err := env.Service.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
+			Namespace: duplicateNs,
+			Key:       "stripe_txcd_10103001",
+			Name:      stripeCode,
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+			},
+		})
+		require.NoError(t, err)
+
+		systemManaged, err := env.Service.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
+			Namespace: duplicateNs,
+			Key:       "saas_business",
+			Name:      "Software as a Service (SaaS) - Business Use",
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+			},
+			Annotations: models.Annotations{
+				taxcode.AnnotationKeyManagedBy: taxcode.AnnotationValueManagedBySystem,
+				"schema_version":               1,
+			},
+		})
+		require.NoError(t, err)
+
+		got, err := env.Service.GetTaxCodeByAppMapping(t.Context(), taxcode.GetTaxCodeByAppMappingInput{
+			Namespace: duplicateNs,
+			AppType:   app.AppTypeStripe,
+			TaxCode:   stripeCode,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, systemManaged.ID, got.ID)
+		assert.True(t, got.IsManagedBySystem())
 	})
 }

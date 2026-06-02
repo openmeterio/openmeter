@@ -300,12 +300,12 @@ func (_q *ChargeUsageBasedRunInvoicedUsageQuery) WithRun(opts ...func(*ChargeUsa
 // Example:
 //
 //	var v []struct {
-//		LineID string `json:"line_id,omitempty"`
+//		ServicePeriodFrom time.Time `json:"service_period_from,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.ChargeUsageBasedRunInvoicedUsage.Query().
-//		GroupBy(chargeusagebasedruninvoicedusage.FieldLineID).
+//		GroupBy(chargeusagebasedruninvoicedusage.FieldServicePeriodFrom).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (_q *ChargeUsageBasedRunInvoicedUsageQuery) GroupBy(field string, fields ...string) *ChargeUsageBasedRunInvoicedUsageGroupBy {
@@ -323,11 +323,11 @@ func (_q *ChargeUsageBasedRunInvoicedUsageQuery) GroupBy(field string, fields ..
 // Example:
 //
 //	var v []struct {
-//		LineID string `json:"line_id,omitempty"`
+//		ServicePeriodFrom time.Time `json:"service_period_from,omitempty"`
 //	}
 //
 //	client.ChargeUsageBasedRunInvoicedUsage.Query().
-//		Select(chargeusagebasedruninvoicedusage.FieldLineID).
+//		Select(chargeusagebasedruninvoicedusage.FieldServicePeriodFrom).
 //		Scan(ctx, &v)
 func (_q *ChargeUsageBasedRunInvoicedUsageQuery) Select(fields ...string) *ChargeUsageBasedRunInvoicedUsageSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
