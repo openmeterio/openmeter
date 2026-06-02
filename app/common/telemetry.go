@@ -286,7 +286,7 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 					// fixes the name at tracer.Start and a post-start SetName here is a
 					// no-op in this setup, so we cannot rename the span from this point.
 					span := trace.SpanFromContext(r.Context())
-					span.SetAttributes(semconv.URLPath(r.URL.String()), semconv.HTTPRoute(routePattern))
+					span.SetAttributes(semconv.URLPath(r.URL.Path), semconv.HTTPRoute(routePattern))
 
 					if labeler, ok := otelhttp.LabelerFromContext(r.Context()); ok {
 						labeler.Add(semconv.HTTPRoute(routePattern))
