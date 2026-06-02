@@ -260,7 +260,7 @@ func (c *middlewareCollector) Use(middlewares ...func(http.Handler) http.Handler
 	}
 }
 
-// collectMiddlewareHooks materialises MiddlewareHooks into a flat slice of middleware funcs.
+// collectMiddlewareHooks materializes MiddlewareHooks into a flat slice of middleware funcs.
 func collectMiddlewareHooks(hooks []MiddlewareHook) []server.MiddlewareFunc {
 	c := &middlewareCollector{}
 	for _, hook := range hooks {
