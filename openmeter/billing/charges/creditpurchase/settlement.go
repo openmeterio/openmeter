@@ -47,8 +47,8 @@ func (s GenericSettlement) Validate() error {
 		errs = append(errs, fmt.Errorf("settlement currency: %w", err))
 	}
 
-	if s.CostBasis.IsNegative() {
-		errs = append(errs, fmt.Errorf("cost basis must be zero or positive"))
+	if !s.CostBasis.IsPositive() {
+		errs = append(errs, fmt.Errorf("cost basis must be positive"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

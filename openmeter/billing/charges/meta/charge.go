@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -124,6 +125,15 @@ func (s ChargeStatus) Validate() error {
 	}
 
 	return nil
+}
+
+func DetailedStatusToMetaStatus(status string) (ChargeStatus, error) {
+	metaStatus := ChargeStatus(strings.SplitN(status, ".", 2)[0])
+	if err := metaStatus.Validate(); err != nil {
+		return ChargeStatusCreated, fmt.Errorf("invalid status: %s", status)
+	}
+
+	return metaStatus, nil
 }
 
 type Charge struct {
