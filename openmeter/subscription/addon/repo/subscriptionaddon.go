@@ -40,6 +40,14 @@ func (r *subscriptionAddonRepo) Create(ctx context.Context, namespace string, in
 
 		entity, err := cmd.Save(ctx)
 		if err != nil {
+			// Surface the partial unique index on (namespace, subscription_id, addon_id)
+			// as a conflict so concurrent creators see the same error as the in-tx duplicate check.
+			if db.IsConstraintError(err) {
+				return nil, models.NewGenericConflictError(
+					fmt.Errorf("subscription %s already has addon %s", input.SubscriptionID, input.AddonID),
+				)
+			}
+
 			return nil, err
 		}
 
