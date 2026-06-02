@@ -14,9 +14,7 @@ import (
 // TaxConfig is the billing-layer tax configuration. It extends productcatalog.TaxConfig with
 // TaxCode, the resolved entity snapshot stamped at invoice snapshot time.
 type TaxConfig struct {
-	Behavior  *productcatalog.TaxBehavior    `json:"behavior,omitempty"`
-	Stripe    *productcatalog.StripeTaxConfig `json:"stripe,omitempty"`
-	TaxCodeID *string                         `json:"tax_code_id,omitempty"`
+	productcatalog.TaxConfig
 	// TaxCode is the resolved TaxCode entity, stamped at invoice snapshot time.
 	TaxCode *taxcode.TaxCode `json:"tax_code,omitempty"`
 }
@@ -27,10 +25,9 @@ func FromProductCatalog(c *productcatalog.TaxConfig) *TaxConfig {
 	if c == nil {
 		return nil
 	}
+
 	return &TaxConfig{
-		Behavior:  c.Behavior,
-		Stripe:    c.Stripe,
-		TaxCodeID: c.TaxCodeID,
+		TaxConfig: c.Clone(),
 	}
 }
 
@@ -39,11 +36,8 @@ func (c *TaxConfig) ToProductCatalog() *productcatalog.TaxConfig {
 	if c == nil {
 		return nil
 	}
-	return &productcatalog.TaxConfig{
-		Behavior:  c.Behavior,
-		Stripe:    c.Stripe,
-		TaxCodeID: c.TaxCodeID,
-	}
+
+	return lo.ToPtr(c.TaxConfig.Clone())
 }
 
 func (c *TaxConfig) Equal(v *TaxConfig) bool {
@@ -55,30 +49,23 @@ func (c *TaxConfig) Equal(v *TaxConfig) bool {
 		return false
 	}
 
-	if (c.Behavior != nil && v.Behavior == nil) || (c.Behavior == nil && v.Behavior != nil) {
+	// none of them are nil
+	if !c.TaxConfig.Equal(&v.TaxConfig) {
 		return false
 	}
 
-	if c.Behavior != nil && *c.Behavior != *v.Behavior {
+	if c.TaxCode == nil || v.TaxCode == nil {
 		return false
 	}
 
-	if (c.TaxCodeID != nil && v.TaxCodeID == nil) || (c.TaxCodeID == nil && v.TaxCodeID != nil) {
-		return false
-	}
-
-	if c.TaxCodeID != nil && *c.TaxCodeID != *v.TaxCodeID {
-		return false
-	}
-
-	if !c.TaxCode.Equal(v.TaxCode) {
-		return false
-	}
-
-	return c.Stripe.Equal(v.Stripe)
+	return c.TaxCode.Equal(v.TaxCode)
 }
 
 func (c *TaxConfig) Validate() error {
+	if c == nil {
+		return nil
+	}
+
 	var errs []error
 
 	if c.Behavior != nil {
@@ -139,9 +126,11 @@ func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
 		}
 
 		return &TaxConfig{
-			Behavior:  lo.CoalesceOrEmpty(overrides.Behavior, base.Behavior),
-			Stripe:    stripe,
-			TaxCodeID: taxCodeID,
+			TaxConfig: productcatalog.TaxConfig{
+				Behavior:  lo.CoalesceOrEmpty(overrides.Behavior, base.Behavior),
+				Stripe:    stripe,
+				TaxCodeID: taxCodeID,
+			},
 		}
 	}
 

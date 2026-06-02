@@ -221,7 +221,7 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 			}
 
 			if line.TaxConfig != nil {
-				create = create.SetTaxConfig(*billing.FromProductCatalog(line.TaxConfig)).
+				create = create.SetNillableTaxConfig(billing.FromProductCatalog(line.TaxConfig)).
 					SetNillableTaxCodeID(line.TaxConfig.TaxCodeID).
 					SetNillableTaxBehavior(line.TaxConfig.Behavior)
 			}

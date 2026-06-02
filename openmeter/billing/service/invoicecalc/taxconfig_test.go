@@ -28,18 +28,22 @@ func TaxConfigEqualDetectsTaxCode(t *testing.T) {
 
 	// Persisted state: TaxCodeID set, but the TaxCode entity snapshot is absent.
 	persistedState := &billing.TaxConfig{
-		Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr("tc-1"),
-		TaxCode:   nil,
+		TaxConfig: productcatalog.TaxConfig{
+			Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+			TaxCodeID: lo.ToPtr("tc-1"),
+		},
+		TaxCode: nil,
 	}
 
 	// In-memory state after SnapshotTaxConfigIntoLines stamps the entity. Identical except TaxCode.
 	expectedState := &billing.TaxConfig{
-		Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr("tc-1"),
-		TaxCode:   &tc1,
+		TaxConfig: productcatalog.TaxConfig{
+			Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+			TaxCodeID: lo.ToPtr("tc-1"),
+		},
+		TaxCode: &tc1,
 	}
 
 	assert.False(t, persistedState.Equal(expectedState),
@@ -55,16 +59,20 @@ func TaxConfigEqualDetectsTaxCode(t *testing.T) {
 	}
 
 	leftConfig := &billing.TaxConfig{
-		Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr("tc-1"),
-		TaxCode:   &tc1,
+		TaxConfig: productcatalog.TaxConfig{
+			Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+			TaxCodeID: lo.ToPtr("tc-1"),
+		},
+		TaxCode: &tc1,
 	}
 	rightConfig := &billing.TaxConfig{
-		Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr("tc-1"),
-		TaxCode:   &tc2,
+		TaxConfig: productcatalog.TaxConfig{
+			Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+			TaxCodeID: lo.ToPtr("tc-1"),
+		},
+		TaxCode: &tc2,
 	}
 
 	assert.False(t, leftConfig.Equal(rightConfig),
@@ -125,8 +133,8 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 					Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 				}),
 			),
-			deps:      StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
-			wantTC:    &billing.TaxConfig{Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"}},
+			deps:   StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
+			wantTC: &billing.TaxConfig{TaxConfig: productcatalog.TaxConfig{Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"}}},
 			wantNoErr: true,
 		},
 		{
@@ -140,9 +148,11 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 			),
 			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
 			wantTC: &billing.TaxConfig{
-				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-				TaxCodeID: lo.ToPtr("tc-1"),
-				TaxCode:   &tc1,
+				TaxConfig: productcatalog.TaxConfig{
+					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+					TaxCodeID: lo.ToPtr("tc-1"),
+				},
+				TaxCode: &tc1,
 			},
 			wantNoErr: true,
 		},
@@ -158,9 +168,11 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 			),
 			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
 			wantTC: &billing.TaxConfig{
-				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-				TaxCodeID: lo.ToPtr("already-set"),
-				TaxCode:   &tc1,
+				TaxConfig: productcatalog.TaxConfig{
+					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+					TaxCodeID: lo.ToPtr("already-set"),
+				},
+				TaxCode: &tc1,
 			},
 			wantNoErr: true,
 		},
@@ -175,7 +187,9 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 			),
 			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{}},
 			wantTC: &billing.TaxConfig{
-				Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+				TaxConfig: productcatalog.TaxConfig{
+					Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+				},
 			},
 			wantNoErr: true,
 		},
@@ -191,10 +205,12 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 			),
 			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
 			wantTC: &billing.TaxConfig{
-				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-				TaxCodeID: lo.ToPtr("tc-1"),
-				TaxCode:   &tc1,
+				TaxConfig: productcatalog.TaxConfig{
+					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+					TaxCodeID: lo.ToPtr("tc-1"),
+				},
+				TaxCode: &tc1,
 			},
 			wantNoErr: true,
 		},
@@ -214,9 +230,11 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 				"txcd_20000000": tc2,
 			}},
 			wantTC: &billing.TaxConfig{
-				Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_20000000"},
-				TaxCodeID: lo.ToPtr("tc-2"),
-				TaxCode:   &tc2,
+				TaxConfig: productcatalog.TaxConfig{
+					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_20000000"},
+					TaxCodeID: lo.ToPtr("tc-2"),
+				},
+				TaxCode: &tc2,
 			},
 			wantNoErr: true,
 		},
@@ -231,7 +249,9 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 			),
 			deps: StandardInvoiceCalculatorDependencies{TaxCodes: TaxCodes{"txcd_10000000": tc1}},
 			wantTC: &billing.TaxConfig{
-				Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+				TaxConfig: productcatalog.TaxConfig{
+					Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+				},
 			},
 			wantNoErr: true,
 		},

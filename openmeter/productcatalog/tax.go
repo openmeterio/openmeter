@@ -70,6 +70,10 @@ func (c *TaxConfig) Equal(v *TaxConfig) bool {
 }
 
 func (c *TaxConfig) Validate() error {
+	if c == nil {
+		return nil
+	}
+
 	var errs []error
 
 	if c.Behavior != nil {
