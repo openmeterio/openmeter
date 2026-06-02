@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func TestMapCreateSubscriptionAddonRequestToInput(t *testing.T) {
+func TestFromAPICreateSubscriptionAddonRequest(t *testing.T) {
 	t.Run("maps immediate timing and labels", func(t *testing.T) {
 		var timing apiv3.BillingSubscriptionEditTiming
 		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(apiv3.BillingSubscriptionEditTimingEnum("immediate")))
@@ -29,7 +29,7 @@ func TestMapCreateSubscriptionAddonRequestToInput(t *testing.T) {
 			Timing:   timing,
 		}
 
-		input, err := mapCreateSubscriptionAddonRequestToInput(req)
+		input, err := FromAPICreateSubscriptionAddonRequest(req)
 		require.NoError(t, err)
 
 		assert.Equal(t, "01J8GFKQ0000000000000000", input.AddonID)
@@ -49,7 +49,7 @@ func TestMapCreateSubscriptionAddonRequestToInput(t *testing.T) {
 			Timing:   timing,
 		}
 
-		input, err := mapCreateSubscriptionAddonRequestToInput(req)
+		input, err := FromAPICreateSubscriptionAddonRequest(req)
 		require.NoError(t, err)
 		require.NotNil(t, input.Timing.Enum)
 		assert.Equal(t, subscription.TimingNextBillingCycle, *input.Timing.Enum)
@@ -66,7 +66,7 @@ func TestMapCreateSubscriptionAddonRequestToInput(t *testing.T) {
 			Timing:   timing,
 		}
 
-		_, err := mapCreateSubscriptionAddonRequestToInput(req)
+		_, err := FromAPICreateSubscriptionAddonRequest(req)
 		require.Error(t, err)
 	})
 }

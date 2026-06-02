@@ -20,10 +20,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func mapCreateSubscriptionAddonRequestToInput(req apiv3.CreateSubscriptionAddonRequest) (subscriptionworkflow.AddAddonWorkflowInput, error) {
+func FromAPICreateSubscriptionAddonRequest(req apiv3.CreateSubscriptionAddonRequest) (subscriptionworkflow.AddAddonWorkflowInput, error) {
 	timing, err := subscriptions.FromAPIBillingSubscriptionEditTiming(req.Timing)
 	if err != nil {
-		return subscriptionworkflow.AddAddonWorkflowInput{}, fmt.Errorf("failed to cast Timing: %w", err)
+		return subscriptionworkflow.AddAddonWorkflowInput{}, fmt.Errorf("failed to convert timing: %w", err)
 	}
 
 	meta, err := labels.ToMetadata(req.Labels)
@@ -31,16 +31,14 @@ func mapCreateSubscriptionAddonRequestToInput(req apiv3.CreateSubscriptionAddonR
 		return subscriptionworkflow.AddAddonWorkflowInput{}, err
 	}
 
-	r := subscriptionworkflow.AddAddonWorkflowInput{
+	return subscriptionworkflow.AddAddonWorkflowInput{
 		AddonID:         req.Addon.Id,
 		InitialQuantity: req.Quantity,
 		Timing:          timing,
 		MetadataModel: models.MetadataModel{
 			Metadata: meta,
 		},
-	}
-
-	return r, nil
+	}, nil
 }
 
 func toAPISubscriptionAddon(view subscription.SubscriptionView, addon subscriptionaddon.SubscriptionAddon) (apiv3.SubscriptionAddon, error) {
@@ -66,9 +64,10 @@ func toAPISubscriptionAddon(view subscription.SubscriptionView, addon subscripti
 	rateCards, err := slicesx.MapWithErr(addon.RateCards, func(r subscriptionaddon.SubscriptionAddonRateCard) (apiv3.SubscriptionAddonRateCard, error) {
 		rc, err := plans.ToAPIBillingRateCard(r.AddonRateCard.RateCard)
 		if err != nil {
-			return apiv3.SubscriptionAddonRateCard{}, fmt.Errorf("failed to cast RateCard: %w", err)
+			return apiv3.SubscriptionAddonRateCard{}, fmt.Errorf("failed to convert rate card: %w", err)
 		}
 
+		// JSON encoders should emit [] not null when no items are affected.
 		ids := affectedMap[r.AddonRateCard.RateCard.Key()]
 		if ids == nil {
 			ids = []string{}
@@ -80,7 +79,12 @@ func toAPISubscriptionAddon(view subscription.SubscriptionView, addon subscripti
 		}, nil
 	})
 	if err != nil {
-		return apiv3.SubscriptionAddon{}, fmt.Errorf("failed to cast RateCards: %w", err)
+		return apiv3.SubscriptionAddon{}, fmt.Errorf("failed to convert rate cards: %w", err)
+	}
+
+	// Addons with no rate cards leave RateCards nil; emit [] so the response satisfies the array schema.
+	if rateCards == nil {
+		rateCards = []apiv3.SubscriptionAddonRateCard{}
 	}
 
 	return apiv3.SubscriptionAddon{

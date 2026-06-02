@@ -36,7 +36,7 @@ func (h *handler) CreateSubscriptionAddon() CreateSubscriptionAddonHandler {
 				return CreateSubscriptionAddonRequest{}, err
 			}
 
-			addonInput, err := mapCreateSubscriptionAddonRequestToInput(body)
+			addonInput, err := FromAPICreateSubscriptionAddonRequest(body)
 			if err != nil {
 				return CreateSubscriptionAddonRequest{}, err
 			}

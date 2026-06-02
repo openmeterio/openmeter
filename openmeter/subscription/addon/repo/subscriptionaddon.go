@@ -42,9 +42,11 @@ func (r *subscriptionAddonRepo) Create(ctx context.Context, namespace string, in
 		if err != nil {
 			// Surface the partial unique index on (namespace, subscription_id, addon_id)
 			// as a conflict so concurrent creators see the same error as the in-tx duplicate check.
+			// Keep the user-visible message generic so it does not echo addon/subscription IDs;
+			// the workflow's pre-Create validation already establishes that both exist.
 			if db.IsConstraintError(err) {
 				return nil, models.NewGenericConflictError(
-					fmt.Errorf("subscription %s already has addon %s", input.SubscriptionID, input.AddonID),
+					fmt.Errorf("addon is already attached to subscription"),
 				)
 			}
 
