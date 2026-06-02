@@ -50,7 +50,7 @@ func (h *handler) CreateSubscriptionAddon() CreateSubscriptionAddonHandler {
 			}, nil
 		},
 		func(ctx context.Context, request CreateSubscriptionAddonRequest) (CreateSubscriptionAddonResponse, error) {
-			view, added, err := h.SubscriptionWorkflowService.AddAddon(ctx, request.SubscriptionID, request.AddonInput)
+			view, added, err := h.subscriptionWorkflowService.AddAddon(ctx, request.SubscriptionID, request.AddonInput)
 			if err != nil {
 				return CreateSubscriptionAddonResponse{}, err
 			}
