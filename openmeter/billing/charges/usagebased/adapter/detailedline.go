@@ -37,7 +37,6 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge usagebased.Char
 				dbchargeusagebasedrundetailedline.RunIDIn(runIDs...),
 				dbchargeusagebasedrundetailedline.DeletedAtIsNil(),
 			).
-			WithTaxCode().
 			All(ctx)
 		if err != nil {
 			return usagebased.Charge{}, err
@@ -181,9 +180,6 @@ func (a *adapter) UpsertRunDetailedLines(ctx context.Context, chargeID chargesme
 				}),
 			).
 			UpdateDescription().
-			UpdateTaxConfig().
-			UpdateTaxCodeID().
-			UpdateTaxBehavior().
 			UpdateIndex().
 			UpdatePricerReferenceID().
 			UpdateCorrectsRunID().
@@ -216,36 +212,15 @@ func buildDetailedLineCreate(db *entdb.Client, chargeID chargesmeta.ChargeID, ru
 		create = create.SetCreditsApplied(&line.CreditsApplied)
 	}
 
-	if line.TaxConfig != nil {
-		create = create.SetTaxConfig(*line.TaxConfig).
-			SetNillableTaxCodeID(line.TaxConfig.TaxCodeID).
-			SetNillableTaxBehavior(line.TaxConfig.Behavior)
-	}
-
 	return create, nil
 }
 
 func mapDetailedLineFromDB(dbLine *entdb.ChargeUsageBasedRunDetailedLine) (usagebased.DetailedLine, error) {
 	line := usagebased.DetailedLine{
-		Base: stddetailedline.FromDB(
-			dbLine,
-			stddetailedline.BackfillTaxConfig(
-				lo.EmptyableToPtr(dbLine.TaxConfig),
-				dbLine.TaxBehavior,
-				taxCodeIDFromEnt(dbLine.Edges.TaxCode),
-			),
-		),
+		Base:              stddetailedline.FromDB(dbLine),
 		PricerReferenceID: dbLine.PricerReferenceID,
 		CorrectsRunID:     dbLine.CorrectsRunID,
 	}
 
 	return line, line.Validate()
-}
-
-func taxCodeIDFromEnt(resolvedTaxCode *entdb.TaxCode) *string {
-	if resolvedTaxCode == nil {
-		return nil
-	}
-
-	return lo.ToPtr(resolvedTaxCode.ID)
 }

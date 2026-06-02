@@ -188,13 +188,8 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 			Index:          dbLine.Edges.FlatFeeLine.Index,
 			Currency:       dbLine.Currency,
 			CreditsApplied: creditsApplied,
-			TaxConfig: backfillTaxConfigReferences(
-				lo.EmptyableToPtr(dbLine.TaxConfig),
-				dbLine.TaxBehavior,
-				taxCodeFromInvoiceLineEdge(dbLine),
-			),
-			Totals:      totals.FromDB(dbLine),
-			ExternalIDs: externalid.MapLineExternalIDFromDB(dbLine),
+			Totals:         totals.FromDB(dbLine),
+			ExternalIDs:    externalid.MapLineExternalIDFromDB(dbLine),
 		},
 	}
 
@@ -212,14 +207,7 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 func (a *adapter) mapStandardInvoiceDetailedLineV2FromDB(dbLine *db.BillingStandardInvoiceDetailedLine) (billing.DetailedLine, error) {
 	detailedLineBase := billing.DetailedLineBase{
 		InvoiceID: dbLine.InvoiceID,
-		Base: stddetailedline.FromDB(
-			dbLine,
-			backfillTaxConfigReferences(
-				lo.EmptyableToPtr(dbLine.TaxConfig),
-				dbLine.TaxBehavior,
-				taxCodeFromDetailedLineV2Edge(dbLine),
-			),
-		),
+		Base:      stddetailedline.FromDB(dbLine),
 	}
 
 	discounts, err := slicesx.MapWithErr(dbLine.Edges.AmountDiscounts, a.mapStandardInvoiceDetailedLineAmountDiscountFromDB)
@@ -306,18 +294,6 @@ func (a *adapter) mapStandardInvoiceLineAmountDiscountFromDB(dbDiscount *db.Bill
 }
 
 func taxCodeFromInvoiceLineEdge(dbLine *db.BillingInvoiceLine) *taxcode.TaxCode {
-	tc, err := dbLine.Edges.TaxCodeOrErr()
-	if err != nil {
-		return nil
-	}
-	mapped, err := taxcodeadapter.MapTaxCodeFromEntity(tc)
-	if err != nil {
-		return nil
-	}
-	return &mapped
-}
-
-func taxCodeFromDetailedLineV2Edge(dbLine *db.BillingStandardInvoiceDetailedLine) *taxcode.TaxCode {
 	tc, err := dbLine.Edges.TaxCodeOrErr()
 	if err != nil {
 		return nil

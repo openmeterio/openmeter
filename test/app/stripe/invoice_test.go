@@ -39,6 +39,7 @@ import (
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -175,7 +176,34 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 	clock.FreezeTime(periodStart)
 	defer clock.UnFreeze()
 
+	defaultStripeTaxCode := "txcd_10000000"
+	overrideStripeTaxCode := "txcd_20000000"
+
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+
+	defaultInvoicingTaxCode, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       "default-invoicing",
+		Name:      "Default Invoicing",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: defaultStripeTaxCode},
+		},
+	})
+	s.NoError(err)
+
+	defaultCreditGrantTaxCode, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       "default-credit-grant",
+		Name:      "Default Credit Grant",
+	})
+	s.NoError(err)
+
+	defaultTaxCodes, err := s.TaxCodeService.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
+		Namespace:            namespace,
+		InvoicingTaxCodeID:   defaultInvoicingTaxCode.ID,
+		CreditGrantTaxCodeID: defaultCreditGrantTaxCode.ID,
+	})
+	s.NoError(err)
 
 	flatPerUnitMeterID := ulid.Make().String()
 	flatPerUsageMeterID := ulid.Make().String()
@@ -183,7 +211,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 	tieredVolumeMeterID := ulid.Make().String()
 	aiFlatPerUnitMeterID := ulid.Make().String()
 
-	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
 				ID: flatPerUnitMeterID,
@@ -384,6 +412,10 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 								Amount: alpacadecimal.NewFromFloat(0.00000075),
 							})),
+							TaxConfig: &productcatalog.TaxConfig{
+								Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+								TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
+							},
 						},
 					},
 					{
@@ -400,6 +432,12 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 								Amount:      alpacadecimal.NewFromFloat(100),
 								PaymentTerm: productcatalog.InArrearsPaymentTerm,
 							})),
+							TaxConfig: &productcatalog.TaxConfig{
+								Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+								Stripe: &productcatalog.StripeTaxConfig{
+									Code: overrideStripeTaxCode,
+								},
+							},
 						},
 					},
 					{
@@ -562,7 +600,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		}
 
 		getLine := func(description string) *billing.DetailedLine {
-			for _, line := range invoice.GetLeafLinesWithConsolidatedTaxBehavior() {
+			for _, lineWithTax := range invoice.GetLeafLinesWithResolvedTaxConfig() {
+				line := lineWithTax.DetailedLine
 				name := line.Name
 				if line.Description != nil {
 					name = fmt.Sprintf("%s (%s)", name, *line.Description)
@@ -725,6 +764,31 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			},
 		}
 
+		for _, line := range expectedInvoiceAddLines {
+			switch lo.FromPtr(line.Description) {
+			case "UBP - AI Usecase: usage in period (103,000,025 x $0.000001)":
+				line.TaxBehavior = lo.ToPtr(string(stripe.PriceCurrencyOptionsTaxBehaviorInclusive))
+				line.TaxCode = lo.ToPtr(defaultStripeTaxCode)
+			case "UBP - FLAT per any usage":
+				line.TaxBehavior = lo.ToPtr(string(stripe.PriceCurrencyOptionsTaxBehaviorExclusive))
+				line.TaxCode = lo.ToPtr(overrideStripeTaxCode)
+			}
+		}
+
+		lineWithDefaultTax, found := lo.Find(expectedInvoiceAddLines, func(line *stripe.InvoiceItemParams) bool {
+			return lo.FromPtr(line.Description) == "UBP - AI Usecase: usage in period (103,000,025 x $0.000001)"
+		})
+		s.Require().True(found)
+		s.Equal(string(stripe.PriceCurrencyOptionsTaxBehaviorInclusive), lo.FromPtr(lineWithDefaultTax.TaxBehavior))
+		s.Equal(defaultStripeTaxCode, lo.FromPtr(lineWithDefaultTax.TaxCode))
+
+		lineWithOverrideTax, found := lo.Find(expectedInvoiceAddLines, func(line *stripe.InvoiceItemParams) bool {
+			return lo.FromPtr(line.Description) == "UBP - FLAT per any usage"
+		})
+		s.Require().True(found)
+		s.Equal(string(stripe.PriceCurrencyOptionsTaxBehaviorExclusive), lo.FromPtr(lineWithOverrideTax.TaxBehavior))
+		s.Equal(overrideStripeTaxCode, lo.FromPtr(lineWithOverrideTax.TaxCode))
+
 		s.StripeAppClient.StableSortInvoiceItemParams(expectedInvoiceAddLines)
 
 		stripeInvoice := &stripe.Invoice{
@@ -858,18 +922,29 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// From existing lines, one is removed and the rest are updated.
 
 		filteredUpdatedLines := lo.FilterMap(stripeInvoice.Lines.Data, func(line *stripe.InvoiceLineItem, idx int) (*stripeclient.StripeInvoiceItemWithID, bool) {
+			params := &stripe.InvoiceItemParams{
+				Amount:      &line.Amount,
+				Description: &line.Description,
+				Period: &stripe.InvoiceItemPeriodParams{
+					Start: &line.Period.Start,
+					End:   &line.Period.End,
+				},
+				Metadata: line.Metadata,
+			}
+
+			switch line.Description {
+			case "UBP - AI Usecase: usage in period (103,000,025 x $0.000001)":
+				params.TaxBehavior = lo.ToPtr(string(stripe.PriceCurrencyOptionsTaxBehaviorInclusive))
+				params.TaxCode = lo.ToPtr(defaultStripeTaxCode)
+			case "UBP - FLAT per any usage":
+				params.TaxBehavior = lo.ToPtr(string(stripe.PriceCurrencyOptionsTaxBehaviorExclusive))
+				params.TaxCode = lo.ToPtr(overrideStripeTaxCode)
+			}
+
 			// No changes to the line items.
 			return &stripeclient.StripeInvoiceItemWithID{
-				ID: line.ID,
-				InvoiceItemParams: &stripe.InvoiceItemParams{
-					Amount:      &line.Amount,
-					Description: &line.Description,
-					Period: &stripe.InvoiceItemPeriodParams{
-						Start: &line.Period.Start,
-						End:   &line.Period.End,
-					},
-					Metadata: line.Metadata,
-				},
+				ID:                line.ID,
+				InvoiceItemParams: params,
 			}, line.ID != stripeLineIDToRemove
 		})
 

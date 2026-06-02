@@ -277,11 +277,6 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	ubpSplitLineDetailedLines := ubpSplitLine.DetailedLines
 	s.Len(ubpSplitLineDetailedLines, 1)
 
-	ubpDetailedLine := ubpSplitLineDetailedLines[0]
-	s.Require().NotNil(ubpDetailedLine.TaxConfig, "tax config is retained in detailed line")
-	s.Equal(taxConfig.Behavior, ubpDetailedLine.TaxConfig.Behavior, "detailed line tax config behavior is retained")
-	s.Equal(taxConfig.Stripe, ubpDetailedLine.TaxConfig.Stripe, "detailed line tax config stripe is retained")
-
 	// Verify the normalized tax_code_id column is written in the DB (not just the JSONB).
 	dbLine, err := s.DBClient.BillingInvoiceLine.Query().
 		Where(billinginvoicelinedb.ID(ubpSplitLine.GetID())).
@@ -291,17 +286,6 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Equal(createdTC.ID, *dbLine.TaxCodeID, "tax_code_id column must match the resolved TaxCode entity")
 	s.Require().NotNil(dbLine.TaxBehavior, "tax_behavior column must be populated on the invoice line row")
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *dbLine.TaxBehavior, "tax_behavior column must match")
-
-	// Verify the normalized tax_code_id and tax_behavior columns on the detailed line row.
-	// Detailed lines at schema level 1 are stored in the billing_invoice_lines table.
-	dbDetailedLine, err := s.DBClient.BillingInvoiceLine.Query().
-		Where(billinginvoicelinedb.ID(ubpDetailedLine.GetID())).
-		Only(ctx)
-	s.Require().NoError(err)
-	s.Require().NotNil(dbDetailedLine.TaxCodeID, "tax_code_id column must be populated on the detailed line row")
-	s.Equal(createdTC.ID, *dbDetailedLine.TaxCodeID, "detailed line tax_code_id must match")
-	s.Require().NotNil(dbDetailedLine.TaxBehavior, "tax_behavior column must be populated on the detailed line row")
-	s.Equal(productcatalog.ExclusiveTaxBehavior, *dbDetailedLine.TaxBehavior, "detailed line tax_behavior must match")
 }
 
 func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, customer *customer.Customer) billing.StandardInvoice {
