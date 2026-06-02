@@ -3,7 +3,6 @@ package usagebased
 import (
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -93,15 +92,5 @@ func (s Status) ToMetaChargeStatus() (meta.ChargeStatus, error) {
 		return meta.ChargeStatusCreated, err
 	}
 
-	split := strings.SplitN(string(s), ".", 2)
-	if len(split) == 0 {
-		return meta.ChargeStatusCreated, fmt.Errorf("invalid status: %s", s)
-	}
-
-	metaStatus := meta.ChargeStatus(split[0])
-	if err := metaStatus.Validate(); err != nil {
-		return meta.ChargeStatusCreated, fmt.Errorf("invalid status: %s", s)
-	}
-
-	return metaStatus, nil
+	return meta.DetailedStatusToMetaStatus(string(s))
 }

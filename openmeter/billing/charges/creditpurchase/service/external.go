@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
-	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
@@ -17,163 +19,240 @@ func (s *service) onExternalCreditPurchase(ctx context.Context, charge creditpur
 		return creditpurchase.Charge{}, err
 	}
 
-	targetStatus := externalCreditPurchaseSettlement.InitialStatus
-
-	charge, err = transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.Charge, error) {
-		ledgerTransactionGroupReference, err := s.handler.OnCreditPurchaseInitiated(ctx, charge)
-		if err != nil {
-			return creditpurchase.Charge{}, err
-		}
-
-		grantRealization, err := s.adapter.CreateCreditGrant(ctx, charge.GetChargeID(), creditpurchase.CreateCreditGrantInput{
-			TransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
-			GrantedAt:          clock.Now(),
-		})
-		if err != nil {
-			return creditpurchase.Charge{}, err
-		}
-
-		charge.Realizations.CreditGrantRealization = &grantRealization
-
-		if ledgerTransactionGroupReference.TransactionGroupID != "" {
-			if err := s.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
-				Namespace:                 charge.Namespace,
-				CustomerID:                charge.Intent.CustomerID,
-				Currency:                  charge.Intent.Currency,
-				Amount:                    charge.Intent.CreditAmount,
-				BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
-				FeatureFilters:            charge.Intent.FeatureFilters.Normalize(),
-			}); err != nil {
-				return creditpurchase.Charge{}, err
-			}
-		}
-
-		charge.Status = creditpurchase.StatusActive
-
-		updatedBase, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
-		if err != nil {
-			return creditpurchase.Charge{}, err
-		}
-
-		charge.ChargeBase = updatedBase
-
-		return charge, nil
-	})
+	trigger, err := externalInitialPaymentTrigger(externalCreditPurchaseSettlement.InitialStatus)
 	if err != nil {
 		return creditpurchase.Charge{}, err
 	}
 
-	// Let's handle the payment authorized state transition if requested
-	if targetStatus.In(
-		creditpurchase.AuthorizedInitialPaymentSettlementStatus,
-		creditpurchase.SettledInitialPaymentSettlementStatus,
-	) {
-		charge, err = s.HandleExternalPaymentAuthorized(ctx, charge)
-		if err != nil {
-			return creditpurchase.Charge{}, err
-		}
+	stateMachine, err := s.newExternalCreditPurchaseStateMachine(charge)
+	if err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("new external state machine: %w", err)
 	}
 
-	// Let's handle the payment settled state transition if requested
-	if targetStatus == creditpurchase.SettledInitialPaymentSettlementStatus {
-		charge, err = s.HandleExternalPaymentSettled(ctx, charge)
-		if err != nil {
-			return creditpurchase.Charge{}, err
-		}
+	advancedCharge, err := stateMachine.AdvanceUntilStateStable(ctx)
+	if err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("advance external state machine: %w", err)
+	}
+
+	charge = lo.FromPtrOr(advancedCharge, charge)
+
+	if trigger == "" {
+		return charge, nil
+	}
+
+	charge, err = stateMachine.handleExternalPaymentLifecycleTrigger(ctx, trigger)
+	if err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("fire external payment trigger %s: %w", trigger, err)
 	}
 
 	return charge, nil
 }
 
-func (s *service) HandleExternalPaymentAuthorized(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.Charge, error) {
-		if charge.Realizations.ExternalPaymentSettlement != nil {
-			return creditpurchase.Charge{}, payment.ErrPaymentAlreadyAuthorized.
-				WithAttrs(charge.ErrorAttributes()).
-				WithAttrs(charge.Realizations.ExternalPaymentSettlement.ErrorAttributes())
+func externalInitialPaymentTrigger(status creditpurchase.InitialPaymentSettlementStatus) (meta.Trigger, error) {
+	switch status {
+	case creditpurchase.CreatedInitialPaymentSettlementStatus:
+		return "", nil
+	case creditpurchase.AuthorizedInitialPaymentSettlementStatus:
+		return billing.TriggerAuthorized, nil
+	case creditpurchase.SettledInitialPaymentSettlementStatus:
+		return billing.TriggerPaid, nil
+	default:
+		return "", fmt.Errorf("invalid initial payment settlement status: %s", status)
+	}
+}
+
+type ExternalCreditPurchaseStateMachine struct {
+	*stateMachine
+}
+
+func NewExternalCreditPurchaseStateMachine(config StateMachineConfig) (*ExternalCreditPurchaseStateMachine, error) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("validate: %w", err)
+	}
+
+	if config.Realizations == nil {
+		return nil, fmt.Errorf("realizations service is required")
+	}
+
+	if config.Charge.Intent.Settlement.Type() != creditpurchase.SettlementTypeExternal {
+		return nil, fmt.Errorf("charge %s is not external", config.Charge.ID)
+	}
+
+	stateMachine, err := newStateMachineBase(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create external credit purchase state machine: %w", err)
+	}
+
+	out := &ExternalCreditPurchaseStateMachine{
+		stateMachine: stateMachine,
+	}
+	out.configureStates()
+
+	return out, nil
+}
+
+func (s *ExternalCreditPurchaseStateMachine) configureStates() {
+	s.Configure(creditpurchase.StatusCreated).
+		Permit(meta.TriggerNext, creditpurchase.StatusActivePaymentPending)
+
+	s.Configure(creditpurchase.StatusActive).
+		Permit(meta.TriggerNext, creditpurchase.StatusActivePaymentPending)
+
+	s.Configure(creditpurchase.StatusActiveInitialCreditGrant).
+		Permit(meta.TriggerNext, creditpurchase.StatusActivePaymentPending).
+		OnActive(s.InitiateExternalCreditPurchaseFromCreated)
+
+	s.Configure(creditpurchase.StatusActivePaymentPending).
+		Permit(billing.TriggerAuthorized, creditpurchase.StatusActivePaymentAuthorized).
+		Permit(billing.TriggerPaid, creditpurchase.StatusActivePaymentPaidAndAuthorized)
+
+	s.Configure(creditpurchase.StatusActivePaymentAuthorized).
+		OnActive(s.AuthorizeExternalPayment).
+		Permit(billing.TriggerPaid, creditpurchase.StatusActivePaymentSettled)
+
+	s.Configure(creditpurchase.StatusActivePaymentPaidAndAuthorized).
+		Permit(billing.TriggerNext, creditpurchase.StatusActivePaymentSettled).
+		OnActive(s.AuthorizeExternalPayment)
+
+	s.Configure(creditpurchase.StatusActivePaymentSettled).
+		Permit(billing.TriggerNext, creditpurchase.StatusFinal).
+		OnActive(s.SettleExternalPayment)
+
+	s.Configure(creditpurchase.StatusFinal)
+}
+
+func (s *ExternalCreditPurchaseStateMachine) AdvanceUntilStateStable(ctx context.Context) (*creditpurchase.Charge, error) {
+	hadGrant := hasExternalCreditGrant(s.Charge)
+
+	advancedCharge, err := s.stateMachine.Machine.AdvanceUntilStateStable(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	switch s.Charge.Status {
+	case creditpurchase.StatusActivePaymentPending, creditpurchase.StatusActivePaymentAuthorized:
+		if err := s.EnsureExternalCreditPurchaseInitiated(ctx); err != nil {
+			return nil, err
 		}
+	}
 
-		eventAt := clock.Now()
-		ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, creditpurchase.PaymentEventInput{
-			Charge:  charge,
-			EventAt: eventAt,
-		})
-		if err != nil {
-			return creditpurchase.Charge{}, err
-		}
+	if advancedCharge != nil || (!hadGrant && hasExternalCreditGrant(s.Charge)) {
+		charge := s.GetCharge()
+		return &charge, nil
+	}
 
-		newPaymentSettlement := payment.ExternalCreateInput{
-			Namespace: charge.Namespace,
-			Base: payment.Base{
-				ServicePeriod: charge.Intent.ServicePeriod,
-				Amount:        charge.Intent.CreditAmount,
-				Authorized: &ledgertransaction.TimedGroupReference{
-					GroupReference: ledgerTransactionGroupReference,
-					Time:           eventAt,
-				},
-				Status: payment.StatusAuthorized,
-			},
-		}
+	return nil, nil
+}
 
-		paymentSettlement, err := s.adapter.CreateExternalPayment(ctx, charge.GetChargeID(), newPaymentSettlement)
-		if err != nil {
-			return creditpurchase.Charge{}, err
-		}
+func (s *ExternalCreditPurchaseStateMachine) InitiateExternalCreditPurchaseFromCreated(ctx context.Context) error {
+	return s.applyRealizationUpdate(ctx, s.Realizations.InitiateExternalCreditPurchase)
+}
 
-		charge.Realizations.ExternalPaymentSettlement = &paymentSettlement
+func (s *ExternalCreditPurchaseStateMachine) EnsureExternalCreditPurchaseInitiated(ctx context.Context) error {
+	if hasExternalCreditGrant(s.Charge) {
+		return nil
+	}
 
-		return charge, nil
+	return s.InitiateExternalCreditPurchaseFromCreated(ctx)
+}
+
+func (s *ExternalCreditPurchaseStateMachine) AuthorizeExternalPayment(ctx context.Context) error {
+	return s.applyRealizationUpdate(ctx, s.Realizations.AuthorizeExternalPayment)
+}
+
+func (s *ExternalCreditPurchaseStateMachine) SettleExternalPayment(ctx context.Context) error {
+	return s.applyRealizationUpdate(ctx, s.Realizations.SettleExternalPayment)
+}
+
+// applyRealizationUpdate records realization-side effects while preserving the
+// state-machine-owned base from the current transition.
+func (s *ExternalCreditPurchaseStateMachine) applyRealizationUpdate(
+	ctx context.Context,
+	update func(context.Context, creditpurchase.Charge) (creditpurchase.Charge, error),
+) error {
+	updatedCharge, err := update(ctx, s.Charge)
+	if err != nil {
+		return err
+	}
+
+	s.Charge = updatedCharge.WithBase(s.Charge.ChargeBase)
+	return nil
+}
+
+func (s *service) newExternalCreditPurchaseStateMachine(charge creditpurchase.Charge) (*ExternalCreditPurchaseStateMachine, error) {
+	return NewExternalCreditPurchaseStateMachine(StateMachineConfig{
+		Charge:       charge,
+		Adapter:      s.adapter,
+		Realizations: s.realizations,
 	})
 }
 
+func (s *ExternalCreditPurchaseStateMachine) handleExternalPaymentLifecycleTrigger(ctx context.Context, trigger meta.Trigger) (creditpurchase.Charge, error) {
+	if _, err := s.AdvanceUntilStateStable(ctx); err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("advance external state machine: %w", err)
+	}
+
+	if trigger == billing.TriggerPaid {
+		return s.handleSettledExternalPayment(ctx)
+	}
+
+	return s.FireAndAdvanceUntilStateStable(ctx, trigger)
+}
+
+func hasExternalCreditGrant(charge creditpurchase.Charge) bool {
+	return charge.Realizations.CreditGrantRealization != nil &&
+		charge.Realizations.CreditGrantRealization.TransactionGroupID != ""
+}
+
+// handleSettledExternalPayment handles provider flows that may report paid
+// without a separate authorization event, preserving authorization before settlement.
+func (s *ExternalCreditPurchaseStateMachine) handleSettledExternalPayment(ctx context.Context) (creditpurchase.Charge, error) {
+	if s.Charge.Status == creditpurchase.StatusActivePaymentPending {
+		if _, err := s.FireAndAdvanceUntilStateStable(ctx, billing.TriggerAuthorized); err != nil {
+			return creditpurchase.Charge{}, err
+		}
+	}
+
+	if s.Charge.Status != creditpurchase.StatusActivePaymentAuthorized {
+		return creditpurchase.Charge{}, fmt.Errorf(
+			"%w: %s [status=%s,id=%s]",
+			chargestatemachine.ErrUnsupportedOperation,
+			billing.TriggerPaid,
+			s.Charge.Status,
+			s.Charge.GetChargeID().ID,
+		)
+	}
+
+	if err := s.SettleExternalPayment(ctx); err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	s.Charge = s.Charge.WithStatus(creditpurchase.StatusFinal)
+	updatedBase, err := s.Adapter.UpdateCharge(ctx, s.Charge.GetBase())
+	if err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("persist charge: %w", err)
+	}
+
+	s.Charge = s.Charge.WithBase(updatedBase)
+
+	return s.GetCharge(), nil
+}
+
+func (s *service) HandleExternalPaymentAuthorized(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
+	return s.handleExternalPaymentTrigger(ctx, charge, billing.TriggerAuthorized)
+}
+
 func (s *service) HandleExternalPaymentSettled(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
+	return s.handleExternalPaymentTrigger(ctx, charge, billing.TriggerPaid)
+}
+
+func (s *service) handleExternalPaymentTrigger(ctx context.Context, charge creditpurchase.Charge, trigger meta.Trigger) (creditpurchase.Charge, error) {
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.Charge, error) {
-		if charge.Realizations.ExternalPaymentSettlement == nil {
-			return creditpurchase.Charge{}, payment.ErrCannotSettleNotAuthorizedPayment.
-				WithAttrs(charge.ErrorAttributes())
-		}
-
-		paymentSettlement := *charge.Realizations.ExternalPaymentSettlement
-
-		if paymentSettlement.Status != payment.StatusAuthorized {
-			return creditpurchase.Charge{}, payment.ErrPaymentAlreadySettled.
-				WithAttrs(charge.ErrorAttributes()).
-				WithAttrs(paymentSettlement.ErrorAttributes())
-		}
-
-		eventAt := clock.Now()
-		ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentSettled(ctx, creditpurchase.PaymentEventInput{
-			Charge:  charge,
-			EventAt: eventAt,
-		})
+		stateMachine, err := s.newExternalCreditPurchaseStateMachine(charge)
 		if err != nil {
 			return creditpurchase.Charge{}, err
 		}
 
-		paymentSettlement.Settled = &ledgertransaction.TimedGroupReference{
-			GroupReference: ledgerTransactionGroupReference,
-			Time:           eventAt,
-		}
-
-		paymentSettlement.Status = payment.StatusSettled
-
-		paymentSettlement, err = s.adapter.UpdateExternalPayment(ctx, paymentSettlement)
-		if err != nil {
-			return creditpurchase.Charge{}, err
-		}
-
-		charge.Realizations.ExternalPaymentSettlement = &paymentSettlement
-
-		// Let's update the charge status to final
-		charge.Status = creditpurchase.StatusFinal
-
-		updatedBase, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
-		if err != nil {
-			return creditpurchase.Charge{}, err
-		}
-
-		charge.ChargeBase = updatedBase
-
-		return charge, nil
+		return stateMachine.handleExternalPaymentLifecycleTrigger(ctx, trigger)
 	})
 }

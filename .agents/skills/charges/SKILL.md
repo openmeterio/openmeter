@@ -560,6 +560,8 @@ When status changes:
 
 `usagebased.Status.ToMetaChargeStatus()`, `flatfee.Status.ToMetaChargeStatus()`, and `creditpurchase.Status.ToMetaChargeStatus()` are the bridges between the full state-machine status and the root charge meta status.
 
+Implement `ToMetaChargeStatus()` by validating the charge-type-specific status and then deriving the root status with `meta.DetailedStatusToMetaStatus(string(status))`. Do not enumerate detailed states in this conversion; detailed status lists belong in `Values()` and lifecycle transition matrices, and duplicated switch statements drift as states are added.
+
 ## Testing Guidance
 
 Key tests:
@@ -583,6 +585,7 @@ Use these conventions for lifecycle tests:
 - for credit-only charges (usage-based or flat fee), `Create(...)` itself may return an already-advanced charge — assert the returned charge's status, do not assume it will be `created`
 - for flat fee credit-only tests, use `mustAdvanceFlatFeeCharges(...)` helper — it filters the advance result to flat fee charges only
 - flat fee credit-only handler callbacks (`onCreditsOnlyUsageAccrued`) must return credit allocations that sum to the input `AmountToAllocate`
+- for credit-purchase state-machine unit tests, use testify `mock.Mock` with `On(...).Run(...).Return(...).Once()` for expected handler callbacks so missing or unexpected calls fail; in service-suite tests, leave callbacks unset when validating that a flow fails before callbacks, because the shared `CreditPurchaseTestHandler` already errors if an unset callback is invoked
 - when testing timestamp truncation, use sub-second fixtures and assert the persisted charge/run fields are second-aligned after create/advance
 - `time.Time` fields on domain models are value typed; use `s.False(ts.IsZero())` instead of `s.NotNil(ts)` when asserting they are populated
 - cover the temporary shrink/extend remap path as well; it synthesizes new intents and must normalize the replacement period ends before re-create
@@ -650,8 +653,8 @@ Usage-based handler interface (`usagebased.Handler`):
 Credit purchase handler interface (`creditpurchase.Handler`):
 - `OnPromotionalCreditPurchase(ctx, Charge)` → `ledgertransaction.GroupReference`
 - `OnCreditPurchaseInitiated(ctx, Charge)` → `ledgertransaction.GroupReference`
-- `OnCreditPurchasePaymentAuthorized(ctx, Charge)` → `ledgertransaction.GroupReference`
-- `OnCreditPurchasePaymentSettled(ctx, Charge)` → `ledgertransaction.GroupReference`
+- `OnCreditPurchasePaymentAuthorized(ctx, PaymentEventInput)` → `ledgertransaction.GroupReference`
+- `OnCreditPurchasePaymentSettled(ctx, PaymentEventInput)` → `ledgertransaction.GroupReference`
 
 `flatfee/service/service.go` Config requires a `*lockr.Locker` — when constructing in tests, create the locker before the flat fee service
 
@@ -663,6 +666,9 @@ When changing credit purchase charges:
 - `CreditGrantRealization` is stored in its own `charge_credit_purchase_credit_grants` table, not on the base row
 - `creditpurchase.Status` mirrors the flatfee pattern: `StatusCreated`, `StatusActive`, `StatusFinal`, `StatusDeleted` with `ToMetaChargeStatus()` bridge
 - `charge_credit_purchases.status_detailed` column mirrors `status` and is set via `SetStatusDetailed(...)` on create/update
+- external credit-purchase direct provider `paid` events must authorize first so `OnCreditPurchasePaymentAuthorized(...)` observes `active.payment.authorized` without an external payment realization; run settlement before the transition to `final` is persisted, so `OnCreditPurchasePaymentSettled(...)` observes the authorized payment realization while the charge is still `active.payment.authorized`
+- prefer `OnActive(...)` for credit-purchase state-owned realization side effects such as grant initiation and payment authorization; use `OnExitWith(...)` for settlement when the callback must run before moving to `final` without adding a durable intermediate status
+- do not add credit-purchase detailed statuses only to model callback ordering; add persisted `status_detailed` values only when callers need to observe or retry a durable lifecycle state
 - `UpdateCharge(ctx, ChargeBase) (ChargeBase, error)` only updates base-row fields — do not call it just because realization edges changed
 - Realization edges are created/updated through dedicated adapter methods: `CreateCreditGrant`, `CreateExternalPayment`, `UpdateExternalPayment`, `CreateInvoicedPayment`, `UpdateInvoicedPayment`
 - Adapter interface is composite: `ChargeAdapter` + `CreditGrantAdapter` + `ExternalPaymentAdapter` + `InvoicedPaymentAdapter`
