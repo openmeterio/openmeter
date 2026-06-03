@@ -9,8 +9,6 @@ import (
 type CreditsConfiguration struct {
 	Enabled                 bool `yaml:"enabled"`
 	EnableCreditThenInvoice bool `yaml:"enableCreditThenInvoice"`
-	// TODO remove
-	FeatureFlag string `yaml:"featureFlag"`
 }
 
 func (c CreditsConfiguration) Validate() error {
@@ -26,5 +24,4 @@ func ConfigureCredits(v *viper.Viper, prefixes ...string) {
 
 	v.SetDefault(prefixer("enabled"), false)
 	v.SetDefault(prefixer("enableCreditThenInvoice"), false)
-	v.SetDefault(prefixer("featureFlag"), "")
 }
