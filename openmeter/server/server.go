@@ -92,9 +92,16 @@ func NewServer(config *Config) (*Server, error) {
 	r := chi.NewRouter()
 	r.Use(server.NewPoweredByMiddleware())
 
-	// Collect router-hook middlewares (e.g. otelhttp tracing/metrics) so v3
-	// has the same OTEL HTTP instrumentation as the v1 router group.
-	v3Middlewares := append(collectMiddlewareHooks(config.RouterHooks.Middlewares), []server.MiddlewareFunc{
+	// Materialize the router-hook middlewares once (running each hook body a single
+	// time) and apply the same slice to both the v3 and v1 groups below. Invoking the
+	// hooks per-group instead would run their bodies twice — harmless for the stateless
+	// telemetry hook, but unsafe for any future hook with construction side effects.
+	hookMiddlewares := collectMiddlewareHooks(config.RouterHooks.Middlewares)
+
+	// v3 gets the hook middlewares (e.g. otelhttp tracing/metrics) plus the standard
+	// stack, so it has the same OTEL HTTP instrumentation as the v1 router group.
+	v3Middlewares := append([]server.MiddlewareFunc{}, hookMiddlewares...)
+	v3Middlewares = append(v3Middlewares, []server.MiddlewareFunc{
 		middleware.RealIP,
 		middleware.RequestID,
 		func(h http.Handler) http.Handler {
@@ -159,9 +166,9 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	r.Group(func(r chi.Router) {
-		// Apply middlewares
-		for _, middlewareHook := range config.RouterHooks.Middlewares {
-			middlewareHook(r)
+		// Apply the same materialized hook middlewares as the v3 group above.
+		for _, mw := range hookMiddlewares {
+			r.Use(mw)
 		}
 
 		r.Use(middleware.RealIP)
