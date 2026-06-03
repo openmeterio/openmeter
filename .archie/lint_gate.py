@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -193,30 +194,24 @@ def run_linter(
 ) -> tuple[int, str]:
     """Run the linter on a single file. Returns (exit_code, combined_output).
 
-    Uses shell=True so commands like ``ruff check --quiet`` stay readable.
-    Wraps any spawn error as exit 0 (fail open — we will not pretend a missing
-    linter is a lint failure).
+    Runs without a shell (``shell=False``): the command string is split into
+    argv with ``shlex`` and the file path is appended as its own argument, so a
+    path or filename can never be interpreted as shell syntax. Wraps any spawn
+    error as exit 0 (fail open — we will not pretend a missing linter is a lint
+    failure).
     """
     try:
         proc = subprocess.run(
-            f"{command} {_shquote(str(file_path))}",
-            shell=True,
+            shlex.split(command) + [str(file_path)],
             cwd=str(cwd),
             capture_output=True,
             text=True,
             timeout=timeout,
         )
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError, ValueError):
         return 0, ""
     output = (proc.stdout or "") + (proc.stderr or "")
     return proc.returncode, output.strip()
-
-
-def _shquote(s: str) -> str:
-    """Minimal shell-quoting for a single arg."""
-    if not s or any(c in s for c in " '\"\\$`"):
-        return "'" + s.replace("'", "'\\''") + "'"
-    return s
 
 
 def gate(
