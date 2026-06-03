@@ -165,4 +165,31 @@ func TestIsCreditEnabled(t *testing.T) {
 		require.NoError(t, err)
 		require.False(t, enabled)
 	})
+
+	t.Run("credits_disabled_via_feature_flag", func(t *testing.T) {
+		// creditsEnabled=true so the struct-level short-circuit doesn't fire;
+		// the gate itself returns false for the mapped flag.
+		router, err := newPatchCollectionRouter(patchCollectionRouterConfig{
+			capacity:                 1,
+			invoices:                 persistedstate.Invoices{},
+			creditThenInvoiceEnabled: false,
+			creditsEnabled:           true,
+			featureGate: featuregate.NewFeatureGateChecker(
+				alwaysFalseGate{},
+				featuregate.Flags{featuregate.FeatureFlag("om_ff_credits_enabled"): "my-credits-flag"},
+			),
+		})
+		require.NoError(t, err)
+
+		enabled, err := router.isCreditsEnabled("test-ns")
+		require.NoError(t, err)
+		require.False(t, enabled)
+	})
+}
+
+// alwaysFalseGate is a Gate implementation that always returns false.
+type alwaysFalseGate struct{}
+
+func (alwaysFalseGate) EvaluateBool(_, _ string, _ bool) (bool, error) {
+	return false, nil
 }

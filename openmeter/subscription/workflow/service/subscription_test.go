@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -2127,5 +2128,111 @@ func TestSettlementMode(t *testing.T) {
 			"settlement mode should remain unchanged after rejected edit")
 		assert.Equal(t, productcatalog.CreditThenInvoiceSettlementMode, viewAfter.Spec.SettlementMode,
 			"spec settlement mode should remain unchanged after rejected edit")
+	})
+
+	t.Run("CreateFromPlan with CreditOnly plan is rejected when credits are disabled in feature gate", func(t *testing.T) {
+		now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+		clock.SetTime(now)
+		defer clock.ResetTime()
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		require.NotNil(t, dbDeps)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+		planInput := subscriptiontestutils.GetExamplePlanInput(t)
+		planInput.SettlementMode = productcatalog.CreditOnlySettlementMode
+		p := deps.PlanHelper.CreatePlan(t, planInput)
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		// credits disabled via feature gate context
+		ctx := context.WithValue(context.Background(), featuregate.FeatureFlag("om_ff_credits_enabled"), false)
+
+		_, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{Custom: &now},
+				Name:   "CreditOnly Rejected",
+			},
+			CustomerID: cust.ID,
+			Namespace:  subscriptiontestutils.ExampleNamespace,
+		}, p)
+		require.ErrorContains(t, err, "cannot create subscription with credit-only settlement mode when credits are disabled")
+	})
+
+	t.Run("CreateFromPlan with CreditOnly plan succeeds when credits are enabled in feature gate", func(t *testing.T) {
+		now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+		clock.SetTime(now)
+		defer clock.ResetTime()
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		require.NotNil(t, dbDeps)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+		planInput := subscriptiontestutils.GetExamplePlanInput(t)
+		planInput.SettlementMode = productcatalog.CreditOnlySettlementMode
+		p := deps.PlanHelper.CreatePlan(t, planInput)
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		// credits enabled via feature gate context
+		ctx := context.WithValue(context.Background(), featuregate.FeatureFlag("om_ff_credits_enabled"), true)
+
+		_, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{Custom: &now},
+				Name:   "CreditOnly Allowed",
+			},
+			CustomerID: cust.ID,
+			Namespace:  subscriptiontestutils.ExampleNamespace,
+		}, p)
+		require.NoError(t, err)
+	})
+
+	t.Run("ChangeToPlan with CreditOnly plan is rejected when credits are disabled in feature gate", func(t *testing.T) {
+		now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+		clock.SetTime(now)
+		defer clock.ResetTime()
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		require.NotNil(t, dbDeps)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+		basePlan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+
+		creditOnlyPlanInput := subscriptiontestutils.GetExamplePlanInput(t)
+		creditOnlyPlanInput.Key = "credit_only_plan"
+		creditOnlyPlanInput.SettlementMode = productcatalog.CreditOnlySettlementMode
+		creditOnlyPlan := deps.PlanHelper.CreatePlan(t, creditOnlyPlanInput)
+
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		// Create a base subscription on the regular plan
+		sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{Custom: &now},
+				Name:   "Base Subscription",
+			},
+			CustomerID: cust.ID,
+			Namespace:  subscriptiontestutils.ExampleNamespace,
+		}, basePlan)
+		require.NoError(t, err)
+
+		// credits disabled via feature gate context
+		ctx := context.WithValue(context.Background(), featuregate.FeatureFlag("om_ff_credits_enabled"), false)
+
+		_, _, err = deps.WorkflowService.ChangeToPlan(ctx, sub.Subscription.NamespacedID, subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{
+				Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
+			},
+			Name: "Change to CreditOnly",
+		}, creditOnlyPlan)
+		require.ErrorContains(t, err, "cannot change subscription with credit-only settlement mode when credits are disabled")
 	})
 }
