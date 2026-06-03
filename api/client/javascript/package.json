@@ -57,9 +57,11 @@
   "scripts": {
     "build": "duel",
     "format": "biome format --write .",
-    "generate": "pnpm run generate:client && pnpm run generate:zod",
+    "generate": "pnpm run generate:client && pnpm run generate:zod && pnpm run generate:client:v3 && pnpm run generate:zod:v3",
     "generate:client": "tsx scripts/generate.ts && biome format --write ./src/client/schemas.ts",
     "generate:zod": "orval && tsx scripts/add-as-const.ts && biome lint --write ./src/zod/index.ts && biome format --write ./src/zod/index.ts",
+    "generate:client:v3": "tsx scripts/generate-v3.ts && biome format --write ./src/v3/schemas.ts",
+    "generate:zod:v3": "orval --config orval.v3.config.ts && tsx scripts/add-as-const.ts src/v3/zod/index.ts && biome lint --write ./src/v3/zod/index.ts && biome format --write ./src/v3/zod/index.ts",
     "lint": "tsc --noEmit && biome lint .",
     "prepublishOnly": "pnpm run generate && pnpm run build && pnpm run lint && pnpm run test",
     "pretest": "pnpm run build",

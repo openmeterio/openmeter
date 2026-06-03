@@ -3,6 +3,7 @@ import createClient, {
   type ClientOptions,
   createQuerySerializer,
 } from 'openapi-fetch'
+import { V3 } from '../v3/index.js'
 import { Addons } from './addons.js'
 import { Apps } from './apps.js'
 import { Billing } from './billing.js'
@@ -103,5 +104,21 @@ export class OpenMeter {
     this.subjects = new Subjects(this.client)
     this.subscriptionAddons = new SubscriptionAddons(this.client)
     this.subscriptions = new Subscriptions(this.client)
+  }
+
+  private _v3?: V3
+
+  /**
+   * v3 API compatibility shim — `om.v3.plans.create(...)`, etc.
+   *
+   * Lazily constructs a dedicated client for the v3 surface (`<baseUrl>/api/v3`)
+   * sharing this client's config/auth. Interim fallback to the generated v3 SDK
+   * in `api/spec/`; surfaces snake_case wire shapes verbatim.
+   */
+  get v3(): V3 {
+    if (!this._v3) {
+      this._v3 = new V3(this.config)
+    }
+    return this._v3
   }
 }
