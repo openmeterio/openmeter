@@ -92,7 +92,16 @@ func NewServer(config *Config) (*Server, error) {
 	r := chi.NewRouter()
 	r.Use(server.NewPoweredByMiddleware())
 
-	v3Middlewares := []server.MiddlewareFunc{
+	// Materialize the router-hook middlewares once (running each hook body a single
+	// time) and apply the same slice to both the v3 and v1 groups below. Invoking the
+	// hooks per-group instead would run their bodies twice — harmless for the stateless
+	// telemetry hook, but unsafe for any future hook with construction side effects.
+	hookMiddlewares := collectMiddlewareHooks(config.RouterHooks.Middlewares)
+
+	// v3 gets the hook middlewares (e.g. otelhttp tracing/metrics) plus the standard
+	// stack, so it has the same OTEL HTTP instrumentation as the v1 router group.
+	v3Middlewares := append([]server.MiddlewareFunc{}, hookMiddlewares...)
+	v3Middlewares = append(v3Middlewares, []server.MiddlewareFunc{
 		middleware.RealIP,
 		middleware.RequestID,
 		func(h http.Handler) http.Handler {
@@ -105,7 +114,7 @@ func NewServer(config *Config) (*Server, error) {
 		},
 		server.NewRequestLoggerMiddleware(slog.Default().Handler()),
 		middleware.Recoverer,
-	}
+	}...)
 
 	v3API, err := v3server.NewServer(&v3server.Config{
 		BaseURL:                  "/api/v3",
@@ -157,9 +166,9 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	r.Group(func(r chi.Router) {
-		// Apply middlewares
-		for _, middlewareHook := range config.RouterHooks.Middlewares {
-			middlewareHook(r)
+		// Apply the same materialized hook middlewares as the v3 group above.
+		for _, mw := range hookMiddlewares {
+			r.Use(mw)
 		}
 
 		r.Use(middleware.RealIP)
@@ -245,6 +254,26 @@ func NewServer(config *Config) (*Server, error) {
 	return &Server{
 		Router: r,
 	}, nil
+}
+
+// middlewareCollector implements MiddlewareManager to collect middlewares from hooks.
+type middlewareCollector struct {
+	middlewares []server.MiddlewareFunc
+}
+
+func (c *middlewareCollector) Use(middlewares ...func(http.Handler) http.Handler) {
+	for _, mw := range middlewares {
+		c.middlewares = append(c.middlewares, server.MiddlewareFunc(mw))
+	}
+}
+
+// collectMiddlewareHooks materializes MiddlewareHooks into a flat slice of middleware funcs.
+func collectMiddlewareHooks(hooks []MiddlewareHook) []server.MiddlewareFunc {
+	c := &middlewareCollector{}
+	for _, hook := range hooks {
+		hook(c)
+	}
+	return c.middlewares
 }
 
 // errorHandlerReply handles errors returned by the OpenAPI layer.
