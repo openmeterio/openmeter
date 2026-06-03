@@ -296,18 +296,36 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 				otelhttp.WithMeterProvider(meterProvider),
 				otelhttp.WithTracerProvider(tracerProvider),
 				otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
-					// Name the server span "METHOD /route/{template}". chi's route pattern
-					// is the exact, low-cardinality template (path params appear as
-					// "{param}", so both ids and arbitrary keys collapse). It is already
-					// resolved by the time otelhttp calls this formatter. Fall back to the
-					// ULID-collapsed raw path when no route matched (e.g. 404s).
-					name := lowCardinalityPath(r.URL.Path)
-					if rctx := chi.RouteContext(r.Context()); rctx != nil {
-						if pat := rctx.RoutePattern(); pat != "" {
-							name = pat
+					// Name the server span "METHOD /route/{template}" using the lowest-
+					// cardinality route identifier available.
+					//
+					// Two-pass note: otelhttp calls this formatter once when the span
+					// starts (before chi has finished routing) and, in v0.68, again after
+					// the handler only when r.Pattern is set. r.Pattern is the net/http
+					// ServeMux pattern; chi does not populate it, so under chi the name is
+					// set on the first (pre-routing) call only. We therefore resolve the
+					// route from the available signals, most specific first:
+					//   1. r.Pattern           — net/http ServeMux pattern; chi sets it to the
+					//                            mount prefix ("/api/v3/*") for sub-routers
+					//   2. chi RoutePattern    — matched chi template ("{param}" placeholders)
+					//   3. ULID-collapsed path — fallback when no resolved template is available
+					// The exact template is also recorded on the http.route attribute.
+					//
+					// A value containing "*" is an unresolved mount prefix (e.g. "/api/v3/*"
+					// when otelhttp runs inside a sub-router, before the leaf is matched —
+					// this surfaces via r.Pattern on otelhttp's post-handler pass). It is not
+					// a usable route name, so skip it (from any source) and fall back to the
+					// ULID-collapsed path.
+					route := r.Pattern
+					if route == "" {
+						if rctx := chi.RouteContext(r.Context()); rctx != nil {
+							route = rctx.RoutePattern()
 						}
 					}
-					return r.Method + " " + name
+					if route == "" || strings.Contains(route, "*") {
+						route = lowCardinalityPath(r.URL.Path)
+					}
+					return r.Method + " " + route
 				}),
 			)
 		})
