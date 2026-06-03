@@ -54,7 +54,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Watermill,
 		common.WatermillRouter,
 		wire.Struct(new(Application), "*"),
-		common.FeatureGateNoopSet,
+		common.FeatureGateChecker,
 	)
 	return Application{}, nil, nil
 }

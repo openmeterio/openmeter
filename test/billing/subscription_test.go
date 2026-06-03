@@ -54,7 +54,7 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		SubscriptionService:     s.SubscriptionService,
-		FeatureGate:             featuregate.NewNoop(),
+		FeatureGate:             featuregate.NewFeatureGateChecker(featuregate.NewNoop(), make(featuregate.Flags)),
 	})
 	s.NoError(err)
 	s.NotNil(service)

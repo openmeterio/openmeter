@@ -3,7 +3,6 @@ package subscriptions
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -49,15 +48,6 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 			var settlementMode *productcatalog.SettlementMode
 			if body.SettlementMode != nil {
 				settlementMode = lo.ToPtr(productcatalog.SettlementMode(*body.SettlementMode))
-			}
-
-			creditEnabled, err := h.isCreditsEnabled(ns)
-			if err != nil {
-				return ChangeSubscriptionRequest{}, fmt.Errorf("failed to change subscription: %w", err)
-			}
-
-			if !creditEnabled && lo.FromPtr(settlementMode) == productcatalog.CreditOnlySettlementMode {
-				return ChangeSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 			}
 
 			id := models.NamespacedID{

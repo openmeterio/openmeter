@@ -70,15 +70,6 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 					return ChangeSubscriptionRequest{}, fmt.Errorf("failed to create plan request: %w", err)
 				}
 
-				creditEnabled, err := h.isCreditsEnabled(ns)
-				if err != nil {
-					return ChangeSubscriptionRequest{}, fmt.Errorf("failed to change subscription: %w", err)
-				}
-
-				if !creditEnabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
-					return ChangeSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
-				}
-
 				planInp := plansubscription.PlanInput{}
 				planInp.FromInput(&req)
 
@@ -121,15 +112,6 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				var settlementMode *productcatalog.SettlementMode
 				if parsedBody.SettlementMode != nil {
 					settlementMode = lo.ToPtr(productcatalog.SettlementMode(*parsedBody.SettlementMode))
-				}
-
-				creditEnabled, err := h.isCreditsEnabled(ns)
-				if err != nil {
-					return ChangeSubscriptionRequest{}, fmt.Errorf("failed to change subscription: %w", err)
-				}
-
-				if !creditEnabled && lo.FromPtr(settlementMode) == productcatalog.CreditOnlySettlementMode {
-					return ChangeSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 				}
 
 				return ChangeSubscriptionRequest{

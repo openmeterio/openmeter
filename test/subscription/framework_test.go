@@ -128,7 +128,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		SubscriptionService:     deps.SubscriptionService,
-		FeatureGate:             featuregate.NewNoop(),
+		FeatureGate:             featuregate.NewFeatureGateChecker(featuregate.NewNoop(), make(featuregate.Flags)),
 	})
 	require.NoError(t, err)
 

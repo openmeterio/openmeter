@@ -7,8 +7,11 @@ import (
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
+	planhandler "github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
+	subscriptionhandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
 	subscriptionaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions/subscriptionaddons"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 )
 
@@ -86,7 +89,11 @@ func (s *Server) ListCustomerEntitlementAccess(w http.ResponseWriter, r *http.Re
 // Subscriptions
 
 func (s *Server) CreateSubscription(w http.ResponseWriter, r *http.Request) {
-	s.subscriptionsHandler.CreateSubscription().ServeHTTP(w, r)
+	s.subscriptionsHandler.CreateSubscription().
+		Chain(featuregate.NewMiddleware[subscriptionhandler.CreateSubscriptionRequest, subscriptionhandler.CreateSubscriptionResponse](
+			s.NamespaceDecoder.GetNamespace,
+			s.FeatureGate,
+		)).ServeHTTP(w, r)
 }
 
 func (s *Server) ListSubscriptions(w http.ResponseWriter, r *http.Request, params api.ListSubscriptionsParams) {
@@ -106,7 +113,11 @@ func (s *Server) UnscheduleCancelation(w http.ResponseWriter, r *http.Request, s
 }
 
 func (s *Server) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
-	s.subscriptionsHandler.ChangeSubscription().With(subscriptionId).ServeHTTP(w, r)
+	s.subscriptionsHandler.ChangeSubscription().
+		Chain(featuregate.NewMiddleware[subscriptionhandler.ChangeSubscriptionRequest, subscriptionhandler.ChangeSubscriptionResponse](
+			s.NamespaceDecoder.GetNamespace,
+			s.FeatureGate,
+		)).With(subscriptionId).ServeHTTP(w, r)
 }
 
 // Subscription Addons
@@ -277,7 +288,10 @@ func (s *Server) ListPlans(w http.ResponseWriter, r *http.Request, params api.Li
 }
 
 func (s *Server) CreatePlan(w http.ResponseWriter, r *http.Request) {
-	s.plansHandler.CreatePlan().ServeHTTP(w, r)
+	s.plansHandler.CreatePlan().Chain(featuregate.NewMiddleware[planhandler.CreatePlanRequest, planhandler.CreatePlanResponse](
+		s.NamespaceDecoder.GetNamespace,
+		s.FeatureGate,
+	)).ServeHTTP(w, r)
 }
 
 func (s *Server) GetPlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
@@ -285,7 +299,10 @@ func (s *Server) GetPlan(w http.ResponseWriter, r *http.Request, planId api.ULID
 }
 
 func (s *Server) UpdatePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	s.plansHandler.UpdatePlan().With(planId).ServeHTTP(w, r)
+	s.plansHandler.UpdatePlan().Chain(featuregate.NewMiddleware[planhandler.UpdatePlanRequest, planhandler.UpdatePlanResponse](
+		s.NamespaceDecoder.GetNamespace,
+		s.FeatureGate,
+	)).With(planId).ServeHTTP(w, r)
 }
 
 func (s *Server) DeletePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {

@@ -47,15 +47,6 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				settlementMode = lo.ToPtr(productcatalog.SettlementMode(*body.SettlementMode))
 			}
 
-			creditEnabled, err := h.isCreditsEnabled(ns)
-			if err != nil {
-				return CreateSubscriptionRequest{}, fmt.Errorf("failed to create subscription: %w", err)
-			}
-
-			if !creditEnabled && lo.FromPtr(settlementMode) == productcatalog.CreditOnlySettlementMode {
-				return CreateSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
-			}
-
 			// Validate that either customer ID or customer key is provided
 			if body.Customer.Id == nil && body.Customer.Key == nil {
 				reason := "one of customer.id or customer.key is required"

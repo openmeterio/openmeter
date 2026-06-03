@@ -179,3 +179,7 @@ taxcode:
       appMappings:
         - appType: stripe
           taxCode: txcd_00000000
+featureGate:
+  enabled: true
+  flags:
+    om_ff_credits_enabled: "credits"

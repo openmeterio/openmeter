@@ -5,17 +5,28 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 )
 
 // (POST /api/v1/subscriptions)
 func (a *Router) CreateSubscription(w http.ResponseWriter, r *http.Request) {
-	a.subscriptionHandler.CreateSubscription().ServeHTTP(w, r)
+	a.subscriptionHandler.CreateSubscription().
+		Chain(featuregate.NewMiddleware[subscriptionhttpdriver.CreateSubscriptionRequest, subscriptionhttpdriver.CreateSubscriptionResponse](
+			a.config.NamespaceDecoder.GetNamespace,
+			a.config.FeatureGate,
+		)).
+		ServeHTTP(w, r)
 }
 
 func (a *Router) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId string) {
-	a.subscriptionHandler.ChangeSubscription().With(subscriptionhttpdriver.ChangeSubscriptionParams{
-		ID: subscriptionId,
-	}).ServeHTTP(w, r)
+	a.subscriptionHandler.ChangeSubscription().
+		Chain(featuregate.NewMiddleware[subscriptionhttpdriver.ChangeSubscriptionRequest, subscriptionhttpdriver.ChangeSubscriptionResponse](
+			a.config.NamespaceDecoder.GetNamespace,
+			a.config.FeatureGate,
+		)).
+		With(subscriptionhttpdriver.ChangeSubscriptionParams{
+			ID: subscriptionId,
+		}).ServeHTTP(w, r)
 }
 
 // (GET /api/v1/subscriptions/{subscriptionId})

@@ -89,8 +89,7 @@ func TestPatchCollectionRouterResolveDefaultCollection(t *testing.T) {
 				invoices:                 persistedstate.Invoices{},
 				creditThenInvoiceEnabled: tt.enableCreditThenInvoice,
 				creditsEnabled:           tt.enableCredits,
-				featureGate:              featuregate.NewNoop(),
-				creditsFlag:              "test-credit",
+				featureGate:              featuregate.NewFeatureGateChecker(featuregate.NewNoop(), make(featuregate.Flags)),
 			})
 			require.NoError(t, err)
 
@@ -132,8 +131,7 @@ func TestIsCreditEnabled(t *testing.T) {
 			invoices:                 persistedstate.Invoices{},
 			creditThenInvoiceEnabled: false,
 			creditsEnabled:           true,
-			featureGate:              featuregate.NewNoop(),
-			creditsFlag:              "test-credit",
+			featureGate:              featuregate.NewFeatureGateChecker(featuregate.NewNoop(), make(featuregate.Flags)),
 		})
 		require.NoError(t, err)
 
@@ -148,7 +146,7 @@ func TestIsCreditEnabled(t *testing.T) {
 			invoices:                 persistedstate.Invoices{},
 			creditThenInvoiceEnabled: false,
 			creditsEnabled:           true,
-			featureGate:              nil,
+			featureGate:              featuregate.NewFeatureGateChecker(nil, make(featuregate.Flags)),
 		})
 		require.Error(t, err)
 	})
@@ -159,7 +157,7 @@ func TestIsCreditEnabled(t *testing.T) {
 			invoices:                 persistedstate.Invoices{},
 			creditThenInvoiceEnabled: false,
 			creditsEnabled:           false,
-			featureGate:              featuregate.NewNoop(),
+			featureGate:              featuregate.NewFeatureGateChecker(featuregate.NewNoop(), make(featuregate.Flags)),
 		})
 		require.NoError(t, err)
 

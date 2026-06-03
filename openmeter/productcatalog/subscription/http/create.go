@@ -58,11 +58,6 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				return CreateSubscriptionRequest{}, fmt.Errorf("failed to unmarshal request body: %w", err)
 			}
 
-			creditEnabled, err := h.isCreditsEnabled(ns)
-			if err != nil {
-				return CreateSubscriptionRequest{}, fmt.Errorf("failed to create subscription: %w", err)
-			}
-
 			if t.CustomPlan != nil {
 				// Custom subscription creation
 				parsedBody, err := body.AsCustomSubscriptionCreate()
@@ -73,10 +68,6 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				req, err := CustomPlanToCreatePlanRequest(parsedBody.CustomPlan, ns)
 				if err != nil {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to create plan request: %w", err)
-				}
-
-				if !creditEnabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
-					return CreateSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 				}
 
 				plan := plansubscription.PlanInput{}
@@ -139,10 +130,6 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				var settlementMode *productcatalog.SettlementMode
 				if parsedBody.SettlementMode != nil {
 					settlementMode = lo.ToPtr(productcatalog.SettlementMode(*parsedBody.SettlementMode))
-				}
-
-				if !creditEnabled && lo.FromPtr(settlementMode) == productcatalog.CreditOnlySettlementMode {
-					return CreateSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 				}
 
 				// Get the customer

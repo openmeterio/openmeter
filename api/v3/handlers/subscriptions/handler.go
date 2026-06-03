@@ -3,12 +3,10 @@ package subscriptions
 import (
 	"context"
 
-	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
@@ -28,8 +26,6 @@ type handler struct {
 	planSubscriptionService plansubscription.PlanSubscriptionService
 	subscriptionService     subscription.Service
 	options                 []httptransport.HandlerOption
-	featureGate             featuregate.Gate
-	credits                 config.CreditsConfiguration
 }
 
 func New(
@@ -38,8 +34,6 @@ func New(
 	planService plan.Service,
 	planSubscriptionService plansubscription.PlanSubscriptionService,
 	subscriptionService subscription.Service,
-	featureGate featuregate.Gate,
-	credits config.CreditsConfiguration,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
@@ -49,7 +43,5 @@ func New(
 		planSubscriptionService: planSubscriptionService,
 		subscriptionService:     subscriptionService,
 		options:                 options,
-		featureGate:             featureGate,
-		credits:                 credits,
 	}
 }

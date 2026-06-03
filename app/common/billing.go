@@ -150,7 +150,7 @@ func NewBillingRegistry(
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
 	breakageService ledgerbreakage.Service,
-	featureGate featuregate.Gate,
+	featureGate *featuregate.FeatureGateChecker,
 ) (BillingRegistry, error) {
 	billingService, err := newBillingService(
 		logger,
@@ -287,7 +287,7 @@ func NewBillingSubscriptionSyncAdapter(db *entdb.Client) (subscriptionsync.Adapt
 	})
 }
 
-func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingRegistry BillingRegistry, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer, creditsConfig config.CreditsConfiguration, featureGate featuregate.Gate) (subscriptionsync.Service, error) {
+func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingRegistry BillingRegistry, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer, creditsConfig config.CreditsConfiguration, featureGate *featuregate.FeatureGateChecker) (subscriptionsync.Service, error) {
 	return subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		SubscriptionService:     subsServices.Service,
 		BillingService:          billingRegistry.Billing,
@@ -295,7 +295,6 @@ func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices Subscri
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		FeatureFlags: subscriptionsyncservice.FeatureFlags{
 			EnableCreditThenInvoice: creditsConfig.EnableCreditThenInvoice,
-			CreditsFlag:             creditsConfig.FeatureFlag,
 		},
 		Logger:      logger,
 		Tracer:      tracer,

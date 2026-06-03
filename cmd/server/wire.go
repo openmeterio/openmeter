@@ -103,7 +103,7 @@ type Application struct {
 	TerminationChecker               *common.TerminationChecker
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector
 	Tracer                           trace.Tracer
-	FeatureGate                      featuregate.Gate
+	FeatureGate                      *featuregate.FeatureGateChecker
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
@@ -159,7 +159,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewTerminationChecker,
 		common.WatermillNoPublisher,
 		wire.Struct(new(Application), "*"),
-		common.FeatureGateNoopSet,
+		common.FeatureGateChecker,
 	)
 
 	return Application{}, nil, nil

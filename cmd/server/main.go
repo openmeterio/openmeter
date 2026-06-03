@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/debug"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -154,6 +155,7 @@ func main() {
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
+			NamespaceDecoder:            namespacedriver.StaticNamespaceDecoder(app.NamespaceManager.GetDefaultNamespace()),
 			Addon:                       app.Addon,
 			App:                         app.AppRegistry.Service,
 			AppStripe:                   app.AppRegistry.Stripe,
@@ -181,7 +183,6 @@ func main() {
 			Logger:                      logger,
 			MeterManageService:          app.MeterManageService,
 			MeterEventService:           app.MeterEventService,
-			NamespaceManager:            app.NamespaceManager,
 			Notification:                app.Notification,
 			Plan:                        app.Plan,
 			PlanAddon:                   app.PlanAddon,

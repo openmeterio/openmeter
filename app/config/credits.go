@@ -7,9 +7,10 @@ import (
 )
 
 type CreditsConfiguration struct {
-	Enabled                 bool   `yaml:"enabled"`
-	EnableCreditThenInvoice bool   `yaml:"enableCreditThenInvoice"`
-	FeatureFlag             string `yaml:"featureFlag"`
+	Enabled                 bool `yaml:"enabled"`
+	EnableCreditThenInvoice bool `yaml:"enableCreditThenInvoice"`
+	// TODO remove
+	FeatureFlag string `yaml:"featureFlag"`
 }
 
 func (c CreditsConfiguration) Validate() error {

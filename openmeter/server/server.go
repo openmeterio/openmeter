@@ -18,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	v3server "github.com/openmeterio/openmeter/api/v3/server"
 	appconfig "github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/portal/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/pkg/contextx"
@@ -118,7 +117,7 @@ func NewServer(config *Config) (*Server, error) {
 
 	v3API, err := v3server.NewServer(&v3server.Config{
 		BaseURL:                  "/api/v3",
-		NamespaceDecoder:         namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace()),
+		NamespaceDecoder:         config.RouterConfig.NamespaceDecoder,
 		ErrorHandler:             config.RouterConfig.ErrorHandler,
 		Credits:                  config.RouterConfig.Credits,
 		AddonService:             config.RouterConfig.Addon,
