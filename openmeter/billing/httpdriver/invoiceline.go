@@ -324,7 +324,7 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
 	}
 
-	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.InvoiceAt, line.TaxConfig)
+	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.InvoiceAt, line.TaxConfig.ToProductCatalog())
 	if err != nil {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
 	}

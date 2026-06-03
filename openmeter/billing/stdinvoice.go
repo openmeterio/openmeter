@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/expand"
@@ -450,7 +449,7 @@ func (i *StandardInvoice) getLeafLines() DetailedLines {
 
 type DetailedLineWithResolvedTaxConfig struct {
 	DetailedLine
-	TaxConfig *productcatalog.TaxConfig
+	TaxConfig *TaxConfig
 }
 
 // GetLeafLinesWithResolvedTaxConfig returns invoice leaf lines together with the effective tax
@@ -459,7 +458,7 @@ func (i *StandardInvoice) GetLeafLinesWithResolvedTaxConfig() []DetailedLineWith
 	out := make([]DetailedLineWithResolvedTaxConfig, 0)
 
 	for _, parentLine := range i.Lines.OrEmpty() {
-		taxConfig := productcatalog.MergeTaxConfigs(i.Workflow.Config.Invoicing.DefaultTaxConfig, parentLine.TaxConfig)
+		taxConfig := MergeTaxConfigs(FromProductCatalog(i.Workflow.Config.Invoicing.DefaultTaxConfig), parentLine.TaxConfig)
 		for _, line := range parentLine.DetailedLines {
 			out = append(out, DetailedLineWithResolvedTaxConfig{
 				DetailedLine: line,

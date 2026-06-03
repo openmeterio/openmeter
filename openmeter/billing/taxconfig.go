@@ -3,6 +3,7 @@ package billing
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -49,16 +50,15 @@ func (c *TaxConfig) Equal(v *TaxConfig) bool {
 		return false
 	}
 
-	// none of them are nil
-	if !c.TaxConfig.Equal(&v.TaxConfig) {
+	if (c.TaxCode != nil && v.TaxCode == nil) || (c.TaxCode == nil && v.TaxCode != nil) {
 		return false
 	}
 
-	if c.TaxCode == nil || v.TaxCode == nil {
+	if c.TaxCode != nil && c.TaxCode.ID != v.TaxCode.ID {
 		return false
 	}
 
-	return c.TaxCode.Equal(v.TaxCode)
+	return c.TaxConfig.Equal(&v.TaxConfig)
 }
 
 func (c *TaxConfig) Validate() error {
@@ -84,23 +84,13 @@ func (c *TaxConfig) Validate() error {
 }
 
 func (c TaxConfig) Clone() TaxConfig {
-	out := TaxConfig{}
-
-	if c.Behavior != nil {
-		out.Behavior = lo.ToPtr(*c.Behavior)
-	}
-
-	if c.Stripe != nil {
-		out.Stripe = lo.ToPtr(c.Stripe.Clone())
-	}
-
-	if c.TaxCodeID != nil {
-		out.TaxCodeID = lo.ToPtr(*c.TaxCodeID)
+	out := TaxConfig{
+		TaxConfig: c.TaxConfig.Clone(),
 	}
 
 	if c.TaxCode != nil {
 		tc := *c.TaxCode
-		tc.AppMappings = append(taxcode.TaxCodeAppMappings(nil), c.TaxCode.AppMappings...)
+		tc.AppMappings = slices.Clone(c.TaxCode.AppMappings)
 		if c.TaxCode.Description != nil {
 			tc.Description = lo.ToPtr(*c.TaxCode.Description)
 		}

@@ -101,7 +101,16 @@ func (s *Service) GetOrCreateByAppMapping(ctx context.Context, input taxcode.Get
 		if err != nil {
 			// Another request may have created it concurrently.
 			if models.IsGenericConflictError(err) {
-				return s.adapter.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput(input))
+				tc, retryErr := s.adapter.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput(input))
+				if retryErr != nil {
+					if taxcode.IsTaxCodeNotFoundError(retryErr) {
+						// The key derived from this Stripe code exists but its app mapping was changed
+						// after auto-creation (orphaned key). Avoid poisoning the pg tx.
+						return taxcode.TaxCode{}, fmt.Errorf("resolving orphaned tax code key for %q: %w", input.TaxCode, taxcode.ErrTaxCodeOrphanedKey)
+					}
+					return taxcode.TaxCode{}, retryErr
+				}
+				return tc, nil
 			}
 
 			return taxcode.TaxCode{}, err
