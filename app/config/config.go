@@ -236,5 +236,5 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureCustomer(v, "customer")
 	ConfigureCredits(v, "credits")
 	ConfigureTaxCode(v)
-	ConfigureFeatureGate(v, "featuregate")
+	ConfigureFeatureGate(v, "featureGate")
 }
