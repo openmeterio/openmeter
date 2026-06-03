@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"sync/atomic"
 
 	"go.opentelemetry.io/otel"
 	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
@@ -24,6 +25,18 @@ var defaultHandlerOptions = []HandlerOption{
 // Used to start an application-level span named after the handler operation, as a
 // child of the otelhttp server span.
 var tracer = otel.Tracer("github.com/openmeterio/openmeter/pkg/framework/transport/httptransport")
+
+// operationSpansEnabled is a global toggle for the per-operation child span. It is off
+// by default — the span is added to every operation request, so enabling it across the
+// whole API surface meaningfully increases trace-span volume. Set once at startup via
+// EnableOperationSpans.
+var operationSpansEnabled atomic.Bool
+
+// EnableOperationSpans globally enables or disables the application-level per-operation
+// child span. Intended to be called once during startup from telemetry configuration.
+func EnableOperationSpans(enabled bool) {
+	operationSpansEnabled.Store(enabled)
+}
 
 type Handler[Request any, Response any] interface {
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
@@ -89,12 +102,17 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 		name := h.operationNameFunc(ctx)
 		ctx = contextx.WithAttr(ctx, string(semconv.HTTPRouteKey), name)
 
-		// Start an application-level span named after the operation, as a child of
-		// the otelhttp server span. The server span stays route-named; this one
-		// carries the operation identity (e.g. "query-governance-access").
-		var span trace.Span
-		ctx, span = tracer.Start(ctx, name)
-		defer span.End()
+		// When enabled globally (EnableOperationSpans), start an application-level span
+		// named after the operation, as a child of the otelhttp server span. The server
+		// span stays route-named; this one carries the operation identity (e.g.
+		// "query-governance-access") and exposes the handler-vs-middleware timing split.
+		// Off by default: it adds a span to every operation request API-wide, so it is
+		// gated by a single startup toggle rather than enabled unconditionally.
+		if operationSpansEnabled.Load() {
+			var span trace.Span
+			ctx, span = tracer.Start(ctx, name)
+			defer span.End()
+		}
 	}
 
 	request, err := h.decodeRequest(ctx, r)

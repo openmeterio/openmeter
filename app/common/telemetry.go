@@ -37,6 +37,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/pkg/contextx"
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 )
 
@@ -199,6 +200,9 @@ func NewTracerProvider(ctx context.Context, conf config.TraceTelemetryConfig, re
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize OpenTelemetry Trace provider: %w", err)
 	}
+
+	// Apply the global per-operation child-span toggle once, at trace init.
+	httptransport.EnableOperationSpans(conf.OperationSpans)
 
 	return tracerProvider, func() {
 		// Use dedicated context with timeout for shutdown as parent context might be canceled
