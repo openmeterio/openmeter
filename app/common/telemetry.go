@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-slog/otelslog"
+	"github.com/google/uuid"
 	"github.com/google/wire"
 	"github.com/oklog/ulid/v2"
 	"github.com/prometheus/client_golang/prometheus"
@@ -332,19 +333,73 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 	}
 }
 
-// lowCardinalityPath collapses ULID path segments to ":id" so span names stay
-// bounded. OpenMeter resource IDs are ULIDs, so this keeps parameterized routes
-// (e.g. "/api/v3/openmeter/customers/01KFTS.../billing") from exploding span-name
-// cardinality, yielding "/api/v3/openmeter/customers/:id/billing". The exact route
-// template is carried separately in the http.route attribute.
+const (
+	// maxRouteSegmentLen: segments longer than this are treated as opaque identifiers
+	// (tokens, keys, random slugs — typical of unmatched/scanner traffic). Legitimate
+	// route segments are well under this (longest is ~"entitlement-access").
+	maxRouteSegmentLen = 32
+	// maxRouteSegments: paths deeper than this are truncated. Real routes are shallow;
+	// deeper paths are almost always scanner traversal.
+	maxRouteSegments = 12
+)
+
+// lowCardinalityPath turns a raw request path into a bounded span-name fragment.
+// It masks high-cardinality segments (ULIDs, UUIDs, numeric ids, over-long opaque
+// tokens) to ":id" and truncates pathologically deep paths, so unmatched/scanner
+// traffic cannot blow up span-name cardinality. It is the name source both for v3
+// routes (whose chi pattern is the skipped "/api/v3/*" mount wildcard) and for
+// unmatched requests. The exact route template, when one matched, is carried
+// separately on the http.route attribute.
 func lowCardinalityPath(path string) string {
 	segments := strings.Split(path, "/")
+
+	truncated := false
+	if len(segments) > maxRouteSegments {
+		segments = segments[:maxRouteSegments]
+		truncated = true
+	}
+
 	for i, seg := range segments {
-		if _, err := ulid.ParseStrict(seg); err == nil {
+		if isHighCardinalitySegment(seg) {
 			segments[i] = ":id"
 		}
 	}
-	return strings.Join(segments, "/")
+
+	out := strings.Join(segments, "/")
+	if truncated {
+		out += "/..."
+	}
+	return out
+}
+
+// isHighCardinalitySegment reports whether a path segment looks like an identifier or
+// opaque token rather than a fixed route word.
+func isHighCardinalitySegment(seg string) bool {
+	if len(seg) > maxRouteSegmentLen {
+		return true
+	}
+	if isAllDigits(seg) {
+		return true
+	}
+	if _, err := ulid.ParseStrict(seg); err == nil {
+		return true
+	}
+	if _, err := uuid.Parse(seg); err == nil {
+		return true
+	}
+	return false
+}
+
+func isAllDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 type RuntimeMetricsCollector struct{}
