@@ -73,6 +73,9 @@ func (c *accrualCollector) collectCustomerFBOSelections(
 }
 
 func (s fboCollectionSource) Compare(other fboCollectionSource) int {
+	// TODO: Version this collection-order contract before changing it.
+	// Existing ledger entries, corrections, and breakage releases assume this
+	// priority/expiry/cursor ordering.
 	if c := cmp.Compare(s.creditPriority, other.creditPriority); c != 0 {
 		return c
 	}
