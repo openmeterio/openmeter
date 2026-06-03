@@ -1,0 +1,91 @@
+{
+  "openmeter/sink/flushhandler": {
+    "purpose": "Post-flush event-handler infrastructure for the sink worker: a buffered async callback framework (FlushEventHandler interface + flushEventHandler impl) and a fan-out multiplexer (FlushEventHandlers) that dispatches ClickHouse-flushed SinkMessages to downstream handlers. Primary constraint: graceful drain-before-exit so no committed-flush notifications are dropped on shutdown.",
+    "patterns": [
+      {
+        "name": "NewFlushEventHandler with mandatory validation",
+        "description": "Construct every handler via NewFlushEventHandler(FlushEventHandlerOptions). Name, Callback, Logger, and MetricMeter are required (error otherwise); CallbackTimeout and DrainTimeout default to defaultCallbackTimeout (30s) when zero.",
+        "example": "handler, err := flushhandler.NewFlushEventHandler(flushhandler.FlushEventHandlerOptions{Name: \"ingest-notification\", Callback: cb, Logger: logger, MetricMeter: meter})"
+      },
+      {
+        "name": "Non-blocking Start launching an internal goroutine",
+        "description": "Start(ctx) must return immediately after go f.start(ctx). The internal loop defers drainDoneClose() so WaitForDrain unblocks after shutdown completes.",
+        "example": "func (f *flushEventHandler) Start(ctx context.Context) error { go f.start(ctx); return nil }"
+      },
+      {
+        "name": "Two-phase shutdown: Close then WaitForDrain",
+        "description": "Close() sets isShutdown (via Swap), signals stopChan, then closes the events channel under mu. WaitForDrain blocks on drainDone until the drain loop empties the buffered channel. Always call both in sequence before exit.",
+        "example": "handler.Close(); handler.WaitForDrain(ctx)"
+      },
+      {
+        "name": "FlushEventHandlers as the single fan-out entry point",
+        "description": "Compose multiple handlers via NewFlushEventHandlers() + AddHandler(). FlushEventHandlers itself implements FlushEventHandler so the sink worker holds one interface reference. Register post-drain callbacks with OnDrainComplete, not in Close.",
+        "example": "mux := flushhandler.NewFlushEventHandlers(); mux.AddHandler(ingestHandler); mux.OnDrainComplete(func() { close(done) })"
+      },
+      {
+        "name": "Trace parent span captured at Start, propagated into callback contexts",
+        "description": "parentSpan = trace.SpanFromContext(ctx) is captured once in start() and injected (trace.ContextWithSpan) into both the per-callback timeout context and the drain context, preserving trace linkage after the original ctx is cancelled.",
+        "example": "parentSpan := trace.SpanFromContext(ctx); ctx = trace.ContextWithSpan(ctx, parentSpan)"
+      },
+      {
+        "name": "mu guards OnFlushSuccess and eventsClose to prevent channel-close races",
+        "description": "OnFlushSuccess acquires mu before sending to events; Close acquires mu before eventsClose(). Never close the events channel outside this lock in a custom handler. eventsClose/stopChanClose/drainDoneClose are sync.OnceFunc to prevent double-close.",
+        "example": "f.mu.Lock(); defer f.mu.Unlock(); f.eventsClose()"
+      },
+      {
+        "name": "Per-handler OTel metrics under sink.flush_handler.<name>.*",
+        "description": "Each handler builds its own Int64Counter/Int64Histogram via newMetrics(name, meter): events_received, events_processed, events_failed, event_channel_full, event_processing_time_ms. Keep handler names lowercase alphanumeric+dash so metric names are well-formed.",
+        "example": "metrics, err := newMetrics(opts.Name, opts.MetricMeter)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "types.go",
+        "role": "Defines the FlushEventHandler interface (OnFlushSuccess, Start, WaitForDrain, Close) and the FlushCallback type alias \u2014 the sole contract every implementation satisfies.",
+        "watch_for": "Any new handler must implement all four methods, and Start must be non-blocking (launch a goroutine internally)."
+      },
+      {
+        "file": "handler.go",
+        "role": "Concrete async flushEventHandler: buffered events channel (size 1000), stopChan, drainDone, atomic isShutdown, and sync.Mutex preventing channel-close races; drain loop on a fresh context after the parent ctx is cancelled.",
+        "watch_for": "invokeCallbackWithTimeout uses context.Background()+CallbackTimeout (not the caller ctx) so callbacks can still reach external systems after cancellation. isShutdown.Swap guards double-close. OnFlushSuccess retries once when the channel is full before failing."
+      },
+      {
+        "file": "mux.go",
+        "role": "FlushEventHandlers multiplexer fanning OnFlushSuccess/Start/Close/WaitForDrain to all registered handlers (errors.Join on fan-out) and running OnDrainComplete callbacks after all drain. Implements FlushEventHandler itself.",
+        "watch_for": "WaitForDrain runs onDrainComplete only after all handlers drain \u2014 register post-drain cleanup via OnDrainComplete, not Close. AddHandler must be called before Start (Start iterates handlers once)."
+      },
+      {
+        "file": "meters.go",
+        "role": "OTel metric initialisation for a single handler; metric names embed the handler name via fmt.Sprintf(\"sink.flush_handler.%s....\", handlerName).",
+        "watch_for": "Handler names with special characters produce malformed metric names \u2014 keep names lowercase alphanumeric+dash."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing FlushEventHandler with a blocking Start \u2014 it must launch a goroutine and return immediately",
+      "Calling handler.Close() without handler.WaitForDrain() before process exit \u2014 in-flight buffered messages are dropped",
+      "Adding handlers to FlushEventHandlers after Start() \u2014 Start iterates handlers once synchronously",
+      "Closing the events channel outside the mu lock \u2014 data races with concurrent OnFlushSuccess callers",
+      "Bypassing FlushEventHandlers and wiring a FlushEventHandler directly to the sink \u2014 breaks fan-out and drain ordering"
+    ],
+    "decisions": [
+      {
+        "decision": "Buffered channel (size 1000) with two-phase shutdown (stopChan signal + drain loop) rather than a simple WaitGroup",
+        "rationale": "OnFlushSuccess must not block the Kafka consumer hot path; the drain loop guarantees no committed-flush notifications are silently dropped on graceful shutdown."
+      },
+      {
+        "decision": "FlushEventHandlers multiplexer implements FlushEventHandler itself",
+        "rationale": "The sink worker holds a single FlushEventHandler reference; adding or removing downstream handlers requires no change at the call site."
+      },
+      {
+        "decision": "Trace parent span captured at Start and injected into background callback contexts",
+        "rationale": "Callbacks run after the HTTP/Kafka request context is cancelled; capturing the span once at Start preserves trace linkage without keeping the original ctx alive."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Register a post-flush handler and wire its full lifecycle through the multiplexer",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/sink/flushhandler\"\n\t\"github.com/openmeterio/openmeter/openmeter/sink/models\"\n)\n\nmux := flushhandler.NewFlushEventHandlers()\nhandler, err := flushhandler.NewFlushEventHandler(flushhandler.FlushEventHandlerOptions{\n\tName:        \"my-handler\",\n\tCallback:    func(ctx context.Context, msgs []models.SinkMessage) error { return nil },\n\tLogger:      logger,\n\tMetricMeter: meter,\n})\nif err != nil { return err }\nmux.AddHandler(handler)\nif err := mux.Start(ctx); err != nil { return err }\n// on shutdown:\n_ = mux.Close()\n_ = mux.WaitForDrain(ctx)"
+      }
+    ]
+  }
+}

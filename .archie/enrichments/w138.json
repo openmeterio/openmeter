@@ -1,277 +1,249 @@
 {
-  "pkg/slicesx": {
-    "purpose": "Thin extension layer on top of samber/lo providing error-aware map, diff, and early-exit iteration helpers that lo omits; all functions are generic and pure with no side effects or domain imports.",
+  "pkg/expand": {
+    "purpose": "Generic type-safe expand/field-selection mechanism for API responses. Callers declare an Expandable[T] string-enum type; Expand[T] is a validated slice of those values with Has/With/Without/SetOrUnsetIf helpers used in service input types to control which nested Ent relations are eager-loaded.",
     "patterns": [
       {
-        "name": "MapWithErr accumulates all errors before returning",
-        "description": "MapWithErr uses errors.Join to collect errors from every element \u2014 it does NOT short-circuit on first failure. The result slice omits erroring elements; count may be less than input.",
-        "example": "results, err := slicesx.MapWithErr(items, func(i Item) (Out, error) { return convert(i) })"
+        "name": "Expandable enum type",
+        "description": "Define a string-based type implementing Expandable[T] with Values() []T listing all valid keys; use as the type parameter for Expand[T] in service input structs.",
+        "example": "type InvoiceExpand string\nconst InvoiceExpandLines InvoiceExpand = \"lines\"\nfunc (InvoiceExpand) Values() []InvoiceExpand { return []InvoiceExpand{InvoiceExpandLines} }"
       },
       {
-        "name": "Nil-in nil-out contract",
-        "description": "Map and MapWithErr both return nil (not an empty slice) when given a nil input. Callers that require a non-nil empty slice must initialize the input first.",
-        "example": "slicesx.Map(nil, f) // returns nil, not []S{}"
+        "name": "Expand.Validate() in service input",
+        "description": "Call input.Expand.Validate() inside the input type's Validate() so unknown expand values are rejected before the adapter.",
+        "example": "if err := input.Expand.Validate(); err != nil { return nil, models.NewGenericValidationError(err) }"
       },
       {
-        "name": "NewDiff argument order: base then new",
-        "description": "NewDiff(base, new) wraps lo.Difference \u2014 additions are items in base not in new; removals are items in new not in base. Swapping arguments silently inverts additions and removals.",
-        "example": "d := slicesx.NewDiff(oldIDs, newIDs); if d.InAdditions(id) { /* id was removed from new set */ }"
+        "name": "Expand.Has() in adapter Ent queries",
+        "description": "Use expand.Has(SomeValue) to conditionally append Ent WithX() eager-load calls.",
+        "example": "q := client.Invoice.Query()\nif params.Expand.Has(InvoiceExpandLines) { q = q.WithLines() }"
       },
       {
-        "name": "ForEachUntilWithErr breaks on true, errors on err \u2014 these are independent signals",
-        "description": "Callback returning (true, nil) breaks the loop without error; (false, err) stops with error. Both stop iteration but are semantically distinct.",
-        "example": "slicesx.ForEachUntilWithErr(items, func(v Item, i int) (bool, error) { return v.Done, nil })"
-      },
-      {
-        "name": "Prefer lo for operations it already covers",
-        "description": "Functions like Filter, Contains, Uniq, Keys are already in samber/lo and must not be re-implemented in slicesx. Add here only when lo explicitly lacks the pattern.",
-        "example": "// Use lo.Filter, lo.Contains \u2014 not a new slicesx.Filter"
+        "name": "SetOrUnsetIf for conditional assembly",
+        "description": "Build expand slices from boolean flags via SetOrUnsetIf(condition, value) rather than manual append/filter.",
+        "example": "expand = expand.SetOrUnsetIf(cfg.LoadPayments, InvoiceExpandPayments)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "diff.go",
-        "role": "Diff[T,S] value type wrapping lo.Difference with O(1) index maps for InAdditions/InRemovals/Has and HasChanged convenience method.",
-        "watch_for": "NewDiff argument order: first arg is base (source of additions), second arg is new (source of removals). Swapping inverts semantics."
-      },
-      {
-        "file": "map.go",
-        "role": "Map (no-error transform) and MapWithErr (error-accumulating transform) generic slice helpers.",
-        "watch_for": "MapWithErr skips erroring elements and continues \u2014 result slice may have fewer elements than input; returned error is errors.Join of all failures."
-      },
-      {
-        "file": "empty.go",
-        "role": "EmptyAsNil normalises zero-length slices to nil for struct equality assertions.",
-        "watch_for": "Only intended for test code \u2014 using in production code can hide unintended empty-slice semantics."
-      },
-      {
-        "file": "each.go",
-        "role": "ForEachUntilWithErr iterates with early-exit via (breaks bool, err error) return from callback.",
-        "watch_for": "breaks and err are independent \u2014 (true, nil) breaks cleanly; (false, err) stops with error. Never assume breaks==true implies no error."
-      },
-      {
-        "file": "groupby.go",
-        "role": "UniqueGroupBy groups a collection and asserts uniqueness \u2014 returns (nil, false) if any key maps to more than one element.",
-        "watch_for": "Returns (nil, false) on collision rather than an error \u2014 callers must check the bool."
+        "file": "expand.go",
+        "role": "Complete package API: Expandable interface, Expand[T] type, and all methods (Validate, Has, Clone, With, Without, SetOrUnsetIf).",
+        "watch_for": "Expandable requires comparable \u2014 string enums satisfy this, struct keys do not compile; Values() returning empty slice makes Validate() reject all expand values."
       }
     ],
     "anti_patterns": [
-      "Duplicating lo functions (Filter, Contains, Uniq) here \u2014 use lo directly",
-      "Using EmptyAsNil in production code \u2014 it is intended for test assertion normalisation only",
-      "Adding stateful or side-effectful helpers \u2014 all functions must be pure transforms",
-      "Assuming MapWithErr returns a result slice of the same length as input when errors occur \u2014 erroring elements are skipped"
+      "Passing raw string slices for expand fields instead of typed Expand[T] \u2014 loses compile-time safety and Validate().",
+      "Skipping Expand.Validate() in input validation \u2014 unknown expand values silently no-op in adapter queries.",
+      "Implementing Values() to return an empty slice \u2014 Validate() rejects all expand values including valid ones.",
+      "Constructing Expand[T] with non-comparable type parameters \u2014 will not compile."
     ],
     "decisions": [
       {
-        "decision": "Wrap lo rather than replace it",
-        "rationale": "lo covers ~90% of slice operations; slicesx fills only the gaps (error-returning maps, diff with O(1) index, early-exit iteration) without duplicating the rest."
+        "decision": "Expand is a separate generic package rather than inlined per-domain.",
+        "rationale": "Billing, subscription, and customer need the same validated expand-slice semantics; a shared package centralizes Has/With/Without and the single-operator validation."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Convert a slice of domain entities to API types, collecting all conversion errors before returning",
-        "code": "import \"github.com/openmeterio/openmeter/pkg/slicesx\"\n\napiItems, err := slicesx.MapWithErr(domainItems, func(item domain.Entity) (api.Entity, error) {\n    return toAPIEntity(item)\n})\nif err != nil {\n    return nil, err\n}"
+        "scenario": "Define and use a typed expand for invoice queries",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/expand\"\n\ntype InvoiceExpand string\nconst InvoiceExpandLines InvoiceExpand = \"lines\"\nfunc (InvoiceExpand) Values() []InvoiceExpand { return []InvoiceExpand{InvoiceExpandLines} }\n\ntype ListInvoicesInput struct { Namespace string; Expand expand.Expand[InvoiceExpand] }\n// In adapter:\nq := client.Invoice.Query()\nif input.Expand.Has(InvoiceExpandLines) { q = q.WithLines() }"
       }
     ]
   },
-  "pkg/sortx": {
-    "purpose": "Minimal single-file package defining the sortx.Order string enum (ASC/DESC) and default/none sentinels used as a shared sort-direction type across all domain list and query inputs.",
+  "pkg/featuregate": {
+    "purpose": "Minimal namespace-scoped boolean feature-gate abstraction. Defines the Gate interface (EvaluateBool) and a Noop implementation that always returns true, allowing consumers to depend on the interface while gating logic is supplied elsewhere or disabled.",
     "patterns": [
       {
-        "name": "Use OrderDefault for unspecified sort direction",
-        "description": "When a caller does not supply a sort direction, default to sortx.OrderDefault (= OrderAsc). Never use the empty string literal directly.",
-        "example": "order := sortx.OrderDefault"
+        "name": "Gate interface for all evaluations",
+        "description": "Consumers depend on the Gate interface and call EvaluateBool(namespace, flag, defaultValue) \u2014 never inspect a concrete gate type.",
+        "example": "enabled, err := gate.EvaluateBool(ns, \"my-flag\", false)"
       },
       {
-        "name": "IsDefaultValue detects absence, not ascending direction",
-        "description": "Order.IsDefaultValue() returns true only when Order == OrderNone (empty string), not when Order == OrderAsc. Use it solely to detect 'no order specified'.",
-        "example": "if order.IsDefaultValue() { order = sortx.OrderDefault }"
+        "name": "Noop returns true (allow) by default",
+        "description": "NewNoop() returns a Noop whose EvaluateBool always returns (true, nil), enabling all gated paths when no real gate is wired.",
+        "example": "gate := featuregate.NewNoop()"
       }
     ],
     "key_file_guides": [
       {
-        "file": "order.go",
-        "role": "Defines Order type and four constants: OrderAsc ('ASC'), OrderDesc ('DESC'), OrderDefault (= OrderAsc), OrderNone (empty string).",
-        "watch_for": "IsDefaultValue() checks for OrderNone, not OrderAsc \u2014 the name is acknowledged as misleading in a TODO comment. Do not use it to check 'is ascending'."
+        "file": "featuregate.go",
+        "role": "Sole file: Gate interface, Noop struct, NewNoop() constructor.",
+        "watch_for": "Noop.EvaluateBool ignores the defaultValue and always returns true \u2014 relying on the default param against a Noop gate is a no-op."
       }
     ],
     "anti_patterns": [
-      "Adding sort-field definitions or multi-column sort structs here \u2014 this package is intentionally a single primitive",
-      "Comparing Order to string literals 'ASC'/'DESC' directly \u2014 use the exported constants",
-      "Using IsDefaultValue() as a semantic check for 'is ascending' \u2014 it only detects the unset (empty) state"
+      "Type-asserting to the concrete Noop type instead of depending on the Gate interface.",
+      "Assuming EvaluateBool honors defaultValue under Noop \u2014 Noop always returns true."
     ],
     "decisions": [
       {
-        "decision": "Single file, single type, no sub-packages",
-        "rationale": "Sort direction is a leaf primitive shared by many list inputs; keeping it minimal prevents coupling and circular imports."
+        "decision": "Noop defaults to enabled (returns true).",
+        "rationale": "Widely imported (server, app/common, billing worker, productcatalog); a permissive default lets features run when no gating backend is configured."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Depend on the Gate interface and evaluate a flag",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/featuregate\"\n\nfunc NewHandler(gate featuregate.Gate) *Handler { return &Handler{gate: gate} }\n\nfunc (h *Handler) do(ns string) error {\n\tenabled, err := h.gate.EvaluateBool(ns, \"beta-path\", false)\n\tif err != nil { return err }\n\tif enabled { /* new path */ }\n\treturn nil\n}"
+      }
+    ]
+  },
+  "pkg/ffx": {
+    "purpose": "Minimal feature-flag service with three implementations (static, context-based, test hybrid). All flag reads go through the Service interface so callers are decoupled from the backing store; the primary constraint is that unknown features return an error, not false.",
+    "patterns": [
+      {
+        "name": "Service interface for all reads",
+        "description": "All consumers call Service.IsFeatureEnabled(ctx, Feature) \u2014 never inspect AccessConfig directly outside this package.",
+        "example": "svc := ffx.NewStaticService(ffx.AccessConfig{MyFeature: true})\nenabled, err := svc.IsFeatureEnabled(ctx, MyFeature)"
+      },
+      {
+        "name": "Named Feature constants, not raw strings",
+        "description": "Feature is a string type; declare named constants and pass them to IsFeatureEnabled. Raw literals bypass static reference checking.",
+        "example": "const FeatureBetaBilling ffx.Feature = \"beta-billing\""
+      },
+      {
+        "name": "Context-carried AccessConfig for per-request flags",
+        "description": "SetAccessOnContext injects an AccessConfig into ctx; NewContextService reads it back. Missing key returns ErrContextMissing, not false.",
+        "example": "ctx = ffx.SetAccessOnContext(ctx, ffx.AccessConfig{ffx.Feature(\"beta\"): true})"
+      },
+      {
+        "name": "Test hybrid service falls back to static",
+        "description": "NewTestContextService tries ctx first then provided static defaults, letting tests override individual flags without rebuilding context.",
+        "example": "svc := ffx.NewTestContextService(ffx.AccessConfig{ffx.Feature(\"x\"): false})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "featureflag.go",
+        "role": "Declares Feature, AccessConfig, and the Service interface \u2014 single source of truth for the contract.",
+        "watch_for": "AccessConfig.Merge mutates the receiver \u2014 pass a fresh copy if the original must stay unchanged."
+      },
+      {
+        "file": "context.go",
+        "role": "SetAccessOnContext/GetAccessFromContext + contextService + testContextService; ErrContextMissing sentinel.",
+        "watch_for": "contextService errors if the feature key is absent; callers must handle the error, not just the bool."
+      },
+      {
+        "file": "static.go",
+        "role": "staticService backed by an in-process AccessConfig map; used for startup wiring and test defaults.",
+        "watch_for": "Returns error (not false) for unknown features \u2014 do not assume unknown == disabled."
+      }
+    ],
+    "anti_patterns": [
+      "Bypassing Service by reading AccessConfig maps directly outside this package.",
+      "Using raw string literals instead of typed Feature constants.",
+      "Ignoring the error return from IsFeatureEnabled \u2014 unknown feature != false.",
+      "Storing AccessConfig in a global variable instead of context or a Wire-injected service."
+    ],
+    "decisions": [
+      {
+        "decision": "Three separate service implementations (static, context, test hybrid).",
+        "rationale": "Static is safe at startup; context serves per-request tenant flags; the test hybrid overrides without rebuilding context \u2014 all without nil checks or type switches in callers."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wire a static service and check a flag in a handler",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/ffx\"\n\nconst FeatureBetaBilling ffx.Feature = \"beta-billing\"\n// At wiring time:\nsvc := ffx.NewStaticService(ffx.AccessConfig{FeatureBetaBilling: cfg.BillingEnabled})\n// In handler:\nenabled, err := svc.IsFeatureEnabled(ctx, FeatureBetaBilling)\nif err != nil { return fmt.Errorf(\"feature flag: %w\", err) }\nif enabled { /* new billing path */ }"
+      }
+    ]
+  },
+  "pkg/filter": {
+    "purpose": "Typed, composable query filters (string, integer, float, time, boolean, ULID) that compile to both Ent selector predicates (func(*sql.Selector)) and go-sqlbuilder WHERE expressions (string). Every filter type implements the Filter interface and enforces single-operator-per-node validation.",
+    "patterns": [
+      {
+        "name": "Dual output \u2014 Ent selector and go-sqlbuilder expression",
+        "description": "Every filter implements Select(field) func(*sql.Selector) for Ent/Postgres and SelectWhereExpr(field, q) string for ClickHouse; new types must implement both.",
+        "example": "predicate := myFilter.Select(\"name\")\nexpr := myFilter.SelectWhereExpr(\"name\", q)"
+      },
+      {
+        "name": "Single-operator validation",
+        "description": "validateSingleOperator(f) uses reflection to count non-nil fields; public Validate() wraps with models.NewNillableGenericValidationError exactly once \u2014 never double-wrap.",
+        "example": "if err := f.Validate(); err != nil { /* err is models.GenericValidationError */ }"
+      },
+      {
+        "name": "Recursive And/Or with depth limit",
+        "description": "Each type carries *[]FilterT And and Or fields; ValidateWithComplexity(maxDepth) recurses and returns ErrFilterComplexityExceeded when maxDepth <= 0.",
+        "example": "if err := f.ValidateWithComplexity(3); errors.Is(err, filter.ErrFilterComplexityExceeded) { ... }"
+      },
+      {
+        "name": "IsEmpty / nil guard before applying predicate",
+        "description": "Select returns nil for empty filters \u2014 check IsEmpty() or nil before applying to an Ent selector.",
+        "example": "if p := f.Select(\"field\"); p != nil { query.Where(p) }"
+      },
+      {
+        "name": "Contains uses ILIKE with auto-escaped metacharacters",
+        "description": "$contains/$ncontains wrap the value with EscapeLikePattern + ContainsPattern before ILIKE; raw $like/$ilike pass values unescaped.",
+        "example": "// FilterString{Contains: lo.ToPtr(\"50%\")} -> ILIKE '%50\\%%'"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "filter.go",
+        "role": "All filter struct types, the Filter interface, LIKE-safety helpers (EscapeLikePattern, ContainsPattern, ReverseContainsPattern).",
+        "watch_for": "$like is caller-controlled, $contains is auto-escaped \u2014 do not pass an already-percent-wrapped value to $contains; Match() returns ErrOperationNotSupported for Like/Nlike/Ilike/Nilike (SQL-only)."
+      },
+      {
+        "file": "filter_test.go",
+        "role": "Dual-path tests validating SelectWhereExpr and Select branches for every operator.",
+        "watch_for": "SQL placeholder syntax differs (? vs $1); use newSelectBuilder() for Ent, sqlbuilder.Select for go-sqlbuilder."
+      }
+    ],
+    "anti_patterns": [
+      "Setting multiple operator fields on the same node \u2014 Validate returns ErrFilterMultipleOperators.",
+      "Applying Select() without a nil check \u2014 empty filter returns nil and panics on the selector.",
+      "Passing pre-escaped LIKE patterns to $contains/$ncontains \u2014 double-escaping.",
+      "Adding a new filter type without both Select and SelectWhereExpr.",
+      "Wrapping Validate() result in a second GenericValidationError \u2014 public Validate() wraps once."
+    ],
+    "decisions": [
+      {
+        "decision": "Dual output (Ent selector + go-sqlbuilder expression) on a single Filter type.",
+        "rationale": "Adapters use Ent for Postgres and go-sqlbuilder for ClickHouse; one filter struct drives both backends without separate translation layers."
+      },
+      {
+        "decision": "Validation wraps in GenericValidationError exactly once at the public boundary.",
+        "rationale": "Services forward Validate() results to HTTP encoders mapping GenericValidationError to 400; double-wrapping breaks errors.Is checks."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Apply a validated FilterString to both Ent and ClickHouse queries",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/pkg/filter\"\n\t\"github.com/samber/lo\"\n)\nf := filter.FilterString{Contains: lo.ToPtr(\"acme\")}\nif err := f.Validate(); err != nil { return nil, err }\nif pred := f.Select(\"display_name\"); pred != nil { query = query.Where(pred) }\nexpr := f.SelectWhereExpr(\"display_name\", sb)"
+      }
+    ]
+  },
+  "pkg/gosundheit": {
+    "purpose": "Thin adapter bridging the go-sundheit health-check library to OpenMeter's structured slog logger. Implements health.CheckListener so health-check lifecycle events emit structured log lines at Warn on error and Debug on success.",
+    "patterns": [
+      {
+        "name": "Return health.CheckListener interface from constructor",
+        "description": "checkListener is unexported; consumers receive a health.CheckListener from NewLogger \u2014 do not expose the concrete struct.",
+        "example": "listener := gosundheit.NewLogger(logger)\nhealthSvc.WithCheckListener(listener)"
+      },
+      {
+        "name": "Warn on error, Debug on success",
+        "description": "OnCheckRegistered and OnCheckCompleted log at Warn when result.Error != nil and Debug otherwise; keep this split for any new listener method.",
+        "example": "if result.Error != nil { c.logger.Warn(\"health check failed\", slog.String(\"check\", name), slog.Any(\"error\", result.Error)); return }\nc.logger.Debug(\"health check completed\", slog.String(\"check\", name))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "logger.go",
+        "role": "Sole file: unexported checkListener + exported NewLogger; implements only health.CheckListener.",
+        "watch_for": "go-sundheit's CheckListener may add methods in future versions \u2014 this file must be updated or builds break."
+      }
+    ],
+    "anti_patterns": [
+      "Logging at Error level for health-check failures \u2014 Warn is intentional; the library handles alerting.",
+      "Storing state in checkListener \u2014 it is a pure pass-through to the logger.",
+      "Exposing checkListener as a concrete type outside the package."
+    ],
+    "decisions": [
+      {
+        "decision": "Package wraps go-sundheit's CheckListener rather than using it directly in startup code.",
+        "rationale": "Centralizes log severity and field naming for health events; app/common wires it once so all binaries get uniform health-check logging."
       }
     ],
     "code_examples": []
-  },
-  "pkg/statelessx": {
-    "purpose": "Adapter utilities for the qmuntal/stateless state machine library \u2014 provides type-safe action and condition wrappers (WithParameters, AllOf, BoolFn, Not) that integrate with models.Validator so state machine transitions validate their inputs before executing.",
-    "patterns": [
-      {
-        "name": "WithParameters wraps typed handlers with automatic validation",
-        "description": "WithParameters[T models.Validator] adapts a func(ctx, T) error into the stateless ...any signature. It asserts args[0] to T and calls T.Validate() before invoking the inner function \u2014 panics if args is empty or the type assertion fails.",
-        "example": "machine.Configure(stateGathering).OnEntry(statelessx.WithParameters[AdvanceInput](func(ctx context.Context, in AdvanceInput) error { return svc.advance(ctx, in) }))"
-      },
-      {
-        "name": "AllOf runs all actions regardless of individual failures",
-        "description": "AllOf(fn1, fn2, ...) runs every ActionFn even if earlier ones fail, then returns errors.Join of all failures. Use when multiple side effects (save + publish) must all be attempted.",
-        "example": "action := statelessx.AllOf(saveDB, publishEvent)"
-      },
-      {
-        "name": "BoolFn and Not adapt plain bool functions to stateless guard signatures",
-        "description": "BoolFn(fn func() bool) produces func(context.Context, ...any) bool accepted by stateless guards; Not inverts a plain bool func. BoolFn discards ctx and args \u2014 not suitable for guards needing per-trigger parameters.",
-        "example": "machine.Permit(trigger, state, statelessx.BoolFn(statelessx.Not(isDisabled)))"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "actions.go",
-        "role": "Defines ActionFn type alias, AllOf combinator, and WithParameters generic adapter for stateless entry/exit actions.",
-        "watch_for": "WithParameters expects args[0] to implement models.Validator; passing a non-Validator type or empty args panics at runtime with a type assertion failure. Callers must not call Validate() manually before passing \u2014 WithParameters already calls it."
-      },
-      {
-        "file": "conditions.go",
-        "role": "BoolFn and Not helpers for stateless guard functions that only need a bool, discarding ctx and trigger args.",
-        "watch_for": "BoolFn discards both ctx and args \u2014 do not use for guards that need per-trigger parameter access."
-      }
-    ],
-    "anti_patterns": [
-      "Calling models.Validator.Validate() manually before passing to WithParameters \u2014 it already calls Validate() internally",
-      "Using stateless ...any signatures directly instead of WithParameters when the trigger carries a typed argument \u2014 loses compile-time safety",
-      "Using BoolFn for guards that need access to the trigger's arguments \u2014 BoolFn ignores all args"
-    ],
-    "decisions": [
-      {
-        "decision": "WithParameters constrains T to models.Validator rather than any",
-        "rationale": "Forces callers to define Validate() on input types, catching structural errors at the state machine boundary before transitions commit any side effects."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Register a state machine transition with a validated typed parameter",
-        "code": "import (\n    \"context\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n    \"github.com/openmeterio/openmeter/pkg/statelessx\"\n)\n\ntype AdvanceInput struct{ AsOf time.Time }\nfunc (i AdvanceInput) Validate() error {\n    if i.AsOf.IsZero() { return errors.New(\"AsOf required\") }\n    return nil\n}\n\nmachine.Configure(stateGathering).\n    Permit(triggerAdvance, stateIssued).\n    OnEntry(statelessx.WithParameters[AdvanceInput](func(ctx context.Context, in AdvanceInput) error {\n        return svc.advance(ctx, in)\n    }))"
-      }
-    ]
-  },
-  "pkg/strcase": {
-    "purpose": "Minimal zero-dependency string-case conversion package providing SnakeToCamel and CamelToSnake for converting JSON field names or database column identifiers to and from Go naming conventions.",
-    "patterns": [
-      {
-        "name": "Only underscore is treated as word separator for SnakeToCamel",
-        "description": "SnakeToCamel only splits on '_'; hyphens and slashes pass through unchanged. CamelToSnake only splits on uppercase runes.",
-        "example": "strcase.SnakeToCamel(\"a_b-c\") == \"aB-c\"  // hyphen preserved"
-      },
-      {
-        "name": "First character case is preserved, not forced to upper",
-        "description": "SnakeToCamel does not uppercase the first character \u2014 result starts lowercase. This is camelCase, not PascalCase.",
-        "example": "strcase.SnakeToCamel(\"abc_def\") == \"abcDef\"  // NOT \"AbcDef\""
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "strcase.go",
-        "role": "Two pure functions: SnakeToCamel and CamelToSnake with round-trip guarantee for well-formed identifiers (letters, digits, underscores, no consecutive underscores).",
-        "watch_for": "SnakeToCamel preserves the first character's case \u2014 it produces camelCase, not PascalCase. CamelToSnake does not insert underscore before the first character even if it is uppercase."
-      }
-    ],
-    "anti_patterns": [
-      "Using this package for PascalCase conversion \u2014 SnakeToCamel preserves the first character's case",
-      "Expecting kebab-case or dot-notation to be handled \u2014 only underscore delimiters are understood by SnakeToCamel"
-    ],
-    "decisions": [
-      {
-        "decision": "Zero external dependencies, hand-rolled implementation",
-        "rationale": "Avoids pulling in a heavy strcase library for two simple transformations used in generated or utility code."
-      }
-    ],
-    "code_examples": []
-  },
-  "pkg/timeutil": {
-    "purpose": "Shared time-interval primitives (ClosedPeriod, OpenPeriod, StartBoundedPeriod, Recurrence, Timeline) used throughout billing, subscription, entitlement, and metering to reason about billable windows, recurrence schedules, and event timelines with explicit boundary semantics.",
-    "patterns": [
-      {
-        "name": "Three Contains variants with documented boundary semantics \u2014 pick the right one",
-        "description": "Every period type implements Period: Contains (inclusive start, exclusive end \u2014 the default for billing windows), ContainsInclusive (both inclusive), ContainsExclusive (both exclusive). Mixing them silently changes charge window edges.",
-        "example": "period.Contains(t)          // [from, to) \u2014 default billing window\nperiod.ContainsInclusive(t) // [from, to] \u2014 use for point-in-time snapshots"
-      },
-      {
-        "name": "Recurrence is anchor-based; always construct via NewRecurrence or NewRecurrenceFromISODuration",
-        "description": "Anchor can be any past or future point; iteration walks forward/backward from it. Constructors call Validate() \u2014 direct struct construction skips validation and may pass zero anchor or non-positive interval.",
-        "example": "rec, err := timeutil.NewRecurrenceFromISODuration(datetime.DurationMonth, anchorTime)\nperiod, err := rec.GetPeriodAt(now)"
-      },
-      {
-        "name": "Boundary enum controls inclusive/exclusive edge of Recurrence iteration",
-        "description": "IterateFromNextAfter and IterateFromPrevBefore accept a Boundary argument. Inclusive returns t if it falls on a boundary; Exclusive skips to next/prev. Always use constants timeutil.Inclusive or timeutil.Exclusive.",
-        "example": "next, err := rec.NextAfter(t, timeutil.Exclusive)"
-      },
-      {
-        "name": "OpenPeriod uses *time.Time \u2014 nil means open/unbounded; touching periods do NOT overlap",
-        "description": "Nil From means open start; nil To means open end. Touching periods that share only an endpoint return nil from Intersection \u2014 this is intentional: [t,t] has zero length.",
-        "example": "// OpenPeriod{From: &t1, To: nil} extends to infinity\n// Intersection of [before,now] and [now,after] returns nil (they touch, not overlap)"
-      },
-      {
-        "name": "Use ISODuration for month/year recurrences, never time.Duration arithmetic",
-        "description": "Month and year lengths vary; time.Duration math gives wrong billing period ends for variable-length months. RecurrencePeriodMonth/Year constants wrap ISODuration correctly.",
-        "example": "// Wrong: anchor.Add(30 * 24 * time.Hour) -- wrong for February\n// Correct: timeutil.NewRecurrence(timeutil.RecurrencePeriodMonth, anchor)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "period.go",
-        "role": "Period interface requiring all three Contains variants. All concrete types assert var _ Period = MyType{} at declaration.",
-        "watch_for": "Any new period type must implement all three methods; missing one causes compile errors at assertion sites."
-      },
-      {
-        "file": "closedperiod.go",
-        "role": "Fully-bounded [from, to] interval with Overlaps, OverlapsInclusive, Intersection, Truncate, Equal.",
-        "watch_for": "Overlaps returns false for exactly-touching periods ([1,2],[2,3]); use OverlapsInclusive when sequential billing periods must be treated as adjacent."
-      },
-      {
-        "file": "openperiod.go",
-        "role": "Half or fully-open interval with Intersection, Difference, Union, IsSupersetOf using *time.Time pointers.",
-        "watch_for": "Intersection of touching OpenPeriods (sharing one endpoint) returns nil \u2014 intentional. Union with either period being fully open ({nil,nil}) propagates openness."
-      },
-      {
-        "file": "recurrence.go",
-        "role": "Recurrence schedule with Anchor+Interval, GetPeriodAt, IterateFromNextAfter, IterateFromPrevBefore, and RecurrenceIterator for bidirectional stepping.",
-        "watch_for": "MAX_SAFE_ITERATIONS = 1_000_000 cap prevents infinite loops; fractional ISO durations cause addIntervalNTimes to error. Backward iteration past 1733 is not supported (explicit TODO)."
-      },
-      {
-        "file": "timeline.go",
-        "role": "Generic sorted Timeline[T] of Timed[T] values with GetClosedPeriods (n-1 segments from n timestamps) and GetOpenPeriods (n+1 segments including open ends).",
-        "watch_for": "GetClosedPeriods with a single timestamp returns one zero-length period (From==To). GetOpenPeriods always returns len(times)+1 segments. NewTimeline sorts input \u2014 insertion order does not matter."
-      },
-      {
-        "file": "boundedperiod.go",
-        "role": "StartBoundedPeriod with mandatory From and optional *time.Time To; implements Period.",
-        "watch_for": "ContainsExclusive treats From as exclusive start \u2014 different from ClosedPeriod.ContainsExclusive which has inclusive start via Contains."
-      }
-    ],
-    "anti_patterns": [
-      "Using time.Duration arithmetic instead of ISODuration for month/year recurrences \u2014 month lengths vary and Duration math produces wrong billing period ends",
-      "Constructing Recurrence{} struct literal without calling NewRecurrence \u2014 skips Validate(), allowing zero anchor or non-positive interval to pass through silently",
-      "Assuming Overlaps and OverlapsInclusive are interchangeable \u2014 sequential billing periods must use Overlaps (returns false for touching) to avoid double-counting",
-      "Constructing OpenPeriod{From: &t, To: &t} expecting a valid point interval \u2014 Intersection treats same-start-and-end as zero-length and returns nil"
-    ],
-    "decisions": [
-      {
-        "decision": "Contains uses half-open [from, to) semantics as the default",
-        "rationale": "Half-open intervals compose without overlap for sequential billing windows: period N ends at T, period N+1 starts at T, Contains(T) is true for N+1 only, preventing double-counting."
-      },
-      {
-        "decision": "Recurrence iterates from a floating anchor rather than an epoch",
-        "rationale": "Subscription anchors can be any date; billing periods must align to the original subscription start regardless of when the calculation runs."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Find the billing period containing a given usage timestamp using monthly recurrence",
-        "code": "import (\n    \"time\"\n    \"github.com/openmeterio/openmeter/pkg/timeutil\"\n    \"github.com/openmeterio/openmeter/pkg/datetime\"\n)\n\nanchor := subscriptionStart\nrec, err := timeutil.NewRecurrenceFromISODuration(datetime.DurationMonth, anchor)\nif err != nil { return err }\nperiod, err := rec.GetPeriodAt(usageTime)\nif err != nil { return err }\n// period.From <= usageTime < period.To (half-open, no double-counting)"
-      }
-    ]
   }
 }

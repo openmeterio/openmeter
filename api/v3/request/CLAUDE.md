@@ -2,39 +2,38 @@
 
 <!-- archie:ai-start -->
 
-> Pure HTTP request parsing and query-parameter conversion utilities for the v3 API layer. Translates raw HTTP inputs (JSON bodies, sort strings, API filter types) into typed internal domain types before they reach handlers. Contains no business logic.
+> Pure HTTP request parsing and query-parameter conversion utilities for the v3 API: translates raw HTTP inputs (JSON bodies, sort strings, API filter types) into typed internal domain types before handlers. Contains no business logic.
 
 ## Patterns
 
-**Return *apierrors.BaseAPIError not error** — All parse functions return *apierrors.BaseAPIError (nilable pointer), not the Go error interface. Callers check for nil to detect parse failure and propagate structured API errors directly. (`func ParseBody(r *http.Request, payload any) *apierrors.BaseAPIError`)
-**Contains operator wraps to SQL LIKE pattern** — api.QueryFilterString.Contains/Ncontains are converted to LIKE/NLIKE via filter.ContainsPattern which escapes SQL metacharacters (%, _, \). Never pass Contains values directly to filter.FilterString.Like. (`Like: convertContainsOperator(source.Contains) // wraps to %value% with escaping`)
+**Return *apierrors.BaseAPIError not error** — Parse functions return *apierrors.BaseAPIError (nilable pointer), not the Go error interface; callers check nil and propagate structured API errors directly. (`func ParseBody(r *http.Request, payload any) *apierrors.BaseAPIError`)
+**Contains operator wraps to SQL LIKE pattern** — QueryFilterString.Contains/Ncontains are converted to Like/Nlike via filter.ContainsPattern, which escapes SQL metacharacters (%, _, \). Never set filter.FilterString.Like directly from Contains. (`Like: convertContainsOperator(source.Contains) // wraps to %value% with escaping`)
 **Recursive filter conversion for And/Or** — And/Or slices in QueryFilterString are converted recursively via convertQueryFilterStringList so nested boolean expressions are fully translated. (`And: convertQueryFilterStringList(source.And)`)
-**SortBy text format: 'field [asc|desc]'** — ParseSortBy parses a string with UnmarshalText: one or two whitespace-separated tokens. First token is Field, second (optional) is Order; default order is asc. Validate() is called inside UnmarshalText — callers must not call it separately. (`parts := strings.Fields(string(text)); s.Field = parts[0]`)
-**Nil-safe pointer converters** — ConvertQueryFilterStringPtr returns nil when given nil, avoiding nil-dereference in optional filter fields. (`func ConvertQueryFilterStringPtr(source *api.QueryFilterString) *filter.FilterString`)
-**API Neq maps to internal Ne** — The API field name Neq maps to internal filter field Ne (names differ). QueryFilterStringMapItem additionally has an Exists field not present in QueryFilterString. (`Ne: source.Neq // API uses Neq, internal type uses Ne`)
+**SortBy text format 'field [asc|desc]'** — ParseSortBy uses UnmarshalText: one or two whitespace-separated tokens; first is Field, second optional Order (default asc). Validate() is called inside UnmarshalText. (`parts := strings.Fields(string(text)); s.Field = parts[0]`)
+**API Neq maps to internal Ne** — The API field Neq maps to the internal filter field Ne (names differ); QueryFilterStringMapItem additionally has an Exists field not present in QueryFilterString. (`Ne: source.Neq // API uses Neq, internal type uses Ne`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `body.go` | JSON body decoder. ParseOptionalBody silently ignores io.EOF (empty body) to allow PATCH semantics. | ParseOptionalBody leaves payload unchanged on empty body — callers must treat unchanged payload as 'no update', not 'zero value'. |
-| `filter.go` | Converts api.QueryFilterString and QueryFilterStringMapItem to pkg/filter.FilterString. Handles Contains->Like wrapping and recursive And/Or. | Neq maps to Ne (field name differs between API and internal type). Contains maps to Like with % wrapping; do not set Like directly from Contains. |
-| `sort.go` | SortBy value type with UnmarshalText; ToSortxOrder converts to pkg/sortx.Order. | Validate() is called inside UnmarshalText — callers must not skip or duplicate validation. ErrSortFieldRequired fires when Field is empty after parsing. |
+| `body.go` | JSON body decoders. ParseOptionalBody silently ignores io.EOF (empty body) for PATCH semantics. | ParseOptionalBody leaves payload unchanged on empty body — callers must treat that as 'no update', not 'zero value'. |
+| `filter.go` | Converts api.QueryFilterString and QueryFilterStringMapItem to pkg/filter.FilterString; handles Contains->Like wrapping and recursive And/Or. | Neq maps to Ne; Contains maps to Like with % wrapping — never set Like directly from Contains. |
+| `sort.go` | SortBy value type with UnmarshalText; ToSortxOrder converts to pkg/sortx.Order. | Validate() runs inside UnmarshalText — don't skip or duplicate. ErrSortFieldRequired fires when Field is empty after parsing. |
 
 ## Anti-Patterns
 
 - Returning the Go error interface instead of *apierrors.BaseAPIError from a parse function
-- Setting filter.FilterString.Like directly from an API Contains value without calling filter.ContainsPattern
-- Calling Validate() separately after ParseSortBy — it is already called inside UnmarshalText
-- Adding business logic or domain service calls in this package — it is pure translation/parsing only
-- Passing Contains string directly to internal filter without % wrapping — ContainsPattern must be applied
+- Setting filter.FilterString.Like directly from an API Contains value without filter.ContainsPattern
+- Calling Validate() separately after ParseSortBy — already called inside UnmarshalText
+- Adding business logic or domain service calls — this package is pure translation/parsing
+- Passing a Contains string directly to internal filter without % wrapping via ContainsPattern
 
 ## Decisions
 
-- **Parse functions return *apierrors.BaseAPIError instead of error** — Allows handlers to directly propagate structured API errors with field path and source metadata without wrapping or type-asserting.
-- **Contains wraps to SQL LIKE pattern inside this package** — Centralises metacharacter escaping so handlers never need to know about SQL LIKE syntax; all filter construction uses filter.ContainsPattern consistently.
+- **Parse functions return *apierrors.BaseAPIError instead of error** — Lets handlers directly propagate structured API errors with field path and source metadata without wrapping or type-asserting.
+- **Contains wraps to SQL LIKE pattern inside this package** — Centralises metacharacter escaping so handlers never deal with SQL LIKE syntax; all filter construction uses filter.ContainsPattern.
 
-## Example: Handler converts API filter query param to internal FilterString
+## Example: Handler converts an API filter query param to internal FilterString
 
 ```
 import (

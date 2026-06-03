@@ -1,51 +1,95 @@
 {
-  "openmeter/watermill/driver/noop": {
-    "purpose": "Zero-value no-op implementation of message.Publisher for use in disabled-feature Wire paths (e.g. credits.enabled=false). Satisfies the compiler with Publish and Close returning nil; no messages are ever sent.",
+  "openmeter/subscription/workflow/service": {
+    "purpose": "Concrete implementation of subscriptionworkflow.Service \u2014 the high-level orchestration layer composing core subscription.Service with addon management, customer locking, transaction primitives, and feature flags to execute multi-step lifecycle operations (CreateFromPlan, EditRunning, ChangeToPlan, Restore, AddAddon, ChangeAddonQuantity) atomically.",
     "patterns": [
       {
+        "name": "All mutating ops wrap in transaction.Run",
+        "description": "Every method touching multiple domain objects calls transaction.Run(ctx, s.TransactionManager, fn). Nested helpers like syncWithAddons also wrap in their own transaction.Run for savepoint support.",
+        "example": "return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) { ... })"
+      },
+      {
+        "name": "lockCustomer before any customer-scoped write",
+        "description": "CreateFromPlan (and any new mutating workflow) calls s.lockCustomer(ctx, inp.CustomerID) inside the transaction before any write, using subscription.GetCustomerLock + lockr.LockForTX (pg_advisory_xact_lock).",
+        "example": "if err := s.lockCustomer(ctx, inp.CustomerID); err != nil { return def, err }"
+      },
+      {
+        "name": "Addon sync via restore+apply diff cycle",
+        "description": "syncWithAddons computes Diffable for before/after addon sets, calls spec.ApplyMany with GetRestores() to strip old contributions, then ApplyMany with GetApplies() to add new ones, then Service.Update. Never patch the spec with addon data without restoring first.",
+        "example": "spec.ApplyMany(lo.Map(restores, func(d addondiff.Diffable, _ int) subscription.AppliesToSpec { return d.GetRestores() }), ...); spec.ApplyMany(lo.Map(applies, ...), ...); s.Service.Update(ctx, view.Subscription.NamespacedID, spec)"
+      },
+      {
+        "name": "MapSubscriptionErrors after spec operations",
+        "description": "After NewSpecFromPlan or spec.ApplyMany, pipe errors through subscriptionworkflow.MapSubscriptionErrors(err) before returning to translate domain spec errors into correct generic types.",
+        "example": "if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil { return def, fmt.Errorf(\"failed to create spec from plan: %w\", err) }"
+      },
+      {
+        "name": "Domain errors via models.NewGeneric* constructors",
+        "description": "Validation -> NewGenericValidationError; conflict -> NewGenericConflictError; forbidden transition -> NewGenericForbiddenError; pre-condition -> NewGenericPreConditionFailedError. Never raw fmt.Errorf for these.",
+        "example": "return def, models.NewGenericConflictError(fmt.Errorf(\"subscription already has that addon purchased\"))"
+      },
+      {
+        "name": "Feature flag gate before entering transaction",
+        "description": "Flags (e.g. subscription.MultiSubscriptionEnabledFF) are checked via s.FeatureFlags.IsFeatureEnabled and short-circuit with a domain error before the transaction to avoid unnecessary locking.",
+        "example": "multiSubscriptionEnabled, err := s.FeatureFlags.IsFeatureEnabled(ctx, subscription.MultiSubscriptionEnabledFF)"
+      },
+      {
         "name": "Compile-time interface assertion",
-        "description": "var _ message.Publisher = (*Publisher)(nil) at package level ensures the struct always satisfies the Watermill interface, catching drift at compile time.",
-        "example": "var _ message.Publisher = (*Publisher)(nil)"
-      },
-      {
-        "name": "Zero-value struct with no constructor",
-        "description": "noop.Publisher has no fields; instantiate directly with &noop.Publisher{} or noop.Publisher{}. No constructor function is needed or should be added.",
-        "example": "return &noop.Publisher{}"
-      },
-      {
-        "name": "Both methods return nil",
-        "description": "Publish and Close must always return nil \u2014 callers treat non-nil errors as real failures even when the feature is disabled.",
-        "example": "func (Publisher) Publish(topic string, messages ...*message.Message) error { return nil }"
+        "description": "var _ subscriptionworkflow.Service = &service{} in service.go enforces full implementation. Must be present for any new implementation.",
+        "example": "var _ subscriptionworkflow.Service = &service{}"
       }
     ],
     "key_file_guides": [
       {
-        "file": "publisher.go",
-        "role": "Entire package. Defines the Publisher struct, the compile-time interface assertion, and no-op Publish/Close methods.",
-        "watch_for": "Both Publish and Close must return nil. Do not add fields, dependencies, logging, or metrics \u2014 this defeats the purpose of a disabled-feature noop."
+        "file": "service.go",
+        "role": "WorkflowServiceConfig (all injected deps) and the service struct. NewWorkflowService is the only constructor \u2014 wire via app/common. lockCustomer helper lives here.",
+        "watch_for": "New deps go into WorkflowServiceConfig, never separate struct fields. lockCustomer calls LockForTX which requires an active transaction already in ctx."
+      },
+      {
+        "file": "subscription.go",
+        "role": "CreateFromPlan, EditRunning, ChangeToPlan, Restore \u2014 cross-subscription lifecycle ops.",
+        "watch_for": "EditRunning blocks if the subscription has active addons. ChangeToPlan cancels old then creates new in one transaction with previous/superseding annotations. Restore is gated behind MultiSubscriptionEnabledFF. Call spec.ValidateAlignment() after every ApplyMany sequence."
+      },
+      {
+        "file": "addon.go",
+        "role": "AddAddon and ChangeAddonQuantity: validate -> transaction -> fetch state -> mutate addon record -> syncWithAddons -> return view. syncWithAddons is the core diff-apply loop.",
+        "watch_for": "Duplicate addon purchase detected by ID equality inside the transaction \u2014 keep it there. asDiffs filters nil Diffable; len mismatch between diffs and addons is a hard error surfaced as a generic error."
+      },
+      {
+        "file": "addon_test.go",
+        "role": "Integration tests for AddAddon/ChangeAddonQuantity via subscriptiontestutils.SetupDBDeps + NewService.",
+        "watch_for": "clock.FreezeTime(now.Add(time.Millisecond)) avoids Postgres timestamp truncation boundary issues \u2014 replicate in new tests."
+      },
+      {
+        "file": "subscription_test.go",
+        "role": "Integration tests for CreateFromPlan/EditRunning/TestEditingCurrentPhase; also demonstrates MockService injection for unit-testing delegation.",
+        "watch_for": "Use the MockService injection pattern (NewWorkflowService with custom UpdateFn/GetViewFn) to unit-test delegation in isolation."
       }
     ],
     "anti_patterns": [
-      "Adding logging or metrics to Publisher \u2014 defeats the purpose and adds side-effects in disabled paths",
-      "Returning non-nil errors from Publish or Close \u2014 callers treat errors as real failures",
-      "Adding constructor functions that accept dependencies \u2014 zero-value struct is the intended usage pattern",
-      "Growing this package beyond the single Publisher type \u2014 other noop concerns belong in their own packages",
-      "Using this publisher in non-disabled-feature paths \u2014 only use in Wire provider functions where a feature flag (e.g. credits.enabled=false) requires a no-op"
+      "Calling s.Service.Update directly without the restore+apply diff cycle when addons are present \u2014 always use syncWithAddons.",
+      "Starting a new outer transaction.Run inside syncWithAddons when already inside an outer transaction.Run \u2014 do not bypass the existing transaction.",
+      "Returning raw fmt.Errorf for validation/conflict/forbidden \u2014 use models.NewGeneric* constructors.",
+      "Skipping lockCustomer in new mutating workflows for a customer \u2014 concurrent mutations race.",
+      "Editing subscription spec fields without calling spec.ValidateAlignment() after applying patches."
     ],
     "decisions": [
       {
-        "decision": "Zero-value struct with no constructor",
-        "rationale": "Maximally simple; Wire providers return &noop.Publisher{} inline without any setup, making disabled feature paths trivially safe and dependency-free."
+        "decision": "Workflow service is a separate layer from subscription.Service.",
+        "rationale": "Keeps the core service persistence-focused; the workflow layer composes addon, locking, and feature-flag concerns without polluting the domain interface or creating circular imports back into app/common."
       },
       {
-        "decision": "Package scoped to a single type",
-        "rationale": "Keeping the package to exactly one type (Publisher) ensures it remains trivially auditable and cannot accumulate hidden side-effects over time."
+        "decision": "Addon sync uses a full restore-then-apply diff cycle, not incremental patching.",
+        "rationale": "Ensures idempotency \u2014 the spec always reflects exactly the currently-attached addons, preventing double-application on retry."
+      },
+      {
+        "decision": "ChangeToPlan cancels the old then creates a new subscription in one transaction with cross-reference annotations.",
+        "rationale": "Preserves navigable history (previousSubscriptionID/supersedingSubscriptionID) while guaranteeing atomicity \u2014 never a window where neither is active."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Wire provider returning noop publisher when a feature is disabled",
-        "code": "import \"github.com/openmeterio/openmeter/openmeter/watermill/driver/noop\"\n\nfunc NewEventPublisher(cfg config.CreditsConfiguration) message.Publisher {\n    if !cfg.Enabled {\n        return &noop.Publisher{}\n    }\n    return buildRealKafkaPublisher(cfg)\n}"
+        "scenario": "Add an addon: validate, lock in transaction, detect duplicate, create record, sync spec",
+        "code": "func (s *service) AddAddon(ctx context.Context, subscriptionID models.NamespacedID, addonInp subscriptionworkflow.AddAddonWorkflowInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {\n  if err := addonInp.Validate(); err != nil { return def1, def2, models.NewGenericValidationError(err) }\n  res, err := transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (purchaseRes, error) {\n    subView, _ := s.Service.GetView(ctx, subscriptionID)\n    subsAdds, _ := s.AddonService.List(ctx, subscriptionID.Namespace, ...)\n    if lo.SomeBy(subsAdds.Items, func(sa subscriptionaddon.SubscriptionAddon) bool { return sa.Addon.ID == addonInp.AddonID }) {\n      return purchaseRes{}, models.NewGenericConflictError(fmt.Errorf(\"subscription already has that addon purchased\"))\n    }\n    // ... create addon record, then syncWithAddons ...\n  })\n}"
       }
     ]
   }

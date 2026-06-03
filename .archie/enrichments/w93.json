@@ -1,126 +1,132 @@
 {
-  "openmeter/ingest/kafkaingest/serializer": {
-    "purpose": "Defines the Serializer interface and its JSON implementation for converting CloudEvents into Kafka key/value byte pairs. The key encodes a dedupe.Item (namespace+source+id) for sink-worker Redis deduplication; the value encodes a flat CloudEventsKafkaPayload with unix-timestamp time.",
+  "openmeter/ingest/httpdriver": {
+    "purpose": "HTTP transport layer for CloudEvent ingestion. Decodes incoming requests across three wire formats (application/json, application/cloudevents+json, application/cloudevents-batch+json) into ingest.IngestEventsRequest and delegates to ingest.Service. Mounted by openmeter/server/router; must stay DI-agnostic.",
     "patterns": [
       {
-        "name": "Serializer interface contract",
-        "description": "Every serializer must implement SerializeKey(topic, namespace, event), SerializeValue(topic, event), GetFormat(), GetKeySchemaId(), GetValueSchemaId(). JSON serializer returns -1 for schema IDs (no registry).",
-        "example": "var _ Serializer = JSONSerializer{}"
+        "name": "httptransport.NewHandler triple",
+        "description": "Every endpoint is built with httptransport.NewHandler(decoderFn, operationFn, encoderFn, ...options). Decoder extracts namespace + body; operation calls the service; encoder writes the response.",
+        "example": "httptransport.NewHandler(decoder, func(ctx, req) (resp, error) { return h.service.IngestEvents(ctx, req) }, commonhttp.EmptyResponseEncoder[IngestEventsResponse](http.StatusNoContent), opts...)"
       },
       {
-        "name": "Key encodes dedupe.Item",
-        "description": "SerializeKey must produce []byte(dedupe.Item{Namespace, ID, Source}.Key()). The sink worker's Redis deduplication depends on this exact format \u2014 changing it breaks deduplication.",
-        "example": "dedupeItem := dedupe.Item{Namespace: namespace, ID: ev.ID(), Source: ev.Source()}; return []byte(dedupeItem.Key()), nil"
+        "name": "Handler interface composition",
+        "description": "handler.go defines a Handler interface composed of sub-interfaces (IngestHandler); each method returns a typed httptransport.Handler alias so callers depend on the narrowest surface.",
+        "example": "type Handler interface { IngestHandler }; type IngestHandler interface { IngestEvents() IngestEventsHandler }"
       },
       {
-        "name": "CloudEventsKafkaPayload wire format",
-        "description": "SerializeValue must go through toCloudEventsKafkaPayload then json.Marshal. Time is unix int64 (seconds, timezone lost). Data is a JSON string. FromKafkaPayloadToCloudEvents is the inverse \u2014 used by the sink worker.",
-        "example": "payload.Time = ev.Time().Unix()"
+        "name": "Namespace resolution via NamespaceDecoder",
+        "description": "Namespace is always resolved from context through h.resolveNamespace(ctx) which calls namespacedriver.NamespaceDecoder.GetNamespace(ctx). Never read namespace from URL path params.",
+        "example": "ns, ok := h.namespaceDecoder.GetNamespace(ctx); if !ok { return commonhttp.NewHTTPError(http.StatusInternalServerError, ...) }"
       },
       {
-        "name": "Optional data field handling",
-        "description": "When ev.Data() is empty, Data field is left as empty string. When present, parse via ev.DataAs(&data) then re-marshal to JSON string. Parse failures must return an error \u2014 never silently drop.",
-        "example": "if len(ev.Data()) > 0 { ev.DataAs(&data); payloadData, _ = json.Marshal(data) }"
+        "name": "Domain-local error types + errorEncoder chain",
+        "description": "errors.go defines package-local error structs (ErrorInvalidContentType, ErrorInvalidEvent) implementing Error()/Message()/Details(). errorEncoder() maps them to 400 via commonhttp.HandleErrorIfTypeMatches.",
+        "example": "commonhttp.HandleErrorIfTypeMatches[ErrorInvalidContentType](ctx, http.StatusBadRequest, err, w)"
       },
       {
-        "name": "Compile-time interface assertion",
-        "description": "Use var _ Serializer = ConcreteType{} at package level to assert implementation at compile time.",
-        "example": "var _ Serializer = JSONSerializer{}"
+        "name": "Content-type switch for multi-format ingestion",
+        "description": "ingest.go switches on Content-Type to decode application/json (single or batch via AsEvent/AsIngestEventsBody1), cloudevents+json, and cloudevents-batch+json. Unknown types return ErrorInvalidContentType.",
+        "example": "switch contentType { case \"application/cloudevents+json\": ...; default: return req, ErrorInvalidContentType{ContentType: contentType} }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "serializer.go",
-        "role": "Defines Serializer interface, CloudEventsKafkaPayload wire struct, toCloudEventsKafkaPayload, FromKafkaPayloadToCloudEvents, and ValidateKafkaPayloadToCloudEvent. Shared by producer and sink consumer paths.",
-        "watch_for": "FromKafkaPayloadToCloudEvents is consumed by the sink worker \u2014 changing field names or unix-timestamp semantics breaks deserialization on the consumer side."
+        "file": "handler.go",
+        "role": "Constructs the handler struct and exposes New(). All DI (NamespaceDecoder, ingest.Service, HandlerOptions) happens here.",
+        "watch_for": "Wiring only \u2014 no business logic. Always accept variadic httptransport.HandlerOption so callers can attach middleware."
       },
       {
-        "file": "json.go",
-        "role": "Concrete JSONSerializer: no schema registry, GetKeySchemaId/GetValueSchemaId return -1, key derived from dedupe.Item.",
-        "watch_for": "Key format must match dedupe.Item.Key() output exactly ('namespace-source-id') \u2014 the sink worker Redis deduplication depends on it."
+        "file": "ingest.go",
+        "role": "Implements IngestEvents() endpoint: multi-format request decoding and service dispatch. Type aliases IngestEventsRequest/Response/Handler live here.",
+        "watch_for": "An application/json body can be a single event OR a batch \u2014 both AsEvent() and AsIngestEventsBody1() must be tried before returning ErrorInvalidEvent."
       },
       {
-        "file": "serializer_test.go",
-        "role": "Table-driven round-trip tests for toCloudEventsKafkaPayload, FromKafkaPayloadToCloudEvents, and SerializeKey format assertion.",
-        "watch_for": "TestSerializeKey asserts key = 'namespace-source-id'; any dedupe.Item.Key() format change must be reflected here."
+        "file": "errors.go",
+        "role": "Defines domain-local HTTP error types and the errorEncoder() factory passed to httptransport.NewHandler.",
+        "watch_for": "Error types must implement Error() and Message(). Register new errors in errorEncoder() via HandleErrorIfTypeMatches \u2014 raw errors bypass encoding and produce 500s."
+      },
+      {
+        "file": "ingest_test.go",
+        "role": "Table-driven tests using httptest.NewServer + ingest.NewInMemoryCollector covering single event, batch, and invalid-body paths.",
+        "watch_for": "Tests use StaticNamespaceDecoder('test') \u2014 keep a deterministic namespace so collector.Events('test') is predictable."
       }
     ],
     "anti_patterns": [
-      "Adding schema-registry-aware serializers without implementing the full Serializer interface (GetKeySchemaId/GetValueSchemaId must return real schema IDs)",
-      "Storing timezone-aware time in CloudEventsKafkaPayload.Time \u2014 field is unix int64, timezone is intentionally dropped",
-      "Embedding namespace in the value payload \u2014 namespace belongs only in the key via dedupe.Item",
-      "Silently dropping data parse errors in toCloudEventsKafkaPayload \u2014 always return the error",
-      "Bypassing toCloudEventsKafkaPayload in SerializeValue \u2014 the sink worker's FromKafkaPayloadToCloudEvents expects exactly this struct"
+      "Adding business logic (validation, transformation) inside the decoder \u2014 delegate to ingest.Service.",
+      "Returning raw errors from the decoder without wrapping in ErrorInvalidEvent/ErrorInvalidContentType \u2014 they bypass the errorEncoder and produce 500s.",
+      "Reading namespace from URL path params instead of h.resolveNamespace(ctx).",
+      "Importing app/common or wire providers \u2014 this package must stay DI-agnostic.",
+      "Defining a new endpoint without adding it to the Handler / IngestHandler interface composition in handler.go."
     ],
     "decisions": [
       {
-        "decision": "Key derived from dedupe.Item (namespace+source+id) rather than event ID alone",
-        "rationale": "Guarantees global uniqueness across namespaces for Redis-backed deduplication in the sink worker"
+        "decision": "Content-type switch instead of a single decoder.",
+        "rationale": "CloudEvents spec defines three wire formats; dispatching by Content-Type is spec-correct and keeps each parse path isolated."
       },
       {
-        "decision": "Data stored as JSON string inside CloudEventsKafkaPayload rather than raw bytes",
-        "rationale": "CloudEvents data is JSON-only in this system; string encoding avoids base64 overhead and keeps the payload human-readable in Kafka"
+        "decision": "Domain-local error types instead of generic HTTP errors.",
+        "rationale": "ErrorInvalidContentType/ErrorInvalidEvent carry structured details (contentType) and are matched by type in errorEncoder to produce precise 400s."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Implementing a new Serializer (e.g. Avro) following the existing pattern",
-        "code": "package serializer\n\nimport (\n\t\"github.com/cloudevents/sdk-go/v2/event\"\n\t\"github.com/openmeterio/openmeter/openmeter/dedupe\"\n)\n\nvar _ Serializer = AvroSerializer{}\n\ntype AvroSerializer struct{}\n\nfunc (s AvroSerializer) SerializeKey(topic string, namespace string, ev event.Event) ([]byte, error) {\n\titem := dedupe.Item{Namespace: namespace, ID: ev.ID(), Source: ev.Source()}\n\treturn []byte(item.Key()), nil\n}\n\nfunc (s AvroSerializer) GetKeySchemaId() int  { return 42 }  // real schema ID\nfunc (s AvroSerializer) GetValueSchemaId() int { return 43 } // real schema ID"
+        "scenario": "Adding a new ingest endpoint following the existing pattern",
+        "code": "type (\n\tMyNewRequest  = ingest.MyNewRequest\n\tMyNewResponse = struct{}\n\tMyNewHandler  httptransport.Handler[MyNewRequest, MyNewResponse]\n)\n\nfunc (h *handler) MyNew() MyNewHandler {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (MyNewRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return MyNewRequest{}, err }\n\t\t\treturn MyNewRequest{Namespace: ns}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req MyNewRequest) (MyNewResponse, error) { /* call service */ return MyNewResponse{}, nil },\n\t\tcommonhttp.EmptyResponseEncoder[MyNewResponse](http.StatusNoContent),\n\t\th.options...,\n\t)\n}"
       }
     ]
   },
-  "openmeter/ingest/kafkaingest/topicresolver": {
-    "purpose": "Provides the Resolver interface and its NamespacedTopicResolver implementation, which maps a namespace string to a Kafka topic name via a printf-style template (e.g. 'om_%s_events'). Used by the Kafka ingest collector to determine the per-namespace target topic.",
+  "openmeter/ingest/ingestadapter": {
+    "purpose": "OTel instrumentation decorator for ingest.Collector. Wraps any Collector implementation to emit trace spans and two Int64Counters (events ingested, errors) without altering ingest behavior. Applied at wiring time in app/common.",
     "patterns": [
       {
-        "name": "Resolver interface for topic lookup",
-        "description": "All topic resolution must go through the Resolver interface: Resolve(ctx context.Context, namespace string) (string, error). Callers must never hard-code topic names.",
-        "example": "type Resolver interface { Resolve(ctx context.Context, namespace string) (string, error) }"
+        "name": "Decorator/wrapper over ingest.Collector",
+        "description": "collectorTelemetry embeds an ingest.Collector and implements the same interface. WithTelemetry() is the sole constructor \u2014 pass the inner collector, receive an instrumented one.",
+        "example": "return &collectorTelemetry{collector: collector, tracer: tracer, ingestEventsCounter: c1, ingestErrorsCounter: c2}, nil"
       },
       {
-        "name": "Template-based namespace-to-topic mapping",
-        "description": "NamespacedTopicResolver uses fmt.Sprintf(template, namespace). Template must contain exactly one %s placeholder. Constructor validates non-empty template but not placeholder count.",
-        "example": "NewNamespacedTopicResolver(\"om_%s_events\")"
+        "name": "Pre-allocated metric instruments in constructor",
+        "description": "Counters are created once in WithTelemetry and stored on the struct. Never call metric.Meter.Int64Counter inside Ingest() \u2014 registration is not cheap.",
+        "example": "ingestEventsCounter, err := metricMeter.Int64Counter(\"openmeter.ingest.events\", metric.WithDescription(...), metric.WithUnit(\"{event}\"))"
       },
       {
-        "name": "Compile-time interface assertion",
-        "description": "var _ Resolver = (*NamespacedTopicResolver)(nil) ensures the concrete type satisfies the interface at compile time.",
-        "example": "var _ Resolver = (*NamespacedTopicResolver)(nil)"
+        "name": "Span-per-call with RecordError on failure",
+        "description": "Ingest() opens a span, delegates to the inner collector, then calls span.RecordError + span.SetStatus on error before incrementing the errors counter. Always defer span.End().",
+        "example": "ctx, span := c.tracer.Start(ctx, \"openmeter.ingest.events\", ...); defer span.End(); err = c.collector.Ingest(...); if err != nil { span.RecordError(err); span.SetStatus(otelcodes.Error, ...) }"
       },
       {
-        "name": "Context threading",
-        "description": "Resolve accepts context.Context even though NamespacedTopicResolver ignores it. Always pass the caller's ctx to support future async/DB-backed implementations.",
-        "example": "func (r NamespacedTopicResolver) Resolve(_ context.Context, namespace string) (string, error)"
+        "name": "Namespace attribute on every metric and span",
+        "description": "Both counters and the span carry attribute.String(\"namespace\", namespace) so metrics are filterable per tenant without extra cardinality.",
+        "example": "namespaceAttr := attribute.String(\"namespace\", namespace); c.ingestEventsCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr))"
+      },
+      {
+        "name": "Metric naming convention openmeter.<domain>.<noun>",
+        "description": "Counter names follow openmeter.<domain>.<noun> (openmeter.ingest.events, openmeter.ingest.errors) with UCUM unit strings {event}/{error}.",
+        "example": "metricMeter.Int64Counter(\"openmeter.ingest.errors\", metric.WithDescription(\"Number of failed event ingests\"), metric.WithUnit(\"{error}\"))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "resolver.go",
-        "role": "Pure interface definition only. New resolver implementations belong in separate files in this package.",
-        "watch_for": "Do not add business logic to resolver.go \u2014 keep it as a pure interface definition."
-      },
-      {
-        "file": "namespacedtopic.go",
-        "role": "Single-template resolver; constructor rejects empty templates. The only current Resolver implementation.",
-        "watch_for": "Template must have exactly one %s; constructor does not validate placeholder count \u2014 a template with zero or two %s arguments causes a runtime fmt.Sprintf format error."
+        "file": "telemetry.go",
+        "role": "Sole file. Defines collectorTelemetry struct, WithTelemetry constructor, and implements Ingest/Close. Metric counters pre-allocated in the constructor, not per-call.",
+        "watch_for": "Close() must delegate to the inner collector. Never swallow the inner collector's error \u2014 always propagate after recording the span error."
       }
     ],
     "anti_patterns": [
-      "Hard-coding topic names in the collector instead of using Resolver.Resolve",
-      "Passing a template string with zero or multiple %s placeholders to NewNamespacedTopicResolver",
-      "Implementing Resolver without accepting context.Context \u2014 the interface requires it for future async/DB-backed implementations",
-      "Calling Resolve with context.Background() in application code \u2014 always propagate the caller's context"
+      "Creating metric instruments inside Ingest() instead of the constructor \u2014 allocation/registration overhead per event.",
+      "Swallowing the inner collector's error \u2014 always propagate after recording the span error.",
+      "Adding business logic or event transformation here \u2014 must remain a pure observability decorator.",
+      "Omitting the namespace attribute from counters \u2014 tenant-scoped metrics are required."
     ],
     "decisions": [
       {
-        "decision": "Topic name derived from a template rather than a static config string",
-        "rationale": "Enables per-namespace Kafka topic isolation (multi-tenant ingest) without requiring config changes per new namespace"
-      },
-      {
-        "decision": "Resolver is an interface, not a function type",
-        "rationale": "Allows future implementations (e.g. DB-backed dynamic routing) to be swapped in via DI without changing the collector"
+        "decision": "Separate ingestadapter package instead of embedding telemetry in kafkaingest.",
+        "rationale": "Keeps observability decoupled from transport \u2014 any Collector (kafkaingest, in-memory, test stub) can be wrapped without modification."
       }
     ],
-    "code_examples": []
+    "code_examples": [
+      {
+        "scenario": "Wrapping a collector with telemetry at wiring time",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/ingest/ingestadapter\"\n\t\"go.opentelemetry.io/otel/metric\"\n\t\"go.opentelemetry.io/otel/trace\"\n)\n\nfunc NewInstrumentedCollector(collector ingest.Collector, metricMeter metric.Meter, tracer trace.Tracer) (ingest.Collector, error) {\n\treturn ingestadapter.WithTelemetry(collector, metricMeter, tracer)\n}"
+      }
+    ]
   }
 }

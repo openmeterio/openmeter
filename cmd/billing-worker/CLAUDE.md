@@ -2,25 +2,23 @@
 
 <!-- archie:ai-start -->
 
-> Binary entrypoint for the billing-worker: subscribes to Kafka system events via Watermill, processes subscription sync, invoice creation, and charge advancement events. Performs post-migration provisioning (ledger business accounts, sandbox app) before starting the run loop.
+> Binary entrypoint for the billing-worker: subscribes to Kafka system events via Watermill and processes subscription sync, invoice creation, and charge advancement events. Performs post-migration provisioning (ledger business accounts, sandbox app) before starting the run loop.
 
 ## Patterns
 
-**Post-migration provisioning before Run** — billing-worker calls LedgerAccountResolver.EnsureBusinessAccounts and AppRegistry.SandboxProvisioner after Migrate and before Run — ordering is critical for correct startup state. (`app.Migrate(ctx)
-app.LedgerAccountResolver.EnsureBusinessAccounts(ctx, namespace)
-app.AppRegistry.SandboxProvisioner(ctx, namespace)
-app.Run()`)
-**Extended Application struct for post-Migrate provisioning** — Application embeds common.GlobalInitializer, Migrator, Runner and additionally exposes AppRegistry, LedgerAccountResolver, NamespaceManager, Streaming as fields needed for post-migration provisioning in main.go. (`type Application struct { common.GlobalInitializer; common.Migrator; common.Runner; AppRegistry common.AppRegistry; LedgerAccountResolver ledger.AccountResolver; NamespaceManager *namespace.Manager; ... }`)
-**BillingWorker composite provider set** — wire.Build uses common.BillingWorker which internally wires billing adapter, rating service, subscription sync, charges, and ledger stack. Individual billing sub-services are not listed separately. (`common.BillingWorker // in wire.Build — provisions billingRegistry, subscriptionsyncService, workerOptions, worker in sequence`)
-**Config FieldsOf extraction for worker sub-config** — wire.FieldsOf extracts the router/consumer config slices for Wire from BillingWorkerConfiguration and BillingConfiguration. (`wire.FieldsOf(new(config.BillingWorkerConfiguration), "ConsumerConfiguration"), wire.FieldsOf(new(config.BillingConfiguration), "Worker")`)
+**Post-migration provisioning before Run** — main.go calls app.LedgerAccountResolver.EnsureBusinessAccounts and app.AppRegistry.SandboxProvisioner after Migrate and strictly before Run — ordering is critical for correct startup state. (`app.Migrate(ctx); app.LedgerAccountResolver.EnsureBusinessAccounts(ctx, app.NamespaceManager.GetDefaultNamespace()); app.AppRegistry.SandboxProvisioner(ctx, app.NamespaceManager.GetDefaultNamespace()); app.Run()`)
+**Extended Application struct for post-Migrate provisioning** — Beyond the shared GlobalInitializer/Migrator/Runner embeds, Application exposes AppRegistry, LedgerAccountResolver, NamespaceManager, Streaming, and Meter as fields so main.go can drive provisioning. (`type Application struct { common.GlobalInitializer; common.Migrator; common.Runner; AppRegistry common.AppRegistry; LedgerAccountResolver ledger.AccountResolver; NamespaceManager *namespace.Manager; Streaming streaming.Connector; ... }`)
+**BillingWorker composite provider set** — wire.Build uses common.BillingWorker which internally wires billing adapter, rating service, subscription sync, charges, and the ledger stack. Individual billing sub-services are not listed separately. (`common.BillingWorker // wires billingRegistry, subscriptionsyncService, workerOptions, worker in sequence`)
+**Config FieldsOf extraction for worker sub-config** — wire.FieldsOf extracts the consumer/worker config slices for Wire from BillingWorkerConfiguration and BillingConfiguration. (`wire.FieldsOf(new(config.BillingWorkerConfiguration), "ConsumerConfiguration"), wire.FieldsOf(new(config.BillingConfiguration), "Worker")`)
+**FeatureGateNoopSet wiring** — wire.Build includes common.FeatureGateNoopSet so featuregate.NewNoop() is injected; the billing-worker runs with a noop feature gate rather than a live gate provider. (`common.FeatureGateNoopSet // in wire.Build -> gate := featuregate.NewNoop()`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `main.go` | Startup sequence: parse config → initializeApplication → SetGlobals → Migrate → EnsureBusinessAccounts → SandboxProvisioner → Run. | EnsureBusinessAccounts and SandboxProvisioner must run after Migrate but before Run. Adding new post-migration provisioning must respect this ordering. |
-| `wire.go` | Declares Application struct and all provider sets. Edit here to add new service dependencies. | common.BillingWorker is a composite set — don't duplicate the billing sub-services it already includes. |
-| `wire_gen.go` | Generated — DO NOT EDIT. Shows full wiring sequence including ledger stack, app registry, Stripe/CustomInvoicing/Sandbox apps. | Ledger stack wiring (NewLedgerHistoricalRepo, NewLedgerAccountService, etc.) is guarded by creditsConfiguration — verify credits path when debugging ledger writes. |
+| `main.go` | Startup sequence: parse config -> initializeApplication -> SetGlobals -> Migrate -> EnsureBusinessAccounts -> SandboxProvisioner -> Run. | EnsureBusinessAccounts and SandboxProvisioner must run after Migrate but before Run. Any new post-migration provisioning must respect this ordering and use GetDefaultNamespace(). |
+| `wire.go` | Declares the extended Application struct and all provider sets including common.BillingWorker, common.TaxCode, and common.FeatureGateNoopSet. | common.BillingWorker is a composite set — don't duplicate the billing sub-services it already includes. Has //go:build wireinject; never remove. |
+| `wire_gen.go` | Generated — shows the full wiring sequence including ledger stack (NewLedgerHistoricalRepo, NewLedgerAccountService, ...), AppRegistry, and Stripe/CustomInvoicing/Sandbox apps. | DO NOT EDIT. The ledger stack wiring is gated by creditsConfiguration — verify the credits path when debugging ledger writes. |
 
 ## Anti-Patterns
 
@@ -32,8 +30,8 @@ app.Run()`)
 
 ## Decisions
 
-- **Ledger business accounts and sandbox app are provisioned in billing-worker to support standalone deployments.** — When billing-worker runs independently of cmd/server, it must self-provision its required DB state before consuming Kafka events.
-- **AppRegistry (Sandbox, Stripe, CustomInvoicing) is wired in billing-worker because invoice lifecycle events require app implementations registered before the Watermill router starts.** — Invoice state machine dispatches to the registered InvoicingApp; wiring must happen before event consumption begins.
+- **Ledger business accounts and the sandbox app are provisioned in billing-worker.** — When billing-worker runs independently of cmd/server it must self-provision its required DB state before consuming Kafka events.
+- **AppRegistry (Sandbox, Stripe, CustomInvoicing) is wired in billing-worker.** — Invoice state-machine events dispatch to the registered InvoicingApp, so app implementations must be registered before the Watermill router starts consuming.
 
 ## Example: Correct post-Migrate startup sequence in billing-worker main.go
 

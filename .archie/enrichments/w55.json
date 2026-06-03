@@ -1,309 +1,340 @@
 {
-  "openmeter/billing/adapter": {
-    "purpose": "Ent/PostgreSQL implementation of billing.Adapter \u2014 the single persistence boundary for all billing domain entities (profiles, customer overrides, invoices, invoice lines, split line groups, sequences, locks, schema migration). Every public method wraps Ent access with entutils.TransactingRepo so operations compose correctly with caller-supplied transactions in ctx.",
+  "openmeter/app/stripe/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing appstripe.Adapter \u2014 owns all DB reads/writes for Stripe app config (AppStripe entity) and Stripe-customer mappings (AppStripeCustomer entity), plus secret retrieval. Pure persistence layer; no business logic.",
     "patterns": [
       {
-        "name": "TransactingRepo on every method body",
-        "description": "All adapter methods that write or need read-consistency wrap with entutils.TransactingRepo (returns value) or entutils.TransactingRepoWithNoValue. This rebinds a.db to the ctx-carried transaction via WithTx so multiple adapter calls in one transaction produce no partial writes.",
-        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.CustomerOverride, error) { row, err := tx.db.BillingCustomerOverride.Create()....Save(ctx); return mapCustomerOverrideFromDB(row) })"
+        "name": "TransactingRepo on every mutation",
+        "description": "Wrap every DB-writing method body in entutils.TransactingRepo or TransactingRepoWithNoValue; never call a.db directly outside that wrapper.",
+        "example": "return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error { return repo.db.AppStripe.Update().Where(...).Exec(ctx) })"
       },
       {
-        "name": "Compile-time interface assertions at file top",
-        "description": "Each file that implements an adapter sub-interface must declare var _ billing.XxxAdapter = (*adapter)(nil) at the top. This catches missing methods at compile time rather than at call sites.",
-        "example": "var _ billing.GatheringInvoiceAdapter = (*adapter)(nil)"
+        "name": "Tx / WithTx / Self triad",
+        "description": "Implement TxCreator: Tx() via HijackTx+NewTxDriver, WithTx() via NewTxClientFromRawConfig, Self() returns itself. WithTx MUST copy all struct fields including stripeClientFactory and stripeAppClientFactory.",
+        "example": "func (a *adapter) WithTx(ctx, tx) *adapter { return &adapter{db: entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client(), stripeClientFactory: a.stripeClientFactory, ...} }"
       },
       {
-        "name": "workflowConfigWithTaxCode eager-load option",
-        "description": "All queries that return a billing profile or workflow config must pass WithWorkflowConfig(workflowConfigWithTaxCode) so the TaxCode edge is populated. Omitting it silently produces nil TaxCode in BackfillTaxConfig.",
-        "example": "tx.db.BillingProfile.Query().Where(...).WithWorkflowConfig(workflowConfigWithTaxCode).First(ctx)"
+        "name": "input.Validate() before any DB call",
+        "description": "Every exported method calls input.Validate() first and wraps failures in models.NewGenericValidationError; validation errors must not reach the DB layer.",
+        "example": "if err := input.Validate(); err != nil { return appstripe.AppData{}, models.NewGenericValidationError(fmt.Errorf(\"...: %w\", err)) }"
       },
       {
-        "name": "Manually attach edges after Save()",
-        "description": "Ent's Save() never populates edges on the returned node. After creating or updating WorkflowConfig or BillingProfile with a TaxCodeID, manually fetch and assign the edge before returning, or downstream mappers dereference nil.",
-        "example": "if saved.TaxCodeID != nil { tc, _ := a.db.TaxCode.Get(ctx, *saved.TaxCodeID); saved.Edges.TaxCode = tc }"
+        "name": "entdb error mapping",
+        "description": "Map entdb.IsNotFound to app.NewAppNotFoundError/app.NewAppCustomerPreConditionError; entdb.IsConstraintError to models.NewGenericConflictError/app.NewAppCustomerPreConditionError. Never leak raw ent errors.",
+        "example": "if entdb.IsNotFound(err) { return appstripe.AppData{}, app.NewAppNotFoundError(input.AppID) }"
       },
       {
-        "name": "entitydiff-based upsert for line hierarchies",
-        "description": "Invoice lines and their children are updated via diffInvoiceLines / diffGatheringInvoiceLines (produces Create/Update/Delete sets) then upsertWithOptions executes bulk CREATE ON CONFLICT. Never do item-by-item inserts for line hierarchies.",
-        "example": "lineDiffs, _ := diffInvoiceLines(input.Lines); tx.upsertFeeLineConfig(ctx, lineDiffs.DetailedLine)"
+        "name": "EnsureCustomer before app-customer upsert",
+        "description": "UpsertStripeCustomerData calls repo.appService.EnsureCustomer inside the transaction before the AppStripeCustomer upsert, or the FK relationship is left orphaned.",
+        "example": "err := repo.appService.EnsureCustomer(ctx, app.EnsureCustomerInput{AppID: input.AppID, CustomerID: input.CustomerID})"
       },
       {
-        "name": "DBState snapshot after read",
-        "description": "After mapping a line from DB (mapStandardInvoiceLinesFromDB, mapGatheringInvoiceLineFromDB), call line.SaveDBSnapshot(). The diff engine uses DBState to detect changes; omitting it makes every field look changed on next write.",
-        "example": "if err := line.SaveDBSnapshot(); err != nil { return nil, fmt.Errorf(\"saving DB snapshot [id=%s]: %w\", line.GetID(), err) }"
-      },
-      {
-        "name": "Soft-delete with DeletedAt",
-        "description": "Billing entities use soft-delete (SetDeletedAt(clock.Now())) not hard DELETE. Queries must add Where(billinginvoice.DeletedAtIsNil()) unless explicitly fetching deleted records via IncludeDeleted. Sequences and lock rows are never soft-deleted.",
-        "example": "tx.db.BillingInvoice.Update().Where(billinginvoice.ID(id)).SetDeletedAt(clock.Now()).Save(ctx)"
+        "name": "GetWebhookSecret omits namespace filter",
+        "description": "GetWebhookSecret deliberately queries AppStripe by ID only \u2014 the webhook payload is Stripe-signed but namespace is unknown before validation. Do not add a namespace predicate.",
+        "example": "repo.db.AppStripe.Query().Where(appstripedb.ID(input.AppID)).Only(ctx) // no namespace predicate"
       }
     ],
     "key_file_guides": [
       {
         "file": "adapter.go",
-        "role": "Defines Config, the adapter struct (db *entdb.Client, logger), constructor New, and the Tx/WithTx/Self triad required by entutils.TransactingRepo. All other files add methods to this struct.",
-        "watch_for": "Tx() uses HijackTx \u2014 do not replace with db.BeginTx as it breaks the transaction driver contract."
+        "role": "adapter struct, Config, New() constructor, Tx/WithTx/Self transaction helpers; defaults nil factories to NewStripeClient/NewStripeAppClient.",
+        "watch_for": "WithTx must copy all factory fields; missing any silently breaks calls inside the transaction."
       },
       {
-        "file": "stdinvoicelines.go",
-        "role": "Implements billing.InvoiceLineAdapter.UpsertInvoiceLines \u2014 multi-table upsert across BillingInvoiceLine, BillingInvoiceFlatFeeLineConfig, BillingInvoiceUsageBasedLineConfig, discounts, and schema-level-2 detailed line tables.",
-        "watch_for": "SchemaLevel gates which detail-line table is written (schema 1 uses FlatFeeLine; schema 2 uses BillingStandardInvoiceDetailedLine). Mixing them corrupts the read path."
+        "file": "customer.go",
+        "role": "GetStripeCustomerData, UpsertStripeCustomerData, DeleteStripeCustomerData, createStripeCustomer.",
+        "watch_for": "UpsertStripeCustomerData verifies the Stripe customer (and payment method ownership) exists in the Stripe account before the DB upsert."
       },
       {
-        "file": "stdinvoicelinediff.go",
-        "role": "Pure diffing logic (no DB access) for invoice line hierarchies. Produces invoiceLineDiff with separate entitydiff.Diff sets for lines, usage discounts, detailed lines, and detailed line discounts.",
-        "watch_for": "Line equality checks call StandardLineBase.Equal and UsageBased.Equal \u2014 if you add new fields to those structs you must update Equal or diffs will be missed."
-      },
-      {
-        "file": "gatheringlines.go",
-        "role": "CRUD and diff/upsert for gathering invoice lines (usage-based only, stored in BillingInvoiceLine + BillingInvoiceUsageBasedLineConfig). Also implements expandSplitLineHierarchy for progressive billing.",
-        "watch_for": "Hard-delete (not soft-delete) is used for gathering lines via HardDeleteGatheringInvoiceLines \u2014 must also delete associated BillingInvoiceUsageBasedLineConfig rows atomically."
-      },
-      {
-        "file": "schemamigration.go",
-        "role": "On-demand per-customer invoice schema migration triggered inside LockCustomerForUpdate. Calls a raw SQL stored-procedure (om_func_migrate_customer_invoices_to_schema_level_2) for schema level 1\u21922.",
-        "watch_for": "Migration runs inside the advisory lock transaction \u2014 never call migrateCustomerInvoices outside a LockCustomerForUpdate context."
-      },
-      {
-        "file": "profile.go",
-        "role": "Profile and WorkflowConfig CRUD. createWorkflowConfig and updateWorkflowConfig both manually fetch the TaxCode edge after Save since Ent never populates edges on mutation results.",
-        "watch_for": "workflowConfigWithTaxCode closure must be used on every BillingProfile query that will be mapped \u2014 omitting it produces nil TaxCode in BackfillTaxConfig."
-      },
-      {
-        "file": "seq.go",
-        "role": "Sequence number allocation using FOR UPDATE pessimistic locking on BillingSequenceNumbers. Uses upsert-then-reselect to handle the first-use race condition.",
-        "watch_for": "NextSequenceNumber must always run inside a transaction (uses ForUpdate). Calling it outside a transaction will succeed but without lock safety."
-      },
-      {
-        "file": "stdinvoicelinemapper.go",
-        "role": "Pure DB\u2192domain mapping for standard invoice lines (no writes). backfillTaxConfigReferences handles legacy stripe-code/TaxCodeID precedence logic.",
-        "watch_for": "mapStandardInvoiceDetailedLineFromDB is schema-level-1 path; mapStandardInvoiceDetailedLineV2FromDB is schema-level-2 path. Caller selects via schemaLevelByInvoiceID."
+        "file": "stripe.go",
+        "role": "CreateStripeApp, UpdateAPIKey, GetStripeAppData, DeleteStripeAppData, GetWebhookSecret, SetCustomerDefaultPaymentMethod, CreateCheckoutSession.",
+        "watch_for": "UpdateAPIKey calls secretService.UpdateAppSecret first, then updates the DB only if the secret ID changed; GetWebhookSecret omits the namespace filter."
       }
     ],
     "anti_patterns": [
-      "Using a.db directly inside a helper function without entutils.TransactingRepo \u2014 the raw client ignores the ctx-carried Ent transaction and produces partial writes.",
-      "Querying BillingProfile or BillingWorkflowConfig without WithWorkflowConfig(workflowConfigWithTaxCode) \u2014 produces silent nil TaxCode in BackfillTaxConfig.",
-      "Calling Save() on WorkflowConfig/BillingProfile and returning the result without manually attaching the TaxCode edge \u2014 downstream mappers dereference nil.",
-      "Bypassing the entitydiff pipeline to write invoice lines one-by-one \u2014 the diff pipeline tracks AffectedLineIDs and UpdatedAt propagation; direct writes miss these.",
-      "Calling migrateCustomerInvoices outside of a LockCustomerForUpdate context \u2014 schema migration must run under the advisory lock."
+      "Calling repo.db methods directly without entutils.TransactingRepo \u2014 bypasses the ctx-bound Ent transaction.",
+      "Returning raw ent errors instead of mapping to app.NewAppNotFoundError / models.NewGenericConflictError.",
+      "Implementing business logic here \u2014 orchestration belongs in appservice.",
+      "Omitting EnsureCustomer before AppStripeCustomer upsert \u2014 leaves the app_customer FK missing.",
+      "Adding a namespace filter to GetWebhookSecret \u2014 namespace is unknown at webhook validation time."
     ],
     "decisions": [
       {
-        "decision": "entutils.TransactingRepo is called at each adapter method boundary, not once in the service layer.",
-        "rationale": "Adapter methods compose with each other (e.g. GetCustomerOverride called inside UpdateCustomerOverride) and TransactingRepo safely nests by reusing the tx already in ctx, keeping the service layer free of transaction management."
+        "decision": "Adapter holds StripeClientFactory/StripeAppClientFactory rather than creating clients inline.",
+        "rationale": "Lets tests inject a mock factory without hitting the real Stripe API."
       },
       {
-        "decision": "Invoice lines use entity-diff + bulk-upsert pipeline rather than load-compare-update.",
-        "rationale": "Invoice line sets can be large; diffing first then executing bulk CREATE ON CONFLICT minimises round trips and correctly propagates UpdatedAt only to actually changed lines."
-      },
-      {
-        "decision": "Schema migration is lazy (triggered inside LockCustomerForUpdate) rather than a global offline migration job.",
-        "rationale": "Migrating all invoices at once would require a long-running exclusive lock. Per-customer lazy migration under the billing advisory lock amortises the cost without blocking unrelated customers."
+        "decision": "WithTx creates a new adapter value rather than pointer mutation.",
+        "rationale": "Prevents cross-request transaction leakage when goroutines share the same adapter pointer."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new adapter method that reads and writes inside a transaction",
-        "code": "func (a *adapter) CreateFoo(ctx context.Context, input billing.CreateFooInput) (*billing.Foo, error) {\n    if err := input.Validate(); err != nil {\n        return nil, billing.ValidationError{Err: err}\n    }\n    return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.Foo, error) {\n        row, err := tx.db.BillingFoo.Create().\n            SetNamespace(input.Namespace).\n            SetName(input.Name).\n            Save(ctx)\n        if err != nil {\n            return nil, err\n        }\n        return mapFooFromDB(row), nil\n    })\n}"
+        "scenario": "New adapter method upserting inside the caller's transaction",
+        "code": "func (a *adapter) MyUpsert(ctx context.Context, input appstripe.MyInput) error {\n\tif err := input.Validate(); err != nil {\n\t\treturn models.NewGenericValidationError(fmt.Errorf(\"my upsert: %w\", err))\n\t}\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error {\n\t\terr := repo.db.AppStripe.Update().Where(appstripedb.Namespace(input.AppID.Namespace)).Where(appstripedb.ID(input.AppID.ID)).Exec(ctx)\n\t\tif entdb.IsNotFound(err) { return app.NewAppNotFoundError(input.AppID) }\n\t\treturn err\n\t})\n}"
       }
     ]
   },
-  "openmeter/billing/httpdriver": {
-    "purpose": "v1 HTTP handler package for the billing domain \u2014 translates between api.* types and billing.* service inputs/outputs, registers the billing errorEncoder, and exposes the composite Handler interface consumed by openmeter/server/router. Each endpoint is a method on *handler returning an httptransport.HandlerWithArgs or httptransport.Handler, never implementing ServeHTTP directly.",
+  "openmeter/app/stripe/client": {
+    "purpose": "Pure Stripe API client layer with two client types: StripeClient (pre-install, OAuth/webhook setup) and StripeAppClient (post-install: invoices, customers, checkout, portal). No business logic; all Stripe-to-domain error translation lives here.",
     "patterns": [
       {
-        "name": "Handler method returns typed httptransport handler",
-        "description": "Each HTTP operation is a method on *handler that returns an httptransport.Handler[Req,Resp] or httptransport.HandlerWithArgs[Req,Resp,Params]. The method only constructs and returns the handler; it never calls ServeHTTP.",
-        "example": "func (h *handler) GetProfile() GetProfileHandler { return httptransport.NewHandlerWithArgs(decode, operate, encode, opts...) }"
+        "name": "Dual client hierarchy",
+        "description": "StripeClient (client.go) handles pre-install calls (GetAccount, SetupWebhook). StripeAppClient (appclient.go) handles installed-app calls. Never use StripeClient for post-install operations.",
+        "example": "stripeAppClient, _ := NewStripeAppClient(StripeAppClientConfig{AppService, AppID, APIKey, Logger})"
       },
       {
-        "name": "Type alias triple for every endpoint",
-        "description": "Each endpoint declares Request, Response, and Params type aliases (and optionally a Handler type alias for the httptransport generic) at the top of its function or as package-level types.",
-        "example": "type ( GetProfileRequest = billing.GetProfileInput; GetProfileResponse = api.BillingProfile; GetProfileParams struct { ID string; Expand []api.BillingProfileExpand }; GetProfileHandler httptransport.HandlerWithArgs[...] )"
+        "name": "providerError translation on every Stripe call",
+        "description": "Route raw Stripe errors through providerError(). HTTP 400 -> models.NewGenericValidationError; 401 -> app.NewAppProviderAuthenticationError AND updates app status to Unauthorized; else app.NewAppProviderError.",
+        "example": "invoice, err := c.client.Invoices.New(params)\nif err != nil { return nil, c.providerError(err) }"
       },
       {
-        "name": "resolveNamespace first in every decoder",
-        "description": "Every decode function calls h.resolveNamespace(ctx) as the first step; returns InternalServerError if namespace is missing. Namespace must never be inlined or assumed.",
-        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ..., fmt.Errorf(\"failed to resolve namespace: %w\", err) }"
+        "name": "OpenMeter metadata injection on created objects",
+        "description": "Every Stripe object OpenMeter creates injects StripeMetadataNamespace, StripeMetadataAppID, and (where applicable) StripeMetadataCustomerID/InvoiceID into Metadata.",
+        "example": "Metadata: map[string]string{StripeMetadataNamespace: input.AppID.Namespace, StripeMetadataAppID: input.AppID.ID}"
       },
       {
-        "name": "errorEncoder() appended to every handler's options",
-        "description": "errors.go defines errorEncoder() returning a chain that maps billing.NotFoundError\u2192404, billing.ValidationError\u2192400, billing.UpdateAfterDeleteError\u2192409. It is appended via httptransport.AppendOptions on every handler.",
-        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"ListProfiles\"), httptransport.WithErrorEncoder(errorEncoder()))"
+        "name": "Currency helpers",
+        "description": "OpenMeter uses uppercase ISO codes (currencyx.Code), Stripe uses lowercase. Use Currency()/CurrencyPtr() to Stripe and FromStripeCurrency() back; never manual string conversion.",
+        "example": "out.Currency = lo.ToPtr(FromStripeCurrency(session.Currency))"
       },
       {
-        "name": "mapAndValidateInvoiceLineRateCardDeprecatedFields for dual-field parsing",
-        "description": "When an endpoint accepts both rateCard and deprecated top-level price/featureKey/taxConfig fields, use mapAndValidateInvoiceLineRateCardDeprecatedFields (defined in deprecations.go) to resolve them consistently.",
-        "example": "rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{ RateCard: line.RateCard, Price: line.Price })"
+        "name": "Idempotency keys on writes",
+        "description": "Stripe write ops use params.SetIdempotencyKey with a deterministic key from the OpenMeter entity ID to prevent duplicate creation on retries.",
+        "example": "params.SetIdempotencyKey(fmt.Sprintf(\"invoice-create-%s\", input.InvoiceID))"
       },
       {
-        "name": "DefaultPageSize and DefaultPageNumber from defaults.go",
-        "description": "All list handlers must use package-level pagination defaults (DefaultPageSize=100, DefaultPageNumber=1) from defaults.go via lo.FromPtrOr or defaultx.WithDefault, never hard-coded inline.",
-        "example": "Page: pagination.Page{ PageSize: defaultx.WithDefault(params.PageSize, DefaultPageSize), PageNumber: defaultx.WithDefault(params.Page, DefaultPageNumber) }"
+        "name": "leveledLogger bridge for Stripe backend",
+        "description": "Construct stripe.Backend with the leveledLogger bridge (logger.go) so Stripe SDK output routes through slog. Errorf is deliberately downgraded to Warn.",
+        "example": "backend := stripe.GetBackendWithConfig(stripe.APIBackend, &stripe.BackendConfig{LeveledLogger: leveledLogger{logger: config.Logger}})"
+      },
+      {
+        "name": "AddInvoiceLines list-after-create for line IDs",
+        "description": "AddInvoiceLines calls ListInvoiceLineItems after creating invoice items to resolve Stripe line IDs \u2014 CreateInvoiceItem does not return the line item ID. By design.",
+        "example": "lineItems, err := c.ListInvoiceLineItems(ctx, input.StripeInvoiceID)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "appclient.go",
+        "role": "StripeAppClient interface + impl, webhook event-type constants, StripeMetadata* reserved keys, providerError.",
+        "watch_for": "providerError() calls context.Background() for the 401 app-status update \u2014 intentional exception to the no-Background rule, since the parent ctx may already be cancelled."
+      },
+      {
+        "file": "client.go",
+        "role": "StripeClient interface, pre-install ops (GetAccount, SetupWebhook), Currency/FromStripeCurrency helpers, IsAPIKeyLiveMode.",
+        "watch_for": "Always use Currency()/FromStripeCurrency() for case conversion; never inline strings.ToLower/ToUpper."
+      },
+      {
+        "file": "invoice.go",
+        "role": "Create/Update/Delete/Finalize/Get invoice with input/output types and Validate().",
+        "watch_for": "AutoAdvance is always false on creation (advancement is via FinalizeInvoice); CollectionMethodSendInvoice requires DaysUntilDue, ChargeAutomatically forbids it."
+      },
+      {
+        "file": "invoice_line.go",
+        "role": "AddInvoiceLines, UpdateInvoiceLines, RemoveInvoiceLines, ListInvoiceLineItems.",
+        "watch_for": "AddInvoiceLines always re-lists to resolve LineID \u2014 Stripe CreateInvoiceItem does not return it."
+      },
+      {
+        "file": "errors.go",
+        "role": "Typed Stripe errors (StripeCustomerNotFoundError, StripePaymentMethodNotFoundError, StripeInvoiceCustomerTaxLocationInvalidError) with Is* helpers.",
+        "watch_for": "These are not models.GenericNotFoundError; callers use IsStripeCustomerNotFoundError etc., not models.IsNotFoundError."
+      },
+      {
+        "file": "logger.go",
+        "role": "leveledLogger implementing stripe.LeveledLoggerInterface, routing SDK logs through slog.",
+        "watch_for": "Errorf intentionally logs at Warn so app-handled errors don't pollute logs."
+      }
+    ],
+    "anti_patterns": [
+      "Calling Stripe API methods without routing the error through providerError() \u2014 misses the 401 app-status update and domain mapping.",
+      "Creating Stripe objects without injecting StripeMetadataNamespace/StripeMetadataAppID in Metadata.",
+      "Using raw string currency codes instead of Currency()/FromStripeCurrency().",
+      "Adding business logic here \u2014 this is a thin Stripe wrapper; orchestration belongs in appservice.",
+      "Assuming AddInvoiceLines returns line IDs directly \u2014 always re-list to resolve them."
+    ],
+    "decisions": [
+      {
+        "decision": "Two separate client interfaces (StripeClient vs StripeAppClient).",
+        "rationale": "Pre-install calls have no installed-app context; merging would require optional fields / nil checks throughout."
+      },
+      {
+        "decision": "AddInvoiceLines does a separate ListInvoiceLineItems call.",
+        "rationale": "Stripe InvoiceItems.New returns the item but not its line item ID, which later update/delete operations require."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "New stripeAppClient method calling the Stripe API",
+        "code": "func (c *stripeAppClient) MyOperation(ctx context.Context, input MyInput) (MyOutput, error) {\n\tif err := input.Validate(); err != nil { return MyOutput{}, models.NewGenericValidationError(err) }\n\tresult, err := c.client.SomeResource.New(&stripe.SomeParams{Metadata: map[string]string{StripeMetadataNamespace: input.AppID.Namespace, StripeMetadataAppID: input.AppID.ID}})\n\tif err != nil { return MyOutput{}, c.providerError(err) }\n\treturn MyOutput{ID: result.ID}, nil\n}"
+      }
+    ]
+  },
+  "openmeter/app/stripe/httpdriver": {
+    "purpose": "HTTP handler layer for all Stripe-specific endpoints: webhook ingestion, API key rotation, checkout session creation, customer Stripe-data CRUD, portal sessions. Uses the httptransport.Handler/HandlerWithArgs pattern; delegates all logic to appstripe.Service and billing.Service.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandler / NewHandlerWithArgs",
+        "description": "Each handler returns httptransport.Handler/HandlerWithArgs via (decoder, operation, encoder). Never implement ServeHTTP directly.",
+        "example": "return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusOK), httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"myAction\"))...)"
+      },
+      {
+        "name": "resolveNamespace from context",
+        "description": "Decoders call h.resolveNamespace(ctx) for the namespace; never read it from URL path or body.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return Req{}, err }"
+      },
+      {
+        "name": "Deleted customer guard",
+        "description": "After resolving a customer, check cus.IsDeleted() and return models.NewGenericPreConditionFailedError if true.",
+        "example": "if cus != nil && cus.IsDeleted() { return Req{}, models.NewGenericPreConditionFailedError(fmt.Errorf(\"customer is deleted\")) }"
+      },
+      {
+        "name": "Webhook namespace from signed secret",
+        "description": "AppStripeWebhook does NOT call resolveNamespace; it recovers namespace from secret.SecretID.Namespace after validating the Stripe-Signature header.",
+        "example": "event, _ := webhook.ConstructEventWithTolerance(..., secret.Value, ...)\nappID := app.AppID{Namespace: secret.SecretID.Namespace, ID: params.AppID}"
+      },
+      {
+        "name": "Type aliases for request/response",
+        "description": "Use type aliases (type X = appstripe.Y) instead of wrapper structs; keep mapping.go conversion functions pure (no service calls).",
+        "example": "type UpdateStripeAPIKeyRequest = appstripe.UpdateAPIKeyInput"
       }
     ],
     "key_file_guides": [
       {
         "file": "handler.go",
-        "role": "Defines the composite Handler interface (ProfileHandler + InvoiceLineHandler + InvoiceHandler + CustomerOverrideHandler), the handler struct, and the New() constructor.",
-        "watch_for": "New methods on the Handler interface must also be implemented on *handler and registered in router.Config \u2014 missing either causes a compile error or a 404."
+        "role": "Handler interface, concrete struct (holds service, billingService, customerService), New(), resolveNamespace helper.",
+        "watch_for": "Handler also holds billingService and customerService \u2014 checkout flows use them for billing-profile and customer lookups."
       },
       {
-        "file": "errors.go",
-        "role": "Single errorEncoder() for all billing HTTP endpoints; maps billing.NotFoundError, billing.ValidationError, billing.UpdateAfterDeleteError, and billing.ValidationIssue to correct HTTP status codes.",
-        "watch_for": "New billing domain error types must be added here; omitting them causes 500 responses instead of meaningful 4xx."
+        "file": "webhook.go",
+        "role": "AppStripeWebhook \u2014 validates Stripe-Signature and routes 12+ event types to service calls.",
+        "watch_for": "setup_intent.succeeded must validate StripeMetadataAppID/Namespace in metadata; events missing it are silently ignored (non-OpenMeter payments)."
       },
       {
-        "file": "deprecations.go",
-        "role": "Backward-compatibility parsing of legacy price/featureKey/taxConfig fields alongside the newer rateCard field.",
-        "watch_for": "When new invoice line fields are deprecated, add bridge logic here; never inline dual-field compatibility logic in endpoint decoders."
+        "file": "checkout_session.go",
+        "role": "CreateAppStripeCheckoutSession \u2014 handles create-by-inline-data, resolve-by-ID, resolve-by-key customer paths.",
+        "watch_for": "App ID falls back to h.billingService.ResolveStripeAppIDFromBillingProfile when body.AppId is nil \u2014 do not remove."
       },
       {
-        "file": "invoice.go",
-        "role": "All invoice-level HTTP operations: List, Get, Delete, Update, InvoicePendingLines, Simulate, ProgressInvoice (approve/retry/advance/snapshot_quantities).",
-        "watch_for": "ProgressInvoice uses a ProgressAction discriminator \u2014 add new actions to both InvoiceProgressActions and invoiceProgressOperationNames."
+        "file": "mapping.go",
+        "role": "Pure domain<->API conversion (toAPIStripePortalSession, fromAPIAppStripeCustomerDataBase).",
+        "watch_for": "Keep mapping functions pure; all enrichment happens in the operation closure."
       },
       {
-        "file": "profile.go",
-        "role": "Profile CRUD and MapProfileToApi; contains fromAPIBillingWorkflow, resolveProfileApps, and app reference mapping.",
-        "watch_for": "MapProfileToApi has two code paths (p.Apps set vs p.AppReferences) \u2014 keep both in sync when adding profile fields."
-      },
-      {
-        "file": "defaults.go",
-        "role": "Package-level pagination and display defaults used by all list handlers.",
-        "watch_for": "All list handlers must reference these via lo.FromPtrOr or defaultx.WithDefault \u2014 never hard-code page size inline."
+        "file": "apikey.go",
+        "role": "UpdateStripeAPIKey handler decoding body then delegating to h.service.UpdateAPIKey.",
+        "watch_for": "Returns 204 No Content via EmptyResponseEncoder; response type is struct{}."
       }
     ],
     "anti_patterns": [
-      "Calling billing.Service methods directly from a decode function \u2014 decode must only parse; operate must call the service.",
-      "Returning billing.ValidationError or billing.NotFoundError without going through errorEncoder() \u2014 causes 500 instead of 4xx.",
-      "Adding new Handler interface methods without adding them to handler.go's interface definition and implementing on *handler.",
-      "Inlining deprecated-field compatibility logic outside deprecations.go.",
-      "Using context.Background() instead of the caller's ctx in any handler closure."
+      "Calling service methods inside the decoder \u2014 decoders only parse/validate request shape.",
+      "Reading namespace from URL path or body instead of h.resolveNamespace(ctx).",
+      "Adding business logic to handlers \u2014 domain decisions belong in appstripe.Service.",
+      "Deriving webhook namespace from URL parameters instead of the signed secret.",
+      "Operating on a deleted customer without the IsDeleted() guard."
     ],
     "decisions": [
       {
-        "decision": "Two-closure httptransport.Handler pattern (decode + operate) rather than a single ServeHTTP method.",
-        "rationale": "Separates namespace/input parsing from business logic; allows the httptransport framework to handle error encoding and OTel tracing uniformly across all billing endpoints."
+        "decision": "Webhook handler recovers namespace from the signed secret, not a URL segment.",
+        "rationale": "Stripe webhooks carry the app ID in the URL but not the namespace; the only secure source is the stored webhook secret whose ID carries the namespace."
       },
       {
-        "decision": "errorEncoder() defined once in errors.go, appended to every handler's options.",
-        "rationale": "Ensures consistent HTTP status codes for all billing domain errors across all endpoints without repeating type-switch logic in each handler."
+        "decision": "Handler holds billingService in addition to appstripe.Service.",
+        "rationale": "Checkout session creation must resolve the Stripe app ID from the billing profile when no explicit app ID is in the body."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new billing HTTP endpoint",
-        "code": "type (\n    FooRequest  = billing.FooInput\n    FooResponse = api.BillingFoo\n    FooParams   struct{ ID string }\n    FooHandler  httptransport.HandlerWithArgs[FooRequest, FooResponse, FooParams]\n)\n\nfunc (h *handler) Foo() FooHandler {\n    return httptransport.NewHandlerWithArgs(\n        func(ctx context.Context, r *http.Request, p FooParams) (FooRequest, error) {\n            ns, err := h.resolveNamespace(ctx)\n            if err != nil { return FooRequest{}, fmt.Errorf(\"namespace: %w\", err) }\n            return billing.FooInput{Namespace: ns, ID: p.ID}, nil\n        },\n        func(ctx context.Context, req FooRequest) (FooResponse, error) {\n            result, err := h.service.Foo(ctx, req)\n            if err != nil { return FooResponse{}, err }\n            return mapFooToAPI(result), nil\n        },\n        commonhttp.JSONResponseEncoderWithStatus[FooResponse](http.StatusOK),\n        httptransport.AppendOptions(\n            h.options,\n            httptransport.WithOperationName(\"Foo\"),\n            httptransport.WithErrorEncoder(errorEncoder()),\n        )...,\n    )\n}"
+        "scenario": "New Stripe HTTP handler resolving a customer and delegating",
+        "code": "func (h *handler) MyStripeAction() httptransport.HandlerWithArgs[MyReq, MyResp, MyParams] {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, params MyParams) (MyReq, error) {\n\t\t\tns, err := h.resolveNamespace(ctx); if err != nil { return MyReq{}, err }\n\t\t\tcus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{CustomerID: &customer.CustomerID{Namespace: ns, ID: params.CustomerID}})\n\t\t\tif err != nil { return MyReq{}, err }\n\t\t\tif cus != nil && cus.IsDeleted() { return MyReq{}, models.NewGenericPreConditionFailedError(fmt.Errorf(\"customer is deleted\")) }\n\t\t\treturn MyReq{CustomerID: cus.GetID()}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req MyReq) (MyResp, error) { return h.service.MyAction(ctx, req) },\n\t\tcommonhttp.JSONResponseEncoderWithStatus[MyResp](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"myStripeAction\"))...,\n\t)\n}"
       }
     ]
   },
-  "openmeter/billing/lineengine": {
-    "purpose": "Implements the billing.LineEngine interface for the standard invoice line type \u2014 handles quantity snapshotting, split-line-group creation, period truncation, and per-line rating via rating.Service. Registered as LineEngineTypeInvoice in the billing.Service engine registry via app/common/charges.go.",
+  "openmeter/app/stripe/service": {
+    "purpose": "Business-logic service implementing appstripe.Service and app.AppFactory \u2014 orchestrates Stripe install/uninstall lifecycle, webhook event handling, invoice state transitions, and checkout sessions. Delegates persistence to appstripe.Adapter and Stripe calls to the client factories.",
     "patterns": [
       {
-        "name": "Config struct with Validate() + New()",
-        "description": "Engine is constructed via Config.Validate() + New(Config), returning (*Engine, error). All dependencies are injected through Config; never construct Engine directly.",
-        "example": "func New(config Config) (*Engine, error) { if err := config.Validate(); err != nil { return nil, err }; return &Engine{...}, nil }"
+        "name": "transaction.Run wrapping every service method",
+        "description": "Methods calling the adapter wrap in transaction.Run / RunWithNoValue so one transaction spans the full operation.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripe.GetWebhookSecretOutput, error) { return s.adapter.GetWebhookSecret(ctx, input) })"
       },
       {
-        "name": "Narrow SplitLineGroupAdapter interface",
-        "description": "splitlinegroup.go defines SplitLineGroupAdapter with only CreateSplitLineGroup and GetSplitLineGroupHeaders. Engine never imports the full billing.Adapter or openmeter/ent/db \u2014 dependency inversion prevents circular imports.",
-        "example": "type SplitLineGroupAdapter interface { CreateSplitLineGroup(ctx, billing.CreateSplitLineGroupAdapterInput) (billing.SplitLineGroup, error); GetSplitLineGroupHeaders(ctx, billing.GetSplitLineGroupHeadersInput) (billing.SplitLineGroupHeaders, error) }"
+        "name": "Marketplace self-registration in New()",
+        "description": "New() calls config.AppService.RegisterMarketplaceListing with the Stripe listing and the Service as factory; without it the Stripe app type is invisible to the registry.",
+        "example": "config.AppService.RegisterMarketplaceListing(app.RegistryItem{Listing: appstripe.StripeMarketplaceListing, Factory: service})"
       },
       {
-        "name": "QuantitySnapshotter interface for dependency inversion",
-        "description": "stdinvoice.go defines QuantitySnapshotter with SnapshotLineQuantities; the concrete implementation is billingservice.Service. Engine never calls the service directly.",
-        "example": "type QuantitySnapshotter interface { SnapshotLineQuantities(ctx context.Context, invoice billing.StandardInvoice, lines billing.StandardLines) error }"
+        "name": "Config.Validate() in New()",
+        "description": "Validate all dependencies via Config.Validate() before constructing the Service; return error, never panic.",
+        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err } }"
       },
       {
-        "name": "billing.ValidationIssue for snapshot errors",
-        "description": "When SnapshotLineQuantities returns ErrSnapshotInvalidDatabaseState, OnCollectionCompleted converts it to billing.ValidationIssue with ValidationIssueSeverityCritical \u2014 not a plain error \u2014 so callers can type-assert.",
-        "example": "if _, isInvalidDatabaseState := lo.ErrorsAs[*billing.ErrSnapshotInvalidDatabaseState](err); isInvalidDatabaseState { return nil, billing.ValidationIssue{Severity: billing.ValidationIssueSeverityCritical, ...} }"
+        "name": "publisher.Publish inside the transaction",
+        "description": "Side-effect events are published via s.publisher.Publish() inside the transaction.Run closure after the adapter write succeeds.",
+        "example": "event := appstripe.NewAppCheckoutSessionEvent(ctx, input.Namespace, output.SessionID, output.AppID.ID, output.CustomerID.ID)\nif err := s.publisher.Publish(ctx, event); err != nil { return ..., err }"
       },
       {
-        "name": "isPeriodEmptyConsideringTruncations for period validity",
-        "description": "Usage-based lines check if their period is empty after truncation to streaming.MinimumWindowSizeDuration before billing. Flat-fee lines always return false.",
-        "example": "return line.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty(), nil"
+        "name": "HandleInvoiceStateTransition idempotency guards",
+        "description": "Skip if invoice is already in TargetStatuses or matches IgnoreInvoiceInStatus; getInvoiceByStripeID returns nil (not error) for unknown invoices \u2014 nil-check before proceeding.",
+        "example": "if slices.Contains(input.TargetStatuses, invoice.Status) { return nil }"
+      },
+      {
+        "name": "newApp combines AppBase with AppData",
+        "description": "After an adapter call returning AppBase+AppData, build the concrete app via s.newApp(appBase, stripeApp); never construct appstripe.App directly.",
+        "example": "app, err := s.newApp(stripeApp.AppBase, stripeApp.AppData)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "engine.go",
-        "role": "Implements billing.LineEngine interface: GetLineEngineType, OnCollectionCompleted, OnStandardInvoiceCreated, OnInvoiceIssued, OnPaymentAuthorized, OnPaymentSettled. OnCollectionCompleted is the primary hook for quantity snapshotting.",
-        "watch_for": "OnCollectionCompleted short-circuits if QuantitySnapshotedAt is already set and at or after the default collection time \u2014 do not add snapshot logic after this guard."
+        "file": "service.go",
+        "role": "Service struct, Config, New() with marketplace self-registration.",
+        "watch_for": "DisableWebhookRegistration is used only in factory.go \u2014 do not reference it elsewhere."
       },
       {
-        "file": "splitlinegroup.go",
-        "role": "SplitGatheringLine splits a gathering line at a point in time, creates a SplitLineGroup if needed, and produces pre/post split line pairs. ResolveSplitLineGroupHeaders batch-fetches group metadata for standard lines.",
-        "watch_for": "ChildUniqueReferenceID is set to nil on split lines \u2014 the SplitLineGroup owns this reference; never copy it from the source line."
+        "file": "factory.go",
+        "role": "NewApp (app.AppFactory), InstallAppWithAPIKey, UninstallApp, newApp helper.",
+        "watch_for": "InstallAppWithAPIKey generates the app ID before creating secrets/webhook across three external systems; a TODO notes no rollback \u2014 partial failures can orphan secrets/webhooks."
       },
       {
-        "file": "stdinvoice.go",
-        "role": "BuildStandardInvoiceLines converts gathering lines to standard lines, snapshots quantities, and runs CalculateLines. CalculateLines calls ratingService.GenerateDetailedLines per line.",
-        "watch_for": "CalculateLines requires lines to be non-empty \u2014 guard callers; invoicecalc.MergeGeneratedDetailedLines is called after each GenerateDetailedLines call."
+        "file": "billing.go",
+        "role": "HandleInvoiceStateTransition, HandleInvoiceSentEvent, GetSupplierContact, getInvoiceByStripeID.",
+        "watch_for": "getInvoiceByStripeID returns nil (not error) for invoices unknown to OpenMeter \u2014 callers must nil-check, not treat as error."
+      },
+      {
+        "file": "app.go",
+        "role": "GetWebhookSecret, UpdateAPIKey, CreateCheckoutSession, GetStripeAppData/CustomerData, Upsert/DeleteStripeCustomerData, HandleSetupIntentSucceeded, CreatePortalSession.",
+        "watch_for": "generateMaskedSecretAPIKey masking (first 8 + *** + last 3) must stay in sync with UI display format."
+      },
+      {
+        "file": "webhook.go",
+        "role": "WebhookURLGenerator impls: baseURLWebhookURLGenerator and patternWebhookURLGenerator.",
+        "watch_for": "patternWebhookURLGenerator requires a %s placeholder, validated at construction."
       }
     ],
     "anti_patterns": [
-      "Importing billing.Adapter or openmeter/ent/db directly \u2014 use the SplitLineGroupAdapter narrow interface.",
-      "Calling SnapshotLineQuantities from outside OnCollectionCompleted or BuildStandardInvoiceLines \u2014 quantity snapshotting is lifecycle-gated.",
-      "Skipping ResolveSplitLineGroupHeaders before CalculateLines on lines that may have split groups \u2014 price calculations depend on SplitLineHierarchy being populated.",
-      "Returning plain errors from snapshot paths that should be billing.ValidationIssue \u2014 callers use type assertions on ValidationIssue.",
-      "Copying ChildUniqueReferenceID from source gathering line to split child lines."
+      "Calling s.adapter methods directly without transaction.Run \u2014 risks partial writes.",
+      "Implementing HandleInvoiceStateTransition without the target-status and ignore-status idempotency guards.",
+      "Not calling RegisterMarketplaceListing in New() \u2014 Stripe app type becomes invisible to the registry.",
+      "Treating nil from getInvoiceByStripeID as an error \u2014 nil means the invoice isn't managed by this app.",
+      "Constructing appstripe.App directly instead of s.newApp() \u2014 misses injected service references."
     ],
     "decisions": [
       {
-        "decision": "Engine registered at Service construction time via Service.RegisterLineEngine, not hardcoded in billing.Service.",
-        "rationale": "Allows charges sub-packages (flatfee, usagebased, creditpurchase) to register their own engines without modifying the base service, following the LineEngine plugin registry pattern."
+        "decision": "Service self-registers into the marketplace in New() rather than at wire time.",
+        "rationale": "Keeps registration co-located with the implementation; RegisterMarketplaceListing is idempotent."
       },
       {
-        "decision": "SplitLineGroupAdapter and QuantitySnapshotter are narrow interfaces rather than the full billing.Service.",
-        "rationale": "Prevents circular imports \u2014 lineengine is imported by billingservice which is the QuantitySnapshotter implementation; using the full service interface would create a cycle."
+        "decision": "InstallAppWithAPIKey generates the app ID before creating secrets/webhook.",
+        "rationale": "Secrets are tagged with AppID, so the ID (ulid.Make()) must exist before any secret or webhook is created."
+      },
+      {
+        "decision": "getInvoiceByStripeID returns nil for unknown Stripe invoices.",
+        "rationale": "Non-OpenMeter Stripe invoices are normal; treating them as errors would add webhook-processing noise."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Implementing a new LineEngine hook that converts snapshot errors to ValidationIssue",
-        "code": "func (e *Engine) OnCollectionCompleted(ctx context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {\n    // Guard: skip if already snapshotted at or after collection time\n    if input.Invoice.QuantitySnapshotedAt != nil &&\n        !input.Invoice.QuantitySnapshotedAt.Before(input.Invoice.DefaultCollectionAtForStandardInvoice()) {\n        return input.Lines, nil\n    }\n    if err := e.quantitySnapshotter.SnapshotLineQuantities(ctx, input.Invoice, input.Lines); err != nil {\n        if _, isInvalidDatabaseState := lo.ErrorsAs[*billing.ErrSnapshotInvalidDatabaseState](err); isInvalidDatabaseState {\n            return nil, billing.ValidationIssue{\n                Severity:  billing.ValidationIssueSeverityCritical,\n                Code:      billing.ErrInvoiceLineSnapshotFailed.Code,\n                Message:   err.Error(),\n                Component: billing.ValidationComponentOpenMeterMetering,\n            }\n        }\n        return nil, fmt.Errorf(\"snapshotting lines: %w\", err)\n    }\n    return input.Lines, nil\n}"
-      }
-    ]
-  },
-  "openmeter/billing/testutils": {
-    "purpose": "Test utilities for the billing domain \u2014 currently provides NoopLineEngine, a billing.LineEngine stub intended for embedding in line-engine fakes in tests. Intentionally does not implement billing.LineCalculator so test doubles can selectively override only the hooks they need.",
-    "patterns": [
-      {
-        "name": "NoopLineEngine for test doubles",
-        "description": "NoopLineEngine implements billing.LineEngine with pass-through no-op behaviour (returns inputs unchanged, IsLineBillableAsOf returns true). Embed it in test fakes to avoid implementing all hooks; only override the methods relevant to the test.",
-        "example": "var _ billing.LineEngine = NoopLineEngine{}; type MyTestEngine struct { testutils.NoopLineEngine }; func (e *MyTestEngine) OnCollectionCompleted(ctx, input) (billing.StandardLines, error) { /* custom logic */ }"
-      },
-      {
-        "name": "EngineType field must be set",
-        "description": "NoopLineEngine.GetLineEngineType() panics if EngineType is empty. Always initialise: NoopLineEngine{EngineType: billing.LineEngineTypeInvoice}.",
-        "example": "engine := testutils.NoopLineEngine{EngineType: billing.LineEngineTypeInvoice}"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "lineengine.go",
-        "role": "Defines NoopLineEngine \u2014 implements billing.LineEngine but not billing.LineCalculator; all hooks are pass-through. GetLineEngineType panics if EngineType is unset.",
-        "watch_for": "Do not call BuildStandardInvoiceLines in production code through this type \u2014 it contains test-only stub logic (AsNewStandardLine) that bypasses quantity snapshotting."
-      }
-    ],
-    "anti_patterns": [
-      "Using NoopLineEngine in production wiring \u2014 it is a test-only stub that skips quantity snapshotting and rating.",
-      "Importing app/common from testutils \u2014 builds test dependencies from underlying package constructors (adapters, services) directly to avoid import cycles.",
-      "Adding production utility code here \u2014 testutils must only contain test helpers, never domain logic."
-    ],
-    "decisions": [
-      {
-        "decision": "NoopLineEngine does not implement billing.LineCalculator intentionally.",
-        "rationale": "Separates the minimum interface needed for LineEngine registration from the optional calculator extension; test doubles can implement only what their scenario requires."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Embedding NoopLineEngine in a test-specific line engine that overrides one hook",
-        "code": "import \"github.com/openmeterio/openmeter/openmeter/billing/testutils\"\n\ntype captureEngine struct {\n    testutils.NoopLineEngine\n    captured billing.StandardLines\n}\n\nfunc (e *captureEngine) OnCollectionCompleted(_ context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {\n    e.captured = input.Lines\n    return input.Lines, nil\n}\n\n// Usage in test:\nengine := &captureEngine{NoopLineEngine: testutils.NoopLineEngine{EngineType: billing.LineEngineTypeInvoice}}\nbillingService.RegisterLineEngine(engine)"
+        "scenario": "Service method that writes to the adapter and publishes an event",
+        "code": "func (s *Service) MyAction(ctx context.Context, input appstripe.MyInput) (appstripe.MyOutput, error) {\n\treturn transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripe.MyOutput, error) {\n\t\tout, err := s.adapter.MyAdapterOp(ctx, input)\n\t\tif err != nil { return appstripe.MyOutput{}, fmt.Errorf(\"my action: %w\", err) }\n\t\tevent := appstripe.NewMyActionEvent(ctx, input.Namespace, out.ID)\n\t\tif err := s.publisher.Publish(ctx, event); err != nil { return appstripe.MyOutput{}, fmt.Errorf(\"failed to publish event: %w\", err) }\n\t\treturn out, nil\n\t})\n}"
       }
     ]
   }

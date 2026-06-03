@@ -1,333 +1,339 @@
 {
-  "api/spec/packages/aip/src/apps": {
-    "purpose": "TypeSpec definitions for the billing apps subsystem (Stripe, Sandbox, ExternalInvoicing): installed-app models, discriminated union, customer data linkage, checkout/portal session types, and the list/get operations interface. All compiled to the BillingApp* section of api/v3/openapi.yaml.",
+  "openmeter/cost": {
+    "purpose": "Computes feature cost by querying ClickHouse meter usage via streaming.Connector and resolving per-unit costs from feature configuration (manual or LLM-based). Two-layer domain: adapter/ owns ClickHouse queries and cost resolution, service/ owns input validation and delegation.",
     "patterns": [
       {
-        "name": "AppBase generic spread",
-        "description": "Every concrete app model spreads AppBase<AppType.X> instead of duplicating id/type/status/definition fields.",
-        "example": "model AppStripe { ...AppBase<AppType.Stripe>; account_id: string; }"
+        "name": "Service validates then delegates",
+        "description": "cost.Service.QueryFeatureCost calls input.Validate() then cost.Adapter.QueryFeatureCost \u2014 no business logic or data access in the service layer.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }; return s.adapter.QueryFeatureCost(ctx, input)"
       },
       {
-        "name": "Discriminated union for polymorphic App",
-        "description": "The top-level App union uses @discriminated with envelope:none and discriminatorPropertyName:type; every member must spread AppBase so the discriminator is always present.",
-        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union App { stripe: AppStripe, sandbox: AppSandbox, external_invoicing: AppExternalInvoicing }"
+        "name": "Pre-resolve LLM prices once per query",
+        "description": "The adapter builds a price cache keyed on (provider, model) via getLLMPrices before iterating rows \u2014 never call llmcostService.ResolvePrice inside the per-row loop.",
+        "example": "prices, err := a.getLLMPrices(ctx, namespace, feature); // then pass prices to resolveUnitCost"
       },
       {
-        "name": "Visibility-gated fields for secrets",
-        "description": "Secret/write-only fields carry @visibility(Lifecycle.Create, Lifecycle.Update) only; read-only computed fields carry @visibility(Lifecycle.Read) only.",
-        "example": "@secret @visibility(Lifecycle.Create, Lifecycle.Update) secret_api_key?: string;"
+        "name": "Clone GroupBy/FilterGroupBy before merging",
+        "description": "Never mutate the caller's streaming.QueryParams.GroupBy or FilterGroupBy; clone before injecting internal keys.",
+        "example": "params.GroupBy = slices.Clone(input.QueryParams.GroupBy)"
       },
       {
-        "name": "operations.tsp owns all HTTP decorators",
-        "description": "Only operations.tsp imports @typespec/http, @typespec/rest, @typespec/openapi3 and declares 'using TypeSpec.Http'. Model files must not import HTTP decorators.",
-        "example": "// operations.tsp only: import \"@typespec/http\"; using TypeSpec.Http; interface AppsOperations { @get list(...): ... }"
+        "name": "pricing-not-found \u2192 detail string, not hard error",
+        "description": "In costResolverFunc, convert models.IsGenericNotFoundError to a detail string so the row is still emitted rather than aborting the query.",
+        "example": "if models.IsGenericNotFoundError(err) { /* populate row.Detail instead of returning err */ }"
       },
       {
-        "name": "index.tsp as barrel re-export",
-        "description": "index.tsp imports all sibling .tsp files and nothing else; it is the sole entry point consumed by parent packages.",
-        "example": "import \"./app.tsp\"; import \"./catalog.tsp\"; import \"./operations.tsp\";"
-      },
-      {
-        "name": "@friendlyName on every model/enum",
-        "description": "Every exported model and enum carries @friendlyName with a BillingApp* prefix to control the generated SDK type name.",
-        "example": "@friendlyName(\"BillingAppStripe\") model AppStripe { ... }"
-      },
-      {
-        "name": "Shared.Resource spread for domain entities",
-        "description": "Entities with identity (AppBase, not value types) spread Shared.Resource to inherit id, created_at, updated_at.",
-        "example": "model AppBase<T> { ...Shared.Resource; type: T; ... }"
+        "name": "QueryFeatureCostInput.Validate via NewNillableGenericValidationError",
+        "description": "All cost input types validate using models.NewNillableGenericValidationError over errors.Join.",
+        "example": "return models.NewNillableGenericValidationError(errors.Join(errs...))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "app.tsp",
-        "role": "Defines AppType enum, AppStatus enum, AppBase generic, App discriminated union, and AppReference. Core types consumed by all other files.",
-        "watch_for": "Adding a new app type requires: new AppType member, new model spreading AppBase, new union member in App, and a new file imported in index.tsp."
+        "file": "adapter.go",
+        "role": "Defines cost.Adapter interface with the single method QueryFeatureCost; the contract for the adapter/ sub-package.",
+        "watch_for": "Keep this as the contract only; implementation lives in adapter/."
       },
       {
-        "file": "stripe.tsp",
-        "role": "Full Stripe app model plus all Checkout Session and Customer Portal session types (~250 lines). Only secret fields use @secret.",
-        "watch_for": "@secret must be on create/update-only fields; do not add it to read-only fields. Use @maxLength on free-text fields."
-      },
-      {
-        "file": "external_invoicing.tsp",
-        "role": "ExternalInvoicing app model with enable_draft_sync_hook and enable_issuing_sync_hook boolean flags controlling bi-directional sync pausing.",
-        "watch_for": "Sync hooks are plain booleans, not enums; adding a new hook state would require a discriminated union change."
-      },
-      {
-        "file": "operations.tsp",
-        "role": "Declares AppsOperations interface with list and get operations only. All HTTP decoration lives here.",
-        "watch_for": "Stripe-specific operations are not in this file. Do not add customer-scoped ops here."
-      },
-      {
-        "file": "customer.tsp",
-        "role": "AppCustomerData aggregate model grouping per-app customer linkage data (Stripe customer ID, external invoicing labels).",
-        "watch_for": "Adding a new app requires adding an optional field here with matching @visibility(Read, Create, Update)."
+        "file": "service.go",
+        "role": "Defines cost.Service interface plus all input/output types (QueryFeatureCostInput, CostQueryResult, CostQueryRow, ResolvedUnitCost) with Validate().",
+        "watch_for": "Replicate NewNillableGenericValidationError for any new input type; cost is alpacadecimal and currency currencyx.Code."
       }
     ],
     "anti_patterns": [
-      "Adding HTTP decorators (@get, @post) in model files (app.tsp, stripe.tsp, etc.) \u2014 HTTP decoration belongs only in operations.tsp",
-      "Defining a new app model without spreading AppBase<AppType.X> \u2014 breaks discriminated union typing",
-      "Omitting @friendlyName on a new model \u2014 generates an uncontrolled SDK type name",
-      "Using @visibility(Lifecycle.Read) on secret_api_key-style fields \u2014 secrets must be write-only",
-      "Importing from outside the aip/src tree without using Shared._ or Common._ namespaces"
+      "Calling llmcostService.ResolvePrice inside the per-row cost loop instead of pre-resolving via getLLMPrices",
+      "Passing *entdb.Client or touching Ent \u2014 this domain is ClickHouse-only via streaming.Connector",
+      "Mutating the caller's streaming.QueryParams.GroupBy/FilterGroupBy in place instead of cloning",
+      "Returning a hard error for pricing-not-found in costResolverFunc instead of a detail string",
+      "Adding computation or data access in service methods \u2014 delegate entirely to cost.Adapter"
     ],
     "decisions": [
       {
-        "decision": "AppBase is a generic model rather than an interface",
-        "rationale": "TypeSpec does not have interface inheritance for models; generic spread lets all app types share id/type/status/definition without copy-paste and keeps the discriminated union working."
+        "decision": "Price cache keyed on (provider, model), not (provider, model, token_type)",
+        "rationale": "Token-type breakdown happens inside resolveUnitCost after the cache lookup; caching at the coarser key reduces LLM-cost service calls."
       },
       {
-        "decision": "Stripe checkout/portal session types live in stripe.tsp not operations.tsp",
-        "rationale": "Model definitions are kept separate from operation declarations so model files can be imported by other namespaces without pulling in HTTP routing concerns."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Add a new billing app type (e.g. Adyen)",
-        "code": "// 1. In app.tsp \u2014 add to AppType enum:\n//   Adyen: \"adyen\",\n// 2. Create adyen.tsp:\nimport \"./app.tsp\";\nnamespace Apps;\n@friendlyName(\"BillingAppAdyen\")\nmodel AppAdyen {\n  ...AppBase<AppType.Adyen>;\n  merchant_account: string;\n}\n// 3. In app.tsp \u2014 add to App union:\n//   adyen: AppAdyen,\n// 4. In index.tsp \u2014 add:\n//   import \"./adyen.tsp\";\n// 5. In customer.tsp \u2014 add optional field with @visibility(Read, Create, Update)"
-      }
-    ]
-  },
-  "api/spec/packages/aip/src/billing": {
-    "purpose": "TypeSpec definitions for the billing profile subsystem: BillingProfile, BillingWorkflow (collection/invoicing/payment/tax settings), discriminated alignment/payment unions, TaxConfig, and BillingTotals. Compiled to the BillingProfiles* section of api/v3/openapi.yaml.",
-    "patterns": [
-      {
-        "name": "Workflow settings as nested sub-models",
-        "description": "BillingWorkflow contains optional sub-models (collection, invoicing, payment, tax) rather than flat fields, allowing independent evolution of each settings group.",
-        "example": "model BillingWorkflow { collection?: BillingWorkflowCollectionSettings; invoicing?: BillingWorkflowInvoicingSettings; payment?: BillingWorkflowPaymentSettings; tax?: BillingWorkflowTaxSettings; }"
-      },
-      {
-        "name": "Discriminated union for polymorphic settings",
-        "description": "Payment settings and collection alignment use @discriminated(#{envelope:\"none\", discriminatorPropertyName:...}) unions; every member model must declare the discriminator field as a literal type.",
-        "example": "@discriminated(#{ discriminatorPropertyName: \"collection_method\", envelope: \"none\" }) union BillingWorkflowPaymentSettings { charge_automatically: BillingWorkflowPaymentChargeAutomaticallySettings, send_invoice: BillingWorkflowPaymentSendInvoiceSettings }"
-      },
-      {
-        "name": "@encode(DurationKnownEncoding.ISO8601) on duration fields",
-        "description": "All duration/interval fields use @encode(DurationKnownEncoding.ISO8601) and carry an @example with ISO8601 string.",
-        "example": "@encode(DurationKnownEncoding.ISO8601) @example(\"P1D\") @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update) interval?: string = \"PT1H\";"
-      },
-      {
-        "name": "Separate AppReferences vs full App models for write vs read paths",
-        "description": "BillingProfileAppReferences (write: Create only) holds AppReference objects; BillingProfileApps (read-only expansion) holds full App objects, preventing over-posting.",
-        "example": "// Write: apps: BillingProfileAppReferences with @visibility(Read, Create)\n// Read expansion: BillingProfileApps with @visibility(Read)"
-      },
-      {
-        "name": "@put with Shared.UpsertRequest for updates (not @patch)",
-        "description": "The update operation uses @put with Shared.UpsertRequest (full replacement), not @patch. Diverging breaks SDK generated clients.",
-        "example": "@put @operationId(\"update-billing-profile\") update(@path id: Shared.ULID, @body profile: Shared.UpsertRequest<BillingProfile>): ..."
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "profile.tsp",
-        "role": "Core BillingProfile and BillingWorkflow models. Defines all workflow sub-settings including alignment union and payment union.",
-        "watch_for": "DefaultBillingWorkflowCollectionAlignment is a typed const used as default; changing alignment types requires updating both the union and the const."
-      },
-      {
-        "file": "tax.tsp",
-        "role": "TaxConfig, TaxBehavior, TaxConfigStripe, TaxConfigExternalInvoicing. Provider-specific tax config is additive via optional fields.",
-        "watch_for": "Stripe tax code must match pattern ^txcd_\\d{8}$; enforce @pattern on new tax code fields. Several fields are deprecated \u2014 use tax_code field instead."
-      },
-      {
-        "file": "totals.tsp",
-        "role": "BillingTotals read-only model with amount/taxes/charges/discounts/credits/total fields all using Shared.Numeric.",
-        "watch_for": "All fields are @visibility(Lifecycle.Read) \u2014 this is a computed output model, never a create/update input."
-      },
-      {
-        "file": "operations.tsp",
-        "role": "BillingProfilesOperations CRUD interface using Shared.CreateRequest, Shared.UpsertRequest, Shared.CreateResponse, Shared.GetResponse, Shared.DeleteResponse.",
-        "watch_for": "Update uses @put + Shared.UpsertRequest (full replacement), not @patch."
-      }
-    ],
-    "anti_patterns": [
-      "Adding flat fields directly to BillingProfile instead of grouping them into a workflow settings sub-model",
-      "Using @patch for update operations \u2014 the pattern is @put with full UpsertRequest",
-      "Adding mutable fields to BillingTotals \u2014 totals are always read-only computed values",
-      "Omitting @encode(DurationKnownEncoding.ISO8601) on ISO 8601 duration string fields",
-      "Hardcoding app references as full App models in create/update bodies \u2014 use AppReference for write paths"
-    ],
-    "decisions": [
-      {
-        "decision": "Payment settings modeled as discriminated union on collection_method",
-        "rationale": "ChargeAutomatically and SendInvoice have disjoint extra fields (due_after only applies to SendInvoice); a union avoids optional fields that are meaningless in the wrong mode."
-      },
-      {
-        "decision": "BillingWorkflowCollectionAlignment defaulted via a typed const",
-        "rationale": "TypeSpec const (DefaultBillingWorkflowCollectionAlignment) lets the default value be a typed discriminated union member, not a bare string, keeping type safety on the default."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Add a new workflow settings group (e.g. retry settings)",
-        "code": "// In profile.tsp \u2014 add sub-model:\n@friendlyName(\"BillingWorkflowRetrySettings\")\nmodel BillingWorkflowRetrySettings {\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)\n  max_attempts?: integer = 3;\n\n  @encode(DurationKnownEncoding.ISO8601)\n  @example(\"PT5M\")\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)\n  initial_delay?: string = \"PT1M\";\n}\n// Then add to BillingWorkflow:\n//   retry?: BillingWorkflowRetrySettings;"
-      }
-    ]
-  },
-  "api/spec/packages/aip/src/common": {
-    "purpose": "Shared TypeSpec primitives for the v3 AIP spec: error response @useRef stubs, cursor/page pagination query models, AIP-style filter union types (String/ULID/DateTime/Boolean/Numeric/Labels) with x-go-type extensions, SortQuery, and Labels property references. All other namespaces import from here via 'Common.*'.",
-    "patterns": [
-      {
-        "name": "Error responses via @useRef to external YAML",
-        "description": "All error models use @useRef pointing to common/definitions/errors.yaml; never define inline error schemas. The ErrorResponses alias groups the three universal errors (BadRequest, Unauthorized, Forbidden).",
-        "example": "@useRef(\"../../../../common/definitions/errors.yaml#/components/responses/NotFound\") @friendlyName(\"NotFound\") model NotFound { @statusCode _: 404; }"
-      },
-      {
-        "name": "Filter types carry x-go-type extensions for Go codegen",
-        "description": "Every filter model/union carries @extension(\"x-go-type\", \"filters.FilterXxx\") and @extension(\"x-go-type-import\", #{path: \"github.com/openmeterio/openmeter/api/v3/filters\"}) so oapi-codegen emits the hand-written Go filter type.",
-        "example": "@extension(\"x-go-type\", \"filters.FilterString\") @extension(\"x-go-type-import\", #{ path: \"github.com/openmeterio/openmeter/api/v3/filters\" }) union StringFieldFilter { ... }"
-      },
-      {
-        "name": "Pagination models split by strategy",
-        "description": "CursorPaginationQuery and PagePaginationQuery are separate models; operations choose exactly one. Never mix cursor and page parameters.",
-        "example": "// Cursor: interface Ops { @get list(...Common.CursorPaginationQuery, ...): Shared.CursorPaginatedResponse<T> }\n// Page: @get list(...Common.PagePaginationQuery, ...): Shared.PagePaginatedResponse<T>"
-      },
-      {
-        "name": "Filter unions support both shorthand scalar and object form",
-        "description": "StringFieldFilter, ULIDFieldFilter, DateTimeFieldFilter, LabelsFieldFilter are unions of (scalar | object-with-operators) so clients can pass filter[x]=value or filter[x][eq]=value.",
-        "example": "union StringFieldFilter { equals: string, object: { eq?: string, neq?: string, contains?: string, oeq?: string[], exists?: boolean } }"
-      },
-      {
-        "name": "SortQuery delegates to YAML $ref",
-        "description": "SortQuery is an empty TypeSpec model with @useRef. Do not expand sort logic inline in TypeSpec.",
-        "example": "@useRef(\"../../../../common/definitions/aip_filters.yaml#/components/schemas/SortQuery\") @friendlyName(\"SortQuery\") model SortQuery {}"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "error.tsp",
-        "role": "Canonical error response models and the ErrorResponses alias. Import Common.ErrorResponses at the end of every operation's return union.",
-        "watch_for": "ErrorResponses only covers 400/401/403. Ops that can 404 must add '| Common.NotFound' explicitly; 409 needs '| Common.Conflict'."
-      },
-      {
-        "file": "parameters.tsp",
-        "role": "All AIP filter types and SortQuery. New filter types must follow the union-of-(scalar | object) pattern and carry both x-go-type extensions.",
-        "watch_for": "StringFieldFilterExact is a model (not union for shorthand scalar) \u2014 don't accidentally make exact-only types a union with a bare scalar."
-      },
-      {
-        "file": "pagination.tsp",
-        "role": "CursorPaginationQuery, PagePaginationQuery, and their associated meta models. CursorMeta and PageMeta delegate to YAML $refs.",
-        "watch_for": "Cursor pagination uses page.after/before; page pagination uses page.number. Using the wrong query model breaks SDK pagination helpers."
-      },
-      {
-        "file": "properties.tsp",
-        "role": "Labels and PublicLabels models delegating to konnect_properties.yaml via @useRef.",
-        "watch_for": "Labels are constrained to 1-63 char keys excluding reserved prefixes \u2014 constraints are in the YAML, not in TypeSpec."
-      }
-    ],
-    "anti_patterns": [
-      "Defining inline error response bodies instead of using @useRef to errors.yaml",
-      "Adding a new filter type without both x-go-type and x-go-type-import extensions \u2014 breaks Go codegen",
-      "Using Common.PagePaginationQuery on an operation that returns CursorPaginatedResponse (or vice versa)",
-      "Declaring non-empty bodies on Common error models \u2014 they are stubs that reference YAML",
-      "Mixing sort and filter logic inline in operations.tsp instead of referencing Common.SortQuery and Common.*FieldFilter"
-    ],
-    "decisions": [
-      {
-        "decision": "Filter types carry x-go-type extensions pointing to hand-written Go filter structs",
-        "rationale": "AIP filter semantics (eq/neq/contains/oeq/ocontains/exists) require parsing logic that is hard to generate; keeping the Go implementation in api/v3/filters/ and referencing it from TypeSpec avoids duplicating that logic in generated code."
-      },
-      {
-        "decision": "Error response models delegate to external YAML via @useRef",
-        "rationale": "The YAML definitions are shared with the v1 spec and contain OpenAPI extensions; a TypeSpec-native redefinition would diverge and break shared client error handling."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Add a new filter type for an enum field",
-        "code": "// In parameters.tsp:\n@friendlyName(\"EnumFieldFilter\")\n@extension(\"x-go-type\", \"filters.FilterEnum\")\n@extension(\n  \"x-go-type-import\",\n  #{ path: \"github.com/openmeterio/openmeter/api/v3/filters\" }\n)\nunion EnumFieldFilter {\n  string: string,\n  object: {\n    eq?: string,\n    neq?: string,\n    @encode(ArrayEncoding.commaDelimited)\n    oeq?: string[],\n  },\n}"
-      }
-    ]
-  },
-  "api/spec/packages/aip/src/defaults": {
-    "purpose": "TypeSpec definitions for the organization-level defaults subsystem: OrganizationDefaultTaxCodes model with get and update operations. Both operations are marked @extension(Shared.UnstableExtension, true) and @extension(Shared.InternalExtension, true) \u2014 this is an internal/unstable surface.",
-    "patterns": [
-      {
-        "name": "Internal+Unstable extensions on all operations",
-        "description": "Every operation in this folder carries both @extension(Shared.UnstableExtension, true) and @extension(Shared.InternalExtension, true) to mark as internal/unstable in the generated OpenAPI.",
-        "example": "@get @extension(Shared.UnstableExtension, true) @extension(Shared.InternalExtension, true) get(): Shared.GetResponse<OrganizationDefaultTaxCodes> | Common.NotFound | Common.ErrorResponses;"
-      },
-      {
-        "name": "Shared.ResourceReference for nested references",
-        "description": "TaxCode references within the model use Shared.ResourceReference<Tax.TaxCode> rather than raw ULID fields, preserving typed linkage.",
-        "example": "invoicing_tax_code: Shared.ResourceReference<Tax.TaxCode>;"
-      },
-      {
-        "name": "@put with Shared.UpdateRequest for update",
-        "description": "The update operation uses @put with Shared.UpdateRequest (not @patch), consistent with the billing profile update pattern.",
-        "example": "@put update(@body body: Shared.UpdateRequest<OrganizationDefaultTaxCodes>): Shared.UpsertResponse<OrganizationDefaultTaxCodes> | ..."
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "taxcodes.tsp",
-        "role": "OrganizationDefaultTaxCodes model with invoicing_tax_code and credit_grant_tax_code fields plus read-only created_at/updated_at.",
-        "watch_for": "Model lacks Shared.Resource spread (no id field) \u2014 it is a singleton resource accessed by org context, not by ULID."
-      },
-      {
-        "file": "operations.tsp",
-        "role": "OrganizationDefaultTaxCodesOperations interface with get and update only. Both marked internal+unstable.",
-        "watch_for": "Do not remove the UnstableExtension or InternalExtension annotations \u2014 this API is not yet public."
-      }
-    ],
-    "anti_patterns": [
-      "Removing the UnstableExtension or InternalExtension annotations \u2014 this is not a public API",
-      "Adding a create or delete operation \u2014 the resource is a singleton provisioned automatically on org creation",
-      "Using Shared.Resource spread \u2014 this singleton has no id field and is not identified by ULID"
-    ],
-    "decisions": [
-      {
-        "decision": "Singleton resource pattern without Shared.Resource spread",
-        "rationale": "OrganizationDefaultTaxCodes is a per-org singleton provisioned at org creation; it has no id and is not individually addressable, so it does not use the Shared.Resource (id/created_at/updated_at) spread."
+        "decision": "costResolverFunc is a function type, not an interface",
+        "rationale": "Keeps resolution strategy as a swappable closure (LLM vs. manual) without a named type."
       }
     ],
     "code_examples": []
   },
-  "api/spec/packages/aip/src/entitlements": {
-    "purpose": "TypeSpec definitions for the customer entitlement access query API: EntitlementType enum, EntitlementAccessResult model, and a single GET list operation scoped to a customerId path param. This is a read-only surface \u2014 entitlement management lives in the v1 spec.",
+  "openmeter/credit": {
+    "purpose": "Manages credit grants and balance snapshots for metered entitlements. CreditConnector (= BalanceConnector + GrantConnector) is the public facade; engine/ computes burn-down without I/O; adapter/ persists via transaction-aware Ent repos; grant/balance/hook/driver sub-packages own the domain contract, snapshots, lifecycle hook, and v1 HTTP layer. Primary constraint: all effective times are truncated to Granularity (time.Minute).",
     "patterns": [
       {
-        "name": "Response wrapper model for non-paginated arrays",
-        "description": "ListCustomerEntitlementAccessResponse wraps data: EntitlementAccessResult[] in a named model rather than returning a bare array, matching SDK consistency expectations.",
-        "example": "model ListCustomerEntitlementAccessResponseData { data: EntitlementAccessResult[]; }\nmodel ListCustomerEntitlementAccessResponse { @Http.statusCode _: 200; @body body: ListCustomerEntitlementAccessResponseData; }"
+        "name": "transaction.Run wraps all multi-step writes",
+        "description": "CreateGrant/VoidGrant/ResetUsageForOwner use transaction.Run then m.GrantRepo.WithTx(ctx, tx) to stay on the ctx-bound transaction.",
+        "example": "transaction.Run(ctx, m.GrantRepo, func(ctx) (*grant.Grant, error) { tx, _ := entutils.GetDriverFromContext(ctx); return m.GrantRepo.WithTx(ctx, tx).CreateGrant(ctx, inp) })"
       },
       {
-        "name": "All result fields are @visibility(Lifecycle.Read)",
-        "description": "EntitlementAccessResult is a pure read model; every field carries @visibility(Lifecycle.Read). No create/update visibility.",
-        "example": "@visibility(Lifecycle.Read) has_access: boolean;\n@visibility(Lifecycle.Read) feature_key: Shared.ResourceKey;"
+        "name": "LockOwnerForTx before any write",
+        "description": "All mutating connector methods call m.OwnerConnector.LockOwnerForTx(ctx, ownerID, true) before writing grants/snapshots to prevent concurrent balance races.",
+        "example": "err = m.OwnerConnector.LockOwnerForTx(ctx, ownerID, true)"
       },
       {
-        "name": "Customer-scoped operation without pagination",
-        "description": "The list operation takes only @path customerId \u2014 no namespace param, no Common.PagePaginationQuery. All features returned in one call.",
-        "example": "interface CustomerEntitlementsOperations { @get list(@path customerId: Shared.ULID): ListCustomerEntitlementAccessResponse | Common.NotFound | Common.ErrorResponses; }"
+        "name": "GetLastValidSnapshotAt falls back to start-of-measurement",
+        "description": "On NoSavedBalanceForOwnerError, create a zero-balance snapshot from GetStartOfMeasurement + NewStartingMap(grants) \u2014 never propagate the not-found error.",
+        "example": "if _, ok := lo.ErrorsAs[*balance.NoSavedBalanceForOwnerError](err); ok { bal = balance.Snapshot{At: startOfMeasurement, ...} }"
+      },
+      {
+        "name": "buildEngineForOwner caches period boundaries",
+        "description": "Build a period cache from SortedPeriodsFromDedupedTimes before constructing the engine; resolve GetUsagePeriodStartAt from the cache inside the UsageQuerier closure, never per usage query.",
+        "example": "periodCache := SortedPeriodsFromDedupedTimes(times)"
+      },
+      {
+        "name": "Granularity truncation on all times",
+        "description": "All effective and reset times are truncated to m.Granularity (time.Minute) before engine use and before storing.",
+        "example": "input.EffectiveAt = input.EffectiveAt.Truncate(time.Minute)"
+      },
+      {
+        "name": "Snapshotting acquires non-blocking lock and skips on failure",
+        "description": "snapshotEngineResult uses a non-blocking LockOwnerForTx(false); failure to acquire must not abort the balance query that triggered it.",
+        "example": "if err := transaction.RunWithNoValue(...LockOwnerForTx(ctx, owner, false)); err != nil { return nil }"
+      },
+      {
+        "name": "ValidationIssue errors with HTTP status attribute",
+        "description": "Validation errors use models.NewValidationIssue + commonhttp.WithHTTPStatusCodeAttribute; CreateGrantInput.Validate uses ErrGrantAmountMustBePositive.WithAttr.",
+        "example": "var ErrGrantAmountMustBePositive = models.NewValidationIssue(ErrCodeGrantAmountMustBePositive, \"amount must be positive\", models.WithFieldString(\"amount\"), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "entitlements.tsp",
-        "role": "Defines EntitlementType enum (Metered, Static, Boolean). Only add here if a new entitlement type is introduced.",
-        "watch_for": "The @friendlyName uses 'BillingEntitlementType' prefix \u2014 keep consistent with the Billing* prefix convention for this spec."
+        "file": "connector.go",
+        "role": "Defines CreditConnector (= BalanceConnector + GrantConnector), CreditConnectorConfig (embedded by value), and NewCreditConnector.",
+        "watch_for": "CreditConnectorConfig is embedded by value \u2014 new config fields are visible to all methods automatically."
       },
       {
-        "file": "operations.tsp",
-        "role": "CustomerEntitlementsOperations interface with a single list operation scoped to a customerId path param.",
-        "watch_for": "This operation is customer-scoped (@path customerId) \u2014 it does NOT use namespace or pagination params."
+        "file": "balance.go",
+        "role": "Implements BalanceConnector: GetBalanceAt, GetBalanceForPeriod, ResetUsageForOwner, GetLastValidSnapshotAt.",
+        "watch_for": "GetBalanceAt/GetBalanceForPeriod truncate-up to the next minute (FIXME) \u2014 replicate in any new method. Cannot reset in the future or before the current usage period start."
       },
       {
-        "file": "access.tsp",
-        "role": "EntitlementAccessResult model. The config field is optional and only populated for static entitlements.",
-        "watch_for": "has_access is always true for boolean/static types \u2014 document this invariant in JSDoc for any new type."
+        "file": "grant.go",
+        "role": "Implements GrantConnector: CreateGrant, VoidGrant; defines GrantConnector interface and CreateGrantInput.",
+        "watch_for": "CreateGrant truncates EffectiveAt and Recurrence.Anchor, locks the owner, then invalidates snapshots via BalanceSnapshotService.InvalidateAfter and publishes grant.NewCreatedEventV2FromGrant."
+      },
+      {
+        "file": "helper.go",
+        "role": "Engine-building helpers: buildEngineForOwner, snapshotEngineResult, saveSnapshot, populate/removeInactiveGrants, SortedPeriodsFromDedupedTimes.",
+        "watch_for": "removeInactiveGrantsFromSnapshotAt errors if a grant in the snapshot balances map is not in the grants slice \u2014 pass the full grants slice used for engine.Run."
+      },
+      {
+        "file": "errors.go",
+        "role": "Package-level ValidationIssue error vars with HTTP status attributes (ErrGrantAmountMustBePositive, ErrGrantEffectiveAtMustBeSet).",
+        "watch_for": "New validation errors must follow NewValidationIssue + WithHTTPStatusCodeAttribute."
+      },
+      {
+        "file": "trace.go",
+        "role": "ctrace singleton with typed OTel span options (WithOwner, WithPeriod, WithEngineParams).",
+        "watch_for": "All new connector methods should open a span via m.Tracer.Start and use cTrace helpers."
       }
     ],
     "anti_patterns": [
-      "Adding write operations (create/update/delete) \u2014 entitlement management is in the v1 spec, this folder is read-only access query only",
-      "Adding pagination to the list operation \u2014 the response intentionally returns all feature access in one call",
-      "Returning a bare array instead of the wrapper model with a 'data' key"
+      "Calling GrantRepo or BalanceSnapshotService methods without wrapping in transaction.Run during a multi-step write \u2014 bypasses the ctx-bound transaction",
+      "Omitting LockOwnerForTx before any grant/snapshot mutation \u2014 causes balance races under concurrency",
+      "Propagating balance.NoSavedBalanceForOwnerError to callers \u2014 always fall back to start-of-measurement snapshot",
+      "Querying GetUsagePeriodStartAt inside the QueryUsageFn callback at runtime \u2014 build the period cache in buildEngineForOwner instead",
+      "Passing the caller's grants slice to the engine without populating missing grants via populateBalanceSnapshotWithMissingGrantsActiveAt"
     ],
     "decisions": [
       {
-        "decision": "Flat response list without pagination",
-        "rationale": "The number of features per customer is bounded and small; pagination overhead would complicate client-side feature-gate checks."
+        "decision": "Period cache built once in buildEngineForOwner, resolved in-memory by the UsageQuerier closure",
+        "rationale": "QueryUsageFn is called many times during engine.Run; caching period start times avoids O(n) DB calls per burn phase."
+      },
+      {
+        "decision": "Snapshotting acquires a non-blocking lock and silently skips on failure",
+        "rationale": "Snapshotting is an optimisation; lock-acquisition failure must not abort the triggering balance query."
+      },
+      {
+        "decision": "All times truncated to Granularity (time.Minute) before engine use",
+        "rationale": "ClickHouse stores events in minute-window chunks; sub-minute precision causes incorrect burn-down."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/currencies": {
+    "purpose": "Manages custom currencies and fiat-exchange cost bases for billing namespaces. Two-layer domain: adapter/ owns Ent/PostgreSQL persistence with full TransactingRepo discipline; service/ merges in-memory GOBL fiat enumeration with DB-stored custom currencies.",
+    "patterns": [
+      {
+        "name": "Input Validate() before transaction.Run",
+        "description": "Service calls params.Validate() before transaction.Run; DB constraint errors are a last resort, not the primary validation gate.",
+        "example": "if err := params.Validate(); err != nil { return Currency{}, err }; return transaction.Run(ctx, s.adapter, func(ctx) (Currency, error) { return s.adapter.CreateCurrency(ctx, params) })"
+      },
+      {
+        "name": "TransactingRepo wrapping every adapter method",
+        "description": "Every adapter method body is wrapped with entutils.TransactingRepo/TransactingRepoWithNoValue to honor the ctx-bound transaction.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx, tx *adapter) (Currency, error) { row, err := tx.db.Currency.Create()...; return mapCurrencyFromDB(row), err })"
+      },
+      {
+        "name": "entdb.IsConstraintError \u2192 GenericConflictError",
+        "description": "Adapter maps Ent constraint violations to models.NewGenericConflictError, never raw Ent errors.",
+        "example": "if entdb.IsConstraintError(err) { return Currency{}, models.NewGenericConflictError(err) }"
+      },
+      {
+        "name": "In-memory fiat enumeration via GOBL",
+        "description": "Fiat currencies are listed from GOBL at runtime (not the DB); in-memory merge and pagination of fiat + custom sets lives in the service.",
+        "example": "fiatCurrencies := gobl.AllCurrencies(); result := mergeAndPaginate(fiatCurrencies, customCurrencies, params.Page)"
+      },
+      {
+        "name": "models.Validator assertion on every input type",
+        "description": "All input structs declare var _ models.Validator = (*XInput)(nil) and implement Validate() with errors.Join.",
+        "example": "var _ models.Validator = (*ListCurrenciesInput)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Defines Adapter (CurrenciesAdapter + entutils.TxCreator) and the CurrenciesAdapter sub-interface.",
+        "watch_for": "Adapter embeds TxCreator \u2014 any implementation must provide Tx/WithTx/Self."
+      },
+      {
+        "file": "models.go",
+        "role": "All domain types (Currency, CostBasis) and input types (ListCurrenciesInput, CreateCurrencyInput, CreateCostBasisInput, ListCostBasesInput) with Validate() and CurrencyType enum.",
+        "watch_for": "Add var _ models.Validator assertion for any new input type; Rate uses alpacadecimal and must be positive."
+      },
+      {
+        "file": "service.go",
+        "role": "Defines CurrencyService interface \u2014 the public facade for HTTP handlers.",
+        "watch_for": "Keep in sync with adapter methods it delegates to; fiat-vs-custom logic lives in service/, not the adapter."
+      }
+    ],
+    "anti_patterns": [
+      "Calling a.db.X directly without entutils.TransactingRepo \u2014 bypasses ctx-bound transactions",
+      "Importing openmeter/ent/db in the service layer \u2014 all DB access must go through the currencies.Adapter interface",
+      "Storing fiat currencies in the DB \u2014 they are enumerated in-memory from GOBL and merged at query time",
+      "Returning raw Ent errors \u2014 map constraint errors to GenericConflictError and not-found to GenericNotFoundError",
+      "Adding temporal business rules (future-date enforcement, defaulting) inside the adapter \u2014 they belong in the service"
+    ],
+    "decisions": [
+      {
+        "decision": "Fiat currency list sourced in-memory from GOBL, not stored in the DB",
+        "rationale": "Fiat currencies are a stable enumeration; storing them would require migrations on standard updates and create drift risk."
+      },
+      {
+        "decision": "Tx/WithTx/Self triad inlined on the adapter struct, not a shared TxWrapper",
+        "rationale": "Currencies is a small domain; a single adapter file mirrors the pattern used across other small domain adapters."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/debug": {
+    "purpose": "Exposes a single ClickHouse-backed debug metrics endpoint returning per-subject event counts in OpenMetrics (Prometheus) format. Minimal two-file domain: debug.go owns the DebugConnector wrapping streaming.Connector; httpdriver/ translates HTTP to domain calls.",
+    "patterns": [
+      {
+        "name": "DebugConnector as the only service interface",
+        "description": "Business logic lives in debugConnector wrapping streaming.Connector; httpdriver delegates to DebugConnector, never to streaming.Connector directly.",
+        "example": "connector := debug.NewDebugConnector(streamingConnector); handler := httpdriver.NewHandler(connector, ...)"
+      },
+      {
+        "name": "httptransport.NewHandlerWithArgs for every endpoint",
+        "description": "Handlers use httptransport.NewHandlerWithArgs (not http.Handler); namespace resolved via namespacedriver.NamespaceDecoder.",
+        "example": "httptransport.NewHandlerWithArgs(func(ctx, r) (string, error) { return namespaceDecoder(ctx) }, operationFn, encodeResponse)"
+      },
+      {
+        "name": "Per-handler error encoder via AppendOptions",
+        "description": "Error encoders are appended with httptransport.AppendOptions rather than replacing h.options.",
+        "example": "opts := httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(myEncoder))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "debug.go",
+        "role": "DebugConnector interface and debugConnector implementation that queries streaming.CountEvents and formats Prometheus OpenMetrics output (openmeter_events_total counter).",
+        "watch_for": "GetDebugMetrics queries from start-of-day UTC (hardcoded window); document the query window for any new metrics method."
+      },
+      {
+        "file": "httpdriver/metrics.go",
+        "role": "GetMetrics HTTP handler via httptransport.NewHandlerWithArgs.",
+        "watch_for": "Returns plain-text OpenMetrics, not JSON; do not swap to a JSON encoder without updating Content-Type handling."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing http.Handler directly instead of httptransport.NewHandlerWithArgs",
+      "Reading namespace from URL path/query instead of namespacedriver.NamespaceDecoder",
+      "Replacing h.options instead of appending with httptransport.AppendOptions",
+      "Putting metrics computation inside the decode/encode functions \u2014 delegate to DebugConnector",
+      "Adding streaming.Connector as a direct dependency in httpdriver \u2014 always go through DebugConnector"
+    ],
+    "decisions": [
+      {
+        "decision": "DebugConnector wraps streaming.Connector rather than exposing streaming directly",
+        "rationale": "Keeps httpdriver decoupled from ClickHouse query details; DebugConnector owns the Prometheus format conversion."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/dedupe": {
+    "purpose": "Provides CloudEvent deduplication for the sink worker via the Deduplicator interface. Two implementations: memorydedupe/ (LRU, no-dependency fallback) and redisdedupe/ (TTL-based, pipelined batch, three key-format modes for zero-downtime migration). All callers depend on dedupe.Deduplicator; implementations are swapped by config.",
+    "patterns": [
+      {
+        "name": "Deduplicator interface as the contract boundary",
+        "description": "All callers depend on dedupe.Deduplicator; implementations are swapped by config without callers knowing which backend is active.",
+        "example": "var d dedupe.Deduplicator = memorydedupe.New(size) // or redisdedupe.New(cfg)"
+      },
+      {
+        "name": "Item.Key() as the canonical dedup key",
+        "description": "All implementations key their stores on item.Key() = \"namespace-source-id\"; never use raw event IDs or namespaces alone.",
+        "example": "key := item.Key() // \"myns-mysource-event123\""
+      },
+      {
+        "name": "SET NX + TTL for Redis atomic set-if-not-exists",
+        "description": "redisdedupe uses SetArgs{NX: true, TTL: d.ttl} to write-if-absent; never plain SET which overwrites.",
+        "example": "d.Redis.SetArgs(ctx, key, val, redis.SetArgs{NX: true, TTL: d.ttl})"
+      },
+      {
+        "name": "ContainsOrAdd for atomic check-and-set in memorydedupe",
+        "description": "IsUnique uses LRU.ContainsOrAdd rather than separate Contains + Add to avoid TOCTOU races under concurrent ingest.",
+        "example": "existed, _ := lru.ContainsOrAdd(item.Key(), nil)"
+      },
+      {
+        "name": "Three-mode key format with explicit migration mode",
+        "description": "redisdedupe supports rawkey, keyhash, keyhash-migration; every key-operation method must switch on d.mode.",
+        "example": "switch d.mode { case ModeRawKey: return item.Key(); case ModeKeyHash: return GetKeyHash(item); ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "dedupe.go",
+        "role": "Defines Deduplicator interface, Item, Item.Key(), CheckUniqueBatchResult.",
+        "watch_for": "IsUnique is marked TODO/deprecated in favor of CheckUnique + Set; prefer the newer methods in new code."
+      },
+      {
+        "file": "memorydedupe/memorydedupe.go",
+        "role": "LRU-backed Deduplicator; IsUnique uses ContainsOrAdd for atomic check-and-set.",
+        "watch_for": "LRU stores nil values keyed by item.Key() \u2014 do not store event payload data."
+      },
+      {
+        "file": "redisdedupe/redisdedupe.go",
+        "role": "Redis-backed Deduplicator with pipelined batch writes and NX TTL semantics.",
+        "watch_for": "redis.Nil in pipeline results signals a pre-existing key (already deduped), not an error; guard d.Redis for nil before any call."
+      },
+      {
+        "file": "redisdedupe/keyhash.go",
+        "role": "GetKeyHash using xxh3-128 + base64url encoding.",
+        "watch_for": "Changing the hash algorithm requires a new migration mode and key rotation plan \u2014 never change silently."
+      }
+    ],
+    "anti_patterns": [
+      "Using Redis SET without NX \u2014 overwrites existing keys and defeats deduplication",
+      "Adding a new DedupeMode without updating every method's switch statement in redisdedupe",
+      "Ignoring redis.Nil in pipeline results \u2014 it signals a pre-existing key, not an error",
+      "Storing event payload data in the LRU cache \u2014 only nil values, keyed by item.Key()",
+      "Skipping Close() implementation on a new Deduplicator \u2014 must exist even as a no-op to satisfy the interface"
+    ],
+    "decisions": [
+      {
+        "decision": "LRU eviction in memorydedupe over unbounded map growth",
+        "rationale": "The sink worker processes high-volume events; unbounded growth would exhaust memory on long-running sinks."
+      },
+      {
+        "decision": "Three-mode key format (rawkey, keyhash, keyhash-migration) in redisdedupe",
+        "rationale": "Changing the key format without a migration mode would leave pre-existing keys unreachable during rollout."
+      },
+      {
+        "decision": "xxh3-128 + base64url over SHA-224 or raw composite strings",
+        "rationale": "xxh3 is much faster for high-throughput batch hashing; base64url keeps keys URL-safe and compact."
       }
     ],
     "code_examples": []

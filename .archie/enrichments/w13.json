@@ -1,101 +1,140 @@
 {
-  "api/spec/packages/aip/common/definitions": {
-    "purpose": "Shared OpenAPI YAML component library for the v3 AIP spec \u2014 defines reusable filter schemas, error responses, pagination metadata, security schemes, and common property types that all AIP resource routes reference via $ref. These are raw OpenAPI YAML fragments consumed by the TypeSpec build pipeline, not TypeSpec files.",
+  "deploy/charts/benthos-collector": {
+    "purpose": "Helm chart packaging the benthos-collector binary as a Kubernetes StatefulSet. Chart metadata + values live at the root; the templates/ child renders the actual K8s resources. Primary constraints: stable pod identity for leader election (StatefulSet), credentials protected in a Secret (not ConfigMap), and config-source exclusivity enforced by the benthos-collector.args helper.",
     "patterns": [
       {
-        "name": "RFC 7807 error schema hierarchy via allOf",
-        "description": "All error schemas must extend BaseError (status, title, instance, detail required) via allOf. BadRequestError adds invalid_parameters; specific errors add example values only. Never add a top-level error schema without extending BaseError.",
-        "example": "BadRequestError: allOf: [$ref: BaseError, {type: object, required: [invalid_parameters], properties: {invalid_parameters: {$ref: InvalidParameters}}}]"
+        "name": "Three mutually-exclusive config sources with fixed precedence",
+        "description": "values.yaml exposes config > configFile > preset; precedence is resolved by the benthos-collector.args helper in templates/_helpers.tpl, never in values.yaml or statefulset.yaml.",
+        "example": "config: {} # takes precedence over configFile and preset"
       },
       {
-        "name": "Filter type composition via oneOf over named atomic sub-types",
-        "description": "Composite filter types (StringFieldFilter, NumericFieldFilter, DateTimeFieldFilter) are expressed as oneOf over named atomic sub-types each with additionalProperties: false. New filter variants must be added as a named sub-type first, then listed in the parent oneOf \u2014 never inline anonymous objects.",
-        "example": "NumericFieldFilter: oneOf: [{type: number}, {$ref: NumericFieldEqualsFilter}, {$ref: NumericFieldLTFilter}, ...]"
+        "name": "Config rendered into a Secret, never a ConfigMap",
+        "description": "The Benthos config.yaml is base64-encoded into templates/secret.yaml to protect embedded OpenMeter tokens/credentials; a parallel ConfigMap for the same data is forbidden.",
+        "example": "kind: Secret\ndata:\n  config.yaml: {{ .Values.config | toYaml | b64enc }}"
       },
       {
-        "name": "x-examples required on every filter schema",
-        "description": "Every filter schema must carry x-examples showing all supported variant forms. Missing x-examples causes SDK generation to produce incomplete examples.",
-        "example": "StringFieldFilter: x-examples: {example-1: 'value', example-2: {eq: 'value'}, example-3: {contains: 'value'}, example-4: {ocontains: '...'}, example-5: {oeq: '...'}, example-6: {neq: '...'}}"
+        "name": "All names via helper macros",
+        "description": "Resource names come from benthos-collector.fullname / benthos-collector.componentName; never string-concat .Release.Name.",
+        "example": "name: {{ include \"benthos-collector.fullname\" . }}"
       },
       {
-        "name": "Cursor-based pagination via CursorMeta family",
-        "description": "Paginated list responses reference CursorMeta, CursorMetaWithTotal, or CursorMetaWithEstimatedTotal from metadatas.yaml \u2014 never define inline page metadata. CursorMetaPage requires next and previous (nullable strings) plus size.",
-        "example": "response meta: {$ref: '#/components/schemas/CursorMeta'} \u2014 wraps CursorMetaPage with first/last/next/previous/size"
-      },
-      {
-        "name": "readOnly: true on all server-generated fields",
-        "description": "UUID, CreatedAt, UpdatedAt, and all error schema fields are marked readOnly: true. UUID_RW is the variant for user-settable ID fields. New response-only fields must carry readOnly: true.",
-        "example": "UUID: {type: string, format: uuid, readOnly: true} vs UUID_RW: {type: string, format: uuid} (no readOnly)"
-      },
-      {
-        "name": "x-flatten-allOf: true for specialised ID types",
-        "description": "Specialised ID types composed via allOf (UserId, TeamId, OrganizationId, NullableTimestamp) must include x-flatten-allOf: true to collapse allOf wrappers in generated SDK output and avoid verbose nested types.",
-        "example": "UserId: {x-flatten-allOf: true, allOf: [{$ref: properties.yaml#/components/schemas/UUID}, {description: 'Contains a unique identifier used for a user.'}]}"
-      },
-      {
-        "name": "Security schemes defined centrally in security.yaml",
-        "description": "All bearer/cookie security schemes (personalAccessToken, systemAccountAccessToken, konnectAccessToken, portalAccessToken, serviceAccessToken, clientToken) live only in security.yaml. Internal schemes carry x-internal: true. Never inline a securityScheme in a route file.",
-        "example": "clientToken: {x-internal: true, type: http, scheme: bearer, bearerFormat: Token}"
+        "name": "StatefulSet with leader-election + storage toggles",
+        "description": "leaderElection.enabled (RBAC + lease config) and storage.enabled (PVC volumeClaimTemplates) gate optional features; both rely on the StatefulSet's stable pod identity.",
+        "example": "leaderElection: { enabled: false, lease: { duration: 10s } }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "aip_filters.yaml",
-        "role": "Defines all reusable query-filter component schemas: StringFieldFilter, NumericFieldFilter, DateTimeFieldFilter, UuidFieldFilter, BooleanFieldFilter, SortQuery, LabelsFieldFilter, and their atomic sub-types.",
-        "watch_for": "Adding a new filter variant without also adding an x-examples entry causes incomplete SDK docs. UuidFieldFilter reuses StringField sub-types (StringFieldEqualsFilter, StringFieldOEQFilter, StringFieldNEQFilter) \u2014 do not duplicate those schemas."
+        "file": "Chart.yaml",
+        "role": "Chart metadata; version 0.0.0 and appVersion \"latest\" are placeholders rewritten at release time.",
+        "watch_for": "appVersion should align with the published benthos-collector image tag on release."
       },
       {
-        "file": "errors.yaml",
-        "role": "Defines the full error response component tree: ErrorResponse discriminated union, per-status responses (BadRequest through NotAvailable), BaseError, and all InvalidParameter variants (Standard, MinimumLength, MaximumLength, ChoiceItem, DependentItem).",
-        "watch_for": "ErrorResponse uses a status-keyed discriminator mapping \u2014 adding a new HTTP error code requires updating both the oneOf list and the discriminator.mapping. KonnectCPLegacy* variants are a parallel schema family for Kong-legacy JSON error format; do not mix them with RFC 7807 BaseError descendants."
+        "file": "values.yaml",
+        "role": "Defines the three config sources (config/configFile/preset), openmeter url/token, leaderElection, storage (PVC), rbac, and standard pod knobs.",
+        "watch_for": "config precedence is enforced in the args helper, not here; storage uses a per-pod PVC requiring StatefulSet."
       },
       {
-        "file": "metadatas.yaml",
-        "role": "Defines cursor-based pagination schemas (CursorMetaPage, CursorMeta, CursorMetaWithTotal, CursorMetaWithEstimatedTotal, CursorPaginatedMetaWithSizeAndTotal) and query parameters (CursorPageQuery, PageBefore, PageAfter, PageSize).",
-        "watch_for": "CursorMetaWithSizeAndTotal is a separate schema from CursorMetaWithTotal \u2014 the former is used when total may be null on non-first pages. x-speakeasy-terraform-ignore: true on PageNumber/PageSize/PaginatedMeta must not be removed."
-      },
-      {
-        "file": "properties.yaml",
-        "role": "Defines primitive property schemas (UUID, UUID_RW, CreatedAt, UpdatedAt, ExpiresAt, NullableTimestamp) and specialised ID types composed via allOf+x-flatten-allOf (UserId, TeamId, OrganizationId).",
-        "watch_for": "UUID is readOnly; use UUID_RW for user-settable ID fields. Specialised ID types require x-flatten-allOf: true to collapse allOf wrappers in generated SDK output."
-      },
-      {
-        "file": "konnect_properties.yaml",
-        "role": "Konnect-specific reusable schemas: NullableUUID, Labels/LabelsUpdate, PublicLabels/PublicLabelsUpdate, EntityType, and path parameters (AuditLogDestinationId, Workspace).",
-        "watch_for": "LabelsUpdate and PublicLabelsUpdate are writeOnly variants with nullable: true on additionalProperties \u2014 do not collapse read and write forms into a single schema."
-      },
-      {
-        "file": "security.yaml",
-        "role": "Central registry of all OpenAPI securitySchemes used across the AIP spec.",
-        "watch_for": "clientToken carries x-internal: true \u2014 internal schemes must keep this flag to prevent public SDK exposure. Adding a scheme here is not sufficient; it must also be referenced in the routes that require it."
+        "file": "README.md / README.tmpl.md",
+        "role": "README.md is generated from README.tmpl.md via helm-docs; README.tmpl.md only contains {{ template \"chart.base\" . }}.",
+        "watch_for": "Edit README.tmpl.md and values.yaml comments, never README.md directly."
       }
     ],
     "anti_patterns": [
-      "Defining inline anonymous filter objects inside a oneOf \u2014 always create a named sub-type with a title and additionalProperties: false",
-      "Adding error schemas that do not extend BaseError via allOf \u2014 breaks RFC 7807 contract and the ErrorResponse discriminator",
-      "Omitting x-examples on new filter schemas \u2014 SDK generators use these to produce client-side examples",
-      "Adding new security schemes directly in route files instead of security.yaml \u2014 breaks the central auth registry",
-      "Mixing KonnectCPLegacy* schemas with standard BaseError descendants \u2014 they are separate error-format families and must not cross-reference"
+      "Storing the Benthos config.yaml in a ConfigMap instead of a Secret \u2014 leaks embedded credentials",
+      "Hardcoding release/chart name strings instead of the benthos-collector.fullname/componentName helpers",
+      "Bumping appVersion/version without aligning to the released image tag",
+      "Using a Deployment instead of StatefulSet \u2014 breaks leader election and per-pod PVCs"
     ],
     "decisions": [
       {
-        "decision": "Filter types use oneOf over named atomic sub-types rather than inline objects",
-        "rationale": "Named sub-types allow SDK generators to produce distinct type names (e.g. NumericFieldLTFilter) and enable $ref reuse across resource schemas without duplicating definitions."
+        "decision": "StatefulSet over Deployment",
+        "rationale": "Leader election needs stable hostname-based pod identity, and volumeClaimTemplates needs StatefulSet for per-pod persistent storage when storage.enabled."
       },
       {
-        "decision": "Pagination metadata is separated into CursorMeta vs CursorMetaWithTotal vs CursorMetaWithEstimatedTotal",
-        "rationale": "Different list endpoints have different cost profiles for computing exact vs estimated counts; forcing a single schema would either over-compute or mislead clients about total accuracy."
-      },
-      {
-        "decision": "KonnectCPLegacy* schemas coexist alongside RFC 7807 BaseError schemas",
-        "rationale": "Legacy Kong gateway endpoints return plain JSON {message} errors; the AIP endpoints return application/problem+json. Both must be expressible in the same spec without one polluting the other."
+        "decision": "Config stored in a Secret, not ConfigMap",
+        "rationale": "The Benthos config can embed API tokens; Secret provides base64 encoding and RBAC access-control semantics ConfigMap lacks."
       }
     ],
-    "code_examples": [
+    "code_examples": []
+  },
+  "deploy/charts/openmeter": {
+    "purpose": "Helm chart deploying all OpenMeter binaries (api, balance-worker, billing-worker, sink-worker, notification-service) plus optional bundled dependencies (Kafka, ClickHouse, PostgreSQL, Redis, Svix) as Kubernetes workloads. Chart metadata/values live at the root; templates/ renders the workloads. Primary constraint: all binaries share one ConfigMap-mounted config.yaml and a single image tag to prevent version skew across the mono-repo image.",
+    "patterns": [
       {
-        "scenario": "Add a new string filter variant (e.g. prefix match) to StringFieldFilter",
-        "code": "# 1. Define the atomic sub-type in aip_filters.yaml:\nStringFieldPrefixFilter:\n  title: StringFieldPrefixFilter\n  description: Filters by prefix match on the string field.\n  type: object\n  additionalProperties: false\n  properties:\n    prefix:\n      type: string\n  required: [prefix]\n  x-examples:\n    example-1:\n      prefix: 'acme-'\n\n# 2. Add the $ref to StringFieldFilter's oneOf list:\nStringFieldFilter:\n  oneOf:\n    - $ref: '#/components/schemas/StringFieldEqualsFilter'\n    - $ref: '#/components/schemas/StringFieldContainsFilter'\n    - $ref: '#/components/schemas/StringFieldPrefixFilter'  # new\n  x-examples:\n    example-7:\n      prefix: 'acme-'  # add matching example"
+        "name": "Single shared image + tag for all OpenMeter binaries",
+        "description": "Every workload uses Values.image.repository and Values.image.tag (default .Chart.AppVersion); only Svix has its own Values.svix.image. Per-component image overrides are forbidden.",
+        "example": "image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+      },
+      {
+        "name": "Optional dependencies gated by conditional subcharts + .enabled flags",
+        "description": "Chart.yaml declares Bitnami Kafka/PostgreSQL/Redis and the Altinity ClickHouse operator as conditional dependencies (condition: <name>.enabled / clickhouse.operator.install); each must also be guarded in resource templates and configmap.yaml.",
+        "example": "dependencies: - name: kafka, condition: kafka.enabled"
+      },
+      {
+        "name": "Single config passthrough overwritten by chart-derived values",
+        "description": "Values.config is a passthrough merged in configmap.yaml; chart-derived connection strings (from enabled flags) overwrite matching keys at render time \u2014 documented in values.yaml comments.",
+        "example": "# Values defined in `config` will get overwritten by the values calculated from chart values!"
+      },
+      {
+        "name": "Per-component replicaCount",
+        "description": "Each binary has its own <component>.replicaCount (api, balanceWorker, billingWorker, sinkWorker, notificationService); workloads otherwise stay homogeneous.",
+        "example": "billingWorker: { replicaCount: 1 }"
+      },
+      {
+        "name": "CronJobs for billing/sync with fixed schedules",
+        "description": "values.yaml jobs.* (subscriptionSync, billingCollectInvoices, billingAdvanceInvoices) define cron schedules; the templates use concurrencyPolicy: Forbid to prevent duplicate billing runs.",
+        "example": "jobs: { subscriptionSync: { schedule: \"0 * * * *\" } }"
+      },
+      {
+        "name": "Bitnami legacy image-repo overrides",
+        "description": "Bitnami moved free images to bitnamilegacy/*; the kafka/redis/postgresql subchart blocks override every nested image.repository (kafka, kubectl, jmx-exporter, redis-sentinel, os-shell, etc.) to bitnamilegacy/*.",
+        "example": "kafka: { image: { repository: bitnamilegacy/kafka } }"
       }
-    ]
+    ],
+    "key_file_guides": [
+      {
+        "file": "Chart.yaml",
+        "role": "Declares altinity-clickhouse-operator, Bitnami kafka/postgresql/redis as conditional subchart dependencies; version is the chart release version.",
+        "watch_for": "New subcharts must follow the .Values.<name>.enabled condition pattern and update Chart.lock."
+      },
+      {
+        "file": "values.yaml",
+        "role": "Per-component replicaCount, all dependency enable/disable toggles, job cron schedules, Svix config, bitnamilegacy image overrides, and the config passthrough block.",
+        "watch_for": "config is a passthrough \u2014 chart-derived values overwrite matching keys at render; warn users in comments when adding new overridable keys."
+      },
+      {
+        "file": "values.example.yaml",
+        "role": "Reference config showing meters, events/notification/entitlements feature flags.",
+        "watch_for": "Keep in sync with the config schema in app/config; it is documentation, not rendered."
+      },
+      {
+        "file": "README.md / README.tmpl.md",
+        "role": "README.md is generated from README.tmpl.md via helm-docs (chart.baseHead + chart.valuesSection).",
+        "watch_for": "Edit README.tmpl.md and values.yaml comments, never README.md."
+      }
+    ],
+    "anti_patterns": [
+      "Using different image fields per OpenMeter binary \u2014 all share Values.image; only Svix is exempt with Values.svix.image",
+      "Adding optional infra without both a {{- if .Values.<service>.enabled }} guard in the resource AND an override block in configmap.yaml",
+      "Hardcoding resource names with .Release.Name instead of openmeter.componentName/fullname helpers",
+      "Adding a Deployment/CronJob without a checksum/config annotation \u2014 config changes won't trigger rollouts",
+      "Pinning Bitnami images to docker.io/bitnami/* instead of bitnamilegacy/* \u2014 those tags are no longer published"
+    ],
+    "decisions": [
+      {
+        "decision": "Single shared ConfigMap and image/tag for all workloads",
+        "rationale": "All binaries ship in one mono-repo Docker image and read the same config.yaml; a shared ConfigMap + checksum annotation rolls all workloads on any config change and prevents version skew between components sharing compiled domain types."
+      },
+      {
+        "decision": "Bundled dependencies are conditional subcharts disabled for production",
+        "rationale": "Kafka/ClickHouse/PostgreSQL/Redis/Svix are bundled for dev convenience but documented as not-for-production; operators disable them and provide connection details via config."
+      },
+      {
+        "decision": "Billing/sync CronJobs use concurrencyPolicy: Forbid",
+        "rationale": "Duplicate concurrent billing or subscription-sync runs would cause double-billing or invoice-advancement races."
+      }
+    ],
+    "code_examples": []
   }
 }

@@ -1,0 +1,199 @@
+{
+  "api/spec/packages/legacy/src/cloud": {
+    "purpose": "Cloud-variant spec entry point that re-exports the entire OpenMeter API under the OpenMeterCloud namespace with cloud-specific auth schemes (BearerAuth + cookie + portal token) and Svix/cloud server URLs. Contains no new type definitions \u2014 only namespace interface extensions.",
+    "patterns": [
+      {
+        "name": "Interface extension via extends",
+        "description": "Every interface in cloud/main.tsp extends an OpenMeter interface with a new @route and @tag override. Never copy-paste operations \u2014 always extend.",
+        "example": "@route(\"/api/v1/meters\") @tag(\"Meters\") interface MetersEndpoints extends OpenMeter.MetersEndpoints {}"
+      },
+      {
+        "name": "Separate OpenMeterCloud namespace blocks",
+        "description": "Related interface groups are collected in separate namespace OpenMeterCloud { ... } blocks; multiple blocks with the same namespace name are valid TypeSpec.",
+        "example": "namespace OpenMeterCloud { @route(\"/api/v1/apps\") interface AppsEndpoints extends OpenMeter.AppsEndpoints {} }"
+      },
+      {
+        "name": "Auth overrides at service level",
+        "description": "auth.tsp defines CloudTokenAuth/CloudCookieAuth/CloudPortalTokenAuth; the @useAuth on @service replaces the default self-hosted auth for the cloud spec.",
+        "example": "@service(#{ title: \"OpenMeter Cloud API\" }) @useAuth(CloudTokenAuth | CloudCookieAuth) namespace OpenMeterCloud;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "auth.tsp",
+        "role": "Defines the three cloud auth schemes as models. No routes or operations.",
+        "watch_for": "CloudPortalTokenAuth is a BearerAuth; the portal meters endpoint separately applies @useAuth(CloudPortalTokenAuth) for portal-only scope."
+      },
+      {
+        "file": "main.tsp",
+        "role": "Cloud OpenAPI entry point: imports '..' (the base legacy spec) and auth.tsp, then declares the OpenMeterCloud namespace with all extends interfaces and tag metadata.",
+        "watch_for": "When adding a new endpoint group to the base OpenMeter namespace, add a matching extends interface here or it won't appear in the cloud output."
+      }
+    ],
+    "anti_patterns": [
+      "Defining new models or type aliases in cloud/ \u2014 all types belong in the base OpenMeter namespace",
+      "Duplicating operation definitions instead of using extends",
+      "Adding auth decorators to individual operations in cloud/main.tsp \u2014 service-level @useAuth covers all"
+    ],
+    "decisions": [
+      {
+        "decision": "cloud/main.tsp extends rather than duplicates base OpenMeter interfaces",
+        "rationale": "Single source of truth for operation contracts; cloud only differs in auth, servers, and tag metadata."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/spec/packages/legacy/src/customer": {
+    "purpose": "TypeSpec definitions for the Customer API \u2014 CRUD, listing with filters, per-customer app data (Stripe, Sandbox, CustomInvoicing), and a legacy Stripe convenience endpoint. The Customer model feeds api/openapi.yaml and SDKs and is referenced across subscriptions, billing, and entitlements.",
+    "patterns": [
+      {
+        "name": "ResourceCreateModel / ResourceReplaceModel for mutation bodies",
+        "description": "Create bodies use TypeSpec.Rest.Resource.ResourceCreateModel<Customer> and updates use ResourceReplaceModel<Customer>. Never inline field lists for create/update.",
+        "example": "@post create(@body customer: TypeSpec.Rest.Resource.ResourceCreateModel<Customer>): { @statusCode _: 201; @body body: Customer; } | CommonErrors;"
+      },
+      {
+        "name": "@visibility annotations control lifecycle exposure",
+        "description": "Read-only fields (currentSubscriptionId, subscriptions, annotations) carry @visibility(Lifecycle.Read) to exclude them from create/update; spread ...Resource for id/timestamps.",
+        "example": "@visibility(Lifecycle.Read) annotations?: Annotations;"
+      },
+      {
+        "name": "Filter params as spread models in interface operations",
+        "description": "List filter params (name, key, primaryEmail, subject, planKey) are declared as ListCustomersParams and spread into the list operation.",
+        "example": "@get list(...ListCustomersParams): PaginatedResponse<Customer> | CommonErrors;"
+      },
+      {
+        "name": "ULIDOrExternalKey path param for customer lookup",
+        "description": "Per-customer endpoints use @path customerIdOrKey: ULIDOrExternalKey to support both ULID and string key without duplicate routes.",
+        "example": "@get @route(\"/{customerIdOrKey}\") get(@path customerIdOrKey: ULIDOrExternalKey, ...GetCustomerParams): Customer | NotFoundError | CommonErrors;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "customer.tsp",
+        "role": "Customer model, CustomersEndpoints interface, and all list/filter param models. Customer spreads ...Resource and exposes subscriptions as a Lifecycle.Read expand.",
+        "watch_for": "subscriptions is only populated when expand=subscriptions is passed; not in default responses."
+      },
+      {
+        "file": "app.tsp",
+        "role": "CustomerAppsEndpoints (list/upsert/delete CustomerAppData) and ListCustomerAppDataParams.",
+        "watch_for": "This app.tsp defines customer-scoped app data, not the app-domain app.tsp."
+      },
+      {
+        "file": "stripe.tsp",
+        "role": "CustomerStripeEndpoints: get/upsert Stripe app data and createPortalSession \u2014 Stripe convenience endpoints separate from the generic app data API.",
+        "watch_for": "createPortalSession returns 201, not 200 \u2014 matches the Go handler encoding."
+      },
+      {
+        "file": "main.tsp",
+        "role": "Imports app.tsp, customer.tsp, stripe.tsp; no definitions.",
+        "watch_for": "Add new customer sub-resource .tsp files here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding billing-specific fields to the Customer model \u2014 billing overrides live in the billing/ sub-folder",
+      "Hardcoding filter params inline in an operation instead of a spread model",
+      "Using @body on GET list operations \u2014 list filters must be @query params",
+      "Duplicating Stripe-specific customer fields in the generic CustomerAppData models"
+    ],
+    "decisions": [
+      {
+        "decision": "CustomerUsageAttribution as a nested model rather than a flat subjectKeys array on Customer",
+        "rationale": "Preserves room for future attribution dimensions (e.g. account-level) without a breaking change."
+      },
+      {
+        "decision": "Stripe customer portal session in customer/stripe.tsp rather than app/stripe.tsp",
+        "rationale": "The portal session is customer-scoped (requires customerIdOrKey path param), not app-scoped."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/spec/packages/legacy/src/entitlements/v2": {
+    "purpose": "TypeSpec definitions for the v2 entitlements and grants API under /api/v2/. Composes V1 entitlement/grant models via OmitProperties spreads to expose customer-scoped CRUD, value/history/reset sub-routes, and admin list endpoints \u2014 all compiled into Go server stubs and SDKs.",
+    "patterns": [
+      {
+        "name": "Discriminated union for polymorphic entitlement types",
+        "description": "Unions use @discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) with a literal type field per variant; both response (EntitlementV2) and input (EntitlementV2CreateInputs) follow this shape.",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union EntitlementV2 { metered: EntitlementMeteredV2, static: EntitlementStaticV2, boolean: EntitlementBooleanV2 }"
+      },
+      {
+        "name": "OmitProperties for model composition",
+        "description": "V2 models reuse V1 via OmitProperties<Base, \"f1\" | \"f2\"> spreads instead of copy-pasting fields; deprecated fields stay on create-input models with #deprecated.",
+        "example": "model EntitlementMeteredV2 { ...OmitProperties<EntitlementMeteredV2CreateInputs, \"type\" | \"measureUsageFrom\" | \"grants\">; ...EntitlementCustomerFields; }"
+      },
+      {
+        "name": "Interface-per-route-group with @route + @tag",
+        "description": "Each distinct URL prefix gets its own interface with @route/@tag/@friendlyName; sub-routes use @route on individual operations. Never mix URL prefixes in one interface.",
+        "example": "@route(\"/api/v2/customers/{customerIdOrKey}/entitlements\") @tag(\"Entitlements\") @friendlyName(\"CustomerEntitlementsV2\") interface CustomerEntitlementsV2Endpoints { ... }"
+      },
+      {
+        "name": "Explicit operationId with V2 suffix",
+        "description": "Every operation carries @operationId(\"verbNounV2\") in camelCase with a V2 suffix for stable SDK method names distinct from V1.",
+        "example": "@operationId(\"createCustomerEntitlementV2\")"
+      },
+      {
+        "name": "V2 suffix on all exported symbols",
+        "description": "Every model, union, and interface friendlyName ends with V2 (EntitlementV2, GrantV2, GrantCreateInputV2) to avoid SDK symbol collisions with V1.",
+        "example": "model GrantV2 { ... }  // NOT Grant or EntitlementGrant"
+      },
+      {
+        "name": "Typed error unions on every operation",
+        "description": "Every operation returns | CommonErrors at minimum, plus | NotFoundError / | ConflictError where applicable. Never omit error unions.",
+        "example": "get(...): EntitlementV2 | CommonErrors | NotFoundError;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.tsp",
+        "role": "Package entry point: imports all sibling .tsp files and the parent namespace; declares no models.",
+        "watch_for": "Every new .tsp in this folder must be imported here or it compiles in isolation and is invisible."
+      },
+      {
+        "file": "entitlements.tsp",
+        "role": "Admin list/get at /api/v2/entitlements plus the canonical discriminated unions (EntitlementV2, EntitlementV2CreateInputs) and the three variant models.",
+        "watch_for": "A new entitlement sub-type requires updating both union definitions here."
+      },
+      {
+        "file": "customer.tsp",
+        "role": "Customer-scoped CRUD plus value/history/reset/grants sub-routes split across two interfaces (two URL prefixes); defines EntitlementValueV2.",
+        "watch_for": "Sub-resource routes (/grants, /value, /history, /reset) belong in the second interface (CustomerEntitlementV2Endpoints), not the collection interface."
+      },
+      {
+        "file": "grant.tsp",
+        "role": "Pure model file: GrantV2 response and GrantCreateInputV2 input. No HTTP routes.",
+        "watch_for": "Does NOT use `using TypeSpec.Http` \u2014 adding HTTP decorators requires adding the import and using declaration first."
+      },
+      {
+        "file": "grants.tsp",
+        "role": "Admin list endpoint at /api/v2/grants; intentionally thin (no per-grant routes).",
+        "watch_for": "Uses both QueryPagination and QueryLimitOffset spreads \u2014 all new list endpoints here must do the same."
+      }
+    ],
+    "anti_patterns": [
+      "Redefining V1 models instead of composing via OmitProperties \u2014 creates divergence when V1 types change",
+      "Omitting the V2 suffix from a model/union/interface friendlyName \u2014 causes SDK collisions with V1",
+      "Adding a new entitlement type variant without updating both EntitlementV2 and EntitlementV2CreateInputs unions",
+      "Forgetting to import a new .tsp file in main.tsp \u2014 it compiles in isolation but is invisible",
+      "Using HTTP decorators in a file lacking import \"@typespec/http\" and using TypeSpec.Http (e.g. grant.tsp)"
+    ],
+    "decisions": [
+      {
+        "decision": "V2 models compose V1 types via OmitProperties rather than standalone redefinitions",
+        "rationale": "Keeps the V1->V2 delta minimal and auditable; V1 field changes propagate automatically unless explicitly omitted."
+      },
+      {
+        "decision": "Deprecated fields (issueAfterReset, issueAfterResetPriority) kept on create-input with #deprecated instead of removed",
+        "rationale": "V1-style SDK consumers must not break on upgrade; the V2 replacement (issue: IssueAfterReset) is additive."
+      },
+      {
+        "decision": "Two separate interfaces in customer.tsp for the two /customers/{id}/entitlements URL prefixes",
+        "rationale": "Interface-level @route applies to all operations; splitting keeps sub-resource paths from polluting the top-level collection interface."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new list filter param to an existing V2 list endpoint",
+        "code": "// In entitlements.tsp \u2014 add the param inside the list() operation signature:\nlist(\n  @query(#{ explode: true }) feature?: string[],\n  // new filter:\n  @query(#{ explode: true }) subjectKeys?: string[],\n  ...QueryPagination,\n  ...QueryLimitOffset,\n  ...QueryOrdering<EntitlementOrderBy>,\n): PaginatedResponse<EntitlementV2> | CommonErrors;"
+      }
+    ]
+  }
+}

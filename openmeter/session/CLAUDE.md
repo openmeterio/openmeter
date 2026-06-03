@@ -6,24 +6,17 @@
 
 ## Patterns
 
-**Typed context key to avoid collisions** — AuthenticatorContextKey is a named string type; the constant AuthenticationSessionKey is of that type. Never use a plain string as a context key. (`type AuthenticatorContextKey string
+**Typed context key to avoid collisions** — AuthenticatorContextKey is a named string type; AuthenticationSessionKey is of that type. Never use a plain string as a context key. (`type AuthenticatorContextKey string
 const AuthenticationSessionKey AuthenticatorContextKey = "active_organization_id"`)
-**GetActiveSession returns nil on missing or wrong type** — Uses a type assertion with ok-check (`ctx.Value(key).(*AuthenticationSession)`) and returns nil instead of panicking. Callers must nil-check before using the session. (`func GetActiveSession(ctx context.Context) *AuthenticationSession {
-    if c, ok := ctx.Value(AuthenticationSessionKey).(*AuthenticationSession); ok {
-        return c
-    }
-    return nil
-}`)
-**Validate on construction** — NewAuthenticationSession calls session.Validate() before returning; invalid sessions are rejected at construction time, not at read time. OrgRole OR OrgPermissions must be non-empty. (`session, err := NewAuthenticationSession(orgID, orgSlug, orgRole, userID, perms)
-// err non-nil if OrgID empty or both OrgRole and OrgPermissions empty`)
-**WithLogger enriches slog with session fields** — Use AuthenticationSession.WithLogger(logger) to add orgId, userId, orgSlug, orgRole, orgPermissions as structured log fields instead of repeating slog.String(...) calls. (`logger = session.WithLogger(logger)
-// adds: orgId, userId, orgSlug, orgRole, orgPermissions`)
+**GetActiveSession returns nil on missing or wrong type** — Uses a type assertion with ok-check and returns nil instead of panicking. Callers must nil-check before using the session. (`func GetActiveSession(ctx context.Context) *AuthenticationSession { if c, ok := ctx.Value(AuthenticationSessionKey).(*AuthenticationSession); ok { return c }; return nil }`)
+**Validate on construction** — NewAuthenticationSession calls session.Validate() before returning; invalid sessions are rejected at construction. OrgRole OR OrgPermissions must be non-empty. (`session, err := NewAuthenticationSession(orgID, orgSlug, orgRole, userID, perms) // err if OrgID empty or both OrgRole and OrgPermissions empty`)
+**WithLogger enriches slog with session fields** — AuthenticationSession.WithLogger(logger) adds orgId, userId, orgSlug, orgRole, orgPermissions as structured log fields. (`logger = session.WithLogger(logger)`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `session.go` | Single file containing the entire package: context key type, AuthenticationSession struct, constructor, validator, context getter helpers, and logger enrichment. | Storing AuthenticationSession by value in context — the getter type-asserts to *AuthenticationSession, so storing a value type will always return nil from GetActiveSession. |
+| `session.go` | Entire package: context key type, AuthenticationSession struct, constructor, validator, context getter helpers, logger enrichment. | Storing AuthenticationSession by value in context — the getter type-asserts to *AuthenticationSession, so a value type always returns nil from GetActiveSession. |
 
 ## Anti-Patterns
 
@@ -34,6 +27,6 @@ const AuthenticationSessionKey AuthenticatorContextKey = "active_organization_id
 
 ## Decisions
 
-- **OrgRole OR OrgPermissions must be non-empty, not both required** — Different auth flows supply either a role string or a fine-grained permission list; requiring only one keeps the session compatible with both flows without needing two separate session types.
+- **OrgRole OR OrgPermissions must be non-empty, not both required** — Different auth flows supply either a role string or a fine-grained permission list; requiring only one keeps the session compatible with both flows without two separate session types.
 
 <!-- archie:ai-end -->

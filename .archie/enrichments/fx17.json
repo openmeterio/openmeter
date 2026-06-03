@@ -1,0 +1,183 @@
+{
+  "api/spec/patches": {
+    "purpose": "Vendored patch-package diffs applied to TypeSpec compiler/emitter npm packages during `npm install` to fix upstream bugs or add features the OpenMeter API-generation pipeline needs. Primary constraint: each patch is tightly coupled to the exact package version pinned in api/spec/package.json.",
+    "patterns": [
+      {
+        "name": "patch-package unified diff format",
+        "description": "Each file is a unified diff named `@scope__package.patch` exactly matching the npm package name under node_modules, targeting compiled dist/ JS and .d.ts(.map) files \u2014 never TypeScript src/ (node_modules ships only dist/).",
+        "example": "@typespec__openapi3.patch modifies dist/src/attach-extensions.js to skip the x-inline extension key during OpenAPI emission"
+      },
+      {
+        "name": "Single-concern per patch",
+        "description": "One bug fix or feature addition per patch file to keep diffs reviewable and reduce conflicts on version upgrades.",
+        "example": "@typespec__http.patch only adds the `style` field to QueryOptions"
+      },
+      {
+        "name": "Version-coupled patches",
+        "description": "A patch references specific dist/ layout and commit hashes; any package version bump in package.json requires re-verifying the patch still applies or is still needed.",
+        "example": "@typespec__compiler.patch targets dist/manifest.js commit hash 478dfed5"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "@typespec__compiler.patch",
+        "role": "Adds $functions binder support, propagates ModifierFlags.Internal, replaces globby with Node built-in glob in formatter-fs.js, plus config-schema linter changes.",
+        "watch_for": "On compiler upgrade re-verify binder.js still lacks $functions/internal-modifier handling; remove if fixed upstream."
+      },
+      {
+        "file": "@typespec__http.patch",
+        "role": "Adds `style` field to QueryOptions enabling form|spaceDelimited|pipeDelimited|deepObject serialization on @query params.",
+        "watch_for": "May be merged upstream \u2014 check release notes before upgrading."
+      },
+      {
+        "file": "@typespec__openapi.patch",
+        "role": "Adds `parent` to TagMetadata for hierarchical tag grouping and exports getOperationId/setOperationId.",
+        "watch_for": "The parent field is OpenMeter-specific; spec tag grouping depends on it \u2014 do not drop on upgrade."
+      },
+      {
+        "file": "@typespec__openapi3.patch",
+        "role": "Skips x-inline extension key in attachExtensions so it is not emitted into generated YAML; adds directive support in generateOperationParameter.",
+        "watch_for": "Removing it lets x-inline leak into YAML, breaking SDK generators."
+      },
+      {
+        "file": "@typespec__http-client-python.patch",
+        "role": "Python emitter: silences a pylint false positive and adds constants.js (blob URLs), unbranded flavor detection, and Pyodide generation code.",
+        "watch_for": "Goes well beyond a trivial style fix \u2014 review the emitter.js Pyodide changes carefully on upgrade."
+      },
+      {
+        "file": "CLAUDE.md",
+        "role": "Manually maintained docs on patch purposes and the patch-package mechanism, with archie:ai markers.",
+        "watch_for": "Update whenever a patch is added/modified/removed; note which upstream fixes allow patch removal."
+      }
+    ],
+    "anti_patterns": [
+      "Patching TypeScript source files (src/**/*.ts) \u2014 node_modules only ships dist/, so source patches are silently ignored",
+      "Bundling multiple unrelated fixes into one patch file",
+      "Using patches to change API semantics or add TypeSpec language features \u2014 those belong in api/spec/packages/",
+      "Bumping a patched package version without re-running the full make gen-api pipeline",
+      "Leaving stale patches in place after upstream ships the fix"
+    ],
+    "decisions": [
+      {
+        "decision": "Patch compiled dist/ files rather than forking the packages",
+        "rationale": "patch-package applies diffs non-invasively, reverts cleanly on upgrade, and avoids maintaining a separate registry or changing import paths in TypeSpec source."
+      },
+      {
+        "decision": "Co-locate patches in api/spec/patches/ next to the TypeSpec source",
+        "rationale": "Patches are exclusively part of the TypeSpec compilation toolchain, not the Go backend; adjacency makes that scope obvious."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/types": {
+    "purpose": "Manually-authored Go types that fill gaps where oapi-codegen cannot generate correct types from the OpenAPI spec (notably oneOf/anyOf schemas). Referenced from the spec via the `x-go-type` extension so generated clients use them; this package must never contain business logic.",
+    "patterns": [
+      {
+        "name": "x-go-type reference only",
+        "description": "Add a type here only when oapi-codegen cannot generate it (oneOf/anyOf), then reference it in the OpenAPI spec via x-go-type rather than importing it by hand.",
+        "example": "In openapi.yaml: schema: x-go-type: types.MyUnionType"
+      },
+      {
+        "name": "Pure type definitions",
+        "description": "Files contain only type declarations (struct, interface, alias). No functions, methods, init(), or business logic.",
+        "example": "type MyUnionType struct { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "doc.go",
+        "role": "Package declaration plus the authoritative comment explaining when/why to add types here.",
+        "watch_for": "The comment is the contract: only add types for spec constructs oapi-codegen cannot handle (oneOf/anyOf). If oapi-codegen can handle it, do not add it here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding types that oapi-codegen can generate automatically from the spec",
+      "Adding business logic, helper functions, or methods to types here",
+      "Duplicating types already present in api/api.gen.go or api/v3/api.gen.go",
+      "Importing this package from domain code (openmeter/*) \u2014 it is consumed via x-go-type by generated code only",
+      "Hand-editing api/api.gen.go to inline types instead of using this package"
+    ],
+    "decisions": [
+      {
+        "decision": "Types live in a separate package rather than inline in generated files",
+        "rationale": "Generated files must not be hand-edited; a separate package lets manual type definitions survive regeneration while remaining importable via x-go-type references."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/v3/apierrors": {
+    "purpose": "RFC 7807-style error type system for all v3 API responses: a single BaseAPIError struct, typed constructors for every HTTP status, and a GenericErrorEncoder mapping domain errors to HTTP responses. Every v3 error response must flow through this package.",
+    "patterns": [
+      {
+        "name": "BaseAPIError via named constructors only",
+        "description": "All v3 error responses are produced by a named constructor in errors_ctors.go (NewInternalError, NewNotFoundError, NewBadRequestError, NewForbiddenError, NewConflictError, etc.). Never set Status/Type by hand on a struct literal.",
+        "example": "return apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{Field: \"name\", Rule: \"required\", Reason: \"is required\", Source: apierrors.InvalidParamSourceBody}})"
+      },
+      {
+        "name": "GenericErrorEncoder first for all v3 handlers",
+        "description": "Register apierrors.GenericErrorEncoder() as the ErrorEncoder. It checks *BaseAPIError first via lo.ErrorsAs, then falls through to commonhttp handlers for feature/meter not-found and ValidationIssues with HTTP status attributes.",
+        "example": "httptransport.NewHandler(op, dec, enc, httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))"
+      },
+      {
+        "name": "NewV3ErrorHandlerFunc for ChiServerOptions",
+        "description": "Pass NewV3ErrorHandlerFunc(logger) as ChiServerOptions.ErrorHandlerFunc so generated router binding errors (InvalidParamFormatError, RequiredParamError, etc.) become InvalidParameters rendered as 400.",
+        "example": "api.HandlerWithOptions(srv, api.ChiServerOptions{ErrorHandlerFunc: apierrors.NewV3ErrorHandlerFunc(logger)})"
+      },
+      {
+        "name": "Always pass request context to constructors",
+        "description": "instance() extracts chi middleware.GetReqID(ctx) into the Instance field as 'urn:request:<id>'. Passing context.Background() silently drops the correlation ID.",
+        "example": "return apierrors.NewInternalError(r.Context(), err)"
+      },
+      {
+        "name": "InvalidParameters for field-level validation",
+        "description": "Populate InvalidParameters with Field, Rule, Reason and a Source from the four InvalidParameterSource constants before NewBadRequestError.",
+        "example": "apierrors.InvalidParameters{{Field: \"page.size\", Rule: \"max_value\", Reason: \"must be <= 1000\", Source: apierrors.InvalidParamSourceQuery}}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "errors.go",
+        "role": "Defines BaseAPIError, InvalidParameter/InvalidParameters, InvalidParameterSource enum, and HandleAPIError (renders via render.RenderJSON as application/problem+json).",
+        "watch_for": "UnderlyingError is json:\"-\" \u2014 never copy it into Detail or any caller-visible field."
+      },
+      {
+        "file": "errors_ctors.go",
+        "role": "All public constructors plus Type URL constants (InternalType, NotFoundType, BadRequestType...) and the instance() helper.",
+        "watch_for": "NewEmptySetResponse uses Status 200 with a synthetic Type \u2014 not an error, but modeled as BaseAPIError for uniform rendering."
+      },
+      {
+        "file": "encoder.go",
+        "role": "GenericErrorEncoder: the httptransport ErrorEncoder bridging domain errors to HTTP \u2014 *BaseAPIError first, then feature/meter not-found, then ValidationIssue HTTP-status mapping.",
+        "watch_for": "Check order matters: *BaseAPIError must be first so custom v3 errors short-circuit."
+      },
+      {
+        "file": "handler.go",
+        "role": "NewV3ErrorHandlerFunc translates oapi-codegen router binding errors to InvalidParameters with correct Source; enrichFieldFromBindError extracts deepObject sub-field paths.",
+        "watch_for": "Preserve enrichFieldFromBindError behavior (e.g. 'page.sizee' from 'page') when updating param parsing."
+      }
+    ],
+    "anti_patterns": [
+      "Writing http.Error or w.WriteHeader directly in a v3 handler instead of BaseAPIError.HandleAPIError",
+      "Constructing BaseAPIError struct literals with Status set by hand instead of a named constructor",
+      "Passing context.Background() to constructors \u2014 the instance correlation ID will be missing",
+      "Adding new error types outside this package and bypassing GenericErrorEncoder",
+      "Returning UnderlyingError content in the Detail field \u2014 it is for logs only"
+    ],
+    "decisions": [
+      {
+        "decision": "Single BaseAPIError struct for all v3 errors rendered as application/problem+json",
+        "rationale": "Uniform wire type gives consistent shape across endpoints and lets the encoder short-circuit on the first type assertion."
+      },
+      {
+        "decision": "Named constructors with pre-wired Type URL constants (kongapi.info/konnect/*)",
+        "rationale": "Prevents ad-hoc status/type drift across handlers; reviewers can grep NewBadRequestError to audit all 400 paths."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Returning a 400 with InvalidParameters from a v3 handler",
+        "code": "import \"github.com/openmeterio/openmeter/api/v3/apierrors\"\n\nfunc (h *Handler) CreateFoo(ctx context.Context, req FooRequest) error {\n    if req.Name == \"\" {\n        return apierrors.NewBadRequestError(ctx, nil, apierrors.InvalidParameters{\n            {Field: \"name\", Rule: \"required\", Reason: \"is required\", Source: apierrors.InvalidParamSourceBody},\n        })\n    }\n    // ...\n}"
+      }
+    ]
+  }
+}

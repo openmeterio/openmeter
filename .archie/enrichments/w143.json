@@ -1,71 +1,321 @@
 {
-  "pkg/framework/entutils/entsetorclear": {
-    "purpose": "Ent codegen extension that generates SetOrClear<Field> convenience methods on every optional, mutable field for both bulk (*Update) and single-row (*UpdateOne) Ent updater types. Registered once in the entc.Extension chain; all output lives in openmeter/ent/db/ \u2014 never edited by hand.",
+  "pkg/framework/clickhouseotel": {
+    "purpose": "OTel instrumentation wrappers for ClickHouse connections: a tracing decorator (ClickHouseTracer) wrapping clickhouse.Conn for Query/QueryRow/Exec/AsyncInsert spans, and a ConnPoolMetrics poller emitting pool gauges and ping histograms via OTel metric.Meter.",
     "patterns": [
       {
-        "name": "entc.Extension with Templates() only",
-        "description": "Extension embeds entc.DefaultExtension and overrides only Templates(). No other Extension interface methods are implemented. New() returns *Extension \u2014 callers must pass the pointer, not the value.",
-        "example": "type Extension struct { entc.DefaultExtension }\nfunc (Extension) Templates() []*gen.Template { return []*gen.Template{gen.MustParse(...)} }\nfunc New() *Extension { return &Extension{} }"
+        "name": "Decorator enforced by compile-time assertion",
+        "description": "ClickHouseTracer embeds clickhouse.Conn and overrides selected methods. var _ clickhouse.Conn = (*ClickHouseTracer)(nil) ensures any new upstream method is caught at compile time.",
+        "example": "var _ clickhouse.Conn = (*ClickHouseTracer)(nil)"
       },
       {
-        "name": "go:embed for template source",
-        "description": "The Go template lives in setorclear.tpl and is embedded at compile time with //go:embed. Registration uses gen.MustParse(gen.NewTemplate(name).Parse(tmplfile)). Never inline template text in Go code.",
-        "example": "//go:embed setorclear.tpl\nvar tmplfile string"
+        "name": "Config struct with Validate() before construction",
+        "description": "ConnPoolMetricsConfig and ClickHouseTracerConfig carry Validate() returning errors.Join(errs...); constructors call it first. Skipping Validate() means nil Conn/Meter/Tracer panics on first use.",
+        "example": "if c.Conn == nil { errs = append(errs, errors.New(\"conn is required\")) }; return errors.Join(errs...)"
       },
       {
-        "name": "Dual updater coverage",
-        "description": "Template iterates both *UpdateName (bulk) and *UpdateNameOne (single-row) for every optional, non-immutable field. Both paths must always be generated together \u2014 omitting one forces nil-branching at call sites.",
-        "example": "func (u *EntityUpdate) SetOrClearFoo(v *string) *EntityUpdate\nfunc (u *EntityUpdateOne) SetOrClearFoo(v *string) *EntityUpdateOne"
+        "name": "Start/Shutdown lifecycle with atomic guard",
+        "description": "ConnPoolMetrics.Start() uses started.Swap(true) to prevent double-start; Shutdown() calls stopClose (sync.OnceFunc) and blocks on <-doneChan. Always call Shutdown() to release the goroutine.",
+        "example": "if m.started.Swap(true) { return errors.New(\"conn pool metrics already started\") }"
       },
       {
-        "name": "IsView exclusion guard",
-        "description": "Template skips nodes where $n.IsView is true. Ent view nodes have no updater types; without the guard the template panics. Any template modification must preserve {{ if not ($n.IsView) }}.",
-        "example": "{{ range $n := $.Nodes }}\n  {{ if not ($n.IsView) }}\n    ...\n  {{ end }}\n{{ end }}"
+        "name": "Span per ClickHouse call with error recording",
+        "description": "Each overridden method opens a tracer span, defers span.End(), calls the inner Conn method, and on failure calls span.RecordError + span.SetStatus(codes.Error).",
+        "example": "ctx, span := c.Tracer.Start(ctx, \"clickhouse.Query\", ...); defer span.End(); rows, err = c.Conn.Query(ctx, query, args...)"
       },
       {
-        "name": "Standard ent file header",
-        "description": "Template opens with {{ template \"header\" $ }} to emit the ent-standard package declaration and DO-NOT-EDIT notice. Removing it breaks the generated file's package declaration.",
-        "example": "{{ template \"header\" $ }}"
+        "name": "Ping timeout capped at min(pollInterval, 5s)",
+        "description": "ping() derives a context timeout from pollInterval but caps it at 5s so a slow ClickHouse ping never blocks the poll cycle or Shutdown wait.",
+        "example": "if pingTimeout > 5*time.Second { pingTimeout = 5 * time.Second }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "setorclear.go",
-        "role": "Registers the Extension and wires the embedded template into the Ent codegen pipeline. New() is the only public constructor.",
-        "watch_for": "Pass *Extension (pointer) to entc.Extensions() \u2014 passing the value type silently omits the embedded template registration."
+        "file": "otel.go",
+        "role": "ClickHouseTracer decorator; wraps Query, QueryRow, Exec, AsyncInsert with OTel spans.",
+        "watch_for": "Adding a new clickhouse.Conn method without a matching override here silently bypasses tracing for that call."
       },
       {
-        "file": "setorclear.tpl",
-        "role": "Go text/template that emits SetOrClear<Field> for every optional non-immutable field on both updater types. Sourced from ent/ent#1119.",
-        "watch_for": "Removing the IsView guard or the header template call will cause panics or malformed generated files."
-      },
-      {
-        "file": "CLAUDE.md",
-        "role": "Architecture notes for this package \u2014 loaded automatically by Claude Code.",
-        "watch_for": "Keep in sync when template logic changes."
+        "file": "connpool.go",
+        "role": "Background goroutine polling clickhouse.Conn.Stats() and emitting OTel gauge/histogram metrics.",
+        "watch_for": "Start() must not be called twice (atomic guard returns an error callers may ignore); always call Shutdown() to drain doneChan and avoid goroutine leaks."
       }
     ],
     "anti_patterns": [
-      "Editing SetOrClear methods in openmeter/ent/db/ \u2014 they are generated output and will be overwritten by make generate.",
-      "Implementing SetOrClear logic manually in domain adapter code instead of calling the generated method.",
-      "Registering this extension more than once in entc.Generate \u2014 produces duplicate method declarations that fail compilation.",
-      "Removing the {{ if not ($n.IsView) }} guard from the template \u2014 Ent view nodes have no updater type and the template will panic.",
-      "Adding business logic or non-template behavior to the Extension struct \u2014 Extensions must only return template/hook descriptors, not execute logic."
+      "Calling Start() more than once \u2014 the atomic guard returns an error callers may silently ignore.",
+      "Skipping Validate() before NewConnPoolMetrics/NewClickHouseTracer \u2014 nil Conn/Meter/Tracer panics at first use.",
+      "Using context.Background() inside record()/ping() instead of the ctx passed to Start() \u2014 breaks cancellation and span propagation.",
+      "Adding a new clickhouse.Conn method without a corresponding override in ClickHouseTracer \u2014 calls bypass tracing silently."
     ],
     "decisions": [
       {
-        "decision": "Implement as entc.Extension with an embedded .tpl file rather than a post-generation script.",
-        "rationale": "Extensions run inside the Ent codegen pipeline and receive the full typed schema graph, enabling per-field/per-node introspection without parsing generated Go source."
+        "decision": "Decorator pattern over forking the ClickHouse client.",
+        "rationale": "clickhouse.Conn is an interface; embedding and overriding selected methods adds instrumentation without maintaining a fork of the upstream client."
       },
       {
-        "decision": "Cover both *Update and *UpdateOne in the same template pass.",
-        "rationale": "Ent exposes two independent update builder paths; omitting one forces callers to nil-branch at every call site and breaks the uniform SetOrClear contract."
+        "decision": "Poll-based metrics rather than callback hooks.",
+        "rationale": "The ClickHouse Go client exposes pool stats only via Stats(); OTel's push model requires explicit Record() calls, so a ticker goroutine is the only viable approach."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Register the extension in openmeter/ent/entc.go so it runs during make generate.",
-        "code": "//go:build ignore\n\npackage main\n\nimport (\n\t\"entgo.io/ent/entc\"\n\t\"entgo.io/ent/entc/gen\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils/entsetorclear\"\n)\n\nfunc main() {\n\tentc.Generate(\"./schema\", &gen.Config{},\n\t\tentc.Extensions(entsetorclear.New()),\n\t)\n}"
+        "scenario": "Wrap a ClickHouse connection with tracing and start pool metrics",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/framework/clickhouseotel\"\n\ntracer, _ := clickhouseotel.NewClickHouseTracer(clickhouseotel.ClickHouseTracerConfig{Tracer: tracer, Conn: rawConn})\nmetrics, _ := clickhouseotel.NewConnPoolMetrics(clickhouseotel.ConnPoolMetricsConfig{Conn: rawConn, Meter: meter, Logger: logger, PollInterval: 15 * time.Second})\n_ = metrics.Start(ctx)\ndefer metrics.Shutdown()"
+      }
+    ]
+  },
+  "pkg/framework/commonhttp": {
+    "purpose": "Shared HTTP encoding/decoding primitives for all domain httpdriver packages: JSON/CSV/plain-text response encoders, RFC 7807 problem-detail error encoders, ValidationIssue-to-HTTP-status mapping, cursor-pagination constants, sort-order helpers, and a Union[Primary,Secondary] JSON type.",
+    "patterns": [
+      {
+        "name": "GenericErrorEncoder chain \u2014 first match wins",
+        "description": "GenericErrorEncoder() returns an encoder.ErrorEncoder that calls HandleIssueIfHTTPStatusKnown first, then HandleErrorIfTypeMatches for each models.Generic* type in priority order. The bool return short-circuits the chain.",
+        "example": "return HandleIssueIfHTTPStatusKnown(ctx, err, w) || HandleErrorIfTypeMatches[*models.GenericNotFoundError](ctx, http.StatusNotFound, err, w)"
+      },
+      {
+        "name": "WithHTTPStatusCodeAttribute on ValidationIssue",
+        "description": "Domain code attaches HTTP status to a ValidationIssue via commonhttp.WithHTTPStatusCodeAttribute(code); HandleIssueIfHTTPStatusKnown reads openmeter.http.status_code and strips it before serialization. ValidationIssue must not import net/http.",
+        "example": "models.NewValidationIssue(code, msg, commonhttp.WithHTTPStatusCodeAttribute(http.StatusUnprocessableEntity))"
+      },
+      {
+        "name": "Use JSONResponseEncoderWithStatus for non-200",
+        "description": "JSONResponseEncoder always writes 200. Use JSONResponseEncoderWithStatus[Response](statusCode) when the success code differs (e.g., 201 Created).",
+        "example": "httptransport.NewHandler(decode, op, commonhttp.JSONResponseEncoderWithStatus[MyResp](http.StatusCreated))"
+      },
+      {
+        "name": "CSVResponse interface for CSV encoding",
+        "description": "A type must implement FileName() string and Records() [][]string to use CSVResponseEncoder; Content-Disposition is set automatically.",
+        "example": "func (c MyCSV) FileName() string { return \"report\" }; func (c MyCSV) Records() [][]string { return rows }"
+      },
+      {
+        "name": "NewHTTPError for decoder errors",
+        "description": "JSONRequestBodyDecoder wraps render.DecodeJSON errors in NewHTTPError(http.StatusBadRequest, ...). Always return NewHTTPError from custom decoders so the encoder chain knows the status.",
+        "example": "return NewHTTPError(http.StatusBadRequest, fmt.Errorf(\"decode json: %w\", err))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "errors.go",
+        "role": "Core error encoding: ErrorWithHTTPStatusCode, HandleErrorIfTypeMatches[T], HandleIssueIfHTTPStatusKnown.",
+        "watch_for": "HTTPStatusAttributePriorizationBehaviorSingular is the only supported mode \u2014 multiple ValidationIssues with different status codes make HandleIssueIfHTTPStatusKnown return false, falling through."
+      },
+      {
+        "file": "encoder.go",
+        "role": "Response encoders (JSON, plain-text, CSV, empty, redirect) and GenericErrorEncoder().",
+        "watch_for": "JSONResponseEncoder always writes 200; use JSONResponseEncoderWithStatus for 201/204. Union.MarshalJSON returns []byte{} (not 'null') when both options are nil."
+      },
+      {
+        "file": "decoder.go",
+        "role": "JSONRequestBodyDecoder wraps render.DecodeJSON and wraps parse errors in NewHTTPError(400).",
+        "watch_for": "Returns ErrorWithHTTPStatusCode, not a plain error \u2014 callers must unwrap before errors.Is comparisons."
+      },
+      {
+        "file": "union.go",
+        "role": "Union[Primary,Secondary] JSON union type; Option1 takes precedence over Option2 during marshaling.",
+        "watch_for": "Returns empty []byte{} (not 'null') when both options are nil \u2014 downstream decoders may choke on empty bytes."
+      },
+      {
+        "file": "sort.go",
+        "role": "GetSortOrder maps an API sort-direction enum pointer to sortx.Order.",
+        "watch_for": "Returns sortx.OrderNone when the input pointer is nil; never returns an error \u2014 check the zero value."
+      }
+    ],
+    "anti_patterns": [
+      "Returning a plain error from a request decoder instead of NewHTTPError \u2014 GenericErrorEncoder won't know the status code and falls through to 500.",
+      "Adding a new domain error type to GenericErrorEncoder without a corresponding models.Generic* sentinel in pkg/models.",
+      "Calling HandleIssueIfHTTPStatusKnown without WithHTTPStatusCodeAttribute on the ValidationIssue \u2014 it returns false and falls through.",
+      "Writing status code before headers in a custom encoder \u2014 must set headers first, then WriteHeader."
+    ],
+    "decisions": [
+      {
+        "decision": "Error encoder returns bool (chain pattern).",
+        "rationale": "Multiple encoders compose in a chain; returning true short-circuits to prevent double-write of the response body, matching the httptransport ErrorEncoder contract."
+      },
+      {
+        "decision": "ValidationIssue carries HTTP status as an attribute rather than a field.",
+        "rationale": "ValidationIssue is a domain type that must not import net/http; the attribute key lives in commonhttp and is read only at the HTTP boundary, keeping the domain layer clean."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Attach HTTP status to a domain ValidationIssue and encode through the error chain",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nerr := models.NewValidationIssue(\n    models.ErrorCode(\"invalid_field\"),\n    \"field x is required\",\n    commonhttp.WithHTTPStatusCodeAttribute(http.StatusUnprocessableEntity),\n)\n// In the handler error chain (added by httptransport defaults):\n// commonhttp.HandleIssueIfHTTPStatusKnown(ctx, err, w) -> true, writes 422"
+      }
+    ]
+  },
+  "pkg/framework/lockr": {
+    "purpose": "Two PostgreSQL advisory-lock implementations for distributed mutual exclusion: Locker (transaction-scoped pg_advisory_xact_lock, auto-released on tx commit/rollback) and SessionLocker (connection-scoped pg_advisory_lock, requires explicit Close). Keys are scoped strings hashed to uint64 via xxhash.",
+    "patterns": [
+      {
+        "name": "LockForTX requires active Ent transaction in ctx",
+        "description": "Locker.LockForTX calls entutils.GetDriverFromContext(ctx) and fails if no tx driver is present. Call inside transaction.RunWithNoValue or entutils.TransactingRepo. It also verifies transaction_timestamp() != statement_timestamp() to confirm a real tx is open.",
+        "example": "return transaction.RunWithNoValue(ctx, txCreator, func(ctx context.Context) error { return locker.LockForTX(ctx, key) })"
+      },
+      {
+        "name": "SessionLocker requires Start() then Close()",
+        "description": "NewSessionLockr creates the struct; Start(ctx) acquires the dedicated sql.Conn from pgdriver.Driver.DB(). Always defer Close() \u2014 it closes the dedicated connection and releases all session-level locks.",
+        "example": "locker, _ := lockr.NewSessionLockr(SessionLockerConfig{Logger: l, PostgresDriver: pgdrv}); _ = locker.Start(ctx); defer locker.Close()"
+      },
+      {
+        "name": "Key construction enforces non-empty, no-colon scopes",
+        "description": "NewKey(scopes...) rejects empty scopes and scopes containing ':' (the join separator). Hash64 uses xxhash. Prefer charges.NewLockKeyForCharge or billing.WithLock helpers over raw lockr.NewKey.",
+        "example": "key, err := lockr.NewKey(\"billing\", customerID) // scopes must not contain ':'"
+      },
+      {
+        "name": "Releaser is idempotent via sync.Mutex + done flag",
+        "description": "The Releaser returned by Lock/TryLock wraps a struct with sync.Mutex + done bool; calling it twice is a no-op. PostgreSQL session-level locks are reentrant \u2014 each Lock increments a refcount needing a matching unlock.",
+        "example": "rel, _ := locker.Lock(ctx, k); rel(ctx); rel(ctx) // second call is a no-op"
+      },
+      {
+        "name": "Use pgdriver.WithLockTimeout \u2014 not context.WithTimeout",
+        "description": "context.WithTimeout makes pgx cancel the connection on deadline, leaving the tx in error state. WithLockTimeout sets lock_timeout in RuntimeParams so PostgreSQL returns 55P03 (ErrLockTimeout) without destroying the connection.",
+        "example": "pgdriver.NewPostgresDriver(ctx, url, pgdriver.WithLockTimeout(3*time.Second))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "locker.go",
+        "role": "Transaction-scoped advisory lock via pg_advisory_xact_lock; released automatically on tx commit/rollback.",
+        "watch_for": "getTxClient verifies transaction_timestamp() != statement_timestamp() \u2014 an autocommit connection fails this check even with a tx driver in ctx."
+      },
+      {
+        "file": "session.go",
+        "role": "Session-scoped advisory lock; Lock blocks, TryLock is non-blocking (ErrNoLockAcquired if denied), TryLock returns ErrSessionLockerBusy if the internal mutex is held.",
+        "watch_for": "Holds a single sql.Conn and a sync.Mutex; concurrent Lock calls on the same instance are serialized. Do not share one SessionLocker across goroutines under high contention."
+      },
+      {
+        "file": "key.go",
+        "role": "Key construction and xxhash hashing; scopes joined with ':' separator.",
+        "watch_for": "Scopes must not contain ':' \u2014 NewKey errors. Hash collisions are possible but extremely unlikely."
+      },
+      {
+        "file": "var.go",
+        "role": "PostgreSQL error code constant 55P03 (lock_timeout).",
+        "watch_for": "checkForTimeout does a string-contains match on the error message \u2014 possible false positives if wrapping includes the literal '55P03'."
+      }
+    ],
+    "anti_patterns": [
+      "Calling Locker.LockForTX outside a Postgres transaction \u2014 returns an error immediately from getTxClient.",
+      "Using context.WithTimeout for lock acquisition \u2014 pgx cancels the connection on ctx cancel; use pgdriver.WithLockTimeout instead.",
+      "Sharing a single SessionLocker instance across goroutines with high lock contention \u2014 the internal mutex serializes all Lock/TryLock calls.",
+      "Forgetting to call SessionLocker.Close() \u2014 leaks the dedicated sql.Conn from the pool.",
+      "Hand-constructing lockr.Key strings instead of using charges.NewLockKeyForCharge or billing.WithLock helpers."
+    ],
+    "decisions": [
+      {
+        "decision": "Two lock types for different lifetime requirements.",
+        "rationale": "Transaction-scoped locks (Locker) auto-release on commit/rollback \u2014 ideal for billing charge advancement. Session-scoped locks (SessionLocker) persist across transactions \u2014 needed for long-running admin jobs spanning multiple DB transactions."
+      },
+      {
+        "decision": "pg_advisory_xact_lock over an application-level mutex.",
+        "rationale": "Advisory locks release atomically with the transaction, preventing stale locks after crashes; in-process mutexes don't survive multi-instance deployments."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Acquire a transaction-scoped advisory lock for a customer before billing mutation",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/pkg/framework/lockr\"\n    \"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\nkey, err := lockr.NewKey(\"billing\", customerID)\nif err != nil { return err }\nreturn transaction.RunWithNoValue(ctx, txCreator, func(ctx context.Context) error {\n    if err := locker.LockForTX(ctx, key); err != nil { return err }\n    return doWork(ctx)\n})"
+      }
+    ]
+  },
+  "pkg/framework/operation": {
+    "purpose": "Defines the Operation[Request,Response] function type \u2014 the single callable unit transport layers (httptransport.Handler) invoke \u2014 plus Middleware[Req,Resp], Chain, Compose, and AsNoResponseOperation helpers for building and composing RPC-style operations.",
+    "patterns": [
+      {
+        "name": "Operation is a plain function type",
+        "description": "type Operation[Request any, Response any] func(ctx context.Context, request Request) (Response, error). No interface, no wrapper struct \u2014 assign any matching func literal or method reference directly.",
+        "example": "var op operation.Operation[MyReq, MyResp] = myServiceMethod"
+      },
+      {
+        "name": "Middleware wraps Operation \u2014 Chain composes outermost-first",
+        "description": "type Middleware[Req,Resp] func(Operation[Req,Resp]) Operation[Req,Resp]. Chain(outer, others...) reverses others internally so the first argument is always executed outermost (first on the request path).",
+        "example": "chain := operation.Chain[Req, Resp](authMW, loggingMW); wrapped := chain(myOp)"
+      },
+      {
+        "name": "AsNoResponseOperation for void/Delete-style handlers",
+        "description": "Wraps func(ctx, Request) error as Operation[Request, any] so Delete-style handlers reuse the same middleware chain and httptransport.Handler pipeline without returning a body.",
+        "example": "op := operation.AsNoResponseOperation(func(ctx context.Context, req DeleteReq) error { return svc.Delete(ctx, req.ID) })"
+      },
+      {
+        "name": "Compose pipelines two operations",
+        "description": "Compose(op1, op2) yields Operation[Req,Resp] where op1's response becomes op2's request. On op1 error, op2 is never called and the zero-value Response is returned.",
+        "example": "combined := operation.Compose(getOp, updateOp)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "operation.go",
+        "role": "Core type definitions: Operation, AsNoResponseOperation, Compose.",
+        "watch_for": "AsNoResponseOperation returns Operation[Request, any] \u2014 the response type is always any/nil. Compose propagates errors correctly only when op1 returns the zero-value Response alongside the error."
+      },
+      {
+        "file": "middleware.go",
+        "role": "Middleware and Chain; middlewares execute in declaration order (outermost = first declared).",
+        "watch_for": "Chain reverses the others slice internally (for i := len(others)-1; i >= 0; i--) so the first argument is always the outermost wrapper."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing business logic inside a Middleware \u2014 middleware is for cross-cutting concerns (auth, logging, tracing) only.",
+      "Returning a non-nil Response on error from an Operation \u2014 Compose propagates errors correctly only when Response is zero-valued alongside the error.",
+      "Wrapping the same operation in Chain twice with the same middleware \u2014 the middleware executes twice on the hot path."
+    ],
+    "decisions": [
+      {
+        "decision": "Function type instead of interface.",
+        "rationale": "A function type needs no method sets and avoids boilerplate; any matching func is usable directly while still chainable via Middleware and compatible with httptransport.Handler generics."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wrap a service method as an Operation with middleware for httptransport.Handler",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/framework/operation\"\n\nvar op operation.Operation[ListReq, []Item] = svc.List\nwithAuth := operation.Chain[ListReq, []Item](authMiddleware, loggingMiddleware)\nprotected := withAuth(op)\ndelOp := operation.AsNoResponseOperation(func(ctx context.Context, req DeleteReq) error {\n    return svc.Delete(ctx, req.ID)\n})"
+      }
+    ]
+  },
+  "pkg/framework/pgdriver": {
+    "purpose": "Constructs the project-wide *sql.DB from a pgxpool.Pool with OTel tracing (XSAM/otelsql), optional metric.Meter pool observation (pgxpoolobserver), and an optional lock_timeout runtime parameter for lockr; exposes Driver.DB() for Ent and lockr consumers.",
+    "patterns": [
+      {
+        "name": "Option interface for functional configuration",
+        "description": "All optional settings (TracerProvider, MeterProvider, MetricMeter, SpanOptions, LockTimeout) are passed as Option values, each implementing apply(*options). Callers compose options without a config struct.",
+        "example": "pgdriver.NewPostgresDriver(ctx, url, pgdriver.WithLockTimeout(3*time.Second), pgdriver.WithTracerProvider(tp))"
+      },
+      {
+        "name": "MaxIdleConns must be 0 \u2014 pgx pool manages idle connections",
+        "description": "otelsql.OpenDB wraps pgxstdlib.GetPoolConnector(pool). db.SetMaxIdleConns(0) is mandatory because pgx manages idle connections; a non-zero Go idle pool duplicates connection management.",
+        "example": "db.SetMaxIdleConns(0) // set after otelsql.OpenDB"
+      },
+      {
+        "name": "WithLockTimeout sets lock_timeout via RuntimeParams",
+        "description": "WithLockTimeout sets lock_timeout in ConnConfig.RuntimeParams as a millisecond string, enabling PostgreSQL-side advisory lock timeouts for lockr without context cancellation destroying the connection.",
+        "example": "o.connConfig.ConnConfig.RuntimeParams[\"lock_timeout\"] = fmt.Sprintf(\"%d\", timeout.Milliseconds())"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "driver.go",
+        "role": "Single file with NewPostgresDriver, the Driver struct, and DB()/Close() methods.",
+        "watch_for": "Close() calls pool.Close() but NOT db.Close() \u2014 callers holding *sql.DB must not call db.Close() independently. Pool shutdown is immediate; ensure in-flight queries complete first."
+      }
+    ],
+    "anti_patterns": [
+      "Setting MaxIdleConns > 0 on the returned *sql.DB \u2014 pgx pool manages idle connections; a non-zero Go idle pool causes duplicate management and resource waste.",
+      "Calling Driver.Close() before all in-flight queries complete \u2014 pool.Close() is immediate and does not drain.",
+      "Using context.WithTimeout for lock acquisition on connections from this pool \u2014 use pgdriver.WithLockTimeout to avoid pgx connection cancellation on ctx deadline."
+    ],
+    "decisions": [
+      {
+        "decision": "Wrap pgxpool behind database/sql via pgxstdlib.",
+        "rationale": "Ent ORM and lockr both require database/sql; pgxpool gives fine-grained pool control (RuntimeParams, metrics) while pgxstdlib bridges the two APIs without reimplementing the driver."
+      },
+      {
+        "decision": "lock_timeout in RuntimeParams rather than per-query SET.",
+        "rationale": "Setting lock_timeout at connection-config level applies it to all advisory lock acquisitions on that connection without each caller issuing a SET, making lockr usage transparent."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Create a Driver with OTel tracing, pool metrics, and lock timeout for Ent and lockr",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/framework/pgdriver\"\n\ndrv, err := pgdriver.NewPostgresDriver(\n    ctx, postgresURL,\n    pgdriver.WithTracerProvider(otel.GetTracerProvider()),\n    pgdriver.WithMeterProvider(otel.GetMeterProvider()),\n    pgdriver.WithMetricMeter(meter),\n    pgdriver.WithLockTimeout(5*time.Second),\n)\nif err != nil { return err }\ndefer drv.Close()\n// drv.DB() is *sql.DB used by Ent and lockr"
       }
     ]
   }

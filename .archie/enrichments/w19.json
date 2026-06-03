@@ -1,184 +1,200 @@
 {
-  "api/spec/packages/aip/src/customers/charges": {
-    "purpose": "TypeSpec definitions for the customer charges API \u2014 defines the `Charge` discriminated union (flat_fee, usage_based), shared `ChargeBase<T>` generic model, charge enums, and the list operation with filter/sort/expand. Compiles into v3 OpenAPI spec and generated SDKs; types live in charges.tsp, HTTP operations in operations.tsp.",
+  "openmeter/app/custominvoicing": {
+    "purpose": "Webhook-driven marketplace billing app: the App type (this folder) implements billing.InvoicingApp + billing.InvoicingAppAsyncSyncer, deferring meaningful invoice logic to external systems via the httpdriver/ HTTP callbacks and appcustominvoicing.Service (service/), with persistence in adapter/. Primary constraint: invoice state-machine progression is gated on external metadata stamps rather than DB flags.",
     "patterns": [
       {
-        "name": "ChargeBase<T> spread for concrete models",
-        "description": "All concrete charge models (FlatFeeCharge, UsageBasedCharge) spread `ChargeBase<ChargeType.X>` to inherit shared read-only fields. Type-specific fields are added only on the concrete model, never on ChargeBase itself.",
-        "example": "model FlatFeeCharge { ...ChargeBase<ChargeType.FlatFee>; payment_term: ProductCatalog.PricePaymentTerm; }"
+        "name": "Composite Service interface",
+        "description": "Service = CustomerDataService + FactoryService + SyncService. New capability areas add a sub-interface and embed it \u2014 never add methods directly to Service.",
+        "example": "type Service interface { CustomerDataService; FactoryService; SyncService }"
       },
       {
-        "name": "Discriminated union with envelope:none",
-        "description": "`Charge` is a `union` with `@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })`. Variant keys match enum values verbatim (flat_fee, usage_based). New charge types require adding to both ChargeType enum and the union.",
-        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union Charge { flat_fee: FlatFeeCharge, usage_based: UsageBasedCharge }"
+        "name": "Advance-gate via metadata keys",
+        "description": "CanDraftSyncAdvance/CanIssuingSyncAdvance return (true, nil) when MetadataKeyDraftSyncedAt/MetadataKeyFinalizedAt are present in invoice.Metadata, or when the hook is disabled via Configuration bool. New sync hooks follow this exact two-check pattern.",
+        "example": "if !a.Configuration.EnableDraftSyncHook { return true, nil }\nif _, ok := invoice.Metadata[MetadataKeyDraftSyncedAt]; ok { return true, nil }"
       },
       {
-        "name": "@visibility(Lifecycle.Read) for response-only, Lifecycle.Create for writable fields",
-        "description": "All fields on ChargeBase are `@visibility(Lifecycle.Read)` \u2014 they are computed/server-assigned. Fields that can be set on creation use `@visibility(Lifecycle.Read, Lifecycle.Create)`. No Update visibility \u2014 charges have no PATCH operation.",
-        "example": "@visibility(Lifecycle.Read) status: ChargeStatus;  @visibility(Lifecycle.Read, Lifecycle.Create) payment_term: ProductCatalog.PricePaymentTerm;"
+        "name": "Validate() on every input struct",
+        "description": "Input types implement Validate() returning models.NewNillableGenericValidationError(errors.Join(errs...)); Service/Sync methods call input.Validate() as the first statement.",
+        "example": "func (i SyncDraftInvoiceInput) Validate() error { return models.NewNillableGenericValidationError(errors.Join(errs...)) }"
       },
       {
-        "name": "@friendlyName(\"Billing<Name>\") on all models and enums",
-        "description": "Every exported model and enum must carry `@friendlyName(\"Billing<PascalCase>\")` so the generated SDK name is stable and prefixed with Billing.",
-        "example": "@friendlyName(\"BillingChargeType\") enum ChargeType { FlatFee: \"flat_fee\", UsageBased: \"usage_based\" }"
+        "name": "Factory self-registers with the app marketplace",
+        "description": "NewFactory calls config.AppService.RegisterMarketplaceListing(ctx, app.RegistryItem{Listing: MarketplaceListing, Factory: fact}) during construction; omitting this makes the app type invisible to the marketplace.",
+        "example": "err := config.AppService.RegisterMarketplaceListing(ctx, app.RegistryItem{Listing: MarketplaceListing, Factory: fact})"
       },
       {
-        "name": "HTTP decorators and operations belong only in operations.tsp",
-        "description": "charges.tsp holds types only. operations.tsp imports `@typespec/http`, declares `using TypeSpec.Http; using TypeSpec.OpenAPI;`, and owns `@get`, `@path`, `@query`, `@operationId` usage.",
-        "example": "// operations.tsp only: @get @operationId(\"list-customer-charges\") list(...): Shared.PagePaginatedResponse<Charge>"
+        "name": "App delegates to Service, never to Adapter directly",
+        "description": "App receiver methods (GetCustomerData, UpsertCustomerData, DeleteCustomerData, UpdateAppConfig) call a.customInvoicingService.*; App never imports the adapter package.",
+        "example": "func (a App) GetCustomerData(ctx, input) (app.CustomerData, error) { return a.customInvoicingService.GetCustomerData(ctx, ...) }"
       },
       {
-        "name": "deepObject explode for filter query params",
-        "description": "Filter query params use `@query(#{ style: \"deepObject\", explode: true })` to support bracket-style filters like `filter[status][oeq]=created`.",
-        "example": "@query(#{ style: \"deepObject\", explode: true }) filter?: ListCustomerChargesParamsFilter"
+        "name": "Compile-time interface assertions at package level",
+        "description": "var _ customerapp.App = (*App)(nil); var _ billing.InvoicingApp = (*App)(nil); var _ billing.InvoicingAppAsyncSyncer = (*App)(nil) \u2014 one assertion per satisfied interface in app.go.",
+        "example": "var _ billing.InvoicingApp = (*App)(nil)"
       },
       {
-        "name": "index.tsp re-exports all sibling files",
-        "description": "Every .tsp file added to this folder must be imported in index.tsp in dependency order or it is invisible to the compiler.",
-        "example": "import \"./charges.tsp\";\nimport \"./operations.tsp\";"
+        "name": "InvoicingApp methods are mostly no-ops",
+        "description": "ValidateStandardInvoice, UpsertStandardInvoice, DeleteStandardInvoice are intentional no-ops; only FinalizeStandardInvoice generates a non-draft number after CanIssuingSyncAdvance passes AND the draft prefix still matches.",
+        "example": "func (a App) UpsertStandardInvoice(ctx, invoice) (*billing.UpsertStandardInvoiceResult, error) { return nil, nil }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "charges.tsp",
-        "role": "Defines all charge models (ChargeBase<T>, FlatFeeCharge, UsageBasedCharge, ChargeTotals), enums (ChargeType, ChargeStatus), the Charge discriminated union, and ChargesExpand enum.",
-        "watch_for": "Do not add HTTP decorators here. Concrete models must spread ChargeBase<T> \u2014 do not duplicate shared fields. Do not use Lifecycle.Update."
+        "file": "app.go",
+        "role": "App struct, Meta (AppBase + Configuration), compile-time assertions, and all InvoicingApp + InvoicingAppAsyncSyncer methods.",
+        "watch_for": "FinalizeStandardInvoice must keep both guards: CanIssuingSyncAdvance check AND DraftInvoiceSequenceNumber.PrefixMatches before GenerateInvoiceSequenceNumber."
       },
       {
-        "file": "operations.tsp",
-        "role": "Declares CustomerChargesOperations interface with the list operation, filter/sort/expand params, and PagePaginatedResponse return type.",
-        "watch_for": "Must import @typespec/http and declare `using TypeSpec.Http;`. Response must use Shared.PagePaginatedResponse<Charge>, not a raw array. @path customerId is required."
+        "file": "service.go",
+        "role": "Declares Service = CustomerDataService + FactoryService + SyncService \u2014 source of truth for exposed business operations.",
+        "watch_for": "Do not add methods directly here \u2014 embed a new sub-interface instead."
       },
       {
-        "file": "index.tsp",
-        "role": "Re-exports charges.tsp then operations.tsp in order; consumed by parent package index.",
-        "watch_for": "New .tsp files must be added here in dependency order or the compiler will not see them."
+        "file": "sync.go",
+        "role": "SyncService input types (SyncDraftInvoiceInput, SyncIssuingInvoiceInput, HandlePaymentTriggerInput) with Validate().",
+        "watch_for": "UpsertInvoiceResults and FinalizeInvoiceResult are required pointer fields \u2014 validate non-nil."
+      },
+      {
+        "file": "factory.go",
+        "role": "Factory + NewFactory (registers marketplace listing), InstallApp, UninstallApp, NewApp; MarketplaceListing defines capabilities.",
+        "watch_for": "NewFactory must call RegisterMarketplaceListing; InstallApp must call NewApp after CreateApp to return a fully wired App."
+      },
+      {
+        "file": "customerdata.go",
+        "role": "CustomerData type (implements app.CustomerData) and App bridge methods to appcustominvoicing.Service.",
+        "watch_for": "Never add billing.Service calls here \u2014 customer data operations must stay service-only."
+      },
+      {
+        "file": "adapter.go",
+        "role": "Adapter = CustomerDataAdapter + AppConfigAdapter + TxCreator. Implemented by adapter/ with soft-delete and upserts.",
+        "watch_for": "GetAppConfiguration/GetCustomerData return zero-value on NotFound \u2014 callers expect that, not an error."
       }
     ],
     "anti_patterns": [
-      "Adding HTTP decorators (@get, @post, @path, @query) in charges.tsp \u2014 they belong only in operations.tsp",
-      "Defining type-specific fields on ChargeBase instead of on FlatFeeCharge / UsageBasedCharge",
-      "Omitting @friendlyName on new models or enums \u2014 the generated SDK name will be unstable",
-      "Using @visibility(Lifecycle.Update) \u2014 charges have no PATCH operation",
-      "Hand-editing api/v3/api.gen.go or api/v3/openapi.yaml instead of running `make gen-api`"
+      "Calling billing.Service directly from App methods \u2014 all operations must go through appcustominvoicing.Service.",
+      "Returning an error for NotFound from GetAppConfiguration \u2014 the adapter returns zero-value Configuration; callers expect that.",
+      "Skipping input.Validate() at the start of any SyncService method.",
+      "Adding new sync-hook logic without a corresponding CanXxxAdvance metadata-key gate and Configuration bool.",
+      "Giving the no-op InvoicingApp methods (ValidateStandardInvoice, UpsertStandardInvoice, DeleteStandardInvoice) real side-effects \u2014 they must remain no-ops."
     ],
     "decisions": [
       {
-        "decision": "Discriminated union with envelope:none and discriminatorPropertyName:type",
-        "rationale": "Keeps the wire format flat (no extra wrapper object) while still allowing the OpenAPI discriminator to route deserialization to the correct concrete model."
+        "decision": "InvoicingApp methods are mostly no-ops; meaningful logic flows through SyncService HTTP endpoints.",
+        "rationale": "External systems drive invoice lifecycle via webhook callbacks to httpdriver endpoints, not via state-machine hooks; only FinalizeStandardInvoice generates the non-draft number as a final step."
       },
       {
-        "decision": "ChargeBase<T extends ChargeType> generic model",
-        "rationale": "Avoids duplicating the large set of shared read-only fields across FlatFeeCharge and UsageBasedCharge while keeping the type parameter visible in the generated schema."
-      },
-      {
-        "decision": "No update operation and no Lifecycle.Update visibility",
-        "rationale": "Charges are managed by the billing engine lifecycle; callers cannot freely PATCH them. This is intentional and mirrors the Go charges.Service interface which has no general Update method."
+        "decision": "Advance gates check invoice metadata rather than a DB flag.",
+        "rationale": "Metadata is already on the in-memory invoice passed to FinalizeStandardInvoice, avoiding an extra DB round-trip and keeping the gate stateless."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new charge type (e.g. credit_purchase) \u2014 changes required in charges.tsp only",
-        "code": "// charges.tsp\n@friendlyName(\"BillingChargeType\")\nenum ChargeType {\n  FlatFee: \"flat_fee\",\n  UsageBased: \"usage_based\",\n  CreditPurchase: \"credit_purchase\",  // add here\n}\n\n@friendlyName(\"BillingCreditPurchaseCharge\")\n@summary(\"Credit purchase charge\")\nmodel CreditPurchaseCharge {\n  ...ChargeBase<ChargeType.CreditPurchase>;\n  @visibility(Lifecycle.Read, Lifecycle.Create)\n  @summary(\"Purchase amount\")\n  amount: Shared.Numeric;\n}\n\n@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })\nunion Charge {\n  flat_fee: FlatFeeCharge,\n  usage_based: UsageBasedCharge,\n  credit_purchase: CreditPurchaseCharge,  // add here\n}\n// Then: make gen-api && make generate"
+        "scenario": "Add a new sync hook that blocks advance until an external system stamps metadata",
+        "code": "const MetadataKeyIssuingSyncedAt = \"openmeter.io/custominvoicing/issuing-synced-at\"\n\nfunc (a App) CanIssuingSyncAdvance(invoice billing.StandardInvoice) (bool, error) {\n  if !a.Configuration.EnableIssuingSyncHook { return true, nil }\n  if invoice.Metadata == nil { return false, nil }\n  if _, ok := invoice.Metadata[MetadataKeyIssuingSyncedAt]; ok { return true, nil }\n  return false, nil\n}"
       }
     ]
   },
-  "api/spec/packages/aip/src/customers/credits": {
-    "purpose": "TypeSpec definitions for the customer credits API: credit grants (allocation, funding methods, lifecycle), credit balances (per-currency aggregates), credit transactions (immutable ledger entries), and credit adjustments. Compiles into v3 OpenAPI; the corresponding Go handlers are gated behind credits.enabled in api/v3/server.",
+  "openmeter/app/stripe": {
+    "purpose": "Stripe marketplace billing app: the App type (this folder, split across appinvoice.go/appcustomer.go/clientapp.go/config.go) implements billing.InvoicingApp and customerapp.App, backed by appstripe.Service (service/), persistence (adapter/), and the Stripe API client factories (client/), with all Stripe HTTP endpoints in httpdriver/. Primary constraint: Stripe is the source of truth for invoice numbers and all Stripe errors flow through providerError translation.",
     "patterns": [
       {
-        "name": "Shared.Resource for mutable entities, Shared.ResourceImmutable for ledger entries",
-        "description": "CreditGrant spreads Shared.Resource (mutable, has id/created_at/updated_at). CreditTransaction spreads Shared.ResourceImmutable to signal no updates are ever allowed. Balance models do not spread Resource at all \u2014 they are computed aggregates.",
-        "example": "model CreditGrant { ...Shared.Resource; ... }\nmodel CreditTransaction { ...Shared.ResourceImmutable; ... }\nmodel CreditBalances { retrieved_at: Shared.DateTime; balances: CreditBalance[]; }  // no Resource spread"
+        "name": "Four-file App method split",
+        "description": "App methods split by concern: appinvoice.go (InvoicingApp), appcustomer.go (customerapp.App + CustomerData), clientapp.go (getStripeClient helper), config.go (UpdateAppConfig). New App methods go in the matching file.",
+        "example": "var _ billing.InvoicingApp = (*App)(nil) // in appinvoice.go"
       },
       {
-        "name": "@friendlyName(\"Billing<Name>\") on all exported models and enums",
-        "description": "Every exported symbol carries @friendlyName(\"Billing<PascalCase>\") for stable generated SDK names. Exception: CreditBalance (non-billing-prefixed) is intentional for the inner model.",
-        "example": "@friendlyName(\"BillingCreditGrant\") model CreditGrant { ... }\n@friendlyName(\"BillingCreditFundingMethod\") enum CreditFundingMethod { ... }"
+        "name": "getStripeClient encapsulates secret retrieval",
+        "description": "App methods needing a Stripe client call a.getStripeClient(ctx, operationName, logKV...) which fetches AppData + secret + builds StripeAppClient. Never fetch the API key secret inline.",
+        "example": "_, stripeClient, err := a.getStripeClient(ctx, \"createInvoice\", \"invoice_id\", invoice.ID)"
       },
       {
-        "name": "Separate interfaces per resource in operations.tsp",
-        "description": "Operations are split into fine-grained interfaces: CustomerCreditGrantsOperations, CustomerCreditGrantExternalSettlementOperations, CustomerCreditBalancesOperations, CustomerCreditTransactionOperations, CustomerCreditAdjustmentsOperations. No omnibus interface.",
-        "example": "interface CustomerCreditGrantsOperations { create(...); get(...); list(...); }\ninterface CustomerCreditBalancesOperations { get(...); }"
+        "name": "UpsertStandardInvoice branches on ExternalIDs.Invoicing",
+        "description": "Empty ExternalIDs.Invoicing -> createInvoice; otherwise -> updateInvoice. The result always sets ExternalID + InvoiceNumber from Stripe's response (Stripe is source of truth for numbers).",
+        "example": "if invoice.ExternalIDs.Invoicing == \"\" { return a.createInvoice(ctx, invoice) }\nreturn a.updateInvoice(ctx, invoice)"
       },
       {
-        "name": "Cursor pagination for transactions, page pagination for grants/adjustments",
-        "description": "CreditTransaction list uses ...Common.CursorPaginationQuery + Shared.CursorPaginatedResponse<T>. CreditGrant list uses ...Common.PagePaginationQuery + Shared.PagePaginatedResponse<T>.",
-        "example": "list(...Common.CursorPaginationQuery, ...): Shared.CursorPaginatedResponse<CreditTransaction>  // transactions\nlist(...Common.PagePaginationQuery, ...): Shared.PagePaginatedResponse<CreditGrant>  // grants"
+        "name": "StripeCalculator for all currency arithmetic",
+        "description": "Every amount sent to Stripe goes through NewStripeCalculator(invoice.Currency).RoundToAmount(). Never pass raw float64 or alpacadecimal to Stripe params.",
+        "example": "calculator, _ := NewStripeCalculator(invoice.Currency)\namount := calculator.RoundToAmount(line.Amount)"
       },
       {
-        "name": "@visibility(Lifecycle.Read, Lifecycle.Create) only \u2014 no Update",
-        "description": "No field uses Lifecycle.Update because credits have no general PATCH operation; grants have only targeted action endpoints (updateExternalSettlement). Read-only computed fields use Lifecycle.Read alone.",
-        "example": "@visibility(Lifecycle.Read, Lifecycle.Create) funding_method: CreditFundingMethod;\n@visibility(Lifecycle.Read) status: CreditGrantStatus;"
+        "name": "HandleInvoiceStateTransition idempotency guards",
+        "description": "Service.HandleInvoiceStateTransition requires both TargetStatuses (already-in-target = skip) and IgnoreInvoiceInStatus (out-of-order = skip). New Stripe webhook handlers must supply both guards.",
+        "example": "HandleInvoiceStateTransitionInput{TargetStatuses: []billing.StandardInvoiceStatus{...}, IgnoreInvoiceInStatus: [...]}"
       },
       {
-        "name": "Nested anonymous object literals for compound fields",
-        "description": "Tightly related sub-fields use inline anonymous objects (purchase, invoice, filters, available_balance) instead of named models, unless the sub-type needs to be referenced standalone.",
-        "example": "purchase?: { currency: Shared.CurrencyCode; per_unit_cost_basis?: Shared.Numeric; amount: Shared.Numeric; availability_policy?: CreditAvailabilityPolicy; };"
+        "name": "Input namespace cross-check",
+        "description": "Input types carrying both AppID and CustomerID validate AppID.Namespace == CustomerID.Namespace. Apply the same check to any new input combining two namespaced IDs.",
+        "example": "if i.AppID.Namespace != i.CustomerID.Namespace { return errors.New(\"app and customer must be in the same namespace\") }"
       },
       {
-        "name": "Commented-out stubs for unimplemented features",
-        "description": "Future fields (effective_at, expires_after, expires_at, OnAuthorization/OnSettlement variants) and entire interfaces (void-grant) are fully commented out. Do not uncomment without a matching Go implementation.",
-        "example": "// @visibility(Lifecycle.Create, Lifecycle.Read)\n// effective_at?: Shared.DateTime;"
+        "name": "Compile-time interface assertions per file",
+        "description": "Each file implementing an interface declares var _ <Interface> = (*App)(nil) at the top; add an assertion whenever App gains a new interface.",
+        "example": "var _ billing.InvoicingApp = (*App)(nil)\nvar _ customerapp.App = (*App)(nil)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "grant.tsp",
-        "role": "Defines CreditGrant model, CreditFundingMethod, CreditAvailabilityPolicy, CreditGrantStatus, CreditGrantTaxConfig, CreditPurchasePaymentSettlementStatus enums.",
-        "watch_for": "Several commented-out fields are intentional stubs for future features \u2014 do not uncomment without a matching Go charges.Service implementation. `purchase` is an anonymous nested object, not a named model."
+        "file": "appinvoice.go",
+        "role": "Full InvoicingApp impl: Validate/Upsert/Finalize/Delete StandardInvoice plus createInvoice/updateInvoice helpers.",
+        "watch_for": "updateInvoice builds stripeLinesToRemove from existing line items \u2014 new line attributes must update both add and update paths; AddInvoiceLines resolves line IDs via a separate ListInvoiceLineItems call."
       },
       {
-        "file": "operations.tsp",
-        "role": "Declares all CRUD and action interfaces for grants, balance, transactions, and adjustments. Imports all sub-type files directly.",
-        "watch_for": "Must import @typespec/http and declare `using TypeSpec.Http; using TypeSpec.OpenAPI;`. The void-grant interface is entirely commented out \u2014 do not expose it until Go service implements void lifecycle. balance.tsp and adjustment.tsp are imported here, not in index.tsp."
+        "file": "appcustomer.go",
+        "role": "ValidateCustomer/ValidateCustomerByID (per-capability Stripe checks), GetCustomerData/UpsertCustomerData/DeleteCustomerData.",
+        "watch_for": "ValidateCustomerByID switches on CollectionMethod (ChargeAutomatically vs SendInvoice); new collection methods need a new case."
       },
       {
-        "file": "balance.tsp",
-        "role": "Defines CreditBalances (list of per-currency CreditBalance) returned by the balance GET endpoint.",
-        "watch_for": "Does not spread Shared.Resource \u2014 it is a computed read-only aggregate, not a stored entity. Do not add id/created_at."
+        "file": "calculator.go",
+        "role": "StripeCalculator: alpacadecimal -> Stripe integer subunits (RoundToAmount) + display formatting.",
+        "watch_for": "RoundToAmount multiplies by 10^subunits and truncates to int64 \u2014 only for amounts going to Stripe, not intermediate billing math."
       },
       {
-        "file": "ledger.tsp",
-        "role": "Defines CreditTransaction (immutable ledger entry spreading Shared.ResourceImmutable) and CreditTransactionType enum.",
-        "watch_for": "CreditTransaction spreads Shared.ResourceImmutable \u2014 do not add any mutable or Create-visible fields. Actor model is fully commented out for future use."
+        "file": "types.go",
+        "role": "Input/output structs with Validate(), API/Webhook secret key constants, HandleInvoiceStateTransitionInput (Target/Ignore status + hooks).",
+        "watch_for": "CreateCheckoutSessionInput has mutually exclusive fields (CreateCustomerInput vs CustomerID) validated inline \u2014 new options need similar mutual-exclusion checks."
       },
       {
-        "file": "adjustment.tsp",
-        "role": "Defines CreditAdjustment for manual balance corrections using PickProperties<Shared.Resource> for selective field inheritance.",
-        "watch_for": "Only Create-visible fields are present; no Read-only state fields. Currency is @visibility(Lifecycle.Create) only."
+        "file": "service.go",
+        "role": "Service interface = AppFactoryService + StripeAppService + CustomerService + BillingService sub-interfaces.",
+        "watch_for": "New Stripe operations go in the matching sub-interface \u2014 never add methods directly to Service."
       },
       {
-        "file": "index.tsp",
-        "role": "Re-exports grant.tsp, ledger.tsp, and operations.tsp. Note: balance.tsp and adjustment.tsp are imported directly in operations.tsp, not here.",
-        "watch_for": "New type files must be imported either in index.tsp or directly in operations.tsp before they are visible to the compiler."
+        "file": "marketplace.go",
+        "role": "StripeMarketplaceListing var and the three capability vars.",
+        "watch_for": "Capability keys are stored in DB; renaming them is a breaking migration."
+      },
+      {
+        "file": "event.go",
+        "role": "AppCheckoutSessionEvent implements watermill marshaler.Event with versioned metadata.EventType (subsystem 'app.stripe').",
+        "watch_for": "New domain events must follow the same EventName()/EventMetadata() pattern and be versioned (v1, v2, ...)."
       }
     ],
     "anti_patterns": [
-      "Uncommenting void-grant or external-payment-initial-settlement-status stubs without a matching Go charges.Service implementation",
-      "Adding @visibility(Lifecycle.Update) \u2014 no general update operation exists for any credit resource",
-      "Spreading Shared.Resource into balance.tsp models \u2014 CreditBalances is a computed aggregate, not a stored entity",
-      "Using page pagination for credit transactions \u2014 they must use cursor pagination (CursorPaginationQuery + CursorPaginatedResponse)",
-      "Hand-editing api/v3/api.gen.go or api/v3/openapi.yaml instead of running `make gen-api`"
+      "Calling Stripe API methods without routing errors through the client's providerError() \u2014 misses the 401 app-status update and domain error mapping.",
+      "Creating Stripe objects without injecting StripeMetadataNamespace/StripeMetadataAppID in Metadata \u2014 breaks reconciliation.",
+      "Using raw float64 or alpacadecimal for Stripe amounts instead of StripeCalculator.RoundToAmount.",
+      "Adding HandleInvoiceStateTransition webhook handlers without TargetStatuses and IgnoreInvoiceInStatus guards \u2014 causes duplicate state transitions.",
+      "Implementing App business logic in the adapter sub-package \u2014 adapter is pure persistence; orchestration belongs in service/."
     ],
     "decisions": [
       {
-        "decision": "Cursor pagination for credit transactions, page pagination for grants",
-        "rationale": "Transactions are append-only and high-volume; cursor pagination is stable under concurrent inserts. Grants are low-cardinality and need offset-based navigation for admin UIs."
+        "decision": "Two separate Stripe client interfaces: StripeClient (pre-install OAuth/webhook setup) vs StripeAppClient (post-install billing).",
+        "rationale": "Pre-install calls need only OAuth scopes; post-install needs API key + app context. Splitting prevents using an unauthenticated client for billing operations."
       },
       {
-        "decision": "Separate operations interfaces per resource sub-type",
-        "rationale": "Matches the Go side where each resource maps to a distinct service method group, and makes it easy to enable/disable individual endpoint groups (e.g. void-grant is fully commented out until implemented)."
+        "decision": "Service self-registers into the marketplace in New() rather than at wire time.",
+        "rationale": "Keeps registration co-located with factory construction; Wire only calls New() and needs no knowledge of the marketplace registry."
       },
       {
-        "decision": "Credits API compiled in TypeSpec but gated at Go wiring layer, not at TypeSpec level",
-        "rationale": "The spec is always compiled; credits.enabled disables Go handler registration in api/v3/server and noop-wires ledger services in app/common. This keeps the spec complete while the feature is in progress."
+        "decision": "Stripe is the source of truth for invoice numbers \u2014 FinalizeStandardInvoice reads stripeInvoice.Number and stores it.",
+        "rationale": "Stripe's numbering is deterministic and customer-facing; generating a separate number would cause reconciliation mismatch."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new filter field to credit grant listing \u2014 only operations.tsp changes needed",
-        "code": "// operations.tsp \u2014 extend ListCreditGrantsParamsFilter\n@friendlyName(\"ListCreditGrantsParamsFilter\")\nmodel ListCreditGrantsParamsFilter {\n  status?: CreditGrantStatus;\n  currency?: Shared.CurrencyCode;\n  // New field:\n  feature?: Shared.ResourceKey;  // filter by feature key\n}\n// No changes needed in grant.tsp or index.tsp.\n// Then: make gen-api && make generate"
+        "scenario": "Add a Stripe webhook handler that transitions an invoice with idempotency guards",
+        "code": "func (s *service) HandleInvoiceVoidedEvent(ctx context.Context, input HandleInvoiceStateTransitionInput) error {\n  return s.HandleInvoiceStateTransition(ctx, HandleInvoiceStateTransitionInput{\n    AppID: input.AppID, Invoice: input.Invoice, Trigger: billing.TriggerVoid,\n    TargetStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusVoided},\n    IgnoreInvoiceInStatus: []billing.StandardInvoiceStatusMatcher{billing.StandardInvoiceStatusVoided, billing.StandardInvoiceStatusDeleted},\n  })\n}"
       }
     ]
   }

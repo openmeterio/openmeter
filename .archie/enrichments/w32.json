@@ -1,81 +1,334 @@
 {
-  "api/v3/handlers/subscriptions/subscriptionaddons": {
-    "purpose": "v3 HTTP handler for listing subscription addons; implements the httptransport.HandlerWithArgs pipeline for the ListSubscriptionAddons endpoint, converting between domain subscriptionaddon.SubscriptionAddon and API apiv3.SubscriptionAddon types.",
+  "openmeter/productcatalog/addon": {
+    "purpose": "Domain package for add-on lifecycle management: defines the Addon aggregate (with RateCards), the Service + Repository interfaces, typed errors, domain events, and status/deletion validators; its children split into adapter (Ent persistence), httpdriver (v1 HTTP), and service (validation, feature/taxcode resolution, event publishing). Primary constraint: domain types always carry both productcatalog.* base types and managed identity fields (NamespacedID, ManagedModel).",
     "patterns": [
       {
-        "name": "HandlerWithArgs decode/operate/encode pipeline",
-        "description": "Every endpoint uses httptransport.NewHandlerWithArgs with three functions: (1) decode params+request into a typed request struct, (2) call the domain service, (3) encode response. Never write raw http.Handler.",
-        "example": "httptransport.NewHandlerWithArgs(decodeFn, operateFn, commonhttp.JSONResponseEncoderWithStatus[T](http.StatusOK), opts...)"
+        "name": "Addon aggregate embedding",
+        "description": "Addon embeds models.NamespacedID, models.ManagedModel, productcatalog.AddonMeta, and RateCards; RateCard wraps productcatalog.RateCard with RateCardManagedFields (AddonID). Never use struct literals missing these fields.",
+        "example": "type Addon struct { models.NamespacedID; models.ManagedModel; productcatalog.AddonMeta; RateCards RateCards }"
       },
       {
-        "name": "Namespace resolution via injected closure",
-        "description": "Namespace is resolved by calling h.resolveNamespace(ctx) inside the decode function. Never hardcode or parse namespace from URL params directly.",
-        "example": "ns, err := h.resolveNamespace(ctx)"
+        "name": "RateCards.AsProductCatalogRateCards() for cross-type conversion",
+        "description": "Never cast addon.RateCards to productcatalog.RateCards directly \u2014 call AsProductCatalogRateCards(), which extracts the inner productcatalog.RateCard from each wrapper.",
+        "example": "func (c RateCards) AsProductCatalogRateCards() productcatalog.RateCards { for _, rc := range c { rcs = append(rcs, rc.RateCard) }; return rcs }"
       },
       {
-        "name": "Pagination via pagination.NewPage with validation",
-        "description": "Page input is always constructed via pagination.NewPage(number, size) with defaults (1, 20), then validated with page.Validate() before building the service input.",
-        "example": "page := pagination.NewPage(lo.FromPtrOr(params.Params.Page.Number, 1), lo.FromPtrOr(params.Params.Page.Size, 20))"
+        "name": "RateCard type-discriminator JSON",
+        "description": "RateCard.UnmarshalJSON reads productcatalog.RateCardSerde.Type then switches FlatFeeRateCardType vs UsageBasedRateCardType to pick the concrete struct; new rate card types need a case here and in the ratecard test.",
+        "example": "switch s.Type { case productcatalog.FlatFeeRateCardType: serde.RateCard = &productcatalog.FlatFeeRateCard{} }"
       },
       {
-        "name": "Error encoding via apierrors.GenericErrorEncoder",
-        "description": "All handlers append apierrors.GenericErrorEncoder() as the error encoder option. Never use commonhttp.GenericErrorEncoder() in v3 handlers.",
-        "example": "httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))"
+        "name": "Typed NotFoundError + draft validation options",
+        "description": "Adapters return addon.NewNotFoundError(...) wrapping models.NewGenericNotFoundError (never raw entdb.IsNotFound); input structs embed inputOptions{IgnoreNonCriticalIssues} so drafts can pass with non-critical issues via WithSeverityOrHigher(ErrorSeverityCritical).",
+        "example": "issues := models.AsValidationIssues(errors.Join(errs...)); if i.IgnoreNonCriticalIssues { issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical) }"
       },
       {
-        "name": "Sort parsing via request.ParseSortBy",
-        "description": "Sort query params are parsed with request.ParseSortBy, then mapped to domain OrderBy type and validated with OrderBy.Validate(). Bad sort fields return apierrors.NewBadRequestError.",
-        "example": "sort, err := request.ParseSortBy(*params.Params.Sort); input.OrderBy = subscriptionaddon.OrderBy(sort.Field)"
-      },
-      {
-        "name": "toAPI conversion in convert.go only",
-        "description": "All domain-to-API type conversion lives in convert.go as standalone functions (e.g. toAPISubscriptionAddon). The operate function calls these; it never embeds conversion logic inline.",
-        "example": "converted, err := toAPISubscriptionAddon(item)"
-      },
-      {
-        "name": "Handler interface + struct separation",
-        "description": "handler.go defines a Handler interface listing all endpoint methods (e.g. ListSubscriptionAddons()), a private handler struct holding dependencies, and a New() constructor. Each endpoint lives in its own file.",
-        "example": "type Handler interface { ListSubscriptionAddons() ListSubscriptionAddonsHandler }"
+        "name": "Events via constructors, published inside the transaction",
+        "description": "Lifecycle events (Create/Update/Delete/Publish/Archive) carry the full Addon pointer + UserID from session.GetSessionUserID(ctx); the service child publishes them inside transaction.Run so DB write and event stay consistent.",
+        "example": "event := addon.NewAddonCreateEvent(ctx, created); s.publisher.Publish(ctx, event)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "handler.go",
-        "role": "Defines Handler interface, handler struct with injected deps (resolveNamespace, subscriptionAddonService, options), and New() constructor.",
-        "watch_for": "Adding new dependencies here requires wiring in api/v3/server/server.go. Keep handler struct fields minimal."
+        "file": "service.go",
+        "role": "Service interface (List/Create/Delete/Get/Update/Publish/Archive/Next) and input types with Validate().",
+        "watch_for": "PublishAddonInput.Validate() uses a 30s jitter via clock.Now() for EffectiveFrom \u2014 do not substitute time.Now()."
       },
       {
-        "file": "list.go",
-        "role": "Full implementation of ListSubscriptionAddons endpoint: typed params, request, response, and handler function.",
-        "watch_for": "Default pagination values (page 1, size 20) must be applied before Validate(). Sort fields must be validated via OrderBy.Validate() \u2014 unknown fields should return 400 not 500."
+        "file": "addon.go",
+        "role": "Addon aggregate with Validate(), ValidateWith(), AsProductCatalogAddon().",
+        "watch_for": "Plans field is *[]Plan \u2014 only populated on expand; never assume non-nil."
       },
       {
-        "file": "convert.go",
-        "role": "Domain-to-API type conversion. toAPISubscriptionAddon reads clock.Now() to determine the active instance and computes the union period across all instances.",
-        "watch_for": "Returns error if addon has no instances \u2014 callers must handle this. The union period calculation uses lo.Reduce; adding new fields here must stay in sync with apiv3.SubscriptionAddon struct."
+        "file": "ratecard.go",
+        "role": "RateCard wrapping productcatalog.RateCard with RateCardManagedFields; custom Marshal/UnmarshalJSON dispatching on RateCardSerde.Type.",
+        "watch_for": "New rate card types require a case in the UnmarshalJSON switch and the ratecard test."
+      },
+      {
+        "file": "errors.go",
+        "role": "NotFoundError wrapping models.NewGenericNotFoundError; IsNotFound() for errors.As detection.",
+        "watch_for": "Never return raw entdb.IsNotFound \u2014 always wrap via NewNotFoundError."
+      },
+      {
+        "file": "event.go",
+        "role": "Five lifecycle event structs; UserID sourced from session.GetSessionUserID(ctx).",
+        "watch_for": "AddonDeleteEvent.Validate() asserts Addon.DeletedAt != nil \u2014 soft-delete must be applied before constructing the event."
+      },
+      {
+        "file": "repository.go",
+        "role": "Repository interface embedding entutils.TxCreator \u2014 mandatory for TransactingRepo in the adapter.",
+        "watch_for": "Without TxCreator embedding the adapter cannot participate in ctx-bound transactions."
+      },
+      {
+        "file": "validators.go",
+        "role": "IsAddonDeleted and HasAddonStatus models.ValidatorFunc[Addon] for service-layer guards.",
+        "watch_for": "Use via Addon.ValidateWith() instead of inline status checks."
       }
     ],
     "anti_patterns": [
-      "Never call subscriptionAddonService methods directly from the decode function \u2014 decode must only parse/validate inputs.",
-      "Never use commonhttp.GenericErrorEncoder() in v3 handlers; always use apierrors.GenericErrorEncoder().",
-      "Never embed domain-to-API conversion logic inline in list.go \u2014 put it in convert.go.",
-      "Never skip page.Validate() before using the page value \u2014 invalid page params must return 400.",
-      "Never resolve namespace from URL path params directly \u2014 always call h.resolveNamespace(ctx)."
+      "Returning raw entdb.IsNotFound errors \u2014 always wrap in addon.NewNotFoundError.",
+      "Using context.Background() in service or adapter code \u2014 always propagate ctx.",
+      "Querying add-ons without eager-loading rate cards (WithRatecards).",
+      "Publishing domain events outside a transaction closure \u2014 event failure should roll back the DB write.",
+      "Creating multiple non-deleted draft versions for the same key without checking HasDraft()."
     ],
     "decisions": [
       {
-        "decision": "toAPISubscriptionAddon reads clock.Now() and unions all instance periods to produce a single ActiveFrom/ActiveTo range",
-        "rationale": "The domain model stores multiple timed instances; the API surface exposes a single flattened addon view with a current quantity snapshot and a full effective date range."
+        "decision": "RateCard is a separate managed type wrapping productcatalog.RateCard with AddonID.",
+        "rationale": "Each rate card needs its own DB identity (NamespacedID) and foreign key (AddonID) so Ent can persist and eager-load them independently."
       },
       {
-        "decision": "Sort validation uses subscriptionaddon.OrderBy.Validate() after field mapping",
-        "rationale": "Keeps supported sort fields authoritative in the domain package \u2014 the handler does not hardcode valid sort field names."
+        "decision": "inputOptions.IgnoreNonCriticalIssues enables partial validation for draft addons.",
+        "rationale": "Drafts can be created with non-critical issues (e.g. features not yet registered); callers opt into relaxed validation that only fails on ErrorSeverityCritical."
+      },
+      {
+        "decision": "Tax code and feature resolution happen at the service layer, not the adapter.",
+        "rationale": "resolveFeatures/resolveTaxCodes (GetOrCreateByAppMapping) are cross-domain orchestration that the persistence layer must stay free of."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new list endpoint to this package",
-        "code": "// In handler.go \u2014 add to Handler interface:\nGetSubscriptionAddon() GetSubscriptionAddonHandler\n\n// New file get.go:\ntype GetSubscriptionAddonHandler = httptransport.HandlerWithArgs[GetRequest, apiv3.SubscriptionAddon, GetParams]\n\nfunc (h *handler) GetSubscriptionAddon() GetSubscriptionAddonHandler {\n    return httptransport.NewHandlerWithArgs(\n        func(ctx context.Context, r *http.Request, params GetParams) (GetRequest, error) {\n            ns, err := h.resolveNamespace(ctx)\n            if err != nil { return GetRequest{}, err }\n            return GetRequest{ID: models.NamespacedID{Namespace: ns, ID: params.AddonID}}, nil\n        },\n        func(ctx context.Context, req GetRequest) (apiv3.SubscriptionAddon, error) {\n            item, err := h.subscriptionAddonService.Get(ctx, req.ID)\n            if err != nil { return apiv3.SubscriptionAddon{}, err }\n            return toAPISubscriptionAddon(item)\n        },\n        commonhttp.JSONResponseEncoderWithStatus[apiv3.SubscriptionAddon](http.StatusOK),\n        httptransport.AppendOptions(h.options,\n            httptransport.WithOperationName(\"get-subscription-addon\"),\n            httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n        )...,\n    )\n}"
+        "scenario": "Publishing a domain event after a successful adapter write inside a transaction",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/productcatalog/addon\"\n    \"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\nreturn transaction.Run(ctx, s.adapter, func(ctx context.Context) (*addon.Addon, error) {\n    created, err := s.adapter.CreateAddon(ctx, params)\n    if err != nil { return nil, err }\n    if err := s.publisher.Publish(ctx, addon.NewAddonCreateEvent(ctx, created)); err != nil {\n        return nil, fmt.Errorf(\"publish addon created event: %w\", err)\n    }\n    return created, nil\n})"
+      }
+    ]
+  },
+  "openmeter/productcatalog/plan": {
+    "purpose": "Domain package for plan lifecycle management: defines Plan (with Phases and RateCards), Phase/RateCard managed types, typed errors, domain events, a custom JSON serializer, and the Service + Repository interfaces; children split into adapter (Ent), httpdriver (v1 HTTP), and service (validation, feature/taxcode resolution, events). Primary constraint: EffectivePeriod changes are only allowed via Publish/Archive, never via UpdatePlan.",
+    "patterns": [
+      {
+        "name": "Nested managed-type embedding",
+        "description": "Plan = NamespacedID + ManagedModel + PlanMeta + []Phase; Phase = PhaseManagedFields{ManagedModel, NamespacedID, PlanID} + productcatalog.Phase; RateCard = productcatalog.RateCard + RateCardManagedFields{PhaseID}.",
+        "example": "type Plan struct { models.NamespacedID; models.ManagedModel; productcatalog.PlanMeta; Phases []Phase }"
+      },
+      {
+        "name": "EffectivePeriod zeroed in UpdatePlan",
+        "description": "UpdatePlanInput embeds productcatalog.EffectivePeriod but the service must zero it before calling the adapter \u2014 status transitions only go through Publish/Archive.",
+        "example": "// service: input.EffectivePeriod = productcatalog.EffectivePeriod{} before adapter.UpdatePlan"
+      },
+      {
+        "name": "Custom Plan JSON serializer for polymorphic RateCards",
+        "description": "serializer.go implements Plan.Marshal/UnmarshalJSON using alias types to avoid recursion, dispatching RateCards via the RateCardSerde type discriminator (flat_fee / usage_based). Any new field on Plan/Phase/RateCard must be reflected here.",
+        "example": "json.Marshal(plan) // Plan.MarshalJSON dispatches through rateCardAlias"
+      },
+      {
+        "name": "ValidatorFunc[Plan] status/deletion guards",
+        "description": "validators.go provides IsPlanDeleted(at) and HasPlanStatus(statuses...) as composable models.ValidatorFunc[Plan] used via Plan.ValidateWith().",
+        "example": "if err := p.ValidateWith(plan.HasPlanStatus(productcatalog.PlanStatusDraft)); err != nil { return nil, err }"
+      },
+      {
+        "name": "Typed NotFoundError + draft validation options",
+        "description": "Adapters return plan.NewNotFoundError(...) (never raw Ent not-found); CreatePlanInput/UpdatePlanInput embed inputOptions{IgnoreNonCriticalIssues} with AsValidationIssues+WithSeverityOrHigher for relaxed draft validation.",
+        "example": "return nil, plan.NewNotFoundError(plan.NotFoundErrorParams{Namespace: ns, Key: key, Version: v})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service interface (List/Create/Delete/Get/Update/Publish/Archive/Next) and input types with Validate().",
+        "watch_for": "PublishPlanInput.Validate() uses a 30s jitter via pkg/clock.Now() \u2014 not time.Now()."
+      },
+      {
+        "file": "plan.go",
+        "role": "Plan aggregate with Validate(), ValidateWith(), AsProductCatalogPlan().",
+        "watch_for": "Addons field is *[]Addon \u2014 only populated on expand; never assume non-nil."
+      },
+      {
+        "file": "phase.go",
+        "role": "Phase and PhaseManagedFields types with their validator funcs.",
+        "watch_for": "PhaseManagedFields.Validate() asserts PlanID != '' \u2014 always populate PlanID when constructing a Phase in adapters."
+      },
+      {
+        "file": "ratecard.go",
+        "role": "RateCard wrapping productcatalog.RateCard with PhaseID; custom Marshal/UnmarshalJSON dispatching on type.",
+        "watch_for": "New rate card types require a case in UnmarshalJSON and the serializer switch."
+      },
+      {
+        "file": "serializer.go",
+        "role": "Custom JSON marshaler/unmarshaler for Plan using alias types to avoid recursion.",
+        "watch_for": "Any new field on Plan/Phase/RateCard must be added here; serializer_test.go covers round-trip and error paths."
+      },
+      {
+        "file": "validators.go",
+        "role": "IsPlanDeleted and HasPlanStatus validator funcs.",
+        "watch_for": "IsPlanDeleted takes a time.Time check argument \u2014 use clock.Now() at the call site."
+      }
+    ],
+    "anti_patterns": [
+      "Setting EffectivePeriod via UpdatePlan \u2014 it must be zeroed in the service; only Publish/Archive alter it.",
+      "Skipping resolveFeatures/resolveTaxCodes before persisting rate cards in the service.",
+      "Returning raw entdb.IsNotFound \u2014 always wrap in plan.NewNotFoundError.",
+      "Publishing events outside a transaction.Run closure \u2014 DB write and event publish must be atomic.",
+      "Editing openmeter/ent/db/ generated files \u2014 always regenerate with make generate."
+    ],
+    "decisions": [
+      {
+        "decision": "EffectivePeriod changes are strictly gated to Publish/Archive.",
+        "rationale": "UpdatePlan zeroes EffectivePeriod so callers cannot manipulate plan status via update; status transitions are explicit state-machine operations."
+      },
+      {
+        "decision": "Custom JSON serializer on Plan instead of generated oapi-codegen types.",
+        "rationale": "productcatalog.RateCard is a polymorphic interface; the serializer dispatches on the type discriminator to pick the concrete struct, which generated decoders cannot handle."
+      },
+      {
+        "decision": "Version auto-incremented in the service layer, not settable by callers.",
+        "rationale": "Prevents callers from forging version numbers; the service computes the next version from existing versions at create/next time."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Service mutation wrapping adapter call and event publish in transaction.Run",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/productcatalog/plan\"\n    \"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\nfunc (s *service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*plan.Plan, error) {\n    if err := params.Validate(); err != nil { return nil, err }\n    return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*plan.Plan, error) {\n        created, err := s.adapter.CreatePlan(ctx, params)\n        if err != nil { return nil, err }\n        if err := s.publisher.Publish(ctx, plan.NewPlanCreateEvent(ctx, created)); err != nil {\n            return nil, fmt.Errorf(\"publish plan created: %w\", err)\n        }\n        return created, nil\n    })\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/planaddon": {
+    "purpose": "Domain package for plan-to-addon assignment (PlanAddon): defines the PlanAddon aggregate linking a full plan.Plan and addon.Addon with quantity/phase constraints, typed errors, domain events, and the Service + Repository interfaces; children split into adapter (Ent), httpdriver (v1 HTTP), and service (cross-entity validation + events).",
+    "patterns": [
+      {
+        "name": "PlanAddon embeds full plan.Plan + addon.Addon",
+        "description": "PlanAddon = NamespacedID + ManagedModel + PlanAddonMeta + Plan plan.Plan + Addon addon.Addon; AsProductCatalogPlanAddon() converts to the base type. Always populate Plan and Addon fully before constructing.",
+        "example": "type PlanAddon struct { models.NamespacedID; models.ManagedModel; productcatalog.PlanAddonMeta; Plan plan.Plan; Addon addon.Addon }"
+      },
+      {
+        "name": "Dual-lookup inputs (ID or plan+addon pair)",
+        "description": "Get/Update/Delete inputs support either an assignment ID or a PlanIDOrKey + AddonIDOrKey pair; if ID is empty both pair fields must be provided. Adapters must handle both paths.",
+        "example": "if i.ID == \"\" { if i.PlanIDOrKey == \"\" || i.AddonIDOrKey == \"\" { return err } }"
+      },
+      {
+        "name": "Typed NotFoundError with pair params",
+        "description": "NewNotFoundError accepts namespace, ID, PlanIDOrKey, AddonIDOrKey; use IsNotFound() for errors.As detection. Message format differs from plan/addon ('plan add-on assignment not found ...').",
+        "example": "return nil, planaddon.NewNotFoundError(planaddon.NotFoundErrorParams{Namespace: ns, PlanIDOrKey: planKey, AddonIDOrKey: addonKey})"
+      },
+      {
+        "name": "Equaler-based idempotent updates",
+        "description": "UpdatePlanAddonInput implements models.Equaler[PlanAddon] so the service can skip the adapter call when the patch produces no change.",
+        "example": "if input.Equal(*existing) { return existing, nil }"
+      },
+      {
+        "name": "Events carry PlanAddon pointer + UserID, published in tx",
+        "description": "Three events (Create/Update/Delete) carry the PlanAddon and UserID from session; DeleteEvent.Validate() asserts DeletedAt != nil. Publish inside transaction.Run after every mutation.",
+        "example": "event := planaddon.NewPlanAddonCreateEvent(ctx, created); s.publisher.Publish(ctx, event)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service interface (List/Create/Delete/Get/Update) and input types.",
+        "watch_for": "CreatePlanAddonInput requires non-empty PlanID and AddonID; Get/Update/Delete support both ID-only and plan+addon-pair lookup."
+      },
+      {
+        "file": "planaddon.go",
+        "role": "PlanAddon aggregate with Validate() and AsProductCatalogPlanAddon().",
+        "watch_for": "Validate() calls both Plan.Validate() and Addon.Validate() \u2014 ensure both are fully populated before constructing."
+      },
+      {
+        "file": "errors.go",
+        "role": "NotFoundError and IsNotFound wrapping models.NewGenericNotFoundError.",
+        "watch_for": "Message format includes 'plan add-on assignment not found' \u2014 differs from plan/addon error messages."
+      },
+      {
+        "file": "event.go",
+        "role": "Three lifecycle events; subsystem is 'planaddon'.",
+        "watch_for": "PlanAddonDeleteEvent.Validate() requires PlanAddon.DeletedAt != nil \u2014 soft-delete must precede event construction."
+      },
+      {
+        "file": "repository.go",
+        "role": "Repository extends entutils.TxCreator; 5-method CRUD interface.",
+        "watch_for": "TxCreator is required for TransactingRepo in the adapter layer."
+      },
+      {
+        "file": "assert.go",
+        "role": "Test helpers (AssertPlanAddon*Equal) in the main package, not testutils.",
+        "watch_for": "Kept in the main package so adapter/service tests can import them without a separate testutils import."
+      }
+    ],
+    "anti_patterns": [
+      "Checking plan/addon status (draft, active) inside the adapter \u2014 status validation belongs in the service layer.",
+      "Returning raw adapter-level errors without wrapping in planaddon.NewNotFoundError.",
+      "Calling adapter methods outside transaction.Run for writes \u2014 risks partial writes if event publish fails.",
+      "Hard-deleting PlanAddon rows instead of soft-deleting via SetDeletedAt.",
+      "Skipping eager-load of Plan and Addon edges after create/update \u2014 both must always be fully populated."
+    ],
+    "decisions": [
+      {
+        "decision": "PlanAddon embeds full plan.Plan and addon.Addon rather than just IDs.",
+        "rationale": "Callers (subscription sync, billing) need the full plan and addon data without extra lookups; eager-loading at the adapter avoids N+1 queries."
+      },
+      {
+        "decision": "Both ID-based and plan+addon-pair lookups supported in Get/Update/Delete.",
+        "rationale": "HTTP handlers and internal code may have either the assignment ID or only the plan/addon identifiers; supporting both avoids forcing a Get before Update."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Service write with cross-entity validation and event publish in a transaction",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon\"\n    \"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\nfunc (s *service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePlanAddonInput) (*planaddon.PlanAddon, error) {\n    if err := params.Validate(); err != nil { return nil, err }\n    return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*planaddon.PlanAddon, error) {\n        created, err := s.adapter.CreatePlanAddon(ctx, params)\n        if err != nil { return nil, err }\n        if err := s.publisher.Publish(ctx, planaddon.NewPlanAddonCreateEvent(ctx, created)); err != nil {\n            return nil, fmt.Errorf(\"publish planaddon created: %w\", err)\n        }\n        return created, nil\n    })\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/subscription": {
+    "purpose": "Bridge package (package plansubscription) connecting the productcatalog plan model to the subscription domain: defines PlanSubscriptionService (Create, Migrate, Change), PlanInput (ref vs inline discriminator), and Plan/Phase/RateCard adapter types implementing the subscription.Plan/PlanPhase/PlanRateCard interfaces; children split into http (v1 driver), service (concrete bridge), and testutils. All subscription DB writes go through subscriptionworkflow.Service, never directly through subscription.Service.",
+    "patterns": [
+      {
+        "name": "PlanInput dual-path discriminator",
+        "description": "PlanInput holds either a *PlanRefInput (existing plan by key/version) or *plan.CreatePlanInput (inline spec). Use FromRef/FromInput setters; AsRef()/AsInput() return nil for the unused path; Validate() errors if both are nil.",
+        "example": "var pi plansubscription.PlanInput; pi.FromRef(&PlanRefInput{Key: \"pro\", Version: lo.ToPtr(2)})"
+      },
+      {
+        "name": "Adapter types implement subscription interfaces",
+        "description": "plan.go defines Plan, Phase, RateCard wrappers implementing subscription.Plan/PlanPhase/PlanRateCard. Plan.GetPhases() accumulates StartAfter by summing phase durations in order \u2014 reordering Phases breaks timing.",
+        "example": "p := &plansubscription.Plan{Plan: fetchedPlan.AsProductCatalogPlan(), Ref: &models.NamespacedID{ID: fetchedPlan.ID}}"
+      },
+      {
+        "name": "All persistence delegated to WorkflowService",
+        "description": "The service resolves and validates the plan, then calls subscriptionworkflow.Service.CreateFromPlan / ChangeToPlan / Migrate. No direct subscription.Repository or Ent calls in this package.",
+        "example": "return s.workflowService.CreateFromPlan(ctx, workflowInput, &adaptedPlan)"
+      },
+      {
+        "name": "zeroPhasesBeforeStartingPhase collapses earlier phases",
+        "description": "When StartingPhase is set, phases before it have Duration zeroed (not deleted) before passing the plan to WorkflowService.",
+        "example": "// service/create.go: zeroPhasesBeforeStartingPhase(plan, *request.StartingPhase)"
+      },
+      {
+        "name": "Custom-plan discriminator sniff via marshal+unmarshal",
+        "description": "In the http/ child, custom-plan detection marshals then unmarshals into a plan-specific struct rather than using oapi-codegen As* helpers, which succeed on wrong types and silently produce zero values.",
+        "example": "// http/create.go: marshal body to JSON then unmarshal into plan-specific struct to detect type"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "PlanSubscriptionService interface (Create, Migrate, Change) and request types.",
+        "watch_for": "ChangeSubscriptionRequest.StartingPhase only applies when PlanInput.AsRef() is non-nil; set both consistently."
+      },
+      {
+        "file": "plan.go",
+        "role": "Plan/Phase/RateCard adapter types wrapping productcatalog types to implement subscription.Plan interfaces.",
+        "watch_for": "Plan.GetPhases() accumulates StartAfter by summing phase durations in order \u2014 any reordering of Phases breaks subscription timing."
+      }
+    ],
+    "anti_patterns": [
+      "Calling subscription.Service directly for create/change/migrate \u2014 always route through PlanSubscriptionService or WorkflowService.",
+      "Calling plan.Service.GetPlan directly instead of the getPlanByVersion helper \u2014 the helper normalises NotFound to subscription.NewPlanNotFoundError.",
+      "Setting StartingPhase without calling zeroPhasesBeforeStartingPhase \u2014 earlier phases won't collapse.",
+      "Importing app/common from testutils \u2014 it must stay independent to avoid import cycles.",
+      "Adding persistence calls directly in service/service.go \u2014 all DB writes go through WorkflowService."
+    ],
+    "decisions": [
+      {
+        "decision": "PlanInput discriminator (ref vs inline) instead of separate Create methods.",
+        "rationale": "Callers may subscribe to an existing stored plan or a transient inline spec without separate entry points; the discriminator validates exactly one path is set."
+      },
+      {
+        "decision": "Plan/Phase/RateCard adapter types implement subscription interfaces rather than using productcatalog types directly.",
+        "rationale": "Subscription defines its own Plan/PlanPhase/PlanRateCard interfaces; the adapter types bridge productcatalog.Plan to them without circular imports."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Resolving a plan by ref and delegating subscription creation to WorkflowService",
+        "code": "import plansubscription \"github.com/openmeterio/openmeter/openmeter/productcatalog/subscription\"\n\nfunc (s *service) Create(ctx context.Context, req plansubscription.CreateSubscriptionRequest) (*subscription.Subscription, error) {\n    if ref := req.PlanInput.AsRef(); ref != nil {\n        fetchedPlan, err := s.getPlanByVersion(ctx, ns, ref.Key, ref.Version)\n        if err != nil { return nil, err }\n        adaptedPlan := &plansubscription.Plan{Plan: fetchedPlan.AsProductCatalogPlan(), Ref: &models.NamespacedID{ID: fetchedPlan.ID}}\n        if req.StartingPhase != nil {\n            zeroPhasesBeforeStartingPhase(adaptedPlan, *req.StartingPhase)\n        }\n        return s.workflowService.CreateFromPlan(ctx, workflowInput, adaptedPlan)\n    }\n    // ... inline plan path ...\n}"
       }
     ]
   }

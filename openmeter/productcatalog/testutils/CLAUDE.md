@@ -6,26 +6,27 @@
 
 ## Patterns
 
-**TestEnv with DBSchemaMigrate + Close lifecycle** — NewTestEnv(t) creates the DB and wires all services; always call env.DBSchemaMigrate(t) before any write; env.Close(t) uses sync.Once so it is safe to defer multiple times. (`env := testutils.NewTestEnv(t); env.DBSchemaMigrate(t); defer env.Close(t)`)
+**TestEnv with DBSchemaMigrate + Close lifecycle** — NewTestEnv(t) creates the DB and wires all services; call env.DBSchemaMigrate(t) before any write; env.Close(t) uses sync.Once so it is safe to defer multiple times. (`env := testutils.NewTestEnv(t); env.DBSchemaMigrate(t); defer env.Close(t)`)
 **eventbus.NewMock for event assertions** — TestEnv injects eventbus.NewMock(t) as the Watermill publisher so tests can assert events were published without a real Kafka broker. (`publisher := eventbus.NewMock(t)`)
-**Factory helpers return input types, not domain entities** — NewTestFeature, NewTestPlan, NewTestAddon, NewTestFeatureFromMeter return Create*Input structs; the caller must call the service to actually persist the entity. (`input := testutils.NewTestFeature(t, ns); feat, err := env.Feature.CreateFeature(ctx, input)`)
-**meteradapter.TestAdapter as meter service** — TestEnv uses meteradapter.TestAdapter (SetDBClient(client)) instead of real meter.Service; tests must add meters to the DB client directly to satisfy FK constraints. (`meterAdapter, _ := meteradapter.New(nil); _ = meterAdapter.SetDBClient(client)`)
+**Factory helpers return input types, not domain entities** — NewTestFeature, NewTestPlan, NewTestAddon, NewTestFeatureFromMeter return Create*Input structs; the caller must call the service to persist. (`input := testutils.NewTestFeature(t, ns); feat, err := env.Feature.CreateFeature(ctx, input)`)
+**meteradapter.TestAdapter as meter service** — TestEnv uses meteradapter.TestAdapter (SetDBClient(client)) instead of a real meter.Service; tests must add meters to the DB client directly to satisfy FK constraints. (`meterAdapter, _ := meteradapter.New(nil); _ = meterAdapter.SetDBClient(client)`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `env.go` | TestEnv struct and NewTestEnv factory wiring all productcatalog services; DBSchemaMigrate and Close lifecycle. | env.Close uses sync.Once — safe to defer multiple times. Do not close Client or db externally. |
+| `env.go` | TestEnv struct and NewTestEnv factory wiring all productcatalog services; DBSchemaMigrate and Close lifecycle. | env.Close uses sync.Once — safe to defer multiple times; do not close Client or db externally. |
 | `plan.go` | NewTestPlan with BillingCadence P1M, USD currency, ProRating enabled, CreditThenInvoice settlement. | Default plan has no phases — pass phases as variadic args if rate cards are needed. |
-| `feature.go` | NewTestFeature (no meter) and NewTestFeatureFromMeter (meter-backed with eq filters from meter.GroupBy). | NewTestFeatureFromMeter uses ConvertMapStringToMeterGroupByFilters — only creates eq filters, not advanced typed filters. |
-| `meters.go` | NewTestMeters returns three canonical meters: api_requests_total (count), tokens_total (sum), workload_runtime_duration_seconds (sum). | IDs generated with NewTestULID(t) — unique per test run; do not hardcode IDs when using these meters. |
+| `feature.go` | NewTestFeature (no meter) and NewTestFeatureFromMeter (meter-backed with eq filters from meter.GroupBy). | NewTestFeatureFromMeter uses ConvertMapStringToMeterGroupByFilters — only eq filters, not advanced typed filters. |
+| `meters.go` | NewTestMeters returns three canonical meters: api_requests_total (count), tokens_total (sum), workload_runtime_duration_seconds (sum). | IDs generated with NewTestULID(t) — unique per run; do not hardcode IDs when using these meters. |
+| `addon.go` | NewTestAddon returning addon.CreateAddonInput (USD, AddonInstanceTypeSingle, variadic rate cards). | Returns an input struct only — pass it to the addon service to persist. |
 
 ## Anti-Patterns
 
-- Importing app/common — use raw adapter constructors as done in NewTestEnv to avoid import cycles.
-- Calling env services before DBSchemaMigrate — Ent schema must be applied before any write.
-- Sharing a TestEnv across parallel tests without synchronisation — each parallel test should create its own TestEnv.
-- Assuming factory helpers persist entities — they return input structs that must be passed to the corresponding service.
+- Importing app/common — use raw adapter constructors as in NewTestEnv to avoid import cycles
+- Calling env services before DBSchemaMigrate — Ent schema must be applied before any write
+- Sharing a TestEnv across parallel tests without synchronisation — each parallel test creates its own TestEnv
+- Assuming factory helpers persist entities — they return input structs that must be passed to the service
 
 ## Decisions
 

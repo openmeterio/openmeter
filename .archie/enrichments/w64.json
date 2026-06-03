@@ -1,105 +1,110 @@
 {
-  "openmeter/billing/charges/usagebased/service/run": {
-    "purpose": "Owns the mechanics of usage-based realization runs \u2014 rating, run persistence, credit allocation/correction, lineage writes, invoice usage booking, and payment authorization/settlement. Never makes state-machine decisions; executes run operations only.",
+  "openmeter/billing/charges/usagebased/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing usagebased.Adapter for the usage-based charge lifecycle. Persists charges, realization runs, credit allocations, invoiced usage, payments, and detailed lines \u2014 all within context-propagated Ent transactions via entutils.TransactingRepo.",
     "patterns": [
       {
-        "name": "Config-struct constructor with Validate()",
-        "description": "New(Config) validates all four required dependencies (Adapter, Rater, Handler, Lineage) before returning *Service. Config.Validate() uses errors.Join over a []error slice.",
-        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err } return &Service{...}, nil }"
+        "name": "TransactingRepo on every mutating method",
+        "description": "Every public DB-writing method wraps its body with entutils.TransactingRepo (value) or TransactingRepoWithNoValue (void). Never call a.db.X directly in a method body \u2014 go through the tx-rebound client in the closure.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.ChargeBase, error) { return MapChargeBaseFromDB(tx.db.ChargeUsageBased.UpdateOneID(id).Save(ctx)) })"
       },
       {
-        "name": "Input structs validate first",
-        "description": "Every exported method calls in.Validate() as its first action. Input structs implement Validate() and validate sub-fields recursively with wrapped fmt.Errorf messages.",
-        "example": "func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (...) { if err := in.Validate(); err != nil { return ..., err } ... }"
+        "name": "Validate inputs before opening a transaction",
+        "description": "Every public method calls input.Validate() (or charge.Validate(), runID.Validate()) before the TransactingRepo call so validation errors escape without starting a DB transaction.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }\nreturn entutils.TransactingRepo(ctx, a, func(...) { ... })"
       },
       {
-        "name": "CreditAllocationMode enum for credit semantics",
-        "description": "Three-valued enum CreditAllocationNone/Exact/Available controls whether credits are allocated and whether exact-match is required. Its own Validate() catches invalid values.",
-        "example": "CreditAllocation: CreditAllocationExact // allocates exact run total; error if ledger cannot satisfy"
+        "name": "Tx/WithTx/Self triad for ctx-propagated transactions",
+        "description": "adapter implements Tx() (HijackTx + NewTxDriver), WithTx() (NewTxClientFromRawConfig), Self(). All three must stay in sync with adapter struct fields \u2014 a new field must be copied in WithTx.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client(), logger: a.logger, metaAdapter: a.metaAdapter} }"
       },
       {
-        "name": "Atomic credit-realization + lineage writes",
-        "description": "createRunCreditRealizations always calls lineage.CreateInitialLineages then lineage.PersistCorrectionLineageSegments immediately after adapter.CreateRunCreditRealization. These three calls must never be split.",
-        "example": "s.adapter.CreateRunCreditRealization(...); s.lineage.CreateInitialLineages(...); s.lineage.PersistCorrectionLineageSegments(...)"
+        "name": "Compile-time interface assertions per file",
+        "description": "Each file declares a blank var assertion for the sub-interface it implements (e.g. var _ usagebased.ChargeAdapter = (*adapter)(nil)). Add one per file when implementing a new sub-interface.",
+        "example": "var _ usagebased.RealizationRunPaymentAdapter = (*adapter)(nil)"
       },
       {
-        "name": "Handler callbacks for all ledger side-effects",
-        "description": "Ledger writes (credit allocation, payment authorization, settlement, invoice usage accrual) go through usagebased.Handler callbacks. Never call ledger adapters directly from this package.",
-        "example": "ledgerRef, err := s.handler.OnInvoiceUsageAccrued(ctx, usagebased.OnInvoiceUsageAccruedInput{...})"
+        "name": "Config struct + Validate() + New() constructor",
+        "description": "The adapter is always constructed via New(Config) which calls config.Validate(). All dependencies live in Config. Never instantiate &adapter{} from outside the package.",
+        "example": "func New(config Config) (usagebased.Adapter, error) { if err := config.Validate(); err != nil { return nil, err }; return &adapter{...}, nil }"
       },
       {
-        "name": "Round before compare or persist",
-        "description": "Decimals must be rounded via CurrencyCalculator.RoundToPrecision before negative-total checks, delta comparisons, and UpdateRealizationRun calls. Never compare unrounded alpacadecimal.Decimal values.",
-        "example": "runTotals := ratingResult.Totals.RoundToPrecision(in.CurrencyCalculator); if runTotals.Total.IsNegative() { ... }"
+        "name": "Mapper functions in mapper.go, not inline",
+        "description": "All DB to domain conversions delegate to named functions in mapper.go (MapChargeFromDB, MapChargeBaseFromDB, MapRealizationRunFromDB). Methods call them; they do not map inline.",
+        "example": "return MapChargeBaseFromDB(dbUpdatedChargeBase), nil"
       },
       {
-        "name": "NoFiatTransactionRequired short-circuit",
-        "description": "BookInvoicedPaymentAuthorized and SettleInvoicedPayment both short-circuit with a no-op result when in.Run.NoFiatTransactionRequired is true, skipping handler and adapter calls.",
-        "example": "if in.Run.NoFiatTransactionRequired { return BookInvoicedPaymentAuthorizedResult{Run: in.Run}, nil }"
+        "name": "Soft-delete via DeletedAt + namespace filter on all queries",
+        "description": "Deletions set DeletedAt; active-record queries filter DeletedAtIsNil(). Every Ent query also scopes by Namespace to enforce multi-tenancy.",
+        "example": "Where(dbchargeusagebasedrundetailedline.DeletedAtIsNil()).Where(dbchargeusagebasedrundetailedline.NamespaceEQ(ns))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "service.go",
-        "role": "Defines Service struct, Config, New constructor, and CreditAllocationMode enum.",
-        "watch_for": "No state-machine logic ever belongs here \u2014 this package executes runs, it does not decide which state to enter."
+        "file": "adapter.go",
+        "role": "Struct definition, Config/Validate/New constructor, and Tx/WithTx/Self transaction plumbing \u2014 core scaffolding every other file depends on.",
+        "watch_for": "Adding a field to the adapter struct without updating WithTx to copy it: the tx-rebound copy silently loses the dependency and causes nil-pointer panics under concurrent charge advancement."
       },
       {
-        "file": "create.go",
-        "role": "CreateRatedRun: full run creation \u2014 rate, validate totals, persist run+detailed lines, optionally allocate credits, update run totals.",
-        "watch_for": "runTotals must be rounded before the negative-total check and before UpdateRealizationRun. ensureDetailedLinesLoadedForRating must be called before rating to satisfy PriorRuns validation."
+        "file": "charge.go",
+        "role": "CRUD for ChargeUsageBased rows: CreateCharges, GetByID, GetByIDs, UpdateCharge, DeleteCharge.",
+        "watch_for": "expandRealizations builds the WithRuns eager-load chain; a new run-level sub-entity needs its WithX() edge here plus an OrErr() check and mapping in mapper.go."
       },
       {
-        "file": "correct.go",
-        "role": "ReconcileCredits (delta allocation/correction) and CorrectAllCredits (zero out run credits).",
-        "watch_for": "TargetAmount and currentAmount must both be rounded before computing delta \u2014 comparing unrounded decimals produces incorrect billing corrections."
+        "file": "mapper.go",
+        "role": "Pure DB to domain mapping functions with no Ent queries \u2014 the single source of mapping truth.",
+        "watch_for": "MapRealizationRunFromDB uses OrErr() on every edge; if expandRealizations adds an edge, add the matching OrErr() check or it returns an error on every run expansion."
       },
       {
-        "file": "credits.go",
-        "role": "Private allocate() helper and createRunCreditRealizations() that pairs adapter credit creation with lineage writes.",
-        "watch_for": "Never call adapter.CreateRunCreditRealization without the two subsequent lineage calls \u2014 they must be treated as a single atomic business operation."
+        "file": "detailedline.go",
+        "role": "UpsertRunDetailedLines (soft-delete existing then bulk-create with ON CONFLICT) and FetchDetailedLines.",
+        "watch_for": "ON CONFLICT lists specific columns; new upsertable fields need a matching UpdateX() in the Exec chain. FetchDetailedLines uses DetailedLinesPresent flag as authority \u2014 never infer presence from row count."
       },
       {
-        "file": "invoice.go",
-        "role": "BookAccruedInvoiceUsage: books invoice usage accrual via handler then persists AccruedUsage. Short-circuits on NoFiatTransactionRequired.",
-        "watch_for": "Empty TransactionGroupID returned from handler is an error \u2014 enforce this check before calling adapter.CreateRunInvoicedUsage."
+        "file": "realizationrun.go",
+        "role": "CreateRealizationRun and UpdateRealizationRun for ChargeUsageBasedRuns rows.",
+        "watch_for": "UpdateRealizationRunInput uses mo.Option (IsPresent/OrEmpty) for partial updates \u2014 only set present fields; new fields must follow this pattern to avoid zero-value overwrites."
       },
       {
         "file": "payment.go",
-        "role": "BookInvoicedPaymentAuthorized and SettleInvoicedPayment: authorize/settle payment via handler then persist via adapter.",
-        "watch_for": "State guards in Validate() (payment already authorized, mismatched line ID, already settled) must be preserved for any new payment methods."
+        "role": "CreateRunPayment and UpdateRunPayment for ChargeUsageBasedRunPayment rows.",
+        "watch_for": "Explicit namespace mismatch check between runID.Namespace and payment.InvoicedCreate.Namespace is a hard error before TransactingRepo \u2014 preserve for new methods."
       },
       {
-        "file": "payment_test.go",
-        "role": "Unit tests for BookInvoicedPaymentAuthorizedInput.Validate() and SettleInvoicedPaymentInput.Validate() covering all rejection paths.",
-        "watch_for": "Test helpers (newUsageBasedCharge, newUsageBasedRun) construct values directly \u2014 do not extract them to testutils; they depend on internal types."
+        "file": "creditallocation.go",
+        "role": "CreateRunCreditRealization \u2014 bulk-creates credit allocation rows for a realization run via lo.Map + CreateBulk.",
+        "watch_for": "All rows share the runID's namespace; validate runID first and ensure new bulk builders inherit the same namespace."
+      },
+      {
+        "file": "detailedline_test.go",
+        "role": "Integration test suite for UpsertRunDetailedLines upsert/soft-delete semantics, using testutils.InitPostgresDB and real Atlas migrations.",
+        "watch_for": "Tests bootstrap metaadapter.New directly (not app/common) to avoid import cycles \u2014 follow this for new test suites."
       }
     ],
     "anti_patterns": [
-      "Making state-machine decisions (status transitions, trigger selection) inside this package \u2014 those belong in the usagebased charge service layer above.",
-      "Calling ledger adapters directly \u2014 all ledger side-effects must flow through usagebased.Handler callbacks.",
-      "Splitting createRunCreditRealizations from its lineage calls \u2014 CreateInitialLineages and PersistCorrectionLineageSegments must always follow credit creation atomically.",
-      "Comparing alpacadecimal.Decimal values before rounding with CurrencyCalculator \u2014 rounding order is required for billing correctness.",
-      "Assigning charge.Intent.TaxConfig pointer directly into DetailedLine \u2014 always clone with cfg.Clone() to prevent mutation across run boundaries."
+      "Calling a.db.X directly inside a method body without TransactingRepo \u2014 bypasses the ctx-carried Ent transaction and causes partial writes under concurrent charge advancement.",
+      "Mapping DB rows inline inside query methods instead of delegating to named functions in mapper.go.",
+      "Hard-deleting rows \u2014 this package uses soft-delete (SetDeletedAt) everywhere for audit trail and idempotent realization runs.",
+      "Adding a field to the adapter struct without updating WithTx to propagate it to the tx-rebound copy.",
+      "Omitting namespace filter on any Ent query \u2014 breaks multi-tenancy isolation between customers."
     ],
     "decisions": [
       {
-        "decision": "Service owns run mechanics but not state-machine decisions",
-        "rationale": "Separating 'how to execute a run' (rating, persistence, credit math) from 'when to execute a run' (state transitions) keeps this package testable without a full state machine."
+        "decision": "entutils.TransactingRepo wraps every write, even helpers operating on a raw *entdb.Client.",
+        "rationale": "Ent transactions propagate implicitly via ctx; bypassing rebinding causes partial writes in the multi-step AdvanceCharges / ApplyPatches flows (pitfall ctx-002)."
       },
       {
-        "decision": "Handler interface for all ledger side-effects",
-        "rationale": "Ledger calls are externally provided via usagebased.Handler so this package compiles and tests without a real ledger implementation; the integration point is a single seam per operation type."
+        "decision": "Soft-delete with DeletedAt + metaAdapter.DeleteRegisteredCharge instead of hard DELETE.",
+        "rationale": "Audit trail and idempotent realization reruns require historical charge state to remain queryable; hard deletes would break realization run history."
       },
       {
-        "decision": "CreditAllocationMode enum instead of boolean flags",
-        "rationale": "Three distinct allocation semantics (none, exact, available) cannot be expressed cleanly with a boolean; an enum with Validate() catches invalid values at construction time."
+        "decision": "UpsertRunDetailedLines uses ON CONFLICT keyed on (namespace, chargeID, runID, ChildUniqueReferenceID) with DeletedAt IS NULL partial index.",
+        "rationale": "Rating reruns must replace existing detailed lines for the same logical line ID without duplicates, while selectively soft-deleting lines that no longer appear."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Create a final realization run with exact credit allocation",
-        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run\"\n)\n\nrunSvc, err := run.New(run.Config{\n    Adapter: usagebasedAdapter,\n    Rater:   ratingService,\n    Handler: usagebasedHandler,\n    Lineage: lineageService,\n})\nif err != nil { return err }\n\nresult, err := runSvc.CreateRatedRun(ctx, run.CreateRatedRunInput{\n    Charge:             charge,\n    CustomerOverride:   customerOverride,\n    FeatureMeter:       featureMeter,\n    Type:               usagebased.RealizationRunTypeFinalRealization,\n    StoredAtLT:         storedAt,\n    ServicePeriodTo:    periodTo,\n    LineID:             &lineID,\n    InvoiceID:          &invoiceID,\n    CreditAllocation:   run.CreditAllocationExact,\n    CurrencyCalculator: calculator,\n})"
+        "scenario": "Add a new mutation method following TransactingRepo discipline",
+        "code": "func (a *adapter) SetRunResult(ctx context.Context, runID usagebased.RealizationRunID, result usagebased.RunResult) error {\n\tif err := runID.Validate(); err != nil {\n\t\treturn err\n\t}\n\tif err := result.Validate(); err != nil {\n\t\treturn err\n\t}\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n\t\t_, err := tx.db.ChargeUsageBasedRuns.UpdateOneID(runID.ID).Save(ctx)\n\t\treturn err\n\t})\n}"
       }
     ]
   }

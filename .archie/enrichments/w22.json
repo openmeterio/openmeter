@@ -1,110 +1,110 @@
 {
-  "api/spec/packages/legacy/src/productcatalog": {
-    "purpose": "TypeSpec source for the v1 product catalog, subscription, and add-on API contracts. Defines all models, enums, unions, and route interfaces that compile into api/openapi.yaml and drive Go server stubs \u2014 never edit generated outputs, only these .tsp files.",
+  "openmeter/billing/charges/flatfee/service": {
+    "purpose": "Implements flatfee.Service: charge creation, state-machine-driven lifecycle advancement, line-engine integration, and invoice event hooks. The orchestration layer \u2014 it holds business logic but delegates transition rules to typed StateMachine structs (CreditsOnlyStateMachine, CreditThenInvoiceStateMachine) dispatched by settlement mode; its realizations/ child owns credit allocation/correction persistence only.",
     "patterns": [
       {
-        "name": "Discriminated union with envelope:none",
-        "description": "All polymorphic types (Price, RateCard, RateCardEntitlement, SubscriptionEditOperation, FeatureUnitCost) use @discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" | \"op\" }) so the discriminator sits at the top level with no wrapper object. SubscriptionEditOperation uniquely uses 'op' as the discriminator property name, not 'type'.",
-        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union Price { flat: FlatPrice, unit: UnitPrice, tiered: TieredPrice, dynamic: DynamicPrice, package: PackagePrice }"
+        "name": "Config+Validate before construction",
+        "description": "New(config) calls config.Validate() (errors.Join, never panic) and builds flatfeerealizations.Service internally; all dependencies enter through Config.",
+        "example": "func New(config Config) (flatfee.Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
       },
       {
-        "name": "Visibility lifecycle annotation on every model field",
-        "description": "Every concrete model field carries @visibility(Lifecycle.Read), @visibility(Lifecycle.Read, Lifecycle.Create), or similar. Computed/server-assigned fields (status, effectiveFrom, effectiveTo, version, annotations) are Lifecycle.Read only. Only abstract base models like RateCardBase<T> may omit visibility on some fields.",
-        "example": "@visibility(Lifecycle.Read) status: PlanStatus; // server-computed, never writable"
+        "name": "transaction.Run wraps all multi-step adapter calls",
+        "description": "Any method that calls the adapter more than once or must be atomic wraps its body in transaction.Run / RunWithNoValue; never call the adapter bare from an exported method.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]flatfee.ChargeWithGatheringLine, error) { ... s.adapter.CreateCharges(ctx, ...) ... })"
       },
       {
-        "name": "Spread-based composition over TypeSpec extends",
-        "description": "Models are composed by spreading shared base models (...UniqueResource, ...ResourceTimestamps, ...RateCardBase<T>, ...SpendCommitments) rather than using TypeSpec extends. This gives explicit field ownership and enables OmitProperties<> overrides in create/update variants.",
-        "example": "model RateCardFlatFee { ...RateCardBase<RateCardType.flatFee>; billingCadence: duration | null; price: FlatPriceWithPaymentTerm | null; }"
+        "name": "withLockedCharge for all charge mutations",
+        "description": "AdvanceCharge and TriggerPatch open a transaction AND acquire a pg_advisory lock via s.locker.LockForTX before fetching (with ExpandRealizations) and mutating the charge.",
+        "example": "return s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) { sm, _ := s.newStateMachine(...); return sm.AdvanceUntilStateStable(ctx) })"
       },
       {
-        "name": "Create/update variants via OmitProperties + withVisibility",
-        "description": "Write models (PlanAddonCreate, SubscriptionAddonCreate) are produced with @withVisibility(Lifecycle.Create) and OmitProperties<DefaultKeyVisibility<Model, Lifecycle.Read>, \"field\"> to strip read-only fields and replace embedded objects with just their ID. Never duplicate model fields from scratch.",
-        "example": "@withVisibility(Lifecycle.Create) model PlanAddonCreate { ...OmitProperties<DefaultKeyVisibility<PlanAddon, Lifecycle.Read>, \"addon\">; addonId: ULID; }"
+        "name": "Settlement-mode dispatch via newStateMachine switch",
+        "description": "triggers.go switches on charge.Intent.SettlementMode to build the correct StateMachine subtype; unsupported modes return models.NewGenericNotImplementedError, not fmt.Errorf.",
+        "example": "case productcatalog.CreditOnlySettlementMode: return NewCreditsOnlyStateMachine(config)"
       },
       {
-        "name": "All routes declared exclusively in routes.tsp",
-        "description": "Every HTTP interface (FeaturesEndpoints, PlansEndpoints, PlanAddonsEndpoints, AddonsEndpoints, SubscriptionsEndpoints) is declared in routes.tsp with @route, @tag, @friendlyName, @operationId, and @summary on every operation. No other .tsp file in this folder may declare route interfaces.",
-        "example": "@route(\"/api/v1/plans\") @tag(\"Product Catalog\") @friendlyName(\"Plans\") interface PlansEndpoints { @get @operationId(\"listPlans\") @summary(\"List plans\") list(...): PaginatedResponse<Plan> | CommonErrors; }"
+        "name": "Input.Validate() before any adapter or state-machine call",
+        "description": "Every exported method validates its input struct first; use the typed Validate() result rather than raw fmt.Errorf for validation failures.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }"
       },
       {
-        "name": "Domain-specific error alias for subscription mutations",
-        "description": "Subscription create/edit/change/cancel routes use CommonSubscriptionErrors (defined in errors.tsp) which extends the generic errors with SubscriptionBadRequestErrorResponse and SubscriptionConflictErrorResponse carrying SubscriptionErrorExtensions.validationErrors[]. Feature/plan/addon routes use the parent package's CommonErrors alias instead.",
-        "example": "alias CommonSubscriptionErrors = SubscriptionBadRequestErrorResponse | SubscriptionConflictErrorResponse | UnauthorizedError | ForbiddenError | InternalServerErrorError | ...;"
+        "name": "Currency rounding before any amount comparison or allocation",
+        "description": "Round amounts with currencyCalculator.RoundToPrecision before passing to realizations or comparing; raw DB amounts must not be used in arithmetic.",
+        "example": "amount := currencyCalculator.RoundToPrecision(s.Charge.State.AmountAfterProration)"
       },
       {
-        "name": "ISO8601 duration encoding on all duration fields",
-        "description": "Every duration field uses @encode(DurationKnownEncoding.ISO8601) and an @example(duration.fromISO(\"P1M\")) annotation. Nullable billing cadence (one-time fee rate cards) is typed as duration | null. Omitting the encoding directive causes the TypeSpec compiler to default to seconds serialization.",
-        "example": "@encode(DurationKnownEncoding.ISO8601) @example(duration.fromISO(\"P1M\")) billingCadence: duration | null;"
+        "name": "LineEngine as a thin wrapper over service",
+        "description": "LineEngine embeds a *service pointer and delegates heavy work back to service methods; var _ billing.LineEngine = (*LineEngine)(nil) enforces the interface at compile time.",
+        "example": "func (e *LineEngine) GetLineEngineType() billing.LineEngineType { return billing.LineEngineTypeChargeFlatFee }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "routes.tsp",
-        "role": "Sole file declaring all HTTP interfaces; imports rest.tsp, subscriptionaddon.tsp, and errors.tsp. Uses 'using TypeSpec.Http; using TypeSpec.OpenAPI;'.",
-        "watch_for": "Missing @operationId or @friendlyName breaks Go codegen naming. Adding a route interface in any other file breaks @tag grouping. Subscription mutations must use CommonSubscriptionErrors, not CommonErrors."
+        "file": "service.go",
+        "role": "Config, Validate, New constructor; builds flatfeerealizations.Service internally; exposes GetLineEngine(). Single wiring point \u2014 all dependencies enter here.",
+        "watch_for": "Adding dependencies that bypass Config.Validate; constructing flatfeerealizations.Service anywhere else."
       },
       {
-        "file": "ratecards.tsp",
-        "role": "Defines RateCardBase<T> generic, RateCard union (flat_fee | usage_based), RateCardFlatFee, RateCardUsageBased, RateCardUsageBasedPrice union, and entitlement templates (RateCardMeteredEntitlement, RateCardStaticEntitlement, RateCardBooleanEntitlement).",
-        "watch_for": "Adding a new RateCard variant requires updating both the RateCard union AND RateCardUsageBasedPrice union. Entitlement templates must strip featureKey/featureId/usagePeriod via OmitProperties."
+        "file": "triggers.go",
+        "role": "AdvanceCharge, TriggerPatch, newStateMachine, withLockedCharge \u2014 all charge lifecycle mutations flow through here.",
+        "watch_for": "Any mutation that skips withLockedCharge (missing advisory lock); adding a settlement-mode branch without a corresponding StateMachine type."
       },
       {
-        "file": "prices.tsp",
-        "role": "Defines Price union and all price models (FlatPrice, UnitPrice, TieredPrice, DynamicPrice, PackagePrice) plus *WithCommitments variants that spread SpendCommitments.",
-        "watch_for": "New price type must be added to Price union, PriceType enum, and RateCardUsageBasedPrice union in ratecards.tsp. Forgetting any of the three leaves the type unreachable from rate cards."
+        "file": "statemachine.go",
+        "role": "Base stateMachine struct, StateMachineConfig, newStateMachineBase; wires Persistence callbacks (UpdateBase, Refetch) to the adapter.",
+        "watch_for": "Refetch must always pass ExpandRealizations; omitting it causes stale state in later state-machine steps."
       },
       {
-        "file": "subscription.tsp",
-        "role": "Defines Subscription, SubscriptionExpanded, SubscriptionPhase/Item/Edit, SubscriptionCreate/@oneOf union (PlanSubscriptionCreate | CustomSubscriptionCreate), SubscriptionChange union, and all SubscriptionEditOperation variants.",
-        "watch_for": "SubscriptionCreate and SubscriptionChange are @oneOf unions \u2014 new variants need @summary. SubscriptionEditOperation uses discriminatorPropertyName: 'op', not 'type'. Expanding SubscriptionExpanded must not omit itemTimelines."
+        "file": "creditsonly.go",
+        "role": "CreditsOnlyStateMachine: Created\u2192Active\u2192Final\u2192Deleted; Final's OnActive runs AllocateCredits then ClearAdvanceAfter.",
+        "watch_for": "AllocateCredits calls RoundToPrecision before Realizations \u2014 do not remove; DeleteCharge must RefetchCharge after adapter.DeleteCharge."
       },
       {
-        "file": "plan.tsp",
-        "role": "Defines Plan, PlanPhase, PlanStatus, SettlementMode, PlanOrderBy, and PlanReferenceInput. Plan.phases has @minItems(1) and Plan.validationErrors is ValidationError[] | null (not optional).",
-        "watch_for": "New Lifecycle.Create fields on Plan must also work with TypeSpec.Rest.Resource.ResourceCreateModel<Plan> used in routes.tsp. Plan.validationErrors must remain | null, never optional."
+        "file": "creditheninvoice.go",
+        "role": "CreditThenInvoiceStateMachine: multi-step graph with realization, collection, issuing, payment settlement; handles extend/shrink patches with invoice line mutation.",
+        "watch_for": "generateInvoicePatches must handle three cases (pre-active no-run, mutable run, immutable run); UnsupportedExtend/ShrinkOperation must return GenericPreConditionFailedError."
       },
       {
-        "file": "errors.tsp",
-        "role": "Defines CommonSubscriptionErrors alias and SubscriptionBadRequestErrorResponse/SubscriptionConflictErrorResponse models with SubscriptionErrorExtensions.validationErrors array.",
-        "watch_for": "This file imports ratecards.tsp \u2014 avoid circular imports if ratecards.tsp later needs error types."
+        "file": "lineengine.go",
+        "role": "billing.LineEngine for LineEngineTypeChargeFlatFee; OnStandardInvoiceCreated / OnInvoiceIssued fire state-machine triggers per line; SplitGatheringLine always errors.",
+        "watch_for": "newStateMachineForStandardLine type-asserts to CreditThenInvoiceStateMachine \u2014 guard settlement mode before calling so CreditOnly charges don't reach it."
       },
       {
-        "file": "main.tsp",
-        "role": "Package entry point importing all sub-files in dependency order. features.tsp and subscriptionaddon.tsp are NOT imported here \u2014 features.tsp is used via the parent package; subscriptionaddon.tsp via the routes.tsp import chain.",
-        "watch_for": "New .tsp files must be imported here (in the correct dependency order) to be included in compilation. Importing features.tsp here would cause duplicate namespace conflicts."
+        "file": "payment.go",
+        "role": "postInvoicePaymentAuthorized / postInvoicePaymentSettled: ledger payment booking wrapped in transaction.RunWithNoValue via handler.OnPaymentAuthorized/OnPaymentSettled.",
+        "watch_for": "getPaymentTotal errors if AccruedUsage is nil/zero on fiat-backed runs \u2014 do not call it for NoFiatTransactionRequired runs."
       },
       {
-        "file": "subscriptionaddon.tsp",
-        "role": "Defines SubscriptionAddon with timeline segments, SubscriptionAddonCreate (write model using OmitProperties + @withVisibility), and SubscriptionAddonRateCard. Imported by routes.tsp.",
-        "watch_for": "SubscriptionAddonCreate omits the 'addon' embedded object and replaces it with addon: { id: ULID } \u2014 the same pattern as PlanAddonCreate. QuantityAt is Lifecycle.Read only."
+        "file": "linemapper.go",
+        "role": "populateFlatFeeStandardLineFromRun maps a RealizationRun's detailed lines onto a StandardLine and asserts totals equality.",
+        "watch_for": "run.DetailedLines.IsAbsent() check must pass first \u2014 always fetch with ExpandRealizations."
       }
     ],
     "anti_patterns": [
-      "Defining a polymorphic type without @discriminated(#{ envelope: \"none\", ... }) \u2014 produces a wrapped discriminator that breaks client deserialization.",
-      "Adding a route interface in any file other than routes.tsp \u2014 breaks @tag grouping and operationId consistency.",
-      "Duplicating model fields for create/update variants instead of using OmitProperties<DefaultKeyVisibility<Model, Lifecycle.Read>, \"...\"> with @withVisibility.",
-      "Using a duration field without @encode(DurationKnownEncoding.ISO8601) \u2014 the TypeSpec compiler defaults to seconds serialization, breaking ISO 8601 clients.",
-      "Using CommonErrors (parent package) instead of CommonSubscriptionErrors for subscription mutation routes \u2014 the subscription-specific error extensions (validationErrors) will be missing from the OpenAPI schema."
+      "Making charge status transitions inside create.go, payment.go, or lineengine.go \u2014 all transitions go through newStateMachine + AdvanceUntilStateStable or FireAndActivate",
+      "Calling adapter methods outside a transaction.Run / RunWithNoValue block in any method that writes more than one row",
+      "Mutating a charge via AdvanceCharge or TriggerPatch without the advisory lock from withLockedCharge",
+      "Using raw (unrounded) currency amounts in allocation or comparison instead of currencyCalculator.RoundToPrecision",
+      "Returning fmt.Errorf for unsupported settlement modes instead of models.NewGenericNotImplementedError"
     ],
     "decisions": [
       {
-        "decision": "SubscriptionEditOperation uses discriminatorPropertyName: 'op' instead of 'type'.",
-        "rationale": "Distinguishes patch commands (add_item, remove_item, add_phase, etc.) from resource type discriminators used in Price/RateCard, preventing naming collisions in generated code and making PATCH semantics explicit."
+        "decision": "Settlement-mode dispatch at the service layer via newStateMachine switch, not inside the generic statemachine package",
+        "rationale": "Each settlement mode has a distinct state graph; keeping dispatch in triggers.go makes it easy to add new modes without modifying shared infrastructure."
       },
       {
-        "decision": "PlanAddonCreate and SubscriptionAddonCreate replace the embedded Addon/addon object with just { id: ULID } on write.",
-        "rationale": "On write operations only the identifier is needed; embedding the full Addon object (which is Lifecycle.Read) would require clients to supply server-computed fields like status, effectiveFrom, and version."
+        "decision": "flatfeerealizations.Service is constructed inside New() and never exposed directly",
+        "rationale": "Realization mechanics are an implementation detail; callers interact only through flatfee.Service, preventing direct realization calls that bypass lifecycle guards."
       },
       {
-        "decision": "CommonSubscriptionErrors is a local alias in errors.tsp rather than reusing the parent CommonErrors.",
-        "rationale": "Subscription mutations return SubscriptionBadRequestErrorResponse and SubscriptionConflictErrorResponse with SubscriptionErrorExtensions (validationErrors array) not present in generic error types, requiring a domain-specific error alias."
+        "decision": "LineEngine is a separate struct holding a pointer to service, not an embedded interface",
+        "rationale": "Keeps the billing.LineEngine registration surface separate from the flatfee.Service surface so callers cannot confuse the two responsibilities."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new usage-based price type (e.g. 'stepped') to the product catalog",
-        "code": "// 1. In prices.tsp \u2014 extend PriceType enum and add the model:\nenum PriceType { ..., stepped: \"stepped\" }\nmodel SteppedPrice {\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update) type: PriceType.stepped;\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update) amount: Money;\n}\nmodel SteppedPriceWithCommitments { ...SteppedPrice; ...SpendCommitments; }\n\n// 2. In prices.tsp \u2014 add to Price union:\n@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })\nunion Price { ..., stepped: SteppedPrice }\n\n// 3. In ratecards.tsp \u2014 add to RateCardUsageBasedPrice union:\n@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })\nunion RateCardUsageBasedPrice { ..., stepped: SteppedPriceWithCommitments }\n\n// 4. Run: make gen-api && make generate"
+        "scenario": "Advancing a flat-fee charge through its state machine under the advisory lock",
+        "code": "// triggers.go\nfunc (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceChargeInput) (*flatfee.Charge, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn nil, fmt.Errorf(\"validate: %w\", err)\n\t}\n\treturn s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) {\n\t\tstateMachine, err := s.newStateMachine(StateMachineConfig{\n\t\t\tCharge:       charge,\n\t\t\tAdapter:      s.adapter,\n\t\t\tRealizations: s.realizations,\n\t\t\tService:      s,\n\t\t})\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"new state machine: %w\", err)\n\t\t}\n\t\treturn stateMachine.AdvanceUntilStateStable(ctx)\n\t})\n}"
       }
     ]
   }

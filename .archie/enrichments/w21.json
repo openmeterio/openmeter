@@ -1,311 +1,417 @@
 {
-  "api/spec/packages/legacy/src/app": {
-    "purpose": "TypeSpec definitions for the installed Apps API \u2014 marketplace listings, OAuth2/API-key install flows, Stripe, Sandbox, and CustomInvoicing app types, and per-customer app data. Every model here feeds api/openapi.yaml and the generated Go/JS/Python SDKs.",
+  "openmeter/billing/charges/creditpurchase": {
+    "purpose": "The credit-purchase charge type within the billing/charges tagged-union family: defines the Charge/Intent/Settlement domain (this folder) and splits implementation across adapter/ (Ent persistence), service/ (transaction.Run orchestration + settlement dispatch), and lineengine/ (rating delegation). Primary constraint: all ledger side-effects flow through the creditpurchase.Handler interface so a noop handler can satisfy credits.enabled=false.",
     "patterns": [
       {
-        "name": "Discriminated union for polymorphic app types",
-        "description": "App, AppReplaceUpdate, and CustomerAppData are all `@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })` unions. Adding a new app type requires a new union variant in all three.",
-        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union App { stripe: StripeApp, sandbox: SandboxApp, custom_invoicing: CustomInvoicingApp }"
+        "name": "Settlement tagged-union via NewSettlement[T]",
+        "description": "Settlement is a private-field struct with discriminator t; construct only via NewSettlement[T] and read via AsInvoiceSettlement/AsExternalSettlement/AsPromotionalSettlement. Never set t/invoice/external/promotional directly.",
+        "example": "s := creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{GenericSettlement: creditpurchase.GenericSettlement{Currency: \"USD\", CostBasis: amount}, InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus})"
       },
       {
-        "name": "AppBase spread for concrete app models",
-        "description": "All concrete app models (StripeApp, SandboxApp, CustomInvoicingApp) spread `...AppBase` and add a literal `type: AppType.<Value>` field. Never duplicate AppBase fields.",
-        "example": "model SandboxApp { ...AppBase; type: AppType.Sandbox; }"
+        "name": "Intent.Normalized() before Validate()",
+        "description": "Always call input.Intent = input.Intent.Normalized() (truncates timestamps, rounds CreditAmount to currency precision) before input.Validate() in Create. The service mirrors this before reaching the adapter.",
+        "example": "input.Intent = input.Intent.Normalized()\nif err := input.Validate(); err != nil { return err }"
       },
       {
-        "name": "CustomerAppBase generic for per-app customer data",
-        "description": "Per-app customer data models spread `...CustomerAppBase<AppType.X>` to inherit common `id?` and `type` fields, then add provider-specific fields.",
-        "example": "model StripeCustomerAppData { ...CustomerAppBase<AppType.Stripe>; ...StripeCustomerAppDataBase; @visibility(Lifecycle.Read) app?: StripeApp; }"
+        "name": "Handler mediation for all ledger interactions",
+        "description": "Every ledger write goes through Handler methods (OnPromotionalCreditPurchase, OnCreditPurchaseInitiated, OnCreditPurchasePaymentAuthorized, OnCreditPurchasePaymentSettled). Promotional uses only OnPromotionalCreditPurchase; paid paths run Initiated -> Authorized -> Settled.",
+        "example": "ref, err := h.handler.OnCreditPurchaseInitiated(ctx, charge)"
       },
       {
-        "name": "Interface-per-resource with @route, @tag, @operationId",
-        "description": "Each HTTP resource is an `interface` decorated with `@route`, `@tag`, and operations use `@operationId` + `@summary`. Never write bare operations outside an interface.",
-        "example": "@route(\"/api/v1/apps\") @tag(\"Apps\") interface AppsEndpoints { @get @operationId(\"listApps\") list(...ListAppsRequest): PaginatedResponse<App> | CommonErrors; }"
+        "name": "models.NewNillableGenericValidationError in every Validate()",
+        "description": "All input/domain Validate() methods collect into []error and return models.NewNillableGenericValidationError(errors.Join(errs...)) so nil is returned when empty. Never return raw fmt.Errorf from Validate().",
+        "example": "return models.NewNillableGenericValidationError(errors.Join(errs...))"
       },
       {
-        "name": "main.tsp as the import manifest",
-        "description": "main.tsp only imports other .tsp files; it contains no type definitions. It is the entry point imported by cloud/main.tsp.",
-        "example": "// main.tsp\nimport \"./app.tsp\";\nimport \"./stripe.tsp\";\nimport \"./custominvoicing.tsp\";"
+        "name": "ValidationIssue sentinels with HTTP status",
+        "description": "Domain conditions are package-level var ValidationIssue with an ErrCode constant and commonhttp.WithHTTPStatusCodeAttribute, matched upstream via errors.Is. Never invent a fresh error for a covered condition.",
+        "example": "var ErrCreditPurchaseChargeNotActive = models.NewValidationIssue(ErrCodeCreditPurchaseChargeNotActive, \"...\", models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))"
+      },
+      {
+        "name": "Charge value-semantics for the generic state machine",
+        "description": "Charge implements GetStatus/WithStatus/GetBase/WithBase as value receivers returning copies (meta.ChargeAccessor). Pointer-mutating these breaks the generic Machine external-storage pattern.",
+        "example": "func (c Charge) WithStatus(status Status) Charge { c.Status = status; return c }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "app.tsp",
-        "role": "Defines AppsEndpoints interface, AppBase, App union, AppStatus enum, AppType enum, and AppReference. Core scaffolding for all app types.",
-        "watch_for": "App and AppReplaceUpdate unions must stay in sync \u2014 adding an app type to App without adding it to AppReplaceUpdate breaks PUT."
+        "file": "charge.go",
+        "role": "Charge, ChargeBase, Intent, Realizations, State. Intent.Normalized() truncates timestamps and rounds CreditAmount.",
+        "watch_for": "CreditAmount must be positive; settlement currency must match credit currency; EffectiveAt is unsupported and always errors in Validate()."
       },
       {
-        "file": "marketplace.tsp",
-        "role": "MarketplaceEndpoints interface covering listing discovery, OAuth2 install, API-key install, and plain install. Defines MarketplaceListing, AppInstallMethod, and install request/response models.",
-        "watch_for": "installMethods on MarketplaceListing is informational only \u2014 actual install routes live in MarketplaceEndpoints."
+        "file": "settlement.go",
+        "role": "Settlement tagged-union with JSON serde; three variants (Invoice/External/Promotional).",
+        "watch_for": "Never instantiate Settlement{} directly; GetCostBasis() returns zero for promotional."
       },
       {
-        "file": "stripe.tsp",
-        "role": "AppStripeEndpoints (webhook, deprecated updateStripeAPIKey, createCheckoutSession) plus all Stripe-specific checkout session option models.",
-        "watch_for": "updateStripeAPIKey is deprecated; new stripe config changes go through PUT /api/v1/apps/{id}."
+        "file": "handler.go",
+        "role": "Handler interface \u2014 sole abstraction for ledger side-effects, documenting the Initiated->Authorized->Settled happy path.",
+        "watch_for": "Do not call Handler methods outside the service layer."
       },
       {
-        "file": "custominvoicing.tsp",
-        "role": "CustomInvoicingApp model and AppCustomInvoicingEndpoints for draft/issuing sync callbacks and payment status updates.",
-        "watch_for": "CustomInvoicing uses async hooks (enableDraftSyncHook, enableIssuingSyncHook); consumers must POST to draftSynchronized/issuingSynchronized to progress invoice state."
+        "file": "service.go",
+        "role": "Service interface (CreditPurchaseService + ExternalPaymentLifecycle + InvoicePaymentLifecycle). Create returns ChargeWithGatheringLine.",
+        "watch_for": "GatheringLineToCreate may be non-nil; the parent charges.Service creates the gathering line after Create returns."
       },
       {
-        "file": "oauth.tsp",
-        "role": "OAuth2 namespace with AuthorizationCodeGrantParams combining success and error query params into a single model.",
-        "watch_for": "Uses `OAuth2` namespace, not `OpenMeter` \u2014 imports from this file must reference `OAuth2.ClientAppStartResponse` etc."
+        "file": "adapter.go",
+        "role": "Adapter (Charge+CreditGrant+ExternalPayment+InvoicedPayment + TxCreator) and input types, each with Validate().",
+        "watch_for": "Every new input type needs a Validate(); namespace must be non-empty."
       },
       {
-        "file": "customer.tsp",
-        "role": "CustomerAppData union and per-provider customer app data models (StripeCustomerAppData, SandboxCustomerAppData, CustomInvoicingCustomerAppData).",
-        "watch_for": "customer.tsp here is under the `app/` sub-folder and is separate from the `customer/` folder's customer.tsp."
+        "file": "statemachine.go",
+        "role": "Status enum mirroring meta.ChargeStatus; ToMetaChargeStatus() converts back.",
+        "watch_for": "Use ToMetaChargeStatus() not a direct cast \u2014 direct cast skips Validate()."
+      },
+      {
+        "file": "errors.go",
+        "role": "ErrCreditPurchaseChargeNotActive sentinel (HTTP 400).",
+        "watch_for": "Match with errors.Is; do not create new errors for this condition."
       }
     ],
     "anti_patterns": [
-      "Adding app-type-specific fields directly to AppBase \u2014 each app type has its own concrete model.",
-      "Defining new endpoints outside a named interface with @route and @tag.",
-      "Adding a new AppType variant only to App union without updating AppReplaceUpdate and CustomerAppData.",
-      "Using `@body` on list/GET operations \u2014 paginated params use spread models like `...QueryPagination`.",
-      "Importing types from sibling app/*.tsp files without going through main.tsp at build time."
+      "Calling ledger APIs directly instead of routing through creditpurchase.Handler \u2014 bypasses the credits.enabled=false noop guard.",
+      "Constructing Settlement{} via field assignment instead of NewSettlement[T] \u2014 leaves discriminator t empty.",
+      "Skipping intent.Normalized() before Validate() \u2014 denormalized timestamps and un-rounded amounts reach the adapter.",
+      "Returning raw fmt.Errorf from Validate() instead of models.NewNillableGenericValidationError \u2014 breaks error-type detection upstream.",
+      "Calling adapter methods outside transaction.Run in service code \u2014 breaks atomicity of multi-step charge flows."
     ],
     "decisions": [
       {
-        "decision": "Discriminated unions with envelope:none for App/AppReplaceUpdate/CustomerAppData",
-        "rationale": "Allows a single OpenAPI oneOf with a flat discriminator property, matching client SDK code-gen expectations and the Go handler type-switch pattern."
+        "decision": "Settlement is a tagged union (private fields + discriminator) rather than an interface.",
+        "rationale": "Enables exhaustive JSON serde and GetCostBasis() across variants without type assertions, and prevents partially-constructed Settlement values."
       },
       {
-        "decision": "Separate AppBase model spread into each concrete app",
-        "rationale": "Avoids deep inheritance chains that TypeSpec/oapi-codegen struggle with; each concrete model is self-contained for SDK generation."
+        "decision": "Handler interface decouples ledger writes from charge service.",
+        "rationale": "Allows a noop handler when credits.enabled=false without branching inside service code; keeps the ledger boundary clean."
+      },
+      {
+        "decision": "ChargeWithGatheringLine returned from Create rather than creating the line inline.",
+        "rationale": "Gathering-line creation is deferred to the parent charges.Service to avoid a circular dependency between creditpurchase and billing."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new app type (e.g. PayPal)",
-        "code": "// 1. Add to AppType enum in app.tsp\nenum AppType { ..., PayPal: \"paypal\" }\n\n// 2. Create paypal.tsp\nmodel PayPalApp { ...AppBase; type: AppType.PayPal; }\n\n// 3. Add to App and AppReplaceUpdate unions in app.tsp\nunion App { ..., paypal: PayPalApp }\nunion AppReplaceUpdate { ..., paypal: TypeSpec.Rest.Resource.ResourceReplaceModel<PayPalApp> }\n\n// 4. Add to CustomerAppData in customer.tsp\nunion CustomerAppData { ..., paypal: PayPalCustomerAppData }\n\n// 5. Import in main.tsp\nimport \"./paypal.tsp\";"
+        "scenario": "Create a credit purchase charge with invoice settlement",
+        "code": "import (\n  \"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase\"\n  \"github.com/openmeterio/openmeter/pkg/currencyx\"\n)\n\nintent := creditpurchase.Intent{\n  Intent:       metaIntent,\n  CreditAmount: decimal.NewFromFloat(100),\n  Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{\n    GenericSettlement: creditpurchase.GenericSettlement{Currency: currencyx.Code(\"USD\"), CostBasis: decimal.NewFromFloat(100)},\n  }),\n}.Normalized()"
       }
     ]
   },
-  "api/spec/packages/legacy/src/cloud": {
-    "purpose": "Cloud-variant spec entry point that re-exports the entire OpenMeter API under the `OpenMeterCloud` namespace with cloud-specific auth schemes (BearerAuth + cookie + portal token) and Svix/cloud server URLs. Contains no new type definitions \u2014 only namespace interface extensions.",
+  "openmeter/billing/charges/lineage": {
+    "purpose": "Domain package for credit realization lineage tracking: defines Service and Adapter interfaces and the append-only Lineage/Segment model linking credit realizations to backing ledger transaction groups. Children split persistence (adapter/, Ent + FOR UPDATE locks) from orchestration (service/, transaction.RunWithNoValue). Primary constraint: segment mutation is close-then-split, never in-place update.",
     "patterns": [
       {
-        "name": "Interface extension via `extends`",
-        "description": "Every interface in cloud/main.tsp extends an OpenMeter interface with a new `@route` and `@tag` override. Never copy-paste operations \u2014 always extend.",
-        "example": "@route(\"/api/v1/meters\") @tag(\"Meters\") interface MetersEndpoints extends OpenMeter.MetersEndpoints {}"
+        "name": "transaction.RunWithNoValue for multi-step mutations",
+        "description": "Service methods calling multiple adapter methods wrap them in transaction.RunWithNoValue so all steps share the ctx-bound transaction. Calls outside the closure use a different connection and bypass the tx.",
+        "example": "return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error { return s.adapter.CreateLineages(ctx, in) })"
       },
       {
-        "name": "Separate OpenMeterCloud namespace blocks",
-        "description": "Related interface groups are collected in separate `namespace OpenMeterCloud { ... }` blocks for readability. Multiple blocks with the same namespace name are valid TypeSpec.",
-        "example": "namespace OpenMeterCloud { @route(\"/api/v1/apps\") interface AppsEndpoints extends OpenMeter.AppsEndpoints {} }"
+        "name": "Input.Validate() before any business logic",
+        "description": "Every service method calls input.Validate() first; this is separate from adapter-level validation and must not be skipped because lock/bulk-create paths do no further validation inside the transaction.",
+        "example": "if err := input.Validate(); err != nil { return err }"
       },
       {
-        "name": "Auth overrides at service level",
-        "description": "auth.tsp defines CloudTokenAuth, CloudCookieAuth, CloudPortalTokenAuth. The `@useAuth(CloudTokenAuth | CloudCookieAuth)` decorator on the `@service` replaces the default OpenMeter self-hosted auth for the cloud spec.",
-        "example": "@service(#{ title: \"OpenMeter Cloud API\" }) @useAuth(CloudTokenAuth | CloudCookieAuth) namespace OpenMeterCloud;"
+        "name": "Lock-then-mutate via FOR UPDATE",
+        "description": "Adapter lock methods (LockCorrectionLineages, LockAdvanceLineagesForBackfill) take FOR UPDATE row locks inside an active tx and must be called before reading segments that will be mutated; the adapter guards with GetDriverFromContext.",
+        "example": "lineages, err := s.adapter.LockCorrectionLineages(ctx, ns, realizationIDs)"
+      },
+      {
+        "name": "Close-and-split for partial segment mutation",
+        "description": "When only part of a segment amount is consumed, CloseSegment the existing row and CreateSegment two new rows rather than updating in place \u2014 append-only audit trail.",
+        "example": "s.adapter.CloseSegment(ctx, seg.ID, closedAt); s.adapter.CreateSegment(ctx, consumedInput); s.adapter.CreateSegment(ctx, remainingInput)"
+      },
+      {
+        "name": "clock.Now().Truncate(time.Microsecond) for segment timestamps",
+        "description": "All closed_at timestamps truncate to microsecond precision to match Postgres storage and avoid equality-check failures. Note this differs from the meta package, which truncates to streaming.MinimumWindowSizeDuration.",
+        "example": "closedAt := clock.Now().UTC().Truncate(time.Microsecond)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "auth.tsp",
-        "role": "Defines the three cloud auth schemes as models. No routes or operations here.",
-        "watch_for": "CloudPortalTokenAuth is a BearerAuth; the portal meters endpoint separately applies `@useAuth(CloudPortalTokenAuth)` to scope portal-only access."
+        "file": "lineage.go",
+        "role": "Segment.Validate() with state-dependent rules, SortCorrectionPersistSegments and MinDecimal pure helpers.",
+        "watch_for": "BackingTransactionGroupID required for advance_backfilled and earnings_recognized segments; Segment.Amount must be positive."
       },
       {
-        "file": "main.tsp",
-        "role": "The cloud OpenAPI spec entry point. Imports `..` (the main legacy spec), then auth.tsp, then declares OpenMeterCloud namespace with all interface extensions. All cloud-facing endpoint routing lives here.",
-        "watch_for": "When adding a new endpoint group to the base OpenMeter namespace, add a corresponding `extends` interface here so it appears in the cloud OpenAPI output."
+        "file": "service.go",
+        "role": "Service and Adapter interfaces plus all input types with Validate(). Lineage/Segment/ActiveSegmentsByRealizationID types.",
+        "watch_for": "CreateSegmentInput validation is state-dependent (source_state / backing_transaction_group_id requirements vary by State)."
+      },
+      {
+        "file": "lineage_test.go",
+        "role": "Validates the source-backing-transaction-group rule for earnings_recognized segments sourced from advance_backfilled.",
+        "watch_for": "Mirror this table-driven validation style when adding new state combinations."
       }
     ],
     "anti_patterns": [
-      "Defining new models or type aliases in cloud/ \u2014 all types belong in the base OpenMeter namespace.",
-      "Duplicating operation definitions instead of using `extends`.",
-      "Adding auth decorators to individual operations in cloud/main.tsp \u2014 service-level `@useAuth` covers all."
+      "Bypassing transaction.RunWithNoValue for multi-step adapter calls \u2014 creates partial writes when a step fails mid-sequence.",
+      "Calling adapter methods outside the RunWithNoValue closure \u2014 the closure's ctx carries the active tx; outside calls use a different connection.",
+      "Using clock.Now() without Truncate(time.Microsecond) for segment timestamps \u2014 Postgres precision mismatch fails equality checks.",
+      "Adding Ent query logic directly in service.go \u2014 all DB access goes through lineage.Adapter.",
+      "Removing the GetDriverFromContext guard from adapter lock methods \u2014 makes FOR UPDATE unreliable outside transactions."
     ],
     "decisions": [
       {
-        "decision": "cloud/main.tsp extends rather than duplicates base OpenMeter interfaces",
-        "rationale": "Single source of truth for operation contracts; cloud only differs in auth, servers, and tag metadata."
-      }
-    ],
-    "code_examples": []
-  },
-  "api/spec/packages/legacy/src/customer": {
-    "purpose": "TypeSpec definitions for the Customer API \u2014 CRUD, listing with filters, per-customer app data (Stripe, Sandbox, CustomInvoicing), and a legacy Stripe convenience endpoint. Models feed api/openapi.yaml and SDKs; the Customer model is referenced throughout subscriptions, billing, and entitlements.",
-    "patterns": [
-      {
-        "name": "ResourceCreateModel / ResourceReplaceModel for mutation bodies",
-        "description": "Create bodies use `TypeSpec.Rest.Resource.ResourceCreateModel<Customer>` and update bodies use `TypeSpec.Rest.Resource.ResourceReplaceModel<Customer>`. Never inline field lists for create/update.",
-        "example": "@post create(@body customer: TypeSpec.Rest.Resource.ResourceCreateModel<Customer>): { @statusCode _: 201; @body body: Customer; } | CommonErrors;"
+        "decision": "Close-and-split rather than update-in-place for segment mutation.",
+        "rationale": "Append-only segment history enables auditing and prevents lost-update races under concurrent backfill."
       },
       {
-        "name": "@visibility annotations control lifecycle exposure",
-        "description": "Fields like `currentSubscriptionId`, `subscriptions`, and `annotations` carry `@visibility(Lifecycle.Read)` so they are excluded from create/update. Spread `...Resource` on entity models to inherit id/timestamps automatically.",
-        "example": "@visibility(Lifecycle.Read) annotations?: Annotations;"
+        "decision": "Lock operations require an active transaction (GetDriverFromContext guard).",
+        "rationale": "FOR UPDATE locks are only meaningful inside a transaction; failing fast prevents silent non-locking reads."
       },
       {
-        "name": "Filter params as spread models in interface operations",
-        "description": "List filter params (name, key, primaryEmail, subject, planKey) are declared as a `model ListCustomersParams` and spread into the list operation, keeping operation signatures short.",
-        "example": "@get list(...ListCustomersParams): PaginatedResponse<Customer> | CommonErrors;"
-      },
-      {
-        "name": "ULIDOrExternalKey path param for customer lookup",
-        "description": "All per-customer endpoints use `@path customerIdOrKey: ULIDOrExternalKey` to support both ULID and string key lookup without duplicate routes.",
-        "example": "@get @route(\"/{customerIdOrKey}\") get(@path customerIdOrKey: ULIDOrExternalKey, ...GetCustomerParams): Customer | NotFoundError | CommonErrors;"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "customer.tsp",
-        "role": "Defines Customer model, CustomersEndpoints interface, and all list/filter param models. Customer spreads `...Resource` and exposes `subscriptions` as a Lifecycle.Read-only expand.",
-        "watch_for": "`subscriptions` field is only populated when `expand=subscriptions` is passed; it is not part of default responses."
-      },
-      {
-        "file": "app.tsp",
-        "role": "CustomerAppsEndpoints interface for list/upsert/delete of CustomerAppData, and ListCustomerAppDataParams model.",
-        "watch_for": "This app.tsp is under customer/ and defines customer-scoped app data endpoints, not the app-domain app.tsp."
-      },
-      {
-        "file": "stripe.tsp",
-        "role": "CustomerStripeEndpoints with get/upsert Stripe app data and createPortalSession. Stripe-specific convenience endpoints separate from the generic app data API.",
-        "watch_for": "createPortalSession returns 201, not 200 \u2014 matches the Go handler response encoding."
-      },
-      {
-        "file": "main.tsp",
-        "role": "Imports app.tsp, customer.tsp, stripe.tsp. No definitions.",
-        "watch_for": "Add new customer sub-resource .tsp files here."
-      }
-    ],
-    "anti_patterns": [
-      "Adding billing-specific fields to the Customer model \u2014 billing overrides live in the billing/ sub-folder.",
-      "Hardcoding filter params inline in an operation instead of a spread model.",
-      "Using `@body` on GET list operations \u2014 list filters must be `@query` params.",
-      "Duplicating Stripe-specific customer fields in the generic CustomerAppData models."
-    ],
-    "decisions": [
-      {
-        "decision": "CustomerUsageAttribution as a nested model rather than flat subjectKeys array on Customer",
-        "rationale": "Preserves room for future attribution dimensions (e.g. account-level attribution) without a breaking change."
-      },
-      {
-        "decision": "Stripe customer portal session in customer/stripe.tsp rather than app/stripe.tsp",
-        "rationale": "The portal session is customer-scoped (requires customerIdOrKey path param), not app-scoped."
-      }
-    ],
-    "code_examples": []
-  },
-  "api/spec/packages/legacy/src/info": {
-    "purpose": "TypeSpec definitions for static lookup endpoints: supported currencies list and async operation progress tracking. Small self-contained sub-package; no mutable resources, no pagination on currencies.",
-    "patterns": [
-      {
-        "name": "Flat model for static lookup entities",
-        "description": "Currency and Progress have no Resource spread (no id/timestamps) because they are not persisted domain entities with lifecycle. Currency returns a plain array, not a paginated response.",
-        "example": "interface CurrenciesEndpoints { @get listCurrencies(): Currency[] | CommonErrors; }"
-      },
-      {
-        "name": "routes.tsp holds interface definitions, currencies.tsp holds models",
-        "description": "Model types (Currency, Progress) live in their own files; routing interfaces live in routes.tsp or the model file. main.tsp imports all and re-exports.",
-        "example": "// routes.tsp imports ../rest.tsp and defines CurrenciesEndpoints\n// currencies.tsp defines the Currency model only"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "routes.tsp",
-        "role": "CurrenciesEndpoints interface at /api/v1/info/currencies. Single list endpoint returning Currency[].",
-        "watch_for": "Returns a plain array, not PaginatedResponse \u2014 do not add pagination here without a spec change."
-      },
-      {
-        "file": "progress.tsp",
-        "role": "ProgressEndpoints interface and Progress model. GET by string id, not ULID.",
-        "watch_for": "Progress id is a plain `string`, not `ULID` \u2014 matches the progressmanager domain."
-      },
-      {
-        "file": "currencies.tsp",
-        "role": "Currency model with code, name, symbol, subunits. No routes here.",
-        "watch_for": "subunits is uint32; zero-subunit currencies (JPY) are valid."
-      }
-    ],
-    "anti_patterns": [
-      "Adding paginated responses to the currencies list endpoint \u2014 it returns all currencies as a flat array.",
-      "Adding mutable (POST/PUT/DELETE) operations \u2014 this folder is read-only lookup data."
-    ],
-    "decisions": [],
-    "code_examples": []
-  },
-  "api/spec/packages/legacy/src/notification": {
-    "purpose": "TypeSpec definitions for the Notifications API \u2014 channels (webhook), rules (balance threshold, entitlement reset, invoice events), and event/delivery-status tracking. Discriminated unions on NotificationRule and NotificationChannel allow type-safe multi-variant webhook rules.",
-    "patterns": [
-      {
-        "name": "Discriminated union for polymorphic rule and channel types",
-        "description": "NotificationRule, NotificationRuleCreateRequest, NotificationChannel, and NotificationChannelCreateRequest are all `@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })` unions. Adding a rule type requires updating all four unions.",
-        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union NotificationRule { `entitlements.balance.threshold`: NotificationRuleBalanceThreshold, ... }"
-      },
-      {
-        "name": "NotificationRuleCommon<T> generic for rule base fields",
-        "description": "All rule models spread `...NotificationRuleCommon<NotificationEventType.X>` to inherit id, type (literal), name, disabled, channels, and metadata. Never duplicate these fields.",
-        "example": "model NotificationRuleBalanceThreshold { ...NotificationRuleCommon<NotificationEventType.entitlementsBalanceThreshold>; thresholds: Array<NotificationRuleBalanceThresholdValue>; }"
-      },
-      {
-        "name": "CreateRequest models use OmitProperties to strip read-only references",
-        "description": "Rule create request models use `OmitProperties<NotificationRuleXxx, \"channels\" | \"features\">` then re-add `channels: Array<ULID>` (IDs only) and `features?: Array<ULIDOrKey>` for the writable form.",
-        "example": "@withVisibility(Lifecycle.Create, Lifecycle.Update) model NotificationRuleBalanceThresholdCreateRequest { ...OmitProperties<NotificationRuleBalanceThreshold, \"channels\" | \"features\">; channels: Array<ULID>; features?: Array<ULIDOrKey>; }"
-      },
-      {
-        "name": "Payload models carry full denormalized context",
-        "description": "NotificationEventBalanceThresholdPayload and NotificationEventResetPayload spread `...NotificationEventEntitlementValuePayloadBase` to embed entitlement, feature, subject, value, and customer inline \u2014 payloads are self-contained for webhook consumers.",
-        "example": "model NotificationEventBalanceThresholdPayloadData { ...NotificationEventEntitlementValuePayloadBase; threshold: NotificationRuleBalanceThresholdValue; }"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "channel.tsp",
-        "role": "NotificationChannel/NotificationChannelWebhook models, NotificationChannelsEndpoints interface, NotificationChannelType enum. Includes CRUD for channels.",
-        "watch_for": "NotificationChannelType.webhook uses uppercase value `\"WEBHOOK\"` with a legacy `#suppress` annotation \u2014 preserve this for backward compat."
-      },
-      {
-        "file": "rule.tsp",
-        "role": "NotificationRulesEndpoints interface, NotificationRule union, all rule variant models, and NotificationRuleCreateRequest union. Also has a `/{ruleId}/test` POST endpoint.",
-        "watch_for": "Rule update uses PUT with NotificationRuleCreateRequest (same schema as create) \u2014 not PATCH."
-      },
-      {
-        "file": "entitlements.tsp",
-        "role": "Entitlement-specific rule and event payload models: NotificationRuleBalanceThreshold, NotificationRuleEntitlementReset, and their payload models. Also defines FeatureMeta.",
-        "watch_for": "NotificationRuleBalanceThresholdValueType has deprecated PERCENT/NUMBER variants \u2014 keep them for backward compat, add new variants alongside."
-      },
-      {
-        "file": "invoice.tsp",
-        "role": "Invoice event payload models (NotificationEventInvoicePayload) and invoice notification rules (NotificationRuleInvoiceCreated, NotificationRuleInvoiceUpdated).",
-        "watch_for": "Invoice notification rules reference billing Invoice models \u2014 ensure billing/ imports are present."
-      },
-      {
-        "file": "event.tsp",
-        "role": "NotificationEventType enum, NotificationEventDeliveryStatus/State models, and delivery attempt models.",
-        "watch_for": "All NotificationEventType values use dotted lowercase (entitlements.balance.threshold) with `#suppress` for casing \u2014 maintain this pattern for new event types."
-      },
-      {
-        "file": "main.tsp",
-        "role": "Import manifest only. No definitions.",
-        "watch_for": "Add new .tsp files here when adding notification event families."
-      }
-    ],
-    "anti_patterns": [
-      "Adding a new rule type only to NotificationRule union without also updating NotificationRuleCreateRequest.",
-      "Putting delivery status logic into channel.tsp \u2014 delivery status models belong in event.tsp.",
-      "Using PATCH for rule updates \u2014 the API uses PUT with the full create-request body.",
-      "Hardcoding feature/channel lists inline in rule models instead of using FeatureMeta and NotificationChannelMeta spread models."
-    ],
-    "decisions": [
-      {
-        "decision": "OmitProperties + re-add writable-form fields for create requests",
-        "rationale": "Prevents accidental write of server-assigned fields (channel full objects, feature full objects) while keeping the shared model as the source of truth for read responses."
-      },
-      {
-        "decision": "Payload models embed full denormalized context (entitlement, feature, subject, customer)",
-        "rationale": "Webhook consumers should not need a second API call to act on a notification \u2014 payloads are designed to be self-contained."
+        "decision": "Package-level LoadActiveSegmentsByRealizationID alongside the adapter method.",
+        "rationale": "Lets cross-package callers (creditpurchase service) load segments without a full lineage.Service dependency."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new notification rule type (e.g. subscription.cancelled)",
-        "code": "// 1. Add to NotificationEventType enum in event.tsp\nenum NotificationEventType { ..., `subscription.cancelled`: \"subscription.cancelled\" }\n\n// 2. Create subscription.tsp with rule + payload models\nmodel NotificationRuleSubscriptionCancelled {\n  ...NotificationRuleCommon<NotificationEventType.`subscription.cancelled`>;\n}\nmodel NotificationRuleSubscriptionCancelledCreateRequest {\n  ...OmitProperties<NotificationRuleSubscriptionCancelled, \"channels\">;\n  channels: Array<ULID>;\n}\n\n// 3. Add variants to unions in rule.tsp\nunion NotificationRule { ..., `subscription.cancelled`: NotificationRuleSubscriptionCancelled }\nunion NotificationRuleCreateRequest { ..., `subscription.cancelled`: NotificationRuleSubscriptionCancelledCreateRequest }\n\n// 4. Import in main.tsp\nimport \"./subscription.tsp\";"
+        "scenario": "Backfill advance lineage segments inside a transaction",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage\"\n\nerr := lineageSvc.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{\n  Namespace: ns, CustomerID: customerID, Currency: currency,\n  Amount: amount, BackingTransactionGroupID: txGroupID,\n})"
+      }
+    ]
+  },
+  "openmeter/billing/charges/meta": {
+    "purpose": "Shared domain primitives for every charge type (flatfee, usagebased, creditpurchase): ChargeID, ChargeType, ChargeStatus, ManagedResource, the embedded Intent, Expands, the Patch interface (PatchDelete/Extend/Shrink backed by stateless.Trigger constants), and timestamp normalization. meta.Service is a type alias for meta.Adapter (a persistence-thin charge cross-reference registry, implemented in adapter/).",
+    "patterns": [
+      {
+        "name": "Patch interface with stateless.Trigger",
+        "description": "Every patch implements Validate() + Op() PatchType + Trigger() stateless.Trigger + TriggerParams() any. Trigger constants live in triggers.go; never define trigger strings inline.",
+        "example": "func (p PatchExtend) Trigger() stateless.Trigger { return TriggerExtend }\nfunc (p PatchExtend) TriggerParams() any { return p }"
+      },
+      {
+        "name": "NormalizeTimestamp on all time fields",
+        "description": "Timestamps in Intent and patches pass through NormalizeTimestamp (UTC + Truncate(streaming.MinimumWindowSizeDuration)) before persistence, via Intent.Normalized() or patch setters that normalize internally.",
+        "example": "i.ServicePeriod = NormalizeClosedPeriod(i.ServicePeriod)"
+      },
+      {
+        "name": "ValidateWith for period bounds checking",
+        "description": "PatchExtend/PatchShrink expose ValidateWith(intent Intent) to check new periods against the existing intent; always call it in addition to Validate() when the existing intent is available.",
+        "example": "if err := patch.ValidateWith(charge.Intent); err != nil { return err }"
+      },
+      {
+        "name": "ChargeID = models.NamespacedID alias",
+        "description": "ChargeID is a type alias of models.NamespacedID; validate with ChargeID.Validate() before reading Namespace/ID.",
+        "example": "func (i ChargeID) Validate() error { return models.NamespacedID(i).Validate() }"
+      },
+      {
+        "name": "Service = Adapter type alias",
+        "description": "meta.Service is a type alias for meta.Adapter \u2014 no separate service layer exists. If orchestration is ever needed, remove the alias and add a real service with transaction.Run.",
+        "example": "type Service = Adapter"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "charge.go",
+        "role": "ChargeID, ChargeType, ChargeStatus, Expand/Expands, ChargeAccessor interface, Charge/Charges. ChargeAccessor requires GetChargeID/GetCustomerID/GetCurrency/ErrorAttributes.",
+        "watch_for": "ExpandNone is nil (not empty slice); every new charge type must implement ChargeAccessor."
+      },
+      {
+        "file": "intent.go",
+        "role": "Shared Intent embedded in all charge intents; validates ManagedBy, CustomerID, Currency, three periods, TaxConfig, Subscription, UniqueReferenceID.",
+        "watch_for": "UniqueReferenceID must be nil or non-empty \u2014 empty string fails Validate()."
+      },
+      {
+        "file": "timestamps.go",
+        "role": "NormalizeTimestamp/NormalizeOptionalTimestamp/NormalizeClosedPeriod/Intent.Normalized(). Truncates to streaming.MinimumWindowSizeDuration.",
+        "watch_for": "Truncation precision is streaming.MinimumWindowSizeDuration, NOT time.Microsecond (differs from lineage)."
+      },
+      {
+        "file": "triggers.go",
+        "role": "All stateless.Trigger constants shared across charge state machines.",
+        "watch_for": "Add new triggers here; never inline trigger strings in state-machine config files."
+      },
+      {
+        "file": "patchdelete.go",
+        "role": "PatchDelete + PatchDeletePolicy (Credit/Invoice refund policies). RefundAsCreditsDeletePolicy is the recommended default.",
+        "watch_for": "Both refund policies must be set; a zero-value policy fails Validate()."
+      },
+      {
+        "file": "patchextend.go / patchshrink.go",
+        "role": "Private-field patches with auto-normalizing setters and ValidateWith bounds checks; NewPatchExtend/NewPatchShrink constructors.",
+        "watch_for": "Use the constructors which validate before construction; setters normalize internally."
+      },
+      {
+        "file": "adapter.go",
+        "role": "meta.Adapter: RegisterCharges/DeleteRegisteredCharge + TxCreator. Implemented by adapter/ via TransactingRepoWithNoValue with soft-delete.",
+        "watch_for": "Adapter is persistence-only; no business logic belongs here."
+      }
+    ],
+    "anti_patterns": [
+      "Defining charge-type-specific copies of Intent period fields instead of embedding meta.Intent.",
+      "Calling NormalizeTimestamp with different precision than streaming.MinimumWindowSizeDuration.",
+      "Adding complex business logic to meta \u2014 it is a shared primitives package; logic belongs in type-specific service packages.",
+      "Using string literals for trigger constants instead of the vars in triggers.go.",
+      "Creating a PatchDelete with only one of the two refund policies set \u2014 the other defaults to empty and fails Validate()."
+    ],
+    "decisions": [
+      {
+        "decision": "Service = Adapter type alias with no separate service layer.",
+        "rationale": "meta is a persistence-thin registry; the alias avoids premature abstraction until orchestration is needed."
+      },
+      {
+        "decision": "Patch interface uses stateless.Trigger rather than a string enum.",
+        "rationale": "Compile-time type safety with the stateless library; callers pass trigger + params to Machine.FireAndActivate without a string switch."
+      },
+      {
+        "decision": "All timestamps truncated to streaming.MinimumWindowSizeDuration.",
+        "rationale": "ClickHouse window aggregation needs consistent truncation granularity across all charge timestamps."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Create and apply a PatchExtend with ValidateWith",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/billing/charges/meta\"\n\npatch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{\n  NewServicePeriodTo: newTo, NewFullServicePeriodTo: newFullTo,\n  NewBillingPeriodTo: newBillingTo, NewInvoiceAt: newInvoiceAt,\n})\nif err != nil { return err }\nif err := patch.ValidateWith(charge.Intent); err != nil { return err }\nerr = machine.FireAndActivate(ctx, patch.Trigger(), patch.TriggerParams())"
+      }
+    ]
+  },
+  "openmeter/billing/charges/models": {
+    "purpose": "Structural parent grouping shared data-model sub-packages used by all charge types: chargemeta (Ent mixin + generic Create/Update/MapFromDB), creditrealization (allocation/correction ledger records + lineage specs), invoicedusage (accrued usage snapshots), ledgertransaction (GroupReference/TimedGroupReference), and payment (External/Invoiced payment models). No direct source files live here.",
+    "patterns": [
+      {
+        "name": "chargemeta.Mixin in all charge Ent schemas",
+        "description": "Every charge Ent schema embeds chargemeta.Mixin via Mixin() to inherit standard charge columns (customer_id, periods, status, currency, managed_by, subscription refs, advance_after). Never re-define these per charge type.",
+        "example": "func (CreditPurchaseCharge) Mixin() []ent.Mixin { return []ent.Mixin{chargemeta.Mixin{}, ...} }"
+      },
+      {
+        "name": "creditrealization.Mixin requires SelfReferenceType",
+        "description": "Entities holding credit realizations use creditrealization.Mixin with SelfReferenceType set to the entity's own type for self-referencing correction edges.",
+        "example": "creditrealization.Mixin{SelfReferenceType: entschema.CreditPurchaseRealization{}}"
+      },
+      {
+        "name": "payment.Base hierarchy for new payment variants",
+        "description": "Payment entities share Base (status, currency, amount, authorized/settled refs) via payment.Mixin; Invoiced adds Immutable line_id/invoice_id. Never embed Base fields directly in a new variant.",
+        "example": "type ExternalPayment struct { payment.Base; ... }"
+      },
+      {
+        "name": "ValidationIssue sentinels in payment/errors.go",
+        "description": "Payment domain errors are package-level var ValidationIssue with HTTP status codes, matched with errors.Is \u2014 not fmt.Errorf.",
+        "example": "var ErrAlreadyAuthorized = models.NewValidationIssue(ErrCodeAlreadyAuthorized, \"...\", commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict))"
+      },
+      {
+        "name": "ledgertransaction nil-safe helpers",
+        "description": "Use GroupReference.GetIDOrNull() for Ent SetNillable* field methods; call Validate() before reading TransactionGroupID directly.",
+        "example": "creator.SetNillableTransactionGroupID(ref.GetIDOrNull())"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "chargemeta/mixin.go",
+        "role": "Ent mixin with all standard charge columns plus generic Create/Update/MapFromDB helpers.",
+        "watch_for": "intent.Normalized() and meta.NormalizeOptionalTimestamp run at the top of Create/Update \u2014 never skip them; SortHint must be unique per batch."
+      },
+      {
+        "file": "creditrealization/models.go",
+        "role": "Realization/Realizations/InitialLineageSpec; allocation/correction duality enforced in CreateInput.Validate().",
+        "watch_for": "SortHint must be non-zero unique per batch for deterministic correction ordering."
+      },
+      {
+        "file": "creditrealization/realizations.go",
+        "role": "Realizations.Correct() correction planning.",
+        "watch_for": "Round amounts via currencyx.Calculator.RoundToPrecision before Correct(); never set CorrectsRealizationID manually."
+      },
+      {
+        "file": "ledgertransaction/ledger.go",
+        "role": "GroupReference and TimedGroupReference value types; GetIDOrNull() for nil-safe Ent writes.",
+        "watch_for": "Constructing TimedGroupReference with a zero Time fails Validate()."
+      },
+      {
+        "file": "payment/invoiced.go",
+        "role": "Invoiced with Immutable LineID/InvoiceID.",
+        "watch_for": "LineID/InvoiceID must not be mutated after creation; UpdateInvoicedPayment is for status/transaction-group fields only."
+      },
+      {
+        "file": "payment/errors.go",
+        "role": "Domain payment error sentinels as ValidationIssue with HTTP status codes.",
+        "watch_for": "Use errors.Is; do not create new errors for already-covered conditions."
+      }
+    ],
+    "anti_patterns": [
+      "Defining per-charge-type copies of chargemeta fields instead of embedding chargemeta.Mixin.",
+      "Setting SortHint=0 on all realizations in a batch \u2014 correction ordering becomes non-deterministic.",
+      "Accessing ledgertransaction.TransactionGroupID without calling Validate() first.",
+      "Mutating Invoiced.LineID or Invoiced.InvoiceID after creation \u2014 these are Immutable Ent fields.",
+      "Creating a correction realization without Realizations.Correct() \u2014 bypasses CorrectsRealizationID assignment and amount validation."
+    ],
+    "decisions": [
+      {
+        "decision": "chargemeta.Mixin + generic Create/Update/MapFromDB instead of per-type boilerplate.",
+        "rationale": "Three charge types share identical persistence fields; type parameters eliminate duplication while keeping compile-time safety."
+      },
+      {
+        "decision": "Two-type realization model (allocation + correction) instead of mutable balance rows.",
+        "rationale": "Append-only model provides a full audit trail for credit reconciliation and avoids lost-update races."
+      },
+      {
+        "decision": "Separate Invoiced and External payment types sharing a payment.Base.",
+        "rationale": "Invoiced payments have an immutable invoice/line link not applicable to external payments; separate types prevent accidental mutation."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/billing/charges/worker": {
+    "purpose": "Organisational parent for charge-advancement workers split by execution model: advance/ for scheduled batch sweeps across all eligible customers (error accumulation + pagination) and asyncadvance/ for single-customer event-driven advancement triggered by a Watermill charges.AdvanceChargesEvent. Both children mutate only through charges.ChargeService, never Ent adapters directly.",
+    "patterns": [
+      {
+        "name": "Config struct + constructor validation",
+        "description": "Each child defines a Config with required service fields and validates them in New*() before returning the concrete type; a nil ChargesService returns an error immediately.",
+        "example": "func NewAdvancer(config Config) (*AutoAdvancer, error) { if config.ChargesService == nil { return nil, fmt.Errorf(\"charges service is required\") }; return &AutoAdvancer{chargesService: config.ChargesService, logger: config.Logger}, nil }"
+      },
+      {
+        "name": "Service-only access \u2014 no direct Ent calls",
+        "description": "advance.AutoAdvancer and asyncadvance.Handler hold only a charges.ChargeService interface; Ent/adapter packages are never imported here.",
+        "example": "type AutoAdvancer struct { chargesService charges.ChargeService; logger *slog.Logger }"
+      },
+      {
+        "name": "Error accumulation in batch, pass-through in async",
+        "description": "advance.All collects per-customer errors and returns errors.Join so one failure never blocks others; asyncadvance.Handle returns the error directly (single-customer scope) so Watermill can retry/DLQ.",
+        "example": "for _, cust := range customers { if err := a.AdvanceCharges(ctx, cust); err != nil { errs = append(errs, fmt.Errorf(\"customer %s: %w\", cust.ID, err)) } }\nreturn errors.Join(errs...)"
+      },
+      {
+        "name": "Pagination via pagination.CollectAll",
+        "description": "advance.ListCustomersToAdvance uses pagination.CollectAll with a pagination.NewPaginator closure to fetch the full customer list page-by-page without manual cursor management.",
+        "example": "pagination.CollectAll(ctx, pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[customer.CustomerID], error) { return a.chargesService.ListCustomersToAdvance(ctx, ...) }), defaultPageSize)"
+      },
+      {
+        "name": "Stable now captured once per batch",
+        "description": "Time is captured once at the top of All() and passed to ListCustomersToAdvance \u2014 never re-captured inside the paginator closure or per-customer calls.",
+        "example": "now := clock.Now(); customers, err := a.ListCustomersToAdvance(ctx, now)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "advance/advance.go",
+        "role": "Batch sweeper: paginated list of eligible customers, per-customer advance, error accumulation across customers.",
+        "watch_for": "time.Now() is captured once at the top of All() \u2014 do not capture inside the paginator closure or per-customer calls."
+      },
+      {
+        "file": "asyncadvance/asyncadvance.go",
+        "role": "Single-customer Watermill handler: builds customer.CustomerID from event fields and calls AdvanceCharges. Exactly one public method Handle(ctx, *charges.AdvanceChargesEvent) error.",
+        "watch_for": "Return the AdvanceCharges error \u2014 never return nil to suppress retries; Watermill uses it for retry/DLQ routing."
+      }
+    ],
+    "anti_patterns": [
+      "Calling Ent/adapter code directly \u2014 all mutations must go through charges.ChargeService.",
+      "Returning on first customer error in batch paths \u2014 must accumulate with errors.Join.",
+      "Introducing context.Background()/context.TODO() \u2014 always propagate the caller's ctx.",
+      "Adding batch/pagination logic to asyncadvance.Handler \u2014 that belongs in advance.AutoAdvancer.",
+      "Returning nil from asyncadvance.Handle to swallow failures \u2014 Watermill uses the error for retry/DLQ routing."
+    ],
+    "decisions": [
+      {
+        "decision": "Separate packages for batch (advance) and async (asyncadvance) advance paths.",
+        "rationale": "Execution models differ: batch sweeps all customers with pagination and error accumulation; async handles one Watermill event with pass-through error semantics. Mixing them couples scheduling and event-bus concerns."
+      },
+      {
+        "decision": "Error accumulation via errors.Join in the batch path instead of early return.",
+        "rationale": "One failing customer must not prevent others from advancing; all failures surface together for observability and retry."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Construct and run the batch sweeper",
+        "code": "import chargesworkeradvance \"github.com/openmeterio/openmeter/openmeter/billing/charges/worker/advance\"\n\nadvancer, err := chargesworkeradvance.NewAdvancer(chargesworkeradvance.Config{ChargesService: chargesSvc, Logger: logger})\nif err != nil { return err }\nif err := advancer.All(ctx, namespaces); err != nil { /* accumulated errors */ }"
       }
     ]
   }

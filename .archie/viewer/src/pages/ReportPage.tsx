@@ -5,7 +5,7 @@ import { LocalEditContext } from '@/components/local/context/LocalEditContext'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
-import { Copy, Check, ExternalLink, ChevronRight, Layout, Github, Menu, X, Info, Activity, Database, Shield, Zap, Rocket, AlertTriangle, Layers, FileText } from 'lucide-react'
+import { Copy, Check, ExternalLink, ChevronRight, Layout, Github, Menu, X, Info, Activity, Database, Shield, Zap, Rocket, AlertTriangle, Layers, FileText, AlertCircle } from 'lucide-react'
 import { fetchReport, type Bundle } from '@/lib/api'
 import { autoBacktick } from '@/lib/autocode'
 import { formatBlueprintTitle } from '@/lib/blueprintTitle'
@@ -63,6 +63,8 @@ export default function ReportPage({ bundle: bundleProp, createdAt: createdAtPro
   const [activeSection, setActiveSection] = useState('')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [ignoredRules, setIgnoredRules] = useState<any[]>([])
+  const [diagramTab, setDiagramTab] = useState<'overview' | 'c4'>('overview')
+  const [c4Level, setC4Level] = useState<'context' | 'container' | 'component'>('container')
 
   // LocalEditContext is null in share mode and a real ctx in local-viewer mode.
   // We only fetch /api/ignored-rules when localCtx is non-null so share-mode
@@ -112,7 +114,19 @@ export default function ReportPage({ bundle: bundleProp, createdAt: createdAtPro
   const bp = bundle?.blueprint || {}
   const meta = bp.meta || {}
   const diagram: string = typeof bp.architecture_diagram === 'string' ? bp.architecture_diagram : bp.architecture_diagram?.mermaid || ''
-  
+
+  // Deterministic, script-built C4 diagrams (optional — older bundles omit them).
+  const c4 = bundle?.c4
+  const c4Levels = ([
+    ['container', 'Container', 'Deployable units, datastores, and external systems.'],
+    ['context', 'Context', 'The system and the external systems it talks to.'],
+    ['component', 'Component', 'Internal modules and their dependencies.'],
+  ] as const).filter(([k]) => typeof c4?.[k] === 'string' && (c4![k] as string).trim().length > 0)
+  const hasC4 = c4Levels.length > 0
+  // Fall back to the first available level if the default isn't present.
+  const activeC4Level = c4Levels.some(([k]) => k === c4Level) ? c4Level : c4Levels[0]?.[0]
+  const activeC4 = hasC4 ? (c4Levels.find(([k]) => k === activeC4Level) ?? c4Levels[0]) : undefined
+
   const findings = useMemo(() => {
     // Prefer the structured shared store when present — gives us the 4-field
     // shape (evidence/root_cause/fix_direction). Fall back to parsing the
@@ -172,7 +186,9 @@ export default function ReportPage({ bundle: bundleProp, createdAt: createdAtPro
       'tradeoffs',
       'guidelines',
       'communications',
+      'errors',
       'components',
+      'data-models',
       'integrations',
       'technology',
       'deployment',
@@ -292,6 +308,23 @@ export default function ReportPage({ bundle: bundleProp, createdAt: createdAtPro
   const stack = Array.isArray(technology.stack) ? technology.stack : []
   const runCommands = technology.run_commands || {}
   const deployment = bp.deployment || {}
+  const dataModels = Array.isArray(bp.data_models) ? bp.data_models : []
+  const persistenceStores = Array.isArray(bp.persistence_stores) ? bp.persistence_stores : []
+  const dataOverview = typeof bp.data_overview === 'string' ? bp.data_overview : ''
+  const hasDataSurface = dataModels.length > 0 || persistenceStores.length > 0
+  // quick_reference: pattern_selection (scenario → pattern → scope) folds into
+  // Communications as a scenario index; error_mapping (domain error → HTTP
+  // status) renders as its own Errors section. pattern_selection is normally a
+  // list; an older/alternate dict shape ({scenario: pattern}) is normalized to
+  // the list-of-rows shape the index expects.
+  const quickRef = bp.quick_reference || {}
+  const rawPatternSelection = quickRef.pattern_selection
+  const patternSelection = Array.isArray(rawPatternSelection)
+    ? rawPatternSelection
+    : rawPatternSelection && typeof rawPatternSelection === 'object'
+      ? Object.entries(rawPatternSelection).map(([scenario, pattern]) => ({ scenario, pattern }))
+      : []
+  const errorMapping = Array.isArray(quickRef.error_mapping) ? quickRef.error_mapping : []
   const implementationGuidelines = [
     ...(bp.implementation_guidelines || []),
     ...(bp.decisions?.implementation_guidelines || []),
@@ -473,7 +506,7 @@ export default function ReportPage({ bundle: bundleProp, createdAt: createdAtPro
                 label="System Health"
               />
             )}
-            {diagram && (
+            {(diagram || hasC4) && (
               <NavButton
                 active={activeSection === 'diagram'}
                 onClick={() => scrollToSection('diagram')}
@@ -515,7 +548,7 @@ export default function ReportPage({ bundle: bundleProp, createdAt: createdAtPro
           )}
 
           {/* Practice */}
-          {(implementationGuidelines.length > 0 || communications.length > 0) && (
+          {(implementationGuidelines.length > 0 || communications.length > 0 || patternSelection.length > 0 || errorMapping.length > 0) && (
             <div className="space-y-1">
               <p className="px-3 text-[10px] font-black uppercase tracking-[0.2em] text-ink/20 mb-4">Practice</p>
               {implementationGuidelines.length > 0 && (
@@ -526,7 +559,7 @@ export default function ReportPage({ bundle: bundleProp, createdAt: createdAtPro
                   label="Implementation Guidelines"
                 />
               )}
-              {communications.length > 0 && (
+              {(communications.length > 0 || patternSelection.length > 0) && (
                 <NavButton
                   active={activeSection === 'communications'}
                   onClick={() => scrollToSection('communications')}
@@ -534,11 +567,19 @@ export default function ReportPage({ bundle: bundleProp, createdAt: createdAtPro
                   label="Communications"
                 />
               )}
+              {errorMapping.length > 0 && (
+                <NavButton
+                  active={activeSection === 'errors'}
+                  onClick={() => scrollToSection('errors')}
+                  icon={AlertCircle}
+                  label="Errors"
+                />
+              )}
             </div>
           )}
 
           {/* Inventory */}
-          {(componentsList.length > 0 || stack.length > 0 || integrations.length > 0) && (
+          {(componentsList.length > 0 || stack.length > 0 || integrations.length > 0 || hasDataSurface) && (
             <div className="space-y-1">
               <p className="px-3 text-[10px] font-black uppercase tracking-[0.2em] text-ink/20 mb-4">Inventory</p>
               {componentsList.length > 0 && (
@@ -547,6 +588,14 @@ export default function ReportPage({ bundle: bundleProp, createdAt: createdAtPro
                   onClick={() => scrollToSection('components')}
                   icon={Database}
                   label="Components"
+                />
+              )}
+              {hasDataSurface && (
+                <NavButton
+                  active={activeSection === 'data-models'}
+                  onClick={() => scrollToSection('data-models')}
+                  icon={Database}
+                  label="Data Models"
                 />
               )}
               {integrations.length > 0 && (
@@ -776,24 +825,95 @@ export default function ReportPage({ bundle: bundleProp, createdAt: createdAtPro
             </section>
           )}
 
-          {/* Architecture Diagram */}
-          {diagram && (
+          {/* Architecture Diagram — AI-curated spine + deterministic C4 model */}
+          {(diagram || hasC4) && (
             <section id="diagram" className="space-y-8 scroll-mt-24">
               <Sections.SectionHeader title="Architecture Diagram" icon={Layout} />
               <div className={cn("p-10 rounded-3xl border shadow-2xl shadow-ink/5 bg-white/50 backdrop-blur-md overflow-hidden relative", theme.surface.panel)}>
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(45,161,176,0.03),transparent)] pointer-events-none" />
-                <div className="relative">
-                  <MermaidDiagram chart={diagram} />
+                <div className="relative space-y-6">
+                  {/* Diagram controls — two distinct groups: the view tabs
+                      (Simplified Overview / C4 Model) and, for C4, the level
+                      toggle (Container / Context / Component). Separated by a
+                      gap + divider so they read as separate controls. */}
+                  {hasC4 && (
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                      {diagram && (
+                        <div className="inline-flex rounded-xl bg-ink/5 p-1 text-[10px] font-black uppercase tracking-widest">
+                          {([['overview', 'Simplified Overview'], ['c4', 'C4 Model']] as const).map(([id, label]) => (
+                            <button
+                              key={id}
+                              onClick={() => setDiagramTab(id)}
+                              className={cn(
+                                "px-4 py-2 rounded-lg transition-all",
+                                diagramTab === id ? "bg-white text-ink shadow-sm" : "text-ink/40 hover:text-ink"
+                              )}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {(!diagram || diagramTab === 'c4') && (
+                        <div className="inline-flex items-center gap-4">
+                          {diagram && <span className="h-6 w-px bg-ink/15" aria-hidden />}
+                          <div className="inline-flex rounded-xl bg-ink/5 p-1 text-[10px] font-black uppercase tracking-widest">
+                            {c4Levels.map(([id, label]) => (
+                              <button
+                                key={id}
+                                onClick={() => setC4Level(id)}
+                                className={cn(
+                                  "px-4 py-2 rounded-lg transition-all",
+                                  activeC4Level === id ? "bg-white text-ink shadow-sm" : "text-ink/40 hover:text-ink"
+                                )}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Simplified Overview (default when present, or when C4 absent) */}
+                  {diagram && (!hasC4 || diagramTab === 'overview') && (
+                    <>
+                      <div className="text-xs text-ink/50 italic leading-relaxed border-l-2 border-papaya-400/40 pl-3">
+                        Simplified overview — the architectural spine, not a complete dependency graph. Shows 8-12 curated nodes that tell the request-flow story; peripheral plumbing (analytics, logging, image loaders) is intentionally omitted. For the full component inventory see the <em>Components</em> section; for the persistence layer see <em>Persistence Stores</em>.
+                      </div>
+                      <MermaidDiagram chart={diagram} />
+                      <details className="mt-12 group overflow-hidden">
+                        <summary className="list-none cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-ink/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-ink/40 hover:text-ink hover:bg-ink/10 transition-all">
+                          <Database className="w-3.5 h-3.5" />
+                          <span>Scale Logic (Mermaid Source)</span>
+                        </summary>
+                        <div className="mt-4 p-8 rounded-2xl font-mono text-xs overflow-x-auto ring-1 ring-white/10 shadow-inner bg-ink text-papaya-300">
+                          <pre>{diagram}</pre>
+                        </div>
+                      </details>
+                    </>
+                  )}
+
+                  {/* C4 Model — deterministic, script-built. Inner level toggle. */}
+                  {hasC4 && (!diagram || diagramTab === 'c4') && activeC4 && (
+                    <>
+                      <div className="text-xs text-ink/50 italic leading-relaxed border-l-2 border-teal/40 pl-3">
+                        {activeC4[2]} Script-generated from the blueprint — reproducible and complete (not redrawn by an LLM each scan), so it's only as accurate as the blueprint's data. Deployable units come from the file scan; relationships are inferred by the analysis.
+                      </div>
+                      <MermaidDiagram chart={activeC4 && c4 ? (c4[activeC4[0]] as string) : ''} />
+                      <details className="mt-12 group overflow-hidden">
+                        <summary className="list-none cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-ink/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-ink/40 hover:text-ink hover:bg-ink/10 transition-all">
+                          <Database className="w-3.5 h-3.5" />
+                          <span>C4 Source (Mermaid)</span>
+                        </summary>
+                        <div className="mt-4 p-8 rounded-2xl font-mono text-xs overflow-x-auto ring-1 ring-white/10 shadow-inner bg-ink text-papaya-300">
+                          <pre>{activeC4 && c4 ? (c4[activeC4[0]] as string) : ''}</pre>
+                        </div>
+                      </details>
+                    </>
+                  )}
                 </div>
-                <details className="mt-12 group overflow-hidden">
-                  <summary className="list-none cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-ink/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-ink/40 hover:text-ink hover:bg-ink/10 transition-all">
-                    <Database className="w-3.5 h-3.5" />
-                    <span>Scale Logic (Mermaid Source)</span>
-                  </summary>
-                  <div className="mt-4 p-8 rounded-2xl font-mono text-xs overflow-x-auto ring-1 ring-white/10 shadow-inner bg-ink text-papaya-300">
-                    <pre>{diagram}</pre>
-                  </div>
-                </details>
               </div>
             </section>
           )}
@@ -826,10 +946,19 @@ export default function ReportPage({ bundle: bundleProp, createdAt: createdAtPro
             </section>
           )}
 
-          {/* 9. Communications */}
-          {communications.length > 0 && (
+          {/* 9. Communications — patterns + a scenario index folded in from
+              quick_reference.pattern_selection (each scenario links to the
+              pattern card that explains it). */}
+          {(communications.length > 0 || patternSelection.length > 0) && (
             <section id="communications" className="scroll-mt-24">
-              <Sections.CommunicationsSection communications={communications} />
+              <Sections.CommunicationsSection communications={communications} patternSelection={patternSelection} />
+            </section>
+          )}
+
+          {/* 9b. Errors — quick_reference.error_mapping (domain error → HTTP status) */}
+          {errorMapping.length > 0 && (
+            <section id="errors" className="scroll-mt-24">
+              <Sections.ErrorsSection errorMapping={errorMapping} />
             </section>
           )}
 
@@ -837,6 +966,13 @@ export default function ReportPage({ bundle: bundleProp, createdAt: createdAtPro
           {componentsList.length > 0 && (
             <section id="components" className="scroll-mt-24">
               <Sections.ComponentsSection components={componentsList} />
+            </section>
+          )}
+
+          {/* 10a. Data Models — persistence stores + per-model lifecycle */}
+          {hasDataSurface && (
+            <section id="data-models" className="scroll-mt-24">
+              <Sections.DataModelsSection models={dataModels} stores={persistenceStores} dataOverview={dataOverview} components={componentsList} />
             </section>
           )}
 

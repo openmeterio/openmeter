@@ -19,6 +19,7 @@ export interface Bundle {
   scan_report?: string
   semantic_duplications?: SemanticDuplication[]
   findings?: any[]
+  c4?: { context?: string; container?: string; component?: string }
 }
 
 export interface ReportResponse {

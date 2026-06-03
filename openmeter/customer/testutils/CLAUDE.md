@@ -6,11 +6,11 @@
 
 ## Patterns
 
-**TestEnv struct with Close via sync.Once** — TestEnv holds all constructed services and raw DB handles. Close() uses sync.Once to safely close the Ent driver and pgx pool exactly once even when called from deferred teardown. (`e.close.Do(func() { e.db.EntDriver.Close(); e.db.PGDriver.Close() })`)
-**Build from package constructors, not app/common** — NewTestEnv constructs customeradapter.New, customerservice.New, subjectadapter.New, and subjectservice.New directly — no app/common imports, no Wire, no DI container. (`customerAdapter, err := customeradapter.New(customeradapter.Config{Client: client, Logger: logger})`)
-**eventbus.NewMock for publisher** — Uses eventbus.NewMock(t) instead of a real Kafka publisher so tests do not require a running Kafka broker. (`publisher := eventbus.NewMock(t)`)
-**t.Context() for test-scoped context** — All context values passed to service calls must use t.Context() (not context.Background()) so cancellation is tied to the test lifecycle. (`e.CustomerService.CreateCustomer(t.Context(), input)`)
-**DBSchemaMigrate before schema-dependent tests** — Tests that require database tables must call env.DBSchemaMigrate(t) before the first service call; skipping causes 'table does not exist' errors. (`env.DBSchemaMigrate(t)`)
+**TestEnv struct with Close via sync.Once** — TestEnv holds all constructed services and raw DB handles. Close() uses sync.Once to safely close the Ent driver and pgx pool exactly once even from deferred teardown. (`e.close.Do(func() { e.db.EntDriver.Close(); e.db.PGDriver.Close() })`)
+**Build from package constructors, not app/common** — NewTestEnv constructs customeradapter.New, customerservice.New, subjectadapter.New, subjectservice.New directly — no app/common, no Wire, no DI container. (`customerAdapter, err := customeradapter.New(customeradapter.Config{Client: client, Logger: logger})`)
+**eventbus.NewMock for publisher** — Uses eventbus.NewMock(t) instead of a real Kafka publisher so tests do not require a running broker. (`publisher := eventbus.NewMock(t)`)
+**t.Context() for test-scoped context** — All context values passed to service calls use t.Context() (not context.Background()) so cancellation ties to the test lifecycle. (`e.CustomerService.CreateCustomer(t.Context(), input)`)
+**DBSchemaMigrate before schema-dependent tests** — Tests requiring tables must call env.DBSchemaMigrate(t) before the first service call; skipping causes 'table does not exist' errors. (`env.DBSchemaMigrate(t)`)
 
 ## Key Files
 
@@ -28,5 +28,21 @@
 ## Decisions
 
 - **testutils constructs adapters and services directly instead of using app/common Wire providers.** — Avoids import cycles between domain test helpers and the application wiring layer; lets domain tests compile without pulling in unrelated domain providers.
+
+## Example: Build a customer TestEnv from raw constructors with a mock event bus
+
+```
+import (
+	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
+	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+)
+
+publisher := eventbus.NewMock(t)
+customerAdapter, err := customeradapter.New(customeradapter.Config{Client: client, Logger: logger})
+require.NoError(t, err)
+svc, err := customerservice.New(customerservice.Config{Adapter: customerAdapter, Publisher: publisher})
+require.NoError(t, err)
+```
 
 <!-- archie:ai-end -->

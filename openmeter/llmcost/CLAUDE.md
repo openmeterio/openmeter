@@ -2,50 +2,47 @@
 
 <!-- archie:ai-start -->
 
-> LLM cost price management domain: persists global (synced) prices and per-namespace manual overrides in llmcostprice, resolves effective prices with namespace-override precedence, and synchronises prices from external sources (models.dev). All monetary values use alpacadecimal.Decimal for precision.
+> LLM cost-price domain: persists global (synced, namespace IS NULL, source='system') prices and per-namespace manual overrides (source='manual') in the llmcostprice table, resolves effective prices with namespace-override precedence, and syncs prices from external sources (models.dev). All monetary values use alpacadecimal.Decimal.
 
 ## Patterns
 
-**Validate() on every input and domain type** — All input types implement models.Validator (compile-time asserted with `var _ models.Validator = (*XInput)(nil)`). Call input.Validate() at the service boundary before delegating to the adapter. (`var _ models.Validator = (*ListPricesInput)(nil)
-func (i ListPricesInput) Validate() error { ... return models.NewNillableGenericValidationError(errors.Join(errs...)) }`)
-**models.NewNillableGenericValidationError wrapping** — All Validate() methods return models.NewNillableGenericValidationError(errors.Join(errs...)) — returns nil when errs is empty, ensuring consistent error typing for HTTP encoding. (`return models.NewNillableGenericValidationError(errors.Join(errs...))`)
-**ValidationIssue sentinel errors for field-level errors** — Each error condition has a named sentinel models.NewValidationIssue with ErrCodeXxx constant, field path, severity, and HTTP status attribute. New error conditions follow this pattern in errors.go. (`var ErrProviderEmpty = models.NewValidationIssue(ErrCodeProviderEmpty, "provider must not be empty", models.WithFieldString("provider"), models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))`)
-**PriceSource discrimination for global vs override rows** — Rows with namespace IS NULL and source='system' are global prices; rows with namespace IS NOT NULL and source='manual' are overrides. Never mix these in a single query path. (`PriceSourceManual PriceSource = "manual"; PriceSourceSystem PriceSource = "system"`)
-**alpacadecimal.Decimal for all price fields** — All cost-per-token fields use alpacadecimal.Decimal (never float64 or string). Optional token dimensions (CacheRead, CacheWrite, Reasoning) are *alpacadecimal.Decimal. (`InputPerToken alpacadecimal.Decimal; CacheReadPerToken *alpacadecimal.Decimal`)
-**NormalizeModelID before any price lookup or insert** — Call llmcost.NormalizeModelID(provider, modelID) before storing or resolving prices to canonicalise casing, version suffixes, region prefixes, and provider aliases. (`canonicalProvider, canonicalModelID := llmcost.NormalizeModelID(provider, modelID)`)
-**TransactingRepo wrapping in adapter** — Every adapter method that writes must be wrapped with entutils.TransactingRepo / TransactingRepoWithNoValue so ctx-carried transactions are honored. (`return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (Price, error) { ... })`)
+**Validate() + Nillable wrapping on every input** — Each input type asserts `var _ models.Validator = (*XInput)(nil)` and its Validate() returns models.NewNillableGenericValidationError(errors.Join(errs...)); call input.Validate() at the service boundary. (`return models.NewNillableGenericValidationError(errors.Join(errs...))`)
+**ValidationIssue sentinels for field errors** — Each field-level error is a named sentinel in errors.go combining an ErrCodeXxx, field path, severity, and HTTP-status attribute. (`var ErrProviderEmpty = models.NewValidationIssue(ErrCodeProviderEmpty, "provider must not be empty", models.WithFieldString("provider"), models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))`)
+**PriceSource discrimination (system vs manual)** — Global rows are namespace IS NULL + source='system'; overrides are namespace IS NOT NULL + source='manual'. Never mix these in one query path; UpsertGlobalPrice is reserved for system rows. (`PriceSourceManual PriceSource = "manual"; PriceSourceSystem PriceSource = "system"`)
+**alpacadecimal.Decimal for all price fields** — Cost-per-token fields use alpacadecimal.Decimal (never float64/string); optional dimensions (CacheRead/CacheWrite/Reasoning) are *alpacadecimal.Decimal. (`InputPerToken alpacadecimal.Decimal; CacheReadPerToken *alpacadecimal.Decimal`)
+**NormalizeModelID before lookup/insert** — Call llmcost.NormalizeModelID(provider, modelID) before storing or resolving to canonicalise casing, version/region suffixes, and provider aliases uniformly. (`canonicalProvider, canonicalModelID := llmcost.NormalizeModelID(provider, modelID)`)
+**Override overlay at service layer; sync requires multi-source agreement** — Adapter keeps global/override as separate query paths; the service batch-fetches overrides once and overlays them in memory. The sync pipeline (Fetch→Normalize→Deduplicate→Reconcile) writes globals only after minAgreement sources agree within tolerance. (`// service overlays overrides; sync calls Adapter.UpsertGlobalPrice after reconciler.Reconcile`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `openmeter/llmcost/llmcost.go` | Core domain types: Price, ModelPricing, PriceSource, SourcePrice, SourcePricesMap. All fields validated in Validate() methods. | Adding new token-cost dimensions requires updating ModelPricing, Validate(), and all mapping/adapter code. |
-| `openmeter/llmcost/service.go` | Service interface definition plus all input types with their Validate() methods. Compile-time Validator assertions guard every input type. | New Service methods require a matching XInput type with Validate() and a compile-time assertion here. |
-| `openmeter/llmcost/adapter.go` | Adapter interface declaration (extends entutils.TxCreator). Source of truth for which persistence operations exist. | Any new query or write must be added to Adapter before implementing in openmeter/llmcost/adapter/. |
-| `openmeter/llmcost/errors.go` | All ValidationIssue sentinels and error constructors for the llmcost domain. | New field-level errors must follow the ErrCodeXxx constant + models.NewValidationIssue pattern with explicit HTTP status. |
-| `openmeter/llmcost/normalize.go` | NormalizeModelID and NormalizeProvider: strips version/region suffixes, normalises provider aliases. Must be called before any price store or resolve. | Adding new provider aliases or version-suffix patterns requires updating this file and its test table. |
-| `openmeter/llmcost/adapter/adapter.go` | Ent/PostgreSQL adapter; all writes use TransactingRepo; ResolvePrice uses ORDER BY namespace DESC to prefer overrides. | Never call a.db directly outside TransactingRepo in write paths — falls off ctx transaction. |
-| `openmeter/llmcost/service/service.go` | Business-logic layer; applies namespace-override overlay in ListPrices at service layer, not adapter layer; wraps mutations in transaction.Run. | Do not add DB queries inside the overlay loop — batch-fetch overrides once before iterating. |
-| `openmeter/llmcost/sync/sync.go` | Four-phase sync pipeline: Fetch → Normalize → Deduplicate → Reconcile. Writes via Adapter.UpsertGlobalPrice only after multi-source agreement. | Fetcher errors must not abort the sync for all models; reconciler.Reconcile must follow deduplicateSourcePrices. |
+| `llmcost.go` | Core domain types: Price, ModelPricing, PriceSource, SourcePrice, SourcePricesMap with Validate(). | Adding a token-cost dimension requires updating ModelPricing, Validate(), and all mapping/adapter code. |
+| `service.go` | Service interface plus input types with Validate() and compile-time Validator assertions. | Every new Service method needs a matching XInput with Validate() and an assertion. |
+| `adapter.go` | Adapter interface (extends entutils.TxCreator) — source of truth for persistence operations. | New queries/writes must be declared here before implementing in adapter/. |
+| `errors.go` | All ValidationIssue sentinels and error constructors for the domain. | New field errors follow the ErrCodeXxx + NewValidationIssue + explicit HTTP status pattern. |
+| `normalize.go` | NormalizeModelID/NormalizeProvider: strip version/region suffixes, normalise aliases. Must precede any store/resolve. | New aliases or suffix patterns require updating this file and its test table. |
+| `adapter/adapter.go` | Ent adapter; all writes wrapped in TransactingRepo; ResolvePrice uses ORDER BY namespace DESC to prefer overrides; soft-delete via SetDeletedAt(clock.Now()). | Never call a.db directly in a write helper outside TransactingRepo; never hard-delete. |
+| `sync/sync.go` | Four-phase pipeline writing globals only after multi-source agreement. | Fetcher errors must be non-fatal; reconciler.Reconcile must run after deduplicateSourcePrices. |
 
 ## Anti-Patterns
 
-- Using float64 or string for price fields — must use alpacadecimal.Decimal to preserve billing precision.
-- Skipping NormalizeModelID before storing or resolving prices — causes provider/model ID mismatches across sources.
-- Calling a.db directly in adapter helpers without TransactingRepo — bypasses ctx-carried Ent transaction.
-- Adding source='manual' rows via UpsertGlobalPrice (reserved for source='system' reconciled prices).
-- Calling reconciler.Reconcile before deduplicateSourcePrices — allows false multi-source agreement from provider aliasing.
+- Using float64/string for price fields instead of alpacadecimal.Decimal.
+- Skipping NormalizeModelID before storing/resolving prices.
+- Calling a.db directly in adapter write helpers without TransactingRepo.
+- Adding source='manual' rows via UpsertGlobalPrice (reserved for reconciled system prices).
+- Calling reconciler.Reconcile before deduplicateSourcePrices — allows false multi-source agreement from aliasing.
 
 ## Decisions
 
-- **Namespace-override overlay applied at service layer, not adapter layer** — Keeps the adapter queries simple (global vs override are separate query paths); the service batches both and merges them in memory.
-- **Multi-source agreement threshold before writing global prices** — A single down source should not pollute global prices; requiring minAgreement sources within priceTolerance prevents rogue data from one fetcher.
-- **Normalisation as a pure package-level function (NormalizeModelID)** — Applied uniformly by both the sync pipeline and the adapter/service, eliminating per-caller inconsistency in canonical key construction.
+- **Namespace-override overlay applied at the service layer, not the adapter.** — Keeps adapter queries simple (separate global/override paths); the service batches and merges in memory.
+- **Require multi-source agreement before writing global prices.** — A single down or rogue source must not pollute globals; minAgreement within priceTolerance guards this.
+- **Normalisation is a pure package-level function (NormalizeModelID).** — Applied uniformly by both sync and adapter/service, eliminating per-caller key-construction drift.
 
 ## Example: Adding a new service method with input validation
 
 ```
-// In service.go — declare input type with compile-time Validator assertion
+// In service.go
 var _ models.Validator = (*GetLatestPriceInput)(nil)
 
 type GetLatestPriceInput struct {

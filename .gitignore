@@ -38,8 +38,10 @@ api/v3/templates/chi-middleware.tmpl
 .archie/*.py
 .archie/__pycache__/
 .archie/platform_rules.json
+.archie/workflow/
+.archie/.test_snapshots/
 .claude/commands/archie-*.md
-.claude/skills/archie-deep-scan/
-.claude/commands/_shared/scope_resolution.md
 .claude/hooks/
 .claude/settings.local.json
+.agents/skills/archie-*/
+.codex/hooks.json

@@ -1,0 +1,111 @@
+{
+  "pkg/framework": {
+    "purpose": "Shared low-level infrastructure layer providing the generic HTTP transport pipeline (transport/httptransport), Ent transaction management and schema mixins (entutils), DB-agnostic transaction propagation (transaction), distributed advisory locks (lockr), RFC 7807 error/encoding primitives (commonhttp), the Operation/Middleware contract (operation), pgx pool wiring (pgdriver), and OTel helpers (tracex, clickhouseotel). Every domain package under openmeter/ depends on this layer; its primary constraint is that it must remain a domain-free leaf and never import openmeter/* domain packages.",
+    "patterns": [
+      {
+        "name": "httptransport decode/operate/encode pipeline",
+        "description": "Every HTTP endpoint is built via httptransport.NewHandler with a RequestDecoder, operation.Operation, ResponseEncoder, and ErrorEncoder. Domain handlers never implement ServeHTTP directly.",
+        "example": "httptransport.NewHandler(op, DecodeRequest, EncodeResponse, EncodeError, httptransport.WithOperationName(\"op\"))"
+      },
+      {
+        "name": "TransactingRepo on every adapter method body",
+        "description": "Domain adapter methods wrap DB access in entutils.TransactingRepo(ctx, a, func(ctx, tx *adapter)(*T,error){...}) (or TransactingRepoWithNoValue) so they rebind to any Ent transaction already in ctx, falling back to Self() when none is present.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*Entity, error) { return toDomain(tx.db.Entity.Create().Save(ctx)) })"
+      },
+      {
+        "name": "TxCreator + TxUser[T] triad on every adapter",
+        "description": "Each adapter implements Tx(ctx) via HijackTx+NewTxDriver, WithTx(ctx, tx) via entdb.NewTxClientFromRawConfig, and Self() \u2014 all three are required for TransactingRepo to rebind correctly.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { return &adapter{db: entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()} }"
+      },
+      {
+        "name": "GenericErrorEncoder chain (bool-returning, first-match wins)",
+        "description": "Error encoders return bool; false passes to the next encoder. Domain errors must be models.Generic* sentinels matched by commonhttp.HandleErrorIfTypeMatches; HTTP status codes are never written directly in handler logic.",
+        "example": "func EncodeError(ctx context.Context, err error, w http.ResponseWriter) bool { return commonhttp.HandleErrorIfTypeMatches[models.GenericNotFoundError](ctx, http.StatusNotFound, err, w) }"
+      },
+      {
+        "name": "LockForTX / transaction.Run inside an active transaction",
+        "description": "lockr.Locker.LockForTX(ctx, key) must run inside an entutils.TransactingRepo / transaction.Run block; it calls pg_advisory_xact_lock in the ctx-bound tx and errors if no Postgres transaction is present. Use pgdriver.WithLockTimeout, not context.WithTimeout, for lock timeouts.",
+        "example": "return transaction.Run(ctx, creator, func(ctx context.Context) (*T, error) { if err := locker.LockForTX(ctx, key); err != nil { return nil, err }; ... })"
+      },
+      {
+        "name": "tracex.Start + Wrap for OTel span lifecycle",
+        "description": "Use tracex.Start/StartWithNoValue + Wrap instead of tracer.Start directly; Wrap records errors, sets span status, recovers panics, and ends the span. Always pass s.Ctx() (the child-span ctx) into operations inside Wrap.",
+        "example": "return tracex.Start(ctx, tracer, \"svc.Op\", func(s *tracex.Span[*Entity]) (*Entity, error) { return s.Wrap(adapter.Write(s.Ctx(), id)) }).Result()"
+      },
+      {
+        "name": "Standard mixin composition on Ent entity schemas",
+        "description": "Every openmeter/ent/schema entity composes entutils.IDMixin{} (ULID char(26)), NamespaceMixin{}, TimeMixin{} in Mixin(). Omitting NamespaceMixin breaks multi-tenancy; omitting TimeMixin breaks soft-delete.",
+        "example": "func (Entity) Mixin() []ent.Mixin { return []ent.Mixin{entutils.IDMixin{}, entutils.NamespaceMixin{}, entutils.TimeMixin{}} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entutils/transaction.go",
+        "role": "TransactingRepo/TransactingRepoWithNoValue and TxDriver \u2014 ctx-propagated Ent transaction reuse with Postgres savepoints for nesting. Core of all adapter DB access.",
+        "watch_for": "Never call creator.Tx() directly or store *entdb.Tx on an adapter struct; always go through TransactingRepo. A missing wrapper silently degrades to Self() (non-tx) and causes partial writes."
+      },
+      {
+        "file": "entutils/mixins.go",
+        "role": "Ent mixin definitions: IDMixin (ULID char(26)), NamespaceMixin, TimeMixin, ResourceMixin and friends used by all ~30 entity schemas.",
+        "watch_for": "Never add id/namespace/created_at/updated_at fields manually on a schema \u2014 always compose the mixins."
+      },
+      {
+        "file": "commonhttp/errors.go",
+        "role": "RFC 7807 problem-detail chain: GenericErrorEncoder, HandleErrorIfTypeMatches, HandleIssueIfHTTPStatusKnown, and ValidationIssue HTTP-status attribute helpers.",
+        "watch_for": "Call WithHTTPStatusCodeAttribute on a ValidationIssue before returning it; without it HandleIssueIfHTTPStatusKnown returns false and the error falls through to 500."
+      },
+      {
+        "file": "lockr/locker.go",
+        "role": "Transaction-scoped advisory lock (pg_advisory_xact_lock) with key hashed to uint64 via xxhash; auto-released on tx commit/rollback.",
+        "watch_for": "Must be inside an active Ent transaction in ctx. Use pgdriver.WithLockTimeout instead of context.WithTimeout \u2014 ctx cancel kills the pgx connection."
+      },
+      {
+        "file": "lockr/session.go",
+        "role": "Connection-scoped advisory lock (pg_advisory_lock) over a dedicated *sql.Conn for admin flows where the lock must outlive individual transactions.",
+        "watch_for": "Not goroutine-safe under high contention; always call Close() to release the dedicated connection or it leaks from the pool."
+      },
+      {
+        "file": "transport/httptransport/handler.go",
+        "role": "Generic Handler[Request,Response] implementing http.Handler \u2014 the decode\u2192operation\u2192encode pipeline used by every v1 and v3 endpoint; holds the last-resort 500 fallback.",
+        "watch_for": "Never implement ServeHTTP directly in a domain httpdriver package \u2014 always construct via httptransport.NewHandler. Handler is value-receiver with copy-on-With/Chain semantics."
+      },
+      {
+        "file": "transaction/transaction.go",
+        "role": "DB-agnostic Run[R]/RunWithNoValue helpers and the Driver (Commit/Rollback/SavePoint) propagated through context for start-or-reuse transaction semantics with nested savepoints.",
+        "watch_for": "Never call SetDriverOnContext manually outside Run; DriverConflictError signals tx reuse and must not be treated as fatal. Never use context.Background() in a Run callback \u2014 it loses the Driver."
+      },
+      {
+        "file": "tracex/tracex.go",
+        "role": "Generic OTel Span[T]/SpanNoValue wrapper with automatic error recording, span status, and panic recovery (panic re-raised after End).",
+        "watch_for": "Always use s.Ctx() inside Wrap callbacks; never call span.End() manually after Wrap \u2014 it double-ends and truncates the span."
+      }
+    ],
+    "anti_patterns": [
+      "Importing any openmeter/* domain package from a pkg/framework sub-package \u2014 creates import cycles across every adapter; this layer must stay a domain-free leaf.",
+      "Using context.Background()/context.TODO() inside TransactingRepo callbacks, transaction.Run callbacks, or tracex.Wrap functions \u2014 drops the ctx-bound transaction, OTel span, and cancellation.",
+      "Calling a.db.Foo()/raw SQL or creator.Tx() directly, or storing *entdb.Tx on an adapter struct, instead of TransactingRepo \u2014 falls off the ctx-bound transaction and produces partial writes under concurrency.",
+      "Adding ORDER BY before .Cursor() or applying .Limit()/.Offset() before .Paginate() \u2014 the entcursor/entpaginate templates append their own ordering and reset limit/offset, producing undefined or discarded results.",
+      "Putting business logic inside operation.Middleware \u2014 middleware is for cross-cutting concerns (auth, logging, tracing) only; business logic belongs in the Operation function."
+    ],
+    "decisions": [
+      {
+        "decision": "TransactingRepo reads the transaction from ctx rather than accepting *entdb.Tx as a parameter, and TxDriver uses Postgres savepoints for nesting.",
+        "rationale": "Ent transactions propagate implicitly via ctx; explicit *entdb.Tx parameters leak tx plumbing into every call site and cannot enforce nesting via savepoints."
+      },
+      {
+        "decision": "A single generic httptransport.Handler[Request,Response] separates decode/operate/encode for all endpoints.",
+        "rationale": "Enforces consistent request validation, RFC 7807 error encoding, and OTel tracing across 60+ endpoints without duplicating boilerplate per domain handler."
+      },
+      {
+        "decision": "Two advisory lock types \u2014 Locker (tx-scoped) and SessionLocker (connection-scoped).",
+        "rationale": "Different lifetime requirements: billing operations need the lock released on tx commit/rollback (Locker), while some admin flows need locks that outlive individual transactions (SessionLocker)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adapter method participating in a ctx-bound transaction with an advisory lock",
+        "code": "import (\n\t\"context\"\n\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/lockr\"\n)\n\nfunc (a *adapter) Update(ctx context.Context, in UpdateInput, key lockr.Key) (*Entity, error) {\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*Entity, error) {\n\t\tif err := a.locker.LockForTX(ctx, key); err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\treturn toDomain(tx.db.Entity.UpdateOneID(in.ID).Save(ctx))\n\t})\n}"
+      }
+    ]
+  }
+}

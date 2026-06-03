@@ -310,42 +310,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 
 ## Pitfalls (block)
 
-### `pf-006-wire-hook-audit` — Wire provider side-effects (hook/validator registration) are invisible to Wire's compile-time graph; omitting the provider from a binary's wire.Build silently drops all hooks it registers with no compile error.
-
-*source: `deep_scan`*
-
-**Why:** Pitfall pf_0006: app/common/customer.go NewCustomerLedgerServiceHook, NewCustomerSubjectServiceHook, and NewCustomerEntitlementValidatorServiceHook each call customerService.RegisterHooks(h) inside the provider as side-effects. Wire sees only types, not side-effects; a binary that does not pull these providers into its wire.Build still builds successfully but loses the hooks. cmd/billing-worker uses common.BillingWorker as a composite set; the actual hook list each binary registers depends on which composite set is included.
-
-**Example:**
-
-```
-// When adding a new provider to app/common that registers a hook:
-// 1. Audit every cmd/<binary>/wire.go to decide which binaries need this hook
-// 2. Add the provider to the appropriate composite set in app/common/openmeter_<binary>.go
-// Failing to add it means the hook silently does not run in that binary
-```
-
-**Path glob:** `app/common/*.go`
-
-<details><summary>Code-shape trigger</summary>
-
-```json
-[
-  {
-    "kind": "regex_in_content",
-    "must_match": [
-      "RegisterHooks|RegisterRequestValidator"
-    ],
-    "must_not_match": [
-      "// side-effect",
-      "openmeter_"
-    ]
-  }
-]
-```
-
-</details>
-
 ### `pf-007-event-subsystem-prefix` — New Watermill event types whose EventName() does not start with a recognized EventVersionSubsystem prefix silently misroute to SystemEventsTopic instead of failing fast.
 
 *source: `deep_scan`*
@@ -548,6 +512,42 @@ return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (
     "must_not_match": [
       "TransactingRepo",
       "entutils\\.Transacting"
+    ]
+  }
+]
+```
+
+</details>
+
+### `pf-006-wire-hook-audit` — Wire provider side-effects (hook/validator registration) are invisible to Wire's compile-time graph; omitting the provider from a binary's wire.Build silently drops all hooks it registers with no compile error.
+
+*source: `deep_scan`*
+
+**Why:** Pitfall pf_0006: app/common/customer.go NewCustomerLedgerServiceHook, NewCustomerSubjectServiceHook, and NewCustomerEntitlementValidatorServiceHook each call customerService.RegisterHooks(h) inside the provider as side-effects. Wire sees only types, not side-effects; a binary that does not pull these providers into its wire.Build still builds successfully but loses the hooks. cmd/billing-worker uses common.BillingWorker as a composite set; the actual hook list each binary registers depends on which composite set is included.
+
+**Example:**
+
+```
+// When adding a new provider to app/common that registers a hook:
+// 1. Audit every cmd/<binary>/wire.go to decide which binaries need this hook
+// 2. Add the provider to the appropriate composite set in app/common/openmeter_<binary>.go
+// Failing to add it means the hook silently does not run in that binary
+```
+
+**Path glob:** `app/common/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "RegisterHooks|RegisterRequestValidator"
+    ],
+    "must_not_match": [
+      "// side-effect",
+      "openmeter_"
     ]
   }
 ]

@@ -6,15 +6,15 @@
 
 ## Patterns
 
-**Override App.Migrator.Config at runtime before calling Migrate** — The --mode flag value is parsed via config.AutoMigrate() and written to internal.App.Migrator.Config.AutoMigrate before calling Migrate. This is the only place in jobs that mutates App state after initialization. (`internal.App.Migrator.Config.AutoMigrate = migrationMode; err := internal.App.Migrator.Migrate(cmd.Context())`)
-**Validate mode before execution with explicit rejection of 'job' mode** — Uses config.AutoMigrate() to parse and validate the mode string. Explicitly rejects AutoMigrateMigrationJob mode to prevent circular use of the jobs binary for job-mode migration. (`if !migrationMode.Enabled() { return fmt.Errorf("migration mode is disabled") }
-if migrationMode == config.AutoMigrateMigrationJob { return fmt.Errorf("migration mode cannot be job") }`)
+**Override App.Migrator.Config at runtime before Migrate** — The --mode flag value is parsed via config.AutoMigrate() and written to internal.App.Migrator.Config.AutoMigrate before calling Migrate. This is the only place in jobs that mutates App state after initialization. (`internal.App.Migrator.Config.AutoMigrate = migrationMode; err := internal.App.Migrator.Migrate(cmd.Context())`)
+**Validate mode before execution, rejecting 'job' mode** — config.AutoMigrate() parses and validates the mode string; the command errors if the mode is disabled and explicitly rejects AutoMigrateMigrationJob to prevent recursive use of the jobs binary for job-mode migration. (`if !migrationMode.Enabled() { return fmt.Errorf("migration mode is disabled") }
+if migrationMode == config.AutoMigrateMigrationJob { return fmt.Errorf("migration mode cannot be job for this command") }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `migrate.go` | Implements the 'migrate' Cobra command; wraps common.Migrator with mode validation. Default mode is 'migration' (config.AutoMigrateMigration). | The --mode flag accepts only 'ent' and 'migration'; 'job' is explicitly rejected. Do not add migration logic (DDL, data transforms) here — those belong in tools/migrate/migrations/. |
+| `migrate.go` | Implements the 'migrate' Cobra command (RootCommand()), wrapping common.Migrator with mode validation. Default mode is 'migration' (config.AutoMigrateMigration). | The --mode flag accepts only 'ent' and 'migration'; 'job' is explicitly rejected. Do not add DDL or data transforms here — those belong in tools/migrate/migrations/. |
 
 ## Anti-Patterns
 
@@ -25,5 +25,15 @@ if migrationMode == config.AutoMigrateMigrationJob { return fmt.Errorf("migratio
 ## Decisions
 
 - **Migration mode is overridden on App.Migrator.Config rather than constructing a new Migrator.** — The Wire-provided Migrator already has the correct DB client and logger; overriding just the mode field reuses all that wiring without duplication.
+
+## Example: The migrate command's mode validation and execution
+
+```
+migrationMode := config.AutoMigrate(migrationMode)
+if !migrationMode.Enabled() { return fmt.Errorf("migration mode is disabled") }
+if migrationMode == config.AutoMigrateMigrationJob { return fmt.Errorf("migration mode cannot be job for this command") }
+internal.App.Migrator.Config.AutoMigrate = migrationMode
+if err := internal.App.Migrator.Migrate(cmd.Context()); err != nil { return fmt.Errorf("failed to migrate database: %w", err) }
+```
 
 <!-- archie:ai-end -->

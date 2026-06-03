@@ -1,75 +1,66 @@
 {
-  "openmeter/subject/service/hooks": {
-    "purpose": "Implements the CustomerSubjectHook that bridges customer.Service lifecycle events to subject.Service provisioning, ensuring every UsageAttribution.SubjectKey has a corresponding Subject row without creating circular imports between subject and customer domains.",
+  "openmeter/sink/flushhandler/ingestnotification/events": {
+    "purpose": "Defines the EventBatchedIngest domain event published to Watermill's balance-worker Kafka topic after a successful ClickHouse flush, carrying namespace, subject key, affected meter slugs, raw CloudEvent payloads, and a StoredAt timestamp so balance-worker consumers can recalculate entitlement grant burn-down without re-querying ClickHouse.",
     "patterns": [
       {
-        "name": "Embed NoopServiceHook for partial overrides",
-        "description": "Hook structs embed the noop type alias (NoopCustomerSubjectHook = models.NoopServiceHook[customer.Customer]) and override only the needed lifecycle methods (PostCreate, PostUpdate). All other lifecycle methods default to no-ops automatically.",
-        "example": "type customerSubjectHook struct { NoopCustomerSubjectHook; provisioner *SubjectProvisioner; tracer trace.Tracer }"
+        "name": "marshaler.Event compliance via compile-time assertion",
+        "description": "Each event struct implements marshaler.Event (EventName(), EventMetadata()); a blank var _ marshaler.Event = EventBatchedIngest{} must appear alongside it or routing silently fails.",
+        "example": "var _ marshaler.Event = EventBatchedIngest{}"
       },
       {
-        "name": "Context-key skip flag prevents re-entrant loops",
-        "description": "NewContextWithSkipSubjectCustomer sets a typed private context key; EnsureSubjects checks SkipSubjectCustomerFromContext before acting. Any call back into subject.Service inside a hook method must carry this context to prevent infinite recursion when a reverse hook is also registered.",
-        "example": "sub, err = p.subject.Create(NewContextWithSkipSubjectCustomer(ctx), subject.CreateInput{...})"
+        "name": "Versioned event identity via metadata.EventType constant",
+        "description": "Identity is a package-level metadata.EventType{Subsystem, Name, Version}; EventName() returns metadata.GetEventName(eventType), never a bare literal, so GeneratePublishTopic routes by EventVersionSubsystem prefix.",
+        "example": "batchIngestEventType = metadata.EventType{Subsystem: EventSubsystem, Name: \"events.ingested\", Version: \"v2\"}"
       },
       {
-        "name": "Config struct with Validate() for constructor injection",
-        "description": "All dependencies (Subject service, Logger, Tracer) are bundled in SubjectProvisionerConfig which implements models.Validator. NewCustomerSubjectHook and NewSubjectProvisioner both call config.Validate() before allocation; invalid configs return a wrapped error.",
-        "example": "func NewCustomerSubjectHook(config CustomerSubjectHookConfig) (CustomerSubjectHook, error) { if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid subject hook config: %w\", err) } ... }"
+        "name": "Export EventVersionSubsystem for consumers",
+        "description": "Export each event type's VersionSubsystem string so balance-worker can subscribe by prefix without importing internal metadata helpers.",
+        "example": "EventVersionSubsystem = batchIngestEventType.VersionSubsystem()"
       },
       {
-        "name": "OTel span per operation with deferred closure capturing err",
-        "description": "Every exported method opens a tracer span at entry and defers span.End() together with status-setting in a closure that captures the returned named error variable. RecordError is called only on non-nil err.",
-        "example": "ctx, span := p.tracer.Start(ctx, \"subject_provisioner.ensure_subjects\"); defer func() { if err != nil { span.SetStatus(otelcodes.Error, err.Error()); span.RecordError(err) }; span.End() }()"
+        "name": "EventMetadata uses ComposeResourcePath helpers",
+        "description": "EventMetadata() returns Source via ComposeResourcePathRaw and Subject via ComposeResourcePath(namespaceID, entityKind, key); never hand-roll path strings.",
+        "example": "Subject: metadata.ComposeResourcePath(b.Namespace.ID, metadata.EntitySubjectKey, b.SubjectKey)"
       },
       {
-        "name": "models.IsGenericNotFoundError for idempotent upsert",
-        "description": "EnsureSubject calls subject.GetByIdOrKey and treats IsGenericNotFoundError (or a deleted subject) as the signal to create; all other errors are propagated. Never match errors by string comparison.",
-        "example": "if models.IsGenericNotFoundError(err) || sub.IsDeleted() { sub, err = p.subject.Create(NewContextWithSkipSubjectCustomer(ctx), ...) }"
+        "name": "MeterSlugs not MeterIDs in payloads",
+        "description": "Meter references use slugs ([]string), not internal ULIDs \u2014 IDs are absent in the open-source build and would yield zero-length lookups downstream.",
+        "example": "MeterSlugs []string `json:\"meterSlugs\"`"
       },
       {
-        "name": "Delegate business logic to SubjectProvisioner, not hook methods",
-        "description": "Hook lifecycle methods (PostCreate, PostUpdate) are thin delegators that call provisioner.EnsureSubjects and handle span status. All provisioning logic lives in SubjectProvisioner so it can be reused outside the hook interface (e.g., batch backfills).",
-        "example": "func (s customerSubjectHook) PostCreate(ctx context.Context, cus *customer.Customer) error { ctx, span := s.tracer.Start(...); defer span.End(); return s.provisioner.EnsureSubjects(ctx, cus) }"
+        "name": "Validate() returns combined descriptive errors",
+        "description": "Validate() delegates to embedded validators (e.g. Namespace.Validate()) and checks every required scalar with a descriptive error; never silently skip or return nil for an empty required field.",
+        "example": "if b.SubjectKey == \"\" { return errors.New(\"subjectKey must be set\") }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "customersubject.go",
-        "role": "Sole production file: defines customerSubjectHook (models.ServiceHook[customer.Customer] impl), SubjectProvisioner (provisioning worker), and their config structs. The type alias CustomerSubjectHookConfig = SubjectProvisionerConfig keeps the public API surface minimal.",
-        "watch_for": "Any new lifecycle method (e.g. PostDelete) must pass NewContextWithSkipSubjectCustomer(ctx) when calling back into subject.Service. Never skip config.Validate() in constructors. The EnsureSubjects nil-guard on cus must be preserved."
-      },
-      {
-        "file": "customersubject_test.go",
-        "role": "Integration tests wiring concrete adapters (subjectadapter, customeradapter, customerservice, subjectservice) without importing app/common. Covers WithExistingSubject, WithoutExistingSubject, and mutual Conflict (both hooks registered simultaneously) scenarios.",
-        "watch_for": "Tests use t.Context() not context.Background(). testutils.InitPostgresDB + DBSchemaMigrate must be called before any DB interaction. NoopCustomerOverrideService shows how to stub billing deps without importing billing wiring."
+        "file": "events.go",
+        "role": "Sole file: EventBatchedIngest, its metadata.EventType constant, GetEventName call, exported EventVersionSubsystem, the marshaler.Event assertion \u2014 the complete public API.",
+        "watch_for": "A new event type needs a metadata.EventType constant, a GetEventName call, an exported VersionSubsystem var, a var _ marshaler.Event assertion, and a Validate(); omitting any causes silent Kafka misrouting or consumer decode failures."
       }
     ],
     "anti_patterns": [
-      "Calling subject.Service methods inside a hook without NewContextWithSkipSubjectCustomer when a reverse hook is also registered \u2014 causes infinite recursion",
-      "Importing app/common in tests \u2014 breaks isolation; build test deps from concrete constructors (adapter + service) directly",
-      "Using context.Background() instead of propagating the caller ctx through hook methods",
-      "Catching errors from subject.Service by string comparison instead of models.IsGenericNotFoundError",
-      "Adding business logic directly in hook lifecycle methods instead of delegating to SubjectProvisioner"
+      "Using meter IDs instead of meter slugs \u2014 IDs are unavailable in open-source consumers.",
+      "Hard-coding event name strings instead of metadata.GetEventName(eventType).",
+      "Omitting the var _ marshaler.Event compile-time assertion for a new event struct.",
+      "Storing mutable state or pointers in the event struct \u2014 it must be a pure value type for safe concurrent marshaling.",
+      "Adding context.Context parameters \u2014 event structs are value types; context belongs at the publisher call site."
     ],
     "decisions": [
       {
-        "decision": "Separate SubjectProvisioner from customerSubjectHook",
-        "rationale": "SubjectProvisioner can be reused independently for non-hook provisioning paths (e.g. batch backfills) without carrying the models.ServiceHook interface overhead."
+        "decision": "EventVersionSubsystem is exported for consumer subscription.",
+        "rationale": "Decouples producer/consumer versioning; consumers match on VersionSubsystem prefix, so a version bump (v2 -> v3) is isolated to the producer side."
       },
       {
-        "decision": "Skip flag in context rather than a boolean field on the hook",
-        "rationale": "A context key is naturally scoped to one call stack, preventing skip state from leaking across concurrent requests that share the same hook instance."
-      },
-      {
-        "decision": "Type alias CustomerSubjectHookConfig = SubjectProvisionerConfig",
-        "rationale": "Avoids duplicating config fields while letting callers reference the hook-specific name; a single Validate() implementation covers both entry points."
+        "decision": "RawEvents embeds the full serializer.CloudEventsKafkaPayload slice rather than aggregated fields.",
+        "rationale": "Avoids re-querying ClickHouse in the balance-worker; the worker has all raw usage data needed to recalculate grant burn-down in-memory."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a PostDelete lifecycle that removes orphaned subjects while preventing reverse-hook loops",
-        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/customer\"\n\tsubjectservicehooks \"github.com/openmeterio/openmeter/openmeter/subject/service/hooks\"\n)\n\nfunc (s customerSubjectHook) PostDelete(ctx context.Context, cus *customer.Customer) error {\n\tctx, span := s.tracer.Start(ctx, \"customer_subject_hook.post_delete\")\n\tdefer span.End()\n\t// Pass skip-flag context so subject.Delete does not re-trigger customer hooks\n\tctx = subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx)\n\treturn s.provisioner.RemoveSubjects(ctx, cus)\n}"
+        "scenario": "Adding a new ingest notification event type alongside EventBatchedIngest",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/event/metadata\"\n\t\"github.com/openmeterio/openmeter/openmeter/watermill/marshaler\"\n)\nvar (\n\t_ marshaler.Event = EventNewIngest{}\n\tnewIngestEventType = metadata.EventType{Subsystem: EventSubsystem, Name: \"events.new\", Version: \"v1\"}\n\tnewIngestEventName = metadata.GetEventName(newIngestEventType)\n\tNewIngestVersionSubsystem = newIngestEventType.VersionSubsystem()\n)"
       }
     ]
   }

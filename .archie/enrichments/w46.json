@@ -1,95 +1,95 @@
 {
-  "deploy/charts/benthos-collector/templates": {
-    "purpose": "Helm templates rendering the complete Kubernetes resource set (StatefulSet, Service, RBAC, ServiceAccount, Secret, ConfigMap) for the benthos-collector binary; enforces naming via _helpers.tpl macros, stores Benthos config in a Secret, and wires Downward-API env vars for leader-election.",
+  "collector/quickstart/collector/resources": {
+    "purpose": "Declares shared Benthos cache resources (dedupe_cache, memory backend, 1h TTL) referenced by name from stream processors in the quickstart collector pipeline. Declarations only \u2014 no processors or business logic.",
     "patterns": [
       {
-        "name": "All names through _helpers.tpl macros",
-        "description": "Every resource name must use `include \"benthos-collector.fullname\"` or `include \"benthos-collector.componentName\" (list . \"component\")`. Never concatenate `.Release.Name` or `.Chart.Name` directly.",
-        "example": "name: {{ include \"benthos-collector.componentName\" (list . \"config\") }}"
-      },
-      {
-        "name": "Common label helpers on every resource",
-        "description": "Every `metadata.labels` block must call `include \"benthos-collector.labels\" . | nindent 4`; selector labels use `include \"benthos-collector.selectorLabels\" . | nindent N`.",
-        "example": "labels:\n  {{- include \"benthos-collector.labels\" . | nindent 4 }}"
-      },
-      {
-        "name": "Config stored in Secret, not ConfigMap",
-        "description": "The Benthos config.yaml is base64-encoded into a Secret named `<fullname>-config` and mounted at `/etc/benthos/config.yaml` as a read-only subPath volume. ConfigMap is only for CA certificates.",
-        "example": "data:\n  config.yaml: {{ .Values.config | toYaml | b64enc | quote }}"
-      },
-      {
-        "name": "Container args via benthos-collector.args helper only",
-        "description": "Container args in statefulset.yaml must always be emitted via `include \"benthos-collector.args\" .`; the helper enforces mutual exclusivity of `config`, `configFile`, and `preset` and calls `fail` if none is set.",
-        "example": "args: {{ include \"benthos-collector.args\" . }}"
-      },
-      {
-        "name": "Downward-API env vars injected unconditionally",
-        "description": "The StatefulSet always injects K8S_POD_NAME, K8S_POD_UID, K8S_NAMESPACE, K8S_APP_INSTANCE, K8S_APP_NAME, K8S_APP_VERSION via fieldRef. New env vars must not conflict with these names.",
-        "example": "- name: K8S_POD_NAME\n  valueFrom:\n    fieldRef:\n      fieldPath: metadata.name"
-      },
-      {
-        "name": "Checksum annotations force pod roll on config change",
-        "description": "Pod template carries `checksum/config: {{ .Values.config | toYaml | sha256sum }}` and `checksum/secret: {{ .Values.openmeter | toYaml | sha256sum }}` so StatefulSet pods roll when config or credentials change.",
-        "example": "annotations:\n  checksum/config: {{ .Values.config | toYaml | sha256sum }}\n  checksum/secret: {{ .Values.openmeter | toYaml | sha256sum }}"
-      },
-      {
-        "name": "Storage-gated volume and PVC",
-        "description": "The `data` volumeMount and volumeClaimTemplates are only rendered when `.Values.storage.enabled` is true. Any new persistent volume must follow the same gate.",
-        "example": "{{- if .Values.storage.enabled }}\n  volumeClaimTemplates:\n    ...\n{{- end }}"
+        "name": "Named cache label convention",
+        "description": "Cache resources must use a label that exactly matches the string in dedupe processor `cache:` fields elsewhere in the pipeline; a mismatch causes a runtime reference error when the stream starts.",
+        "example": "cache_resources:\n  - label: dedupe_cache\n    memory:\n      default_ttl: 1h"
       }
     ],
     "key_file_guides": [
       {
-        "file": "_helpers.tpl",
-        "role": "Single source of truth for all named template functions: name, fullname, chart, labels, selectorLabels, serviceAccountName, componentName (two-arg list), storageClass, args.",
-        "watch_for": "`benthos-collector.componentName` takes a list `(list . \"component\")` not a dict \u2014 passing a wrong arg type causes a nil-pointer render error. `benthos-collector.storageClass` delegates to inline `common.storage.class` defined in the same file."
-      },
-      {
-        "file": "statefulset.yaml",
-        "role": "Core workload; StatefulSet (not Deployment) for stable pod names and optional PVC volumeClaimTemplates; mounts config Secret as subPath and injects Downward API env.",
-        "watch_for": "Adding a volumeMount without gating on `.Values.storage.enabled` will break renders when storage is disabled. The config volume references the Secret name from `benthos-collector.componentName (list . \"config\")` \u2014 if the macro output changes, the mount breaks."
-      },
-      {
-        "file": "secret.yaml",
-        "role": "Always renders two Secrets unconditionally: one for OPENMETER_URL/OPENMETER_TOKEN (required field fails render if absent), one for the Benthos config YAML.",
-        "watch_for": "The config Secret name `benthos-collector.componentName (list . \"config\")` must stay in sync with the volume reference in statefulset.yaml. Renaming it in one place without the other breaks the mount."
-      },
-      {
-        "file": "rbac.yaml",
-        "role": "Conditionally (`.Values.rbac.create`) creates ClusterRole+Binding for pod/node/PVC reads and a namespace Role+Binding for lease management (leader election).",
-        "watch_for": "Contains a duplicate `subjects:` key in the ClusterRoleBinding \u2014 an existing YAML bug some parsers accept silently. Do not replicate this pattern in new resources."
-      },
-      {
-        "file": "configmap.yaml",
-        "role": "Only renders when `.Values.caRootCertificates` is non-empty; stores CA certs keyed by name with `.crt` suffix, lowercased.",
-        "watch_for": "If CA cert key names change, the volumeMount path `/usr/local/share/ca-certificates` in statefulset.yaml must still align."
+        "file": "dedupe-cache.yaml",
+        "role": "Defines the in-memory deduplication cache shared by streams/input.yaml's dedupe processor.",
+        "watch_for": "Renaming `dedupe_cache` breaks the `cache: dedupe_cache` reference in streams/input.yaml. Changing TTL affects the deduplication window and memory footprint."
       }
     ],
     "anti_patterns": [
-      "Hardcoding release or chart name strings instead of using `benthos-collector.fullname` / `benthos-collector.componentName`",
-      "Storing the Benthos config.yaml in a ConfigMap \u2014 it must always be a Secret to protect embedded credentials",
-      "Adding container args directly in statefulset.yaml instead of routing through `benthos-collector.args`, which validates config source exclusivity",
-      "Adding new env vars that conflict with the unconditionally injected Downward-API set (K8S_POD_NAME, K8S_POD_UID, K8S_NAMESPACE, etc.)",
-      "Using a Deployment instead of StatefulSet \u2014 stable pod identity is required for leader election and PVC volumeClaimTemplates"
+      "Adding processors or business logic inside a resource file \u2014 resources are declarations only.",
+      "Using a persistent cache backend (Redis, etc.) without updating collector deployment configuration.",
+      "Renaming `dedupe_cache` without updating all `cache:` references in stream processors."
     ],
     "decisions": [
       {
-        "decision": "StatefulSet over Deployment",
-        "rationale": "Stable pod names (exposed via K8S_POD_NAME Downward API) are required for the leader-election lease mechanism; PVC volumeClaimTemplates also require StatefulSet semantics."
+        "decision": "In-memory cache with 1h TTL for deduplication.",
+        "rationale": "Quickstart is a lightweight local demo; a persistent cache would require extra infrastructure, and 1h TTL matches expected event replay windows."
+      }
+    ],
+    "code_examples": []
+  },
+  "collector/quickstart/collector/streams": {
+    "purpose": "Defines the two-stream Benthos pipeline for the quickstart collector: input.yaml handles HTTP ingestion (Content-Type switching, deduplication, schema validation, sync HTTP responses); output.yaml reads from the shared inproc channel, buffers to SQLite for durability, and forwards to the OpenMeter API in batches.",
+    "patterns": [
+      {
+        "name": "Inproc channel coupling between streams",
+        "description": "input.yaml writes validated events to `inproc: openmeter`; output.yaml reads from `inproc: openmeter`. The label string must match exactly \u2014 a mismatch silently drops all events.",
+        "example": "# input.yaml output: - inproc: openmeter\n# output.yaml input: { inproc: openmeter }"
       },
       {
-        "decision": "Config stored in Secret, not ConfigMap",
-        "rationale": "The Benthos config can contain sensitive credentials (API keys, tokens); Secret keeps them base64-encoded and subject to RBAC, unlike a plaintext ConfigMap."
+        "name": "Content-Type switch before dedup/validation",
+        "description": "A switch processor splits application/cloudevents-batch+json (unarchive json_array) from application/cloudevents+json (noop); unknown Content-Types return HTTP 400 via sync_response and drop via `mapping: root = deleted()`.",
+        "example": "processors:\n  - switch:\n      - check: meta(\"Content-Type\").lowercase() == \"application/cloudevents-batch+json\"\n        processors:\n          - unarchive: { format: json_array }"
       },
       {
-        "decision": "Checksum annotations on pod template",
-        "rationale": "StatefulSet does not automatically roll pods on Secret/ConfigMap changes; sha256sum annotations force a pod roll when config or OpenMeter credentials change."
+        "name": "Sync response for HTTP status propagation",
+        "description": "HTTP response status is set via `meta http_response_status` and surfaced through the fan_out output's sync_response branch; the address block echoes the meta value, defaulting to 204.",
+        "example": "sync_response:\n  status: '${! meta(\"http_response_status\").or(\"204\") }'"
+      },
+      {
+        "name": "SQLite buffer for durable output",
+        "description": "output.yaml uses a SQLite buffer with a split post-processor to re-expand batched messages before forwarding to the openmeter output plugin; removing `split: {}` sends unexpanded batch payloads.",
+        "example": "buffer:\n  sqlite:\n    path: /var/lib/collector/buffer.sqlite\n    post_processors:\n      - split: {}"
+      },
+      {
+        "name": "Environment variable configuration for output",
+        "description": "All deployment-specific values (OPENMETER_URL, OPENMETER_TOKEN, BATCH_SIZE, BATCH_PERIOD) are injected via env vars with safe defaults \u2014 never hardcoded.",
+        "example": "output:\n  openmeter:\n    url: \"${OPENMETER_URL:https://openmeter.cloud}\"\n    token: \"${OPENMETER_TOKEN:}\"\n    batching:\n      count: ${BATCH_SIZE:1}\n      period: ${BATCH_PERIOD:30s}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "input.yaml",
+        "role": "HTTP server entry point: receives CloudEvents, enforces Content-Type, deduplicates via dedupe_cache, validates against the CloudEvents JSON schema, fans out to the inproc channel + sync_response.",
+        "watch_for": "The dedupe processor references `dedupe_cache` by label \u2014 it must exist in resources/dedupe-cache.yaml. The catch block after json_schema validation returns 400 and drops invalid events; removing catch lets schema errors pass through unhandled."
+      },
+      {
+        "file": "output.yaml",
+        "role": "Reads from the inproc channel, buffers to SQLite for durability, then batches and forwards to the openmeter output plugin.",
+        "watch_for": "The `split: {}` post-processor is required to re-expand messages packed by the SQLite buffer; removing it sends unexpanded batch payloads to OpenMeter."
+      }
+    ],
+    "anti_patterns": [
+      "Renaming `inproc: openmeter` in either file without updating the other \u2014 breaks the inter-stream channel silently.",
+      "Removing the fan_out sync_response branch \u2014 HTTP clients never receive responses.",
+      "Bypassing the Content-Type switch and sending raw bytes to dedupe \u2014 the dedup hash over non-normalized payloads produces incorrect deduplication.",
+      "Hardcoding OPENMETER_URL or OPENMETER_TOKEN instead of using env var interpolation.",
+      "Removing the SQLite buffer without an alternative durability mechanism \u2014 events lost on collector restart."
+    ],
+    "decisions": [
+      {
+        "decision": "Two-file stream split (input + output) connected by an inproc channel.",
+        "rationale": "Separates HTTP ingestion (validation, dedup, sync response) from forwarding (buffering, batching, auth), making each independently configurable."
+      },
+      {
+        "decision": "xxhash64 content hash as dedupe key.",
+        "rationale": "A fast non-cryptographic hash over full message content provides exactly-once deduplication for retried CloudEvent payloads without requiring a unique event ID field."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new named template helper and using it in a new resource",
-        "code": "{{/* In _helpers.tpl */}}\n{{- define \"benthos-collector.myHelper\" -}}\n{{- printf \"%s-%s\" (include \"benthos-collector.fullname\" .) \"mycomponent\" | trunc 63 | trimSuffix \"-\" }}\n{{- end }}\n\n{{/* In a new resource template */}}\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: {{ include \"benthos-collector.myHelper\" . }}\n  labels:\n    {{- include \"benthos-collector.labels\" . | nindent 4 }}"
+        "scenario": "Input pipeline: Content-Type switch \u2192 dedupe \u2192 schema validation \u2192 catch \u2192 fan_out with sync_response and inproc",
+        "code": "# input.yaml\npipeline:\n  processors:\n    - switch:\n        - check: meta(\"Content-Type\").lowercase() == \"application/cloudevents-batch+json\"\n          processors:\n            - unarchive: { format: json_array }\n        - check: meta(\"Content-Type\").lowercase() == \"application/cloudevents+json\"\n          processors:\n            - noop: {}\n        - check: \"\"\n          processors:\n            - mapping: |\n                meta http_response_status = \"400\"\n                root = deleted()"
       }
     ]
   }

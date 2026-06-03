@@ -1,85 +1,249 @@
 {
-  "openmeter/customer/service/hooks": {
-    "purpose": "Lifecycle hook implementations for the customer domain \u2014 entitlement validation pre-delete guard (entitlementvalidator.go) and subject-to-customer auto-provisioning (subjectcustomer.go). New hooks integrate with models.ServiceHook[T] registry without coupling the customer package to callers.",
+  "openmeter/customer/adapter": {
+    "purpose": "Ent/PostgreSQL implementation of customer.Adapter \u2014 the sole layer that touches the database for the customer domain. All reads and writes are wrapped in entutils.TransactingRepo so every method honors the ctx-bound Ent transaction.",
     "patterns": [
       {
-        "name": "ServiceHook type alias pair",
-        "description": "Each hook file declares a public type alias for the interface and a Noop alias. The concrete struct embeds the Noop so only overridden methods need implementing.",
-        "example": "type EntitlementValidatorHook = models.ServiceHook[customer.Customer]\ntype NoopEntitlementValidatorHook = models.NoopServiceHook[customer.Customer]\nvar _ models.ServiceHook[customer.Customer] = (*entitlementValidatorHook)(nil)"
+        "name": "TransactingRepo on every method body",
+        "description": "Every exported method wraps logic in entutils.TransactingRepo (value) or TransactingRepoWithNoValue (void). Direct repo.db.* calls occur only inside the callback, never on the outer adapter receiver.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (*customer.Customer, error) { return toDomain(repo.db.Customer.Query()...) })"
       },
       {
-        "name": "Config struct + Validate() + constructor",
-        "description": "Every hook is constructed via a Config struct with a Validate() error method. Constructor calls Validate() first, nil-dependency checks are mandatory inside Validate.",
-        "example": "func NewEntitlementValidatorHook(config EntitlementValidatorHookConfig) (EntitlementValidatorHook, error) {\n  if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid ... config: %w\", err) }\n  return &entitlementValidatorHook{...}, nil\n}"
+        "name": "TxCreator + TxUser triad",
+        "description": "adapter implements Tx() (HijackTx + NewTxDriver), WithTx() (NewTxClientFromRawConfig), and Self(). All three required for TransactingRepo to rebind to caller-supplied transactions.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), logger: a.logger} }"
+      },
+      {
+        "name": "Input validation before DB access",
+        "description": "Every method calls input.Validate() and wraps errors in models.NewGenericValidationError before any DB query.",
+        "example": "if err := input.Validate(); err != nil { return nil, models.NewGenericValidationError(fmt.Errorf(\"error creating customer: %w\", err)) }"
+      },
+      {
+        "name": "Soft-delete pattern",
+        "description": "Deletion sets DeletedAt (clock.Now().UTC()) on Customer, CustomerSubjects, AppCustomer, AppStripeCustomer, AppCustomInvoicingCustomer rows; cascade updates filter DeletedAtIsNil() to preserve earlier timestamps.",
+        "example": "repo.db.Customer.Update().Where(customerdb.DeletedAtIsNil()).SetDeletedAt(deletedAt).Save(ctx)"
       },
       {
         "name": "Compile-time interface assertion",
-        "description": "Every concrete hook struct declares a package-level var _ assertion to verify interface satisfaction at compile time.",
-        "example": "var _ models.ServiceHook[customer.Customer] = (*entitlementValidatorHook)(nil)"
+        "description": "adapter.go declares var _ customer.Adapter = (*adapter)(nil) immediately after the struct.",
+        "example": "var _ customer.Adapter = (*adapter)(nil)"
       },
       {
-        "name": "OTel tracing in hook methods",
-        "description": "Non-trivial hook methods start a span via tracer.Start, record errors with span.RecordError + span.SetStatus, and defer span.End. The tracer is injected through the Config struct.",
-        "example": "func (s subjectCustomerHook) PostCreate(ctx context.Context, sub *subject.Subject) error {\n  ctx, span := s.tracer.Start(ctx, \"subject_customer_hook.post_create\")\n  defer span.End()\n  ...\n}"
+        "name": "Entity mapping separated in entitymapping.go",
+        "description": "All DB-to-domain conversions live in entitymapping.go. Edges must be loaded first; db.IsNotLoaded(err) must be checked.",
+        "example": "subjectEntities, err := customerEntity.Edges.SubjectsOrErr(); if db.IsNotLoaded(err) { return nil, errors.New(\"subjects must be loaded\") }"
       },
       {
-        "name": "Loop-prevention via context key",
-        "description": "When a hook calls back into customer.Service (UpdateCustomer/CreateCustomer), it wraps ctx with subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx) to break re-entrant hook cycles.",
-        "example": "cus, err = p.customer.UpdateCustomer(\n  subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx),\n  customer.UpdateCustomerInput{...})"
-      },
-      {
-        "name": "models.GenericError types for domain errors",
-        "description": "Validation failures return models.NewGenericValidationError; not-found returns models.NewGenericNotFoundError; conflicts return models.NewGenericConflictError; precondition failures return models.NewGenericPreConditionFailedError. Never return raw errors for domain conditions.",
-        "example": "return models.NewGenericValidationError(fmt.Errorf(\"customer has entitlements, please remove them before deleting the customer\"))"
-      },
-      {
-        "name": "Test env built from package constructors (no app/common)",
-        "description": "Tests wire adapters and services directly (customeradapter.New, customerservice.New, subjectadapter.New) without importing app/common. testutils.InitPostgresDB provides the Ent client; eventbus.NewMock provides the publisher.",
-        "example": "db := testutils.InitPostgresDB(t)\ncustomerAdapter, _ := customeradapter.New(customeradapter.Config{Client: db.EntDriver.Client(), Logger: logger})\ncustomerService, _ := customerservice.New(customerservice.Config{Adapter: customerAdapter, Publisher: publisher})"
+        "name": "Domain error wrapping",
+        "description": "Ent constraint errors become customer.NewKeyConflictError or models.NewGenericConflictError; zero rows become models.NewGenericNotFoundError. Raw ent errors never bubble up.",
+        "example": "if entdb.IsConstraintError(err) { return nil, customer.NewKeyConflictError(input.Namespace, *lo.CoalesceOrEmpty(input.Key)) }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "entitlementvalidator.go",
-        "role": "PreDelete hook for customer.Customer \u2014 blocks deletion when active entitlements exist. Minimal hook overriding only one method; all others fall through to the embedded Noop.",
-        "watch_for": "Uses clock.Now() for entitlement snapshot time; always pass the caller's ctx, never context.Background()."
+        "file": "adapter.go",
+        "role": "Struct definition, Config validation, Tx/WithTx/Self triad, constructor, and compile-time interface assertion.",
+        "watch_for": "When adding fields to the adapter struct, clone them in WithTx; forgetting breaks ctx-propagated transactions for new fields."
       },
       {
-        "file": "subjectcustomer.go",
-        "role": "PostCreate/PostUpdate/PostDelete hook for subject.Subject \u2014 auto-provisions or updates a matching Customer. Houses CustomerProvisioner (reusable create/update logic) and EnsureStripeCustomer (billing override sync).",
-        "watch_for": "getCustomerForSubject tries both usage-attribution lookup and key lookup. EnsureCustomer handles keyConflict by omitting the key on create. CmpSubjectCustomer determines whether an update is needed \u2014 extend carefully to avoid spurious updates."
+        "file": "customer.go",
+        "role": "All adapter method implementations: ListCustomers, CreateCustomer, DeleteCustomer, GetCustomer, GetCustomerByUsageAttribution, UpdateCustomer, ListCustomerUsageAttributions.",
+        "watch_for": "Never call repo.db.* on the outer adapter receiver \u2014 only inside a TransactingRepo callback. Always call WithSubjects() before CustomerFromDBEntity or SubjectsOrErr panics."
       },
       {
-        "file": "subjectcustomer_test.go",
-        "role": "Integration tests for CustomerProvisioner \u2014 exercises create, update, and conflict scenarios against a real Postgres instance via testutils.InitPostgresDB.",
-        "watch_for": "TestEnv is local to this package and independent from app/common. Tests call env.DBSchemaMigrate(t) before using the DB. Use t.Context(), not context.Background()."
+        "file": "entitymapping.go",
+        "role": "Pure DB-to-domain conversion functions with no DB calls: CustomerFromDBEntity, subjectKeysFromDBEntity, resolveActiveSubscriptionIDs.",
+        "watch_for": "Accessing Edges fields without loading them (WithSubjects, WithActiveSubscriptions) causes db.IsNotLoaded errors; check them explicitly."
       }
     ],
     "anti_patterns": [
-      "Calling customer.Service from a hook without subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx) \u2014 causes infinite re-entrant hook invocations.",
-      "Returning raw fmt.Errorf for domain conditions (not-found, conflict, validation) \u2014 callers and HTTP encoders depend on models.Generic* error types.",
-      "Importing app/common in test files \u2014 breaks isolation and can introduce import cycles; build test deps from package constructors directly.",
-      "Embedding a non-Noop base struct \u2014 hooks must embed the Noop alias so future interface method additions don't break compilation.",
-      "Using context.Background() or context.TODO() inside hook methods \u2014 always propagate the caller's ctx to maintain tracing and cancellation."
+      "Calling a.db.* directly on the outer adapter receiver instead of inside a TransactingRepo callback \u2014 bypasses ctx-bound Ent transaction.",
+      "Skipping input.Validate() before DB queries.",
+      "Hard-deleting customer or customer_subjects rows \u2014 the domain uses soft-delete via DeletedAt everywhere.",
+      "Adding DB query logic inside entitymapping.go \u2014 it must remain a pure conversion layer.",
+      "Returning raw Ent errors without wrapping in models.GenericNotFoundError / GenericValidationError \u2014 breaks the HTTP error-mapping chain."
     ],
     "decisions": [
       {
-        "decision": "Hooks embed models.NoopServiceHook[T] rather than implementing all methods.",
-        "rationale": "The ServiceHook interface grows as new lifecycle events are added; embedding Noop provides safe defaults so existing hooks don't break on interface expansion."
+        "decision": "TransactingRepo wraps every method body rather than relying on callers to pass a transaction client.",
+        "rationale": "Ent transactions propagate implicitly via ctx; helpers using the raw *entdb.Client bypass the ctx-bound transaction and cause partial writes under concurrency."
       },
       {
-        "decision": "CustomerProvisioner is a separate struct from the hook.",
-        "rationale": "EnsureCustomer and EnsureStripeCustomer are reused from outside the hook (e.g. app/stripe provisioning flows), so extracting them into a standalone CustomerProvisioner avoids duplication without tying the logic to the subject lifecycle."
+        "decision": "Soft-delete instead of hard-delete for customers and subjects.",
+        "rationale": "Billing and subscription entities reference customers; hard deletes orphan related records and break audit trails."
       },
       {
-        "decision": "IgnoreErrors flag on subjectCustomerHook.",
-        "rationale": "Subject creation/update should not fail if customer provisioning is non-critical in some deployment modes; the flag lets the caller degrade gracefully (warn + continue) rather than surfacing the error."
+        "decision": "Entity mapping isolated in entitymapping.go with no DB access.",
+        "rationale": "Pure conversion functions are independently testable and prevent accidental re-querying during domain mapping."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new PreDelete hook that checks billing conditions before customer deletion",
-        "code": "package hooks\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n\t\"github.com/openmeterio/openmeter/openmeter/customer\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype (\n\tBillingValidatorHook     = models.ServiceHook[customer.Customer]\n\tNoopBillingValidatorHook = models.NoopServiceHook[customer.Customer]\n)\n\nvar _ models.ServiceHook[customer.Customer] = (*billingValidatorHook)(nil)\n\ntype billingValidatorHook struct {\n\tNoopBillingValidatorHook\n\tbillingService billing.Service\n}\n\ntype BillingValidatorHookConfig struct {\n\tBillingService billing.Service\n}\n\nfunc (c BillingValidatorHookConfig) Validate() error {\n\tif c.BillingService == nil {\n\t\treturn fmt.Errorf(\"billing service is required\")\n\t}\n\treturn nil\n}\n\nfunc NewBillingValidatorHook(config BillingValidatorHookConfig) (BillingValidatorHook, error) {\n\tif err := config.Validate(); err != nil {\n\t\treturn nil, fmt.Errorf(\"invalid billing validator hook config: %w\", err)\n\t}\n\treturn &billingValidatorHook{billingService: config.BillingService}, nil\n}\n\nfunc (h *billingValidatorHook) PreDelete(ctx context.Context, cus *customer.Customer) error {\n\t// Check for open invoices via billing service\n\t// Return models.NewGenericValidationError if conditions not met\n\treturn nil\n}"
+        "scenario": "Add a new adapter method that reads and writes within the same transaction",
+        "code": "func (a *adapter) ArchiveCustomer(ctx context.Context, input customer.ArchiveCustomerInput) (*customer.Customer, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn nil, models.NewGenericValidationError(fmt.Errorf(\"archive customer: %w\", err))\n\t}\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (*customer.Customer, error) {\n\t\t// use repo.db.* here, never a.db.*\n\t\treturn nil, nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/customer/app": {
+    "purpose": "Thin integration contract between the customer domain and the app (marketplace) domain \u2014 defines the optional App interface (ValidateCustomer) and the AsCustomerApp type-assertion helper. No state, no DB access, no business logic.",
+    "patterns": [
+      {
+        "name": "Optional interface via runtime type assertion",
+        "description": "AsCustomerApp performs a runtime type assertion on app.App; if the concrete type does not implement customerapp.App it returns models.NewGenericValidationError rather than panicking.",
+        "example": "customerApp, ok := customerAppCandidate.(App); if !ok { return nil, models.NewGenericValidationError(fmt.Errorf(\"is not a customer app [id=%s]\", ...)) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "app.go",
+        "role": "Declares customerapp.App interface (ValidateCustomer) and AsCustomerApp helper. Zero state.",
+        "watch_for": "Must not import openmeter/customer/adapter or openmeter/customer/service \u2014 only openmeter/app and openmeter/customer domain types."
+      }
+    ],
+    "anti_patterns": [
+      "Panicking on failed type assertion instead of returning models.NewGenericValidationError.",
+      "Adding business logic, DB calls, or state to this package \u2014 it is purely an interface/assertion layer.",
+      "Importing openmeter/customer/adapter or openmeter/customer/service \u2014 creates import cycles."
+    ],
+    "decisions": [
+      {
+        "decision": "Separate package rather than adding ValidateCustomer to the core app.App interface.",
+        "rationale": "Not all apps need customer validation; the opt-in type assertion avoids polluting the core app.App interface for every new capability."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Type-asserting an app.App into a customer-capable app",
+        "code": "func AsCustomerApp(customerAppCandidate app.App) (App, error) {\n\tcustomerApp, ok := customerAppCandidate.(App)\n\tif !ok {\n\t\treturn nil, models.NewGenericValidationError(\n\t\t\tfmt.Errorf(\"is not a customer app [id=%s, type=%s]\", customerAppCandidate.GetID(), customerAppCandidate.GetType()),\n\t\t)\n\t}\n\treturn customerApp, nil\n}"
+      }
+    ]
+  },
+  "openmeter/customer/httpdriver": {
+    "purpose": "v1 HTTP adapter layer for the customer API \u2014 translates api.* request/response types to customer.Service calls using the httptransport.Handler pattern. Contains no business logic; all domain decisions delegate to customer.Service, entitlement.Service, and subscription.Service.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandler / NewHandlerWithArgs per endpoint",
+        "description": "Each endpoint is a method returning a named handler type, built via httptransport.NewHandler(decoder, operation, encoder, ...options). Decoder maps request to domain input, operation calls service, encoder writes JSON.",
+        "example": "func (h *handler) ListCustomers() ListCustomersHandler { return httptransport.NewHandlerWithArgs(decoder, operation, commonhttp.JSONResponseEncoderWithStatus[ListCustomersResponse](http.StatusOK), httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listCustomers\"))...) }"
+      },
+      {
+        "name": "Type aliases for handler request/response/handler types",
+        "description": "Each endpoint block declares a type alias group (Request/Response/Handler) before the method, making each handler self-documenting and consistent with generated server stubs.",
+        "example": "type ( ListCustomersResponse = pagination.Result[api.Customer]; ListCustomersRequest = customer.ListCustomersInput; ListCustomersHandler httptransport.HandlerWithArgs[ListCustomersRequest, ListCustomersResponse, ListCustomersParams] )"
+      },
+      {
+        "name": "Namespace resolved via resolveNamespace(ctx)",
+        "description": "Every handler calls h.resolveNamespace(ctx) which delegates to namespacedriver.NamespaceDecoder.GetNamespace. Namespace is never read from URL params directly.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ListCustomersRequest{}, err }"
+      },
+      {
+        "name": "API-to-domain mapping in apimapping.go",
+        "description": "All conversions between api.* types and domain types live in apimapping.go (MapCustomerCreate, CustomerToAPI, MapAddress). Handler files import these and never inline conversion.",
+        "example": "req := CreateCustomerRequest{Namespace: ns, CustomerMutate: MapCustomerCreate(body)}"
+      },
+      {
+        "name": "Deleted-customer guard before mutations",
+        "description": "UpdateCustomer, DeleteCustomer, and entitlement-value handlers call cus.IsDeleted() after fetch and return models.NewGenericPreConditionFailedError if true.",
+        "example": "if cus != nil && cus.IsDeleted() { return UpdateCustomerResponse{}, models.NewGenericPreConditionFailedError(fmt.Errorf(\"customer is deleted\")) }"
+      },
+      {
+        "name": "Compile-time Handler interface assertion",
+        "description": "handler.go declares var _ Handler = (*handler)(nil) to enforce the interface at compile time.",
+        "example": "var _ Handler = (*handler)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface declaration, handler struct with injected services, New() constructor, resolveNamespace helper, and compile-time assertion.",
+        "watch_for": "New endpoints must be added to both the Handler interface and the implementation; the var _ assertion catches missing implementations."
+      },
+      {
+        "file": "customer.go",
+        "role": "Handler method implementations for all CRUD and entitlement-value endpoints.",
+        "watch_for": "Deleted-customer guard must precede mutations; mapCustomerWithSubscriptionsToAPI is a shared helper used in Create, Get, and Update \u2014 keep it consistent."
+      },
+      {
+        "file": "apimapping.go",
+        "role": "All api.* to domain type conversions. Pure functions, no service calls.",
+        "watch_for": "MapCustomerCreate and MapCustomerReplaceUpdate are structurally identical \u2014 keep them in sync when customer fields are added."
+      }
+    ],
+    "anti_patterns": [
+      "Placing business logic (validation, conflict resolution) in decoder or encoder functions \u2014 all logic belongs in the domain service.",
+      "Reading namespace from URL/query params directly instead of h.resolveNamespace(ctx).",
+      "Inline API-to-domain conversion in handler methods instead of using apimapping.go helpers.",
+      "Returning domain types (customer.Customer) directly from handlers instead of api.* types.",
+      "Calling adapter methods directly from the handler \u2014 always go through the service interface."
+    ],
+    "decisions": [
+      {
+        "decision": "Handler methods return typed handler values rather than implementing http.Handler directly.",
+        "rationale": "httptransport.Handler provides uniform error encoding, OTel operation naming, and middleware chaining without duplicating boilerplate per method."
+      },
+      {
+        "decision": "apimapping.go is a dedicated file for API type conversions.",
+        "rationale": "Keeps handler files focused on request routing; makes the API contract surface easy to audit and test in isolation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Define a customer endpoint handler with type aliases and resolveNamespace",
+        "code": "type (\n\tListCustomersResponse = pagination.Result[api.Customer]\n\tListCustomersRequest  = customer.ListCustomersInput\n\tListCustomersHandler  httptransport.HandlerWithArgs[ListCustomersRequest, ListCustomersResponse, ListCustomersParams]\n)\n\nfunc (h *handler) ListCustomers() ListCustomersHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, params ListCustomersParams) (ListCustomersRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return ListCustomersRequest{}, err }\n\t\t\treturn ListCustomersRequest{Namespace: ns}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req ListCustomersRequest) (ListCustomersResponse, error) {\n\t\t\treturn h.service.ListCustomers(ctx, req)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ListCustomersResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listCustomers\"))...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/customer/testutils": {
+    "purpose": "Isolated test environment factory for the customer domain \u2014 constructs a fully wired CustomerService and SubjectService against a real pgtestdb PostgreSQL instance without importing app/common, preventing test-only import cycles.",
+    "patterns": [
+      {
+        "name": "TestEnv struct with Close via sync.Once",
+        "description": "TestEnv holds all constructed services and raw DB handles. Close() uses sync.Once to safely close the Ent driver and pgx pool exactly once even from deferred teardown.",
+        "example": "e.close.Do(func() { e.db.EntDriver.Close(); e.db.PGDriver.Close() })"
+      },
+      {
+        "name": "Build from package constructors, not app/common",
+        "description": "NewTestEnv constructs customeradapter.New, customerservice.New, subjectadapter.New, subjectservice.New directly \u2014 no app/common, no Wire, no DI container.",
+        "example": "customerAdapter, err := customeradapter.New(customeradapter.Config{Client: client, Logger: logger})"
+      },
+      {
+        "name": "eventbus.NewMock for publisher",
+        "description": "Uses eventbus.NewMock(t) instead of a real Kafka publisher so tests do not require a running broker.",
+        "example": "publisher := eventbus.NewMock(t)"
+      },
+      {
+        "name": "t.Context() for test-scoped context",
+        "description": "All context values passed to service calls use t.Context() (not context.Background()) so cancellation ties to the test lifecycle.",
+        "example": "e.CustomerService.CreateCustomer(t.Context(), input)"
+      },
+      {
+        "name": "DBSchemaMigrate before schema-dependent tests",
+        "description": "Tests requiring tables must call env.DBSchemaMigrate(t) before the first service call; skipping causes 'table does not exist' errors.",
+        "example": "env.DBSchemaMigrate(t)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "env.go",
+        "role": "TestEnv struct, NewTestEnv factory, DBSchemaMigrate helper, and Close teardown. Single file for the entire test environment.",
+        "watch_for": "Close must be deferred in every test using NewTestEnv; DBSchemaMigrate must be called before any schema-dependent query."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common from testutils \u2014 creates import cycles and makes tests dependent on the full DI graph.",
+      "Using context.Background() in tests instead of t.Context() \u2014 misses test-lifecycle cancellation and resource cleanup.",
+      "Calling e.Close() without defer \u2014 leaks DB connections if the test panics.",
+      "Adding business logic or assertions to testutils \u2014 keep it a pure environment factory."
+    ],
+    "decisions": [
+      {
+        "decision": "testutils constructs adapters and services directly instead of using app/common Wire providers.",
+        "rationale": "Avoids import cycles between domain test helpers and the application wiring layer; lets domain tests compile without pulling in unrelated domain providers."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Build a customer TestEnv from raw constructors with a mock event bus",
+        "code": "import (\n\tcustomeradapter \"github.com/openmeterio/openmeter/openmeter/customer/adapter\"\n\tcustomerservice \"github.com/openmeterio/openmeter/openmeter/customer/service\"\n\t\"github.com/openmeterio/openmeter/openmeter/watermill/eventbus\"\n)\n\npublisher := eventbus.NewMock(t)\ncustomerAdapter, err := customeradapter.New(customeradapter.Config{Client: client, Logger: logger})\nrequire.NoError(t, err)\nsvc, err := customerservice.New(customerservice.Config{Adapter: customerAdapter, Publisher: publisher})\nrequire.NoError(t, err)"
       }
     ]
   }

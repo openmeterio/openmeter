@@ -1,9 +1,5 @@
 {
   "by_path_glob": {
-    "app/common/*.go": [
-      "pf-006-wire-hook-audit",
-      "wire-002-provider-no-business-logic"
-    ],
     "openmeter/**/*.go": [
       "pf-007-event-subsystem-prefix",
       "lock-004-context-timeout",
@@ -14,7 +10,8 @@
       "ctx-003-background-main-exception",
       "dep-001",
       "wm-001",
-      "lock-002"
+      "lock-002",
+      "name-input-suffix-validator"
     ],
     "openmeter/billing/**/*.go": [
       "lock-003-key-construction",
@@ -27,6 +24,10 @@
     "openmeter/sink/**/*.go": [
       "sink-002-flush-handler-async",
       "meter-001"
+    ],
+    "app/common/*.go": [
+      "wire-002-provider-no-business-logic",
+      "pf-006-wire-hook-audit"
     ],
     "openmeter/billing/validators/**/*.go": [
       "customer-001-requestvalidator-pre-mutation-only"
@@ -41,7 +42,8 @@
       "ledger-001-resolve-transactions"
     ],
     "cmd/billing-worker/main.go": [
-      "billing-006-billing-worker-startup-order"
+      "billing-006-billing-worker-startup-order",
+      "pf-006a-worker-namespace-precondition"
     ],
     "openmeter/billing/charges/**/*.go": [
       "charge-001-chargelike-value-semantics"
@@ -84,7 +86,8 @@
       "ent-001"
     ],
     "openmeter/ent/schema/*.go": [
-      "ent-003-mixin-required"
+      "ent-003-mixin-required",
+      "pf-009-trgm-gin-index"
     ],
     "openmeter/watermill/eventbus/**/*.go": [
       "wm-005-fourth-kafka-topic"
@@ -96,13 +99,15 @@
       "infra-005-helm-appversion"
     ],
     "openmeter/server/**/*.go": [
-      "api-004-request-validator-enabled"
+      "api-004-request-validator-enabled",
+      "pf-008-ctxless-callback-background"
     ],
     "api/v3/server/**/*.go": [
       "api-004-request-validator-enabled"
     ],
     "openmeter/**/service/*.go": [
-      "ent-004-no-direct-db-mutations-in-service"
+      "ent-004-no-direct-db-mutations-in-service",
+      "data-read-through-service-not-entdb"
     ],
     "cmd/server/**/*.go": [
       "wm-006-balance-worker-topic-isolation"
@@ -207,29 +212,68 @@
       "meter-001"
     ],
     "openmeter/credit/**/*.go": [
-      "credit-001"
+      "credit-001",
+      "data-grant-amount-immutable-truncate"
     ],
     "openmeter/entitlement/**/*.go": [
       "credit-001"
     ],
     "openmeter/entitlement/balanceworker/**/*.go": [
       "balance-001"
+    ],
+    "openmeter/ent/schema/ledger_customer_account.go": [
+      "pf-010-fkless-ledger-clickhouse-drift"
+    ],
+    "openmeter/ent/schema/ledger_account.go": [
+      "pf-010-fkless-ledger-clickhouse-drift"
+    ],
+    "openmeter/ent/schema/billing.go": [
+      "pf-011-billing-schema-level-dualwrite"
+    ],
+    "cmd/balance-worker/main.go": [
+      "pf-006a-worker-namespace-precondition"
+    ],
+    "cmd/sink-worker/main.go": [
+      "pf-006a-worker-namespace-precondition"
+    ],
+    "openmeter/app/stripe/**/*.go": [
+      "pf-008-ctxless-callback-background"
+    ],
+    "openmeter/streaming/**/*.go": [
+      "data-rawevent-clickhouse-column-sync"
+    ],
+    "openmeter/dedupe/**/*.go": [
+      "data-dedupe-keyhash-rotation"
+    ],
+    "openmeter/ent/schema/charges.go": [
+      "data-charges-searchview-sync"
+    ],
+    "openmeter/ent/schema/chargemeta.go": [
+      "data-charges-searchview-sync"
+    ],
+    "openmeter/ent/schema/charges*.go": [
+      "data-charges-searchview-sync"
+    ],
+    "openmeter/productcatalog/feature/**/*.go": [
+      "data-feature-archived-not-deleted"
+    ],
+    "openmeter/ent/schema/subscription.go": [
+      "data-subscriptionitem-snapshot-mirror"
+    ],
+    "openmeter/ent/schema/notification.go": [
+      "data-notification-config-scanner-typeswitch"
+    ],
+    "openmeter/**/service.go": [
+      "name-input-suffix-validator"
+    ],
+    "openmeter/streaming/clickhouse/**/*.go": [
+      "persist-clickhouse-no-inline-sql"
+    ],
+    "openmeter/ent/schema/balance_snapshot.go": [
+      "data-balancesnapshot-no-idmixin"
     ]
   },
   "by_code_shape": [
-    {
-      "rule_id": "pf-006-wire-hook-audit",
-      "shape": {
-        "kind": "regex_in_content",
-        "must_match": [
-          "RegisterHooks|RegisterRequestValidator"
-        ],
-        "must_not_match": [
-          "// side-effect",
-          "openmeter_"
-        ]
-      }
-    },
     {
       "rule_id": "pf-007-event-subsystem-prefix",
       "shape": {
@@ -758,10 +802,192 @@
           "// adapter"
         ]
       }
+    },
+    {
+      "rule_id": "pf-009-trgm-gin-index",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "FieldContainsFold|contains|ocontains"
+        ],
+        "must_not_match": [
+          "gin_trgm_ops",
+          "pg_trgm"
+        ]
+      }
+    },
+    {
+      "rule_id": "pf-010-fkless-ledger-clickhouse-drift",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "func.*Edges\\(\\).*\\[\\]ent\\.Edge"
+        ],
+        "must_not_match": [
+          "edge\\.To|edge\\.From"
+        ]
+      }
+    },
+    {
+      "rule_id": "pf-011-billing-schema-level-dualwrite",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "schema_level|BillingInvoiceWriteSchemaLevel|Deprecated\\("
+        ]
+      }
+    },
+    {
+      "rule_id": "pf-006a-worker-namespace-precondition",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "EnsureBusinessAccounts|SandboxProvisioner|CreateNamespace"
+        ],
+        "must_not_match": [
+          "GetDefaultNamespace"
+        ]
+      }
+    },
+    {
+      "rule_id": "pf-008-ctxless-callback-background",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "context\\.Background\\(\\)"
+        ],
+        "must_not_match": [
+          "func main",
+          "Shutdown"
+        ]
+      }
+    },
+    {
+      "rule_id": "data-rawevent-clickhouse-column-sync",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "sb\\.Select\\(|fmt\\.Sprintf\\(\"SELECT|fmt\\.Sprintf\\(\"INSERT"
+        ],
+        "must_not_match": [
+          "toSQL\\(\\)"
+        ]
+      }
+    },
+    {
+      "rule_id": "data-dedupe-keyhash-rotation",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "GetKeyHash"
+        ]
+      }
+    },
+    {
+      "rule_id": "data-charges-searchview-sync",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "chargesSearchV1Columns|ChargesSearchV1"
+        ]
+      }
+    },
+    {
+      "rule_id": "data-feature-archived-not-deleted",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "Feature.*\\.SetDeletedAt|feature.*deleted_at"
+        ]
+      }
+    },
+    {
+      "rule_id": "data-grant-amount-immutable-truncate",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "CreateGrant|EffectiveAt"
+        ],
+        "must_not_match": [
+          "Truncate\\("
+        ]
+      }
+    },
+    {
+      "rule_id": "data-subscriptionitem-snapshot-mirror",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "SubscriptionItem"
+        ]
+      }
+    },
+    {
+      "rule_id": "data-notification-config-scanner-typeswitch",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "ChannelType|EventType|ChannelConfigValueScanner|RuleConfigValueScanner"
+        ]
+      }
+    },
+    {
+      "rule_id": "data-read-through-service-not-entdb",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "entdb\\.|ent/db"
+        ]
+      }
+    },
+    {
+      "rule_id": "name-input-suffix-validator",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "type \\w+Input struct"
+        ],
+        "must_not_match": [
+          "func \\(\\w+ \\w+Input\\) Validate\\("
+        ]
+      }
+    },
+    {
+      "rule_id": "persist-clickhouse-no-inline-sql",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "\\.Query\\(ctx, \"|\\.Exec\\(ctx, \"|fmt\\.Sprintf\\(\"SELECT"
+        ],
+        "must_not_match": [
+          "toSQL\\(\\)"
+        ]
+      }
+    },
+    {
+      "rule_id": "data-balancesnapshot-no-idmixin",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "IDMixin"
+        ]
+      }
+    },
+    {
+      "rule_id": "pf-006-wire-hook-audit",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "RegisterHooks|RegisterRequestValidator"
+        ],
+        "must_not_match": [
+          "// side-effect",
+          "openmeter_"
+        ]
+      }
     }
   ],
   "for_classifier": [
-    "pf-006-wire-hook-audit",
     "pf-007-event-subsystem-prefix",
     "lock-005-session-locker-goroutine",
     "otel-002-tracex-preferred",
@@ -854,6 +1080,27 @@
     "balance-001",
     "dedupe-001",
     "billing-010-split-line-group",
+    "pf-009-trgm-gin-index",
+    "pf-010-fkless-ledger-clickhouse-drift",
+    "pf-011-billing-schema-level-dualwrite",
+    "pf-006a-worker-namespace-precondition",
+    "pf-008-ctxless-callback-background",
+    "data-rawevent-clickhouse-column-sync",
+    "data-dedupe-keyhash-rotation",
+    "data-charges-searchview-sync",
+    "data-feature-archived-not-deleted",
+    "data-grant-amount-immutable-truncate",
+    "data-subscriptionitem-snapshot-mirror",
+    "data-notification-config-scanner-typeswitch",
+    "data-read-through-service-not-entdb",
+    "place-noop-subpackage",
+    "place-testutils-no-appcommon",
+    "name-connector-suffix",
+    "name-input-suffix-validator",
+    "name-lowercase-package-dirs",
+    "persist-clickhouse-no-inline-sql",
+    "data-balancesnapshot-no-idmixin",
+    "pf-006-wire-hook-audit",
     "android-layer-viewmodel-context",
     "android-layer-fragment-network",
     "android-layer-fragment-db",

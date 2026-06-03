@@ -1,0 +1,124 @@
+{
+  "api/client/python/openmeter/operations": {
+    "purpose": "Public re-export facade for all generated Python SDK operation classes (API call builders). Mirrors the same facade pattern as openmeter/models but for _generated/operations \u2014 no operation logic is hand-written here.",
+    "patterns": [
+      {
+        "name": "Wildcard re-export from generated operations",
+        "description": "Re-export _operations via wildcard import from _generated.operations. Never implement API call logic in this package.",
+        "example": "from .._generated.operations._operations import *  # noqa: F401, F403"
+      },
+      {
+        "name": "Optional _patch overlay",
+        "description": "Try-import _generated.operations._patch and merge its __all__. Patch symbols extend the generated set non-destructively.",
+        "example": "try: from .._generated.operations._patch import __all__ as _patch_all\nexcept ImportError: _patch_all = []"
+      },
+      {
+        "name": "TYPE_CHECKING guard for patch stubs",
+        "description": "Import _patch under `if TYPE_CHECKING:` for IDE support without runtime cost.",
+        "example": "if TYPE_CHECKING: from .._generated.operations._patch import *"
+      },
+      {
+        "name": "Call _patch_sdk() at module load",
+        "description": "Always call _patch_sdk() after all re-exports to apply operation-level monkey-patches.",
+        "example": "_patch_sdk()"
+      },
+      {
+        "name": "__all__ propagation",
+        "description": "Derive __all__ from the generated operations module and extend with patch-only symbols.",
+        "example": "__all__ = __all__; __all__.extend([p for p in _patch_all if p not in __all__])"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "__init__.py",
+        "role": "Sole file; thin facade merging generated operation classes + patch overrides into one importable namespace (openmeter.operations.*).",
+        "watch_for": "Do not implement request/response logic here \u2014 operations are generated. Any code added here is overwritten on the next make gen-api. Do not import deeper than _operations/_patch from _generated internals."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing operation or request logic directly in this package \u2014 belongs in _generated/operations",
+      "Importing deeper than _operations/_patch from _generated internals",
+      "Removing the _patch_sdk() call \u2014 patch hooks silently will not apply",
+      "Manually curating __all__ instead of delegating to the generated module",
+      "Adding hand-written operation classes that duplicate generated ones and drift on codegen"
+    ],
+    "decisions": [
+      {
+        "decision": "Stable public import path via facade over generated internals",
+        "rationale": "Generated operation classes live under _generated and may be reorganised by the generator; the facade decouples consumer imports from generator layout, providing a stable openmeter.operations.* surface."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Full __init__.py structure \u2014 the only valid pattern for this package",
+        "code": "from typing import TYPE_CHECKING\n\nif TYPE_CHECKING:\n    from .._generated.operations._patch import *\n\nfrom .._generated.operations._operations import *  # noqa: F401, F403\n\ntry:\n    from .._generated.operations._patch import __all__ as _patch_all\n    from .._generated.operations._patch import *  # noqa: F401, F403\nexcept ImportError:\n    _patch_all = []\nfrom .._generated.operations._patch import patch_sdk as _patch_sdk\n\nfrom .._generated.operations import __all__\n__all__ = __all__\n__all__.extend([p for p in _patch_all if p not in __all__])\n_patch_sdk()"
+      }
+    ]
+  },
+  "api/client/python/scripts": {
+    "purpose": "Contains the single release script (release.sh) that computes the next PEP-440 pre-release version by querying live PyPI state, stamps it into pyproject.toml and openmeter/_version.py/_commit.py, then invokes `poetry publish --build`. Primary constraint: only 'alpha' is a valid PY_SDK_RELEASE_TAG value; any other tag hard-errors.",
+    "patterns": [
+      {
+        "name": "PEP-440 alpha versioning via live PyPI query",
+        "description": "When PY_SDK_RELEASE_VERSION is absent, the script queries PyPI for the latest alpha release, extracts the pre-release number, increments it, and constructs the next version (e.g. 1.0.0a3). Any new release automation must follow this monotonic increment pattern.",
+        "example": "LATEST_VERSION=$(curl -s https://pypi.org/pypi/openmeter/json | jq -r '.releases | keys[] | select(test(\"a[0-9]+\"))' | sort -V | tail -1)"
+      },
+      {
+        "name": "Version normalisation before poetry invocation",
+        "description": "Before calling `poetry version`, strip a leading 'v' and convert semver pre-release suffixes (-alpha, -beta) to PEP-440 equivalents (a, b) via sed. Any injected PY_SDK_RELEASE_VERSION must survive this sed pipeline.",
+        "example": "export PY_SDK_RELEASE_VERSION=$(echo \"$PY_SDK_RELEASE_VERSION\" | sed -E 's/^v//' | sed -E 's/-alpha\\.?/a/; s/-beta\\.?/b/;')"
+      },
+      {
+        "name": "Unconditional dist clean before publish",
+        "description": "`rm -rf dist` runs before `poetry publish --build` to prevent poetry's interactive prompt about overwriting existing artifacts. Any pre-publish build step must not recreate dist before this clean.",
+        "example": "rm -rf dist\npoetry publish --build --no-interaction"
+      },
+      {
+        "name": "Version/commit stamped into package at build time",
+        "description": "The script writes openmeter/_version.py and openmeter/_commit.py as transient side-effects before the build. These must not be committed. The `|| true` silently ignores write failures if openmeter/ is missing.",
+        "example": "printf \"VERSION = \\\"%s\\\"\" \"$PY_SDK_RELEASE_VERSION\" > openmeter/_version.py || true"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "release.sh",
+        "role": "Single-entry-point release script invoked by CI (sdk-python-dev-release.yaml) with PY_SDK_RELEASE_TAG=alpha or a pre-set PY_SDK_RELEASE_VERSION. Computes version, stamps files, runs `poetry publish --build`.",
+        "watch_for": "The `|| true` on printf lines silently ignores write failures for _version.py/_commit.py. Only 'alpha' is accepted as PY_SDK_RELEASE_TAG; any other value exits with error. COMMIT_SHORT_SHA falls back to `git rev-parse --short=12 HEAD`."
+      }
+    ],
+    "anti_patterns": [
+      "Committing openmeter/_version.py or openmeter/_commit.py \u2014 they are written transiently by release.sh and must not be in source control",
+      "Setting PY_SDK_RELEASE_TAG to anything other than 'alpha' \u2014 the script hard-errors on unknown tags",
+      "Calling `poetry build` separately before this script \u2014 leftover dist artifacts trigger an interactive poetry prompt that hangs CI",
+      "Injecting a PY_SDK_RELEASE_VERSION with unusual formats (e.g. 'v1.0.0-alpha.1') without verifying the sed pipeline produces a valid PEP-440 string",
+      "Adding a pre-publish build step that recreates the dist/ directory after the `rm -rf dist` clean"
+    ],
+    "decisions": [
+      {
+        "decision": "Version computed from live PyPI state rather than git tags",
+        "rationale": "Alpha releases are continuous and not tied to formal git tags; querying PyPI ensures the next published version is always monotonically incremented even if the CI job is re-run."
+      },
+      {
+        "decision": "poetry used for both build and publish in a single command",
+        "rationale": "Keeps the release pipeline to one tool invocation, avoiding a separate `poetry build` step that would require managing dist artifact cleanup independently."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/client/web": {
+    "purpose": "Tombstone folder documenting that the Web SDK has been superseded by the fetch-based JavaScript SDK at api/client/javascript. Contains only a README redirect; no active code lives here.",
+    "patterns": [],
+    "key_file_guides": [
+      {
+        "file": "README.md",
+        "role": "Single-file redirect pointing developers to api/client/javascript.",
+        "watch_for": "Do not add new files here. Any browser/web SDK work belongs in api/client/javascript."
+      }
+    ],
+    "anti_patterns": [
+      "Adding new SDK code to this folder \u2014 it is deprecated in favour of api/client/javascript"
+    ],
+    "decisions": [],
+    "code_examples": []
+  }
+}

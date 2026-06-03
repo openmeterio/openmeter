@@ -1,50 +1,61 @@
 {
-  "openmeter/sink/models": {
-    "purpose": "Pure types package defining the shared data structures for the sink worker pipeline \u2014 SinkMessage (the unit of work flowing from Kafka consumer through deduplication to ClickHouse flush) and ProcessingStatus/ProcessingState (OK/DROP disposition tracking). Contains no business logic; all sink pipeline stages import this package.",
+  "openmeter/registry/builder": {
+    "purpose": "Single-function package providing GetEntitlementRegistry, a non-Wire factory that wires all entitlement-domain adapters, connectors, and services into *registry.Entitlement. Used by balance-worker and test suites that need entitlement infrastructure without importing app/common.",
     "patterns": [
       {
-        "name": "SinkMessage as pipeline carrier",
-        "description": "All sink pipeline stages operate on SinkMessage, which bundles the raw kafka.Message, its deserialized CloudEventsKafkaPayload, the resolved Namespace, affected Meters, and ProcessingStatus. New pipeline data must be added as fields here, not passed separately between stages.",
-        "example": "msg := models.SinkMessage{Namespace: ns, KafkaMessage: km, Serialized: payload, Status: models.ProcessingStatus{State: models.OK}}"
+        "name": "Options struct as constructor input",
+        "description": "All external dependencies are grouped into EntitlementOptions (DatabaseClient, StreamingConnector, Logger, MeterService, CustomerService, Publisher, Tracer, Locker, EntitlementsConfiguration). New parameters go on this struct, not as direct function args.",
+        "example": "GetEntitlementRegistry(EntitlementOptions{DatabaseClient: db, StreamingConnector: conn, ...})"
       },
       {
-        "name": "GetDedupeItem bridges dedupe package",
-        "description": "SinkMessage.GetDedupeItem() produces a dedupe.Item using Namespace, Serialized.Id, and Serialized.Source \u2014 the canonical deduplication key. Always use this method rather than constructing dedupe.Item inline to ensure the key composition stays consistent.",
-        "example": "item := msg.GetDedupeItem() // returns dedupe.Item{Namespace: m.Namespace, ID: m.Serialized.Id, Source: m.Serialized.Source}"
+        "name": "Bottom-up adapter initialisation order",
+        "description": "DB adapters (featureDBAdapter, entitlementDBAdapter, grantDBAdapter, balanceSnapshotDBAdapter) are created first, then connectors depending on them, then the top-level entitlement service. Never create a connector before its adapter dependencies.",
+        "example": "featureDBAdapter -> featureConnector -> meteredEntitlementConnector -> entitlementConnector"
       },
       {
-        "name": "ProcessingState as int8 iota enum with String()",
-        "description": "States are int8 iota constants (OK=0, DROP=1). String() is implemented for logging. New states must follow the same iota pattern and add a case to String() \u2014 omitting the String() case produces 'unknown(N)' in logs.",
-        "example": "const (\n\tOK ProcessingState = iota\n\tDROP\n)"
+        "name": "Register hooks immediately after connector construction",
+        "description": "RegisterHooks is called immediately after each connector is constructed. Both meteredEntitlementConnector and entitlementConnector get their own RegisterHooks call.",
+        "example": "meteredEntitlementConnector.RegisterHooks(meteredentitlement.ConvertHook(entitlementsubscriptionhook.NewEntitlementSubscriptionHook(...)))"
+      },
+      {
+        "name": "Return fully populated registry struct by pointer",
+        "description": "GetEntitlementRegistry returns *registry.Entitlement with every field explicitly populated. Any new connector/adapter added to registry.Entitlement must be assigned here or callers get nil fields and runtime panics.",
+        "example": "return &registry.Entitlement{Feature: featureConnector, GrantRepo: grantDBAdapter, MeteredEntitlement: meteredEntitlementConnector, Entitlement: entitlementConnector, ...}"
+      },
+      {
+        "name": "transactionManager via enttx.NewCreator",
+        "description": "The Ent transaction manager is created with enttx.NewCreator(opts.DatabaseClient) and passed into CreditConnectorConfig.TransactionManager. Never pass the raw *db.Client as a transaction manager.",
+        "example": "transactionManager := enttx.NewCreator(opts.DatabaseClient)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "models.go",
-        "role": "Single source of truth for all sink pipeline data types. All sink stages (Kafka consumer, deduplication, ClickHouse storage, flush handlers) import this package.",
-        "watch_for": "SinkMessage.Serialized may be nil before deserialization completes \u2014 callers must nil-check before accessing Serialized.Id or Serialized.Source. ProcessingStatus.DropError should be non-nil whenever State==DROP to preserve the reason for dropping."
+        "file": "entitlement.go",
+        "role": "The only file. Defines EntitlementOptions and GetEntitlementRegistry; owns the full wiring sequence for entitlement-domain infrastructure.",
+        "watch_for": "Adding a new adapter/connector requires (1) constructing it in correct bottom-up order, (2) passing it to dependent downstream constructors, (3) assigning it to the returned registry struct. Skipping step 3 leaves nil fields and runtime panics."
       }
     ],
     "anti_patterns": [
-      "Adding business logic or validation to this package \u2014 it must remain a pure types/models package with no side effects",
-      "Constructing dedupe.Item directly from SinkMessage fields instead of calling GetDedupeItem()",
-      "Adding a new ProcessingState iota constant without adding a matching case to ProcessingState.String()",
-      "Importing this package from openmeter/streaming or openmeter/meter \u2014 those packages are upstream dependencies of sink/models, not consumers; doing so creates a circular dependency"
+      "Importing app/common from this package \u2014 it must remain independent to avoid import cycles with test suites.",
+      "Skipping hook registration after connector construction \u2014 entitlementsubscriptionhook and credithook are mandatory for correct burn-down and subscription sync.",
+      "Passing opts.DatabaseClient directly as a TxCreator \u2014 always wrap with enttx.NewCreator.",
+      "Adding business logic or conditional wiring inside GetEntitlementRegistry \u2014 it is a pure factory; conditionals belong in the caller.",
+      "Returning a partially populated *registry.Entitlement \u2014 every field must be set or downstream nil-dereferences occur at runtime."
     ],
     "decisions": [
       {
-        "decision": "SinkMessage holds both the raw kafka.Message and the deserialized CloudEventsKafkaPayload as separate fields",
-        "rationale": "Deserialization is a discrete pipeline step; keeping both lets downstream stages access Kafka metadata (offsets, partition) alongside the typed event payload without re-parsing the raw bytes."
+        "decision": "Single-function package instead of a Wire provider set.",
+        "rationale": "balance-worker and test suites need entitlement infrastructure without importing app/common Wire sets; a plain constructor avoids import cycles while giving a fully wired registry."
       },
       {
-        "decision": "ProcessingState is int8 iota rather than a string enum",
-        "rationale": "The sink worker processes high volumes of messages; int8 comparisons are cheaper than string comparisons in the hot flush path."
+        "decision": "EntitlementOptions flat struct over variadic functional options.",
+        "rationale": "All dependencies are mandatory; a flat struct makes missing fields panic early on zero-value pointers and avoids option-function indirection."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Constructing a SinkMessage after Kafka consumption and checking deduplication disposition",
-        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/sink/models\"\n)\n\nmsg := models.SinkMessage{\n\tNamespace:    ns,\n\tKafkaMessage: km,\n\tserialized:   payload, // set after deserialization step\n\tStatus:       models.ProcessingStatus{State: models.OK},\n}\n\n// Bridge to deduplication layer \u2014 always use GetDedupeItem, not inline construction\nitem := msg.GetDedupeItem()\nif duplicate {\n\tmsg.Status = models.ProcessingStatus{\n\t\tState:     models.DROP,\n\t\tDropError: fmt.Errorf(\"duplicate event: %s\", item.ID),\n\t}\n}"
+        "scenario": "Construct the entitlement registry for a worker or test",
+        "code": "import (\n  registrybuilder \"github.com/openmeterio/openmeter/openmeter/registry/builder\"\n  \"github.com/openmeterio/openmeter/openmeter/registry\"\n)\n\nreg := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{\n  DatabaseClient:            db,\n  EntitlementsConfiguration: cfg,\n  StreamingConnector:        streamingConn,\n  Logger:                    logger,\n  MeterService:              meterSvc,\n  CustomerService:           customerSvc,\n  Publisher:                 publisher,\n  Tracer:                    tracer,\n  Locker:                    locker,\n})"
       }
     ]
   }

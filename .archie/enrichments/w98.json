@@ -1,61 +1,71 @@
 {
-  "openmeter/ledger/resolvers/adapter": {
-    "purpose": "Ent/PostgreSQL adapter implementing resolvers.CustomerAccountRepo \u2014 the sole DB-write path for mapping ledger account IDs to customers via ledger_customer_account rows. Every method must rebind to any ctx-carried transaction via entutils.TransactingRepo.",
+  "openmeter/ledger/breakage/adapter": {
+    "purpose": "Ent/PostgreSQL implementation of breakage.Adapter \u2014 persists and queries LedgerBreakageRecord rows (credit expiration plan/release/reopen records) used by the ledger breakage flow. All access is namespace- and customer-scoped, soft-delete aware, and runs through context-propagated Ent transactions.",
     "patterns": [
       {
-        "name": "TransactingRepo wrapping on every DB method",
-        "description": "All methods reading or writing DB must wrap their body in entutils.TransactingRepo (value return) or TransactingRepoWithNoValue (void). Never call tx.db.LedgerCustomerAccount... directly in a method body.",
-        "example": "return entutils.TransactingRepoWithNoValue(ctx, r, func(ctx context.Context, tx *repo) error { _, err := tx.db.LedgerCustomerAccount.Create()...; return err })"
+        "name": "TxCreator/TxUser triad",
+        "description": "adapter implements Tx (HijackTx + entutils.NewTxDriver), WithTx (NewTxClientFromRawConfig), and Self so entutils.TransactingRepo can rebind to a ctx-bound transaction or run on Self().",
+        "example": "func (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) { txCtx, rawConfig, eDriver, err := a.db.HijackTx(ctx, &sql.TxOptions{ReadOnly: false}); return txCtx, entutils.NewTxDriver(eDriver, rawConfig), err }"
       },
       {
-        "name": "TxUser triple: Tx + WithTx + Self",
-        "description": "The repo struct must implement all three entutils.TxUser[*repo] methods: Tx (hijacks via db.HijackTx), WithTx (rebinds via entdb.NewTxClientFromRawConfig), Self (returns self). All three are required for TransactingRepo machinery.",
-        "example": "func (r *repo) WithTx(ctx context.Context, tx *entutils.TxDriver) *repo { return &repo{db: entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()} }"
+        "name": "TransactingRepo wraps every method body",
+        "description": "Reads wrap with entutils.TransactingRepo and writes with TransactingRepoWithNoValue; never touch a.db directly outside the wrapper, which captures tx and degrades to Self() when no tx is in ctx.",
+        "example": "return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error { /* tx.db... */ })"
       },
       {
-        "name": "Compile-time interface assertions",
-        "description": "Declare var _ resolvers.CustomerAccountRepo = (*repo)(nil) and var _ entutils.TxUser[*repo] = (*repo)(nil) at package level to catch interface drift at compile time.",
-        "example": "var _ resolvers.CustomerAccountRepo = (*repo)(nil)"
+        "name": "Config.Validate() before New",
+        "description": "New(Config) calls config.Validate() (Client must be non-nil) and returns (breakage.Adapter, error); never construct &adapter{} directly.",
+        "example": "func New(config Config) (breakage.Adapter, error) { if err := config.Validate(); err != nil { return nil, err }; return &adapter{db: config.Client}, nil }"
       },
       {
-        "name": "Constraint error \u2192 domain error conversion",
-        "description": "Catch Ent unique-index violations with entdb.IsConstraintError and convert to typed domain errors (resolvers.CustomerAccountAlreadyExistsError). Never surface raw DB errors to callers.",
-        "example": "if entdb.IsConstraintError(err) { existing, _ := tx.db.LedgerCustomerAccount.Query()...; return &resolvers.CustomerAccountAlreadyExistsError{...} }"
+        "name": "Input validation before any query",
+        "description": "Each method validates input (input.Validate(), CustomerID.Validate(), Currency.Validate(), AsOf non-zero) before opening a transaction, and short-circuits to (nil, nil) when there is nothing to query (e.g. no source filters in ListReleaseRecords).",
+        "example": "if len(input.SourceEntryID) == 0 && len(input.SourceTransactionGroupID) == 0 { return nil, nil }"
       },
       {
-        "name": "Constructor returns interface, not concrete type",
-        "description": "NewRepo returns resolvers.CustomerAccountRepo, not *repo, so callers depend on the abstraction and the concrete type stays unexported.",
-        "example": "func NewRepo(db *entdb.Client) resolvers.CustomerAccountRepo { return &repo{db: db} }"
+        "name": "ForUpdate row locking on read-modify queries",
+        "description": "ListReleaseRecords and ListCandidateRecords append .ForUpdate() so concurrent breakage processing serializes on the selected rows; ListExpiredRecords omits it (read-only scan).",
+        "example": "tx.db.LedgerBreakageRecord.Query().Where(...).Order(...).ForUpdate().All(ctx)"
+      },
+      {
+        "name": "Predicate-only filtering, deterministic ordering, mapRecordFromDB conversion",
+        "description": "Queries always filter NamespaceEQ + CustomerIDEQ + DeletedAtIsNil, apply explicit multi-key Order(...) for deterministic results, and convert every db row to a domain breakage.Record via mapRecordFromDB.",
+        "example": "dbledgerbreakagerecord.DeletedAtIsNil(); out = append(out, mapRecordFromDB(row))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "repo.go",
-        "role": "Sole file in the package. Implements CreateCustomerAccount and GetCustomerAccountIDs backed by the LedgerCustomerAccount Ent entity. Includes all TxUser methods and compile-time assertions.",
-        "watch_for": "Any DB access outside TransactingRepo/TransactingRepoWithNoValue bypasses ctx-carried transactions and produces partial writes. Constraint errors not caught with entdb.IsConstraintError leak raw DB errors. Removing var _ assertion lines eliminates compile-time interface proof."
+        "file": "adapter.go",
+        "role": "Config/Validate/New constructor and the Tx/WithTx/Self transaction triad.",
+        "watch_for": "Tx hijacks a writable transaction (ReadOnly: false); do not bypass entutils.NewTxDriver or store a raw *entdb.Tx as a field."
+      },
+      {
+        "file": "record.go",
+        "role": "All query/write methods (CreateRecords, ListReleaseRecords, ListExpiredRecords, ListCandidateRecords) plus mapRecordFromDB / mapRecords converters.",
+        "watch_for": "ListReleaseRecords also fetches matching BreakageKindReopen rows by ReleaseID and appends them; ListExpiredRecords filters ExpiresAtLTE(AsOf) while ListCandidateRecords filters ExpiresAtGT(AsOf) \u2014 the comparison direction is load-bearing. CreateRecords uses CreateBulk with SetNillable* for optional source/plan/release fields."
       }
     ],
     "anti_patterns": [
-      "Calling tx.db.LedgerCustomerAccount... directly in a method body without wrapping in TransactingRepo/TransactingRepoWithNoValue",
-      "Returning *repo from NewRepo instead of resolvers.CustomerAccountRepo interface",
-      "Adding business logic (account type routing, balance calculation) \u2014 it belongs in the service layer above",
-      "Using context.Background() or context.TODO() instead of propagating the caller's ctx",
-      "Removing the var _ interface assertion lines \u2014 they are the only compile-time proof of interface compliance"
+      "Calling a.db.* directly in a method body without wrapping in entutils.TransactingRepo / TransactingRepoWithNoValue (drops the ctx-bound transaction, risking partial writes)",
+      "Storing a raw *entdb.Tx as a struct field instead of rebinding via WithTx",
+      "Omitting NamespaceEQ + CustomerIDEQ + DeletedAtIsNil predicates (breaks multi-tenancy and soft-delete invariants)",
+      "Removing .ForUpdate() from ListReleaseRecords / ListCandidateRecords (loses row-lock serialization for concurrent breakage processing)",
+      "Adding domain/business logic here instead of in the breakage service \u2014 this layer is pure persistence"
     ],
     "decisions": [
       {
-        "decision": "Single repo.go file with no sub-files",
-        "rationale": "The adapter surface is tiny (two methods); splitting would add navigation overhead with no benefit."
+        "decision": "Read methods lock candidate/release rows with ForUpdate, but the expired-records scan is left unlocked.",
+        "rationale": "Release and candidate listings feed read-modify-write breakage processing that must serialize per customer; the expired scan is a non-mutating snapshot and does not need a lock."
       },
       {
-        "decision": "Tx implemented via db.HijackTx rather than db.BeginTx",
-        "rationale": "HijackTx returns both a TxDriver and the raw pgx config needed for NewTxClientFromRawConfig, enabling the standard entutils transaction rebinding pattern used across all adapters."
+        "decision": "Optional source/plan/release identifiers are written via SetNillable* and ordering is always multi-key.",
+        "rationale": "Breakage records carry optional provenance pointers; SetNillable* keeps NULLs intact, and deterministic ordering (priority/expiry/id) makes downstream allocation reproducible."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new write method that must honor the ambient ctx-carried transaction",
-        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/ledger/resolvers\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (r *repo) DeleteCustomerAccount(ctx context.Context, input resolvers.DeleteCustomerAccountInput) error {\n\treturn entutils.TransactingRepoWithNoValue(ctx, r, func(ctx context.Context, tx *repo) error {\n\t\t_, err := tx.db.LedgerCustomerAccount.Delete().\n\t\t\tWhere( /* filters */ ).\n\t\t\tExec(ctx)\n\t\tif err != nil {\n\t\t\treturn fmt.Errorf(\"failed to delete ledger customer account: %w\", err)\n\t\t}\n\t\treturn nil\n\t})\n}"
+        "scenario": "Adapter query method wrapped in TransactingRepo with namespace/customer/soft-delete predicates",
+        "code": "func (a *adapter) ListExpiredRecords(ctx context.Context, input breakage.ListExpiredRecordsInput) ([]breakage.Record, error) {\n    if err := input.CustomerID.Validate(); err != nil { return nil, fmt.Errorf(\"customer id: %w\", err) }\n    if input.AsOf.IsZero() { return nil, fmt.Errorf(\"as of is required\") }\n    return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]breakage.Record, error) {\n        rows, err := tx.db.LedgerBreakageRecord.Query().\n            Where(\n                dbledgerbreakagerecord.NamespaceEQ(input.CustomerID.Namespace),\n                dbledgerbreakagerecord.CustomerIDEQ(input.CustomerID.ID),\n                dbledgerbreakagerecord.DeletedAtIsNil(),\n                dbledgerbreakagerecord.ExpiresAtLTE(input.AsOf),\n            ).\n            Order(dbledgerbreakagerecord.ByExpiresAt(sql.OrderDesc()), dbledgerbreakagerecord.ByID(sql.OrderDesc())).\n            All(ctx)\n        if err != nil { return nil, fmt.Errorf(\"list expired breakage records: %w\", err) }\n        return mapRecords(rows), nil\n    })\n}"
       }
     ]
   }

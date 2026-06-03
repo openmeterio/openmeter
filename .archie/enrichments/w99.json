@@ -1,56 +1,90 @@
 {
-  "openmeter/ledger/transactions/testutils": {
-    "purpose": "Provides compile-time-checked test doubles for ledger.EntryInput, ledger.TransactionInput, and ledger.TransactionGroupInput interfaces so tests can construct arbitrary ledger postings without touching production adapters, Ent, or the database.",
+  "openmeter/ledger/historical/adapter": {
+    "purpose": "Ent/PostgreSQL implementation of ledgerhistorical.Repo: books double-entry transactions (LedgerTransaction + LedgerEntry rows), manages transaction groups, sums entries, and lists transactions with tri-tuple cursor pagination. All queries must eagerly load SubAccount\u2192Account\u2192Route edges or hydrateHistoricalTransaction errors.",
     "patterns": [
       {
-        "name": "Compile-time interface assertion",
-        "description": "Every test struct declares a blank-identifier assertion (var _ <Interface> = (*Struct)(nil)) so interface drift is caught at compile time, not at test runtime.",
-        "example": "var _ ledger.EntryInput = (*AnyEntryInput)(nil)"
+        "name": "Full TxCreator+TxUser triad on repo",
+        "description": "repo implements Tx (HijackTx + entutils.NewTxDriver), WithTx (db.NewTxClientFromRawConfig), and Self(); every method body wraps with entutils.TransactingRepo so caller-supplied transactions are honored.",
+        "example": "return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgerhistorical.Transaction, error) { ... tx.db.LedgerTransaction.Create()... })"
       },
       {
-        "name": "Exported *Value field naming",
-        "description": "All stored values use an exported field with a *Value suffix (AmountValue, BookedAtValue, AnnotationsValue). Interface accessor methods return these fields directly \u2014 no constructors needed, test fixtures are set by direct field assignment.",
-        "example": "type AnyEntryInput struct { Address ledger.PostingAddress; AmountValue alpacadecimal.Decimal }"
+        "name": "Eager edge loading on every query",
+        "description": "Every query returning a Transaction calls WithEntries -> WithSubAccount -> WithAccount + WithRoute. Missing any edge causes hydrateHistoricalTransaction to error on SubAccountOrErr/AccountOrErr/RouteOrErr.",
+        "example": "q.WithEntries(func(eq *db.LedgerEntryQuery) { eq.WithSubAccount(func(sq *db.LedgerSubAccountQuery) { sq.WithAccount(); sq.WithRoute() }) })"
       },
       {
-        "name": "lo.Map for slice interface coercion",
-        "description": "Concrete slice fields (e.g. []*AnyEntryInput) are projected to the interface slice type ([]ledger.EntryInput) inside the accessor method using samber/lo.Map \u2014 keeps struct field types concrete while satisfying the interface.",
-        "example": "return lo.Map(a.EntryInputsValues, func(e *AnyEntryInput, _ int) ledger.EntryInput { return e })"
+        "name": "hydrateHistoricalTransaction for all DB-to-domain conversion",
+        "description": "All DB rows convert to domain via hydrateHistoricalTransaction (calls ledgerhistorical.NewTransactionFromData); never map db.LedgerTransaction fields to domain structs inline.",
+        "example": "items, err := slicesx.MapWithErr(dbItems, func(tx *db.LedgerTransaction) (*ledgerhistorical.Transaction, error) { return hydrateHistoricalTransaction(tx) })"
       },
       {
-        "name": "AsGroupInput convenience wrapper",
-        "description": "AnyTransactionInput exposes AsGroupInput(namespace, annotations) to wrap itself in an AnyTransactionGroupInput \u2014 eliminates boilerplate when a test only needs a single transaction in a group.",
-        "example": "func (a *AnyTransactionInput) AsGroupInput(ns string, ann models.Annotations) ledger.TransactionGroupInput { return &AnyTransactionGroupInput{...} }"
+        "name": "Tri-tuple cursor pagination (bookedAt DESC, createdAt DESC, ID DESC)",
+        "description": "Pagination uses SQL predicate cursors over three fields; forward uses ledgerTransactionAfterCursorPredicate, backward uses ledgerTransactionBeforeCursorPredicate then slices.Reverse. NextCursor always points to the last returned item.",
+        "example": "if input.Before != nil { query = query.Where(ledgerTransactionBeforeCursorPredicate(*input.Before)) } ... if input.Before != nil { slices.Reverse(items) }"
+      },
+      {
+        "name": "sumEntriesQuery builder for all aggregation",
+        "description": "SumEntries delegates to sumEntriesQuery{query}.Build(tx.db). New filter dimensions go in entryPredicates() or subAccountPredicates() in sumentries_query.go, not inline. Route filters call Normalize() and propagate ledger.ErrLedgerQueryInvalid.",
+        "example": "q := sumEntriesQuery{query: query}; entryQuery, err := q.Build(tx.db); entryQuery.Aggregate(db.As(db.Sum(ledgerentrydb.FieldAmount), \"sum_amount\")).Scan(ctx, &rows)"
+      },
+      {
+        "name": "Bulk entry creation after transaction row",
+        "description": "BookTransaction saves the LedgerTransaction row first, then CreateBulk for all LedgerEntry rows in one batch \u2014 never insert entries one-by-one.",
+        "example": "createdEntries, err = tx.db.LedgerEntry.CreateBulk(createInputs...).Save(ctx)"
+      },
+      {
+        "name": "Compile-time interface compliance assertion",
+        "description": "repo.go declares var _ ledgerhistorical.Repo = (*repo)(nil) and var _ entutils.TxUser[*repo] = (*repo)(nil); every new adapter struct must keep both guards.",
+        "example": "var _ ledgerhistorical.Repo = (*repo)(nil)\nvar _ entutils.TxUser[*repo] = (*repo)(nil)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "anytransaction.go",
-        "role": "Defines AnyEntryInput, AnyTransactionInput, and AnyTransactionGroupInput \u2014 the complete set of test doubles for the three ledger transaction posting interfaces. Any change to ledger.EntryInput, ledger.TransactionInput, or ledger.TransactionGroupInput signatures must be mirrored here.",
-        "watch_for": "Missing or stale compile-time var _ assertions after interface changes; forgetting lo.Map when adding a new slice field; adding Ent/DB imports which would turn this into a production dependency."
+        "file": "repo.go",
+        "role": "repo struct (only *db.Client), NewRepo constructor, Tx/WithTx/Self triad, and both compile-time interface assertions.",
+        "watch_for": "Do not store state on repo beyond *db.Client; inject deps via the constructor. Both interface assertions (Repo and TxUser) must stay."
+      },
+      {
+        "file": "ledger.go",
+        "role": "BookTransaction, CreateTransactionGroup, GetTransactionGroup, SumEntries, ListTransactions, and cursor/ordering helpers; hydrateHistoricalTransaction.",
+        "watch_for": "hydrateHistoricalTransaction errors if SubAccount\u2192Account/Route edges aren't loaded; the Before direction requires slices.Reverse after fetch with NextCursor pointing to the last item."
+      },
+      {
+        "file": "sumentries_query.go",
+        "role": "sumEntriesQuery with entryPredicates()/subAccountPredicates() and SQL() (used by viewgen). All SumEntries filter dimensions live here.",
+        "watch_for": "Route filter normalization errors must wrap ledger.ErrLedgerQueryInvalid; SQL() uses dialect.Postgres explicitly and must stay in sync with entryPredicates()."
+      },
+      {
+        "file": "ledger_test.go",
+        "role": "In-package DB integration tests via NewTestEnv(t) + DBSchemaMigrate(t); covers forward/backward pagination, resumption, currency/creditMovement/annotation filters.",
+        "watch_for": "Tests time.Sleep between transactions for distinct CreatedAt timestamps (deterministic ordering) \u2014 do not remove. Use t.Context(), not context.Background()."
       }
     ],
     "anti_patterns": [
-      "Do not add production logic or database/Ent access \u2014 this package must stay a pure in-memory test helper.",
-      "Do not skip the var _ Interface = (*Struct)(nil) compile-time assertions when adding new test doubles.",
-      "Do not import app/common or any Wire provider sets \u2014 test helpers must be independent of the DI wiring layer.",
-      "Do not use context.Background() inside helpers; callers supply t.Context() when *testing.T is available.",
-      "Do not put this package's types into production code paths \u2014 the testutils sub-package convention isolates test-only types."
+      "Omitting WithSubAccount/WithAccount/WithRoute eager-load on any hydrated-transaction query",
+      "Mapping db.LedgerTransaction fields to domain structs inline instead of hydrateHistoricalTransaction",
+      "Inserting LedgerEntry rows one-by-one in a loop instead of CreateBulk",
+      "Adding filter predicates directly inside ListTransactions/SumEntries instead of extending sumEntriesQuery",
+      "Using context.Background() instead of the caller ctx \u2014 drops the Ent transaction and OTel spans"
     ],
     "decisions": [
       {
-        "decision": "Separate testutils package instead of embedding test doubles in the production package",
-        "rationale": "Keeps openmeter/ledger/transactions free of test-only dependencies; prevents accidental use of test doubles in production; mirrors the project-wide <domain>/testutils convention used by billing, customer, streaming, etc."
+        "decision": "Tri-tuple cursor (bookedAt, createdAt, ID) instead of single-field offset",
+        "rationale": "bookedAt is user-visible and can repeat; tie-breaking on createdAt+ID makes pagination stable across concurrent inserts without a serial primary key."
       },
       {
-        "decision": "Exported *Value fields instead of constructor functions",
-        "rationale": "Direct field assignment makes test fixtures concise and self-documenting; the interface contract is still satisfied through accessor methods; no constructor indirection means fewer lines of fixture setup per test."
+        "decision": "sumEntriesQuery is a separate struct with Build() and SQL()",
+        "rationale": "Isolates filter predicate logic from repo methods and lets the viewgen CLI extract raw SQL without executing against a live DB."
+      },
+      {
+        "decision": "Tx uses HijackTx + entutils.NewTxDriver instead of db.BeginTx",
+        "rationale": "Aligns with the project-wide entutils.TransactingRepo pattern so callers bind the transaction via ctx without leaking raw *sql.Tx across package boundaries."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Build a single-transaction group to post to the ledger in a test",
-        "code": "import (\n    \"time\"\n    \"github.com/alpacahq/alpacadecimal\"\n    tutestutils \"github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nentry := &tutestutils.AnyEntryInput{\n    Address:     somePostingAddress,\n    AmountValue: alpacadecimal.NewFromInt(100),\n}\ntx := &tutestutils.AnyTransactionInput{\n    BookedAtValue:     time.Now(),\n    EntryInputsValues: []*tutestutils.AnyEntryInput{entry},\n}\ngroup := tx.AsGroupInput(namespace, models.Annotations{})\n// pass group to ledger.CommitGroup(ctx, group)"
+        "scenario": "Add a new filter dimension to SumEntries without touching repo methods",
+        "code": "// In sumentries_query.go, extend subAccountPredicates():\nif b.query.Filters.CostBasis != nil {\n    routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasis(*b.query.Filters.CostBasis))\n}\n// SumEntries in ledger.go delegates unchanged:\nfunc (r *repo) SumEntries(ctx context.Context, query ledger.Query) (alpacadecimal.Decimal, error) {\n    return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (alpacadecimal.Decimal, error) {\n        q := sumEntriesQuery{query: query}\n        entryQuery, err := q.Build(tx.db)\n        if err != nil { return alpacadecimal.Decimal{}, err }\n        // ... aggregate ...\n        return alpacadecimal.NewFromInt(0), nil\n    })\n}"
       }
     ]
   }

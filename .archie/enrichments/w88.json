@@ -1,61 +1,100 @@
 {
-  "openmeter/entitlement/hooks/subscription": {
-    "purpose": "Single-file package implementing a models.ServiceHook[entitlement.Entitlement] that guards subscription-managed entitlements from direct mutation or deletion. Prevents bypassing subscription lifecycle constraints by blocking PreDelete and PreUpdate on entitlements annotated with subscription metadata.",
+  "openmeter/entitlement/driver/v2": {
+    "purpose": "V2 HTTP driver for the entitlement domain \u2014 adapts entitlement.Service and meteredentitlement.Connector to customer-scoped HTTP handlers via httptransport.HandlerWithArgs, always resolving a customer (by ID or key) before any entitlement operation. Differs from v1 by returning customerId/customerKey in all responses.",
     "patterns": [
       {
-        "name": "Embed NoopServiceHook, override only needed methods",
-        "description": "The hook struct embeds NoopEntitlementSubscriptionHook (alias for models.NoopServiceHook[entitlement.Entitlement]) so unimplemented lifecycle methods are no-ops by default. Only PreDelete and PreUpdate are overridden.",
-        "example": "type hook struct { NoopEntitlementSubscriptionHook }"
+        "name": "HandlerWithArgs typed triplet",
+        "description": "Every endpoint declares Request, Response, Params type aliases and aliases the handler type as httptransport.HandlerWithArgs[Req, Resp, Params]; the entitlementHandler method returns that alias.",
+        "example": "type CreateCustomerEntitlementHandler httptransport.HandlerWithArgs[CreateCustomerEntitlementHandlerRequest, CreateCustomerEntitlementHandlerResponse, CreateCustomerEntitlementHandlerParams]"
       },
       {
-        "name": "Two-step gate: IsSubscriptionOperation then HasSubscription",
-        "description": "Every guarded hook method must first check subscription.IsSubscriptionOperation(ctx) and return nil if true (allows subscription package self-management), then check subscription.AnnotationParser.HasSubscription(ent.Annotations) and return GenericForbiddenError if annotated.",
-        "example": "if subscription.IsSubscriptionOperation(ctx) { return nil }\nif subscription.AnnotationParser.HasSubscription(ent.Annotations) { return models.NewGenericForbiddenError(fmt.Errorf(\"entitlement is managed by subscription\")) }"
+        "name": "Customer resolution before entitlement ops",
+        "description": "Each handler resolves the customer via h.customerService.GetCustomer with CustomerIDOrKey, then checks cus.IsDeleted() returning models.NewGenericPreConditionFailedError before any entitlement call.",
+        "example": "cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{CustomerIDOrKey: &customer.CustomerIDOrKey{Namespace: ns, IDOrKey: req.CustomerIDOrKey}}); if cus != nil && cus.IsDeleted() { return ..., models.NewGenericPreConditionFailedError(...) }"
       },
       {
-        "name": "Compile-time interface assertion",
-        "description": "A package-level blank-identifier var asserts *hook satisfies models.ServiceHook[entitlement.Entitlement] at compile time.",
-        "example": "var _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil)"
+        "name": "Namespace resolved from context via namespaceDecoder",
+        "description": "All handlers call h.resolveNamespace(ctx) first (delegating to h.namespaceDecoder.GetNamespace(ctx)); HTTP 500 if missing. Never accept namespace from URL params.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return def, err }"
       },
       {
-        "name": "Constructor accepts typed config struct",
-        "description": "NewEntitlementSubscriptionHook accepts EntitlementSubscriptionHookConfig (currently empty) so future config fields can be added without a signature change.",
-        "example": "func NewEntitlementSubscriptionHook(_ EntitlementSubscriptionHookConfig) EntitlementSubscriptionHook { return &hook{} }"
+        "name": "ParserV2.ToAPIGenericV2 for all entitlement responses",
+        "description": "Handlers returning an entitlement call ParserV2.ToAPIGenericV2(ent, cust.ID, cust.Key), which dispatches by EntitlementType to ToMeteredV2/ToStaticV2/ToBooleanV2 and the corresponding FromEntitlement*V2 setter. Never inline the mapping.",
+        "example": "v2, err := ParserV2.ToAPIGenericV2(ent, cus.ID, cus.Key); if err != nil { return api.EntitlementV2{}, err }; return *v2, nil"
       },
       {
-        "name": "Return GenericForbiddenError (not other error types) for annotation guard",
-        "description": "The annotation guard must return models.NewGenericForbiddenError so the HTTP error encoder maps it to 403 Forbidden via GenericErrorEncoder.",
-        "example": "return models.NewGenericForbiddenError(fmt.Errorf(\"entitlement is managed by subscription\"))"
+        "name": "Error encoder chains v1 then generic",
+        "description": "getErrorEncoder() composes entitlementdriver.GetErrorEncoder() (v1) with commonhttp.GenericErrorEncoder() so v2 error codes stay consistent with v1.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(getErrorEncoder()))"
+      },
+      {
+        "name": "ParseAPICreateInputV2 for create/override input parsing",
+        "description": "Mapping API create inputs uses ParseAPICreateInputV2(inp, ns, cus.GetUsageAttribution()), handling metered/static/boolean variants and enforcing issueAfterReset vs grants mutual exclusion. Never inline discriminator logic.",
+        "example": "createInp, grantsInp, err := ParseAPICreateInputV2(request.APIInput, request.Namespace, cus.GetUsageAttribution())"
+      },
+      {
+        "name": "Separate connector fields for base and metered ops",
+        "description": "entitlementHandler holds connector (entitlement.Service) for generic CRUD and balanceConnector (meteredentitlement.Connector) for grant/history/reset; do not collapse them.",
+        "example": "h.connector.CreateEntitlement(...) vs h.balanceConnector.CreateGrant(...)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "hook.go",
-        "role": "Entire package implementation: defines hook struct, type aliases for the hook and noop base, constructor, and PreDelete/PreUpdate guards.",
-        "watch_for": "Both PreDelete and PreUpdate must apply the identical two-step gate (IsSubscriptionOperation then HasSubscription). Adding a new hook method that skips either step silently allows direct mutation of subscription-managed entitlements."
+        "file": "handler.go",
+        "role": "EntitlementHandler interface listing all V2 methods plus entitlementHandler struct and NewEntitlementHandler constructor \u2014 sole DI entry point.",
+        "watch_for": "New handler methods must be added to the EntitlementHandler interface; a missing method breaks the compile-time contract."
+      },
+      {
+        "file": "customer.go",
+        "role": "Customer-scoped CRUD entitlement handlers (create, list, get, delete, override), all using resolve-customer-first.",
+        "watch_for": "Must always check cus.IsDeleted() before proceeding; omitting it lets soft-deleted customer operations succeed."
+      },
+      {
+        "file": "customer_metered.go",
+        "role": "Metered-specific handlers (grants CRUD, balance history, usage reset) routed through h.balanceConnector.",
+        "watch_for": "Resolves entitlement via h.connector.GetEntitlementOfCustomerAt before using ent.ID for balance calls \u2014 do not pass featureKey directly to balanceConnector."
+      },
+      {
+        "file": "entitlement.go",
+        "role": "Namespace-level list and get-by-ID handlers (not customer-scoped); ListEntitlements uses ListEntitlementsWithCustomer to return customer context.",
+        "watch_for": "OrderBy values must pass through strcase.CamelToSnake before comparison against ListEntitlementsOrderBy.StrValues(); skipping causes silent invalid orderby acceptance."
+      },
+      {
+        "file": "mapping.go",
+        "role": "Domain-to-API conversions: parserV2 (ToAPIGenericV2/ToMeteredV2/ToStaticV2/ToBooleanV2), ParseAPICreateInputV2, MapEntitlementGrantToAPIV2, MapAPIGrantV2ToCreateGrantInput.",
+        "watch_for": "EntitlementV2 is a union \u2014 always use FromEntitlementMeteredV2/StaticV2/BooleanV2 to set the variant, not direct struct assignment."
+      },
+      {
+        "file": "errors.go",
+        "role": "Single getErrorEncoder() composing v1 and generic error encoders.",
+        "watch_for": "Do not define new error types here; use models.Generic* errors or extend the v1 entitlementdriver encoder."
       }
     ],
     "anti_patterns": [
-      "Implementing a new hook method (e.g. PreCreate) without the IsSubscriptionOperation check \u2014 breaks subscription self-management",
-      "Returning any error type other than GenericForbiddenError for the annotation guard \u2014 callers expect 403 HTTP status mapping",
-      "Adding DB calls or business logic inside hook methods \u2014 hooks must be pure guards with no I/O",
-      "Removing the compile-time interface assertion var _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil)",
-      "Implementing PostCreate/PostUpdate/PostDelete with side effects that import entitlement or subscription packages \u2014 risks import cycles"
+      "Calling entitlement domain methods with a subject key string instead of first resolving the customer to cus.ID \u2014 v2 is customer-ID-based",
+      "Inlining entitlement type discrimination (switching on EntitlementType) in handlers instead of calling ParserV2.ToAPIGenericV2",
+      "Accepting namespace as a URL/query parameter rather than resolving via h.resolveNamespace(ctx)",
+      "Skipping the cus.IsDeleted() check before any entitlement mutation",
+      "Adding business logic (grant burn-down, balance calculation) in handler or mapping files \u2014 delegate to connector/balanceConnector"
     ],
     "decisions": [
       {
-        "decision": "Package lives in hooks/subscription sub-package rather than inline in the entitlement service",
-        "rationale": "Avoids a circular import between openmeter/entitlement and openmeter/subscription; the hook depends on both but neither depends on it."
+        "decision": "V2 driver is customer-ID-centric rather than subject-key-centric like v1.",
+        "rationale": "The v2 API surface is customer-first; entitlements are always queried and returned with customerId/customerKey to align with the customer-scoped billing model."
       },
       {
-        "decision": "Embed models.NoopServiceHook rather than implementing all ServiceHook methods manually",
-        "rationale": "ServiceHook has multiple lifecycle methods; embedding the noop ensures new interface methods are automatically no-ops, preventing accidental breakage when the interface evolves."
+        "decision": "Error encoding delegates to v1 entitlementdriver.GetErrorEncoder() first.",
+        "rationale": "Reusing v1 error codes prevents behavior divergence between API versions for the same domain errors."
+      },
+      {
+        "decision": "Customer resolution (including deleted check) happens in the operation closure, not deferred to the domain service.",
+        "rationale": "Fail-fast on bad customer before hitting the entitlement service; the resolved cus also provides GetUsageAttribution() for building domain input."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new guarded hook method following the established two-step gate pattern",
-        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/entitlement\"\n\t\"github.com/openmeterio/openmeter/openmeter/subscription\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (h *hook) PreUpdate(ctx context.Context, ent *entitlement.Entitlement) error {\n\tif subscription.IsSubscriptionOperation(ctx) {\n\t\treturn nil\n\t}\n\tif subscription.AnnotationParser.HasSubscription(ent.Annotations) {\n\t\treturn models.NewGenericForbiddenError(fmt.Errorf(\"entitlement is managed by subscription\"))\n\t}\n\treturn nil\n}"
+        "scenario": "Adding a new customer-scoped entitlement endpoint following the v2 pattern",
+        "code": "type (\n    GetCustomerEntitlementValueHandlerParams struct {\n        CustomerIDOrKey           string\n        EntitlementIdOrFeatureKey string\n    }\n    GetCustomerEntitlementValueHandlerRequest struct {\n        CustomerIDOrKey           string\n        EntitlementIdOrFeatureKey string\n        Namespace                 string\n    }\n    GetCustomerEntitlementValueHandlerResponse = *api.EntitlementValue\n    GetCustomerEntitlementValueHandler         = httptransport.HandlerWithArgs[GetCustomerEntitlementValueHandlerRequest, GetCustomerEntitlementValueHandlerResponse, GetCustomerEntitlementValueHandlerParams]\n)"
       }
     ]
   }

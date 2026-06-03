@@ -1,85 +1,160 @@
 {
-  "openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater": {
-    "purpose": "Applies a typed patch set (create/update/delete lines and split-line-groups) to billing invoices during subscription sync reconciliation. It is the write-side of the reconciler: translates abstract diff patches into concrete billing.Service calls, branching on invoice type (gathering vs standard) and mutability.",
+  "openmeter/billing/worker/subscriptionsync/service/persistedstate": {
+    "purpose": "Provides a typed snapshot of subscription-related billing state already in the DB (invoice lines, split-line hierarchies, flat-fee and usage-based charges) keyed by ChildUniqueReferenceID, so the subscription-sync reconciler can diff persisted vs target state without re-querying inside the diff loop.",
     "patterns": [
       {
-        "name": "Sealed Patch discriminated union",
-        "description": "Patch is a value type with a private op field. Callers construct via New*Patch() constructors and type-assert via As*Patch() methods that error on wrong op. Never add public fields to Patch or bypass As*Patch().",
-        "example": "patch := NewUpdateLinePatch(line); update, err := patch.AsUpdateLinePatch() // errors if op != PatchOpLineUpdate"
+        "name": "Sealed Item type hierarchy",
+        "description": "All four concrete types (persistedLine, persistedSplitLineHierarchy, persistedUsageBasedCharge, persistedFlatFeeCharge) implement Item but are package-private; callers use exported ItemAs* helpers returning typed errors.",
+        "example": "line, err := persistedstate.ItemAsLine(item) // error if item is not line-backed"
       },
       {
-        "name": "Invoice-type branch in ApplyPatches",
-        "description": "After fetching the invoice, branch on invoice.Type() == billing.InvoiceTypeGathering first, then check StandardInvoice.StatusDetails.Immutable. Each branch calls a dedicated private method: updateGatheringInvoice, updateMutableStandardInvoice, or updateImmutableInvoice.",
-        "example": "if invoice.Type() == billing.InvoiceTypeGathering { updateGatheringInvoice(...) } else if !standardInvoice.StatusDetails.Immutable { updateMutableStandardInvoice(...) } else { updateImmutableInvoice(...) }"
+        "name": "Construction-time validation via private constructors",
+        "description": "Private constructors (newPersistedLine, etc.) call Validate()/nil-check before returning. Public entry points are NewItemFromLineOrHierarchy and NewChargeItemFromChargeType.",
+        "example": "item, err := newPersistedUsageBasedCharge(charge) // calls charge.Validate() inside"
       },
       {
-        "name": "EditFn closure for atomic invoice updates",
-        "description": "All mutations to gathering and mutable-standard invoices go through billing.Service's UpdateGatheringInvoice / UpdateStandardInvoice with an EditFn closure. Never call low-level adapter methods directly.",
-        "example": "u.billingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{Invoice: id, EditFn: func(invoice *billing.StandardInvoice) error { /* mutate */ return nil }})"
+        "name": "MinimumWindowSizeDuration normalization on load",
+        "description": "normalizePersistedLineOrHierarchy and normalizeSubscriptionReference truncate timestamps to streaming.MinimumWindowSizeDuration on read; apply to every line/hierarchy from GetLinesForSubscription.",
+        "example": "period.Truncate(streaming.MinimumWindowSizeDuration)"
       },
       {
-        "name": "Immutable invoice ValidationIssue accumulation",
-        "description": "When the invoice is immutable, diff patches are not applied; instead they are collected as billing.ValidationIssue values with Severity=Warning and Code=ImmutableInvoiceHandlingNotSupportedErrorCode, then upserted via billing.Service.UpsertValidationIssues.",
-        "example": "validationIssues = append(validationIssues, newValidationIssueOnLine(existingLine, \"flat fee line's per unit amount cannot be changed...\"))"
+        "name": "Unified ByUniqueID map",
+        "description": "State.ByUniqueID merges lines/hierarchies and charges into one map keyed by ChildUniqueReferenceID; duplicate keys are a load-time error.",
+        "example": "if _, ok := byUniqueID[uniqueID]; ok { return State{}, fmt.Errorf(\"duplicate unique ids\") }"
       },
       {
-        "name": "Currency-grouped line provisioning",
-        "description": "New gathering lines are grouped by currencyx.Code via lo.GroupBy before calling CreatePendingInvoiceLines once per currency group. billing.CreatePendingInvoiceLinesInput requires a single currency per call.",
-        "example": "linesByCurrency := lo.GroupBy(lines, func(l billing.GatheringLine) currencyx.Code { return l.Currency }); for currency, lines := range linesByCurrency { billingService.CreatePendingInvoiceLines(ctx, ...) }"
-      },
-      {
-        "name": "FlatFee helpers isolate price-type logic",
-        "description": "feehelper.go exposes IsFlatFee, GetFlatFeePerUnitAmount, SetFlatFeePerUnitAmount to keep price-type branching out of invoiceupdate.go. Add new price-type helpers here, not inline in update logic.",
-        "example": "if IsFlatFee(targetState) { existingAmt, _ := GetFlatFeePerUnitAmount(existingLine) }"
-      },
-      {
-        "name": "New PatchOperation requires five coordinated changes",
-        "description": "Adding a new PatchOperation requires: new constant, new payload struct, new As* accessor method, new New* constructor, new case in parsePatches switch, and new Log case. All five must be updated atomically.",
-        "example": "const PatchOpLineCreate PatchOperation = \"line_create\" // + PatchLineCreate struct + AsCreateLinePatch() + NewCreateLinePatch() + parsePatches case + Log case"
+        "name": "Nil chargeService guard",
+        "description": "Loader.loadChargesForSubscription returns an empty map when chargeService is nil, allowing construction without charges enabled.",
+        "example": "if l.chargeService == nil { return map[string]Item{}, nil }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "invoiceupdate.go",
-        "role": "Core Updater struct and ApplyPatches orchestration; owns all billing.Service call sites. Fetches invoices once per invoiceID in listInvoicesByID then distributes to type-specific handlers.",
-        "watch_for": "Invoice fetch happens once per invoiceID inside the loop \u2014 do not add extra fetches. Empty-invoice deletion after mutable-standard update (when NonDeletedLineCount()==0) is intentional and must be preserved."
+        "file": "item.go",
+        "role": "Item interface, four concrete impls, typed getter interfaces, and public factories NewItemFromLineOrHierarchy / NewChargeItemFromChargeType.",
+        "watch_for": "Each concrete type has a var _ Item = ... guard. A new item type needs all Item methods, a matching ItemAs* helper, and a NewChargeItemFromChargeType case. Credit-purchase charges are explicitly rejected."
       },
       {
-        "file": "patch.go",
-        "role": "Patch value type, PatchOperation constants, New*/As* constructors/accessors, GetDeletePatchesForLine helper for building delete patches from a LineOrHierarchy.",
-        "watch_for": "GetDeletePatchesForLine checks billing.AnnotationSubscriptionSyncIgnore and skips lines/groups with it set. Adding a new PatchOperation requires all five coordinated changes listed in patterns."
+        "file": "loader.go",
+        "role": "Loads state via billingService.GetLinesForSubscription and chargeService.ListCharges, normalizes timestamps, assembles unified State.",
+        "watch_for": "normalizePersistedLineOrHierarchy must apply to every loaded line; subscription-tied credit-purchase charges return an error and must never be silently ignored."
       },
       {
-        "file": "feehelper.go",
-        "role": "Flat-fee price-type helpers operating on billing.GenericInvoiceLineReader / billing.GenericInvoiceLine.",
-        "watch_for": "SetFlatFeePerUnitAmount mutates the line in place via line.SetPrice(); callers must hold a mutable reference. Returns error if price type is not flat."
+        "file": "state.go",
+        "role": "State and Invoices types with Validate; Invoices.IsGatheringInvoice is the only query method.",
+        "watch_for": "State.Validate errors if either map is nil \u2014 always build via LoadForSubscription, never hand-construct State{}."
       }
     ],
     "anti_patterns": [
-      "Calling billing.Adapter methods directly instead of going through billing.Service EditFn pattern",
-      "Adding a new PatchOperation without updating all five locations: constant, struct, As*, New*, parsePatches switch (and Log case)",
-      "Fetching the same invoice multiple times within one ApplyPatches call",
-      "Producing ValidationIssues for mutable invoices \u2014 ValidationIssues are only for immutable invoice drift",
-      "Using context.Background() instead of propagating the ctx parameter through all billing.Service calls"
+      "Constructing a concrete persistedXxx struct directly instead of via the private constructors / factories.",
+      "Skipping normalizePersistedLineOrHierarchy on load \u2014 sub-second timestamps cause phantom no-op repairs.",
+      "Accessing backing data via direct type assertion instead of ItemAs* helpers.",
+      "Adding credit-purchase charges to a subscription's persisted state \u2014 explicitly unsupported, must error.",
+      "Hand-constructing State{} with nil maps \u2014 Validate() rejects it."
     ],
     "decisions": [
       {
-        "decision": "Patch is a sealed value type (private op, As* accessors) rather than an interface",
-        "rationale": "Prevents callers from constructing invalid patch combinations and keeps the parsePatches switch exhaustive and compiler-checked within this package."
+        "decision": "Item interface with private concrete types and public ItemAs* accessors.",
+        "rationale": "Keeps construction-time validation inside the package and forces callers to handle the wrong-type error path, preventing silent nil-dereferences in the reconciler."
       },
       {
-        "decision": "Immutable invoices receive ValidationIssues instead of hard errors",
-        "rationale": "Invoice immutability is a billing state (e.g. issued/paid); reporting drift as warnings lets operators see subscription/invoice divergence without blocking the reconciler loop."
-      },
-      {
-        "decision": "New lines are grouped by currency before CreatePendingInvoiceLines",
-        "rationale": "billing.CreatePendingInvoiceLinesInput requires a single currency per call; grouping here prevents the caller from needing to pre-split lines."
+        "decision": "Timestamp normalization on read rather than at write time.",
+        "rationale": "Historical rows carry sub-second precision; normalizing on load avoids a migration while ensuring diffs compare at MinimumWindowSizeDuration resolution."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Applying a mixed patch set to invoices of different types",
-        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater\"\n\t\"github.com/openmeterio/openmeter/openmeter/customer\"\n)\n\npatches := []invoiceupdater.Patch{\n\tinvoiceupdater.NewCreateLinePatch(newGatheringLine),\n\tinvoiceupdater.NewUpdateLinePatch(updatedLine),\n\tinvoiceupdater.NewDeleteLinePatch(lineID, invoiceID),\n}\nif err := updater.ApplyPatches(ctx, customer.CustomerID{Namespace: ns, ID: cid}, patches); err != nil {\n\treturn fmt.Errorf(\"applying patches: %w\", err)\n}"
+        "scenario": "Load persisted state and extract a line",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate\"\n\nloader := persistedstate.NewLoader(billingService, chargeService)\nstate, err := loader.LoadForSubscription(ctx, subs)\nif err != nil { return err }\nitem, ok := state.ByUniqueID[uniqueID]\nif !ok { /* not yet persisted */ }\nif line, err := persistedstate.ItemAsLine(item); err == nil { /* use line */ }"
+      }
+    ]
+  },
+  "openmeter/billing/worker/subscriptionsync/service/targetstate": {
+    "purpose": "Computes the desired (target) set of billing line items for a subscription as of a point in time \u2014 iterating subscription phases and rate-card cadences via PhaseIterator, then correcting period boundaries against persisted state \u2014 so the reconciler knows exactly what should exist in the DB.",
+    "patterns": [
+      {
+        "name": "PhaseIterator per-phase generation",
+        "description": "collectUpcomingLines creates one PhaseIterator per phase, advancing through aligned billing periods up to generationLimit (never past the current period's end). HasInvoicableItems() gates empty/zero-length phases.",
+        "example": "iterator, err := NewPhaseIterator(b.logger, b.tracer, subs, phase.SubscriptionPhase.Key); if !iterator.HasInvoicableItems() { continue }; items, err := iterator.Generate(ctx, generationLimit)"
+      },
+      {
+        "name": "UniqueID composite key",
+        "description": "Every generated item carries UniqueID = subID/phaseKey/itemKey/v[N]/period[N] joined by '/'. This MUST match the ChildUniqueReferenceID format in persistedstate so the diff can correlate.",
+        "example": "UniqueID: strings.Join([]string{sub.ID, phase.Spec.PhaseKey, item.Spec.ItemKey, fmt.Sprintf(\"v[%d]\", version), fmt.Sprintf(\"period[%d]\", periodIdx)}, \"/\")"
+      },
+      {
+        "name": "MinimumWindowSizeDuration truncation of periods",
+        "description": "truncateItemsIfNeeded truncates ServicePeriod, BillingPeriod, FullServicePeriod on every item; non-flat-fee items with empty service periods after truncation are dropped.",
+        "example": "item.ServicePeriod = item.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)"
+      },
+      {
+        "name": "iterationEnd end-of-second extension",
+        "description": "Generate() truncates iterationEnd then adds (MinimumWindowSizeDuration - time.Nanosecond) so the last window is fully included. Never pass raw asOf as iterationEnd.",
+        "example": "iterationEnd = iterationEnd.Truncate(streaming.MinimumWindowSizeDuration).Add(streaming.MinimumWindowSizeDuration - time.Nanosecond)"
+      },
+      {
+        "name": "Period-start continuity from persisted state",
+        "description": "correctPeriodStartForUpcomingLines aligns a period's start to the persisted previous period's end when it carries AnnotationSubscriptionSyncIgnore + ForceContinuousLines; the boundary is truncated to MinimumWindowSizeDuration.",
+        "example": "inScopeLines[idx].ServicePeriod.From = previousServicePeriod.To.Truncate(streaming.MinimumWindowSizeDuration)"
+      },
+      {
+        "name": "GetExpectedLine returns nil (not error) for zero-amount",
+        "description": "StateItem.GetExpectedLine returns (nil, nil) when a pro-rated flat-fee amount rounds to zero \u2014 meaning 'do not create'. Use GetExpectedLineOrErr only when a line is mandatory.",
+        "example": "line, err := item.GetExpectedLine(); if err != nil { return err }; if line == nil { /* skip \u2014 zero amount */ }"
+      },
+      {
+        "name": "tracex.Start spans on public methods",
+        "description": "Non-trivial Builder/PhaseIterator methods wrap their body in tracex.Start for OTel tracing of generation timing.",
+        "example": "span := tracex.Start[State](ctx, b.tracer, \"...targetstate.Build\"); return span.Wrap(func(ctx) (State, error) { ... })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "targetstate.go",
+        "role": "Builder.Build entry point: validates input, caps view at customer deletion, iterates phases, corrects period starts, returns assembled State.",
+        "watch_for": "generationLimit logic advances to currBillingPeriod.To unless asOf precedes subscription start or phase hasn't started. Customer-deleted-at capping (withActiveTo) is the only sanctioned guard against generating past the customer lifecycle."
+      },
+      {
+        "file": "phaseiterator.go",
+        "role": "Generates SubscriptionItemWithPeriods for billable items in one phase (recurring, one-time, aligned periods, truncation).",
+        "watch_for": "maxSafeIter=1000 guards infinite loops. Extend iterationEnd to end-of-second before generateAligned. Preserve the UniqueID composite format exactly."
+      },
+      {
+        "file": "targetstateitem.go",
+        "role": "StateItem with GetExpectedLine, IsBillable, shouldProrate and price dispatch.",
+        "watch_for": "GetExpectedLine returns (nil, nil) for zero-amount flat fee \u2014 check nil separately from error. shouldProrate returns false when the subscription ends within the service period (avoids over-proration on cancellation)."
+      },
+      {
+        "file": "phaseiterator_test.go",
+        "role": "Table-driven testify/suite tests for aligned/unaligned cadences, phase boundaries, version splits, truncation.",
+        "watch_for": "New cases append to tcs and call suite.Run; expected Key UniqueID format must match phaseiterator.go exactly."
+      }
+    ],
+    "anti_patterns": [
+      "Passing raw asOf as iterationEnd \u2014 must extend to end-of-second first.",
+      "Constructing UniqueID with a different separator or field order than subID/phaseKey/itemKey/v[N]/period[N].",
+      "Returning an error from GetExpectedLine when the line is nil \u2014 nil means 'do not create'.",
+      "Skipping correctPeriodStartForUpcomingLines \u2014 continuity annotations get ignored and spurious repairs proposed.",
+      "Generating lines past the customer's deleted-at \u2014 withActiveTo capping is the only sanctioned guard."
+    ],
+    "decisions": [
+      {
+        "decision": "PhaseIterator generates target state purely from the subscription view without DB access.",
+        "rationale": "Stateless generation makes the target-vs-persisted diff a pure in-memory computation, idempotent and safe to retry."
+      },
+      {
+        "decision": "correctPeriodStartForUpcomingLines patches boundaries from persisted state.",
+        "rationale": "When a previous period was manually frozen (SyncIgnore + ForceContinuousLines), the next period must start exactly where it ended regardless of cadence-computed start."
+      },
+      {
+        "decision": "GetExpectedLine returns nil for zero-amount lines instead of pre-filtering.",
+        "rationale": "Separating 'nothing to bill' (nil) from 'error' lets the reconciler distinguish legitimate zero-value periods from failures without a mandatory IsBillable pre-check."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Build target state and iterate billable items",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate\"\n\nbuilder := targetstate.NewBuilder(logger, tracer)\nstate, err := builder.Build(ctx, targetstate.BuildInput{AsOf: asOf, SubscriptionView: subsView, Persisted: persistedState})\nif err != nil { return err }\nfor _, item := range state.Items {\n\tif !item.IsBillable() { continue }\n\t// ...\n}"
       }
     ]
   }

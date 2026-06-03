@@ -1,0 +1,91 @@
+{
+  "api/v3": {
+    "purpose": "Infrastructure and generated-code layer for the v3 AIP-style HTTP API. api.gen.go is the sole ServerInterface source, generated from openapi.yaml via oapi-codegen (DO NOT EDIT); all business logic lives in sub-packages. Primary constraint: api/v3 itself is pure infrastructure \u2014 no domain calls, no business logic at this level.",
+    "patterns": [
+      {
+        "name": "Generated stub is the sole ServerInterface source",
+        "description": "api.gen.go is generated from openapi.yaml via the //go:generate directive in api.go. Never hand-edit; all changes start in api/spec/ then run make gen-api.",
+        "example": "//go:generate go tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=codegen.yaml ./openapi.yaml"
+      },
+      {
+        "name": "nullable-type for optional fields",
+        "description": "codegen.yaml sets nullable-type: true, so optional fields use nullable.Nullable[T] from oapi-codegen/nullable, never *T. Use NewNullableWithValue / NewNullNullable.",
+        "example": "Next nullable.Nullable[string] `json:\"next\"`"
+      },
+      {
+        "name": "always-prefix-enum-values",
+        "description": "codegen.yaml sets always-prefix-enum-values: true, so every enum constant is TypeName+ValueName prefixed and has a Valid() method. Always reference the fully prefixed constant.",
+        "example": "BillingAppTypeSandbox BillingAppType = \"sandbox\""
+      },
+      {
+        "name": "deepObject filter params routed through filters.Parse",
+        "description": "The custom chi-middleware.tmpl patch makes filter[field][op]=value params call filters.Parse instead of runtime.BindQueryParameterWithOptions. Any param with style:deepObject and name 'filter' gets this automatically.",
+        "example": "user-templates: chi/chi-middleware.tmpl: ./templates/chi-middleware.tmpl"
+      },
+      {
+        "name": "All error responses via apierrors",
+        "description": "v3 handlers use apierrors named constructors and route through GenericErrorEncoder. Direct w.WriteHeader / http.Error is forbidden.",
+        "example": "return apierrors.NewBadRequestProblemResponse(ctx, err)"
+      },
+      {
+        "name": "OAS request validation before the handler",
+        "description": "The Chi router in api/v3/server mounts oasmiddleware.ValidateRequest before the generated server handler. The validation router is built once at startup (NewValidationRouter is expensive).",
+        "example": "router.Use(oasmiddleware.ValidateRequest(spec, hooks...))"
+      },
+      {
+        "name": "Compile-time ServerInterface assertion",
+        "description": "The server keeps var _ api.ServerInterface = (*Server)(nil) so every generated route is verified against an implementation at compile time.",
+        "example": "var _ api.ServerInterface = (*Server)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "api/v3/api.gen.go",
+        "role": "Generated Chi server stubs, all request/response types, prefixed enum constants with Valid() methods, and the embedded OpenAPI spec.",
+        "watch_for": "DO NOT EDIT. Enum constants use TypeName+ValueName prefix; optional fields use nullable.Nullable[T], not *T."
+      },
+      {
+        "file": "api/v3/api.go",
+        "role": "Single //go:generate directive that regenerates api.gen.go.",
+        "watch_for": "Touch only to update generator flags; regen runs via make gen-api, not standalone go generate."
+      },
+      {
+        "file": "api/v3/codegen.yaml",
+        "role": "oapi-codegen config: enables chi-server/models/embedded-spec; sets nullable-type, always-prefix-enum-values, and the custom chi-middleware template path.",
+        "watch_for": "Changing the user-templates path breaks deepObject filter handling."
+      },
+      {
+        "file": "api/v3/openapi.yaml",
+        "role": "Generated OpenAPI spec compiled from TypeSpec in api/spec/; source of truth for all v3 routes, schemas, parameters.",
+        "watch_for": "DO NOT EDIT directly. filter params with style:deepObject are special-cased by the template patch."
+      }
+    ],
+    "anti_patterns": [
+      "Editing api.gen.go or openapi.yaml directly \u2014 both are generated; edit api/spec/ then run make gen-api.",
+      "Bypassing the apierrors package with http.Error or w.WriteHeader \u2014 breaks RFC 7807 (application/problem+json) compliance.",
+      "Building a new oasmiddleware validation router per request instead of once at startup.",
+      "Using *string instead of nullable.Nullable[string] for optional JSON fields \u2014 produces wrong null-vs-absent distinction.",
+      "Adding business logic at the api/v3 level (outside handlers/) \u2014 api/v3 is infrastructure only; all domain calls belong in handlers/* sub-packages."
+    ],
+    "decisions": [
+      {
+        "decision": "oapi-codegen chi-server generates the ServerInterface and routing from openapi.yaml.",
+        "rationale": "A single TypeSpec \u2192 OpenAPI \u2192 Go-stub pipeline eliminates hand-rolled routing drift; routes are verified against the spec at compile time via var _ api.ServerInterface."
+      },
+      {
+        "decision": "Custom chi-middleware.tmpl patch for deepObject filter params.",
+        "rationale": "Default oapi-codegen runtime cannot parse union filter[field][op]=value params; a targeted patch routes only ParamName=filter + Style=deepObject through filters.Parse without affecting standard params."
+      },
+      {
+        "decision": "nullable-type: true and always-prefix-enum-values in codegen.yaml.",
+        "rationale": "nullable.Nullable[T] expresses explicit null vs absent in JSON; prefixed enum constants prevent name collisions across the large generated type surface."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Declare a new v3 list endpoint handler that returns a page-paginated response",
+        "code": "// api/v3/handlers/foo/handler.go\npackage foo\n\nimport (\n    v3 \"github.com/openmeterio/openmeter/api/v3\"\n    \"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n)\n\ntype ListFoosHandler httptransport.HandlerWithArgs[ListFoosRequest, *v3.FooPagePaginatedResponse, v3.ListFoosParams]"
+      }
+    ]
+  }
+}

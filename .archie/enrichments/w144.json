@@ -1,55 +1,124 @@
 {
-  "pkg/framework/entutils/testutils/ent1/schema": {
-    "purpose": "Test fixture Ent schema used exclusively by entutils transaction tests. Provides a minimal single-entity schema (Example1) to exercise TransactingRepo, TxCreator, and related Ent test infrastructure without coupling to production domain schemas.",
+  "pkg/framework/tracex": {
+    "purpose": "Provides a generic, type-safe OTel span wrapper (Span[T] and SpanNoValue) that automatically records errors, sets span status, and recovers panics \u2014 eliminating span lifecycle boilerplate from every domain service.",
     "patterns": [
       {
-        "name": "Embed ent.Schema",
-        "description": "Every schema struct must embed ent.Schema as an anonymous field \u2014 required by Ent's code generator.",
-        "example": "type Example1 struct { ent.Schema }"
+        "name": "Start[T] + Wrap for value-returning operations",
+        "description": "Use tracex.Start[T](ctx, tracer, name) then span.Wrap(fn) for functions returning (T, error); status is set Ok/Error automatically and panics are recorded and re-panicked after span.End().",
+        "example": "span := tracex.Start[*Invoice](ctx, s.tracer, \"billing.GetInvoice\"); return span.Wrap(func(ctx context.Context) (*Invoice, error) { return s.adapter.Get(ctx, id) })"
       },
       {
-        "name": "Use entutils.TimeMixin",
-        "description": "Apply entutils.TimeMixin{} in Mixin() to get standard created_at/updated_at timestamps consistent with production schemas.",
-        "example": "func (Example1) Mixin() []ent.Mixin { return []ent.Mixin{entutils.TimeMixin{}} }"
+        "name": "StartWithNoValue + Wrap for error-only operations",
+        "description": "Use tracex.StartWithNoValue(ctx, tracer, name) then span.Wrap(fn) when the function returns only error; delegates to Span[any].Wrap to share status logic.",
+        "example": "span := tracex.StartWithNoValue(ctx, s.tracer, \"billing.DeleteInvoice\"); return span.Wrap(func(ctx context.Context) error { return s.adapter.Delete(ctx, id) })"
       },
       {
-        "name": "Immutable string ID field",
-        "description": "Declare the primary key as field.String(\"id\").Unique().Immutable() \u2014 matches production schema conventions for ULID/string PKs.",
-        "example": "field.String(\"id\").Unique().Immutable()"
+        "name": "Pass the span's ctx into the callback, never the outer ctx",
+        "description": "Span.Wrap passes the child span ctx into fn \u2014 always use the ctx argument inside Wrap callbacks, never capture the outer ctx, or OTel parent-child links break.",
+        "example": "span.Wrap(func(ctx context.Context) (*Invoice, error) { return s.adapter.Get(ctx, id) }) // ctx is the span child ctx"
       },
       {
-        "name": "Return empty slices for unused schema hooks",
-        "description": "Return []ent.Index{} and []ent.Edge{} when there are no indexes or edges \u2014 do not omit the methods.",
-        "example": "func (Example1) Indexes() []ent.Index { return []ent.Index{} }"
+        "name": "WithOkStatusDescription for custom span descriptions",
+        "description": "Pass tracex.WithOkStatusDescription(desc) as a variadic opt to Wrap for a specific success description; default is 'success'.",
+        "example": "span.Wrap(fn, tracex.WithOkStatusDescription(\"invoice fetched\"))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "example1.go",
-        "role": "Sole test entity schema. Provides a minimal two-field entity (id + example_value_1) with TimeMixin for testing entutils transaction helpers.",
-        "watch_for": "Do not add production business logic here. Schema changes require regenerating the testutils ent client via go generate in the testutils package."
+        "file": "tracex.go",
+        "role": "Entire package: Span[T], SpanNoValue, Start, StartWithNoValue, Wrap, Options. Single file; all logic here.",
+        "watch_for": "Wrap always calls span.End() via both the panic-defer and normal paths \u2014 never call span.End() outside Wrap or the span is double-ended and OTel discards data."
       }
     ],
     "anti_patterns": [
-      "Adding production domain fields or edges \u2014 this schema is a test fixture only",
-      "Omitting entutils.TimeMixin \u2014 breaks consistency with production schema conventions tested by entutils",
-      "Using integer or UUID primary keys instead of string \u2014 mismatches the ULID string PK pattern used in production",
-      "Skipping Indexes() or Edges() methods \u2014 Ent codegen expects all four interface methods to be present"
+      "Calling tracer.Start directly and managing span.End/RecordError manually \u2014 use tracex.Start + Wrap.",
+      "Introducing context.Background() inside Wrap callbacks \u2014 use the ctx argument carrying the child span ctx.",
+      "Adding new Span variants that don't delegate to Span[any].Wrap \u2014 SpanNoValue shows the correct delegation for error-only wrappers.",
+      "Calling span.End() manually after span.Wrap \u2014 Wrap already ends; double-ending silently truncates the span."
     ],
     "decisions": [
       {
-        "decision": "Minimal schema with only two fields",
-        "rationale": "Test fixtures need just enough structure to exercise transaction semantics (read/write/rollback) without the complexity of real domain entities that would create test maintenance burden."
+        "decision": "Generic Span[T] instead of an untyped wrapper.",
+        "rationale": "Preserves compile-time type safety for the return value while sharing identical error-recording and panic-recovery logic across call sites."
       },
       {
-        "decision": "Reuse entutils.TimeMixin instead of raw timestamp fields",
-        "rationale": "Ensures the test schema exercises the same mixin path as production schemas, catching any regressions in TimeMixin behavior."
+        "decision": "Panic is re-panicked after span.End().",
+        "rationale": "The span must be closed before the stack unwinds, but the caller's defer/recover chain must still see the original panic."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Defining a new test-fixture Ent schema entity with TimeMixin and string PK",
-        "code": "package schema\n\nimport (\n\t\"entgo.io/ent\"\n\t\"entgo.io/ent/schema/field\"\n\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\ntype Example1 struct {\n\tent.Schema\n}\n\nfunc (Example1) Mixin() []ent.Mixin {\n\treturn []ent.Mixin{\n\t\tentutils.TimeMixin{},\n\t}\n}\n\nfunc (Example1) Fields() []ent.Field {\n\treturn []ent.Field{\n\t\tfield.String(\"id\").\n\t\t\tUnique().\n\t\t\tImmutable(),\n\t\tfield.String(\"example_value_1\"),\n\t}\n}\n\nfunc (Example1) Indexes() []ent.Index {\n\treturn []ent.Index{}\n}\n\nfunc (Example1) Edges() []ent.Edge {\n\treturn []ent.Edge{}\n}"
+        "scenario": "Wrap a DB read in a named span with automatic error recording",
+        "code": "import (\n    \"context\"\n    \"go.opentelemetry.io/otel/trace\"\n    \"github.com/openmeterio/openmeter/pkg/framework/tracex\"\n)\n\nfunc (s *service) GetInvoice(ctx context.Context, id string) (*Invoice, error) {\n    span := tracex.Start[*Invoice](ctx, s.tracer, \"billing.GetInvoice\")\n    return span.Wrap(func(ctx context.Context) (*Invoice, error) {\n        return s.adapter.Get(ctx, id)\n    })\n}"
+      }
+    ]
+  },
+  "pkg/framework/transaction": {
+    "purpose": "Database-agnostic transaction abstraction: propagates a Driver (commit/rollback/savepoint) through context and provides Run/RunWithNoValue helpers that start-or-reuse a transaction, set savepoints for nested calls, and rollback on error or panic.",
+    "patterns": [
+      {
+        "name": "Run[R] for transactional value-returning operations",
+        "description": "transaction.Run(ctx, creator, cb) executes cb in a transaction; if a Driver is already in ctx it is reused with a savepoint, otherwise creator.Tx starts a new one.",
+        "example": "result, err := transaction.Run(ctx, a.db, func(ctx context.Context) (*Entity, error) { return a.insertRow(ctx) })"
+      },
+      {
+        "name": "RunWithNoValue for error-only transactional operations",
+        "description": "Use transaction.RunWithNoValue(ctx, creator, cb) when the callback returns only error; delegates to Run[interface{}].",
+        "example": "err := transaction.RunWithNoValue(ctx, a.db, func(ctx context.Context) error { return a.deleteRow(ctx, id) })"
+      },
+      {
+        "name": "Driver propagation via context key",
+        "description": "SetDriverOnContext stores a Driver under a package-private key; GetDriverFromContext retrieves it. Run handles this automatically \u2014 adapters must not call SetDriverOnContext directly.",
+        "example": "tx, err := transaction.GetDriverFromContext(ctx) // read-only; Run writes it"
+      },
+      {
+        "name": "Creator interface for adapter integration",
+        "description": "Any adapter that can start a transaction implements transaction.Creator via Tx(ctx) returning (ctx, Driver, error); Wire injects the concrete Creator into services.",
+        "example": "type Creator interface { Tx(ctx context.Context) (context.Context, Driver, error) }"
+      },
+      {
+        "name": "Savepoints for nested Run calls",
+        "description": "manage() calls tx.SavePoint() before every cb execution, enabling partial rollback within an outer transaction \u2014 required for multi-step billing mutations.",
+        "example": "// Automatic: every transaction.Run creates a savepoint even when reusing an existing tx"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "context.go",
+        "role": "Typed context key, GetDriverFromContext, SetDriverOnContext, DriverNotFoundError, DriverConflictError.",
+        "watch_for": "SetDriverOnContext returns DriverConflictError (not nil) when a driver already exists \u2014 Run ignores this type to reuse the tx; do not treat it as fatal outside Run."
+      },
+      {
+        "file": "transaction.go",
+        "role": "Driver and Creator interfaces; Run, RunWithNoValue, getTx, manage. manage owns panic recovery (rollback + re-panic), savepoint creation, and commit/rollback on error.",
+        "watch_for": "manage() uses defer+recover to rollback and re-panic \u2014 never suppress this panic in adapter code. getTx silently reuses an existing Driver from ctx if present."
+      }
+    ],
+    "anti_patterns": [
+      "Calling creator.Tx() directly in adapter code instead of transaction.Run \u2014 bypasses savepoint and rollback logic.",
+      "Storing a *entdb.Tx or raw DB client on adapter structs and using them directly \u2014 falls off the ctx-bound transaction.",
+      "Calling SetDriverOnContext manually outside transaction.Run \u2014 Run handles it; double-setting returns DriverConflictError and breaks nesting.",
+      "Using context.Background() inside a Run callback \u2014 loses the Driver in ctx, breaking nested transaction reuse.",
+      "Treating DriverConflictError from SetDriverOnContext as a hard error \u2014 it signals tx reuse and must not be fatal."
+    ],
+    "decisions": [
+      {
+        "decision": "Driver interface with SavePoint/Commit/Rollback instead of exposing *sql.Tx.",
+        "rationale": "Keeps the package DB-agnostic; Ent, pgx, and future drivers implement Driver without leaking ORM types into the framework."
+      },
+      {
+        "decision": "Savepoints used for every nested Run call.",
+        "rationale": "Allows partial rollback of nested operations while keeping the outer transaction alive \u2014 required for multi-step charge advancement and invoice mutations."
+      },
+      {
+        "decision": "Panic recovery inside manage() rolls back then re-panics.",
+        "rationale": "The DB transaction must be cleaned up even on panic, but the panic must propagate so upper-layer recovery (Chi middleware, test harness) still sees it."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adapter method running inside a transaction, reusing an existing one from ctx",
+        "code": "import (\n    \"context\"\n    \"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\nfunc (a *adapter) CreateAndLink(ctx context.Context, in CreateInput) (*Entity, error) {\n    return transaction.Run(ctx, a.db, func(ctx context.Context) (*Entity, error) {\n        e, err := a.insertEntity(ctx, in)\n        if err != nil { return nil, err }\n        if err := a.insertLink(ctx, e.ID); err != nil { return nil, err } // triggers Rollback via manage()\n        return e, nil\n    })\n}"
       }
     ]
   }

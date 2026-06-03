@@ -1,95 +1,196 @@
 {
-  "openmeter/server/router": {
-    "purpose": "Pure v1 HTTP delegation layer implementing api.ServerInterface: every Router method unpacks path/query params and ends with a single typed handler call via .With(params).ServeHTTP(w, r). Owns no business logic \u2014 its only constraint is that every method body terminates with one handler dispatch.",
+  "openmeter/progressmanager/adapter": {
+    "purpose": "Redis-backed implementation of progressmanager.Adapter storing/retrieving TTL-bound progress data as JSON; also provides adapterNoop (silent no-op) and MockProgressManager (testify mock for Service) in the same package.",
     "patterns": [
       {
-        "name": "Handler delegation via .With().ServeHTTP()",
-        "description": "Every Router method unpacks path/query params into a typed Params struct, calls the domain handler's named method (e.g. a.billingHandler.GetInvoice()), optionally chains .With(params), and ends with .ServeHTTP(w, r). No business logic lives here.",
-        "example": "a.billingHandler.GetInvoice().With(httpdriver.GetInvoiceParams{InvoiceID: invoiceId, Expand: lo.FromPtr(params.Expand)}).ServeHTTP(w, r)"
+        "name": "Config.Validate() before construction",
+        "description": "New() calls config.Validate() first and returns (Adapter, error). Required: non-nil Redis client, non-nil Logger, Expiration > 0.",
+        "example": "func New(config Config) (progressmanager.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
       },
       {
-        "name": "Config aggregates all domain service interfaces with nil validation",
-        "description": "router.Config holds every domain service (~40 interface fields). NewRouter calls config.Validate() before constructing handlers; each required field has an explicit nil check that returns an error at startup, not at first request.",
-        "example": "if c.NamespaceManager == nil { return errors.New(\"namespace manager is required\") }"
+        "name": "Compile-time interface assertion",
+        "description": "Both adapter and adapterNoop assert interface compliance via blank-identifier assignment at package level.",
+        "example": "var _ progressmanager.Adapter = (*adapter)(nil)\nvar _ progressmanager.Adapter = (*adapterNoop)(nil)"
       },
       {
-        "name": "StaticNamespaceDecoder injected universally into every handler constructor",
-        "description": "All multi-tenant handlers receive namespacedriver.StaticNamespaceDecoder(config.NamespaceManager.GetDefaultNamespace()) as their first argument so namespace resolution happens once at construction time for self-hosted single-namespace deployments.",
-        "example": "staticNamespaceDecoder := namespacedriver.StaticNamespaceDecoder(config.NamespaceManager.GetDefaultNamespace())\nrouter.customerHandler = customerhttpdriver.New(staticNamespaceDecoder, config.Customer, ...)"
+        "name": "Namespaced Redis key via getKey()",
+        "description": "All Redis operations route through getKey(id) producing '<keyPrefix>:progress:<namespace>:<id>' (or without prefix when empty). Never construct keys inline.",
+        "example": "fmt.Sprintf(\"%s:%s:%s:%s\", a.keyPrefix, staticKeyPrefix, id.Namespace, id.ID)"
       },
       {
-        "name": "One domain file per resource group",
-        "description": "Each resource area has its own file (billing.go, customer.go, meter.go, entitlement.go, etc.) containing only the Router methods for that domain. router.go contains Config, Router struct, NewRouter, and init().",
-        "example": "billing.go holds all /api/v1/billing/* methods; meter.go holds all /api/v1/meters/* methods"
+        "name": "redis.Nil mapped to GenericNotFoundError",
+        "description": "When redis.Get returns redis.Nil, return models.NewGenericNotFoundError(...) so the HTTP layer maps it to 404 \u2014 not the raw redis error.",
+        "example": "if cmd.Err() == redis.Nil { return nil, models.NewGenericNotFoundError(...) }"
       },
       {
-        "name": "Stub unimplemented endpoints with w.WriteHeader(501)",
-        "description": "Methods not yet implemented return w.WriteHeader(http.StatusNotImplemented) directly. noop.go validates the Router still satisfies api.ServerInterface via var unimplemented api.ServerInterface = api.Unimplemented{}.",
-        "example": "func (a *Router) VoidInvoiceAction(w http.ResponseWriter, r *http.Request, invoiceId string) { w.WriteHeader(http.StatusNotImplemented) }"
+        "name": "Input validation before Redis operations",
+        "description": "Both GetProgress and UpsertProgress call input.Validate() and wrap the error before any Redis call.",
+        "example": "if err := input.Validate(); err != nil { return nil, fmt.Errorf(\"validate get progress input: %w\", err) }"
       },
       {
-        "name": "Pre-handler body read for non-standard content only",
-        "description": "Router methods read r.Body themselves only when the httpdriver cannot decode the content (e.g. raw Stripe webhook bytes). The body is limited via http.MaxBytesReader then passed via a Params struct.",
-        "example": "r.Body = http.MaxBytesReader(w, r.Body, MaxBodyBytes); payload, err := io.ReadAll(r.Body); ... .With(AppStripeWebhookParams{AppID: appID, Payload: payload}).ServeHTTP(w, r)"
+        "name": "Noop asymmetry: writes succeed, reads return not-found",
+        "description": "adapterNoop.UpsertProgress returns nil (writes discarded silently); adapterNoop.GetProgress returns GenericNotFoundError \u2014 callers treat noop writes as safe to ignore.",
+        "example": "func (a *adapterNoop) UpsertProgress(...) error { return nil }"
       },
       {
-        "name": "Media-type dispatch on same route (QueryMeter only)",
-        "description": "QueryMeter and QueryMeterPost use commonhttp.GetMediaType to choose between JSON and CSV handler variants on the same route. The media-type parse error is logged at Debug level (non-fatal, falls through to JSON default). All other routes use a single handler.",
-        "example": "mediatype, _ := commonhttp.GetMediaType(r); if mediatype == \"text/csv\" { a.meterHandler.QueryMeterCSV().With(handlerParams).ServeHTTP(w, r); return }; a.meterHandler.QueryMeter().With(handlerParams).ServeHTTP(w, r)"
+        "name": "Mock implements Service not Adapter",
+        "description": "MockProgressManager satisfies progressmanager.Service (including DeleteProgressByRuntimeID), not Adapter; keep in sync when Service gains methods.",
+        "example": "var _ progressmanager.Service = &MockProgressManager{}"
       }
     ],
     "key_file_guides": [
       {
-        "file": "router.go",
-        "role": "Defines Config (all injected services + feature flags), Router struct (all handler fields), NewRouter constructor that validates and wires ~25 handlers, and init() that registers CloudEvents body decoders (application/cloudevents+json, application/cloudevents-batch+json) for kin-openapi request validation.",
-        "watch_for": "Adding a new service to Config requires: (1) a field in Config, (2) a nil check in Config.Validate(), (3) a handler field in Router struct, and (4) handler construction in NewRouter. Missing any step causes a nil-pointer panic at first request. The compile-time assertion var _ api.ServerInterface = (*Router)(nil) catches missing method implementations."
+        "file": "adapter.go",
+        "role": "Config struct, New() constructor, adapter and adapterNoop type definitions \u2014 the wiring entry point for app/common.",
+        "watch_for": "Config.Validate() must reject nil Redis client and zero Expiration \u2014 never relax these guards."
+      },
+      {
+        "file": "progress.go",
+        "role": "GetProgress and UpsertProgress using Redis GET/SET with JSON marshaling and TTL.",
+        "watch_for": "getKey() is the sole key-format authority; changing the format orphans all existing in-flight Redis records."
       },
       {
         "file": "noop.go",
-        "role": "Declares var unimplemented api.ServerInterface = api.Unimplemented{} to ensure the generated Unimplemented type remains valid. Contains no real stubs.",
-        "watch_for": "Do not remove \u2014 it anchors the compile-time check for the generated fallback type. If the generated api.Unimplemented{} diverges from api.ServerInterface after gen-api, this line fails to compile."
+        "role": "No-op adapter; GetProgress always returns not-found, UpsertProgress is silent.",
+        "watch_for": "Do not make UpsertProgress return a non-nil error \u2014 callers rely on noop writes being safe no-ops."
       },
       {
-        "file": "portal.go",
-        "role": "QueryPortalMeter is the only Router method with conditional auth logic: it extracts the authenticated subject from ctx via authenticator.GetAuthenticatedSubject, injects it as a filter, and re-dispatches to QueryMeter. All other portal methods are pure delegation.",
-        "watch_for": "This is the only Router method that manipulates ctx and contains conditional logic. Do not replicate this pattern for new endpoints \u2014 it should eventually be migrated to an httpdriver handler."
-      },
-      {
-        "file": "billing.go",
-        "role": "Invoice progress actions (advance, approve, retry, snapshot-quantities) all use the same ProgressInvoice handler with a typed action constant argument instead of separate handlers.",
-        "watch_for": "Pass httpdriver.InvoiceProgressActionAdvance / InvoiceProgressActionApprove / InvoiceProgressActionRetry / InvoiceProgressActionSnapshotQuantities constants \u2014 do not pass string literals or magic values."
-      },
-      {
-        "file": "appstripe.go",
-        "role": "Contains the canonical example of pre-handler body reading: reads raw Stripe webhook payload with MaxBytesReader(65536) before passing to appStripeHandler.",
-        "watch_for": "If a new webhook endpoint needs raw bytes, follow this pattern (MaxBytesReader + io.ReadAll + pass bytes in Params). Do not call io.ReadAll in any other Router method."
+        "file": "mock.go",
+        "role": "Testify mock for progressmanager.Service used in unit tests.",
+        "watch_for": "Mock is for Service (not Adapter); update it when the Service interface adds methods."
       }
     ],
     "anti_patterns": [
-      "Adding business logic, error handling, or database calls directly in a Router method \u2014 all logic belongs in the domain httpdriver package.",
-      "Reading r.Body in a Router method unless the httpdriver cannot decode it (e.g. raw webhook bytes) \u2014 let the handler's RequestDecoder own body parsing.",
-      "Skipping the Config.Validate() nil check when adding a new required service field \u2014 causes nil-pointer panic at handler construction or first request.",
-      "Creating a new file in this package for non-HTTP concerns (middleware, auth, telemetry) \u2014 middleware belongs in openmeter/server/server.go, not the router package.",
-      "Bypassing the .With().ServeHTTP() chain by writing an inline http.Handler or calling w.WriteHeader/w.Write for anything other than 501 stubs \u2014 breaks the uniform error encoding contract and OTel tracing."
+      "Storing progress keys without namespace prefix \u2014 breaks multi-tenant isolation",
+      "Returning raw redis errors instead of GenericNotFoundError for redis.Nil \u2014 breaks HTTP 404 mapping",
+      "Calling Redis operations without first calling input.Validate()",
+      "Editing the key format in getKey() without a migration plan \u2014 orphans in-flight progress records",
+      "Making adapterNoop.UpsertProgress return an error"
     ],
     "decisions": [
       {
-        "decision": "Router is a pure delegation layer with no business logic",
-        "rationale": "Keeps the generated api.ServerInterface boundary thin so the TypeSpec \u2192 OpenAPI \u2192 oapi-codegen pipeline can be re-run without touching any business logic. All logic lives in testable httpdriver packages that can be unit-tested without an HTTP server."
+        "decision": "Redis (not PostgreSQL/Ent) as the backing store",
+        "rationale": "Progress data is transient and TTL-bound; Redis SET with expiration avoids schema migrations and garbage-collects stale progress without a cleanup job."
       },
       {
-        "decision": "Config aggregates every domain service and config flag into a single validated struct",
-        "rationale": "NewRouter is the single wiring point for all ~25 domain handlers; nil-checking at construction time surfaces missing dependencies before the server starts rather than at first request, making startup failures deterministic."
-      },
-      {
-        "decision": "One domain file per resource group mirrors TypeSpec package split",
-        "rationale": "Contributors can locate the delegation for any endpoint without grepping the whole file, and the file boundaries align with the TypeSpec aip/legacy package organization (billing, customer, entitlement, meter, etc.)."
+        "decision": "Noop adapter co-located with the real adapter in the same package",
+        "rationale": "Keeps the disabled-feature code path trivially discoverable, following the project pattern of noop implementations per optional feature."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new v1 endpoint for a domain that already has a handler in Config",
-        "code": "// 1. Edit TypeSpec in api/spec/packages/legacy/ to add the operation\n// 2. Run: make gen-api && make generate\n// 3. Add the Router method in the appropriate domain file (e.g. billing.go):\nfunc (a *Router) GetMyNewResource(w http.ResponseWriter, r *http.Request, id string, params api.GetMyNewResourceParams) {\n    a.billingHandler.GetMyNewResource().With(httpdriver.GetMyNewResourceParams{\n        ID:     id,\n        Expand: lo.FromPtr(params.Expand),\n    }).ServeHTTP(w, r)\n}\n// No other changes in this package \u2014 the httpdriver method is the real work."
+        "scenario": "Wire the Redis adapter in app/common",
+        "code": "func ProvideProgressAdapter(redisClient *redis.Client, logger *slog.Logger) (progressmanager.Adapter, error) {\n    return adapter.New(adapter.Config{\n        Expiration: 24 * time.Hour,\n        Redis:      redisClient,\n        Logger:     logger,\n        KeyPrefix:  \"om\",\n    })\n}"
+      }
+    ]
+  },
+  "openmeter/progressmanager/entity": {
+    "purpose": "Pure domain types for the progressmanager domain: ProgressID, Progress, GetProgressInput, UpsertProgressInput. No persistence logic \u2014 every type implements Validate() with errors.Join for multi-error aggregation.",
+    "patterns": [
+      {
+        "name": "Validate() collects all errors via errors.Join",
+        "description": "Each Validate() appends all failures into a []error and returns errors.Join(...). Never return early on first error.",
+        "example": "var errs []error; if a.ID == \"\" { errs = append(errs, errors.New(\"id is required\")) }; return errors.Join(errs...)"
+      },
+      {
+        "name": "Delegate validation to embedded types",
+        "description": "Composite types call Validate() on embedded structs first and wrap with fmt.Errorf for context before appending.",
+        "example": "if err := a.ProgressID.Validate(); err != nil { errs = append(errs, fmt.Errorf(\"progress id: %w\", err)) }"
+      },
+      {
+        "name": "Business invariants in Progress.Validate()",
+        "description": "Progress.Validate() enforces Success+Failed <= Total, non-zero counts require non-zero Total, and UpdatedAt must not be zero.",
+        "example": "if a.Success+a.Failed > a.Total { errs = append(errs, errors.New(\"success and failed must be less than or equal to total\")) }"
+      },
+      {
+        "name": "Input types embed domain types directly",
+        "description": "GetProgressInput embeds ProgressID; UpsertProgressInput embeds Progress \u2014 thin validation wrappers with no extra fields.",
+        "example": "type GetProgressInput struct { ProgressID }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "progressmanager.go",
+        "role": "Single file with all entity types (ProgressID, Progress, GetProgressInput, UpsertProgressInput) \u2014 source of truth for domain invariants.",
+        "watch_for": "Adding fields to Progress requires updating Validate() to enforce new invariants; JSON tags must match the generated API schema."
+      }
+    ],
+    "anti_patterns": [
+      "Returning on first validation error instead of collecting all errors with errors.Join",
+      "Adding persistence, Redis, or HTTP logic to entity types \u2014 this package is pure domain types",
+      "Omitting the UpdatedAt zero-check in Progress.Validate()",
+      "Embedding adapter-specific fields into entity types"
+    ],
+    "decisions": [
+      {
+        "decision": "Entity types in a separate sub-package (entity/) rather than the root progressmanager package",
+        "rationale": "Avoids import cycles: adapter and httpdriver both need the entity types but neither should import the other; a shared entity sub-package breaks the cycle."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/progressmanager/httpdriver": {
+    "purpose": "HTTP handler layer for the progressmanager domain, implementing a single GetProgress endpoint via the httptransport.Handler pipeline with namespace resolution from request context.",
+    "patterns": [
+      {
+        "name": "Handler interface composes sub-interfaces",
+        "description": "The top-level Handler embeds ProgressHandler (exposing GetProgress()). New endpoint groups add a new sub-interface and embed it.",
+        "example": "type Handler interface { ProgressHandler }; type ProgressHandler interface { GetProgress() GetProgressHandler }"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "var _ Handler = (*handler)(nil) ensures the concrete struct satisfies the Handler interface.",
+        "example": "var _ Handler = (*handler)(nil)"
+      },
+      {
+        "name": "Namespace resolved via NamespaceDecoder",
+        "description": "Handlers call h.resolveNamespace(ctx) reading namespace from request context; returns HTTP 500 if missing \u2014 intentional for self-hosted single-namespace deployments.",
+        "example": "ns, ok := h.namespaceDecoder.GetNamespace(ctx); if !ok { return \"\", commonhttp.NewHTTPError(http.StatusInternalServerError, errors.New(\"internal server error\")) }"
+      },
+      {
+        "name": "NewHandlerWithArgs for path-param endpoints",
+        "description": "Endpoints with URL path args use httptransport.NewHandlerWithArgs[Req, Resp, Arg]; the first func decodes (ctx, *http.Request, arg)->(Req, error), the second is the operation.",
+        "example": "httptransport.NewHandlerWithArgs(decodeFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[GetProgressResponse](http.StatusOK), ...options)"
+      },
+      {
+        "name": "Response type aliased from generated api package",
+        "description": "GetProgressResponse is aliased to api.Progress (generated OpenAPI type); conversion from domain is via the pure progressToAPI() helper.",
+        "example": "type GetProgressResponse = api.Progress; func progressToAPI(p entity.Progress) api.Progress { ... }"
+      },
+      {
+        "name": "HandlerOption propagation via AppendOptions",
+        "description": "Handler-level options propagate to each endpoint via httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"...\")).",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"getProgress\"))..."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler/ProgressHandler interfaces, handler struct, New() constructor, resolveNamespace helper.",
+        "watch_for": "resolveNamespace returns HTTP 500 (not 401/403) when namespace is missing \u2014 intentional for StaticNamespaceDecoder in self-hosted deployments."
+      },
+      {
+        "file": "progress.go",
+        "role": "GetProgress endpoint: decode, operation (calls service.GetProgress), encode, and progressToAPI() conversion.",
+        "watch_for": "A nil progress after a successful service call is treated as an internal error (not not-found) \u2014 the nil guard prevents silent data loss."
+      }
+    ],
+    "anti_patterns": [
+      "Calling the domain service from the decoder function \u2014 decode must only extract request fields",
+      "Returning domain entity types directly as HTTP responses \u2014 always convert via progressToAPI() using api types",
+      "Hardcoding the namespace string instead of calling h.resolveNamespace(ctx)",
+      "Adding business logic to progressToAPI() \u2014 it must be a pure field mapping"
+    ],
+    "decisions": [
+      {
+        "decision": "GetProgressResponse aliased to api.Progress rather than a new struct",
+        "rationale": "The generated api.Progress is the contract-stable OpenAPI type; aliasing avoids a redundant intermediate struct and ensures the response matches the spec."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Register the GetProgress handler in the v1 router",
+        "code": "handler := httpdriver.New(namespaceDecoder, progressSvc, options...)\nrouter.Get(\"/api/v1/progress/{progressID}\", handler.GetProgress().ServeHTTP)"
       }
     ]
   }

@@ -2,29 +2,29 @@
 
 <!-- archie:ai-start -->
 
-> Defines SnapshotEvent — the versioned Watermill CloudEvent published to the system topic when an entitlement balance changes (reset, update, delete), consumed by the balance-worker and notification-service.
+> Defines SnapshotEvent — the versioned Watermill CloudEvent (entitlement.snapshot v2) published to the system topic on entitlement balance changes (reset, update, delete), consumed by the balance-worker and notification-service.
 
 ## Patterns
 
-**marshaler.Event implementation with pinned version** — SnapshotEvent implements marshaler.Event (EventName, EventMetadata, Validate). EventName uses metadata.GetEventName with a pinned version string (v2). New snapshot event versions must bump the version and keep old struct for backward compatibility. (`snapshotEventName = metadata.GetEventName(metadata.EventType{Subsystem: entitlement.EventSubsystem, Name: "entitlement.snapshot", Version: "v2"})`)
-**NewSnapshotEvent constructor — never struct literals** — Use NewSnapshotEvent() to build SnapshotEvent. It handles the deprecated Subject field safely when subj is nil and ensures all required fields are populated. (`snapshot.NewSnapshotEvent(ent, subj, customer, feat, snapshot.ValueOperationUpdate, &calculatedAt, &value, &currentUsagePeriod)`)
-**Validate enforces Value for update/reset operations** — Validate() returns an error if Value is nil for ValueOperationUpdate or ValueOperationReset. Delete operations allow nil Value. Always call Validate() before publishing. (`case ValueOperationUpdate, ValueOperationReset: if e.Value == nil { errs = append(errs, errors.New("balance is required")) }`)
+**marshaler.Event with pinned version** — SnapshotEvent implements marshaler.Event (EventName, EventMetadata, Validate); EventName uses metadata.GetEventName pinned to v2. New versions bump the version and keep the old struct. (`snapshotEventName = metadata.GetEventName(metadata.EventType{Subsystem: entitlement.EventSubsystem, Name: "entitlement.snapshot", Version: "v2"})`)
+**NewSnapshotEvent constructor — no struct literals** — Use NewSnapshotEvent() which handles a nil Subject safely and populates Namespace from the entitlement. (`snapshot.NewSnapshotEvent(ent, subj, customer, feat, snapshot.ValueOperationUpdate, &calculatedAt, &value, &currentUsagePeriod)`)
+**Validate enforces Value for update/reset** — Validate() errors if Value is nil for ValueOperationUpdate or ValueOperationReset; delete allows nil Value. CalculatedAt is always required. Call before publishing. (`case ValueOperationUpdate, ValueOperationReset: if e.Value == nil { errs = append(errs, errors.New("balance is required")) }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `event.go` | Defines SnapshotEvent, EntitlementValue (balance/usage/overage/access fields), ValueOperationType enum, and NewSnapshotEvent constructor. | Subject field is deprecated — new consumer code must read Customer.ID instead. NewSnapshotEvent sets Subject to empty Subject{} when subj arg is nil. |
+| `event.go` | SnapshotEvent, EntitlementValue (balance/usage/overage/access/config), ValueOperationType enum, NewSnapshotEvent constructor. | Subject field is deprecated — new consumer code reads Customer.ID. NewSnapshotEvent sets an empty Subject{} when subj is nil. |
 
 ## Anti-Patterns
 
-- Creating SnapshotEvent with struct literals that omit CalculatedAt — Validate() will reject it.
-- Bumping the event version in-place instead of adding a new versioned struct alongside the old one.
-- Reading Subject field in new consumer code — use Customer instead.
+- Creating SnapshotEvent struct literals that omit CalculatedAt — Validate() rejects it.
+- Bumping the event version in place instead of adding a new versioned struct alongside the old.
+- Reading the Subject field in new consumer code — use Customer.
 - Publishing SnapshotEvent without calling Validate() first.
 
 ## Decisions
 
-- **SnapshotEvent v2 carries both Subject (deprecated) and Customer to maintain backward compatibility.** — The balance-worker and edge workers were originally built around subjects; migrating to customer-centric routing required keeping both fields during the transition period.
+- **SnapshotEvent v2 carries both deprecated Subject and Customer.** — Edge workers were originally subject-based; migrating to customer-centric routing requires both fields during the transition.
 
 <!-- archie:ai-end -->

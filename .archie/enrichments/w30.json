@@ -1,95 +1,95 @@
 {
-  "api/v3/handlers/meters/query": {
-    "purpose": "Shared query-parameter translation sub-package for the v3 meter query endpoint. Converts api.MeterQueryRequest fields into streaming.QueryParams, validates dimensions and filters against meter definitions, and resolves customer IDs \u2014 insulating the HTTP handler from all domain-mapping logic.",
+  "openmeter/notification/eventhandler": {
+    "purpose": "Implements notification.EventHandler: Dispatch() fires domain events to Svix webhook channels in a detached goroutine, and a pg-advisory-lock-gated periodic Reconcile() loop drives stuck delivery statuses (Pending/Sending/Resending) to terminal states via a per-status state machine in webhook.go. The noop/ child provides a safe zero-value handler when the subsystem is disabled.",
     "patterns": [
       {
-        "name": "ValidationIssue error factory",
-        "description": "Every user-facing validation error is a package-level var of type models.ValidationIssue constructed with models.NewValidationIssue + WithFieldString/WithCriticalSeverity/commonhttp.WithHTTPStatusCodeAttribute. Public constructors (e.g. NewInvalidWindowSizeError) attach runtime values via .WithAttr or .WithPathString.",
-        "example": "var ErrInvalidWindowSize = models.NewValidationIssue(ErrCodeInvalidWindowSize, \"...\", models.WithFieldString(\"granularity\"), models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))\nfunc NewInvalidWindowSizeError(duration string) error { return ErrInvalidWindowSize.WithAttr(\"value\", duration) }"
+        "name": "Compile-time interface assertion",
+        "description": "handler.go declares the assertion so any new notification.EventHandler method without an implementation fails the build.",
+        "example": "var _ notification.EventHandler = (*Handler)(nil)"
       },
       {
-        "name": "Whitelist-only filter operator extraction",
-        "description": "ExtractStringsFromQueryFilter and ExtractStringsFromQueryFilterMapItem explicitly reject every operator except eq and in by checking non-nil fields (Neq, Nin, Contains, Ncontains, And, Or, Exists) and returning NewUnsupportedFilterOperatorError. No permissive pass-through paths.",
-        "example": "if f.Neq != nil || f.Nin != nil || f.Contains != nil { return nil, NewUnsupportedFilterOperatorError(fieldPath...) }"
+        "name": "Config + Validate() before construction",
+        "description": "New(config Config) calls config.Validate() first, returning models.NewNillableGenericValidationError; Repository, Webhook, Logger, Tracer, and LockClient are mandatory. Zero-valued intervals/timeouts default to package constants.",
+        "example": "func New(config Config) (*Handler, error) { if err := config.Validate(); err != nil { return nil, err }; if config.ReconcileInterval == 0 { config.ReconcileInterval = notification.DefaultReconcileInterval } ... }"
       },
       {
-        "name": "Reserved-dimension switch in BuildQueryParams",
-        "description": "The dimensions loop in BuildQueryParams uses a switch on the key: case DimensionSubject, case DimensionCustomerID, default (meter GroupBy lookup). New reserved dimensions must be added as a case here AND to IsReservedDimension in dimensions.go.",
-        "example": "switch k { case DimensionSubject: ... case DimensionCustomerID: ... default: if _, ok := m.GroupBy[k]; !ok { return params, NewInvalidDimensionFilterError(k) } }"
+        "name": "Dispatch fires a detached goroutine and always returns nil",
+        "description": "Dispatch() captures trace.LinkFromContext(ctx), launches a goroutine with context.WithTimeout(context.Background(), notification.DefaultDispatchTimeout) and a fresh root span (trace.WithNewRoot + WithLinks), recovers panics, and only logs errors. Callers must not rely on the return value for delivery confirmation.",
+        "example": "spanLink := trace.LinkFromContext(ctx); go func() { defer recover(); ctx, cancel := context.WithTimeout(context.Background(), notification.DefaultDispatchTimeout); defer cancel(); tracex.StartWithNoValue(ctx, h.tracer, \"event_handler.dispatch\", trace.WithNewRoot(), trace.WithLinks(spanLink)).Wrap(fn) }(); return nil"
       },
       {
-        "name": "Deduplication of GroupBy entries via slices.Contains",
-        "description": "Every code path that appends to params.GroupBy (subject filter, customer filter, explicit GroupByDimensions) first calls slices.Contains to prevent duplicates.",
-        "example": "if !slices.Contains(params.GroupBy, DimensionSubject) { params.GroupBy = append(params.GroupBy, DimensionSubject) }"
+        "name": "pglock.Client.Do leader-election in Start()",
+        "description": "Start() loops calling h.lockClient.Do(ctx, reconcilerLeaderLockKey, ...) so only one replica runs the reconcile ticker; pglock.ErrNotAcquired is treated as non-error (continue and retry). running atomic.Bool guards double-Start.",
+        "example": "err := h.lockClient.Do(ctx, reconcilerLeaderLockKey, func(rCtx context.Context, _ *pglock.Lock) error { ticker := time.NewTicker(h.reconcileInterval); ... }); if errors.Is(err, pglock.ErrNotAcquired) { continue }"
       },
       {
-        "name": "CustomerResolverFunc dependency injection",
-        "description": "Customer lookup is injected as CustomerResolverFunc (a function type), not as a direct service reference. BuildQueryParams receives it as a parameter so callers control the resolver \u2014 enabling noop injection in tests.",
-        "example": "func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryRequest, resolveCustomers CustomerResolverFunc) (streaming.QueryParams, error)"
+        "name": "Paginated reconcile scan with nextAttemptDelay jitter",
+        "description": "Reconcile pages delivery statuses (PageSize 50) filtered to Pending/Sending/Resending and NextAttemptBefore = clock.Now()-10s, fanning out to reconcileEvent via a semaphore-bounded worker pool. The 10s jitter lets Svix async state settle.",
+        "example": "nextAttemptBefore := clock.Now().Add(-1 * nextAttemptDelay); out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{Page: page, DeliveryStatusStates: [...], NextAttemptBefore: nextAttemptBefore})"
       },
       {
-        "name": "ISO 8601 <-> WindowSize via lookup tables",
-        "description": "Bidirectional conversion uses package-level maps (iso8601ToWindowSize, windowSizeToISO8601). Adding a new window size requires updating both maps and the error message string in ErrInvalidWindowSize.",
-        "example": "var iso8601ToWindowSize = map[string]meter.WindowSize{\"PT1M\": meter.WindowSizeMinute, \"PT1H\": meter.WindowSizeHour, \"P1D\": meter.WindowSizeDay, \"P1M\": meter.WindowSizeMonth}"
+        "name": "Delivery-status state machine with sentinel failure reasons",
+        "description": "reconcileWebhookEvent switches on status.State (Pending/Resending/Sending) and stores one of the ErrUser*/ErrSystem* sentinel error vars verbatim as the DB Reason. Never introduce terminal reason strings outside webhook.go.",
+        "example": "switch status.State { case notification.EventDeliveryStatusStatePending: ...; case notification.EventDeliveryStatusStateSending: input = &notification.UpdateEventDeliveryStatusInput{State: notification.EventDeliveryStatusStateFailed, Reason: ErrUserSendAttemptsExhausted.Error(), ...} }"
       },
       {
-        "name": "Filter complexity depth cap",
-        "description": "Non-reserved GroupBy dimension filters are validated with f.ValidateWithComplexity(maxGroupByFilterComplexityDepth) (currently 2). Raising this constant widens the attack surface for nested filter expressions.",
-        "example": "const maxGroupByFilterComplexityDepth = 2\nif err := f.ValidateWithComplexity(maxGroupByFilterComplexityDepth); err != nil { ... }"
+        "name": "sync.OnceFunc for idempotent Close()",
+        "description": "stopChClose wraps close(stopCh) in sync.OnceFunc so Close() is safe to call repeatedly; Close() flips running false, cancels ctx, and closes stopCh.",
+        "example": "stopChClose := sync.OnceFunc(func() { close(stopCh) })"
       }
     ],
     "key_file_guides": [
       {
-        "file": "params.go",
-        "role": "Core translation function BuildQueryParams \u2014 the single entry point for converting MeterQueryRequest to streaming.QueryParams with full validation.",
-        "watch_for": "Map iteration order is non-deterministic in Go; GroupBy slice order may vary across calls \u2014 tests must not assert exact ordering."
+        "file": "handler.go",
+        "role": "Handler struct, Config + Validate(), New() constructor, Start()/Close() lifecycle (pglock.Do loop calling Reconcile on a ticker).",
+        "watch_for": "ReconcileInterval/PendingTimeout/SendingTimeout/ReconcilerWorkers default to package constants when zero \u2014 never pass zero expecting a no-op. atomic.Bool running guards double-Start. Start/Close are pointer receivers because stopCh/stopChClose are pointer state."
       },
       {
-        "file": "errors.go",
-        "role": "All typed validation errors for this package. Each error has a package-level sentinel var and a constructor that attaches runtime context via WithAttr/WithPathString.",
-        "watch_for": "HTTP status codes are embedded via commonhttp.WithHTTPStatusCodeAttribute \u2014 never return raw fmt.Errorf for user-facing errors; use or extend these sentinels."
+        "file": "dispatch.go",
+        "role": "Dispatch() goroutine launcher; captures the OTel span link, opens a fresh root span inside the goroutine, recovers panics.",
+        "watch_for": "Always returns nil; never check the return value for delivery success \u2014 the reconcile loop is the recovery path."
       },
       {
-        "file": "convert.go",
-        "role": "Stateless conversion helpers for ISO 8601 durations, WindowSize, and QueryFilterString extraction. Only eq/in operators are supported.",
-        "watch_for": "ExtractStringsFromQueryFilterMapItem checks f.Exists (extra field vs QueryFilterString) \u2014 the two Extract functions are NOT interchangeable."
+        "file": "reconcile.go",
+        "role": "Reconcile() paginates pending events and fans out via a semaphore worker pool; reconcileEvent dispatches per channel type to reconcileWebhookEvent. Defines nextAttemptDelay (10s).",
+        "watch_for": "Each worker has its own panic recovery; the 10s nextAttemptDelay must stay to avoid racing Svix async updates. Use the received ctx, not context.Background()."
       },
       {
-        "file": "customers.go",
-        "role": "CustomerResolverFunc type + NewCustomerResolver factory + CustomersToStreaming conversion. Bridges customer.Service to streaming.Customer.",
-        "watch_for": "NewCustomerResolver uses IncludeDeleted: true when listing customers; missing IDs are collected via errors.Join \u2014 both behaviours are intentional."
+        "file": "webhook.go",
+        "role": "reconcileWebhookEvent drives the per-delivery-status state machine against Svix; defines the six ErrUser*/ErrSystem* sentinel error vars stored verbatim as DB failure reasons.",
+        "watch_for": "The sentinels are the canonical human-readable reasons \u2014 do not add new terminal strings elsewhere. RetryableError.RetryAfter() controls the transient retry delay; IsNotFoundError/IsMessageAlreadyExistsError/IsUnrecoverableError gate transitions."
       },
       {
-        "file": "dimensions.go",
-        "role": "Defines DimensionSubject and DimensionCustomerID constants, IsReservedDimension, and IsSupportedGroupByDimension. Single source of truth for reserved dimension names.",
-        "watch_for": "IsSupportedGroupByDimension checks meter.GroupBy map \u2014 the meter must be passed with its GroupBy populated or all custom dimensions will be rejected."
+        "file": "deliverystatus.go",
+        "role": "Pure helpers: filterActiveDeliveryStatusesByChannelType and sortDeliveryStatusStateByPriority (no side effects).",
+        "watch_for": "Keep these pure \u2014 no logger/tracer/DB. Priority order Pending=0, Resending=1, Sending=2 determines reconcile order within one event."
       }
     ],
     "anti_patterns": [
-      "Returning raw fmt.Errorf for user-visible validation failures \u2014 always use a models.ValidationIssue constructor from errors.go.",
-      "Adding a new dimension key directly to BuildQueryParams without also updating IsReservedDimension in dimensions.go.",
-      "Appending to params.GroupBy without a slices.Contains deduplication guard.",
-      "Injecting customer.Service directly into BuildQueryParams \u2014 always pass it as a CustomerResolverFunc to keep the function testable without wiring.",
-      "Supporting additional filter operators (Neq, Nin, Contains) \u2014 the whitelist is intentional; extend only after updating ExtractStringsFromQueryFilter AND ExtractStringsFromQueryFilterMapItem consistently."
+      "Calling reconcileEvent synchronously from Dispatch \u2014 breaks the fire-and-forget contract; Watermill consumers must not block on webhook delivery",
+      "Using context.Background() inside reconcileEvent or reconcileWebhookEvent instead of the received ctx \u2014 loses OTel spans and transaction bindings",
+      "Adding terminal delivery-status reason strings outside webhook.go's sentinel error vars",
+      "Skipping pglock.Do leader-election in Start() \u2014 multiple pods double-reconcile and produce duplicate Svix sends",
+      "Making Start/Close value receivers \u2014 stopCh/stopChClose are pointer-receiver state and mixing receivers races"
     ],
     "decisions": [
       {
-        "decision": "CustomerResolverFunc injection instead of interface",
-        "rationale": "A function type is the minimal dependency surface; tests inject a one-liner lambda without needing a mock struct, and the HTTP handler passes NewCustomerResolver(svc) at wiring time."
+        "decision": "Dispatch fires a goroutine and always returns nil",
+        "rationale": "Watermill consumers must not block on webhook delivery; failures are non-fatal to the consumer pipeline and recovered by the reconcile loop."
       },
       {
-        "decision": "Strict whitelist for filter operators (eq/in only)",
-        "rationale": "ClickHouse query complexity and index usage are bounded; rejecting Neq/Nin/Contains/And/Or at the translation layer prevents unbounded scan patterns from reaching the analytics store."
+        "decision": "Start() uses pglock.Client.Do for leader-election, not lockr advisory locks",
+        "rationale": "The reconcile loop must survive transaction boundaries; pglock holds a connection-scoped lock across many ticks, whereas pg_advisory_xact_lock releases on each transaction commit."
       },
       {
-        "decision": "Package-level ValidationIssue sentinels with runtime WithAttr/WithPathString constructors",
-        "rationale": "Sentinel vars allow callers to errors.Is check the type; WithAttr attaches context without allocating a new type, keeping error handling consistent with the rest of the v3 handler stack."
+        "decision": "10s nextAttemptDelay before re-querying Svix state",
+        "rationale": "Svix processes messages asynchronously; querying immediately yields stale not-found states and causes false-positive failure transitions."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new reserved dimension (e.g. 'workspace_id') that resolves like customer_id",
-        "code": "// dimensions.go \u2014 add constant and update IsReservedDimension\nconst DimensionWorkspaceID = \"workspace_id\"\nfunc IsReservedDimension(dimension string) bool {\n    switch dimension {\n    case DimensionSubject, DimensionCustomerID, DimensionWorkspaceID:\n        return true\n    }\n    return false\n}\n\n// errors.go \u2014 add typed error\nvar ErrWorkspaceNotFound = models.NewValidationIssue(\n    \"workspace_not_found\", \"workspace not found\",\n    models.WithFieldString(\"filters\", \"dimensions\", DimensionWorkspaceID),\n    models.WithCriticalSeverity(),\n    commonhttp.WithHTTPStatusCodeAttribute(http.StatusNotFound),\n)\nfunc NewWorkspaceNotFoundError(id string) error { return ErrWorkspaceNotFound.WithAttr(DimensionWorkspaceID, id) }\n\n// params.go \u2014 add case in the dimensions switch\ncase DimensionWorkspaceID:\n    workspaceIDs, err := ExtractStringsFromQueryFilterMapItem(&v, \"dimensions\", DimensionWorkspaceID)\n    if err != nil {\n        return params, err\n    }\n    // resolve and attach, guard GroupBy with slices.Contains\n    if !slices.Contains(params.GroupBy, DimensionWorkspaceID) {\n        params.GroupBy = append(params.GroupBy, DimensionWorkspaceID)\n    }"
+        "scenario": "Add a new channel-type branch in reconcileEvent",
+        "code": "// reconcile.go\nfor _, channelType := range channelTypes {\n\tswitch channelType {\n\tcase notification.ChannelTypeWebhook:\n\t\tif err := h.reconcileWebhookEvent(ctx, event); err != nil { errs = append(errs, err) }\n\tcase notification.ChannelTypeSlack: // new type\n\t\tif err := h.reconcileSlackEvent(ctx, event); err != nil { errs = append(errs, err) }\n\tdefault:\n\t\th.logger.ErrorContext(ctx, \"unsupported channel type\", \"type\", channelType)\n\t}\n}"
       }
     ]
   }

@@ -1,121 +1,110 @@
 {
-  "openmeter/billing/validators/customer": {
-    "purpose": "Implements customer.RequestValidator to enforce billing pre-conditions before customer deletion \u2014 blocks removal of customers with non-final standard invoices or active (non-soft-deleted) gathering invoices. It is the cross-domain guard preventing customer removal from leaving orphaned billing state.",
+  "openmeter/billing/service/invoicecalc": {
+    "purpose": "Pure, stateless invoice calculation pipeline that applies ordered transformation functions to StandardInvoice and GatheringInvoice to compute derived fields (collection/draft/due dates, service periods, discount IDs, detailed line totals, tax config snapshots) without touching the DB. All external data must be pre-resolved and injected via dependency structs before the pipeline runs.",
     "patterns": [
       {
-        "name": "Embed NoopRequestValidator",
-        "description": "Validator embeds customer.NoopRequestValidator so only ValidateDeleteCustomer needs implementation; all other RequestValidator methods default to no-op without breaking the interface.",
-        "example": "type Validator struct { customer.NoopRequestValidator; billingService billing.Service; syncService subscriptionsync.Service; subscriptionService subscription.Service }"
+        "name": "Typed calculation function signatures",
+        "description": "Every step matches StandardInvoiceCalculation = func(*billing.StandardInvoice, StandardInvoiceCalculatorDependencies) error or its GatheringInvoice counterpart. New steps must match one of these two signatures.",
+        "example": "func MyCalc(inv *billing.StandardInvoice, deps StandardInvoiceCalculatorDependencies) error { ... }"
       },
       {
-        "name": "Compile-time interface assertion",
-        "description": "var _ customer.RequestValidator = (*Validator)(nil) at package level ensures the struct satisfies the interface at compile time.",
-        "example": "var _ customer.RequestValidator = (*Validator)(nil)"
+        "name": "Register steps in InvoiceCalculations registry",
+        "description": "Active steps are registered in the package-level InvoiceCalculations var in calculator.go under Invoice, GatheringInvoice, or GatheringInvoiceWithLiveData; steps run in declaration order and ordering matters (CollectionAt before DraftUntil before DueAt).",
+        "example": "InvoiceCalculations.Invoice = []StandardInvoiceCalculation{ WithNoDependencies(StandardInvoiceCollectionAt), WithNoDependencies(CalculateDraftUntil), RecalculateDetailedLinesAndTotals, SnapshotTaxConfigIntoLines }"
       },
       {
-        "name": "Sync-before-validate pattern",
-        "description": "ValidateDeleteCustomer syncs active subscriptions via SynchronizeSubscription before checking invoice state, ensuring pending charges are reflected before the gate check.",
-        "example": "v.syncService.SynchronizeSubscription(ctx, view, time.Now())"
+        "name": "WithNoDependencies / WithNoGatheringDependencies wrappers",
+        "description": "Wrap a func(*billing.StandardInvoice) error into a StandardInvoiceCalculation when the step needs no deps; do not accept and ignore the deps parameter \u2014 wrap instead.",
+        "example": "WithNoDependencies(CalculateDraftUntil)"
       },
       {
-        "name": "Nil-guard constructors",
-        "description": "NewValidator returns an error if any required service dependency is nil, enforcing required deps at construction time rather than at call time.",
-        "example": "if billingService == nil { return nil, fmt.Errorf(\"billing service is required\") }"
+        "name": "Error aggregation via MergeValidationIssues",
+        "description": "applyCalculations joins step errors with errors.Join and funnels StandardInvoice errors through invoice.MergeValidationIssues(billing.ValidationWithComponent(...)). Steps return plain errors; GatheringInvoice returns raw joined errors (no ValidationIssues field).",
+        "example": "return invoice.MergeValidationIssues(billing.ValidationWithComponent(billing.ValidationComponentOpenMeter, outErr), billing.ValidationComponentOpenMeter)"
       },
       {
-        "name": "errors.Join for multi-invoice failures",
-        "description": "All invoice validation failures accumulate into a slice and are joined with errors.Join so the caller receives all blocking invoices at once.",
-        "example": "errs = append(errs, fmt.Errorf(\"invoice %s is not in final state\", stdInvoice.ID)); return errors.Join(errs...)"
+        "name": "Guard Lines.IsPresent() before iterating",
+        "description": "Every step iterating lines must guard with i.Lines.IsPresent() and return an explicit error when absent \u2014 never silently skip an absent Lines optional.",
+        "example": "if !i.Lines.IsPresent() { return errors.New(\"lines must be expanded\") }"
+      },
+      {
+        "name": "LineEngine dispatch via LineEngineResolver",
+        "description": "RecalculateDetailedLinesAndTotals groups lines by line.Engine and calls deps.LineEngines.Get(lineEngineType); engines not implementing billing.LineCalculator are skipped. ValidateStandardLineIDsMatchExactly enforces engines return exactly the line IDs they received.",
+        "example": "lineEngine, err := deps.LineEngines.Get(lineEngineType); updatedLines, err := lineEngine.CalculateLines(input)"
+      },
+      {
+        "name": "Pre-resolved TaxCodes map",
+        "description": "SnapshotTaxConfigIntoLines reads from deps.TaxCodes (map[string]taxcode.TaxCode keyed by Stripe code) pre-populated before the calculator runs; tax steps must read this map, not query the DB.",
+        "example": "tc, ok := deps.TaxCodes.Get(line.TaxConfig.Stripe.Code)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "customer.go",
-        "role": "Single-file package: defines Validator struct, NewValidator constructor, and ValidateDeleteCustomer \u2014 the only override of NoopRequestValidator.",
-        "watch_for": "The 24-hour watermark (time.Now().Add(-24 * time.Hour)) is an embedded business rule for active subscription detection. Gathering invoices with non-nil DeletedAt are skipped (soft-deleted). Standard invoices must have IsFinal() == true. All reads go through billing.Service and subscription.Service \u2014 never the adapters directly."
+        "file": "calculator.go",
+        "role": "Calculator interface, invoiceCalculatorsByType registry, StandardInvoiceCalculatorDependencies, GatheringInvoiceCalculatorDependencies, LineEngineResolver, TaxCodes, New(); applyCalculations runs all steps and merges errors.",
+        "watch_for": "Step registration order in InvoiceCalculations matters \u2014 CollectionAt must precede DraftUntil which must precede DueAt; adding a step without checking ordering silently produces wrong derived fields."
+      },
+      {
+        "file": "details.go",
+        "role": "RecalculateDetailedLinesAndTotals (engine dispatch + totals rollup) and MergeGeneratedDetailedLines (materialises rating.GenerateDetailedLinesResult into a parent StandardLine).",
+        "watch_for": "ValidateStandardLineIDsMatchExactly hard-errors if an engine creates or drops lines \u2014 engines must return exactly the IDs they received."
+      },
+      {
+        "file": "collectionat.go",
+        "role": "Computes CollectionAt for StandardInvoice and NextCollectionAt for GatheringInvoice using timeutil.NewRecurrenceFromISODuration for subscription/anchored configs.",
+        "watch_for": "Only metered lines (DependsOnMeteredQuantity()) contribute to StandardInvoice collection time; flat-fee and deleted lines are excluded. OverrideCollectionPeriodEnd overrides the default interval calc for a line."
+      },
+      {
+        "file": "taxconfig.go",
+        "role": "Merges Workflow.Config.Invoicing.DefaultTaxConfig into each line via productcatalog.MergeTaxConfigs, then stamps TaxCode entity and TaxCodeID from deps.TaxCodes.",
+        "watch_for": "No-op for gathering invoices (returns nil immediately). Does not overwrite an existing TaxCodeID but always stamps the TaxCode entity if found."
+      },
+      {
+        "file": "draftuntil.go",
+        "role": "Sets DraftUntil = max(CollectionAt, CreatedAt) + DraftPeriod; must run after StandardInvoiceCollectionAt.",
+        "watch_for": "When AutoAdvance=false, sets DraftUntil = nil unconditionally."
+      },
+      {
+        "file": "dueat.go",
+        "role": "Sets DueAt relative to DraftUntil (auto-advance) or IssuedAt (manual); truncates to second precision for Stripe.",
+        "watch_for": "Returns nil (no error) when prerequisite fields are absent \u2014 callers must not assume DueAt is set after a single pass."
+      },
+      {
+        "file": "gatheringrealtime.go",
+        "role": "GatheringInvoiceWithLiveData pass: backfills synthetic IDs/timestamps on in-memory DetailedLines never persisted to the DB.",
+        "watch_for": "Only fills zero-valued fields, so it is safe to call multiple times without stomping existing values."
+      },
+      {
+        "file": "mock.go",
+        "role": "MockableInvoiceCalculator wrapping real Calculator + optional mockCalculator; EnableMock() returns a *mockCalculator with OnCalculate(err) expectations, DisableMock(t) asserts consumption.",
+        "watch_for": "Mock Calculate still calls invoice.MergeValidationIssues to mirror the real pipeline; AssertExpectations only fires when the option was Set (mo.Some)."
       }
     ],
     "anti_patterns": [
-      "Adding ValidateCreateCustomer or ValidateUpdateCustomer overrides without a billing-domain reason \u2014 this package only guards billing pre-conditions on delete.",
-      "Calling billing adapter or Ent directly instead of going through billing.Service \u2014 all reads must go through the service interface.",
-      "Skipping the SynchronizeSubscription step before invoice validation \u2014 without it, pending subscription charges may not be reflected and the gate check will be incorrect.",
-      "Using context.Background() instead of propagating the incoming ctx parameter.",
-      "Returning a plain error for billing blocks instead of letting errors.Join accumulate all failures \u2014 callers need all blocking invoices at once."
+      "Adding DB queries inside a calculation function \u2014 all external data must be injected via the dependency structs.",
+      "Adding a calculation step not registered in InvoiceCalculations \u2014 unregistered steps are never called.",
+      "Mutating the InvoiceCalculations slice at runtime (init/constructors) \u2014 the registry is read-only after package init.",
+      "Calling individual step functions directly from outside the package instead of Calculator.Calculate \u2014 bypasses ordering and error aggregation.",
+      "Returning nil error when lines are not expanded \u2014 steps must validate preconditions and return explicit errors."
     ],
     "decisions": [
       {
-        "decision": "Validator registers with customer.Service.RegisterRequestValidator() at wiring time in app/common, not via direct import.",
-        "rationale": "Billing depends on customer; customer cannot import billing. Registration at wire time inverts the dependency without an import cycle."
+        "decision": "Stateless function-per-concern design with a central ordered registry.",
+        "rationale": "Calculations have ordering dependencies (collection\u2192draft\u2192due) but are otherwise independent; a flat ordered slice makes the sequence explicit and each function unit-testable in isolation."
       },
       {
-        "decision": "Subscription sync is driven inside the validator rather than as a pre-hook in the subscription service.",
-        "rationale": "The validator needs a billing-consistent snapshot of invoices; syncing at validation time ensures the check is atomic with respect to the delete."
+        "decision": "Dependencies injected as grouped structs rather than per-function interfaces.",
+        "rationale": "Groups all external inputs (FeatureMeters, RatingService, TaxCodes, LineEngines) so adding a dependency does not change every step signature."
+      },
+      {
+        "decision": "Separate calculation passes for GatheringInvoice vs StandardInvoice (three-slice registry).",
+        "rationale": "GatheringInvoice needs only scheduling fields and carries no ValidationIssues; StandardInvoice needs detailed-line recalculation and tax snapshotting \u2014 distinct passes avoid conditional branching inside steps."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new pre-delete billing check (e.g., block deletion if open credit notes exist)",
-        "code": "// In customer.go, extend ValidateDeleteCustomer after the existing invoice loop:\ncreditNotes, err := v.billingService.ListCreditNotes(ctx, billing.ListCreditNotesInput{\n    Namespaces: []string{input.Namespace},\n    Customers:  []string{input.ID},\n})\nif err != nil {\n    return err\n}\nfor _, cn := range creditNotes.Items {\n    if !cn.Status.IsFinal() {\n        errs = append(errs, fmt.Errorf(\"credit note %s is not final\", cn.ID))\n    }\n}\nreturn errors.Join(errs...)"
-      }
-    ]
-  },
-  "openmeter/billing/validators/subscription": {
-    "purpose": "Implements subscription.SubscriptionCommandHook to validate that a customer's billing app setup is valid whenever a subscription with billable items is created or updated \u2014 blocks subscription lifecycle transitions when the invoicing app cannot handle tax calculation, invoicing, or payment collection.",
-    "patterns": [
-      {
-        "name": "Embed NoOpSubscriptionCommandHook",
-        "description": "Validator embeds subscription.NoOpSubscriptionCommandHook so only AfterCreate and AfterUpdate need implementation; all other hook methods default to no-op.",
-        "example": "type Validator struct { subscription.NoOpSubscriptionCommandHook; billingService billing.Service }"
-      },
-      {
-        "name": "Early-exit on non-billable subscription",
-        "description": "hasBillableItems checks whether any rate card in the subscription has a non-nil Price before calling the billing service, avoiding unnecessary network calls for free-tier subscriptions.",
-        "example": "if !v.hasBillableItems(view) { return nil }"
-      },
-      {
-        "name": "models.NewGenericConflictError wrapping",
-        "description": "Billing validation failures are wrapped in models.NewGenericConflictError, which maps to HTTP 409 in the error encoder chain.",
-        "example": "return models.NewGenericConflictError(fmt.Errorf(\"invalid billing setup: %w\", err))"
-      },
-      {
-        "name": "Return interface not concrete type from constructor",
-        "description": "NewValidator returns subscription.SubscriptionCommandHook (interface), not *Validator, so callers depend on the interface, not the concrete type.",
-        "example": "func NewValidator(billingService billing.Service) (subscription.SubscriptionCommandHook, error)"
-      },
-      {
-        "name": "Capability slice validation",
-        "description": "Required app capabilities are passed as a slice to ValidateCustomer, keeping validation app-agnostic and easy to extend without changing control flow.",
-        "example": "customerApp.ValidateCustomer(ctx, customerProfile.Customer, []app.CapabilityType{app.CapabilityTypeCalculateTax, app.CapabilityTypeInvoiceCustomers, app.CapabilityTypeCollectPayments})"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "validator.go",
-        "role": "Single-file package: Validator struct, NewValidator, AfterCreate, AfterUpdate, validateBillingSetup, hasBillableItems. Both AfterCreate and AfterUpdate delegate to validateBillingSetup, keeping the logic DRY.",
-        "watch_for": "customerapp.AsCustomerApp type-asserts the app base to a customer-app interface \u2014 if the app type changes, this assertion fails at runtime. The Expand field in GetCustomerOverrideInput must include both Apps: true and Customer: true; missing either causes a nil-dereference or incomplete check."
-      }
-    ],
-    "anti_patterns": [
-      "Overriding BeforeCreate/BeforeDelete without strong justification \u2014 post-create/post-update validation is intentional so the billing check runs against the fully persisted subscription view.",
-      "Returning a plain error instead of models.NewGenericConflictError for billing setup failures \u2014 the HTTP layer expects a 409 error type.",
-      "Calling subscription service or Ent adapters directly \u2014 all billing state reads must go through billing.Service.",
-      "Adding app-type-specific branching (e.g., 'if Stripe do X') \u2014 capability validation is intentionally app-agnostic via the CapabilityType slice.",
-      "Using context.Background() instead of propagating the incoming ctx."
-    ],
-    "decisions": [
-      {
-        "decision": "Validator is registered with subscription.Service.RegisterHook() at wiring time in app/common, not via direct import.",
-        "rationale": "Billing imports subscription; subscription cannot import billing. The hook registration at wire time inverts the dependency without an import cycle."
-      },
-      {
-        "decision": "Validation runs after create/update (AfterCreate, AfterUpdate) rather than before.",
-        "rationale": "The billing service needs the fully persisted subscription view (with all phases and items resolved) to evaluate billability; a before-hook would not have this complete view."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Adding a new required billing capability check (e.g., require CapabilityTypeRefundPayments)",
-        "code": "// In validator.go, extend the capability slice in validateBillingSetup:\nreturn customerApp.ValidateCustomer(ctx, customerProfile.Customer, []app.CapabilityType{\n    app.CapabilityTypeCalculateTax,\n    app.CapabilityTypeInvoiceCustomers,\n    app.CapabilityTypeCollectPayments,\n    app.CapabilityTypeRefundPayments, // new capability\n})"
+        "scenario": "Adding a StandardInvoice calculation step with no external dependencies",
+        "code": "// myfield.go\npackage invoicecalc\n\nimport (\n\t\"errors\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n)\n\nfunc CalculateMyField(i *billing.StandardInvoice) error {\n\tif !i.Lines.IsPresent() {\n\t\treturn errors.New(\"lines must be expanded\")\n\t}\n\t// ... compute and assign i.MyField\n\treturn nil\n}\n// register in calculator.go: WithNoDependencies(CalculateMyField)"
       }
     ]
   }

@@ -100,28 +100,19 @@ export default function LocalPage() {
           </h1>
           <p className="text-ink/70 leading-relaxed mb-6">
             Archie is installed and the viewer is running, but there's no
-            architectural data to display yet. Run one of the scans below
-            inside this project from Claude Code, then refresh this page.
+            architectural data to display yet. Run the scan below inside this
+            project from Claude Code, then refresh this page.
           </p>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-ink/40 mb-3">
-            Two ways to populate
+            How to populate
           </p>
           <ul className="list-none space-y-4 mb-6">
-            <li className="border-l-2 border-teal-500/40 pl-5">
-              <code className="inline-block bg-papaya-100 text-teal-700 px-2 py-0.5 rounded text-sm font-semibold">
-                /archie-scan
-              </code>
-              <p className="text-ink/60 text-sm mt-1">
-                Fast architecture health check, 1-3 min. Produces blueprint
-                metrics and proposes initial rules.
-              </p>
-            </li>
             <li className="border-l-2 border-teal-500/40 pl-5">
               <code className="inline-block bg-papaya-100 text-teal-700 px-2 py-0.5 rounded text-sm font-semibold">
                 /archie-deep-scan
               </code>
               <p className="text-ink/60 text-sm mt-1">
-                Comprehensive baseline, ~15-20 min. Full architectural
+                Comprehensive architecture baseline, ~15-20 min. Full
                 blueprint plus the kind-tagged rule synthesis you'll curate
                 from this viewer.
               </p>

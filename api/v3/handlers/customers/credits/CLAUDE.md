@@ -2,67 +2,56 @@
 
 <!-- archie:ai-start -->
 
-> v3 HTTP handlers for customer credit-grant lifecycle and balance queries: create/get/list grants, update external settlement status, get credit balance, and list ledger transactions. Primary constraint: this package is gated by credits.enabled; the handler is wired to noop ledger/balance services when credits are off.
+> v3 HTTP handlers for the customer credit-grant lifecycle and balance queries: create/get/list grants, update external settlement status, get credit balance, and list ledger transactions. Primary constraint: gated by credits.enabled — wired to noop ledger/balance services when credits are off.
 
 ## Patterns
 
-**Local customerBalanceFacade interface** — handler.go defines a narrow customerBalanceFacade interface (GetBalance, GetBalances, ListCreditTransactions) rather than importing the full customerbalance service. This keeps the dependency surface explicit and testable. (`type customerBalanceFacade interface {
-	GetBalance(ctx context.Context, input customerbalance.GetBalanceInput) (alpacadecimal.Decimal, error)
-	GetBalances(ctx context.Context, input customerbalance.GetBalancesInput) ([]customerbalance.BalanceByCurrency, error)
-	ListCreditTransactions(ctx context.Context, input customerbalance.ListCreditTransactionsInput) (customerbalance.ListCreditTransactionsResult, error)
-}`)
-**Settlement-type dispatch for purchase block** — toAPICreditGrantPurchase switches on settlement.Type() (invoice, external, promotional). Promotional grants return nil purchase. Unknown types return an error. The outer toAPIBillingCreditGrant handles the nil case gracefully. (`switch settlement.Type() {
-case creditpurchase.SettlementTypePromotional: return nil, nil
-case creditpurchase.SettlementTypeInvoice: ...
-case creditpurchase.SettlementTypeExternal: ...
-default: return nil, fmt.Errorf("invalid settlement type")
-}`)
-**Base64-JSON cursor for transaction pagination** — encodeBillingCreditTransactionCursor/decodeBillingCreditTransactionCursor marshal a {booked_at, created_at, id} struct to JSON then base64. Cursors are validated after decoding via ledgerCursor.Validate(). (`raw, _ := json.Marshal(payload)
-return base64.StdEncoding.EncodeToString(raw), nil`)
-**models.ValidationIssue for domain-specific errors without a custom errorEncoder** — errors.go uses models.NewValidationIssue with a typed ErrorCode constant, WithCriticalSeverity, commonhttp.WithHTTPStatusCodeAttribute(400), and WithFieldString. This lets apierrors.GenericErrorEncoder handle it without a package-local error encoder. (`return models.NewValidationIssue(errCodeCreditGrantExternalSettlementStatusInvalid, fmt.Sprintf("unsupported..."), models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest), models.WithFieldString("status"))`)
-**Customer existence validation before balance query** — get_balance.go calls h.customerService.GetCustomer first to validate existence before querying balanceFacade.GetBalances. This ensures a 404 is returned for unknown customers before attempting a balance lookup. (`_, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{CustomerID: &request.CustomerID})
-if err != nil { return GetCustomerCreditBalanceResponse{}, err }`)
+**Local customerBalanceFacade interface** — handler.go defines a narrow customerBalanceFacade (GetBalance, GetBalances, ListCreditTransactions) instead of importing the full customerbalance service, keeping the dependency surface explicit and mockable. (`type customerBalanceFacade interface { GetBalance(ctx, customerbalance.GetBalanceInput) (alpacadecimal.Decimal, error); ... }`)
+**Settlement-type dispatch for purchase block** — toAPICreditGrantPurchase switches on settlement.Type() (invoice, external, promotional); promotional returns nil purchase, unknown types error, and the caller handles the nil case. (`switch settlement.Type() { case creditpurchase.SettlementTypePromotional: return nil, nil; ... default: return nil, fmt.Errorf("invalid settlement type") }`)
+**Base64-JSON cursor for transaction pagination** — encode/decodeBillingCreditTransactionCursor marshal a {booked_at, created_at, id} struct to JSON then base64; decoded cursors are validated via ledgerCursor.Validate(). (`raw, _ := json.Marshal(payload); return base64.StdEncoding.EncodeToString(raw), nil`)
+**ValidationIssue for domain errors without a local errorEncoder** — errors.go uses models.NewValidationIssue with a typed ErrorCode, WithCriticalSeverity, commonhttp.WithHTTPStatusCodeAttribute(400), WithFieldString so apierrors.GenericErrorEncoder maps it — no package-local encoder. (`models.NewValidationIssue(errCode, msg, models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest), models.WithFieldString("status"))`)
+**Customer existence validation before balance query** — get_balance.go calls customerService.GetCustomer first so unknown customers return 404 before any balance lookup. (`_, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{CustomerID: &request.CustomerID}); if err != nil { return ..., err }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `handler.go` | Defines Handler interface (6 methods) and handler struct with ledger, accountResolver, balanceFacade, creditGrantService. New() wires all of them. | ledger and accountResolver are wired to noops by app/common when credits.enabled=false; handlers must not assume they are real implementations. |
-| `convert.go` | All domain-to-API and API-to-domain mapping. toAPIBillingCreditGrant is the primary domain-to-API converter; fromAPICreateCreditGrantRequest is the primary API-to-domain converter. | fromAPICreateCreditGrantRequest returns an error for feature filters (not yet supported); keep the TODO and do not silently ignore the filter. |
-| `errors.go` | Defines newCreditGrantExternalSettlementStatusInvalid using models.NewValidationIssue with HTTP status attribute. This package intentionally has no custom errorEncoder() — unlike sibling packages. | Do not add an errorEncoder() function here; the ValidationIssue+WithHTTPStatusCodeAttribute pattern is the intended mechanism. |
-| `externalsettlement.go` | Handler for PATCH external settlement status transitions. Only authorized and settled are valid target statuses; pending is explicitly rejected in fromAPIBillingCreditPurchasePaymentSettlementStatus. | The 'pending' status must remain rejected; a grant cannot be downgraded to pending once advanced. |
+| `handler.go` | Handler interface (6 methods) and struct holding ledger, accountResolver, balanceFacade, creditGrantService; New() wires them. | ledger and accountResolver are noops when credits.enabled=false — handlers must not assume real implementations. |
+| `convert.go` | Domain<->API mapping; toAPIBillingCreditGrant is the primary domain-to-API, fromAPICreateCreditGrantRequest the primary API-to-domain. | fromAPICreateCreditGrantRequest errors on feature filters (not yet supported) — keep the TODO, do not silently ignore. |
+| `errors.go` | newCreditGrantExternalSettlementStatusInvalid via models.NewValidationIssue + HTTP status attribute; intentionally no local errorEncoder(). | Do not add an errorEncoder() — the ValidationIssue + WithHTTPStatusCodeAttribute pattern is the intended mechanism. |
+| `externalsettlement.go` | PATCH external settlement status transitions; only authorized and settled are valid targets, pending is rejected in fromAPIBillingCreditPurchasePaymentSettlementStatus. | 'pending' must stay rejected — a grant cannot be downgraded to pending once advanced. |
 
 ## Anti-Patterns
 
 - Assuming ledger or accountResolver are real implementations — they may be noops when credits.enabled=false
-- Adding a package-local errorEncoder() — this package relies on models.ValidationIssue + WithHTTPStatusCodeAttribute for error encoding
+- Adding a package-local errorEncoder() instead of relying on ValidationIssue + WithHTTPStatusCodeAttribute
 - Allowing the 'pending' settlement status to succeed in fromAPIBillingCreditPurchasePaymentSettlementStatus
 - Returning a non-nil purchase block for SettlementTypePromotional grants
 - Silently ignoring the feature filter in fromAPICreateCreditGrantRequest instead of returning an error
 
 ## Decisions
 
-- **customerBalanceFacade is a local interface rather than importing the full customerbalance.Service** — Narrows the dependency surface to only the three methods this handler needs, making tests easier to mock and preventing accidental use of write operations.
-- **ValidationIssue with WithHTTPStatusCodeAttribute replaces a custom errorEncoder for domain validation errors** — apierrors.GenericErrorEncoder already inspects the HTTP status attribute on ValidationIssues; adding a second encoder would be redundant and could cause double-handling.
+- **customerBalanceFacade is a local interface, not the full customerbalance.Service** — Narrows the dependency surface to the three needed methods, eases mocking, and prevents accidental use of write operations.
+- **ValidationIssue + WithHTTPStatusCodeAttribute replaces a custom errorEncoder** — apierrors.GenericErrorEncoder already inspects the HTTP status attribute on ValidationIssues; a second encoder would be redundant and risk double-handling.
 
-## Example: Create a domain-specific validation error usable by GenericErrorEncoder without a custom error encoder
+## Example: A domain validation error usable by GenericErrorEncoder without a custom encoder
 
 ```
 import (
-	"net/http"
-	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
-	"github.com/openmeterio/openmeter/pkg/models"
+    "net/http"
+    "github.com/openmeterio/openmeter/pkg/framework/commonhttp"
+    "github.com/openmeterio/openmeter/pkg/models"
 )
 
 const errCodeExample models.ErrorCode = "example_error_code"
 
 func newExampleError(value string) error {
-	return models.NewValidationIssue(
-		errCodeExample,
-		fmt.Sprintf("unsupported value: %s", value),
-		models.WithCriticalSeverity(),
-		commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
-		models.WithFieldString("field_name"),
+    return models.NewValidationIssue(
+        errCodeExample,
+        fmt.Sprintf("unsupported value: %s", value),
+        models.WithCriticalSeverity(),
+        commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+        models.WithFieldString("field_name"),
 // ...
 ```
 

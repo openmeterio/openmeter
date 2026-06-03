@@ -1,0 +1,111 @@
+{
+  "openmeter/billing": {
+    "purpose": "The largest domain in OpenMeter and the canonical billing contract layer: the package root defines the composite billing.Service (12 fine-grained sub-interfaces), billing.Adapter, the InvoiceLine tagged-union, the InvoicingApp plugin contract, and all billing domain model types. Sub-trees split the contract from its implementations \u2014 service/ orchestrates the stateless invoice state machine, adapter/ is the Ent persistence boundary, httpdriver/ exposes v1 HTTP, charges/ owns the per-type charge state machines, rating/ does pricing, worker/ runs the async event loops, and lineengine/validators/creditgrant/models supply the plugin and guard layers.",
+    "patterns": [
+      {
+        "name": "Tagged-union InvoiceLine with a private discriminator",
+        "description": "InvoiceLine carries a private `t InvoiceLineType` set only by NewStandardInvoiceLine / NewGatheringInvoiceLine; access via AsStandardLine/AsGatheringLine/AsGenericLine which error on mismatch. The same pattern governs charges.Charge/ChargeIntent (NewCharge[T]/NewChargeIntent[T]). Struct literals leave the discriminator zero and every accessor errors at runtime.",
+        "example": "line := billing.NewStandardInvoiceLine(billing.StandardInvoiceLineInput{...}); std, err := line.AsStandardLine()"
+      },
+      {
+        "name": "Composite Service from fine-grained sub-interfaces; root is contract-only",
+        "description": "billing.Service (service.go) embeds 12 sub-interfaces (ProfileService, InvoiceService, LineEngineService, SplitLineGroupService, ...). Callers depend on the narrowest slice. Implementation lives in service/, persistence in adapter/, HTTP in httpdriver/ \u2014 never add implementation code to service.go or adapter.go.",
+        "example": "func NewProfileHandler(svc billing.ProfileService) *ProfileHandler { ... } // not full billing.Service"
+      },
+      {
+        "name": "Input.Validate() on every cross-boundary struct",
+        "description": "Every Input type implements Validate() error and service methods call it at entry; charges and rating mirror this with package-level ValidationIssue sentinels in errors.go. New Input types must implement Validate() or invalid data reaches the adapter.",
+        "example": "func (u UpsertCustomerOverrideInput) Validate() error { ... return u.Collection.Validate() }"
+      },
+      {
+        "name": "InvoicingApp plugin with read-only invoice + UpsertResults round-trip",
+        "description": "billing.InvoicingApp (ValidateStandardInvoice/UpsertStandardInvoice/FinalizeStandardInvoice/DeleteStandardInvoice) is the Stripe/Sandbox/CustomInvoicing contract. Invoices passed in are read-only snapshots; mutations are silently dropped. Propagate external IDs back via UpsertStandardInvoiceResult / FinalizeStandardInvoiceResult builders and MergeIntoInvoice (called by billing.Service, not the app).",
+        "example": "result := billing.NewUpsertStandardInvoiceResult(); result.AddLineExternalID(line.ID, extID)"
+      },
+      {
+        "name": "All DB access via TransactingRepo + per-customer advisory lock",
+        "description": "adapter/ wraps every method body in entutils.TransactingRepo; service/ wraps customer-mutating ops in transactionForInvoiceManipulation (UpsertCustomerLock outside the tx, LockCustomerForUpdate inside) and calls the adapter only through transaction.Run/RunWithNoValue. Direct a.db or billing.Adapter calls bypass the ctx tx and race.",
+        "example": "transaction.Run(ctx, adapter, func(ctx context.Context) (T, error) { ... })"
+      },
+      {
+        "name": "Line engines and apps register at construction, not hardcoded",
+        "description": "billing.Service.RegisterLineEngine wires LineEngineTypeInvoice (lineengine/) and charge engines via app/common/charges.go; InvoicingApps self-register through app.Service.RegisterMarketplaceListing. Cross-domain billing guards (validators/) register pre/post hooks into customer.Service and subscription.Service at wiring time to avoid import cycles.",
+        "example": "svc.RegisterLineEngine(lineengine.New(...)) // in app/common/charges.go"
+      },
+      {
+        "name": "Annotation constants for gathering-line and sync metadata",
+        "description": "consts.go/annotations.go define AnnotationKeyTaxable/Reason, AnnotationValueReasonCreditPurchase, AnnotationSubscriptionSyncIgnore/ForceContinuousLines etc. Always use these constants; hardcoded strings desync when constants change and break subscription sync.",
+        "example": "line.Annotations[billing.AnnotationKeyReason] = billing.AnnotationValueReasonCreditPurchase"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Composite billing.Service interface and all 12 sub-interface declarations \u2014 the single import point for billing capabilities.",
+        "watch_for": "Adding implementation code breaks the contract layer; adding a sub-interface method silently breaks all mocks and requires wire_gen.go/mock regeneration."
+      },
+      {
+        "file": "adapter.go",
+        "role": "billing.Adapter interface composed of all DB-access sub-interfaces plus entutils.TxCreator.",
+        "watch_for": "Missing TxCreator embedment breaks TransactingRepo rebinding; new methods must also be implemented in billing/adapter/."
+      },
+      {
+        "file": "invoiceline.go",
+        "role": "InvoiceLine tagged-union with private discriminator, NewStandardInvoiceLine/NewGatheringInvoiceLine constructors and typed accessors.",
+        "watch_for": "Never construct InvoiceLine{} via struct literal \u2014 discriminator `t` is zero and all accessors error."
+      },
+      {
+        "file": "app.go",
+        "role": "InvoicingApp interface, optional InvoicingAppPostAdvanceHook/AsyncSyncer, UpsertResults/FinalizeStandardInvoiceResult builders, SyncInput implementations.",
+        "watch_for": "Invoice in app callbacks is read-only; never call billing.Service from inside callbacks; both SyncInput.Validate() and ValidateWithInvoice() must run."
+      },
+      {
+        "file": "workflow.go",
+        "role": "WorkflowConfig and sub-configs (Collection/Invoicing/Payment/WorkflowTaxConfig) with full nested Validate() chains.",
+        "watch_for": "AnchoredAlignmentDetail valid only when Alignment==AlignmentKindAnchored; WorkflowTaxConfig.Enforced=true requires Enabled=true; reuse DefaultWorkflowConfig from defaults.go."
+      },
+      {
+        "file": "errors.go",
+        "role": "Sentinel error types (ValidationError, NotFoundError, UpdateAfterDeleteError, AppError) mapped by the billing errorEncoder to 400/404/400/424.",
+        "watch_for": "Returning plain fmt.Errorf for domain conditions breaks HTTP status mapping \u2014 always use the typed sentinels."
+      },
+      {
+        "file": "validationissue.go",
+        "role": "billing.ValidationIssue persisted on the invoice record (distinct from pkg/models.ValidationIssue).",
+        "watch_for": "Do not confuse the two: billing.ValidationIssue is persisted; models.ValidationIssue is ephemeral HTTP-layer metadata."
+      },
+      {
+        "file": "service/service.go + service/stdinvoicestate.go",
+        "role": "Concrete billing.Service: orchestrates profiles, overrides, gathering/standard invoices, sequences, app resolution, and the stateless InvoiceStateMachine pooled in sync.Pool.",
+        "watch_for": "Adding a StandardInvoiceStatus without configuring it in allocateStateMachine() panics on unknown state; never mutate Invoice.Status directly \u2014 go through FireAndActivate."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing InvoiceLine{}/charges.Charge{}/charges.ChargeIntent{} via struct literals instead of the constructors \u2014 leaves the private discriminator zero and all accessors error at runtime.",
+      "Returning plain fmt.Errorf for domain conditions instead of billing.ValidationError/NotFoundError/UpdateAfterDeleteError \u2014 yields 500 instead of the correct 4xx.",
+      "Mutating the invoice inside InvoicingApp callbacks \u2014 the snapshot is read-only and mutations are silently discarded; use UpsertResults + MergeIntoInvoice.",
+      "Calling billing.Adapter or a.db directly without transaction.Run/RunWithNoValue/TransactingRepo, or mutating customer invoices without transactionForInvoiceManipulation \u2014 bypasses the ctx tx and the per-customer advisory lock.",
+      "Adding implementation code to service.go/adapter.go, registering line engines from domain packages/cmd/* instead of app/common/charges.go, or hardcoding annotation strings."
+    ],
+    "decisions": [
+      {
+        "decision": "Composite billing.Service assembled from 12 fine-grained sub-interfaces rather than one monolithic interface.",
+        "rationale": "Worker, httpdriver, charges, and subscriptionsync each depend only on the slice they use, making mocking, testing, and future sub-domain extraction cheaper."
+      },
+      {
+        "decision": "InvoiceLine (and Charge/ChargeIntent) are tagged unions with private discriminators and constructor-only construction.",
+        "rationale": "Gives exhaustive, type-safe dispatch via Type()/As* accessors and makes invalid partial construction impossible, without reflection or interface casts at call sites."
+      },
+      {
+        "decision": "External billing apps interact only through UpsertResults/FinalizeStandardInvoiceResult builders and a read-only invoice snapshot.",
+        "rationale": "Apps must not arbitrarily mutate billing state; the builder limits the writable surface to invoice numbers, external IDs, and payment IDs, applied under billing-service control via MergeIntoInvoice."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implementing a new InvoicingApp integration",
+        "code": "import (\n    \"context\"\n    \"github.com/openmeterio/openmeter/openmeter/billing\"\n)\n\ntype myApp struct{}\n\nfunc (a *myApp) ValidateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {\n    // Validate without mutating invoice \u2014 mutations are silently dropped\n    return nil\n}\n\nfunc (a *myApp) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {\n    result := billing.NewUpsertStandardInvoiceResult()\n    for _, line := range invoice.Lines.OrEmpty() {\n        result.AddLineExternalID(line.ID, externalIDFor(line))\n    }\n    return result, nil\n}"
+      }
+    ]
+  }
+}

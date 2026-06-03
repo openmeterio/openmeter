@@ -2,59 +2,50 @@
 
 <!-- archie:ai-start -->
 
-> Domain object layer for ledger accounts and sub-accounts: defines Account, SubAccount, Address, Balance types that implement ledger interfaces, and exposes the Repo and Service interfaces for persistence and orchestration. It is the structural core of the ledger domain — all higher-level packages (resolvers, historical, transactions) import from here.
+> Domain-object core of the ledger: defines Account, SubAccount, Address, and Balance types that implement the ledger.* interfaces, plus the Repo (persistence) and Service (orchestration) contracts. All higher ledger packages (resolvers, historical, transactions, breakage) build on the types defined here.
 
 ## Patterns
 
-**Data/Live split** — AccountData and SubAccountData are plain DTOs; Account and SubAccount embed the data and receive AccountLiveServices (SubAccountService) at construction time via NewAccountFromData / NewSubAccountFromData. Never pass live services via struct field assignment after construction. (`NewAccountFromData(data, AccountLiveServices{SubAccountService: svc})`)
-**Type-asserting account specialisation** — NewAccountFromData dispatches on AccountType and returns typed wrappers (CustomerFBOAccount, CustomerReceivableAccount, BusinessAccount). Callers must type-assert via the returned ledger.Account interface before using type-specific methods. (`fboAcc, ok := acc.(ledger.CustomerFBOAccount)`)
-**EnsureSubAccount upsert via route** — Sub-accounts are created idempotently: EnsureSubAccount takes a CreateSubAccountInput with a Route and either finds the existing row matching the canonical routing key or creates a new one. Never call CreateSubAccount directly. (`svc.EnsureSubAccount(ctx, ledger.CreateSubAccountInput{Namespace: ns, AccountID: id, Route: params.Route()})`)
-**Validate before repo calls** — All input types expose a Validate() method; call it before passing to repo. Service and adapter methods must not accept unvalidated inputs. (`if err := input.Validate(); err != nil { return nil, err }`)
-**Compile-time interface assertions** — Every concrete type has a var _ ledger.X = (*ConcreteType)(nil) line at the package level. Do not remove these — they are the only compile-time proof of interface compliance. (`var _ ledger.Account = (*Account)(nil)`)
-**SubAccountService self-wiring in account/service.New()** — The service package wires SubAccountService as a forward reference inside New() rather than requiring it as an external dependency. Do not inject SubAccountService externally — the self-wiring is intentional and load-bearing. (`svc := &service{}; svc.live.SubAccountService = svc; return svc`)
+**Data/Live split with construction-time injection** — *Data structs are plain DTOs; Account/SubAccount embed the data and receive AccountLiveServices (SubAccountService) only via NewAccountFromData / NewSubAccountFromData. Never set live services by field assignment after construction. (`NewAccountFromData(data, AccountLiveServices{SubAccountService: svc})`)
+**Type-dispatching constructor** — NewAccountFromData switches on AccountType and returns typed wrappers (CustomerFBOAccount, CustomerReceivableAccount, CustomerAccruedAccount, BusinessAccount). Callers type-assert on the returned ledger.Account. (`fboAcc, ok := acc.(ledger.CustomerFBOAccount)`)
+**EnsureSubAccount upsert via canonical route** — Sub-accounts are created idempotently through services.SubAccountService.EnsureSubAccount keyed on the canonical routing key; never call a raw create. (`svc.EnsureSubAccount(ctx, ledger.CreateSubAccountInput{Namespace: ns, AccountID: id, Route: params.Route()})`)
+**Validate before repo/service calls** — Every input and RouteParams type exposes Validate(); call it (GetSubAccountForRoute calls params.Validate() first) before any persistence call. (`if err := params.Validate(); err != nil { return nil, err }`)
+**Compile-time interface assertions** — Each concrete type carries a var _ ledger.X = (*Type)(nil) line — the only compile-time proof of interface compliance. Do not remove. (`var _ ledger.CustomerFBOAccount = (*CustomerFBOAccount)(nil)`)
+**SubAccountService self-wiring in service.New()** — account/service.New() wires SubAccountService as a forward reference to itself; do not inject it externally — the self-wiring is load-bearing. (`svc := &service{}; svc.live.SubAccountService = svc; return svc`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `account.go` | Account domain object — embeds AccountData + AccountLiveServices; implements ledger.Account; hosts NewAccountFromData type-dispatching constructor. | AccountLiveServices must be fully populated at construction; nil SubAccountService causes runtime panics on GetSubAccountForRoute calls. |
-| `account_customer.go` | CustomerFBOAccount, CustomerReceivableAccount, CustomerAccruedAccount wrappers — each calls EnsureSubAccount via services.SubAccountService. | GetSubAccountForRoute calls Validate() on RouteParams before EnsureSubAccount; params missing Currency will error. |
-| `account_business.go` | BusinessAccount wrapper for wash/earnings/brokerage accounts; implements ledger.BusinessAccount. | newBusinessAccount panics if AccountType is not one of the three business types — only called inside NewAccountFromData. |
-| `subaccount.go` | SubAccount domain object — holds SubAccountData + *Address; implements ledger.SubAccount (Address, Route, AccountID). | NewSubAccountFromData requires non-empty SubAccountID and RouteID in SubAccountData or address construction errors. |
-| `address.go` | Address wraps AddressData and pre-builds SubAccountRoute via NewAddressFromData; implements ledger.PostingAddress. | Equal() is field-by-field, not pointer-equal. RouteID and SubAccountID both required or constructor errors. |
-| `repo.go` | Repo interface — embeds entutils.TxCreator; declares CreateAccount, GetAccountByID, EnsureSubAccount, GetSubAccountByID, ListSubAccounts, ListAccounts. | All Repo implementations must also implement TxCreator (Tx, WithTx, Self) for TransactingRepo to work. |
-| `service.go` | Service interface type alias pointing to ledger.AccountCatalog + ledger.AccountLocker. Input types are re-exported from ledger package. | Service returns domain objects (ledger.Account, ledger.SubAccount), not DTOs — adapters must call NewAccountFromData/NewSubAccountFromData. |
+| `account.go` | Account domain object + AccountData DTO + NewAccountFromData type-dispatcher and AccountLiveServices container. | nil SubAccountService panics on GetSubAccountForRoute; populate AccountLiveServices fully at construction. |
+| `account_customer.go` | CustomerFBO/Receivable/Accrued wrappers; each routes via EnsureSubAccount after params.Validate(). | RouteParams missing Currency error on Validate(); accrued is routed by currency only. |
+| `account_business.go` | BusinessAccount wrapper for wash/earnings/brokerage/breakage; newBusinessAccount only valid for those types. | newBusinessAccount is only safe inside NewAccountFromData's business-type case. |
+| `subaccount.go` | SubAccount domain object; NewSubAccountFromData builds the Address from RouteMeta. | Empty SubAccountID or RouteID errors during address construction. |
+| `address.go` | Address wraps AddressData and prebuilds SubAccountRoute; implements ledger.PostingAddress with field-by-field Equal(). | RouteID and SubAccountID both required; Equal() is value comparison, not pointer. |
+| `repo.go` | Repo interface embedding entutils.TxCreator with CreateAccount/EnsureSubAccount/Get/List methods. | Implementations must satisfy the full TxCreator triad for TransactingRepo to work. |
+| `service.go` | Service interface aliasing ledger.AccountCatalog + ledger.AccountLocker; input types re-exported from ledger. | Service returns ledger.Account/ledger.SubAccount domain objects, not *Data DTOs. |
 
 ## Anti-Patterns
 
-- Calling repo methods directly from Account or SubAccount methods instead of going through AccountLiveServices.SubAccountService — bypasses service-layer transaction management.
-- Using context.Background() or context.TODO() in any method — always propagate caller ctx.
-- Manually constructing AddressData.RoutingKey as a string instead of calling ledger.BuildRoutingKey — breaks canonical uniqueness.
-- Returning *AccountData or *SubAccountData from Service methods — callers expect live domain objects with services attached.
-- Importing app/common in tests — causes import cycles; use adapter.NewRepo and account/service.New directly.
+- Returning *AccountData / *SubAccountData from Service methods — callers expect live domain objects with services attached.
+- Setting live.SubAccountService externally instead of relying on service.New() self-wiring.
+- Manually building AddressData.RoutingKey strings instead of ledger.BuildRoutingKey — breaks canonical uniqueness.
+- Removing var _ ledger.X = (*T)(nil) compile-time assertions.
+- Using context.Background()/context.TODO() in any method — propagate the caller ctx.
 
 ## Decisions
 
-- **AccountLiveServices is a value type injected at construction (not stored globally), and SubAccountService is a forward reference so the service can self-register.** — Avoids a global service registry and allows the service to wire itself as the SubAccountService inside New(), preventing a chicken-and-egg dependency.
-- **Sub-accounts are keyed by a canonical routing key (ledger.BuildRoutingKey) derived from the Route value.** — Ensures idempotent upsert semantics: two callers asking for the same route get the same sub-account row without race conditions.
+- **AccountLiveServices is a value type injected at construction; SubAccountService is a forward reference so the service self-registers.** — Avoids a global service registry and resolves the chicken-and-egg dependency of the service needing itself as the SubAccountService.
+- **Sub-accounts are keyed by a canonical routing key derived from the Route value.** — Guarantees idempotent upsert: two callers asking for the same route converge on one row without races.
 
 ## Example: Provision a sub-account for a customer FBO account
 
 ```
-import (
-	"context"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
-	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
-)
-
-func provisionSubAccount(ctx context.Context, svc ledgeraccount.Service, ns, accountID string) (ledger.SubAccount, error) {
-	return svc.EnsureSubAccount(ctx, ledger.CreateSubAccountInput{
-		Namespace: ns,
-		AccountID: accountID,
-		Route:     ledger.Route{Currency: currencyx.Code("USD")},
-	})
-}
+return svc.EnsureSubAccount(ctx, ledger.CreateSubAccountInput{
+  Namespace: ns,
+  AccountID: accountID,
+  Route:     ledger.Route{Currency: currencyx.Code("USD")},
+})
 ```
 
 <!-- archie:ai-end -->

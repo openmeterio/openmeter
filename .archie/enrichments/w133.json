@@ -1,183 +1,303 @@
 {
-  "pkg/clock": {
-    "purpose": "Process-global test clock that replaces time.Now() with a controllable time source backed by atomic drift/freeze vars. All production code must call clock.Now() so tests can freeze or shift time deterministically without any interface injection.",
+  "openmeter/watermill/eventbus": {
+    "purpose": "Wraps Watermill's cqrs.EventBus to route typed domain events to one of three Kafka topics (ingest, system, balance-worker) by event-name prefix matching against EventVersionSubsystem constants. The Publisher interface is the single injection point for all producers; topic routing is fully encapsulated.",
     "patterns": [
       {
-        "name": "clock.Now() everywhere",
-        "description": "Production code must call clock.Now() instead of time.Now(). The package uses package-level atomics so no interface injection is needed.",
-        "example": "import \"github.com/openmeterio/openmeter/pkg/clock\"; t := clock.Now()"
+        "name": "Topic routing by event-name prefix",
+        "description": "GeneratePublishTopic checks strings.HasPrefix against ingestevents.EventVersionSubsystem+'.' and balanceworkerevents.EventVersionSubsystem+'.'; everything else falls to SystemEventsTopic with no error. New event families must declare a matching EventVersionSubsystem constant.",
+        "example": "ingestVersionSubsystemPrefix := ingestevents.EventVersionSubsystem + \".\""
       },
       {
-        "name": "FreezeTime/UnFreeze in tests",
-        "description": "Tests freeze the clock with clock.FreezeTime(t) and restore with defer clock.UnFreeze() or defer clock.ResetTime().",
-        "example": "clock.FreezeTime(testutils.GetRFC3339Time(t, \"2024-06-30T15:39:00Z\")); defer clock.UnFreeze()"
+        "name": "PublishIfNoError for handler-inline publishing",
+        "description": "Use p.WithContext(ctx).PublishIfNoError(handler(ctx, event)) to avoid a separate error check when a handler returns (marshaler.Event, error). Nil event signals no-publish.",
+        "example": "return w.publisher.WithContext(ctx).PublishIfNoError(w.handleEvent(ctx, ev))"
       },
       {
-        "name": "Monotonic clock stripped",
-        "description": "clock.Now() always calls .Round(0) to strip the monotonic reading, preventing subtle comparison bugs when storing/comparing times.",
-        "example": "return time.Now().Add(-driftDuration).Round(0)"
+        "name": "Options.Validate before construction",
+        "description": "Options and TopicMapping have Validate() methods called by New(); all three topic names, a non-nil Publisher and Logger are required.",
+        "example": "if err := opts.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "NewMock for unit tests",
+        "description": "Use eventbus.NewMock(t) \u2014 it wires a noop.Publisher with fixed topic names. Never instantiate a real Kafka-backed publisher in unit tests.",
+        "example": "eventBus := eventbus.NewMock(t)"
+      },
+      {
+        "name": "Nil-event guard suppresses publish",
+        "description": "publisher.Publish silently ignores nil events; handlers that conditionally skip publishing return nil rather than an empty struct.",
+        "example": "if event == nil { return nil }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "clock.go",
-        "role": "Entire package: atomic drift int64 for SetTime, atomic frozen int32 + atomic.Value for FreezeTime. SetTime computes drift as time.Since(t).Nanoseconds().",
-        "watch_for": "drift is the offset subtracted from wall time, not an absolute time value. FreezeTime and SetTime are two independent mechanisms \u2014 FreezeTime short-circuits drift entirely."
+        "file": "eventbus.go",
+        "role": "Entire package: TopicMapping, Options, Publisher/ContextPublisher interfaces, publisher struct, New(), NewMock().",
+        "watch_for": "Adding a 4th topic requires updating TopicMapping, Validate(), and the GeneratePublishTopic switch; the new EventVersionSubsystem prefix must not overlap existing ones or routing silently misroutes."
       }
     ],
     "anti_patterns": [
-      "Calling time.Now() directly in production code \u2014 always use clock.Now()",
-      "Forgetting defer clock.ResetTime() or defer clock.UnFreeze() in tests, which leaks frozen/drifted state across test cases",
-      "Adding a context parameter or Clock interface \u2014 the global atomic design is intentional for zero-overhead usage across the codebase"
+      "Publishing directly to a Kafka topic string instead of via eventbus.Publisher.",
+      "Defining event names without an EventVersionSubsystem constant \u2014 defaults to SystemEventsTopic silently.",
+      "Passing a nil Publisher in Options \u2014 New() errors; use noop.Publisher for tests.",
+      "Checking event == nil at call sites \u2014 the publisher already guards against nil events.",
+      "Creating a second Publisher instance outside app/common Wire wiring \u2014 TopicMapping must be consistent across producers."
     ],
     "decisions": [
       {
-        "decision": "Package-level atomics instead of an injected Clock interface",
-        "rationale": "Zero call-site changes needed across the codebase; atomic ops are lock-free and safe for concurrent test use."
-      }
-    ],
-    "code_examples": []
-  },
-  "pkg/cmpx": {
-    "purpose": "Single-file package exposing a Comparable[T] constraint and a Compare[T] generic function for deterministic ordering of domain types. Used wherever two values need to be ordered without boilerplate type assertions.",
-    "patterns": [
-      {
-        "name": "Implement Comparable[T] on domain types",
-        "description": "Any type that needs ordering must implement Compare(T) int. The generic Compare[T] function dispatches to left.Compare(right).",
-        "example": "func (a MyType) Compare(b MyType) int { return cmpx.Compare(a, b) }"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "compare.go",
-        "role": "Defines Comparable[T] interface and Compare[T] generic helper. No dependencies other than stdlib.",
-        "watch_for": "The package is intentionally minimal \u2014 do not add non-ordering utilities here."
-      }
-    ],
-    "anti_patterns": [
-      "Adding any logic beyond comparison ordering to this package",
-      "Using reflect.DeepEqual or sort.Slice comparisons in callers instead of implementing Comparable[T]"
-    ],
-    "decisions": [],
-    "code_examples": []
-  },
-  "pkg/contextx": {
-    "purpose": "Context-keyed key-value store (via peterbourgon/ctxdata) and a slog.Handler adapter that auto-attaches stored attributes to every log record emitted within a request context. Used to propagate structured log fields through service layers without threading explicit logger parameters.",
-    "patterns": [
-      {
-        "name": "WithAttr / WithAttrs to annotate context",
-        "description": "Call contextx.WithAttr(ctx, key, value) or contextx.WithAttrs(ctx, map) to attach structured data. A ctxdata bag is lazily created if absent.",
-        "example": "ctx = contextx.WithAttr(ctx, \"customer_id\", customerID)"
+        "decision": "Three fixed topics, prefix-routed by EventVersionSubsystem.",
+        "rationale": "Topic isolation matches worker topology (sink-worker, balance-worker, everything else); the event name carries the routing key, decoupling producers from consumer topology."
       },
       {
-        "name": "NewLogHandler wraps existing slog.Handler",
-        "description": "Wrap any slog.Handler with contextx.NewLogHandler to automatically add all context attributes to every log record. Install at logger construction time, not per-request.",
-        "example": "slog.New(contextx.NewLogHandler(slog.NewJSONHandler(os.Stdout, nil)))"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "attr.go",
-        "role": "WithAttr and WithAttrs write to ctxdata bag; both silently ignore Set errors. Creates a new bag via ctxdata.New if none exists.",
-        "watch_for": "ctxdata.From returns nil if no bag exists \u2014 always handle the nil case (the helpers do this, but raw ctxdata callers must too)."
-      },
-      {
-        "file": "log.go",
-        "role": "Handler wraps slog.Handler; Handle reads ctxdata.GetAllMap and appends all entries as slog.Any attributes before delegating.",
-        "watch_for": "WithAttrs and WithGroup must re-wrap the inner handler in a new Handler struct to preserve the contextx behaviour on derived loggers."
-      }
-    ],
-    "anti_patterns": [
-      "Using context.WithValue directly for structured log fields instead of contextx.WithAttr",
-      "Installing contextx.NewLogHandler more than once in a handler chain \u2014 double-attaches the same attributes to every record"
-    ],
-    "decisions": [
-      {
-        "decision": "peterbourgon/ctxdata as the context bag instead of custom context keys",
-        "rationale": "Provides a typed map API accessible from any layer without defining package-private key types everywhere."
-      }
-    ],
-    "code_examples": []
-  },
-  "pkg/convert": {
-    "purpose": "Nil-safe generic pointer and type conversion helpers used throughout the codebase to eliminate repetitive nil-guard boilerplate when mapping between domain types, API types, and Ent-generated types.",
-    "patterns": [
-      {
-        "name": "ToPointer for value-to-pointer",
-        "description": "Use convert.ToPointer[T](value) instead of taking the address of a local variable directly.",
-        "example": "convert.ToPointer(\"some-string\")"
-      },
-      {
-        "name": "MapToPointer / SliceToPointer return nil on empty",
-        "description": "Both return nil (not a pointer to empty collection) when the input is empty. Prefer over lo.EmptyableToPtr for maps and slices.",
-        "example": "convert.MapToPointer(myMap) // returns nil if len==0"
-      },
-      {
-        "name": "SafeDeRef for nil-safe pointer transformation",
-        "description": "Applies a mapping function only if the pointer is non-nil; returns nil otherwise. Replaces repetitive if ptr != nil blocks in converter files.",
-        "example": "convert.SafeDeRef(req.StartTime, func(t time.Time) *time.Time { return convert.ToPointer(t.UTC()) })"
-      },
-      {
-        "name": "ToStringLike for type-aliased string conversions",
-        "description": "Converts *Source to *Dest where both are ~string kind, avoiding unsafe casts.",
-        "example": "convert.ToStringLike[api.CurrencyCode, currencyx.Code](req.Currency)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "ptr.go",
-        "role": "All pointer/type helpers including DerefHeaderPtr for *map and *slice dereferencing. Also StringerPtrToStringPtr for fmt.Stringer types.",
-        "watch_for": "lo.EmptyableToPtr is explicitly avoided for maps/slices \u2014 always use MapToPointer/SliceToPointer instead to get nil-on-empty semantics."
-      },
-      {
-        "file": "time.go",
-        "role": "TimePtrIn converts *time.Time to a given location, nil-safe. Returns a new pointer; does not mutate in place.",
-        "watch_for": "Returns nil when input is nil \u2014 callers must not assume a non-nil result."
-      }
-    ],
-    "anti_patterns": [
-      "Using lo.EmptyableToPtr on maps or slices \u2014 it does not treat empty collections as nil",
-      "Adding domain-specific conversion logic here \u2014 this package is for generic pointer/type mechanics only",
-      "Taking the address of a local variable instead of convert.ToPointer when the intent is nil-safety"
-    ],
-    "decisions": [],
-    "code_examples": []
-  },
-  "pkg/currencyx": {
-    "purpose": "Thin ISO 4217 currency wrapper on invopop/gobl/currency that adds a Calculator type for currency-precision decimal rounding. Used across billing and subscription for all monetary arithmetic to ensure correct subunit rounding per currency.",
-    "patterns": [
-      {
-        "name": "Validate before Calculator",
-        "description": "Always call Code.Validate() or obtain a Calculator via Code.Calculator() which validates internally. Never use a Code value without validation.",
-        "example": "calc, err := currencyx.Code(\"USD\").Calculator(); if err != nil { return err }"
-      },
-      {
-        "name": "Calculator.RoundToPrecision for monetary amounts",
-        "description": "Round alpacadecimal.Decimal to the correct subunit count for the currency. Never hardcode decimal places.",
-        "example": "rounded := calc.RoundToPrecision(amount) // USD -> 2 places, JPY -> 0 places"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "currency.go",
-        "role": "Code type (alias of currency.Code), Validate, Calculator constructor, RoundToPrecision using Def.Subunits, IsRoundedToPrecision.",
-        "watch_for": "RoundToPrecision uses Def.Subunits (not smallestDenomination) \u2014 correct for online payments, but physical-cash rounding may differ."
-      }
-    ],
-    "anti_patterns": [
-      "Rounding monetary amounts with a fixed precision constant instead of Calculator.RoundToPrecision",
-      "Using currency.Code (gobl) directly instead of currencyx.Code \u2014 the wrapper adds Validate() and Calculator()"
-    ],
-    "decisions": [
-      {
-        "decision": "Wraps gobl/currency rather than implementing ISO 4217 from scratch",
-        "rationale": "GOBL is already a transitive dependency for invoicing; reusing its currency definitions avoids a duplicate definition table."
+        "decision": "Publisher interface instead of exposing cqrs.EventBus directly.",
+        "rationale": "Hides Watermill internals, allows noop substitution in tests/DI, and provides WithContext/PublishIfNoError to avoid error-check boilerplate."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Round a billing amount to currency precision",
-        "code": "import (\n\t\"github.com/openmeterio/openmeter/pkg/currencyx\"\n\t\"github.com/alpacahq/alpacadecimal\"\n)\n\ncalc, err := currencyx.Code(\"USD\").Calculator()\nif err != nil {\n\treturn err\n}\nrounded := calc.RoundToPrecision(alpacadecimal.NewFromFloat(1.23456)) // -> 1.23"
+        "scenario": "Publishing a domain event using PublishIfNoError",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/watermill/eventbus\"\n\nfunc (w *worker) handleSubscriptionEvent(ctx context.Context, ev SubscriptionEvent) (marshaler.Event, error) {\n\treturn billingevents.NewInvoiceCreated(inv.ID), nil\n}\n// In worker loop:\nreturn w.publisher.WithContext(ctx).PublishIfNoError(w.handleSubscriptionEvent(ctx, ev))"
+      }
+    ]
+  },
+  "openmeter/watermill/grouphandler": {
+    "purpose": "Provides NoPublishingHandler, a multiplexed Watermill consumer handler that dispatches a single Kafka message to all registered GroupEventHandlers matching the CloudEvents ce_type header, with per-type OTel metrics. Unknown event types are silently ACKed (dropped) to support rolling deploys.",
+    "patterns": [
+      {
+        "name": "NewGroupEventHandler generic constructor",
+        "description": "Use NewGroupEventHandler[T](func(ctx, *T) error) to register a typed handler; T is the concrete event struct. Do not implement GroupEventHandler manually.",
+        "example": "grouphandler.NewGroupEventHandler(func(ctx context.Context, ev *billingevents.InvoiceCreated) error { return svc.OnInvoiceCreated(ctx, ev) })"
+      },
+      {
+        "name": "Silent drop on unknown event type",
+        "description": "If no handler matches ce_type, the message is ACKed and the ignored metric incremented; never return an error for unknown types so workers tolerate schema evolution.",
+        "example": "if !ok || len(groupHandler) == 0 { h.meters.handlerMessageCount.Add(..., meterAttributeStatusIgnored); return nil }"
+      },
+      {
+        "name": "errors.Join fan-out over all handlers",
+        "description": "All handlers for the same event type receive the same deserialized event pointer via errors.Join(lo.Map(...)); any failure causes Watermill retry \u2014 no partial success.",
+        "example": "err := errors.Join(lo.Map(groupHandler, func(h GroupEventHandler, _ int) error { return h.Handle(msg.Context(), event) })...)"
+      },
+      {
+        "name": "AddHandler for post-construction registration",
+        "description": "Use AddHandler to register additional handlers after NewNoPublishingHandler returns; it acquires the write lock safely.",
+        "example": "handler.AddHandler(grouphandler.NewGroupEventHandler(myOtherHandler))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "grouphandler.go",
+        "role": "Entire package: NoPublishingHandler mux, GroupEventHandler alias, NewGroupEventHandler generic, OTel meters.",
+        "watch_for": "The first handler in the slice for a type is used for Unmarshal (NewEvent()); all handlers share one deserialized pointer \u2014 mutating it races across handlers."
+      }
+    ],
+    "anti_patterns": [
+      "Returning an error for unrecognised event types \u2014 causes retry and DLQ of valid messages from other families on the same topic.",
+      "Mutating the event pointer inside a handler when multiple handlers share the same type \u2014 they share one deserialized instance.",
+      "Bypassing NoPublishingHandler with a raw message.NoPublishHandlerFunc \u2014 per-type OTel metrics and type-dispatch would be missing.",
+      "Passing a non-pointer event struct (with pointer receivers) to NewGroupEventHandler \u2014 NewEvent() deserialization fails."
+    ],
+    "decisions": [
+      {
+        "decision": "errors.Join fan-out rather than early-exit on handler failure.",
+        "rationale": "All handlers for an event type are equal observers; partial failure must surface so Watermill retries rather than silently swallowing one handler's failure."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Registering typed handlers and wiring into the router",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/watermill/grouphandler\"\n\tbillingevents \"github.com/openmeterio/openmeter/openmeter/billing/worker/events\"\n)\nhandler, err := grouphandler.NewNoPublishingHandler(\n\tm.Marshaler(), metricMeter,\n\tgrouphandler.NewGroupEventHandler(func(ctx context.Context, ev *billingevents.InvoiceCreated) error { return svc.OnInvoiceCreated(ctx, ev) }),\n)\nhandler.AddHandler(grouphandler.NewGroupEventHandler(myOtherHandler))"
+      }
+    ]
+  },
+  "openmeter/watermill/marshaler": {
+    "purpose": "Implements the cqrs.CommandEventMarshaler contract using CloudEvents 1.0 as the wire format. Each domain event serializes to a CloudEvents JSON envelope with ce_type/ce_time/ce_source/ce_subject headers; deserialization validates via Event.Validate(). WithSource injects the source field without modifying the event struct.",
+    "patterns": [
+      {
+        "name": "Event interface \u2014 EventName, EventMetadata, Validate",
+        "description": "Each publishable struct implements EventName() (ce_type and dispatch key), EventMetadata() (source/subject/time/id), and Validate() (called on both Marshal and Unmarshal).",
+        "example": "func (e *InvoiceCreated) EventName() string { return EventVersionSubsystem + \".invoice.created/v1\" }"
+      },
+      {
+        "name": "WithSource wrapper to inject CloudEvents source",
+        "description": "Use marshaler.WithSource(sourceURI, ev) when the event struct lacks a source; MarshalJSON delegates to the inner event to avoid an extra 'Event' wrapper key.",
+        "example": "return marshaler.WithSource(\"openmeter/billing-worker\", ev)"
+      },
+      {
+        "name": "ULID auto-ID and zero-time auto-now",
+        "description": "NewCloudEvent auto-generates a ULID ID and sets time to now if EventMetadata returns empty values; events needing deterministic IDs set metadata.ID explicitly.",
+        "example": "if metadata.ID == \"\" { cloudEvent.SetID(ulid.Make().String()) }"
+      },
+      {
+        "name": "Validate called on both sides of the wire",
+        "description": "Marshal calls Validate before encoding; Unmarshal calls it after JSON decode. Do not skip Validate even for optional-looking fields.",
+        "example": "return ev.Validate() // last line of Unmarshal"
+      },
+      {
+        "name": "UnknownEventName fallback for non-Event types",
+        "description": "Name() returns 'io.openmeter.unknown' for types not implementing Event, which silently routes to SystemEventsTopic. All published structs must implement Event.",
+        "example": "if !ok { return UnknownEventName }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "marshaler.go",
+        "role": "Marshal (Event->CloudEvents JSON+headers), Unmarshal (->Event+Validate), Name, NameFromMessage, NewCloudEvent helper.",
+        "watch_for": "Name() returns UnknownEventName for non-Event values, silently routing to SystemEventsTopic; ensure all published structs implement Event."
+      },
+      {
+        "file": "source.go",
+        "role": "eventWithSource wrapper overriding EventMetadata().Source; MarshalJSON delegates to inner event.",
+        "watch_for": "Pass pointer events to WithSource \u2014 value receivers on the inner Event may not satisfy the interface."
+      },
+      {
+        "file": "source_test.go",
+        "role": "WithSource round-trip test confirming source header and payload round-trip.",
+        "watch_for": "Real events must implement all three Event methods or Validate fails during Unmarshal."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing EventName() with an unstable string that changes between versions \u2014 routing and dispatch rely on stable names.",
+      "Returning a non-pointer from WithSource when the inner Event uses pointer receivers \u2014 MarshalJSON override needs pointer semantics.",
+      "Setting CloudEventsHeaderType manually in message metadata \u2014 Marshal sets it from EventName().",
+      "Skipping Validate() in event structs \u2014 Unmarshal calls it; invalid events trigger retries.",
+      "Embedding a non-Event type and passing it to Marshal \u2014 Name() returns UnknownEventName and routing falls to SystemEventsTopic."
+    ],
+    "decisions": [
+      {
+        "decision": "CloudEvents 1.0 as the wire format.",
+        "rationale": "Provides a standard envelope consumable by non-Go systems and inspectable in Kafka without custom schema knowledge, enabling cross-team debugging and polyglot consumers."
+      },
+      {
+        "decision": "Validate called on both producer and consumer sides.",
+        "rationale": "Catches corrupt/partial events at publish and consume time, preventing invalid data from propagating and making schema violations visible at the source."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining a new domain event satisfying marshaler.Event",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/event/metadata\"\n\nconst EventVersionSubsystem = \"io.openmeter.billing\"\n\ntype InvoiceCreated struct { InvoiceID string `json:\"invoiceId\"` }\n\nfunc (e *InvoiceCreated) EventName() string { return EventVersionSubsystem + \".invoice.created/v1\" }\nfunc (e *InvoiceCreated) EventMetadata() metadata.EventMetadata { return metadata.EventMetadata{Source: \"openmeter/billing\"} }\nfunc (e *InvoiceCreated) Validate() error { if e.InvoiceID == \"\" { return errors.New(\"invoice id required\") }; return nil }"
+      }
+    ]
+  },
+  "openmeter/watermill/nopublisher": {
+    "purpose": "Provides two pure adapter functions converting between Watermill's NoPublishHandlerFunc and HandlerFunc signatures, used when a handler is logically a consumer but must fit a router slot expecting a different signature.",
+    "patterns": [
+      {
+        "name": "NoPublisherHandlerToHandlerFunc for consumer-only handlers",
+        "description": "Wraps a NoPublishHandlerFunc into a HandlerFunc that always returns (nil, err); use when the router requires HandlerFunc but the handler produces no messages.",
+        "example": "router.AddHandler(\"name\", topic, sub, pub, nopublisher.NoPublisherHandlerToHandlerFunc(myConsumer))"
+      },
+      {
+        "name": "HandlerFuncToNoPublisherHandler with production guard",
+        "description": "Converts a HandlerFunc into a NoPublishHandlerFunc; returns ErrMessagesProduced if the inner handler emits any messages. Only wrap truly side-effect-only handlers.",
+        "example": "nopublisher.HandlerFuncToNoPublisherHandler(h) // errors if h returns messages"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "nopublisher.go",
+        "role": "Two pure adapter functions and one sentinel error (ErrMessagesProduced); no state.",
+        "watch_for": "ErrMessagesProduced is a hard error \u2014 a wrapped HandlerFunc returning messages causes infinite retries. Only wrap handlers guaranteed to return nil messages."
+      }
+    ],
+    "anti_patterns": [
+      "Using HandlerFuncToNoPublisherHandler on a handler that conditionally produces messages \u2014 ErrMessagesProduced causes infinite retries.",
+      "Reimplementing these adapters inline in worker code instead of importing this package."
+    ],
+    "decisions": [],
+    "code_examples": []
+  },
+  "openmeter/watermill/router": {
+    "purpose": "Constructs the standard Watermill *message.Router with a fixed, ordered middleware stack: PoisonQueue (DLQ), DLQ telemetry with OTel tracing, CorrelationID, Recoverer, exponential-backoff Retry, optional ProcessingTimeout+RestoreContext, and per-handler HandlerMetrics. All worker binaries must use NewDefaultRouter.",
+    "patterns": [
+      {
+        "name": "Fixed middleware order via NewDefaultRouter",
+        "description": "Middleware order: PoisonQueue -> DLQTelemetry -> CorrelationID -> Recoverer -> Retry -> (RestoreContext+Timeout if configured) -> HandlerMetrics. New workers call NewDefaultRouter, not their own router.",
+        "example": "watermillRouter, err := router.NewDefaultRouter(router.Options{...})"
+      },
+      {
+        "name": "RestoreContext immediately before Timeout",
+        "description": "Timeout middleware permanently replaces msg.Context(); RestoreContext saves and restores the original context so retries start fresh. Always pair them in this order.",
+        "example": "router.AddMiddleware(RestoreContext, middleware.Timeout(opts.Config.ProcessingTimeout))"
+      },
+      {
+        "name": "MaxRetries off-by-one correction",
+        "description": "Watermill's Retry runs MaxRetries+1 times; NewDefaultRouter subtracts 1. config.RetryConfiguration.MaxRetries is the true total attempt count; MaxRetries=0 means one attempt, no retry.",
+        "example": "if maxRetries > 0 { maxRetries = maxRetries - 1 }"
+      },
+      {
+        "name": "WarningLogSeverityError for transient errors",
+        "description": "Wrap expected transient errors with router.NewWarningLogSeverityError; DLQTelemetry downgrades these to WARN but the message still goes to DLQ.",
+        "example": "return router.NewWarningLogSeverityError(err)"
+      },
+      {
+        "name": "Options.Validate before construction",
+        "description": "Options.Validate() checks Subscriber, Publisher, Logger, MetricMeter, Tracer, and Config.Validate(); missing MetricMeter/Tracer causes nil-pointer panics in HandlerMetrics.",
+        "example": "if err := opts.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "Real OTel providers required in tests",
+        "description": "All OTel instruments are created at router construction; pass real sdkmetric/sdktrace providers in tests \u2014 nil values are rejected by Validate.",
+        "example": "options.MetricMeter = sdkmetric.NewMeterProvider().Meter(\"test\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "router.go",
+        "role": "NewDefaultRouter: builds *message.Router with the full middleware stack from Options; config from config.ConsumerConfiguration.",
+        "watch_for": "DLQ.Topic and ConsumerGroupName must be set in Config; they are not validated by Options.Validate but missing values panic at runtime."
+      },
+      {
+        "file": "metrics.go",
+        "role": "HandlerMetrics (per-handler attempt metrics) and NewDLQTelemetryMiddleware (full lifecycle OTel span); both used internally.",
+        "watch_for": "NewDLQTelemetryMiddleware wraps the whole retry+DLQ span in one OTel span \u2014 do not add another span wrapper or traces nest incorrectly."
+      },
+      {
+        "file": "context.go",
+        "role": "RestoreContext middleware: saves msg.Context() before the handler, restores after. Must precede Timeout.",
+        "watch_for": "Timeout without RestoreContext means retries share a cancelled context and fail immediately regardless of ProcessingTimeout."
+      },
+      {
+        "file": "errors.go",
+        "role": "WarningLogSeverityError sentinel; DLQTelemetry checks via errors.As to downgrade log level.",
+        "watch_for": "Only affects log severity \u2014 the message still goes to DLQ; not a way to suppress DLQ routing."
+      },
+      {
+        "file": "logger.go",
+        "role": "warningOnlyLogger downgrading Error->Warn for retry noise, used only in the Retry middleware.",
+        "watch_for": "warningOnlyLogger.With() returns a new logger \u2014 use the returned adapter, not the original."
+      },
+      {
+        "file": "router_test.go",
+        "role": "Table-driven DLQ/retry/timeout tests using gochannel; reference for valid Options in tests.",
+        "watch_for": "Use the DoneCondition done.Wait(120s) pattern, never time.Sleep."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing a *message.Router directly instead of NewDefaultRouter \u2014 middleware order, DLQ wiring, and OTel tracing will be absent.",
+      "Adding Timeout middleware without RestoreContext immediately before it \u2014 cancelled contexts break retries.",
+      "Setting MaxRetries=0 expecting 'no retries with no DLQ' \u2014 that means one attempt then DLQ; use MaxRetries=1 for one retry.",
+      "Returning non-WarningLogSeverityError for expected transient failures \u2014 they log at ERROR and may trigger alerts.",
+      "Skipping Options.Validate \u2014 missing Tracer/MetricMeter causes nil-pointer panics in HandlerMetrics."
+    ],
+    "decisions": [
+      {
+        "decision": "PoisonQueue outermost, HandlerMetrics innermost.",
+        "rationale": "PoisonQueue must catch all errors including Recoverer's; HandlerMetrics must measure only actual handler time, not retry/DLQ overhead."
+      },
+      {
+        "decision": "RestoreContext workaround for watermill#467.",
+        "rationale": "Timeout permanently replaces msg.Context(); without RestoreContext the next retry starts with a cancelled context, failing immediately."
+      },
+      {
+        "decision": "warningOnlyLogger for the Retry middleware only.",
+        "rationale": "Retry errors are expected transient failures; logging at ERROR would pollute alerts \u2014 only final DLQ disposition is an error log."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructing the default router in a worker binary",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/watermill/router\"\n\t\"github.com/openmeterio/openmeter/app/config\"\n)\nwatermillRouter, err := router.NewDefaultRouter(router.Options{\n\tSubscriber: kafkaSubscriber, Publisher: kafkaPublisher, Logger: logger,\n\tMetricMeter: metricMeter, Tracer: tracer,\n\tConfig: config.ConsumerConfiguration{ConsumerGroupName: \"billing-worker\", DLQ: config.DLQConfiguration{Topic: \"billing-worker-dlq\"}},\n})"
       }
     ]
   }

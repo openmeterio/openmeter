@@ -1,161 +1,221 @@
 {
-  "openmeter/meterevent/adapter": {
-    "purpose": "Implements meterevent.Service by composing streaming.Connector (ClickHouse), customer.Service, and meter.Service \u2014 no Ent/Postgres access. It resolves customer filters early, delegates raw queries to the streaming layer, then runs a fixed post-process pipeline (map \u2192 enrich \u2192 validate).",
+  "openmeter/llmcost/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing llmcost.Adapter: persists global (namespace IS NULL, source='system') and per-namespace manual override (source='manual') rows in the llmcostprice table with soft-delete throughout. All mutations honor the ctx-bound Ent transaction via entutils.TransactingRepo.",
     "patterns": [
       {
-        "name": "Interface compliance assertion",
-        "description": "Declare `var _ meterevent.Service = (*adapter)(nil)` in adapter.go to enforce compile-time conformance.",
-        "example": "var _ meterevent.Service = (*adapter)(nil)"
+        "name": "TransactingRepo wrapping on every mutating method",
+        "description": "Each DB-writing method body is wrapped with entutils.TransactingRepo or TransactingRepoWithNoValue to rebind to any caller transaction; read-only ResolvePrice intentionally skips this.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (llmcost.Price, error) { ... a.db.LLMCostPrice.Create()... })"
       },
       {
-        "name": "Validate-before-delegate",
-        "description": "Both ListEvents and ListEventsV2 call params.Validate() and wrap any error in models.NewGenericValidationError before reaching the streaming connector.",
-        "example": "if err := params.Validate(); err != nil { return nil, models.NewGenericValidationError(fmt.Errorf(\"validate input: %w\", err)) }"
+        "name": "Soft-delete via SetDeletedAt(clock.Now())",
+        "description": "All deletions set DeletedAt; all queries filter pricedb.DeletedAtIsNil(). Never hard-delete.",
+        "example": "a.db.LLMCostPrice.UpdateOneID(id).SetDeletedAt(clock.Now()).Exec(ctx)"
       },
       {
-        "name": "Fixed post-process pipeline",
-        "description": "After fetching raw events always call eventPostProcess which runs mapEventsToMeterEvents \u2192 enrichEventsWithCustomerID \u2192 validateEvents in that order. Never skip or reorder steps.",
-        "example": "meterEvents, err = a.eventPostProcess(ctx, params.Namespace, rawEvents)"
+        "name": "Namespace discrimination by predicate",
+        "description": "Global rows use pricedb.NamespaceIsNil(); overrides use pricedb.NamespaceEQ(ns) + pricedb.SourceEQ('manual'). Never mix predicates or add a user source filter to ListOverrides.",
+        "example": "query.Where(pricedb.NamespaceEQ(ns), pricedb.SourceEQ(\"manual\"))"
       },
       {
-        "name": "Early-empty-return on customer filter miss",
-        "description": "If customerIDs filter is supplied but listCustomers returns zero results, return an empty slice immediately \u2014 do not query the streaming layer.",
-        "example": "if len(customers) == 0 { return []meterevent.Event{}, nil }"
+        "name": "decimalOrZero for optional pricing fields",
+        "description": "Optional decimal pointers (CacheReadPerToken, CacheWritePerToken, ReasoningPerToken) pass through decimalOrZero before SetX so nil becomes zero, avoiding NULL in non-nullable columns.",
+        "example": "SetCacheReadPerToken(decimalOrZero(input.Pricing.CacheReadPerToken))"
       },
       {
-        "name": "Subject\u2192customerID per-call cache",
-        "description": "enrichEventsWithCustomerID builds a map[string]string cache keyed by subject to avoid repeated DB lookups within a single call. New enrichment helpers must replicate this pattern.",
-        "example": "cache := make(map[string]string); if customerID, ok := cache[event.Subject]; ok { ... }"
+        "name": "ResolvePrice single-query override precedence",
+        "description": "ResolvePrice fetches namespace AND global rows in one query ordered by namespace DESC so namespace-set rows sort first, returning the first hit \u2014 no fallback query.",
+        "example": "Order(pricedb.ByNamespace(sql.OrderDesc()), pricedb.ByEffectiveFrom(sql.OrderDesc())).First(ctx)"
       },
       {
-        "name": "Cursor emitted only on full page",
-        "description": "In ListEventsV2, only set result.NextCursor when len(meterEvents) == effectiveLimit; leave it nil for partial pages.",
-        "example": "if len(meterEvents) > 0 && len(meterEvents) == effectiveLimit { cursor := meterEvents[len(meterEvents)-1].Cursor(); result.NextCursor = &cursor }"
+        "name": "UpsertGlobalPrice query-first in-place update",
+        "description": "Checks for an existing open-ended global row (EffectiveToIsNil); UpdateOneID in place if found else Create. Globals are not soft-delete-then-insert.",
+        "example": "existing, _ := a.db.LLMCostPrice.Query().Where(pricedb.NamespaceIsNil(), pricedb.EffectiveToIsNil()).First(ctx)"
       },
       {
-        "name": "ValidationErrors attached per-event, not returned as error",
-        "description": "validateEvents appends errors to event.ValidationErrors for each invalid event and still appends the event to the output slice. It never returns a top-level error for individual event failures.",
-        "example": "event.ValidationErrors = validationErrors; validatedEvents = append(validatedEvents, event)"
+        "name": "Config.Validate() before construction",
+        "description": "New(Config) calls config.Validate() (Config implements models.Validator) and returns an error before building the adapter.",
+        "example": "func New(config Config) (llmcost.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
       }
     ],
     "key_file_guides": [
       {
         "file": "adapter.go",
-        "role": "Constructor (New) and struct definition. Holds streamingConnector, customerService, meterService only.",
-        "watch_for": "Never add an Ent/DB client here; this adapter is streaming-only. Adding persistence imports breaks the domain isolation."
+        "role": "Constructor, Config validation, Tx/WithTx/Self transaction plumbing required by TransactingRepo.",
+        "watch_for": "WithTx must call entdb.NewTxClientFromRawConfig and return a new *adapter backed by txClient.Client() \u2014 never reuse the original db field across transactions."
       },
       {
-        "file": "event.go",
-        "role": "All method implementations: ListEvents, ListEventsV2, listCustomers, eventPostProcess, mapEventsToMeterEvents, validateEvents, enrichEventsWithCustomerID.",
-        "watch_for": "enrichEventsWithCustomerID has a FIXME: one DB call per event. The cache mitigates N+1 within one call but batching is a known TODO. Do not add more per-event service calls without a cache."
+        "file": "mapping.go",
+        "role": "Maps *db.LLMCostPrice to llmcost.Price; optional pricing fields use an IsZero() guard before setting a pointer.",
+        "watch_for": "A zero alpacadecimal from the DB means unset, not explicit zero \u2014 check IsZero() before assigning a pointer."
+      },
+      {
+        "file": "price.go",
+        "role": "All llmcost.Adapter methods: ListPrices, GetPrice, ResolvePrice, CreateOverride, DeleteOverride, ListOverrides, UpsertGlobalPrice.",
+        "watch_for": "ListOverrides hardcodes SourceEQ('manual') \u2014 do not add a caller source filter. DeleteOverride validates SourceEQ('manual') so system/global prices cannot be deleted this way."
       }
     ],
     "anti_patterns": [
-      "Importing openmeter/ent/db or any Ent-generated package \u2014 this adapter never touches Postgres.",
-      "Returning a top-level error from validateEvents for individual event failures \u2014 use Event.ValidationErrors instead.",
-      "Skipping params.Validate() before delegating to the streaming connector.",
-      "Emitting NextCursor when the result page is smaller than effectiveLimit.",
-      "Adding additional per-event service calls inside eventPostProcess without a per-call cache."
+      "Hard-deleting rows \u2014 all deletions go through SetDeletedAt(clock.Now()).",
+      "Calling a.db directly inside a helper without entutils.TransactingRepo wrapping.",
+      "Mixing pricedb.NamespaceIsNil() and pricedb.NamespaceEQ() in a single ListPrices query path.",
+      "Adding a source filter argument to ListOverrides (already constrained to source='manual').",
+      "Editing files under openmeter/ent/db/ instead of regenerating via make generate."
     ],
     "decisions": [
       {
-        "decision": "Implemented as adapter/ rather than service/ sub-package.",
-        "rationale": "meterevent has no independent business logic; it purely composes streaming queries with customer/meter lookups, so a distinct service layer would be empty indirection."
+        "decision": "Soft-delete for all price records.",
+        "rationale": "Price history is required for billing audit trails; hard deletes would destroy the audit trail for past invoice line resolutions."
       },
       {
-        "decision": "ValidationErrors are per-event fields, not top-level errors.",
-        "rationale": "Event listing is a query API; callers need all events including partially-invalid ones. Failing the whole request for one bad event would break observability workflows."
+        "decision": "ResolvePrice reads directly without TransactingRepo.",
+        "rationale": "It is read-only with no side effects; the ORDER BY namespace DESC trick makes it a single-query hot path in the billing request path."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new filter that resolves IDs from a domain service before querying the streaming layer",
-        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/meterevent\"\n\t\"github.com/openmeterio/openmeter/openmeter/streaming\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (a *adapter) ListEventsV2(ctx context.Context, params meterevent.ListEventsV2Params) (pagination.Result[meterevent.Event], error) {\n\tif err := params.Validate(); err != nil {\n\t\treturn pagination.Result[meterevent.Event]{}, models.NewGenericValidationError(fmt.Errorf(\"validate input: %w\", err))\n\t}\n\tlistParams := streaming.ListEventsV2Params{ /* map fields */ }\n\tif params.CustomerID != nil && params.CustomerID.In != nil && len(*params.CustomerID.In) > 0 {\n\t\tcustomers, err := a.listCustomers(ctx, params.Namespace, *params.CustomerID.In)\n\t\tif err != nil {\n\t\t\treturn pagination.Result[meterevent.Event]{}, fmt.Errorf(\"list customers: %w\", err)\n\t\t}\n\t\tif len(customers) == 0 {\n\t\t\treturn pagination.Result[meterevent.Event]{}, nil\n\t\t}\n\t\tlistParams.Customers = &customers\n\t}\n\t// ... delegate to streamingConnector then eventPostProcess\n}"
+        "scenario": "A new write method honoring the ctx transaction",
+        "code": "func (a *adapter) ArchivePrice(ctx context.Context, id string) error {\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, a *adapter) error {\n\t\treturn a.db.LLMCostPrice.UpdateOneID(id).\n\t\t\tSetDeletedAt(clock.Now()).\n\t\t\tExec(ctx)\n\t})\n}"
       }
     ]
   },
-  "openmeter/meterevent/httphandler": {
-    "purpose": "HTTP handler layer for the meterevent domain, adapting v1 (ListEvents) and v2 (ListEventsV2) REST endpoints to meterevent.Service calls via the generic httptransport.HandlerWithArgs pipeline. Mounted by openmeter/server/router.",
+  "openmeter/llmcost/service": {
+    "purpose": "Business-logic layer implementing llmcost.Service: delegates persistence to llmcost.Adapter and adds the namespace-override overlay for ListPrices and GetPrice without exposing raw DB semantics. Owns the rule 'namespace overrides take precedence over global prices'.",
     "patterns": [
       {
-        "name": "HandlerWithArgs triple: decoder / operation / encoder",
-        "description": "Every endpoint is constructed with httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[Response](http.StatusOK), options...). The decoder maps params only; the operation calls the service.",
-        "example": "return httptransport.NewHandlerWithArgs(func(ctx, r, params) (Req, error) {...}, func(ctx, req) (Resp, error) {...}, commonhttp.JSONResponseEncoderWithStatus[ListEventsResponse](http.StatusOK), opts...)"
+        "name": "transaction.Run wrapping at the service boundary",
+        "description": "Methods calling the adapter wrap the body in transaction.Run / RunWithNoValue, providing consistent transaction boundaries at the service layer even though adapters also call TransactingRepo internally.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.Result[llmcost.Price], error) { return s.adapter.ListPrices(ctx, input) })"
       },
       {
-        "name": "Type alias block per endpoint file",
-        "description": "Each handler file opens with a type block aliasing Params, Request, Response, and Handler types before the method. Params/Response alias api.* types; Request aliases meterevent.* params.",
-        "example": "type (\n\tListEventsParams   = api.ListEventsParams\n\tListEventsResponse = []api.IngestedEvent\n\tListEventsHandler  httptransport.HandlerWithArgs[ListEventsRequest, ListEventsResponse, ListEventsParams]\n)\ntype ListEventsRequest = meterevent.ListEventsParams"
+        "name": "Namespace override overlay in ListPrices",
+        "description": "Fetch global prices, batch-fetch namespace overrides, then replace matching entries in-memory via a provider+modelID map. Skipped when namespace is empty, result is empty, or the source filter excludes manual.",
+        "example": "overrideMap[overrideKey{string(o.Provider), o.ModelID}] = o; for i, p := range result.Items { if o, ok := overrideMap[...]; ok { result.Items[i] = o } }"
       },
       {
-        "name": "Namespace resolved via namespaceDecoder in decoder fn",
-        "description": "The decoder function always calls h.resolveNamespace(ctx) first. Namespace is never passed as a query param; missing namespace returns http.StatusInternalServerError (server misconfiguration, not 400).",
-        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ListEventsRequest{}, err }"
+        "name": "sourceFilterExcludesManual guard before overlay",
+        "description": "Call sourceFilterExcludesManual(*filter.FilterString) (checks Eq != 'manual' or Ne == 'manual') before applying the overlay; use the helper, not inline comparison.",
+        "example": "if sourceFilterExcludesManual(input.Source) { return result, nil }"
       },
       {
-        "name": "Validation errors wrapped in decoder, not operation",
-        "description": "Param conversion errors (e.g. from convertListEventsV2Params) are wrapped in models.NewGenericValidationError in the decoder function before returning.",
-        "example": "if err != nil { return ListEventsV2Request{}, models.NewGenericValidationError(err) }"
-      },
-      {
-        "name": "WithOperationName appended to handler options",
-        "description": "Every handler appends httptransport.WithOperationName(\"<camelCaseName>\") via httptransport.AppendOptions(h.options, ...) \u2014 required for tracing and metrics labeling.",
-        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listEventsV2\"))..."
-      },
-      {
-        "name": "Mapping functions in mapping.go, not inline",
-        "description": "All API\u2194domain type conversions (convertEvent, convertListEventsV2Params, convertListEventsV2Response) live in mapping.go. Handler files call them but contain no inline conversion logic.",
-        "example": "result[i], err = convertEvent(event)"
-      },
-      {
-        "name": "Handler interface embeds fine-grained sub-interfaces",
-        "description": "The exported Handler interface embeds EventHandler (and future groups). New endpoint groups become new embedded interfaces, not direct methods on Handler.",
-        "example": "type Handler interface { EventHandler }"
+        "name": "Single batch-fetch of overrides before the loop",
+        "description": "Fetch all namespace overrides once before iterating the result slice; never query inside the overlay loop.",
+        "example": "overrides, err := s.adapter.ListOverrides(ctx, llmcost.ListOverridesInput{Namespace: input.Namespace})"
       }
     ],
     "key_file_guides": [
       {
-        "file": "handler.go",
-        "role": "Defines Handler/EventHandler interfaces, private handler struct, New() constructor, and resolveNamespace helper.",
-        "watch_for": "resolveNamespace returns http.StatusInternalServerError for missing namespace \u2014 this is correct (server misconfiguration). Do not change to 400."
+        "file": "service.go",
+        "role": "Concrete service: overlay logic for ListPrices, GetPrice namespace promotion, and thin delegations for CreateOverride/DeleteOverride/ListOverrides/ResolvePrice.",
+        "watch_for": "GetPrice promotes to override only when price.Namespace == nil (global) AND input.Namespace != '' \u2014 check both. ResolvePrice delegates directly without transaction.Run (read-only hot path)."
       },
       {
-        "file": "event.go",
-        "role": "ListEvents handler (v1). Applies MaximumFromDuration default and MaximumLimit default in the decoder.",
-        "watch_for": "minimumFrom adds one second via MaximumFromDuration to avoid edge-case validation failures \u2014 preserve this when changing time window logic."
-      },
-      {
-        "file": "event_v2.go",
-        "role": "ListEventsV2 handler (v2). Delegates param conversion to convertListEventsV2Params in mapping.go.",
-        "watch_for": "StoredAt filter is not forwarded through convertListEventsV2Params. Adding it requires changes in both mapping.go and the domain params struct."
-      },
-      {
-        "file": "mapping.go",
-        "role": "All API\u2194domain type conversions: convertEvent, convertListEventsV2Params, convertListEventsV2Response.",
-        "watch_for": "ValidationErrors are joined with errors.Join and placed in api.IngestedEvent.ValidationError as *string \u2014 nil when no errors. Do not return them as top-level errors."
+        "file": "service_test.go",
+        "role": "Table-driven unit tests of overlay logic using a mockAdapter; no real DB.",
+        "watch_for": "Existing helpers use context.Background() where no *testing.T is available; new *testing.T tests should use t.Context()."
       }
     ],
     "anti_patterns": [
-      "Calling meterevent.Service methods in the decoder function \u2014 decoder maps params only; service calls belong in the operation function.",
-      "Inlining type conversion logic in handler files instead of mapping.go.",
-      "Omitting WithOperationName from handler options \u2014 breaks tracing and metrics labeling.",
-      "Adding business logic (e.g. time window enforcement) in the operation function instead of the decoder.",
-      "Returning a non-200 status from JSONResponseEncoderWithStatus for successful responses \u2014 errors go through the error encoder chain."
+      "Calling adapter methods directly without transaction.Run wrapping \u2014 the service owns the transaction boundary.",
+      "Adding DB queries inside the per-item overlay loop instead of batch-fetching once.",
+      "Inline string comparison for the source filter instead of sourceFilterExcludesManual.",
+      "Promoting a price in GetPrice when price.Namespace is already set \u2014 only promote when price.Namespace == nil."
     ],
     "decisions": [
       {
-        "decision": "v1 and v2 list handlers are in separate files (event.go vs event_v2.go).",
-        "rationale": "v1 returns a flat slice with a hard default limit; v2 uses cursor pagination and richer filters. Separate files avoid branching inside a single handler and make versioned behavior auditable."
-      },
-      {
-        "decision": "mapping.go centralizes all API\u2194domain conversions.",
-        "rationale": "Keeps handler files focused on the decode\u2192operate\u2192encode lifecycle and makes conversion logic independently testable and auditable without reading handler code."
+        "decision": "Override overlay applied at the service layer, not the adapter.",
+        "rationale": "The adapter exposes raw DB semantics; the service owns the precedence rule, keeping adapter methods independently composable and testable."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new v2-style list endpoint to this handler package",
-        "code": "// In a new file, e.g. subject.go:\npackage httphandler\n\nimport (\n\t\"context\"\n\t\"net/http\"\n\n\t\"github.com/openmeterio/openmeter/api\"\n\t\"github.com/openmeterio/openmeter/openmeter/meterevent\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype (\n\tListSubjectsParams   = api.ListSubjectsParams\n\tListSubjectsRequest  = meterevent.ListSubjectsParams\n\tListSubjectsResponse = api.SubjectCursorPaginatedResponse\n\tListSubjectsHandler  = httptransport.HandlerWithArgs[ListSubjectsRequest, ListSubjectsResponse, ListSubjectsParams]\n)\n\nfunc (h *handler) ListSubjects() ListSubjectsHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, params ListSubjectsParams) (ListSubjectsRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil {\n\t\t\t\treturn ListSubjectsRequest{}, err\n\t\t\t}\n\t\t\tp, err := convertListSubjectsParams(params, ns)\n\t\t\tif err != nil {\n\t\t\t\treturn ListSubjectsRequest{}, models.NewGenericValidationError(err)\n\t\t\t}\n\t\t\treturn p, nil\n\t\t},\n\t\tfunc(ctx context.Context, req ListSubjectsRequest) (ListSubjectsResponse, error) {\n\t\t\tresult, err := h.metereventService.ListSubjects(ctx, req)\n\t\t\tif err != nil {\n\t\t\t\treturn ListSubjectsResponse{}, err\n\t\t\t}\n\t\t\treturn convertListSubjectsResponse(result)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ListSubjectsResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listSubjects\"))...,\n\t)\n}"
+        "scenario": "A service method delegating to the adapter within a transaction",
+        "code": "func (s *service) BulkDelete(ctx context.Context, ids []string) error {\n\treturn transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {\n\t\tfor _, id := range ids {\n\t\t\tif err := s.adapter.DeleteOverride(ctx, llmcost.DeleteOverrideInput{ID: id}); err != nil {\n\t\t\t\treturn err\n\t\t\t}\n\t\t}\n\t\treturn nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/llmcost/sync": {
+    "purpose": "External price synchronization pipeline: fetches raw LLM prices from external sources (models.dev), normalizes provider/model IDs, deduplicates within-source collisions from normalization, then reconciles multi-source agreement into global llmcostprice rows via Adapter.UpsertGlobalPrice. Driven by cmd/jobs llm-cost sync.",
+    "patterns": [
+      {
+        "name": "Fetcher interface per source in a dedicated file",
+        "description": "Each source implements Fetcher (Source() PriceSource, Fetch(ctx) ([]SourcePrice, error)); new sources add fetcher_<source>.go and register in DefaultFetchers. Source() returns a stable PriceSource constant used as DB key.",
+        "example": "func (f *modelsDevFetcher) Source() llmcost.PriceSource { return \"models_dev\" }"
+      },
+      {
+        "name": "Four-phase SyncJob.Run with strict ordering",
+        "description": "Order is mandatory: (1) fetch+normalize per source, (2) deduplicateSourcePrices, (3) optional filter, (4) Reconcile. Do not reorder.",
+        "example": "allPrices = deduplicateSourcePrices(allPrices); if j.filter != nil { ... }; return j.reconciler.Reconcile(ctx, allPrices)"
+      },
+      {
+        "name": "Per-million to per-token conversion in fetchers",
+        "description": "External APIs provide per-million-token prices; fetchers divide by 1,000,000 with alpacadecimal before returning SourcePrice so downstream works in per-token units.",
+        "example": "InputPerToken: alpacadecimal.NewFromFloat(*model.Cost.Input).Div(alpacadecimal.NewFromFloat(1_000_000))"
+      },
+      {
+        "name": "deduplicateSourcePrices prevents false agreement",
+        "description": "Provider normalization (azure_ai\u2192azure) can collapse two raw entries from one source into the same (source, provider, modelID) key; this runs after normalize, before reconcile.",
+        "example": "key := sourceModelKey{Source: p.Source, Provider: string(p.Provider), ModelID: p.ModelID}; if idx, exists := seen[key]; exists { ... }"
+      },
+      {
+        "name": "minAgreement capped at fetcher count",
+        "description": "NewSyncJob caps minAgreement at len(fetchers) so single-source deployments work without manual override.",
+        "example": "if n := len(fetchers); n > 0 && minAgreement > n { minAgreement = n }"
+      },
+      {
+        "name": "Non-fatal fetcher errors",
+        "description": "A failing fetcher is logged and skipped (continue); a single down source must not abort the sync.",
+        "example": "prices, err := f.Fetch(ctx); if err != nil { j.logger.Error(...); continue }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "sync.go",
+        "role": "SyncJob orchestrator holding fetchers, normalizer, reconciler, optional filter; Run() is the only public entry point.",
+        "watch_for": "deduplicateSourcePrices must run AFTER normalization and BEFORE filter+reconcile \u2014 the order is load-bearing."
+      },
+      {
+        "file": "fetcher_modelsdev.go",
+        "role": "HTTP fetcher for models.dev/api.json; strips provider/model prefix and converts per-million to per-token.",
+        "watch_for": "Provider IDs are only lowercased here, not aliased \u2014 aliasing happens in the normalizer; aliasing in the fetcher would bypass deduplication."
+      },
+      {
+        "file": "reconciler.go",
+        "role": "Groups SourcePrice by (provider, modelID), runs pairwise findAgreement within priceTolerance, averages agreeing prices, calls repo.UpsertGlobalPrice.",
+        "watch_for": "findAgreement is O(n\u00b2) in sources per model (fine for <10 sources). optionalDecimalsAgree: one nil + one non-nil disagree (not equal to zero)."
+      },
+      {
+        "file": "normalizer.go",
+        "role": "Wraps llmcost.NormalizeModelID: lowercases, trims, strips date version suffixes, aliases provider names (gemini\u2192google, mistralai\u2192mistral).",
+        "watch_for": "Normalization must run in SyncJob.Run after fetching but before deduplication; do not call Normalize inside fetchers."
+      },
+      {
+        "file": "fetcher.go",
+        "role": "Fetcher interface definition only.",
+        "watch_for": "Source() must return a stable PriceSource constant; it is stored in the DB SourcePricesMap, so changing a source key is a breaking migration."
+      }
+    ],
+    "anti_patterns": [
+      "Adding normalization logic inside fetchers \u2014 it belongs in the normalizer so all fetchers are handled uniformly.",
+      "Calling reconciler.Reconcile before deduplicateSourcePrices \u2014 allows false multi-source agreement from provider aliasing.",
+      "Making fetcher errors fatal \u2014 a single down source must not abort the sync.",
+      "Storing per-million prices in SourcePrice instead of converting to per-token in Fetch().",
+      "Adding a new fetcher without registering it in DefaultFetchers or SyncJobConfig.Fetchers."
+    ],
+    "decisions": [
+      {
+        "decision": "Fetcher, Normalizer, Reconciler are distinct types.",
+        "rationale": "Each phase is independently testable with mocks; new sources only require a new Fetcher without touching reconciliation."
+      },
+      {
+        "decision": "Require multi-source agreement before writing global prices.",
+        "rationale": "A single external source could be wrong or stale; agreement from multiple sources prevents billing on bad data during an upstream outage."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new price source fetcher",
+        "code": "// fetcher_litellm.go\npackage sync\n\nimport (\n\t\"net/http\"\n\t\"github.com/openmeterio/openmeter/openmeter/llmcost\"\n)\n\ntype litellmFetcher struct{ client *http.Client }\n\nfunc NewLiteLLMFetcher(client *http.Client) Fetcher { return &litellmFetcher{client: client} }\n\nfunc (f *litellmFetcher) Source() llmcost.PriceSource { return \"litellm\" }\n// Fetch divides external per-million costs by 1_000_000 before returning SourcePrice"
       }
     ]
   }

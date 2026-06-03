@@ -1,36 +1,84 @@
 {
-  "api/types": {
-    "purpose": "Holds manually-authored Go types that fill gaps where oapi-codegen cannot generate correct types from the OpenAPI spec (e.g. oneOf/anyOf schemas). Types here are referenced from the OpenAPI spec via `x-go-type` so generated clients use them correctly \u2014 this package must never contain business logic.",
+  "api/client/javascript/src": {
+    "purpose": "Public TypeScript SDK surface for OpenMeter, organised as four independent sub-packages by concern: the generated admin client (client/), the restricted portal-token client (portal/), the React integration (react/), and orval-generated Zod validation schemas (zod/). No source files live here directly \u2014 it is a routing layer; the generated halves (client/schemas.ts, zod/index.ts) are read-only.",
     "patterns": [
       {
-        "name": "x-go-type reference only",
-        "description": "New types are added here only when oapi-codegen cannot generate them (oneOf/anyOf). The type is then referenced in the OpenAPI spec via the `x-go-type` extension, not imported directly by hand-written code.",
-        "example": "In openapi.yaml: schema: x-go-type: types.MyUnionType"
+        "name": "Generated-first, never hand-edited",
+        "description": "client/schemas.ts (openapi-fetch types) and zod/index.ts (orval schemas) are fully generated from the OpenAPI spec; any manual edit is overwritten by make gen-api.",
+        "example": "import type { paths } from './schemas.js'"
       },
       {
-        "name": "Pure type definitions",
-        "description": "Files in this package contain only type declarations (struct, interface, type alias). No functions, no methods, no init(), no business logic.",
-        "example": "type MyUnionType struct { ... }"
+        "name": "Separate admin vs portal client (no merge)",
+        "description": "client/ is the full admin SDK; portal/ is a portalToken-only client that intentionally omits all admin endpoints \u2014 capability separation is enforced at the type level, not by config.",
+        "example": "// portal/index.ts: class OpenMeter { constructor({ portalToken }: Config) }"
+      },
+      {
+        "name": "transformResponse wraps every fetch call",
+        "description": "Every public method pipes the raw openapi-fetch result through transformResponse (date ISO\u2192Date decoding + HTTPError throwing); portal/ reuses the same util from ../client/utils.js rather than redefining it.",
+        "example": "return transformResponse(await this.client.GET('/api/v1/events', {...}))"
+      },
+      {
+        "name": "RequestOptions threaded through every public method",
+        "description": "Each method accepts options?: RequestOptions and spreads ...options into the fetch call to propagate AbortSignal.",
+        "example": "async list(params, options?: RequestOptions) { ...options }"
+      },
+      {
+        "name": "React integration is a context/provider/hook trio delegating to portal/",
+        "description": "react/ exposes exactly one OpenMeterContext, OpenMeterProvider, and useOpenMeter; all SDK logic lives in portal/ and react/ only handles injection.",
+        "example": "createContext<OpenMeter | null | undefined>(undefined)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "doc.go",
-        "role": "Package declaration and authoritative comment explaining when and why to add types here \u2014 read before adding any new type.",
-        "watch_for": "The comment is the contract: only add types for spec constructs oapi-codegen cannot handle (oneOf/anyOf). If oapi-codegen can handle it, do not add it here."
+        "file": "api/client/javascript/src/client/index.ts",
+        "role": "Root OpenMeter admin class instantiating every resource class as a public field.",
+        "watch_for": "A new resource class must be registered here as a field + constructor new, or it is unreachable from the public API."
+      },
+      {
+        "file": "api/client/javascript/src/client/schemas.ts",
+        "role": "Generated TS types for all OpenAPI paths/operations \u2014 source of truth for request/response shapes.",
+        "watch_for": "Never edit manually; import all domain types from here, never redefine locally."
+      },
+      {
+        "file": "api/client/javascript/src/client/utils.ts",
+        "role": "Shared transformResponse, encodeDates, and query date serialization.",
+        "watch_for": "Portal client imports these too \u2014 any signature change breaks both clients."
+      },
+      {
+        "file": "api/client/javascript/src/portal/index.ts",
+        "role": "Restricted portal client authenticating via portalToken, exposing only the portal meter query endpoint.",
+        "watch_for": "portalToken must never be optional; do not add admin endpoints; keep Accept: application/json on the meter query or it falls back to CSV."
+      },
+      {
+        "file": "api/client/javascript/src/react/context.tsx",
+        "role": "React context/provider/hook injecting the portal OpenMeter client; carries the 'use client' directive.",
+        "watch_for": "Context default is undefined (throws in hook) while null is the valid not-logged-in state \u2014 do not collapse the distinction; removing 'use client' breaks Next.js App Router."
+      },
+      {
+        "file": "api/client/javascript/src/zod/index.ts",
+        "role": "orval-generated Zod runtime-validation schemas over the TS types.",
+        "watch_for": "Never hand-edit; treat exported default/regex/min-max constants as regeneration-prone schema internals, not application constants."
       }
     ],
     "anti_patterns": [
-      "Adding types that oapi-codegen can generate automatically from the OpenAPI spec",
-      "Adding business logic, helper functions, or methods to types in this package",
-      "Duplicating types already present in api/api.gen.go or api/v3/api.gen.go",
-      "Importing this package from domain code (openmeter/*) \u2014 it is consumed via x-go-type by generated code only",
-      "Editing api/api.gen.go or api/v3/api.gen.go to inline types instead of using this package"
+      "Hand-editing client/schemas.ts or zod/index.ts \u2014 both are generated and overwritten by make gen-api",
+      "Adding admin-level endpoints to portal/ \u2014 it is intentionally restricted to portal scope",
+      "Redefining transformResponse/encodeDates inside portal/ or react/ instead of importing from ../client/utils.js",
+      "Adding a client/ resource class without registering it as a public field on the root OpenMeter class",
+      "Removing the 'use client' directive from react/context.tsx \u2014 breaks Next.js App Router server components"
     ],
     "decisions": [
       {
-        "decision": "Types live in a separate package rather than inline in generated files",
-        "rationale": "Generated files (api/api.gen.go, api/v3/api.gen.go) must not be hand-edited; a separate package allows manual type definitions to survive regeneration cycles while remaining importable by generated code via x-go-type references."
+        "decision": "Four sub-packages (client, portal, react, zod) instead of one entry point",
+        "rationale": "Separates generated types from hand-authored utilities, admin from portal access, and framework-agnostic client from React-specific integration."
+      },
+      {
+        "decision": "Portal client is a separate class, not a config mode of the admin client",
+        "rationale": "Enforces at the type level that portal consumers cannot call admin endpoints, avoiding accidental capability escalation."
+      },
+      {
+        "decision": "Zod schemas generated by orval from the OpenAPI spec",
+        "rationale": "Keeps runtime validation in sync with the TypeSpec-derived spec; any spec change propagates via make gen-api with no manual maintenance."
       }
     ],
     "code_examples": []

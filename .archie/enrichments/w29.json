@@ -1,230 +1,450 @@
 {
-  "api/v3/handlers/customers/billing": {
-    "purpose": "v3 HTTP handlers for customer-scoped billing operations: reading and writing the customer billing profile override, app-specific customer data (Stripe, CustomInvoicing, Sandbox), and Stripe session management (checkout + portal). Primary constraint: all mutations must guard against deleted customers before calling domain services.",
+  "openmeter/ledger/account": {
+    "purpose": "Domain-object core of the ledger: defines Account, SubAccount, Address, and Balance types that implement the ledger.* interfaces, plus the Repo (persistence) and Service (orchestration) contracts. All higher ledger packages (resolvers, historical, transactions, breakage) build on the types defined here.",
     "patterns": [
       {
-        "name": "HandlerWithArgs factory per operation",
-        "description": "Each exported method on handler returns a typed httptransport.HandlerWithArgs[Request, Response, Params]. The decoder resolves namespace, validates the customer is not deleted, then builds the domain input. Error encoders are appended via httptransport.AppendOptions.",
-        "example": "func (h *handler) GetCustomerBilling() GetCustomerBillingHandler { return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[...](http.StatusOK), httptransport.AppendOptions(h.options, ...)...) }"
+        "name": "Data/Live split with construction-time injection",
+        "description": "*Data structs are plain DTOs; Account/SubAccount embed the data and receive AccountLiveServices (SubAccountService) only via NewAccountFromData / NewSubAccountFromData. Never set live services by field assignment after construction.",
+        "example": "NewAccountFromData(data, AccountLiveServices{SubAccountService: svc})"
       },
       {
-        "name": "Deleted-customer guard in decoder",
-        "description": "Every mutation decoder calls h.customerService.GetCustomer and checks cus.IsDeleted(), returning apierrors.NewGoneError if true. Skip this and deleted-customer writes go undetected.",
-        "example": "if cus.IsDeleted() { return ..., apierrors.NewGoneError(ctx, errors.New(\"customer is deleted\")) }"
+        "name": "Type-dispatching constructor",
+        "description": "NewAccountFromData switches on AccountType and returns typed wrappers (CustomerFBOAccount, CustomerReceivableAccount, CustomerAccruedAccount, BusinessAccount). Callers type-assert on the returned ledger.Account.",
+        "example": "fboAcc, ok := acc.(ledger.CustomerFBOAccount)"
       },
       {
-        "name": "App-type switch for customer data",
-        "description": "Handlers that read or write app-specific data switch on application.GetType() over app.AppTypeStripe / AppTypeCustomInvoicing / AppTypeSandbox and return apierrors.NewInternalError for unknown types. Keep get_billing.go and update_billing.go in sync when adding a new app type.",
-        "example": "switch application.GetType() { case app.AppTypeStripe: ... case app.AppTypeCustomInvoicing: ... case app.AppTypeSandbox: ... default: return resp, apierrors.NewInternalError(ctx, fmt.Errorf(\"unsupported app type\")) }"
+        "name": "EnsureSubAccount upsert via canonical route",
+        "description": "Sub-accounts are created idempotently through services.SubAccountService.EnsureSubAccount keyed on the canonical routing key; never call a raw create.",
+        "example": "svc.EnsureSubAccount(ctx, ledger.CreateSubAccountInput{Namespace: ns, AccountID: id, Route: params.Route()})"
       },
       {
-        "name": "Goverter for v3-to-legacy enum conversions",
-        "description": "convert.go declares goverter variable-set functions (FromAPI*/ToAPI*) with enum mapping annotations; convert.gen.go is generated. Never hand-edit convert.gen.go. Add new enum mappings to convert.go and run go generate.",
-        "example": "// goverter:enum:map BillingAppStripeCheckoutSessionUIModeEmbedded CheckoutSessionUIModeEmbedded\nFromAPIBillingAppStripeCheckoutSessionUIMode func(source api.BillingAppStripeCheckoutSessionUIMode) (apilegacy.CheckoutSessionUIMode, error)"
+        "name": "Validate before repo/service calls",
+        "description": "Every input and RouteParams type exposes Validate(); call it (GetSubAccountForRoute calls params.Validate() first) before any persistence call.",
+        "example": "if err := params.Validate(); err != nil { return nil, err }"
       },
       {
-        "name": "Domain-specific error encoder chained after generic",
-        "description": "error_encoder.go matches billing.NotFoundError->404, billing.ValidationError->400, billing.UpdateAfterDeleteError->409, billing.AppError->400. It is always appended AFTER apierrors.GenericErrorEncoder() in httptransport.AppendOptions.",
-        "example": "httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()), httptransport.WithErrorEncoder(errorEncoder())"
+        "name": "Compile-time interface assertions",
+        "description": "Each concrete type carries a var _ ledger.X = (*Type)(nil) line \u2014 the only compile-time proof of interface compliance. Do not remove.",
+        "example": "var _ ledger.CustomerFBOAccount = (*CustomerFBOAccount)(nil)"
       },
       {
-        "name": "Stripe app resolved via billing profile",
-        "description": "Checkout session creation calls h.billingService.ResolveStripeAppIDFromBillingProfile to get the AppID; portal session creation uses h.billingService.GetCustomerApp with AppType filter. Do not hardcode app IDs.",
-        "example": "appId, err := h.billingService.ResolveStripeAppIDFromBillingProfile(ctx, namespace, customerId)"
+        "name": "SubAccountService self-wiring in service.New()",
+        "description": "account/service.New() wires SubAccountService as a forward reference to itself; do not inject it externally \u2014 the self-wiring is load-bearing.",
+        "example": "svc := &service{}; svc.live.SubAccountService = svc; return svc"
       }
     ],
     "key_file_guides": [
       {
-        "file": "handler.go",
-        "role": "Defines the Handler interface and the handler struct with its constructor New(). The handler holds billingService, customerService, stripeService. Note: appService is declared as a struct field but NOT set in New() \u2014 do not add it to New's signature without updating all call sites.",
-        "watch_for": "handler.appService field is declared but not set in New(); passing app.Service to New() will break existing call sites."
+        "file": "account.go",
+        "role": "Account domain object + AccountData DTO + NewAccountFromData type-dispatcher and AccountLiveServices container.",
+        "watch_for": "nil SubAccountService panics on GetSubAccountForRoute; populate AccountLiveServices fully at construction."
       },
       {
-        "file": "convert.go",
-        "role": "Source of truth for all v3-to-legacy and domain type conversions; goverter annotations drive convert.gen.go generation. Run go generate after any change.",
-        "watch_for": "Adding a new enum variant in TypeSpec without a matching goverter:enum:map annotation causes convert.gen.go to error on the unknown variant at runtime."
+        "file": "account_customer.go",
+        "role": "CustomerFBO/Receivable/Accrued wrappers; each routes via EnsureSubAccount after params.Validate().",
+        "watch_for": "RouteParams missing Currency error on Validate(); accrued is routed by currency only."
       },
       {
-        "file": "convert.gen.go",
-        "role": "Generated by goverter from convert.go. DO NOT EDIT.",
-        "watch_for": "Any manual edit is overwritten on next go generate."
+        "file": "account_business.go",
+        "role": "BusinessAccount wrapper for wash/earnings/brokerage/breakage; newBusinessAccount only valid for those types.",
+        "watch_for": "newBusinessAccount is only safe inside NewAccountFromData's business-type case."
       },
       {
-        "file": "error_encoder.go",
-        "role": "Package-local error encoder matching billing-specific error types to HTTP codes. Must be appended AFTER GenericErrorEncoder so generic errors are caught first.",
-        "watch_for": "Reversing the encoder order causes billing.ValidationError to fall through to 500 instead of 400."
+        "file": "subaccount.go",
+        "role": "SubAccount domain object; NewSubAccountFromData builds the Address from RouteMeta.",
+        "watch_for": "Empty SubAccountID or RouteID errors during address construction."
       },
       {
-        "file": "update_billing.go",
-        "role": "Upserts both the billing profile override and app customer data atomically. If only app data should change, use update_billing_app_data.go instead.",
-        "watch_for": "Both files share identical app-type switch logic; keep them in sync when adding a new app type."
+        "file": "address.go",
+        "role": "Address wraps AddressData and prebuilds SubAccountRoute; implements ledger.PostingAddress with field-by-field Equal().",
+        "watch_for": "RouteID and SubAccountID both required; Equal() is value comparison, not pointer."
+      },
+      {
+        "file": "repo.go",
+        "role": "Repo interface embedding entutils.TxCreator with CreateAccount/EnsureSubAccount/Get/List methods.",
+        "watch_for": "Implementations must satisfy the full TxCreator triad for TransactingRepo to work."
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface aliasing ledger.AccountCatalog + ledger.AccountLocker; input types re-exported from ledger.",
+        "watch_for": "Service returns ledger.Account/ledger.SubAccount domain objects, not *Data DTOs."
       }
     ],
     "anti_patterns": [
-      "Calling billing domain services without first checking customer.IsDeleted() in the decoder",
-      "Hand-editing convert.gen.go instead of updating convert.go annotations and regenerating",
-      "Appending errorEncoder() before apierrors.GenericErrorEncoder() (reverses precedence)",
-      "Hardcoding a Stripe app ID instead of resolving via billingService.ResolveStripeAppIDFromBillingProfile",
-      "Adding app-type handling in only one of get_billing.go or update_billing.go"
+      "Returning *AccountData / *SubAccountData from Service methods \u2014 callers expect live domain objects with services attached.",
+      "Setting live.SubAccountService externally instead of relying on service.New() self-wiring.",
+      "Manually building AddressData.RoutingKey strings instead of ledger.BuildRoutingKey \u2014 breaks canonical uniqueness.",
+      "Removing var _ ledger.X = (*T)(nil) compile-time assertions.",
+      "Using context.Background()/context.TODO() in any method \u2014 propagate the caller ctx."
     ],
     "decisions": [
       {
-        "decision": "Stripe-specific session endpoints (checkout, portal) live in this package alongside generic billing profile endpoints",
-        "rationale": "All endpoints share the same customer-scoped path prefix and require identical deleted-customer validation; collocating them avoids duplicated validation logic."
+        "decision": "AccountLiveServices is a value type injected at construction; SubAccountService is a forward reference so the service self-registers.",
+        "rationale": "Avoids a global service registry and resolves the chicken-and-egg dependency of the service needing itself as the SubAccountService."
       },
       {
-        "decision": "Goverter is used for v3-to-legacy enum conversions rather than hand-written switch statements",
-        "rationale": "The enum space is large (10+ enums for Stripe checkout options); goverter with @error on unknown values gives compile-time safety and avoids manual mapping drift."
+        "decision": "Sub-accounts are keyed by a canonical routing key derived from the Route value.",
+        "rationale": "Guarantees idempotent upsert: two callers asking for the same route converge on one row without races."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new customer billing GET endpoint following the established pattern",
-        "code": "type (\n\tFooRequest  = billing.GetFooInput\n\tFooResponse = api.BillingFoo\n\tFooParams   = string\n\tFooHandler  httptransport.HandlerWithArgs[FooRequest, FooResponse, FooParams]\n)\n\nfunc (h *handler) GetFoo() FooHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, customerID FooParams) (FooRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return FooRequest{}, err }\n\t\t\treturn FooRequest{CustomerID: customer.CustomerID{Namespace: ns, ID: customerID}}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req FooRequest) (FooResponse, error) {\n\t\t\treturn h.billingService.GetFoo(ctx, req)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[FooResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(\n\t\t\th.options,\n\t\t\thttptransport.WithOperationName(\"get-customer-foo\"),\n\t\t\thttptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n\t\t\thttptransport.WithErrorEncoder(errorEncoder()),\n\t\t)...,\n\t)\n}"
+        "scenario": "Provision a sub-account for a customer FBO account",
+        "code": "return svc.EnsureSubAccount(ctx, ledger.CreateSubAccountInput{\n  Namespace: ns,\n  AccountID: accountID,\n  Route:     ledger.Route{Currency: currencyx.Code(\"USD\")},\n})"
       }
     ]
   },
-  "api/v3/handlers/customers/charges": {
-    "purpose": "v3 HTTP handler for listing a customer's billing charges (flat-fee and usage-based) in the v3 API. Primary constraint: credit-purchase charges are intentionally excluded at the query layer and must never appear in this API surface.",
+  "openmeter/ledger/breakage": {
+    "purpose": "Credit-expiration breakage sub-domain: keeps future credit-expiration ledger entries aligned with actual customer credit usage via plan/release/reopen breakage records. It is an allocation/index layer over the ledger (the ledger remains the accounting source of truth); the breakage/adapter child persists LedgerBreakageRecord rows.",
     "patterns": [
       {
-        "name": "HandlerWithArgs with inline pagination validation",
-        "description": "ListCustomerCharges decoder builds a pagination.Page from query params with explicit page.Validate() that returns apierrors.NewBadRequestError on invalid page. Default page is (1, 20).",
-        "example": "page := pagination.NewPage(1, 20)\nif args.Params.Page != nil { page = pagination.NewPage(lo.FromPtrOr(args.Params.Page.Number, 1), lo.FromPtrOr(args.Params.Page.Size, 20)) }\nif err := page.Validate(); err != nil { return ..., apierrors.NewBadRequestError(ctx, err, ...) }"
+        "name": "Service produces TransactionInputs + PendingRecords",
+        "description": "PlanIssuance/ReleasePlan/ReopenRelease return ledger.TransactionInput(s) plus PendingRecord metadata; the caller commits the ledger group, then PersistCommittedRecords durably writes the records.",
+        "example": "txs, pending, err := svc.PlanIssuance(ctx, input); ...; svc.PersistCommittedRecords(ctx, pending, group)"
       },
       {
-        "name": "Credit-purchase exclusion via ChargeTypes filter",
-        "description": "The request always sets ChargeTypes: []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased}. convertChargeToAPI returns an explicit error if ChargeTypeCreditPurchase ever reaches it as a defensive measure.",
-        "example": "req := ListCustomerChargesRequest{..., ChargeTypes: []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased}}"
+        "name": "Config.Validate() before NewService",
+        "description": "NewService validates that Adapter, Dependencies.AccountService and Dependencies.AccountCatalog are non-nil before constructing the service.",
+        "example": "if err := config.Validate(); err != nil { return nil, err }"
       },
       {
-        "name": "Realizations always expanded for booked totals",
-        "description": "expands always includes meta.ExpandRealizations because booked totals require realization run data. RealtimeUsage is only added when the caller requests BillingChargesExpandRealTimeUsage.",
-        "example": "expands := meta.Expands{meta.ExpandRealizations}\nif slices.Contains(*args.Params.Expand, api.BillingChargesExpandRealTimeUsage) { expands = expands.With(meta.ExpandRealtimeUsage) }"
+        "name": "Validate() on every input",
+        "description": "All *Input types Validate() using ledger.ValidateTransactionAmount/ValidateCurrency/ValidateCostBasis/ValidateCreditPriority; service methods validate before doing work.",
+        "example": "if err := input.Validate(); err != nil { return ... }"
       },
       {
-        "name": "Sort field whitelist validation",
-        "description": "Acceptable sort fields are \"id\", \"created_at\", \"service_period.from\", \"billing_period.from\". validChargesSortField rejects anything else with a 400 listing allowed values.",
-        "example": "if !validChargesSortField(sort.Field) { return ..., apierrors.NewBadRequestError(ctx, fmt.Errorf(\"unsupported sort field: %s\"), ...) }"
+        "name": "Shared FBO-consumption == breakage-release ordering",
+        "description": "Plans, releases and reopens follow credit_priority asc, expires_at asc, stable cursor asc \u2014 the same order the FBO collector consumes credit. Diverging silently corrupts which expiry is released.",
+        "example": "ListPlans returns plans in the order the FBO collector must consume expiring credit"
       },
       {
-        "name": "Union-type dispatch in convertChargeToAPI",
-        "description": "convertChargeToAPI switches on charge.Type(), calls AsFlatFeeCharge or AsUsageBasedCharge, maps to the API struct, then calls out.FromBillingFlatFeeCharge or out.FromBillingUsageBasedCharge. Both the domain-to-struct and struct-to-union steps must succeed and errors must be checked.",
-        "example": "if err := out.FromBillingFlatFeeCharge(apiFF); err != nil { return out, fmt.Errorf(\"setting flat fee charge union: %w\", err) }"
+        "name": "Breakage-impact netting",
+        "description": "ListExpiredBreakageImpacts groups expired records by (expiresAt, currency) and computes impact = -(plans - releases + reopens); zero-impact groups are hidden and a negative internal total is an error.",
+        "example": "group.amount.Neg() with cursorID set to the smallest plan record ID"
+      },
+      {
+        "name": "NoopService for disabled breakage",
+        "description": "NoopService implements Service with all-nil/empty returns for deployments/tests wiring credit purchases without expiration support.",
+        "example": "var _ Service = NoopService{}"
       }
     ],
     "key_file_guides": [
       {
-        "file": "handler.go",
-        "role": "Defines Handler interface and handler struct. Constructor New() takes resolveNamespace + billingcharges.ChargeService. No billing.Service dependency \u2014 only the charges sub-service.",
-        "watch_for": "Adding handler methods that need billing.Service will require extending the struct and constructor."
+        "file": "service.go",
+        "role": "Service interface, Config + Validate, service struct holding adapter + transactions.ResolverDependencies, and the PlanIssuance/ReleasePlan/ReopenRelease inputs.",
+        "watch_for": "Dependencies.AccountService and AccountCatalog are mandatory; ImmediateReleaseAmount must be 0..Amount."
       },
       {
-        "file": "list.go",
-        "role": "Only handler in this package. Decodes pagination, sort, status filter, and expand from query params; calls service.ListCharges; maps results via convertChargeToAPI.",
-        "watch_for": "Status filter parsing uses a type-safe switch in parseChargeStatusFilterSlice \u2014 add new status values there when meta.ChargeStatus gains new variants."
+        "file": "breakage_impacts.go",
+        "role": "ListExpiredBreakageImpacts: nets plan/release/reopen records into customer-visible BreakageImpact rows with stable cursor windowing.",
+        "watch_for": "A negative netted amount or a group with no plan record is an error, not a silent skip; sorts by descending cursor."
       },
       {
-        "file": "convert.go",
-        "role": "All domain-to-API mapping functions. Many are exported (ConvertClosedPeriodToAPI, ConvertCurrencyCodeToAPI, ConvertChargeStatusToAPI, etc.) and reused by sibling handler packages (e.g., customerscredits).",
-        "watch_for": "Exported converters are shared; changing their signatures affects callers in sibling packages. DynamicPrice and PackagePrice types are not supported in toAPIBillingPrice and return an error."
+        "file": "types.go",
+        "role": "Record, Plan, Release, PendingRecord, BreakageImpact and list input/result types.",
+        "watch_for": "All breakage record amounts are positive \u2014 the sign lives in the ledger entries."
+      },
+      {
+        "file": "noop.go",
+        "role": "NoopService no-op implementation and NewNoopService constructor.",
+        "watch_for": "Must stay in sync with the Service interface so credits-disabled wiring compiles."
+      },
+      {
+        "file": "README.md",
+        "role": "Authoritative spec of plan/release/reopen/advance-backfill semantics and the core ordering invariant.",
+        "watch_for": "Read before changing any breakage math \u2014 the correctness argument depends on the shared ordering."
       }
     ],
     "anti_patterns": [
-      "Including meta.ChargeTypeCreditPurchase in the ChargeTypes filter (credit purchases belong to the credits API)",
-      "Omitting meta.ExpandRealizations from expands (breaks booked totals computation)",
-      "Using a generic string sort field without validating against the whitelist in validChargesSortField",
-      "Hand-writing the union set call (out.FromBillingFlatFeeCharge) without checking the error it returns"
+      "Building ledger TransactionInputs by hand instead of going through transactions.* / the breakage service.",
+      "Diverging breakage release order from the FBO collection order (credit_priority, expires_at, stable cursor).",
+      "Treating breakage-generated FBO entries as normal credit issuance/usage instead of marking ledger.breakage.kind.",
+      "Persisting records before the corresponding ledger group has committed (must use PersistCommittedRecords post-commit).",
+      "Putting Ent/persistence access in this package instead of breakage/adapter \u2014 this layer is service logic only."
     ],
     "decisions": [
       {
-        "decision": "Credit-purchase charges are excluded from this endpoint and served by the credits API",
-        "rationale": "Credit purchases have a distinct lifecycle (settlement, ledger funding) that belongs to the credits domain; mixing them into the charges list would conflate two different billing concepts."
+        "decision": "Breakage records are a positive-amount allocation/index layer separate from the ledger entries.",
+        "rationale": "The ledger stays the source of truth; records only let later flows find open plans, reopen releases, and project customer-visible expired credit."
       },
       {
-        "decision": "Realization runs are always fetched even when not requested by the caller",
-        "rationale": "Booked totals are computed from persisted realization runs; returning a charge without them would produce zero totals, which is incorrect for active charges."
+        "decision": "Correctness relies on FBO consumption order matching breakage release order rather than grant-level lineage.",
+        "rationale": "Avoids per-grant lineage; the shared ordering makes the open planned amount at an expiry exactly the remaining unused expiring credit."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Convert a domain Charge to the API union type with proper error handling",
-        "code": "func convertChargeToAPI(charge billingcharges.Charge) (api.BillingCharge, error) {\n\tvar out api.BillingCharge\n\tswitch charge.Type() {\n\tcase meta.ChargeTypeFlatFee:\n\t\tff, err := charge.AsFlatFeeCharge()\n\t\tif err != nil { return out, fmt.Errorf(\"converting flat fee charge: %w\", err) }\n\t\tapiFF, err := convertFlatFeeChargeToAPI(ff)\n\t\tif err != nil { return out, err }\n\t\tif err := out.FromBillingFlatFeeCharge(apiFF); err != nil { return out, fmt.Errorf(\"setting flat fee charge union: %w\", err) }\n\tcase meta.ChargeTypeCreditPurchase:\n\t\treturn out, fmt.Errorf(\"credit purchase charges are not supported in the charges API\")\n\tdefault:\n\t\treturn out, fmt.Errorf(\"unsupported charge type: %s\", charge.Type())\n\t}\n\treturn out, nil\n}"
+        "scenario": "Plan breakage for newly issued expiring credit and persist after commit",
+        "code": "txs, pending, err := svc.PlanIssuance(ctx, breakage.PlanIssuanceInput{\n  CustomerID: cid, Amount: amount, Currency: currencyx.Code(\"USD\"), ExpiresAt: e,\n})\nif err != nil { return err }\ngroup, err := ledger.CommitGroup(ctx, transactions.GroupInputs(cid.Namespace, txs...))\nif err != nil { return err }\nreturn svc.PersistCommittedRecords(ctx, pending, group)"
       }
     ]
   },
-  "api/v3/handlers/customers/credits": {
-    "purpose": "v3 HTTP handlers for customer credit-grant lifecycle and balance queries: create/get/list grants, update external settlement status, get credit balance, and list ledger transactions. Primary constraint: this package is gated by credits.enabled; the handler is wired to noop ledger/balance services when credits are off.",
+  "openmeter/ledger/historical": {
+    "purpose": "The double-entry ledger engine: the Ledger struct implements ledger.Ledger (CommitGroup, GetTransactionGroup, ListTransactions) and ledger.BalanceQuerier (account/sub-account balances) over the Repo (historical/adapter) which books LedgerTransaction + LedgerEntry rows. Owns transaction/entry/balance domain reconstruction.",
     "patterns": [
       {
-        "name": "Local customerBalanceFacade interface",
-        "description": "handler.go defines a narrow customerBalanceFacade interface (GetBalance, GetBalances, ListCreditTransactions) rather than importing the full customerbalance service. This keeps the dependency surface explicit and testable.",
-        "example": "type customerBalanceFacade interface {\n\tGetBalance(ctx context.Context, input customerbalance.GetBalanceInput) (alpacadecimal.Decimal, error)\n\tGetBalances(ctx context.Context, input customerbalance.GetBalancesInput) ([]customerbalance.BalanceByCurrency, error)\n\tListCreditTransactions(ctx context.Context, input customerbalance.ListCreditTransactionsInput) (customerbalance.ListCreditTransactionsResult, error)\n}"
+        "name": "transaction.Run wraps the full CommitGroup sequence",
+        "description": "CommitGroup validates routing, then inside one transaction.Run block locks accounts, validates balances, creates the group, and books each transaction so all phases roll back atomically. Never split phases or call BookTransaction outside the block.",
+        "example": "return transaction.Run(ctx, l.repo, func(ctx context.Context) (*TransactionGroup, error) { ... })"
       },
       {
-        "name": "Settlement-type dispatch for purchase block",
-        "description": "toAPICreditGrantPurchase switches on settlement.Type() (invoice, external, promotional). Promotional grants return nil purchase. Unknown types return an error. The outer toAPIBillingCreditGrant handles the nil case gracefully.",
-        "example": "switch settlement.Type() {\ncase creditpurchase.SettlementTypePromotional: return nil, nil\ncase creditpurchase.SettlementTypeInvoice: ...\ncase creditpurchase.SettlementTypeExternal: ...\ndefault: return nil, fmt.Errorf(\"invalid settlement type\")\n}"
+        "name": "Pre-lock all accounts before writes",
+        "description": "lockAccountsForTransactionInputs collects every sub-account's parent account and calls accountLocker.LockAccountsForPosting (sorted NamespacedID ordering) before any balance check or insert.",
+        "example": "if err := l.lockAccountsForTransactionInputs(ctx, group.Namespace(), txInputs); err != nil { ... }"
       },
       {
-        "name": "Base64-JSON cursor for transaction pagination",
-        "description": "encodeBillingCreditTransactionCursor/decodeBillingCreditTransactionCursor marshal a {booked_at, created_at, id} struct to JSON then base64. Cursors are validated after decoding via ledgerCursor.Validate().",
-        "example": "raw, _ := json.Marshal(payload)\nreturn base64.StdEncoding.EncodeToString(raw), nil"
+        "name": "Validate inputs before repo delegation",
+        "description": "ListTransactions, SumEntries and CommitGroup call Validate()/params.Validate() and return early before touching the repo.",
+        "example": "if err := params.Validate(); err != nil { return ..., fmt.Errorf(\"...: %w\", err) }"
       },
       {
-        "name": "models.ValidationIssue for domain-specific errors without a custom errorEncoder",
-        "description": "errors.go uses models.NewValidationIssue with a typed ErrorCode constant, WithCriticalSeverity, commonhttp.WithHTTPStatusCodeAttribute(400), and WithFieldString. This lets apierrors.GenericErrorEncoder handle it without a package-local error encoder.",
-        "example": "return models.NewValidationIssue(errCodeCreditGrantExternalSettlementStatusInvalid, fmt.Sprintf(\"unsupported...\"), models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest), models.WithFieldString(\"status\"))"
+        "name": "Domain reconstruction via constructors",
+        "description": "Transaction and Entry are always built via NewTransactionFromData / newEntryFromData (which calls account.NewAddressFromData) \u2014 never instantiate the structs directly.",
+        "example": "tx, err := NewTransactionFromData(txData, entryDataSlice)"
       },
       {
-        "name": "Customer existence validation before balance query",
-        "description": "get_balance.go calls h.customerService.GetCustomer first to validate existence before querying balanceFacade.GetBalances. This ensures a 404 is returned for unknown customers before attempting a balance lookup.",
-        "example": "_, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{CustomerID: &request.CustomerID})\nif err != nil { return GetCustomerCreditBalanceResponse{}, err }"
+        "name": "Tri-tuple cursor via Transaction.Cursor()",
+        "description": "TransactionCursor carries (BookedAt, CreatedAt, ID); always produce cursors through Transaction.Cursor(), never build TransactionCursor manually.",
+        "example": "func (t *Transaction) Cursor() ledger.TransactionCursor { return ledger.TransactionCursor{...} }"
+      },
+      {
+        "name": "Routing validation before booking",
+        "description": "CommitGroup runs ledger.ValidateTransactionInputWith(ctx, txInput, l.routingValidator) per transaction before the transaction.Run block.",
+        "example": "if err := ledger.ValidateTransactionInputWith(ctx, txInput, l.routingValidator); err != nil { ... }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "handler.go",
-        "role": "Defines Handler interface (6 methods) and handler struct with ledger, accountResolver, balanceFacade, creditGrantService. New() wires all of them.",
-        "watch_for": "ledger and accountResolver are wired to noops by app/common when credits.enabled=false; handlers must not assume they are real implementations."
+        "file": "ledger.go",
+        "role": "Ledger struct + NewLedger constructor; implements CommitGroup, ListTransactions, GetTransactionGroup and the account-locking flow.",
+        "watch_for": "validateAccountBalancesForTransaction is a TODO no-op today; do not assume balance enforcement at commit."
       },
       {
-        "file": "convert.go",
-        "role": "All domain-to-API and API-to-domain mapping. toAPIBillingCreditGrant is the primary domain-to-API converter; fromAPICreateCreditGrantRequest is the primary API-to-domain converter.",
-        "watch_for": "fromAPICreateCreditGrantRequest returns an error for feature filters (not yet supported); keep the TODO and do not silently ignore the filter."
+        "file": "repo.go",
+        "role": "Repo interface (TxCreator + CreateTransactionGroup/GetTransactionGroup/BookTransaction/SumEntries/ListTransactions) and DTOs.",
+        "watch_for": "Repo implementations must eagerly load SubAccount\u2192Account\u2192Route edges or hydration fails."
+      },
+      {
+        "file": "transaction.go",
+        "role": "Transaction / TransactionGroup domain objects; NewTransactionFromData builds entries.",
+        "watch_for": "Cursor() is the only correct way to produce a TransactionCursor."
+      },
+      {
+        "file": "entry.go",
+        "role": "Entry domain object; newEntryFromData builds the PostingAddress via account.NewAddressFromData.",
+        "watch_for": "EntryData needs SubAccountID, AccountType, RouteID, RouteKey, RouteKeyVer or address construction errors."
+      },
+      {
+        "file": "balance.go",
+        "role": "Balance struct + GetAccountBalance/GetSubAccountBalance delegating to sumEntries.",
+        "watch_for": "SumEntries returns the same value for Settled and Pending \u2014 no settled/pending separation yet."
+      }
+    ],
+    "anti_patterns": [
+      "Calling repo.BookTransaction outside the transaction.Run block \u2014 loses lock and validation atomicity.",
+      "Skipping ledger.ValidateTransactionInputWith before booking \u2014 invalid account-type combinations persist silently.",
+      "Mapping db rows to domain structs inline instead of via newEntryFromData / NewTransactionFromData.",
+      "Constructing TransactionCursor manually instead of via Transaction.Cursor().",
+      "Using context.Background() instead of the caller ctx \u2014 drops the Ent transaction and OTel spans."
+    ],
+    "decisions": [
+      {
+        "decision": "SumEntries returns identical SettledSum and PendingSum.",
+        "rationale": "The historical ledger has no pending/settled split yet; a TODO in ledger.go flags the future divergence."
+      },
+      {
+        "decision": "Tri-tuple cursor (bookedAt, createdAt, ID) instead of a single auto-increment offset.",
+        "rationale": "Stable across concurrent inserts sharing a booked_at; ID is a tie-breaker requiring no sequence column."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Commit a debit/credit transaction group",
+        "code": "// CommitGroup validates routing, locks customer accounts, then books each\n// transaction inside one transaction.Run.\nreturn l.CommitGroup(ctx, group)"
+      }
+    ]
+  },
+  "openmeter/ledger/resolvers": {
+    "purpose": "Bridges the ledger account layer to customer and namespace lifecycle: AccountResolver provisions customer FBO/Receivable/Accrued and business Wash/Earnings/Brokerage accounts on demand, CustomerLedgerHook wires account creation into customer.PostCreate, and namespaceHandler provisions business accounts on namespace creation. Only wired when credits.enabled=true.",
+    "patterns": [
+      {
+        "name": "transaction.Run + provisioning lock",
+        "description": "CreateCustomerAccounts and EnsureBusinessAccounts open transaction.Run, acquire a provisioning advisory lock (lockr.LockForTX with a 5s bounded wait), then create missing accounts. Always run inside transaction.Run even when Locker is nil so ctx propagates.",
+        "example": "return transaction.Run(ctx, s.Repo, func(ctx context.Context) (ledger.CustomerAccounts, error) { s.lockCustomerProvisioning(ctx, customerID); ... })"
+      },
+      {
+        "name": "Idempotent create via typed conflict error",
+        "description": "CreateCustomerAccounts catches CustomerAccountAlreadyExistsError (via AsCustomerAccountAlreadyExistsError) from concurrent inserts and reuses the existing AccountID; the adapter must return this typed error on unique-constraint violations.",
+        "example": "if existingErr, ok := AsCustomerAccountAlreadyExistsError(err); ok { accountIDs[accountType] = existingErr.AccountID; continue }"
+      },
+      {
+        "name": "Hook embeds NoopCustomerLedgerHook",
+        "description": "customerLedgerHook overrides only PostCreate; all other ServiceHook methods come from the embedded NoopCustomerLedgerHook.",
+        "example": "type customerLedgerHook struct { NoopCustomerLedgerHook; config CustomerLedgerHookConfig }"
+      },
+      {
+        "name": "namespaceHandler accepts a businessAccountProvisioner interface",
+        "description": "NewNamespaceHandler takes an interface, not *AccountResolver, so wiring does not depend on the concrete type.",
+        "example": "func NewNamespaceHandler(provisioner businessAccountProvisioner) namespace.Handler"
+      },
+      {
+        "name": "Typed-account assertion on read",
+        "description": "GetCustomerAccounts type-asserts each fetched account to its ledger.CustomerXAccount interface and errors on mismatch; missing mappings return ledger.ErrCustomerAccountMissing.",
+        "example": "fboAccount, ok := fboAcc.(ledger.CustomerFBOAccount)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "account.go",
+        "role": "AccountResolver \u2014 implements ledger.AccountResolver; provisioning locks and idempotent customer/business account creation.",
+        "watch_for": "Locker is optional (nil-check before LockForTX) but always wrap in transaction.Run for ctx propagation."
+      },
+      {
+        "file": "customeraccount.go",
+        "role": "CustomerAccountRepo interface (TxCreator + CreateCustomerAccount + GetCustomerAccountIDs) and CreateCustomerAccountInput.",
+        "watch_for": "Adapter must return CustomerAccountAlreadyExistsError on unique-constraint violations, not a raw DB error."
       },
       {
         "file": "errors.go",
-        "role": "Defines newCreditGrantExternalSettlementStatusInvalid using models.NewValidationIssue with HTTP status attribute. This package intentionally has no custom errorEncoder() \u2014 unlike sibling packages.",
-        "watch_for": "Do not add an errorEncoder() function here; the ValidationIssue+WithHTTPStatusCodeAttribute pattern is the intended mechanism."
+        "role": "CustomerAccountAlreadyExistsError, ErrCustomerAccountConflict (HTTP 409 ValidationIssue), AsCustomerAccountAlreadyExistsError unwrap helper.",
+        "watch_for": "Use the unwrap helper in CreateCustomerAccounts to handle concurrent inserts."
       },
       {
-        "file": "externalsettlement.go",
-        "role": "Handler for PATCH external settlement status transitions. Only authorized and settled are valid target statuses; pending is explicitly rejected in fromAPIBillingCreditPurchasePaymentSettlementStatus.",
-        "watch_for": "The 'pending' status must remain rejected; a grant cannot be downgraded to pending once advanced."
+        "file": "hooks.go",
+        "role": "customerLedgerHook with PostCreate calling CreateCustomerAccounts; NewCustomerLedgerHook constructor.",
+        "watch_for": "Register via customerService.RegisterHooks only when credits.enabled=true in app/common."
+      },
+      {
+        "file": "namespace.go",
+        "role": "namespaceHandler: CreateNamespace calls EnsureBusinessAccounts, DeleteNamespace is a no-op.",
+        "watch_for": "Must be registered before initNamespace() in cmd/server/main.go or the default namespace lacks business accounts."
       }
     ],
     "anti_patterns": [
-      "Assuming ledger or accountResolver are real implementations \u2014 they may be noops when credits.enabled=false",
-      "Adding a package-local errorEncoder() \u2014 this package relies on models.ValidationIssue + WithHTTPStatusCodeAttribute for error encoding",
-      "Allowing the 'pending' settlement status to succeed in fromAPIBillingCreditPurchasePaymentSettlementStatus",
-      "Returning a non-nil purchase block for SettlementTypePromotional grants",
-      "Silently ignoring the feature filter in fromAPICreateCreditGrantRequest instead of returning an error"
+      "Registering CustomerLedgerHook or namespaceHandler when credits.enabled=false \u2014 use ledgernoop.* variants instead.",
+      "Calling GetCustomerAccounts before CreateCustomerAccounts for a new customer \u2014 returns ErrCustomerAccountMissing.",
+      "Constructing AccountResolver without a Locker in production \u2014 concurrent provisioning creates duplicate accounts.",
+      "Adding balance/route business logic to resolvers/adapter \u2014 it belongs in the AccountResolver service layer.",
+      "Using context.Background() in hooks or the namespace handler \u2014 severs OTel traces and transaction context."
     ],
     "decisions": [
       {
-        "decision": "customerBalanceFacade is a local interface rather than importing the full customerbalance.Service",
-        "rationale": "Narrows the dependency surface to only the three methods this handler needs, making tests easier to mock and preventing accidental use of write operations."
+        "decision": "Provisioning lock uses a 5s bounded wait converted to lockr.ErrLockTimeout on deadline.",
+        "rationale": "Multi-service startup races fail fast instead of blocking indefinitely."
       },
       {
-        "decision": "ValidationIssue with WithHTTPStatusCodeAttribute replaces a custom errorEncoder for domain validation errors",
-        "rationale": "apierrors.GenericErrorEncoder already inspects the HTTP status attribute on ValidationIssues; adding a second encoder would be redundant and could cause double-handling."
+        "decision": "CustomerAccountRepo is a minimal two-method interface (+ TxCreator), not a full Ent client.",
+        "rationale": "Lets AccountResolver be unit-tested with a mock repo without a Postgres instance."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Create a domain-specific validation error usable by GenericErrorEncoder without a custom error encoder",
-        "code": "import (\n\t\"net/http\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nconst errCodeExample models.ErrorCode = \"example_error_code\"\n\nfunc newExampleError(value string) error {\n\treturn models.NewValidationIssue(\n\t\terrCodeExample,\n\t\tfmt.Sprintf(\"unsupported value: %s\", value),\n\t\tmodels.WithCriticalSeverity(),\n\t\tcommonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),\n\t\tmodels.WithFieldString(\"field_name\"),\n\t)\n}"
+        "scenario": "Wire CustomerLedgerHook and namespace handler when credits are enabled",
+        "code": "hook, err := resolvers.NewCustomerLedgerHook(resolvers.CustomerLedgerHookConfig{Service: accountResolver, Tracer: tracer})\nif err != nil { return err }\ncustomerService.RegisterHooks(hook)\nns.RegisterHandler(resolvers.NewNamespaceHandler(accountResolver))"
+      }
+    ]
+  },
+  "openmeter/ledger/transactions": {
+    "purpose": "The transaction-template layer of the double-entry ledger: named value-struct templates (CustomerTransactionTemplate, OrgTransactionTemplate) resolve abstract intents into concrete ledger.TransactionInput values, with a correction path for reversing posted templates. This is the ONLY layer that constructs EntryInput/TransactionInput \u2014 callers always pass templates to ResolveTransactions.",
+    "patterns": [
+      {
+        "name": "Private typeGuard() seals the template interface",
+        "description": "Every template implements typeGuard() guard returning an unexported type so templates cannot be defined outside this package.",
+        "example": "func (t IssueCustomerReceivableTemplate) typeGuard() guard { return true }"
+      },
+      {
+        "name": "Compile-time interface assertion per template",
+        "description": "Each template carries a var _ CustomerTransactionTemplate = (T{}) line; missing it means the template silently fails to dispatch.",
+        "example": "var _ CustomerTransactionTemplate = (TransferCustomerFBOToAccruedTemplate{})"
+      },
+      {
+        "name": "Validate() before resolve()",
+        "description": "ResolveTransactions calls template.Validate() (using ledger.ValidateTransactionAmount/ValidateCurrency/ValidateCostBasis/ValidateCreditPriority) for every template before resolve().",
+        "example": "if err := ledger.ValidateTransactionAmount(t.Amount); err != nil { return fmt.Errorf(\"amount: %w\", err) }"
+      },
+      {
+        "name": "nil from resolve() means skip (no-op)",
+        "description": "When a template has nothing to post, resolve() returns (nil, nil); ResolveTransactions skips nil inputs rather than appending or erroring.",
+        "example": "if len(t.Sources) == 0 { return nil, nil }"
+      },
+      {
+        "name": "Auto-annotate produced inputs with direction",
+        "description": "ResolveTransactions wraps each non-nil input via annotateTemplateTransaction(..., TransactionDirectionForward); CorrectTransaction uses TransactionDirectionCorrection.",
+        "example": "annotateTemplateTransaction(tx, template, ledger.TransactionDirectionForward)"
+      },
+      {
+        "name": "Register templates in transactionTemplateByName",
+        "description": "CorrectTransaction reconstructs templates from the annotation-stored template name; every new template adds a case in correction.go (or returns templateCorrectionNotImplemented).",
+        "example": "case templateName(IssueCustomerReceivableTemplate{}): return IssueCustomerReceivableTemplate{}, nil"
+      },
+      {
+        "name": "Deterministic FBO collection helper",
+        "description": "Templates draining FBO balances use collectFromPrioritizedCustomerFBO (sorts by CreditPriority asc, then SubAccountID) \u2014 never inline custom FBO iteration.",
+        "example": "collections, err := collectFromPrioritizedCustomerFBO(ctx, customerID, t.Currency, t.Amount, resolvers)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "template.go",
+        "role": "TransactionTemplate / CustomerTransactionTemplate / OrgTransactionTemplate interfaces and the private guard type.",
+        "watch_for": "typeGuard() returns a private type \u2014 templates cannot be implemented outside this package."
+      },
+      {
+        "file": "resolve.go",
+        "role": "ResolveTransactions entry point: validates scope, calls Validate(), dispatches resolve(), auto-annotates outputs.",
+        "watch_for": "ResolverDependencies needs both AccountService (ledger.AccountResolver) and SubAccountService (ledgeraccount.Service)."
+      },
+      {
+        "file": "correction.go",
+        "role": "CorrectTransaction reconstructs the original template from annotations; transactionTemplateByName is the dispatch table.",
+        "watch_for": "Correcting a correction is rejected; a missing dispatch case only surfaces at correction time."
+      },
+      {
+        "file": "input.go",
+        "role": "EntryInput/TransactionInput/TransactionGroupInput concrete structs + GroupInputs() wrapper.",
+        "watch_for": "EntryInput fields are unexported; use lo.Map to coerce []*EntryInput to []ledger.EntryInput."
+      },
+      {
+        "file": "collection.go",
+        "role": "collectFromPrioritizedCustomerFBO / collectFromAttributableCustomerAccrued balance-collection helpers.",
+        "watch_for": "collectFromAttributableCustomerAccrued skips nil-CostBasis sub-accounts intentionally."
+      },
+      {
+        "file": "accrual.go",
+        "role": "Accrual templates (e.g. TransferCustomerFBOToAccruedTemplate) preserving cost-basis routing into accrued.",
+        "watch_for": "resolveAccruedSubAccByRoutePairingKey aggregates by costBasisKey() (decimal string or 'null')."
+      },
+      {
+        "file": "customer.go",
+        "role": "Customer-scoped templates for the FBO/receivable/coverage lifecycle.",
+        "watch_for": "Some templates return templateCorrectionNotImplemented \u2014 not every template is correctable."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing EntryInput/TransactionInput outside this package \u2014 all posting construction belongs here.",
+      "Adding a template without a transactionTemplateByName case \u2014 it becomes unresolvable at correction time.",
+      "Using context.Background() in resolve()/correct() \u2014 propagate the ctx from ResolveTransactions/CorrectTransaction.",
+      "Bypassing collectFromPrioritizedCustomerFBO with custom FBO iteration \u2014 priority ordering must stay deterministic.",
+      "Implementing TransactionTemplate outside this package \u2014 the private guard seals the interface."
+    ],
+    "decisions": [
+      {
+        "decision": "Templates are value structs with unexported resolve()/correct() methods, not functions.",
+        "rationale": "Colocates template logic, enables interface-type dispatch, and forces callers through the Validate()+annotation pipeline."
+      },
+      {
+        "decision": "Correction dispatches via the annotation-stored template name string, not a type registry.",
+        "rationale": "Persisted transactions carry annotations; the correction path must rebuild the template from a stored string."
+      },
+      {
+        "decision": "nil from resolve() means skip, not error.",
+        "rationale": "Conditional templates (e.g. no FBO balance) let ResolveTransactions accumulate only real postings without pre-checks."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Resolve and commit a customer receivable issuance",
+        "code": "txInputs, err := transactions.ResolveTransactions(ctx, deps, customerID,\n  transactions.IssueCustomerReceivableTemplate{At: time.Now(), Currency: currencyx.Code(\"USD\"), Amount: amount},\n)\nif err != nil { return err }\n_, err = historicalLedger.CommitGroup(ctx, transactions.GroupInputs(customerID.Namespace, txInputs...))\nreturn err"
       }
     ]
   }

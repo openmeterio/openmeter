@@ -1,5 +1,8 @@
 {
   "done": [
+    ".codex",
+    ".codex/agents",
+    ".codex/rules",
     "api",
     "api/client",
     "api/client/go",
@@ -111,7 +114,6 @@
     "app/config",
     "cmd",
     "cmd/balance-worker",
-    "cmd/benthos-collector",
     "cmd/billing-worker",
     "cmd/jobs",
     "cmd/jobs/billing",
@@ -144,6 +146,7 @@
     "collector/benthos/presets/kubernetes-pod-exec-time",
     "collector/benthos/services",
     "collector/benthos/services/leaderelection",
+    "collector/cmd",
     "collector/quickstart",
     "collector/quickstart/collector",
     "collector/quickstart/collector/resources",
@@ -309,6 +312,8 @@
     "openmeter/ledger/account",
     "openmeter/ledger/account/adapter",
     "openmeter/ledger/account/service",
+    "openmeter/ledger/breakage",
+    "openmeter/ledger/breakage/adapter",
     "openmeter/ledger/chargeadapter",
     "openmeter/ledger/collector",
     "openmeter/ledger/customerbalance",
@@ -363,6 +368,7 @@
     "openmeter/productcatalog/addon/service",
     "openmeter/productcatalog/driver",
     "openmeter/productcatalog/feature",
+    "openmeter/productcatalog/featureresolver",
     "openmeter/productcatalog/http",
     "openmeter/productcatalog/plan",
     "openmeter/productcatalog/plan/adapter",
@@ -450,6 +456,7 @@
     "pkg/equal",
     "pkg/errorsx",
     "pkg/expand",
+    "pkg/featuregate",
     "pkg/ffx",
     "pkg/filter",
     "pkg/framework",
@@ -519,5 +526,5 @@
     "tools/migrate/cmd/viewgen",
     "tools/migrate/viewgen"
   ],
-  "wave": 240
+  "wave": 275
 }

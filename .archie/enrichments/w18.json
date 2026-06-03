@@ -1,77 +1,318 @@
 {
-  "api/spec/packages/aip/src/currencies/cost-bases": {
-    "purpose": "Defines TypeSpec models and REST operations for billing cost bases \u2014 per-fiat-currency rate records attached to custom currencies. All output is compiled via `make gen-api`; no hand-written OpenAPI or Go here.",
+  "openmeter/registry": {
+    "purpose": "Organisational folder owning the entitlement registry: a registry.Entitlement struct (entitlement.go) plus a non-Wire factory in builder/ that wires every entitlement-domain adapter, connector, and service into one struct for callers (balance-worker, test suites) that must not import app/common.",
     "patterns": [
       {
-        "name": "Visibility-scoped fields",
-        "description": "Every field must declare @visibility(Lifecycle.Create, Lifecycle.Read) or @visibility(Lifecycle.Read). System-assigned fields (id, created_at) are Read-only. Omitting @visibility leaks system fields into create payloads.",
-        "example": "@visibility(Lifecycle.Read) id: Shared.ULID; @visibility(Lifecycle.Create, Lifecycle.Read) fiat_code: Shared.CurrencyCode;"
+        "name": "Registry struct + factory split",
+        "description": "entitlement.go defines the field-only Entitlement struct; builder/ holds the sole factory GetEntitlementRegistry that populates every field. Callers never build the struct manually.",
+        "example": "reg := builder.GetEntitlementRegistry(opts)"
       },
       {
-        "name": "Shared generic wrappers",
-        "description": "Use Shared.CreateRequest<T> / Shared.CreateResponse<T> / Shared.PagePaginatedResponse<T> for all request/response envelopes \u2014 never write ad-hoc body or response shapes.",
-        "example": "@body body: Shared.CreateRequest<CostBasis>): Shared.CreateResponse<CostBasis>"
+        "name": "Every struct field must be populated by the factory",
+        "description": "Adding a field to registry.Entitlement requires a matching assignment in builder/entitlement.go or downstream nil-derefs occur.",
+        "example": "Entitlement{Feature:..., Grant:..., MeteredEntitlement:..., Entitlement:...}"
       },
       {
-        "name": "deepObject filter query params",
-        "description": "Filter parameters must be grouped into a dedicated filter model annotated @query(#{ style: 'deepObject', explode: true }) so URL params follow filter[field]=value convention.",
-        "example": "@query(#{ style: \"deepObject\", explode: true }) filter?: ListCostBasesParamsFilter"
-      },
-      {
-        "name": "Extension decorators for stability",
-        "description": "Every operation must carry @extension(Shared.UnstableExtension, true) and @extension(Shared.InternalExtension, true) (and optionally @extension(Shared.PrivateExtension, true)) before shipping. Missing these breaks internal API maturity tracking.",
-        "example": "@extension(Shared.UnstableExtension, true) @extension(Shared.InternalExtension, true) @get"
-      },
-      {
-        "name": "Explicit @operationId and @summary",
-        "description": "Every operation must declare @operationId (kebab-case) and @summary for deterministic SDK method naming and OpenAPI documentation.",
-        "example": "@operationId(\"list-cost-bases\") @summary(\"List cost bases\")"
-      },
-      {
-        "name": "Namespace scoping",
-        "description": "All models and operations must be declared inside `namespace Currencies;` matching the parent domain. Never use the root namespace or a different one.",
-        "example": "namespace Currencies; model CostBasis { ... }"
-      },
-      {
-        "name": "Pagination via Common.PagePaginationQuery spread",
-        "description": "List operations spread ...Common.PagePaginationQuery into the parameter list rather than declaring page/pageSize manually.",
-        "example": "get_cost_bases(@path currencyId: Shared.ULID, ...Common.PagePaginationQuery): Shared.PagePaginatedResponse<CostBasis>"
+        "name": "Interface-typed fields only",
+        "description": "All fields are domain interface types (feature.FeatureConnector, credit.GrantConnector, entitlement.Service) \u2014 no concrete adapters leak through.",
+        "example": "EntitlementRepo entitlement.EntitlementRepo"
       }
     ],
     "key_file_guides": [
       {
-        "file": "cost-basis.tsp",
-        "role": "Defines the CostBasis model \u2014 single source of truth for field names, types, and visibility. @friendlyName sets the generated Go/JS type name.",
-        "watch_for": "Omitting @visibility causes fields to appear in both create and read payloads unintentionally. @friendlyName must be globally unique across the spec \u2014 duplicates cause SDK type collisions."
-      },
-      {
-        "file": "operations.tsp",
-        "role": "Declares the CurrenciesCustomCostBasesOperations interface with list and create endpoints. All imports, HTTP decorators, and using statements live here.",
-        "watch_for": "Missing 'using TypeSpec.Http;' makes @get/@post/@query unknown decorators. Error union must include both domain-specific errors (Common.NotFound) and the catch-all Common.ErrorResponses."
+        "file": "openmeter/registry/entitlement.go",
+        "role": "Field-only Entitlement registry struct holding all entitlement sub-service interfaces.",
+        "watch_for": "Adding a field without populating it in builder/entitlement.go causes runtime nil-dereferences."
       }
     ],
     "anti_patterns": [
-      "Hand-editing generated OpenAPI or Go files instead of modifying these .tsp sources and running make gen-api",
-      "Declaring fields without @visibility \u2014 fields default to all lifecycle phases and leak write-only or system fields into create payloads",
-      "Adding operations without the stability @extension decorators \u2014 breaks internal API maturity tracking",
-      "Writing ad-hoc pagination parameters instead of spreading ...Common.PagePaginationQuery",
-      "Using a @friendlyName that duplicates an existing model name \u2014 causes SDK type collisions"
+      "Importing app/common from this folder \u2014 it must stay independent to avoid import cycles with test suites and balance-worker",
+      "Putting wiring/factory logic in entitlement.go \u2014 wiring belongs only in builder/",
+      "Returning a partially-populated *registry.Entitlement from the factory"
     ],
     "decisions": [
       {
-        "decision": "Models and operations split across two files (cost-basis.tsp + operations.tsp)",
-        "rationale": "Keeps the domain model (fields, types) separate from HTTP routing concerns (decorators, error unions, query params), matching the pattern used by sibling folders under aip/src/."
-      },
-      {
-        "decision": "All operations marked @extension(Shared.InternalExtension) and @extension(Shared.UnstableExtension)",
-        "rationale": "Cost-basis endpoints are billing-internal and not yet stable; the extensions prevent them from appearing in public SDK docs and signal breaking-change freedom."
+        "decision": "Non-Wire single-function factory instead of a Wire provider set",
+        "rationale": "balance-worker and test suites need entitlement infrastructure without the full app/common import graph; a standalone factory avoids import cycles while centralising wiring."
       }
     ],
-    "code_examples": [
+    "code_examples": []
+  },
+  "openmeter/secret": {
+    "purpose": "Manages encrypted secrets (e.g. Stripe API keys) for installed marketplace apps. The root package owns the Service and Adapter interfaces; sub-packages provide the stub plaintext adapter (adapter/), pure import-cycle-free domain types (entity/), and a thin validation-only service implementation (service/).",
+    "patterns": [
       {
-        "scenario": "Adding a new read-only field to CostBasis (e.g. updated_at)",
-        "code": "// In cost-basis.tsp, inside model CostBasis:\n/**\n * An ISO-8601 timestamp of the last update.\n */\n@visibility(Lifecycle.Read)\nupdated_at?: Shared.DateTime;\n// Then run: make gen-api && make generate"
+        "name": "Adapter embeds SecretAdapter; Service embeds SecretService",
+        "description": "New storage/service operations are added to the inner SecretAdapter/SecretService interface, never directly to the wrapping Adapter/Service.",
+        "example": "type Adapter interface { SecretAdapter }"
+      },
+      {
+        "name": "Validate-then-delegate in service/",
+        "description": "service/ calls input.Validate() unconditionally before delegating to the adapter; the stub adapter does no validation.",
+        "example": "if err := input.Validate(); err != nil { return secretentity.SecretID{}, err }; return s.adapter.CreateAppSecret(ctx, input)"
+      },
+      {
+        "name": "Pure domain types in entity/ sub-package",
+        "description": "SecretID, Secret, all input structs (each with Validate()), and SecretNotFoundError live in entity/ with zero Ent/persistence imports \u2014 this breaks the openmeter/app <-> openmeter/secret import cycle.",
+        "example": "import secretentity \"github.com/openmeterio/openmeter/openmeter/secret/entity\""
+      },
+      {
+        "name": "Stub adapter encodes plaintext value in SecretID.ID",
+        "description": "The plaintext adapter stores the raw secret value as SecretID.ID \u2014 a known stub convention until a real secret store is wired; CreateAppSecret/DeleteAppSecret always succeed.",
+        "example": "return secretentity.SecretID{ID: input.Value}, nil"
       }
-    ]
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/secret/adapter.go",
+        "role": "Defines Adapter/SecretAdapter interfaces consumed by the service layer.",
+        "watch_for": "Adding persistence logic here \u2014 storage belongs in adapter sub-packages."
+      },
+      {
+        "file": "openmeter/secret/service.go",
+        "role": "Defines Service/SecretService interfaces.",
+        "watch_for": "New methods must be added to SecretService first, then implemented in service/."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic or cross-domain calls to service/ \u2014 it is validation + delegation only",
+      "Injecting *entdb.Client into Service \u2014 persistence is the adapter's concern",
+      "Importing openmeter/ent/db in entity/ \u2014 it must stay a pure domain-type package to preserve the cycle break",
+      "Returning errors from the stub adapter's Create/Delete \u2014 callers expect them to succeed"
+    ],
+    "decisions": [
+      {
+        "decision": "Input types live in a separate entity/ sub-package",
+        "rationale": "Keeps the root package to pure interfaces and lets adapter and service import input types without circular dependencies."
+      },
+      {
+        "decision": "Plaintext stub adapter stores value in SecretID.ID",
+        "rationale": "Lets the app run without a real secret store in development; a production adapter can replace it without changing the Adapter interface."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/server": {
+    "purpose": "Chi-based HTTP server assembling the v1 and v3 REST APIs behind a shared middleware stack (auth, OpenAPI validation, CORS, logging). server/ root owns Chi router construction, dual-version mounting, and RFC 7807 error mapping; the router/ sub-package is the pure v1 endpoint delegation layer implementing api.ServerInterface.",
+    "patterns": [
+      {
+        "name": "Dual-version route registration in NewServer",
+        "description": "NewServer mounts v3 via v3server.NewServer + RegisterRoutes in its own Chi Group first, then v1 via api.HandlerWithOptions in a separate Group so each version has its own middleware chain and validator.",
+        "example": "r.Group(func(r chi.Router){ v3RegisterErr = v3API.RegisterRoutes(r) }); api.HandlerWithOptions(impl, api.ChiServerOptions{BaseRouter: r, Middlewares: middlewares})"
+      },
+      {
+        "name": "router.Config aggregates every domain service; validated before routing",
+        "description": "config.RouterConfig holds ~40 domain service interface fields; router.NewRouter validates them before the server is constructed. v3 wiring reads the same fields from RouterConfig.",
+        "example": "v3server.NewServer(&v3server.Config{BillingService: config.RouterConfig.Billing, ...})"
+      },
+      {
+        "name": "StaticNamespaceDecoder injected universally",
+        "description": "namespacedriver.StaticNamespaceDecoder(defaultNS) is passed into both v1 router.Config and v3server.Config \u2014 namespace is never resolved inside a handler.",
+        "example": "NamespaceDecoder: namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace())"
+      },
+      {
+        "name": "RFC 7807 error responses via models.NewStatusProblem",
+        "description": "NotFound, MethodNotAllowed, and the errorHandlerReply oapi-codegen error switch all render application/problem+json via models.NewStatusProblem.",
+        "example": "models.NewStatusProblem(r.Context(), nil, http.StatusNotFound).Respond(w)"
+      },
+      {
+        "name": "v1 validator runs with NoopAuthenticationFunc + ExcludeReadOnlyValidations",
+        "description": "OapiRequestValidatorWithOptions uses NoopAuthenticationFunc (auth handled by the authenticator middleware) and ExcludeReadOnlyValidations so read-only zero-values are not rejected.",
+        "example": "openapi3filter.Options{AuthenticationFunc: openapi3filter.NoopAuthenticationFunc, ExcludeReadOnlyValidations: true}"
+      },
+      {
+        "name": "corsHandler with AllowedPaths prefix gate",
+        "description": "CORS applies only to path prefixes in corsOptions.AllowedPaths (e.g. /api/v1/portal/meters); empty AllowedPaths means CORS for all paths.",
+        "example": "corsHandler(corsOptions{AllowedPaths: []string{\"/api/v1/portal/meters\"}, Options: cors.Options{...}})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/server/server.go",
+        "role": "NewServer: builds the Chi router, wires v1+v3 middleware stacks, mounts both API versions, and defines errorHandlerReply.",
+        "watch_for": "Middleware order \u2014 authenticator must precede OapiRequestValidator; no business/domain logic here."
+      },
+      {
+        "file": "openmeter/server/cors.go",
+        "role": "corsHandler with path-prefix filtering.",
+        "watch_for": "Empty/nil AllowedPaths enables CORS for all paths \u2014 intentional only for the portal use case."
+      },
+      {
+        "file": "openmeter/server/server_test.go",
+        "role": "TestRoutes smoke test exercising v1 and v3 routes against an in-memory server built from mocks.",
+        "watch_for": "New endpoints should add a case here to verify routing and response shape."
+      },
+      {
+        "file": "openmeter/server/framework_test.go",
+        "role": "Unit test for ValidationIssue -> HTTP status mapping through httptransport/commonhttp.",
+        "watch_for": "Changes to commonhttp.HandleIssueIfHTTPStatusKnown must be reflected here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic, DB calls, or domain service calls in server.go \u2014 logic belongs in domain httpdriver packages and the router delegation layer",
+      "Registering v3 routes inside the v1 Chi Group \u2014 each version needs its own group and middleware chain",
+      "Skipping models.NewStatusProblem for error responses \u2014 all errors must render as application/problem+json",
+      "Hand-editing api/api.gen.go or api/v3/api.gen.go to add routes \u2014 regenerate from TypeSpec via make gen-api"
+    ],
+    "decisions": [
+      {
+        "decision": "v3 mounted in a separate Chi Group before the v1 group",
+        "rationale": "Each version needs its own validator (v3 oasmiddleware.ValidateRequest; v1 kin-openapi OapiRequestValidatorWithOptions); a shared group would mix validator instances."
+      },
+      {
+        "decision": "ExcludeReadOnlyValidations: true in the v1 OpenAPI filter",
+        "rationale": "Go models translate required+readOnly fields to non-nil zero values; excluding read-only validation prevents false rejections on fields that should not appear in requests."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/streaming": {
+    "purpose": "Defines the streaming.Connector interface (ClickHouse-backed usage querying and event ingestion), all query-parameter types with Validate(), and the Customer/CustomerUsageAttribution attribution model. Concrete implementation lives in clickhouse/, a transient-retry decorator in retry/, and an in-memory test double in testutils/.",
+    "patterns": [
+      {
+        "name": "Connector embeds namespace.Handler",
+        "description": "streaming.Connector embeds namespace.Handler so every implementation participates in namespace lifecycle (CreateNamespace/DeleteNamespace) alongside query/ingest methods.",
+        "example": "type Connector interface { namespace.Handler; QueryMeter(...); BatchInsert(...) }"
+      },
+      {
+        "name": "Validate() on every Params type",
+        "description": "QueryParams, ListEventsParams, ListEventsV2Params, ListSubjectsParams, ListGroupByValuesParams each implement Validate(); callers validate before calling the connector.",
+        "example": "if err := params.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "Customer interface + CustomerUsageAttribution value type",
+        "description": "Any type implementing GetUsageAttribution() can be a QueryParams.FilterCustomer; CustomerUsageAttribution is the concrete value with Validate()/GetValues()/Equal().",
+        "example": "type Customer interface { GetUsageAttribution() CustomerUsageAttribution }"
+      },
+      {
+        "name": "FilterStoredAt uses FilterTimeUnix (second precision)",
+        "description": "stored_at predicates use *filter.FilterTimeUnix, not *filter.FilterTime, because ClickHouse DateTime columns are second-precision.",
+        "example": "FilterStoredAt: &filter.FilterTimeUnix{Gte: lo.ToPtr(unix)}"
+      },
+      {
+        "name": "Query-struct with toSQL() (in clickhouse/)",
+        "description": "Every query type in the clickhouse/ sub-package is a struct with a toSQL() method built via sqlbuilder; no raw SQL in Connector method bodies.",
+        "example": "q := meterQuery{namespace: ns, meter: m, params: p}; sql, args := q.toSQL()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/streaming/connector.go",
+        "role": "Connector interface plus CountEventsParams, RawEvent, ListSubjectsParams, ListGroupByValuesParams with inline Validate().",
+        "watch_for": "Adding a method here without a matching implementation in clickhouse/, retry/, and testutils/."
+      },
+      {
+        "file": "openmeter/streaming/query_params.go",
+        "role": "QueryParams with customer_id group-by constraints (requires FilterCustomer when groupBy=customer_id; max 1 FilterCustomer otherwise).",
+        "watch_for": "New group-by dimensions added without updating the Validate() constraint."
+      },
+      {
+        "file": "openmeter/streaming/eventparams.go",
+        "role": "ListEventsParams (From required) and cursor-based ListEventsV2Params; EventSortField.",
+        "watch_for": "Conflating the two listing APIs \u2014 v1 uses From, v2 uses Cursor."
+      },
+      {
+        "file": "openmeter/streaming/usageattribution.go",
+        "role": "Customer interface and CustomerUsageAttribution value type; GetValues() feeds ClickHouse IN clauses.",
+        "watch_for": "CustomerUsageAttribution.Validate() requires at least Key or one SubjectKey."
+      }
+    ],
+    "anti_patterns": [
+      "Putting raw SQL or fmt.Sprintf interpolation in Connector methods or clickhouse/ \u2014 use the query-struct toSQL() with sqlbuilder.Var()",
+      "Wrapping BatchInsert with retry in retry/ \u2014 duplicate inserts break idempotency",
+      "Adding application errors (MeterNotFoundError) to the retry predicate \u2014 only transient infra errors retry",
+      "Using filter.FilterTime for stored_at predicates instead of filter.FilterTimeUnix",
+      "Returning raw ClickHouse errors \u2014 map code 60 to NamespaceNotFoundError/MeterNotFoundError"
+    ],
+    "decisions": [
+      {
+        "decision": "Single shared events table across namespaces with namespace as leading ORDER BY column",
+        "rationale": "Simplifies schema management; the leading namespace sort key gives efficient per-namespace partition pruning without per-namespace DDL."
+      },
+      {
+        "decision": "Query-struct toSQL() pattern instead of inline SQL",
+        "rationale": "Each query type becomes independently testable via SQL-string assertions and avoids inline interpolation bugs."
+      },
+      {
+        "decision": "store_row_id (ULID) as the v2 cursor tie-breaker",
+        "rationale": "Timestamps are not unique at millisecond granularity; a sortable ULID provides a monotonic secondary key without a new column."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/taxcode": {
+    "purpose": "Manages tax codes (with per-app-type mappings) used during invoice line processing. The root package owns the Service and Repository interfaces, input/output types, and ValidationIssue error sentinels; adapter/ provides Ent/PostgreSQL persistence; service/ provides business logic (system-managed protection, get-or-create with conflict retry); testutils/ wires a full stack without app/common.",
+    "patterns": [
+      {
+        "name": "ValidationIssue sentinels in errors.go",
+        "description": "Every domain error is a package-level models.ValidationIssue with an ErrorCode, HTTP status attribute, and field path; constructor helpers (NewTaxCodeNotFoundError, NewTaxCodeByAppMappingNotFoundError) attach context attrs.",
+        "example": "var ErrTaxCodeNotFound = models.NewValidationIssue(ErrCodeTaxCodeNotFound, \"tax code not found\", commonhttp.WithHTTPStatusCodeAttribute(http.StatusNotFound))"
+      },
+      {
+        "name": "Validate() + compile-time models.Validator assertion on every input",
+        "description": "Each input struct implements models.Validator with a var _ models.Validator = (*XInput)(nil) assertion in service.go.",
+        "example": "var _ models.Validator = (*CreateTaxCodeInput)(nil)"
+      },
+      {
+        "name": "transaction.Run at service layer + TransactingRepo in adapter",
+        "description": "Service methods wrap adapter calls in transaction.Run for atomicity; each adapter method wraps Ent access with entutils.TransactingRepo so the ctx-bound tx is honoured.",
+        "example": "return transaction.Run(ctx, s.repo, func(ctx context.Context) (TaxCode, error) { return s.repo.CreateTaxCode(ctx, input) })"
+      },
+      {
+        "name": "IsManagedBySystem guard with AllowAnnotations bypass",
+        "description": "Before Update/Delete the service checks tc.IsManagedBySystem() and returns ErrTaxCodeManagedBySystem unless input.AllowAnnotations (from embedded inputOptions) is true.",
+        "example": "if tc.IsManagedBySystem() && !input.AllowAnnotations { return TaxCode{}, ErrTaxCodeManagedBySystem }"
+      },
+      {
+        "name": "JSONB containment query via raw sql.Selector",
+        "description": "GetTaxCodeByAppMapping uses a raw sql.P/sql.Selector with the JSONB @> operator for app-mapping lookups, not a standard Ent predicate.",
+        "example": "q.Where(sql.P(func(b *sql.Builder){ b.Ident(\"app_mappings\").WriteOp(sql.OpContains).Arg(jsonBytes) }))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/taxcode/service.go",
+        "role": "Service interface, all input types with Validate(), compile-time Validator assertions, inputOptions{AllowAnnotations}.",
+        "watch_for": "New inputs without Validate()/assertions; new mutating methods skipping the IsManagedBySystem guard."
+      },
+      {
+        "file": "openmeter/taxcode/taxcode.go",
+        "role": "TaxCode domain type, TaxCodeAppMapping(s) with uniqueness validation, IsManagedBySystem, GetAppMapping.",
+        "watch_for": "TaxCodeStripeRegexp (txcd_\\d{8}) must stay in sync with Stripe's tax code format."
+      },
+      {
+        "file": "openmeter/taxcode/errors.go",
+        "role": "ValidationIssue sentinels + ErrorCode constants + IsTaxCodeNotFoundError predicate.",
+        "watch_for": "Returning raw errors instead of sentinels breaks HTTP status mapping."
+      },
+      {
+        "file": "openmeter/taxcode/repository.go",
+        "role": "Repository interface extending entutils.TxCreator.",
+        "watch_for": "Service methods added without a matching Repository method compile but fail at runtime."
+      },
+      {
+        "file": "openmeter/taxcode/namespacehandler.go",
+        "role": "namespace.Handler implementation for taxcode namespace lifecycle.",
+        "watch_for": "Namespace provisioning side-effects must stay idempotent."
+      }
+    ],
+    "anti_patterns": [
+      "Calling adapter methods outside transaction.Run in the service layer \u2014 loses atomicity for get-then-mutate flows",
+      "Skipping the IsManagedBySystem check in new mutating methods \u2014 lets external callers overwrite system-synced records",
+      "Implementing business logic (key derivation, conflict retry) in the adapter instead of the service layer",
+      "Adding raw SQL outside a sql.P/sql.Selector wrapper in the adapter \u2014 bypasses Ent's query builder",
+      "Importing app/common in testutils/ \u2014 creates import cycles and couples test setup to the full DI graph"
+    ],
+    "decisions": [
+      {
+        "decision": "transaction.Run at the service layer in addition to TransactingRepo in the adapter",
+        "rationale": "Service-level transaction.Run keeps multi-step operations (get-or-create with retry) atomic; adapter-level TransactingRepo keeps individual DB calls on the ctx-bound transaction even when called directly."
+      },
+      {
+        "decision": "AllowAnnotations flag on Update/Delete inputs",
+        "rationale": "System-sync processes must update system-managed tax codes without relaxing the public API; a typed flag keeps the bypass explicit and auditable."
+      }
+    ],
+    "code_examples": []
   }
 }

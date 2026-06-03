@@ -1,120 +1,86 @@
 {
-  "openmeter/cost/adapter": {
-    "purpose": "Implements cost.Adapter by querying ClickHouse meter data via streaming.Connector and resolving per-unit costs from feature configuration (manual or LLM-based). No Ent/PostgreSQL access \u2014 all persistence goes through streaming.Connector and injected domain services.",
+  "openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater": {
+    "purpose": "Applies a typed patch set (create/update/delete lines and split-line-groups) to billing invoices during subscription sync reconciliation. It is the write-side of the reconciler: translates abstract diff patches into concrete billing.Service calls, branching on invoice type (gathering vs standard) and mutability.",
     "patterns": [
       {
-        "name": "Interface compliance assertion",
-        "description": "var _ cost.Adapter = (*adapter)(nil) at package level enforces compile-time interface satisfaction.",
-        "example": "var _ cost.Adapter = (*adapter)(nil)"
+        "name": "Sealed Patch discriminated union",
+        "description": "Patch is a value type with a private op field. Callers construct via New*Patch() and type-assert via As*Patch() methods that error on wrong op. Never add public fields to Patch or bypass As*Patch().",
+        "example": "patch := NewUpdateLinePatch(line); update, err := patch.AsUpdateLinePatch() // errors if op != PatchOpLineUpdate"
       },
       {
-        "name": "Pre-resolve and cache expensive lookups",
-        "description": "getLLMPrices scans all meter rows first to collect unique (provider, model) pairs and resolves prices once into a map[llmPriceKey]llmPriceResult. Never call llmcostService.ResolvePrice inside the per-row loop.",
-        "example": "priceCache := a.getLLMPrices(ctx, feat, rows)"
+        "name": "Invoice-type branch in ApplyPatches",
+        "description": "After fetching the invoice, branch on invoice.Type() == billing.InvoiceTypeGathering first, then check StandardInvoice.StatusDetails.Immutable. Each branch calls a dedicated private method: updateGatheringInvoice, updateMutableStandardInvoice, or updateImmutableInvoice.",
+        "example": "if invoice.Type() == billing.InvoiceTypeGathering { updateGatheringInvoice(...) } else if !standardInvoice.StatusDetails.Immutable { updateMutableStandardInvoice(...) } else { updateImmutableInvoice(...) }"
       },
       {
-        "name": "Internal group-by key injection and post-aggregation stripping",
-        "description": "addLLMGroupByKeys appends LLM dimension properties to streaming.QueryParams.GroupBy when not already present, returns the injected keys so computeCostRows can strip them from output rows and aggregate across them.",
-        "example": "internalGroupByKeys := addLLMGroupByKeys(feat, &params)"
+        "name": "EditFn closure for atomic invoice updates",
+        "description": "All mutations to gathering and mutable-standard invoices go through billing.Service.UpdateGatheringInvoice / UpdateStandardInvoice with an EditFn closure. Never call low-level adapter methods directly.",
+        "example": "u.billingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{Invoice: id, EditFn: func(invoice *billing.StandardInvoice) error { /* mutate */ return nil }})"
       },
       {
-        "name": "costResolverFunc abstraction separates cost resolution from aggregation",
-        "description": "computeCostRows accepts a costResolverFunc instead of calling adapter methods directly; makeCostResolver produces the closure that converts GenericNotFoundError into non-fatal detail strings rather than hard errors.",
-        "example": "costRows, currency, err := computeCostRows(rows, internalGroupByKeys, a.makeCostResolver(ctx, feat, priceCache))"
+        "name": "Immutable invoice ValidationIssue accumulation",
+        "description": "For immutable invoices, diff patches are not applied; they are collected as billing.ValidationIssue values with Severity=Warning and Code=ImmutableInvoiceHandlingNotSupportedErrorCode, then upserted via billing.Service.UpsertValidationIssues.",
+        "example": "validationIssues = append(validationIssues, newValidationIssueOnLine(existingLine, \"flat fee line's per unit amount cannot be changed...\"))"
       },
       {
-        "name": "GenericValidationError / GenericNotFoundError for domain errors",
-        "description": "Use models.NewGenericValidationError for missing feature configuration and models.NewGenericNotFoundError for unavailable pricing \u2014 these map to 400/404 in the HTTP layer.",
-        "example": "return nil, models.NewGenericValidationError(fmt.Errorf(\"feature %s has no meter associated\", feat.Key))"
+        "name": "Currency-grouped line provisioning",
+        "description": "New gathering lines are grouped by currencyx.Code via lo.GroupBy before calling CreatePendingInvoiceLines once per currency group; CreatePendingInvoiceLinesInput requires a single currency per call.",
+        "example": "linesByCurrency := lo.GroupBy(lines, func(l billing.GatheringLine) currencyx.Code { return l.Currency }); for currency, lines := range linesByCurrency { billingService.CreatePendingInvoiceLines(ctx, ...) }"
       },
       {
-        "name": "Defensive slice/map cloning before mutation",
-        "description": "Always slices.Clone GroupBy and build a new merged map for FilterGroupBy before mutating \u2014 never mutate the caller's streaming.QueryParams in place.",
-        "example": "params.GroupBy = slices.Clone(params.GroupBy)"
+        "name": "FlatFee helpers isolate price-type logic",
+        "description": "feehelper.go exposes IsFlatFee, GetFlatFeePerUnitAmount, SetFlatFeePerUnitAmount to keep price-type branching out of invoiceupdate.go. Add new price-type helpers here, not inline.",
+        "example": "if IsFlatFee(targetState) { existingAmt, _ := GetFlatFeePerUnitAmount(existingLine) }"
+      },
+      {
+        "name": "New PatchOperation requires five coordinated changes",
+        "description": "Adding a PatchOperation requires: new constant, new payload struct, new As* accessor, new New* constructor, new case in parsePatches switch, and new Log case \u2014 all updated atomically.",
+        "example": "const PatchOpLineCreate PatchOperation = \"line_create\" // + struct + AsCreateLinePatch() + NewCreateLinePatch() + parsePatches case + Log case"
       }
     ],
     "key_file_guides": [
       {
-        "file": "adapter.go",
-        "role": "Primary QueryFeatureCost implementation: resolves feature + meter, injects LLM group-by keys, pre-resolves prices, delegates computation to computeCostRows.",
-        "watch_for": "llmcostService nil-check in resolveLLMUnitCost is required \u2014 service is optional. Don't add Ent/DB access; this adapter is ClickHouse-only via streaming.Connector."
+        "file": "invoiceupdate.go",
+        "role": "Core Updater struct and ApplyPatches orchestration; owns all billing.Service call sites. Fetches invoices once per invoiceID in listInvoicesByID then distributes to type-specific handlers.",
+        "watch_for": "Invoice fetch happens once per invoiceID inside the loop \u2014 do not add extra fetches. Empty-invoice deletion after a mutable-standard update (when NonDeletedLineCount()==0) is intentional and must be preserved."
       },
       {
-        "file": "compute.go",
-        "role": "Pure computation layer: costResolverFunc type, costRowAccumulator, computeCostRows, filterGroupBy, buildDirectCostRow, costPerTokenForType, buildCacheKey \u2014 no I/O.",
-        "watch_for": "computeCostRows preserves insertion order via aggregationKeys []string; don't replace with map iteration as that randomises output. Output is sorted by cost descending after aggregation."
+        "file": "patch.go",
+        "role": "Patch value type, PatchOperation constants, New*/As* constructors/accessors, and GetDeletePatchesForLine for building delete patches from a LineOrHierarchy.",
+        "watch_for": "GetDeletePatchesForLine skips lines/groups with billing.AnnotationSubscriptionSyncIgnore set. Adding a PatchOperation requires all five coordinated changes."
       },
       {
-        "file": "compute_test.go",
-        "role": "Table-driven unit tests for computeCostRows covering aggregation, stripping, window separation, partial pricing, and mixed resolved/unresolved rows.",
-        "watch_for": "Tests are in package adapter (not adapter_test) to access unexported helpers. Use alpacadecimal.Decimal.Equal for cost comparisons, not == or assert.Equal on the raw struct."
+        "file": "feehelper.go",
+        "role": "Flat-fee price-type helpers operating on billing.GenericInvoiceLineReader / billing.GenericInvoiceLine.",
+        "watch_for": "SetFlatFeePerUnitAmount mutates the line in place via line.SetPrice(); callers must hold a mutable reference. Returns error if price type is not flat."
       }
     ],
     "anti_patterns": [
-      "Calling llmcostService.ResolvePrice inside the per-row cost loop \u2014 always pre-resolve via getLLMPrices first.",
-      "Passing *entdb.Client or touching Ent directly \u2014 this adapter is ClickHouse-only via streaming.Connector.",
-      "Mutating the caller's streaming.QueryParams.GroupBy or FilterGroupBy slices/maps in place \u2014 always slices.Clone and build a new merged map.",
-      "Returning a hard error for pricing-not-found in costResolverFunc \u2014 convert via models.IsGenericNotFoundError to a detail string so the row is still emitted.",
-      "Adding new cost resolution types without a corresponding branch in resolveUnitCost's switch and a costPerTokenForType case if token-type based."
+      "Calling billing.Adapter methods directly instead of going through the billing.Service EditFn pattern",
+      "Adding a new PatchOperation without updating all five locations: constant, struct, As*, New*, parsePatches switch (and Log case)",
+      "Fetching the same invoice multiple times within one ApplyPatches call",
+      "Producing ValidationIssues for mutable invoices \u2014 ValidationIssues are only for immutable invoice drift",
+      "Using context.Background() instead of propagating the ctx parameter through all billing.Service calls"
     ],
     "decisions": [
       {
-        "decision": "Price cache keyed on (provider, model) not (provider, model, token_type)",
-        "rationale": "llmcostService.ResolvePrice only depends on provider+model; token_type is resolved from ModelPricing after the lookup, avoiding redundant network calls when a model has multiple token types."
+        "decision": "Patch is a sealed value type (private op, As* accessors) rather than an interface.",
+        "rationale": "Prevents callers from constructing invalid patch combinations and keeps the parsePatches switch exhaustive and compiler-checked within this package."
       },
       {
-        "decision": "Internal group-by keys injected into query params and stripped from output",
-        "rationale": "ClickHouse must group by LLM dimensions to produce per-token-type rows needed for accurate cost resolution, but if the caller didn't request those dimensions the output must aggregate across them."
+        "decision": "Immutable invoices receive ValidationIssues instead of hard errors.",
+        "rationale": "Invoice immutability is a billing state (issued/paid); reporting drift as warnings lets operators see subscription/invoice divergence without blocking the reconciler loop."
       },
       {
-        "decision": "costResolverFunc is a function type rather than an interface",
-        "rationale": "Allows makeCostResolver to close over feat and priceCache without a new struct, keeping compute.go free of I/O dependencies and trivially testable with makeResolver in compute_test.go."
+        "decision": "New lines are grouped by currency before CreatePendingInvoiceLines.",
+        "rationale": "CreatePendingInvoiceLinesInput requires a single currency per call; grouping here removes the need for callers to pre-split lines."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new unit cost type to resolveUnitCost",
-        "code": "// In adapter.go resolveUnitCost switch:\ncase feature.UnitCostTypeCustom:\n    if feat.UnitCost.Custom == nil {\n        return nil, fmt.Errorf(\"feature %s has custom unit cost type but no custom configuration\", feat.Key)\n    }\n    return &cost.ResolvedUnitCost{\n        Amount:   feat.UnitCost.Custom.Amount,\n        Currency: currencyx.Code(globlCurrency.USD),\n    }, nil"
+        "scenario": "Applying a mixed patch set to invoices of different types",
+        "code": "import (\n    \"context\"\n    \"github.com/openmeterio/openmeter/openmeter/billing\"\n    \"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater\"\n    \"github.com/openmeterio/openmeter/openmeter/customer\"\n)\n\npatches := []invoiceupdater.Patch{\n    invoiceupdater.NewCreateLinePatch(newGatheringLine),\n    invoiceupdater.NewUpdateLinePatch(updatedLine),\n    invoiceupdater.NewDeleteLinePatch(lineID, invoiceID),\n}\nif err := updater.ApplyPatches(ctx, customer.CustomerID{Namespace: ns, ID: cid}, patches); err != nil {\n    return fmt.Errorf(\"applying patches: %w\", err)\n}"
       }
     ]
-  },
-  "openmeter/cost/service": {
-    "purpose": "Thin orchestration layer implementing cost.Service: validates input via input.Validate() then delegates to cost.Adapter.QueryFeatureCost. Contains no business logic \u2014 exists solely to enforce layered architecture and provide a stable DI interface.",
-    "patterns": [
-      {
-        "name": "Config struct with Validate()",
-        "description": "Constructor accepts a Config struct with a Validate() method; New returns (*Service, error) and rejects invalid config at wiring time rather than at runtime.",
-        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
-      },
-      {
-        "name": "Interface compliance assertion",
-        "description": "var _ cost.Service = (*Service)(nil) at package level ensures the struct satisfies the interface at compile time.",
-        "example": "var _ cost.Service = (*Service)(nil)"
-      },
-      {
-        "name": "Input validation before delegation",
-        "description": "Every service method calls input.Validate() before forwarding to the adapter, keeping validation centralized at the service boundary.",
-        "example": "if err := input.Validate(); err != nil { return nil, err }"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "service.go",
-        "role": "Sole file: defines Service struct, Config, New constructor, and QueryFeatureCost \u2014 the only cost.Service method.",
-        "watch_for": "Do not add business logic or data access here; all computation belongs in the adapter. New methods on cost.Service must follow the same validate-then-delegate pattern."
-      }
-    ],
-    "anti_patterns": [
-      "Adding computation or data access directly in service methods \u2014 delegate to cost.Adapter.",
-      "Skipping input.Validate() before calling the adapter.",
-      "Accepting adapter as a bare interface parameter instead of through Config.Adapter with nil-check in Validate()."
-    ],
-    "decisions": [
-      {
-        "decision": "Service is a pass-through with only input validation",
-        "rationale": "cost domain has a single query operation with no cross-cutting concerns (transactions, hooks, locking); the service layer exists solely to enforce the layered pattern and provide a stable interface for DI."
-      }
-    ],
-    "code_examples": []
   }
 }

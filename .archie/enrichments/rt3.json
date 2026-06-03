@@ -1,0 +1,86 @@
+{
+  "api/spec/packages/aip/src": {
+    "purpose": "Root composition layer for the v3 AIP TypeSpec spec: openmeter.tsp and konnect.tsp each declare a @service namespace and bind every domain operation interface to a @route path, while main.tsp imports both (plus test.tsp) to produce two distinct OpenAPI outputs (OpenMeter self-hosted and Kong Konnect) from one shared domain library. No model/operation definitions live here \u2014 only routing, tag metadata, and security scheme declarations.",
+    "patterns": [
+      {
+        "name": "Route and tag binding exclusively at root",
+        "description": "Domain operation interfaces (Meters.MetersOperations, Billing.BillingProfilesOperations, ...) carry no @route or @tag in their own .tsp. @route/@tag are applied only in openmeter.tsp and konnect.tsp via interface extension.",
+        "example": "@route(\"/openmeter/profiles\") @tag(Shared.BillingTag)\ninterface BillingProfilesEndpoints extends Billing.BillingProfilesOperations {}"
+      },
+      {
+        "name": "Tag metadata declared once per root namespace file",
+        "description": "Every tag used by any domain is registered with @tagMetadata(Shared.<X>Tag, #{description: Shared.<X>Description}) at the @service level in BOTH openmeter.tsp and konnect.tsp. Omitting it drops the tag description from the generated OpenAPI.",
+        "example": "@tagMetadata(Shared.BillingTag, #{ description: Shared.BillingDescription })"
+      },
+      {
+        "name": "Domain sub-operations imported via index.tsp barrels",
+        "description": "Each sub-domain folder exposes its types via an index.tsp barrel. Root files import the barrel (e.g. import \"./billing/index.tsp\") and reference namespace-qualified interfaces. Never import individual .tsp from the root.",
+        "example": "import \"./billing/index.tsp\";\ninterface BillingProfilesEndpoints extends Billing.BillingProfilesOperations {}"
+      },
+      {
+        "name": "Two-namespace compilation (OpenMeter vs Konnect)",
+        "description": "openmeter.tsp declares namespace OpenMeter (self-hosted), konnect.tsp declares namespace MeteringAndBilling (Kong). Both import the same sub-folders; feature differences (e.g. konnect lacks currencies/features/llmcost) are expressed by including/excluding imports and interface extensions.",
+        "example": "// konnect.tsp adds @useAuth + multi-region @server; openmeter.tsp imports currencies/features/llmcost that konnect omits"
+      },
+      {
+        "name": "Security schemes via @useRef to external YAML",
+        "description": "Konnect auth schemes (systemAccountAccessToken, personalAccessToken, konnectAccessToken) are TypeSpec model stubs spreading Http.BearerAuth with @useRef pointing at a shared security.yaml. Credential details never live in TypeSpec source.",
+        "example": "@useRef(\"../../../../common/definitions/security.yaml#/.../systemAccountAccessToken\")\nmodel systemAccountAccessToken { ...Http.BearerAuth; }"
+      },
+      {
+        "name": "Selective operation mounting via inline interface body",
+        "description": "When only a subset of operations from a domain interface is needed, declare an inline interface body referencing selected operations instead of extending the full interface.",
+        "example": "interface CustomerCreditGrantEndpoints {\n  @route(\"/settlement/external\")\n  updateExternalSettlement is Customers.CustomerCreditGrantExternalSettlementOperations.updateExternalSettlement;\n}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.tsp",
+        "role": "Single compiler entry point \u2014 imports openmeter.tsp, konnect.tsp, and test.tsp. Pure import aggregator.",
+        "watch_for": "Never add route or model definitions here; domain logic here would appear in all namespace outputs."
+      },
+      {
+        "file": "openmeter.tsp",
+        "role": "Self-hosted OpenMeter namespace: @service, @server, all @tagMetadata, and all @route/@tag interface extensions for OpenMeter endpoints.",
+        "watch_for": "Every new sub-folder needs both an import and a @route interface extension here; forgetting one silently drops endpoints. Add matching @tagMetadata or the tag description disappears."
+      },
+      {
+        "file": "konnect.tsp",
+        "role": "Kong Konnect variant (namespace MeteringAndBilling): different @server URLs, multi-region servers, @useAuth, and Konnect security schemes. Omits currencies/features/llmcost domains.",
+        "watch_for": "When adding a domain, decide explicitly whether it belongs in Konnect too; missing domains are intentional only when omitted by design \u2014 mismatches elsewhere are bugs."
+      },
+      {
+        "file": "test.tsp",
+        "role": "Standalone test namespace (namespace Test) exercising Common filter types via a /field-filters endpoint. Not compiled into production OpenAPI outputs.",
+        "watch_for": "Do not add production operations here; it exists only to verify filter-type codegen and OpenAPI shape."
+      }
+    ],
+    "anti_patterns": [
+      "Declaring @route or @tag inside a domain sub-folder's operations.tsp \u2014 routing is bound exclusively in openmeter.tsp and konnect.tsp",
+      "Adding a new domain import in openmeter.tsp but forgetting the matching @tagMetadata \u2014 silently drops the tag description from generated OpenAPI",
+      "Defining security scheme bodies inline instead of @useRef to external security.yaml \u2014 duplicates credential config outside the source of truth",
+      "Importing a domain twice (once directly, once via its index.tsp) \u2014 causes duplicate symbol compilation errors",
+      "Hand-editing api/v3/openapi.yaml or api/v3/api.gen.go \u2014 always regenerate via make gen-api then make generate after editing a .tsp here"
+    ],
+    "decisions": [
+      {
+        "decision": "Two root namespace files (openmeter.tsp, konnect.tsp) rather than one parameterized file",
+        "rationale": "OpenMeter and Konnect have different server URLs, security schemes, and feature sets; a single parameterized file would require conditional compilation TypeSpec doesn't support cleanly."
+      },
+      {
+        "decision": "@route and @tag bound only at root, not in domain operation interfaces",
+        "rationale": "Lets the same domain operation interface be mounted at different paths or omitted entirely per root namespace without modifying the domain definition \u2014 enabling per-deployment feature gating."
+      },
+      {
+        "decision": "Security schemes as TypeSpec model stubs with @useRef to external YAML",
+        "rationale": "Keeps Konnect OAuth/PAT scheme definitions in a shared security.yaml controlled by Kong infra, avoiding duplication and keeping TypeSpec free of secrets."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new domain 'reports' to the OpenMeter namespace",
+        "code": "// openmeter.tsp\nimport \"./reports/index.tsp\";\n@tagMetadata(Shared.ReportsTag, #{ description: Shared.ReportsDescription })\n// ...\n@route(\"/openmeter/reports\")\n@tag(Shared.ReportsTag)\ninterface ReportsEndpoints extends Reports.ReportsOperations {}\n// repeat in konnect.tsp only if Konnect needs it, then run: make gen-api && make generate"
+      }
+    ]
+  }
+}

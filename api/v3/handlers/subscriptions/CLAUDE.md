@@ -2,59 +2,39 @@
 
 <!-- archie:ai-start -->
 
-> v3 HTTP handler package for billing subscription lifecycle (list, get, create from plan, cancel, unschedule cancellation, change-plan); uses two distinct domain services — planSubscriptionService for create/change workflows and subscriptionService for get/list/cancel/continue.
+> v3 HTTP handler package for billing subscription lifecycle (list, get, create-from-plan, cancel, unschedule cancellation, change-plan); uses two distinct domain services — planSubscriptionService for create/change workflows and subscriptionService for get/list/cancel/continue. The subscriptionaddons/ sub-package lists subscription addons.
 
 ## Patterns
 
-**Pre-validation of referenced entities inside the decoder** — Resolve and validate customer and plan references inside the request decoder (first func) using apierrors.NewBadRequestError with InvalidParameters for missing required fields. (`if body.Plan.Id == nil && body.Plan.Key == nil { return ..., apierrors.NewBadRequestError(ctx, errors.New(reason), []apierrors.InvalidParameter{{Field: "plan.id", ...}}) }`)
-**Private helper methods for ID-or-key entity lookup** — getCustomerByIDOrKey and getPlanByIDOrKey are private handler methods that accept namespace + optional ID/Key pointers and return the entity. They are defined in create.go and reused by change.go. (`customerEntity, err := h.getCustomerByIDOrKey(ctx, ns, body.Customer.Id, body.Customer.Key)`)
-**PlanInput constructed via FromRef, never direct field assignment** — Always construct plansubscription.PlanInput via planInput.FromRef(&PlanRefInput{Key: ..., Version: ...}) after resolving the concrete plan. (`planInput := plansubscription.PlanInput{}; planInput.FromRef(&plansubscription.PlanRefInput{Key: planEntity.Key, Version: &planEntity.Version})`)
-**Timing union decode: AsDateTime() before AsBillingSubscriptionEditTimingEnum()** — FromAPIBillingSubscriptionEditTiming tries AsDateTime() first; enum fallback is second. This order is critical because datetime strings also satisfy the string union type. (`if custom, err := t.AsDateTime(); err == nil { return subscription.Timing{Custom: &custom}, nil }`)
-**planSubscriptionService for create/change; subscriptionService for get/list/cancel/continue** — The handler struct holds two subscription services with different responsibilities. Using the wrong one silently changes workflow semantics and billing sync. (`h.planSubscriptionService.Create(ctx, request) // not h.subscriptionService.Create`)
+**Two subscription services with split responsibilities** — The handler struct holds planSubscriptionService (create/change, drives billing sync + plan versioning) and subscriptionService (get/list/cancel/continue). Using the wrong one silently changes workflow semantics. (`h.planSubscriptionService.Create(ctx, request) // not h.subscriptionService.Create`)
+**Pre-validation of referenced entities in the decoder** — Resolve and validate customer and plan refs inside the decoder via getCustomerByIDOrKey/getPlanByIDOrKey, returning apierrors.NewBadRequestError with InvalidParameters for missing required fields. (`if body.Plan.Id == nil && body.Plan.Key == nil { return ..., apierrors.NewBadRequestError(ctx, errors.New(reason), []apierrors.InvalidParameter{{Field: "plan.id", Rule: "required", ...}}) }`)
+**PlanInput constructed via FromRef** — After resolving a concrete plan, build plansubscription.PlanInput via planInput.FromRef(&PlanRefInput{Key, Version}) — never direct field assignment. (`planInput := plansubscription.PlanInput{}; planInput.FromRef(&plansubscription.PlanRefInput{Key: planEntity.Key, Version: &planEntity.Version})`)
+**Timing union: AsDateTime() before enum** — FromAPIBillingSubscriptionEditTiming tries AsDateTime() first, enum fallback second; order is load-bearing because RFC3339 strings also satisfy the enum string union. (`if custom, err := t.AsDateTime(); err == nil { return subscription.Timing{Custom: &custom}, nil }`)
+**Cancel defaults timing to immediate** — cancel.go sets timing.Enum = TimingImmediate when body.Timing is nil rather than requiring a timing value. (`if body.Timing == nil { timing.Enum = lo.ToPtr(subscription.TimingImmediate) }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `handler.go` | Handler interface (6 methods) and handler struct: resolveNamespace, customerService, planService, planSubscriptionService, subscriptionService. | Two distinct subscription services are injected: planSubscriptionService (create/change) and subscriptionService (get/list/cancel/continue). Mixing them changes workflow semantics. |
-| `create.go` | Creates subscription from plan; validates customer and plan exist, builds PlanInput via FromRef, calls planSubscriptionService.Create. Also defines getCustomerByIDOrKey and getPlanByIDOrKey private helpers. | TODO comments note helpers should eventually move to the service layer — keep them private to handler for now. |
-| `change.go` | Changes running subscription to a new plan; fetches current subscription for name/desc/metadata defaults, builds ChangeSubscriptionWorkflowInput, calls planSubscriptionService.Change. Response is BillingSubscriptionChangeResponse{Current, Next} not a single subscription. | Metadata defaults come from the existing subscription; only override if body.Labels is non-nil. |
-| `convert.go` | ToAPIBillingSubscription (uses clock.Now() for GetStatusAt), FromAPIBillingSubscriptionEditTiming (datetime-before-enum order), FromAPIBillingSubscriptionCreate. | Tests that assert subscription status must mock clock via clock.SetTime. The timing decode order (datetime first) is load-bearing — reversing it breaks custom RFC3339 timing. |
-| `cancel.go` | CancelSubscription; defaults timing to TimingImmediate when body.Timing is nil. | Nil timing body must default to immediate — do not require timing to be present. |
+| `handler.go` | Handler interface (6 methods) and struct: resolveNamespace, customerService, planService, planSubscriptionService, subscriptionService. | Mixing the two subscription services changes workflow semantics and billing sync. |
+| `create.go` | Creates subscription from plan; validates customer+plan, builds PlanInput via FromRef, calls planSubscriptionService.Create. Defines private getCustomerByIDOrKey/getPlanByIDOrKey helpers. | Helpers are intentionally private to the handler (TODO to move to service layer). |
+| `change.go` | Change-to-plan; fetches current subscription for name/desc/metadata defaults, builds ChangeSubscriptionWorkflowInput, calls planSubscriptionService.Change. | Response is BillingSubscriptionChangeResponse{Current, Next}; metadata defaults from existing subscription unless body.Labels is non-nil. |
+| `convert.go` | ToAPIBillingSubscription (clock.Now() for GetStatusAt), FromAPIBillingSubscriptionEditTiming (datetime-before-enum), FromAPIBillingSubscriptionCreate. | Status tests must mock clock via clock.SetTime; reversing the timing decode order breaks custom RFC3339 timing. |
+| `cancel.go` | CancelSubscription; defaults nil timing to immediate. | Nil timing must default to immediate, not error. |
+| `subscriptionaddons/` | Sub-package listing subscription addons; toAPISubscriptionAddon unions instance periods into one ActiveFrom/ActiveTo via clock.Now(). | Sort validation uses subscriptionaddon.OrderBy.Validate() after field mapping. |
 
 ## Anti-Patterns
 
-- Swapping planSubscriptionService and subscriptionService calls — Create/Change must go through the plan service for billing sync hooks.
-- Reversing timing decode order (trying enum before datetime) — datetime strings will be misidentified as enum values.
-- Skipping getCustomerByIDOrKey / getPlanByIDOrKey pre-validation and calling planSubscriptionService directly — plan must be resolved to a concrete version before creating.
-- Using commonhttp.GenericErrorEncoder() instead of apierrors.GenericErrorEncoder() in v3 handlers.
-- Setting PlanInput fields directly instead of using planInput.FromRef — direct assignment bypasses the FromRef invariants.
+- Swapping planSubscriptionService and subscriptionService — Create/Change must use the plan service for billing sync hooks
+- Reversing timing decode order (enum before datetime) — datetime strings get misidentified as enum
+- Calling planSubscriptionService without first resolving customer+plan via getByIDOrKey helpers
+- Using commonhttp.GenericErrorEncoder() instead of apierrors.GenericErrorEncoder() in v3 handlers
+- Setting PlanInput fields directly instead of planInput.FromRef
 
 ## Decisions
 
-- **Two separate subscription services: planSubscriptionService and subscriptionService** — plansubscription.PlanSubscriptionService orchestrates billing sync and plan versioning on top of the core subscription.Service; the split keeps billing-coupling out of the generic subscription lifecycle and allows non-plan subscriptions in the future.
-- **datetime decoded before enum in FromAPIBillingSubscriptionEditTiming** — Both datetime strings and enum strings satisfy the string union type; trying datetime first and falling back to enum is the only way to correctly route RFC3339 custom timestamps without misidentifying them as enum values.
-- **Entity pre-validation (customer + plan lookup) happens in the decoder, not in the operation closure** — Failing fast in the decoder returns structured 400 errors via apierrors.NewBadRequestError with typed InvalidParameters, giving callers actionable field-level error messages before any service call is made.
-
-## Example: Add a new subscription lifecycle action (e.g. PauseSubscription) following the established handler pattern
-
-```
-// pause.go
-package subscriptions
-
-import (
-	"context"
-	"net/http"
-
-	api "github.com/openmeterio/openmeter/api/v3"
-	"github.com/openmeterio/openmeter/api/v3/apierrors"
-	"github.com/openmeterio/openmeter/api/v3/request"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
-	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	models "github.com/openmeterio/openmeter/pkg/models"
-)
-// ...
-```
+- **Two separate subscription services** — plansubscription.PlanSubscriptionService orchestrates billing sync and plan versioning atop core subscription.Service; the split keeps billing-coupling out of generic lifecycle and allows non-plan subscriptions later.
+- **datetime decoded before enum in timing decode** — Both satisfy the string union; trying datetime first is the only way to correctly route RFC3339 custom timestamps without misidentifying them as enum values.
+- **Entity pre-validation happens in the decoder** — Failing fast with apierrors.NewBadRequestError and typed InvalidParameters gives callers actionable field-level errors before any service call.
 
 <!-- archie:ai-end -->

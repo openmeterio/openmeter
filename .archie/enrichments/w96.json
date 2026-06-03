@@ -1,145 +1,159 @@
 {
-  "openmeter/ledger/account/adapter": {
-    "purpose": "Ent/PostgreSQL adapter implementing ledgeraccount.Repo for ledger account and sub-account persistence. All DB operations are transaction-aware via entutils.TransactingRepo; sub-account routes use an ON CONFLICT upsert pattern keyed on a deterministic canonical routing key.",
+  "openmeter/ledger/routingrules": {
+    "purpose": "Pure validation layer for double-entry ledger transactions: defines the RoutingRule interface, a composable Validator, and DefaultValidator encoding all permitted account-type pairings and route-field constraints. No DB access \u2014 validates []ledger.EntryInput before any persistence call.",
     "patterns": [
       {
-        "name": "TransactingRepo on every public method",
-        "description": "Every exported method body must be wrapped in entutils.TransactingRepo(ctx, r, func(ctx, tx *repo) ...) so the ctx-bound Ent transaction is honored. Never use r.db directly in a public method without this wrapper.",
-        "example": "return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgeraccount.AccountData, error) { entity, err := tx.db.LedgerAccount.Create()... })"
+        "name": "RoutingRule interface + Validator composition",
+        "description": "Each constraint is a named struct implementing RoutingRule{Validate(TxView) error}. Validator.ValidateEntries runs them sequentially, fail-fast on first error. New rules are appended to DefaultValidator.Rules in defaults.go \u2014 never create ad-hoc Validator instances in app code.",
+        "example": "type AllowedAccountSetsRule struct { Sets [][]ledger.AccountType }; func (r AllowedAccountSetsRule) Validate(tx TxView) error { ... }"
       },
       {
-        "name": "TxUser triad: Tx / WithTx / Self",
-        "description": "repo must implement entutils.TxUser[*repo] via WithTx (rebinds to caller tx) and Self (returns self for standalone ops), plus transaction.TxCreator via Tx (HijackTx + NewTxDriver). Both var _ assertions in repo.go must stay satisfied.",
-        "example": "func (r *repo) WithTx(ctx context.Context, tx *entutils.TxDriver) *repo { return &repo{db: entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()} }"
+        "name": "TxView as the rule's only input",
+        "description": "NewTxView converts []ledger.EntryInput into []EntryView (with pre-decoded Route), exposing AccountTypes(), EntriesOf(accountType), HasAccountTypes(...). Rules must use TxView \u2014 never the raw EntryInput slice.",
+        "example": "view, _ := NewTxView(entries); for _, rule := range v.Rules { rule.Validate(view) }"
       },
       {
-        "name": "Route upsert via ON CONFLICT + canonical routing key",
-        "description": "resolveOrCreateRoute normalizes the route, computes ledger.BuildRoutingKey(RoutingKeyVersionV1, normalizedRoute), then does an ON CONFLICT DO NOTHING insert followed by a re-fetch by (namespace, accountID, routingKeyVersion, routingKey). EnsureSubAccount similarly uses ON CONFLICT on (namespace, accountID, routeID).",
-        "example": "routeKey, _ := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, normalizedRoute); create.OnConflict(sql.ConflictColumns(...), sql.ResolveWithIgnore()).Exec(ctx)"
+        "name": "HasAccountTypes guard before rule logic",
+        "description": "Every rule targeting specific account types checks tx.HasAccountTypes(r.From, r.To) first and returns nil when those types are absent. Omitting the guard causes false positives on unrelated transactions.",
+        "example": "func (r RequireFlowDirectionRule) Validate(tx TxView) error { if !tx.HasAccountTypes(r.From, r.To) { return nil }; ... }"
       },
       {
-        "name": "Normalize route before key computation and DB storage",
-        "description": "input.Route.Normalize() must be called before BuildRoutingKey and before setting any Ent fields so that decimal variants like '0.7' and '0.70' map to the same route row.",
-        "example": "normalizedRoute, err := input.Route.Normalize(); routeKey, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, normalizedRoute)"
+        "name": "RequireSameRouteRule for cross-account field consistency",
+        "description": "Ensures entries on two account types share the same RouteField values (currency, tax_code, features, cost_basis). Declared as Left/Right/Fields triplets in DefaultValidator; uses requireMatchingRouteFields helper.",
+        "example": "RequireSameRouteRule{Left: ledger.AccountTypeCustomerFBO, Right: ledger.AccountTypeCustomerReceivable, Fields: []RouteField{RouteFieldCurrency, RouteFieldTaxCode}}"
       },
       {
-        "name": "WithRoute+WithAccount eager loading for sub-account reads",
-        "description": "GetSubAccountByID and ListSubAccounts must always call .WithRoute().WithAccount() on the Ent query. MapSubAccountData returns an error if either edge is nil, so omitting eager loads causes silent failures.",
-        "example": "tx.db.LedgerSubAccount.Query().Where(...).WithRoute().WithAccount().Only(ctx)"
+        "name": "FuncRule for test-only rules",
+        "description": "FuncRule wraps a plain function as a RoutingRule for test scenarios without a named struct. Never use in production code.",
+        "example": "FuncRule(func(tx TxView) error { return nil })"
       },
       {
-        "name": "MapAccountData / MapSubAccountData as pure converters",
-        "description": "Both exported functions convert Ent entities to domain types with no repo calls inside. MapSubAccountData must guard both edges before accessing them.",
-        "example": "func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountData, error) { if entity.Edges.Account == nil { return ..., fmt.Errorf(\"account edge is required\") } ... }"
-      },
-      {
-        "name": "resolveOrCreateRoute is internal, not public",
-        "description": "resolveOrCreateRoute is always called from within the outer TransactingRepo in EnsureSubAccount. Adding a direct public call without a wrapping TransactingRepo bypasses tx rebinding.",
-        "example": "// EnsureSubAccount calls resolveOrCreateRoute only inside its TransactingRepo closure"
+        "name": "ErrRoutingRuleViolated with WithAttrs for all errors",
+        "description": "All rule violations return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{...}) with a 'reason' key plus context. Never return plain fmt.Errorf from a RoutingRule.",
+        "example": "return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{\"reason\": \"account_type_combination_not_allowed\", \"account_types\": present})"
       }
     ],
     "key_file_guides": [
       {
-        "file": "repo.go",
-        "role": "Defines repo struct, NewRepo constructor, and Tx/WithTx/Self triad. DI entry point.",
-        "watch_for": "Both var _ compile-time assertions (ledgeraccount.Repo and entutils.TxUser[*repo]) must remain satisfied; dropping either breaks transaction rebinding for callers."
+        "file": "routingrules.go",
+        "role": "Core types: RoutingRule interface, Validator (implements ledger.RoutingValidator), FuncRule, and all concrete rule structs (AllowedAccountSetsRule, RequireFlowDirectionRule, RequireSameRouteRule, RequireAccountAuthorizationStatusRule, RequireReceivableAuthorizationStageRule, RequireAccruedCostBasisTranslationRule, RequireFBOCostBasisTranslationRule, RequireUniqueSubAccountsRule).",
+        "watch_for": "All rules skip gracefully when relevant account types are absent (HasAccountTypes first) \u2014 intentional permissive-when-unrelated behaviour; do not remove these guards."
       },
       {
-        "file": "account.go",
-        "role": "CRUD for LedgerAccount rows (CreateAccount, GetAccountByID, ListAccounts) plus exported MapAccountData converter.",
-        "watch_for": "ListAccounts filters by AccountTypes only when non-empty; omitting the guard returns unscoped results across all account types."
+        "file": "view.go",
+        "role": "EntryView (wraps EntryInput + pre-decoded Route), TxView (slice of EntryView with AccountTypes/EntriesOf/HasAccountTypes/HasAccountType projections), and optional field comparators (optionalStringEqual, optionalDecimalEqual).",
+        "watch_for": "EntryView.Route() returns the decoded route from entry.PostingAddress().Route().Route() \u2014 use it for route comparisons, not the raw SubAccountRoute."
       },
       {
-        "file": "subaccount.go",
-        "role": "EnsureSubAccount (idempotent upsert), GetSubAccountByID, ListSubAccounts, internal resolveOrCreateRoute, and MapSubAccountData.",
-        "watch_for": "resolveOrCreateRoute is not wrapped in its own TransactingRepo \u2014 it must only be called from within EnsureSubAccount's outer TransactingRepo. ListSubAccounts normalizes the route filter before building predicates; skipping normalization causes cost-basis filter mismatches."
+        "file": "defaults.go",
+        "role": "DefaultValidator \u2014 the canonical production validator with all 12+ rules pre-composed in order; the single Validator used by historical.Ledger.CommitGroup.",
+        "watch_for": "Adding a rule here affects every CommitGroup in production. Test bidirectionally with TestDefaultValidator_* cases."
       },
       {
-        "file": "repo_test.go",
-        "role": "Integration tests using testutils.InitPostgresDB and migrate.Up. Wires repo directly from adapter.NewRepo without app/common.",
-        "watch_for": "Tests use t.Context() not context.Background(). DBSchemaMigrate runs the full golang-migrate Up; skip it and FK constraints will fail. Never import app/common in test setup."
+        "file": "routingrules_test.go",
+        "role": "Acceptance/rejection scenario table for DefaultValidator; addressForRoute constructs PostingAddress via ledger.BuildRoutingKey + ledgeraccount.NewAddressFromData.",
+        "watch_for": "New tests must use addressForRoute and require.ErrorContains(t, err, 'ledger routing rule violated') for rejections."
       }
     ],
     "anti_patterns": [
-      "Calling r.db.LedgerAccount/LedgerSubAccount directly in a public method without TransactingRepo \u2014 falls off the caller's transaction",
-      "Querying LedgerSubAccount without .WithRoute().WithAccount() \u2014 MapSubAccountData errors on nil edges",
-      "Manually constructing routingKey strings instead of using ledger.BuildRoutingKey \u2014 breaks canonical uniqueness",
-      "Using context.Background() in tests instead of t.Context()",
-      "Importing app/common in test setup \u2014 causes import cycles; use adapter.NewRepo directly"
+      "Accessing ledger.EntryInput.PostingAddress().Route().Route() directly in rule code instead of EntryView.Route().",
+      "Creating a new Validator with a subset of rules instead of extending DefaultValidator.Rules \u2014 silently removes production constraints.",
+      "Adding DB calls, external I/O, or mutable state inside RoutingRule.Validate \u2014 rules must be pure functions of TxView.",
+      "Skipping the HasAccountTypes guard in a rule \u2014 false positives when relevant accounts are absent.",
+      "Returning plain fmt.Errorf instead of ledger.ErrRoutingRuleViolated.WithAttrs \u2014 breaks the error-type contract used by callers."
     ],
     "decisions": [
       {
-        "decision": "Routes are a separate table (LedgerSubAccountRoute) shared across sub-accounts, not embedded.",
-        "rationale": "Routes give a meaningful view of which currencies/cost bases are held without joining through sub-account structure; upsert on routing key makes route reuse automatic."
+        "decision": "Rules are applied sequentially and fail-fast (first error) rather than accumulating all violations.",
+        "rationale": "Routing violations are programmer errors or abuse, not user-facing validation needing full accumulation; fail-fast simplifies rule logic."
       },
       {
-        "decision": "Cost basis is canonicalized via Route.Normalize() before key computation and DB storage.",
-        "rationale": "Decimal representations like '0.7' and '0.70' must map to the same route row to preserve uniqueness; normalization happens once in the adapter, never in callers."
+        "decision": "TxView pre-decodes the Route from SubAccountRoute.Route() at construction time.",
+        "rationale": "Avoids repeated decode calls inside each rule and simplifies field-comparison helpers."
+      },
+      {
+        "decision": "DefaultValidator is a package-level var, not a constructor function.",
+        "rationale": "Rules are stateless structs; a single shared instance is safe and avoids per-CommitGroup allocation."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new filtered list method (e.g. ListAccountsByType)",
-        "code": "func (r *repo) ListAccountsByType(ctx context.Context, ns string, accType ledger.AccountType) ([]*ledgeraccount.AccountData, error) {\n\treturn entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) ([]*ledgeraccount.AccountData, error) {\n\t\tentities, err := tx.db.LedgerAccount.Query().\n\t\t\tWhere(ledgeraccountdb.Namespace(ns), ledgeraccountdb.AccountType(accType)).\n\t\t\tAll(ctx)\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"list accounts by type: %w\", err)\n\t\t}\n\t\tout := make([]*ledgeraccount.AccountData, 0, len(entities))\n\t\tfor _, e := range entities {\n\t\t\tad, err := MapAccountData(e)\n\t\t\tif err != nil {\n\t\t\t\treturn nil, err\n\t\t\t}\n\t\t\tout = append(out, ad)\n\t\t}\n\t\treturn out, nil\n\t})\n}"
+        "scenario": "Validate entries before booking a transaction (production usage)",
+        "code": "import (\n  \"github.com/openmeterio/openmeter/openmeter/ledger\"\n  \"github.com/openmeterio/openmeter/openmeter/ledger/routingrules\"\n)\n\n// In historical.Ledger.CommitGroup:\nif err := ledger.ValidateTransactionInputWith(ctx, txInput, routingrules.DefaultValidator); err != nil {\n  return nil, fmt.Errorf(\"invalid transaction: %w\", err)\n}"
       }
     ]
   },
-  "openmeter/ledger/account/service": {
-    "purpose": "Business-logic service layer for ledger accounts and sub-accounts. Delegates all persistence to account.Repo and wraps raw AccountData/SubAccountData in domain objects enriched with live runtime dependencies (Locker, SubAccountService) via account.AccountLiveServices.",
+  "openmeter/ledger/testutils": {
+    "purpose": "Reusable test fixtures for ledger integration tests: Deps wires concrete account/resolver/historical-ledger adapters directly (no app/common), and IntegrationEnv spins up a real Postgres DB, runs migrations, creates a test customer, provisions all account types, and exposes typed sub-account helpers.",
     "patterns": [
       {
-        "name": "Self-wiring of SubAccountService in New()",
-        "description": "New() constructs the service, sets live.SubAccountService = svc before storing live in the struct, so Account domain objects receive a real SubAccountService reference. Never construct the service and set SubAccountService externally.",
-        "example": "svc := &service{repo: repo, locker: locker}; svc.live = account.AccountLiveServices{SubAccountService: svc}; return svc"
+        "name": "Build deps from constructors, not Wire",
+        "description": "InitDeps wires accountadapter.NewRepo, accountservice.New, historicaladapter.NewRepo, resolversadapter.NewRepo, and resolvers.NewAccountResolver directly \u2014 never via app/common \u2014 to avoid import cycles.",
+        "example": "repo := accountadapter.NewRepo(db); accountService := accountservice.New(repo, locker); historicalLedger := historical.NewLedger(historicalRepo, accountService, accountService, routingrules.DefaultValidator)"
       },
       {
-        "name": "Validate input before repo calls",
-        "description": "CreateAccount and EnsureSubAccount call input.Validate() and return immediately on error before any repo interaction. All mutating methods must validate first.",
-        "example": "if err := input.Validate(); err != nil { return nil, err }"
+        "name": "IntegrationEnv as the single test harness entry point",
+        "description": "All ledger integration tests call NewIntegrationEnv(t, namespacePrefix) to get a provisioned namespace, customer, and account set. Never replicate DB setup, migration, or account provisioning inline.",
+        "example": "env := testutils.NewIntegrationEnv(t, \"my-feature\"); fbo := env.FBOSubAccount(t, 1)"
       },
       {
-        "name": "transaction.Run for multi-step mutations",
-        "description": "EnsureSubAccount wraps the repo call in transaction.Run(ctx, s.repo, ...) to ensure atomicity. Use transaction.Run whenever a method calls both a write and a subsequent read on the repo.",
-        "example": "return transaction.Run(ctx, s.repo, func(ctx context.Context) (ledger.SubAccount, error) { subAccountData, _ := s.repo.EnsureSubAccount(ctx, input); return account.NewSubAccountFromData(*subAccountData) })"
+        "name": "Use t.Context() throughout",
+        "description": "Every Ent call and service method in IntegrationEnv and Deps passes t.Context(), not context.Background(), tying cancellation and DB connections to the test harness.",
+        "example": "db.Customer.Create().SetNamespace(namespace).SetID(customerID.ID).SetName(\"Test Customer\").Save(t.Context())"
       },
       {
-        "name": "Domain object construction via NewAccountFromData / NewSubAccountFromData",
-        "description": "Service methods must never return raw *AccountData or *SubAccountData. Always wrap via account.NewAccountFromData(data, s.live) or account.NewSubAccountFromData(data) to attach live runtime services.",
-        "example": "return account.NewAccountFromData(*accData, s.live)"
+        "name": "Freeze clock in NewIntegrationEnv",
+        "description": "Time is frozen with clock.FreezeTime(now) and t.Cleanup(clock.UnFreeze) so temporal ledger queries (balance snapshots, period windows) are deterministic.",
+        "example": "clock.FreezeTime(now); t.Cleanup(clock.UnFreeze)"
       },
       {
-        "name": "Sorted deterministic lock ordering in LockAccountsForPosting",
-        "description": "LockAccountsForPosting deduplicates by NamespacedID, sorts IDs lexicographically (namespace then ID), and acquires advisory locks in order to prevent deadlocks between concurrent callers locking overlapping account sets.",
-        "example": "sort.Slice(ids, func(i, j int) bool { if ids[i].Namespace == ids[j].Namespace { return ids[i].ID < ids[j].ID }; return ids[i].Namespace < ids[j].Namespace })"
+        "name": "Typed sub-account helpers per account type",
+        "description": "FBOSubAccount, ReceivableSubAccount, AccruedSubAccount, WashSubAccount, EarningsSubAccount, BrokerageSubAccount call GetSubAccountForRoute with the correct typed params. Never construct SubAccount directly.",
+        "example": "subAccount, _ := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{Currency: e.Currency, CreditPriority: priority})"
+      },
+      {
+        "name": "SumBalance reads settled balance only",
+        "description": "SumBalance calls HistoricalLedger.GetSubAccountBalance and returns .Settled(). Tests needing pending/unsettled components must call GetSubAccountBalance directly.",
+        "example": "sum := env.SumBalance(t, fboSubAccount) // settled balance as alpacadecimal.Decimal"
       }
     ],
     "key_file_guides": [
       {
-        "file": "service.go",
-        "role": "Entire service implementation. Exposes New() and satisfies account.Service via var _ account.Service = (*service)(nil).",
-        "watch_for": "The self-wiring of live.SubAccountService in New() is load-bearing \u2014 if SubAccountService is nil, Account.SubAccount() calls will panic at runtime. LockAccountsForPosting only locks FBO and Receivable account types; adding new account types that need locking requires updating the switch case."
+        "file": "deps.go",
+        "role": "Wires the three concrete ledger services (AccountService, ResolversService, HistoricalLedger) from a raw *entdb.Client and *slog.Logger; exported Deps struct exposes all three for direct test use.",
+        "watch_for": "The single accountservice.New call before historicalLedger construction is load-bearing \u2014 historical.NewLedger receives accountService as both the internal service and Querier. Do not collapse or reorder these calls."
+      },
+      {
+        "file": "integration.go",
+        "role": "Full integration harness: DB via omtestutils.InitPostgresDB, migrations via migrate.New+Up, customer row inserted via raw Ent, account provisioning via ResolversService.CreateCustomerAccounts and EnsureBusinessAccounts.",
+        "watch_for": "Customer row is inserted via raw Ent (not customer.Service) so the package stays independent of app/common and customer/service. Do not switch to customer.Service here."
       }
     ],
     "anti_patterns": [
-      "Returning *AccountData or *SubAccountData directly from service methods \u2014 callers expect domain objects with live services attached",
-      "Calling s.repo.EnsureSubAccount outside a transaction.Run when the method also calls s.GetAccountByID \u2014 creates a TOCTOU window",
-      "Constructing service and setting live.SubAccountService externally instead of via New() \u2014 self-wiring is intentional and load-bearing",
-      "Introducing context.Background() or context.TODO() \u2014 always propagate the caller's ctx"
+      "Importing app/common or any Wire provider set \u2014 causes import cycles and couples helpers to the full DI graph.",
+      "Constructing ledger.SubAccount literals directly instead of the typed IntegrationEnv helper methods.",
+      "Using context.Background() instead of t.Context() \u2014 leaks connections and severs cancellation.",
+      "Skipping clock.FreezeTime in tests with temporal ledger queries \u2014 non-deterministic balance windows.",
+      "Calling migrate.Up more than once per IntegrationEnv instance \u2014 reuse the single env per test."
     ],
     "decisions": [
       {
-        "decision": "AccountLiveServices.SubAccountService is self-wired inside New() rather than injected as a separate dependency.",
-        "rationale": "Account domain objects need SubAccountService to load sub-accounts lazily; the single service implements both operations, so self-wiring resolves the circular dependency without an external intermediary."
+        "decision": "Single accountservice.New call before historicalLedger construction (no two-phase pattern).",
+        "rationale": "historical.NewLedger receives accountService as both its internal service and Querier; one instance passed twice is correct and avoids circular dependency."
       },
       {
-        "decision": "LockAccountsForPosting acquires advisory locks in sorted NamespacedID order.",
-        "rationale": "Consistent lock acquisition order across concurrent callers prevents deadlocks when two goroutines lock overlapping sets of customer accounts for ledger postings."
+        "decision": "Direct Ent customer row insertion instead of customer.Service in NewIntegrationEnv.",
+        "rationale": "Keeps testutils independent of app/common and customer/service, preventing import cycles per the test-003 enforcement rule."
+      },
+      {
+        "decision": "Typed sub-account helper methods per account type.",
+        "rationale": "Wrapping GetSubAccountForRoute in named helpers ensures routing-rule params are always correct per account class and keeps tests readable."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new mutating service method with validation and domain object wrapping",
-        "code": "func (s *service) ArchiveAccount(ctx context.Context, id models.NamespacedID) (ledger.Account, error) {\n\t// validate inputs before touching the repo\n\tif id.ID == \"\" || id.Namespace == \"\" {\n\t\treturn nil, models.NewGenericValidationError(\"account id and namespace are required\")\n\t}\n\treturn transaction.Run(ctx, s.repo, func(ctx context.Context) (ledger.Account, error) {\n\t\taccData, err := s.repo.ArchiveAccount(ctx, id)\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"archive account: %w\", err)\n\t\t}\n\t\t// always wrap raw data in domain object\n\t\treturn account.NewAccountFromData(*accData, s.live)\n\t})\n}"
+        "scenario": "Set up and use a full ledger integration test",
+        "code": "import ledgertestutils \"github.com/openmeterio/openmeter/openmeter/ledger/testutils\"\n\nfunc TestMyLedgerFeature(t *testing.T) {\n  env := ledgertestutils.NewIntegrationEnv(t, \"my-feature\")\n  fbo := env.FBOSubAccount(t, 1)\n  recv := env.ReceivableSubAccount(t)\n  // post transactions via env.Deps.HistoricalLedger ...\n  bal := env.SumBalance(t, fbo)\n  require.Equal(t, expectedDecimal, bal)\n}"
       }
     ]
   }

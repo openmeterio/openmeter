@@ -1,0 +1,232 @@
+{
+  "api/v3/handlers/subscriptions/subscriptionaddons": {
+    "purpose": "v3 HTTP handlers for subscription addons (list and get); implements the httptransport.HandlerWithArgs pipeline converting between domain subscriptionaddon.SubscriptionAddon and apiv3.SubscriptionAddon types.",
+    "patterns": [
+      {
+        "name": "HandlerWithArgs decode/operate/encode pipeline",
+        "description": "Every endpoint uses httptransport.NewHandlerWithArgs with three functions: decode params+request, call the domain service, encode response. Never write a raw http.Handler.",
+        "example": "httptransport.NewHandlerWithArgs(decodeFn, operateFn, commonhttp.JSONResponseEncoderWithStatus[T](http.StatusOK), opts...)"
+      },
+      {
+        "name": "Namespace resolution via injected closure",
+        "description": "Namespace is resolved by calling h.resolveNamespace(ctx) inside the decode function \u2014 never parsed from URL params directly.",
+        "example": "ns, err := h.resolveNamespace(ctx)"
+      },
+      {
+        "name": "Pagination via pagination.NewPage with validation",
+        "description": "Page input is built via pagination.NewPage(number, size) with defaults (1, 20), then validated with page.Validate() before building the service input.",
+        "example": "page := pagination.NewPage(lo.FromPtrOr(params.Params.Page.Number, 1), lo.FromPtrOr(params.Params.Page.Size, 20))"
+      },
+      {
+        "name": "Error encoding via apierrors.GenericErrorEncoder",
+        "description": "List appends apierrors.GenericErrorEncoder() as the error encoder. Never use commonhttp.GenericErrorEncoder() in v3 handlers.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))"
+      },
+      {
+        "name": "Sort parsing via request.ParseSortBy + OrderBy.Validate",
+        "description": "Sort params parse with request.ParseSortBy, map to subscriptionaddon.OrderBy, set Order via sort.Order.ToSortxOrder(), then validate with OrderBy.Validate(); bad fields return 400.",
+        "example": "input.OrderBy = subscriptionaddon.OrderBy(sort.Field); if err := input.OrderBy.Validate(); err != nil { return ..., apierrors.NewBadRequestError(...) }"
+      },
+      {
+        "name": "Conversion in convert.go only",
+        "description": "All domain-to-API conversion is in convert.go as standalone functions (toAPISubscriptionAddon). Operate functions call them; conversion is never embedded in list.go/get.go.",
+        "example": "converted, err := toAPISubscriptionAddon(item)"
+      },
+      {
+        "name": "Handler interface + struct + per-file endpoints",
+        "description": "handler.go defines the Handler interface (ListSubscriptionAddons, GetSubscriptionAddon), a private handler struct (resolveNamespace, addonService, options), and New(). Each endpoint lives in its own file.",
+        "example": "type Handler interface { ListSubscriptionAddons() ListSubscriptionAddonsHandler; GetSubscriptionAddon() GetSubscriptionAddonHandler }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface, handler struct (resolveNamespace, addonService, options), New() constructor.",
+        "watch_for": "Adding dependencies requires wiring in api/v3/server/server.go. Keep struct fields minimal."
+      },
+      {
+        "file": "list.go",
+        "role": "ListSubscriptionAddons: typed params, request, response; pagination + sort validation; per-item toAPISubscriptionAddon mapping.",
+        "watch_for": "Apply default page (1, 20) before Validate(). Unknown sort fields must return 400 via OrderBy.Validate(), not 500."
+      },
+      {
+        "file": "get.go",
+        "role": "GetSubscriptionAddon: builds GetSubscriptionAddonInput (NamespacedID + SubscriptionID); returns 404 when the service result is nil.",
+        "watch_for": "Note get.go does NOT append apierrors.GenericErrorEncoder in its options block (only WithOperationName) \u2014 list.go does."
+      },
+      {
+        "file": "convert.go",
+        "role": "toAPISubscriptionAddon: reads clock.Now() to pick the active instance, unions all instance periods into one ActiveFrom/ActiveTo.",
+        "watch_for": "Returns NewGenericNotFoundError if no instance is active at now or no instances exist \u2014 callers must handle it. Union uses lo.Reduce; new fields must stay in sync with apiv3.SubscriptionAddon."
+      }
+    ],
+    "anti_patterns": [
+      "Calling addonService methods from the decode function \u2014 decode only parses/validates inputs.",
+      "Using commonhttp.GenericErrorEncoder() in v3 handlers; always use apierrors.GenericErrorEncoder().",
+      "Embedding domain-to-API conversion inline in list.go/get.go \u2014 put it in convert.go.",
+      "Skipping page.Validate() before using the page value.",
+      "Resolving namespace from URL path params directly instead of h.resolveNamespace(ctx)."
+    ],
+    "decisions": [
+      {
+        "decision": "toAPISubscriptionAddon reads clock.Now() and unions all instance periods into a single ActiveFrom/ActiveTo with a current quantity snapshot.",
+        "rationale": "The domain stores multiple timed instances; the API exposes a single flattened addon view with a full effective range."
+      },
+      {
+        "decision": "Sort validation uses subscriptionaddon.OrderBy.Validate() after field mapping.",
+        "rationale": "Keeps supported sort fields authoritative in the domain package; the handler does not hardcode valid field names."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Converting a domain addon with multiple instances to the flattened API view",
+        "code": "func toAPISubscriptionAddon(addon subscriptionaddon.SubscriptionAddon) (apiv3.SubscriptionAddon, error) {\n  now := clock.Now()\n  inst, found := addon.GetInstanceAt(now)\n  if !found { return apiv3.SubscriptionAddon{}, models.NewGenericNotFoundError(fmt.Errorf(\"no instance is active at %s\", now.Format(time.RFC3339))) }\n  pers := lo.Map(addon.GetInstances(), func(i subscriptionaddon.SubscriptionAddonInstance, _ int) timeutil.OpenPeriod { return i.AsPeriod() })\n  union := lo.Reduce(pers, func(agg, item timeutil.OpenPeriod, _ int) timeutil.OpenPeriod { return agg.Union(item) }, pers[0])\n  return apiv3.SubscriptionAddon{Id: addon.ID, Quantity: inst.Quantity, QuantityAt: now, ActiveFrom: lo.FromPtrOr(union.From, now), ActiveTo: union.To}, nil\n}"
+      }
+    ]
+  },
+  "api/v3/handlers/taxcodes": {
+    "purpose": "Full CRUD v3 HTTP handler package for billing tax codes (list/get/create/upsert/delete) plus organization-default tax-code management. Uses Goverter-generated conversions driven by annotated convert.go and a backwards-compatible AppType mapping.",
+    "patterns": [
+      {
+        "name": "Goverter variables pattern for conversions",
+        "description": "convert.go declares package-level var function fields with goverter directives; convert.gen.go is generated (DO NOT EDIT) and assigns them in init(). The //go:generate directive at the top of convert.go regenerates via 'make generate'.",
+        "example": "// goverter:variables\nvar FromAPICreateTaxCodeRequest func(namespace string, req api.CreateTaxCodeRequest) (taxcode.CreateTaxCodeInput, error)"
+      },
+      {
+        "name": "Backwards-compatible AppType mapping",
+        "description": "FromAPIBillingAppType maps API 'external_invoicing' to app.AppTypeCustomInvoicing; ToAPIBillingAppType maps back to 'external_invoicing'. The pair must stay in sync.",
+        "example": "func FromAPIBillingAppType(s api.BillingAppType) app.AppType { if s == \"external_invoicing\" { return app.AppTypeCustomInvoicing }; return app.AppType(s) }"
+      },
+      {
+        "name": "Nil-to-empty-slice in app mappings",
+        "description": "ToAPIBillingTaxCodeAppMappings returns []api.BillingTaxCodeAppMapping{} (not nil) when the source is nil, preventing a JSON null on the AppMappings field.",
+        "example": "func ToAPIBillingTaxCodeAppMappings(s taxcode.TaxCodeAppMappings) []api.BillingTaxCodeAppMapping { if s == nil { return []api.BillingTaxCodeAppMapping{} }; ... }"
+      },
+      {
+        "name": "Goverter context for namespace/namespacedID injection",
+        "description": "goverter:context + goverter:map ... | NamespaceFromContext / ResolveNamespacedIDFromContext inject the namespace/NamespacedID into generated converters from a context argument.",
+        "example": "// goverter:context namespace\n// goverter:map Namespace | NamespaceFromContext\nvar FromAPICreateTaxCodeRequest func(namespace string, ...) (...)"
+      },
+      {
+        "name": "Upsert semantics for the update endpoint",
+        "description": "update.go accepts api.UpsertTaxCodeRequest (not UpdateTaxCodeRequest) and uses operation name 'upsert-tax-code' \u2014 the endpoint is an upsert, not a partial update.",
+        "example": "httptransport.WithOperationName(\"upsert-tax-code\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "convert.go",
+        "role": "Source-of-truth for Goverter declarations: //go:generate directive, goverter:variables/extend block, var function fields, and hand-written helpers (AppType mapping, nil-safe app mappings, tax-code reference <-> ID).",
+        "watch_for": "Editing annotations requires 'make generate'. A new goverter:extend helper must also be registered in the top goverter:extend block."
+      },
+      {
+        "file": "convert.gen.go",
+        "role": "Goverter-generated implementations assigning the var fields in init(); carries the DO NOT EDIT header.",
+        "watch_for": "Never edit directly \u2014 regenerate with 'make generate'. Out-of-sync conversions produce silently incorrect mappings."
+      },
+      {
+        "file": "handler.go",
+        "role": "Handler interface (7 methods incl. organization-default tax codes) and handler struct with resolveNamespace + taxcode.Service only.",
+        "watch_for": "No secondary service \u2014 taxcode.Service handles all CRUD and organization defaults."
+      },
+      {
+        "file": "update.go",
+        "role": "Upsert via api.UpsertTaxCodeRequest; passes a models.NamespacedID to FromAPIUpsertTaxCodeRequest.",
+        "watch_for": "Operation name must be 'upsert-tax-code'. Using api.UpdateTaxCodeRequest breaks JSON deserialization."
+      },
+      {
+        "file": "upsert_organization_default_tax_codes.go / get_organization_default_tax_codes.go",
+        "role": "Org-default endpoints using bare httptransport.NewHandler (no path arg); reference IDs convert via the *ReferenceToIDString helpers.",
+        "watch_for": "Reference helpers (InvoicingTaxCodeReferenceToIDString etc.) return NewGenericValidationError when id is missing \u2014 required-field enforcement."
+      },
+      {
+        "file": "list.go / create.go / get.go / delete.go",
+        "role": "Standard list/create/get/delete; conversions via ToAPIBillingTaxCode and FromAPICreateTaxCodeRequest.",
+        "watch_for": "delete.go defines DeleteTaxCodeRequest as a non-alias struct (taxcode.DeleteTaxCodeInput, no =) and rebuilds the input before the service call."
+      }
+    ],
+    "anti_patterns": [
+      "Editing convert.gen.go directly \u2014 regenerate via 'make generate' after changing goverter annotations.",
+      "Breaking the AppType round-trip \u2014 'external_invoicing' must map both ways through FromAPIBillingAppType and ToAPIBillingAppType.",
+      "Returning nil for AppMappings instead of an empty slice \u2014 causes a JSON null that breaks the array contract.",
+      "Adding a goverter:extend helper without registering it in the top goverter:extend block.",
+      "Using api.UpdateTaxCodeRequest in update.go instead of api.UpsertTaxCodeRequest."
+    ],
+    "decisions": [
+      {
+        "decision": "Goverter for tax-code conversions instead of hand-written mappers.",
+        "rationale": "Tax codes are straightforward field mapping with no discriminated unions; Goverter cuts boilerplate while context injects namespace cleanly."
+      },
+      {
+        "decision": "'external_invoicing' <-> 'custom_invoicing' mapping in both directions.",
+        "rationale": "The domain type was renamed from external_invoicing to custom_invoicing; the API preserves the old name for backwards compatibility."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new Goverter conversion variable following the existing pattern",
+        "code": "// convert.go\n// goverter:context namespace\n// goverter:map Namespace | NamespaceFromContext\n// goverter:map Labels Metadata\n// goverter:ignore Annotations\nvar FromAPINewTaxCodeRequest func(namespace string, req api.NewTaxCodeRequest) (taxcode.NewTaxCodeInput, error)\n// run: make generate  (regenerates convert.gen.go)\n// in operation file: req, err := FromAPINewTaxCodeRequest(ns, body)"
+      }
+    ]
+  },
+  "api/v3/labels": {
+    "purpose": "Bridges the api.Labels wire type (map[string]string) to domain models.Metadata and models.Annotations, enforcing key/value format rules and the 'openmeter_' annotation prefix convention. All v3 endpoints accepting or returning labels route through here.",
+    "patterns": [
+      {
+        "name": "ToMetadataAnnotations for inbound labels",
+        "description": "Splits keys into Metadata (user keys) and Annotations (openmeter_-prefixed, prefix stripped). Validates every key/value; collects errors via errors.Join and wraps with NewNillableGenericValidationError.",
+        "example": "ma, err := labels.ToMetadataAnnotations(req.Body.Labels); if err != nil { return err }; input.Metadata = ma.Metadata"
+      },
+      {
+        "name": "FromMetadataAnnotations for outbound labels",
+        "description": "Builds *api.Labels from domain Metadata + Annotations. Annotation keys are re-prefixed with 'openmeter_'; annotation values that are not string/Stringer/TextMarshaler are silently skipped, as are keys failing ValidateLabel.",
+        "example": "resp.Labels = labels.FromMetadataAnnotations(entity.Metadata, entity.Annotations)"
+      },
+      {
+        "name": "ValidateLabel / ValidateLabels for format + reserved-prefix checks",
+        "description": "Validates against keyValueFormat regexp and reservedPrefixMatcher; returns models.ValidationIssue errors carrying WithHTTPStatusCodeAttribute(400) so they render as 400 through the error encoder.",
+        "example": "if err := labels.ValidateLabels(*req.Labels); err != nil { return err }"
+      },
+      {
+        "name": "openmeter_ prefix as the annotation namespace",
+        "description": "API keys starting with 'openmeter_' map to models.Annotations (prefix stripped); all others map to models.Metadata. User-supplied 'openmeter_' keys are rejected to prevent spoofing internal annotations.",
+        "example": "// {\"env\":\"prod\",\"openmeter_region\":\"us\"} -> Metadata{env:prod}, Annotations{region:us}"
+      },
+      {
+        "name": "FromMetadata / ToMetadata convenience helpers",
+        "description": "FromMetadata[T ~map[string]string] and ToMetadata wrap the annotation-aware converters for entities that only carry Metadata (no Annotations).",
+        "example": "func ToMetadata(labels *api.Labels) (models.Metadata, error) { m, err := ToMetadataAnnotations(labels); return m.Metadata, err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "convert.go",
+        "role": "ToMetadataAnnotations (inbound) and FromMetadataAnnotations (outbound) plus FromMetadata/ToMetadata helpers; defines AnnotationsPrefix = \"openmeter_\".",
+        "watch_for": "FromMetadataAnnotations handles Stringer, TextMarshaler, and string annotation values; other types (and failing MarshalText) are silently skipped with no error."
+      },
+      {
+        "file": "validate.go",
+        "role": "ValidateLabel / ValidateLabels using compiled keyValueFormat and reservedPrefixMatcher regexps; issues carry WithHTTPStatusCodeAttribute(400).",
+        "watch_for": "Reserved prefixes include openmeter, kong, konnect, insomnia, mesh, kic, kuma, and a leading underscore \u2014 user keys with these are always rejected, even outside annotation contexts."
+      }
+    ],
+    "anti_patterns": [
+      "Accepting api.Labels in a domain service input \u2014 domain types use models.Metadata and models.Annotations.",
+      "Skipping ValidateLabel when writing annotation keys from external input \u2014 invalid keys silently disappear in FromMetadataAnnotations.",
+      "Checking the 'openmeter_' prefix directly in handler code instead of calling ToMetadataAnnotations.",
+      "Relying on annotation values that are not string/Stringer/TextMarshaler \u2014 they are silently dropped on output."
+    ],
+    "decisions": [
+      {
+        "decision": "The openmeter_ prefix splits labels into metadata vs annotations at the API boundary.",
+        "rationale": "Domain code uses typed Annotations (any values) while the wire type is map[string]string; the prefix acts as a namespace marker surviving the round-trip without a separate wire field."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Converting inbound labels in a create handler and outbound in a response mapper",
+        "code": "import apiLabels \"github.com/openmeterio/openmeter/api/v3/labels\"\n\n// Decode\nma, err := apiLabels.ToMetadataAnnotations(req.Body.Labels)\nif err != nil { return err }\ninput := CreateInput{Metadata: ma.Metadata, Annotations: ma.Annotations}\n\n// Encode\nresp.Labels = apiLabels.FromMetadataAnnotations(entity.Metadata, entity.Annotations)"
+      }
+    ]
+  }
+}

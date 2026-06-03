@@ -2,49 +2,36 @@
 
 <!-- archie:ai-start -->
 
-> Chi-based HTTP server package that assembles the v1 and v3 REST APIs behind a shared middleware stack (auth, OpenAPI validation, CORS, logging). The server/ root owns the Chi router construction, middleware wiring, and dual-version route registration; the router/ sub-package is the pure v1 endpoint delegation layer.
+> Chi-based HTTP server assembling the v1 and v3 REST APIs behind a shared middleware stack (auth, OpenAPI validation, CORS, logging). server/ root owns Chi router construction, dual-version mounting, and RFC 7807 error mapping; the router/ sub-package is the pure v1 endpoint delegation layer implementing api.ServerInterface.
 
 ## Patterns
 
-**Dual-version route registration in NewServer** — NewServer mounts the v3 API via v3server.NewServer + RegisterRoutes first in its own Chi Group, then the v1 API with api.HandlerWithOptions in a separate Chi Group so each version has its own middleware chain. (`v3API.RegisterRoutes(r); api.HandlerWithOptions(impl, api.ChiServerOptions{BaseRouter: r, Middlewares: middlewares})`)
-**Config aggregates every service reference** — server.Config embeds router.Config which holds every domain service interface; all fields are validated via Config.Validate() before the router is created. (`config.RouterConfig.BillingService, config.RouterConfig.CustomerService, ...`)
-**StaticNamespaceDecoder injected universally** — namespacedriver.StaticNamespaceDecoder(defaultNS) is injected into both v1 router.Config and v3server.Config — never resolve namespace inside a handler. (`NamespaceDecoder: namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace())`)
-**RFC 7807 error responses via models.NewStatusProblem** — All non-handler errors (404, 405, param decode failures) call models.NewStatusProblem(ctx, err, status).Respond(w); the errorHandlerReply function maps oapi-codegen error types to status codes. (`models.NewStatusProblem(r.Context(), nil, http.StatusNotFound).Respond(w)`)
-**OapiRequestValidatorWithOptions with NoopAuthenticationFunc** — OpenAPI schema validation runs with NoopAuthenticationFunc so the validator never rejects auth-related requests; actual auth is handled by the authenticator middleware. (`oapimiddleware.OapiRequestValidatorWithOptions(swagger, &Options{Options: openapi3filter.Options{AuthenticationFunc: openapi3filter.NoopAuthenticationFunc}})`)
-**corsHandler with AllowedPaths filter** — CORS is gated to specific path prefixes using corsOptions.AllowedPaths; requests to other paths skip CORS middleware entirely. (`corsHandler(corsOptions{AllowedPaths: []string{"/api/v1/portal/meters"}, Options: cors.Options{...}})`)
+**Dual-version route registration in NewServer** — NewServer mounts v3 via v3server.NewServer + RegisterRoutes in its own Chi Group first, then v1 via api.HandlerWithOptions in a separate Group so each version has its own middleware chain and validator. (`r.Group(func(r chi.Router){ v3RegisterErr = v3API.RegisterRoutes(r) }); api.HandlerWithOptions(impl, api.ChiServerOptions{BaseRouter: r, Middlewares: middlewares})`)
+**router.Config aggregates every domain service; validated before routing** — config.RouterConfig holds ~40 domain service interface fields; router.NewRouter validates them before the server is constructed. v3 wiring reads the same fields from RouterConfig. (`v3server.NewServer(&v3server.Config{BillingService: config.RouterConfig.Billing, ...})`)
+**StaticNamespaceDecoder injected universally** — namespacedriver.StaticNamespaceDecoder(defaultNS) is passed into both v1 router.Config and v3server.Config — namespace is never resolved inside a handler. (`NamespaceDecoder: namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace())`)
+**RFC 7807 error responses via models.NewStatusProblem** — NotFound, MethodNotAllowed, and the errorHandlerReply oapi-codegen error switch all render application/problem+json via models.NewStatusProblem. (`models.NewStatusProblem(r.Context(), nil, http.StatusNotFound).Respond(w)`)
+**v1 validator runs with NoopAuthenticationFunc + ExcludeReadOnlyValidations** — OapiRequestValidatorWithOptions uses NoopAuthenticationFunc (auth handled by the authenticator middleware) and ExcludeReadOnlyValidations so read-only zero-values are not rejected. (`openapi3filter.Options{AuthenticationFunc: openapi3filter.NoopAuthenticationFunc, ExcludeReadOnlyValidations: true}`)
+**corsHandler with AllowedPaths prefix gate** — CORS applies only to path prefixes in corsOptions.AllowedPaths (e.g. /api/v1/portal/meters); empty AllowedPaths means CORS for all paths. (`corsHandler(corsOptions{AllowedPaths: []string{"/api/v1/portal/meters"}, Options: cors.Options{...}})`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `openmeter/server/server.go` | NewServer: constructs the Chi router, wires middleware stacks for v1 and v3, and mounts both API versions. | Adding business logic or domain service calls directly here; middleware order matters — auth must precede OapiRequestValidator. |
-| `openmeter/server/cors.go` | corsHandler with path-prefix filtering; only routes matching AllowedPaths receive CORS headers. | Setting AllowedPaths to nil/empty enables CORS for all paths — intentional for portal use case but dangerous elsewhere. |
-| `openmeter/server/server_test.go` | Integration smoke test for all v1 and v3 routes using an in-memory test server constructed from mock services. | All new endpoints must have a corresponding test case here to verify routing and basic response shapes. |
-| `openmeter/server/framework_test.go` | Unit tests for httptransport error encoding (ValidationIssue -> HTTP status mapping). | Any change to commonhttp.HandleIssueIfHTTPStatusKnown must be reflected here. |
+| `openmeter/server/server.go` | NewServer: builds the Chi router, wires v1+v3 middleware stacks, mounts both API versions, and defines errorHandlerReply. | Middleware order — authenticator must precede OapiRequestValidator; no business/domain logic here. |
+| `openmeter/server/cors.go` | corsHandler with path-prefix filtering. | Empty/nil AllowedPaths enables CORS for all paths — intentional only for the portal use case. |
+| `openmeter/server/server_test.go` | TestRoutes smoke test exercising v1 and v3 routes against an in-memory server built from mocks. | New endpoints should add a case here to verify routing and response shape. |
+| `openmeter/server/framework_test.go` | Unit test for ValidationIssue -> HTTP status mapping through httptransport/commonhttp. | Changes to commonhttp.HandleIssueIfHTTPStatusKnown must be reflected here. |
 
 ## Anti-Patterns
 
-- Adding business logic, DB calls, or domain service calls directly in server.go — all logic belongs in domain httpdriver packages
-- Registering v3 routes inside the v1 Chi Group — each version must have its own group and middleware chain
+- Adding business logic, DB calls, or domain service calls in server.go — logic belongs in domain httpdriver packages and the router delegation layer
+- Registering v3 routes inside the v1 Chi Group — each version needs its own group and middleware chain
 - Skipping models.NewStatusProblem for error responses — all errors must render as application/problem+json
-- Adding middleware that runs before the authenticator for auth-sensitive paths without updating the PostAuthMiddlewares extension point
-- Hand-editing api/api.gen.go or api/v3/api.gen.go to add routes — always regenerate from TypeSpec via make gen-api
+- Hand-editing api/api.gen.go or api/v3/api.gen.go to add routes — regenerate from TypeSpec via make gen-api
 
 ## Decisions
 
-- **v3 server mounted in a separate Chi Group before the v1 group** — Each API version needs its own middleware chain (v3 uses oasmiddleware.ValidateRequest; v1 uses kin-openapi OapiRequestValidatorWithOptions); sharing a group would mix validator instances.
-- **ExcludeReadOnlyValidations: true in OpenAPI filter options** — Go models translate required+readOnly fields to non-nil zero values; excluding read-only validation prevents false rejections on fields that SHOULD NOT appear in requests per the spec.
-
-## Example: Adding a new v1 endpoint delegation in the router sub-package (after gen-api + generate)
-
-```
-// In openmeter/server/router/<domain>.go
-func (a *Router) ListFoos(w http.ResponseWriter, r *http.Request, params api.ListFoosParams) {
-	a.config.FooHandler.With(
-		a.config.NamespaceDecoder,
-		a.config.ErrorHandler,
-	).ListFoos().ServeHTTP(w, r)
-}
-```
+- **v3 mounted in a separate Chi Group before the v1 group** — Each version needs its own validator (v3 oasmiddleware.ValidateRequest; v1 kin-openapi OapiRequestValidatorWithOptions); a shared group would mix validator instances.
+- **ExcludeReadOnlyValidations: true in the v1 OpenAPI filter** — Go models translate required+readOnly fields to non-nil zero values; excluding read-only validation prevents false rejections on fields that should not appear in requests.
 
 <!-- archie:ai-end -->

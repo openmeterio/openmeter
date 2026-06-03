@@ -1,0 +1,239 @@
+{
+  "api/spec/packages/aip/src/llmcost": {
+    "purpose": "TypeSpec definitions for the LLM cost pricing domain: global synced price models, per-namespace override CRUD, and filter/pagination operations compiled to v3 OpenAPI. Two separate interfaces split global read-only prices from namespace-scoped override management.",
+    "patterns": [
+      {
+        "name": "Split interfaces by resource boundary",
+        "description": "Separate LLMCostPricesOperations (global read-only prices) from LLMCostOverridesOperations (namespace-scoped CRUD) into distinct interfaces so Go generates separate handler groups.",
+        "example": "interface LLMCostPricesOperations { list_prices(...); get_price(...); } interface LLMCostOverridesOperations { list_overrides(...); create_override(...); delete_override(...); }"
+      },
+      {
+        "name": "deepObject filter params with explode",
+        "description": "All filter parameters use @query(#{ style: \"deepObject\", explode: true }) so filter[field][op]=value query strings deserialize correctly.",
+        "example": "@query(#{ style: \"deepObject\", explode: true }) filter?: ListPricesParamsFilter,"
+      },
+      {
+        "name": "Read-only visibility for all Price response fields",
+        "description": "All Price model fields use @visibility(Lifecycle.Read) since prices are system-managed. OverrideCreate is a separate flat input model for writes \u2014 never mix read and write fields on the same model.",
+        "example": "@visibility(Lifecycle.Read) source: PriceSource;"
+      },
+      {
+        "name": "Enum for controlled string values",
+        "description": "Use enum (not union) for closed string sets with known members like PriceSource. Use union only when open-ended or when needing @summary per variant.",
+        "example": "enum PriceSource { Manual: \"manual\", System: \"system\" }"
+      },
+      {
+        "name": "Suppress repeated-prefix linter with justification",
+        "description": "Fields like model_id/model_name, cache_read_per_token/cache_write_per_token, and effective_from/effective_to trigger the repeated-prefix-grouping linter; suppress with a specific reason string.",
+        "example": "#suppress \"@openmeter/api-spec-aip/repeated-prefix-grouping\" \"model_id and model_name should not be grouped\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "operations.tsp",
+        "role": "Declares LLMCostPricesOperations and LLMCostOverridesOperations interfaces with all HTTP endpoints and the ListPricesParamsFilter filter model.",
+        "watch_for": "Must import @typespec/http and use `using TypeSpec.Http;`. Sort is documented on list_prices but not list_overrides \u2014 keep consistent when extending. All operations require UnstableExtension and InternalExtension markers."
+      },
+      {
+        "file": "prices.tsp",
+        "role": "Defines Price, ModelPricing, Provider, Model, OverrideCreate models and PriceSource enum.",
+        "watch_for": "OverrideCreate uses model_id (plain string) not a ULID \u2014 override creation is upsert (unique per provider+model+currency), not idempotent by ID. effective_from is required on OverrideCreate."
+      },
+      {
+        "file": "index.tsp",
+        "role": "Barrel: imports prices.tsp then operations.tsp in that order (models before operations).",
+        "watch_for": "Order matters \u2014 operations.tsp imports types from prices.tsp; the index must maintain this import order."
+      }
+    ],
+    "anti_patterns": [
+      "Merging global price operations and override operations into a single interface",
+      "Using @visibility(Lifecycle.Create/Update) on Price model fields \u2014 prices are read-only responses; OverrideCreate is the separate write input model",
+      "Omitting effective_from on OverrideCreate \u2014 required to establish when the override takes effect",
+      "Using a ULID for OverrideCreate identification \u2014 overrides are upserted by provider+model+currency composite key, not by ID"
+    ],
+    "decisions": [
+      {
+        "decision": "OverrideCreate is a flat input model separate from the Price response model",
+        "rationale": "The write input (provider string, model_id, pricing) is structurally different from the full Price response which includes system-managed fields (id, source, created_at). Sharing one model would require complex visibility gymnastics."
+      },
+      {
+        "decision": "Two interfaces (Prices vs Overrides) rather than one combined interface",
+        "rationale": "Global prices are read-only and system-synced; per-namespace overrides are user-managed CRUD. Separation makes handler responsibility boundaries clear and allows independent authorization policies."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new filter field to ListPricesParamsFilter",
+        "code": "// operations.tsp\n#suppress \"@openmeter/api-spec-aip/repeated-prefix-grouping\" \"model_id and model_name should not be grouped\"\n@friendlyName(\"ListLLMCostPricesParamsFilter\")\nmodel ListPricesParamsFilter {\n  provider?: Common.StringFieldFilter;\n  model_id?: Common.StringFieldFilter;\n  model_name?: Common.StringFieldFilter;\n  currency?: Common.StringFieldFilter;\n  source?: Common.StringFieldFilter;\n  effective_from?: Common.DateTimeFieldFilter;\n}"
+      }
+    ]
+  },
+  "api/spec/packages/aip/src/meters": {
+    "purpose": "TypeSpec definitions for the Meters v3 API domain: Meter model (aggregation config, event_type, JSONPath dimensions), query request/result types, and CRUD+query operations. Primary constraint: query types live in query.tsp (not meter.tsp) for cross-namespace reuse.",
+    "patterns": [
+      {
+        "name": "union over enum for open enumerations",
+        "description": "MeterAggregation and MeterQueryGranularity use `union` with string literals \u2014 not `enum` \u2014 so generated SDKs treat them as open string unions, preserving forward-compatibility when new aggregation types are added.",
+        "example": "union MeterAggregation { sum: \"sum\", count: \"count\", unique_count: \"unique_count\", avg: \"avg\", min: \"min\", max: \"max\", latest: \"latest\" }"
+      },
+      {
+        "name": "@sharedRoute for content-negotiated variants",
+        "description": "The meter query endpoint has two operations (JSON and CSV) sharing the same POST URL via @sharedRoute. Content type is discriminated by @header contentType. The CSV variant (queryCsv) intentionally omits @body to avoid anyOf in generated OpenAPI.",
+        "example": "@post @operationId(\"query-meter\") @sharedRoute query(@path meterId: Shared.ULID, @body request: MeterQueryRequest): { @header contentType: \"application/json\"; @body _: MeterQueryResult; } | ..."
+      },
+      {
+        "name": "@example decorator on complex models",
+        "description": "Models with complex structure (Meter, MeterQueryRequest, MeterQueryRow, MeterQueryResult) include @example(#{ ... }) decorators to provide concrete OpenAPI examples.",
+        "example": "@example(#{ id: \"01G65Z755AFWAKHE12NY0CQ9FH\", key: \"tokens_total\", aggregation: \"sum\", event_type: \"prompt\", value_property: \"$.tokens\" }) model Meter { ... }"
+      },
+      {
+        "name": "query.tsp isolation for reusable query types",
+        "description": "MeterQueryRequest, MeterQueryResult, MeterQueryRow, MeterQueryFilters, and MeterQueryGranularity are isolated in query.tsp so other namespaces (e.g. features/cost.tsp) can import them.",
+        "example": "// features/cost.tsp imports query.tsp to reuse MeterQueryRequest: import \"../meters/query.tsp\";"
+      },
+      {
+        "name": "@visibility for immutable vs. updatable fields",
+        "description": "Meter fields aggregation, event_type, value_property carry only Lifecycle.Read + Lifecycle.Create (immutable after creation). The dimensions field uniquely adds Lifecycle.Update \u2014 it is the only mutable Meter field.",
+        "example": "@visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update) dimensions?: Record<string>; // vs. @visibility(Lifecycle.Read, Lifecycle.Create) aggregation: MeterAggregation;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "operations.tsp",
+        "role": "Declares MetersOperations (CRUD) and MetersQueryOperations (query + queryCsv). Both query methods share operationId 'query-meter' via @sharedRoute.",
+        "watch_for": "queryCsv intentionally omits @body on the request. Do not add a request body back \u2014 it produces anyOf in the generated OpenAPI spec."
+      },
+      {
+        "file": "meter.tsp",
+        "role": "Core Meter model with aggregation type, event_type, optional value_property, and dimensions map.",
+        "watch_for": "aggregation and event_type are Create+Read only (immutable after creation). value_property is optional only for count aggregation."
+      },
+      {
+        "file": "query.tsp",
+        "role": "All meter query I/O types. MeterQueryFilters.dimensions uses Record<Shared.QueryFilterStringMapItem>; MeterQueryRow.dimensions is Record<string> (output only).",
+        "watch_for": "group_by_dimensions has @maxItems(100). Do not confuse the input filter map (QueryFilterStringMapItem) with the output dimensions map (plain Record<string>)."
+      },
+      {
+        "file": "index.tsp",
+        "role": "Barrel \u2014 imports meter.tsp then operations.tsp. query.tsp is NOT imported here; it is imported directly by operations.tsp and external namespaces needing only query types.",
+        "watch_for": "If adding a new .tsp file, import it in index.tsp or it is invisible to consumers using the barrel import."
+      }
+    ],
+    "anti_patterns": [
+      "Using `enum` instead of `union` for MeterAggregation or MeterQueryGranularity \u2014 breaks forward-compatibility of generated SDKs",
+      "Adding a request body to the queryCsv operation \u2014 intentionally omitted to prevent anyOf in OpenAPI output",
+      "Putting query types in meter.tsp \u2014 they belong in query.tsp for cross-namespace reuse by features/cost.tsp",
+      "Setting dimensions field visibility to Read+Create only \u2014 dimensions is the one updatable Meter field and must keep Lifecycle.Update"
+    ],
+    "decisions": [
+      {
+        "decision": "CSV export as @sharedRoute variant of the same POST endpoint rather than a separate GET",
+        "rationale": "Content negotiation (Accept: text/csv) on a single URL is idiomatic REST; sharedRoute avoids duplicating route+operationId while allowing separate TypeSpec response type shapes for JSON vs. CSV."
+      },
+      {
+        "decision": "Query types isolated in query.tsp separate from meter.tsp",
+        "rationale": "features/cost.tsp needs Meters.MeterQueryRequest without pulling in the full Meter model and CRUD operations; isolation enables targeted cross-namespace imports."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new meter operation (e.g. bulk-delete)",
+        "code": "// operations.tsp \u2014 inside interface MetersOperations:\n@post\n@operationId(\"bulk-delete-meters\")\n@summary(\"Bulk delete meters\")\n@route(\"/bulk-delete\")\n@extension(Shared.UnstableExtension, true)\nbulkDelete(\n  @body request: BulkDeleteMetersRequest,\n): Shared.DeleteResponse | Common.ErrorResponses;"
+      }
+    ]
+  },
+  "api/spec/packages/aip/src/productcatalog": {
+    "purpose": "TypeSpec definitions for the ProductCatalog v3 API domain: Plan (versioned phases + rate cards), Addon, PlanAddon associations, Price polymorphism (free/flat/unit/graduated/volume), UnitConfig conversions, and CRUD+lifecycle operations. Primary constraint: Plan/Addon version and lifecycle status fields are server-managed Read-only \u2014 never set by clients.",
+    "patterns": [
+      {
+        "name": "Versioned resources with server-computed status lifecycle",
+        "description": "Plan and Addon carry version (@visibility(Lifecycle.Read), @minValue(1)), effective_from/effective_to (Read-only), and status enum (draft/active/archived/scheduled). Status is never settable by clients \u2014 it is derived from effective dates on the server.",
+        "example": "@visibility(Lifecycle.Read) status: PlanStatus; @visibility(Lifecycle.Read) version: integer = 1;"
+      },
+      {
+        "name": "Lifecycle action sub-routes as @post operations",
+        "description": "State transitions (publish, archive) are modeled as POST sub-routes (/{id}/publish, /{id}/archive) on the same interface, returning Shared.UpdateResponse<T>. Not nested interfaces or PATCH fields.",
+        "example": "@post @route(\"/{planId}/publish\") @operationId(\"publish-plan\") publishPlan(@path planId: Shared.ULID): Shared.UpdateResponse<Plan> | ...;"
+      },
+      {
+        "name": "Discriminated union for Price polymorphism",
+        "description": "Price and PriceUsageBased are @discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) unions. Every variant carries a `type` field matching PriceType. PriceUsageBased is a sub-union (unit/graduated/volume only) for usage-based pricing.",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union Price { free: PriceFree, flat: PriceFlat, unit: PriceUnit, graduated: PriceGraduated, volume: PriceVolume }"
+      },
+      {
+        "name": "validation_errors as Read-only list on all catalog resources",
+        "description": "Plan, Addon, and PlanAddon all carry @visibility(Lifecycle.Read) validation_errors?: ProductCatalogValidationError[] to surface draft-state validation issues. Any new catalog resource must include this field.",
+        "example": "@visibility(Lifecycle.Read) @summary(\"Validation errors\") validation_errors?: ProductCatalogValidationError[];"
+      },
+      {
+        "name": "UpsertRequest/UpsertResponse for PUT operations on versioned resources",
+        "description": "PUT operations (update-plan, update-addon, update-plan-addon) use Shared.UpsertRequest<T> body and Shared.UpsertResponse<T> return type \u2014 not CreateRequest/UpdateResponse. Responses also include Common.Gone for archived resources.",
+        "example": "@put updatePlan(@path planId: Shared.ULID, @body plan: Shared.UpsertRequest<Plan>): Shared.UpsertResponse<Plan> | Common.ErrorResponses | Common.Gone | Common.NotFound;"
+      },
+      {
+        "name": "PickProperties spread for partial resource base models",
+        "description": "PlanPhase and RateCard use PickProperties<Shared.ResourceWithKey, \"key\" | \"name\" | \"description\" | \"labels\"> instead of the full ResourceWithKey spread, excluding id and timestamps because phases/rate cards have no independent lifecycle.",
+        "example": "model PlanPhase { ...PickProperties<Shared.ResourceWithKey, \"key\" | \"name\" | \"description\" | \"labels\">; duration?: Shared.ISO8601Duration; rate_cards: RateCard[]; }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "price.tsp",
+        "role": "Price discriminated union and all variant models. PriceUsageBased is a sub-union (unit/graduated/volume) for usage-based-only price types on a rate card.",
+        "watch_for": "PriceTier requires at least one of flat_price or unit_price (documented, not TypeSpec-enforced). PriceFlat embedded inside PriceTier does not carry a payment_term."
+      },
+      {
+        "file": "ratecard.tsp",
+        "role": "RateCard model: key, feature reference, billing_cadence (null = one-time), price union, payment_term, commitments, discounts, tax_config.",
+        "watch_for": "billing_cadence nullable means one-time charge (only valid with flat prices). SettlementMode enum is defined here but verify usage before referencing."
+      },
+      {
+        "file": "unitconfig.tsp",
+        "role": "UnitConfig model for raw-to-billing-unit conversion (divide/multiply + rounding) and InvoiceUsageQuantityDetail for invoice audit trail.",
+        "watch_for": "rounding defaults to None; precision is only meaningful when rounding != none. applied_unit_config on InvoiceUsageQuantityDetail is a Read-only snapshot for historical correctness."
+      },
+      {
+        "file": "plan.tsp",
+        "role": "Plan and PlanPhase models, PlanStatus enum, ProductCatalogValidationError model reused across all catalog entities.",
+        "watch_for": "phases has @minItems(1) \u2014 at least one phase required. billing_cadence on Plan is Create+Read only (immutable after creation)."
+      },
+      {
+        "file": "operations.tsp",
+        "role": "PlanOperations, AddonOperations, PlanAddonOperations interfaces. PlanAddon routes nest under /{planId}/addons/ and require both planId and planAddonId path params.",
+        "watch_for": "All operations carry UnstableExtension + InternalExtension. PlanAddon upsert uses both path params."
+      },
+      {
+        "file": "addon.tsp",
+        "role": "Addon model mirroring Plan structure: key, version, instance_type (single/multiple), currency, effective dates, rate_cards, validation_errors.",
+        "watch_for": "AddonInstanceType affects max_quantity validation on PlanAddon \u2014 single instance addons must omit max_quantity."
+      }
+    ],
+    "anti_patterns": [
+      "Setting status, effective_from, or effective_to in Create/Update requests \u2014 they are server-computed Read-only fields",
+      "Using Shared.CreateRequest/UpdateResponse for PUT plan/addon operations \u2014 must use UpsertRequest/UpsertResponse",
+      "Omitting validation_errors from a new catalog resource model \u2014 required for draft-state UX",
+      "Using RateCard.price with PriceFree for usage-based rate cards \u2014 use the PriceUsageBased union (unit/graduated/volume only)",
+      "Adding a full ...Shared.Resource spread to PlanPhase or RateCard \u2014 these are sub-resources; use PickProperties for key/name/description/labels"
+    ],
+    "decisions": [
+      {
+        "decision": "UnitConfig is a separate model on RateCard rather than embedded in price types",
+        "rationale": "The same feature can be billed in different converted units across plans (bytes->GB, seconds->hours); keeping unit conversion at the rate card level decouples it from the pricing model and allows reuse."
+      },
+      {
+        "decision": "Plan/Addon versioning is server-managed (version field Read-only, incremented on update)",
+        "rationale": "Prevents clients from accidentally creating version conflicts; the server controls the version chain ensuring subscription compatibility checks remain valid."
+      },
+      {
+        "decision": "Lifecycle actions (publish, archive) as POST sub-routes, not PATCH status fields",
+        "rationale": "State transitions have server-side preconditions (e.g. publish requires no validation_errors); explicit action endpoints make transition semantics discoverable and allow rich error responses."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new lifecycle action (e.g. suspend) to PlanOperations",
+        "code": "// operations.tsp \u2014 inside interface PlanOperations:\n@post\n@route(\"/{planId}/suspend\")\n@operationId(\"suspend-plan\")\n@summary(\"Suspend a plan version.\")\n@extension(Shared.UnstableExtension, true)\n@extension(Shared.InternalExtension, true)\nsuspendPlan(\n  @path planId: Shared.ULID,\n): Shared.UpdateResponse<Plan> | Common.ErrorResponses | Common.NotFound;"
+      }
+    ]
+  }
+}

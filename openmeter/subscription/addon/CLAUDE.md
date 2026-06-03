@@ -2,43 +2,41 @@
 
 <!-- archie:ai-start -->
 
-> Domain package for subscription addon lifecycle: core types (SubscriptionAddon, SubscriptionAddonInstance, SubscriptionAddonQuantity), the Service interface, domain events, and the Apply/Restore RateCard mutation logic. Primary constraint: quantities are an append-only timeline; instances are derived by pairing adjacent open periods.
+> Domain package for subscription-addon lifecycle: defines the core types (SubscriptionAddon, SubscriptionAddonInstance, SubscriptionAddonQuantity, SubscriptionAddonRateCard), the Service/Repository interfaces, and domain events; its sub-packages split into diff (pure Apply/Restore spec transform), repo (Ent persistence), http (v1 handlers), and service (validation + event publishing). Primary constraint: quantities are an append-only timeline and instances are derived, never persisted.
 
 ## Patterns
 
-**Append-only quantity timeline** — SubscriptionAddonQuantity rows are never updated or deleted. GetInstances() derives SubscriptionAddonInstance values by pairing adjacent open periods from the Timeline after filtering by DeletedAt. (`sa.Quantities = timeutil.NewTimeline([]timeutil.Timed[subscriptionaddon.SubscriptionAddonQuantity]{q1.AsTimed(), q2.AsTimed()})`)
-**Apply/Restore RateCard mutation** — SubscriptionAddonRateCard.Apply adds price/entitlement/discount deltas to a target RateCard pointer; Restore subtracts them. Both require a non-nil pointer target and non-nil annotations map. (`rc.Apply(targetRateCardPtr, annotations) // target must be *productcatalog.FlatFeeRateCard or *UsageBasedRateCard`)
-**Input type Validate() pattern** — All input structs implement Validate() returning errors.Join result. CreateSubscriptionAddonInput.Validate() rejects quantity==0; CreateSubscriptionAddonQuantityInput.Validate() allows 0. (`if err := inp.InitialQuantity.Validate(); err != nil { return fmt.Errorf("initialQuantity: %w", err) }`)
-**Event construction via constructor functions** — Domain events implement marshaler.Event. Use NewCreatedEvent/NewChangeQuantityEvent constructors to capture session.UserID from ctx; never construct CreatedEvent{} directly. (`event := subscriptionaddon.NewCreatedEvent(ctx, customer, subscriptionAddon)`)
-**GetInstances DeletedAt truncation** — If SubscriptionAddon.DeletedAt is set, GetInstances() filters quantities via timeline.Before(*deletedAt) before pairing periods — ensuring soft-deleted addons only surface active instances. (`if a.DeletedAt != nil { quantities = quantities.Before(*a.DeletedAt) }`)
+**Append-only quantity timeline** — SubscriptionAddonQuantity rows are never updated or deleted; GetInstances() derives SubscriptionAddonInstance values by pairing adjacent open periods from the Timeline after filtering by DeletedAt. The repo child has no quantity Update/Delete by design. (`if a.DeletedAt != nil { quantities = quantities.Before(*a.DeletedAt) }; periods := quantities.GetOpenPeriods()[1:]`)
+**Apply/Restore split from the diff layer** — extend.go owns single-RateCard additive (Apply) / subtractive (Restore) mutation; the diff/ child orchestrates multi-item spec-level invertible application. Keep DB/service logic out of the pure diff transform. (`rc.Apply(targetRateCardPtr, annotations) // target must be a non-nil *FlatFeeRateCard or *UsageBasedRateCard`)
+**Input Validate() with quantity asymmetry** — All input structs implement Validate() via errors.Join. CreateSubscriptionAddonInput rejects InitialQuantity==0; CreateSubscriptionAddonQuantityInput allows 0 (signals removal). (`if err := inp.InitialQuantity.Validate(); err != nil { return fmt.Errorf("initialQuantity: %w", err) }`)
+**Events via constructors, published inside the transaction** — Use NewCreatedEvent/NewChangeQuantityEvent to capture session.UserID from ctx (never construct event structs directly); the service child publishes them inside transaction.Run so DB write and event stay consistent. (`event := subscriptionaddon.NewCreatedEvent(ctx, customer, subscriptionAddon)`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `addon.go` | Core domain types (SubscriptionAddon, CreateSubscriptionAddonInput) and GetInstances()/GetInstanceAt() derivation logic. | GetInstances() skips the zeroth sentinel period (periods = periods[1:]); any Timeline semantics change breaks instance derivation. |
-| `extend.go` | Apply and Restore methods on SubscriptionAddonRateCard — additive/subtractive price, entitlement, and discount mutations. | Restore checks instanceType to nil out SingleInstance price; Apply/Restore both validate target is a non-nil pointer with matching key/cadence/entitlement type. |
-| `quantity.go` | SubscriptionAddonQuantity type and CreateSubscriptionAddonQuantityInput with Validate(). | Quantity 0 is valid for CreateSubscriptionAddonQuantityInput (signals removal) but CreateSubscriptionAddonInput rejects quantity==0 for initial creation. |
-| `events.go` | CreatedEvent and ChangeQuantityEvent implementing marshaler.Event. | EventName constants must stay stable — they are Watermill routing keys. EventSubsystem = 'subscriptionaddon' routes to SystemEventsTopic. |
-| `repository.go` | SubscriptionAddonRepository (Create/Get/List) and SubscriptionAddonQuantityRepository (Create-only) interfaces. | SubscriptionAddonQuantityRepository has no Update or Delete method by design — quantities are immutable. |
-| `service.go` | Service interface: Create, Get, List, ChangeQuantity and ListSubscriptionAddonsInput with Validate(). | ChangeQuantity appends a new quantity row; it does not update the previous one. |
-| `instance.go` | SubscriptionAddonInstance: the virtual derived view merging addon+quantity for a time period. | Instance is purely derived; never persist it directly. |
+| `addon.go` | Core types plus GetInstances()/GetInstanceAt() derivation logic. | GetInstances() skips the zeroth sentinel period (periods = periods[1:]); any Timeline change breaks instance derivation. |
+| `extend.go` | Apply/Restore additive and subtractive RateCard mutations. | Both validate target is a non-nil pointer with matching key/cadence/entitlement type; Restore nils out SingleInstance price by instanceType. |
+| `quantity.go` | SubscriptionAddonQuantity and its CreateSubscriptionAddonQuantityInput.Validate(). | Quantity 0 is valid here (removal) but rejected by CreateSubscriptionAddonInput for initial creation. |
+| `events.go` | CreatedEvent / ChangeQuantityEvent implementing marshaler.Event. | EventName constants are Watermill routing keys; EventSubsystem='subscriptionaddon' routes to SystemEventsTopic — keep stable. |
+| `repository.go` | SubscriptionAddonRepository (Create/Get/List) and quantity repository (Create-only) interfaces. | Quantity repository has no Update/Delete by design — quantities are immutable. |
+| `instance.go` | SubscriptionAddonInstance: derived addon+quantity view for a period. | Purely derived — never persist directly. |
 
 ## Anti-Patterns
 
-- Calling SubscriptionAddonRateCard.Apply or Restore with a nil target or nil annotations — both return explicit errors.
+- Calling Apply or Restore with a nil target or nil annotations — both return explicit errors.
 - Mutating SubscriptionAddonQuantity rows after creation — they are immutable append-only records.
-- Setting Quantity=0 on CreateSubscriptionAddonInput.InitialQuantity — Validate() returns an error; 0-quantity is only valid for subsequent ChangeQuantity calls.
-- Deriving instance periods manually instead of using GetInstances() — the DeletedAt truncation logic is non-trivial.
-- Reading or writing annotation map keys by string literal instead of via subscription.AnnotationParser.
+- Setting InitialQuantity=0 on CreateSubscriptionAddonInput — only ChangeQuantity may use 0.
+- Deriving instance periods manually instead of GetInstances() — DeletedAt truncation is non-trivial.
+- Reading/writing annotation keys by string literal instead of via subscription.AnnotationParser.
 
 ## Decisions
 
-- **Quantities stored as append-only timeline** — Preserves full audit history of quantity changes and enables point-in-time instance derivation without mutable state.
-- **Apply/Restore separated from diff sub-package** — extend.go owns single-RateCard mutation semantics; diff/ orchestrates multi-item spec-level application, preventing the pure in-memory diff layer from gaining business-logic dependencies.
-- **Events published inside transaction (in service sub-package)** — Ensures DB write and event publish are consistent; rollback prevents orphaned events.
+- **Quantities stored as an append-only timeline.** — Preserves full audit history of quantity changes and enables point-in-time instance derivation without mutable state.
+- **Apply/Restore (extend.go) separated from the diff sub-package.** — extend.go owns single-RateCard mutation; diff/ orchestrates multi-item spec application, keeping the pure in-memory diff layer free of business logic.
+- **Events published inside the transaction in the service sub-package.** — Ensures DB write and event publish are consistent; rollback prevents orphaned events.
 
-## Example: Apply a boolean-entitlement addon rate card to a target rate card
+## Example: Apply an addon rate card to a target rate card
 
 ```
 import (
@@ -47,8 +45,7 @@ import (
 )
 
 rc := subscriptionaddon.SubscriptionAddonRateCard{AddonRateCard: addonRC}
-annotations := models.Annotations{}
-if err := rc.Apply(targetRateCardPtr, annotations); err != nil {
+if err := rc.Apply(targetRateCardPtr, models.Annotations{}); err != nil {
     return fmt.Errorf("apply addon rate card: %w", err)
 }
 ```

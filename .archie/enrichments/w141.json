@@ -1,125 +1,233 @@
 {
-  "pkg/framework/tracex": {
-    "purpose": "Provides a generic, type-safe OTel span wrapper (Span[T] and SpanNoValue) that automatically records errors, sets span status, and recovers panics \u2014 eliminating boilerplate span lifecycle management from every domain service.",
+  "pkg/set": {
+    "purpose": "Thread-safe generic set backed by map[T]struct{} with RWMutex; provides Add, Remove, AsSlice, IsEmpty, Subtract, and Union for any domain package needing concurrent set semantics over comparable types.",
     "patterns": [
       {
-        "name": "Start[T] + Wrap for value-returning operations",
-        "description": "Use tracex.Start[T](ctx, tracer, name) then span.Wrap(fn) for functions returning (T, error). Status is set Ok or Error automatically; panic is recorded and re-panicked after span.End().",
-        "example": "span := tracex.Start[*Invoice](ctx, s.tracer, \"billing.GetInvoice\"); return span.Wrap(func(ctx context.Context) (*Invoice, error) { return s.adapter.Get(ctx, id) })"
+        "name": "Construct via New[T](items...)",
+        "description": "Always use New[T]() or New(item1, item2). Never construct Set{} directly \u2014 the content map will be nil and any write panics.",
+        "example": "s := set.New(\"a\", \"b\")"
       },
       {
-        "name": "StartWithNoValue + Wrap for error-only operations",
-        "description": "Use tracex.StartWithNoValue(ctx, tracer, name) then span.Wrap(fn) when the wrapped function returns only error. Internally delegates to Span[any].Wrap to share status-setting logic.",
-        "example": "span := tracex.StartWithNoValue(ctx, s.tracer, \"billing.DeleteInvoice\"); return span.Wrap(func(ctx context.Context) error { return s.adapter.Delete(ctx, id) })"
+        "name": "RWMutex read/write separation",
+        "description": "Mutating methods (Add, Remove) take write locks; read methods (AsSlice, IsEmpty) take read locks. Subtract and Union take read locks on all inputs before building the result.",
+        "example": "s.mu.Lock(); defer s.mu.Unlock() // writes\ns.mu.RLock(); defer s.mu.RUnlock() // reads"
       },
       {
-        "name": "Pass span's ctx into callback, never outer ctx",
-        "description": "Span.Wrap passes s.ctx (the child span context) into fn \u2014 always use the ctx argument inside Wrap callbacks, never capture the outer ctx, or OTel parent-child links break.",
-        "example": "span.Wrap(func(ctx context.Context) (*Invoice, error) { return s.adapter.Get(ctx, id) }) // ctx here is the span child ctx"
-      },
-      {
-        "name": "WithOkStatusDescription for custom span descriptions",
-        "description": "Pass tracex.WithOkStatusDescription(desc) as a variadic opt to Wrap when a more specific success description is needed. Default is 'success'.",
-        "example": "span.Wrap(fn, tracex.WithOkStatusDescription(\"invoice fetched\"))"
+        "name": "Package-level Subtract and Union",
+        "description": "Subtract and Union are package-level functions (not methods) to support multi-set operations. Subtract(a, b) removes items in b from a \u2014 argument order matches lo.Difference(base, toRemove).",
+        "example": "result := set.Subtract(set.New(1,2,3), set.New(2,3)) // {1}"
       }
     ],
     "key_file_guides": [
       {
-        "file": "tracex.go",
-        "role": "Entire package \u2014 defines Span[T], SpanNoValue, Start, StartWithNoValue, Wrap, and Options. Single file; all logic here.",
-        "watch_for": "Wrap always calls span.End() via both the panic defer path and the normal path \u2014 never call span.End() outside Wrap or the span will be double-ended and OTel will discard data."
+        "file": "set.go",
+        "role": "Full set implementation; all operations in this single file.",
+        "watch_for": "AsSlice returns items in random map-iteration order \u2014 never assume stability; it is a snapshot, not a live view. Subtract(a, b): a is base, b items removed from it."
       }
     ],
     "anti_patterns": [
-      "Calling tracer.Start directly and managing span.End/RecordError manually \u2014 use tracex.Start + Wrap instead",
-      "Introducing context.Background() inside Wrap callbacks \u2014 the Span carries the correct child ctx via s.ctx; always use the ctx argument passed into the callback",
-      "Adding new Span variants that don't delegate to Span[any].Wrap \u2014 SpanNoValue demonstrates the correct delegation pattern for error-only wrappers",
-      "Calling span.End() manually after span.Wrap \u2014 Wrap already calls End; double-ending silently truncates the span"
+      "Constructing Set{} directly \u2014 nil content map panics on first write.",
+      "Assuming stable ordering from AsSlice \u2014 map iteration is random.",
+      "Expecting an AsSlice result to reflect future Add/Remove \u2014 it is a copy.",
+      "Using this for large sets under high contention \u2014 RWMutex suits small sets; sync.Map may be preferable for high-read-concurrency large sets."
     ],
     "decisions": [
       {
-        "decision": "Generic Span[T] instead of an untyped wrapper",
-        "rationale": "Preserves compile-time type safety for the return value while sharing identical error-recording and panic-recovery logic across all call sites."
+        "decision": "RWMutex with a plain map over sync.Map.",
+        "rationale": "Simpler and lower-overhead for the small sets typical in domain use; sync.Map optimizes for high-concurrency read-heavy workloads."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/slicesx": {
+    "purpose": "Thin extension layer on top of samber/lo providing error-aware map, diff, and early-exit iteration helpers that lo omits; all functions are generic and pure with no side effects or domain imports.",
+    "patterns": [
+      {
+        "name": "MapWithErr accumulates all errors",
+        "description": "MapWithErr uses errors.Join to collect errors from every element \u2014 it does NOT short-circuit. The result slice omits erroring elements; count may be less than input.",
+        "example": "results, err := slicesx.MapWithErr(items, func(i Item) (Out, error) { return convert(i) })"
       },
       {
-        "decision": "Panic is re-panicked after span.End()",
-        "rationale": "The span must be closed (exported) before the stack unwinds further, but the caller's defer/recover chain must still see the original panic."
+        "name": "Nil-in nil-out contract",
+        "description": "Map and MapWithErr return nil (not empty slice) for nil input. Callers needing a non-nil empty slice must initialize the input first.",
+        "example": "slicesx.Map(nil, f) // returns nil, not []S{}"
+      },
+      {
+        "name": "NewDiff argument order: base then new",
+        "description": "NewDiff(base, new) wraps lo.Difference \u2014 additions are in base not in new; removals are in new not in base. Swapping arguments silently inverts semantics.",
+        "example": "d := slicesx.NewDiff(oldIDs, newIDs); if d.InAdditions(id) { /* id was removed from new set */ }"
+      },
+      {
+        "name": "ForEachUntilWithErr: break and error are independent",
+        "description": "Callback returning (true, nil) breaks without error; (false, err) stops with error. Both stop iteration but are semantically distinct.",
+        "example": "slicesx.ForEachUntilWithErr(items, func(v Item, i int) (bool, error) { return v.Done, nil })"
+      },
+      {
+        "name": "Prefer lo for covered operations",
+        "description": "Filter, Contains, Uniq, Keys already exist in samber/lo and must not be re-implemented. Add here only when lo lacks the pattern.",
+        "example": "// Use lo.Filter, lo.Contains \u2014 not a new slicesx.Filter"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "diff.go",
+        "role": "Diff[T,S] value type wrapping lo.Difference with O(1) index maps for InAdditions/InRemovals/Has plus HasChanged.",
+        "watch_for": "NewDiff arg order: first is base (additions), second is new (removals). Swapping inverts semantics."
+      },
+      {
+        "file": "map.go",
+        "role": "Map (no-error transform) and MapWithErr (error-accumulating transform).",
+        "watch_for": "MapWithErr skips erroring elements and continues \u2014 result may be shorter than input; error is errors.Join of all failures."
+      },
+      {
+        "file": "empty.go",
+        "role": "EmptyAsNil normalises zero-length slices to nil for struct equality assertions.",
+        "watch_for": "Intended for test code only \u2014 using in production can hide unintended empty-slice semantics."
+      },
+      {
+        "file": "each.go",
+        "role": "ForEachUntilWithErr iterates with early-exit via (breaks bool, err error) from callback.",
+        "watch_for": "breaks and err are independent \u2014 (true, nil) breaks cleanly; never assume breaks==true implies no error."
+      },
+      {
+        "file": "groupby.go",
+        "role": "UniqueGroupBy groups and asserts uniqueness \u2014 returns (nil, false) if any key maps to more than one element.",
+        "watch_for": "Returns (nil, false) on collision rather than an error \u2014 callers must check the bool."
+      }
+    ],
+    "anti_patterns": [
+      "Duplicating lo functions (Filter, Contains, Uniq) here \u2014 use lo directly.",
+      "Using EmptyAsNil in production code \u2014 it is for test assertion normalisation only.",
+      "Adding stateful or side-effectful helpers \u2014 all functions must be pure transforms.",
+      "Assuming MapWithErr returns same-length output when errors occur \u2014 erroring elements are skipped."
+    ],
+    "decisions": [
+      {
+        "decision": "Wrap lo rather than replace it.",
+        "rationale": "lo covers ~90% of slice operations; slicesx fills only the gaps (error-returning maps, O(1) diff, early-exit iteration) without duplicating the rest."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Wrap a DB read in a named span with automatic error recording",
-        "code": "import (\n\t\"context\"\n\t\"go.opentelemetry.io/otel/trace\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/tracex\"\n)\n\nfunc (s *service) GetInvoice(ctx context.Context, id string) (*Invoice, error) {\n\tspan := tracex.Start[*Invoice](ctx, s.tracer, \"billing.GetInvoice\")\n\treturn span.Wrap(func(ctx context.Context) (*Invoice, error) {\n\t\treturn s.adapter.Get(ctx, id)\n\t})\n}"
+        "scenario": "Convert domain entities to API types, collecting all conversion errors",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/slicesx\"\n\napiItems, err := slicesx.MapWithErr(domainItems, func(item domain.Entity) (api.Entity, error) {\n    return toAPIEntity(item)\n})\nif err != nil { return nil, err }"
       }
     ]
   },
-  "pkg/framework/transaction": {
-    "purpose": "Database-agnostic transaction abstraction: propagates a Driver (commit/rollback/savepoint) through context and provides Run/RunWithNoValue helpers that start-or-reuse a transaction, set savepoints for nested calls, and rollback on error or panic.",
+  "pkg/sortx": {
+    "purpose": "Minimal single-file package defining the sortx.Order string enum (ASC/DESC) and default/none sentinels used as a shared sort-direction type across all domain list and query inputs.",
     "patterns": [
       {
-        "name": "Run[R] for transactional value-returning operations",
-        "description": "Call transaction.Run(ctx, creator, cb) to execute cb inside a transaction. If a Driver is already in ctx it is reused with a savepoint; otherwise creator.Tx starts a new one.",
-        "example": "result, err := transaction.Run(ctx, a.db, func(ctx context.Context) (*Entity, error) { return a.insertRow(ctx) })"
+        "name": "Use OrderDefault for unspecified direction",
+        "description": "When a caller does not supply a sort direction, default to sortx.OrderDefault (= OrderAsc). Never use the empty string literal directly.",
+        "example": "order := sortx.OrderDefault"
       },
       {
-        "name": "RunWithNoValue for error-only transactional operations",
-        "description": "Use transaction.RunWithNoValue(ctx, creator, cb) when the callback returns only error. Delegates to Run[interface{}] internally.",
-        "example": "err := transaction.RunWithNoValue(ctx, a.db, func(ctx context.Context) error { return a.deleteRow(ctx, id) })"
-      },
-      {
-        "name": "Driver propagation via context key",
-        "description": "SetDriverOnContext stores a Driver under a package-private key; GetDriverFromContext retrieves it. Run handles this automatically \u2014 adapters must not call SetDriverOnContext directly.",
-        "example": "tx, err := transaction.GetDriverFromContext(ctx) // read-only access; Run writes it"
-      },
-      {
-        "name": "Creator interface for adapter integration",
-        "description": "Any adapter that can start a transaction implements transaction.Creator via Tx(ctx) returning (ctx, Driver, error). Wire injects the concrete Creator into services.",
-        "example": "type Creator interface { Tx(ctx context.Context) (context.Context, Driver, error) }"
-      },
-      {
-        "name": "Savepoints for nested Run calls",
-        "description": "manage() calls tx.SavePoint() before every cb execution, enabling partial rollback within an outer transaction \u2014 required for multi-step billing mutations.",
-        "example": "// Automatic: every transaction.Run call creates a savepoint even when reusing an existing tx"
+        "name": "IsDefaultValue detects absence, not ascending",
+        "description": "Order.IsDefaultValue() returns true only when Order == OrderNone (empty string), not OrderAsc. Use solely to detect 'no order specified'.",
+        "example": "if order.IsDefaultValue() { order = sortx.OrderDefault }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "context.go",
-        "role": "Typed context key, GetDriverFromContext, SetDriverOnContext, DriverNotFoundError, DriverConflictError.",
-        "watch_for": "SetDriverOnContext returns DriverConflictError (not nil) when a driver already exists \u2014 Run explicitly ignores this error type to reuse the existing tx; do not treat it as fatal outside Run."
-      },
-      {
-        "file": "transaction.go",
-        "role": "Driver and Creator interfaces; Run, RunWithNoValue, getTx, manage. manage owns panic recovery (rollback + re-panic), savepoint creation, and commit/rollback on error.",
-        "watch_for": "manage() uses defer+recover to rollback and re-panic on any panic \u2014 never suppress this panic in adapter code. getTx silently reuses an existing Driver from ctx if present."
+        "file": "order.go",
+        "role": "Defines Order type and four constants: OrderAsc ('ASC'), OrderDesc ('DESC'), OrderDefault (= OrderAsc), OrderNone (empty string).",
+        "watch_for": "IsDefaultValue() checks for OrderNone, not OrderAsc \u2014 the name is misleading (TODO acknowledged). Do not use it to check 'is ascending'."
       }
     ],
     "anti_patterns": [
-      "Calling creator.Tx() directly in adapter code instead of using transaction.Run \u2014 bypasses savepoint and rollback logic",
-      "Storing a *entdb.Tx or raw DB client on adapter structs and using them directly \u2014 falls off the ctx-bound transaction",
-      "Calling SetDriverOnContext manually outside of transaction.Run \u2014 Run already handles this; double-setting returns DriverConflictError and breaks nesting",
-      "Using context.Background() inside a Run callback \u2014 loses the Driver already stored in ctx, breaking nested transaction reuse",
-      "Ignoring DriverConflictError from SetDriverOnContext as if it were a hard error \u2014 it signals tx reuse and must not be treated as fatal"
+      "Adding sort-field definitions or multi-column sort structs here \u2014 this package is intentionally a single primitive.",
+      "Comparing Order to string literals 'ASC'/'DESC' directly \u2014 use the exported constants.",
+      "Using IsDefaultValue() as a check for 'is ascending' \u2014 it only detects the unset (empty) state."
     ],
     "decisions": [
       {
-        "decision": "Driver interface with SavePoint/Commit/Rollback instead of exposing *sql.Tx",
-        "rationale": "Keeps the transaction package DB-agnostic; Ent, pgx, and any future driver can implement Driver without leaking ORM types into the framework layer."
+        "decision": "Single file, single type, no sub-packages.",
+        "rationale": "Sort direction is a leaf primitive shared by many list inputs; minimalism prevents coupling and circular imports."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/statelessx": {
+    "purpose": "Adapter utilities for the qmuntal/stateless state machine library \u2014 type-safe action and condition wrappers (WithParameters, AllOf, BoolFn, Not) that integrate with models.Validator so transitions validate inputs before executing.",
+    "patterns": [
+      {
+        "name": "WithParameters wraps typed handlers with validation",
+        "description": "WithParameters[T models.Validator] adapts func(ctx, T) error into the stateless ...any signature. It asserts args[0] to T and calls T.Validate() before the inner function \u2014 panics if args is empty or the assertion fails.",
+        "example": "machine.Configure(stateGathering).OnEntry(statelessx.WithParameters[AdvanceInput](func(ctx context.Context, in AdvanceInput) error { return svc.advance(ctx, in) }))"
       },
       {
-        "decision": "Savepoints used for every nested Run call",
-        "rationale": "Allows partial rollback of nested operations while keeping the outer transaction alive, required for multi-step charge advancement and billing invoice mutations."
+        "name": "AllOf runs all actions regardless of failures",
+        "description": "AllOf(fn1, fn2, ...) runs every ActionFn even if earlier ones fail, then returns errors.Join of all failures. Use when multiple side effects (save + publish) must all be attempted.",
+        "example": "action := statelessx.AllOf(saveDB, publishEvent)"
       },
       {
-        "decision": "Panic recovery inside manage() rolls back then re-panics",
-        "rationale": "The DB transaction must be cleaned up even on unexpected panics, but the panic must propagate so upper-layer recovery (Chi middleware, test harness) still sees it."
+        "name": "BoolFn and Not adapt plain bool funcs",
+        "description": "BoolFn(fn func() bool) produces func(context.Context, ...any) bool for stateless guards; Not inverts a plain bool func. BoolFn discards ctx and args \u2014 not for guards needing per-trigger params.",
+        "example": "machine.Permit(trigger, state, statelessx.BoolFn(statelessx.Not(isDisabled)))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "actions.go",
+        "role": "ActionFn type alias, AllOf combinator, WithParameters generic adapter for stateless entry/exit actions.",
+        "watch_for": "WithParameters expects args[0] to implement models.Validator; a non-Validator type or empty args panics. Do not call Validate() manually before passing \u2014 WithParameters already calls it."
+      },
+      {
+        "file": "conditions.go",
+        "role": "BoolFn and Not helpers for guards that only need a bool, discarding ctx and trigger args.",
+        "watch_for": "BoolFn discards ctx and args \u2014 do not use for guards that need per-trigger parameter access."
+      }
+    ],
+    "anti_patterns": [
+      "Calling models.Validator.Validate() manually before WithParameters \u2014 it already calls Validate() internally.",
+      "Using stateless ...any signatures directly instead of WithParameters when the trigger carries a typed argument \u2014 loses compile-time safety.",
+      "Using BoolFn for guards that need access to the trigger's arguments \u2014 BoolFn ignores all args."
+    ],
+    "decisions": [
+      {
+        "decision": "WithParameters constrains T to models.Validator rather than any.",
+        "rationale": "Forces callers to define Validate() on input types, catching structural errors at the state machine boundary before transitions commit side effects."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adapter method that must run inside a transaction, reusing an existing one from ctx if present",
-        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\nfunc (a *adapter) CreateAndLink(ctx context.Context, in CreateInput) (*Entity, error) {\n\treturn transaction.Run(ctx, a.db, func(ctx context.Context) (*Entity, error) {\n\t\te, err := a.insertEntity(ctx, in)\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\tif err := a.insertLink(ctx, e.ID); err != nil {\n\t\t\treturn nil, err // triggers Rollback via manage()\n\t\t}\n\t\treturn e, nil\n\t})\n}"
+        "scenario": "Register a transition with a validated typed parameter",
+        "code": "import (\n  \"context\"\n  \"github.com/openmeterio/openmeter/pkg/models\"\n  \"github.com/openmeterio/openmeter/pkg/statelessx\"\n)\n\ntype AdvanceInput struct{ AsOf time.Time }\nfunc (i AdvanceInput) Validate() error { if i.AsOf.IsZero() { return errors.New(\"AsOf required\") }; return nil }\n\nmachine.Configure(stateGathering).Permit(triggerAdvance, stateIssued).OnEntry(statelessx.WithParameters[AdvanceInput](func(ctx context.Context, in AdvanceInput) error { return svc.advance(ctx, in) }))"
       }
     ]
+  },
+  "pkg/strcase": {
+    "purpose": "Minimal zero-dependency string-case conversion package providing SnakeToCamel and CamelToSnake for converting JSON field names or database column identifiers to and from Go naming conventions.",
+    "patterns": [
+      {
+        "name": "Only underscore is the separator for SnakeToCamel",
+        "description": "SnakeToCamel splits only on '_'; hyphens and slashes pass through unchanged. CamelToSnake splits only on uppercase runes.",
+        "example": "strcase.SnakeToCamel(\"a_b-c\") == \"aB-c\" // hyphen preserved"
+      },
+      {
+        "name": "First character case preserved",
+        "description": "SnakeToCamel does not uppercase the first character \u2014 result starts lowercase (camelCase, not PascalCase).",
+        "example": "strcase.SnakeToCamel(\"abc_def\") == \"abcDef\" // NOT \"AbcDef\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "strcase.go",
+        "role": "Two pure functions: SnakeToCamel and CamelToSnake with round-trip guarantee for well-formed identifiers (letters, digits, underscores, no consecutive underscores).",
+        "watch_for": "SnakeToCamel produces camelCase not PascalCase. CamelToSnake does not insert an underscore before a leading uppercase character."
+      }
+    ],
+    "anti_patterns": [
+      "Using this for PascalCase conversion \u2014 SnakeToCamel preserves the first character's case.",
+      "Expecting kebab-case or dot-notation handling \u2014 only underscore delimiters are understood."
+    ],
+    "decisions": [
+      {
+        "decision": "Zero external dependencies, hand-rolled implementation.",
+        "rationale": "Avoids pulling a heavy strcase library for two simple transformations used in generated or utility code."
+      }
+    ],
+    "code_examples": []
   }
 }

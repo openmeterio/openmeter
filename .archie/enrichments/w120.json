@@ -1,66 +1,168 @@
 {
-  "openmeter/sink/flushhandler/ingestnotification/events": {
-    "purpose": "Defines the EventBatchedIngest domain event published to Watermill's balance-worker Kafka topic after a successful ClickHouse flush, carrying namespace, subject key, affected meter slugs, raw CloudEvent payloads, and a StoredAt timestamp so downstream balance-worker consumers can recalculate entitlement grant burn-down without re-querying ClickHouse.",
+  "openmeter/secret/adapter": {
+    "purpose": "Plaintext (no-op) stub implementation of secret.Adapter \u2014 stores secrets as their raw value encoded into SecretID itself. Satisfies the Adapter interface without an external secret store; a production deployment replaces this with a real backend (Vault, AWS Secrets Manager) without changing the interface.",
     "patterns": [
       {
-        "name": "marshaler.Event interface compliance via compile-time assertion",
-        "description": "Every event struct must implement marshaler.Event (EventName() string + EventMetadata() metadata.EventMetadata). A blank var _ marshaler.Event = EventBatchedIngest{} assertion must appear alongside each new struct. Missing it causes silent routing failure in the Watermill eventbus.",
-        "example": "var _ marshaler.Event = EventBatchedIngest{}"
+        "name": "Compile-time interface assertion at package top",
+        "description": "Every adapter file declares var _ secret.Adapter = (*adapter)(nil) to catch interface drift at compile time. When secret.Adapter gains a new method the assertion fails here first.",
+        "example": "var _ secret.Adapter = (*adapter)(nil)"
       },
       {
-        "name": "Versioned event identity via metadata.EventType constant",
-        "description": "Event identity is declared as a package-level metadata.EventType{Subsystem, Name, Version} constant. EventName() must return metadata.GetEventName(eventType) \u2014 never a bare string literal. This ensures GeneratePublishTopic routes correctly by EventVersionSubsystem prefix.",
-        "example": "batchIngestEventType = metadata.EventType{Subsystem: EventSubsystem, Name: \"events.ingested\", Version: \"v2\"}"
+        "name": "Stateless adapter struct \u2014 state encoded in SecretID",
+        "description": "The adapter struct holds no fields because the plaintext value is encoded directly into the SecretID returned by Create/Update. A real backend adapter would inject its client via New() and store it on the struct.",
+        "example": "type adapter struct{}\nfunc New() secret.Adapter { return &adapter{} }"
       },
       {
-        "name": "Export EventVersionSubsystem for consumer-side subscription",
-        "description": "Each event type must export its VersionSubsystem string so balance-worker and other consumers can subscribe by subsystem prefix without importing internal metadata helpers. Computed via batchIngestEventType.VersionSubsystem().",
-        "example": "EventVersionSubsystem = batchIngestEventType.VersionSubsystem()"
+        "name": "SecretID IS the plaintext value",
+        "description": "CreateAppSecret/UpdateAppSecret return secretentity.NewSecretID(input.AppID, input.Value, input.Key) \u2014 the ID carries the raw secret. GetAppSecret reconstructs Secret.Value from input.ID. Intentional stub behaviour; a real adapter must never do this.",
+        "example": "func (a adapter) CreateAppSecret(ctx context.Context, input secretentity.CreateAppSecretInput) (secretentity.SecretID, error) { return secretentity.NewSecretID(input.AppID, input.Value, input.Key), nil }"
       },
       {
-        "name": "EventMetadata uses metadata.ComposeResourcePath helpers",
-        "description": "EventMetadata() must return Source via ComposeResourcePathRaw and Subject via ComposeResourcePath(namespaceID, entityKind, key). Never hand-roll path strings \u2014 inconsistent paths break CloudEvents routing and OTel span correlation.",
-        "example": "Subject: metadata.ComposeResourcePath(b.Namespace.ID, metadata.EntitySubjectKey, b.SubjectKey)"
-      },
-      {
-        "name": "MeterSlugs not MeterIDs in payloads",
-        "description": "Any field referencing meters must use slugs ([]string), not internal ULIDs. Meter IDs are absent in the open-source build; downstream balance-worker consumers would silently receive zero-length lookups.",
-        "example": "MeterSlugs []string `json:\"meterSlugs\"`"
-      },
-      {
-        "name": "Validate() returns combined descriptive errors",
-        "description": "Validate() must delegate to embedded type validators (e.g. Namespace.Validate()) and check every required scalar field with a descriptive errors.New string. Never silently skip validation or return nil for an empty required field.",
-        "example": "if b.SubjectKey == \"\" { return errors.New(\"subjectKey must be set\") }"
+        "name": "No Ent dependency",
+        "description": "This adapter intentionally has no *entdb.Client; only secretentity types are imported. A future real adapter sub-package would receive a client via New() but must still not import openmeter/ent/db directly in this stub package.",
+        "example": "import secretentity \"github.com/openmeterio/openmeter/openmeter/secret/entity\""
       }
     ],
     "key_file_guides": [
       {
-        "file": "events.go",
-        "role": "Single file defining EventBatchedIngest, its metadata.EventType constant, GetEventName call, exported EventVersionSubsystem, and the marshaler.Event compile-time assertion. This is the complete public API of this package.",
-        "watch_for": "Adding a new event type requires: a new metadata.EventType constant, a GetEventName call, an exported VersionSubsystem var, a var _ marshaler.Event assertion, and a Validate() implementation. Omitting any of these causes silent Kafka misrouting or consumer decoding failures."
+        "file": "adapter.go",
+        "role": "Constructor New() and compile-time interface assertion. Wire calls New() to obtain a secret.Adapter.",
+        "watch_for": "If secret.Adapter gains new methods the assertion var _ secret.Adapter = (*adapter)(nil) fails here \u2014 add the method to secret.go."
+      },
+      {
+        "file": "secret.go",
+        "role": "All four CRUD methods: CreateAppSecret, UpdateAppSecret, GetAppSecret, DeleteAppSecret. All no-ops that encode/decode value in SecretID.",
+        "watch_for": "GetAppSecret sets Secret.Value = input.ID (plaintext stored as the ID). DeleteAppSecret always returns nil. Correct for the stub but wrong for a real backend."
       }
     ],
     "anti_patterns": [
-      "Using meter IDs instead of meter slugs in event payloads \u2014 IDs are unavailable in open-source consumers",
-      "Hard-coding event name strings instead of using metadata.GetEventName(eventType)",
-      "Omitting the var _ marshaler.Event compile-time assertion when adding a new event struct",
-      "Storing mutable state or pointers in the event struct \u2014 it must be a pure value type for safe concurrent marshaling",
-      "Adding context.Context parameters \u2014 event structs are value types; context propagation belongs in the publisher call site"
+      "Storing state on the adapter struct without injecting it through New() \u2014 the stub is intentionally stateless",
+      "Returning errors from DeleteAppSecret or CreateAppSecret in the stub \u2014 callers expect these to always succeed",
+      "Importing openmeter/ent/db in this package \u2014 this stub has no DB dependency; Ent belongs in a future real adapter sub-package",
+      "Adding validation logic here \u2014 validation belongs in secret/service, not the adapter",
+      "Constructing SecretID with a hashed or encrypted value instead of the raw value \u2014 the stub contract relies on ID == plaintext value"
     ],
     "decisions": [
       {
-        "decision": "EventVersionSubsystem is exported so balance-worker consumers can subscribe by subsystem prefix without importing internal metadata helpers.",
-        "rationale": "Decouples producer and consumer versioning; consumers match on VersionSubsystem prefix, so a version bump (v2 -> v3) is isolated to the producer side and does not require consumer recompilation."
-      },
-      {
-        "decision": "RawEvents embeds the full serializer.CloudEventsKafkaPayload slice rather than derived aggregated fields.",
-        "rationale": "Avoids re-querying ClickHouse in the balance-worker; the worker has all raw usage data it needs to recalculate grant burn-down without an additional read path, keeping the flush-to-balance pipeline fully in-memory."
+        "decision": "SecretID.ID encodes the plaintext value in the stub adapter",
+        "rationale": "Allows the full app to function without an external secret store during development; GetAppSecret reconstructs the value from the ID without state, keeping the adapter stateless."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new ingest notification event type alongside EventBatchedIngest",
-        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/event/metadata\"\n\t\"github.com/openmeterio/openmeter/openmeter/event/models\"\n\t\"github.com/openmeterio/openmeter/openmeter/watermill/marshaler\"\n)\n\nvar (\n\t_ marshaler.Event = EventNewIngest{}\n\tnewIngestEventType = metadata.EventType{\n\t\tSubsystem: EventSubsystem,\n\t\tName:      \"events.new\",\n\t\tVersion:   \"v1\",\n\t}\n\tnewIngestEventName       = metadata.GetEventName(newIngestEventType)\n\tNewIngestVersionSubsystem = newIngestEventType.VersionSubsystem()\n)\n\ntype EventNewIngest struct {\n\tNamespace  models.NamespaceID `json:\"namespace\"`\n\tMeterSlugs []string           `json:\"meterSlugs\"`\n}\n\nfunc (e EventNewIngest) EventName() string { return newIngestEventName }\n\nfunc (e EventNewIngest) Validate() error {\n\tif err := e.Namespace.Validate(); err != nil {\n\t\treturn err\n\t}\n\treturn nil\n}\n\nfunc (e EventNewIngest) EventMetadata() metadata.EventMetadata {\n\treturn metadata.EventMetadata{\n\t\tSource: metadata.ComposeResourcePathRaw(string(EventSubsystem)),\n\t}\n}"
+        "scenario": "Implementing a real adapter that replaces the stub",
+        "code": "package vaultadapter\n\nimport (\n    \"context\"\n    secretentity \"github.com/openmeterio/openmeter/openmeter/secret/entity\"\n    \"github.com/openmeterio/openmeter/openmeter/secret\"\n)\n\nvar _ secret.Adapter = (*adapter)(nil)\n\ntype adapter struct{ client *vault.Client }\n\nfunc New(client *vault.Client) secret.Adapter { return &adapter{client: client} }\n\nfunc (a *adapter) CreateAppSecret(ctx context.Context, input secretentity.CreateAppSecretInput) (secretentity.SecretID, error) {\n    // store input.Value in vault, return a SecretID whose ID is the vault path\n}"
+      }
+    ]
+  },
+  "openmeter/secret/entity": {
+    "purpose": "Pure domain types for the secret package: SecretID (namespaced composite key encoding AppID+ID+Key), Secret (ID + value), all input structs with Validate() methods, and the SecretNotFoundError sentinel. Zero persistence logic and zero Ent imports \u2014 intentional to break the import cycle between openmeter/app and openmeter/secret.",
+    "patterns": [
+      {
+        "name": "Validate() on every input type",
+        "description": "All input structs (CreateAppSecretInput, UpdateAppSecretInput) expose Validate() error; the service calls it unconditionally before delegating to the adapter. Validation errors are wrapped in models.NewGenericValidationError.",
+        "example": "func (i CreateAppSecretInput) Validate() error { if err := i.AppID.Validate(); err != nil { return models.NewGenericValidationError(errors.New(\"app id is invalid\")) }; if i.Key == \"\" { return models.NewGenericValidationError(errors.New(\"key is required\")) }; return nil }"
+      },
+      {
+        "name": "Embed models.NamespacedID in identity types",
+        "description": "SecretID embeds models.NamespacedID so it carries Namespace and ID and can chain NamespacedID.Validate(). Validate() chains NamespacedID.Validate() \u2192 AppID.Validate() \u2192 Key check.",
+        "example": "type SecretID struct { models.NamespacedID; AppID app.AppID; Key string }"
+      },
+      {
+        "name": "Type aliases for symmetric input types",
+        "description": "GetAppSecretInput and DeleteAppSecretInput are type aliases for SecretID \u2014 no redundant wrapper structs when the input is just an identifier.",
+        "example": "type GetAppSecretInput = SecretID\ntype DeleteAppSecretInput = SecretID"
+      },
+      {
+        "name": "Error wraps models.GenericNotFoundError with compile-time assertion",
+        "description": "SecretNotFoundError wraps models.NewGenericNotFoundError so GenericErrorEncoder maps it to 404 automatically; var _ models.GenericError = (*SecretNotFoundError)(nil) asserts compliance.",
+        "example": "var _ models.GenericError = (*SecretNotFoundError)(nil)\nfunc NewSecretNotFoundError(id SecretID) *SecretNotFoundError { return &SecretNotFoundError{err: models.NewGenericNotFoundError(fmt.Errorf(\"app with id %s not found\", id.ID))} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "secret.go",
+        "role": "SecretID and Secret domain types plus NewSecretID constructor and all Validate() methods.",
+        "watch_for": "SecretID.Validate() chains NamespacedID.Validate() \u2192 AppID.Validate() \u2192 Key check \u2014 all three must pass. Skipping AppID.Validate() allows invalid IDs to reach the adapter."
+      },
+      {
+        "file": "input.go",
+        "role": "All four input structs. GetAppSecretInput and DeleteAppSecretInput are type aliases for SecretID, not new types.",
+        "watch_for": "UpdateAppSecretInput validates both AppID and SecretID independently. New fields must be validated here, not duplicated in the service layer."
+      },
+      {
+        "file": "errors.go",
+        "role": "SecretNotFoundError sentinel wrapping models.GenericNotFoundError, plus IsSecretNotFoundError helper using errors.As.",
+        "watch_for": "Always use models.NewGenericNotFoundError as the inner error so the HTTP encoder produces 404 without special-casing this type."
+      }
+    ],
+    "anti_patterns": [
+      "Adding persistence logic or importing openmeter/ent/db \u2014 this package must remain import-cycle-free and dependency-free",
+      "Returning raw fmt.Errorf from Validate() instead of models.NewGenericValidationError \u2014 breaks HTTP status code mapping",
+      "Creating new input structs without a Validate() method \u2014 the service layer calls Validate() unconditionally",
+      "Duplicating validation logic in the adapter that already exists in input Validate() methods",
+      "Adding SecretID fields without extending Validate() to check them \u2014 silent invalid state reaches the adapter"
+    ],
+    "decisions": [
+      {
+        "decision": "Input types live in a separate entity/ sub-package rather than in the root secret package",
+        "rationale": "Breaks the import cycle: input.go imports openmeter/app for AppID while openmeter/app imports openmeter/secret \u2014 placing shared types in secretentity lets both import it without a cycle."
+      },
+      {
+        "decision": "GetAppSecretInput and DeleteAppSecretInput are type aliases (=) not new types",
+        "rationale": "When the input is just an identifier, a wrapper struct adds no value and creates a translation cost; aliases let callers pass a SecretID directly."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/secret/service": {
+    "purpose": "Concrete implementation of secret.Service: validates inputs then delegates all persistence to the injected secret.Adapter. Intentionally a thin validation-only layer \u2014 no business logic, no cross-domain calls, no Ent dependency.",
+    "patterns": [
+      {
+        "name": "Config struct constructor with Validate()",
+        "description": "New(config Config) validates config before constructing the Service. Config.Validate() checks that required fields (Adapter) are non-nil. Standard service constructor pattern across the repo.",
+        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err }; return &Service{adapter: config.Adapter}, nil }"
+      },
+      {
+        "name": "Double compile-time interface assertion",
+        "description": "service.go asserts var _ secret.Service = (*Service)(nil) and secret.go asserts var _ secret.SecretService = (*Service)(nil). Both must stay in sync when the interfaces change.",
+        "example": "// service.go\nvar _ secret.Service = (*Service)(nil)\n// secret.go\nvar _ secret.SecretService = (*Service)(nil)"
+      },
+      {
+        "name": "Validate-then-delegate in every method",
+        "description": "Each method calls input.Validate() and wraps any error in models.NewGenericValidationError before calling the adapter. No logic beyond validation should exist in this layer.",
+        "example": "func (s *Service) CreateAppSecret(ctx context.Context, input secretentity.CreateAppSecretInput) (secretentity.SecretID, error) { if err := input.Validate(); err != nil { return secretentity.SecretID{}, models.NewGenericValidationError(fmt.Errorf(\"error create app secret: %w\", err)) }; return s.adapter.CreateAppSecret(ctx, input) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service struct, Config struct, New() constructor. The only field is adapter secret.Adapter.",
+        "watch_for": "Config.Validate() only checks Adapter != nil. When new required dependencies are added to Service they must be added to Config and checked in Validate()."
+      },
+      {
+        "file": "secret.go",
+        "role": "All four method implementations (Create, Update, Get, Delete) with the validate-then-delegate pattern.",
+        "watch_for": "UpdateAppSecret returns input.SecretID (not zero value) on validation error \u2014 intentional to return the original ID. Other methods return zero values on error."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic or cross-domain calls \u2014 this is a thin validation+delegation layer only",
+      "Calling the adapter without first calling input.Validate() \u2014 the stub adapter won't catch structurally invalid inputs",
+      "Injecting *entdb.Client directly into Service \u2014 persistence is the adapter's concern; Service only holds secret.Adapter",
+      "Bypassing Config struct and constructing Service{} directly \u2014 Validate() in New() is the only nil-safety gate",
+      "Adding new service methods without also adding them to the secret.SecretService interface in openmeter/secret/service.go"
+    ],
+    "decisions": [
+      {
+        "decision": "Service is a thin pass-through with validation only",
+        "rationale": "The secret domain has no business rules beyond ensuring inputs are structurally valid before reaching the adapter; all complexity lives in the adapter implementation (real or stub)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new secret operation following the validate-then-delegate pattern",
+        "code": "// openmeter/secret/service.go (interface)\ntype SecretService interface {\n    // ... existing methods ...\n    RotateAppSecret(ctx context.Context, input secretentity.RotateAppSecretInput) (secretentity.SecretID, error)\n}\n\n// openmeter/secret/service/secret.go (implementation)\nfunc (s *Service) RotateAppSecret(ctx context.Context, input secretentity.RotateAppSecretInput) (secretentity.SecretID, error) {\n    if err := input.Validate(); err != nil {\n        return secretentity.SecretID{}, models.NewGenericValidationError(fmt.Errorf(\"error rotate app secret: %w\", err))\n    }\n    return s.adapter.RotateAppSecret(ctx, input)\n}"
       }
     ]
   }

@@ -1,62 +1,91 @@
 {
-  "openmeter/info/httpdriver": {
-    "purpose": "HTTP handler layer for the info domain, exposing stateless endpoints (e.g. currency list) via the httptransport pattern. No service dependency \u2014 data comes from external library calls (gobl/currency) or static definitions, so no adapter or Wire provider is needed.",
+  "openmeter/event/metadata": {
+    "purpose": "Canonical event-identity primitives for the whole system: the EventType triple (Subsystem/Version/Name) producing deterministic 'io.openmeter.<subsystem>.<version>.<name>' strings, EventMetadata (ID/time/source/subject), and ComposeResourcePath helpers for '//openmeter.io/...' URIs. Every Watermill producer depends on these for consistent Kafka routing.",
     "patterns": [
       {
-        "name": "httptransport.NewHandler triple",
-        "description": "Every endpoint is a dedicated named handler type (e.g. ListCurrenciesHandler) defined as httptransport.Handler[Req, Resp] and constructed via httptransport.NewHandler with a decoder func, an operation func, and a response encoder.",
-        "example": "type ListCurrenciesHandler httptransport.Handler[ListCurrenciesRequest, ListCurrenciesResponse]\nreturn httptransport.NewHandler(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[...](http.StatusOK), opts...)"
+        "name": "EventType triple declaration",
+        "description": "Each event kind is a package-level var EventType{Subsystem, Version, Name}; get the canonical string via EventName(), never fmt.Sprintf. VersionSubsystem() returns the two-segment routing prefix used by eventbus.GeneratePublishTopic.",
+        "example": "var MyEventType = metadata.EventType{Subsystem: \"billing\", Version: \"v1\", Name: \"invoiceCreated\"} // io.openmeter.billing.v1.invoiceCreated"
       },
       {
-        "name": "Handler interface + private handler struct",
-        "description": "driver.go defines a public Handler interface listing all endpoint methods, and a private handler struct carrying shared options. New handlers are added as methods on *handler and listed in the Handler interface.",
-        "example": "type Handler interface { ListCurrencies() ListCurrenciesHandler }\ntype handler struct { options []httptransport.HandlerOption }\nfunc New(options ...httptransport.HandlerOption) Handler { return &handler{options: options} }"
+        "name": "Resource paths via ComposeResourcePath",
+        "description": "source/subject fields must use ComposeResourcePath(namespace, entityType..., id) (or Raw); the '//openmeter.io/' authority is injected automatically. Never build URIs with fmt.Sprintf.",
+        "example": "source := metadata.ComposeResourcePath(ns, metadata.EntityInvoice, invoiceID)"
       },
       {
-        "name": "Options forwarded via httptransport.AppendOptions",
-        "description": "Handler-level options (e.g. WithOperationName) are appended to h.options using httptransport.AppendOptions so cross-cutting concerns (tracing, error handling) from the caller propagate correctly.",
-        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listCurrencies\"))..."
-      },
-      {
-        "name": "No-op request decoder for parameterless endpoints",
-        "description": "When an endpoint has no path/query parameters, the decoder simply returns an empty request struct and nil error.",
-        "example": "func(ctx context.Context, r *http.Request) (ListCurrenciesRequest, error) { return ListCurrenciesRequest{}, nil }"
+        "name": "Entity constant registry",
+        "description": "Entity type strings (EntityInvoice, EntityCustomer, ...) are package-level constants in resourcepath.go; a new domain entity needs a matching EntityXxx constant before any ComposeResourcePath use.",
+        "example": "const EntitySubscriptionAddon = \"subscriptionAddon\""
       }
     ],
     "key_file_guides": [
       {
-        "file": "driver.go",
-        "role": "Defines the Handler interface and New constructor \u2014 the only public API of this package. Add new handler method signatures here when adding endpoints.",
-        "watch_for": "Do not add business logic here; driver.go is pure wiring."
+        "file": "event_type.go",
+        "role": "EventType with EventName() and VersionSubsystem() formatters, plus EventMetadata for ID/time/source/subject.",
+        "watch_for": "Format is subsystem.version.name \u2014 version is the SECOND segment; routing in eventbus.GeneratePublishTopic relies on the VersionSubsystem() prefix matching exactly."
       },
       {
-        "file": "currencies.go",
-        "role": "Implements ListCurrencies using gobl/currency.Definitions() filtered to ISO currencies. Representative template for all future handlers in this package.",
-        "watch_for": "The ISONumeric != '' filter intentionally excludes crypto/non-ISO currencies \u2014 do not remove it without understanding the API contract."
+        "file": "resourcepath.go",
+        "role": "All EntityXxx constants and ComposeResourcePath/ComposeResourcePathRaw producing '//openmeter.io/...' URIs.",
+        "watch_for": "A new entity requires a new constant; missing one leads to inline literals and inconsistent paths breaking audit/correlation across binaries."
       }
     ],
     "anti_patterns": [
-      "Injecting a domain service or adapter into handler struct when data comes from a static library \u2014 keep stateless handlers dependency-free",
-      "Returning raw error from operation func without using domain error types \u2014 breaks the generic error encoder chain",
-      "Defining handler types outside this package or in driver.go \u2014 each handler belongs in its own file",
-      "Hand-editing generated API types in api/ instead of regenerating via make gen-api",
-      "Adding request validation logic inside the decoder instead of returning a models.GenericValidationError from the operation func"
+      "Building 'io.openmeter.*' event names with fmt.Sprintf instead of EventType.EventName().",
+      "Constructing '//openmeter.io/...' paths with fmt.Sprintf instead of ComposeResourcePath.",
+      "Adding a new entity type as an inline literal in an event struct instead of an EntityXxx constant.",
+      "Declaring EventType with version in the wrong position (it is subsystem.version.name)."
     ],
     "decisions": [
       {
-        "decision": "No domain service dependency \u2014 data sourced directly from gobl/currency library",
-        "rationale": "Currency definitions are static ISO data; introducing a service/adapter layer would add unnecessary indirection and wiring cost."
+        "decision": "EventName encodes subsystem+version+name in a fixed dot-separated URI under 'io.openmeter.'.",
+        "rationale": "eventbus.GeneratePublishTopic routes by matching the EventName() prefix to known EventVersionSubsystem constants; a central deterministic format prevents routing mismatches across worker binaries."
       },
       {
-        "decision": "httptransport.Handler[Req, Resp] generic over plain http.HandlerFunc",
-        "rationale": "Keeps decoder, operation, and encoder as separate typed functions, enabling independent testing of each phase and reuse of shared error encoders."
+        "decision": "Resource paths follow '//openmeter.io/namespace/<ns>/<entity>/<id>' via ComposeResourcePath.",
+        "rationale": "CloudEvents requires unambiguous source/subject URIs; the authority prefix scopes paths globally and enables correlation across audit logs, traces, and webhooks."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new stateless info endpoint (e.g. ListTimezones)",
-        "code": "// timezones.go\npackage httpdriver\n\nimport (\n\t\"context\"\n\t\"net/http\"\n\n\t\"github.com/openmeterio/openmeter/api\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n)\n\ntype (\n\tListTimezonesRequest  struct{}\n\tListTimezonesResponse []api.Timezone\n\tListTimezonesHandler  httptransport.Handler[ListTimezonesRequest, ListTimezonesResponse]\n)\n\nfunc (h *handler) ListTimezones() ListTimezonesHandler {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (ListTimezonesRequest, error) {\n\t\t\treturn ListTimezonesRequest{}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request ListTimezonesRequest) (ListTimezonesResponse, error) {\n\t\t\t// populate from static data source\n\t\t\treturn ListTimezonesResponse{}, nil\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ListTimezonesResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(\n\t\t\th.options,\n\t\t\thttptransport.WithOperationName(\"listTimezones\"),\n\t\t)...,\n\t)\n}"
+        "scenario": "Declare a new event type and build its EventMetadata",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/event/metadata\"\n\nvar InvoiceCreatedEventType = metadata.EventType{Subsystem: \"billing\", Version: \"v1\", Name: \"invoiceCreated\"}\n\nmeta := metadata.EventMetadata{\n    ID:      ulid.Make().String(),\n    Time:    time.Now(),\n    Source:  metadata.ComposeResourcePath(ns, metadata.EntityInvoice, invoiceID),\n    Subject: metadata.ComposeResourcePath(ns, metadata.EntityCustomer, customerID),\n}\n// Routing prefix: InvoiceCreatedEventType.VersionSubsystem()"
       }
     ]
+  },
+  "openmeter/event/models": {
+    "purpose": "Minimal cross-subsystem value types (FeatureKeyAndID, NamespaceID) that appear inside event payloads shared across multiple domain packages (entitlement, billing, productcatalog). Each type implements Validate() to enforce required fields before payload construction. A leaf package with no domain imports.",
+    "patterns": [
+      {
+        "name": "Inline Validate() on every exported struct",
+        "description": "Every struct implements Validate() error checking all required fields; callers must call it before embedding the value in an event payload.",
+        "example": "f := models.FeatureKeyAndID{Key: featureKey, ID: featureID}\nif err := f.Validate(); err != nil { return fmt.Errorf(\"invalid feature ref: %w\", err) }"
+      },
+      {
+        "name": "Cross-subsystem value types only",
+        "description": "Add a type here only if it appears in event payloads used by two or more domain packages; domain-specific structs belong in their own package.",
+        "example": "// FeatureKeyAndID used in both entitlement and billing payloads \u2014 correct; Invoice{} belongs in openmeter/billing"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "models.go",
+        "role": "Declares FeatureKeyAndID (Key+ID feature ref) and NamespaceID, embedded in event payloads across entitlement and billing.",
+        "watch_for": "Do not import openmeter domain packages \u2014 this package is imported by all of them and would cause circular imports; keep types to string fields + Validate()."
+      }
+    ],
+    "anti_patterns": [
+      "Adding domain-specific types (Invoice, Subscription, Entitlement) \u2014 they belong in their domain packages.",
+      "Skipping Validate() on values received in event payloads from this package.",
+      "Importing openmeter/* domain packages from models.go \u2014 must remain a leaf to avoid cycles.",
+      "Adding business logic or computed fields \u2014 these are pure data containers."
+    ],
+    "decisions": [
+      {
+        "decision": "Separate package for cross-subsystem event value types rather than duplicating per domain.",
+        "rationale": "Both entitlement and billing need FeatureKeyAndID in payloads; a shared leaf package lets both import it without importing each other, preventing cycles."
+      }
+    ],
+    "code_examples": []
   }
 }

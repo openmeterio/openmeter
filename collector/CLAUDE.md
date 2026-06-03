@@ -2,35 +2,59 @@
 
 <!-- archie:ai-start -->
 
-> Houses the Benthos/Redpanda Connect collector plugin surface (collector/benthos) and local demo environment (collector/quickstart). collector/benthos defines all custom Go plugins (input, bloblang, internal utils, leader-election service) that cmd/benthos-collector imports via blank imports; no openmeter domain logic is wired here.
+> Separate Go module (own go.mod, replace github.com/openmeterio/openmeter => ../) housing the Benthos/Redpanda Connect collector: the custom plugin surface (collector/benthos) activated by blank imports from cmd/benthos-collector, plus a local docker-compose demo (collector/quickstart). It is the production-ready ingestion pipeline that collects, transforms, buffers, and reliably delivers usage events into OpenMeter; no openmeter domain Wire graph is instantiated here.
 
 ## Patterns
 
-**Blank-import activation for plugin registration** — Benthos plugins must be registered in init() before process start. cmd/benthos-collector imports sub-packages as _ to trigger init-time registration. (`import _ "github.com/openmeterio/openmeter/collector/benthos/input"`)
-**Leader-election gate on replicated work** — All work that must not run on every replica checks services/leaderelection.IsLeader(res). Absent key defaults to true (safe solo deployment). (`if !leaderelection.IsLeader(res) { return nil } // skip work on non-leader replicas`)
-**Environment-variable substitution in YAML presets** — All YAML presets under presets/ and quickstart/ use ${VAR:default} substitution. No values are hardcoded. (`url: ${OPENMETER_URL:http://localhost:8888}`)
-**Child-package specialisation** — input/, bloblang/, internal/, services/, presets/ each own exactly one concern. Cross-cutting utils go to internal/ only. (`collector/benthos/internal/shutdown/signaller.go — shutdown signal utility, not a plugin.`)
+**Blank-import plugin activation** — Benthos plugins must register in init() before process start; the launcher imports collector/benthos sub-packages as _ to trigger registration. Plugins are never wired by calling their constructors. (`import _ "github.com/openmeterio/openmeter/collector/benthos/input"`)
+**Sub-package per concern** — collector/benthos splits into input/, bloblang/, internal/ (pure utils), services/ (leader-election), and presets/ (pure YAML), each owning exactly one concern; cross-cutting utilities go only to internal/. (`collector/benthos/internal/shutdown/signaller.go is a utility, not a plugin.`)
+**Leader-election gate on replicated work** — Work that must not run on every replica checks leaderelection.IsLeader(res); leader state is stored in service.Resources generic map and an absent key defaults to true (safe single-replica deployment). (`if !leaderelection.IsLeader(res) { return nil } // skip on non-leader replicas`)
+**Env-var substitution in YAML presets** — All preset and quickstart YAML uses ${VAR:default} interpolation; no endpoints, URLs, or tokens are hardcoded. (`url: ${OPENMETER_URL:http://localhost:8888}`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `collector/benthos/services/leaderelection/service.go` | Leader-election state stored in service.Resources generic map; IsLeader(res) helper reads it with absent-key=true default. | Never read IsLeaderKey directly via res.GetGeneric — use IsLeader(res) to preserve absent-key=true semantics for single-replica deployments. |
-| `collector/benthos/bloblang/parse_resource.go` | Side-effect-only package: registers bloblang functions in init(). No exported symbols. | Do not export symbols from this package. Do not place business logic here. |
-| `collector/benthos/internal/message/transaction.go` | Internal message transaction utility. Pure utilities layer — no plugin registrations. | Do not add plugin registrations to internal/. Keep it as a pure utility layer. |
-| `collector/quickstart/docker-compose.yaml` | Demo stack that includes ../../quickstart/docker-compose.yaml rather than duplicating service definitions. | Do not duplicate service definitions. Use in-memory dedupe cache (not Redis) in quickstart. |
+| `collector/cmd/main.go` | Thin launcher: blank-imports plugin packages then calls service.RunCLI with a cancellable root context and leader-election CLI options. | Add no pipeline logic here; register plugins via blank import; keep the cancellable context (do not pass a bare context.Background() to RunCLI). |
+| `collector/benthos/services/leaderelection/service.go` | Leader-election state in service.Resources generic map with IsLeader(res) helper (absent-key=true default). | Read leadership only via IsLeader(res), never res.GetGeneric on IsLeaderKey, or the single-replica default is lost. |
+| `collector/benthos/bloblang/parse_resource.go` | Side-effect-only package registering bloblang functions in init(); exports nothing. | Do not export symbols or place business logic here. |
+| `collector/benthos/input/*.go` | Custom Benthos input plugins registered in init(). | Return transient per-resource failures by logging and skipping; a returned error from ReadBatch halts the whole pipeline. |
+| `collector/quickstart/docker-compose.yaml` | Local demo stack that includes ../../quickstart/docker-compose.yaml rather than duplicating service definitions; uses in-memory dedupe (not Redis). | Use the custom openmeter output plugin (not generic http_client); keep debug_endpoints off outside local dev. |
+| `collector/go.mod` | Separate module pinning Redpanda benthos/connect and a large transitive dependency set; replaces openmeter with the parent repo. | Built as a separate Docker image (benthos-collector.Dockerfile, CGO_ENABLED=0); dependency bumps are isolated from the root module. |
 
 ## Anti-Patterns
 
-- Registering a plugin outside init() — Benthos requires init-time registration before process start
-- Adding business logic or plugin registrations to internal/ — pure utilities layer only
-- Reading IsLeaderKey directly via res.GetGeneric instead of using IsLeader(res) helper — misses absent-key=true default
-- Exporting symbols from collector/benthos/bloblang — side-effect-only package
-- Hardcoding OPENMETER_URL or OPENMETER_TOKEN in YAML configs instead of ${VAR:default} substitution
+- Registering a plugin outside init() — Benthos requires init-time registration before process start.
+- Adding business logic or plugin registrations to internal/ — it is a pure utilities layer.
+- Reading IsLeaderKey directly via res.GetGeneric instead of leaderelection.IsLeader(res), missing the absent-key=true default.
+- Exporting symbols from collector/benthos/bloblang — it is side-effect-only and must export nothing.
+- Hardcoding OPENMETER_URL/OPENMETER_TOKEN instead of ${VAR:default} substitution, or wiring an openmeter Wire graph into the collector.
 
 ## Decisions
 
-- **Sub-package per concern (input, bloblang, internal, services, presets) rather than a flat package.** — Benthos plugin types have distinct registration and lifecycle semantics; separating them prevents accidental cross-registration and clarifies what cmd/benthos-collector must blank-import.
+- **Sub-package per concern (input, bloblang, internal, services, presets) rather than a flat package.** — Benthos plugin types have distinct registration and lifecycle semantics; separation prevents accidental cross-registration and clarifies what cmd/benthos-collector must blank-import.
 - **No Wire DI or openmeter domain service instantiation in collector/.** — The Benthos framework provides its own component lifecycle; injecting openmeter Wire graphs would couple the collector to the full service dependency tree unnecessarily.
+- **Collector is its own Go module and Docker image.** — Isolates the heavy Redpanda Connect dependency tree (CGO_ENABLED=0 build) from the main module's build and dependency graph.
+
+## Example: Launcher blank-imports plugins then runs the Benthos CLI
+
+```
+package main
+
+import (
+	"context"
+
+	"github.com/redpanda-data/benthos/v4/public/service"
+
+	_ "github.com/openmeterio/openmeter/collector/benthos/bloblang"
+	_ "github.com/openmeterio/openmeter/collector/benthos/input"
+)
+
+func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	service.RunCLI(ctx)
+// ...
+```
 
 <!-- archie:ai-end -->

@@ -1,70 +1,121 @@
 {
-  "openmeter/billing/creditgrant/service": {
-    "purpose": "Implements creditgrant.Service as a facade that orchestrates credit grant creation, retrieval, listing, and external settlement transitions by delegating entirely to charges.Service and creditpurchase.Service. Owns no direct DB access \u2014 all persistence flows through the charges pipeline.",
+  "openmeter/billing/charges/worker/advance": {
+    "purpose": "Batch auto-advance worker that iterates all customers with eligible charges and calls charges.Service.AdvanceCharges for each; errors are accumulated and joined so one failing customer does not block others.",
     "patterns": [
       {
-        "name": "Config struct with Validate() + New()",
-        "description": "All dependencies declared in a Config struct. New() calls Config.Validate() before constructing the service; returns an error if any required dependency is nil.",
-        "example": "func New(config Config) (creditgrant.Service, error) { if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid config: %w\", err) } ... }"
+        "name": "Fan-out with error accumulation",
+        "description": "Loop over all customers, append errors to a slice, and return errors.Join(errs...) \u2014 never return on first failure.",
+        "example": "var errs []error\nfor _, cust := range customers {\n    if err := a.AdvanceCharges(ctx, cust); err != nil {\n        errs = append(errs, fmt.Errorf(\"[namespace=%s customer=%s]: %w\", cust.Namespace, cust.ID, err))\n    }\n}\nreturn errors.Join(errs...)"
       },
       {
-        "name": "input.Validate() as the first statement in every public method",
-        "description": "Every public method calls input.Validate() before any logic and wraps the error with fmt.Errorf before returning.",
-        "example": "func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (...) { if err := input.Validate(); err != nil { return ..., fmt.Errorf(\"invalid input: %w\", err) } }"
+        "name": "Pagination via CollectAll",
+        "description": "Use pagination.CollectAll with pagination.NewPaginator to page through all eligible customers without a manual page loop.",
+        "example": "pagination.CollectAll(ctx, pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[customer.CustomerID], error) {\n    return a.chargesService.ListCustomersToAdvance(ctx, charges.ListCustomersToAdvanceInput{Page: page, Namespaces: namespaces, AdvanceAfterLTE: now})\n}), defaultPageSize)"
       },
       {
-        "name": "Delegate to charges.Service \u2014 no Ent imports",
-        "description": "The service has no openmeter/ent/db import. All mutations go through chargesService.Create, GetByID, or HandleCreditPurchaseExternalPaymentStateTransition.",
-        "example": "result, err := s.chargesService.Create(ctx, charges.CreateInput{Namespace: input.Namespace, Intents: charges.ChargeIntents{charges.NewChargeIntent(intent)}})"
+        "name": "Config struct + constructor validation",
+        "description": "All dependencies pass via a Config struct; NewAdvancer validates non-nil fields before constructing the struct.",
+        "example": "func NewAdvancer(config Config) (*AutoAdvancer, error) { if config.ChargesService == nil { return nil, fmt.Errorf(\"charges service is required\") }; if config.Logger == nil { return nil, fmt.Errorf(\"logger is required\") }; return &AutoAdvancer{...}, nil }"
       },
       {
-        "name": "Ownership check before returning a charge",
-        "description": "Get-style methods verify cpCharge.Intent.CustomerID == input.CustomerID and return models.NewGenericNotFoundError on mismatch to prevent cross-tenant leaks.",
-        "example": "if cpCharge.Intent.CustomerID != input.CustomerID { return creditpurchase.Charge{}, fmt.Errorf(\"get charge: %w\", models.NewGenericNotFoundError(...)) }"
+        "name": "Advance via service interface only",
+        "description": "All charge advancement is driven through charges.ChargeService.AdvanceCharges \u2014 never call adapters or Ent directly.",
+        "example": "a.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: customerID})"
       },
       {
-        "name": "ValidationIssue with HTTP status for business-rule rejections",
-        "description": "Business-rule violations (e.g. wrong settlement type) use models.NewValidationIssue with commonhttp.WithHTTPStatusCodeAttribute to carry an explicit HTTP status to the encoder.",
-        "example": "return ..., models.NewValidationIssue(\"credit_grant_external_settlement_not_supported\", \"credit grant is not externally funded\", models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))"
+        "name": "Stable now captured once per batch",
+        "description": "Capture time.Now() once at the start of ListCustomersToAdvance and pass it as AdvanceAfterLTE for the whole batch, preventing per-customer clock races.",
+        "example": "now := time.Now() // pass now to ListCustomersToAdvance, not time.Now() inside the paginator closure"
       },
       {
-        "name": "Private toIntent/toSettlement converters for CreateInput mapping",
-        "description": "Mapping from CreateInput to creditpurchase.Intent is isolated in package-private toIntent() and toSettlement() functions; keep them as pure field mappers with no business logic.",
-        "example": "intent := toIntent(input); result, err := s.chargesService.Create(ctx, charges.CreateInput{..., Intents: charges.ChargeIntents{charges.NewChargeIntent(intent)}})"
+        "name": "Structured logging with slog",
+        "description": "Use slog.InfoContext/DebugContext/ErrorContext/WarnContext with named slog.String key-value pairs for all log statements.",
+        "example": "a.logger.ErrorContext(ctx, \"failed to auto-advance charges\", slog.String(\"namespace\", cust.Namespace), slog.String(\"customer_id\", cust.ID), slog.String(\"error\", err.Error()))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "service.go",
-        "role": "Single file implementing creditgrant.Service. Wraps charges.Service and creditpurchase.Service; performs customer existence check, ownership assertion, and settlement-type validation before delegating.",
-        "watch_for": "toIntent() hardcodes clock.Now() for ServicePeriod/BillingPeriod/FullServicePeriod with a TODO \u2014 real period derivation is not yet implemented. Do not rely on these values being meaningful. After Create(), the service does a second chargesService.GetByID call to fetch the realizations; this is a deliberate two-step fetch, not a bug."
+        "file": "advance.go",
+        "role": "Sole file; defines AutoAdvancer, All/ListCustomersToAdvance/AdvanceCharges methods, Config, and NewAdvancer.",
+        "watch_for": "defaultPageSize=10_000 caps single-page fetches; `now` is captured once at the start of ListCustomersToAdvance to give a stable cutoff for the whole batch run."
       }
     ],
     "anti_patterns": [
-      "Importing openmeter/ent/db or calling Ent builders directly \u2014 all DB access must go through charges.Service or creditpurchase.Service",
-      "Skipping input.Validate() at the top of a new method \u2014 every public method must validate before acting",
-      "Returning a charge without verifying CustomerID ownership \u2014 always assert cpCharge.Intent.CustomerID == input.CustomerID in Get-style methods",
-      "Using context.Background() instead of the caller-supplied ctx",
-      "Adding business logic inside toIntent()/toSettlement() beyond pure field mapping \u2014 keep them as dumb converters"
+      "Returning on first customer error \u2014 must accumulate and join all errors.",
+      "Calling Ent/adapter code directly instead of going through charges.ChargeService.",
+      "Introducing context.Background() \u2014 always propagate the caller's ctx.",
+      "Hard-coding namespaces instead of accepting them as a parameter.",
+      "Capturing time.Now() inside the paginator closure rather than once before it."
     ],
     "decisions": [
       {
-        "decision": "Service delegates entirely to charges.Service rather than holding its own adapter",
-        "rationale": "Credit grants are a specialised view of creditpurchase.Charge; all lifecycle state (advance, realizations, ledger writes) is already managed by the charges pipeline, so duplicating persistence here would create divergent write paths."
+        "decision": "Error accumulation instead of early return.",
+        "rationale": "A single customer failure should not prevent advancing charges for all other customers; errors.Join collects all failures for a complete report."
       },
       {
-        "decision": "Ownership check done in the service layer, not in charges.Service",
-        "rationale": "charges.Service is namespace-scoped but not customer-scoped; the creditgrant service is the API boundary that adds per-customer access control without polluting the generic charges layer."
-      },
-      {
-        "decision": "charges.NewChargeIntent used instead of struct-literal ChargeIntent{}",
-        "rationale": "The Charge tagged-union has a private discriminator field set only by NewCharge[T]/NewChargeIntent; struct-literal construction leaves the discriminator zero-valued and all type-switch accessors return errors."
+        "decision": "Time captured once per All() call.",
+        "rationale": "A single `now` for the whole batch gives consistent cutoff semantics; per-customer clock calls could admit races where newly eligible charges slip in or out mid-run."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Creating a credit grant \u2014 full path from CreateInput to creditpurchase.Charge",
-        "code": "import (\n    \"github.com/openmeterio/openmeter/openmeter/billing/charges\"\n    \"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase\"\n    \"github.com/openmeterio/openmeter/openmeter/billing/creditgrant\"\n    \"github.com/openmeterio/openmeter/openmeter/customer\"\n)\n\nfunc (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (creditpurchase.Charge, error) {\n    if err := input.Validate(); err != nil {\n        return creditpurchase.Charge{}, fmt.Errorf(\"invalid input: %w\", err)\n    }\n    _, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput{\n        CustomerID: &customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID},\n    })\n    if err != nil {\n        return creditpurchase.Charge{}, fmt.Errorf(\"get customer: %w\", err)\n    }\n    intent := toIntent(input)\n    result, err := s.chargesService.Create(ctx, charges.CreateInput{\n        Namespace: input.Namespace,\n        Intents:   charges.ChargeIntents{charges.NewChargeIntent(intent)},\n    })\n    if err != nil {\n        return creditpurchase.Charge{}, fmt.Errorf(\"create credit grant charge: %w\", err)\n    }\n    // ... fetch with realizations expand and return cpCharge\n}"
+        "scenario": "Full batch advance entry point",
+        "code": "func (a *AutoAdvancer) All(ctx context.Context, namespaces []string) error {\n    customers, err := a.ListCustomersToAdvance(ctx, namespaces)\n    if err != nil {\n        return fmt.Errorf(\"failed to list customers to advance charges: %w\", err)\n    }\n    var errs []error\n    for _, cust := range customers {\n        if err := a.AdvanceCharges(ctx, cust); err != nil {\n            errs = append(errs, fmt.Errorf(\"[namespace=%s customer=%s]: %w\", cust.Namespace, cust.ID, err))\n        }\n    }\n    return errors.Join(errs...)\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/worker/asyncadvance": {
+    "purpose": "Event-driven (async) handler that advances charges for a single customer in response to a charges.AdvanceChargesEvent; intended to be wired as a Watermill message handler for the billing-worker.",
+    "patterns": [
+      {
+        "name": "Config.Validate() before construction",
+        "description": "The Config struct carries a Validate() error method checking all required fields; New calls it before constructing the Handler.",
+        "example": "func New(c Config) (*Handler, error) { if err := c.Validate(); err != nil { return nil, err }; return &Handler{chargesService: c.ChargesService, logger: c.Logger}, nil }"
+      },
+      {
+        "name": "Single-responsibility Handle method",
+        "description": "Handler exposes exactly one Handle(ctx, *AdvanceChargesEvent) error method; no batch logic, no pagination \u2014 those live in the advance package.",
+        "example": "func (h *Handler) Handle(ctx context.Context, event *charges.AdvanceChargesEvent) error { _, err := h.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: customer.CustomerID{Namespace: event.Namespace, ID: event.CustomerID}}); return err }"
+      },
+      {
+        "name": "CustomerID constructed from event fields",
+        "description": "Build customer.CustomerID{Namespace: event.Namespace, ID: event.CustomerID} inline from the event \u2014 no helper, no global state.",
+        "example": "charges.AdvanceChargesInput{Customer: customer.CustomerID{Namespace: event.Namespace, ID: event.CustomerID}}"
+      },
+      {
+        "name": "Warn-then-return on service error",
+        "description": "Log a WarnContext entry with namespace/customer_id/error keys before returning the error so the upstream Watermill router can apply retry/dead-letter logic.",
+        "example": "h.logger.WarnContext(ctx, \"failed to advance charges\", slog.String(\"namespace\", event.Namespace), slog.String(\"customer_id\", event.CustomerID), slog.String(\"error\", err.Error())); return err"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "asyncadvance.go",
+        "role": "Sole file; defines Handler, Config (with Validate), New constructor, and Handle method.",
+        "watch_for": "Handler must not swallow errors \u2014 always return them so the message bus can apply retry/dead-letter logic. Never add batch or pagination logic here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding batch/pagination logic here \u2014 that belongs in the advance package.",
+      "Calling Ent or adapter code directly instead of going through charges.ChargeService.",
+      "Returning nil on service error to suppress retries.",
+      "Introducing context.Background() instead of propagating the event's ctx.",
+      "Accumulating errors across multiple events \u2014 this handler processes one event per call."
+    ],
+    "decisions": [
+      {
+        "decision": "Separate package from synchronous advance.",
+        "rationale": "Async (event-driven, single-customer) and sync (batch, all-customers) advancement have different error-handling and retry contracts; separate packages avoid conflating them."
+      },
+      {
+        "decision": "Errors returned, not swallowed.",
+        "rationale": "Watermill's router applies retry and dead-letter semantics based on the handler's return value; swallowing errors would silently drop failed advancements."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Handle a single AdvanceChargesEvent from the event bus",
+        "code": "import (\n    \"context\"\n    \"log/slog\"\n    \"github.com/openmeterio/openmeter/openmeter/billing/charges\"\n    \"github.com/openmeterio/openmeter/openmeter/customer\"\n)\n\nfunc (h *Handler) Handle(ctx context.Context, event *charges.AdvanceChargesEvent) error {\n    _, err := h.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{\n        Customer: customer.CustomerID{Namespace: event.Namespace, ID: event.CustomerID},\n    })\n    return err\n}"
       }
     ]
   }

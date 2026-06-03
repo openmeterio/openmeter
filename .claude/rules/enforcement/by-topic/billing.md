@@ -1,6 +1,41 @@
-# Enforcement: billing (2 rules)
+# Enforcement: billing (3 rules)
 
 Topic file. Loaded on demand when an agent works on something in the `billing` area. The pre-edit hook reads `.archie/rules.json` directly — this file is for browsing/context only.
+
+## Decision Violations (block)
+
+### `data-grant-amount-immutable-truncate` — Grant.amount is Immutable and effective times must be truncated to time.Minute before storing or computing. Read grants only through credit.CreditConnector (CreateGrant/VoidGrant/GetBalanceAt), never via the adapter directly.
+
+*source: `deep_scan`*
+
+**Why:** The Grant data model lifecycle states: amount is declared field.Float("amount").Immutable() and 'Always truncate grant effective times to time.Minute before storing/computing' with example effectiveAt := time.Now().Truncate(time.Minute). The credit engine's burn-down arithmetic assumes minute-boundary effective times; an un-truncated or mutated grant produces balance snapshots that do not align with ClickHouse meter aggregations.
+
+**Example:**
+
+```
+effectiveAt := time.Now().Truncate(time.Minute)
+return creditConnector.CreateGrant(ctx, credit.CreateGrantInput{EffectiveAt: effectiveAt})
+```
+
+**Path glob:** `openmeter/credit/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "CreateGrant|EffectiveAt"
+    ],
+    "must_not_match": [
+      "Truncate\\("
+    ]
+  }
+]
+```
+
+</details>
 
 ## Pattern Divergence (inform)
 

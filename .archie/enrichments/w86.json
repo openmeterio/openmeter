@@ -1,132 +1,341 @@
 {
-  "openmeter/entitlement/balanceworker/events": {
-    "purpose": "Pure schema package defining RecalculateEvent \u2014 the Watermill event contract between balance recalculation producers (entitlement lifecycle hooks, ingest flush) and the balance-worker consumer. No business logic, no DB access.",
+  "openmeter/entitlement/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing entitlement.EntitlementRepo, balanceworker.BalanceWorkerRepository, and meteredentitlement.UsageResetRepo \u2014 the sole persistence layer for entitlement rows, usage-reset records, and balance-worker ingest-event queries.",
     "patterns": [
       {
-        "name": "Implement marshaler.Event with compile-time assertion",
-        "description": "Every event struct must implement marshaler.Event (EventName() string, EventMetadata() metadata.EventMetadata). Enforce with var _ marshaler.Event = RecalculateEvent{}.",
-        "example": "var _ marshaler.Event = RecalculateEvent{}"
+        "name": "TransactingRepo on every method",
+        "description": "Every public method body wraps with entutils.TransactingRepo / TransactingRepoWithNoValue so the ctx-bound Ent transaction is honored. Never call repo.db.* outside the wrapper closure.",
+        "example": "entutils.TransactingRepo(ctx, a, func(ctx, repo *entitlementDBAdapter) (*entitlement.Entitlement, error) { return repo.mapEntitlementEntity(...) })"
       },
       {
-        "name": "Versioned EventType via metadata.EventType struct",
-        "description": "Event type is declared as metadata.EventType{Subsystem, Name, Version}; the event name string is derived via metadata.GetEventName(). Bump Version on breaking schema changes \u2014 never rename the Go type instead.",
-        "example": "recalculateEventType = metadata.EventType{Subsystem: EventSubsystem, Name: RecalculateEventName, Version: \"v2\"}"
+        "name": "TxUser+TxCreator triad in transaction.go",
+        "description": "Both entitlementDBAdapter and usageResetDBAdapter implement Tx()/WithTx()/Self() in transaction.go. A new adapter struct missing these makes TransactingRepo panic.",
+        "example": "func (e *entitlementDBAdapter) WithTx(ctx, tx *entutils.TxDriver) *entitlementDBAdapter { return NewPostgresEntitlementRepo(db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()) }"
       },
       {
-        "name": "OperationType enum with Values() + Validate()",
-        "description": "New operation kinds must be added to both the const block and the Values() slice. Validate() uses slices.Contains(o.Values(), o) \u2014 omitting an entry from Values() makes it always invalid.",
-        "example": "func (o OperationType) Validate() error { if !slices.Contains(o.Values(), o) { return fmt.Errorf(...) } return nil }"
+        "name": "Soft-delete filter on every query",
+        "description": "Active entitlements exclude soft-deleted rows via db_entitlement.Or(DeletedAtGT(now), DeletedAtIsNil()). Omitting returns deleted rows and breaks billing correctness.",
+        "example": "Where(db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()))"
       },
       {
-        "name": "EventMetadata.Subject via ComposeResourcePath",
-        "description": "Subject must always be built with metadata.ComposeResourcePath(namespace, entityKind, id) \u2014 never raw string concatenation.",
-        "example": "Subject: metadata.ComposeResourcePath(e.Entitlement.Namespace, metadata.EntityEntitlement, e.Entitlement.ID)"
+        "name": "withAllUsageResets eager-load",
+        "description": "Any query feeding mapEntitlementEntity must call withAllUsageResets to eager-load usage_reset edges, or UsagePeriod computation fails.",
+        "example": "withAllUsageResets(repo.db.Entitlement.Query(), []string{namespace}).Where(...).First(ctx)"
+      },
+      {
+        "name": "Compile-time interface assertions",
+        "description": "var _ repo = (*entitlementDBAdapter)(nil) and var _ interface{transaction.Creator; entutils.TxUser[...]} guard compliance. Add for every new adapter type.",
+        "example": "var _ repo = (*entitlementDBAdapter)(nil)"
+      },
+      {
+        "name": "Raw SQL only for complex cross-table CTEs",
+        "description": "ListEntitlementsAffectedByIngestEvents uses EntitlementsByIngestedEventsQuery raw SQL because it joins customer/subject/feature/meter via CTEs. All other queries use Ent builders.",
+        "example": "query, args := EntitlementsByIngestedEventsQuery(repo.db.GetConfig().Driver.Dialect(), ns, subject, meters...); rows, err := repo.db.QueryContext(ctx, query, args...)"
+      },
+      {
+        "name": "Reload edges after Create",
+        "description": "CreateEntitlement does a second Query().Only(ctx) after Save() to reload customer/subject edges before mapEntitlementEntity. Replicate for other create methods.",
+        "example": "res, _ := cmd.Save(ctx); entWithEdges, _ := repo.db.Entitlement.Query().Where(db_entitlement.ID(res.ID)).Only(ctx)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "recalculate.go",
-        "role": "Single source of truth for the recalculate event schema: struct fields, OperationType enum, and all marshaler.Event plumbing.",
-        "watch_for": "Adding fields is a wire-format change \u2014 consumers must be updated simultaneously. Version string in recalculateEventType must be bumped on breaking changes. EventVersionSubsystem is exported from this file and used by eventbus routing \u2014 do not rename."
+        "file": "entitlement.go",
+        "role": "Main adapter: all EntitlementRepo + BalanceWorkerRepository method implementations using Ent query builders plus the raw-SQL CTE query.",
+        "watch_for": "New methods must wrap in TransactingRepo and call withAllUsageResets when feeding mapEntitlementEntity."
+      },
+      {
+        "file": "transaction.go",
+        "role": "Tx/WithTx/Self for both entitlementDBAdapter and usageResetDBAdapter via HijackTx + NewTxDriver.",
+        "watch_for": "New adapter struct in this package needs all three methods copied or it cannot join ctx transactions."
+      },
+      {
+        "file": "usage_reset.go",
+        "role": "usageResetDBAdapter.Save writes a usage_reset row inside a transaction.",
+        "watch_for": "Always call usageResetTime.Validate() before the Ent create call; do not bypass."
+      },
+      {
+        "file": "entitlement_test.go",
+        "role": "Integration tests provisioning real Postgres via testutils.InitPostgresDB, constructing adapters directly from NewPostgresEntitlementRepo.",
+        "watch_for": "Uses context.Background() \u2014 acceptable in tests only, never copy into production methods."
       }
     ],
     "anti_patterns": [
-      "Adding DB calls or business logic \u2014 this is a pure schema/data package",
-      "Constructing RecalculateEvent without calling Validate() before publishing",
-      "Hard-coding the event name string instead of using metadata.GetEventName(recalculateEventType)",
-      "Introducing a new OperationType constant without adding it to Values()",
-      "Renaming EventVersionSubsystem \u2014 it is the routing key used by eventbus.GeneratePublishTopic"
+      "Calling repo.db.* outside a TransactingRepo wrapper.",
+      "Omitting withAllUsageResets on a query that feeds mapEntitlementEntity.",
+      "Importing app/common in test files \u2014 construct adapters directly.",
+      "Adding business logic to the adapter \u2014 keep it pure persistence.",
+      "Using context.Background() in production adapter methods."
     ],
     "decisions": [
       {
-        "decision": "Event schema lives in events/ sub-package rather than inline in the worker",
-        "rationale": "Producers outside the worker (entitlement service hooks, ingest flush) import this package to construct events without depending on the full worker package, avoiding circular imports."
+        "decision": "Two separate adapter structs (entitlementDBAdapter, usageResetDBAdapter) each with their own TxUser.",
+        "rationale": "Ent transactions are client-scoped; splitting keeps each rebind path small and unrelated edges separate."
       },
       {
-        "decision": "Version encoded in EventType struct ('v2'), not in the Go type name",
-        "rationale": "Allows multiple consumers running different versions to coexist on the same Kafka topic during rolling deploys by filtering on EventVersionSubsystem."
+        "decision": "Soft-delete via DeletedAt timestamp rather than hard delete.",
+        "rationale": "Entitlement history is needed for billing reconciliation and grant burn-down replay; hard delete destroys the audit trail."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new OperationType and publish a valid RecalculateEvent",
-        "code": "// 1. Add to const block and Values() in recalculate.go:\nconst OperationTypeMyNew OperationType = \"my_new\"\nfunc (o OperationType) Values() []OperationType {\n    return []OperationType{..., OperationTypeMyNew}\n}\n\n// 2. Construct and validate before publish:\nevt := events.RecalculateEvent{\n    Entitlement:         models.NamespacedID{Namespace: ns, ID: entID},\n    AsOf:                time.Now(),\n    OriginalEventSource: \"my-producer\",\n    SourceOperation:     events.OperationTypeMyNew,\n}\nif err := evt.Validate(); err != nil {\n    return fmt.Errorf(\"invalid event: %w\", err)\n}\nreturn publisher.Publish(ctx, evt)"
+        "scenario": "Adding a write method to entitlementDBAdapter",
+        "code": "func (a *entitlementDBAdapter) UpdateFoo(ctx context.Context, id models.NamespacedID, val string) error {\n\t_, err := entutils.TransactingRepo[interface{}, *entitlementDBAdapter](ctx, a, func(ctx context.Context, repo *entitlementDBAdapter) (interface{}, error) {\n\t\treturn nil, repo.db.Entitlement.UpdateOneID(id.ID).SetFoo(val).Exec(ctx)\n\t})\n\treturn err\n}"
       }
     ]
   },
-  "openmeter/entitlement/balanceworker/filters": {
-    "purpose": "Pluggable filter chain that gates whether a RecalculateEvent should be processed for a given namespace/entitlement. Prevents redundant ClickHouse queries via high-watermark caching and short-circuits namespaces with no active notification rules.",
+  "openmeter/entitlement/boolean": {
+    "purpose": "Boolean entitlement sub-type implementing entitlement.SubTypeConnector for on/off feature-flag access \u2014 carries no balance or usage tracking and GetValue always returns HasAccess=true.",
     "patterns": [
       {
-        "name": "Filter / NamedFilter / CalculationTimeRecorder interface hierarchy",
-        "description": "All implementations must satisfy Filter (IsNamespaceInScope + IsEntitlementInScope). Named filters also implement Name() string. Filters that update state after calculation implement CalculationTimeRecorder. All enforce with compile-time var _ assertions.",
-        "example": "var _ NamedFilter = (*HighWatermarkCache)(nil)\nvar _ CalculationTimeRecorder = (*HighWatermarkCache)(nil)"
+        "name": "SubTypeConnector three-method implementation",
+        "description": "Implement exactly GetValue, BeforeCreate, AfterCreate (no-op). Do not add a fourth method.",
+        "example": "func (c *connector) AfterCreate(ctx context.Context, entitlement *entitlement.Entitlement) error { return nil }"
       },
       {
-        "name": "Config struct with Validate() called first in constructor",
-        "description": "Each filter with external dependencies takes a typed Config struct implementing models.Validator. The constructor calls cfg.Validate() as its first statement and returns error on failure \u2014 never panics.",
-        "example": "func NewNotificationsFilter(cfg NotificationsFilterConfig) (NamedFilter, error) {\n    if err := cfg.Validate(); err != nil { return nil, err }\n    ...\n}"
+        "name": "ParseFromGenericEntitlement type guard first",
+        "description": "GetValue calls ParseFromGenericEntitlement immediately; it checks EntitlementType==EntitlementTypeBoolean and returns WrongTypeError otherwise.",
+        "example": "_, err := ParseFromGenericEntitlement(entitlement); if err != nil { return nil, err }"
       },
       {
-        "name": "HighWatermarkBackend abstraction for storage",
-        "description": "HighWatermarkCache delegates all storage to HighWatermarkBackend interface (Get/Record). Only in-memory LRU is implemented now. New backends (Redis) must implement HighWatermarkBackend \u2014 never add storage directly to HighWatermarkCache.",
-        "example": "type HighWatermarkBackend interface {\n    Get(ctx context.Context, entitlementID string) (highWatermarkBackendGetResult, error)\n    Record(ctx context.Context, req RecordLastCalculationRequest) error\n}"
+        "name": "BeforeCreate computes currentUsagePeriod when UsagePeriod set",
+        "description": "Boolean entitlements support UsagePeriod for scheduling; BeforeCreate calculates currentUsagePeriod via usagePeriod.GetValue().GetPeriodAt(clock.Now()) when non-nil.",
+        "example": "calculatedPeriod, err := usagePeriod.GetValue().GetPeriodAt(clock.Now()); currentUsagePeriod = &calculatedPeriod"
       },
       {
-        "name": "LRU+TTL cache for all external service lookups",
-        "description": "Any filter that calls an external service (notification, DB) must cache results using lrux.CacheWithItemTTL \u2014 filters run per-event on the hot worker path and must not issue unbounded external calls.",
-        "example": "ruleCache, err := lrux.NewCacheWithItemTTL(cfg.CacheSize, filter.fetchRulesForNamespace, lrux.WithTTL(cfg.CacheTTL))"
-      },
-      {
-        "name": "Reset operations always pass high-watermark filter",
-        "description": "snapshot.ValueOperationReset must bypass the watermark check and return true unconditionally \u2014 fresh notification events for new periods must always flow through.",
-        "example": "if req.Operation == snapshot.ValueOperationReset { return true, nil }"
-      },
-      {
-        "name": "EntitlementFilterRequest.Validate() inside every IsEntitlementInScope",
-        "description": "All IsEntitlementInScope implementations must call req.Validate() first and return the error. Zero-value EventAt silently bypasses watermark comparisons if not validated.",
-        "example": "func (f *Foo) IsEntitlementInScope(ctx context.Context, req EntitlementFilterRequest) (bool, error) {\n    if err := req.Validate(); err != nil { return false, err }\n    ...\n}"
+        "name": "Reject metered-only fields in BeforeCreate",
+        "description": "BeforeCreate returns InvalidValueError if MeasureUsageFrom, IssueAfterReset, IsSoftLimit, or Config are set. UsagePeriod is explicitly allowed.",
+        "example": "if model.MeasureUsageFrom != nil || model.IssueAfterReset != nil || model.IsSoftLimit != nil || model.Config != nil { return nil, &entitlement.InvalidValueError{...} }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "filter.go",
-        "role": "Defines the Filter, NamedFilter, CalculationTimeRecorder interfaces and the EntitlementFilterRequest / RecordLastCalculationRequest input types.",
-        "watch_for": "EntitlementFilterRequest.Validate() is the canonical guard \u2014 all implementations must call it. Adding fields here is a breaking change for all filter implementations."
+        "file": "connector.go",
+        "role": "Full SubTypeConnector impl. GetValue returns BooleanEntitlementValue{} (HasAccess()==true). BeforeCreate rejects metered-only fields.",
+        "watch_for": "UsagePeriod IS allowed for boolean entitlements \u2014 do not add it to the rejection list."
       },
       {
-        "file": "highwatermark.go",
-        "role": "In-memory LRU cache preventing recalculation for events older than the last successful calculation timestamp.",
-        "watch_for": "defaultClockDrift (-1ms) is subtracted from the watermark in comparisons \u2014 replicate this offset in any new time comparison or events under clock skew will be dropped. HighWatermarkInMemoryBackend.cache is not goroutine-safe without lru's built-in locking \u2014 do not bypass it."
-      },
-      {
-        "file": "notifications.go",
-        "role": "Skips recalculation for namespaces/entitlements with no active BalanceThreshold notification rules. Caches rule lookups with TTL via lrux.",
-        "watch_for": "Empty Features list in a BalanceThreshold rule means 'all features in scope' \u2014 any new feature-matching logic must preserve this semantics. NotificationsFilter does not implement CalculationTimeRecorder (no RecordLastCalculation) \u2014 do not add watermark logic here."
+        "file": "entitlement.go",
+        "role": "Entitlement struct (embeds GenericProperties only) and ParseFromGenericEntitlement type-narrowing function.",
+        "watch_for": "Do not add balance/usage fields \u2014 the struct is intentionally empty beyond GenericProperties."
       }
     ],
     "anti_patterns": [
-      "Calling external services inside IsEntitlementInScope without LRU+TTL caching \u2014 runs per-event and will saturate downstream services",
-      "Implementing a new filter without a compile-time var _ interface assertion",
-      "Skipping cfg.Validate() in a new filter constructor \u2014 nil dependencies cause nil-pointer panics at runtime rather than startup",
-      "Adding mutable state to filter structs without concurrent-access protection \u2014 filters are called concurrently from worker goroutines",
-      "Hardcoding storage into HighWatermarkCache instead of implementing a new HighWatermarkBackend"
+      "Adding balance or usage fields to the boolean Entitlement struct.",
+      "Returning HasAccess=false from BooleanEntitlementValue.",
+      "Calling a credit engine or grant repo from AfterCreate \u2014 boolean entitlements have no grants.",
+      "Adding MeasureUsageFrom/IssueAfterReset to the BeforeCreate acceptance list."
     ],
     "decisions": [
       {
-        "decision": "Filters composed as a named chain rather than a single monolithic gating function",
-        "rationale": "Each filter has a distinct concern (watermark vs notification rule existence) with different caching strategies. The chain allows the worker to short-circuit on the cheapest filter (namespace-level) before the more expensive entitlement-level check."
+        "decision": "Boolean entitlement always returns HasAccess=true without credit computation.",
+        "rationale": "Boolean entitlements are pure feature flags with no credit burn-down; access is true as long as the entitlement is active."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/entitlement/metered": {
+    "purpose": "Metered entitlement sub-type implementing credit-backed grant burn-down via the credit engine and ClickHouse usage queries \u2014 owns balance queries, usage resets, grant lifecycle, and the grant.OwnerConnector bridge.",
+    "patterns": [
+      {
+        "name": "Constructor wires all credit sub-systems",
+        "description": "NewMeteredEntitlementConnector takes streaming/owner/balance/grant connectors, repos, publisher, logger, tracer (all Wire-provided). Never instantiate directly in production.",
+        "example": "meteredentitlement.NewMeteredEntitlementConnector(streamingConnector, ownerConnector, balanceConnector, grantConnector, grantRepo, entitlementRepo, publisher, logger, tracer)"
       },
       {
-        "decision": "HighWatermarkCache uses a pluggable HighWatermarkBackend interface despite only in-memory being implemented",
-        "rationale": "Future Redis-backed persistence would allow high-watermark state to survive worker restarts, eliminating post-crash redundant ClickHouse queries across all entitlements."
+        "name": "ResetEntitlementUsage runs inside transaction.Run",
+        "description": "Balance reset, usage-reset write, hooks, and event publish all happen inside one transaction.Run(ctx, grantRepo, ...) closure for atomicity.",
+        "example": "transaction.Run(ctx, e.grantRepo, func(ctx) (*EntitlementBalance, error) { e.balanceConnector.ResetUsageForOwner(...); e.publisher.Publish(ctx, event) })"
+      },
+      {
+        "name": "ParseFromGenericEntitlement strict type guard",
+        "description": "Every connector method calls ParseFromGenericEntitlement immediately, validating required fields (MeasureUsageFrom, IsSoftLimit, UsagePeriod, LastReset, CurrentUsagePeriod) and returning WrongTypeError on mismatch.",
+        "example": "mEnt, err := ParseFromGenericEntitlement(ent); if err != nil { return nil, err }"
+      },
+      {
+        "name": "EndCurrentUsagePeriod requires active transaction",
+        "description": "grant_owner_adapter.go EndCurrentUsagePeriod checks transaction.GetDriverFromContext and errors if no tx is present.",
+        "example": "if _, err := transaction.GetDriverFromContext(ctx); err != nil { return fmt.Errorf(\"end current usage period must be called in a transaction: %w\", err) }"
+      },
+      {
+        "name": "Emit EntitlementResetEventV3, never v1",
+        "description": "EntitlementResetEvent (v1) is deprecated. New code emits EntitlementResetEventV3 which carries CustomerID; events implement marshaler.Event with a version-pinned EventName.",
+        "example": "e.publisher.Publish(ctx, EntitlementResetEventV3{EntitlementID: ent.ID, CustomerID: ent.CustomerID})"
+      },
+      {
+        "name": "ServiceHookRegistry for cross-domain lifecycle",
+        "description": "connector embeds models.ServiceHookRegistry[Entitlement]; calls hooks.PreUpdate before mutations and exposes RegisterHooks for balance-worker registration.",
+        "example": "if err := e.hooks.PreUpdate(ctx, metered); err != nil { return EntitlementGrant{}, err }"
+      },
+      {
+        "name": "queryMeter zero-length short-circuit",
+        "description": "queryMeter returns a synthetic zero row when params.From==params.To without calling ClickHouse, avoiding degenerate edge-case queries.",
+        "example": "if params.From != nil && params.To != nil && params.From.Equal(*params.To) { return []meter.MeterQueryRow{{Value: 0, WindowStart: *params.From, WindowEnd: *params.To}}, nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "connector.go",
+        "role": "Connector interface, struct, constructor. AfterCreate issues a default grant when HasDefaultGrant() is true.",
+        "watch_for": "AfterCreate issues the default grant outside a transaction \u2014 ensure idempotency if it may be called twice."
+      },
+      {
+        "file": "balance.go",
+        "role": "GetEntitlementBalance / GetEntitlementBalanceHistory. Rounds up to nearest minute; fills zero-usage windows ClickHouse omits.",
+        "watch_for": "The zero-window fill loop must filter rows before MeasureUsageFrom or it returns stale windows."
+      },
+      {
+        "file": "reset.go",
+        "role": "ResetEntitlementUsage and batch ResetEntitlementsWithExpiredUsagePeriod inside transaction.Run.",
+        "watch_for": "Batch reset uses errors.Join to collect per-entitlement errors but keeps iterating \u2014 partial failures are expected."
+      },
+      {
+        "file": "grant_owner_adapter.go",
+        "role": "entitlementGrantOwner implements grant.OwnerConnector (DescribeOwner, EndCurrentUsagePeriod, LockOwnerForTx).",
+        "watch_for": "getRepoMaybeInTx rebinds featureRepo to ctx tx; LockOwnerForTx and EndCurrentUsagePeriod require an active transaction."
+      },
+      {
+        "file": "events.go",
+        "role": "EntitlementResetEvent (deprecated v1) and EntitlementResetEventV3, both marshaler.Event with pinned EventName.",
+        "watch_for": "New events need Validate() and a versioned EventType whose subsystem aligns with watermill/eventbus routing."
+      },
+      {
+        "file": "repository.go",
+        "role": "UsageResetRepo interface and UsageResetUpdate.Validate (ISO-duration UsagePeriodInterval).",
+        "watch_for": "Keep Validate() in sync with openmeter/ent/schema constraints; the adapter calls it before insert."
+      }
+    ],
+    "anti_patterns": [
+      "Bypassing transaction.Run in ResetEntitlementUsage \u2014 reset and event publish must be atomic.",
+      "Emitting EntitlementResetEvent v1 from new code \u2014 always use V3.",
+      "Calling EndCurrentUsagePeriod outside a transaction context.",
+      "Adding credit-engine logic directly to connector methods instead of via balanceConnector/grantConnector.",
+      "Using context.Background() in production connector methods."
+    ],
+    "decisions": [
+      {
+        "decision": "Balance history fills zero-usage windows missing from ClickHouse results.",
+        "rationale": "ClickHouse only returns non-zero rows; the API contract requires an entry for every time bucket."
+      },
+      {
+        "decision": "ownerCustomer adapter wraps customer data without importing openmeter/customer into credit.",
+        "rationale": "Prevents circular imports while satisfying the streaming.Customer interface required by grant.Owner."
+      },
+      {
+        "decision": "IssueAfterReset amount>0 triggers AfterCreate to issue a default recurring grant.",
+        "rationale": "Lets operators configure a standing balance that replenishes each usage period without manual grant ops."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new NamedFilter that skips entitlements whose feature is archived",
-        "code": "package filters\n\nimport (\n    \"context\"\n    \"fmt\"\n\n    \"github.com/openmeterio/openmeter/openmeter/entitlement\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nvar _ NamedFilter = (*ArchivedFeatureFilter)(nil)\n\ntype ArchivedFeatureFilterConfig struct {\n    EntitlementService entitlement.Service\n}\n\nfunc (c ArchivedFeatureFilterConfig) Validate() error {\n    if c.EntitlementService == nil {\n        return fmt.Errorf(\"entitlementService is required\")\n    }\n    return nil\n}\n\nvar _ models.Validator = ArchivedFeatureFilterConfig{}\n\ntype ArchivedFeatureFilter struct{ svc entitlement.Service }\n\nfunc NewArchivedFeatureFilter(cfg ArchivedFeatureFilterConfig) (NamedFilter, error) {\n    if err := cfg.Validate(); err != nil { return nil, err }\n    return &ArchivedFeatureFilter{svc: cfg.EntitlementService}, nil\n}\n\nfunc (f *ArchivedFeatureFilter) Name() string { return \"archived_feature\" }\n\nfunc (f *ArchivedFeatureFilter) IsNamespaceInScope(_ context.Context, _ string) (bool, error) {\n    return true, nil\n}\n\nfunc (f *ArchivedFeatureFilter) IsEntitlementInScope(ctx context.Context, req EntitlementFilterRequest) (bool, error) {\n    if err := req.Validate(); err != nil { return false, err }\n    // ... check req.Entitlement.FeatureID against archived features ...\n    return true, nil\n}"
+        "scenario": "Wire and call the metered connector in tests",
+        "code": "connector := meteredentitlement.NewMeteredEntitlementConnector(streamingConnector, ownerConnector, creditConnector, creditConnector, grantRepo, entitlementRepo, mockPublisher, testLogger, tracer)\nconnector.RegisterHooks(meteredentitlement.ConvertHook(subscriptionHook))\nbalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: ns, ID: entID}, time.Now())"
       }
     ]
+  },
+  "openmeter/entitlement/service": {
+    "purpose": "Orchestration layer implementing entitlement.Service by composing the three sub-type connectors (metered, boolean, static), the feature connector, customer service, and a distributed locker \u2014 routes each operation to the correct sub-type.",
+    "patterns": [
+      {
+        "name": "ServiceConfig constructor",
+        "description": "NewEntitlementService takes a ServiceConfig struct with all deps explicit (Wire-built). No validation or logic in the constructor.",
+        "example": "service.NewEntitlementService(service.ServiceConfig{MeteredEntitlementConnector: meteredConn, EntitlementRepo: entRepo, Locker: locker})"
+      },
+      {
+        "name": "transaction.Run for composite mutations",
+        "description": "CreateEntitlement and OverrideEntitlement wrap ScheduleEntitlement plus the grant-issuance loop in transaction.Run(ctx, entitlementRepo, ...) for cross-connector atomicity.",
+        "example": "transaction.Run(ctx, c.entitlementRepo, func(ctx) (*entitlement.Entitlement, error) { ent, err := c.ScheduleEntitlement(ctx, input); ... })"
+      },
+      {
+        "name": "ServiceHookRegistry fan-out",
+        "description": "service embeds models.ServiceHookRegistry[entitlement.Entitlement] and exposes RegisterHooks; balance-worker registers hooks. Call hooks.PreUpdate before mutations.",
+        "example": "s.hooks.RegisterHooks(hooks...)"
+      },
+      {
+        "name": "registrybuilder for test setup",
+        "description": "Tests obtain a fully wired registry via registrybuilder.GetEntitlementRegistry(...) instead of importing app/common, avoiding cycles.",
+        "example": "registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{DatabaseClient: dbClient, StreamingConnector: streamingConnector})"
+      },
+      {
+        "name": "Sub-type dispatch via type switch",
+        "description": "ScheduleEntitlement switches on EntitlementType to call the right connector's BeforeCreate. Handlers must go through entitlement.Service, never connectors directly.",
+        "example": "switch input.EntitlementType { case entitlement.EntitlementTypeMetered: return c.meteredConnector.BeforeCreate(input, feat) }"
+      },
+      {
+        "name": "WithLock after tx opens",
+        "description": "lock.go WithLock acquires pg_advisory_xact_lock per entitlement/customer via lockr.Locker, requiring the active Postgres tx from transaction.Run.",
+        "example": "WithLock(ctx, locker, key, func(ctx) error { ... })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Concrete entitlement.Service dispatching operations to sub-type connectors.",
+        "watch_for": "CreateEntitlement delegates to ScheduleEntitlement then loops grants; if scheduling errors no grants are issued \u2014 keep this ordering."
+      },
+      {
+        "file": "scheduling.go",
+        "role": "ScheduleEntitlement, SupersedeEntitlement, and time-window activation for scheduling future/expiring entitlements.",
+        "watch_for": "SupersedeEntitlement deletes the old and creates a new entitlement in the same transaction.Run closure."
+      },
+      {
+        "file": "lock.go",
+        "role": "WithLock helper acquiring pg_advisory_xact_lock via lockr.Locker before mutation.",
+        "watch_for": "Locker requires an active Postgres tx \u2014 call after transaction.Run opens one, not before."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common in test helpers \u2014 use registrybuilder.",
+      "Calling sub-type connector methods directly from HTTP handlers.",
+      "Adding DB queries to service.go \u2014 persistence goes through EntitlementRepo.",
+      "Calling lockr.Locker.LockForTX outside an active transaction.Run closure."
+    ],
+    "decisions": [
+      {
+        "decision": "Service is a thin orchestrator delegating to three independent sub-type connectors.",
+        "rationale": "Each entitlement type has different storage/computation needs; centralizing dispatch avoids routing logic scattered across HTTP handlers."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/entitlement/snapshot": {
+    "purpose": "Defines SnapshotEvent \u2014 the versioned Watermill CloudEvent (entitlement.snapshot v2) published to the system topic on entitlement balance changes (reset, update, delete), consumed by the balance-worker and notification-service.",
+    "patterns": [
+      {
+        "name": "marshaler.Event with pinned version",
+        "description": "SnapshotEvent implements marshaler.Event (EventName, EventMetadata, Validate); EventName uses metadata.GetEventName pinned to v2. New versions bump the version and keep the old struct.",
+        "example": "snapshotEventName = metadata.GetEventName(metadata.EventType{Subsystem: entitlement.EventSubsystem, Name: \"entitlement.snapshot\", Version: \"v2\"})"
+      },
+      {
+        "name": "NewSnapshotEvent constructor \u2014 no struct literals",
+        "description": "Use NewSnapshotEvent() which handles a nil Subject safely and populates Namespace from the entitlement.",
+        "example": "snapshot.NewSnapshotEvent(ent, subj, customer, feat, snapshot.ValueOperationUpdate, &calculatedAt, &value, &currentUsagePeriod)"
+      },
+      {
+        "name": "Validate enforces Value for update/reset",
+        "description": "Validate() errors if Value is nil for ValueOperationUpdate or ValueOperationReset; delete allows nil Value. CalculatedAt is always required. Call before publishing.",
+        "example": "case ValueOperationUpdate, ValueOperationReset: if e.Value == nil { errs = append(errs, errors.New(\"balance is required\")) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "event.go",
+        "role": "SnapshotEvent, EntitlementValue (balance/usage/overage/access/config), ValueOperationType enum, NewSnapshotEvent constructor.",
+        "watch_for": "Subject field is deprecated \u2014 new consumer code reads Customer.ID. NewSnapshotEvent sets an empty Subject{} when subj is nil."
+      }
+    ],
+    "anti_patterns": [
+      "Creating SnapshotEvent struct literals that omit CalculatedAt \u2014 Validate() rejects it.",
+      "Bumping the event version in place instead of adding a new versioned struct alongside the old.",
+      "Reading the Subject field in new consumer code \u2014 use Customer.",
+      "Publishing SnapshotEvent without calling Validate() first."
+    ],
+    "decisions": [
+      {
+        "decision": "SnapshotEvent v2 carries both deprecated Subject and Customer.",
+        "rationale": "Edge workers were originally subject-based; migrating to customer-centric routing requires both fields during the transition."
+      }
+    ],
+    "code_examples": []
   }
 }

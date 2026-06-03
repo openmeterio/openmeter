@@ -1,312 +1,247 @@
-# OpenMeter
+# AGENTS.md
 
-OpenMeter is a usage metering and billing platform for AI and DevTool companies, built in Go.
+> Architecture guidance for **Unknown Repository**
+> Style: Multi-binary Go modulith: a single Go module with ~35 independent domain packages under openmeter/, each organized as a strict layered service/adapter/httpdriver split (Service interface + Adapter interface defined at the package root, concrete service logic in service/, Ent/PostgreSQL persistence in adapter/, HTTP translation in httpdriver/ or httphandler/). Six runnable binaries (server + four workers + jobs CLI, plus a separate benthos-collector module) each compose ~40 domain services through Google Wire provider sets concentrated in app/common/. Cross-binary communication is exclusively asynchronous via three name-prefix-routed Kafka topics through a Watermill eventbus facade. Cross-domain coupling is inverted via ServiceHook and RequestValidator registries registered as Wire provider side-effects in app/common to keep domain packages import-cycle-free leaves. The HTTP API surface (v1 + v3) is generated from TypeSpec into Go server stubs and Go/JS/Python SDKs.
+> Generated: 2026-06-02T19:33:42.296587+00:00
 
-## Quick Reference
+## Overview
 
-Use the `Makefile` for all common tasks. A `justfile` also exists but is seldom used.
-OpenMeter is a metering and billing platform with usage based pricing and access control.
-
-## Tips for working with the codebase
-
-If during your work anything confuses you or something isn't trivial for you, please augment AGENTS.md with your findings so next time it will be easier for you. AGENTS.md files are for you to edit and update as you go so you can interact with the codebase the most effectively.
-
-Development commands are run via `Makefile`, it contains all commonly used commands during development. A `justfile` is also present but seldom used. Use the Makefile commands for common tasks like running tests, generating code, linting, etc.
-The committed `.nvmrc` is the GitHub Actions source of truth for Node-based jobs on GitHub-hosted runners. Keep it aligned with the Nix `.#ci` shell's `node -v`; `flake.nix` refreshes it in `enterShell`, and CI validates the file against the Nix shell before running builds.
-
-## AGENTS.md maintenance
-
-- Treat this file as long-lived project guidance for all agents and contributors.
-- Prefer durable wording over time-based wording (avoid labels like "recent", "latest", "today").
-- Keep entries actionable and specific (what to do, where, and why), not conversational history.
-- When adding new guidance, fold it into the most relevant section and remove/merge stale or duplicate notes.
-
-## Testing
-
-| Task | Command |
-|------|---------|
-| Start dependencies | `make up` |
-| Stop dependencies | `make down` |
-| Run API server (hot reload) | `make server` |
-| Run all tests | `make test` |
-| Run e2e tests | `make etoe` |
-| Generate all code | `make generate-all` |
-| Generate Go code only | `make generate` (runs `go generate ./...`) |
-| Generate API + SDKs | `make gen-api` |
-| Lint all | `make lint` |
-| Lint Go only | `make lint-go` |
-| Format code | `make fmt` |
-| Tidy modules | `make mod` |
-| Build all binaries | `make build` |
+OpenMeter is a multi-tenant usage-metering and billing platform that ingests CloudEvents, aggregates them into meters in ClickHouse, and drives entitlement balances and financial billing on top of that usage data. It is a single Go module organized as a layered service/adapter/httpdriver modulith of ~35 domain packages under openmeter/, compiled into six runnable binaries (HTTP API server, sink/balance/billing workers, notification-service, and a jobs CLI) composed via Google Wire provider sets in app/common. Synchronous request handling flows through a TypeSpec-generated v1+v3 HTTP API into domain services that persist to PostgreSQL via Ent and entutils.TransactingRepo, while all cross-binary communication is asynchronous over three prefix-routed Kafka topics through a Watermill eventbus facade. The usage path streams events from the benthos collector through the ingest Collector into Kafka, where the sink-worker performs a strict three-phase flush (ClickHouse insert, Kafka offset commit, Redis dedupe) and the balance-worker recalculates entitlement grant burn-down. Billing correctness is enforced through tagged-union domain models, stateless-library invoice/charge state machines, per-customer pg_advisory_xact_lock serialization, and a double-entry ledger, with Stripe and Svix as the primary external billing and webhook integrations.
 
 ## Architecture
 
-**Entry points:** `cmd/server`, `cmd/billing-worker`, `cmd/balance-worker`, `cmd/sink-worker`, `cmd/notification-service`, `cmd/jobs`
+**Style:** All business logic lives in a single shared package tree under openmeter/ (23 components: billing, customer, entitlement, subscription, ledger, credit, notification, meter+ingest+sink+streaming, etc.), each following a Service/Adapter/HTTP layering. Seven thin binaries under cmd/ (server, billing-worker, balance-worker, sink-worker, notification-service, jobs, benthos-collector) each compose a different subset of that tree via Google Wire provider sets concentrated in app/common/. The binaries never call each other in-process or over HTTP; they communicate exclusively through three name-prefix-routed Kafka topics via the openmeter/watermill eventbus. Persistence is one PostgreSQL database (Ent + Atlas) plus a shared append-only ClickHouse events table and optional Redis dedupe.
+**Structure:** modular
 
-Core business logic is in `openmeter/`, shared utilities in `pkg/`, API layer in `api/`.
+Ingest throughput (openmeter/sink consuming raw CloudEvents via confluent-kafka-go), entitlement balance recalculation (openmeter/entitlement/balanceworker), billing advancement (openmeter/billing/worker), and webhook dispatch (openmeter/notification/consumer + Svix) have incompatible scaling and failure profiles, so they are split into separate binaries that scale independently. But billing correctness demands one typed domain model shared across them — hence a shared package tree, not separate services with duplicated types. The blueprint shows this directly: every cmd/<binary>/wire.go (cmd/billing-worker/wire.go) pulls composite provider sets from app/common, and domain packages expose plain constructors and never import app/common (the leaf-node import rule). Kafka topic isolation (openmeter/watermill/eventbus/eventbus.go GeneratePublishTopic routing ingest/system/balance-worker by EventName prefix) is what lets an ingest burst not starve billing system-event consumers.
 
-**Stack:** Go + PostgreSQL (Ent ORM) + Kafka + ClickHouse. API defined in TypeSpec, generated to OpenAPI.
+**Root constraint:** Operate a high-volume per-tenant usage-metering platform feeding strict financial billing correctness, while shipping stable SDKs in three languages — under a small team that cannot maintain separate repos or hand-synchronized contracts.
+- → Multi-binary modular monolith: one shared Go domain tree, seven independently deployable binaries, Kafka as the sole inter-binary channel
+- → TypeSpec as the single source of truth for both v1 and v3 HTTP APIs and all three SDKs
+- → Ent ORM + Atlas migrations with context-propagated transactions (entutils.TransactingRepo) and per-customer pg locks (lockr)
 
-Domain packages under `openmeter/` follow a layered service/adapter pattern. See the `/service` skill for full details.
+**Key trade-offs:**
+- Ent-generated query friction: a large generated openmeter/ent/db/ tree, slower compile times, and the boilerplate Tx/WithTx/Self triad plus a TransactingRepo wrapper on every adapter method body. → Compile-time-checked relations across ~35 entities, automatic Atlas schema diffing into reviewable SQL, and ctx-propagated transactions with savepoint nesting for atomic multi-step charge/invoice flows.
+- Multi-binary orchestration cost: seven Docker image variants, Helm values complexity, and a separate Wire graph per binary that must each stay complete. → Independent horizontal scaling of sink-worker / balance-worker / billing-worker, fault isolation per binary, and isolated deploy cadence.
+- Two-step regeneration cadence: TypeSpec changes require both `make gen-api` AND `make generate`, and five generators (oapi-codegen, Ent, Wire, Goverter, Goderive) write different artifacts that must all stay in sync. → Cross-language SDK contracts cannot drift — Go server stubs, Go SDK, JS SDK, Python SDK all originate from one TypeSpec source.
 
-`cmd/server/main.go` now migrates the database before creating the default namespace. Register namespace handlers before `initNamespace(...)` if they must provision the default namespace during startup.
+**Runs on:** self-hosted
+**Compute:** Docker containers (six OpenMeter binaries + separate benthos-collector image), Kubernetes via Helm charts (deploy/charts/openmeter, deploy/charts/benthos-collector)
+**CI/CD:** GitHub Actions (.github/workflows/ci.yaml: build/test/lint/migrations/generators/e2e/quickstart on Depot runners via Nix .#ci shell), artifacts.yaml + untrusted-artifacts.yaml (Depot depot-build-push-action, multi-platform images), release.yaml (Helm + npm release), npm-release.yaml (OIDC trusted publishing), sdk-python-dev-release.yaml (Python alpha), codeql.yml + codeql-go.yaml, analysis-scorecard.yaml, security.yaml (Trufflehog), pr-checks.yaml, require-all-reviewers.yml, FOSSA scan
 
-### Project Layout
+## Data Models
 
+OpenMeter persists all domain state (billing invoices/lines, charges, customers, subscriptions, entitlements, credit grants, double-entry ledger, meters, features/plans, notifications, LLM cost prices) in a single PostgreSQL database via ~35 Ent schema structs that Atlas diffs into golang-migrate SQL files; raw usage events live append-only in a single shared ClickHouse MergeTree events table (queried by streaming.Connector), and Redis provides TTL-based ingest deduplication. Kafka (Watermill) is the cross-binary event bus. Every domain has a service/adapter pair; all writes go through entutils.TransactingRepo for ctx-bound transactions.
+
+**Models** (full lifecycle in [`.claude/rules/data-models.md`](.claude/rules/data-models.md)):
+- `BillingInvoice` (table) — `openmeter/ent/schema/billing.go`
+- `BillingInvoiceLine` (table) — `openmeter/ent/schema/billing.go`
+- `Entitlement` (table) — `openmeter/ent/schema/entitlement.go`
+- `Grant` (table) — `openmeter/ent/schema/grant.go`
+- `Subscription` (table) — `openmeter/ent/schema/subscription.go`
+- `Meter` (table) — `openmeter/ent/schema/meter.go`
+- `Customer` (table) — `openmeter/ent/schema/customer.go`
+- `RawEvent` (entity) — `openmeter/streaming/connector.go`
+- _… 9 more in [`.claude/rules/data-models.md`](.claude/rules/data-models.md)_
+
+**Stores:**
+- `primary_postgres` (PostgreSQL 14.20-alpine (dev compose; docs reference 15), role: primary) — owns: BillingInvoice, BillingInvoiceLine, Charge, Customer, Subscription, Entitlement, Grant, BalanceSnapshot, LedgerEntry, LedgerAccount, LedgerCustomerAccount, Meter, Feature, NotificationEvent, LLMCostPrice
+- `redis_dedupe` (Redis 7.4.7, role: cache) — owns: dedupe.Item
+- `clickhouse_events` (ClickHouse 25.12.3-alpine, role: analytics) — owns: RawEvent
+- `kafka_topics` (Kafka (confluentinc/cp-kafka 8.0.3, confluent-kafka-go v2.14.1), role: queue)
+
+## Architecture Diagram
+
+```mermaid
+graph TD
+  Client[API Clients / SDKs] -->|HTTP v1+v3| Server[openmeter/server + api/v3<br/>HTTP API binary]
+  Collector[collector<br/>benthos ingest] -->|CloudEvents| Ingest[openmeter/ingest<br/>Collector + dedupe]
+  Server -->|domain calls| Domains[Domain services<br/>billing / customer / entitlement<br/>subscription / productcatalog / ledger]
+  Domains -->|Ent + TransactingRepo| Postgres[(PostgreSQL<br/>via openmeter/ent)]
+  Server -->|ingest event| Ingest
+  Ingest -->|produce| Kafka{{Watermill eventbus<br/>3 Kafka topics:<br/>ingest / system / balance-worker}}
+  Domains -->|publish domain events| Kafka
+  Kafka -->|ingest topic| Sink[cmd/sink-worker<br/>3-phase flush]
+  Sink -->|BatchInsert| ClickHouse[(ClickHouse<br/>usage events)]
+  Sink -->|flush notification| Kafka
+  Kafka -->|balance-worker topic| Balance[cmd/balance-worker<br/>entitlement recalc]
+  Balance -->|query usage| ClickHouse
+  Kafka -->|system topic| Billing[cmd/billing-worker<br/>invoice + charge advance]
+  Billing -->|ledger postings| Postgres
+  Kafka -->|system topic| Notif[cmd/notification-service<br/>webhook dispatch]
+  Notif -->|webhooks| Svix[Svix]
 ```
-cmd/                    # Service entrypoints
-openmeter/              # Core business logic (billing, customer, entitlement, meter, etc.)
-openmeter/ent/schema/   # Ent entity definitions (source of truth for DB schema)
-openmeter/ent/db/       # Generated ent code (DO NOT EDIT)
-api/                    # API specs, generated code, SDKs
-api/spec/               # TypeSpec API definitions (source of truth for API)
-pkg/                    # Shared utility packages
-tools/migrate/          # Migration tooling and SQL migration files
-e2e/                    # End-to-end tests
-deploy/                 # Helm charts
-docs/                   # Documentation and ADRs
-```
 
-## Code Generation
-
-All generated files have `// Code generated by X, DO NOT EDIT.` headers — never edit them manually:
-
-
-| Generated artifact | Source | Regenerate with |
-|---|---|---|
-| `api/openapi.yaml`, `api/openapi.cloud.yaml` | TypeSpec in `api/spec/` | `make gen-api` |
-| `api/client/javascript/`, `api/client/go/` | OpenAPI spec | `make gen-api` |
-| `api/api.gen.go`, `api/v3/api.gen.go` | OpenAPI spec via oapi-codegen | `make gen-api` |
-| `api/client/go/client.gen.go` | OpenAPI spec | `make gen-api` |
-| `**/ent/db/` | Ent schema in `openmeter/ent/schema/` | `make generate` |
-| `**/wire_gen.go` | Wire providers in `**/wire.go` | `make generate` |
-| `**/convert.gen.go` | Goverter converter interfaces (`**/convert.go`) | `make generate` |
-| `billing/derived.gen.go` | Goderive annotations | `make generate` |
-| `tools/migrate/migrations/` | Ent schema diff | `atlas migrate --env local diff <name>` |
-
-**Workflow for changing the API:**
-
-1. Edit TypeSpec files in `api/spec/`
-2. Run `make gen-api` to regenerate OpenAPI spec and SDKs
-3. Run `make generate` to regenerate Go server/client code
-
-When adding query decorators (for example `@query`) to a TypeSpec file that does not already use HTTP decorators, import `@typespec/http` and add `using TypeSpec.Http;` in that file; otherwise compilation fails with `Unknown decorator @query`.
-
-**Workflow for changing Go types/DI:**
-
-1. Edit the source files (ent schema, wire.go, converter interfaces)
-2. Run `make generate` (or `go generate ./...`)
-
-## Database Migrations
-
-Uses [ent](https://entgo.io) for schema definition and [Atlas](https://atlasgo.io/) for migration generation. Migrations are in `tools/migrate/migrations/` using golang-migrate format.
-
-**Schema files:** `openmeter/ent/schema/*.go`
-
-**Workflow for schema changes:**
-
-1. Edit the ent schema in `openmeter/ent/schema/`
-2. Run `make generate` to regenerate ent code in `openmeter/ent/db/`
-3. Generate migration: `atlas migrate --env local diff <migration-name>`
-   - This creates timestamped `.up.sql` / `.down.sql` files in `tools/migrate/migrations/`
-   - Also updates `tools/migrate/migrations/atlas.sum`
-4. Migrations run automatically on startup when `postgres.autoMigrate` is set to `ent` (default for dev) or `migration`
-
-**Ent view caveat:** in this repo's current Ent/Atlas setup, schemas declared with `ent.View` can generate query code under `openmeter/ent/db/`, but they do not appear in `openmeter/ent/db/migrate/schema.go` or the generated `migrate.Tables` list. If `atlas migrate --env local diff ...` reports no changes for a new view, verify whether the view exists in generated migration metadata before debugging Atlas; view DDL may need an explicit SQL migration until generator support is added.
-
-**Atlas config:** `atlas.hcl` — schema source is `ent://openmeter/ent/schema`, migrations dir is `file://tools/migrate/migrations`.
-
-**Local Postgres:** `postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable`
-
-## Testing
-
-Tests require PostgreSQL running locally. Start it with `docker compose up -d postgres`.
-
-Keep domain test helpers under `openmeter/.../testutils` independent from `app/common`. Build test dependencies from the underlying package constructors (repos, adapters, services, `lockr`) instead of importing the application wiring layer, or unrelated wiring additions can create test-only import cycles.
-
-For usage-based billing lifecycle tests, prefer driving behavior through `charges.Service.Create`, `AdvanceCharges`, and `ApplyPatches` rather than calling lower-level charge adapters directly. To model late-arriving or newly visible usage, use `MockStreamingConnector` events with explicit `StoredAt` values (or `SetSimpleEvents`) so the test exercises the real stored-at cutoff logic in finalization.
-
-For OpenMeter Go tests that touch the database, explicitly set `POSTGRES_HOST=127.0.0.1`. Without it, many suites will skip during setup even if PostgreSQL is running and the repo environment is otherwise loaded correctly.
-
-Use the repo's Nix CI dev shell when `go`, `gofmt`, or other toolchain binaries are missing from the ambient shell. The CI and local-compatible invocation pattern is:
+## Commands
 
 ```bash
-nix develop --impure .#ci -c <command>
+# up
+docker compose up -d
+# fmt
+golangci-lint run --fix
+# test
+POSTGRES_HOST=127.0.0.1 go test -p 128 -parallel 16 -tags=dynamic ./... (make test; checks Postgres is running first)
+# lint
+make lint-go lint-api-spec lint-openapi lint-helm
+# build
+make build (go build -o build/ -tags=dynamic across cmd/server, sink-worker, balance-worker, billing-worker, notification-service, jobs, plus benthos-collector)
+# server
+air -c ./cmd/server/.air.toml
+# lint-go
+golangci-lint run -v ./...
+# test-all
+docker compose up -d postgres svix redis && SVIX_HOST=localhost SVIX_JWT_SECRET=DUMMY_JWT_SECRET go test -p 128 -parallel 16 -tags=dynamic -count=1 ./...
 ```
 
-Codex's default shell may not auto-load `.envrc`, so `direnv`-managed tools like `go` can be missing even when the repo is configured correctly. In that case, run commands through `nix develop --impure .#ci -c ...` explicitly instead of assuming the ambient shell reflects the flake environment. `direnv exec . <command>` is also a valid one-off fallback when `direnv` is installed and the repo has already been allowed.
+_Full catalog (37 commands) in [`.claude/rules/technology.md`](.claude/rules/technology.md)._
 
-When invoking commands through Codex tools, prefer direct command execution. Do not wrap commands in `sh -lc`, `bash -lc`, or other helper shells when the command can be run directly. For environment variables, prefer `env KEY=value <command>` or `KEY=value <command>` over shell-wrapped forms. This keeps failures attributable to the actual toolchain/runtime being tested.
+## Architectural Rules
 
-In tests, prefer `t.Context()` when a `testing.T` or `testing.TB` is available instead of introducing `context.Background()`. This keeps cancellation and test-scoped lifecycle tied to the test harness.
+Detailed rules live as topic files under `.claude/rules/`. Read the relevant one when the task touches that surface:
 
-Prefer one consistent test harness style over mixed ad hoc structures. Use production-backed paths, such as rating-backed or service-backed fixtures, when the real path can express the scenario; keep hand-assembled fixtures for cases that cannot be produced realistically. If a behavior is a suite-wide rule, hardcode it into the shared harness instead of exposing it as per-test knobs.
+- [`.claude/rules/architecture.md`](.claude/rules/architecture.md) — Components, file placement, naming conventions
+- [`.claude/rules/patterns.md`](.claude/rules/patterns.md) — Communication patterns, integrations, key decisions, trade-offs (with violation signals)
+- [`.claude/rules/technology.md`](.claude/rules/technology.md) — Tech stack, project structure, code templates, testing tooling
+- [`.claude/rules/data-models.md`](.claude/rules/data-models.md) — Persistence stores, data models, per-model lifecycle (how to add/modify/read, backups, tests)
+- [`.claude/rules/guidelines.md`](.claude/rules/guidelines.md) — Implementation guidelines for existing capabilities
+- [`.claude/rules/pitfalls.md`](.claude/rules/pitfalls.md) — Documented traps with evidence + fix direction
+- [`.claude/rules/dev-rules.md`](.claude/rules/dev-rules.md) — Coding-time imperatives (patterns, anti-patterns, boundaries, wiring)
+- [`.claude/rules/infrastructure.md`](.claude/rules/infrastructure.md) — CI / signing / distribution / secrets / env setup / registry auth
+- [`.claude/rules/enforcement/index.md`](.claude/rules/enforcement/index.md) — Every rule the pre-edit hook + plan/commit classifier consults, grouped by severity
 
-Avoid redundant test helpers and duplicate setup paths. Prefer parameterizing one helper over maintaining near-identical helpers, use literal helper names that state exactly what they do, and inline two-line single-use helpers that do not need `defer`. Clean up dead test helpers immediately after refactors.
+## Enforcement Rules
 
-For service and lifecycle subtests, start each subtest body with concise intent comments when the scenario is non-trivial:
+[`.claude/rules/enforcement/index.md`](.claude/rules/enforcement/index.md) indexes every rule, grouped by topic and by path glob. Load only the topic file(s) relevant to the file you're editing — universal anti-patterns sit in `enforcement/universal.md`. The pre-edit hook (`PRE_VALIDATE_HOOK`) and plan/commit classifier (`align_check.py`) read [`.archie/rules.json`](.archie/rules.json) directly; the markdown is for agent/human browsing only.
 
-```go
-// given:
-// - ...
-// when:
-// - ...
-// then:
-// - ...
+## Per-folder Context
+
+Every meaningful folder has its own `CLAUDE.md` (Archie's intent layer). Claude Code auto-loads the nearest one, so when editing a file under `some/component/`, look there first for the local invariants, anti-patterns, and adjacent code that uses the same shape.
+
+---
+*Auto-generated from structured architecture analysis. Place in project root.*
+
+<!-- archie:generated:start -->
+<!-- Regenerated by Archie on 2026-06-03T07:29Z. Edits between the archie:generated markers will be overwritten; edit outside them to keep changes. -->
+
+# AGENTS.md
+
+> Architecture guidance for **Unknown Repository**
+> Style: Multi-binary Go modulith: a single Go module with ~35 independent domain packages under openmeter/, each organized as a strict layered service/adapter/httpdriver split (Service interface + Adapter interface defined at the package root, concrete service logic in service/, Ent/PostgreSQL persistence in adapter/, HTTP translation in httpdriver/ or httphandler/). Six runnable binaries (server + four workers + jobs CLI, plus a separate benthos-collector module) each compose ~40 domain services through Google Wire provider sets concentrated in app/common/. Cross-binary communication is exclusively asynchronous via three name-prefix-routed Kafka topics through a Watermill eventbus facade. Cross-domain coupling is inverted via ServiceHook and RequestValidator registries registered as Wire provider side-effects in app/common to keep domain packages import-cycle-free leaves. The HTTP API surface (v1 + v3) is generated from TypeSpec into Go server stubs and Go/JS/Python SDKs.
+> Generated: 2026-06-03T07:29:55.661964+00:00
+
+## Overview
+
+OpenMeter is a multi-tenant usage-metering and billing platform that ingests CloudEvents, aggregates them into meters in ClickHouse, and drives entitlement balances and financial billing on top of that usage data. It is a single Go module organized as a layered service/adapter/httpdriver modulith of ~35 domain packages under openmeter/, compiled into six runnable binaries (HTTP API server, sink/balance/billing workers, notification-service, and a jobs CLI) composed via Google Wire provider sets in app/common. Synchronous request handling flows through a TypeSpec-generated v1+v3 HTTP API into domain services that persist to PostgreSQL via Ent and entutils.TransactingRepo, while all cross-binary communication is asynchronous over three prefix-routed Kafka topics through a Watermill eventbus facade. The usage path streams events from the benthos collector through the ingest Collector into Kafka, where the sink-worker performs a strict three-phase flush (ClickHouse insert, Kafka offset commit, Redis dedupe) and the balance-worker recalculates entitlement grant burn-down. Billing correctness is enforced through tagged-union domain models, stateless-library invoice/charge state machines, per-customer pg_advisory_xact_lock serialization, and a double-entry ledger, with Stripe and Svix as the primary external billing and webhook integrations.
+
+## Architecture
+
+**Style:** All business logic lives in a single shared package tree under openmeter/ (23 components: billing, customer, entitlement, subscription, ledger, credit, notification, meter+ingest+sink+streaming, etc.), each following a Service/Adapter/HTTP layering. Seven thin binaries under cmd/ (server, billing-worker, balance-worker, sink-worker, notification-service, jobs, benthos-collector) each compose a different subset of that tree via Google Wire provider sets concentrated in app/common/. The binaries never call each other in-process or over HTTP; they communicate exclusively through three name-prefix-routed Kafka topics via the openmeter/watermill eventbus. Persistence is one PostgreSQL database (Ent + Atlas) plus a shared append-only ClickHouse events table and optional Redis dedupe.
+**Structure:** modular
+
+Ingest throughput (openmeter/sink consuming raw CloudEvents via confluent-kafka-go), entitlement balance recalculation (openmeter/entitlement/balanceworker), billing advancement (openmeter/billing/worker), and webhook dispatch (openmeter/notification/consumer + Svix) have incompatible scaling and failure profiles, so they are split into separate binaries that scale independently. But billing correctness demands one typed domain model shared across them — hence a shared package tree, not separate services with duplicated types. The blueprint shows this directly: every cmd/<binary>/wire.go (cmd/billing-worker/wire.go) pulls composite provider sets from app/common, and domain packages expose plain constructors and never import app/common (the leaf-node import rule). Kafka topic isolation (openmeter/watermill/eventbus/eventbus.go GeneratePublishTopic routing ingest/system/balance-worker by EventName prefix) is what lets an ingest burst not starve billing system-event consumers.
+
+**Root constraint:** Operate a high-volume per-tenant usage-metering platform feeding strict financial billing correctness, while shipping stable SDKs in three languages — under a small team that cannot maintain separate repos or hand-synchronized contracts.
+- → Multi-binary modular monolith: one shared Go domain tree, seven independently deployable binaries, Kafka as the sole inter-binary channel
+- → TypeSpec as the single source of truth for both v1 and v3 HTTP APIs and all three SDKs
+- → Ent ORM + Atlas migrations with context-propagated transactions (entutils.TransactingRepo) and per-customer pg locks (lockr)
+
+**Key trade-offs:**
+- Ent-generated query friction: a large generated openmeter/ent/db/ tree, slower compile times, and the boilerplate Tx/WithTx/Self triad plus a TransactingRepo wrapper on every adapter method body. → Compile-time-checked relations across ~35 entities, automatic Atlas schema diffing into reviewable SQL, and ctx-propagated transactions with savepoint nesting for atomic multi-step charge/invoice flows.
+- Multi-binary orchestration cost: seven Docker image variants, Helm values complexity, and a separate Wire graph per binary that must each stay complete. → Independent horizontal scaling of sink-worker / balance-worker / billing-worker, fault isolation per binary, and isolated deploy cadence.
+- Two-step regeneration cadence: TypeSpec changes require both `make gen-api` AND `make generate`, and five generators (oapi-codegen, Ent, Wire, Goverter, Goderive) write different artifacts that must all stay in sync. → Cross-language SDK contracts cannot drift — Go server stubs, Go SDK, JS SDK, Python SDK all originate from one TypeSpec source.
+
+**Runs on:** self-hosted
+**Compute:** Docker containers (six OpenMeter binaries + separate benthos-collector image), Kubernetes via Helm charts (deploy/charts/openmeter, deploy/charts/benthos-collector)
+**CI/CD:** GitHub Actions (.github/workflows/ci.yaml: build/test/lint/migrations/generators/e2e/quickstart on Depot runners via Nix .#ci shell), artifacts.yaml + untrusted-artifacts.yaml (Depot depot-build-push-action, multi-platform images), release.yaml (Helm + npm release), npm-release.yaml (OIDC trusted publishing), sdk-python-dev-release.yaml (Python alpha), codeql.yml + codeql-go.yaml, analysis-scorecard.yaml, security.yaml (Trufflehog), pr-checks.yaml, require-all-reviewers.yml, FOSSA scan
+
+## Data Models
+
+OpenMeter persists all domain state (billing invoices/lines, charges, customers, subscriptions, entitlements, credit grants, double-entry ledger, meters, features/plans, notifications, LLM cost prices) in a single PostgreSQL database via ~35 Ent schema structs that Atlas diffs into golang-migrate SQL files; raw usage events live append-only in a single shared ClickHouse MergeTree events table (queried by streaming.Connector), and Redis provides TTL-based ingest deduplication. Kafka (Watermill) is the cross-binary event bus. Every domain has a service/adapter pair; all writes go through entutils.TransactingRepo for ctx-bound transactions.
+
+**Models** (full lifecycle in [`.claude/rules/data-models.md`](.claude/rules/data-models.md)):
+- `BillingInvoice` (table) — `openmeter/ent/schema/billing.go`
+- `BillingInvoiceLine` (table) — `openmeter/ent/schema/billing.go`
+- `Entitlement` (table) — `openmeter/ent/schema/entitlement.go`
+- `Grant` (table) — `openmeter/ent/schema/grant.go`
+- `Subscription` (table) — `openmeter/ent/schema/subscription.go`
+- `Meter` (table) — `openmeter/ent/schema/meter.go`
+- `Customer` (table) — `openmeter/ent/schema/customer.go`
+- `RawEvent` (entity) — `openmeter/streaming/connector.go`
+- _… 9 more in [`.claude/rules/data-models.md`](.claude/rules/data-models.md)_
+
+**Stores:**
+- `primary_postgres` (PostgreSQL 14.20-alpine (dev compose; docs reference 15), role: primary) — owns: BillingInvoice, BillingInvoiceLine, Charge, Customer, Subscription, Entitlement, Grant, BalanceSnapshot, LedgerEntry, LedgerAccount, LedgerCustomerAccount, Meter, Feature, NotificationEvent, LLMCostPrice
+- `redis_dedupe` (Redis 7.4.7, role: cache) — owns: dedupe.Item
+- `clickhouse_events` (ClickHouse 25.12.3-alpine, role: analytics) — owns: RawEvent
+- `kafka_topics` (Kafka (confluentinc/cp-kafka 8.0.3, confluent-kafka-go v2.14.1), role: queue)
+
+## Architecture Diagram
+
+```mermaid
+graph TD
+  Client[API Clients / SDKs] -->|HTTP v1+v3| Server[openmeter/server + api/v3<br/>HTTP API binary]
+  Collector[collector<br/>benthos ingest] -->|CloudEvents| Ingest[openmeter/ingest<br/>Collector + dedupe]
+  Server -->|domain calls| Domains[Domain services<br/>billing / customer / entitlement<br/>subscription / productcatalog / ledger]
+  Domains -->|Ent + TransactingRepo| Postgres[(PostgreSQL<br/>via openmeter/ent)]
+  Server -->|ingest event| Ingest
+  Ingest -->|produce| Kafka{{Watermill eventbus<br/>3 Kafka topics:<br/>ingest / system / balance-worker}}
+  Domains -->|publish domain events| Kafka
+  Kafka -->|ingest topic| Sink[cmd/sink-worker<br/>3-phase flush]
+  Sink -->|BatchInsert| ClickHouse[(ClickHouse<br/>usage events)]
+  Sink -->|flush notification| Kafka
+  Kafka -->|balance-worker topic| Balance[cmd/balance-worker<br/>entitlement recalc]
+  Balance -->|query usage| ClickHouse
+  Kafka -->|system topic| Billing[cmd/billing-worker<br/>invoice + charge advance]
+  Billing -->|ledger postings| Postgres
+  Kafka -->|system topic| Notif[cmd/notification-service<br/>webhook dispatch]
+  Notif -->|webhooks| Svix[Svix]
 ```
 
-When using `clock.FreezeTime(...)` in tests, immediately pair it with `defer clock.UnFreeze()` in the same scope so later assertions or subtests do not inherit frozen time accidentally.
-
-When asserting `alpacadecimal.Decimal` equality in tests, prefer `require.Equal(t, expectedFloat64, actual.InexactFloat64())` over boolean assertions like `require.True(t, expected.Equal(actual))` when precision requirements allow it. Prefer simple `float64(5)`-style literals over verbose decimal construction for expected values. Inline one-off expected balance structs at the assertion site; name expected balances only when reused or when the name carries useful phase semantics across subtests.
-
-After each meaningful test-related change, run focused `go vet` and focused `go test` for the touched package.
-
-Examples:
+## Commands
 
 ```bash
-nix develop --impure .#ci -c gofmt -w openmeter/ledger/historical/entry.go
-nix develop --impure .#ci -c make lint-go
-nix develop --impure .#ci -c env POSTGRES_HOST=127.0.0.1 go test -tags=dynamic ./openmeter/ledger/historical/...
+# up
+docker compose up -d
+# fmt
+golangci-lint run --fix
+# test
+POSTGRES_HOST=127.0.0.1 go test -p 128 -parallel 16 -tags=dynamic ./... (make test; checks Postgres is running first)
+# lint
+make lint-go lint-api-spec lint-openapi lint-helm
+# build
+make build (go build -o build/ -tags=dynamic across cmd/server, sink-worker, balance-worker, billing-worker, notification-service, jobs, plus benthos-collector)
+# server
+air -c ./cmd/server/.air.toml
+# lint-go
+golangci-lint run -v ./...
+# test-all
+docker compose up -d postgres svix redis && SVIX_HOST=localhost SVIX_JWT_SECRET=DUMMY_JWT_SECRET go test -p 128 -parallel 16 -tags=dynamic -count=1 ./...
 ```
 
-| Command | Description |
-|---------|-------------|
-| `make test` | Run all tests (parallel: `-p 128 -parallel 16`) |
-| `make test-nocache` | Run tests bypassing cache |
-| `make test-all` | Run tests including Svix/Redis dependencies |
-| `make etoe` | Run e2e tests (requires docker compose dependencies) |
+_Full catalog (37 commands) in [`.claude/rules/technology.md`](.claude/rules/technology.md)._
 
-**Running a single package directly:**
+## Architectural Rules
 
-```bash
-POSTGRES_HOST=127.0.0.1 go test -tags=dynamic -v ./openmeter/billing/...
-```
+Detailed rules live as topic files under `.claude/rules/`. Read the relevant one when the task touches that surface:
 
-Key flags: `-tags=dynamic` (required for confluent-kafka-go), `-p 128 -parallel 16` (used by Make). Set `POSTGRES_HOST=127.0.0.1` or tests requiring Postgres will be skipped.
+- [`.claude/rules/architecture.md`](.claude/rules/architecture.md) — Components, file placement, naming conventions
+- [`.claude/rules/patterns.md`](.claude/rules/patterns.md) — Communication patterns, integrations, key decisions, trade-offs (with violation signals)
+- [`.claude/rules/technology.md`](.claude/rules/technology.md) — Tech stack, project structure, code templates, testing tooling
+- [`.claude/rules/data-models.md`](.claude/rules/data-models.md) — Persistence stores, data models, per-model lifecycle (how to add/modify/read, backups, tests)
+- [`.claude/rules/guidelines.md`](.claude/rules/guidelines.md) — Implementation guidelines for existing capabilities
+- [`.claude/rules/pitfalls.md`](.claude/rules/pitfalls.md) — Documented traps with evidence + fix direction
+- [`.claude/rules/dev-rules.md`](.claude/rules/dev-rules.md) — Coding-time imperatives (patterns, anti-patterns, boundaries, wiring)
+- [`.claude/rules/infrastructure.md`](.claude/rules/infrastructure.md) — CI / signing / distribution / secrets / env setup / registry auth
+- [`.claude/rules/enforcement/index.md`](.claude/rules/enforcement/index.md) — Every rule the pre-edit hook + plan/commit classifier consults, grouped by severity
 
-See the `/test` skill for testing patterns, TestEnv setup, and examples.
+## Enforcement Rules
 
-## Building
+[`.claude/rules/enforcement/index.md`](.claude/rules/enforcement/index.md) indexes every rule, grouped by topic and by path glob. Load only the topic file(s) relevant to the file you're editing — universal anti-patterns sit in `enforcement/universal.md`. The pre-edit hook (`PRE_VALIDATE_HOOK`) and plan/commit classifier (`align_check.py`) read [`.archie/rules.json`](.archie/rules.json) directly; the markdown is for agent/human browsing only.
 
-```bash
-make build              # All binaries → build/
-make build-server       # Just the server
-```
+## Per-folder Context
 
-All builds use `GO_BUILD_FLAGS=-tags=dynamic`.
+Every meaningful folder has its own `CLAUDE.md` (Archie's intent layer). Claude Code auto-loads the nearest one, so when editing a file under `some/component/`, look there first for the local invariants, anti-patterns, and adjacent code that uses the same shape.
 
-## Configuration
-
-- Copy `config.example.yaml` to `config.yaml` (done automatically by Make targets)
-- Load the repository environment with `direnv`, or run commands with `direnv exec . <command>`, so project-specific environment variables and tool configuration are applied consistently
-- Key settings: `postgres.url`, `postgres.autoMigrate`, `billing`, `notification`, meter definitions
-- `credits.enabled` needs explicit guarding at multiple layers: ledger-backed customer credit handlers in `api/v3/server`, customer ledger hooks, and namespace/default-account provisioning are wired separately and must each stay disabled when credits are off.
-- When `credits.enabled` is `false`, `app/common` wires ledger account services/resolvers to noop implementations. Any ledger account backfill that must write real `ledger_accounts` / `ledger_customer_accounts` rows needs to construct concrete ledger account + resolver adapters directly instead of relying on the default DI outputs.
-- Make targets for running services will warn if `config.yaml` is outdated vs `config.example.yaml`
-
-## Coding Conventions
-
-See the `/service` skill for service/adapter patterns, constructors, input types, errors, transactions, hooks, logging, multi-tenancy, and DI wiring. See the `/api` skill for HTTP handler patterns and ValidationIssue. See the `/ent` skill for Ent ORM patterns and Postgres type gotchas. See the `/ledger` skill for ledger package architecture, wiring, and testing. See the `/subscription` skill for subscription domain model, sync algorithm, patch system, workflow layer, and addon sub-system. See the `/notification` skill for notification event pipeline, Kafka consumers, Svix webhook delivery, reconciliation loop, and payload versioning.
-
-Do not extract helper functions only to hide a couple of simple operations or short guard checks. If the helper would only wrap 2-4 lines and its name does not add meaningful domain or business intent, keep the code inline even when there is some duplication. Readers can inspect the function body to see what the code does; prefer function names that explain the domain reason for the call over names that merely restate the implementation steps. When you encounter a leftover pass-through wrapper that only calls another function without adding behavior, remove it and call the underlying function directly, even if it is outside the immediate change area.
-
-For `Validate() error` methods, prefer collecting all validation issues into `var errs []error` and returning `models.NewNillableGenericValidationError(errors.Join(errs...))` instead of returning on the first invalid field. Preserve field context with wrapped errors like `fmt.Errorf("field: %w", err)` and use plain `errors.New(...)` for simple local checks.
-
-In `openmeter/billing/charges/.../adapter`, keep Ent access transaction-aware even in shared helper functions. If a helper accepts a raw `*entdb.Client`, still wrap its body with `entutils.TransactingRepo(...)` / `TransactingRepoWithNoValue(...)` so it rebinds to the transaction already carried in `ctx` instead of depending on the caller to pass a tx-specific client.
-
-Do not introduce `context.Background()` or `context.TODO()` to sidestep missing context propagation in application code. Either propagate the caller's context through the full call path, or remove the unused `context.Context` parameter from the API if the operation is purely local and does not need cancellation, deadlines, or request-scoped values.
-
-Never use `panic` in non-test code paths. If a new failure mode is possible, change the function signature to return an error and propagate it explicitly.
-
-In production constructors and initialization, do not use `slog.Default()` as a fallback dependency. Require a `*slog.Logger` in config/provider inputs and inject it explicitly.
-
-Prefer standard library helpers and existing dependencies over local wrappers: use `slices.Clone(s)` for defensive slice copies instead of `append([]T(nil), s...)`; use `lo.ToPtr(...)` for pointer literals; and use `lo.Must(...)` only for `(value, err)` flows where panic-on-failure is intentional in test setup. Do not add local wrappers such as `ptr`, `loPtr`, `must`, or `loMust` when `github.com/samber/lo` already covers the need.
-
-Keep helper functions honest and narrow. If a production helper is only called once and is just a short guard or a few straightforward lines, inline it unless the name carries meaningful domain semantics. Do not add helpers for trivial single-use struct literals, do not hide aggregate mutation inside construction helpers, and return the domain value a helper actually builds rather than a broader wrapper needed by one caller.
-
-Prefer explicit input structs for helpers that combine an aggregate with derived lifecycle values, such as period or timestamp overrides. This makes it clear which fields are construction inputs and which fields are persisted aggregate state.
-
-For files and functions that convert between domain, API, and DB representations, use the `/go-types-conversion` skill. In prose, prefer `map` / `mapped` terminology for domain representation translation and avoid `project` / `projected` for that meaning; function names must still follow the skill's `FromAPI...`, `ToAPI...`, `FromDB...`, and `ToDB...` conventions.
-
-Add a docstring to domain helpers when the name compresses important business semantics that are easy to misread at call sites. Explain the observable business contract and why excluded cases are excluded, not the implementation mechanics.
-
-When refactoring or reverting code, preserve existing explanatory comments by default. Remove or rewrite a comment only when the code change makes it false, stale, or misleading.
-
-For slice-wide invariants where the exact offending element is not important, prefer collecting distinct values with `lo.Map` + `lo.Uniq` and validating cardinality over stateful "first seen value" loops.
-
-When `make generate` or `atlas migrate --env local diff ...` adds incidental `go.sum` entries, such as `tablewriter`, drop those `go.sum` changes unless the task explicitly requires a dependency change.
-
-## Key Dependencies
-
-| Category | Libraries |
-|----------|-----------|
-| DB | PostgreSQL (Ent ORM, Atlas migrations, pgx driver) |
-| Analytics | ClickHouse |
-| Events | Kafka (confluent-kafka-go) + Watermill |
-| HTTP | Chi router + oapi-codegen |
-| Invoicing | GOBL (invoice format) |
-| Webhooks | Svix |
-| Observability | OpenTelemetry |
-| Config | Viper + Cobra |
-| Utilities | samber/lo |
-
-## CodeGraph
-
-CodeGraph builds a semantic knowledge graph of the codebase (~1,800 Go files, ~36k symbols) for faster, smarter code exploration. The index lives in `.codegraph/codegraph.db` (gitignored). Generated files (`ent/db/`, `*_gen.go`, `wire_gen.go`, `*.gen.go`) are excluded.
-
-### If `.codegraph/` exists
-
-**Default to CodeGraph, not Grep/Glob/find.** CodeGraph understands symbols, call relationships, and file structure — those tools return string matches. On a ~1,800-file Go codebase the symbol-aware answer is almost always what you wanted. Fall back to Grep/Glob **only** when CodeGraph returns no results or the query is inherently textual (string literals, comments, log messages, SQL, YAML keys).
-
-**Never call `codegraph_explore` or `codegraph_context` in the main session.** These tools return large source code blocks that fill up main-session context fast. Instead, spawn an Explore agent for any exploration question (e.g., "how does billing sync work?", "where is entitlement reset implemented?").
-
-When spawning Explore agents, include this instruction in the prompt:
-
-> This project has CodeGraph initialized (.codegraph/ exists). Use `codegraph_explore` as your PRIMARY exploration tool — it returns full source code sections from all relevant files in one call.
->
-> **Rules:**
-> 1. Follow the explore call budget in the `codegraph_explore` tool description — it scales automatically based on project size.
-> 2. Do NOT re-read files that `codegraph_explore` already returned source code for. The source sections are complete and authoritative.
-> 3. Only fall back to Grep/Glob/Read for files listed under "Additional relevant files" if you need more detail, or if CodeGraph returned no results.
-
-**The main session should use these lightweight tools directly** for targeted lookups before making edits:
-
-| Tool | Use for | Example |
-|------|---------|---------|
-| `codegraph_search` | Find symbols by name | `query: "BillingService"` |
-| `codegraph_callers` | Who calls this function? | Before renaming or changing a signature |
-| `codegraph_callees` | What does this function call? | Understanding a function's dependencies |
-| `codegraph_impact` | Blast radius of a change | Before refactoring a shared type |
-| `codegraph_node` | Single symbol details | Quick check on a struct or interface |
-| `codegraph_files` | Project file tree | Faster than Glob for directory overviews |
-| `codegraph_status` | Index health check | Verify the index is up to date |
-
-### Choosing CodeGraph vs Grep/Glob
-
-| Task | Prefer | Reason |
-|------|--------|--------|
-| "Where is `BillingService` defined?" | `codegraph_search` | Symbol lookup with location + signature |
-| "Who calls `ListCustomers`?" | `codegraph_callers` | Call-graph edges, not text matches |
-| "What does `Reconcile` call?" | `codegraph_callees` | Dependencies of a function |
-| "Blast radius of changing this type?" | `codegraph_impact` | Transitive reverse-deps |
-| "Show the `Filter` interface fields" | `codegraph_node` | Single-symbol detail without reading whole file |
-| "List files under `api/v3/filters/`" | `codegraph_files` | Indexed tree; no disk walk |
-| Find a string literal / log message / SQL fragment | `Grep` | Not a symbol |
-| Find files by glob pattern (`**/*.tsp`) | `Glob` | CodeGraph indexes Go; non-Go globs go through Glob |
-| Navigate a specific known path | `Read` | Direct reads are always fine |
-| Running `find` on the shell | Don't | Use `codegraph_files` or `Glob` |
-| Running `grep`/`rg` on the shell | Don't | Use `Grep` (or `codegraph_search` for symbols) |
-
-Rule of thumb: **if the target is a Go identifier, start with CodeGraph. If it's a string, start with Grep.** Never shell out to `grep`, `rg`, or `find` — the dedicated tools (`Grep`, `Glob`, `codegraph_*`) give better output and permission handling.
-
-### Keeping the index fresh
-
-At the start of work, refresh CodeGraph before exploring Go code. If `.codegraph/` exists, run `codegraph sync`; if it does not exist, run `codegraph init -i` without asking first. Run `codegraph index` for a full rebuild if the index seems stale or after branch switches.
-
-### If `.codegraph/` does NOT exist
-
-Initialize it with `codegraph init -i` before doing code exploration. It indexes the Go codebase quickly and keeps symbol-aware lookup available.
-
-## Skills
-
-Skills are created inside [.agents/skills](.agents/skills/) by default and then symlinked to [.claude/skills](.claude/skills). Make sure you always treat `.agents/skills` as the source of truth.
+---
+*Auto-generated from structured architecture analysis. Place in project root.*
+<!-- archie:generated:end -->

@@ -1,0 +1,111 @@
+{
+  "api/spec/packages/legacy/src": {
+    "purpose": "Root namespace package for the v1 OpenMeter TypeSpec spec: main.tsp is the sole composition entry point that imports every sibling file and sub-domain folder, declares the @service/@info/@server/@tagMetadata metadata, and exposes shared primitives (types.tsp, errors.tsp, filter.tsp, query.tsp, rest.tsp, auth.tsp) consumed by every sub-domain. Schema-only \u2014 compiled to api/openapi.yaml + Go/JS/Python SDKs via make gen-api; no runtime code lives here.",
+    "patterns": [
+      {
+        "name": "main.tsp as sole compilation entry point",
+        "description": "main.tsp imports every sibling .tsp and sub-folder; @service/@info/@server/@tagMetadata live ONLY here. A new sub-domain not imported here is silently excluded from the compiled OpenAPI.",
+        "example": "import \"./billing\";\nimport \"./entitlements/v2\";\n@service(#{ title: \"OpenMeter API\" })\nnamespace OpenMeter;"
+      },
+      {
+        "name": "@friendlyName on every named declaration",
+        "description": "Every model, union, enum, and interface carries @friendlyName for stable Go/JS/Python type names; omitting it yields auto-generated names that break SDK contracts on rename.",
+        "example": "@friendlyName(\"MeterAggregation\")\nenum MeterAggregation { SUM, COUNT, ... }"
+      },
+      {
+        "name": "@visibility lifecycle decorators on every field",
+        "description": "Fields declare @visibility(Lifecycle.Read|Create|Update). A field without @visibility is exposed across all lifecycles, leaking internal state on create/update requests.",
+        "example": "@visibility(Lifecycle.Read, Lifecycle.Create)\nslug: Key;"
+      },
+      {
+        "name": "Shared primitives centralised in types.tsp / errors.tsp",
+        "description": "ULID, Key, DateTime, Resource, CurrencyCode, Numeric, Annotations (types.tsp) and the RFC 7807 Error model + typed aliases (errors.tsp) are declared once. Never re-declare these in a sub-domain file.",
+        "example": "...OmitProperties<global.Resource, \"name\">;  // reuse, do not redeclare"
+      },
+      {
+        "name": "Spread / OmitProperties / ResourceCreateModel for composition",
+        "description": "Compose models with ...Other, ...OmitProperties<T,'field'>, or ResourceCreateModel/ResourceReplaceModel<T>. `extends` changes generated property semantics and is reserved for Error subtypes.",
+        "example": "model MeterCreate is TypeSpec.Rest.Resource.ResourceCreateModel<Meter>;"
+      },
+      {
+        "name": "@sharedRoute for content-negotiated operations",
+        "description": "When one operationId serves multiple content types (JSON vs CSV meter query, single vs batch event ingest), each variant carries @sharedRoute to collapse under one operationId.",
+        "example": "@get @route(\"/{meterIdOrSlug}/query\") @operationId(\"queryMeter\") @sharedRoute\nqueryJson(...): { @header contentType: \"application/json\"; ... };"
+      },
+      {
+        "name": "@extension(\"x-omitempty\", true) on all filter operator fields",
+        "description": "Every filter model field ($eq,$in,$like,$and,$or...) in filter.tsp carries @extension(\"x-omitempty\", true) to suppress zero values. New filter operators must follow this.",
+        "example": "@extension(\"x-omitempty\", true)\n$eq?: string | null;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.tsp",
+        "role": "Compilation entry point: imports all sibling .tsp + sub-folders; declares @service/@info/@server/@tagMetadata for the entire v1 spec.",
+        "watch_for": "Forgetting to import a new sub-domain (it disappears from OpenAPI); duplicating @service or @tagMetadata in a child file."
+      },
+      {
+        "file": "types.tsp",
+        "role": "Shared primitive scalars/base models: ULID, Key, ExternalKey, DateTime, Resource, ResourceTimestamps, CadencedResource, Annotations, Numeric, Percentage, CurrencyCode, CountryCode.",
+        "watch_for": "Re-declaring any primitive in a sub-domain (name collision); a datetime field without @encode(DateTimeKnownEncoding.rfc3339)."
+      },
+      {
+        "file": "errors.tsp",
+        "role": "RFC 7807 Error model (x-go-type models.StatusProblem) + typed error aliases (BadRequestError..GatewayTimeoutError) and CommonErrors / CommonErrorsWithValidation aliases.",
+        "watch_for": "Using raw Error in operation unions instead of a typed alias; omitting @error on new error models."
+      },
+      {
+        "file": "filter.tsp",
+        "role": "Reusable filter models: FilterString, FilterTime, FilterInteger, FilterFloat, FilterBoolean, FilterIDExact.",
+        "watch_for": "Adding operators without @extension(\"x-omitempty\", true); creating per-endpoint filter models instead of reusing these."
+      },
+      {
+        "file": "query.tsp",
+        "role": "Pagination/ordering primitives: QueryPagination, QueryLimitOffset, QueryCursorPagination, PaginatedResponse<T>, CursorPaginatedResponse<T>, QueryOrdering<T>.",
+        "watch_for": "Inlining pagination params instead of spreading ...QueryCursorPagination; @body on GET list operations."
+      },
+      {
+        "file": "rest.tsp",
+        "role": "OpenMeter.Rest.ResourceCreateModel/UpdateModel/ReplaceModel visibility-filtered generics augmenting TypeSpec.Rest.Resource.",
+        "watch_for": "Using the TypeSpec built-in ResourceCreateModel directly \u2014 it lacks the withVisibilityFilter restricting to Create-visible fields."
+      },
+      {
+        "file": "events.tsp",
+        "role": "Event ingest (single/batch/JSON @sharedRoute) + v1 limit list and v2 cursor list. Event model carries x-go-type event.Event (cloudevents SDK).",
+        "watch_for": "Changing the Event x-go-type extension (maps to a third-party type); @body on v2 list query params; missing @sharedRoute on overloaded ingest ops."
+      },
+      {
+        "file": "meters.tsp",
+        "role": "Meter CRUD + query interface; MeterCreate/Update via ResourceCreateModel/ResourceReplaceModel; MeterAggregation/WindowSize enums; @sharedRoute JSON vs CSV query.",
+        "watch_for": "Omitting @sharedRoute on paired JSON/CSV ops; missing @visibility on new Meter fields; missing @operationId."
+      }
+    ],
+    "anti_patterns": [
+      "Defining new domain models in root-level .tsp files instead of a sub-folder with its own main.tsp",
+      "Re-declaring primitives (ULID, DateTime, Key, Resource) in sub-domain files \u2014 they live in types.tsp under namespace OpenMeter",
+      "Using `extends Error` for a new error model without the @error decorator \u2014 breaks OpenAPI error schema generation",
+      "Omitting @operationId on interface operations \u2014 yields non-deterministic generated SDK function names",
+      "Adding a new sub-domain file without registering it in main.tsp imports \u2014 silently excluded from the compiled spec"
+    ],
+    "decisions": [
+      {
+        "decision": "Shared cross-cutting types in types.tsp/errors.tsp, domain types in sub-folders",
+        "rationale": "Keeps ULID/DateTime/CurrencyCode/error models consistent across all v1 endpoints; sub-folder isolation prevents merge conflicts between billing/entitlements/notification teams."
+      },
+      {
+        "decision": "Resource base models (Resource, ResourceTimestamps, CadencedResource) centralised in types.tsp",
+        "rationale": "Guarantees every resource shares identical id/name/createdAt/updatedAt/deletedAt fields and visibility rules across the whole v1 surface."
+      },
+      {
+        "decision": "Distinct QueryPagination, QueryLimitOffset, QueryCursorPagination in query.tsp",
+        "rationale": "Different endpoints use different pagination strategies; centralising keeps SDK pagination types consistent and avoids per-endpoint parameter drift."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a v1 cursor-paginated list endpoint reusing shared filter + pagination types",
+        "code": "import \"@typespec/http\";\nusing TypeSpec.Http;\nusing TypeSpec.OpenAPI;\nnamespace OpenMeter;\n\n@route(\"/api/v1/widgets\")\n@tag(\"Widgets\")\n@friendlyName(\"Widgets\")\ninterface WidgetsEndpoints {\n  @list\n  @operationId(\"listWidgets\")\n  @summary(\"List widgets\")\n  list(...QueryCursorPagination): CursorPaginatedResponse<Widget> | CommonErrors;\n}"
+      }
+    ]
+  }
+}

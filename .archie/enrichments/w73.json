@@ -1,131 +1,171 @@
 {
-  "openmeter/billing/worker/subscriptionsync/adapter": {
-    "purpose": "Ent/PostgreSQL adapter implementing subscriptionsync.Adapter and SyncStateAdapter interfaces. Manages persistence of SubscriptionBillingSyncState records (upsert, get, invalidate) with full ctx-bound transaction support via entutils.TransactingRepo.",
+  "openmeter/billing/worker/advance": {
+    "purpose": "Batch auto-advance loop for StandardInvoices: polls three disjoint invoice states (DraftWaitingAutoApproval, DraftWaitingForCollection, stuck-advanceable), merges/deduplicates, then fans out parallel goroutines in lo.Chunk batches to call billing.Service.AdvanceInvoice. The scheduled polling counterpart to the event-driven asyncadvance handler.",
     "patterns": [
       {
-        "name": "TransactingRepo wrapping all DB writes",
-        "description": "Every method that touches the DB must call entutils.TransactingRepo or TransactingRepoWithNoValue so the ctx-bound transaction is honored rather than falling off to the raw client.",
-        "example": "entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error { return tx.db.SubscriptionBillingSyncState.Delete()... })"
+        "name": "Config struct constructor with nil validation",
+        "description": "NewAdvancer takes a Config and errors if BillingService or Logger is nil.",
+        "example": "func NewAdvancer(config Config) (*AutoAdvancer, error) { if config.BillingService == nil { return nil, fmt.Errorf(\"billing service is required\") } }"
       },
       {
-        "name": "Config + Validate constructor pattern",
-        "description": "Constructor takes a Config struct, calls config.Validate() which accumulates errors with errors.Join, and returns (Interface, error).",
-        "example": "func New(config Config) (subscriptionsync.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+        "name": "Batched parallel fan-out with errChan + WaitGroup",
+        "description": "lo.Chunk splits work into batches; each batch spawns goroutines writing to a buffered errChan sized to total invoice count; sync.OnceFunc closes the channel; errors.Join collects failures.",
+        "example": "errChan := make(chan error, len(invoices)); closeErrChan := sync.OnceFunc(func() { close(errChan) }); defer closeErrChan()"
       },
       {
-        "name": "Tx / WithTx / Self triad",
-        "description": "adapter implements TxCreator by providing Tx() (starts a new hijacked tx), WithTx() (rebinds adapter to a given TxDriver), and Self() (returns self for non-tx case). Required for entutils.TransactingRepo to work.",
-        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client()} }"
+        "name": "ErrInvoiceCannotAdvance is a non-fatal sentinel",
+        "description": "When AdvanceInvoice returns billing.ErrInvoiceCannotAdvance, fetch details, log a warning, and return nil \u2014 never propagate.",
+        "example": "if errors.Is(err, billing.ErrInvoiceCannotAdvance) { a.logger.WarnContext(ctx, \"invoice cannot be advanced\", logArgs...); return invoice, nil }"
       },
       {
-        "name": "Interface compliance assertion",
-        "description": "Compile-time assertion placed at the top of each implementation file to catch interface drift early.",
-        "example": "var _ subscriptionsync.SyncStateAdapter = (*adapter)(nil)"
+        "name": "List consolidation with lo.UniqBy before batching",
+        "description": "ListInvoicesToAdvance merges three list calls and deduplicates by invoice ID before batching to prevent double-advances.",
+        "example": "return lo.UniqBy(allInvoices, func(i billing.StandardInvoice) string { return i.ID }), nil"
       },
       {
-        "name": "UTC normalization on time fields",
-        "description": "All time values read from or written to the DB are normalized to UTC via .UTC() or lo.ToPtr(t.UTC()) to prevent timezone drift in stored timestamps.",
-        "example": "nextSyncAfter = lo.ToPtr(nextSyncAfter.UTC())"
-      },
-      {
-        "name": "Upsert with OnConflictColumns",
-        "description": "Upsert operations use Ent's OnConflictColumns(...).UpdateXxx() pattern keyed on (subscription_id, namespace) to make UpsertSyncState idempotent.",
-        "example": ".OnConflictColumns(subscriptionbillingsyncstate.FieldSubscriptionID, subscriptionbillingsyncstate.FieldNamespace).UpdateHasBillables().UpdateSyncedAt().UpdateNextSyncAfter()"
+        "name": "Context with cancel wraps batch runs",
+        "description": "All() creates a cancellable child context so in-flight goroutines cancel when the parent cancels.",
+        "example": "ctx, cancel := context.WithCancel(ctx); defer cancel()"
       }
     ],
     "key_file_guides": [
       {
-        "file": "adapter.go",
-        "role": "Defines Config, adapter struct, New constructor, and the Tx/WithTx/Self transaction triad. Entry point for all adapter construction.",
-        "watch_for": "Adding business logic here; all logic belongs in syncstate.go or equivalent domain files."
-      },
-      {
-        "file": "syncstate.go",
-        "role": "Implements SyncStateAdapter: InvalidateSyncState, GetSyncStates, UpsertSyncState. Uses Ent SubscriptionBillingSyncState entity.",
-        "watch_for": "Forgetting TransactingRepo wrapper \u2014 raw tx.db calls outside a TransactingRepo will bypass ctx-bound transactions. Missing UTC() normalization on time fields."
+        "file": "advance.go",
+        "role": "Entire package \u2014 AutoAdvancer with All(), ListInvoicesToAdvance(), ListInvoicesPendingAutoAdvance/PendingCollection/StuckInvoicesNeedingAdvance(), AdvanceInvoice(), NewAdvancer().",
+        "watch_for": "batchSize=0 means single batch; errChan capacity must equal len(invoices) not len(batches) or sends block; ErrInvoiceCannotAdvance must stay a warning return (nil)."
       }
     ],
     "anti_patterns": [
-      "Calling tx.db directly in a method body without wrapping in entutils.TransactingRepo/TransactingRepoWithNoValue",
-      "Storing or returning time values without .UTC() normalization",
-      "Adding domain or sync orchestration logic into the adapter (belongs in subscriptionsync service layer)",
-      "Skipping the compile-time interface assertion var _ Interface = (*adapter)(nil)",
-      "Constructing adapter without Config.Validate() call"
+      "Calling billing.Adapter directly \u2014 all DB access goes through billing.Service.",
+      "Propagating billing.ErrInvoiceCannotAdvance as an error from AdvanceInvoice.",
+      "Forgetting lo.UniqBy deduplication on the merged list, causing double-advances.",
+      "Using context.Background() inside goroutines instead of the caller-supplied ctx.",
+      "Sizing errChan to len(batches) instead of len(invoices) \u2014 goroutine sends deadlock."
     ],
     "decisions": [
       {
-        "decision": "Adapter is scoped exclusively to SubscriptionBillingSyncState persistence; no subscription or invoice business logic lives here.",
-        "rationale": "Separation of concerns: the service layer in subscriptionsync owns orchestration; the adapter owns only data access, keeping it independently testable."
+        "decision": "Three separate list queries merged with lo.UniqBy instead of a single compound query.",
+        "rationale": "The three states have distinct filter shapes in ListStandardInvoicesInput; merging at the query level would need OR semantics the adapter does not support cleanly."
       },
       {
-        "decision": "TransactingRepo is used even for single-statement operations.",
-        "rationale": "Callers may already have a transaction in ctx; rebinding ensures atomicity with surrounding operations and prevents partial writes."
+        "decision": "Batched parallel goroutines rather than sequential advance.",
+        "rationale": "Advancement is per-invoice and independent; parallelism cuts wall-clock time for large namespaces while batchSize controls memory pressure."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new adapter method that writes to DB",
-        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) SetFoo(ctx context.Context, input subscriptionsync.SetFooInput) error {\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n\t\treturn tx.db.SubscriptionBillingSyncState.Update().\n\t\t\tSetFoo(input.Foo).\n\t\t\tWhere(subscriptionbillingsyncstate.SubscriptionID(input.ID)).\n\t\t\tExec(ctx)\n\t})\n}"
+        "scenario": "Advance all eligible invoices in batches of 50",
+        "code": "import billingworkeradvance \"github.com/openmeterio/openmeter/openmeter/billing/worker/advance\"\n\nadvancer, err := billingworkeradvance.NewAdvancer(billingworkeradvance.Config{BillingService: svc, Logger: logger})\nif err != nil { return err }\nreturn advancer.All(ctx, []string{\"default\"}, 50)"
       }
     ]
   },
-  "openmeter/billing/worker/subscriptionsync/reconciler": {
-    "purpose": "Crash-recovery reconciler that periodically re-drives subscription-to-billing sync for subscriptions that may have missed event-driven processing. Iterates active subscriptions in paginated windows and calls SynchronizeSubscription for each eligible entry.",
+  "openmeter/billing/worker/asyncadvance": {
+    "purpose": "Watermill event handler for async invoice advancement: receives billing.AdvanceStandardInvoiceEvent from the system Kafka topic and calls billing.Service.AdvanceInvoice once, treating ErrInvoiceCannotAdvance as a benign late-message condition. Requires the billing service configured with ForegroundAdvancementStrategy to avoid infinite retry loops.",
     "patterns": [
       {
-        "name": "Config struct with Validate + named constructor",
-        "description": "ReconcilerConfig holds all dependencies; Validate() checks each for nil; NewReconciler calls Validate before constructing and returns (*Reconciler, error).",
-        "example": "func NewReconciler(config ReconcilerConfig) (*Reconciler, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+        "name": "Config.Validate() guards strategy mismatch at construction",
+        "description": "New() calls Validate() which rejects any BillingService not using ForegroundAdvancementStrategy \u2014 prevents an infinite loop where background advancement re-emits the same event.",
+        "example": "if c.BillingService.GetAdvancementStrategy() != billing.ForegroundAdvancementStrategy { return errors.New(\"billing service must have foreground advancement strategy or we are creating an infinite loop\") }"
       },
       {
-        "name": "Paginated window scan with defaultWindowSize",
-        "description": "ListSubscriptions iterates pages of 10,000 subscriptions using pagination.Page{PageNumber, PageSize} until an empty page is returned, preventing unbounded memory usage.",
-        "example": "for { subscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{Page: pagination.Page{PageNumber: pageIndex, PageSize: defaultWindowSize}}); if len(subscriptions.Items) == 0 { break }; pageIndex++ }"
+        "name": "Single-event Handle() matching the NoPublisherHandler closure",
+        "description": "Handler.Handle(ctx, *billing.AdvanceStandardInvoiceEvent) is the only exported method beyond New(), matching the worker router's expected closure signature.",
+        "example": "func (h *Handler) Handle(ctx context.Context, event *billing.AdvanceStandardInvoiceEvent) error"
       },
       {
-        "name": "SyncState-gated skipping logic",
-        "description": "All() skips subscriptions where SyncState.HasBillables is false or NextSyncAfter is nil or in the future, avoiding unnecessary re-sync when the state machine is quiescent.",
-        "example": "if !in.Force && subscription.SyncState != nil { if !subscription.SyncState.HasBillables { continue } ... }"
-      },
-      {
-        "name": "errors.Join for non-fatal per-item errors",
-        "description": "All() uses errors.Join to accumulate per-subscription reconciliation errors, logging each but continuing to process remaining subscriptions so one failure does not abort the batch.",
-        "example": "outErr = errors.Join(outErr, fmt.Errorf(\"failed to reconcile subscription: %w\", err))"
-      },
-      {
-        "name": "clock.Now() for testable time references",
-        "description": "Use clock.Now() instead of time.Now() when computing lookback windows and comparing NextSyncAfter to enable clock injection in tests.",
-        "example": "ActiveInPeriod: &timeutil.StartBoundedPeriod{From: clock.Now().Add(-in.Lookback), To: lo.ToPtr(clock.Now())}"
+        "name": "ErrInvoiceCannotAdvance -> warn + nil",
+        "description": "Late Kafka messages for already-advanced invoices log a warning and return nil (no requeue); all other errors propagate.",
+        "example": "if errors.Is(err, billing.ErrInvoiceCannotAdvance) { h.logger.WarnContext(ctx, \"invoice cannot advance (most probably a late message)\", \"invoice_id\", event.Invoice); return nil }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "reconciler.go",
-        "role": "Entire reconciler: config, ListSubscriptions (paginated), ReconcileSubscription (single), All (batch with skip logic). No DB access \u2014 delegates to subscriptionsync.Service and subscription.Service.",
-        "watch_for": "Calling time.Now() directly instead of clock.Now(); adding DB access (route through services); missing deleted-customer guard in ReconcileSubscription."
+        "file": "asyncadvance.go",
+        "role": "Entire package \u2014 Config, Config.Validate(), New(), Handler.Handle().",
+        "watch_for": "Forgetting the strategy validation creates an infinite loop: background strategy re-emits advance events this handler re-processes forever; Handler is intentionally stateless beyond service + logger."
       }
     ],
     "anti_patterns": [
-      "Using time.Now() instead of clock.Now() \u2014 breaks time-based tests",
-      "Loading all subscriptions into memory without pagination (defaultWindowSize must be respected)",
-      "Aborting the entire batch on a single reconciliation error instead of accumulating with errors.Join",
-      "Adding Ent/DB imports \u2014 this layer must remain service-interface-only with no direct persistence calls",
-      "Removing the deleted-customer guard in ReconcileSubscription without replacing with equivalent behaviour"
+      "Wiring this handler with a BackgroundAdvancementStrategy BillingService \u2014 creates an infinite Kafka consume-emit loop.",
+      "Returning ErrInvoiceCannotAdvance from Handle() \u2014 causes Watermill to nack and requeue indefinitely.",
+      "Adding mutable state to Handler \u2014 the struct is intentionally stateless.",
+      "Using context.Background() inside Handle() instead of the event's ctx parameter."
     ],
     "decisions": [
       {
-        "decision": "Reconciler does not own a DB adapter; it orchestrates exclusively through service interfaces (subscriptionsync.Service, subscription.Service, customer.Service).",
-        "rationale": "Keeps the reconciler testable with mocks and decoupled from persistence; transactionality is managed by the service layer."
-      },
-      {
-        "decision": "Force flag bypasses SyncState-based skipping to support manual or admin-triggered full re-sync without altering stored state.",
-        "rationale": "Operational requirement: administrators need to force reconciliation during incident recovery without clearing sync state first."
+        "decision": "Strategy guard in Config.Validate() rather than a runtime check in Handle().",
+        "rationale": "Misconfiguration creates a hard-to-detect runtime infinite loop; failing fast at construction surfaces the bug on startup."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new reconciler method that lists and processes subscriptions in a paginated batch",
-        "code": "import (\n\t\"context\"\n\t\"errors\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/pkg/clock\"\n\t\"github.com/openmeterio/openmeter/pkg/pagination\"\n)\n\nfunc (r *Reconciler) ProcessBatch(ctx context.Context, in ProcessBatchInput) error {\n\tpageIndex := 1\n\tvar outErr error\n\tfor {\n\t\tsubscriptions, err := r.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{\n\t\t\tPage: pagination.Page{PageNumber: pageIndex, PageSize: defaultWindowSize},\n\t\t})\n\t\tif err != nil {\n\t\t\treturn fmt.Errorf(\"failed to list: %w\", err)\n\t\t}\n\t\tif len(subscriptions.Items) == 0 {\n\t\t\tbreak\n\t\t}\n\t\tfor _, sub := range subscriptions.Items {\n\t\t\tif err := r.processOne(ctx, sub); err != nil {\n\t\t\t\tr.logger.ErrorContext(ctx, \"failed\", \"error\", err)\n\t\t\t\toutErr = errors.Join(outErr, err)\n\t\t\t}\n\t\t}\n\t\tpageIndex++\n\t}\n\treturn outErr\n}"
+        "scenario": "Wire asyncadvance handler into a Watermill grouphandler",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/worker/asyncadvance\"\n)\nhandler, err := asyncadvance.New(asyncadvance.Config{BillingService: foregroundBillingSvc, Logger: logger})\nif err != nil { return err }\n// grouphandler.NewGroupEventHandler(handler.Handle)"
+      }
+    ]
+  },
+  "openmeter/billing/worker/collect": {
+    "purpose": "Batch invoice collection loop: lists GatheringInvoices whose NextCollectionAt is due (including nil-NextCollectionAt legacy invoices), deduplicates by customer, filters locked namespaces, then fans out parallel CollectCustomerInvoice calls triggering billing.Service.InvoicePendingLines with partial lines disabled.",
+    "patterns": [
+      {
+        "name": "Config struct constructor with nil checks",
+        "description": "NewInvoiceCollector validates GatheringInvoiceService, BillingService, and Logger non-nil; LockedNamespaces is optional.",
+        "example": "func NewInvoiceCollector(config Config) (*InvoiceCollector, error) { if config.GatheringInvoiceService == nil { return nil, fmt.Errorf(...) } }"
+      },
+      {
+        "name": "Input types carry Validate() checked at entry",
+        "description": "ListCollectableInvoicesInput and CollectCustomerInvoiceInput each have Validate() checked at the top of their callers before any service calls.",
+        "example": "if err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid input: %w\", err) }"
+      },
+      {
+        "name": "Sentinel errors drive recovery not failure",
+        "description": "ErrNamespaceLocked -> warn + nil; ErrInvoiceCreateNoLines -> warn + RecalculateGatheringInvoices + nil. Only unknown errors propagate.",
+        "example": "if errors.Is(err, billing.ErrNamespaceLocked) { a.logger.WarnContext(ctx, \"namespace is locked, skipping\", ...); return nil, nil }"
+      },
+      {
+        "name": "InvoicePendingLines always with PartialInvoiceLinesDisabled",
+        "description": "System-initiated collection always uses billing.WithPartialInvoiceLinesDisabled() to prevent progressive billing during automated collection.",
+        "example": "a.billingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{Customer: params.CustomerID}, billing.WithPartialInvoiceLinesDisabled())"
+      },
+      {
+        "name": "Locked namespace exclusion before fan-out",
+        "description": "All() filters customer IDs whose namespace is in a.lockedNamespaces via slices.Contains before building batches.",
+        "example": "customerIDs = lo.Filter(lo.Uniq(customerIDs), func(id customer.CustomerID, _ int) bool { return !slices.Contains(a.lockedNamespaces, id.Namespace) })"
+      },
+      {
+        "name": "Batched parallel fan-out (same as advance)",
+        "description": "lo.Chunk by batchSize; goroutines per item write to a buffered errChan sized to total customer count; sync.OnceFunc closes; errors.Join collects.",
+        "example": "errChan := make(chan error, len(customerIDs)); closeErrChan := sync.OnceFunc(func() { close(errChan) }); defer closeErrChan()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "collect.go",
+        "role": "Entire package \u2014 InvoiceCollector with All(), ListCollectableInvoices(), CollectCustomerInvoice(), NewInvoiceCollector(); input types with Validate().",
+        "watch_for": "ListCollectableInvoices uses a filter.FilterTime OR clause to include nil NextCollectionAt \u2014 removing the nil branch silently skips legacy invoices; errChan must be sized to len(customerIDs); lo.Uniq must run on customerIDs before batching."
+      }
+    ],
+    "anti_patterns": [
+      "Calling InvoicePendingLines without billing.WithPartialInvoiceLinesDisabled() \u2014 allows forbidden progressive billing in system collection.",
+      "Treating ErrNamespaceLocked or ErrInvoiceCreateNoLines as hard errors \u2014 both have recovery paths.",
+      "Skipping the locked-namespace filter before fan-out \u2014 redundant errors for every customer in a locked namespace.",
+      "Using context.Background() inside goroutines instead of the parent ctx.",
+      "Forgetting lo.Uniq on customerIDs before batching \u2014 a customer with multiple gathering invoices gets collected twice."
+    ],
+    "decisions": [
+      {
+        "decision": "Collect at customer granularity, not invoice granularity.",
+        "rationale": "InvoicePendingLines operates per-customer and may merge multiple pending lines into one invoice; iterating by invoice ID would cause double-collect races."
+      },
+      {
+        "decision": "ErrInvoiceCreateNoLines triggers RecalculateGatheringInvoices instead of failing.",
+        "rationale": "This state indicates stale gathering-invoice state; a recalculation heals it without surfacing an error or alert noise."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Collect all due gathering invoices in batches of 100",
+        "code": "import billingworkercollect \"github.com/openmeterio/openmeter/openmeter/billing/worker/collect\"\n\ncollector, err := billingworkercollect.NewInvoiceCollector(billingworkercollect.Config{GatheringInvoiceService: billingSvc, BillingService: billingSvc, Logger: logger, LockedNamespaces: lockedNS})\nif err != nil { return err }\nreturn collector.All(ctx, []string{\"default\"}, nil, 100)"
       }
     ]
   }

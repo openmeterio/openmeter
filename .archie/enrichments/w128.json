@@ -1,95 +1,285 @@
 {
-  "openmeter/subscription/workflow/service": {
-    "purpose": "Concrete implementation of subscriptionworkflow.Service \u2014 the high-level orchestration layer that composes core subscription.Service with addon management, customer locking, transaction primitives, and feature flags to execute multi-step lifecycle operations (CreateFromPlan, EditRunning, ChangeToPlan, Restore, AddAddon, ChangeAddonQuantity) atomically.",
+  "openmeter/subscription/addon/diff": {
+    "purpose": "Pure in-memory spec mutation library converting a SubscriptionAddon into a bidirectional Apply/Restore transform on SubscriptionSpec. Its sole constraint is invertibility: Apply followed by Restore must yield the original spec with no DB or service calls.",
     "patterns": [
       {
-        "name": "All mutating operations wrap in transaction.Run",
-        "description": "Every method that touches multiple domain objects calls transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (T, error) { ... }). Nested helpers like syncWithAddons also wrap in their own transaction.Run for savepoint support.",
-        "example": "return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) { ... })"
+        "name": "Diffable interface as the unit of work",
+        "description": "Every spec mutation is a Diffable{GetApplies() AppliesToSpec, GetRestores() AppliesToSpec}; both return an AppliesToSpec passed to spec.Apply(). Never call a repo or domain service inside a Diffable.",
+        "example": "diffable, err := addondiff.GetDiffableFromAddon(subView, subsAdd); spec.Apply(diffable.GetApplies(), subscription.ApplyContext{CurrentTime: now})"
       },
       {
-        "name": "lockCustomer before any customer-scoped write",
-        "description": "CreateFromPlan (and any new mutating workflow that creates subscriptions for a customer) calls s.lockCustomer(ctx, inp.CustomerID) inside the transaction before any write. Uses subscription.GetCustomerLock + lockr.LockForTX (pg_advisory_xact_lock).",
-        "example": "if err := s.lockCustomer(ctx, inp.CustomerID); err != nil { return def, err }"
+        "name": "Gap-based item insertion in apply.go",
+        "description": "apply.go tracks coverage gaps ([]timeutil.OpenPeriod) starting from the full addon cadence, subtracts each existing item's intersection, then creates new SubscriptionItemSpec for remaining gaps; overlapping items are split into difference + intersection fragments.",
+        "example": "gaps := []timeutil.OpenPeriod{*addInPhase}; for _, item := range items { nGaps = append(nGaps, g.Difference(itemPer)...) }"
       },
       {
-        "name": "Addon sync via restore+apply diff cycle",
-        "description": "syncWithAddons computes Diffable for before/after addon sets, calls spec.ApplyMany with GetRestores() to strip old addon contributions, then ApplyMany with GetApplies() to apply new ones, then Service.Update. Never directly patches the spec with addon data without restoring first.",
-        "example": "spec.ApplyMany(lo.Map(restores, func(d addondiff.Diffable, _ int) subscription.AppliesToSpec { return d.GetRestores() }), ...)\nspec.ApplyMany(lo.Map(applies, ...), ...)\ns.Service.Update(ctx, view.Subscription.NamespacedID, spec)"
+        "name": "Quantity application asymmetry",
+        "description": "For existing items within the addon cadence, rc.Apply is called Quantity times. For gap-created items (which start from the RateCard base) it is called Quantity-1 times because the RateCard already represents one application.",
+        "example": "for range d.addon.Quantity { rc.Apply(inst.RateCard, inst.Annotations) } // existing item; gap item uses Quantity-1"
       },
       {
-        "name": "MapSubscriptionErrors after spec operations",
-        "description": "After calling NewSpecFromPlan or spec.ApplyMany, always pipe errors through subscriptionworkflow.MapSubscriptionErrors(err) before returning \u2014 it translates domain-specific spec errors into the correct generic error types.",
-        "example": "if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil { return def, fmt.Errorf(\"failed to create spec from plan: %w\", err) }"
+        "name": "Relative cadence via ISODuration offsets",
+        "description": "setItemRelativeCadence converts absolute timestamps to ISO 8601 durations relative to phase start via datetime.ISODurationBetween, stored as ActiveFrom/ToOverrideRelativeToPhaseStart. Never store absolute times in cadence overrides.",
+        "example": "diff := datetime.ISODurationBetween(phaseCadence.ActiveFrom, *target.From); item.ActiveFromOverrideRelativeToPhaseStart = &diff"
       },
       {
-        "name": "Domain errors via models.NewGeneric* constructors",
-        "description": "Validation failures return models.NewGenericValidationError, conflicts return models.NewGenericConflictError, forbidden state transitions return models.NewGenericForbiddenError, pre-condition failures return models.NewGenericPreConditionFailedError. Never return raw fmt.Errorf for these cases.",
-        "example": "return def, models.NewGenericConflictError(fmt.Errorf(\"subscription already has that addon purchased\"))"
+        "name": "Restore merges adjacent equal items",
+        "description": "restore.go undoes addon effects per-item via AddonRateCard.Restore, deletes items where zeroRateCardCheck.CanDelete() is true, then merges consecutive items with equal RateCard + Annotations + BillingBehaviorOverride whose cadences are adjacent.",
+        "example": "canMerge := targetItem.RateCard.Equal(testItem.RateCard) && reflect.DeepEqual(targetItem.Annotations, testItem.Annotations) && targetCadence.ActiveTo.Equal(testCadence.ActiveFrom)"
       },
       {
-        "name": "Feature flag gate via ffx.Service before entering transaction",
-        "description": "Feature flags (e.g. subscription.MultiSubscriptionEnabledFF) are checked via s.FeatureFlags.IsFeatureEnabled(ctx, ...) and short-circuit with a domain error before entering the transaction to avoid unnecessary locking.",
-        "example": "multiSubscriptionEnabled, err := s.FeatureFlags.IsFeatureEnabled(ctx, subscription.MultiSubscriptionEnabledFF)"
+        "name": "Zero rate-card deletion guard",
+        "description": "zeroRateCardCheck (zeroratecard.go) decides if a restored item can be deleted by inspecting FlatPrice amount, EntitlementTemplate type/value, and OwnerSubSystem annotations. Only if all checks pass is the item removed.",
+        "example": "chk := zeroRateCardCheck{itemAnnotations: item.Annotations, rc: target}; if chk.CanDelete() { rmIdxs = append(rmIdxs, idx) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "diff.go",
+        "role": "Defines the Diffable interface and someDiffable helper; the two-method contract (GetApplies/GetRestores) is the only public API shape.",
+        "watch_for": "Never add I/O here \u2014 Diffable is a pure value type with no side-effects."
       },
       {
-        "name": "Compile-time interface assertion in service.go",
-        "description": "var _ subscriptionworkflow.Service = &service{} in service.go enforces the struct fully implements the interface at compile time. Must be present for any new implementation.",
-        "example": "var _ subscriptionworkflow.Service = &service{}"
+        "file": "addon.go",
+        "role": "GetDiffableFromAddon converts a SubscriptionAddon into a Diffable by mapping instances to per-instance diffables aggregated via NewAggregateAppliesToSpec.",
+        "watch_for": "Returns nil, nil when the addon has no instances \u2014 callers must check for a nil Diffable before spec.Apply."
+      },
+      {
+        "file": "apply.go",
+        "role": "Core apply algorithm: iterates phases in addon cadence range, manages gaps, splits items, applies rc.Apply() the correct number of times.",
+        "watch_for": "Quantity application count differs for existing items (Quantity) vs gap-created items (Quantity-1)."
+      },
+      {
+        "file": "restore.go",
+        "role": "Inverse of apply: AddonRateCard.Restore per item, removes zero items, merges adjacent equal fragments.",
+        "watch_for": "Merge uses reflect.DeepEqual on Annotations and BillingBehaviorOverride \u2014 pointer fields must be DeepEqual-comparable."
+      },
+      {
+        "file": "zeroratecard.go",
+        "role": "Predicate for whether a restored RateCard is effectively empty and safe to delete; inspects only Price and EntitlementTemplate fields.",
+        "watch_for": "Only measures fields AddonRateCard.Apply/Restore touches \u2014 adding other-field checks risks false positives."
+      },
+      {
+        "file": "affected.go",
+        "role": "GetAffectedItemIDs computes map[rateCardKey][]itemID used by the HTTP layer for AffectedSubscriptionItemIds.",
+        "watch_for": "Has a FIXME noting it belongs elsewhere; do not add business logic here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding DB or service calls inside Diffable.GetApplies/GetRestores \u2014 this is a pure in-memory transform",
+      "Calling spec.Apply with a nil Diffable (GetDiffableFromAddon returns nil when no instances exist)",
+      "Using absolute timestamps in SubscriptionItemSpec cadence fields instead of ISODuration offsets relative to phase start",
+      "Modifying phase.ItemsByKey in-place \u2014 restore.go always rebuilds filteredItems and mergedItems slices",
+      "Assuming Apply then Restore is a no-op for all items \u2014 only items fully within the addon cadence with zero restored value are deleted"
+    ],
+    "decisions": [
+      {
+        "decision": "Pure in-memory spec mutation with no I/O",
+        "rationale": "diff/restore must be composable and testable without a DB; callers (workflow service) own the persistence boundary."
+      },
+      {
+        "decision": "Gap-based insertion rather than full spec rebuild",
+        "rationale": "Preserves existing item splits from prior edits and only touches the time range covered by the addon cadence."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Apply addon to spec and later restore it",
+        "code": "import (\n\taddondiff \"github.com/openmeterio/openmeter/openmeter/subscription/addon/diff\"\n\t\"github.com/openmeterio/openmeter/openmeter/subscription\"\n)\n\ndiffable, err := addondiff.GetDiffableFromAddon(subView, subsAdd)\nif err != nil { return err }\nif diffable == nil { return nil } // no instances\n\nspec := subView.Spec\nif err := spec.Apply(diffable.GetApplies(), subscription.ApplyContext{CurrentTime: now}); err != nil {\n\treturn err\n}\n// later, to undo:\nif err := spec.Apply(diffable.GetRestores(), subscription.ApplyContext{CurrentTime: now}); err != nil {\n\treturn err\n}"
+      }
+    ]
+  },
+  "openmeter/subscription/addon/http": {
+    "purpose": "HTTP handler layer for subscription addon CRUD, bridging the v1 API to subscriptionaddon.Service and subscriptionworkflow.Service via the standard httptransport.HandlerWithArgs[Request,Response,Params] pipeline.",
+    "patterns": [
+      {
+        "name": "HandlerWithArgs three-stage pipeline",
+        "description": "Each operation uses httptransport.NewHandlerWithArgs(decoder, operation, encoder, ...options): decoder resolves namespace and decodes body, operation calls domain services, encoder writes JSON with a fixed status.",
+        "example": "httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusOK), httptransport.AppendOptions(h.Options, httptransport.WithOperationName(\"op\"))...)"
+      },
+      {
+        "name": "Upsert-on-create convenience",
+        "description": "CreateSubscriptionAddon checks if the addon is already attached and routes to ChangeAddonQuantity instead of AddAddon, giving idempotent create semantics; both paths return HTTP 200.",
+        "example": "if sAdd, ok := lo.Find(subsAdds.Items, func(s subscriptionaddon.SubscriptionAddon) bool { return s.Addon.ID == req.AddonInput.AddonID }); ok { ... ChangeAddonQuantity } else { ... AddAddon }"
+      },
+      {
+        "name": "Namespace resolved via NamespaceDecoder",
+        "description": "All decoders call h.resolveNamespace(ctx), delegating to h.NamespaceDecoder.GetNamespace(ctx); a missing namespace returns HTTP 500 via commonhttp.NewHTTPError.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ..., err }"
+      },
+      {
+        "name": "Response always requires SubscriptionView",
+        "description": "MapSubscriptionAddonToResponse needs both the SubscriptionAddon and its parent SubscriptionView to compute AffectedSubscriptionItemIds via addondiff.GetAffectedItemIDs; every Get/List endpoint fetches the view separately.",
+        "example": "view, err := h.SubscriptionService.GetView(ctx, req.SubscriptionID); return MapSubscriptionAddonToResponse(view, *res)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines the Handler interface, HandlerConfig (three services + NamespaceDecoder + Logger), NewHandler, and resolveNamespace.",
+        "watch_for": "HandlerConfig embeds all three services (SubscriptionAddonService, SubscriptionWorkflowService, SubscriptionService) \u2014 all required; missing any panics at call time."
+      },
+      {
+        "file": "mapping.go",
+        "role": "MapSubscriptionAddonToResponse builds api.SubscriptionAddon including AffectedSubscriptionItemIds; MapCreateSubscriptionAddonRequestToInput translates API body to workflow input.",
+        "watch_for": "Errors if the addon has no instances (empty union of periods); calls addondiff.GetAffectedItemIDs which needs the full SubscriptionView."
+      },
+      {
+        "file": "create.go",
+        "role": "Upsert-on-create: if attached, ChangeAddonQuantity; else AddAddon. Both paths return HTTP 200.",
+        "watch_for": "No 201/200 distinction between create and update \u2014 intentional for idempotency."
+      },
+      {
+        "file": "update.go",
+        "role": "PATCH-style quantity update; requires both Timing and Quantity, else a 400 validation error.",
+        "watch_for": "Timing/Quantity nil-checks are manual in the decoder, not via model.Validate \u2014 keep them in sync with the API schema."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic to decoder functions \u2014 decoders only parse and validate shape",
+      "Forgetting to fetch SubscriptionView before MapSubscriptionAddonToResponse",
+      "Using NewHandler instead of NewHandlerWithArgs when URL path params are needed",
+      "Passing a nil SubscriptionView to MapSubscriptionAddonToResponse"
+    ],
+    "decisions": [
+      {
+        "decision": "Upsert semantics on POST create",
+        "rationale": "Clients often want idempotent addon attachment; routing to ChangeAddonQuantity when already present avoids a 409 conflict and simplifies client logic."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Standard handler wiring with URL params and namespace resolution",
+        "code": "func (h *handler) GetSubscriptionAddon() GetSubscriptionAddonHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, params GetSubscriptionAddonParams) (GetSubscriptionAddonRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return GetSubscriptionAddonRequest{}, err }\n\t\t\treturn GetSubscriptionAddonRequest{\n\t\t\t\tSubscriptionID:      models.NamespacedID{Namespace: ns, ID: params.SubscriptionID},\n\t\t\t\tSubscriptionAddonID: models.NamespacedID{Namespace: ns, ID: params.SubscriptionAddonID},\n\t\t\t}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req GetSubscriptionAddonRequest) (GetSubscriptionAddonResponse, error) {\n\t\t\tres, err := h.SubscriptionAddonService.Get(ctx, req.SubscriptionAddonID)\n\t\t\tif err != nil { return GetSubscriptionAddonResponse{}, err }\n\t\t\tview, err := h.SubscriptionService.GetView(ctx, req.SubscriptionID)\n\t\t\tif err != nil { return GetSubscriptionAddonResponse{}, err }\n\t\t\treturn MapSubscriptionAddonToResponse(view, *res)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[GetSubscriptionAddonResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.Options, httptransport.WithOperationName(\"get-subscription-addon\"))...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/subscription/addon/repo": {
+    "purpose": "Ent-backed PostgreSQL repository for subscription addons and their quantity timeline, implementing entutils.TransactingRepo so all mutations participate in caller-supplied transactions. Quantities are append-only.",
+    "patterns": [
+      {
+        "name": "TransactingRepo wrapping all mutations",
+        "description": "Every method body wraps in entutils.TransactingRepo(ctx, r, func(ctx, repo) ...) so the repo rebinds to the ctx transaction or starts its own via Self(). Never call repo.db directly in a method body.",
+        "example": "return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionAddonRepo) (*models.NamespacedID, error) { entity, err := repo.db.SubscriptionAddon.Create()...Save(ctx); return &models.NamespacedID{ID: entity.ID, Namespace: entity.Namespace}, err })"
+      },
+      {
+        "name": "Tx/Self/WithTx transaction trinity",
+        "description": "Each repo struct implements Tx() (HijackTx + NewTxDriver), Self() (identity), and WithTx() (rebind via NewTxClientFromRawConfig). Both subscriptionAddonRepo and subscriptionAddonQuantityRepo have their own block in transaction.go.",
+        "example": "func (r *subscriptionAddonRepo) WithTx(ctx context.Context, tx *entutils.TxDriver) *subscriptionAddonRepo { txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return NewSubscriptionAddonRepo(txClient.Client()) }"
+      },
+      {
+        "name": "Eager-load via querySubscriptionAddon helper",
+        "description": "All Get/List queries go through querySubscriptionAddon() which loads WithAddon (Ratecards->Features, Ratecards->TaxCode) and WithQuantities ordered by ActiveFrom asc, CreatedAt asc. Never use a bare db.SubscriptionAddon.Query().",
+        "example": "query.WithAddon(func(aq *db.AddonQuery) { aq.WithRatecards(func(arq *db.AddonRateCardQuery) { arq.WithFeatures(); arq.WithTaxCode() }) }).WithQuantities(...)"
+      },
+      {
+        "name": "Paginate-or-return-all for List",
+        "description": "List returns all results when filter.Page.IsZero(); otherwise uses Ent's Paginate and entutils.MapPagedWithErr.",
+        "example": "if filter.Page.IsZero() { entities, _ := query.All(ctx) } else { paged, _ := query.Paginate(ctx, filter.Page); return entutils.MapPagedWithErr(paged, MapSubscriptionAddon) }"
+      },
+      {
+        "name": "Quantities are append-only",
+        "description": "SubscriptionAddonQuantityRepository has only Create \u2014 no Update or Delete. The quantity timeline is an audit-safe ledger; changes are new records with a later ActiveFrom.",
+        "example": "// Only Create is defined \u2014 no Update/Delete on subscriptionAddonQuantityRepo"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "subscriptionaddon.go",
+        "role": "Create, Get, List for SubscriptionAddon; Get wraps db.IsNotFound in models.NewGenericNotFoundError.",
+        "watch_for": "All queries must use querySubscriptionAddon() \u2014 bare queries miss eager-loaded RateCard/Quantity edges."
+      },
+      {
+        "file": "subscriptionaddonquantity.go",
+        "role": "Append-only Create for SubscriptionAddonQuantity; namespace comes from parent subscriptionAddonID.Namespace.",
+        "watch_for": "No Update or Delete methods exist by design \u2014 do not add them."
+      },
+      {
+        "file": "mapping.go",
+        "role": "MapSubscriptionAddon(s) convert db rows to domain types, delegating RateCard mapping to addonrepo.FromAddonRateCardRow.",
+        "watch_for": "MapSubscriptionAddon errors if Edges.Addon is nil for rate card mapping \u2014 the edge must always be loaded via querySubscriptionAddon."
+      },
+      {
+        "file": "transaction.go",
+        "role": "Tx/Self/WithTx for both subscriptionAddonRepo and subscriptionAddonQuantityRepo.",
+        "watch_for": "Both repos use db.HijackTx independently \u2014 a third repo type needs its own Tx/Self/WithTx block."
+      }
+    ],
+    "anti_patterns": [
+      "Calling repo.db methods directly inside Create/Get/List without TransactingRepo wrapping",
+      "Fetching SubscriptionAddon without the querySubscriptionAddon() helper \u2014 misses eager-loaded edges",
+      "Updating or deleting SubscriptionAddonQuantity rows \u2014 quantities are immutable append-only",
+      "Using a raw db.Client in WithTx instead of db.NewTxClientFromRawConfig"
+    ],
+    "decisions": [
+      {
+        "decision": "Quantities are append-only, never updated",
+        "rationale": "The quantity timeline is an audit-safe ledger; changes are new records with a later ActiveFrom rather than modifying existing rows."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Create subscription addon inside a transaction",
+        "code": "import (\n\tsubscriptionaddonrepo \"github.com/openmeterio/openmeter/openmeter/subscription/addon/repo\"\n)\n\nrepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(dbClient)\nid, err := repo.Create(ctx, ns, subscriptionaddon.CreateSubscriptionAddonRepositoryInput{\n\tAddonID:        addonID,\n\tSubscriptionID: subID,\n})\n// ctx carries the tx \u2014 repo.Create rebinds automatically via TransactingRepo"
+      }
+    ]
+  },
+  "openmeter/subscription/addon/service": {
+    "purpose": "Business logic service for subscription addons: validates plan compatibility, instance-type constraints, and MaxQuantity limits before persisting via SubscriptionAddonRepository and publishing Watermill events. Implements subscriptionaddon.Service.",
+    "patterns": [
+      {
+        "name": "Config struct with Validate() and fail-fast construction",
+        "description": "NewService accepts a Config and calls cfg.Validate() before returning \u2014 fail-fast at wiring time rather than runtime nil-pointer panics.",
+        "example": "func NewService(cfg Config) (subscriptionaddon.Service, error) { if err := cfg.Validate(); err != nil { return nil, err }; return &service{cfg: cfg}, nil }"
+      },
+      {
+        "name": "Pre-persist validation chain",
+        "description": "Create and ChangeQuantity both (1) input.Validate(), (2) fetch the addon to check InstanceType, (3) fetch the subscription view for PlanRef and current phase, (4) fetch PlanAddon for FromPlanPhase and MaxQuantity \u2014 only then enter transaction.Run.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }; add, err := s.cfg.AddonService.GetAddon(ctx, ...); if add.InstanceType == productcatalog.AddonInstanceTypeSingle && input.InitialQuantity.Quantity != 1 { return nil, models.NewGenericValidationError(...) }"
+      },
+      {
+        "name": "transaction.Run for multi-step writes",
+        "description": "All writes use transaction.Run(ctx, s.cfg.TxManager, func) coordinating the repo Tx/Self/WithTx chain; repo calls inside the func use the tx-bound ctx.",
+        "example": "return transaction.Run(ctx, s.cfg.TxManager, func(ctx context.Context) (*subscriptionaddon.SubscriptionAddon, error) { repo.Create(ctx, ns, ...); qtyRepo.Create(ctx, id, ...); add, _ := repo.Get(ctx, id); s.cfg.Publisher.Publish(ctx, subscriptionaddon.NewCreatedEvent(...)); return add, nil })"
+      },
+      {
+        "name": "Event publish inside transaction",
+        "description": "After persisting, Publisher.Publish runs inside the transaction.Run func so the event is tied to the same unit of work. NewCreatedEvent/NewChangeQuantityEvent are factories in the subscriptionaddon package.",
+        "example": "s.cfg.Publisher.Publish(ctx, subscriptionaddon.NewCreatedEvent(ctx, sView.Customer, *subscriptionAddon))"
+      },
+      {
+        "name": "Phase-ordered compatibility check",
+        "description": "To verify an addon can be added at a time, the service iterates sView.Phases in order and checks whether compatibility.FromPlanPhase is reached before the phase containing the addon start time.",
+        "example": "for _, phase := range sView.Phases { if phase.Key == compatibility.FromPlanPhase { break }; if phase.Key == phaseAtAddonStart.PhaseKey { return nil, models.NewGenericValidationError(...) } }"
       }
     ],
     "key_file_guides": [
       {
         "file": "service.go",
-        "role": "Defines WorkflowServiceConfig (all injected deps) and the service struct. NewWorkflowService is the only constructor \u2014 wire it via app/common. lockCustomer helper lives here.",
-        "watch_for": "New dependencies must go into WorkflowServiceConfig, never stored as separate struct fields. lockCustomer calls LockForTX which requires an active transaction already in ctx."
-      },
-      {
-        "file": "subscription.go",
-        "role": "Implements CreateFromPlan, EditRunning, ChangeToPlan, Restore \u2014 all cross-subscription lifecycle ops.",
-        "watch_for": "EditRunning blocks if subscription has active addons (hasAddons check). ChangeToPlan cancels old sub then creates new one in a single transaction, injecting previousSubscriptionID/supersedingSubscriptionID annotations. Restore is gated behind MultiSubscriptionEnabledFF. spec.ValidateAlignment() must be called after every ApplyMany sequence."
-      },
-      {
-        "file": "addon.go",
-        "role": "Implements AddAddon and ChangeAddonQuantity. Both follow: validate \u2192 transaction \u2192 fetch current state \u2192 mutate addon record \u2192 syncWithAddons \u2192 return updated view. syncWithAddons is the core diff-apply loop.",
-        "watch_for": "Duplicate addon purchase detected by ID equality inside the transaction \u2014 must remain inside the transaction. asDiffs filters nil Diffable items; mismatch between len(diffs) and len(addons) is a hard error that surfaces as a generic error."
-      },
-      {
-        "file": "addon_test.go",
-        "role": "Integration tests for AddAddon and ChangeAddonQuantity using subscriptiontestutils.SetupDBDeps + NewService for full DB-backed testing.",
-        "watch_for": "clock.FreezeTime(now.Add(time.Millisecond)) pattern avoids Postgres timestamp truncation boundary issues \u2014 replicate this in new tests."
-      },
-      {
-        "file": "subscription_test.go",
-        "role": "Integration tests for CreateFromPlan, EditRunning, TestEditingCurrentPhase. Also demonstrates MockService injection for unit-testing delegation without a DB.",
-        "watch_for": "MockService injection pattern (workflowservice.NewWorkflowService with custom UpdateFn/GetViewFn) is the correct approach for unit-testing delegation behavior in isolation."
+        "role": "Full subscriptionaddon.Service implementation: Create, Get, List, ChangeQuantity with all validation and transaction coordination.",
+        "watch_for": "Create and ChangeQuantity duplicate validation (InstanceType, FromPlanPhase, MaxQuantity) \u2014 keep them in sync. Addons cannot be added to custom subscriptions (no PlanRef)."
       }
     ],
     "anti_patterns": [
-      "Calling s.Service.Update directly without the restore+apply diff cycle when addons are present \u2014 always use syncWithAddons for addon-aware spec updates",
-      "Starting a new outer transaction.Run inside syncWithAddons when it is already called from within an outer transaction.Run \u2014 transaction.Run is safe via savepoints but callers must not create an outer wrapper that bypasses the existing transaction",
-      "Returning raw fmt.Errorf for validation, conflict, or forbidden errors \u2014 always use models.NewGenericValidationError / NewGenericConflictError / NewGenericForbiddenError",
-      "Skipping lockCustomer in new mutating workflow methods that create or modify subscriptions for a customer \u2014 concurrent subscription mutations for the same customer produce race conditions",
-      "Directly editing the subscription spec fields without calling spec.ValidateAlignment() after applying patches"
+      "Calling SubAddRepo or SubAddQtyRepo outside transaction.Run for writes \u2014 partial writes occur on failure",
+      "Bypassing cfg.Validate() by constructing the service struct directly instead of via NewService",
+      "Publishing events outside the transaction.Run func \u2014 event and DB write become inconsistent on rollback",
+      "Adding addons to subscriptions without a PlanRef \u2014 the service rejects custom subscriptions"
     ],
     "decisions": [
       {
-        "decision": "Workflow service is a separate layer from subscription.Service rather than expanding the core service",
-        "rationale": "Core subscription.Service stays persistence-focused; workflow layer composes it with addon, customer locking, and feature-flag concerns without polluting the domain interface or creating circular imports back into app/common."
+        "decision": "Service validates plan compatibility before any DB write",
+        "rationale": "Addon purchase must respect plan-level constraints (FromPlanPhase, MaxQuantity, InstanceType) that live in the product catalog, not the subscription tables."
       },
       {
-        "decision": "Addon sync uses a full restore-then-apply diff cycle instead of incremental patching",
-        "rationale": "Ensures idempotency: the spec always reflects exactly the addons currently attached, not accumulated patches. Prevents double-application on retry and keeps the spec consistent with the current addon state."
-      },
-      {
-        "decision": "ChangeToPlan cancels the old subscription then creates a new one within a single transaction, storing cross-reference annotations",
-        "rationale": "Preserves navigable subscription history (previousSubscriptionID / supersedingSubscriptionID annotations) while guaranteeing atomicity \u2014 there is never a window where neither subscription is active."
+        "decision": "Separate SubscriptionAddonQuantityRepository for quantity records",
+        "rationale": "The quantity timeline is append-only and models a different entity; a dedicated repo keeps quantity writes isolated and avoids loading all quantities on every mutation."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add an addon to a subscription: validate, lock in transaction, detect duplicate, create addon record, sync spec",
-        "code": "func (s *service) AddAddon(ctx context.Context, subscriptionID models.NamespacedID, addonInp subscriptionworkflow.AddAddonWorkflowInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {\n\tvar def1 subscription.SubscriptionView\n\tvar def2 subscriptionaddon.SubscriptionAddon\n\n\tif err := addonInp.Validate(); err != nil {\n\t\treturn def1, def2, models.NewGenericValidationError(err)\n\t}\n\n\tres, err := transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (purchaseRes, error) {\n\t\tvar def purchaseRes\n\t\tsubView, _ := s.Service.GetView(ctx, subscriptionID)\n\t\tsubsAdds, _ := s.AddonService.List(ctx, subscriptionID.Namespace, ...)\n\t\tif lo.SomeBy(subsAdds.Items, func(sa subscriptionaddon.SubscriptionAddon) bool { return sa.Addon.ID == addonInp.AddonID }) {\n\t\t\treturn def, models.NewGenericConflictError(fmt.Errorf(\"subscription already has that addon purchased\"))\n\t\t}\n\t\tsubsAdd, _ := s.AddonService.Create(ctx, subscriptionID.Namespace, ...)\n\t\tsubView, err = s.syncWithAddons(ctx, subView, subsAdds.Items, append(subsAdds.Items, *subsAdd), editTime)\n\t\treturn purchaseRes{sub: subView, subAdd: *subsAdd}, err\n\t})\n\treturn res.sub, res.subAdd, err\n}"
+        "scenario": "Create a subscription addon with validation and transactional persistence",
+        "code": "// From service.go \u2014 transaction.Run coordinates repo writes and event publish\nreturn transaction.Run(ctx, s.cfg.TxManager, func(ctx context.Context) (*subscriptionaddon.SubscriptionAddon, error) {\n\tsubAddID, err := s.cfg.SubAddRepo.Create(ctx, namespace, subscriptionaddon.CreateSubscriptionAddonRepositoryInput{\n\t\tAddonID: input.AddonID, SubscriptionID: input.SubscriptionID,\n\t})\n\tif err != nil { return nil, err }\n\t_, err = s.cfg.SubAddQtyRepo.Create(ctx, *subAddID, subscriptionaddon.CreateSubscriptionAddonQuantityRepositoryInput{\n\t\tActiveFrom: input.InitialQuantity.ActiveFrom,\n\t\tQuantity:   input.InitialQuantity.Quantity,\n\t})\n\tif err != nil { return nil, err }\n\tsubAdd, err := s.cfg.SubAddRepo.Get(ctx, *subAddID)\n\tif err != nil { return nil, err }\n\ts.cfg.Publisher.Publish(ctx, subscriptionaddon.NewCreatedEvent(ctx, sView.Customer, *subAdd))\n\treturn subAdd, nil\n})"
       }
     ]
   }

@@ -2,35 +2,36 @@
 
 <!-- archie:ai-start -->
 
-> Binary entrypoint for the notification-service: wires domain services via Wire, then manually constructs the Watermill Kafka subscriber and notification consumer in main.go and runs them in an oklog/run group. Unlike other workers, the Watermill subscriber and consumer.New call are in main.go, not delegated to a common.Runner.
+> Binary entrypoint for the notification-service: Wire assembles domain services, then main.go manually constructs the Watermill Kafka subscriber and notification consumer and runs them in an oklog/run.Group. Unlike other workers, subscriber + consumer.New live in main.go, not a common.Runner.
 
 ## Patterns
 
-**Manual run group assembly in main.go** — notification-service builds its own run.Group in main.go (telemetry server + notificationConsumer.Run + signal handler) rather than using common.Runner. The Application struct exposes BrokerOptions, MessagePublisher, Meter, Tracer, TelemetryServer for assembly in main.go. (`group.Add(func() error { return notificationConsumer.Run(ctx) }, func(err error) { _ = notificationConsumer.Close() })`)
-**Subscriber constructed in main.go, not in Wire** — watermillkafka.NewSubscriber is called in main.go using app.BrokerOptions and conf.Notification.Consumer.ConsumerGroupName — the subscriber is not part of the Wire graph. (`wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{ Broker: app.BrokerOptions, ConsumerGroupName: conf.Notification.Consumer.ConsumerGroupName })`)
-**consumer.Options aggregates app fields** — consumer.Options{} aggregates SystemEventsTopic, Router (router.Options with subscriber/publisher/logger/meter/tracer), Marshaler, and Notification service from app fields. (`consumer.Options{ SystemEventsTopic: conf.Events.SystemEvents.Topic, Router: router.Options{Subscriber: wmSubscriber, Publisher: app.MessagePublisher, ...}, Marshaler: app.EventPublisher.Marshaler(), Notification: app.Notification }`)
-**Application exposes raw primitives as fields** — Unlike other workers embedding common.Runner, notification-service Application exposes metric.Meter, trace.Tracer, message.Publisher directly so main.go can assemble consumer.Options. (`type Application struct { ... BrokerOptions watermillkafka.BrokerOptions; MessagePublisher message.Publisher; Meter metric.Meter; Tracer trace.Tracer; TelemetryServer common.TelemetryServer; ... }`)
+**Manual run.Group assembly in main.go** — main.go builds its own run.Group (telemetry server + notificationConsumer.Run + SignalHandler) rather than using common.Runner; group.Run uses run.WithReverseShutdownOrder(). (`group.Add(func() error { return notificationConsumer.Run(ctx) }, func(err error) { _ = notificationConsumer.Close() })`)
+**Subscriber constructed in main.go, not Wire** — watermillkafka.NewSubscriber is called in main.go with app.BrokerOptions and conf.Notification.Consumer.ConsumerGroupName; it is not part of the Wire graph. (`wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{Broker: app.BrokerOptions, ConsumerGroupName: conf.Notification.Consumer.ConsumerGroupName})`)
+**consumer.Options aggregates app fields** — consumer.Options assembles SystemEventsTopic, Router (router.Options with subscriber/publisher/logger/meter/tracer), Marshaler, and Notification from app fields. (`consumer.Options{SystemEventsTopic: conf.Events.SystemEvents.Topic, Router: router.Options{Subscriber: wmSubscriber, Publisher: app.MessagePublisher, ...}, Marshaler: app.EventPublisher.Marshaler(), Notification: app.Notification}`)
+**Application exposes raw primitives** — The Application struct exposes BrokerOptions, MessagePublisher, metric.Meter, trace.Tracer, EventPublisher, and TelemetryServer directly so main.go can assemble consumer.Options manually. (`type Application struct { ... BrokerOptions watermillkafka.BrokerOptions; MessagePublisher message.Publisher; Meter metric.Meter; Tracer trace.Tracer; TelemetryServer common.TelemetryServer }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `main.go` | Builds Kafka subscriber, constructs consumer.Options, instantiates consumer.New, assembles and runs the oklog run.Group. | consumer.Options.Marshaler must be app.EventPublisher.Marshaler() — mismatching marshalers causes message deserialization failures. |
-| `wire.go` | Application struct exposes more raw primitives than other workers (BrokerOptions, MessagePublisher, Meter, Tracer) because main.go needs them for manual consumer construction. | common.NotificationServiceProvisionTopics must be listed to ensure the correct Kafka topic provisioning for notification-service. |
-| `wire_gen.go` | Generated — DO NOT EDIT. Note: TelemetryServer is a field on Application (not on common.Runner) because notification-service manages it in its own run.Group. | StreamingConnector is wired even though notification-service doesn't query usage — it's a transitive dependency of the notification service chain. |
+| `main.go` | Parses config, Wire-inits app, Migrate, builds Kafka subscriber, constructs consumer.Options, instantiates consumer.New, runs the run.Group (telemetry server + consumer + signal handler). | consumer.Options.Marshaler must be app.EventPublisher.Marshaler() — a mismatched marshaler breaks message deserialization. ctx is context.Background() at the root (legitimate). |
+| `wire.go` | Hand-written wire.Build (//go:build wireinject) listing provider sets; Application exposes more raw primitives than other workers for manual consumer construction. | common.NotificationServiceProvisionTopics must be listed for correct Kafka topic provisioning. Uses common.Watermill (full publisher). |
+| `wire_gen.go` | Generated by Wire — DO NOT EDIT. TelemetryServer is an Application field (managed in this binary's run.Group), not on common.Runner. | StreamingConnector is wired as a transitive dependency even though notification-service does not query usage. |
+| `version.go` | ldflags-provisioned version plus vcs.revision/vcs.time read from debug.ReadBuildInfo in init(). | Defaults to 'unknown' when build info is unavailable. |
 
 ## Anti-Patterns
 
-- Moving Kafka subscriber construction into Wire — it is intentionally in main.go so consumer group name can come from config at startup
-- Using app.MessagePublisher as the marshaler source — use app.EventPublisher.Marshaler() for event deserialization
+- Moving Kafka subscriber construction into Wire — it stays in main.go so the consumer group name comes from config at startup
+- Using app.MessagePublisher as the marshaler source instead of app.EventPublisher.Marshaler()
 - Adding business notification logic to main.go — it belongs in openmeter/notification/consumer
 - Manually editing wire_gen.go
 
 ## Decisions
 
-- **notification-service constructs its Watermill subscriber in main.go rather than Wire.** — The consumer group name is a runtime config value tied to deployment identity; keeping subscriber construction in main.go makes the config-to-subscriber mapping explicit and avoids parameterising Wire with runtime strings.
+- **Watermill subscriber constructed in main.go rather than Wire** — The consumer group name is a runtime config value tied to deployment identity; keeping subscriber construction in main.go makes the config-to-subscriber mapping explicit and avoids parameterising Wire with runtime strings.
 
-## Example: Assembling notification consumer in main.go after Wire initialization
+## Example: Assemble the notification consumer in main.go after Wire init
 
 ```
 wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{

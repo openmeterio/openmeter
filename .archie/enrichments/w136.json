@@ -1,233 +1,194 @@
 {
-  "pkg/idempotency": {
-    "purpose": "Single-purpose package that generates UUIDv7 idempotency keys for external API calls (e.g., Stripe). UUIDv7 provides monotonic, time-ordered keys that are safe to use as idempotency tokens without a shared counter.",
+  "pkg/clock": {
+    "purpose": "Process-global test clock replacing time.Now() with a controllable source backed by atomic drift/freeze vars. All production code must call clock.Now() so tests can freeze or shift time deterministically without interface injection.",
     "patterns": [
       {
-        "name": "Key() in production, MustKey() in tests/init only",
-        "description": "Key() returns (string, error) and must be used in all application code paths. MustKey() panics on failure and is only appropriate in test setup or package-level init where panics are acceptable.",
-        "example": "key, err := idempotency.Key()\nif err != nil {\n    return fmt.Errorf(\"idempotency key: %w\", err)\n}"
+        "name": "clock.Now() everywhere",
+        "description": "Production code must call clock.Now() instead of time.Now(). Package-level atomics mean no interface injection.",
+        "example": "import \"github.com/openmeterio/openmeter/pkg/clock\"; t := clock.Now()"
       },
       {
-        "name": "One key per request \u2014 never reuse",
-        "description": "Each external API call that requires idempotency must call Key() to produce a fresh UUIDv7. Reusing the same key across requests causes the remote API to deduplicate what should be distinct operations.",
-        "example": "key, err := idempotency.Key()\n// pass key to stripe.ChargeCreate or similar"
+        "name": "FreezeTime/UnFreeze in tests",
+        "description": "Freeze with clock.FreezeTime(t) and restore with defer clock.UnFreeze() or defer clock.ResetTime().",
+        "example": "clock.FreezeTime(testutils.GetRFC3339Time(t, \"2024-06-30T15:39:00Z\")); defer clock.UnFreeze()"
+      },
+      {
+        "name": "Monotonic clock stripped",
+        "description": "clock.Now() always calls .Round(0) to strip the monotonic reading, preventing subtle comparison bugs when storing/comparing times.",
+        "example": "return time.Now().Add(-driftDuration).Round(0)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "key.go",
-        "role": "Entire package \u2014 exports Key() and MustKey(). uuid.NewV7() is the sole dependency.",
-        "watch_for": "uuid.NewV7() can fail in environments with broken entropy sources \u2014 always handle the error in production paths. MustKey() panics; never call it inside request handlers."
+        "file": "clock.go",
+        "role": "Entire package: atomic drift int64 for SetTime, atomic frozen int32 + atomic.Value for FreezeTime. SetTime computes drift as time.Since(t).Nanoseconds().",
+        "watch_for": "drift is the offset subtracted from wall time, not an absolute time. FreezeTime and SetTime are independent mechanisms \u2014 FreezeTime short-circuits drift entirely."
       }
     ],
     "anti_patterns": [
-      "Using MustKey() in request-handling code paths \u2014 prefer Key() and propagate errors",
-      "Reusing the same key across multiple requests \u2014 each call to Key() must produce a fresh key",
-      "Hand-rolling UUID generation instead of using this package \u2014 breaks the centralized key strategy"
+      "Calling time.Now() directly in production code \u2014 always use clock.Now().",
+      "Forgetting defer clock.ResetTime() / clock.UnFreeze() in tests \u2014 leaks frozen/drifted state across cases.",
+      "Adding a context parameter or Clock interface \u2014 the global atomic design is intentional for zero-overhead usage."
     ],
     "decisions": [
       {
-        "decision": "UUIDv7 instead of UUIDv4 for idempotency keys",
-        "rationale": "UUIDv7 is time-ordered, making keys sortable and cache-friendly in database indexes while still being globally unique \u2014 important for Stripe and similar APIs that store idempotency keys in indexed tables."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Generate a fresh idempotency key before a Stripe charge call",
-        "code": "import \"github.com/openmeterio/openmeter/pkg/idempotency\"\n\nkey, err := idempotency.Key()\nif err != nil {\n    return fmt.Errorf(\"idempotency key: %w\", err)\n}\n// use key as stripe.ChargeCreateParams.IdempotencyKey"
-      }
-    ]
-  },
-  "pkg/log": {
-    "purpose": "Provides two orthogonal logging utilities: a testify-based mock for slog.Handler used in unit tests, and a PanicLogger recover-and-log helper for goroutine entry points. This is infrastructure glue, not a logger factory \u2014 callers must use slog.Default() for actual logging.",
-    "patterns": [
-      {
-        "name": "PanicLogger via defer with explicit propagation strategy",
-        "description": "Always invoke PanicLogger as a deferred call at the top of a goroutine or main, passing exactly one propagation option. The zero value (no option) re-panics \u2014 explicitly pass WithExit or WithContinue for workers and servers.",
-        "example": "defer log.PanicLogger(log.WithExit)   // server main\ndefer log.PanicLogger(log.WithContinue) // worker loop iteration"
-      },
-      {
-        "name": "OTelCodeStackTrace constant for stack trace attribute key",
-        "description": "Stack traces must be logged under the OTelCodeStackTrace constant (\"code.stacktrace\") per OpenTelemetry semantic conventions. Never use a raw string for this key.",
-        "example": "slog.Error(description, log.OTelCodeStackTrace, string(debug.Stack()))"
-      },
-      {
-        "name": "Compile-time slog.Handler interface assertion for MockHandler",
-        "description": "var _ slog.Handler = &MockHandler{} is declared to enforce interface compliance at compile time. Any new mock in this package must include the same assertion.",
-        "example": "var _ slog.Handler = &MockHandler{}"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "panic.go",
-        "role": "Recover-and-log wrapper; exposes PanicLogger and three propagation strategies (WithRePanic, WithExit, WithContinue).",
-        "watch_for": "Default strategy (zero value) is RePanic \u2014 omitting any option re-panics, which is rarely correct for worker goroutines. Always pass WithExit or WithContinue explicitly."
-      },
-      {
-        "file": "mock.go",
-        "role": "testify mock for slog.Handler; use only in tests.",
-        "watch_for": "MockHandler.WithAttrs and WithGroup return values obtained via type assertion on mock.Called \u2014 if the mock expectation is not set up, the assertion panics at test runtime."
-      }
-    ],
-    "anti_patterns": [
-      "Adding a custom logger constructor here \u2014 callers should use slog.Default() or inject slog.Logger externally",
-      "Using a raw string instead of OTelCodeStackTrace for stack trace attribute keys",
-      "Invoking PanicLogger without defer \u2014 it must run inside a recover() scope",
-      "Calling PanicLogger with no options in a worker loop \u2014 the default re-panic strategy will terminate the worker"
-    ],
-    "decisions": [
-      {
-        "decision": "Three named propagation strategies instead of a boolean re-panic flag",
-        "rationale": "Workers (WithContinue), long-running servers (WithExit), and test helpers (WithRePanic) have fundamentally different needs; a single boolean would conflate exit-process vs continue-loop semantics."
+        "decision": "Package-level atomics instead of an injected Clock interface.",
+        "rationale": "Zero call-site changes across the codebase; atomic ops are lock-free and safe for concurrent test use."
       }
     ],
     "code_examples": []
   },
-  "pkg/lrux": {
-    "purpose": "Generic LRU cache with per-item TTL and a synchronous Fetcher callback, wrapping hashicorp/golang-lru/v2. Primary constraint: all time comparisons use pkg/clock (not time.Now) so tests can freeze time deterministically.",
+  "pkg/cmpx": {
+    "purpose": "Single-file package exposing a Comparable[T] constraint and a Compare[T] generic function for deterministic ordering of domain types, without boilerplate type assertions.",
     "patterns": [
       {
-        "name": "Use clock.Now() never time.Now()",
-        "description": "All TTL comparisons inside the package use clock.Now() so tests can freeze time with clock.FreezeTime / clock.SetTime. Any new code added here must follow the same pattern.",
-        "example": "if ok && (item.ExpiresAt.IsZero() || item.ExpiresAt.After(clock.Now())) {"
-      },
-      {
-        "name": "Functional options via cacheOptionsFunc",
-        "description": "Constructor accepts variadic cacheOptionsFunc. New options must define a func(*cacheOptions) and expose a With* factory function following the existing WithTTL pattern.",
-        "example": "func WithTTL(ttl time.Duration) cacheOptionsFunc {\n    return func(o *cacheOptions) { o.ttl = ttl }\n}"
-      },
-      {
-        "name": "Zero TTL means never-expire via zero time.Time",
-        "description": "When ttl == 0, ExpiresAt is set to time.Time{} (zero value) via clock.Now().Add(0) logic path. The check item.ExpiresAt.IsZero() short-circuits to cache-hit, meaning ttl=0 is a never-expire signal \u2014 not zero-second expiry.",
-        "example": "// ttl=0 => ExpiresAt stays zero => item never expires"
-      },
-      {
-        "name": "Fetcher must not be nil \u2014 validate at construction",
-        "description": "Constructor returns an error if fetcher is nil. Callers must provide a non-nil fetcher; the package does not attempt lazy validation.",
-        "example": "if fetcher == nil { return nil, fmt.Errorf(\"fetcher is required\") }"
-      },
-      {
-        "name": "t.Context() in tests, defer clock.UnFreeze()",
-        "description": "All tests use t.Context() instead of context.Background() and defer clock.UnFreeze() immediately after clock.FreezeTime to prevent time leakage across parallel tests.",
-        "example": "clock.FreezeTime(baseTime)\ndefer clock.UnFreeze()\nitem, err := cache.Get(t.Context(), \"key\")"
+        "name": "Implement Comparable[T] on domain types",
+        "description": "Any type needing ordering implements Compare(T) int; the generic Compare[T] function dispatches to left.Compare(right).",
+        "example": "func Compare[T Comparable[T]](left, right T) int { return left.Compare(right) }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "lruitemttl.go",
-        "role": "Entire package implementation \u2014 CacheWithItemTTL struct, Fetcher type, NewCacheWithItemTTL, Get, Refresh, fetchItem.",
-        "watch_for": "No mutex around fetch+store: concurrent Gets on an expired key will issue multiple simultaneous fetcher calls. This is intentional for simplicity but must be considered when the fetcher is expensive or has side effects."
-      },
-      {
-        "file": "lruitemttl_test.go",
-        "role": "Unit tests validating TTL boundary behavior, cache hit/miss transitions, and error propagation from the fetcher.",
-        "watch_for": "Tests use clock.FreezeTime with baseTime parsed from RFC3339 \u2014 use the same approach for any new TTL boundary tests to keep them deterministic."
+        "file": "compare.go",
+        "role": "Defines Comparable[T] interface and Compare[T] generic helper. No dependencies beyond stdlib.",
+        "watch_for": "Intentionally minimal \u2014 do not add non-ordering utilities here."
       }
     ],
     "anti_patterns": [
-      "Using time.Now() inside a Fetcher or anywhere in this package \u2014 always use clock.Now()",
-      "Adding a mutex around Get without profiling \u2014 stampede tolerance is an intentional design choice",
-      "Constructing with a nil fetcher \u2014 the constructor rejects it but upstream callers should validate early",
-      "Using context.Background() in tests when t.Context() is available"
+      "Adding any logic beyond comparison ordering to this package.",
+      "Using reflect.DeepEqual or sort.Slice comparisons in callers instead of implementing Comparable[T]."
     ],
-    "decisions": [
-      {
-        "decision": "Wrap hashicorp/golang-lru with CacheItemWithTTL instead of using lru's built-in expiry",
-        "rationale": "lru's native eviction does not integrate with pkg/clock, making TTL boundary tests non-deterministic. Storing ExpiresAt on the item and checking via clock.Now() gives full test control."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Create a cache that fetches string values by string key with a 10-second TTL",
-        "code": "import (\n    \"context\"\n    \"github.com/openmeterio/openmeter/pkg/lrux\"\n    \"time\"\n)\n\ncache, err := lrux.NewCacheWithItemTTL(100, func(ctx context.Context, key string) (string, error) {\n    return fetchFromDB(ctx, key)\n}, lrux.WithTTL(10*time.Second))\nif err != nil { /* handle */ }\nval, err := cache.Get(ctx, \"mykey\")"
-      }
-    ]
+    "decisions": [],
+    "code_examples": []
   },
-  "pkg/otelx": {
-    "purpose": "Minimal OpenTelemetry span-context serialization helpers for cross-process propagation over non-HTTP transports (e.g. Kafka message headers). Serializes trace.SpanContext to/from base64-encoded JSON using the OTelSpanContextKey constant.",
+  "pkg/contextx": {
+    "purpose": "Context-keyed key-value store (via peterbourgon/ctxdata) plus a slog.Handler adapter that auto-attaches stored attributes to every log record emitted within a request context. Propagates structured log fields through service layers without threading explicit logger parameters.",
     "patterns": [
       {
-        "name": "OTelSpanContextKey constant as the canonical header/attribute name",
-        "description": "Always use the OTelSpanContextKey constant (\"otel.span.context\") when storing or reading the serialized span context in message headers or attributes. Never hardcode the string.",
-        "example": "headers[otelx.OTelSpanContextKey] = serialized"
+        "name": "WithAttr / WithAttrs to annotate context",
+        "description": "Call contextx.WithAttr(ctx, key, value) or WithAttrs(ctx, map) to attach structured data; a ctxdata bag is lazily created if absent.",
+        "example": "ctx = contextx.WithAttr(ctx, \"customer_id\", customerID)"
       },
       {
-        "name": "Base64-over-JSON encoding for transport-agnostic propagation",
-        "description": "SpanContext is marshalled to JSON via trace.SpanContext.MarshalJSON() and then base64-encoded. Reversal uses base64.DecodeString then json.Unmarshal into trace.SpanContextConfig then trace.NewSpanContext.",
-        "example": "b, _ := c.MarshalJSON()\ns := base64.StdEncoding.EncodeToString(b)"
-      },
-      {
-        "name": "Nil-check DeserializeSpanContext return value",
-        "description": "DeserializeSpanContext returns *trace.SpanContext (pointer). Callers must nil-check before dereferencing even when err == nil, because a non-nil error short-circuits via early return.",
-        "example": "sc, err := otelx.DeserializeSpanContext(headerVal)\nif err != nil || sc == nil { return }\nspan := sc.TraceID()"
+        "name": "NewLogHandler wraps existing slog.Handler",
+        "description": "Wrap any slog.Handler with contextx.NewLogHandler to add context attributes to every record. Install at logger construction time, not per-request.",
+        "example": "slog.New(contextx.NewLogHandler(slog.NewJSONHandler(os.Stdout, nil)))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "spancontext.go",
-        "role": "Only file; exports SerializeSpanContext, DeserializeSpanContext, and OTelSpanContextKey constant.",
-        "watch_for": "DeserializeSpanContext returns *trace.SpanContext \u2014 callers must nil-check. The function does not validate that the resulting SpanContext is valid (IsValid()); add that check at the call site if needed."
+        "file": "attr.go",
+        "role": "WithAttr/WithAttrs write to a ctxdata bag (created via ctxdata.New if none exists); both silently ignore Set errors.",
+        "watch_for": "ctxdata.From returns nil if no bag exists \u2014 the helpers handle nil, but raw ctxdata callers must too."
+      },
+      {
+        "file": "log.go",
+        "role": "Handler wraps a slog.Handler; Handle reads ctxdata.GetAllMap and appends all entries as slog.Any attributes before delegating.",
+        "watch_for": "WithAttrs and WithGroup must re-wrap the inner handler in a new Handler struct to preserve contextx behaviour on derived loggers."
       }
     ],
     "anti_patterns": [
-      "Storing the serialized span context under any key other than OTelSpanContextKey",
-      "Using W3C TraceContext or B3 propagators here \u2014 this package uses its own JSON/base64 scheme for non-HTTP transports",
-      "Dereferencing the *trace.SpanContext return from DeserializeSpanContext without a nil check"
+      "Using context.WithValue directly for structured log fields instead of contextx.WithAttr.",
+      "Installing contextx.NewLogHandler more than once in a handler chain \u2014 double-attaches the same attributes."
     ],
     "decisions": [
       {
-        "decision": "Custom base64+JSON serialization instead of standard W3C propagator",
-        "rationale": "Kafka message headers carry opaque byte slices; the W3C TraceContext propagator expects an HTTP carrier interface. Base64-over-JSON is self-contained, transport-agnostic, and avoids pulling the full otel propagation API into Kafka message handling code."
+        "decision": "peterbourgon/ctxdata as the context bag instead of custom context keys.",
+        "rationale": "Provides a typed map API accessible from any layer without defining package-private key types everywhere."
       }
     ],
     "code_examples": []
   },
-  "pkg/pglockx": {
-    "purpose": "Thin constructor for cirello.io/pglock distributed lock clients backed by a PostgreSQL table (distributed_locks). Enforces the invariant that HeartbeatInterval must be less than half the LeaseTime to prevent lock expiry before renewal.",
+  "pkg/convert": {
+    "purpose": "Nil-safe generic pointer and type conversion helpers used throughout the codebase to eliminate repetitive nil-guard boilerplate when mapping between domain, API, and Ent-generated types.",
     "patterns": [
       {
-        "name": "Validate config before constructing the client",
-        "description": "Config.Validate() enforces two rules: LeaseTime >= 2*HeartbeatInterval and Owner must be non-empty. Call Validate() or rely on New() which calls it internally \u2014 never pass an unvalidated Config to pglock.UnsafeNew.",
-        "example": "if err := config.Validate(); err != nil {\n    return nil, fmt.Errorf(\"invalid lock configuration: %w\", err)\n}"
+        "name": "ToPointer for value-to-pointer",
+        "description": "Use convert.ToPointer[T](value) instead of taking the address of a local variable when the intent is nil-safety.",
+        "example": "convert.ToPointer(\"some-string\")"
       },
       {
-        "name": "Use DefaultHeartbeatInterval and DefaultLeaseTime as safe starting values",
-        "description": "The package exports DefaultHeartbeatInterval (3s) and DefaultLeaseTime (1m) which satisfy the heartbeat < lease/2 invariant. Prefer these defaults when no specific timing is required.",
-        "example": "cfg := pglockx.Config{\n    LeaseTime:         pglockx.DefaultLeaseTime,\n    HeartbeatInterval: pglockx.DefaultHeartbeatInterval,\n    Owner:             \"billing-worker\",\n}"
+        "name": "MapToPointer / SliceToPointer return nil on empty",
+        "description": "Both return nil (not a pointer to an empty collection) when input is empty. Prefer these over lo.EmptyableToPtr for maps and slices.",
+        "example": "convert.MapToPointer(myMap) // returns nil if len==0"
       },
       {
-        "name": "Fixed table name \u2014 never override per caller",
-        "description": "The lock table is hardcoded as the unexported constant lockTable (\"distributed_locks\"). All lock clients in the codebase share this table \u2014 do not create per-feature lock tables.",
-        "example": "pglock.WithCustomTable(lockTable) // internal; not configurable by callers"
+        "name": "SafeDeRef for nil-safe pointer transformation",
+        "description": "Applies a mapping function only if the pointer is non-nil; returns nil otherwise. Replaces repetitive if-ptr-nil blocks in converter files.",
+        "example": "convert.SafeDeRef(req.StartTime, func(t time.Time) *time.Time { return convert.ToPointer(t.UTC()) })"
+      },
+      {
+        "name": "ToStringLike for type-aliased string conversions",
+        "description": "Converts *Source to *Dest where both are ~string kind, avoiding unsafe casts.",
+        "example": "convert.ToStringLike[api.CurrencyCode, currencyx.Code](req.Currency)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "pglock.go",
-        "role": "Entire package \u2014 Config struct, Validate(), New() constructor wrapping pglock.UnsafeNew with fixed table and configurable lease/heartbeat/owner.",
-        "watch_for": "pglock.UnsafeNew is used (not pglock.New) because the safe constructor requires a createTable migration that conflicts with Atlas-managed schema. Do not switch to pglock.New without adding the distributed_locks table to Atlas migrations."
+        "file": "ptr.go",
+        "role": "All pointer/type helpers: ToPointer, MapToPointer, SliceToPointer, ToStringLike, SafeDeRef, SafeToUTC, DerefHeaderPtr (for *map/*slice), StringerPtrToStringPtr.",
+        "watch_for": "lo.EmptyableToPtr is explicitly avoided for maps/slices \u2014 use MapToPointer/SliceToPointer for nil-on-empty semantics."
+      },
+      {
+        "file": "time.go",
+        "role": "TimePtrIn converts *time.Time to a given location, nil-safe; returns a new pointer without mutating in place.",
+        "watch_for": "Returns nil when input is nil \u2014 callers must not assume a non-nil result."
       }
     ],
     "anti_patterns": [
-      "Setting HeartbeatInterval >= LeaseTime/2 \u2014 Validate() rejects this but the invariant must be understood: the heartbeat must renew the lease well before expiry",
-      "Leaving Owner empty \u2014 the lock client requires an owner string to identify which process holds the lock",
-      "Creating per-feature lock tables by overriding WithCustomTable \u2014 all locks share the distributed_locks table",
-      "Using pglock.New instead of pglock.UnsafeNew without adding the distributed_locks table to Atlas migrations"
+      "Using lo.EmptyableToPtr on maps or slices \u2014 it does not treat empty collections as nil.",
+      "Adding domain-specific conversion logic here \u2014 this package is for generic pointer/type mechanics only.",
+      "Taking the address of a local variable instead of convert.ToPointer when the intent is nil-safety."
+    ],
+    "decisions": [],
+    "code_examples": []
+  },
+  "pkg/currencyx": {
+    "purpose": "Thin ISO 4217 currency wrapper on invopop/gobl/currency adding a Calculator for currency-precision rounding and largest-remainder allocation helpers. Used across billing and subscription for all monetary arithmetic to ensure correct subunit rounding per currency.",
+    "patterns": [
+      {
+        "name": "Validate before Calculator",
+        "description": "Always call Code.Validate() or obtain a Calculator via Code.Calculator() (which validates internally). Never use a Code value without validation.",
+        "example": "calc, err := currencyx.Code(\"USD\").Calculator(); if err != nil { return err }"
+      },
+      {
+        "name": "Calculator.RoundToPrecision for monetary amounts",
+        "description": "Round alpacadecimal.Decimal to the correct subunit count for the currency. Never hardcode decimal places.",
+        "example": "rounded := calc.RoundToPrecision(amount) // USD -> 2 places, JPY -> 0 places"
+      },
+      {
+        "name": "Largest-remainder allocation at currency precision",
+        "description": "Use AllocateByWeight (WeightedAllocationInput) or AllocateByAmount (AmountAllocationInput) to split an amount across keys; both round at the currency precision and distribute the remainder by largest fractional remainder, with CompareKey as a deterministic tie-breaker.",
+        "example": "out, err := currencyx.AllocateByWeight(calc, currencyx.WeightedAllocationInput[string]{Amount: total, Items: items, CompareKey: cmp.Compare})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "currency.go",
+        "role": "Code type (alias of currency.Code), Validate, Calculator constructor, RoundToPrecision using Def.Subunits, IsRoundedToPrecision.",
+        "watch_for": "RoundToPrecision uses Def.Subunits (not smallestDenomination) \u2014 correct for online payments; physical-cash rounding may differ."
+      },
+      {
+        "file": "allocation.go",
+        "role": "Generic largest-remainder allocation: WeightedAllocationItem/AmountAllocationItem inputs and AllocateByWeight/AllocateByAmount returning per-key amounts that sum exactly to the input amount.",
+        "watch_for": "Zero input amount returns nil; CompareKey ties are broken deterministically \u2014 supply it (e.g. cmp.Compare) when item order is not stable."
+      }
+    ],
+    "anti_patterns": [
+      "Rounding monetary amounts with a fixed precision constant instead of Calculator.RoundToPrecision.",
+      "Using currency.Code (gobl) directly instead of currencyx.Code \u2014 the wrapper adds Validate() and Calculator().",
+      "Hand-splitting amounts proportionally instead of AllocateByWeight/AllocateByAmount \u2014 manual splits drop the rounding remainder."
     ],
     "decisions": [
       {
-        "decision": "pglock.UnsafeNew over pglock.New",
-        "rationale": "pglock.New attempts to create the lock table at startup, which conflicts with Atlas-managed schema migrations. UnsafeNew skips the auto-create; the table is created via the Atlas migration pipeline."
-      },
-      {
-        "decision": "Single hardcoded lock table name (distributed_locks)",
-        "rationale": "A single shared table avoids schema proliferation and keeps the Atlas migration surface minimal. All distributed lock use cases in the codebase share the same table with owner-scoped rows."
+        "decision": "Wraps gobl/currency rather than implementing ISO 4217 from scratch.",
+        "rationale": "GOBL is already a transitive dependency for invoicing; reusing its currency definitions avoids a duplicate definition table."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Construct a pglock client for a billing worker process",
-        "code": "import (\n    \"database/sql\"\n    \"github.com/openmeterio/openmeter/pkg/pglockx\"\n)\n\nclient, err := pglockx.New(db, pglockx.Config{\n    LeaseTime:         pglockx.DefaultLeaseTime,\n    HeartbeatInterval: pglockx.DefaultHeartbeatInterval,\n    Owner:             \"billing-worker-instance-1\",\n})\nif err != nil {\n    return fmt.Errorf(\"pglock client: %w\", err)\n}"
+        "scenario": "Round a billing amount to currency precision",
+        "code": "import (\n  \"github.com/openmeterio/openmeter/pkg/currencyx\"\n  \"github.com/alpacahq/alpacadecimal\"\n)\n\ncalc, err := currencyx.Code(\"USD\").Calculator()\nif err != nil { return err }\nrounded := calc.RoundToPrecision(alpacadecimal.NewFromFloat(1.23456)) // -> 1.23"
       }
     ]
   }

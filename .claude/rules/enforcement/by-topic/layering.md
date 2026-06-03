@@ -1,4 +1,4 @@
-# Enforcement: layering (7 rules)
+# Enforcement: layering (11 rules)
 
 Topic file. Loaded on demand when an agent works on something in the `layering` area. The pre-edit hook reads `.archie/rules.json` directly — this file is for browsing/context only.
 
@@ -107,4 +107,75 @@ func (h *Handler) ListCustomers(ctx context.Context, req api.ListCustomersReques
     if err != nil { return nil, err }
     return api.ListCustomers200JSONResponse{Items: toAPI(items)}, nil
 }
+```
+
+### `place-noop-subpackage` — Noop implementations of a domain interface (wired when an optional feature like credits is disabled) must live in a noop/ sub-package as noop.go, e.g. openmeter/ledger/noop/noop.go.
+
+*source: `deep_scan`*
+
+**Why:** The file placement rule states: Noop implementations are placed at openmeter/<domain>/noop/ as noop.go and are 'Zero-value implementations wired when an optional feature (credits) is disabled.' Co-locating noops under noop/ keeps the optional-feature seam discoverable and lets app/common pick the noop vs real implementation in one place.
+
+**Example:**
+
+```
+// openmeter/ledger/noop/noop.go
+type AccountResolver struct{}
+func (AccountResolver) EnsureCustomerAccounts(ctx context.Context, ...) error { return nil }
+```
+
+### `name-connector-suffix` — Pipeline/abstraction interfaces use the Connector or Collector suffix (streaming.Connector, ingest.Collector, feature.FeatureConnector, credit.CreditConnector); domain persistence boundaries use the Adapter suffix and service entry points use the Service suffix.
+
+*source: `deep_scan`*
+
+**Why:** The naming convention states: 'Pipeline/abstraction interfaces use the Connector/Collector suffix' with examples streaming.Connector, ingest.Collector, feature.FeatureConnector, credit.CreditConnector, while Adapter is reserved for the persistence boundary composing entutils.TxCreator and Service for the package-root domain interface. Mixing the suffixes obscures whether an interface is a DB boundary, a service, or an external-pipeline abstraction.
+
+**Example:**
+
+```
+type Connector interface { QueryMeter(ctx context.Context, ...) (...); BatchInsert(ctx context.Context, ...) error }
+```
+
+### `name-input-suffix-validator` — Structs crossing a service boundary must use the <Verb><Noun>Input suffix (CreateCustomerInput, ListCustomersInput) and implement models.Validator via a Validate() method.
+
+*source: `deep_scan`*
+
+**Why:** The naming convention states: 'All input structs crossing a service boundary use the <Verb><Noun>Input suffix and implement Validate().' Consistent input naming lets tooling and review locate all inputs for a domain, and implementing models.Validator runs validation before service logic so invalid inputs never reach the adapter or database.
+
+**Example:**
+
+```
+type CreateCustomerInput struct { Namespace string; Name string }
+func (i CreateCustomerInput) Validate() error { /* ... */ }
+```
+
+**Path glob:** `openmeter/**/service.go`, `openmeter/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "type \\w+Input struct"
+    ],
+    "must_not_match": [
+      "func \\(\\w+ \\w+Input\\) Validate\\("
+    ]
+  }
+]
+```
+
+</details>
+
+### `name-lowercase-package-dirs` — Go package directories must be lowercase concatenated words with no underscores or hyphens (billing, productcatalog, balanceworker, subscriptionsync, httpdriver).
+
+*source: `deep_scan`*
+
+**Why:** The naming convention states: 'Package directories are lowercase concatenated words, no underscores or hyphens' with examples billing, productcatalog, balanceworker, subscriptionsync, httpdriver. This keeps import paths and package identifiers idiomatic and consistent across the tree.
+
+**Example:**
+
+```
+// openmeter/subscriptionsync/  not  openmeter/subscription_sync/
 ```

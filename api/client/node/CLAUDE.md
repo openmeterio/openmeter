@@ -8,7 +8,7 @@
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `README.md` | Single-file redirect pointing developers to api/client/javascript. | Do not add new files here. Any Node/TypeScript SDK work belongs in api/client/javascript. |
+| `README.md` | Single-file redirect pointing developers to the fetch-based JavaScript SDK at api/client/javascript. | Do not add new files here. Any Node/TypeScript SDK work belongs in api/client/javascript. |
 
 ## Anti-Patterns
 

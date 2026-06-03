@@ -1,0 +1,91 @@
+{
+  "pkg/kafka": {
+    "purpose": "Shared low-level Kafka infrastructure: typed config-param structs that compile to confluent-kafka-go kafka.ConfigMap, a TopicProvisioner with an expirable LRU cache, librdkafka log bridging to slog, and an OTel metrics sub-package. Primary constraint: pure infrastructure plumbing \u2014 no domain or business logic.",
+    "patterns": [
+      {
+        "name": "ConfigMapper + ConfigValidator interfaces on every param struct",
+        "description": "Each param struct (CommonConfigParams, ConsumerConfigParams, ProducerConfigParams) implements both AsConfigMap() (kafka.ConfigMap, error) and Validate() error. Composite configs (ConsumerConfig, ProducerConfig, AdminConfig) embed the param structs and delegate via mergeConfigsToMap + a sequential validator loop.",
+        "example": "type ConsumerConfig struct { CommonConfigParams; ConsumerConfigParams }\nfunc (c ConsumerConfig) AsConfigMap() (kafka.ConfigMap, error) { return mergeConfigsToMap(c.CommonConfigParams, c.ConsumerConfigParams) }"
+      },
+      {
+        "name": "configValue interface for string enums",
+        "description": "Every string-based enum (BrokerAddressFamily, Partitioner, AutoOffsetReset, TimeDurationMilliSeconds) implements fmt.Stringer + encoding.TextUnmarshaler + json.Unmarshaler. Validation uses a ValidValues[T] slice with AsKeyMap() for O(1) lookup, or slices.Contains.",
+        "example": "var BrokerAddressFamilyValues = ValidValues[BrokerAddressFamily]{BrokerAddressFamilyAny, BrokerAddressFamilyIPv4, BrokerAddressFamilyIPv6}"
+      },
+      {
+        "name": "TimeDurationMilliSeconds renders as a millisecond integer string",
+        "description": "TimeDurationMilliSeconds.String() returns the duration in milliseconds as a decimal string (e.g. '6000' for 6s) \u2014 the format librdkafka expects for *.ms keys. Never pass a raw time.Duration as a kafka.ConfigMap value for *.ms config keys.",
+        "example": "func (d TimeDurationMilliSeconds) String() string { return strconv.FormatInt(int64(d/TimeDurationMilliSeconds(time.Millisecond)), 10) }"
+      },
+      {
+        "name": "localhost auto-forces BrokerAddressFamilyIPv4",
+        "description": "CommonConfigParams.AsConfigMap sets broker.address.family to IPv4 when BrokerAddressFamily is empty and Brokers contains 'localhost' or '127.0.0.1' (OSX IPv6 resolver workaround). Do not override or remove this branch.",
+        "example": "} else if strings.Contains(c.Brokers, \"localhost\") || strings.Contains(c.Brokers, \"127.0.0.1\") { m.SetKey(\"broker.address.family\", BrokerAddressFamilyIPv4) }"
+      },
+      {
+        "name": "metadata.max.age.ms always 3x TopicMetadataRefreshInterval",
+        "description": "When TopicMetadataRefreshInterval is non-zero, AsConfigMap also sets metadata.max.age.ms to 3x that value so the metadata cache never expires before a refresh. Never set metadata.max.age.ms independently.",
+        "example": "m.SetKey(\"metadata.max.age.ms\", 3*c.TopicMetadataRefreshInterval)"
+      },
+      {
+        "name": "TopicProvisioner LRU cache + noop + error-as-success",
+        "description": "topicProvisioner skips cache-hit topics in Provision and ProtectedTopics in DeProvision; ErrTopicAlreadyExists (provision) and ErrUnknownTopicOrPart (de-provision) are treated as success alongside ErrNoError. NewTopicProvisioner validates AdminClient/Logger/Meter (nil checks, fail-fast) before registering OTel metrics.",
+        "example": "switch result.Error.Code() { case kafka.ErrNoError, kafka.ErrTopicAlreadyExists: _ = p.cache.Add(result.Topic, struct{}{}) }"
+      },
+      {
+        "name": "LogProcessor as an oklog/run-compatible pair",
+        "description": "LogProcessor returns (execute func() error, interrupt func(error)) for run.Group; ConsumeLogChannel is the goroutine variant. Both require go.logs.channel.enable=true, which ConsumerConfigParams and ProducerConfigParams hardcode in AsConfigMap.",
+        "example": "func LogProcessor(logEmitter LogEmitter, logger *slog.Logger) (execute func() error, interrupt func(error))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "config.go",
+        "role": "All Kafka config param structs (Common/Consumer/Producer/Admin) with ConfigMapper/ConfigValidator impls, string-enum types, ValidValues[T], and mergeConfigsToMap.",
+        "watch_for": "localhost/127.0.0.1 auto-forces IPv4 when BrokerAddressFamily is empty. Cooperative and eager PartitionAssignmentStrategy values must not be mixed \u2014 Validate() rejects this. StatsInterval min is 5s, TopicMetadataRefreshInterval min is 10s."
+      },
+      {
+        "file": "topicprovisioner.go",
+        "role": "TopicProvisioner interface + expirable-LRU-cached topicProvisioner + TopicProvisionerNoop. Provisions/de-provisions topics via AdminClient with OTel metrics.",
+        "watch_for": "ProtectedTopics must list every system topic to prevent accidental deletion. evictCallback uses a fresh context.WithTimeout(3s) \u2014 never the caller ctx. ErrTopicAlreadyExists and ErrUnknownTopicOrPart must remain success cases."
+      },
+      {
+        "file": "log.go",
+        "role": "Bridges librdkafka syslog-level integers to slog.Level (mapLogLevel); exposes LogProcessor (oklog/run pair) and ConsumeLogChannel (goroutine variant).",
+        "watch_for": "go.logs.channel.enable (and go.application.rebalance.enable in the consumer) are hardcoded in AsConfigMap \u2014 removing them silently drops librdkafka logs."
+      },
+      {
+        "file": "kafka.go",
+        "role": "Package declaration only \u2014 intentionally empty aside from the package doc comment.",
+        "watch_for": "No init() or global state; keep it that way."
+      }
+    ],
+    "anti_patterns": [
+      "Setting kafka.ConfigMap keys directly instead of through AsConfigMap/mergeConfigsToMap \u2014 bypasses validation and the localhost IPv4 auto-fix",
+      "Passing a raw time.Duration as a kafka.ConfigMap value for *.ms keys \u2014 must use TimeDurationMilliSeconds which renders as a millisecond integer string",
+      "Setting metadata.max.age.ms independently instead of tying it to 3x TopicMetadataRefreshInterval \u2014 causes premature metadata cache expiry",
+      "Mixing cooperative and eager PartitionAssignmentStrategy values in ConsumerConfigParams \u2014 Validate() explicitly rejects this combination",
+      "Using Int64Counter or Histogram for librdkafka-derived stats in metrics/ \u2014 they are rolling-window point-in-time snapshots; only Int64Gauge is correct"
+    ],
+    "decisions": [
+      {
+        "decision": "ConfigMapper + ConfigValidator split into separate interfaces implemented by value receivers",
+        "rationale": "Composite configs embed multiple param structs; mergeConfigsToMap iterates them independently so each part owns its own key namespace and validation without coordinating with others."
+      },
+      {
+        "decision": "TopicProvisioner uses an expirable LRU cache keyed by topic name",
+        "rationale": "Provision is called on every namespace creation; the cache prevents redundant Kafka admin round-trips for already-existing topics, while TTL expiry avoids stale entries after broker-side topic deletion."
+      },
+      {
+        "decision": "OTel stats metrics live in a separate metrics/ sub-package behind functional options",
+        "rationale": "Not all consumers of pkg/kafka need stats instrumentation; separating it avoids pulling OTel metric dependencies into the base config package and lets callers opt in per sub-metric category."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Construct and validate a ConsumerConfig then provision a topic",
+        "code": "import (\n\t\"time\"\n\t\"github.com/openmeterio/openmeter/pkg/kafka\"\n\t\"go.opentelemetry.io/otel/metric/noop\"\n)\n\ncfg := kafka.ConsumerConfig{\n\tCommonConfigParams: kafka.CommonConfigParams{\n\t\tBrokers:                      \"broker:9092\",\n\t\tStatsInterval:                kafka.TimeDurationMilliSeconds(10 * time.Second),\n\t\tTopicMetadataRefreshInterval: kafka.TimeDurationMilliSeconds(30 * time.Second),\n\t},\n\tConsumerConfigParams: kafka.ConsumerConfigParams{ConsumerGroupID: \"my-group\", AutoOffsetReset: kafka.AutoOffsetResetEarliest},\n}\nif err := cfg.Validate(); err != nil { return err }\nm, err := cfg.AsConfigMap()\nif err != nil { return err }\n_ = m"
+      }
+    ]
+  }
+}

@@ -1,64 +1,64 @@
 {
   "verdicts": [
     {
-      "id": "f_0008",
-      "verdict": "keep",
-      "confidence": 0.95,
-      "reason": "The cited code exists and correctly implements prefix-based topic routing with a silent fallback to SystemEventsTopic; this is a real and documented structural fragility where new event families that forget to declare EventVersionSubsystem will misroute, breaking topic isolation. The failure mode is acknowledged in enforcement rules as pitfall pf-007 but remains unblocked at runtime."
+      "id": "f_0004",
+      "verdict": "demote",
+      "confidence": 0.92,
+      "reason": "The cited atlas.sum linear hash chain and sequential timestamped migration mechanism are real and correctly described, but this is an intentional architectural trade-off documented in AGENTS.md (decision chain), pitfalls.md (pf_0004), and enforcement/misc.md (migration-001), with explicit mitigation via the /rebase skill\u2014not a bug to fix but a managed characteristic requiring procedural mitigation on long-running branches."
     },
     {
-      "id": "f_0006",
+      "id": "f_0003",
       "verdict": "keep",
-      "confidence": 0.85,
-      "reason": "The quoted call site exists and billing-worker does assume the default namespace already exists via GetDefaultNamespace() without registering handlers to create it, creating a real startup ordering dependency on cmd/server; however, the actual failure mode is an explicit crash (error log + os.Exit(1)) rather than 'silent degradation' as claimed."
+      "confidence": 0.92,
+      "reason": "The quoted code at grouphandler.go:48-54 returns nil (success) for any unknown ce_type, which silently drops known-event-unknown-version mismatches indistinguishably from intentional rolling-deploy ignoring; this is a real failure mode where payload version bumps in producers are invisible to consumers, making notification delivery silently fail without surfacing as DLQ or error."
     },
     {
       "id": "f_0009",
       "verdict": "keep",
+      "confidence": 0.92,
+      "reason": "The quoted code at appclient.go:240 exists and definitively calls c.appService.UpdateAppStatus(context.Background(), ...) from providerError, which is invoked from context-carrying methods (DeleteWebhook, GetAccount, GetPaymentMethod) but receives no ctx parameter to thread through; this violates AGENTS.md's explicit rule against context.Background() in application code and breaks OTel span propagation and Ent transaction context for a database write reachable on every Stripe 401."
+    },
+    {
+      "id": "f_0006",
+      "verdict": "keep",
+      "confidence": 0.75,
+      "reason": "The quoted call site exists in cmd/billing-worker/main.go:86 and the architectural pattern is confirmed: cmd/server is the sole binary registering namespace handlers (Ledger, KafkaIngest, TaxCode) before initNamespace(), while cmd/billing-worker assumes the default namespace is already provisioned when it calls EnsureBusinessAccounts(). No Kubernetes or deployment ordering enforces cmd/server startup before cmd/billing-worker, creating a real cross-binary boot-order dependency that is undocumented in infrastructure."
+    },
+    {
+      "id": "f_0008",
+      "verdict": "demote",
       "confidence": 0.9,
-      "reason": "The quoted code exists at appclient.go:238-240 inside providerError(), a parameterless error handler called from request-scoped methods. It calls UpdateAppStatus(context.Background(), ...) during Stripe 401 handling, severing transaction context and OTel spans from a database mutation \u2014 a direct violation of the documented rule 'Never introduce context.Background() to sidestep missing context propagation in application code'."
+      "reason": "The quoted default case (eventbus.go:141) exists and the failure mode is real, but it is an intentionally-designed trade-off for rolling-deploy safety that is already documented as pitfall pf-007 in enforcement/by-topic/misc.md with explicit code-review guards. The risk should be tracked via the existing enforcement rule, not as a separate findings.json entry."
     },
     {
       "id": "f_0001",
       "verdict": "demote",
       "confidence": 0.85,
-      "reason": "The triggering call site (adapter.go:52) shows the correct Tx() method implementation of the TxCreator interface, not unsafe usage of a raw *entdb.Client. The finding describes a real risk class (helpers accepting raw *entdb.Client bypassing transactions), which is documented in enforcement rules ctx-001/ctx-002 and CLAUDE.md warnings. However, no actual code violation is shown\u2014only the infrastructure that could enable violations if misused, plus the safeguards (TransactingRepo pattern) that prevent them. Reclassify as a pitfall pattern to watch for rather than a current bug."
-    },
-    {
-      "id": "f_0004",
-      "verdict": "keep",
-      "confidence": 0.92,
-      "reason": "The quoted atlas.sum hash chain exists and is real; sequential timestamped migrations do produce predictable merge conflicts on parallel branches by design\u2014this is documented as an accepted trade-off in the enforcement rules, not a bug, but it is a genuine architectural characteristic worth tracking."
-    },
-    {
-      "id": "f_0003",
-      "verdict": "keep",
-      "confidence": 0.85,
-      "reason": "The quoted code at grouphandler.go:48-54 exactly exhibits the claimed behavior: silent return of nil when ce_type is not in typeHandlerMap, and this silently-drop pattern does hide version mismatches per the documented pitfall (pitfalls.md: 'a known event whose payload version the consumer cannot decode' is indistinguishable from intentionally-ignored events); however, this architectural risk is already well-documented in enforcement rules as a known pitfall rather than a new finding."
+      "reason": "Line 52 is the correct Tx() method implementing the TxCreator interface; it properly hijacks transactions and is not a helper bypassing the pattern. The risk class (helpers accepting *entdb.Client without TransactingRepo wrapping) is real and documented in enforcement rules, but the triggering call site cited is the transaction creation mechanism itself, not an instance of the violation."
     },
     {
       "id": "f_0007",
       "verdict": "keep",
-      "confidence": 0.87,
-      "reason": "Hook providers (NewCustomerLedgerServiceHook, NewCustomerSubjectServiceHook, NewCustomerEntitlementValidatorServiceHook) call RegisterHooks/RegisterRequestValidator as side-effects but are NOT in the base Customer wire set, only in individual function definitions; Wire will only call them if another dependency transitively requires their output type, and some binaries (e.g., BalanceWorker) appear not to include them in their wire.Build, causing hooks to silently not register without compile error."
-    },
-    {
-      "id": "f_0005",
-      "verdict": "keep",
       "confidence": 0.85,
-      "reason": "The quoted code exists and genuinely uses context.Background() during request processing inside kin-openapi's ErrorHandler callback, violating the rule; the kin-openapi library signature limitation makes this structurally hard to avoid, but the code lacks any workaround or comment explaining the constraint, and no legitimate exception (main startup or post-cancel shutdown) applies here."
-    },
-    {
-      "id": "f_0002",
-      "verdict": "demote",
-      "confidence": 0.7,
-      "reason": "The finding accurately describes a real architectural fragility (fan-out noop guards without central compile-time enforcement), and this pattern is documented in enforcement rules as a pitfall (pf-005 credits guard spans four layers). However, the CURRENT codebase has all four guards properly implemented: app/common/ledger.go guards NewLedgerAccountService, NewLedgerHistoricalLedger, NewLedgerResolversService; app/common/customer.go guards NewCustomerLedgerServiceHook; app/common/billing.go guards NewBillingRegistry by skipping ChargesRegistry. The finding describes a future risk (if a NEW ledger-touching provider forgets the guard) rather than a current bug. This matches the known architectural pitfall pattern and should be tracked as an architectural decay risk in reviews, not as a findable bug."
+      "reason": "The quoted code exists and accurately describes a real architectural pattern: hook registration via side-effects inside Wire provider functions (NewCustomerLedgerServiceHook, NewCustomerSubjectServiceHook, NewCustomerEntitlementValidatorServiceHook all call RegisterHooks/RegisterRequestValidator). The enforcement rules explicitly codify this as pitfall pf-006-wire-hook-audit, confirming that omitting these providers from a binary's wire.Build silently drops hooks with no compile error. The pattern is documented as a known vulnerability in the codebase."
     },
     {
       "id": "f_0010",
       "verdict": "keep",
-      "confidence": 0.0,
-      "reason": "verifier call failed (timeout / cli missing / non-zero exit); fail-open"
+      "confidence": 0.85,
+      "reason": "The quoted code exists at cmd/billing-worker/main.go and the failure mode is real: billing-worker calls EnsureBusinessAccounts without ever registering namespace.Handler implementations, creating an undocumented boot-order dependency on cmd/server to register handlers and call CreateDefaultNamespace first; if billing-worker boots against a fresh database before cmd/server, subsystem provisioning (Kafka topics, ledger namespace setup) never fires."
+    },
+    {
+      "id": "f_0011",
+      "verdict": "keep",
+      "confidence": 0.9,
+      "reason": "The quoted call site at openmeter/customer/adapter/customer.go:59 exists and correctly applies case-insensitive ILIKE filters (via filter.ApplyToQuery with sql.FieldContainsFold) to the name column, which has only a plain btree index; this DOES trigger sequential scans as described. The issue is documented as a known architectural pitfall (pf_0009) in CLAUDE.md but remains a real performance problem. The v3 API exposes contains operators that compile to leading-wildcard ILIKE, and the customer schema lacks the pg_trgm GIN indexes required to serve this query pattern efficiently."
+    },
+    {
+      "id": "f_0005",
+      "verdict": "keep",
+      "confidence": 0.75,
+      "reason": "The quoted code exists at openmeter/server/server.go line 212-214 and does violate the context propagation rule by passing context.Background() to models.NewStatusProblem in an error handler. The failure mode is real: v1 validation-error RFC 7807 responses lose request-id and OTel span context. While this is due to kin-openapi's ErrorHandler callback signature omitting *http.Request, it remains a valid rule violation in application code that should be tracked, though fixing it may require wrapping or rewriting the v1 validation middleware."
     }
   ]
 }

@@ -2,60 +2,39 @@
 
 <!-- archie:ai-start -->
 
-> Public TypeScript SDK surface for OpenMeter — organizes the generated admin client, portal-scoped client, React integration, and Zod validation schemas as four independent sub-packages. No source files live here directly; it is a routing layer whose children split by concern (admin API, portal API, framework binding, runtime validation).
+> Public TypeScript SDK surface for OpenMeter, organised as four independent sub-packages by concern: the generated admin client (client/), the restricted portal-token client (portal/), the React integration (react/), and orval-generated Zod validation schemas (zod/). No source files live here directly — it is a routing layer; the generated halves (client/schemas.ts, zod/index.ts) are read-only.
 
 ## Patterns
 
-**Generated-first, never hand-edited** — src/client/schemas.ts and src/zod/index.ts are fully generated from the OpenAPI spec via openapi-fetch and orval. Any manual edit is overwritten by `make gen-api`. (`// schemas.ts and zod/index.ts headers contain 'generated' markers — treat as read-only`)
-**Separate admin vs portal client** — src/client/ is the full admin SDK; src/portal/ is a restricted portal-token-only client. These must never be merged: portal client intentionally omits all admin endpoints. (`// portal/index.ts: class OpenMeter { constructor({ portalToken }: Config) }`)
-**React integration via context/provider/hook trio** — src/react/ exposes exactly one context, one provider, and one hook. All SDK logic delegates to src/portal/; react/ only handles injection into the component tree. (`// context.tsx: createContext<OpenMeter | null | undefined>(undefined)`)
-**transformResponse wraps all fetch calls** — Every public method in src/client/ must pipe the raw fetch result through transformResponse (handles date decoding and error mapping). Portal client reuses the same utility from src/client/utils.js. (`// client/events.ts: return transformResponse(await this.client.GET('/api/v1/events', {...}))`)
-**RequestOptions threaded through every public method** — Every public SDK method accepts options?: RequestOptions and spreads ...options into the fetch call to propagate abort signals. (`// client/events.ts: async list(params, options?: RequestOptions) { ...options }`)
+**Generated-first, never hand-edited** — client/schemas.ts (openapi-fetch types) and zod/index.ts (orval schemas) are fully generated from the OpenAPI spec; any manual edit is overwritten by make gen-api. (`import type { paths } from './schemas.js'`)
+**Separate admin vs portal client (no merge)** — client/ is the full admin SDK; portal/ is a portalToken-only client that intentionally omits all admin endpoints — capability separation is enforced at the type level, not by config. (`// portal/index.ts: class OpenMeter { constructor({ portalToken }: Config) }`)
+**transformResponse wraps every fetch call** — Every public method pipes the raw openapi-fetch result through transformResponse (date ISO→Date decoding + HTTPError throwing); portal/ reuses the same util from ../client/utils.js rather than redefining it. (`return transformResponse(await this.client.GET('/api/v1/events', {...}))`)
+**RequestOptions threaded through every public method** — Each method accepts options?: RequestOptions and spreads ...options into the fetch call to propagate AbortSignal. (`async list(params, options?: RequestOptions) { ...options }`)
+**React integration is a context/provider/hook trio delegating to portal/** — react/ exposes exactly one OpenMeterContext, OpenMeterProvider, and useOpenMeter; all SDK logic lives in portal/ and react/ only handles injection. (`createContext<OpenMeter | null | undefined>(undefined)`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `api/client/javascript/src/client/index.ts` | Root OpenMeter admin class — instantiates all resource classes and exposes them as public fields. | New resource classes must be registered here as a field; forgetting this makes the resource unreachable from the public API. |
-| `api/client/javascript/src/client/schemas.ts` | Generated TypeScript types for all OpenAPI paths/operations — source of truth for request/response shapes. | Never edit manually; all domain types in client/ must be imported from here, not redefined locally. |
-| `api/client/javascript/src/client/utils.ts` | Shared utilities: transformResponse, encodeDates, date serialization for query params. | Portal client imports these too — any signature change here breaks both clients. |
-| `api/client/javascript/src/portal/index.ts` | Restricted portal client — authenticates via portalToken, exposes only the portal meter query endpoint. | portalToken must never be optional; do not add admin endpoints here. |
-| `api/client/javascript/src/react/context.tsx` | React context/provider/hook for injecting portal OpenMeter client. Must keep 'use client' directive for Next.js App Router compatibility. | Context default is undefined (not null); useOpenMeter throws on undefined but treats null as 'not logged in'. Do not change this distinction. |
-| `api/client/javascript/src/zod/index.ts` | Generated Zod schemas for all API shapes — runtime type-safety layer over the TypeScript types. | Never hand-edit; do not import in Go server code — TypeScript only. |
+| `api/client/javascript/src/client/index.ts` | Root OpenMeter admin class instantiating every resource class as a public field. | A new resource class must be registered here as a field + constructor new, or it is unreachable from the public API. |
+| `api/client/javascript/src/client/schemas.ts` | Generated TS types for all OpenAPI paths/operations — source of truth for request/response shapes. | Never edit manually; import all domain types from here, never redefine locally. |
+| `api/client/javascript/src/client/utils.ts` | Shared transformResponse, encodeDates, and query date serialization. | Portal client imports these too — any signature change breaks both clients. |
+| `api/client/javascript/src/portal/index.ts` | Restricted portal client authenticating via portalToken, exposing only the portal meter query endpoint. | portalToken must never be optional; do not add admin endpoints; keep Accept: application/json on the meter query or it falls back to CSV. |
+| `api/client/javascript/src/react/context.tsx` | React context/provider/hook injecting the portal OpenMeter client; carries the 'use client' directive. | Context default is undefined (throws in hook) while null is the valid not-logged-in state — do not collapse the distinction; removing 'use client' breaks Next.js App Router. |
+| `api/client/javascript/src/zod/index.ts` | orval-generated Zod runtime-validation schemas over the TS types. | Never hand-edit; treat exported default/regex/min-max constants as regeneration-prone schema internals, not application constants. |
 
 ## Anti-Patterns
 
-- Hand-editing schemas.ts or zod/index.ts — both are generated and will be overwritten by `make gen-api`
-- Adding admin-level endpoints to src/portal/ — the portal client is intentionally restricted to portal-scoped access only
-- Redefining transformResponse or encodeDates inside portal/ or react/ instead of importing from client/utils.js
-- Adding a new resource class to src/client/ without registering it as a public field on the root OpenMeter class in index.ts
+- Hand-editing client/schemas.ts or zod/index.ts — both are generated and overwritten by make gen-api
+- Adding admin-level endpoints to portal/ — it is intentionally restricted to portal scope
+- Redefining transformResponse/encodeDates inside portal/ or react/ instead of importing from ../client/utils.js
+- Adding a client/ resource class without registering it as a public field on the root OpenMeter class
 - Removing the 'use client' directive from react/context.tsx — breaks Next.js App Router server components
 
 ## Decisions
 
-- **Four sub-packages (client, portal, react, zod) instead of a single entry point** — Separates concerns: generated types/schemas from hand-authored utilities, admin from portal access, framework-agnostic client from React-specific integration.
-- **Portal client is a separate class, not a configuration mode of the admin client** — Enforces at the type level that portal consumers cannot call admin endpoints; avoids accidental capability escalation.
-- **Zod schemas are generated by orval from the OpenAPI spec rather than hand-authored** — Keeps runtime validation in sync with the TypeSpec-derived spec without manual maintenance; any spec change propagates via `make gen-api`.
-
-## Example: Adding a new resource class to the admin SDK client
-
-```
-// 1. Create src/client/myresource.ts
-import type { Client } from 'openapi-fetch'
-import type { paths } from './schemas.js'
-import { transformResponse } from './utils.js'
-import type { RequestOptions } from './common.js'
-
-export class MyResourceClient {
-  private readonly client: Client<paths>
-  constructor(client: Client<paths>) { this.client = client }
-
-  async list(params: { namespace: string }, options?: RequestOptions) {
-    return transformResponse(
-      await this.client.GET('/api/v1/myresource', { params: { query: params }, ...options })
-    )
-  }
-// ...
-```
+- **Four sub-packages (client, portal, react, zod) instead of one entry point** — Separates generated types from hand-authored utilities, admin from portal access, and framework-agnostic client from React-specific integration.
+- **Portal client is a separate class, not a config mode of the admin client** — Enforces at the type level that portal consumers cannot call admin endpoints, avoiding accidental capability escalation.
+- **Zod schemas generated by orval from the OpenAPI spec** — Keeps runtime validation in sync with the TypeSpec-derived spec; any spec change propagates via make gen-api with no manual maintenance.
 
 <!-- archie:ai-end -->

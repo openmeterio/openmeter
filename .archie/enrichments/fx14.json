@@ -1,0 +1,285 @@
+{
+  "api/spec/packages/legacy/lib/rules": {
+    "purpose": "TypeSpec linting rules for the v1 (legacy) API spec, enforcing naming, documentation, and structural constraints on TypeSpec models, properties, enums, unions, interfaces, and operations. Rules run in the TypeSpec compiler lint pipeline (make lint-api-spec) and block or warn before OpenAPI generation.",
+    "patterns": [
+      {
+        "name": "createRule factory",
+        "description": "Every rule is a named const from createRule({ name, severity, description, messages, create }). create returns a visitor object keyed by TypeSpec node type (model, modelProperty, enum, union, interface, operation).",
+        "example": "export const casingRule = createRule({ name: 'casing', severity: 'warning', messages: {...}, create: (context) => ({ model: (model) => {...} }) })"
+      },
+      {
+        "name": "paramMessage for diagnostics referencing node names",
+        "description": "Diagnostic templates use paramMessage with ${'placeholder'} syntax; plain strings are not used for messages that reference node names.",
+        "example": "messages: { default: paramMessage`The ${'type'} ${'name'} must have a summary decorator.` }"
+      },
+      {
+        "name": "context.reportDiagnostic with AST target",
+        "description": "Violations are reported only via context.reportDiagnostic({ messageId, format, target }); target is always the offending AST/decorator node so editors can highlight it.",
+        "example": "context.reportDiagnostic({ format: { type: 'Model', casing: 'PascalCase' }, target: model, messageId: 'name' })"
+      },
+      {
+        "name": "Casing helpers centralised in utils.js",
+        "description": "casingRule enforces PascalCase (isPascalCaseNoAcronyms) on model names and camelCase (isCamelCaseNoAcronyms) on property names; '_' is exempt, and a property that is PascalCase also fails. Acronym exceptions (OAuth2, URL, API, UI, ID) live only in utils.js pascalCaseExceptions.",
+        "example": "if ((property.name !== '_' && !isCamelCaseNoAcronyms(property.name)) || isPascalCaseNoAcronyms(property.name)) { ... }"
+      },
+      {
+        "name": "@friendlyName required at error severity",
+        "description": "friendlyNameRule is severity 'error' (blocks compilation) and checks every named interface, model, enum, and union has a decorator whose decorator.name === '$friendlyName'.",
+        "example": "const hasFriendlyName = node.decorators.some((d) => d.decorator.name === '$friendlyName')"
+      },
+      {
+        "name": "Doc/summary/composition checks via program helpers",
+        "description": "docDecoratorRule uses getDoc(context.program, target) (exempting *Response models at property level and '_'/'contentType' props); operationSummaryRule checks for '$summary'; compositionOverInheritanceRule uses getDiscriminator and SyntaxKind.ModelStatement from @typespec/compiler/ast.",
+        "example": "if (model.baseModel && model.node?.kind === SyntaxKind.ModelStatement && model.node.extends && getDiscriminator(context.program, model.baseModel) === undefined) { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "utils.js",
+        "role": "Exports isPascalCaseNoAcronyms, isCamelCaseNoAcronyms, isSnakeCase, isKebabCase. Pascal regex is derived at runtime from the pascalCaseExceptions array ['OAuth2','URL','API','UI','ID'].",
+        "watch_for": "Adding acronym exceptions requires updating pascalCaseExceptions here; never duplicate casing logic in individual rule files."
+      },
+      {
+        "file": "casing.js",
+        "role": "PascalCase on model names, camelCase on property names.",
+        "watch_for": "The dual condition catches a property that accidentally becomes PascalCase even when the first camelCase check passes."
+      },
+      {
+        "file": "friendly-name.js",
+        "role": "Error-severity rule requiring @friendlyName on every named model, enum, union, and interface.",
+        "watch_for": "Severity is 'error' not 'warning' \u2014 violations block compilation. Do not downgrade; missing @friendlyName breaks SDK code generation."
+      },
+      {
+        "file": "docs.js",
+        "role": "Checks @doc presence on models, enums, unions, and model properties; skips property checks for *Response model names.",
+        "watch_for": "'contentType' and '_' property exemptions are hardcoded; new structural exempt properties must be added to the exclusion list."
+      },
+      {
+        "file": "composition-over-inheritance.js",
+        "role": "Warns on model inheritance without @discriminator on the base; distinguishes template-instance inheritance for message selection.",
+        "watch_for": "SyntaxKind.ModelStatement is imported from @typespec/compiler/ast \u2014 import path is /ast, not the root package."
+      },
+      {
+        "file": "operation-summary.js",
+        "role": "Warns when an operation lacks a @summary decorator.",
+        "watch_for": "Checks for the internal '$summary' decorator name, not the user-facing @summary string."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a rule without exporting it as a named const \u2014 the parent linter config imports named exports",
+      "Using plain string messages instead of paramMessage for diagnostics that reference node names",
+      "Reporting diagnostics with a target that is not the offending AST node \u2014 breaks editor highlighting",
+      "Downgrading friendlyNameRule from error to warning \u2014 it is intentionally blocking",
+      "Duplicating casing logic inline instead of importing from utils.js"
+    ],
+    "decisions": [
+      {
+        "decision": "Rules use the @typespec/compiler createRule API rather than raw AST visitors",
+        "rationale": "Keeps rules composable with the compiler diagnostic pipeline, enabling IDE integration and make lint-api-spec CI enforcement."
+      },
+      {
+        "decision": "friendlyNameRule is error-severity while doc/casing/summary/composition rules are warnings",
+        "rationale": "Missing @friendlyName breaks SDK code generation (generated type names depend on it); missing docs only degrade API quality."
+      },
+      {
+        "decision": "Casing helpers centralised in utils.js with a hardcoded acronym exception list",
+        "rationale": "Ensures PascalCase checks for OAuth2/URL/API/UI/ID are consistent across all rules without per-rule special-casing."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new lint rule that enforces a custom decorator on all enums",
+        "code": "import { createRule, paramMessage } from '@typespec/compiler'\n\nexport const myDecoratorRule = createRule({\n  name: 'my-decorator',\n  severity: 'warning',\n  description: 'Ensure @myDecorator on enums.',\n  messages: { default: paramMessage`Enum '${'name'}' is missing @myDecorator.` },\n  create: (context) => ({\n    enum: (node) => {\n      if (node.name && !node.decorators.some((d) => d.decorator.name === '$myDecorator')) {\n        context.reportDiagnostic({ format: { name: node.name }, target: node, messageId: 'default' })\n      }\n    },\n  }),\n})"
+      }
+    ]
+  },
+  "api/spec/packages/legacy/src/app": {
+    "purpose": "TypeSpec definitions for the installed Apps API \u2014 marketplace listings, OAuth2/API-key install flows, Stripe/Sandbox/CustomInvoicing app types, and per-customer app data. Schema-only; every model feeds api/openapi.yaml and the generated Go/JS/Python SDKs.",
+    "patterns": [
+      {
+        "name": "Discriminated union for polymorphic app types",
+        "description": "App, AppReplaceUpdate, and CustomerAppData are @discriminated(#{ envelope: 'none', discriminatorPropertyName: 'type' }) unions. A new app type requires a new variant in all three.",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union App { stripe: StripeApp, sandbox: SandboxApp, custom_invoicing: CustomInvoicingApp }"
+      },
+      {
+        "name": "AppBase spread for concrete app models",
+        "description": "Concrete app models (StripeApp, SandboxApp, CustomInvoicingApp) spread ...AppBase and add a literal type: AppType.<Value> field; never duplicate AppBase fields.",
+        "example": "model SandboxApp { ...AppBase; type: AppType.Sandbox; }"
+      },
+      {
+        "name": "CustomerAppBase generic for per-app customer data",
+        "description": "Per-app customer data models spread ...CustomerAppBase<AppType.X> to inherit id?/type, then add provider-specific fields.",
+        "example": "model StripeCustomerAppData { ...CustomerAppBase<AppType.Stripe>; ...StripeCustomerAppDataBase; @visibility(Lifecycle.Read) app?: StripeApp; }"
+      },
+      {
+        "name": "Interface-per-resource with @route, @tag, @operationId, @summary",
+        "description": "Each HTTP resource is an interface decorated with @route and @tag; operations carry @operationId and @summary. Never write bare operations outside an interface.",
+        "example": "@route(\"/api/v1/apps\") @tag(\"Apps\") interface AppsEndpoints { @get @operationId(\"listApps\") list(...ListAppsRequest): PaginatedResponse<App> | CommonErrors; }"
+      },
+      {
+        "name": "main.tsp as the import manifest",
+        "description": "main.tsp only imports sibling .tsp files and contains no type definitions; it is the entry point imported by cloud/main.tsp. New files must be imported here or are excluded from compilation.",
+        "example": "import \"./app.tsp\"; import \"./stripe.tsp\"; import \"./custominvoicing.tsp\";"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "app.tsp",
+        "role": "AppsEndpoints interface, AppBase, App union, AppStatus enum, AppType enum, AppReference \u2014 scaffolding for all app types.",
+        "watch_for": "App and AppReplaceUpdate unions must stay in sync \u2014 adding an app type to App without AppReplaceUpdate breaks PUT."
+      },
+      {
+        "file": "marketplace.tsp",
+        "role": "MarketplaceEndpoints (listing discovery, OAuth2 install, API-key install, plain install); MarketplaceListing, AppInstallMethod, install request/response models.",
+        "watch_for": "installMethods on MarketplaceListing is informational only \u2014 actual install routes live in MarketplaceEndpoints."
+      },
+      {
+        "file": "stripe.tsp",
+        "role": "AppStripeEndpoints (webhook, deprecated updateStripeAPIKey, createCheckoutSession) plus Stripe checkout session option models.",
+        "watch_for": "updateStripeAPIKey is deprecated; new stripe config changes go through PUT /api/v1/apps/{id}."
+      },
+      {
+        "file": "custominvoicing.tsp",
+        "role": "CustomInvoicingApp and AppCustomInvoicingEndpoints for draft/issuing sync callbacks and payment status updates.",
+        "watch_for": "Uses async hooks (enableDraftSyncHook, enableIssuingSyncHook); consumers must POST draftSynchronized/issuingSynchronized to progress invoice state."
+      },
+      {
+        "file": "oauth.tsp",
+        "role": "OAuth2 namespace with AuthorizationCodeGrantParams combining success and error query params.",
+        "watch_for": "Uses OAuth2 namespace, not OpenMeter \u2014 references must be OAuth2.ClientAppStartResponse etc."
+      },
+      {
+        "file": "customer.tsp",
+        "role": "CustomerAppData union and per-provider customer app data models (Stripe/Sandbox/CustomInvoicing).",
+        "watch_for": "This customer.tsp is under app/ and is separate from the top-level customer/ folder's customer.tsp."
+      }
+    ],
+    "anti_patterns": [
+      "Adding app-type-specific fields directly to AppBase \u2014 each app type has its own concrete model",
+      "Defining endpoints outside a named interface with @route and @tag",
+      "Adding a new AppType variant only to App without updating AppReplaceUpdate and CustomerAppData",
+      "Using @body on list/GET operations \u2014 paginated params use spread models like ...QueryPagination",
+      "Importing types from sibling app/*.tsp files without going through main.tsp at build time"
+    ],
+    "decisions": [
+      {
+        "decision": "Discriminated unions with envelope:none for App/AppReplaceUpdate/CustomerAppData",
+        "rationale": "Produces a single OpenAPI oneOf with a flat discriminator property, matching client SDK codegen and the Go handler type-switch pattern."
+      },
+      {
+        "decision": "Separate AppBase model spread into each concrete app",
+        "rationale": "Avoids deep inheritance chains that TypeSpec/oapi-codegen struggle with; each concrete model is self-contained for SDK generation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new app type (e.g. PayPal)",
+        "code": "// 1. app.tsp: enum AppType { ..., PayPal: \"paypal\" }\n// 2. paypal.tsp: model PayPalApp { ...AppBase; type: AppType.PayPal; }\n// 3. app.tsp: union App { ..., paypal: PayPalApp }; union AppReplaceUpdate { ..., paypal: TypeSpec.Rest.Resource.ResourceReplaceModel<PayPalApp> }\n// 4. customer.tsp: union CustomerAppData { ..., paypal: PayPalCustomerAppData }\n// 5. main.tsp: import \"./paypal.tsp\";"
+      }
+    ]
+  },
+  "api/spec/packages/legacy/src/billing/invoices": {
+    "purpose": "TypeSpec schema-only package defining the v1 billing invoice API surface \u2014 invoice entity, line items, discounts, taxes, parties, payment terms, document references. Compiles into api/openapi.yaml via make gen-api; no runtime code lives here.",
+    "patterns": [
+      {
+        "name": "Lifecycle visibility on every field",
+        "description": "Every field carries @visibility(Lifecycle.Read/Create/Update). Read-only computed fields get only Lifecycle.Read. Missing visibility defaults to all lifecycles and leaks internal state on create/update.",
+        "example": "@visibility(Lifecycle.Read, Lifecycle.Create) currency: CurrencyCode;"
+      },
+      {
+        "name": "@friendlyName on every model, enum, and union",
+        "description": "All models/enums/unions declare @friendlyName matching the PascalCase type name so oapi-codegen emits stable Go type names; missing it causes type-name drift across regen runs.",
+        "example": "@friendlyName(\"InvoiceLineAmountDiscount\") model InvoiceLineAmountDiscount { ... }"
+      },
+      {
+        "name": "Spread (...) for composition, not extends",
+        "description": "Shared base models (InvoiceDiscountBase, BillingParty, GenericPaymentTerms) compose via spread. Direct extends is reserved for discriminated union variants.",
+        "example": "model InvoiceLineUsageDiscount { ...InvoiceDiscountBase; quantity: Numeric; }"
+      },
+      {
+        "name": "Discriminated unions with envelope:none",
+        "description": "Polymorphic types use @discriminated(#{ envelope: 'none', discriminatorPropertyName: 'type' }); new arms require a matching model with a typed type field.",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union BillingDiscountReason { maximum_spend: DiscountReasonMaximumSpend, ratecard_percentage: DiscountReasonRatecardPercentage }"
+      },
+      {
+        "name": "namespace OpenMeter on all declarations",
+        "description": "Every .tsp file declares namespace OpenMeter; at the top. Omitting it lands schemas in the wrong component namespace and breaks Go type resolution.",
+        "example": "namespace OpenMeter; model Invoice { ... }"
+      },
+      {
+        "name": "main.tsp as the sole entry point with documented GOBL omissions",
+        "description": "main.tsp imports all sibling .tsp and parent packages; new files must be added or they are silently excluded. Models mirror GOBL with deliberate omissions documented in comments.",
+        "example": "import \"./discounts.tsp\"; import \"./credits.tsp\";  /* Omitted: ordering, delivery \u2014 physical goods not supported */"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.tsp",
+        "role": "Package entry point \u2014 imports all sibling files and parent packages (../../productcatalog).",
+        "watch_for": "Forgetting to import a new .tsp here silently drops all its types from the generated OpenAPI."
+      },
+      {
+        "file": "invoice.tsp",
+        "role": "Core Invoice and InvoiceLine models, enums (InvoiceStatus, InvoiceType, InvoiceLineStatus, InvoiceLineManagedBy), and action/detail models.",
+        "watch_for": "InvoiceExtendedStatus is a scalar (not enum) with @extension('x-inline', true) \u2014 don't convert until statuses stabilise. InvoiceLineReplaceUpdate uses ResourceReplaceModel with OmitProperties excluding id and children \u2014 preserve these omissions."
+      },
+      {
+        "file": "discounts.tsp",
+        "role": "Line-level read discounts (InvoiceLineAmountDiscount, InvoiceLineUsageDiscount) and catalog-level inputs (BillingDiscountPercentage, BillingDiscountUsage); BillingDiscountReason is a discriminated union.",
+        "watch_for": "BillingDiscountMetadata.correlationId is required for progressive billing coherence. New discount reasons require both a BillingDiscountReason arm and a DiscountReasonType enum value."
+      },
+      {
+        "file": "party.tsp",
+        "role": "BillingParty and BillingInvoiceCustomerExtendedDetails; imports ../../customer for CustomerUsageAttribution.",
+        "watch_for": "@maxItems(1) on addresses \u2014 only one address per party; removing it requires a schema migration and Go adapter changes."
+      },
+      {
+        "file": "pay.tsp",
+        "role": "PaymentTerms union (instant/dueDate) and PaymentDueDate; GenericPaymentTerms is parameterised by PaymentTermType.",
+        "watch_for": "PaymentTerms is a union, not a model \u2014 a new term type needs a new arm and a model extending GenericPaymentTerms<PaymentTermType.newType>."
+      },
+      {
+        "file": "tax.tsp",
+        "role": "InvoiceLineTaxItem and InvoiceLineTaxBehavior \u2014 tax config reference on line items; minimal GOBL subset.",
+        "watch_for": "A nil percent in InvoiceLineTaxItem signals tax-exempt; preserve this in Go adapter mapping \u2014 do not default nil to 0."
+      },
+      {
+        "file": "docref.tsp",
+        "role": "InvoiceDocumentRef union for credit note back-references; currently only creditNoteOriginalInvoice.",
+        "watch_for": "New document reference types (proforma, debit note) must add a union arm, not extend InvoiceGenericDocumentRef directly."
+      },
+      {
+        "file": "credits.tsp",
+        "role": "InvoiceLineCreditAllocation \u2014 credit amounts allocated to a line before taxes.",
+        "watch_for": "All fields are Lifecycle.Read only \u2014 credit allocations are computed by the billing engine, never set via API."
+      }
+    ],
+    "anti_patterns": [
+      "Adding runtime or business logic \u2014 this folder is schema-only; logic belongs in openmeter/billing/",
+      "Editing generated files (api/openapi.yaml, api/api.gen.go) instead of the .tsp source here",
+      "Omitting @friendlyName on new models, enums, or unions \u2014 causes unstable generated Go type names",
+      "Adding fields without @visibility decorators \u2014 defaults to all lifecycles, leaking internal state on create/update",
+      "Extending InvoiceGenericDocumentRef with extends for new document types instead of adding an InvoiceDocumentRef union arm"
+    ],
+    "decisions": [
+      {
+        "decision": "GOBL schema as the structural baseline with deliberate, documented omissions",
+        "rationale": "GOBL provides a validated international invoicing schema; OpenMeter extends it for draft invoices, tiered line groups, and time-series while documenting every omitted field so gaps are intentional."
+      },
+      {
+        "decision": "Visibility-controlled fields instead of separate request/response types",
+        "rationale": "@visibility on a single model keeps the schema DRY while still emitting distinct request/response shapes via oapi-codegen."
+      },
+      {
+        "decision": "Discriminated unions with envelope:none for polymorphic types",
+        "rationale": "Avoids wrapping objects in JSON; the inline discriminator matches GOBL and the Go-side tagged-union pattern (billing.InvoiceLine, charges.Charge)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new invoice line discount type",
+        "code": "// 1. discounts.tsp\n@friendlyName(\"InvoiceLineNewDiscount\")\nmodel InvoiceLineNewDiscount {\n  ...InvoiceDiscountBase;\n  @visibility(Lifecycle.Read)\n  someNewField: Numeric;\n}\n// 2. add DiscountReasonType enum value: newReason: \"new_reason\""
+      }
+    ]
+  }
+}

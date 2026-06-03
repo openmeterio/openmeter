@@ -1,0 +1,192 @@
+{
+  "cmd/jobs/entitlement": {
+    "purpose": "Cobra sub-command group for entitlement administrative jobs; exposes recalculate-balance-snapshots, which drives balanceworker.Recalculator to recompute metered entitlement balance snapshots and publish results to the event bus. All dependencies come exclusively from internal.App.",
+    "patterns": [
+      {
+        "name": "Source all services from internal.App",
+        "description": "Commands never construct domain services locally; all dependencies (EntitlementRegistry, EventPublisher, Meter, NotificationService, Customer, Subject, Logger) are read from the package-level internal.App global.",
+        "example": "balanceworker.NewRecalculator(balanceworker.RecalculatorOptions{Entitlement: internal.App.EntitlementRegistry, EventBus: internal.App.EventPublisher, ...})"
+      },
+      {
+        "name": "Root + sub-command via cmd.AddCommand in RootCommand()",
+        "description": "root.go defines RootCommand() returning the 'entitlement' parent cobra.Command; each job is registered through cmd.AddCommand(NewXxxCommand()) inside RootCommand().",
+        "example": "cmd.AddCommand(NewRecalculateBalanceSnapshotsCommand())"
+      },
+      {
+        "name": "cmd.Context() for context propagation",
+        "description": "RunE closures pass cmd.Context() to all domain calls, never context.Background().",
+        "example": "return recalculator.Recalculate(cmd.Context(), \"default\", time.Now())"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "root.go",
+        "role": "Defines the 'entitlement' parent Cobra command and registers all sub-commands via cmd.AddCommand.",
+        "watch_for": "New jobs must be added via cmd.AddCommand here to be reachable from the CLI."
+      },
+      {
+        "file": "recalculatesnapshots.go",
+        "role": "Canonical job: builds balanceworker.Recalculator from internal.App fields (HighWatermarkCacheSize=100_000) and calls Recalculate(cmd.Context(), \"default\", time.Now()).",
+        "watch_for": "All RecalculatorOptions fields come from internal.App \u2014 adding a dependency requires updating cmd/jobs/internal/wire.go Application struct first and regenerating."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing domain services (Recalculator dependencies) inside the command instead of sourcing from internal.App",
+      "Using context.Background() instead of cmd.Context()",
+      "Adding business logic to RunE beyond orchestrating internal.App services",
+      "Registering sub-commands outside of RootCommand()"
+    ],
+    "decisions": [
+      {
+        "decision": "Dependencies come exclusively from the internal.App global rather than local construction",
+        "rationale": "Wire-generated initializeApplication in cmd/jobs/internal produces a fully wired Application; repeating wiring in job commands would duplicate provider graphs and risk inconsistency."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new entitlement job sub-command",
+        "code": "// newjob.go\npackage entitlement\nimport (\n  \"github.com/spf13/cobra\"\n  \"github.com/openmeterio/openmeter/cmd/jobs/internal\"\n)\nfunc NewMyEntitlementJobCommand() *cobra.Command {\n  return &cobra.Command{\n    Use:   \"my-job\",\n    Short: \"Does something with entitlements\",\n    RunE: func(cmd *cobra.Command, args []string) error {\n      return internal.App.EntitlementRegistry.SomeOp(cmd.Context())\n    },\n  }\n}\n// then register in root.go RootCommand(): cmd.AddCommand(NewMyEntitlementJobCommand())"
+      }
+    ]
+  },
+  "cmd/jobs/internal": {
+    "purpose": "Single Wire DI entry point for the jobs binary: provides the Wire-generated Application struct, Viper config loading, and the package-level globals (App, AppShutdown, Config, ConfigFile) shared by every cmd/jobs sub-command package. Import direction is one-way outward \u2014 never import this from app/common.",
+    "patterns": [
+      {
+        "name": "Wire-generated initializeApplication in wire.go",
+        "description": "wire.go declares the Application struct and calls wire.Build with app/common provider sets; wire_gen.go is the generated output. After any change to wire.go or constructors run 'make generate'.",
+        "example": "wire.Build(common.App, common.Billing, common.Customer, ..., wire.Struct(new(Application), \"*\"))"
+      },
+      {
+        "name": "Application struct as exhaustive service registry",
+        "description": "Every domain service used by any sub-command is a typed field on Application; adding a dependency means a new field plus a matching common.* provider in wire.Build, then regenerate.",
+        "example": "type Application struct { common.GlobalInitializer; BillingRegistry common.BillingRegistry; EntitlementRegistry *registry.Entitlement; ... }"
+      },
+      {
+        "name": "Two-phase startup: loadConfig then initializeApplication",
+        "description": "app.go's InitializeApplication calls loadConfig (populating Config) first, then Wire-generated initializeApplication(ctx, Config), storing App and AppShutdown. Sub-commands invoke it from PersistentPreRunE.",
+        "example": "App, AppShutdown, err = initializeApplication(ctx, Config)"
+      },
+      {
+        "name": "Package-level globals (nolint:gochecknoglobals)",
+        "description": "App, AppShutdown, Config, ConfigFile are deliberate package-level globals consumed across all job sub-packages; the nolint annotation is intentional.",
+        "example": "//nolint:gochecknoglobals\nvar (App Application; AppShutdown func(); Config config.Configuration; ConfigFile string)"
+      },
+      {
+        "name": "metadata() stamps service name 'jobs'",
+        "description": "metadata() in wire.go maps config.Configuration to common.Metadata with service name 'jobs', stamping all telemetry.",
+        "example": "func metadata(conf config.Configuration) common.Metadata { return common.NewMetadata(conf, version, \"jobs\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "wire.go",
+        "role": "Source of truth for which common.* provider sets are included for the jobs binary; declares Application struct fields.",
+        "watch_for": "Adding a domain service to Application requires the corresponding common.* provider in wire.Build then 'make generate'."
+      },
+      {
+        "file": "wire_gen.go",
+        "role": "Generated by Wire \u2014 DO NOT EDIT. Shows exact construction order and cleanup chain.",
+        "watch_for": "Re-run 'make generate' after any wire.go change; never hand-edit."
+      },
+      {
+        "file": "app.go",
+        "role": "Public InitializeApplication entrypoint called by cmd/jobs/main.go PersistentPreRunE.",
+        "watch_for": "Order matters: loadConfig runs before initializeApplication; config validation failure aborts before Wire wiring."
+      },
+      {
+        "file": "config.go",
+        "role": "loadConfig loads and validates config.Configuration via Viper with config.DecodeHook() and SetViperDefaults.",
+        "watch_for": "viper.ConfigFileNotFoundError is tolerated (env-var-only config); all other read errors are fatal. Config.Validate() runs last."
+      },
+      {
+        "file": "globals.go",
+        "role": "Defines the four package-level globals consumed by all job sub-packages.",
+        "watch_for": "Application fields must exist before any sub-command can reference them at compile time."
+      }
+    ],
+    "anti_patterns": [
+      "Editing wire_gen.go directly instead of modifying wire.go and regenerating",
+      "Adding domain service construction logic in app.go or config.go instead of wire.go provider sets",
+      "Importing cmd/jobs/internal from app/common (creates an import cycle \u2014 direction is one-way outward)",
+      "Adding an Application field without a corresponding common.* provider in wire.Build",
+      "Calling viper.SetDefault directly instead of relying on app/config.SetViperDefaults"
+    ],
+    "decisions": [
+      {
+        "decision": "All domain wiring delegated to app/common provider sets rather than inline construction",
+        "rationale": "Centralizing providers in app/common means all binaries share identical wiring; constructor-signature changes surface at Wire generation time, not runtime."
+      },
+      {
+        "decision": "Package-level globals for App/Config rather than Cobra context values",
+        "rationale": "Cobra's PersistentPreRunE runs before any sub-command RunE, making globals the simplest cross-package handoff without threading context through every layer."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new service to the jobs Application",
+        "code": "// 1. In wire.go add a field and provider:\ntype Application struct {\n  // ... existing fields\n  Currencies currencies.Adapter\n}\n// In wire.Build add: common.Currencies,\n\n// 2. Run: make generate  (wire_gen.go regenerated)\n\n// 3. Sub-commands access: internal.App.Currencies"
+      }
+    ]
+  },
+  "cmd/jobs/ledger/backfillaccounts": {
+    "purpose": "Single-file Cobra sub-command that backfills missing ledger accounts (business + customer) for the default namespace. Intentionally bypasses the Wire DI surface to construct concrete ledger adapters, because the wired accountResolver is a noop when credits.enabled=false.",
+    "patterns": [
+      {
+        "name": "Bypass DI for the concrete ledger stack",
+        "description": "newService() builds accountRepo, accountSvc, resolverRepo, and accountResolver directly from internal.App.EntClient; never uses the wired resolver from app/common (a noop / narrowed surface when credits are disabled).",
+        "example": "accountRepo := accountadapter.NewRepo(internal.App.EntClient); accountSvc := accountservice.New(accountRepo, locker); accountResolver := resolvers.NewAccountResolver(resolvers.AccountResolverConfig{AccountService: accountSvc, Repo: resolverRepo, Locker: locker})"
+      },
+      {
+        "name": "Flags in init(), logic in RunE",
+        "description": "Package-level flag vars (createdBefore, customerPageSize, dryRun, continueOnError, includeDeleted) are registered in init() via Cmd.Flags(); RunE builds the service, resolves inputs, calls service.Run, prints summary, then exits non-zero on failures.",
+        "example": "func init() { Cmd.Flags().StringVar(&createdBefore, \"created-before\", \"\", \"...\") }"
+      },
+      {
+        "name": "RFC3339 flag parsing normalized to UTC",
+        "description": "Time-valued flags are strings parsed with time.Parse(time.RFC3339, ...) inside RunE and normalized to UTC.",
+        "example": "parsed, err := time.Parse(time.RFC3339, createdBefore); parsed = parsed.UTC(); createdBeforeTime = &parsed"
+      },
+      {
+        "name": "Print summary before returning error",
+        "description": "printSummary is always called before any error return so partial results stay visible even on failure.",
+        "example": "if err != nil { printSummary(output); return err }; printSummary(output)"
+      },
+      {
+        "name": "Non-zero exit on FailureCount",
+        "description": "After printing the summary, return a descriptive error when output.Result.FailureCount > 0 so the process exits non-zero.",
+        "example": "if output.Result.FailureCount > 0 { return fmt.Errorf(\"backfill completed with %d failures\", output.Result.FailureCount) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "backfillaccounts.go",
+        "role": "Single-file Cobra command: flag vars, init() registration, newService() building concrete ledger adapters, RunE orchestration over cmd/jobs/ledger/service, and printSummary.",
+        "watch_for": "Use internal.App globals; do not import wired app/common ledger services (noop when credits disabled). lockr.NewLocker must be created here and passed to accountservice.New (required for CreateCustomerAccounts). Namespace comes from internal.App.NamespaceManager.GetDefaultNamespace()."
+      }
+    ],
+    "anti_patterns": [
+      "Using the Wire-provided ledger account resolver from app/common (noop when credits.enabled=false)",
+      "Omitting lockr.NewLocker \u2014 accountservice.New requires a Locker",
+      "Parsing time flags outside RunE or skipping UTC normalization",
+      "Returning an error before printSummary (partial results become invisible)",
+      "Adding business logic in RunE beyond input construction, service.Run, and summary printing"
+    ],
+    "decisions": [
+      {
+        "decision": "Build concrete ledger adapters directly instead of using DI outputs",
+        "rationale": "AGENTS.md states backfills that genuinely need ledger writes must build concrete adapters directly because DI defaults are noops when credits.enabled=false."
+      },
+      {
+        "decision": "Delegate pagination/provisioning logic to cmd/jobs/ledger/service",
+        "rationale": "Keeps the Cobra command thin and testable: the service package is pure Go with no Cobra/Ent imports, enabling unit tests without a real database."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Construct the concrete ledger stack for the backfill",
+        "code": "import (\n  accountadapter \"github.com/openmeterio/openmeter/openmeter/ledger/account/adapter\"\n  accountservice \"github.com/openmeterio/openmeter/openmeter/ledger/account/service\"\n  \"github.com/openmeterio/openmeter/openmeter/ledger/resolvers\"\n  resolversadapter \"github.com/openmeterio/openmeter/openmeter/ledger/resolvers/adapter\"\n  \"github.com/openmeterio/openmeter/pkg/framework/lockr\"\n)\nfunc newService() (*ledgerbackfillservice.Service, error) {\n  locker, err := lockr.NewLocker(&lockr.LockerConfig{Logger: internal.App.Logger})\n  if err != nil { return nil, fmt.Errorf(\"create locker: %w\", err) }\n  accountRepo := accountadapter.NewRepo(internal.App.EntClient)\n  accountSvc := accountservice.New(accountRepo, locker)\n  resolverRepo := resolversadapter.NewRepo(internal.App.EntClient)\n  accountResolver := resolvers.NewAccountResolver(resolvers.AccountResolverConfig{\n    AccountService: accountSvc, Repo: resolverRepo, Locker: locker,\n  })\n  return ledgerbackfillservice.NewService(ledgerbackfillservice.Config{\n    CustomerLister:     ledgerbackfillservice.NewEntCustomerLister(internal.App.EntClient),\n    AccountProvisioner: accountResolver,\n    Logger:             internal.App.Logger,\n  })\n}"
+      }
+    ]
+  }
+}

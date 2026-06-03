@@ -1,0 +1,284 @@
+{
+  "openmeter/productcatalog": {
+    "purpose": "Root domain package for the product catalog and the shared type contract between billing, entitlement, and subscription. It owns the polymorphic value types (RateCard, Price, Discount, EntitlementTemplate, EffectivePeriod, Phase, PlanAddon, ProRatingConfig) and their validators; sub-packages split each entity (feature, plan, addon, planaddon) into the standard domain / adapter / driver / service three-layer shape, plus bridge packages (featureresolver, subscription) that break import cycles.",
+    "patterns": [
+      {
+        "name": "Root holds shared value types; sub-packages hold entity aggregates",
+        "description": "The package root (price.go, ratecard.go, entitlement.go, effectiveperiod.go, errors.go) defines the polymorphic value types and ValidationIssue sentinels reused by every sub-package. Entity lifecycle (feature, plan, addon, planaddon) lives one level down, each with adapter/driver/service children.",
+        "example": "productcatalog.RateCard / productcatalog.Price consumed by addon.RateCard and plan.RateCard which wrap them with managed identity (NamespacedID, ManagedModel)."
+      },
+      {
+        "name": "Three-layer per entity: domain root + adapter + httpdriver + service",
+        "description": "Each entity sub-package defines Service+Repository interfaces and aggregate types at its root; an adapter/ child for Ent persistence (TransactingRepo + Tx/WithTx/Self triad), an httpdriver/ child for v1 HTTP, and a service/ child for validation + feature/taxcode resolution + event publishing.",
+        "example": "openmeter/productcatalog/plan/{plan.go,service.go} + plan/adapter + plan/httpdriver + plan/service"
+      },
+      {
+        "name": "Validation and event publishing in the service/connector layer only",
+        "description": "Adapters do pure persistence; all input validation, feature/taxcode resolution, and Watermill event publishing happen in the service (or featureConnector) layer, with events published inside the transaction.Run closure so a publish failure rolls back the DB write.",
+        "example": "feature.featureConnector wraps feature.FeatureRepo; addon/plan service resolve features+taxcodes then publish events inside transaction.Run."
+      },
+      {
+        "name": "EffectivePeriod-derived status, gated to Publish/Archive",
+        "description": "Draft/Active/Archived status is computed from EffectivePeriod relative to clock.Now(), never stored. EffectivePeriod fields are zeroed in UpdatePlan and may only change via Publish/Archive.",
+        "example": "AddonMeta.Status() = StatusAt(clock.Now()); plan service zeroes EffectivePeriod in UpdatePlan."
+      },
+      {
+        "name": "Bridge packages break import direction",
+        "description": "featureresolver adapts feature.FeatureConnector into productcatalog.FeatureResolver so plan/addon code never imports feature directly; the subscription/ bridge (package plansubscription) routes all subscription writes through subscriptionworkflow.Service, never subscription.Service.",
+        "example": "ResolveFeaturesForRateCards aggregates field-prefixed errors; PlanSubscriptionService delegates persistence to WorkflowService."
+      },
+      {
+        "name": "Discriminated unions with custom JSON + ValidationIssue sentinels",
+        "description": "Polymorphic types (RateCard, Price, EntitlementTemplate) read a type discriminator then unmarshal the concrete variant; all package-boundary errors are package-level models.ValidationIssue vars with ErrCode pairs and commonhttp.WithHTTPStatusCodeAttribute, never plain fmt.Errorf.",
+        "example": "EntitlementTemplate.UnmarshalJSON reads serde.Type then delegates; ErrRateCardFeatureNotFound = models.NewValidationIssue(...)."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "errors.go",
+        "role": "Single source of truth for productcatalog-level ValidationIssue sentinels (ErrCode const + var pairs).",
+        "watch_for": "Forgetting commonhttp.WithHTTPStatusCodeAttribute for non-500 mappings; using errors.New."
+      },
+      {
+        "file": "ratecard.go",
+        "role": "RateCard interface (Type, AsMeta, Key, Merge, Clone, Compatible, GetBillingCadence, IsBillable) + RateCardMeta.",
+        "watch_for": "Adding RateCardMeta fields without updating Clone(); missing a JSON type-switch case."
+      },
+      {
+        "file": "price.go",
+        "role": "Price discriminated union (FlatPrice, UnitPrice, TieredPrice, DynamicPrice, PackagePrice) + PaymentTermType.",
+        "watch_for": "Adding a PriceType without updating MarshalJSON/UnmarshalJSON and all downstream adapter mappings."
+      },
+      {
+        "file": "entitlement.go",
+        "role": "EntitlementTemplate union (Metered, Static, Boolean) used as a RateCardMeta field.",
+        "watch_for": "Adding an EntitlementType without updating all four switches (MarshalJSON, UnmarshalJSON, Validate, Equal)."
+      },
+      {
+        "file": "effectiveperiod.go",
+        "role": "Shared EffectivePeriod embedded by Plan and Addon, governs status derivation.",
+        "watch_for": "Mutating EffectiveFrom/EffectiveTo outside Publish/Archive \u2014 status is derived, not stored."
+      },
+      {
+        "file": "featureresolver.go / featureresolver/",
+        "role": "Breaks the productcatalog\u2192feature import cycle by resolving rate-card feature refs.",
+        "watch_for": "Calling feature.FeatureConnector directly from plan/addon code instead of through the resolver."
+      }
+    ],
+    "anti_patterns": [
+      "Returning plain fmt.Errorf/errors.New at a package boundary instead of models.NewValidationIssue sentinels or models.NewGeneric*Error.",
+      "Adding a discriminated-union variant (RateCardType, PriceType, EntitlementType) without updating MarshalJSON, UnmarshalJSON, Equal, Validate, and all downstream adapter type-switches.",
+      "Putting validation or event publishing inside an entity adapter \u2014 it belongs in the service/connector layer.",
+      "Mutating EffectivePeriod directly to change status, or setting it via UpdatePlan instead of Publish/Archive.",
+      "Importing app/common (or any DI package) from this domain or its testutils \u2014 breaks the leaf-node import direction and causes cycles."
+    ],
+    "decisions": [
+      {
+        "decision": "ValidatorFunc[T] composition instead of inline Validate() logic.",
+        "rationale": "Lets Publishable() layer stricter validators on the base set without conditional branches inside Validate()."
+      },
+      {
+        "decision": "EffectivePeriod-derived status with no stored status field.",
+        "rationale": "Status stays consistent with stored timestamps and needs no extra write, avoiding sync bugs."
+      },
+      {
+        "decision": "Bridge packages (featureresolver, subscription) instead of direct cross-package imports.",
+        "rationale": "Breaks import cycles between productcatalog, feature, and subscription while keeping persistence routed through the workflow layer."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a ValidatorFunc and composing it into Publishable validation",
+        "code": "// productcatalog/addon.go\nfunc ValidateAddonHasCompatiblePrices() models.ValidatorFunc[Addon] {\n    return func(a Addon) error {\n        for _, rc := range a.RateCards {\n            if p := rc.AsMeta().Price; p != nil && p.Type() != FlatPriceType {\n                return models.ErrorWithFieldPrefix(\n                    models.NewFieldSelectorGroup(models.NewFieldSelector(\"ratecards\").\n                        WithExpression(models.NewFieldAttrValue(\"key\", rc.Key()))),\n                    ErrAddonInvalidPriceForMultiInstance,\n                )\n            }\n        }\n        return nil\n    }\n}"
+      }
+    ]
+  },
+  "openmeter/subject": {
+    "purpose": "Domain package for subject lifecycle \u2014 subjects are the usage-measurement keys (analogous to users or devices), each with a stable user-facing Key and an internal ULID Id. Follows the standard three-layer split (Service/Adapter interfaces at the root, service/ implementation, adapter/ Ent persistence, httphandler/ v1 HTTP) and exposes ServiceHooks so entitlement/balanceworker can react to lifecycle events without import cycles.",
+    "patterns": [
+      {
+        "name": "Service interface at root, concrete service in service/, Ent adapter in adapter/",
+        "description": "service.go and adapter.go at the package root define the Service and Adapter interfaces (Adapter embeds entutils.TxCreator); service/service.go implements orchestration, adapter/ implements persistence, httphandler/ does HTTP translation.",
+        "example": "type Service interface { models.ServiceHooks[Subject]; Create/Update/GetById/GetByKey/GetByIdOrKey/List/Delete }"
+      },
+      {
+        "name": "Validated <Verb>Input types before adapter delegation",
+        "description": "Every mutating Service method accepts a typed Input (CreateInput, UpdateInput) implementing Validate(); validation runs before the adapter is touched. Namespace is mandatory on every operation.",
+        "example": "input := subject.CreateInput{Namespace: ns, Key: \"user@x.com\"}; input.Validate(); svc.Create(ctx, input)"
+      },
+      {
+        "name": "Writes wrapped in transaction.Run, hooks fired inside the boundary",
+        "description": "service/ wraps Create/Update/Delete in transaction.Run/RunWithNoValue so adapter writes and ServiceHookRegistry fan-out commit or roll back atomically; read methods bypass transactions. The registry is embedded as a value, not an interface parameter.",
+        "example": "Create runs adapter write + ServiceHookRegistry PostCreate inside one transaction.Run closure."
+      },
+      {
+        "name": "ServiceHooks for cross-domain callbacks, registered in app/common",
+        "description": "Subject.Service embeds models.ServiceHooks[Subject]; the service/hooks child bridges customer lifecycle to subject provisioning via a provisioner struct. Hooks are registered in app/common provider functions, never in the subject constructor.",
+        "example": "Service.RegisterHooks(...) called from app/common; hooks/ delegates logic to a provisioner."
+      },
+      {
+        "name": "Soft-delete + OptionalNullable patch (legacy, do not replicate)",
+        "description": "Adapter list/get filters by DeletedAtIsNil/DeletedAtGTE; UpdateInput uses OptionalNullable[T]{Value,IsSet} to separate 'unset' from 'set-to-null'. This OptionalNullable pattern is explicitly FIXME'd as unique to subject \u2014 new code uses pkg/nullable.",
+        "example": "UpdateInput.DisplayName OptionalNullable[string] \u2014 IsSet=false keeps existing; IsSet=true+Value=nil clears."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service interface, CreateInput/UpdateInput/ListParams/ListSortBy, and the OptionalNullable helper.",
+        "watch_for": "OptionalNullable is FIXME-marked unique to this package; new inputs use pkg/nullable."
+      },
+      {
+        "file": "adapter.go",
+        "role": "Adapter interface embedding entutils.TxCreator \u2014 implementations must provide the full Tx/WithTx/Self triad.",
+        "watch_for": "GetByIdOrKey requires either id or key; honor the ctx-carried transaction."
+      },
+      {
+        "file": "subject.go",
+        "role": "Subject domain type (Id, Key, Namespace, DisplayName, Metadata) and SubjectKey (key-only event payload).",
+        "watch_for": "StripeCustomerId is deprecated \u2014 use customer application entity; SubjectKey trims event payload size."
+      },
+      {
+        "file": "service/ (child)",
+        "role": "Concrete Service: transaction-wrapped writes + ServiceHookRegistry fan-out; hooks/ bridges customer events.",
+        "watch_for": "Firing hooks after transaction.Run returns breaks atomicity."
+      },
+      {
+        "file": "adapter/ (child)",
+        "role": "Ent persistence with TransactingRepo on every method, soft-delete, Ent\u2192models.Generic*Error mapping.",
+        "watch_for": "Calling tx.db.* outside a TransactingRepo closure; missing the soft-delete filter."
+      },
+      {
+        "file": "httphandler/ (child)",
+        "role": "v1 HTTP via httptransport (package httpdriver despite the folder name).",
+        "watch_for": "Skipping httptransport.WithOperationName; doing create-or-update logic outside the operation closure."
+      }
+    ],
+    "anti_patterns": [
+      "Using context.Background()/TODO() instead of the caller ctx in service or adapter methods \u2014 drops the Ent tx driver and OTel spans.",
+      "Bypassing the Service interface to call adapter methods directly from outside the subject package.",
+      "Importing app/common from subject testutils \u2014 build deps from raw constructors (subjecttestutils.NewTestEnv) to avoid import cycles.",
+      "Adding new update fields as plain pointers instead of OptionalNullable/pkg/nullable when partial-null semantics are needed.",
+      "Registering cross-domain hooks inside the subject constructor instead of in app/common provider functions."
+    ],
+    "decisions": [
+      {
+        "decision": "Transactions wrap both adapter writes and hook execution.",
+        "rationale": "Hook side-effects (e.g. provisioning) stay atomic with the DB write and roll back together on failure."
+      },
+      {
+        "decision": "ServiceHooks via models.ServiceHooks[Subject] for lifecycle callbacks.",
+        "rationale": "Lets entitlement/balanceworker subscribe to subject events without a circular import."
+      },
+      {
+        "decision": "OptionalNullable[T] retained for UpdateInput.",
+        "rationale": "Historical, predates pkg/nullable; explicitly marked not to be replicated."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Creating a subject via the Service with validated input",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/subject\"\n\ninput := subject.CreateInput{\n    Namespace:   ns,\n    Key:         \"user@example.com\",\n    DisplayName: lo.ToPtr(\"Alice\"),\n}\nif err := input.Validate(); err != nil {\n    return nil, err\n}\nresult, err := svc.Create(ctx, input)"
+      }
+    ]
+  },
+  "openmeter/subscription": {
+    "purpose": "Core subscription domain managing lifecycle (Create, Update, Delete, Cancel, Continue, UpdateAnnotations) against a versioned plan-phase-RateCard model. The root defines SubscriptionSpec (the mutable in-memory spec), the AppliesToSpec patch system (the only authorised mutation path), uniqueness validation, typed annotations, lifecycle events, and the Service interface; children split into patch (mutation primitives), service/repo (orchestration + Ent), entitlement (bridge), workflow (higher-level orchestration), addon, hooks, validators, and testutils.",
+    "patterns": [
+      {
+        "name": "AppliesToSpec patch system is the only mutation path",
+        "description": "All SubscriptionSpec mutations implement AppliesToSpec.ApplyTo and must be invoked through SubscriptionSpec.Apply/ApplyX wrappers (never patch.ApplyTo directly) so post-mutation validation and ordering always run. Concrete patches live in patch/; addon transforms in addon/diff.",
+        "example": "spec.Apply(patch, subscription.ApplyContext{CurrentTime: now}); NewAggregateAppliesToSpec batches patches."
+      },
+      {
+        "name": "Spec built/validated in-memory, then synced through service",
+        "description": "service/ uses sync() as the universal diff-apply engine; Cancel/Continue reuse sync() by building a new spec with modified ActiveTo. Persistence goes through SubscriptionRepository/Phase/Item repos (TransactingRepo triad), and all DB writes from outside route through subscriptionworkflow.Service, never raw repo calls.",
+        "example": "service.sync() diffs target vs live spec; workflow/service orchestrates CreateFromPlan/EditRunning/ChangeToPlan."
+      },
+      {
+        "name": "Per-customer pg_advisory_lock inside a transaction on every write",
+        "description": "Every public Service method opens with NewSubscriptionOperationContext(ctx), then acquires lockr.Key from GetCustomerLock(customerID) via LockForTX inside the active Ent transaction before any subscription/item write. Workflow methods lockCustomer too.",
+        "example": "ctx = subscription.NewSubscriptionOperationContext(ctx); key,_ := subscription.GetCustomerLock(cid); locker.LockForTX(ctx, key)"
+      },
+      {
+        "name": "Uniqueness + typed errors at the spec boundary",
+        "description": "ValidateUniqueConstraintByFeatures must run with ALL active+new specs for a customer before persist to block overlapping billable features. Domain errors are ValidationIssue sentinels / typed NotFound errors with IsXxx predicates and HTTP status attributes; workflow wraps spec errors via MapSubscriptionErrors.",
+        "example": "subscription.ValidateUniqueConstraintByFeatures(append(allSpecs, newSpec)); workflow.MapSubscriptionErrors(err)"
+      },
+      {
+        "name": "Typed annotation access + hooks/validators registered in app/common",
+        "description": "Annotation map keys (previous/superseding subscription IDs, boolean entitlement count, owner subsystem) are read/written only via subscription.AnnotationParser. SubscriptionCommandHooks (hooks/) and cross-domain validators (validators/) embed noop bases, write via repositories (never Service), and are registered through RegisterHook/RegisterRequestValidator in app/common.",
+        "example": "AnnotationParser.SetSupersedingSubscriptionID(annotations, id); validators/customer blocks delete when active subs exist."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "apply.go",
+        "role": "AppliesToSpec interface, ApplyContext, NewAppliesToSpec, NewAggregateAppliesToSpec.",
+        "watch_for": "ApplyTo is public only by FIXME \u2014 never call it directly; always go through SubscriptionSpec.Apply."
+      },
+      {
+        "file": "subscriptionspec.go",
+        "role": "SubscriptionSpec (Phases map[string]*SubscriptionPhaseSpec) and GetSortedPhases().",
+        "watch_for": "Direct map iteration is unordered \u2014 use GetSortedPhases(); never write Phases directly."
+      },
+      {
+        "file": "errors.go",
+        "role": "ValidationIssue sentinels + typed NotFound errors with IsXxx predicates and HTTP status attributes.",
+        "watch_for": "Use Is*NotFoundError predicates; never plain fmt.Errorf at the boundary."
+      },
+      {
+        "file": "annotations.go",
+        "role": "AnnotationParser getters/setters for previous/superseding IDs, boolean count, owner subsystem.",
+        "watch_for": "Never read annotation keys by raw string \u2014 typos and bad type assertions."
+      },
+      {
+        "file": "hook.go",
+        "role": "SubscriptionCommandHook interface + NoOpSubscriptionCommandHook base.",
+        "watch_for": "Embed the NoOp base; hooks must never call Service write methods (re-entrant invocation)."
+      },
+      {
+        "file": "locks.go",
+        "role": "GetCustomerLock(customerID) \u2192 lockr.Key.",
+        "watch_for": "Must be used inside an active Postgres tx (entutils.TransactingRepo)."
+      },
+      {
+        "file": "uniqueness.go",
+        "role": "ValidateUniqueConstraintByFeatures for cross-subscription billable-feature overlap.",
+        "watch_for": "Call with ALL active+new specs \u2014 comparing only two misses partial overlaps."
+      },
+      {
+        "file": "item.go",
+        "role": "SubscriptionItem with custom RateCard polymorphism JSON.",
+        "watch_for": "UnmarshalJSON switch must handle every RateCard type (FlatFee vs UsageBased)."
+      }
+    ],
+    "anti_patterns": [
+      "Calling patch.ApplyTo(spec, actx) directly instead of routing through SubscriptionSpec.Apply/ApplyX wrappers.",
+      "Iterating SubscriptionSpec.Phases map directly instead of GetSortedPhases(), or writing Phases without a patch.",
+      "Reading/writing annotation map keys as raw strings instead of subscription.AnnotationParser.",
+      "Calling subscription.Service write methods from inside a SubscriptionCommandHook (or workflow create/change without sync) \u2014 re-entrant or unvalidated writes.",
+      "Skipping ValidateUniqueConstraintByFeatures, the per-customer advisory lock, or NewSubscriptionOperationContext at a mutating operation."
+    ],
+    "decisions": [
+      {
+        "decision": "AppliesToSpec patch system as the sole SubscriptionSpec mutation path.",
+        "rationale": "Forces every change through a validated, ordered pipeline so phase ordering, feature uniqueness, and cadence invariants are re-checked after each mutation."
+      },
+      {
+        "decision": "SubscriptionSpec is an in-memory object separate from the persisted Subscription.",
+        "rationale": "Lets the service build/validate/diff specs before writing \u2014 required for EditRunning and ChangeToPlan."
+      },
+      {
+        "decision": "pg_advisory_lock per customer for serialization.",
+        "rationale": "Prevents concurrent creates/edits for one customer from producing conflicting billing lines or overlapping entitlement grants."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Applying a patch and validating cross-subscription uniqueness before persisting",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/subscription\"\n\nctx = subscription.NewSubscriptionOperationContext(ctx)\n\nkey, err := subscription.GetCustomerLock(customerID)\nif err != nil { return err }\n// locker.LockForTX(ctx, key) inside entutils.TransactingRepo\n\nif err := spec.Apply(patch, subscription.ApplyContext{CurrentTime: now}); err != nil {\n    return err\n}\nif err := subscription.ValidateUniqueConstraintByFeatures(append(allSpecs, spec)); err != nil {\n    return err\n}"
+      }
+    ]
+  }
+}

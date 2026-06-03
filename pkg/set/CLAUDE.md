@@ -6,26 +6,26 @@
 
 ## Patterns
 
-**Construct via New[T](items...)** — Always use New[T]() or New(item1, item2). Never construct Set{} directly — the content map will be nil and any write will panic. (`s := set.New("a", "b")`)
-**RWMutex for read/write separation** — Mutating methods (Add, Remove) acquire write locks; read methods (AsSlice, IsEmpty) acquire read locks. Subtract and Union acquire read locks on all input sets before building the result. (`s.mu.Lock(); defer s.mu.Unlock() // writes
+**Construct via New[T](items...)** — Always use New[T]() or New(item1, item2). Never construct Set{} directly — the content map will be nil and any write panics. (`s := set.New("a", "b")`)
+**RWMutex read/write separation** — Mutating methods (Add, Remove) take write locks; read methods (AsSlice, IsEmpty) take read locks. Subtract and Union take read locks on all inputs before building the result. (`s.mu.Lock(); defer s.mu.Unlock() // writes
 s.mu.RLock(); defer s.mu.RUnlock() // reads`)
-**Package-level Subtract and Union functions** — Subtract and Union are package-level functions, not methods, to support multi-set operations. Subtract(a, b) removes items in b from a — argument order matches lo.Difference(base, toRemove). (`result := set.Subtract(set.New(1,2,3), set.New(2,3)) // result: {1}`)
+**Package-level Subtract and Union** — Subtract and Union are package-level functions (not methods) to support multi-set operations. Subtract(a, b) removes items in b from a — argument order matches lo.Difference(base, toRemove). (`result := set.Subtract(set.New(1,2,3), set.New(2,3)) // {1}`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `set.go` | Full set implementation. All operations are in this single file. | AsSlice returns items in random map-iteration order — never assume stability. The slice is a snapshot; future mutations are not reflected. Subtract(a, b) argument order: a is the base set, b items are removed from it. |
+| `set.go` | Full set implementation; all operations in this single file. | AsSlice returns items in random map-iteration order — never assume stability; it is a snapshot, not a live view. Subtract(a, b): a is base, b items removed from it. |
 
 ## Anti-Patterns
 
 - Constructing Set{} directly — nil content map panics on first write.
 - Assuming stable ordering from AsSlice — map iteration is random.
-- Holding the AsSlice result and expecting it to reflect future Add/Remove calls — it is a copy.
-- Using this package for large sets under high contention — RWMutex is optimized for small sets; sync.Map may be preferable for high-read-concurrency large sets.
+- Expecting an AsSlice result to reflect future Add/Remove — it is a copy.
+- Using this for large sets under high contention — RWMutex suits small sets; sync.Map may be preferable for high-read-concurrency large sets.
 
 ## Decisions
 
-- **Use RWMutex with a plain map over sync.Map** — RWMutex with map[T]struct{} is simpler and lower-overhead for the small sets typical in domain use; sync.Map optimizes for high-concurrency read-heavy workloads with minimal write contention.
+- **RWMutex with a plain map over sync.Map.** — Simpler and lower-overhead for the small sets typical in domain use; sync.Map optimizes for high-concurrency read-heavy workloads.
 
 <!-- archie:ai-end -->

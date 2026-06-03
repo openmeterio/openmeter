@@ -2,61 +2,35 @@
 
 <!-- archie:ai-start -->
 
-> Helm chart packaging the benthos-collector binary as a Kubernetes StatefulSet. Primary constraints: stable pod identity for leader election (StatefulSet), credentials protected in Secrets not ConfigMaps, and config-source exclusivity enforced by the benthos-collector.args helper in _helpers.tpl.
+> Helm chart packaging the benthos-collector binary as a Kubernetes StatefulSet. Chart metadata + values live at the root; the templates/ child renders the actual K8s resources. Primary constraints: stable pod identity for leader election (StatefulSet), credentials protected in a Secret (not ConfigMap), and config-source exclusivity enforced by the benthos-collector.args helper.
 
 ## Patterns
 
-**All resource names via helpers** — Every resource name must use `benthos-collector.fullname` or `benthos-collector.componentName` from templates/_helpers.tpl. Never string-concat `.Release.Name` directly. (`name: {{ include "benthos-collector.fullname" . }}`)
-**Config stored in Secret not ConfigMap** — The Benthos config.yaml is always rendered into templates/secret.yaml as a base64-encoded Secret to protect embedded credentials. A parallel ConfigMap for the same data is forbidden. (`kind: Secret
+**Three mutually-exclusive config sources with fixed precedence** — values.yaml exposes config > configFile > preset; precedence is resolved by the benthos-collector.args helper in templates/_helpers.tpl, never in values.yaml or statefulset.yaml. (`config: {} # takes precedence over configFile and preset`)
+**Config rendered into a Secret, never a ConfigMap** — The Benthos config.yaml is base64-encoded into templates/secret.yaml to protect embedded OpenMeter tokens/credentials; a parallel ConfigMap for the same data is forbidden. (`kind: Secret
 data:
   config.yaml: {{ .Values.config | toYaml | b64enc }}`)
-**Args routed through benthos-collector.args helper only** — Container startup args must come exclusively from the `benthos-collector.args` helper defined in _helpers.tpl, which validates config-source exclusivity (config vs configFile vs preset). Never add args inline to statefulset.yaml. (`args: {{- include "benthos-collector.args" . | nindent 12 }}`)
-**Checksum annotation triggers pod rollout on config change** — The pod template must carry a `checksum/config` annotation derived from secret.yaml so StatefulSet pods roll when the config Secret changes. (`annotations:
-  checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}`)
-**Downward-API env vars injected unconditionally** — K8S_POD_NAME, K8S_POD_UID, and K8S_NAMESPACE are injected from the Downward API in statefulset.yaml unconditionally. New env vars must not conflict with these reserved names. (`- name: K8S_POD_NAME
-  valueFrom:
-    fieldRef:
-      fieldPath: metadata.name`)
-**RBAC gated on rbac.create** — Role and RoleBinding in templates/rbac.yaml are wrapped in `{{- if .Values.rbac.create }}` so operators managing RBAC externally can opt out. (`{{- if .Values.rbac.create }}
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-{{- end }}`)
+**All names via helper macros** — Resource names come from benthos-collector.fullname / benthos-collector.componentName; never string-concat .Release.Name. (`name: {{ include "benthos-collector.fullname" . }}`)
+**StatefulSet with leader-election + storage toggles** — leaderElection.enabled (RBAC + lease config) and storage.enabled (PVC volumeClaimTemplates) gate optional features; both rely on the StatefulSet's stable pod identity. (`leaderElection: { enabled: false, lease: { duration: 10s } }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `templates/_helpers.tpl` | Defines all naming, label, and args helpers. Source of truth for benthos-collector.fullname, benthos-collector.args, and common label blocks. | benthos-collector.args validates config-source exclusivity (config > configFile > preset); adding a new config source requires updating this helper, not statefulset.yaml. |
-| `templates/statefulset.yaml` | Core workload. Mounts the Secret as a volume, injects Downward-API env vars, and references the args helper. | Must keep checksum/config annotation; must not inline args; must not reference ConfigMap for config data. |
-| `templates/secret.yaml` | Renders the Benthos config.yaml as a base64-encoded Secret. Always rendered even when config is empty. | This is the only acceptable storage for Benthos config — do not create a parallel ConfigMap. |
-| `templates/rbac.yaml` | Creates Role and RoleBinding for leader election; guarded by .Values.rbac.create. | Leader election requires lease/get/update permissions on coordination.k8s.io; missing rules fail silently at runtime. |
-| `values.yaml` | Defines the three mutually exclusive config sources (config, configFile, preset) and leaderElection, storage, and RBAC toggles. | config takes precedence over configFile which takes precedence over preset — precedence is enforced in benthos-collector.args, not values.yaml itself. |
+| `Chart.yaml` | Chart metadata; version 0.0.0 and appVersion "latest" are placeholders rewritten at release time. | appVersion should align with the published benthos-collector image tag on release. |
+| `values.yaml` | Defines the three config sources (config/configFile/preset), openmeter url/token, leaderElection, storage (PVC), rbac, and standard pod knobs. | config precedence is enforced in the args helper, not here; storage uses a per-pod PVC requiring StatefulSet. |
+| `README.md / README.tmpl.md` | README.md is generated from README.tmpl.md via helm-docs; README.tmpl.md only contains {{ template "chart.base" . }}. | Edit README.tmpl.md and values.yaml comments, never README.md directly. |
 
 ## Anti-Patterns
 
-- Hardcoding release or chart name strings instead of using `benthos-collector.fullname` / `benthos-collector.componentName`
-- Storing the Benthos config.yaml in a ConfigMap — it must always be a Secret to protect embedded credentials
-- Adding container args directly in statefulset.yaml instead of routing through the `benthos-collector.args` helper in _helpers.tpl
-- Adding new env vars without checking for conflicts with the mandatory Downward-API set (K8S_POD_NAME, K8S_NAMESPACE, K8S_POD_UID)
-- Using a Deployment instead of StatefulSet — stable pod identity is required for leader election and per-pod PVC volumeClaimTemplates
+- Storing the Benthos config.yaml in a ConfigMap instead of a Secret — leaks embedded credentials
+- Hardcoding release/chart name strings instead of the benthos-collector.fullname/componentName helpers
+- Bumping appVersion/version without aligning to the released image tag
+- Using a Deployment instead of StatefulSet — breaks leader election and per-pod PVCs
 
 ## Decisions
 
-- **StatefulSet over Deployment** — Leader election requires stable pod identity (hostname-based); volumeClaimTemplates also needs StatefulSet for per-pod persistent storage when storage.enabled=true.
-- **Config stored in Secret, not ConfigMap** — The Benthos config may embed API tokens or credentials; Secret provides base64 encoding and Kubernetes RBAC access-control semantics that ConfigMap does not.
-- **Checksum annotation on pod template** — StatefulSets do not automatically restart on Secret changes; the sha256sum annotation on the pod template forces a rollout whenever the config Secret content changes.
-
-## Example: Adding a new optional feature toggle that injects env vars and CLI args
-
-```
-# In statefulset.yaml env section:
-{{- if .Values.myFeature.enabled }}
-- name: MY_FEATURE_URL
-  value: {{ .Values.myFeature.url | quote }}
-{{- end }}
-
-# In _helpers.tpl, extend benthos-collector.args to pass --my-feature-flag
-# when .Values.myFeature.enabled is true — keep all arg logic in the helper.
-```
+- **StatefulSet over Deployment** — Leader election needs stable hostname-based pod identity, and volumeClaimTemplates needs StatefulSet for per-pod persistent storage when storage.enabled.
+- **Config stored in a Secret, not ConfigMap** — The Benthos config can embed API tokens; Secret provides base64 encoding and RBAC access-control semantics ConfigMap lacks.
 
 <!-- archie:ai-end -->

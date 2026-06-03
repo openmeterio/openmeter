@@ -1,0 +1,86 @@
+{
+  "api/client/python": {
+    "purpose": "Root of the public OpenMeter Python SDK: a generated client (TypeSpec via @typespec/http-client-python) plus a thin hand-authored shim that re-exports it under stable, version-pinned import paths. Its primary constraint is that everything under openmeter/_generated/ is overwritten by make gen-api, so only the shim layer (Client subclass, _types.py aliases) and tooling (release.sh, examples) may be hand-edited.",
+    "patterns": [
+      {
+        "name": "Generated core, hand-authored shim only",
+        "description": "Public surface is a thin re-export shim over openmeter/_generated/; no operations or business logic are defined outside _generated/. New API methods arrive only via make gen-api regeneration.",
+        "example": "from openmeter._generated import OpenMeterClient\nclass Client(OpenMeterClient): ..."
+      },
+      {
+        "name": "release.sh is the sole publish path",
+        "description": "Makefile target publish-python-sdk delegates entirely to scripts/release.sh, which computes the next PEP-440 alpha version from live PyPI, stamps _version.py/_commit.py, cleans dist/, and runs poetry publish --build.",
+        "example": "make publish-python-sdk  # -> ./scripts/release.sh"
+      },
+      {
+        "name": "Transient build-time version stamping",
+        "description": "openmeter/_version.py and openmeter/_commit.py are written by release.sh at publish time and must never be committed; pyproject.toml version (0.0.0) is also overwritten by the script.",
+        "example": "# _version.py / _commit.py are .gitignore-adjacent build artifacts"
+      },
+      {
+        "name": "Sync/async client import discipline (examples)",
+        "description": "examples/sync/ uses openmeter.Client; examples/async/ uses openmeter.aio.Client. The two trees are structurally identical and must never cross-import.",
+        "example": "from openmeter.aio import Client  # async/ only"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "Makefile",
+        "role": "Single phony target publish-python-sdk wrapping scripts/release.sh; default goal is self-documenting help.",
+        "watch_for": "Adding build logic here instead of in release.sh \u2014 publish flow must stay in one script."
+      },
+      {
+        "file": "pyproject.toml",
+        "role": "Poetry project definition: python ^3.9, corehttp[requests,aiohttp] >=1.0.0b7, cloudevents ^1.12.1, version 0.0.0 placeholder.",
+        "watch_for": "Manually bumping version \u2014 release.sh overwrites it at publish time."
+      },
+      {
+        "file": "MANIFEST.in",
+        "role": "Packaging manifest; explicitly includes openmeter/py.typed and README/LICENSE.",
+        "watch_for": "Removing openmeter/py.typed \u2014 breaks PEP-561 type checking for downstream consumers."
+      },
+      {
+        "file": ".gitignore",
+        "role": "Ignores dist/, build/, egg-info, caches, and venvs for the SDK build.",
+        "watch_for": "Leftover dist/ artifacts cause poetry publish --build to hang on an interactive prompt in CI."
+      },
+      {
+        "file": "scripts/release.sh",
+        "role": "Sole publish script (child scripts/): PyPI-derived alpha versioning, stamps version/commit, cleans dist, poetry publish --build.",
+        "watch_for": "PY_SDK_RELEASE_TAG other than 'alpha' hard-errors; a 'v'-prefixed PY_SDK_RELEASE_VERSION can yield invalid PEP-440."
+      },
+      {
+        "file": "openmeter/__init__.py",
+        "role": "Public package surface (child openmeter/): re-exports Client/models/operations; must call _patch_sdk() last.",
+        "watch_for": "Missing or relocated _patch_sdk(); extending __all__ without including _patch_all."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing files under openmeter/_generated/ \u2014 overwritten by make gen-api",
+      "Committing openmeter/_version.py or openmeter/_commit.py \u2014 written transiently by release.sh",
+      "Defining new operation classes/methods in openmeter/__init__.py or _client.py instead of regenerating _generated/",
+      "Running a separate poetry build before release.sh \u2014 leftover dist/ artifacts hang CI",
+      "Cross-importing sync (openmeter) into async examples or openmeter.aio into sync examples"
+    ],
+    "decisions": [
+      {
+        "decision": "Public Client subclasses generated OpenMeterClient rather than wrapping it",
+        "rationale": "Subclassing preserves all generated type signatures and avoids re-exporting every method through proxy boilerplate."
+      },
+      {
+        "decision": "Release version computed from live PyPI state in release.sh, not from git tags",
+        "rationale": "Allows independent alpha pre-release numbering decoupled from the monorepo tag cadence."
+      },
+      {
+        "decision": "Pyright-only type checking (no mypy)",
+        "rationale": "The generated SDK's overloaded constructors are incompatible with mypy's strict mode; Pyright handles them correctly."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Canonical SDK usage: ingest a CloudEvent with the async client",
+        "code": "import asyncio, datetime, os, uuid\nfrom openmeter.aio import Client\nfrom openmeter.models import Event\n\nasync def main():\n    async with Client(\n        endpoint=os.environ['OPENMETER_ENDPOINT'],\n        token=os.environ['OPENMETER_TOKEN'],\n    ) as client:\n        await client.events.ingest_event(Event(\n            id=str(uuid.uuid4()), source='my-app', specversion='1.0',\n            type='prompt', subject='customer-1',\n            time=datetime.datetime.now(datetime.timezone.utc),\n            data={'tokens': 100, 'model': 'gpt-4o', 'type': 'input'}))\n\nasyncio.run(main())"
+      }
+    ]
+  }
+}

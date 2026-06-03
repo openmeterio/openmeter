@@ -1,0 +1,290 @@
+{
+  "api/v3/handlers/llmcost": {
+    "purpose": "v3 HTTP handler package for the LLM cost price catalog: listing system and manual prices, getting a price by ID, and managing per-namespace manual overrides (create/list/delete). Bridges llmcost.Service to HTTP via the httptransport pipeline.",
+    "patterns": [
+      {
+        "name": "Decimal-as-string via decimalFromString",
+        "description": "All per-token pricing amounts are api strings parsed with decimalFromString (alpacadecimal.NewFromString wrapped in models.NewGenericValidationError). Outbound, decimals are serialized with .String(). Never accept a decimal string without going through decimalFromString.",
+        "example": "inputPerToken, err := decimalFromString(p.InputPerToken)"
+      },
+      {
+        "name": "Provider display-name mapping with title-case fallback",
+        "description": "providerDisplayNames (static map in convert.go) maps known provider IDs to display names; formatProviderName falls back to splitting on hyphen/underscore and capitalizing. Never hardcode provider display names in handler files.",
+        "example": "Provider: api.LLMCostProvider{Id: providerID, Name: formatProviderName(providerID)}"
+      },
+      {
+        "name": "Source enum one-directional mapping",
+        "description": "Internal PriceSourceManual maps to api.LLMCostPriceSourceManual; everything else maps to api.LLMCostPriceSourceSystem. Reads only ever expose system/manual.",
+        "example": "source := api.LLMCostPriceSourceSystem; if p.Source == llmcost.PriceSourceManual { source = api.LLMCostPriceSourceManual }"
+      },
+      {
+        "name": "Sort-field allowlist validation",
+        "description": "list_prices validates parsed sort fields against validPriceSortField before calling the service, returning apierrors.NewBadRequestError with the full valid-field list on failure.",
+        "example": "if !validPriceSortField(sort.Field) { return req, apierrors.NewBadRequestError(ctx, ..., {Field: \"sort\", Reason: \"...must be one of: id, provider.id, model.id, effective_from, effective_to\"}) }"
+      },
+      {
+        "name": "Nil-guarded optional pricing fields",
+        "description": "Optional fields (CacheReadPerToken, CacheWritePerToken, ReasoningPerToken) are *alpacadecimal.Decimal in domain and *string in API; use lo.ToPtr(d.String()) only when non-nil.",
+        "example": "if p.CacheReadPerToken != nil { out.CacheReadPerToken = lo.ToPtr(p.CacheReadPerToken.String()) }"
+      },
+      {
+        "name": "Filter parsing via filters.FromAPIFilterString",
+        "description": "All string filters (provider, model_id, model_name, currency, and source) are parsed with filters.FromAPIFilterString, each wrapped in its own bad-request error path. Source is a string filter, not an enum filter.",
+        "example": "provider, err := filters.FromAPIFilterString(params.Filter.Provider)"
+      },
+      {
+        "name": "Asymmetric list capabilities (prices vs overrides)",
+        "description": "list_prices supports sort; list_overrides does not. Overrides are per-namespace and small \u2014 do not add sort to list_overrides without first updating the service layer.",
+        "example": "// list_overrides.go has no Sort params block \u2014 intentionally omitted"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface (5 methods) and handler struct with resolveNamespace, llmcost.Service, options; New() constructor.",
+        "watch_for": "Only one domain service (llmcost.Service) is injected \u2014 no secondary services."
+      },
+      {
+        "file": "convert.go",
+        "role": "All domain<->API conversions: domainPriceToAPI, domainPricingToAPI, apiPricingToDomain, apiCreateOverrideToDomain, decimalFromString, formatProviderName, validPriceSortField, providerDisplayNames.",
+        "watch_for": "decimalFromString returns a wrapped validation error \u2014 propagate it, never ignore. Adding a provider requires updating the static providerDisplayNames map."
+      },
+      {
+        "file": "list_prices.go",
+        "role": "Pagination (default page 1 / size 20), sort with allowlist, and five filters (provider, model_id, model_name, currency, source) for the global catalog.",
+        "watch_for": "Sort field must pass validPriceSortField. Source filter is a string filter via FromAPIFilterString."
+      },
+      {
+        "file": "list_overrides.go",
+        "role": "Pagination and four filters (provider, model_id, model_name, currency) for per-namespace overrides; no sort.",
+        "watch_for": "No sort support \u2014 do not add without service-layer changes."
+      },
+      {
+        "file": "create_override.go",
+        "role": "Parses api.LLMCostOverrideCreate via request.ParseBody, resolves namespace, converts to domain via apiCreateOverrideToDomain, returns HTTP 201.",
+        "watch_for": "Uses bare httptransport.NewHandler (no path arg); validation errors from apiCreateOverrideToDomain must surface from the decoder."
+      },
+      {
+        "file": "delete_override.go / get_price.go",
+        "role": "HandlerWithArgs[..., api.ULID] keyed on the path ULID; delete returns 204 via EmptyResponseEncoder.",
+        "watch_for": "Both set ID and Namespace on the domain input from the path arg + resolveNamespace."
+      }
+    ],
+    "anti_patterns": [
+      "Hardcoding provider display names in handler logic instead of using formatProviderName.",
+      "Accepting decimal strings without decimalFromString \u2014 bypasses NewGenericValidationError wrapping.",
+      "Exposing internal PriceSource values directly instead of mapping through the system/manual enum.",
+      "Adding sort to list_overrides without updating the service layer.",
+      "Using commonhttp.GenericErrorEncoder instead of apierrors.GenericErrorEncoder."
+    ],
+    "decisions": [
+      {
+        "decision": "Provider display names in a static map with title-case fallback.",
+        "rationale": "API consumers need human-readable names; a central map avoids scatter while the fallback handles unknown providers without code changes."
+      },
+      {
+        "decision": "list_prices supports sort while list_overrides does not.",
+        "rationale": "Overrides are per-namespace and typically small; sort complexity would need service-layer changes not yet warranted."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Converting a domain Price to API response with optional pricing fields",
+        "code": "func domainPriceToAPI(p llmcost.Price) api.LLMCostPrice {\n  source := api.LLMCostPriceSourceSystem\n  if p.Source == llmcost.PriceSourceManual { source = api.LLMCostPriceSourceManual }\n  return api.LLMCostPrice{\n    Id: p.ID,\n    Provider: api.LLMCostProvider{Id: string(p.Provider), Name: formatProviderName(string(p.Provider))},\n    Model: api.LLMCostModel{Id: p.ModelID, Name: p.ModelName},\n    Currency: p.Currency, Source: source,\n    Pricing: domainPricingToAPI(p.Pricing),\n  }\n}"
+      }
+    ]
+  },
+  "api/v3/handlers/meters/query": {
+    "purpose": "Shared query-parameter translation sub-package for the v3 meter query endpoint. Converts api.MeterQueryRequest into streaming.QueryParams, validates dimensions/filters against meter definitions, and resolves customer IDs \u2014 insulating the HTTP handler from all domain mapping.",
+    "patterns": [
+      {
+        "name": "ValidationIssue error factory in errors.go",
+        "description": "Every user-facing validation error is a package-level models.ValidationIssue var built with NewValidationIssue + WithFieldString/WithCriticalSeverity/commonhttp.WithHTTPStatusCodeAttribute. Public constructors attach runtime context via .WithAttr or .WithPathString.",
+        "example": "var ErrInvalidWindowSize = models.NewValidationIssue(...); func NewInvalidWindowSizeError(d string) error { return ErrInvalidWindowSize.WithAttr(\"value\", d) }"
+      },
+      {
+        "name": "Whitelist-only filter operators (eq/in)",
+        "description": "ExtractStringsFromQueryFilter and ExtractStringsFromQueryFilterMapItem reject every operator except eq and in by checking non-nil fields (Neq, Nin, Contains, Ncontains, And, Or, and Exists for MapItem) and returning NewUnsupportedFilterOperatorError. eq and in together is also rejected.",
+        "example": "if f.Neq != nil || f.Nin != nil || f.Contains != nil { return nil, NewUnsupportedFilterOperatorError(fieldPath...) }"
+      },
+      {
+        "name": "Reserved-dimension switch in BuildQueryParams",
+        "description": "The dimensions loop switches on key: DimensionSubject, DimensionCustomerID, default (meter GroupBy lookup). A new reserved dimension must be added as a case here AND to IsReservedDimension in dimensions.go.",
+        "example": "switch k { case DimensionSubject: ...; case DimensionCustomerID: ...; default: if _, ok := m.GroupBy[k]; !ok { return params, NewInvalidDimensionFilterError(k) } }"
+      },
+      {
+        "name": "Deduplicated GroupBy via slices.Contains",
+        "description": "Every path that appends to params.GroupBy (subject filter, customer filter, explicit GroupByDimensions) first calls slices.Contains to prevent duplicates.",
+        "example": "if !slices.Contains(params.GroupBy, DimensionSubject) { params.GroupBy = append(params.GroupBy, DimensionSubject) }"
+      },
+      {
+        "name": "CustomerResolverFunc dependency injection",
+        "description": "Customer lookup is a CustomerResolverFunc type passed into BuildQueryParams, not a direct service reference \u2014 enabling noop injection in tests. NewCustomerResolver(svc) wires the real lookup with IncludeDeleted: true.",
+        "example": "func BuildQueryParams(ctx, m meter.Meter, body api.MeterQueryRequest, resolveCustomers CustomerResolverFunc) (streaming.QueryParams, error)"
+      },
+      {
+        "name": "ISO8601 <-> WindowSize lookup tables",
+        "description": "Bidirectional conversion uses package-level maps iso8601ToWindowSize / windowSizeToISO8601. A new window size requires updating both maps and the ErrInvalidWindowSize message.",
+        "example": "var iso8601ToWindowSize = map[string]meter.WindowSize{\"PT1M\": meter.WindowSizeMinute, \"PT1H\": ..., \"P1D\": ..., \"P1M\": ...}"
+      },
+      {
+        "name": "Filter complexity depth cap",
+        "description": "Non-reserved GroupBy dimension filters are validated with f.ValidateWithComplexity(maxGroupByFilterComplexityDepth) (currently 2). Raising the constant widens the nested-filter attack surface.",
+        "example": "const maxGroupByFilterComplexityDepth = 2"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "params.go",
+        "role": "BuildQueryParams \u2014 the single entry point converting MeterQueryRequest to streaming.QueryParams with full validation.",
+        "watch_for": "Go map iteration order is non-deterministic; GroupBy slice order may vary \u2014 tests must not assert exact ordering."
+      },
+      {
+        "file": "errors.go",
+        "role": "All typed validation errors: window size, time zone, group_by, dimension filter, unsupported operator, customer-not-found.",
+        "watch_for": "HTTP status is embedded via commonhttp.WithHTTPStatusCodeAttribute \u2014 never return raw fmt.Errorf for user-facing errors; extend these sentinels."
+      },
+      {
+        "file": "convert.go",
+        "role": "Stateless helpers: ISO8601<->WindowSize and the two Extract functions (eq/in only).",
+        "watch_for": "ExtractStringsFromQueryFilterMapItem also rejects f.Exists \u2014 the two Extract functions are NOT interchangeable."
+      },
+      {
+        "file": "customers.go",
+        "role": "CustomerResolverFunc type, NewCustomerResolver factory, CustomersToStreaming.",
+        "watch_for": "NewCustomerResolver lists with IncludeDeleted: true and collects missing IDs via errors.Join \u2014 both behaviors are intentional."
+      },
+      {
+        "file": "dimensions.go",
+        "role": "DimensionSubject/DimensionCustomerID constants, IsReservedDimension, IsSupportedGroupByDimension \u2014 single source of reserved dimension names.",
+        "watch_for": "IsSupportedGroupByDimension checks meter.GroupBy \u2014 the meter must carry its GroupBy populated or custom dimensions are rejected."
+      }
+    ],
+    "anti_patterns": [
+      "Returning raw fmt.Errorf for user-visible validation failures \u2014 use a models.ValidationIssue constructor from errors.go.",
+      "Adding a dimension key to BuildQueryParams without updating IsReservedDimension.",
+      "Appending to params.GroupBy without a slices.Contains dedup guard.",
+      "Injecting customer.Service directly into BuildQueryParams instead of passing a CustomerResolverFunc.",
+      "Supporting extra filter operators without updating BOTH Extract functions consistently."
+    ],
+    "decisions": [
+      {
+        "decision": "CustomerResolverFunc function type instead of an interface.",
+        "rationale": "Minimal dependency surface \u2014 tests inject a one-line lambda; the handler passes NewCustomerResolver(svc) at wiring time."
+      },
+      {
+        "decision": "Strict whitelist of eq/in filter operators.",
+        "rationale": "Bounds ClickHouse query complexity and index usage; rejecting Neq/Nin/Contains/And/Or at translation prevents unbounded scans reaching the analytics store."
+      },
+      {
+        "decision": "Package-level ValidationIssue sentinels with runtime WithAttr/WithPathString constructors.",
+        "rationale": "Sentinels allow errors.Is checks; WithAttr attaches context without allocating a new type, consistent with the rest of the v3 stack."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new reserved dimension that resolves like customer_id",
+        "code": "// dimensions.go\nconst DimensionWorkspaceID = \"workspace_id\"\nfunc IsReservedDimension(d string) bool { switch d { case DimensionSubject, DimensionCustomerID, DimensionWorkspaceID: return true }; return false }\n// params.go: add a `case DimensionWorkspaceID:` branch in the BuildQueryParams switch"
+      }
+    ]
+  },
+  "api/v3/handlers/plans/planaddons": {
+    "purpose": "v3 HTTP handler package for the plan-addons sub-resource of the Plans API. Bridges generated api/v3 request/response types to planaddon.Service using the httptransport.HandlerWithArgs pattern for all CRUD operations.",
+    "patterns": [
+      {
+        "name": "HandlerWithArgs for all endpoints",
+        "description": "Every operation uses httptransport.NewHandlerWithArgs (never bare NewHandler) because all endpoints carry path parameters (planID and/or planAddonID).",
+        "example": "CreatePlanAddonHandler httptransport.HandlerWithArgs[CreatePlanAddonRequest, CreatePlanAddonResponse, CreatePlanAddonParams]"
+      },
+      {
+        "name": "Type-alias triplet per operation file",
+        "description": "Each file defines Request (aliasing the domain input struct, e.g. planaddon.CreatePlanAddonInput), Response (api.PlanAddon), Params, and a Handler alias before the factory method.",
+        "example": "type ( CreatePlanAddonRequest = planaddon.CreatePlanAddonInput; CreatePlanAddonResponse = api.PlanAddon; CreatePlanAddonParams = string )"
+      },
+      {
+        "name": "Namespace resolved first in every decoder",
+        "description": "Every decoder calls h.resolveNamespace(ctx) as its first domain step, returns early on error, and sets it on the NamespacedModel of the domain input.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return CreatePlanAddonRequest{}, err }"
+      },
+      {
+        "name": "apierrors.GenericErrorEncoder on every handler",
+        "description": "Every options block passes httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) plus WithOperationName \u2014 never a custom encoder \u2014 so domain errors map uniformly to RFC 7807.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"create-plan-addon\"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))"
+      },
+      {
+        "name": "ToAPIPlanAddon for all entity responses",
+        "description": "Single-entity operations return ToAPIPlanAddon(*result) from convert.go; validation issues surface via ToAPIProductCatalogValidationErrors \u2014 never inlined in operation files.",
+        "example": "return ToAPIPlanAddon(*a)"
+      },
+      {
+        "name": "labels.ToMetadata / labels.FromMetadata round-tripping",
+        "description": "Inbound labels convert via labels.ToMetadata(body.Labels) in the decoder; the reverse labels.FromMetadata(a.Metadata) runs inside ToAPIPlanAddon. ToMetadata errors must be returned from the decoder.",
+        "example": "meta, err := labels.ToMetadata(body.Labels); if err != nil { return CreatePlanAddonRequest{}, err }"
+      },
+      {
+        "name": "Nil-guard on mutating responses",
+        "description": "Create and Update guard against a nil service result with an explicit error rather than dereferencing.",
+        "example": "if a == nil { return CreatePlanAddonResponse{}, fmt.Errorf(\"failed to create plan addon\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface (5 methods) and handler struct with resolveNamespace, plan.Service (service), planaddon.Service (addonService), options.",
+        "watch_for": "plan.Service is currently unused in operation files; all mutations go through addonService. Do not remove service without checking the v3 server mount."
+      },
+      {
+        "file": "convert.go",
+        "role": "ToAPIPlanAddon translation and ToAPIProductCatalogValidationErrors for models.ValidationIssues.",
+        "watch_for": "ValidationErrors come from a.AsProductCatalogPlanAddon().ValidationErrors() with the error discarded \u2014 a signature change there breaks convert.go silently."
+      },
+      {
+        "file": "lists.go",
+        "role": "ListPlanAddons with pagination (default page 1 / size 20) and response.NewPagePaginationResponse wrapping.",
+        "watch_for": "PlanIDs filter is always []string{params.PlanID} (single plan). Do not widen without changing the Params struct and domain input."
+      },
+      {
+        "file": "update.go",
+        "role": "Parses api.UpsertPlanAddonRequest; only sets req.Metadata when body.Labels is non-nil to preserve metadata on partial updates.",
+        "watch_for": "FromPlanPhase is always set as a pointer (&body.FromPlanPhase) \u2014 present even for empty string; intentional upsert semantics."
+      },
+      {
+        "file": "create.go",
+        "role": "Parses api.CreatePlanAddonRequest, resolves namespace + labels, calls CreatePlanAddon, returns HTTP 201.",
+        "watch_for": "labels.ToMetadata must run before building the request; its error must be returned from the decoder, not ignored."
+      },
+      {
+        "file": "get.go / delete.go",
+        "role": "HandlerWithArgs keyed on a struct {PlanID, PlanAddonID}; delete returns 204 via EmptyResponseEncoder.",
+        "watch_for": "Get builds GetPlanAddonInput from PlanAddonID only; delete passes both PlanID and ID."
+      }
+    ],
+    "anti_patterns": [
+      "Using httptransport.NewHandler instead of NewHandlerWithArgs when the endpoint has path parameters.",
+      "Calling domain service methods from the response encoder closure \u2014 all service calls go in the operation closure.",
+      "Introducing context.Background() in decoder or operation closures \u2014 always propagate the ctx argument.",
+      "Adding business logic (validation, enrichment) in handler struct methods instead of decoder/operation closures.",
+      "Omitting apierrors.GenericErrorEncoder from the options block."
+    ],
+    "decisions": [
+      {
+        "decision": "planaddon.Service is injected separately from plan.Service.",
+        "rationale": "Plan-addon operations are owned by the planaddon sub-domain; addon mutations go through their own service to keep domain boundaries clean."
+      },
+      {
+        "decision": "Request types alias domain input structs directly.",
+        "rationale": "Reduces the translation surface \u2014 any domain input change surfaces immediately as a compile error in the decoder closure."
+      },
+      {
+        "decision": "Pagination defaults to page 1 / size 20 and validates before the domain call.",
+        "rationale": "Centralizes page-validation as a 400 before invoking the domain layer, matching all v3 list handlers."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A create operation with namespace + label conversion and HTTP 201",
+        "code": "func (h *handler) CreatePlanAddon() CreatePlanAddonHandler {\n  return httptransport.NewHandlerWithArgs(\n    func(ctx context.Context, r *http.Request, planID CreatePlanAddonParams) (CreatePlanAddonRequest, error) {\n      var body api.CreatePlanAddonRequest\n      if err := request.ParseBody(r, &body); err != nil { return CreatePlanAddonRequest{}, err }\n      ns, err := h.resolveNamespace(ctx); if err != nil { return CreatePlanAddonRequest{}, err }\n      meta, err := labels.ToMetadata(body.Labels); if err != nil { return CreatePlanAddonRequest{}, err }\n      return CreatePlanAddonRequest{NamespacedModel: models.NamespacedModel{Namespace: ns}, PlanID: planID, AddonID: body.Addon.Id, Metadata: meta}, nil\n    },\n    func(ctx context.Context, req CreatePlanAddonRequest) (CreatePlanAddonResponse, error) {\n      a, err := h.addonService.CreatePlanAddon(ctx, req); if err != nil { return CreatePlanAddonResponse{}, err }\n      if a == nil { return CreatePlanAddonResponse{}, fmt.Errorf(\"failed to create plan addon\") }\n      return ToAPIPlanAddon(*a)\n    },\n    commonhttp.JSONResponseEncoderWithStatus[CreatePlanAddonResponse](http.StatusCreated),\n    httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"create-plan-addon\"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))...,\n  )\n}"
+      }
+    ]
+  }
+}

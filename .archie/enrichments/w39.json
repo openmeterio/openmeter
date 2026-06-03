@@ -1,61 +1,80 @@
 {
-  "collector/benthos/bloblang": {
-    "purpose": "Side-effect-only plugin package that registers custom Bloblang functions as Benthos/Redpanda Connect plugins via Go init(). Must be blank-imported by the collector binary to activate registrations; exports nothing.",
+  "pkg/framework/transport/httptransport": {
+    "purpose": "Generic typed HTTP handler pipeline (decode \u2192 operation \u2192 encode) shared by every domain httpdriver and api/v3/handlers package \u2014 Handler[Request,Response] is the universal adapter between Chi routes and domain service calls. Its encoder/ child declares the pure ResponseEncoder/ErrorEncoder function types that break the import cycle with commonhttp.",
     "patterns": [
       {
-        "name": "init-based plugin registration",
-        "description": "Every custom function is registered inside an init() function using bloblang.RegisterFunctionV2. No exported symbols \u2014 activation is achieved solely by blank-importing the package.",
-        "example": "func init() { err := bloblang.RegisterFunctionV2(\"resource_quantity\", spec, factory); if err != nil { panic(err) } }"
+        "name": "NewHandler triple constructor",
+        "description": "Always construct via NewHandler(requestDecoder, op, responseEncoder, ...options); never instantiate handler{} directly \u2014 defaultHandlerOptions (GenericErrorEncoder) are injected only by newHandler.",
+        "example": "httptransport.NewHandler(decodeListFoos, svc.ListFoos, encodeListFoos, httptransport.WithOperationName(\"foo.list\"))"
       },
       {
-        "name": "PluginSpec with typed params",
-        "description": "Use bloblang.NewPluginSpec() with explicit Param declarations (bloblang.NewStringParam, etc.) so callers get typed argument extraction via args.GetString / args.GetInt64.",
-        "example": "spec := bloblang.NewPluginSpec().Description(\"...\").Param(bloblang.NewStringParam(\"value\").Description(\"...\"))"
+        "name": "HandlerWithArgs for path-param injection",
+        "description": "Bake a Chi URL param into the decoder via NewHandlerWithArgs + .With(arg) at mount time; With() clones the value-receiver handler binding the arg into decodeRequest.",
+        "example": "h := httptransport.NewHandlerWithArgs(decodeGetFoo, op, encodeFoo); h.With(chi.URLParam(r, \"id\")).ServeHTTP(w, r)"
       },
       {
-        "name": "Lazy-closure return",
-        "description": "The factory passed to RegisterFunctionV2 evaluates and validates arguments once, then returns a func() (any, error) closure for repeated invocation. Heavy parsing happens in the factory, not in the closure.",
-        "example": "return func(args *bloblang.ParsedParams) (bloblang.Function, error) { qty := parse(args); return func() (any, error) { return qty.String(), nil }, nil }"
+        "name": "ErrorEncoder chain, first match wins",
+        "description": "WithErrorEncoder appends to errorEncoders; ServeHTTP iterates in order and the first returning true short-circuits. GenericErrorEncoder is appended last by defaultHandlerOptions, so custom encoders must be passed as options to NewHandler.",
+        "example": "httptransport.NewHandler(dec, op, enc, httptransport.WithErrorEncoder(billingErrorEncoder))"
       },
       {
-        "name": "Empty-value guard before parsing",
-        "description": "Check for empty string before delegating to external parsers; return a zero value (not an error) on empty input to let pipelines handle optional fields gracefully.",
-        "example": "if value == \"\" { return func() (any, error) { return 0, nil }, nil }"
+        "name": "Chain for cross-cutting middleware",
+        "description": "handler.Chain(outer, ...others) wraps the operation with operation.Middleware and returns a new handler value; the original is unmodified.",
+        "example": "secured := h.Chain(authmiddleware.RequireScope(\"billing:write\"))"
       },
       {
-        "name": "Panic on registration failure",
-        "description": "RegisterFunctionV2 errors are treated as fatal \u2014 panic immediately. Registration failures indicate name collisions or bad specs and must not be silently ignored.",
-        "example": "if err != nil { panic(err) }"
+        "name": "SelfEncodingError escape hatch",
+        "description": "Errors implementing SelfEncodingError (EncodeError(ctx, w) bool) bypass the ErrorEncoder chain; reserved for infrastructure error types like models.StatusProblem, not domain errors.",
+        "example": "// models.StatusProblem implements SelfEncodingError and calls Respond(w) directly"
       }
     ],
     "key_file_guides": [
       {
-        "file": "parse_resource.go",
-        "role": "Registers the 'resource_quantity' Bloblang function that converts Kubernetes resource.Quantity strings (e.g. '100m', '2Gi') to decimal strings using k8s.io/apimachinery/pkg/api/resource.ParseQuantity.",
-        "watch_for": "Panics on RegisterFunctionV2 error \u2014 any registration name collision or bad PluginSpec causes a startup panic. Ensure function names are globally unique within the binary."
+        "file": "handler.go",
+        "role": "Core Handler[Req,Resp] interface and internal handler struct; ServeHTTP orchestrates decode\u2192operation\u2192encode; encodeError iterates the chain, then SelfEncodingError, then falls back to a 500 problem+json. defaultHandlerOptions appends GenericErrorEncoder unconditionally.",
+        "watch_for": "Do not pass GenericErrorEncoder again via WithErrorEncoder \u2014 it is already appended; a second copy double-encodes."
+      },
+      {
+        "file": "argshandler.go",
+        "role": "HandlerWithArgs variant for route-param injection; With() clones the value-receiver handler and swaps decodeRequest; Chain() rebuilds the operation.",
+        "watch_for": "Both With() and Chain() rely on value-receiver copy semantics \u2014 adding pointer fields to handler would share state across copies and require explicit deep copy."
+      },
+      {
+        "file": "options.go",
+        "role": "HandlerOption interface and all WithX constructors; the errorEncoders slice is order-sensitive (append); resolveErrorHandler returns dummyErrorHandler when none set; AppendOptions helper.",
+        "watch_for": "Custom domain encoders passed after defaultHandlerOptions land after GenericErrorEncoder and never fire \u2014 always pass custom encoders as options to NewHandler."
+      },
+      {
+        "file": "encoder/encoder.go",
+        "role": "Declares ResponseEncoder[T] and ErrorEncoder pure function types with no logic \u2014 imported by both handler.go and commonhttp without a cycle.",
+        "watch_for": "An ErrorEncoder must return false if it did not write to ResponseWriter; returning true after a partial write corrupts the response."
       }
     ],
     "anti_patterns": [
-      "Exporting functions or types from this package \u2014 it is side-effect-only and must have no exported API.",
-      "Performing heavy I/O, network calls, or slow computation inside the returned func() closure \u2014 validate and parse in the factory, not on every invocation.",
-      "Returning hard errors for empty or zero input \u2014 prefer returning a zero value to keep pipelines tolerant of missing fields.",
-      "Registering the same function name in multiple files \u2014 init() order is undefined and a duplicate name causes a startup panic.",
-      "Skipping the blank import in cmd/benthos-collector \u2014 the package registers nothing unless blank-imported; forgetting the import silently omits all custom functions."
+      "Instantiating handler{} struct directly \u2014 bypasses defaultHandlerOptions and loses GenericErrorEncoder",
+      "Calling context.Background() inside a RequestDecoder \u2014 always use the ctx passed from ServeHTTP",
+      "Implementing SelfEncodingError on domain-level errors \u2014 reserve it for infrastructure types; domain errors belong in the ErrorEncoder chain",
+      "Adding state (mutexes, caches) to HandlerWithArgs or handler \u2014 value types cloned by With()/Chain() would race on shared pointer fields",
+      "Writing to ResponseWriter inside a RequestDecoder on error \u2014 return the error and let the ErrorEncoder chain handle it"
     ],
     "decisions": [
       {
-        "decision": "Use init() for auto-registration instead of an explicit Register() call.",
-        "rationale": "Benthos plugin packages are designed for blank-import activation; a central Register() call would require the collector binary to enumerate every plugin, coupling it to this package's internals."
+        "decision": "Value-receiver handler with copy-on-With/Chain semantics",
+        "rationale": "Enables safe per-request arg injection and middleware wrapping without allocation or locking; the registered handler is immutable after construction."
       },
       {
-        "decision": "Depend on k8s.io/apimachinery resource.ParseQuantity for Kubernetes resource string parsing.",
-        "rationale": "Kubernetes resource strings have complex SI/binary suffix rules; reusing the authoritative parser avoids reimplementing that logic and guarantees correctness for all valid quantity formats."
+        "decision": "Last-resort fallback to 500 lives in handler.go, not in GenericErrorEncoder",
+        "rationale": "Keeps the fallback authoritative and unconfigurable \u2014 any error not handled by the chain or SelfEncodingError always yields a well-formed 500 problem+json."
+      },
+      {
+        "decision": "Separate encoder sub-package for the encoder function types",
+        "rationale": "Breaks the import cycle between handler.go (which uses both types) and commonhttp (which defines GenericErrorEncoder); encoder has no dependencies so both can import it."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new Bloblang function 'parse_duration' that converts a Go duration string to milliseconds",
-        "code": "package bloblang\n\nimport (\n\t\"time\"\n\n\t\"github.com/redpanda-data/benthos/v4/public/bloblang\"\n)\n\nfunc init() {\n\tspec := bloblang.NewPluginSpec().\n\t\tDescription(\"Parse a Go duration string and return its value in milliseconds.\").\n\t\tParam(bloblang.NewStringParam(\"value\").Description(\"Duration string, e.g. '1h30m'.\"))\n\n\terr := bloblang.RegisterFunctionV2(\"parse_duration\", spec, func(args *bloblang.ParsedParams) (bloblang.Function, error) {\n\t\tvalue, err := args.GetString(\"value\")\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\tif value == \"\" {\n\t\t\treturn func() (any, error) { return int64(0), nil }, nil\n\t\t}\n\t\td, err := time.ParseDuration(value)\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\tms := d.Milliseconds()\n\t\treturn func() (any, error) { return ms, nil }, nil\n\t})\n\tif err != nil {\n\t\tpanic(err)\n\t}\n}"
+        "scenario": "Minimal domain HTTP handler wired into a Chi router",
+        "code": "import (\n\t\"context\"\n\t\"net/http\"\n\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n)\n\nfunc NewListFoosHandler(svc FooService) httptransport.Handler[ListFoosRequest, ListFoosResponse] {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (ListFoosRequest, error) {\n\t\t\treturn ListFoosRequest{Namespace: r.Header.Get(\"X-Namespace\")}, nil\n\t\t},\n\t\tsvc.ListFoos,\n\t\tfunc(ctx context.Context, w http.ResponseWriter, r *http.Request, resp ListFoosResponse) error {\n\t\t\treturn commonhttp.JSONResponseEncoder(ctx, w, resp)\n\t\t},\n\t)\n}"
       }
     ]
   }

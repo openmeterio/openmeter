@@ -1,0 +1,260 @@
+{
+  "api/spec/packages/legacy/src/info": {
+    "purpose": "TypeSpec definitions for static v1 lookup endpoints: the supported-currencies list and async-operation progress tracking. A small self-contained read-only sub-package with no mutable resources and no pagination.",
+    "patterns": [
+      {
+        "name": "Flat model for static lookup entities",
+        "description": "Currency and Progress are plain models with no Resource spread (no id/timestamps) because they are not persisted lifecycle entities. listCurrencies returns a flat Currency[] array, never PaginatedResponse.",
+        "example": "@get @operationId(\"listCurrencies\") listCurrencies(): Currency[] | CommonErrors;"
+      },
+      {
+        "name": "routes.tsp holds interfaces, model file holds the model",
+        "description": "CurrenciesEndpoints lives in routes.tsp; the Currency model lives in currencies.tsp; ProgressEndpoints and Progress co-locate in progress.tsp. main.tsp only imports the three files.",
+        "example": "// currencies.tsp: model Currency only; routes.tsp: interface CurrenciesEndpoints"
+      },
+      {
+        "name": "Progress id is a plain string, not ULID",
+        "description": "getProgress takes id: string (not ULID) to match the progressmanager domain identifiers.",
+        "example": "@get @route(\"/{id}\") getProgress(id: string): Progress | NotFoundError | CommonErrors;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "routes.tsp",
+        "role": "CurrenciesEndpoints interface at /api/v1/info/currencies; single GET returning Currency[].",
+        "watch_for": "Returns a plain array, not PaginatedResponse \u2014 do not add pagination here without a spec change."
+      },
+      {
+        "file": "progress.tsp",
+        "role": "ProgressEndpoints interface (GET by id) and the Progress model (success/failed/total/updatedAt).",
+        "watch_for": "id is a plain string, not ULID \u2014 matches the progressmanager domain."
+      },
+      {
+        "file": "currencies.tsp",
+        "role": "Currency model with code (CurrencyCode), name, symbol, subunits (uint32).",
+        "watch_for": "subunits is uint32; zero-subunit currencies (JPY) are valid."
+      },
+      {
+        "file": "main.tsp",
+        "role": "Import manifest only \u2014 imports currencies.tsp, progress.tsp, routes.tsp.",
+        "watch_for": "New .tsp files must be added here to be compiled."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a paginated response to listCurrencies \u2014 it returns all currencies as a flat array.",
+      "Adding mutating (POST/PUT/DELETE) operations \u2014 this folder is read-only lookup data.",
+      "Typing the Progress id as ULID instead of string."
+    ],
+    "decisions": [
+      {
+        "decision": "Currency and Progress are flat models with no Resource/timestamp spread.",
+        "rationale": "They are static lookup/transient data, not persisted lifecycle entities, so id and timestamps are unnecessary."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Static lookup list endpoint returning a flat array (not paginated)",
+        "code": "@route(\"/api/v1/info/currencies\")\n@tag(\"Lookup Information\")\ninterface CurrenciesEndpoints {\n  @get @operationId(\"listCurrencies\") listCurrencies(): Currency[] | CommonErrors;\n}"
+      }
+    ]
+  },
+  "api/spec/packages/legacy/src/notification": {
+    "purpose": "TypeSpec source for the v1 Notifications API \u2014 webhook channels, rules (balance threshold, entitlement reset, invoice created/updated), and event/delivery-status tracking. Discriminated unions on NotificationRule and NotificationChannel give type-safe multi-variant webhook rules.",
+    "patterns": [
+      {
+        "name": "Discriminated union (envelope:none, discriminator type) for polymorphic types",
+        "description": "NotificationRule, NotificationRuleCreateRequest, NotificationChannel, NotificationChannelCreateRequest, and NotificationEventPayload are all @discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }). Adding a rule type requires updating NotificationRule, NotificationRuleCreateRequest, and NotificationEventPayload together.",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union NotificationRule { `entitlements.balance.threshold`: NotificationRuleBalanceThreshold, ... }"
+      },
+      {
+        "name": "NotificationRuleCommon<T> / NotificationChannelCommon<T> generic base spread",
+        "description": "Every rule model spreads ...NotificationRuleCommon<NotificationEventType.X> to inherit id, type literal, name, disabled, channels, annotations, metadata. Channel models spread ...NotificationChannelCommon<NotificationChannelType.X>. Never duplicate these fields.",
+        "example": "model NotificationRuleBalanceThreshold { ...NotificationRuleCommon<NotificationEventType.entitlementsBalanceThreshold>; thresholds: Array<NotificationRuleBalanceThresholdValue>; }"
+      },
+      {
+        "name": "CreateRequest via OmitProperties + re-added writable refs",
+        "description": "Create-request models use @withVisibility(Lifecycle.Create, Lifecycle.Update) and OmitProperties<Rule, \"channels\" | \"features\">, then re-add channels: Array<ULID> and features?: Array<ULIDOrKey> as ID-only writable forms.",
+        "example": "@withVisibility(Lifecycle.Create, Lifecycle.Update) model NotificationRuleBalanceThresholdCreateRequest { ...OmitProperties<NotificationRuleBalanceThreshold, \"channels\" | \"features\">; channels: Array<ULID>; features?: Array<ULIDOrKey>; }"
+      },
+      {
+        "name": "Payload models carry full denormalized context",
+        "description": "Entitlement payloads spread ...NotificationEventEntitlementValuePayloadBase to embed entitlement, feature, subject, value and optional customer inline. Invoice payloads embed the full Invoice. Webhook consumers need no second API call.",
+        "example": "model NotificationEventBalanceThresholdPayloadData { ...NotificationEventEntitlementValuePayloadBase; threshold: NotificationRuleBalanceThresholdValue; }"
+      },
+      {
+        "name": "Backward-compat enum casing with #suppress",
+        "description": "NotificationEventType values are dotted lowercase (entitlements.balance.threshold), NotificationChannelType.webhook maps to \"WEBHOOK\", and order-by enums use camelCase values \u2014 all carry #suppress \"@openmeter/api-spec-legacy/casing\" for backward compatibility.",
+        "example": "#suppress \"@openmeter/api-spec-legacy/casing\" \"Ignore due to backward compatibility\" webhook: \"WEBHOOK\","
+      },
+      {
+        "name": "PUT (not PATCH) updates with the create-request body",
+        "description": "updateNotificationRule and updateNotificationChannel use @put and accept the full NotificationRuleCreateRequest / NotificationChannelCreateRequest schema \u2014 there is no partial-update body.",
+        "example": "@put @operationId(\"updateNotificationRule\") update(@path ruleId: ULID, @body request: NotificationRuleCreateRequest)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "channel.tsp",
+        "role": "NotificationChannelType enum, NotificationChannelMeta/Common/Webhook models, NotificationChannel union, and NotificationChannelsEndpoints CRUD interface.",
+        "watch_for": "webhook value is uppercase \"WEBHOOK\" with a #suppress casing annotation \u2014 preserve for backward compat. signingSecret has a strict @pattern."
+      },
+      {
+        "file": "rule.tsp",
+        "role": "NotificationRuleMeta/Common, the NotificationRule and NotificationRuleCreateRequest unions, and NotificationRulesEndpoints (CRUD plus a /{ruleId}/test POST).",
+        "watch_for": "Updates use PUT with the create-request body, not PATCH. A new rule type must be added to both unions here plus NotificationEventPayload in event.tsp."
+      },
+      {
+        "file": "entitlements.tsp",
+        "role": "Entitlement rule/payload models: NotificationRuleBalanceThreshold, NotificationRuleEntitlementReset, payload bases, FeatureMeta, and NotificationRuleBalanceThresholdValueType.",
+        "watch_for": "NotificationRuleBalanceThresholdValueType has deprecated PERCENT/NUMBER variants \u2014 keep them, add new variants alongside (balance_value/usage_percentage/usage_value)."
+      },
+      {
+        "file": "invoice.tsp",
+        "role": "Generic NotificationEventInvoicePayload<T>, the created/updated payload aliases, and NotificationRuleInvoiceCreated/Updated rule models plus their create requests.",
+        "watch_for": "Invoice payloads embed the full billing Invoice model \u2014 ensure billing imports resolve. Create requests only re-add channels: Array<ULID> (no features)."
+      },
+      {
+        "file": "event.tsp",
+        "role": "NotificationEventType enum, NotificationEvent model, delivery-status/attempt models, NotificationEventPayload union, NotificationEventResendRequest, and NotificationEventsEndpoints (list/get/resend).",
+        "watch_for": "All event-type values are dotted lowercase with #suppress for casing \u2014 maintain for new types. Delivery-status models live here, not in channel.tsp."
+      },
+      {
+        "file": "main.tsp",
+        "role": "Import manifest only \u2014 imports channel/rule/event/entitlements/invoice.",
+        "watch_for": "Add new event-family .tsp files here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a rule type to NotificationRule without also updating NotificationRuleCreateRequest and NotificationEventPayload.",
+      "Putting delivery-status logic in channel.tsp \u2014 those models belong in event.tsp.",
+      "Using PATCH for updates \u2014 the API uses PUT with the full create-request body.",
+      "Inlining feature/channel lists instead of spreading FeatureMeta and NotificationChannelMeta.",
+      "Dropping the #suppress casing annotations on existing enum values \u2014 breaks backward compatibility."
+    ],
+    "decisions": [
+      {
+        "decision": "Create requests use OmitProperties to strip embedded objects and re-add ID-only writable fields.",
+        "rationale": "Prevents clients from supplying server-assigned full channel/feature objects while keeping the read model as the single source of truth."
+      },
+      {
+        "decision": "Payload models embed full denormalized context (entitlement, feature, subject, customer, invoice).",
+        "rationale": "Webhook consumers should act on a notification without a second API call \u2014 payloads are self-contained."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new notification rule type end-to-end",
+        "code": "// 1. event.tsp: add to NotificationEventType enum and NotificationEventPayload union\n// 2. new .tsp: model NotificationRuleX { ...NotificationRuleCommon<NotificationEventType.x>; }\n//    @withVisibility(Lifecycle.Create, Lifecycle.Update) model NotificationRuleXCreateRequest { ...OmitProperties<NotificationRuleX, \"channels\">; channels: Array<ULID>; }\n// 3. rule.tsp: add to NotificationRule and NotificationRuleCreateRequest unions"
+      }
+    ]
+  },
+  "api/spec/packages/legacy/src/productcatalog": {
+    "purpose": "TypeSpec source for the v1 product-catalog, subscription, and add-on API contracts. Defines all models, enums, unions and route interfaces compiled into api/openapi.yaml and Go server stubs \u2014 only edit these .tsp files, never the generated outputs.",
+    "patterns": [
+      {
+        "name": "Discriminated unions with envelope:none",
+        "description": "All polymorphic types (Price, RateCard, RateCardUsageBasedPrice, FeatureUnitCost, SubscriptionEditOperation) use @discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }). SubscriptionEditOperation uniquely uses \"op\" as the discriminator, not \"type\".",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) union Price { flat: FlatPrice, unit: UnitPrice, tiered: TieredPrice, dynamic: DynamicPrice, package: PackagePrice }"
+      },
+      {
+        "name": "Per-field @visibility lifecycle annotation",
+        "description": "Every concrete model field carries an explicit @visibility(...). Server-computed fields (status, effectiveFrom, effectiveTo, version, validationErrors, annotations) are Lifecycle.Read only. Only abstract base models (RateCardBase<T>) may omit visibility on some fields.",
+        "example": "@visibility(Lifecycle.Read) status: PlanStatus;"
+      },
+      {
+        "name": "Spread-based composition over extends",
+        "description": "Models compose by spreading shared bases (...UniqueResource, ...ResourceTimestamps, ...RateCardBase<T>, ...SpendCommitments, ...FlatPrice) instead of TypeSpec extends \u2014 enabling OmitProperties overrides in create variants.",
+        "example": "model RateCardFlatFee { ...RateCardBase<RateCardType.flatFee>; billingCadence: duration | null; price: FlatPriceWithPaymentTerm | null; }"
+      },
+      {
+        "name": "Create/update variants via OmitProperties + withVisibility",
+        "description": "Write models (PlanAddonCreate, SubscriptionAddonCreate) use @withVisibility(Lifecycle.Create) and OmitProperties<DefaultKeyVisibility<Model, Lifecycle.Read>, \"field\"> to strip read-only fields and replace embedded objects with just an ID. Never duplicate fields from scratch.",
+        "example": "@withVisibility(Lifecycle.Create) model PlanAddonCreate { ...OmitProperties<DefaultKeyVisibility<PlanAddon, Lifecycle.Read>, \"addon\">; addonId: ULID; }"
+      },
+      {
+        "name": "All routes declared exclusively in routes.tsp",
+        "description": "Every HTTP interface (FeaturesEndpoints, PlansEndpoints, PlanAddonsEndpoints, AddonsEndpoints, SubscriptionsEndpoints) is declared only in routes.tsp with @route/@tag/@friendlyName/@operationId/@summary. No other file declares route interfaces.",
+        "example": "@route(\"/api/v1/plans\") @tag(\"Product Catalog\") interface PlansEndpoints { @get @operationId(\"listPlans\") list(...): PaginatedResponse<Plan> | CommonErrors; }"
+      },
+      {
+        "name": "Subscription mutations use CommonSubscriptionErrors",
+        "description": "Subscription create/edit/change/cancel routes use CommonSubscriptionErrors (errors.tsp) carrying SubscriptionBadRequestErrorResponse/SubscriptionConflictErrorResponse with validationErrors[]. Feature/plan/addon routes use the parent CommonErrors alias.",
+        "example": "alias CommonSubscriptionErrors = SubscriptionBadRequestErrorResponse | SubscriptionConflictErrorResponse | ...;"
+      },
+      {
+        "name": "ISO8601 encoding on all duration fields",
+        "description": "Every duration field uses @encode(DurationKnownEncoding.ISO8601) with an @example(duration.fromISO(\"P1M\")). One-time-fee cadence is typed duration | null. Omitting the encoding defaults to seconds serialization.",
+        "example": "@encode(DurationKnownEncoding.ISO8601) @example(duration.fromISO(\"P1M\")) billingCadence: duration | null;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "routes.tsp",
+        "role": "Sole file declaring all HTTP interfaces; imports rest.tsp, subscriptionaddon.tsp, errors.tsp.",
+        "watch_for": "Missing @operationId/@friendlyName breaks Go codegen naming. Subscription mutations must use CommonSubscriptionErrors, not CommonErrors."
+      },
+      {
+        "file": "ratecards.tsp",
+        "role": "RateCardBase<T> generic, RateCard union (flat_fee | usage_based), flat/usage rate cards, RateCardUsageBasedPrice union, and entitlement templates.",
+        "watch_for": "A new RateCard variant requires updating both the RateCard union and RateCardUsageBasedPrice union. Entitlement templates strip featureKey/featureId/usagePeriod via OmitProperties."
+      },
+      {
+        "file": "prices.tsp",
+        "role": "Price union, PriceType enum, all price models (Flat/Unit/Tiered/Dynamic/Package) and their *WithCommitments variants spreading SpendCommitments.",
+        "watch_for": "A new price type must be added to PriceType enum, the Price union, AND RateCardUsageBasedPrice in ratecards.tsp \u2014 missing any one leaves the type unreachable from rate cards."
+      },
+      {
+        "file": "subscription.tsp",
+        "role": "Subscription/Expanded, phase/item/edit models, SubscriptionCreate and SubscriptionChange @oneOf unions, and all SubscriptionEditOperation variants.",
+        "watch_for": "SubscriptionEditOperation uses discriminatorPropertyName: \"op\", not \"type\". @oneOf union variants need @summary."
+      },
+      {
+        "file": "plan.tsp",
+        "role": "Plan, PlanPhase, PlanStatus, SettlementMode, PlanOrderBy, ProRatingConfig usage, PlanReference(Input).",
+        "watch_for": "Plan.phases has @minItems(1); Plan.validationErrors is ValidationError[] | null (never optional). billingCadence/duration require ISO8601 encoding."
+      },
+      {
+        "file": "errors.tsp",
+        "role": "CommonSubscriptionErrors alias and the subscription-specific error response models with SubscriptionErrorExtensions.validationErrors.",
+        "watch_for": "Imports ratecards.tsp \u2014 avoid creating a circular import if ratecards.tsp later needs error types."
+      },
+      {
+        "file": "main.tsp",
+        "role": "Package entry point importing sub-files in dependency order.",
+        "watch_for": "features.tsp and subscriptionaddon.tsp are intentionally NOT imported here (used via parent package / routes.tsp chain). Importing features.tsp here causes duplicate-namespace conflicts."
+      },
+      {
+        "file": "features.tsp",
+        "role": "Feature/FeatureCreateInputs models plus the FeatureUnitCost discriminated union (manual/llm) and resolved LLM pricing.",
+        "watch_for": "meterGroupByFilters is deprecated in favor of advancedMeterGroupByFilters. FeatureLLMUnitCost.pricing is Lifecycle.Read only."
+      }
+    ],
+    "anti_patterns": [
+      "Defining a polymorphic type without @discriminated(#{ envelope: \"none\", ... }) \u2014 produces a wrapped discriminator that breaks client deserialization.",
+      "Adding a route interface in any file other than routes.tsp \u2014 breaks @tag grouping and operationId consistency.",
+      "Duplicating fields for create/update variants instead of OmitProperties<DefaultKeyVisibility<Model, Lifecycle.Read>, \"...\"> + @withVisibility.",
+      "Using a duration field without @encode(DurationKnownEncoding.ISO8601) \u2014 defaults to seconds serialization.",
+      "Using CommonErrors instead of CommonSubscriptionErrors for subscription mutation routes \u2014 drops validationErrors from the schema."
+    ],
+    "decisions": [
+      {
+        "decision": "SubscriptionEditOperation uses discriminatorPropertyName: \"op\" instead of \"type\".",
+        "rationale": "Distinguishes PATCH command operations from resource-type discriminators used in Price/RateCard, avoiding naming collisions in generated code."
+      },
+      {
+        "decision": "PlanAddonCreate / SubscriptionAddonCreate replace the embedded Addon object with just { id } / addonId on write.",
+        "rationale": "Write operations only need the identifier; embedding the read-only Addon would force clients to supply server-computed fields like status and version."
+      },
+      {
+        "decision": "CommonSubscriptionErrors is a local alias rather than reusing parent CommonErrors.",
+        "rationale": "Subscription mutations return error bodies with a validationErrors array (SubscriptionErrorExtensions) not present in generic error types."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new usage-based price type to the catalog",
+        "code": "// prices.tsp: enum PriceType { ..., stepped: \"stepped\" }\nmodel SteppedPrice { @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update) type: PriceType.stepped; amount: Money; }\nmodel SteppedPriceWithCommitments { ...SteppedPrice; ...SpendCommitments; }\n// add stepped to Price union (prices.tsp) AND RateCardUsageBasedPrice union (ratecards.tsp)"
+      }
+    ]
+  }
+}

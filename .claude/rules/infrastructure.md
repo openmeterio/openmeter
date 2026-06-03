@@ -2,34 +2,34 @@
 
 ### Ci Cd
 
-- Always use Nix .#ci shell on Depot runners for CI — all jobs in ci.yaml use 'nix develop --impure .#ci -c <command>' to pin the Go/Node/Atlas/golangci-lint toolchain. *(source: `.github/workflows/ci.yaml`)*
-- Always run 'make migrate-check' in CI (migrate-check-schema, migrate-check-diff, migrate-check-lint, migrate-check-validate) to verify Ent schema, migration diff, lint, and atlas.sum integrity. *(source: `.github/workflows/ci.yaml, Makefile (migrate-check targets)`)*
-- Always run all generators (make update-openapi) and fail if the working tree is dirty in CI — catches TypeSpec, Ent, Wire, or Goverter regen not committed alongside source changes. *(source: `.github/workflows/ci.yaml (generators-openapi job)`)*
-- Always keep .nvmrc in sync with the Nix .#ci shell's node version — CI validates the .nvmrc file against the Nix shell via 'Validate Node version file' step before running Node-based builds. *(source: `.github/workflows/ci.yaml (Validate Node version file step), .nvmrc`)*
-- Always run the 'require-all-reviewers' gate when a PR is labeled 'require-all-reviewers' — all requested reviewers must approve before merge. *(source: `.github/workflows/require-all-reviewers.yml`)*
-- Always run OpenSSF Scorecard analysis on every main push and weekly (Fridays) — analysis-scorecard.yaml publishes results to GitHub Security tab. *(source: `.github/workflows/analysis-scorecard.yaml`)*
+- Always run CI build/test/lint/migrate/generator commands through 'nix develop --impure .#ci -c <command>' on Depot runners — the Nix .#ci shell pins Go/Node/Python/Atlas/golangci-lint/librdkafka versions *(source: `.github/workflows/ci.yaml, flake.nix`)*
+- Always commit regenerated artifacts: CI fails (git diff/git status --porcelain non-empty) if make update-openapi, generate-javascript-sdk, or go generate ./... produce uncommitted changes; also runs make migrate-check (schema, diff, lint --latest 10, validate) *(source: `.github/workflows/ci.yaml (generators-openapi, generators-go, generators-javascript-sdk, migrations jobs)`)*
+- Always keep .nvmrc in sync with the Nix .#ci shell node version — flake.nix enterShell writes 'node -v > .nvmrc' and CI's 'Validate Node version file' step fails if .nvmrc differs from 'nix develop --impure .#ci -c node -v' *(source: `.github/workflows/ci.yaml (Validate Node version file), flake.nix enterShell, .nvmrc`)*
+- Always lint Go with the project golangci-lint (v2, enabled: errcheck/govet/staticcheck/sloglint/bodyclose/misspell/ineffassign/nolintlint/unconvert/whitespace; formatters gci/gofumpt/goimports with prefix github.com/openmeterio/openmeter) — collector/benthos/internal and examples are excluded *(source: `.golangci.yaml, .golangci-fast.yaml`)*
 
 ### Dependency Registry
 
-- Always use pnpm (v10.33.2+) as the package manager for all Node.js workspaces (TypeSpec, JavaScript SDK) — the packageManager field is pinned in api/spec/package.json and api/client/javascript/package.json. *(source: `api/spec/package.json (packageManager field), api/client/javascript/package.json`)*
+- Always use pnpm (10.33.2 for api/spec, 10.33.0 for api/client/javascript, pinned in packageManager fields) for Node workspaces, and Poetry (poetry-core>=1.0.0) for the Python SDK — never npm/yarn; release.sh overwrites pyproject.toml version at publish *(source: `api/spec/package.json, api/client/javascript/package.json, api/client/python/pyproject.toml`)*
+- Always apply vendored TypeSpec/openapi-typescript patches via pnpm patchedDependencies (patches target compiled dist/, not src); regenerate the patch and its base hash after any upstream version bump or pnpm install fails *(source: `api/spec/package.json (pnpm.patchedDependencies), api/client/javascript/package.json`)*
+- Always run 'make patch-oapi-templates' before code generation — it copies oapi-codegen's chi-middleware.tmpl into api/v3/templates and applies chi-middleware.tmpl.patch for deepObject filter parsing; this template patch must stay aligned with api/v3/codegen.yaml on oapi-codegen upgrades *(source: `Makefile (patch-oapi-templates), api/CLAUDE.md`)*
 
 ### Distribution
 
-- Always publish Docker images to ghcr.io/openmeterio/openmeter and ghcr.io/openmeterio/benthos-collector using Depot depot-build-push-action with multi-platform support (linux/amd64, linux/arm64). *(source: `.github/workflows/artifacts.yaml`)*
-- Always publish npm @openmeter/sdk via OIDC trusted publishing (not a stored npm token) — npm-release.yaml is configured for OIDC trusted publisher against the prod environment. *(source: `.github/workflows/npm-release.yaml`)*
-- Always publish Helm charts to GHCR OCI registry (not a traditional Helm index) on release tags, with Chart.yaml appVersion aligned to the container image tag. *(source: `.github/workflows/release.yaml (helm-release job), deploy/charts/openmeter/Chart.yaml`)*
-- Never push untrusted (PR) Docker images to GHCR — use the untrusted-artifacts.yaml reusable workflow for PRs, which builds but does not publish container images. *(source: `.github/workflows/untrusted-artifacts.yaml`)*
+- Always publish container images to ghcr.io/openmeterio/openmeter and ghcr.io/openmeterio/benthos-collector via Depot depot-build-push-action (linux/amd64+arm64); the multi-stage Dockerfile builds six static-musl binaries (CGO_ENABLED=1, -tags musl, linkmode external -static) *(source: `.github/workflows/artifacts.yaml, Dockerfile`)*
+- Never push untrusted (PR-from-fork) Docker images to GHCR — untrusted-artifacts.yaml builds but does not publish; only trusted artifacts.yaml (push or same-repo PR) publishes *(source: `.github/workflows/untrusted-artifacts.yaml, .github/workflows/ci.yaml (trusted-artifacts gate)`)*
+- Always publish @openmeter/sdk via npm OIDC trusted publishing (id-token: write, environment prod, GitHub-hosted runner) configured against the caller workflow filename, not a stored npm token *(source: `.github/workflows/npm-release.yaml`)*
+- Always publish Helm charts to the GHCR OCI registry on release tags with Chart.yaml appVersion aligned to the container image tag (make package-helm-chart sets --app-version) *(source: `.github/workflows/release.yaml, Makefile (package-helm-chart), deploy/charts/openmeter/Chart.yaml`)*
 
 ### Env Setup
 
-- Always copy config.example.yaml to config.yaml before starting local services — Make targets warn if config.yaml is older than config.example.yaml. *(source: `Makefile (server/sink-worker/balance-worker/billing-worker/notification-service targets: config.yaml staleness check)`)*
-- Always start PostgreSQL before running tests with 'docker compose up -d postgres' — the make test target checks PostgreSQL availability and exits with an error if it is not running. *(source: `Makefile (test target PGPASSWORD check)`)*
+- Always copy config.example.yaml to config.yaml before running services (Make targets auto-copy and warn if config.yaml is older than config.example.yaml) and start Postgres ('docker compose up -d postgres') before tests — make test exits early if Postgres is unreachable *(source: `Makefile (config.yaml, server, test targets), config.example.yaml`)*
+- Always load the repo environment with direnv (or 'direnv exec . <command>') so project tools are applied; when go/gofmt/atlas are missing from the ambient shell, run via 'nix develop --impure .#ci -c ...' *(source: `AGENTS.md Testing/Configuration, flake.nix`)*
 
 ### Git
 
-- Always add exactly one release-note label to every PR before merging (release-note/ignore, kind/feature, release-note/bug-fix, release-note/breaking-change, etc.) — the PR Checks workflow enforces this via mheap/github-action-required-labels. *(source: `.github/workflows/pr-checks.yaml`)*
+- Always add exactly one release-note label to every PR before merge (release-note/ignore, kind/feature, release-note/bug-fix, release-note/breaking-change, ...) — pr-checks.yaml enforces it via required-labels; require-all-reviewers.yml gates PRs labeled 'require-all-reviewers' *(source: `.github/workflows/pr-checks.yaml, .github/workflows/require-all-reviewers.yml`)*
+- Always write commitizen-conventional commit messages — flake.nix git-hooks run commitizen/commitizen-branch via prek, and CI runs 'prek run -a' and 'prek run --stage manual' to validate them *(source: `flake.nix (git-hooks.hooks), .github/workflows/ci.yaml (Validate commit messages)`)*
 
 ### Secrets
 
-- Never commit secrets or API keys — Trufflehog secret scanning runs on every PR and main push with fail_on_findings=true and blocks merge on findings. *(source: `.github/workflows/security.yaml`)*
-- Never commit config.yaml, .env*, *.key, *.pem, or any file containing credentials — config.yaml is gitignored and generated from config.example.yaml. *(source: `.gitignore, Makefile (config.yaml target)`)*
+- Never commit secrets, config.yaml, .env*, *.key, or *.pem — config.yaml is gitignored and copied from config.example.yaml by Make targets; Trufflehog scans every PR/push with fail_on_findings=true *(source: `.github/workflows/security.yaml, .gitignore, Makefile (config.yaml target)`)*

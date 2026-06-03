@@ -1,340 +1,282 @@
 {
-  "api/v3/handlers/addons": {
-    "purpose": "HTTP handlers for the v3 addon CRUD and lifecycle (publish/archive) endpoints, translating between apiv3.Addon wire types and addon.Service domain calls via the httptransport pipeline. Each operation lives in its own dedicated file.",
+  "openmeter/entitlement/balanceworker": {
+    "purpose": "Kafka-driven worker that recalculates entitlement balances on lifecycle events (grant created/voided, entitlement created/deleted/reset, batched ingest) and publishes snapshot events downstream. Primary constraint: every recalculation path must pass the filter chain before any DB/ClickHouse access, and lifecycle handlers must publish a RecalculateEvent rather than calculating inline.",
     "patterns": [
       {
-        "name": "One operation per file",
-        "description": "Each CRUD or lifecycle operation lives in its own file (create.go, delete.go, get.go, list.go, update.go, archive.go, publish.go). handler.go only declares the Handler interface and constructor.",
-        "example": "func (h *handler) ArchiveAddon() ArchiveAddonHandler { return httptransport.NewHandlerWithArgs(...) }"
+        "name": "Two-stage recalculation via RecalculateEvent",
+        "description": "Direct lifecycle handlers in worker.go eventHandler() publish events.RecalculateEvent to the balance-worker topic; a separate RecalculateEvent handler calls handleEntitlementEvent. Decouples fan-out retry from calculation retry.",
+        "example": "w.opts.EventBus.Publish(ctx, events.RecalculateEvent{Entitlement: pkgmodels.NamespacedID{...}, SourceOperation: events.OperationTypeEntitlementCreated})"
       },
       {
-        "name": "Type alias triad per operation",
-        "description": "Every operation file declares three type aliases: <Op>Request = domain.Input, <Op>Response = apiv3.Type, <Op>Handler = httptransport.Handler[Req,Resp] (or HandlerWithArgs for path-param operations).",
-        "example": "type ( ArchiveAddonRequest = addon.ArchiveAddonInput; ArchiveAddonResponse = apiv3.Addon; ArchiveAddonHandler httptransport.HandlerWithArgs[...] )"
+        "name": "Filter-before-calculate",
+        "description": "handleEntitlementEvent calls w.filters.IsNamespaceInScope then IsEntitlementInScope before fetching; filtered events return (nil, nil), not an error.",
+        "example": "inScope, err := w.filters.IsNamespaceInScope(ctx, entitlementID.Namespace); if !inScope { return nil, nil }"
       },
       {
-        "name": "resolveNamespace in every decoder",
-        "description": "All decoders call h.resolveNamespace(ctx) as the first step and propagate the error before building the domain input struct.",
-        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ArchiveAddonRequest{}, err }"
+        "name": "handleOption functional options with mandatory WithEventAt",
+        "description": "handleEntitlementEventOptions built via WithSource/WithEventAt/WithSourceOperation/WithRawIngestedEvents; opts.Validate() errors when eventAt.IsZero().",
+        "example": "w.handleEntitlementEvent(ctx, id, WithSource(src), WithEventAt(event.ResetAt), WithSourceOperation(snapshot.ValueOperationReset))"
       },
       {
-        "name": "apierrors.GenericErrorEncoder as base error handler",
-        "description": "Every httptransport.AppendOptions call includes httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) as the error handler.",
-        "example": "httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder())"
+        "name": "PublishIfNoError for conditional publish",
+        "description": "Handlers that may return a nil event without error use w.opts.EventBus.WithContext(ctx).PublishIfNoError so a filtered nil-event is neither published nor retried.",
+        "example": "return w.opts.EventBus.WithContext(ctx).PublishIfNoError(w.handleEntitlementEvent(ctx, id, options...))"
       },
       {
-        "name": "convert.go owns all domain<->API mapping",
-        "description": "All ToAPI* and FromAPI* conversion functions are in convert.go; individual operation files call these helpers, never inline-converting types.",
-        "example": "return ToAPIAddon(*a) // in operation handler body"
+        "name": "Options structs Validate() first in every constructor",
+        "description": "WorkerOptions, RecalculatorOptions, EntitlementFiltersConfig implement Validate() via errors.Join; New/NewRecalculator call it first and return early so missing deps surface as startup errors.",
+        "example": "if err := opts.Validate(); err != nil { return nil, fmt.Errorf(\"failed to validate worker options: %w\", err) }"
       },
       {
-        "name": "Nil-check after service call",
-        "description": "Handlers that receive a pointer result (*addon.Addon) guard against nil before calling ToAPIAddon, returning a descriptive error instead.",
-        "example": "if a == nil { return ArchiveAddonResponse{}, fmt.Errorf(\"failed to archive add-on\") }"
+        "name": "RecordLastCalculation after each snapshot (non-fatal)",
+        "description": "After createSnapshotEvent, call w.filters.RecordLastCalculation; failure only logs a warning since it merely affects high-watermark dedup.",
+        "example": "if err := w.filters.RecordLastCalculation(...); err != nil { w.opts.Logger.WarnContext(ctx, ...) }"
       },
       {
-        "name": "IgnoreNonCriticalIssues on mutating inputs",
-        "description": "Create and update decoders set req.IgnoreNonCriticalIssues = true after FromAPI conversion to suppress non-fatal validation issues.",
-        "example": "req.IgnoreNonCriticalIssues = true"
+        "name": "AddHandler for post-construction extensibility",
+        "description": "w.AddHandler appends extra batched-ingest GroupEventHandlers after construction (used by billing-worker); handlers must be idempotent since errors trigger retry.",
+        "example": "worker.AddHandler(grouphandler.NewGroupEventHandler(func(ctx, *ingestevents.EventBatchedIngest) error { ... }))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "handler.go",
-        "role": "Declares the Handler interface listing all endpoint methods and the handler struct with resolveNamespace, service addon.Service, and options []httptransport.HandlerOption. New() constructor.",
-        "watch_for": "Adding a new endpoint: add it to the Handler interface here first, then create a dedicated file."
+        "file": "worker.go",
+        "role": "Entry point: WorkerOptions, Worker, New() (subscribes 3 Kafka topics), eventHandler() registering every NoPublishingHandler closure.",
+        "watch_for": "All new event-type handlers must be registered inside grouphandler.NewNoPublishingHandler in eventHandler(); AddHandler is the only post-construction extension point."
       },
       {
-        "file": "convert.go",
-        "role": "All bidirectional conversion between apiv3 and productcatalog/addon domain types including rate cards, prices (flat/unit/tiered), tax config, discounts, and labels.",
-        "watch_for": "Rate card type switch is exhaustive \u2014 adding a new RateCardType requires a new case in both ToAPIBillingRateCard and FromAPIBillingRateCard."
+        "file": "entitlementhandler.go",
+        "role": "Core calculation: handleEntitlementEvent (filter\u2192fetch\u2192filter\u2192processEntitlementEntity), createSnapshotEvent/createDeletedSnapshotEvent, snapshotToEvent.",
+        "watch_for": "Reset uses CurrentUsagePeriod.From as calculatedAt, not time.Now(). Deleted/expired entitlements emit a nil-Value delete snapshot, not an error. Always call in.Validate() in snapshotToEvent."
       },
       {
-        "file": "list.go",
-        "role": "ListAddons with page-pagination using pagination.NewPage defaults (1, 20); validates page before building ListAddonsInput.",
-        "watch_for": "Default page size is 20; page validation errors must use apierrors.NewBadRequestError with field='page'."
+        "file": "recalculate.go",
+        "role": "Recalculator struct for batch jobs: ListInScopeEntitlements (paginated 20k/page), ProcessEntitlements, sendEntitlementEvent; LRU+TTL caches for feature & customerSubject.",
+        "watch_for": "DefaultIncludeDeletedDuration=24h keeps deleted entitlements in scope; the paginated loop is intentional (Ent IN-subqueries break on large sets)."
       },
       {
-        "file": "archive.go",
-        "role": "ArchiveAddon sets EffectiveTo: clock.Now() in the decoder \u2014 the HTTP layer owns wall-clock time, not the domain service.",
-        "watch_for": "Lifecycle operations (publish, archive) must set clock.Now() in the decoder, not inside the service call."
+        "file": "ingesthandler.go",
+        "role": "handleBatchedIngestEvent: queries Repo for affected entitlements, checks activity-period overlap, publishes a RecalculateEvent per affected entitlement.",
+        "watch_for": "Deleted entitlements are explicitly skipped; activity period uses min(ActiveTo, DeletedAt) as upper bound via GetEntitlementActivityPeriod."
+      },
+      {
+        "file": "filters.go",
+        "role": "EntitlementFilters wraps []NamedFilter (NotificationsFilter + HighWatermarkCache) with OTel counters; RecordLastCalculation type-asserts CalculationTimeRecorder.",
+        "watch_for": "Filter chain short-circuits on first false; only filters implementing CalculationTimeRecorder receive RecordLastCalculation."
+      },
+      {
+        "file": "repository.go",
+        "role": "BalanceWorkerRepository interface + ListAffectedEntitlementsResponse; GetEntitlementActivityPeriod computes the valid event window.",
+        "watch_for": "ActiveFrom wins over CreatedAt; when both ActiveTo and DeletedAt present, the earlier wins as upper bound (lo.MinBy)."
+      },
+      {
+        "file": "subject_customer.go",
+        "role": "resolveCustomerAndSubject helper shared by Worker and Recalculator; Subject may be nil for customers without usage attribution.",
+        "watch_for": "Nil UsageAttribution or no subject keys returns (customer, nil, nil); a missing subject row falls back to a synthetic Subject with just the key."
       }
     ],
     "anti_patterns": [
-      "Inline type conversion in operation files instead of calling ToAPIAddon/FromAPICreate*",
-      "Returning domain errors directly without httptransport error encoder chain",
-      "Skipping h.resolveNamespace(ctx) call in a new operation decoder",
-      "Using httptransport.NewHandler instead of NewHandlerWithArgs for path-param operations",
-      "Adding business logic (validation, defaults) outside of the domain service or convert.go"
+      "Publishing a snapshot event directly from a lifecycle handler instead of going through RecalculateEvent \u2014 breaks two-stage dedup and the filter pipeline",
+      "Calling handleEntitlementEvent without WithEventAt \u2014 eventAt.IsZero() is a hard validation error",
+      "Adding DB or external-service calls to filter implementations without LRU+TTL caching \u2014 IsNamespaceInScope/IsEntitlementInScope run per-event and saturate downstream services",
+      "Registering new event-type handlers outside the grouphandler.NewNoPublishingHandler block in eventHandler() \u2014 they are never called",
+      "Using time.Now() as calculatedAt for reset operations \u2014 reset snapshots must use CurrentUsagePeriod.From"
     ],
     "decisions": [
       {
-        "decision": "Lifecycle operations (publish, archive) set clock.Now() in the decoder, not the service.",
-        "rationale": "HTTP layer owns wall-clock time for request-scoped operations; domain service receives explicit timestamps making it easier to test."
+        "decision": "Three-topic subscription (system + ingest + balance-worker) with a RecalculateEvent intermediary on the balance-worker topic",
+        "rationale": "Separates high-volume ingest fan-out (one event \u2192 many entitlements) from the actual ClickHouse balance calculation, enabling independent retry and high-watermark deduplication."
       },
       {
-        "decision": "convert.go handles all price discriminated union encoding/decoding manually (not goverter).",
-        "rationale": "BillingPrice is a oneOf union requiring Discriminator() + From* calls that goverter cannot generate; manual switch-case is the only safe option."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Add a new addon lifecycle endpoint (e.g., RestoreAddon)",
-        "code": "// restore.go\npackage addons\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"net/http\"\n\tapiv3 \"github.com/openmeterio/openmeter/api/v3\"\n\t\"github.com/openmeterio/openmeter/api/v3/apierrors\"\n\t\"github.com/openmeterio/openmeter/openmeter/productcatalog/addon\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\ntype (\n\tRestoreAddonRequest  = addon.RestoreAddonInput\n\tRestoreAddonResponse = apiv3.Addon\n\tRestoreAddonParams   = string\n\tRestoreAddonHandler  httptransport.HandlerWithArgs[RestoreAddonRequest, RestoreAddonResponse, string]\n)\nfunc (h *handler) RestoreAddon() RestoreAddonHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, addonID RestoreAddonParams) (RestoreAddonRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return RestoreAddonRequest{}, err }\n\t\t\treturn RestoreAddonRequest{NamespacedID: models.NamespacedID{Namespace: ns, ID: addonID}}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request RestoreAddonRequest) (RestoreAddonResponse, error) {\n\t\t\ta, err := h.service.RestoreAddon(ctx, request)\n\t\t\tif err != nil { return RestoreAddonResponse{}, err }\n\t\t\tif a == nil { return RestoreAddonResponse{}, fmt.Errorf(\"failed to restore add-on\") }\n\t\t\treturn ToAPIAddon(*a)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[RestoreAddonResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options,\n\t\t\thttptransport.WithOperationName(\"restore-addon\"),\n\t\t\thttptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n\t\t)...,\n\t)\n}"
-      }
-    ]
-  },
-  "api/v3/handlers/apps": {
-    "purpose": "HTTP handlers for listing and getting installed billing apps (Stripe, Sandbox, CustomInvoicing) in the v3 API; performs polymorphic type-assertion on app.App to map each concrete type to the BillingApp union discriminated type.",
-    "patterns": [
-      {
-        "name": "Polymorphic app mapping via type-assertion switch",
-        "description": "ToAPIBillingApp in convert.go switches on item.GetType(), type-asserts to the concrete app (appstripe.App, appsandbox.App, appcustominvoicing.App), and calls From* on api.BillingApp union.",
-        "example": "billingApp := api.BillingApp{}; if err := billingApp.FromBillingAppStripe(billingAppStripe); err != nil { ... }"
-      },
-      {
-        "name": "Goverter for simple struct conversions, manual code for discriminated unions",
-        "description": "convert.go carries goverter:variables annotations; convert.gen.go is generated. Simple field-to-field mappings are goverter-generated; the polymorphic ToAPIBillingApp is hand-written.",
-        "example": "//go:generate go run github.com/jmattheis/goverter/cmd/goverter gen ./"
-      },
-      {
-        "name": "handler struct holds app.Service (not a domain-specific service)",
-        "description": "Unlike other handlers that hold a domain-specific service, the apps handler holds app.Service (the top-level app registry service).",
-        "example": "type handler struct { resolveNamespace ...; appService app.Service; options ... }"
-      },
-      {
-        "name": "var _ Handler = (*handler)(nil) compile-time check",
-        "description": "handler.go includes an explicit interface satisfaction check to catch missing method implementations at compile time.",
-        "example": "var _ Handler = (*handler)(nil)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "convert.go",
-        "role": "Hand-written ToAPIBillingApp (polymorphic switch) + goverter annotations for list/catalog conversions. Adding a new app type requires a new case in the switch and a new toAPIBillingApp<Type> helper.",
-        "watch_for": "goverter:enum:map annotations must be kept in sync with app.AppType constants; missing entries cause @error at runtime."
-      },
-      {
-        "file": "convert.gen.go",
-        "role": "Generated by goverter \u2014 DO NOT EDIT. Regenerate with 'go generate ./...' after modifying convert.go annotations.",
-        "watch_for": "Editing this file manually will be overwritten on next generate."
-      },
-      {
-        "file": "handler.go",
-        "role": "Handler interface (ListApps, GetApp) + New() constructor. Interface satisfaction checked with var _ Handler = (*handler)(nil).",
-        "watch_for": "New app endpoints must be added to the Handler interface."
-      }
-    ],
-    "anti_patterns": [
-      "Adding a new app type without a case in the ToAPIBillingApp switch",
-      "Editing convert.gen.go directly instead of regenerating",
-      "Accessing app-specific fields without type-asserting to the concrete app type first",
-      "Bypassing the ToAPIBillingApp polymorphic helper to do inline conversion in get_app.go or list_app.go"
-    ],
-    "decisions": [
-      {
-        "decision": "BillingApp is a oneOf union; mapping requires app.App interface \u2192 concrete type assertion \u2192 From* call on the union.",
-        "rationale": "The v3 OpenAPI union type requires calling the generated From* discriminator method; no generic field copy works across different concrete types."
-      },
-      {
-        "decision": "Goverter is used only for struct-level mappings (PagePaginatedResponse, BillingAppCatalogItem); the discriminated union is hand-coded.",
-        "rationale": "Goverter cannot handle interface type-switches or oneOf union encoding."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Add a new billing app type mapping",
-        "code": "// In convert.go ToAPIBillingApp switch:\ncase app.AppTypeNewProvider:\n\tnewApp, ok := item.(appnewprovider.App)\n\tif !ok {\n\t\treturn api.BillingApp{}, fmt.Errorf(\"expected new-provider app, got %T\", item)\n\t}\n\tbillingAppNew, err := toAPIBillingAppNewProvider(newApp.Meta)\n\tif err != nil {\n\t\treturn api.BillingApp{}, fmt.Errorf(\"failed to map new-provider app to API: %w\", err)\n\t}\n\tbillingApp := api.BillingApp{}\n\tif err := billingApp.FromBillingAppNewProvider(billingAppNew); err != nil {\n\t\treturn billingApp, err\n\t}\n\treturn billingApp, nil\n// Also add goverter:enum:map AppTypeNewProvider BillingAppTypeNewProvider in ToAPIBillingAppTypeFromDomain"
-      }
-    ]
-  },
-  "api/v3/handlers/billingprofiles": {
-    "purpose": "HTTP handlers for billing profile CRUD in the v3 API; bridges billing.Service (ProfileService) to HTTP with a domain-specific error encoder and goverter-generated conversions for workflow configs, tax config, and supplier parties.",
-    "patterns": [
-      {
-        "name": "Domain-specific error encoder chained with GenericErrorEncoder",
-        "description": "Every operation in this package appends both apierrors.GenericErrorEncoder() AND the local errorEncoder() which maps billing.NotFoundError\u2192404, billing.ValidationError\u2192400, billing.UpdateAfterDeleteError\u2192409.",
-        "example": "httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()), httptransport.WithErrorEncoder(errorEncoder())"
-      },
-      {
-        "name": "Goverter context params for namespace injection",
-        "description": "Goverter-generated FromAPICreateBillingProfileRequest accepts a string context param (namespace) which gets mapped to the Namespace field via goverter:context and NamespaceFromContext helper.",
-        "example": "// goverter:context namespace\n// goverter:map Namespace | NamespaceFromContext\nFromAPICreateBillingProfileRequest func(namespace string, req api.CreateBillingProfileRequest) (billing.CreateProfileInput, error)"
-      },
-      {
-        "name": "ProfileExpand: Apps set on read operations",
-        "description": "GetBillingProfile and ListBillingProfiles always set billing.ProfileExpand{Apps: true} so the app references are populated in the response.",
-        "example": "Expand: billing.ProfileExpand{Apps: true}"
-      },
-      {
-        "name": "error_encoder.go isolates billing error mapping",
-        "description": "A dedicated error_encoder.go file returns an encoder.ErrorEncoder closure that handles billing-specific error types, keeping operation files free of error type assertions.",
-        "example": "commonhttp.HandleErrorIfTypeMatches[billing.NotFoundError](ctx, http.StatusNotFound, err, w, billing.EncodeValidationIssues)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "convert.go",
-        "role": "Goverter annotations + hand-written helpers (ToAPIBillingWorkflow, FromAPIBillingWorkflow, ToAPIBillingParty, FromAPIBillingParty, ToAPIBillingAppReference). FromAPIBillingWorkflow parses ISO duration strings and handles alignment discriminated union.",
-        "watch_for": "FromAPIBillingWorkflow uses period.Parse for duration strings and falls back to billing.DefaultWorkflowConfig; both collection alignment variants (subscription, anchored) must be handled."
-      },
-      {
-        "file": "error_encoder.go",
-        "role": "Maps billing.NotFoundError, billing.ValidationError, billing.UpdateAfterDeleteError, billing.ValidationIssue, billing.AppError to HTTP status codes using commonhttp.HandleErrorIfTypeMatches.",
-        "watch_for": "Order matters: more specific types should appear before more general ones in the chain."
-      },
-      {
-        "file": "convert.gen.go",
-        "role": "Generated by goverter \u2014 DO NOT EDIT. Contains FromAPICreateBillingProfileRequest, FromAPIUpsertBillingProfileRequest, ToAPIBillingProfile, ToAPIBillingProfiles, ToAPIBillingTaxConfig, FromAPIBillingTaxConfig.",
-        "watch_for": "Regenerate after any change to convert.go annotations."
-      },
-      {
-        "file": "get.go",
-        "role": "GetBillingProfile with ProfileExpand{Apps: true}; returns apierrors.NewNotFoundError if profile is nil after service call.",
-        "watch_for": "Nil profile check after service call must return apierrors.NewNotFoundError, not a generic error."
-      }
-    ],
-    "anti_patterns": [
-      "Omitting errorEncoder() from any billing profile operation \u2014 GenericErrorEncoder alone won't map billing.NotFoundError to 404",
-      "Editing convert.gen.go manually",
-      "Forgetting ProfileExpand{Apps: true} on read paths that need app reference data",
-      "Adding new workflow fields to convert.go without updating both ToAPIBillingWorkflow and FromAPIBillingWorkflow"
-    ],
-    "decisions": [
-      {
-        "decision": "A local errorEncoder() is provided alongside GenericErrorEncoder because billing errors (NotFoundError, ValidationError, UpdateAfterDeleteError) are domain-specific types not handled by the generic encoder.",
-        "rationale": "The generic encoder handles models.Generic* errors; billing defines its own error types for richer validation issue propagation."
-      },
-      {
-        "decision": "Goverter context params are used to thread namespace and namespacedID into generated converters instead of manual construction.",
-        "rationale": "Avoids boilerplate in every FromAPI function while keeping the generated code correct and auditable."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Add a new billing profile operation with proper error encoding",
-        "code": "// In handler.go: add to Handler interface\nValidateBillingProfile() ValidateBillingProfileHandler\n\n// validate.go:\npackage billingprofiles\nimport (\n\t\"context\"\n\t\"net/http\"\n\tapi \"github.com/openmeterio/openmeter/api/v3\"\n\t\"github.com/openmeterio/openmeter/api/v3/apierrors\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\ntype (\n\tValidateBillingProfileRequest  = billing.GetProfileInput\n\tValidateBillingProfileResponse = api.BillingProfile\n\tValidateBillingProfileParams   = string\n\tValidateBillingProfileHandler  httptransport.HandlerWithArgs[ValidateBillingProfileRequest, ValidateBillingProfileResponse, string]\n)\nfunc (h *handler) ValidateBillingProfile() ValidateBillingProfileHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, profileID string) (ValidateBillingProfileRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return ValidateBillingProfileRequest{}, err }\n\t\t\treturn ValidateBillingProfileRequest{\n\t\t\t\tProfile: billing.ProfileID(models.NamespacedID{Namespace: ns, ID: profileID}),\n\t\t\t\tExpand: billing.ProfileExpand{Apps: true},\n\t\t\t}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request ValidateBillingProfileRequest) (ValidateBillingProfileResponse, error) {\n\t\t\tprofile, err := h.service.GetProfile(ctx, request)\n\t\t\tif err != nil { return ValidateBillingProfileResponse{}, err }\n\t\t\treturn ToAPIBillingProfile(*profile)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ValidateBillingProfileResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options,\n\t\t\thttptransport.WithOperationName(\"validate-billing-profile\"),\n\t\t\thttptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),\n\t\t\thttptransport.WithErrorEncoder(errorEncoder()), // always chain both\n\t\t)...,\n\t)\n}"
-      }
-    ]
-  },
-  "api/v3/handlers/currencies": {
-    "purpose": "HTTP handlers for listing custom currencies and cost bases in the v3 API; uses namespacedriver.NamespaceDecoder (not a resolveNamespace closure) for namespace resolution and delegates to currencies.CurrencyService.",
-    "patterns": [
-      {
-        "name": "NamespaceDecoder instead of resolveNamespace closure",
-        "description": "Unlike most handler packages that accept a resolveNamespace func(ctx) (string, error), this handler holds a namespacedriver.NamespaceDecoder and calls h.namespaceDecoder.GetNamespace(ctx) returning (string, bool).",
-        "example": "ns, ok := h.namespaceDecoder.GetNamespace(ctx); if !ok { return ..., apierrors.NewInternalError(ctx, fmt.Errorf(\"failed to resolve namespace\")) }"
-      },
-      {
-        "name": "Page defaults differ by operation",
-        "description": "ListCurrencies uses default page size 100 (not 20 like other handlers), reflecting expected currency catalog size.",
-        "example": "page := pagination.NewPage(1, 100)"
-      },
-      {
-        "name": "Handler interface groups both resource sub-types",
-        "description": "The Handler interface includes both currency (ListCurrencies, CreateCurrency) and cost basis (CreateCostBasis, ListCostBases) endpoints in a single handler struct backed by currencies.CurrencyService.",
-        "example": "type Handler interface { ListCurrencies() ...; CreateCurrency() ...; CreateCostBasis() ...; ListCostBases() ... }"
-      },
-      {
-        "name": "BillingCurrency discriminated union via generic helper",
-        "description": "convert.go uses NewBillingCurrencyFrom[T] generic to construct the BillingCurrency union for both custom and fiat types, calling From* discriminator methods.",
-        "example": "func NewBillingCurrencyFrom[T v3.BillingCurrencyCustom | v3.BillingCurrencyFiat](v T) (v3.BillingCurrency, error)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "handler.go",
-        "role": "Handler interface + handler struct holding namespaceDecoder, currencyService currencies.CurrencyService, and options. New() constructor.",
-        "watch_for": "This handler uses namespacedriver.NamespaceDecoder not a func; new operations must call GetNamespace (returns bool, not error) not resolveNamespace."
-      },
-      {
-        "file": "list.go",
-        "role": "ListCurrencies with optional filter[type] query param mapped through FromAPIBillingCurrencyType and page-pagination with default size 100.",
-        "watch_for": "Filter is optional; nil check required before dereferencing params.Filter."
-      },
-      {
-        "file": "convert.go",
-        "role": "ToAPIBillingCurrency distinguishes custom (has ID) from fiat (no ID) to route to the correct union branch; ToAPIBillingCostBasis converts the rate Decimal to string.",
-        "watch_for": "The custom vs fiat branch is determined by c.ID != '' \u2014 any currency with an empty ID is treated as fiat."
-      }
-    ],
-    "anti_patterns": [
-      "Using resolveNamespace pattern instead of namespaceDecoder.GetNamespace",
-      "Defaulting page size to 20 (use 100 for currency catalog lists)",
-      "Mixing currency and cost-basis conversion logic into operation files rather than a convert.go",
-      "Forgetting the ok bool from GetNamespace and assuming it always returns a valid namespace"
-    ],
-    "decisions": [
-      {
-        "decision": "namespacedriver.NamespaceDecoder is injected instead of a resolveNamespace closure because currencies was wired before the closure pattern was standardized.",
-        "rationale": "Both patterns resolve namespace from context; the decoder pattern is older and specific to certain handler packages that predate the closure convention."
+        "decision": "Recalculator as a struct separate from Worker",
+        "rationale": "Batch recalculation jobs (cmd/jobs) reuse the calculation logic without constructing a Kafka-connected Worker."
       }
     ],
     "code_examples": []
   },
-  "api/v3/handlers/events": {
-    "purpose": "HTTP handler for listing and ingesting CloudEvents in the v3 API; provides rich filter support (type, time, ingested_at, stored_at, customer_id) and sort with unit-tested filter parsing helpers.",
+  "openmeter/entitlement/driver": {
+    "purpose": "V1 HTTP driver for the entitlement domain: adapts entitlement.Service and meteredentitlement.Connector to Chi handlers via httptransport.HandlerWithArgs with subject-key-based customer resolution. Also owns the shared Parser singleton and MapEntitlementValueToAPI reused by the v2 driver and balanceworker.",
     "patterns": [
       {
-        "name": "Filter parsing helpers are package-private and unit-tested",
-        "description": "fromAPICustomerIDFilter, fromAPIEventSort, and fromAPIEventFilter are unexported helpers in list.go with dedicated unit tests in list_test.go covering all supported and rejected filter variants.",
-        "example": "func fromAPICustomerIDFilter(ctx context.Context, f *api.ULIDFieldFilter) (*filter.FilterString, error)"
+        "name": "HandlerWithArgs typed triplet",
+        "description": "Each handler is a type alias of httptransport.HandlerWithArgs[Request, Response, Params] with Request/Response/Params named immediately above.",
+        "example": "type CreateEntitlementHandler httptransport.HandlerWithArgs[CreateEntitlementHandlerRequest, CreateEntitlementHandlerResponse, CreateEntitlementHandlerParams]"
       },
       {
-        "name": "apierrors.NewBadRequestError with exact field path for filter errors",
-        "description": "Every unsupported filter operator returns apierrors.NewBadRequestError with the exact query-param field path as the InvalidParameter.Field value.",
-        "example": "apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{Field: \"filter[customer_id]\", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery}})"
+        "name": "Namespace from context only",
+        "description": "All decoders call h.resolveNamespace(ctx) via namespacedriver.NamespaceDecoder; namespace is never a URL/query param in v1.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return request, err }"
       },
       {
-        "name": "Sort defaults to desc when no suffix provided",
-        "description": "fromAPIEventSort parses the SortQuery string; a field name without an asc/desc suffix is treated as descending by default so sort=time means most-recent first.",
-        "example": "sort := api.SortQuery(\"time\") // \u2192 sortx.OrderDesc"
+        "name": "Customer resolution in the operation closure",
+        "description": "Decoder reads only URL params; resolveCustomerFromSubject runs in the operation, then UsageAttribution is set before calling the service.",
+        "example": "cust, err := h.resolveCustomerFromSubject(ctx, request.Namespace, request.SubjectIdOrKey); request.Inputs.UsageAttribution = cust.GetUsageAttribution()"
       },
       {
-        "name": "Customer ID filter supports only Eq and Oeq operators",
-        "description": "fromAPICustomerIDFilter explicitly rejects Neq, Contains, Ocontains, Exists operators with a descriptive error; only eq and oeq are forwarded as an IN set to the backend.",
-        "example": "if f.Neq != nil { err := errors.New(\"only eq and oeq operators are supported\"); return nil, apierrors.NewBadRequestError(...) }"
+        "name": "Parser singleton for type dispatch",
+        "description": "Parser.ToAPIGeneric dispatches on EntitlementType to ToMetered/ToStatic/ToBoolean; never switch on EntitlementType inline.",
+        "example": "return Parser.ToAPIGeneric(&entitlement.EntitlementWithCustomer{Entitlement: lo.FromPtr(res), Customer: *cust})"
+      },
+      {
+        "name": "GetErrorEncoder() for domain error mapping",
+        "description": "Every handler passes httptransport.WithErrorEncoder(GetErrorEncoder()); new domain errors must be registered there or they fall through to 500.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"createEntitlement\"), httptransport.WithErrorEncoder(GetErrorEncoder()))"
+      },
+      {
+        "name": "Separate connector fields for base vs metered ops",
+        "description": "meteredEntitlementHandler holds entitlementConnector (base queries) and balanceConnector (grant/balance ops); never cross-use them.",
+        "example": "h.balanceConnector.CreateGrant(...) for grants; h.entitlementConnector.ListEntitlements(...) for base queries"
       }
     ],
     "key_file_guides": [
       {
-        "file": "list.go",
-        "role": "Main list events handler plus all filter/sort parsing helpers. fromAPICustomerIDFilter only supports Eq and Oeq; Neq/Contains/Ocontains/Exists are rejected.",
-        "watch_for": "Adding a new filter field requires adding both a parsing helper and a test case in list_test.go."
+        "file": "entitlement.go",
+        "role": "EntitlementHandler: CreateEntitlement, OverrideEntitlement, GetEntitlement(ById), DeleteEntitlement, GetEntitlementValue, GetEntitlementsOfSubject, ListEntitlements.",
+        "watch_for": "CreateEntitlement passes empty streaming.CustomerUsageAttribution{} to ParseAPICreateInput then overwrites after resolving the customer. ListEntitlements supports both page-based and limit/offset pagination via commonhttp.Union."
       },
       {
-        "file": "list_test.go",
-        "role": "Unit tests for filter and sort parsing helpers using t.Context(). assertBadRequestField verifies the exact InvalidParameter.Field in error responses.",
-        "watch_for": "Tests use t.Context() not context.Background() \u2014 keep consistent."
+        "file": "metered.go",
+        "role": "MeteredEntitlementHandler: CreateGrant, ListEntitlementGrants, ResetEntitlementUsage, GetEntitlementBalanceHistory; resolveCustomerFromSubject bridges subject key\u2192customer ID.",
+        "watch_for": "resolveCustomerFromSubject checks IsDeleted(); GetEntitlementBalanceHistory returns windowed + burndown history mapped to GrantBurnDownHistorySegment."
       },
       {
-        "file": "convert.go",
-        "role": "toAPIMeteringIngestedEvent converts meterevent.Event to API wire form; parses JSON data string to map[string]any; sets CloudEvents specversion=1.0.",
-        "watch_for": "e.Data is a raw JSON string \u2014 must unmarshal to map[string]any before assigning to nullable event.Data field."
+        "file": "parser.go",
+        "role": "Parser singleton (ToMetered/ToStatic/ToBoolean/ToAPIGeneric) and ParseAPICreateInput; MapEntitlementValueToAPI shared by v1/v2 drivers and balanceworker.",
+        "watch_for": "ParseAPICreateInput prunes ActiveFrom/ActiveTo (lifecycle fields not accepted via create). MapRecurrenceToAPI is best-effort for non-named ISO durations."
       },
       {
-        "file": "ingest.go",
-        "role": "IngestEvents handler for CloudEvent ingestion path.",
-        "watch_for": "Ingest path is separate from list path; do not mix streaming connector calls with ingest collector calls."
+        "file": "errors.go",
+        "role": "GetErrorEncoder() returns the domain error encoder used by all handlers.",
+        "watch_for": "AlreadyExistsError adds conflictingEntityId to response extensions; unregistered domain errors fall through to generic 500."
       }
     ],
     "anti_patterns": [
-      "Supporting filter operators beyond Eq/Oeq for customer_id without adding explicit rejection tests for unsupported operators",
-      "Parsing filter defaults in the handler operation func instead of dedicated unexported helper functions",
-      "Returning raw errors from filter parsing instead of apierrors.NewBadRequestError with exact field path",
-      "Using context.Background() in list_test.go tests instead of t.Context()"
+      "Switching on EntitlementType inline in handler closures instead of calling Parser.ToAPIGeneric",
+      "Accepting namespace as a query/path parameter \u2014 always resolve via h.namespaceDecoder.GetNamespace(ctx)",
+      "Using balanceConnector for base entitlement ops or entitlementConnector for grant/balance ops",
+      "Adding new domain error types to handler closures instead of GetErrorEncoder()",
+      "Calling entitlement service methods with a raw subject key instead of first resolving to customer.ID via resolveCustomerFromSubject"
     ],
     "decisions": [
       {
-        "decision": "Filter parsing helpers are unexported and unit-tested in list_test.go rather than integration-tested.",
-        "rationale": "Parser logic is deterministic and does not require a running service; unit tests give fast feedback on edge cases like malformed sort strings."
+        "decision": "Subject-key-centric v1 driver with customer resolution inside the operation closure",
+        "rationale": "Subject key is the public v1 identifier but customer.ID is required internally; resolving lazily in the operation keeps the decoder stateless."
+      },
+      {
+        "decision": "Parser as a package-level singleton shared by v1 and v2 drivers",
+        "rationale": "Stateless type-dispatch logic is identical across drivers; a singleton avoids repeated construction while organising per-subtype mapping."
       }
     ],
-    "code_examples": [
+    "code_examples": []
+  },
+  "openmeter/entitlement/hooks": {
+    "purpose": "Organisational container for entitlement ServiceHook implementations that enforce cross-domain constraints (currently subscription ownership) without creating circular imports. Each child package implements models.ServiceHook[entitlement.Entitlement] for one external-domain concern.",
+    "patterns": [
       {
-        "scenario": "Add a new filter field to the events list handler",
-        "code": "// In list.go \u2014 add a parsing helper:\nfunc fromAPISubjectFilter(ctx context.Context, f *api.StringFieldFilter) (*filter.FilterString, error) {\n\tif f == nil {\n\t\treturn nil, nil\n\t}\n\tvar values []string\n\tif f.Eq != nil {\n\t\tvalues = append(values, *f.Eq)\n\t}\n\tif len(values) == 0 {\n\t\treturn nil, nil\n\t}\n\treturn &filter.FilterString{In: &values}, nil\n}\n// Then call it in the decoder:\nsubjectFilter, err := fromAPISubjectFilter(ctx, params.Filter.Subject)\nif err != nil {\n\treturn ListEventsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{\n\t\t{Field: \"filter[subject]\", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},\n\t})\n}\n// Add corresponding test in list_test.go using t.Context()"
+        "name": "Embed NoopServiceHook, override only needed methods",
+        "description": "Hook structs embed models.NoopServiceHook[entitlement.Entitlement] so only PreDelete/PreUpdate are overridden; a compile-time var _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil) is mandatory.",
+        "example": "type hook struct { NoopEntitlementSubscriptionHook }\nvar _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil)"
+      },
+      {
+        "name": "IsSubscriptionOperation gate first",
+        "description": "Any Pre* override calls subscription.IsSubscriptionOperation(ctx) before the annotation check so the subscription service can bypass the guard during its own lifecycle.",
+        "example": "if subscription.IsSubscriptionOperation(ctx) { return nil }; if subscription.AnnotationParser.HasSubscription(ent.Annotations) { return models.NewGenericForbiddenError(...) }"
+      },
+      {
+        "name": "Return GenericForbiddenError for annotation guards",
+        "description": "Blocked operations return models.NewGenericForbiddenError so the HTTP encoder maps to 403; any other error type breaks status mapping.",
+        "example": "return models.NewGenericForbiddenError(fmt.Errorf(\"entitlement is managed by subscription\"))"
+      },
+      {
+        "name": "Constructor accepts a typed config struct",
+        "description": "Constructors follow NewXxxHook(cfg XxxHookConfig) XxxHook even when the config is empty, allowing future extension without breaking callers.",
+        "example": "func NewEntitlementSubscriptionHook(_ EntitlementSubscriptionHookConfig) EntitlementSubscriptionHook { ... }"
+      },
+      {
+        "name": "Type aliases for hook interface and noop",
+        "description": "Each child defines EntitlementXxxHook = models.ServiceHook[entitlement.Entitlement] and NoopEntitlementXxxHook = models.NoopServiceHook[entitlement.Entitlement] so callers use a domain-named type.",
+        "example": "type EntitlementSubscriptionHook = models.ServiceHook[entitlement.Entitlement]"
       }
-    ]
+    ],
+    "key_file_guides": [
+      {
+        "file": "subscription/hook.go",
+        "role": "PreDelete/PreUpdate guard blocking mutation/deletion of subscription-annotated entitlements unless called from within a subscription operation; returns GenericForbiddenError (403).",
+        "watch_for": "Must check subscription.IsSubscriptionOperation(ctx) before HasSubscription. No I/O or DB calls inside hook methods."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing a new Pre* method without the IsSubscriptionOperation(ctx) check \u2014 breaks subscription self-management",
+      "Returning a non-GenericForbiddenError for annotation-guard failures \u2014 the HTTP layer maps only ForbiddenError to 403",
+      "Adding DB calls or business logic inside hook methods \u2014 hooks must be pure guards with no I/O",
+      "Omitting the compile-time var _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil) assertion",
+      "Importing entitlement.Service (rather than entitlement domain types) \u2014 risks import cycles"
+    ],
+    "decisions": [
+      {
+        "decision": "One sub-package per external-domain concern (subscription/)",
+        "rationale": "Keeps each cross-domain constraint in its own compilation unit, making it trivial to wire/unwire individual hooks in app/common."
+      },
+      {
+        "decision": "Embed models.NoopServiceHook rather than implementing all methods",
+        "rationale": "Reduces boilerplate and keeps hooks compiling when the ServiceHook interface gains methods."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/entitlement/validators": {
+    "purpose": "Organisational container for customer.RequestValidator implementations that enforce entitlement-domain pre-mutation constraints on customer operations (e.g. blocking deletion of a customer with active entitlements) without circular imports.",
+    "patterns": [
+      {
+        "name": "Embed customer.NoopRequestValidator",
+        "description": "Validator structs embed customer.NoopRequestValidator so only the relevant Validate* methods are overridden; a compile-time var _ customer.RequestValidator = (*Validator)(nil) is mandatory.",
+        "example": "type Validator struct { customer.NoopRequestValidator; entitlementRepo entitlement.EntitlementRepo }\nvar _ customer.RequestValidator = (*Validator)(nil)"
+      },
+      {
+        "name": "Depend on EntitlementRepo, not entitlement.Service",
+        "description": "Validators use entitlement.EntitlementRepo (lighter, cycle-safe) and nil-guard it in the constructor, returning an error if nil.",
+        "example": "func NewValidator(entitlementRepo entitlement.EntitlementRepo) (*Validator, error) { if entitlementRepo == nil { return nil, fmt.Errorf(\"entitlement repository is required\") }; ... }"
+      },
+      {
+        "name": "Return GenericConflictError for blocked operations",
+        "description": "Pre-mutation blocking failures use models.NewGenericConflictError so the HTTP encoder maps to 409.",
+        "example": "return models.NewGenericConflictError(fmt.Errorf(\"customer %s still has active entitlements\", input.ID))"
+      },
+      {
+        "name": "Use clock.Now() for testable time",
+        "description": "All time references use pkg/clock.Now() rather than time.Now() to allow test clock injection.",
+        "example": "now := clock.Now(); entitlements, err := v.entitlementRepo.ListEntitlements(ctx, entitlement.ListEntitlementsParams{ActiveAt: lo.ToPtr(now), ...})"
+      },
+      {
+        "name": "Validate input before querying",
+        "description": "Each ValidateXxx calls input.Validate() first to reject malformed input before any DB query.",
+        "example": "if err := input.Validate(); err != nil { return err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "customer/validator.go",
+        "role": "ValidateDeleteCustomer lists active entitlements at clock.Now() (including soft-deleted ones active at that instant) and returns GenericConflictError if any exist; depends on entitlement.EntitlementRepo.",
+        "watch_for": "Must use clock.Now() not time.Now(). The IncludeDeleted+IncludeDeletedAfter pair is required to catch entitlements soft-deleted after the check. Return GenericConflictError so HTTP maps to 409."
+      }
+    ],
+    "anti_patterns": [
+      "Importing entitlement.Service instead of entitlement.EntitlementRepo \u2014 creates import cycles and a heavier dependency graph",
+      "Using time.Now() instead of clock.Now() \u2014 breaks test determinism",
+      "Returning a non-GenericConflictError for 'has active entitlements' \u2014 the HTTP layer maps only ConflictError to 409",
+      "Adding state-mutating or post-mutation logic \u2014 validators are read-only pre-mutation guards only",
+      "Omitting the compile-time var _ customer.RequestValidator = (*Validator)(nil) assertion"
+    ],
+    "decisions": [
+      {
+        "decision": "Depend on entitlement.EntitlementRepo rather than entitlement.Service",
+        "rationale": "RequestValidator is called from within the customer service; depending on entitlement.Service would risk import cycles since the service layer imports customer for hooks."
+      },
+      {
+        "decision": "One sub-package per external-domain concern (customer/)",
+        "rationale": "Mirrors the hooks/ layout so each validator can be independently wired/unwired in app/common."
+      }
+    ],
+    "code_examples": []
   }
 }

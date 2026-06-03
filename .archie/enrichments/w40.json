@@ -1,90 +1,80 @@
 {
-  "collector/benthos/input/runai": {
-    "purpose": "HTTP client library for the Run:ai API providing typed access to workloads, pods, and their metrics via a single resty.Client in service.go with automatic JWT token refresh on every non-token request. All API resource types follow a strict ListX/ListAllX pagination pair plus chunked metric fetching.",
+  "pkg/kafka/metrics": {
+    "purpose": "Public facade for librdkafka OTel metrics: the Metrics type (metrics.go) owns top-level client gauges and fans out to domain-specific Int64Gauge registries in internal/ (broker, topic, consumer group), which read typed librdkafka JSON stats from stats/. Primary constraint: all metrics are point-in-time Int64Gauge derived from librdkafka's rolling-window snapshot \u2014 never counters or histograms.",
     "patterns": [
       {
-        "name": "Service method per API endpoint",
-        "description": "Every API endpoint is a method on *Service. Methods set Accept header, query params via SetQueryParams, and call SetResult with a typed pointer before executing the resty verb, then type-assert resp.Result().",
-        "example": "resp.Result().(*ListPodsResponse)"
+        "name": "Functional options for sub-metric gating",
+        "description": "Sub-metric categories are toggled via Option funcs (WithBrokerMetricsDisabled, WithTopicMetricsDisabled, WithConsumerGroupMetricsDisabled, WithExtendedMetrics) applied to an Options struct in New; nil-pointer guards in Add skip disabled categories.",
+        "example": "m, err := metrics.New(meter, metrics.WithExtendedMetrics(), metrics.WithBrokerMetricsDisabled())"
       },
       {
-        "name": "ListX + ListAllX pagination pair",
-        "description": "Each resource has a ListX (single page, max 500 limit enforced) and a ListAllX (loops until resp.Next == 0) pair. ListAllX calls s.resourceTypeMetrics.Set after collecting all pages.",
-        "example": "ListPods / ListAllPods, ListWorkloads / ListAllWorkloads"
+        "name": "Sequential fail-fast error returns in New",
+        "description": "New allocates each Int64Gauge sequentially with an immediate err != nil check wrapped via fmt.Errorf; sub-metric structs (internal.NewBrokerMetrics etc.) are constructed before top-level gauges.",
+        "example": "m.Age, err = meter.Int64Gauge(\"kafka.age_microseconds\", ...); if err != nil { return nil, fmt.Errorf(\"failed to create metric: kafka.age: %w\", err) }"
       },
       {
-        "name": "Metric chunking at max 9 per request",
-        "description": "GetAllWorkloadWithMetrics and GetAllPodWithMetrics chunk MetricType slices with lo.Chunk(params.MetricType, 9) before calling GetWorkloadMetrics/GetPodMetrics to avoid exceeding the Run:ai API undocumented limit.",
-        "example": "for _, metricTypes := range lo.Chunk(params.MetricType, 9) { m, err := s.GetWorkloadMetrics(ctx, workload.ID, MeasurementParams{MetricType: metricTypes, ...}) }"
+        "name": "Nil guard at top of Add",
+        "description": "Add returns immediately if stats == nil before touching any field, matching the internal sub-metric nil-check-before-field-read pattern.",
+        "example": "func (m *Metrics) Add(ctx context.Context, stats *stats.Stats, attrs ...attribute.KeyValue) { if stats == nil { return } }"
       },
       {
-        "name": "ResourceWithMetrics interface with MarshalJSON discriminator",
-        "description": "WorkloadWithMetrics and PodWithMetrics both implement ResourceWithMetrics (GetType, GetMetrics, json.Marshaler). MarshalJSON injects a resourceType discriminator field via an anonymous struct embed so downstream consumers can distinguish types.",
-        "example": "var _ ResourceWithMetrics = (*WorkloadWithMetrics)(nil)"
+        "name": "Attribute append before delegation",
+        "description": "Top-level client attributes (name, client_id, type) are appended to attrs before calling sub-metric Add methods; sub-metrics append their own domain attributes. The attrs slice is mutated \u2014 callers must not reuse it afterward.",
+        "example": "attrs = append(attrs, attribute.String(\"name\", stats.Name), attribute.String(\"client_id\", stats.ClientID), attribute.String(\"type\", stats.Type))"
       },
       {
-        "name": "OnBeforeRequest JWT auto-refresh",
-        "description": "service.go registers an OnBeforeRequest hook that calls service.RefreshToken then SetAuthToken on every non-token request. OnAfterResponse clears token on 401 and records timing metrics with path normalization.",
-        "example": "if request.URL == \"/api/v1/token\" { return nil } // skip token endpoint"
+        "name": "Skip negative-ID nodes in loops",
+        "description": "The broker loop in Add skips brokers with NodeID < 0 (bootstrap/internal nodes); the internal partition layer similarly skips negative partition IDs.",
+        "example": "for _, broker := range stats.Brokers { if broker.NodeID < 0 { continue } }"
       },
       {
-        "name": "Non-fatal per-resource metric errors",
-        "description": "In GetAllWorkloadWithMetrics and GetAllPodWithMetrics, a per-resource metric error is logged (s.logger.Errorf) and the loop continues with continue rather than returning the error \u2014 collection must not abort for all remaining resources.",
-        "example": "s.logger.With(...).Errorf(\"failed to get workload metrics: %w\", err); continue"
+        "name": "All metrics are Int64Gauge",
+        "description": "Every metric uses metric.Int64Gauge because librdkafka stats are point-in-time rolling-window snapshots; Int64Counter or Histogram would double-count across poll intervals.",
+        "example": "m.Age, err = meter.Int64Gauge(\"kafka.age_microseconds\", metric.WithDescription(...), metric.WithUnit(\"{microseconds}\"))"
+      },
+      {
+        "name": "Test via embedded stats.json with noop meter",
+        "description": "Tests unmarshal the canonical stats/testdata/stats.json fixture and call Add against noop.NewMeterProvider().Meter for all option combinations, using t.Context() not context.Background().",
+        "example": "//go:embed stats/testdata/stats.json; testMeter := noop.NewMeterProvider().Meter(\"test\"); kafkaMetrics.Add(t.Context(), testStats)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "service.go",
-        "role": "Constructs *Service with a resty.Client; holds all shared state (logger, client, token, pageSize, resourceTypeMetrics). The single constructor NewService is the only entry point.",
-        "watch_for": "TimingMetrics path normalization uses regex in OnAfterResponse \u2014 add new endpoint path patterns here when adding new API paths, otherwise metrics will be untagged."
-      },
-      {
-        "file": "token.go",
-        "role": "JWT lifecycle: NewToken posts to /api/v1/token, RefreshToken checks expiry via verifyToken (parses without signature verification), SetToken/GetToken are plain field accessors.",
-        "watch_for": "verifyToken uses jwt.WithoutClaimsValidation() \u2014 it only checks expiry, not signature. Token is cleared on 401 by OnAfterResponse in service.go."
-      },
-      {
         "file": "metrics.go",
-        "role": "Defines MetricType constants for both workload and pod scopes, MeasurementParams/Measurement/MeasurementResponse/Metrics types, and the four public methods: GetWorkloadMetrics, GetAllWorkloadWithMetrics, GetPodMetrics, GetAllPodWithMetrics.",
-        "watch_for": "PodMetricType and WorkloadMetricType share the MetricType string type \u2014 some constant names collide (e.g. CPU_MEMORY_USAGE_BYTES, GPU_UTILIZATION appear in both groups). Don't assume a constant is scoped to one resource type."
+        "role": "Public API: Metrics struct, New factory with functional options, Add fan-out to sub-metrics. Entry point for all callers.",
+        "watch_for": "Do not change metric types from Int64Gauge or add aggregation in Add; the attrs slice is appended in-place \u2014 sub-metric Add calls must not retain or mutate it after returning."
       },
       {
-        "file": "workloads.go",
-        "role": "Defines Workload struct, ListWorkloads (with filterBy query param excluding non-running phases), and ListAllWorkloads.",
-        "watch_for": "ListWorkloads filters workloads client-side by RunningPods > 0 AFTER the API call in addition to the filterBy query param. Adding new phases to include requires editing both the filteredOutPhases slice and the lo.Filter predicate."
-      },
-      {
-        "file": "pods.go",
-        "role": "Defines Pod struct and ListPods/ListAllPods. ListAllPods calls s.resourceTypeMetrics.Set(int64(len(pods)), \"pod\") after pagination completes.",
-        "watch_for": "ListPods hardcodes completed=false query param \u2014 only running pods are returned. Do not use this to fetch completed pods."
+        "file": "metrics_test.go",
+        "role": "Smoke tests across all option combos using the noop meter and embedded stats fixture; catches nil-deref regressions across Add paths.",
+        "watch_for": "Uses t.Context() not context.Background(); embeds stats/testdata/stats.json directly \u2014 keep the embed path in sync if testdata moves."
       }
     ],
     "anti_patterns": [
-      "Adding a new API resource without providing both a ListX (single page, max 500) and ListAllX (full pagination loop calling resourceTypeMetrics.Set) method pair.",
-      "Calling GetWorkloadMetrics or GetPodMetrics with more than 9 MetricType values in one request \u2014 always chunk with lo.Chunk(..., 9).",
-      "Returning an error from the per-resource metric loop in GetAllWorkloadWithMetrics/GetAllPodWithMetrics \u2014 log and continue instead to avoid aborting collection for all remaining resources.",
-      "Adding timing metrics without normalizing the URL path via the regex block in OnAfterResponse in service.go \u2014 untagged paths produce high-cardinality metric series.",
-      "Modifying verifyToken to verify JWT signature \u2014 the Run:ai JWT is intentionally parsed without signature verification here by design."
+      "Using Int64Counter or Float64Histogram for any metric \u2014 librdkafka stats are point-in-time snapshots, not cumulative deltas.",
+      "Accessing stats fields in Add without the nil guard at the top \u2014 librdkafka JSON can omit entire sections.",
+      "Adding business logic or aggregation inside Add \u2014 it must only translate stats fields to OTel Record calls.",
+      "Constructing internal sub-metric structs outside the disabled-flag guard in New \u2014 optional sub-metrics must stay behind their disable option.",
+      "Retaining or mutating the attrs variadic slice after passing it to a sub-metric Add \u2014 the method appends to it, corrupting the caller's slice in a loop."
     ],
     "decisions": [
       {
-        "decision": "Single *Service struct holds all HTTP state including token and resty.Client",
-        "rationale": "The OnBeforeRequest hook has a closure over *Service, allowing RefreshToken to be called transparently before every request without threading credentials through each method signature."
+        "decision": "Int64Gauge for all metrics rather than counters or histograms.",
+        "rationale": "librdkafka emits rolling-window JSON snapshots, not incrementing counters; Gauge semantics represent the current point-in-time value without double-counting across poll intervals."
       },
       {
-        "decision": "Metric fetches chunk at 9 MetricType values per request",
-        "rationale": "The Run:ai API has an undocumented maximum on simultaneous metric types; chunking at 9 stays safely under that limit while maps.Copy merges partial results into a single Metrics.Values map."
+        "decision": "Separate internal/ and stats/ sub-packages with a thin public facade.",
+        "rationale": "stats/ owns JSON unmarshalling and enum semantics; internal/ owns OTel instrument construction per domain; the public package composes them, keeping each layer independently testable without exposing instrument construction."
       },
       {
-        "decision": "ResourceWithMetrics interface + MarshalJSON discriminator field",
-        "rationale": "Allows the Benthos input plugin to handle both WorkloadWithMetrics and PodWithMetrics polymorphically while producing self-describing JSON with a resourceType field for downstream consumers to distinguish types without schema inspection."
+        "decision": "Functional options pattern for sub-metric categories.",
+        "rationale": "Different Kafka client roles (producer vs consumer) expose different stat sections; disabling irrelevant categories avoids registering never-recorded metrics and reduces OTel cardinality overhead."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new resource type (e.g. nodes) with pagination, metric support, and ResourceWithMetrics implementation",
-        "code": "// nodes.go\npackage runai\n\nimport (\n\t\"context\"\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"maps\"\n\t\"net/http\"\n\t\"time\"\n\n\t\"github.com/samber/lo\"\n)\n\ntype Node struct {\n\tID   string `json:\"id\"`\n\tName string `json:\"name\"`\n}\n\ntype ListNodesResponse struct {\n\tNodes []Node `json:\"nodes\"`\n\tNext  int    `json:\"next\"`\n}\n\n// ListNodes lists nodes (single page, max 500).\nfunc (s *Service) ListNodes(ctx context.Context, params ListWorkloadParams) (*ListNodesResponse, error) {\n\tif params.Limit > 500 {\n\t\treturn nil, fmt.Errorf(\"limit must be less than 500\")\n\t}\n\tresp, err := s.client.R().\n\t\tSetContext(ctx).\n\t\tSetHeader(\"Accept\", \"application/json\").\n\t\tSetQueryParams(map[string]string{\n\t\t\t\"limit\":  fmt.Sprintf(\"%d\", params.Limit),\n\t\t\t\"offset\": fmt.Sprintf(\"%d\", params.Offset),\n\t\t}).\n\t\tSetResult(&ListNodesResponse{}).\n\t\tGet(\"/api/v1/nodes\")\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tif resp.StatusCode() != http.StatusOK {\n\t\treturn nil, fmt.Errorf(\"failed to list nodes, status code: %d\", resp.StatusCode())\n\t}\n\treturn resp.Result().(*ListNodesResponse), nil\n}\n\n// ListAllNodes paginates through all nodes and records the count metric.\nfunc (s *Service) ListAllNodes(ctx context.Context) ([]Node, error) {\n\tnodes := make([]Node, 0)\n\tfor {\n\t\tresp, err := s.ListNodes(ctx, ListWorkloadParams{Limit: s.pageSize, Offset: len(nodes)})\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\tnodes = append(nodes, resp.Nodes...)\n\t\tif resp.Next == 0 {\n\t\t\tbreak\n\t\t}\n\t}\n\ts.resourceTypeMetrics.Set(int64(len(nodes)), \"node\")\n\treturn nodes, nil\n}\n\ntype NodeWithMetrics struct {\n\tNode\n\tMetrics Metrics `json:\"metrics\"`\n}\n\nvar _ ResourceWithMetrics = (*NodeWithMetrics)(nil)\n\nfunc (n *NodeWithMetrics) GetType() ResourceType  { return \"node\" }\nfunc (n *NodeWithMetrics) GetMetrics() Metrics     { return n.Metrics }\nfunc (n *NodeWithMetrics) MarshalJSON() ([]byte, error) {\n\treturn json.Marshal(struct {\n\t\tResourceType ResourceType `json:\"resourceType\"`\n\t\tNodeWithMetrics\n\t}{ResourceType: n.GetType(), NodeWithMetrics: *n})\n}\n\n// GetAllNodeWithMetrics collects metrics for all nodes, chunking at 9 metric types per request.\nfunc (s *Service) GetAllNodeWithMetrics(ctx context.Context, params MeasurementParams) ([]NodeWithMetrics, error) {\n\tnodes, err := s.ListAllNodes(ctx)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tresult := make([]NodeWithMetrics, 0, len(nodes))\n\tfor _, node := range nodes {\n\t\tmetrics := Metrics{Timestamp: params.EndTime.UTC(), Values: make(map[MetricType]float64)}\n\t\tfor _, metricTypes := range lo.Chunk(params.MetricType, 9) {\n\t\t\tm, err := s.GetNodeMetrics(ctx, node.ID, MeasurementParams{\n\t\t\t\tMetricType: metricTypes,\n\t\t\t\tStartTime:  params.StartTime.UTC(),\n\t\t\t\tEndTime:    params.EndTime.UTC(),\n\t\t\t})\n\t\t\tif err != nil {\n\t\t\t\t// Non-fatal: log and continue\n\t\t\t\ts.logger.With(\"nodeID\", node.ID).Errorf(\"failed to get node metrics: %w\", err)\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tmaps.Copy(metrics.Values, m.Values)\n\t\t}\n\t\tif len(metrics.Values) > 0 {\n\t\t\tresult = append(result, NodeWithMetrics{Node: node, Metrics: metrics})\n\t\t}\n\t}\n\treturn result, nil\n}"
+        "scenario": "Construct Metrics with extended data but broker metrics disabled, then record a stats snapshot",
+        "code": "import (\n  \"fmt\"\n  \"github.com/openmeterio/openmeter/pkg/kafka/metrics\"\n  \"github.com/openmeterio/openmeter/pkg/kafka/metrics/stats\"\n)\n\nm, err := metrics.New(meter, metrics.WithExtendedMetrics(), metrics.WithBrokerMetricsDisabled())\nif err != nil { return fmt.Errorf(\"kafka metrics: %w\", err) }\n// On each librdkafka stats callback:\nm.Add(ctx, parsedStats, attribute.String(\"role\", \"consumer\"))"
       }
     ]
   }

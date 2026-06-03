@@ -1,0 +1,220 @@
+{
+  "api": {
+    "purpose": "The public contract surface of OpenMeter: TypeSpec source under api/spec is the single source of truth that compiles to OpenAPI YAMLs, Go server stubs (api/api.gen.go for v1, api/v3/api.gen.go for v3), and the Go/JS/Python SDKs under api/client. Its primary constraint is that every downstream artefact is generated \u2014 any change starts in TypeSpec and flows through make gen-api, never by hand-editing generated files.",
+    "patterns": [
+      {
+        "name": "TypeSpec-first, generated-everything-else",
+        "description": "spec/ (TypeSpec) is authored; the OpenAPI YAMLs (openapi.yaml, openapi.cloud.yaml, v3/openapi.yaml), Go stubs (*.gen.go), and all api/client SDKs are regenerated artefacts. New endpoints begin in spec/, then make gen-api, then make generate.",
+        "example": "Add op in api/spec/packages/aip/src/openmeter.tsp -> make gen-api -> make generate -> implement in api/v3/handlers/foo/handler.go"
+      },
+      {
+        "name": "v1 vs v3 package split",
+        "description": "spec/packages/legacy compiles v1/v2 + Cloud to api/openapi.yaml + api/openapi.cloud.yaml + api/api.gen.go; spec/packages/aip compiles the v3 AIP API to api/v3/openapi.yaml + api/v3/api.gen.go. The two never mix content.",
+        "example": "v1 content in packages/legacy/src/main.tsp; v3 content in packages/aip/src/openmeter.tsp"
+      },
+      {
+        "name": "Route/tag bindings only at root namespace files",
+        "description": "@route and @tag decorators live only in root openmeter.tsp (v3) / main.tsp (v1); domain sub-folder operation files declare only operation signatures.",
+        "example": "@route(\"/api/v1/meters\") interface MeterRoutes {} in the root tsp, not in a domain operations.tsp"
+      },
+      {
+        "name": "RFC 7807 error responses via apierrors / models.NewStatusProblem",
+        "description": "All v3 error responses go through the apierrors package; direct http.Error / w.WriteHeader breaks application/problem+json compliance.",
+        "example": "return nil, apierrors.NewValidationError(\"invalid input\")"
+      },
+      {
+        "name": "nullable.Nullable[T] for optional v3 JSON fields",
+        "description": "v3 codegen uses nullable-type:true and always-prefix-enum-values; optional JSON fields use nullable.Nullable[string], never *string, to preserve the null-vs-absent distinction.",
+        "example": "type UpdateInput struct { Name nullable.Nullable[string] }"
+      },
+      {
+        "name": "api/types gap-fill via x-go-type only",
+        "description": "Manually-authored Go types (oneOf/anyOf cases oapi-codegen cannot generate) live in api/types and are referenced from the spec via x-go-type; that package holds no business logic and is consumed only by generated code.",
+        "example": "api/types/doc.go pure type definitions referenced from the spec via x-go-type"
+      },
+      {
+        "name": "SDKs are generated-first, wrapper-second and externally importable",
+        "description": "api/client packages add only ergonomic wrappers and auth helpers (RequestEditorFn / ClientOption); the Go SDK is generated from openapi.cloud.yaml, and no app-internal monorepo packages may be imported. api/client/node and api/client/web are deprecated tombstones.",
+        "example": "api/client/go/client.gen.go (from openapi.cloud.yaml) wrapped by hand-authored client.go"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "api/spec/",
+        "role": "Single source of truth: TypeSpec authored in packages/aip (v3) and packages/legacy (v1) that compiles to every OpenAPI YAML and SDK",
+        "watch_for": "Register new legacy sub-domain files in both main.tsp and cloud/main.tsp or the endpoint is silently absent; patches/ apply to dist/ not src/"
+      },
+      {
+        "file": "api/api.gen.go",
+        "role": "Generated v1 server stubs, enums, and request/response types from openapi.yaml via oapi-codegen",
+        "watch_for": "DO NOT EDIT \u2014 hand edits are overwritten by make gen-api"
+      },
+      {
+        "file": "api/v3/api.gen.go",
+        "role": "Generated v3 ServerInterface (chi-server, nullable types) from api/v3/openapi.yaml",
+        "watch_for": "DO NOT EDIT; always-prefix-enum-values means enum consts are prefixed; business logic belongs only in api/v3/handlers/*"
+      },
+      {
+        "file": "api/v3/codegen.yaml",
+        "role": "oapi-codegen config for v3 (nullable-type, always-prefix-enum-values, custom chi-middleware.tmpl for deepObject filters)",
+        "watch_for": "Keep the custom chi-middleware.tmpl patch aligned with codegen.yaml when upgrading oapi-codegen"
+      },
+      {
+        "file": "api/client/go/client.gen.go",
+        "role": "Generated Go SDK from api/openapi.cloud.yaml (cloud variant, additional cloud-only endpoints)",
+        "watch_for": "Must not import internal monorepo packages \u2014 stays externally importable; regenerated from the cloud spec only"
+      },
+      {
+        "file": "api/types/doc.go",
+        "role": "Manually-authored types filling oapi-codegen gaps, referenced via x-go-type",
+        "watch_for": "No business logic, helpers, or methods; do not duplicate types already in *.gen.go or import this from domain code"
+      },
+      {
+        "file": "api/openapi.yaml / api/openapi.cloud.yaml / api/v3/openapi.yaml",
+        "role": "Generated OpenAPI specs (v1, cloud, v3) \u2014 downstream artefacts of make gen-api",
+        "watch_for": "Never hand-edit; regenerate from TypeSpec"
+      },
+      {
+        "file": "api/spec/packages/aip/scripts/flatten-allof.mjs",
+        "role": "Post-processing that flattens allOf in the v3 OpenAPI output",
+        "watch_for": "Must run as part of the make gen-api pipeline; bypassing leaves unflattened allOf in v3/openapi.yaml"
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing any OpenAPI YAML or *.gen.go file instead of editing api/spec and running make gen-api",
+      "Declaring @route or @tag inside a domain sub-folder TypeSpec file rather than the root namespace files",
+      "Mixing v3 content into packages/legacy or v1/v2 content into packages/aip \u2014 they compile to separate targets",
+      "Adding business logic at api/v3 level outside handlers/, or adding new API types to hand-authored SDK wrappers instead of TypeSpec",
+      "Using *string instead of nullable.Nullable[T] for optional v3 JSON fields, or adding SDK code to the deprecated api/client/node and api/client/web tombstones"
+    ],
+    "decisions": [
+      {
+        "decision": "TypeSpec as single source of truth compiling to OpenAPI plus Go/JS/Python SDKs and two server versions",
+        "rationale": "One spec feeds three SDK languages and two API versions, making cross-language drift structurally impossible and forcing breaking changes to surface at TypeSpec compile time"
+      },
+      {
+        "decision": "Go SDK generated from openapi.cloud.yaml rather than openapi.yaml",
+        "rationale": "The cloud variant exposes additional cloud-only endpoints absent from the self-hosted spec, keeping self-hosted and cloud SDKs correctly scoped"
+      },
+      {
+        "decision": "Two independently compiled TypeSpec packages (aip and legacy) with vendored emitter patches and a flatten-allof post-process",
+        "rationale": "v1 and v3 evolve on different schemas and emit to separate targets; vendoring patches on dist/ and post-processing the output avoids forking the TypeSpec compiler"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a v3 API endpoint: author TypeSpec, regenerate, then implement the handler",
+        "code": "// 1. In api/spec/packages/aip/src/openmeter.tsp declare the op (route/tag at root namespace)\n// 2. make gen-api && make generate\n// 3. Implement in api/v3/handlers/foo/handler.go:\nimport (\n    api \"github.com/openmeterio/openmeter/api/v3\"\n)\nfunc (h *Handler) ListFoos(ctx context.Context, req api.ListFoosRequestObject) (api.ListFoosResponseObject, error) {\n    items, err := h.svc.List(ctx, req.Params.Namespace)\n    if err != nil { return nil, err }\n    return api.ListFoos200JSONResponse{Items: toAPI(items)}, nil\n}"
+      }
+    ]
+  },
+  "openmeter": {
+    "purpose": "The entire domain layer of OpenMeter: an organisational root holding every business-logic package (billing, customer, entitlement, subscription, credit, ledger, productcatalog, meter, ingest, sink, streaming, watermill, notification, app, namespace, and supporting domains) under a uniform service/adapter/httpdriver layering. No source lives directly here; its overriding constraint is that domain packages stay leaf nodes \u2014 never importing app/common or cmd/* \u2014 so they remain independently testable and wirable.",
+    "patterns": [
+      {
+        "name": "Layered service/adapter/httpdriver split per domain",
+        "description": "Each domain exposes a Service interface and Adapter interface at the package root (service.go / adapter.go contract-only), a concrete service in service/, an Ent/PostgreSQL adapter in adapter/, and HTTP handlers in httpdriver/ or httphandler/. Business logic in service/, persistence in adapter/, HTTP at the edge.",
+        "example": "openmeter/billing/service.go (interface) -> service/service.go (impl) + adapter/adapter.go (Ent)"
+      },
+      {
+        "name": "TransactingRepo wraps every Ent adapter write",
+        "description": "Adapter method bodies wrap DB access with entutils.TransactingRepo / TransactingRepoWithNoValue so the ctx-bound transaction is honored; multi-step writes go through transaction.Run, and per-customer mutations take a pg_advisory_lock inside that transaction (billing, subscription, entitlement, credit, ledger).",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx, tx *adapter) (*Entity, error) { return toDomain(tx.db.Entity.Create().Save(ctx)) })"
+      },
+      {
+        "name": "Input.Validate() at every service boundary; models.Generic*/ValidationIssue errors",
+        "description": "Every cross-boundary input implements Validate() (often with a compile-time models.Validator assertion) called before business logic; domain errors are models.Generic* sentinels or ValidationIssue so the HTTP layer maps them to correct RFC 7807 status codes rather than 500.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }  // returns models.NewGenericValidationError(...)"
+      },
+      {
+        "name": "Tagged unions constructed only via constructors",
+        "description": "Polymorphic billing/catalog types (InvoiceLine, charges.Charge/ChargeIntent, RateCard, Price, EntitlementType) carry private discriminators and must be built with their constructors; struct literals leave the discriminator zero and accessors error. Adding a variant means updating MarshalJSON/UnmarshalJSON/Equal/Validate and every downstream type-switch.",
+        "example": "billing.NewStandardInvoiceLine(...) not billing.InvoiceLine{}"
+      },
+      {
+        "name": "Cross-domain callbacks via ServiceHooks / RequestValidatorRegistry registered in app/common",
+        "description": "Lifecycle reactions and pre-mutation guards (billing/ledger/subscription/entitlement reacting to customer or subject changes) register through models.ServiceHooks[T] or a RequestValidatorRegistry inside app/common provider side-effects \u2014 never by a domain importing another domain's service \u2014 which is what keeps the import graph acyclic.",
+        "example": "customerService.RegisterHooks(billingCustomerHook) // inside an app/common provider, with a re-entrancy skip context"
+      },
+      {
+        "name": "Async cross-binary events only via watermill eventbus; never raw Kafka",
+        "description": "Producers publish via eventbus.Publisher (routed to ingest/system/balance-worker topics by EventVersionSubsystem prefix), events implement marshaler.Event in CloudEvents 1.0, consumers build routers via router.NewDefaultRouter and drop unknown ce_types. The sink worker keeps strict three-phase flush ordering (ClickHouse -> Kafka offset commit -> Redis dedupe) for exactly-once.",
+        "example": "publisher.Publish(ctx, &billingevents.InvoiceCreated{...}) // never a raw topic string"
+      },
+      {
+        "name": "clock.Now() and caller ctx everywhere; credits.enabled noop-guarded",
+        "description": "Production code uses clock.Now() (not time.Now()) for deterministic billing tests and threads the caller ctx (never context.Background()). When credits.enabled=false, ledger services, customer ledger hooks, ChargesRegistry, and v3 credit handlers each independently wire noop implementations rather than nil.",
+        "example": "now := clock.Now(); if !creditsConfig.Enabled { return ledgernoop.AccountService{}, nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/billing/",
+        "role": "Largest domain and the billing contract layer: composite billing.Service (12 sub-interfaces), billing.Adapter, InvoiceLine tagged-union, InvoicingApp plugin, with service/ (invoice state machine), adapter/, charges/, rating/, worker/",
+        "watch_for": "Root is contract-only; construct InvoiceLine/Charge via constructors; mutate invoices only through transactionForInvoiceManipulation and the per-customer lock"
+      },
+      {
+        "file": "openmeter/productcatalog/",
+        "role": "Shared type contract between billing, entitlement, and subscription: polymorphic RateCard/Price/Discount/EntitlementTemplate/Phase value types plus feature/plan/addon entity aggregates",
+        "watch_for": "Validation and event publishing belong in the service/connector layer; EffectivePeriod-derived status changes only via Publish/Archive; bridge packages break import cycles"
+      },
+      {
+        "file": "openmeter/subscription/ + openmeter/entitlement/ + openmeter/credit/",
+        "role": "Subscription lifecycle (SubscriptionSpec mutated only via the AppliesToSpec patch system), three-sub-type entitlement orchestration, and credit grant/burn-down with the balance worker",
+        "watch_for": "Per-customer advisory lock inside transaction.Run on composite writes; truncate credit effective times to Granularity (time.Minute); go through the top-level Service, not sub-connectors"
+      },
+      {
+        "file": "openmeter/watermill/eventbus/eventbus.go",
+        "role": "Single Publisher facade routing events to ingest/system/balance-worker topics by EventVersionSubsystem prefix",
+        "watch_for": "Always publish via eventbus.Publisher; an EventName without a recognised prefix silently routes to SystemEventsTopic"
+      },
+      {
+        "file": "openmeter/sink/sink.go",
+        "role": "Kafka->ClickHouse sink worker with exactly-once three-phase flush and post-flush callbacks to the balance worker",
+        "watch_for": "Flush order must be ClickHouse BatchInsert -> Kafka offset commit -> Redis dedupe; FlushEventHandler runs in a goroutine, never synchronously"
+      },
+      {
+        "file": "openmeter/ledger/ (+ noop/)",
+        "role": "Double-entry ledger; TransactionInput built only via transactions.ResolveTransactions templates; noop/ supplies zero-value impls when credits.enabled=false",
+        "watch_for": "Never construct EntryInput/TransactionInput outside transactions/; wire ledgernoop.* (not nil, not real DB paths) when credits disabled"
+      },
+      {
+        "file": "openmeter/ent/entc.go",
+        "role": "Single codegen driver for all Ent-generated code in openmeter/ent/db/ and the view SQL side-output; schema is the single source of database truth",
+        "watch_for": "Never edit openmeter/ent/db/ or tools/migrate/views.sql; edit openmeter/ent/schema then run make generate"
+      },
+      {
+        "file": "openmeter/server/ + openmeter/streaming/connector.go",
+        "role": "Chi server mounting v1+v3 behind shared middleware and the streaming.Connector ClickHouse abstraction every usage-querying domain depends on",
+        "watch_for": "No business logic in server.go (delegate to httpdriver/router); use query-struct toSQL() with sqlbuilder.Var(), never raw SQL/fmt.Sprintf in Connector methods"
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common or cmd/* from any openmeter/<domain>/ or testutils package \u2014 creates import cycles Wire cannot resolve",
+      "Using time.Now() instead of clock.Now(), or context.Background()/TODO() instead of the caller ctx \u2014 breaks time freezing and drops the Ent tx and OTel spans",
+      "Adding business logic or DB queries to the root service.go/adapter.go contract files instead of the service/ and adapter/ sub-packages",
+      "Calling sub-type connectors, adapters, or a.db directly (bypassing the top-level Service, TransactingRepo, advisory lock, or eventbus) \u2014 yields partial writes, races, and misrouted events",
+      "Registering ledger namespace handlers or customer ledger hooks, or returning raw fmt.Errorf for domain conditions, when noop/credits guards and models.Generic* errors are required"
+    ],
+    "decisions": [
+      {
+        "decision": "Domain packages are leaf nodes with no dependency on cmd/* or app/common",
+        "rationale": "Keeps each domain independently testable and wirable and prevents DI-graph complexity from leaking into business logic; cross-domain hooks are registered as app/common provider side-effects to avoid circular imports"
+      },
+      {
+        "decision": "ServiceHook / RequestValidatorRegistry pattern for all cross-domain reactions",
+        "rationale": "Billing, ledger, subscription, and entitlement must react to customer/subject lifecycle without importing each other; registries fan out at wire time and break the import cycles a direct dependency would create"
+      },
+      {
+        "decision": "credits.enabled guarded at four independent wiring layers rather than one central check",
+        "rationale": "Credit writes fan out from HTTP handlers, customer hooks, namespace provisioning, and charge creation across unrelated call graphs, so no single choke point can gate every write path \u2014 each layer wires a noop independently"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "New domain adapter method with full TransactingRepo transaction awareness",
+        "code": "// openmeter/<domain>/adapter/adapter.go\nimport (\n    entdb \"github.com/openmeterio/openmeter/openmeter/ent/db\"\n    \"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) Create(ctx context.Context, in domain.CreateInput) (*domain.Entity, error) {\n    return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*domain.Entity, error) {\n        row, err := tx.db.Entity.Create().\n            SetNamespace(in.Namespace).\n            SetName(in.Name).\n            Save(ctx)\n        if err != nil { return nil, err }\n        return toDomain(row), nil\n    })\n}"
+      }
+    ]
+  }
+}

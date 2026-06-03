@@ -1,55 +1,364 @@
 {
-  "openmeter/credit/hook": {
-    "purpose": "Provides lifecycle hook implementations bridging the credit/grant domain into the entitlement service hook registry. Currently owns a single PreDelete hook that deletes all grants for a metered entitlement before the entitlement itself is removed.",
+  "openmeter/credit/adapter": {
+    "purpose": "Ent/PostgreSQL adapters for the credit domain: balanceSnapshotRepo persists balance snapshots and grantDBADapter persists grants, implementing balance.SnapshotRepo and grant.Repo. Primary constraint: every write path must be transaction-aware via entutils.TransactingRepo.",
     "patterns": [
       {
-        "name": "Embed NoopHook for unimplemented lifecycle methods",
-        "description": "Every hook struct must embed models.NoopServiceHook[entitlement.Entitlement] so only the relevant lifecycle methods need overriding. This satisfies the full models.ServiceHook interface without boilerplate.",
-        "example": "type entitlementHook struct { NoopHook; grantRepo grant.Repo }"
+        "name": "TransactingRepo wrapping on every write",
+        "description": "All mutating methods wrap their body with entutils.TransactingRepo or TransactingRepoWithNoValue so the ctx-bound Ent transaction is honoured.",
+        "example": "return entutils.TransactingRepoWithNoValue(ctx, b, func(ctx context.Context, rep *balanceSnapshotRepo) error { return rep.db.BalanceSnapshot.Update()...Exec(ctx) })"
       },
       {
-        "name": "Type-alias hook interfaces at package boundary",
-        "description": "Export typed aliases (EntitlementHook, NoopHook) that parameterise the generic models types with entitlement.Entitlement, keeping callers decoupled from the type parameter.",
-        "example": "type EntitlementHook = models.ServiceHook[entitlement.Entitlement]"
+        "name": "TxCreator + TxUser[T] confined to transaction.go",
+        "description": "Each repo struct implements Tx(ctx), WithTx(ctx, *entutils.TxDriver), Self() in the single transaction.go file using db.HijackTx + db.NewTxClientFromRawConfig.",
+        "example": "func (e *grantDBADapter) WithTx(ctx context.Context, tx *entutils.TxDriver) grant.Repo { txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return NewPostgresGrantRepo(txClient.Client()) }"
       },
       {
-        "name": "Nil-check then type-assert before acting",
-        "description": "Every hook method must nil-check the entity first, then type-assert to the specific sub-type via the domain helper. Unknown sub-types return nil (silent no-op), never an error.",
-        "example": "if ent == nil { return nil }; meteredEnt, err := meteredentitlement.ParseFromGenericEntitlement(ent); if err != nil { return nil }"
+        "name": "Soft-delete via clock.Now()",
+        "description": "Deletes set DeletedAt/VoidedAt via clock.Now()/at, never hard delete. Queries filter DeletedAtIsNil() OR DeletedAtGT(now) explicitly.",
+        "example": "g.db.Grant.Update().SetDeletedAt(clock.Now()).Where(db_grant.OwnerID(ownerID.ID), db_grant.Namespace(ownerID.Namespace)).Exec(ctx)"
       },
       {
-        "name": "Constructor returns the interface, not the concrete struct",
-        "description": "NewEntitlementHook must return EntitlementHook (the interface alias), not *entitlementHook, so callers cannot depend on the concrete type.",
-        "example": "func NewEntitlementHook(grantRepo grant.Repo) EntitlementHook { return &entitlementHook{grantRepo: grantRepo} }"
+        "name": "db.IsNotFound mapped to domain errors",
+        "description": "Convert Ent not-found to the domain error (credit.GrantNotFoundError, balance.NoSavedBalanceForOwnerError). Never surface raw Ent errors.",
+        "example": "if db.IsNotFound(err) { return grant.Grant{}, &credit.GrantNotFoundError{GrantID: grantID.ID} }"
+      },
+      {
+        "name": "mapXxxEntity canonical conversion + UTC normalization",
+        "description": "Each file defines mapGrantEntity / mapBalanceSnapshotEntity that translate *db.X to the domain struct, normalizing times to time.UTC.",
+        "example": "func mapGrantEntity(entity *db.Grant) grant.Grant { ...CreatedAt: entity.CreatedAt.In(time.UTC)... }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "entitlement_hook.go",
-        "role": "Sole file in the package. Defines EntitlementHook and NoopHook type aliases, the concrete entitlementHook struct, its constructor, and the PreDelete implementation. Wired into entitlement.Service via RegisterHooks in app/common.",
-        "watch_for": "Adding hook methods that call grantRepo without nil-checking the entity or without type-asserting to meteredentitlement first \u2014 this will panic or corrupt non-metered entitlement deletes."
+        "file": "balance_snapshot.go",
+        "role": "Implements balance.SnapshotRepo: InvalidateAfter (soft-deletes snapshots after a time), GetLatestValidAt, Save (CreateBulk).",
+        "watch_for": "GetLatestValidAt orders ByAt(desc) then ByUpdatedAt(desc) to deterministically pick newest among same-timestamp duplicates; keep all three methods TransactingRepo-wrapped."
+      },
+      {
+        "file": "grant.go",
+        "role": "Implements grant.Repo: CreateGrant, VoidGrant (soft via SetVoidedAt), ListGrants (limit/offset or Page), ListActiveGrantsBetween, GetGrant, DeleteOwnerGrants.",
+        "watch_for": "CreateGrant/VoidGrant have TODO about transaction+locking. ListActiveGrantsBetween silently ignores negative-amount grants (AmountGTE(0.0)). Soft-delete filters are duplicated across predicates \u2014 keep them consistent."
+      },
+      {
+        "file": "transaction.go",
+        "role": "Single file implementing TxCreator + TxUser[T] for both grantDBADapter and balanceSnapshotRepo via HijackTx (ReadOnly:false) and NewTxClientFromRawConfig.",
+        "watch_for": "HijackTx must always use ReadOnly:false. Do not duplicate Tx/WithTx/Self in other files."
       }
     ],
     "anti_patterns": [
-      "Returning an error for an unrecognised entitlement sub-type \u2014 unknown sub-types must silently return nil",
-      "Adding business logic that reaches outside credit/grant (e.g. calling balance or engine packages) \u2014 this hook owns only grant cleanup",
-      "Implementing PostCreate/PostUpdate without embedding NoopHook \u2014 always embed to satisfy the full interface",
-      "Registering this hook against a non-entitlement service hook registry \u2014 it is parameterised on entitlement.Entitlement only"
+      "Calling the raw db.Client inside a helper without TransactingRepo wrapping \u2014 bypasses ctx-bound transactions.",
+      "Hard-deleting grant or balance snapshot rows \u2014 the domain is soft-delete only.",
+      "Surfacing raw Ent not-found/constraint errors to callers instead of domain error types.",
+      "Implementing Tx/WithTx/Self outside transaction.go.",
+      "Accepting *entdb.Tx as a struct field or parameter instead of using entutils.TransactingRepo."
     ],
     "decisions": [
       {
-        "decision": "Embed models.NoopServiceHook instead of implementing the full interface",
-        "rationale": "The hook only needs PreDelete; embedding NoopHook provides all other methods as no-ops and prevents future interface additions from breaking the build."
-      },
-      {
-        "decision": "Type-assert via meteredentitlement.ParseFromGenericEntitlement rather than switching on an entitlement kind constant",
-        "rationale": "ParseFromGenericEntitlement encapsulates sub-type detection in the metered package, keeping the hook free of kind constants and resilient to new entitlement types."
+        "decision": "balanceSnapshotRepo and grantDBADapter each implement the full TxCreator+TxUser contract separately rather than sharing a base struct.",
+        "rationale": "The two repos have different TxUser[T] type parameters, so a shared base struct is not type-safe in Go generics; keeping them side by side in transaction.go keeps the pattern visible."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a new lifecycle method (e.g. PostCreate) that targets metered entitlements only",
-        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/credit/grant\"\n\t\"github.com/openmeterio/openmeter/openmeter/entitlement\"\n\tmeteredentitlement \"github.com/openmeterio/openmeter/openmeter/entitlement/metered\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (h *entitlementHook) PostCreate(ctx context.Context, ent *entitlement.Entitlement) error {\n\tif ent == nil {\n\t\treturn nil\n\t}\n\tmeteredEnt, err := meteredentitlement.ParseFromGenericEntitlement(ent)\n\tif err != nil {\n\t\treturn nil // not a metered entitlement \u2014 silent no-op\n\t}\n\t_ = meteredEnt\n\t// domain logic here\n\treturn nil\n}"
+        "scenario": "Adding a transaction-aware write method to balanceSnapshotRepo",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n\nfunc (b *balanceSnapshotRepo) MyNewWrite(ctx context.Context, owner models.NamespacedID) error {\n\treturn entutils.TransactingRepoWithNoValue(ctx, b, func(ctx context.Context, rep *balanceSnapshotRepo) error {\n\t\treturn rep.db.BalanceSnapshot.Update().\n\t\t\tWhere(db_balancesnapshot.OwnerID(owner.ID), db_balancesnapshot.Namespace(owner.Namespace)).\n\t\t\tExec(ctx)\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/credit/balance": {
+    "purpose": "Domain types and service layer for credit balance snapshots: the in-memory Map (per-grant float64 balances), Snapshot struct, SnapshotRepo interface, and SnapshotService that transparently back-fills missing usage from streaming when a stored snapshot has zero usage.",
+    "patterns": [
+      {
+        "name": "SnapshotService wraps SnapshotRepo + usage back-fill",
+        "description": "SnapshotService.GetLatestValidAt delegates to Repo then, if Snapshot.Usage.IsZero(), queries streaming via UsageQuerier to compute period usage. Use the service, not the raw Repo, when usage completeness matters.",
+        "example": "snapshot, err := svc.GetLatestValidAt(ctx, owner, at) // fills usage if zero"
+      },
+      {
+        "name": "service() sentinel guard",
+        "description": "SnapshotService declares an unexported service() method so the raw SnapshotRepo cannot accidentally satisfy SnapshotService.",
+        "example": "func (s *service) service() {}"
+      },
+      {
+        "name": "UNIQUE_COUNT needs a double streaming query",
+        "description": "For MeterAggregationUniqueCount, QueryUsage queries (periodStart\u2192to) and (periodStart\u2192from) and subtracts via alpacadecimal; all other aggregations use a single from\u2192to query.",
+        "example": "vTo.Sub(vFrom).InexactFloat64()"
+      },
+      {
+        "name": "NoSavedBalanceForOwnerError for missing snapshots",
+        "description": "GetLatestValidAt returns NoSavedBalanceForOwnerError (not generic not-found) when no snapshot precedes the requested time; callers type-assert it.",
+        "example": "_, isNoSavedBalanceErr := err.(balance.NoSavedBalanceForOwnerError)"
+      },
+      {
+        "name": "Clone balance.Map before mutating",
+        "description": "Map is a plain map[string]float64 (reference type). Clone() before mutating to avoid aliasing shared state.",
+        "example": "rolledOver := snap.Balances.Clone()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "balance.go",
+        "role": "Value types: Map (grantID\u2192float64) with Burn/Set/Clone/Balance/ExactlyForGrants, Snapshot (Map + Overage + At + SnapshottedUsage), NewStartingMap.",
+        "watch_for": "Map is a reference type \u2014 Clone before mutating. SnapshottedUsage.IsZero() drives the service back-fill path."
+      },
+      {
+        "file": "repository.go",
+        "role": "SnapshotRepo interface + NoSavedBalanceForOwnerError domain error.",
+        "watch_for": "GetLatestValidAt comment notes the returned Snapshot may lack usage; the service layer fills it \u2014 don't call repo directly for complete usage."
+      },
+      {
+        "file": "service.go",
+        "role": "SnapshotService interface + concrete service; SnapshotServiceConfig wires OwnerConnector, StreamingConnector, Repo; UsageQuerier built inside NewSnapshotService.",
+        "watch_for": "Do not pass UsageQuerier externally \u2014 it is constructed internally from config to bind the right closures."
+      },
+      {
+        "file": "usage.go",
+        "role": "UsageQuerier interface + impl dispatching to streaming.Connector.QueryMeter with aggregation-specific logic.",
+        "watch_for": "alpacadecimal used for UNIQUE_COUNT subtraction; getValueFromRows errors if >1 row. Don't switch to plain float64 for the unique-count case."
+      }
+    ],
+    "anti_patterns": [
+      "Calling SnapshotRepo.GetLatestValidAt directly when complete usage is needed \u2014 go through SnapshotService.",
+      "Mutating a balance.Map without cloning first \u2014 aliasing corrupts shared engine state.",
+      "Using float64 arithmetic for UNIQUE_COUNT subtraction instead of alpacadecimal.",
+      "Returning a generic error instead of NoSavedBalanceForOwnerError when no snapshot exists.",
+      "Adding a new aggregation case without checking whether it needs a double query like UNIQUE_COUNT."
+    ],
+    "decisions": [
+      {
+        "decision": "SnapshotService transparently back-fills usage for snapshots persisted without usage data.",
+        "rationale": "Earlier snapshots may lack usage fields; querying streaming at read time avoids a data migration."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructing a SnapshotService with all required dependencies",
+        "code": "svc := balance.NewSnapshotService(balance.SnapshotServiceConfig{\n\tOwnerConnector:     ownerConnector,\n\tStreamingConnector: streamingConnector,\n\tRepo:               repo,\n})\nsnapshot, err := svc.GetLatestValidAt(ctx, owner, at) // not repo.GetLatestValidAt"
+      }
+    ]
+  },
+  "openmeter/credit/driver": {
+    "purpose": "v1 HTTP handlers (creditdriver) for grant operations (ListGrants, VoidGrant, ListGrantsV2) on the v1 Chi router; a pure translation layer adapting HTTP request/response to credit.GrantConnector + grant.Repo with no business logic.",
+    "patterns": [
+      {
+        "name": "httptransport.HandlerWithArgs per endpoint",
+        "description": "Each handler is a type alias of httptransport.HandlerWithArgs[Request, Response, Params] returned from a method on grantHandler, separating URL/query params from body decode.",
+        "example": "type ListGrantsHandler httptransport.HandlerWithArgs[ListGrantsHandlerRequest, ListGrantsHandlerResponse, ListGrantsHandlerParams]"
+      },
+      {
+        "name": "Namespace via namespaceDecoder, never from request",
+        "description": "Every handler resolves namespace through the injected NamespaceDecoder; failure returns an error. Namespace is never read from path/query/body.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ListGrantsHandlerRequest{}, err }"
+      },
+      {
+        "name": "Dual pagination union for v1 backward compatibility",
+        "description": "ListGrants returns commonhttp.Union[[]api.EntitlementGrant, pagination.Result[...]]: Option1 (plain array) when Page.IsZero(), else Option2; ListGrantsV2 always returns a paginated result.",
+        "example": "if request.params.Page.IsZero() { response.Option1 = &apiGrants } else { response.Option2 = &pagination.Result{...} }"
+      },
+      {
+        "name": "Per-handler error encoder appended to shared options",
+        "description": "Domain errors map to HTTP statuses inside each handler's error encoder via httptransport.AppendOptions over shared h.options.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(func(...) bool { return commonhttp.HandleErrorIfTypeMatches[*pagination.InvalidError](ctx, http.StatusBadRequest, err, w) }))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "grant.go",
+        "role": "GrantHandler interface + grantHandler impl: ListGrants, VoidGrant, ListGrantsV2. Uses grantRepo for reads and grantConnector for VoidGrant mutation.",
+        "watch_for": "ListGrantsV2 resolves customer IDOrKey\u2192ID via customerService.GetCustomer (cross-domain) and silently skips deleted customers. v2 always returns api.GrantV2PaginatedResponse with api.EntitlementGrantV2 (no dual format)."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic here \u2014 the driver only translates HTTP to domain types.",
+      "Reading namespace from HTTP query/path/body instead of namespaceDecoder.",
+      "Returning raw Ent errors from the error encoder instead of commonhttp.NewHTTPError.",
+      "Using the v1 api.EntitlementGrant type in a v2 endpoint (v2 uses api.EntitlementGrantV2).",
+      "Adding a new endpoint here without first adding it to the TypeSpec source in api/spec/."
+    ],
+    "decisions": [
+      {
+        "decision": "ListGrants returns a union (array OR paginated) while ListGrantsV2 is always paginated.",
+        "rationale": "The v1 API predates pagination and existing clients expect a plain array without page params; v2 was designed paginated from the start."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new v1 grant handler following the HandlerWithArgs pattern",
+        "code": "type MyGrantHandler httptransport.HandlerWithArgs[MyGrantHandlerRequest, interface{}, MyGrantHandlerParams]\n\nfunc (h *grantHandler) MyGrant() MyGrantHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, p MyGrantHandlerParams) (MyGrantHandlerRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return MyGrantHandlerRequest{}, err }\n\t\t\treturn MyGrantHandlerRequest{id: models.NamespacedID{Namespace: ns, ID: p.ID}}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req MyGrantHandlerRequest) (interface{}, error) {\n\t\t\treturn nil, h.grantConnector.MyOperation(ctx, req.id)\n\t\t},\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/credit/engine": {
+    "purpose": "Pure-logic grant burn-down engine: from a starting snapshot, grants, a QueryUsageFn callback, and optional reset times it produces an ending Snapshot plus a GrantBurnDownHistory. No Ent or HTTP dependencies \u2014 all I/O is the QueryUsageFn callback.",
+    "patterns": [
+      {
+        "name": "Engine.Run iterates periods between resets",
+        "description": "Run builds a timeline from StartingSnapshot.At + reset times + Until, runs runBetweenResets per closed period, applies reset() between periods, and merges history segments into one GrantBurnDownHistory.",
+        "example": "for idx, period := range timeline.GetClosedPeriods() { runRes, _ := e.runBetweenResets(...); if idx != last { snap, _ = e.reset(...) } }"
+      },
+      {
+        "name": "burnPhase subdivision within a reset-free period",
+        "description": "runBetweenResets subdivides each period into burnPhases via getPhases(): a new phase starts on grant activity change (effectiveAt/expiresAt/deletedAt/voidedAt) or grant recurrence; each phase burns down independently.",
+        "example": "phases, _ := e.getPhases(grants, period, boundary); for _, phase := range phases { e.burnDownGrants(...) }"
+      },
+      {
+        "name": "PrioritizeGrants three-pass stable sort",
+        "description": "PrioritizeGrants applies three stable sorts in reverse importance: createdAt+id, then expiration (earlier first), then priority (lower first). Must run before burnDownGrants and re-run on priorityChange.",
+        "example": "PrioritizeGrants(grants) // lower priority number burned first; earlier expiry burned first"
+      },
+      {
+        "name": "alpacadecimal for burn arithmetic",
+        "description": "burnDownGrants keeps intermediate balances as alpacadecimal.Decimal; only the final value calls InexactFloat64() to avoid float64 rounding.",
+        "example": "exactBalance := alpacadecimal.NewFromFloat(grantBalance); if exactBalance.LessThanOrEqual(exactUsage) { ... }"
+      },
+      {
+        "name": "RunParams.Clone() before storing in RunResult",
+        "description": "Run clones params at the top so RunResult.RunParams is immutable and independent of the caller's slices.",
+        "example": "resParams := params.Clone()"
+      },
+      {
+        "name": "Resets must be strictly after StartingSnapshot.At",
+        "description": "Run errors if any reset time equals the snapshot time; the reset timeline must be (snapshot.At, Until].",
+        "example": "if params.Resets.GetBoundingPeriod().ContainsInclusive(params.StartingSnapshot.At) { return RunResult{}, fmt.Errorf(...) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "engine.go",
+        "role": "Engine interface, RunParams/RunResult, QueryUsageFn type, NewEngine. QueryUsageFn is the only external I/O.",
+        "watch_for": "MeterAggregationLatest treats grant amounts as limits (balances reset to grant.Amount at every phase start) \u2014 distinct from budget behaviour."
+      },
+      {
+        "file": "run.go",
+        "role": "Engine.Run, runBetweenResets, and innermost burnDownGrants.",
+        "watch_for": "runBetweenResets validates grants pair exactly with balances (ExactlyForGrants) and errors otherwise; the grants slice is copied before sorting."
+      },
+      {
+        "file": "burnphase.go",
+        "role": "getPhases merges activity-change and recurrence times into a sorted, deduplicated []burnPhase.",
+        "watch_for": "Times are Truncate(time.Minute); preserve this when adding new change-time sources."
+      },
+      {
+        "file": "grant.go",
+        "role": "Helpers: getGrantActivityChanges, getGrantRecurrenceTimes, filterRelevantGrants, PrioritizeGrants.",
+        "watch_for": "PrioritizeGrants is exported (used by reset.go); its three-pass stable sort is load-bearing \u2014 do not collapse into one comparator."
+      },
+      {
+        "file": "history.go",
+        "role": "GrantBurnDownHistory / GrantBurnDownHistorySegment value types; GetSnapshotAtStartOfSegment reconstructs a Snapshot at a boundary.",
+        "watch_for": "Overage() assumes at least one segment exists \u2014 never call on empty history."
+      },
+      {
+        "file": "reset.go",
+        "role": "engine.reset() applies RolloverBalance per grant and optionally burns carry-over overage.",
+        "watch_for": "Grants inactive at reset time are skipped during rollover \u2014 their balance is effectively zeroed for the next period."
+      }
+    ],
+    "anti_patterns": [
+      "Introducing Ent or HTTP imports \u2014 the engine must remain a pure calculation library.",
+      "Using plain float64 arithmetic for grant burn subtraction instead of alpacadecimal.",
+      "Passing a balance.Map that does not exactly match the grants slice to runBetweenResets.",
+      "Replacing PrioritizeGrants' three-pass stable sort with a single-pass comparator.",
+      "Omitting Clone() on the grants slice before passing to the engine (it sorts in place)."
+    ],
+    "decisions": [
+      {
+        "decision": "The engine is stateless and takes a QueryUsageFn callback rather than a streaming.Connector.",
+        "rationale": "Decoupling from streaming makes the engine independently testable with a mock function and lets callers cache/pre-aggregate."
+      },
+      {
+        "decision": "Burn phases are computed per-period (between resets) rather than globally.",
+        "rationale": "Resets change effective balances, so priority order and recurrence schedules must be re-evaluated after each reset; a global computation would conflate periods."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Running the engine for a period",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/credit/balance\"\n\t\"github.com/openmeterio/openmeter/openmeter/credit/engine\"\n)\n\neng := engine.NewEngine(engine.EngineConfig{QueryUsage: queryFn})\nres, err := eng.Run(ctx, engine.RunParams{\n\tMeter:  meterDef,\n\tGrants: activeGrants,\n\tStartingSnapshot: balance.Snapshot{Balances: startBalances, At: periodStart},\n\tUntil: periodEnd,\n})"
+      }
+    ]
+  },
+  "openmeter/credit/grant": {
+    "purpose": "Core domain types for the credit grant subsystem: the Grant value type, OwnerConnector and Repo interfaces, expiration/rollover logic, and Watermill grant lifecycle events. This is the contract layer adapter/engine/service depend on \u2014 no Ent or HTTP imports.",
+    "patterns": [
+      {
+        "name": "ActiveAt / GetEffectivePeriod as canonical activity window",
+        "description": "GetEffectivePeriod() returns a StartBoundedPeriod bounded by the earliest of ExpiresAt, DeletedAt, VoidedAt; ActiveAt(t) delegates to it. Use these instead of comparing fields directly.",
+        "example": "grant.ActiveAt(phase.from) // not grant.ExpiresAt < phase.from"
+      },
+      {
+        "name": "Repo embeds TxCreator + TxUser[Repo]",
+        "description": "grant.Repo requires entutils.TxCreator and entutils.TxUser[Repo] so callers propagate transactions; implementations must satisfy Tx/WithTx/Self.",
+        "example": "type Repo interface { CreateGrant(...) ...; entutils.TxCreator; entutils.TxUser[Repo] }"
+      },
+      {
+        "name": "Versioned event literals (v2) over embedded domain",
+        "description": "v2 events use a pinned primitive-only struct (grantEventV2GrantLiteral) with ToDomainGrant() conversion. New versions add a new named struct; never modify existing ones.",
+        "example": "type CreatedEventV2 grantEventV2; func (e CreatedEventV2) EventName() string { return grantCreatedEventNameV2 }"
+      },
+      {
+        "name": "ExpiresAt pre-computed at creation",
+        "description": "Grant.ExpiresAt is set from GetExpiration() at creation (RepoCreateInput.ExpiresAt); query predicates use stored ExpiresAt rather than recomputing.",
+        "example": "RepoCreateInput.ExpiresAt = grant.GetExpiration(grant.EffectiveAt)"
+      },
+      {
+        "name": "RolloverBalance vs RecurrenceBalance \u2014 distinct semantics",
+        "description": "RolloverBalance clamps to [ResetMinRollover, ResetMaxRollover]; RecurrenceBalance always resets to Amount. Do not conflate.",
+        "example": "rolledOver[grantID] = grant.RolloverBalance(grantBalance) // recurrence uses grant.RecurrenceBalance()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "grant.go",
+        "role": "Grant struct, GetEffectivePeriod, ActiveAt, RolloverBalance, RecurrenceBalance, GetExpiration.",
+        "watch_for": "RolloverBalance clamps to [ResetMinRollover, ResetMaxRollover]; RecurrenceBalance always resets to Amount. GetEffectivePeriod upper bound = first non-nil of ExpiresAt/DeletedAt/VoidedAt."
+      },
+      {
+        "file": "owner_connector.go",
+        "role": "OwnerConnector interface (DescribeOwner, GetResetTimelineInclusive, GetUsagePeriodStartAt, ...), Owner value type, ResetBehavior, OwnerNotFoundError.",
+        "watch_for": "GetResetTimelineInclusive returns the start of the containing period for each time point \u2014 the first returned time may precede period.From."
+      },
+      {
+        "file": "repo.go",
+        "role": "Repo interface, ListParams, RepoCreateInput, OrderBy constants.",
+        "watch_for": "Limit/Offset on ListParams are deprecated \u2014 prefer Page-based pagination. OrderByDefault is OrderByCreatedAt."
+      },
+      {
+        "file": "expiration.go",
+        "role": "ExpirationPeriod struct + GetExpiration(t) for day/month/year durations.",
+        "watch_for": "Unknown duration values return zero time.Time silently \u2014 validate ExpirationPeriodDuration before persisting."
+      },
+      {
+        "file": "events.go",
+        "role": "v1 Watermill events (CreatedEvent, VoidedEvent) \u2014 deprecated, embed Grant directly. EventSubsystem = \"credit\".",
+        "watch_for": "v1 embeds the domain Grant, making serialization fragile to domain changes; use v2 literal pattern for new events."
+      },
+      {
+        "file": "events_2.go",
+        "role": "v2 events using grantEventV2GrantLiteral (primitive fields) + ToDomainGrant().",
+        "watch_for": "When adding a grant field needed in events, add to grantEventV2GrantLiteral AND ToDomainGrant(), and create a new versioned struct rather than editing existing ones."
+      }
+    ],
+    "anti_patterns": [
+      "Comparing grant.ExpiresAt/DeletedAt directly instead of using ActiveAt/GetEffectivePeriod.",
+      "Creating a new event version by modifying the existing grantEventV2 struct.",
+      "Implementing Repo without embedding TxCreator and TxUser[Repo].",
+      "Using Limit/Offset in new list code instead of pagination.Page.",
+      "Using unknown ExpirationPeriodDuration values \u2014 GetExpiration returns zero time silently."
+    ],
+    "decisions": [
+      {
+        "decision": "ExpiresAt is pre-computed and stored at creation rather than derived dynamically.",
+        "rationale": "The engine queries grants by ExpiresAt; computing it in SQL would duplicate expiration arithmetic, so pre-storing keeps queries simple and indexable."
+      },
+      {
+        "decision": "v2 events use a primitive-only literal struct instead of embedding the Grant domain struct.",
+        "rationale": "Embedding Grant (v1) means domain changes break event serialization; the v2 literal is decoupled and independently versionable."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new v2 grant event type",
+        "code": "// In events_2.go \u2014 add a new versioned type, never modify existing ones\nconst grantSuspendedEventNameV2 = \"...\"\n\ntype SuspendedEventV2 grantEventV2\n\nvar _ marshaler.Event = SuspendedEventV2{}\n\nfunc (e SuspendedEventV2) EventName() string { return grantSuspendedEventNameV2 }\nfunc (e SuspendedEventV2) Validate() error   { return grantEventV2(e).Validate() }"
       }
     ]
   }

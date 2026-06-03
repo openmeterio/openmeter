@@ -2,61 +2,38 @@
 
 <!-- archie:ai-start -->
 
-> Binary entry point for the Kafka-to-ClickHouse sink pipeline: consumes raw ingest CloudEvents from Kafka via confluent-kafka-go, deduplicates them, batch-inserts into ClickHouse via streaming.Connector, and publishes EventBatchedIngest flush notifications to Watermill so the balance-worker can recalculate entitlements. Contains only wiring and startup — all sink logic lives in openmeter/sink.
+> Binary entry point for the Kafka-to-ClickHouse sink pipeline: consumes raw ingest CloudEvents from Kafka, deduplicates, batch-inserts into ClickHouse via streaming.Connector, and publishes EventBatchedIngest flush notifications. Contains only Wire wiring and startup — all sink logic lives in openmeter/sink.
 
 ## Patterns
 
-**Wire-generated DI via initializeApplication** — wire.go declares Application struct and wire.Build call with //go:build wireinject tag; wire_gen.go is generated and must never be hand-edited. Add new dependencies by adding a field to Application and a provider set reference to wire.Build. (`wire.Build(common.Sink, common.ClickHouse, common.Streaming, common.WatermillNoPublisher, wire.Struct(new(Application), "*"))`)
-**oklog/run.Group for actor lifecycle with reverse shutdown** — main.go adds exactly three actors: app.Sink.Run/Close, app.TelemetryServer.ListenAndServe/Shutdown, and run.SignalHandler. Always call group.Run(run.WithReverseShutdownOrder()) — not plain group.Run() — to ensure Sink shuts down before telemetry. (`group.Add(func() error { return app.Sink.Run(ctx) }, func(err error) { _ = app.Sink.Close() })
-err = group.Run(run.WithReverseShutdownOrder())`)
-**Viper + pflag config loading with conf.Validate() before Wire init** — Config is loaded via v.Unmarshal into config.Configuration then conf.Validate() is called before initializeApplication. Never skip validation or read config after Wire initialization. (`v.Unmarshal(&conf); conf.Validate(); app, cleanup, err := initializeApplication(ctx, conf)`)
-**metadata() provides binary identity for telemetry** — The local metadata() function calls common.NewMetadata(conf, version, "sink-worker") to tag OTel telemetry and logs. Every cmd binary must provide this function; wire.go references it directly in wire.Build. (`func metadata(conf config.Configuration) common.Metadata { return common.NewMetadata(conf, version, "sink-worker") }`)
-**All providers sourced from app/common, never local** — wire.Build references only common.* provider sets (common.Sink, common.Streaming, common.ClickHouse, common.WatermillNoPublisher, etc.) and the local metadata/NewLogger functions. No domain service constructors belong in wire.go. (`common.Sink, common.Streaming, common.ClickHouse, common.Namespace, common.KafkaNamespaceResolver`)
-**WatermillNoPublisher instead of full Watermill router** — Sink worker publishes ingest flush events via NewSinkWorkerPublisher (a dedicated Kafka publisher) — it does not need the full system-events Watermill router. Use common.WatermillNoPublisher to keep wiring minimal. (`common.WatermillNoPublisher  // in wire.Build — not common.Watermill or common.EventBus`)
-**Unconditional cleanup defer even on init error** — The cleanup func returned by initializeApplication must be deferred unconditionally, even when err != nil. The wire_gen.go cleanup chain includes partial-initialization teardown that must run to avoid resource leaks. (`app, cleanup, err := initializeApplication(ctx, conf)
-if cleanup != nil { defer cleanup() }
-if err != nil { os.Exit(1) }`)
+**Wire-generated DI via initializeApplication** — wire.go (//go:build wireinject) declares the Application struct and wire.Build over common.* provider sets; wire_gen.go is generated and never hand-edited. Add deps by adding an Application field plus a provider reference. (`wire.Build(metadata, common.Sink, common.Streaming, common.ClickHouse, common.WatermillNoPublisher, wire.Struct(new(Application), "*"))`)
+**oklog/run.Group with reverse shutdown order** — main.go adds exactly three actors (Sink.Run/Close, TelemetryServer.ListenAndServe/Shutdown, run.SignalHandler) and calls group.Run(run.WithReverseShutdownOrder()) so Sink stops before telemetry. (`group.Add(func() error { return app.Sink.Run(ctx) }, func(err error) { _ = app.Sink.Close() }); err = group.Run(run.WithReverseShutdownOrder())`)
+**Viper config load + Validate() before Wire init** — Config is loaded via v.Unmarshal into config.Configuration then conf.Validate() runs before initializeApplication; never read config after Wire init. (`v.Unmarshal(&conf); conf.Validate(); app, cleanup, err := initializeApplication(ctx, conf)`)
+**metadata() binary identity for telemetry** — Local metadata() calls common.NewMetadata(conf, version, "sink-worker") and is referenced directly in wire.Build to tag OTel telemetry/logs. (`func metadata(conf config.Configuration) common.Metadata { return common.NewMetadata(conf, version, "sink-worker") }`)
+**WatermillNoPublisher instead of full router** — Sink publishes ingest flush events via a dedicated Kafka publisher (NewSinkWorkerPublisher) and uses common.WatermillNoPublisher — not the full system-events router/DLQ stack. (`common.WatermillNoPublisher  // in wire.Build — not common.Watermill or common.EventBus`)
+**Unconditional cleanup defer even on init error** — The cleanup func from initializeApplication is invoked even when err != nil (its reverse-order cleanupN chain handles partial-init teardown). (`app, cleanup, err := initializeApplication(ctx, conf); if err != nil { if cleanup != nil { cleanup() }; os.Exit(1) }; defer cleanup()`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `wire.go` | DI specification: declares Application struct fields and wire.Build provider list. Only edited when adding/removing app-level dependencies. | Build tag //go:build wireinject must be present — omitting it causes duplicate symbol errors with wire_gen.go. Never add business logic here. |
-| `wire_gen.go` | Generated by `go generate ./...` (Wire). Contains the actual initializeApplication with ordered cleanup12()...cleanup() chain. | Never hand-edit. Cleanup functions are chained in reverse-construction order — manual edits break the chain silently. |
-| `main.go` | Entry point: config loading, Wire init, run group assembly, signal handling. Contains no domain logic. | app.SetGlobals() must be called before any logging to initialize OTel globals. run.SignalHandler must be the last actor added. |
-| `version.go` | Provides version/revision/revisionDate globals populated by ldflags and debug.BuildInfo. Pattern shared across all cmd binaries. | //nolint:gochecknoglobals and //nolint:gochecknoinits suppressions are intentional — do not remove them. |
+| `wire.go` | DI spec: Application struct fields + wire.Build provider list. Edited only when adding/removing app-level dependencies. | //go:build wireinject tag must be present (else duplicate-symbol errors with wire_gen.go). No business logic. |
+| `wire_gen.go` | Generated by Wire; contains the real initializeApplication with the ordered cleanup12()...cleanup() chain. | Never hand-edit; cleanup funcs are chained in reverse-construction order and manual edits break the chain silently. |
+| `main.go` | Entry point: config loading, Wire init, run group assembly, signal handling. No domain logic. | app.SetGlobals() must run before any logging; run.SignalHandler must be the last actor added. |
+| `version.go` | version/revision/revisionDate globals populated by ldflags and debug.BuildInfo; shared across cmd binaries. | //nolint:gochecknoglobals and //nolint:gochecknoinits are intentional — do not remove. |
 
 ## Anti-Patterns
 
-- Adding business logic or domain service calls directly in main.go or wire.go — all logic belongs in openmeter/sink or app/common
-- Hand-editing wire_gen.go — fully generated; any manual change is overwritten by `go generate`
-- Introducing a goroutine outside run.Group — bypasses graceful shutdown and signal handling
-- Constructing domain services (e.g. sink.Sink, streaming.Connector) directly in wire.go instead of delegating to common.* provider sets
-- Using context.Background() inside the run group actors — the root ctx from main() must be passed through
+- Adding business logic or domain service calls in main.go or wire.go (logic belongs in openmeter/sink or app/common)
+- Hand-editing wire_gen.go
+- Spawning a goroutine outside run.Group (bypasses graceful shutdown)
+- Constructing domain services (sink.Sink, streaming.Connector) directly in wire.go instead of via common.* providers
+- Using context.Background() inside run group actors instead of the root ctx from main()
 
 ## Decisions
 
-- **WatermillNoPublisher is wired instead of a full Watermill router** — Sink worker only publishes ingest flush events via a dedicated Kafka publisher (NewSinkWorkerPublisher); it does not consume system events and does not need the full router or DLQ/retry middleware stack.
-- **Application struct embeds common.GlobalInitializer** — GlobalInitializer.SetGlobals() initializes OTel global meter/tracer/propagator in one call, ensuring all downstream packages that rely on otel globals are consistently configured before the run group starts.
-- **Only two long-running actors: Sink and TelemetryServer** — Sink worker has a single responsibility (Kafka → ClickHouse). Telemetry server is a mandatory sidecar for health/metrics. Keeping the run group minimal reduces shutdown ordering complexity.
-
-## Example: Adding a new background actor (e.g. a reconciler) to the sink worker
-
-```
-// 1. In wire.go — add field to Application struct:
-Reconciler *myreconciler.Reconciler
-
-// 2. Add provider set to wire.Build:
-common.MyReconciler,
-
-// 3. In main.go — register with run group before group.Run:
-group.Add(
-    func() error { return app.Reconciler.Run(ctx) },
-    func(err error) { _ = app.Reconciler.Close() },
-)
-
-// 4. Regenerate:
-// go generate ./cmd/sink-worker/...
-```
+- **WatermillNoPublisher wired instead of a full router** — Sink only publishes ingest flush events via a dedicated Kafka publisher; it consumes no system events and needs no router/DLQ/retry stack.
+- **Application embeds common.GlobalInitializer** — SetGlobals() initializes OTel global meter/tracer/propagator in one call so downstream packages are configured before the run group starts.
+- **Only two long-running actors (Sink + TelemetryServer)** — Single responsibility (Kafka -> ClickHouse) plus a mandatory health/metrics sidecar keeps shutdown ordering simple.
 
 <!-- archie:ai-end -->

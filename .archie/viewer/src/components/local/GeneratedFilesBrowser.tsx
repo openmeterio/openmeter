@@ -77,7 +77,7 @@ export default function GeneratedFilesBrowser() {
       <div className="bg-white border border-papaya-300/40 rounded-2xl p-8 shadow-sm text-ink/70">
         No generated files yet — run{' '}
         <code className="bg-papaya-100 text-teal-700 px-1.5 py-0.5 rounded font-semibold">
-          /archie-scan
+          /archie-deep-scan
         </code>{' '}
         first.
       </div>

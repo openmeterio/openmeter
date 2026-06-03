@@ -2,64 +2,60 @@
 
 <!-- archie:ai-start -->
 
-> Core subscription domain: defines SubscriptionSpec (the mutable in-memory spec driving phase/item/RateCard layout), the AppliesToSpec patch system (the only authorised mutation path), uniqueness validation, annotation helpers, lifecycle events, and the Service interface. Primary constraint: all spec mutations go through the patch system — never direct field writes to SubscriptionSpec.Phases.
+> Core subscription domain managing lifecycle (Create, Update, Delete, Cancel, Continue, UpdateAnnotations) against a versioned plan-phase-RateCard model. The root defines SubscriptionSpec (the mutable in-memory spec), the AppliesToSpec patch system (the only authorised mutation path), uniqueness validation, typed annotations, lifecycle events, and the Service interface; children split into patch (mutation primitives), service/repo (orchestration + Ent), entitlement (bridge), workflow (higher-level orchestration), addon, hooks, validators, and testutils.
 
 ## Patterns
 
-**AppliesToSpec patch interface — only authorised mutation path** — All mutations implement AppliesToSpec with ApplyTo(spec *SubscriptionSpec, actx ApplyContext). Must only be invoked through SubscriptionSpec.Apply/ApplyX wrappers, never directly — subsequent validation and ordering logic runs in the wrapper. (`type AppliesToSpec interface { ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error }; spec.Apply(patch, ApplyContext{CurrentTime: now})`)
-**GetSortedPhases for ordered phase iteration** — SubscriptionSpec.Phases is a map[string]*SubscriptionPhaseSpec keyed by phase key. Direct map iteration gives undefined order. Always call GetSortedPhases() which returns phases sorted by StartAfter. (`for _, phase := range spec.GetSortedPhases() { /* ordered by StartAfter */ }`)
-**pg_advisory_lock per customer via GetCustomerLock** — Per-customer serialization uses lockr.Key from GetCustomerLock(customerId). Lock must be acquired inside an active Postgres transaction before any subscription write. (`key, err := subscription.GetCustomerLock(customerID); locker.LockForTX(ctx, key)`)
-**ValidateUniqueConstraintByFeatures before persisting** — Before persisting a new or updated subscription, call ValidateUniqueConstraintByFeatures with all active+new subscriptions for the customer to prevent two overlapping billable subscriptions from covering the same feature+customer simultaneously. (`subscription.ValidateUniqueConstraintByFeatures(append(allSpecs, newSpec))`)
-**AnnotationParser for all annotation map access** — Subscription-level metadata (PreviousSubscriptionID, SupersedingSubscriptionID, BooleanEntitlementCount, OwnerSubSystem) is stored in models.Annotations. Always use subscription.AnnotationParser getter/setter methods — never read raw annotation map keys by string literal. (`subscription.AnnotationParser.GetPreviousSubscriptionID(annotations); subscription.AnnotationParser.SetSupersedingSubscriptionID(annotations, subID)`)
-**NewSubscriptionOperationContext on every Service method entry** — Every public Service method calls NewSubscriptionOperationContext(ctx) at entry to mark the ctx as inside a subscription operation. IsSubscriptionOperation(ctx) lets validators and hooks detect re-entrant calls. (`ctx = subscription.NewSubscriptionOperationContext(ctx); // then acquire lock and begin transaction`)
-**Typed error constructors — never plain fmt.Errorf for domain errors** — Use NewSubscriptionNotFoundError, NewPhaseNotFoundError, NewItemNotFoundError, ErrOnlySingleSubscriptionAllowed (ValidationIssue), and models.NewGenericPreConditionFailedError for HTTP-mappable errors. (`return subscription.NewSubscriptionNotFoundError(id) // wraps models.GenericNotFoundError → 404`)
+**AppliesToSpec patch system is the only mutation path** — All SubscriptionSpec mutations implement AppliesToSpec.ApplyTo and must be invoked through SubscriptionSpec.Apply/ApplyX wrappers (never patch.ApplyTo directly) so post-mutation validation and ordering always run. Concrete patches live in patch/; addon transforms in addon/diff. (`spec.Apply(patch, subscription.ApplyContext{CurrentTime: now}); NewAggregateAppliesToSpec batches patches.`)
+**Spec built/validated in-memory, then synced through service** — service/ uses sync() as the universal diff-apply engine; Cancel/Continue reuse sync() by building a new spec with modified ActiveTo. Persistence goes through SubscriptionRepository/Phase/Item repos (TransactingRepo triad), and all DB writes from outside route through subscriptionworkflow.Service, never raw repo calls. (`service.sync() diffs target vs live spec; workflow/service orchestrates CreateFromPlan/EditRunning/ChangeToPlan.`)
+**Per-customer pg_advisory_lock inside a transaction on every write** — Every public Service method opens with NewSubscriptionOperationContext(ctx), then acquires lockr.Key from GetCustomerLock(customerID) via LockForTX inside the active Ent transaction before any subscription/item write. Workflow methods lockCustomer too. (`ctx = subscription.NewSubscriptionOperationContext(ctx); key,_ := subscription.GetCustomerLock(cid); locker.LockForTX(ctx, key)`)
+**Uniqueness + typed errors at the spec boundary** — ValidateUniqueConstraintByFeatures must run with ALL active+new specs for a customer before persist to block overlapping billable features. Domain errors are ValidationIssue sentinels / typed NotFound errors with IsXxx predicates and HTTP status attributes; workflow wraps spec errors via MapSubscriptionErrors. (`subscription.ValidateUniqueConstraintByFeatures(append(allSpecs, newSpec)); workflow.MapSubscriptionErrors(err)`)
+**Typed annotation access + hooks/validators registered in app/common** — Annotation map keys (previous/superseding subscription IDs, boolean entitlement count, owner subsystem) are read/written only via subscription.AnnotationParser. SubscriptionCommandHooks (hooks/) and cross-domain validators (validators/) embed noop bases, write via repositories (never Service), and are registered through RegisterHook/RegisterRequestValidator in app/common. (`AnnotationParser.SetSupersedingSubscriptionID(annotations, id); validators/customer blocks delete when active subs exist.`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `openmeter/subscription/apply.go` | Defines AppliesToSpec interface, ApplyContext, NewAppliesToSpec helper, and NewAggregateAppliesToSpec for batching patches. | FIXME comment: ApplyTo should be private but isn't — never call patch.ApplyTo directly; always route through SubscriptionSpec.Apply wrappers. |
-| `openmeter/subscription/errors.go` | All subscription domain errors as ValidationIssue sentinels (with ErrorCode constants and IsXxx predicates) and typed NotFound errors. | ValidationIssue errors use commonhttp.WithHTTPStatusCodeAttribute for HTTP status mapping. Use IsSubscriptionNotFoundError/IsPhaseNotFoundError/IsItemNotFoundError for type-safe detection. |
-| `openmeter/subscription/annotations.go` | Typed annotation getter/setter helpers for PreviousSubscriptionID, SupersedingSubscriptionID, BooleanEntitlementCount, OwnerSubSystem. Exported as subscription.AnnotationParser. | Never read annotation map keys by string literal — always use AnnotationParser methods to avoid key typos and type assertion errors. |
-| `openmeter/subscription/hook.go` | Defines SubscriptionCommandHook interface (Before/AfterCreate, BeforeUpdate, BeforeDelete, AfterCancel, AfterContinue) and NoOpSubscriptionCommandHook base struct. | All hook implementations must embed NoOpSubscriptionCommandHook to avoid implementing all methods manually. Hook methods must never call subscription.Service write methods (re-entrant hook calls). |
-| `openmeter/subscription/locks.go` | Provides GetCustomerLock(customerId) returning lockr.Key for pg_advisory_lock key construction. | Lock must be used inside an active Postgres transaction (inside entutils.TransactingRepo). Calling LockForTX outside a transaction fails. |
-| `openmeter/subscription/uniqueness.go` | Implements ValidateUniqueConstraintByFeatures for cross-subscription overlap detection on billable features. | Must be called with ALL active+new specs for a customer — passing only the two being compared misses partial overlap cases. |
-| `openmeter/subscription/events.go` | All subscription lifecycle events (CreatedEvent, UpdatedEvent, CancelledEvent, ContinuedEvent, SubscriptionSyncEvent) with EventName() and EventMetadata(). | All events use metadata.GetEventName with EventSubsystem prefix — ensures correct Kafka topic routing via eventbus.GeneratePublishTopic. |
-| `openmeter/subscription/item.go` | SubscriptionItem domain type with custom JSON unmarshaller for RateCard polymorphism (FlatFeeRateCard vs UsageBasedRateCard discriminated by type field). | UnmarshalJSON must handle both RateCard types — adding a new RateCard type requires updating the switch case here. |
+| `apply.go` | AppliesToSpec interface, ApplyContext, NewAppliesToSpec, NewAggregateAppliesToSpec. | ApplyTo is public only by FIXME — never call it directly; always go through SubscriptionSpec.Apply. |
+| `subscriptionspec.go` | SubscriptionSpec (Phases map[string]*SubscriptionPhaseSpec) and GetSortedPhases(). | Direct map iteration is unordered — use GetSortedPhases(); never write Phases directly. |
+| `errors.go` | ValidationIssue sentinels + typed NotFound errors with IsXxx predicates and HTTP status attributes. | Use Is*NotFoundError predicates; never plain fmt.Errorf at the boundary. |
+| `annotations.go` | AnnotationParser getters/setters for previous/superseding IDs, boolean count, owner subsystem. | Never read annotation keys by raw string — typos and bad type assertions. |
+| `hook.go` | SubscriptionCommandHook interface + NoOpSubscriptionCommandHook base. | Embed the NoOp base; hooks must never call Service write methods (re-entrant invocation). |
+| `locks.go` | GetCustomerLock(customerID) → lockr.Key. | Must be used inside an active Postgres tx (entutils.TransactingRepo). |
+| `uniqueness.go` | ValidateUniqueConstraintByFeatures for cross-subscription billable-feature overlap. | Call with ALL active+new specs — comparing only two misses partial overlaps. |
+| `item.go` | SubscriptionItem with custom RateCard polymorphism JSON. | UnmarshalJSON switch must handle every RateCard type (FlatFee vs UsageBased). |
 
 ## Anti-Patterns
 
-- Calling patch.ApplyTo(spec, actx) directly — always route through SubscriptionSpec.Apply/ApplyX wrappers so subsequent validation runs.
-- Iterating over SubscriptionSpec.Phases map directly — always call GetSortedPhases() for deterministic phase order.
-- Reading or writing annotation map keys as raw strings instead of using subscription.AnnotationParser methods.
-- Calling subscription.Service write methods from inside a SubscriptionCommandHook — creates re-entrant hook invocations.
-- Skipping ValidateUniqueConstraintByFeatures before persisting a new or updated subscription covering a billable feature.
+- Calling patch.ApplyTo(spec, actx) directly instead of routing through SubscriptionSpec.Apply/ApplyX wrappers.
+- Iterating SubscriptionSpec.Phases map directly instead of GetSortedPhases(), or writing Phases without a patch.
+- Reading/writing annotation map keys as raw strings instead of subscription.AnnotationParser.
+- Calling subscription.Service write methods from inside a SubscriptionCommandHook (or workflow create/change without sync) — re-entrant or unvalidated writes.
+- Skipping ValidateUniqueConstraintByFeatures, the per-customer advisory lock, or NewSubscriptionOperationContext at a mutating operation.
 
 ## Decisions
 
-- **Patch system (AppliesToSpec) as the only mutation path for SubscriptionSpec** — Ensures all changes go through a validated, ordered application pipeline so SubscriptionSpec invariants (phase ordering, feature uniqueness, billing cadence alignment) are always checked after every mutation.
-- **SubscriptionSpec as an in-memory spec object separate from the persisted Subscription** — Allows the service layer to build, validate, and diff specs before writing to the DB — supports EditRunning and ChangeToPlan which need to compute diffs against the current live state.
-- **pg_advisory_lock per customer for subscription serialization** — Prevents concurrent subscription creates/edits for the same customer from producing conflicting billing line items or overlapping entitlement grants.
+- **AppliesToSpec patch system as the sole SubscriptionSpec mutation path.** — Forces every change through a validated, ordered pipeline so phase ordering, feature uniqueness, and cadence invariants are re-checked after each mutation.
+- **SubscriptionSpec is an in-memory object separate from the persisted Subscription.** — Lets the service build/validate/diff specs before writing — required for EditRunning and ChangeToPlan.
+- **pg_advisory_lock per customer for serialization.** — Prevents concurrent creates/edits for one customer from producing conflicting billing lines or overlapping entitlement grants.
 
-## Example: Applying a patch to a SubscriptionSpec and validating cross-subscription uniqueness before persisting
+## Example: Applying a patch and validating cross-subscription uniqueness before persisting
 
 ```
-import (
-    "github.com/openmeterio/openmeter/openmeter/subscription"
-)
+import "github.com/openmeterio/openmeter/openmeter/subscription"
 
-// Mark context as inside a subscription operation
 ctx = subscription.NewSubscriptionOperationContext(ctx)
 
-// Acquire per-customer advisory lock inside transaction
 key, err := subscription.GetCustomerLock(customerID)
 if err != nil { return err }
-// (locker.LockForTX called inside entutils.TransactingRepo)
+// locker.LockForTX(ctx, key) inside entutils.TransactingRepo
 
-// Apply patch through spec wrapper — never call patch.ApplyTo directly
 if err := spec.Apply(patch, subscription.ApplyContext{CurrentTime: now}); err != nil {
     return err
-// ...
+}
+if err := subscription.ValidateUniqueConstraintByFeatures(append(allSpecs, spec)); err != nil {
+    return err
+}
 ```
 
 <!-- archie:ai-end -->

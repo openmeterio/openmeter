@@ -1,0 +1,330 @@
+{
+  "openmeter/app": {
+    "purpose": "Marketplace registry and runtime lifecycle for installed billing apps (Stripe, Sandbox, CustomInvoicing). Owns the app.App/app.Service contracts and the AppFactory/RegistryItem self-registration mechanism, so the billing core can drive invoicing through provider-agnostic interfaces without hardcoding provider logic.",
+    "patterns": [
+      {
+        "name": "Per-provider sub-package implements app.App + billing.InvoicingApp",
+        "description": "Each provider folder (stripe/, sandbox/, custominvoicing/) is a self-contained app implementation embedding app.AppBase for shared identity methods (GetID/GetType/GetStatus/ValidateCapabilities) and implementing billing.InvoicingApp. Provider logic lives in the sub-package's service/, never in the root or adapter/.",
+        "example": "type App struct { app.AppBase; ... } // stripe.App, sandbox.App, custominvoicing.App"
+      },
+      {
+        "name": "Factory self-registration at constructor, not at wire time",
+        "description": "A provider's New()/NewFactory() calls app.Service.RegisterMarketplaceListing(RegistryItem{Listing, Factory}). The adapter holds the in-memory registry map[AppType]RegistryItem; every DB read (mapAppFromDB) reconstructs concrete apps via the registered Factory.",
+        "example": "svc.appService.RegisterMarketplaceListing(app.RegistryItem{Listing: stripeListing, Factory: svc})"
+      },
+      {
+        "name": "Root package = contracts + base; layers split service/adapter/httpdriver",
+        "description": "Root files (service.go, registry.go, appbase.go, errors.go, event.go, input.go) define the API surface and shared types. service/ orchestrates (Validate-then-delegate, fires ServiceHooks[AppBase] inside transaction.Run, publishes events); adapter/ is pure Ent persistence; httpdriver/ is the v1 HTTP layer with mapping centralized in mapper.go.",
+        "example": "service/service.go: s.hooks.PostCreate(ctx, &appBase) inside transaction.Run, then eventbus.Publish"
+      },
+      {
+        "name": "Type-neutral event serialization via GetEventAppData",
+        "description": "App types never enter event payloads directly. They implement GetEventAppData() returning a map[string]any; NewEventApp(app) builds the EventApp payload and consumers ParseInto(&target). AppCreateEvent is v1 (AppBase only), AppUpdateEvent/AppDeleteEvent are v2 (full EventApp).",
+        "example": "event.go: NewEventApp(app) calls app.GetEventAppData() to build EventApp payload"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/app/service.go",
+        "role": "Composite app.Service: MarketplaceService + AppLifecycleService + CustomerDataService + models.ServiceHooks[AppBase].",
+        "watch_for": "RegisterHooks (lifecycle) and RegisterRequestValidator (pre-mutation) are distinct; cross-domain wiring needs both, and both must be registered from app/common, never a domain constructor."
+      },
+      {
+        "file": "openmeter/app/registry.go",
+        "role": "AppFactory/RegistryItem extension point for new app types.",
+        "watch_for": "RegistryItem.Factory must be non-nil (RegistryItem.Validate() enforces it); a new provider needs both a Factory and a registered MarketplaceListing."
+      },
+      {
+        "file": "openmeter/app/appbase.go",
+        "role": "AppBase value type with canonical GetAppBase/GetID/GetType/GetStatus/ValidateCapabilities.",
+        "watch_for": "AppType constants must stay in sync with the Ent schema app_type enum; do not add provider-specific fields here."
+      },
+      {
+        "file": "openmeter/app/errors.go",
+        "role": "Typed domain errors (AppNotFoundError, AppProviderError, AppProviderAuthenticationError, ...) wrapping models.Generic* sentinels with IsXxxError helpers.",
+        "watch_for": "Never return raw fmt.Errorf from service/adapter \u2014 the HTTP encoder falls through to 500 for unwrapped errors."
+      }
+    ],
+    "anti_patterns": [
+      "Calling adapter/Ent methods or billing.Service directly from App method implementations \u2014 provider logic must flow through the provider's own service layer.",
+      "Importing provider sub-packages (appstripe/appsandbox/appcustominvoicing) from adapter/ \u2014 concrete construction is delegated to the registered Factory.",
+      "Publishing domain events inside the adapter \u2014 event publishing is exclusively the service layer's responsibility after a successful write.",
+      "Adding a new AppType without updating AppType.Validate() and the Ent schema app_type enum \u2014 causes runtime panics on unknown type.",
+      "Returning errors not wrapped in models.Generic* types \u2014 breaks RFC 7807 status mapping."
+    ],
+    "decisions": [
+      {
+        "decision": "Marketplace listings live in-memory on the adapter, not in the database.",
+        "rationale": "Listings are static metadata supplied by factories at startup; persisting them would add DB round-trips to every install with no benefit."
+      },
+      {
+        "decision": "OAuth2 install methods are stubbed (GenericNotImplementedError) on the adapter; only API-key and no-credential installs are storage-backed.",
+        "rationale": "OAuth2 flow state is transient and provider-specific; storing it would couple the adapter to provider protocols."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/customer": {
+    "purpose": "Customer lifecycle domain (CRUD, usage attributions, soft-delete via DeletedAt) exposing two extension registries \u2014 RequestValidatorRegistry for pre-mutation cross-domain guards and ServiceHooks[Customer] for post-lifecycle callbacks \u2014 that let billing, ledger, subscription, and entitlement react to customer changes without circular imports.",
+    "patterns": [
+      {
+        "name": "Root = contract; service/ orchestrates; adapter/ persists; httpdriver/ adapts HTTP",
+        "description": "Root files (service.go, customer.go, requestvalidator.go, adapter.go, errors.go, event.go) define the interface and domain types. service/ runs validators before the transaction and hooks inside it; adapter/ is the sole DB layer (TransactingRepo on every method); httpdriver/ translates api.* types via apimapping.go.",
+        "example": "service/customer.go: transaction.Run(ctx, s.adapter, func(ctx, tx customer.Adapter) (*Customer, error) { ... })"
+      },
+      {
+        "name": "Validators before the transaction, hooks inside it",
+        "description": "RequestValidatorRegistry and ServiceHooks[Customer] are separate registries with distinct timing: validators (errors.Join fan-out) block the mutation before any DB write; hooks fire PostCreate/PostUpdate/PostDelete inside transaction.Run so a hook failure rolls back the write.",
+        "example": "requestvalidator.go: requestValidatorRegistry.ValidateDeleteCustomer fans out to all registered validators"
+      },
+      {
+        "name": "Re-entrancy guard for hooks that call back into customer.Service",
+        "description": "Hooks (e.g. subject-customer) that invoke customer.Service must wrap ctx with NewContextWithSkipSubjectCustomer(ctx) to prevent infinite re-entrant hook invocations. Sub-package service/hooks/ holds entitlementvalidator and subjectcustomer hook implementations.",
+        "example": "ctx = customer.NewContextWithSkipSubjectCustomer(ctx) before re-entering the service from a hook"
+      },
+      {
+        "name": "Soft-delete everywhere, never hard-delete",
+        "description": "DeleteCustomer sets DeletedAt; queries default IncludeDeleted=false; Customer.IsDeleted() checks DeletedAt.Before(clock.Now()). Billing/subscription/entitlement reference customer IDs and must not be orphaned.",
+        "example": "func (c Customer) IsDeleted() bool { return c.DeletedAt != nil && c.DeletedAt.Before(clock.Now()) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/customer/service.go",
+        "role": "Composite customer.Service interface = CustomerService + RequestValidatorService + models.ServiceHooks[Customer].",
+        "watch_for": "RegisterHooks and RegisterRequestValidator are separate registration points; cross-domain constraints often need both."
+      },
+      {
+        "file": "openmeter/customer/customer.go",
+        "role": "Customer/CustomerMutate/CustomerID/CustomerUsageAttribution domain types and all input types with Validate().",
+        "watch_for": "GetCustomerInput supports by-ID, by-Key, and by-IDOrKey lookups \u2014 always build a typed lookup struct; CustomerID is models.NamespacedID. Validate() requires either key or usageAttribution.subjectKeys."
+      },
+      {
+        "file": "openmeter/customer/requestvalidator.go",
+        "role": "RequestValidator interface, NoopRequestValidator, and the RWMutex fan-out registry.",
+        "watch_for": "Register() is not idempotent \u2014 double-registration doubles validation calls; Wire providers must guard against it."
+      },
+      {
+        "file": "openmeter/customer/errors.go",
+        "role": "Typed domain errors (KeyConflictError, SubjectKeyConflictError, UpdateAfterDeleteError, ErrDeletingCustomerWithActiveSubscriptions).",
+        "watch_for": "ErrDeletingCustomerWithActiveSubscriptions is a models.ValidationIssue (not a GenericError) carrying active subscription IDs in attrs."
+      }
+    ],
+    "anti_patterns": [
+      "Calling customer.Service from inside a hook without NewContextWithSkipSubjectCustomer(ctx) \u2014 causes infinite re-entrant hook invocations.",
+      "Performing DB writes outside transaction.Run / transaction.RunWithNoValue in the service layer \u2014 partial writes are not rolled back on hook or publish failure.",
+      "Returning raw fmt.Errorf for not-found/conflict/validation conditions \u2014 HTTP encoders depend on models.Generic* typed errors.",
+      "Hard-deleting customer or customer_subjects rows \u2014 the domain uses soft-delete via DeletedAt everywhere.",
+      "Importing app/common in testutils or test files \u2014 causes import cycles; build deps from customertestutils.NewTestEnv."
+    ],
+    "decisions": [
+      {
+        "decision": "RequestValidatorRegistry and ServiceHooks are separate registries with distinct call sites.",
+        "rationale": "Pre-mutation validators block before any DB write; post-lifecycle hooks run after success and may have side-effects. Merging them would lose the timing guarantee."
+      },
+      {
+        "decision": "Soft-delete rather than hard delete for customers and customer_subjects.",
+        "rationale": "Billing, subscription, and entitlement records reference customer IDs; soft-delete preserves referential integrity while logically removing the customer."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/entitlement": {
+    "purpose": "Feature entitlement management across three independent sub-types (metered credit-grant burn-down, boolean on/off, static JSON) composed behind a single entitlement.Service. The metered path drives the credit engine + ClickHouse usage queries; the balanceworker/ sub-package recalculates balances off Kafka lifecycle events.",
+    "patterns": [
+      {
+        "name": "Three sub-type connectors composed by a thin service orchestrator",
+        "description": "service/ dispatches each operation to metered/, boolean/, or static via the EntitlementType discriminator. Sub-types have radically different value semantics so the orchestrator stays free of credit logic. The Parser singleton in driver/parser.go converts wire<->domain types and is shared by v1 and v2 drivers and balanceworker.",
+        "example": "service/service.go routes by EntitlementType; driver/parser.go: Parser.ToAPIGeneric dispatches per sub-type"
+      },
+      {
+        "name": "EntitlementRepo kept separate from entitlement.Service",
+        "description": "The persistence boundary (repository.go) is intentionally a lighter interface than Service so validators/customer and hooks can depend on it without pulling the full service graph \u2014 avoiding import cycles. Adapters implement the TxUser+TxCreator triad.",
+        "example": "entitlement/validators/customer depends on entitlement.EntitlementRepo, not entitlement.Service"
+      },
+      {
+        "name": "transaction.Run + per-customer advisory lock for composite mutations",
+        "description": "Operations touching multiple rows (ResetEntitlementUsage, CreateEntitlement with grants, DeleteEntitlement) run in transaction.Run; service/lock.go acquires lockr.Locker.LockForTX(ctx, customerID) inside the open transaction before multi-row writes.",
+        "example": "metered/reset.go: transaction.Run wraps EndCurrentUsagePeriod + balance snapshot + event publish"
+      },
+      {
+        "name": "Versioned snapshot/lifecycle events, never struct literals or in-place version bumps",
+        "description": "Metered balance changes publish via NewEntitlementResetEventV3; lifecycle uses EntitlementCreatedEventV2/EntitlementDeletedEventV2; snapshot/ defines SnapshotEvent v2 (system topic). Always use constructors and call Validate(); add a new versioned struct rather than mutating an existing one.",
+        "example": "metered/events.go: NewEntitlementResetEventV3(...) \u2014 never an entitlement.SnapshotEvent literal"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "connector.go",
+        "role": "entitlement.Service interface (13 lifecycle methods) embedding models.ServiceHooks[Entitlement]; defines ListEntitlementsParams.",
+        "watch_for": "GetEntitlementOfCustomerAt resolves by ID then FeatureKey+CustomerID \u2014 resolve subject keys to customer.ID first; never pass raw subject keys to the service."
+      },
+      {
+        "file": "entitlement.go",
+        "role": "Entitlement domain struct, CreateEntitlementInputs, and validation including the UsagePeriod minimum 1-hour check.",
+        "watch_for": "MeasureUsageFromInput is a wrapper type \u2014 only FromTime/FromEnum are valid constructors; ActiveTo set without ActiveFrom (or ActiveTo before ActiveFrom) fails Validate()."
+      },
+      {
+        "file": "repository.go",
+        "role": "EntitlementRepo persistence interface, deliberately separate from Service.",
+        "watch_for": "Embeds entutils.TxCreator; adapters must implement the TxUser+TxCreator triad."
+      },
+      {
+        "file": "uniqueness.go",
+        "role": "ValidateUniqueConstraint / UniquenessConstraintError \u2014 no two entitlements for the same feature+customer may overlap in active cadence.",
+        "watch_for": "Builds a models.SortedCadenceList; entitlements where ActiveFromTime == ActiveToTime are filtered out before overlap detection."
+      }
+    ],
+    "anti_patterns": [
+      "Calling sub-type connector methods (metered/boolean/static) directly from HTTP handlers \u2014 always go through entitlement.Service.",
+      "Adding DB queries to entitlement.Service \u2014 all persistence goes through EntitlementRepo.",
+      "Bypassing transaction.Run in ResetEntitlementUsage or calling lockr.LockForTX outside an open transaction \u2014 reset and event publish must be atomic and the lock correctly scoped.",
+      "Emitting EntitlementResetEvent v1 from new code, or publishing a snapshot directly from a balanceworker lifecycle handler instead of via RecalculateEvent.",
+      "Using time.Now() instead of clock.Now() \u2014 breaks test determinism with frozen clocks."
+    ],
+    "decisions": [
+      {
+        "decision": "Three independent sub-type connectors composed behind a single Service orchestrator.",
+        "rationale": "Credit burn-down vs on/off vs JSON config have incompatible value semantics; keeping them separate prevents the service from accumulating type switches."
+      },
+      {
+        "decision": "Balance worker subscribes to system + ingest + balance-worker topics via a RecalculateEvent intermediary on the balance-worker topic.",
+        "rationale": "The two-stage lifecycle->RecalculateEvent->snapshot flow enables dedup and filter-before-recalculate discipline, avoiding redundant ClickHouse queries on burst events."
+      },
+      {
+        "decision": "EntitlementRepo is kept separate from entitlement.Service.",
+        "rationale": "Lets validators depend on the lighter repo interface without pulling in the full service graph, avoiding circular imports."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/ingest": {
+    "purpose": "CloudEvent ingestion pipeline: the Collector interface receives single events and forwards them to Kafka, with composable decorators \u2014 DeduplicatingCollector (Redis or in-memory dedup) and ingestadapter (OTel telemetry) \u2014 and ingest.Service adding namespace-scoped validation for batch ingestion.",
+    "patterns": [
+      {
+        "name": "Collector decorated by struct embedding",
+        "description": "DeduplicatingCollector embeds Collector and overrides Ingest() to call Deduplicator.IsUnique before delegating; ingestadapter wraps Collector for OTel spans/counters. New decorators must follow this embed-and-override pattern and remain behavior-preserving.",
+        "example": "ingest/dedupe.go: DeduplicatingCollector embeds Collector; Ingest calls IsUnique before delegating"
+      },
+      {
+        "name": "kafkaingest produces to per-namespace topics, resolving+provisioning per call",
+        "description": "kafkaingest/collector.go resolves the topic via TopicResolver and provisions via TopicProvisioner on every Ingest call (not just at namespace creation), encodes key from dedupe.Item, sets the fixed Kafka header set, and returns a KafkaProducerGroup the caller must add to its oklog/run.Group for delivery reporting.",
+        "example": "NewCollector returns (Collector, KafkaProducerGroup, error); caller adds group to run.Group"
+      },
+      {
+        "name": "httpdriver dispatches by Content-Type, stays DI-agnostic",
+        "description": "httpdriver/ingest.go selects single vs batch decoding by Content-Type (application/json, cloudevents+json, cloudevents-batch+json), returns domain-local errors (ErrorInvalidEvent/ErrorInvalidContentType) through an errorEncoder chain, resolves namespace via NamespaceDecoder, and delegates all logic to ingest.Service.",
+        "example": "switch on r.Header.Get('Content-Type') to select the decoder path"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/ingest/ingest.go",
+        "role": "Collector interface (Ingest, Close) \u2014 the only required interface for the domain.",
+        "watch_for": "Close() drains the Kafka producer before shutdown; do not add methods to Collector without considering all implementations and decorators."
+      },
+      {
+        "file": "openmeter/ingest/dedupe.go",
+        "role": "DeduplicatingCollector wrapper over any Collector via dedupe.Deduplicator.",
+        "watch_for": "(false, err) means the deduplicator itself failed \u2014 the event is still forwarded to avoid data loss; only (false, nil) is a true duplicate."
+      },
+      {
+        "file": "openmeter/ingest/service.go",
+        "role": "ingest.Service: namespace-scoped validation wrapper exposing IngestEvents for batches.",
+        "watch_for": "Validates namespace before Collector.Ingest; new endpoints must go through Service, not Collector directly."
+      }
+    ],
+    "anti_patterns": [
+      "Calling Producer.Produce in kafkaingest without running KafkaProducerGroup in an oklog/run.Group \u2014 delivery errors are silently dropped.",
+      "Creating OTel metric instruments inside Ingest() instead of the constructor \u2014 allocation/registration overhead per event.",
+      "Reading namespace from URL path params in httpdriver instead of NamespaceDecoder \u2014 bypasses static namespace injection for self-hosted deployments.",
+      "Adding new Kafka headers in kafkaingest without updating the sink worker's header parsing \u2014 breaks downstream deserialization.",
+      "Importing app/common from httpdriver \u2014 the HTTP handler must stay DI-agnostic."
+    ],
+    "decisions": [
+      {
+        "decision": "OTel telemetry is a separate ingestadapter package rather than embedded in kafkaingest.",
+        "rationale": "Keeps kafkaingest focused on the Kafka protocol; the decorator can be swapped or omitted in tests without touching producer logic."
+      },
+      {
+        "decision": "Topic is resolved and provisioned on every Ingest call, not only at namespace creation.",
+        "rationale": "Ensures topics exist even if the namespace was created while Kafka was unavailable, removing a class of startup-order failures."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/ledger": {
+    "purpose": "Double-entry ledger for customer financial balances (FBO, Receivable, Accrued) and shared business accounts (Wash, Earnings, Brokerage, Breakage). Transaction inputs are constructed exclusively via transactions.ResolveTransactions with typed templates (enforcing debit=credit), and noop/ supplies compile-checked zero-value implementations wired when credits.enabled=false.",
+    "patterns": [
+      {
+        "name": "TransactionInput constructed only via transaction templates",
+        "description": "transactions/ is the ONLY layer that builds EntryInput/TransactionInput. Callers pass named value-struct templates (CustomerTransactionTemplate, OrgTransactionTemplate) to ResolveTransactions, which resolves abstract intents into postings and routes sub-accounts; corrections reverse via the annotation-stored template name.",
+        "example": "transactions/resolve.go: ResolveTransactions iterates templates, calls resolve(), then ledger.CommitGroup"
+      },
+      {
+        "name": "BookTransaction always inside transaction.Run with routing validation",
+        "description": "historical/ledger.go (the engine implementing ledger.Ledger + BalanceQuerier) pre-locks all accounts, calls ValidateTransactionInputWith(ctx, tx, routingValidator) using routingrules/, then repo.BookTransaction \u2014 all inside transaction.Run. Bypassing this loses the account lock and routing invariants.",
+        "example": "historical/ledger.go: transaction.Run(..., func(...) { ValidateTransactionInputWith; repo.BookTransaction })"
+      },
+      {
+        "name": "Canonical sub-account routing key from Route",
+        "description": "Sub-account keys are derived from a Route value via ledger.BuildRoutingKey/BuildRoutingKeyV1 (normalizes decimals and nil fields). Never hand-build routing key strings or AddressData.RoutingKey \u2014 it breaks canonical uniqueness. routingrules/ validates permitted account-type pairings before persistence.",
+        "example": "routing.go: BuildRoutingKeyV1(Route{Currency:'USD', CostBasis:..., ...})"
+      },
+      {
+        "name": "credits.enabled=false routes everything to noop/ with compile-time assertions",
+        "description": "app/common wires ledger.Ledger, ledger.AccountResolver, ledgeraccount.Service, and the namespace/customer hooks to noop/ value-structs when credits are disabled. Every new ledger interface method needs a zero-value noop, proven by var _ Interface = Type{} assertions in noop/noop.go, so billing/customer code is structurally identical regardless of the flag.",
+        "example": "noop/noop.go: var _ ledger.Ledger = Ledger{}; var _ ledger.AccountResolver = AccountResolver{}"
+      },
+      {
+        "name": "Charge lifecycle bridged in via chargeadapter, not by charge packages importing ledger",
+        "description": "chargeadapter/ implements per-charge-type Handler interfaces (defined in the charge sub-packages) translating charge state transitions into templates committed via CommitGroup, annotating every call with ChargeAnnotations and routing FBO collection through collector.Service. This keeps charge packages free of ledger imports.",
+        "example": "chargeadapter/helpers.go sets ChargeAnnotations on every CommitGroup input"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openmeter/ledger/account.go",
+        "role": "AccountType constants, CustomerAccounts/BusinessAccounts structs, AccountResolver interface.",
+        "watch_for": "GetCustomerAccounts assumes provisioned accounts \u2014 call EnsureCustomerAccounts first (resolvers/ returns ErrCustomerAccountMissing otherwise)."
+      },
+      {
+        "file": "openmeter/ledger/routing.go",
+        "role": "Route struct, BuildRoutingKeyV1, RoutingKey \u2014 the canonical hash key for sub-account routing.",
+        "watch_for": "CostBasis decimal is canonicalized by trimming trailing zeros; construct Route via typed field assignment, never string parsing."
+      },
+      {
+        "file": "openmeter/ledger/validations.go",
+        "role": "ValidateInvariance (sum-to-zero debit/credit check), ValidateEntryInput, ValidateTransactionInputWith \u2014 run before every BookTransaction.",
+        "watch_for": "Use alpacadecimal, not float64; ValidateInvariance requires all entry amounts to sum to zero."
+      },
+      {
+        "file": "openmeter/ledger/noop/noop.go",
+        "role": "Zero-value noop implementations of all ledger interfaces for credits.enabled=false.",
+        "watch_for": "Missing a method breaks compile when credits are disabled; never return nil for interface-typed fields inside CustomerAccounts/BusinessAccounts (callers dereference without nil checks)."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing EntryInput/TransactionInput outside the transactions/ package \u2014 bypasses sub-account routing and routing-rule validation.",
+      "Registering CustomerLedgerHook or the namespace ledger handler when credits.enabled=false \u2014 these are real DB write paths; the ledgernoop.* variants must be used.",
+      "Calling repo.BookTransaction (or ledger.CommitGroup for FBO collection) outside transaction.Run / outside collector.Service \u2014 loses lock, validation atomicity, and lineage correctness.",
+      "Adding a transaction template without registering it in transactionTemplateByName \u2014 it becomes uncorrectable at correction time.",
+      "Using context.Background() anywhere in the ledger \u2014 drops the Ent transaction and OTel spans."
+    ],
+    "decisions": [
+      {
+        "decision": "transactions/ is the only permitted construction site for EntryInput/TransactionInput.",
+        "rationale": "Centralizing construction enforces routing-rule compliance and makes corrections (reversals) traceable via annotation-stored template names."
+      },
+      {
+        "decision": "noop/ provides compile-time-checked no-ops for all ledger interfaces.",
+        "rationale": "Lets billing and customer domains stay structurally identical regardless of credits.enabled \u2014 no nil checks scattered through business logic."
+      },
+      {
+        "decision": "Tri-tuple cursor (bookedAt, createdAt, ID) for transaction pagination instead of an auto-increment offset.",
+        "rationale": "Ledger transactions are append-only but may be inserted out of clock order; a composite cursor with ID tie-breaking gives stable pagination."
+      }
+    ],
+    "code_examples": []
+  }
+}

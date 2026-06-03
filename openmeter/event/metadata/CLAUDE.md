@@ -2,47 +2,39 @@
 
 <!-- archie:ai-start -->
 
-> Defines canonical event identity primitives for the entire system: the EventType triple (Subsystem/Version/Name) that produces deterministic 'io.openmeter.<subsystem>.<version>.<name>' strings, EventMetadata for ID/time/source/subject fields, and ComposeResourcePath helpers for '//openmeter.io/...' URIs. All Watermill event producers across binaries depend on these types for consistent routing.
+> Canonical event-identity primitives for the whole system: the EventType triple (Subsystem/Version/Name) producing deterministic 'io.openmeter.<subsystem>.<version>.<name>' strings, EventMetadata (ID/time/source/subject), and ComposeResourcePath helpers for '//openmeter.io/...' URIs. Every Watermill producer depends on these for consistent Kafka routing.
 
 ## Patterns
 
-**EventType triple declaration** — Every new event kind is declared as a package-level var EventType{Subsystem, Version, Name}. The canonical string is always obtained via EventType.EventName() — never via fmt.Sprintf. VersionSubsystem() returns the two-segment prefix used by eventbus.GeneratePublishTopic for Kafka routing. (`var MyEventType = metadata.EventType{Subsystem: "billing", Version: "v1", Name: "invoiceCreated"}
-// canonical name: "io.openmeter.billing.v1.invoiceCreated"
-// routing prefix: "io.openmeter.billing.v1"`)
-**Resource paths via ComposeResourcePath** — All source/subject fields in EventMetadata must use ComposeResourcePath(namespace, entityType..., id) or ComposeResourcePathRaw(). The authority prefix '//openmeter.io/' is injected automatically. Never use fmt.Sprintf to build these URIs. (`source := metadata.ComposeResourcePath(ns, metadata.EntityInvoice, invoiceID)
-// result: "//openmeter.io/namespace/<ns>/invoice/<invoiceID>"`)
-**Entity constant registry** — All entity type strings (EntityInvoice, EntityCustomer, EntityEntitlement, etc.) are declared as package-level string constants in resourcepath.go. New domain entities require a matching EntityXxx constant added here before use in any ComposeResourcePath call. (`const EntitySubscriptionAddon = "subscriptionAddon"
-// Then use: metadata.ComposeResourcePath(ns, metadata.EntitySubscriptionAddon, addonID)`)
+**EventType triple declaration** — Each event kind is a package-level var EventType{Subsystem, Version, Name}; get the canonical string via EventName(), never fmt.Sprintf. VersionSubsystem() returns the two-segment routing prefix used by eventbus.GeneratePublishTopic. (`var MyEventType = metadata.EventType{Subsystem: "billing", Version: "v1", Name: "invoiceCreated"} // io.openmeter.billing.v1.invoiceCreated`)
+**Resource paths via ComposeResourcePath** — source/subject fields must use ComposeResourcePath(namespace, entityType..., id) (or Raw); the '//openmeter.io/' authority is injected automatically. Never build URIs with fmt.Sprintf. (`source := metadata.ComposeResourcePath(ns, metadata.EntityInvoice, invoiceID)`)
+**Entity constant registry** — Entity type strings (EntityInvoice, EntityCustomer, ...) are package-level constants in resourcepath.go; a new domain entity needs a matching EntityXxx constant before any ComposeResourcePath use. (`const EntitySubscriptionAddon = "subscriptionAddon"`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `event_type.go` | Declares EventType struct with EventName() ('io.openmeter.<subsystem>.<version>.<name>') and VersionSubsystem() ('io.openmeter.<subsystem>.<version>') formatters, plus EventMetadata for ID/time/source/subject fields on every event. | The format is subsystem.version.name — version is the SECOND segment, not the third. Never build the event name string manually; routing in eventbus.GeneratePublishTopic relies on the VersionSubsystem() prefix matching exactly. |
-| `resourcepath.go` | Defines all EntityXxx constants and the ComposeResourcePath / ComposeResourcePathRaw helpers that produce '//openmeter.io/...' URIs used in CloudEvents source and subject fields. | Adding a new domain entity requires a new EntityXxx constant here. Missing constants lead to inline string literals in event producers, causing inconsistent resource paths that break audit and correlation across binaries. |
+| `event_type.go` | EventType with EventName() and VersionSubsystem() formatters, plus EventMetadata for ID/time/source/subject. | Format is subsystem.version.name — version is the SECOND segment; routing in eventbus.GeneratePublishTopic relies on the VersionSubsystem() prefix matching exactly. |
+| `resourcepath.go` | All EntityXxx constants and ComposeResourcePath/ComposeResourcePathRaw producing '//openmeter.io/...' URIs. | A new entity requires a new constant; missing one leads to inline literals and inconsistent paths breaking audit/correlation across binaries. |
 
 ## Anti-Patterns
 
-- Building 'io.openmeter.*' event name strings with fmt.Sprintf instead of EventType.EventName()
-- Constructing '//openmeter.io/...' paths with fmt.Sprintf instead of ComposeResourcePath
-- Adding a new entity type as an inline string literal in an event struct rather than a new EntityXxx constant in resourcepath.go
-- Declaring EventType values with the version in the wrong position (format is subsystem.version.name, not subsystem.name.version)
+- Building 'io.openmeter.*' event names with fmt.Sprintf instead of EventType.EventName().
+- Constructing '//openmeter.io/...' paths with fmt.Sprintf instead of ComposeResourcePath.
+- Adding a new entity type as an inline literal in an event struct instead of an EntityXxx constant.
+- Declaring EventType with version in the wrong position (it is subsystem.version.name).
 
 ## Decisions
 
-- **EventName format encodes subsystem + version + name in a fixed dot-separated URI under 'io.openmeter.'** — Watermill's eventbus.GeneratePublishTopic routes events to the correct Kafka topic by matching the EventName() prefix against known EventVersionSubsystem constants. A deterministic, centrally-defined format prevents routing mismatches across independently-deployed worker binaries.
-- **Resource paths follow '//openmeter.io/namespace/<ns>/<entity>/<id>' convention via ComposeResourcePath** — CloudEvents spec requires unambiguous source/subject URIs. The '//openmeter.io/' authority prefix scopes all paths to this system globally and enables consistent correlation across audit logs, traces, and webhook payloads.
+- **EventName encodes subsystem+version+name in a fixed dot-separated URI under 'io.openmeter.'.** — eventbus.GeneratePublishTopic routes by matching the EventName() prefix to known EventVersionSubsystem constants; a central deterministic format prevents routing mismatches across worker binaries.
+- **Resource paths follow '//openmeter.io/namespace/<ns>/<entity>/<id>' via ComposeResourcePath.** — CloudEvents requires unambiguous source/subject URIs; the authority prefix scopes paths globally and enables correlation across audit logs, traces, and webhooks.
 
-## Example: Declaring a new event type and building its EventMetadata
+## Example: Declare a new event type and build its EventMetadata
 
 ```
 import "github.com/openmeterio/openmeter/openmeter/event/metadata"
 
-var InvoiceCreatedEventType = metadata.EventType{
-    Subsystem: "billing",
-    Version:   "v1",
-    Name:      "invoiceCreated",
-}
+var InvoiceCreatedEventType = metadata.EventType{Subsystem: "billing", Version: "v1", Name: "invoiceCreated"}
 
 meta := metadata.EventMetadata{
     ID:      ulid.Make().String(),
@@ -50,7 +42,7 @@ meta := metadata.EventMetadata{
     Source:  metadata.ComposeResourcePath(ns, metadata.EntityInvoice, invoiceID),
     Subject: metadata.ComposeResourcePath(ns, metadata.EntityCustomer, customerID),
 }
-// Routing prefix for eventbus: InvoiceCreatedEventType.VersionSubsystem()
+// Routing prefix: InvoiceCreatedEventType.VersionSubsystem()
 ```
 
 <!-- archie:ai-end -->

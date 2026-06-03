@@ -2,61 +2,41 @@
 
 <!-- archie:ai-start -->
 
-> Manages credit grants and balance snapshots for metered entitlements. CreditConnector (= BalanceConnector + GrantConnector) is the public facade; engine/ computes burn-down without I/O; adapter/ sub-packages persist via Ent in transaction-aware repos; grant burn-down requires granularity truncation to time.Minute on all effective times.
+> Manages credit grants and balance snapshots for metered entitlements. CreditConnector (= BalanceConnector + GrantConnector) is the public facade; engine/ computes burn-down without I/O; adapter/ persists via transaction-aware Ent repos; grant/balance/hook/driver sub-packages own the domain contract, snapshots, lifecycle hook, and v1 HTTP layer. Primary constraint: all effective times are truncated to Granularity (time.Minute).
 
 ## Patterns
 
-**transaction.Run wraps all multi-step writes** — CreateGrant and VoidGrant both use transaction.Run(ctx, m.GrantRepo, ...) and then call m.GrantRepo.WithTx(ctx, tx) inside to stay on the ctx-bound transaction. (`transaction.Run(ctx, m.GrantRepo, func(ctx context.Context) (*grant.Grant, error) { tx, _ := entutils.GetDriverFromContext(ctx); return m.GrantRepo.WithTx(ctx, tx).CreateGrant(ctx, inp) })`)
-**LockOwnerForTx before any write** — All mutating connector methods call m.OwnerConnector.LockOwnerForTx(ctx, ownerID, ...) before writing grants or snapshots to prevent concurrent balance races. (`err = m.OwnerConnector.LockOwnerForTx(ctx, ownerID, true)`)
-**GetLastValidSnapshotAt falls back to start-of-measurement** — When no snapshot exists (NoSavedBalanceForOwnerError), create a zero-balance snapshot from GetStartOfMeasurement + NewStartingMap(grants) — do not propagate the not-found error. (`if _, ok := lo.ErrorsAs[*balance.NoSavedBalanceForOwnerError](err); ok { startOfMeasurement, _ = m.OwnerConnector.GetStartOfMeasurement(ctx, owner); bal = balance.Snapshot{At: startOfMeasurement, ...} }`)
-**buildEngineForOwner caches period boundaries** — Build a period cache from SortedPeriodsFromDedupedTimes before constructing the engine, then resolve GetUsagePeriodStartAt from the cache inside the UsageQuerier closure — never call the owner connector per usage query. (`periodCache := SortedPeriodsFromDedupedTimes(times); GetUsagePeriodStartAt: func(..., at time.Time) (time.Time, error) { for _, p := range periodCache { if p.ContainsInclusive(at) { return p.From, nil } } }`)
-**Granularity truncation on all times** — All effective times and reset times are truncated to m.Granularity (time.Minute) before engine use and before storing grants or snapshots. (`input.EffectiveAt = input.EffectiveAt.Truncate(granularity)`)
-**snapshotEngineResult acquires non-blocking lock and silently skips on failure** — Snapshotting is an optimisation; failure to acquire the lock (non-blocking LockOwnerForTx with false) should not abort the balance query that triggered it. (`if err := transaction.RunWithNoValue(ctx, m.GrantRepo, func(ctx context.Context) error { return m.OwnerConnector.LockOwnerForTx(ctx, snapParams.owner, false) }); err != nil { return nil }`)
+**transaction.Run wraps all multi-step writes** — CreateGrant/VoidGrant/ResetUsageForOwner use transaction.Run then m.GrantRepo.WithTx(ctx, tx) to stay on the ctx-bound transaction. (`transaction.Run(ctx, m.GrantRepo, func(ctx) (*grant.Grant, error) { tx, _ := entutils.GetDriverFromContext(ctx); return m.GrantRepo.WithTx(ctx, tx).CreateGrant(ctx, inp) })`)
+**LockOwnerForTx before any write** — All mutating connector methods call m.OwnerConnector.LockOwnerForTx(ctx, ownerID, true) before writing grants/snapshots to prevent concurrent balance races. (`err = m.OwnerConnector.LockOwnerForTx(ctx, ownerID, true)`)
+**GetLastValidSnapshotAt falls back to start-of-measurement** — On NoSavedBalanceForOwnerError, create a zero-balance snapshot from GetStartOfMeasurement + NewStartingMap(grants) — never propagate the not-found error. (`if _, ok := lo.ErrorsAs[*balance.NoSavedBalanceForOwnerError](err); ok { bal = balance.Snapshot{At: startOfMeasurement, ...} }`)
+**buildEngineForOwner caches period boundaries** — Build a period cache from SortedPeriodsFromDedupedTimes before constructing the engine; resolve GetUsagePeriodStartAt from the cache inside the UsageQuerier closure, never per usage query. (`periodCache := SortedPeriodsFromDedupedTimes(times)`)
+**Granularity truncation on all times** — All effective and reset times are truncated to m.Granularity (time.Minute) before engine use and before storing. (`input.EffectiveAt = input.EffectiveAt.Truncate(time.Minute)`)
+**Snapshotting acquires non-blocking lock and skips on failure** — snapshotEngineResult uses a non-blocking LockOwnerForTx(false); failure to acquire must not abort the balance query that triggered it. (`if err := transaction.RunWithNoValue(...LockOwnerForTx(ctx, owner, false)); err != nil { return nil }`)
+**ValidationIssue errors with HTTP status attribute** — Validation errors use models.NewValidationIssue + commonhttp.WithHTTPStatusCodeAttribute; CreateGrantInput.Validate uses ErrGrantAmountMustBePositive.WithAttr. (`var ErrGrantAmountMustBePositive = models.NewValidationIssue(ErrCodeGrantAmountMustBePositive, "amount must be positive", models.WithFieldString("amount"), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `openmeter/credit/connector.go` | Defines CreditConnector interface (BalanceConnector + GrantConnector), CreditConnectorConfig, and the connector struct. NewCreditConnector is the sole constructor. | CreditConnectorConfig is embedded by value in connector — adding fields to config is automatically visible to all methods. |
-| `openmeter/credit/balance.go` | Implements BalanceConnector: GetBalanceAt, GetBalanceForPeriod, ResetUsageForOwner, GetLastValidSnapshotAt. | GetBalanceAt and GetBalanceForPeriod both truncate-up to the next minute (FIXME note in code) — any new method must replicate this truncation. |
-| `openmeter/credit/grant.go` | Implements GrantConnector: CreateGrant, VoidGrant. Also defines GrantConnector interface and CreateGrantInput. | CreateGrantInput.Validate() uses ValidationIssue (ErrGrantAmountMustBePositive.WithAttr) — follow the same pattern for new input fields. |
-| `openmeter/credit/helper.go` | Internal engine-building helpers: buildEngineForOwner, snapshotEngineResult, saveSnapshot, populateBalanceSnapshotWithMissingGrantsActiveAt, removeInactiveGrantsFromSnapshotAt, SortedPeriodsFromDedupedTimes. | removeInactiveGrantsFromSnapshotAt returns an error if a grant in the snapshot balances map is not in the grants slice — callers must pass the full grants slice used for engine.Run. |
-| `openmeter/credit/errors.go` | Package-level ValidationIssue error vars with HTTP status attributes. | New validation errors should follow models.NewValidationIssue + commonhttp.WithHTTPStatusCodeAttribute pattern. |
-| `openmeter/credit/trace.go` | ctrace singleton providing typed OTel span start options (WithOwner, WithPeriod, WithEngineParams). | All new connector methods should add a span via m.Tracer.Start and use cTrace helpers for structured attributes. |
+| `connector.go` | Defines CreditConnector (= BalanceConnector + GrantConnector), CreditConnectorConfig (embedded by value), and NewCreditConnector. | CreditConnectorConfig is embedded by value — new config fields are visible to all methods automatically. |
+| `balance.go` | Implements BalanceConnector: GetBalanceAt, GetBalanceForPeriod, ResetUsageForOwner, GetLastValidSnapshotAt. | GetBalanceAt/GetBalanceForPeriod truncate-up to the next minute (FIXME) — replicate in any new method. Cannot reset in the future or before the current usage period start. |
+| `grant.go` | Implements GrantConnector: CreateGrant, VoidGrant; defines GrantConnector interface and CreateGrantInput. | CreateGrant truncates EffectiveAt and Recurrence.Anchor, locks the owner, then invalidates snapshots via BalanceSnapshotService.InvalidateAfter and publishes grant.NewCreatedEventV2FromGrant. |
+| `helper.go` | Engine-building helpers: buildEngineForOwner, snapshotEngineResult, saveSnapshot, populate/removeInactiveGrants, SortedPeriodsFromDedupedTimes. | removeInactiveGrantsFromSnapshotAt errors if a grant in the snapshot balances map is not in the grants slice — pass the full grants slice used for engine.Run. |
+| `errors.go` | Package-level ValidationIssue error vars with HTTP status attributes (ErrGrantAmountMustBePositive, ErrGrantEffectiveAtMustBeSet). | New validation errors must follow NewValidationIssue + WithHTTPStatusCodeAttribute. |
+| `trace.go` | ctrace singleton with typed OTel span options (WithOwner, WithPeriod, WithEngineParams). | All new connector methods should open a span via m.Tracer.Start and use cTrace helpers. |
 
 ## Anti-Patterns
 
-- Calling GrantRepo or BalanceSnapshotService methods without wrapping in transaction.Run when inside a multi-step write — bypasses ctx-bound transaction.
-- Omitting LockOwnerForTx before any grant/snapshot mutation — causes balance races under concurrent requests.
-- Propagating balance.NoSavedBalanceForOwnerError to callers — always fall back to start-of-measurement snapshot.
-- Querying GetUsagePeriodStartAt inside the QueryUsageFn callback at runtime — build the period cache in buildEngineForOwner instead.
-- Passing the caller's grants slice to the engine without populating missing grants via populateBalanceSnapshotWithMissingGrantsActiveAt — engine will error on unknown grant IDs in the snapshot.
+- Calling GrantRepo or BalanceSnapshotService methods without wrapping in transaction.Run during a multi-step write — bypasses the ctx-bound transaction
+- Omitting LockOwnerForTx before any grant/snapshot mutation — causes balance races under concurrency
+- Propagating balance.NoSavedBalanceForOwnerError to callers — always fall back to start-of-measurement snapshot
+- Querying GetUsagePeriodStartAt inside the QueryUsageFn callback at runtime — build the period cache in buildEngineForOwner instead
+- Passing the caller's grants slice to the engine without populating missing grants via populateBalanceSnapshotWithMissingGrantsActiveAt
 
 ## Decisions
 
-- **Period cache built once in buildEngineForOwner, resolved in-memory by UsageQuerier closure.** — QueryUsageFn is called many times during engine.Run; caching period start times avoids O(n) DB calls per burn phase.
-- **snapshotEngineResult acquires a non-blocking lock and silently skips on failure.** — Snapshotting is an optimisation; failure to acquire the lock should not abort the balance query that triggered it.
-- **All times truncated to Granularity (time.Minute) before engine use.** — ClickHouse stores events in minute-window chunks; sub-minute precision causes incorrect burn-down calculations.
-
-## Example: Adding a new multi-step write method to the credit connector
-
-```
-import (
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-)
-
-func (m *connector) NewMutation(ctx context.Context, ownerID models.NamespacedID) error {
-	ctx, span := m.Tracer.Start(ctx, "credit.NewMutation", cTrace.WithOwner(ownerID))
-	defer span.End()
-	_, err := transaction.Run(ctx, m.GrantRepo, func(ctx context.Context) (*interface{}, error) {
-		tx, err := entutils.GetDriverFromContext(ctx)
-		if err != nil { return nil, err }
-		if err := m.OwnerConnector.LockOwnerForTx(ctx, ownerID, true); err != nil { return nil, err }
-		return nil, m.GrantRepo.WithTx(ctx, tx).SomeWrite(ctx, ownerID)
-	})
-	return err
-// ...
-```
+- **Period cache built once in buildEngineForOwner, resolved in-memory by the UsageQuerier closure** — QueryUsageFn is called many times during engine.Run; caching period start times avoids O(n) DB calls per burn phase.
+- **Snapshotting acquires a non-blocking lock and silently skips on failure** — Snapshotting is an optimisation; lock-acquisition failure must not abort the triggering balance query.
+- **All times truncated to Granularity (time.Minute) before engine use** — ClickHouse stores events in minute-window chunks; sub-minute precision causes incorrect burn-down.
 
 <!-- archie:ai-end -->

@@ -1,0 +1,226 @@
+{
+  "api/v3/filters": {
+    "purpose": "Provides AIP-style filter[field][op]=value query-parameter parsing and conversion into the pkg/filter domain filter types consumed by service List methods. Three concerns: filter.go defines API-layer filter structs, parse.go reflection-parses url.Values into them, convert.go maps them to pkg/filter.",
+    "patterns": [
+      {
+        "name": "filters.Parse for URL to typed filter struct",
+        "description": "Call filters.Parse(r.URL.Query(), &myFilter) in the request decoder. Target must be a non-nil pointer to a struct (or **struct for lazy allocation) whose fields are *FilterString, *FilterStringExact, *FilterULID, *FilterNumeric, *FilterDateTime, *FilterBoolean, FilterLabels, *string, or *NamedStringType. Field names come from json struct tags.",
+        "example": "var f MyFilters\nif err := filters.Parse(r.URL.Query(), &f); err != nil { return err }"
+      },
+      {
+        "name": "FromAPI* converters for API filter to pkg/filter",
+        "description": "After parsing, convert each field via FromAPIFilterString/ULID/StringExact/Numeric/DateTime/Boolean/Labels. Each returns (nil, nil) when input is nil \u2014 callers must treat nil as 'no filter applied'. Multi-operator combinations (e.g. Gt+Lte) are normalized to And-of-single-op leaves.",
+        "example": "pf, err := filters.FromAPIFilterString(f.Name)\nif err != nil { return err }\ninput.NameFilter = pf"
+      },
+      {
+        "name": "filter[field][op]=value bracket convention",
+        "description": "All filter params use bracket syntax (filter[name][eq]=foo, filter[created_at][gte]=2024-01-01T00:00:00Z). Bare filter[field]=value equals filter[field][eq]=value for string fields. Label fields use dot-notation filter[labels.env][eq]=prod or nested filter[labels][env][eq]=prod.",
+        "example": "filter[status][oeq]=active,pending&filter[labels.region][contains]=us"
+      },
+      {
+        "name": "Unknown filter fields rejected by Parse",
+        "description": "checkUnknownFilterKeys validates every filter[x] key against a json-tagged field of the target struct; unrecognised names return an error, enforcing a strict API contract.",
+        "example": "// filter[typo][eq]=x -> error: unknown filter field(s): typo"
+      },
+      {
+        "name": "FromAPIStatusFilter for enum status fields",
+        "description": "Generic helper FromAPIStatusFilter[T validator](ctx, *FilterStringExact) accepts only eq and oeq, builds a []T, and validates each value via T.Validate(); neq returns an error.",
+        "example": "statuses, err := filters.FromAPIStatusFilter[plan.Status](ctx, f.Status)"
+      },
+      {
+        "name": "Pointer-to-pointer target lazily allocates",
+        "description": "If target is **MyFilters, Parse allocates the inner struct only when at least one filter key is present (hasFilterKeys); otherwise the pointer stays nil. Use for optional filter parameters.",
+        "example": "var f *MyFilters\nif err := filters.Parse(r.URL.Query(), &f); err != nil { return err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "filter.go",
+        "role": "API-layer filter struct definitions (FilterString, FilterStringExact, FilterULID, FilterNumeric, FilterDateTime, FilterBoolean, FilterLabel, FilterLabels). Add a new filter type here when pkg/filter gains a new base type.",
+        "watch_for": "FilterLabels is a type alias (map[string]FilterLabel), NOT a pointer-to-struct; it is special-cased in parseFiltersValue via filterLabelsType/filterLabelsPtrType reflection checks."
+      },
+      {
+        "file": "parse.go",
+        "role": "Reflection-driven URL query parser dispatching on field type via reflect.TypeFor constants; handles *string, *NamedStringType (parseStringPtrTyped), and *T implementing encoding.TextUnmarshaler (parseTextUnmarshalerPtr).",
+        "watch_for": "FilterULIDType is exported (capital F) while sibling type vars are unexported \u2014 external callers reference it in switch statements. maxCommaSeparatedItems=50 and maxFilterValueLength=1024 are hard limits. *string/typed fields reject operator-style keys."
+      },
+      {
+        "file": "convert.go",
+        "role": "Converts each API filter struct to its pkg/filter equivalent, canonicalizing multi-operator inputs into And-of-single-op leaf nodes.",
+        "watch_for": "Every FromAPI* returns (nil, nil) on nil input. FilterStringExact maps to a single FilterString (no And split). FromAPIStatusFilter wraps validation errors in models.NewNillableGenericValidationError."
+      }
+    ],
+    "anti_patterns": [
+      "Parsing filter query params manually with r.URL.Query().Get() instead of filters.Parse",
+      "Passing pkg/filter types directly as API response/wire fields \u2014 they are internal types",
+      "Adding a new operator string in parse.go without matching handling in convert.go",
+      "Treating a non-nil FromAPI* return for an empty filter as set \u2014 empty input returns nil",
+      "Using filterLabelsType reflection for anything other than the FilterLabels field"
+    ],
+    "decisions": [
+      {
+        "decision": "Reflection-driven Parse dispatching on field type rather than per-field generated code",
+        "rationale": "A single Parse handles all filter structs uniformly; adding a filterable field needs only a json-tagged struct field, no new parsing code."
+      },
+      {
+        "decision": "Multi-operator combinations normalized to And-of-leaves in FromAPI* converters",
+        "rationale": "pkg/filter requires each node to carry at most one operator, so the converter canonicalizes ranges (Gte+Lte -> And[{Gte},{Lte}]) to always emit a valid filter tree that passes Validate()."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Parsing and converting filters in a v3 list handler decoder",
+        "code": "import \"github.com/openmeterio/openmeter/api/v3/filters\"\n\ntype MyListFilters struct {\n    Name   *filters.FilterString      `json:\"name,omitempty\"`\n    Status *filters.FilterStringExact `json:\"status,omitempty\"`\n}\n\nfunc decode(r *http.Request) (MyListInput, error) {\n    var f MyListFilters\n    if err := filters.Parse(r.URL.Query(), &f); err != nil {\n        return MyListInput{}, err\n    }\n    name, err := filters.FromAPIFilterString(f.Name)\n    if err != nil { return MyListInput{}, err }\n    return MyListInput{NameFilter: name}, nil\n}"
+      }
+    ]
+  },
+  "api/v3/handlers/addons": {
+    "purpose": "v3 HTTP handlers for addon CRUD plus lifecycle (publish/archive), translating apiv3.Addon wire types to addon.Service domain calls through the httptransport pipeline. Each operation lives in its own file.",
+    "patterns": [
+      {
+        "name": "One operation per file",
+        "description": "Each CRUD/lifecycle operation has its own file (create.go, delete.go, get.go, list.go, update.go, archive.go, publish.go). handler.go only declares the Handler interface and New() constructor.",
+        "example": "func (h *handler) ArchiveAddon() ArchiveAddonHandler { return httptransport.NewHandlerWithArgs(...) }"
+      },
+      {
+        "name": "Type-alias triad per operation",
+        "description": "Every operation file declares <Op>Request = addon.<Op>Input, <Op>Response = apiv3.Type, and <Op>Handler = httptransport.Handler[Req,Resp] (or HandlerWithArgs for path-param ops).",
+        "example": "type (ArchiveAddonRequest = addon.ArchiveAddonInput; ArchiveAddonResponse = apiv3.Addon; ArchiveAddonHandler httptransport.HandlerWithArgs[ArchiveAddonRequest, ArchiveAddonResponse, string])"
+      },
+      {
+        "name": "resolveNamespace first in every decoder",
+        "description": "Decoders call ns, err := h.resolveNamespace(ctx) first and propagate the error before building the domain input.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ArchiveAddonRequest{}, err }"
+      },
+      {
+        "name": "apierrors.GenericErrorEncoder as base error handler",
+        "description": "Every httptransport.AppendOptions includes WithErrorEncoder(apierrors.GenericErrorEncoder()) and WithOperationName(<kebab-name>).",
+        "example": "httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder())"
+      },
+      {
+        "name": "convert.go owns all domain<->API mapping",
+        "description": "All ToAPI*/FromAPI* functions live in convert.go; operation files call them and never inline-convert. BillingPrice/RateCard discriminated unions are encoded manually via Discriminator()/From* calls.",
+        "example": "return ToAPIAddon(*a)"
+      },
+      {
+        "name": "Nil-check pointer results before conversion",
+        "description": "Handlers receiving *addon.Addon guard against nil before ToAPIAddon, returning a descriptive error.",
+        "example": "if a == nil { return ArchiveAddonResponse{}, fmt.Errorf(\"failed to archive add-on\") }"
+      },
+      {
+        "name": "IgnoreNonCriticalIssues on mutating inputs",
+        "description": "Create and update decoders set req.IgnoreNonCriticalIssues = true after FromAPI conversion to suppress non-fatal validation issues.",
+        "example": "req.IgnoreNonCriticalIssues = true"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface listing all endpoint methods + handler struct (resolveNamespace func, service addon.Service, options []httptransport.HandlerOption) + New() constructor.",
+        "watch_for": "New endpoint = add to the Handler interface here first, then create a dedicated file."
+      },
+      {
+        "file": "convert.go",
+        "role": "All bidirectional apiv3<->productcatalog/addon mapping: rate cards, prices (flat/unit/tiered graduated+volume), tax config, discounts, labels, status.",
+        "watch_for": "Rate-card and price type switches are exhaustive \u2014 a new RateCardType or PriceType needs a case in both ToAPIBillingRateCard/ToAPIBillingPrice and FromAPIBillingRateCard. FlatFeeRateCard leaves BillingCadence nil; UsageBased sets it. Missing Price => free price."
+      },
+      {
+        "file": "archive.go",
+        "role": "ArchiveAddon sets EffectiveTo: clock.Now() in the decoder \u2014 the HTTP layer owns wall-clock time.",
+        "watch_for": "Lifecycle ops (publish, archive) must set clock.Now() in the decoder, never inside the service."
+      },
+      {
+        "file": "list.go",
+        "role": "ListAddons with page pagination (pagination.NewPage defaults 1,20), validating page before building ListAddonsInput.",
+        "watch_for": "page.Validate errors must surface as apierrors.NewBadRequestError with Field='page'."
+      }
+    ],
+    "anti_patterns": [
+      "Inline type conversion in operation files instead of calling ToAPIAddon/FromAPICreate*",
+      "Returning domain errors without the httptransport GenericErrorEncoder chain",
+      "Skipping h.resolveNamespace(ctx) in a new operation decoder",
+      "Using httptransport.NewHandler instead of NewHandlerWithArgs for path-param operations",
+      "Adding validation/defaults logic outside the domain service or convert.go"
+    ],
+    "decisions": [
+      {
+        "decision": "Lifecycle operations set clock.Now() in the decoder, not the service",
+        "rationale": "HTTP layer owns request-scoped wall-clock time; the domain service receives explicit timestamps, making it deterministic and testable."
+      },
+      {
+        "decision": "convert.go hand-codes BillingPrice/RateCard union encoding instead of goverter",
+        "rationale": "BillingPrice is a oneOf requiring Discriminator()+From* calls goverter cannot generate; a manual switch is the only safe option."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new addon path-param lifecycle endpoint",
+        "code": "// restore.go\npackage addons\nimport (\n    \"context\"; \"fmt\"; \"net/http\"\n    apiv3 \"github.com/openmeterio/openmeter/api/v3\"\n    \"github.com/openmeterio/openmeter/api/v3/apierrors\"\n    \"github.com/openmeterio/openmeter/openmeter/productcatalog/addon\"\n    \"github.com/openmeterio/openmeter/pkg/clock\"\n    \"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n    \"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\ntype (\n    RestoreAddonRequest  = addon.RestoreAddonInput\n    RestoreAddonResponse = apiv3.Addon\n    RestoreAddonHandler  httptransport.HandlerWithArgs[RestoreAddonRequest, RestoreAddonResponse, string]\n)\nfunc (h *handler) RestoreAddon() RestoreAddonHandler {\n    return httptransport.NewHandlerWithArgs(\n        func(ctx context.Context, r *http.Request, id string) (RestoreAddonRequest, error) {\n            ns, err := h.resolveNamespace(ctx)\n            if err != nil { return RestoreAddonRequest{}, err }\n            return RestoreAddonRequest{NamespacedID: models.NamespacedID{Namespace: ns, ID: id}, EffectiveFrom: clock.Now()}, nil\n        },\n        func(ctx context.Context, req RestoreAddonRequest) (RestoreAddonResponse, error) {\n            a, err := h.service.RestoreAddon(ctx, req)\n            if err != nil { return RestoreAddonResponse{}, err }\n            if a == nil { return RestoreAddonResponse{}, fmt.Errorf(\"failed to restore add-on\") }\n            return ToAPIAddon(*a)\n        },\n        commonhttp.JSONResponseEncoderWithStatus[RestoreAddonResponse](http.StatusOK),\n        httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"restore-addon\"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))...,\n    )\n}"
+      }
+    ]
+  },
+  "api/v3/handlers/apps": {
+    "purpose": "v3 HTTP handlers for listing and getting installed billing apps (Stripe, Sandbox, CustomInvoicing), performing polymorphic type-assertion on app.App to map each concrete type onto the apiv3.BillingApp oneOf union.",
+    "patterns": [
+      {
+        "name": "Polymorphic app mapping via type-assertion switch",
+        "description": "ToAPIBillingApp in convert.go switches on item.GetType(), type-asserts to the concrete app (appstripe.App, appsandbox.App, appcustominvoicing.App), builds the per-type wire struct, then calls the matching From* on api.BillingApp.",
+        "example": "billingApp := api.BillingApp{}; if err := billingApp.FromBillingAppStripe(billingAppStripe); err != nil { return billingApp, err }"
+      },
+      {
+        "name": "Goverter for struct mappings, hand-code for unions",
+        "description": "convert.go carries goverter:variables annotations generating convert.gen.go for simple mappings (PagePaginatedResponse, BillingAppCatalogItem, AppType enum); the polymorphic ToAPIBillingApp is hand-written and listed via goverter:extend.",
+        "example": "//go:generate go run github.com/jmattheis/goverter/cmd/goverter gen ./"
+      },
+      {
+        "name": "handler struct holds app.Service",
+        "description": "Unlike other handlers holding a domain-specific service, the apps handler holds the top-level app.Service registry.",
+        "example": "type handler struct { resolveNamespace func(context.Context) (string, error); appService app.Service; options []httptransport.HandlerOption }"
+      },
+      {
+        "name": "Compile-time interface check",
+        "description": "handler.go includes var _ Handler = (*handler)(nil) to catch missing method implementations at compile time.",
+        "example": "var _ Handler = (*handler)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "convert.go",
+        "role": "Hand-written ToAPIBillingApp polymorphic switch + per-type helpers (toAPIBillingAppStripe/Sandbox/ExternalInvoicing) + goverter annotations for list/catalog/enum conversions.",
+        "watch_for": "goverter:enum:map annotations must stay in sync with app.AppType constants (else @error). A new app type needs a switch case AND a toAPIBillingApp<Type> helper. AppTypeCustomInvoicing maps to BillingAppTypeExternalInvoicing."
+      },
+      {
+        "file": "convert.gen.go",
+        "role": "Generated by goverter \u2014 DO NOT EDIT. Regenerate with go generate ./... after changing convert.go annotations.",
+        "watch_for": "Manual edits are overwritten on the next generate; build tag is //go:build !goverter."
+      },
+      {
+        "file": "handler.go",
+        "role": "Handler interface (ListApps, GetApp) + New() constructor with var _ Handler = (*handler)(nil) satisfaction check.",
+        "watch_for": "New app endpoints must be added to the Handler interface."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a new app type without a case in the ToAPIBillingApp switch",
+      "Editing convert.gen.go directly instead of regenerating",
+      "Accessing app-specific fields without first type-asserting to the concrete app type",
+      "Bypassing ToAPIBillingApp to inline-convert in get_app.go or list_app.go"
+    ],
+    "decisions": [
+      {
+        "decision": "BillingApp oneOf mapping done via app.App interface -> concrete assertion -> From* call",
+        "rationale": "The generated union requires the From* discriminator method; no generic field copy works across heterogeneous concrete types."
+      },
+      {
+        "decision": "Goverter only for struct-level mappings; the discriminated union is hand-coded",
+        "rationale": "Goverter cannot handle interface type-switches or oneOf union encoding."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new billing app type to the polymorphic mapping",
+        "code": "// In convert.go ToAPIBillingApp switch:\ncase app.AppTypeNewProvider:\n    newApp, ok := item.(appnewprovider.App)\n    if !ok {\n        return api.BillingApp{}, fmt.Errorf(\"expected new-provider app, got %T\", item)\n    }\n    billingAppNew, err := toAPIBillingAppNewProvider(newApp.Meta)\n    if err != nil {\n        return api.BillingApp{}, fmt.Errorf(\"failed to map new-provider app to API: %w\", err)\n    }\n    billingApp := api.BillingApp{}\n    if err := billingApp.FromBillingAppNewProvider(billingAppNew); err != nil {\n        return billingApp, err\n    }\n    return billingApp, nil"
+      }
+    ]
+  }
+}

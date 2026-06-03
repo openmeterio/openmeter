@@ -1,228 +1,100 @@
 {
-  "openmeter/streaming/clickhouse": {
-    "purpose": "Concrete streaming.Connector implementation against ClickHouse's single shared events table (namespace+type+subject+time ORDER BY key). Every query type is a distinct query-struct with a toSQL() method, keeping business logic isolated from the Connector and enabling SQL-assertion unit tests without a live ClickHouse.",
+  "openmeter/server/router": {
+    "purpose": "Pure v1 HTTP delegation layer implementing the generated api.ServerInterface: every Router method unpacks path/query params and terminates with a single typed handler call via .With(params).ServeHTTP(w, r). Owns no business logic \u2014 its constraint is that each method body ends with exactly one handler dispatch.",
     "patterns": [
       {
-        "name": "Query-struct with toSQL()",
-        "description": "Each query type (queryMeter, queryEventsTable, InsertEventsQuery, listSubjectsQuery, etc.) is a plain Go struct with a toSQL() or ToSQL() method returning (string, []interface{}). Connector methods are thin delegators that construct the struct and call toSQL(). Business logic lives in the struct, not in the Connector.",
-        "example": "query := queryMeter{Database: c.config.Database, EventsTableName: c.config.EventsTableName, Namespace: namespace, Meter: meter, ...}; sql, args, err := query.toSQL()"
+        "name": "Handler delegation via .With().ServeHTTP()",
+        "description": "Every Router method unpacks path/query params into a typed Params struct, calls the domain handler's named method (e.g. a.billingHandler.GetInvoice()), optionally chains .With(params), and ends with .ServeHTTP(w, r). No business logic lives here.",
+        "example": "a.billingHandler.GetInvoice().With(httpdriver.GetInvoiceParams{InvoiceID: invoiceId, Expand: lo.FromPtr(params.Expand)}).ServeHTTP(w, r)"
       },
       {
-        "name": "sqlbuilder.ClickHouse for all SQL construction",
-        "description": "All SQL is built via github.com/huandu/go-sqlbuilder with ClickHouse flavour. Never use fmt.Sprintf for WHERE clauses or value interpolation \u2014 use builder.Var() / builder.Equal() / builder.Where() to keep parameterisation safe and SQL assertions stable in tests.",
-        "example": "sb := sqlbuilder.ClickHouse.NewSelectBuilder(); sb.Where(sb.Equal(\"namespace\", d.Namespace))"
+        "name": "Config aggregates all domain services with nil validation",
+        "description": "router.Config holds every domain service (~40 interface fields). NewRouter calls config.Validate() before constructing handlers; each required field has an explicit nil check that errors at startup, not at first request.",
+        "example": "if c.NamespaceManager == nil { return errors.New(\"namespace manager is required\") }"
       },
       {
-        "name": "columnFactory for table-qualified column references",
-        "description": "Use columnFactory(eventsTableName) to get a func(string) string emitting table-qualified column names (e.g. om_events.namespace). Required whenever the query uses CTEs or joins that could introduce ambiguous column names.",
-        "example": "getColumn := columnFactory(d.EventsTableName); query.Where(query.Equal(getColumn(\"namespace\"), d.Namespace))"
+        "name": "StaticNamespaceDecoder injected universally",
+        "description": "All multi-tenant handlers receive namespacedriver.StaticNamespaceDecoder(config.NamespaceManager.GetDefaultNamespace()) as their first constructor argument so namespace resolution happens once at construction for self-hosted single-namespace deployments.",
+        "example": "staticNamespaceDecoder := namespacedriver.StaticNamespaceDecoder(config.NamespaceManager.GetDefaultNamespace())"
       },
       {
-        "name": "toCountRowSQL companion for progress tracking",
-        "description": "Every query struct that may be tracked via progressmanager must also implement toCountRowSQL() counting only by ORDER-BY columns (namespace, type, subject, time) for a cheap estimate. Connector checks params.ClientID != nil before calling withProgressContext.",
-        "example": "if params.ClientID != nil { countSQL, countArgs := query.toCountRowSQL(); ctx, err = c.withProgressContext(ctx, namespace, *params.ClientID, countSQL, countArgs) }"
+        "name": "One domain file per resource group",
+        "description": "Each resource area has its own file (billing.go, customer.go, meter.go, entitlement.go, etc.) holding only that domain's Router methods. router.go holds Config, Router, NewRouter, and init().",
+        "example": "billing.go holds all /api/v1/billing/* methods; meter.go holds all /api/v1/meters/* methods"
       },
       {
-        "name": "ClickHouse error-code 60 mapped to domain errors",
-        "description": "Map ClickHouse code 60 (table/view not found) to models.NewNamespaceNotFoundError or meter.NewMeterNotFoundError by string-matching err.Error() for 'code: 60'. Never let the raw ClickHouse error escape to callers.",
-        "example": "if strings.Contains(err.Error(), \"code: 60\") { return nil, models.NewNamespaceNotFoundError(namespace) }"
+        "name": "Stub unimplemented endpoints with 501",
+        "description": "Methods not yet implemented return w.WriteHeader(http.StatusNotImplemented) directly. noop.go anchors var unimplemented api.ServerInterface = api.Unimplemented{}.",
+        "example": "func (a *Router) VoidInvoiceAction(w http.ResponseWriter, r *http.Request, invoiceId string) { w.WriteHeader(http.StatusNotImplemented) }"
       },
       {
-        "name": "selectCustomerIdColumn + customersWhere for customer filtering",
-        "description": "Customer filtering requires two coordinated calls: selectCustomerIdColumn builds a WITH map CTE and adds customer_id to SELECT; customersWhere adds the IN (subjects) WHERE clause. Both accept the eventsTableName for table-qualified references.",
-        "example": "query = selectCustomerIdColumn(d.EventsTableName, *d.Customers, query); query = customersWhere(d.EventsTableName, *d.Customers, query)"
+        "name": "Pre-handler body read for non-standard content only",
+        "description": "Router methods read r.Body themselves only when the httpdriver cannot decode the content (e.g. raw Stripe webhook bytes), limiting via http.MaxBytesReader then passing via a Params struct.",
+        "example": "r.Body = http.MaxBytesReader(w, r.Body, MaxBodyBytes); payload, err := io.ReadAll(r.Body); ... .With(AppStripeWebhookParams{AppID: appID, Payload: payload}).ServeHTTP(w, r)"
       },
       {
-        "name": "SkipCreateTables=true in unit tests",
-        "description": "New() calls createTable on startup; mock ClickHouse connections have no Exec setup for DDL. Always set Config.SkipCreateTables = true when constructing a Connector against a mock.",
-        "example": "config := Config{..., SkipCreateTables: true}; connector, err := New(context.Background(), config)"
+        "name": "Media-type dispatch on same route (QueryMeter only)",
+        "description": "QueryMeter/QueryMeterPost use commonhttp.GetMediaType to pick JSON vs CSV handler variants on the same route; the parse error is Debug-logged (non-fatal, falls through to JSON). All other routes use a single handler.",
+        "example": "mediatype, _ := commonhttp.GetMediaType(r); if mediatype == \"text/csv\" { a.meterHandler.QueryMeterCSV().With(handlerParams).ServeHTTP(w, r); return }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "connector.go",
-        "role": "Public surface: implements streaming.Connector, owns Config validation, table creation on startup, and orchestrates all query structs. Method bodies are thin delegators.",
-        "watch_for": "Config.SkipCreateTables must be true in unit tests; otherwise New() calls createTable on a mock with no Exec setup and will panic or error."
+        "file": "router.go",
+        "role": "Defines Config (all injected services + feature flags), Router struct (all handler fields), NewRouter (validates and wires ~25 handlers), and init() registering CloudEvents body decoders (application/cloudevents+json, application/cloudevents-batch+json) for kin-openapi validation.",
+        "watch_for": "Adding a service to Config requires: (1) a Config field, (2) a nil check in Config.Validate(), (3) a Router handler field, (4) construction in NewRouter. Missing any step causes a nil-pointer panic at first request. var _ api.ServerInterface = (*Router)(nil) catches missing methods."
       },
       {
-        "file": "meter_query.go",
-        "role": "Most complex query struct. Handles all aggregation types (sum/avg/min/max/count/uniqExact/argMax), window-size tumble functions, group-by JSON extraction, stored-at filter, and PREWHERE split. Also owns NullDecimal scanner and scanRows.",
-        "watch_for": "Month window size requires explicit toDateTime(..., tz) cast to avoid Date-vs-DateTime scan mismatch. The from() method merges query.From with Meter.EventFrom, always taking the later of the two."
+        "file": "noop.go",
+        "role": "Declares var unimplemented api.ServerInterface = api.Unimplemented{} so the generated Unimplemented fallback stays valid. No real stubs.",
+        "watch_for": "Do not remove \u2014 it anchors the compile-time check; if generated api.Unimplemented{} diverges after gen-api this line fails to compile."
       },
       {
-        "file": "event_query.go",
-        "role": "Handles v1 event listing (queryEventsTable), count (queryCountEvents), and batch insert (InsertEventsQuery). Table DDL (createEventsTable) lives here too.",
-        "watch_for": "InsertEventsQuery.ToSQL is exported (capital T) unlike all other query structs. The column order in INSERT must match the table definition exactly."
+        "file": "portal.go",
+        "role": "QueryPortalMeter is the only Router method with conditional auth: extracts the authenticated subject from ctx via authenticator.GetAuthenticatedSubject, injects it as a filter, and re-dispatches to QueryMeter. Other portal methods are pure delegation.",
+        "watch_for": "The only Router method manipulating ctx with conditional logic \u2014 do not replicate; it should migrate to an httpdriver handler."
       },
       {
-        "file": "event_query_v2.go",
-        "role": "Cursor-paginated v2 event listing using store_row_id as tie-breaker. Cursor conditions differ between ASC and DESC sort orders.",
-        "watch_for": "customersWhere in v2 passes the full tableName (database.table) while v1 passes only eventsTableName \u2014 keep consistent with the helper's expectation."
+        "file": "billing.go",
+        "role": "Invoice progress actions (advance, approve, retry, snapshot-quantities) all use the same ProgressInvoice handler with a typed action constant argument instead of separate handlers.",
+        "watch_for": "Pass httpdriver.InvoiceProgressActionAdvance/Approve/Retry/SnapshotQuantities constants \u2014 never string literals."
       },
       {
-        "file": "queryhelper.go",
-        "role": "Shared helpers: selectCustomerIdColumn (WITH map CTE), customersWhere, subjectWhere, columnFactory.",
-        "watch_for": "GetUsageAttribution().GetValues() may return customer key + subject keys; both are mapped in the WITH clause so the customer_id lookup works for either identifier."
+        "file": "appstripe.go",
+        "role": "Canonical pre-handler body reading: reads the raw Stripe webhook payload with MaxBytesReader(65536) before passing to appStripeHandler.",
+        "watch_for": "Only follow MaxBytesReader + io.ReadAll + bytes-in-Params for new raw-byte webhooks; do not call io.ReadAll in any other Router method."
       },
       {
-        "file": "suite_test.go",
-        "role": "Provides CHTestSuite: skips integration tests unless TEST_CLICKHOUSE_DSN is set, creates a unique temp database per test, and drops it on success only.",
-        "watch_for": "Use t.Context() not context.Background() in tests; CreateTempDatabase cleanup intentionally skips DROP on test failure to aid debugging."
-      },
-      {
-        "file": "mock.go",
-        "role": "MockClickHouse and MockRows for unit tests that don't need a real ClickHouse connection.",
-        "watch_for": "MockClickHouse.Query must be set up before calls to queryMeter/queryEventsTable methods since the Connector calls Query synchronously."
+        "file": "addon.go",
+        "role": "Example domain file: each method is a thin .With(...).ServeHTTP delegation to addonHandler (e.g. GetAddon maps params into addonhttpdriver.GetAddonRequestParams).",
+        "watch_for": "Keep param mapping declarative \u2014 no defaulting logic beyond lo.FromPtrOr."
       }
     ],
     "anti_patterns": [
-      "Adding raw fmt.Sprintf string interpolation for query values \u2014 always use sqlbuilder.Var() or builder parameters to prevent injection and keep test SQL assertions stable.",
-      "Calling c.config.ClickHouse.Query/Exec directly in a new Connector method without going through a query-struct toSQL() \u2014 loses the testable SQL-assertion pattern.",
-      "Returning raw ClickHouse errors to callers \u2014 map code 60 to domain errors (NamespaceNotFoundError, MeterNotFoundError) before returning.",
-      "Adding window-size logic to scanRows \u2014 scanRows only scans; toSQL handles all window column selection.",
-      "Skipping toCountRowSQL on a new query struct that supports progress tracking via ClientID \u2014 withProgressContext must be called before executing the main query."
+      "Adding business logic, error handling, or DB calls in a Router method \u2014 logic belongs in the domain httpdriver package",
+      "Reading r.Body unless the httpdriver cannot decode it \u2014 let the handler's RequestDecoder own body parsing",
+      "Skipping the Config.Validate() nil check when adding a required service field",
+      "Creating a file here for non-HTTP concerns (middleware, auth, telemetry) \u2014 those belong in openmeter/server/server.go",
+      "Bypassing .With().ServeHTTP() with an inline http.Handler or w.WriteHeader/w.Write (except 501 stubs) \u2014 breaks uniform error encoding and OTel tracing"
     ],
     "decisions": [
       {
-        "decision": "Single shared events table across all namespaces with namespace as the leading ORDER BY column",
-        "rationale": "Avoids per-namespace table creation/deletion overhead; ClickHouse partition pruning by toYYYYMM(time) and the (namespace, type, subject, toStartOfHour(time)) sort key give adequate read performance for typical multi-tenant query patterns."
+        "decision": "Router is a pure delegation layer with no business logic",
+        "rationale": "Keeps the generated api.ServerInterface boundary thin so the TypeSpec -> OpenAPI -> oapi-codegen pipeline can re-run without touching logic; all logic lives in unit-testable httpdriver packages."
       },
       {
-        "decision": "Query structs with toSQL() instead of inline SQL in Connector methods",
-        "rationale": "Enables unit tests to assert exact SQL output without a real ClickHouse connection, and keeps each query's logic isolated and independently testable."
+        "decision": "Config aggregates every domain service and flag into a single validated struct",
+        "rationale": "NewRouter is the single wiring point for ~25 handlers; nil-checking at construction surfaces missing dependencies before the server starts, making startup failures deterministic."
       },
       {
-        "decision": "store_row_id (ULID) as cursor tie-breaker in v2 pagination",
-        "rationale": "ClickHouse DateTime precision is seconds; multiple events in the same second would be non-deterministically ordered without a unique tie-breaker. ULIDs are time-ordered and unique, so store_row_id > cursor.ID correctly pages through same-second events."
+        "decision": "One domain file per resource group mirrors the TypeSpec package split",
+        "rationale": "Contributors locate any endpoint's delegation without grepping; file boundaries align with the aip/legacy TypeSpec organization."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new meter aggregation query that must be unit-testable",
-        "code": "// In meter_query.go, add to the toSQL() switch on d.Meter.Aggregation:\ncase meterpkg.MeterAggregationNewType:\n    selectColumns = append(selectColumns, fmt.Sprintf(\"newFunc(JSON_VALUE(%s, '%s')) AS value\", getColumn(\"data\"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))\n\n// In meter_query_test.go, add a table-driven test case:\n{\n    name: \"Aggregate with new type\",\n    query: queryMeter{\n        Database: \"openmeter\", EventsTableName: \"om_events\", Namespace: \"ns\",\n        Meter: meter.Meter{Key: \"m\", EventType: \"e\", Aggregation: meter.MeterAggregationNewType, ValueProperty: lo.ToPtr(\"$.v\")},\n    },\n    wantSQL:  \"SELECT ... newFunc(JSON_VALUE(om_events.data, '$.v')) AS value ...\",\n    wantArgs: []interface{}{\"ns\", \"e\"},\n}"
-      }
-    ]
-  },
-  "openmeter/streaming/retry": {
-    "purpose": "Decorator that wraps any streaming.Connector with automatic retry logic for transient ClickHouse errors (EOF, connection-acquire timeout, cluster-reshard error code). BatchInsert and ValidateJSONPath are intentionally not retried to preserve idempotency.",
-    "patterns": [
-      {
-        "name": "Decorator / pass-through wrapper",
-        "description": "Connector embeds no state beyond the downstreamConnector and retry config. Every streaming.Connector method either calls withRetry wrapping the downstream call, or delegates directly (BatchInsert, ValidateJSONPath, CreateNamespace, DeleteNamespace do not retry).",
-        "example": "func (c *Connector) QueryMeter(...) ([]meter.MeterQueryRow, error) { return withRetry(ctx, c, func() ([]meter.MeterQueryRow, error) { return c.downstreamConnector.QueryMeter(ctx, namespace, m, params) }) }"
-      },
-      {
-        "name": "Config.Validate() enforced by New()",
-        "description": "New() calls config.Validate() and returns an error if validation fails. Tests that want to bypass config validation for withRetry isolation should construct the Connector struct directly.",
-        "example": "c, err := New(Config{DownstreamConnector: ..., Logger: slog.Default(), RetryWaitDuration: 100*time.Millisecond, MaxTries: 3})"
-      },
-      {
-        "name": "Selective retry via RetryIf predicate",
-        "description": "Only io.ErrUnexpectedEOF, io.EOF, clickhouse.ErrAcquireConnTimeout, and chproto.ErrAllConnectionTriesFailed are retryable. All other errors fail immediately. Add new retryable errors to the RetryIf closure in withRetry.",
-        "example": "retry.RetryIf(func(err error) bool { if errors.Is(err, io.ErrUnexpectedEOF) { return true }; ...; return false })"
-      },
-      {
-        "name": "CombineDelay(BackOffDelay, RandomDelay) with configurable MaxDelay",
-        "description": "avast/retry-go is used with backoff + random jitter to avoid thundering-herd reconnect storms. MaxDelay caps exponential growth; set it to a non-zero value to prevent unbounded delays.",
-        "example": "retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)), retry.Delay(c.retryWaitDuration), retry.MaxDelay(c.maxDelay)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "retry.go",
-        "role": "Entire package: Config struct, Connector struct, New constructor, per-method wrappers, and the generic withRetry[T any] helper using avast/retry-go with backoff+jitter.",
-        "watch_for": "BatchInsert is intentionally NOT wrapped in withRetry \u2014 retrying inserts could cause duplicate event ingestion. CreateNamespace/DeleteNamespace and ValidateJSONPath also bypass retry intentionally."
-      },
-      {
-        "file": "retry_test.go",
-        "role": "Unit tests for Config validation, retry behaviour, context cancellation stopping retries, and backoff producing increasing delays.",
-        "watch_for": "Tests construct Connector directly (not via New()) to skip config validation when testing withRetry in isolation \u2014 this is intentional, not a bug."
-      }
-    ],
-    "anti_patterns": [
-      "Wrapping BatchInsert with withRetry \u2014 duplicate event inserts on retry break idempotency guarantees.",
-      "Adding application-level errors (e.g. MeterNotFoundError) to the RetryIf predicate \u2014 only transient infrastructure errors should be retried.",
-      "Setting MaxDelay to 0 \u2014 Config.Validate() accepts 0 as valid (non-negative) but retry-go interprets 0 as no cap, potentially causing very long delays under exponential backoff.",
-      "Constructing the Connector without calling New() in production code \u2014 always use New() to ensure config validation runs."
-    ],
-    "decisions": [
-      {
-        "decision": "Backoff + random jitter (CombineDelay) with configurable MaxDelay",
-        "rationale": "ClickHouse cluster restarts during rolling updates cause transient connection errors; backoff with jitter avoids thundering-herd reconnect storms from multiple concurrent workers."
-      },
-      {
-        "decision": "BatchInsert not retried",
-        "rationale": "Retrying inserts on transient errors would produce duplicate rows in the events table, breaking the exactly-once ingestion guarantee. The sink worker's three-phase flush ordering handles retry at a higher level."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Wrap a new streaming.Connector method with retry (read-only operations only)",
-        "code": "// In retry.go, add a new method following the existing pattern:\nfunc (c *Connector) NewReadMethod(ctx context.Context, params streaming.NewParams) ([]SomeResult, error) {\n    return withRetry(ctx, c, func() ([]SomeResult, error) {\n        return c.downstreamConnector.NewReadMethod(ctx, params)\n    })\n}\n// Note: mutation methods (BatchInsert) must NOT use withRetry"
-      }
-    ]
-  },
-  "openmeter/streaming/testutils": {
-    "purpose": "In-memory MockStreamingConnector for tests that need a streaming.Connector without a real ClickHouse. Supports AddSimpleEvent/SetSimpleEvents with optional WithStoredAt, AddRow for pre-canned exact results, and approximate aggregation that mirrors ClickHouse tumble-window semantics.",
-    "patterns": [
-      {
-        "name": "AddSimpleEvent for usage-based test setup",
-        "description": "Register per-meter events with AddSimpleEvent(meterSlug, value, time, opts...). Use WithStoredAt(t) to set a StoredAt different from the event Time, exercising stored-at cutoff logic in billing finalisation. Events are auto-sorted by Time ASC after each add.",
-        "example": "conn.AddSimpleEvent(\"api-calls\", 10, now, testutils.WithStoredAt(now.Add(-time.Minute)))"
-      },
-      {
-        "name": "AddRow for exact pre-canned QueryMeter results",
-        "description": "When the approximate aggregation is insufficient, use AddRow(meterSlug, meter.MeterQueryRow{...}) to register exact results. QueryMeter returns rows whose WindowStart/WindowEnd match params.From/To exactly. AddRow takes precedence over SimpleEvents for that slug.",
-        "example": "conn.AddRow(\"meter-key\", meter.MeterQueryRow{WindowStart: from, WindowEnd: to, Value: 42.0, GroupBy: map[string]*string{}})"
-      },
-      {
-        "name": "Reset() between subtests",
-        "description": "Call conn.Reset() to clear all rows and events between test cases that share a connector instance. AddSimpleEvent appends; rows accumulate across calls unless Reset() is called.",
-        "example": "conn.Reset()"
-      },
-      {
-        "name": "filterStoredAt uses Unix-second precision",
-        "description": "The mock's filterStoredAt evaluates FilterTimeUnix using Unix() seconds, matching ClickHouse's DateTime column precision. Tests relying on sub-second StoredAt distinctions will not work correctly.",
-        "example": "// Use full-second boundaries for StoredAt filters in tests; sub-second differences are ignored"
-      },
-      {
-        "name": "aggregateEvents returns MeterNotFoundError for unregistered slugs",
-        "description": "If a meterSlug has never been registered via AddSimpleEvent or AddRow, QueryMeter returns meter.NewMeterNotFoundError. Always call AddSimpleEvent at least once, or use SetSimpleEvents(slug, func(e []SimpleEvent) []SimpleEvent { return e }) to register an empty slice.",
-        "example": "conn.SetSimpleEvents(\"my-meter\", func(e []SimpleEvent) []SimpleEvent { return e }) // register without events"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "streaming.go",
-        "role": "Entire package implementation: MockStreamingConnector, SimpleEvent, AddSimpleEvent, SetSimpleEvents, AddRow, QueryMeter aggregation logic, filterStoredAt helper.",
-        "watch_for": "aggregateEvents returns MeterNotFoundError if the meterSlug has never been registered \u2014 always register the meter slug before calling QueryMeter."
-      },
-      {
-        "file": "streaming_test.go",
-        "role": "Comprehensive test cases for the mock's approximation accuracy: windowed vs non-windowed, LATEST aggregation, StoredAt filtering, empty-window row suppression.",
-        "watch_for": "Tests import openmeter/testutils (not this package) for GetRFC3339Time helpers \u2014 be careful about import cycles when adding new test helpers."
-      }
-    ],
-    "anti_patterns": [
-      "Using MockStreamingConnector for tests that need real ClickHouse SQL behaviour (PREWHERE, decimal precision edge cases) \u2014 use ConnectorTestSuite with TEST_CLICKHOUSE_DSN instead.",
-      "Registering events for a meter slug after calling QueryMeter on that slug within the same test without Reset() \u2014 AddSimpleEvent appends; rows accumulate across calls.",
-      "Relying on sub-second StoredAt precision in FilterTimeUnix predicates \u2014 the mock truncates to Unix seconds matching ClickHouse DateTime behaviour.",
-      "Using MockStreamingConnector without passing a testing.TB to NewMockStreamingConnector \u2014 always pass t for proper test helper registration."
-    ],
-    "decisions": [
-      {
-        "decision": "Approximate aggregation rather than full SQL semantics",
-        "rationale": "A full SQL emulation would be complex and fragile. The approximation is accurate enough for service-layer tests (billing charges, entitlement balance) while keeping the mock simple. Tests that need exact SQL behaviour use real ClickHouse via CHTestSuite."
-      },
-      {
-        "decision": "AddRow takes precedence over SimpleEvents for the same slug",
-        "rationale": "Allows tests to provide exact pre-canned results for complex scenarios (group-by, multi-window) without implementing full aggregation logic in the mock."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Test a service that queries meter usage with a stored-at cutoff",
-        "code": "conn := testutils.NewMockStreamingConnector(t)\nconn.AddSimpleEvent(\"api-calls\", 5, now, testutils.WithStoredAt(now.Add(-time.Hour)))\nconn.AddSimpleEvent(\"api-calls\", 3, now, testutils.WithStoredAt(now.Add(time.Hour)))\n// Only the first event should be visible before cutoff:\nrows, err := conn.QueryMeter(ctx, ns, meter, streaming.QueryParams{\n    From: &from, To: &to,\n    FilterStoredAt: &filter.FilterTimeUnix{FilterTime: filter.FilterTime{Lt: &now}},\n})\n// rows[0].Value == 5"
+        "scenario": "Adding a new v1 endpoint for a domain that already has a handler in Config",
+        "code": "// 1. Edit TypeSpec in api/spec/packages/legacy/ to add the operation\n// 2. Run: make gen-api && make generate\n// 3. Add the Router method in the appropriate domain file (e.g. billing.go):\nfunc (a *Router) GetMyNewResource(w http.ResponseWriter, r *http.Request, id string, params api.GetMyNewResourceParams) {\n\ta.billingHandler.GetMyNewResource().With(httpdriver.GetMyNewResourceParams{\n\t\tID:     id,\n\t\tExpand: lo.FromPtr(params.Expand),\n\t}).ServeHTTP(w, r)\n}\n// No other changes in this package \u2014 the httpdriver method is the real work."
       }
     ]
   }

@@ -1,76 +1,212 @@
 {
-  "openmeter/watermill/driver/kafka/metrics": {
-    "purpose": "Bridges go-metrics (used by Sarama/Kafka clients) to OpenTelemetry by wrapping go-metrics types so every metric mutation is forwarded to an otelmetric.Meter. Enables Kafka client telemetry to appear in the OpenTelemetry pipeline without changing Sarama internals.",
+  "openmeter/taxcode/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing taxcode.Repository. Owns all DB reads and writes for TaxCode and OrganizationDefaultTaxCodes entities, including JSONB containment queries and soft-delete semantics.",
     "patterns": [
       {
-        "name": "Wrap-and-delegate metric types",
-        "description": "Each wrapped type (wrappedMeter, wrappedCounter, wrappedGauge, wrappedGaugeFloat64, wrappedHistogram) embeds the original go-metrics interface and overrides only mutation methods (Mark, Inc, Dec, Update, Record) to call both the OTel instrument and the underlying go-metrics method.",
-        "example": "type wrappedCounter struct { metrics.Counter; otelMeter otelmetric.Int64UpDownCounter; attributes attribute.Set } \u2014 Inc calls otelMeter.Add then Counter.Inc"
+        "name": "TransactingRepo on every method",
+        "description": "Every exported method wraps its body in entutils.TransactingRepo or TransactingRepoWithNoValue, rebinding to any caller-supplied ctx-bound Ent transaction to prevent partial writes.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) { ... })"
       },
       {
-        "name": "Registry delegation via embedding",
-        "description": "registry embeds metrics.Registry for all read/list operations and only overrides Register and GetOrRegister to intercept new metric registrations and wrap them.",
-        "example": "type registry struct { metrics.Registry; mu sync.Mutex; meticMeter otelmetric.Meter; ... }"
+        "name": "Tx/WithTx/Self triad",
+        "description": "adapter implements Tx(ctx) via HijackTx+NewTxDriver, WithTx(ctx, tx) via NewTxClientFromRawConfig, and Self() to satisfy the TxCreator+TxUser contract. All three required.",
+        "example": "func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), logger: a.logger} }"
       },
       {
-        "name": "TransformMetricsNameToOtel for name mapping and drop filtering",
-        "description": "All metric names pass through NameTransformFn before OTel instrument creation. Returning Drop:true bypasses OTel wrapping and returns the raw go-metrics type unchanged.",
-        "example": "transfomedMetric := r.nameTransformFn(name); if transfomedMetric.Drop { return def, nil }"
+        "name": "Soft-delete via SetDeletedAt",
+        "description": "DeleteTaxCode sets deleted_at to clock.Now() rather than a hard DELETE. Read queries add Where(taxcodedb.DeletedAtIsNil()).",
+        "example": "a.db.TaxCode.UpdateOneID(input.ID).Where(taxcodedb.NamespaceEQ(input.Namespace)).SetDeletedAt(clock.Now()).Exec(ctx)"
       },
       {
-        "name": "Mutex-guarded registration",
-        "description": "GetOrRegister and Register acquire r.mu before checking or writing to the embedded Registry, preventing races on concurrent Sarama metric registration.",
-        "example": "r.mu.Lock(); defer r.mu.Unlock() at the top of both GetOrRegister and Register"
+        "name": "input.Validate() as first statement",
+        "description": "Every exported method calls input.Validate() before any DB access and returns immediately on error.",
+        "example": "if err := input.Validate(); err != nil { return taxcode.TaxCode{}, err }"
       },
       {
-        "name": "Reflect-based metric factory unwrapping",
-        "description": "def passed to getWrappedMeter may be a zero-arg function returning the metric (Sarama pattern). reflect.ValueOf(def).Kind() == reflect.Func triggers a call to extract the actual metric before type-switching.",
-        "example": "if v := reflect.ValueOf(def); v.Kind() == reflect.Func { def = v.Call(nil)[0].Interface() }"
+        "name": "JSONB containment via raw sql.P predicate",
+        "description": "GetTaxCodeByAppMapping uses a raw sql.P predicate (app_mappings @> '...') because Ent has no native JSONB containment operator; the pattern is marshaled from []taxcode.TaxCodeAppMapping.",
+        "example": "s.Where(sql.P(func(b *sql.Builder) { b.Ident(taxcodedb.FieldAppMappings).WriteString(\" @> \").Arg(string(pattern)) }))"
       },
       {
-        "name": "context.Background() for OTel calls (documented limitation)",
-        "description": "All OTel instrument calls use context.Background() because go-metrics mutation methods carry no context parameter. This is an accepted limitation documented in README.md.",
-        "example": "m.otelMeter.Add(context.Background(), n, otelmetric.WithAttributeSet(m.attributes))"
+        "name": "Ent error mapping to domain errors",
+        "description": "db.IsNotFound maps to NewTaxCodeNotFoundError; db.IsConstraintError maps to models.NewGenericConflictError. Never return raw Ent errors.",
+        "example": "if db.IsConstraintError(err) { return taxcode.TaxCode{}, models.NewGenericConflictError(...) }"
+      },
+      {
+        "name": "Config with models.Validator compile-time assertion",
+        "description": "Config implements models.Validator via var _ models.Validator = (*Config)(nil); New() calls config.Validate() before constructing the adapter.",
+        "example": "var _ models.Validator = (*Config)(nil)"
       }
     ],
     "key_file_guides": [
       {
         "file": "adapter.go",
-        "role": "Entire package implementation: Registry constructor, wrapped metric structs, and their OTel-forwarding mutation methods.",
-        "watch_for": "Adding a new go-metrics type requires: (1) a new wrapped struct embedding that type, (2) a new case in getWrappedMeter's type switch, (3) override of every mutation method. Missing any method leaves silent gaps where OTel receives no data."
+        "role": "Adapter constructor, Config validation, and the Tx/WithTx/Self triad required by entutils.TransactingRepo.",
+        "watch_for": "All three transaction-rebinding methods must be present or entutils.TransactingRepo will fail to compile."
       },
       {
-        "file": "README.md",
-        "role": "Documents the known limitations: context is always context.Background() and metric registration errors are only logged, never propagated to callers.",
-        "watch_for": "If OTel metric registration errors are silently swallowed by errorHandler, callers see no panic but metrics are missing entirely."
+        "file": "taxcode.go",
+        "role": "CRUD operations (Create, Update, List, Get, GetByAppMapping, Delete) implementing taxcode.Repository.",
+        "watch_for": "GetTaxCodeByAppMapping uses a raw JSONB @> predicate; if TaxCodeAppMapping fields change, the marshaled JSON must stay compatible with the stored column format."
+      },
+      {
+        "file": "organizationdefaulttaxcodes.go",
+        "role": "GetOrganizationDefaultTaxCodes and UpsertOrganizationDefaultTaxCodes with ON CONFLICT UPSERT and optional edge expansion.",
+        "watch_for": "Upsert uses sql.ConflictWhere(sql.IsNull(DeletedAt)) \u2014 the partial unique index requires this predicate or the conflict clause does not fire correctly."
+      },
+      {
+        "file": "mapping.go",
+        "role": "MapTaxCodeFromEntity translates *db.TaxCode to taxcode.TaxCode.",
+        "watch_for": "lo.FromPtr(entity.AppMappings) silently returns a zero-value slice when the column is NULL \u2014 new nullable fields need the same nil-safe treatment."
       }
     ],
     "anti_patterns": [
-      "Adding a new metric type without implementing ALL mutation methods on the wrapper \u2014 partial delegation silently drops OTel events.",
-      "Calling r.Registry.Register directly inside getWrappedMeter instead of returning the wrapped value \u2014 double-registration under the same name will occur.",
-      "Removing the reflect-based factory unwrapping \u2014 Sarama passes metric factories as zero-arg functions, not direct metric values; removing the reflect call breaks those registrations.",
-      "Initialising NewRegistry without a MetricMeter \u2014 constructor returns an error; callers must check it or OTel forwarding is entirely absent.",
-      "Using a real propagated context instead of context.Background() in wrapped methods \u2014 go-metrics interfaces have no context parameter so callers cannot propagate one."
+      "Calling a.db.TaxCode.* directly inside a helper without entutils.TransactingRepo \u2014 the helper falls off the ctx-bound transaction",
+      "Hard-deleting rows with .Remove() instead of setting deleted_at via SetDeletedAt",
+      "Adding raw SQL outside a sql.P/sql.Selector wrapper \u2014 bypasses Ent's query builder",
+      "Returning raw Ent errors without mapping via db.IsNotFound/db.IsConstraintError",
+      "Skipping input.Validate() before DB access \u2014 the adapter is the last line of defense"
     ],
     "decisions": [
       {
-        "decision": "Embed metrics.Registry rather than re-implementing it",
-        "rationale": "All read/iteration/unregister operations on the registry are unchanged; only the write path (Register, GetOrRegister) needs interception to wrap new metrics, minimising the surface area of this adapter."
+        "decision": "entutils.TransactingRepo on every method, not only explicit tx callers",
+        "rationale": "Ent transactions are carried implicitly in ctx; any helper holding a raw *entdb.Client falls off the transaction unless it rebinds via TransactingRepo."
       },
       {
-        "decision": "TransformMetricsNameToOtel as an injectable function with Drop support",
-        "rationale": "Sarama emits dozens of internal metrics; callers need to filter noise and rename metrics to match OTel naming conventions without forking this package."
-      },
-      {
-        "decision": "context.Background() in all OTel calls",
-        "rationale": "go-metrics mutation methods (Mark, Inc, Update) carry no context; propagating caller context is structurally impossible without changing the go-metrics interface, which would require forking Sarama."
+        "decision": "JSONB containment query via raw sql.Selector for GetTaxCodeByAppMapping",
+        "rationale": "Ent has no built-in @> operator for JSONB array containment; the raw predicate is the only way to express 'find rows whose app_mappings array contains this element'."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Register a custom go-metrics registry that forwards to OTel, filtering noise metrics via NameTransformFn",
-        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka/metrics\"\n\t\"go.opentelemetry.io/otel/attribute\"\n\totelmetric \"go.opentelemetry.io/otel/metric\"\n)\n\nreg, err := metrics.NewRegistry(metrics.NewRegistryOptions{\n\tMetricMeter: meter, // otelmetric.Meter from app wiring\n\tNameTransformFn: func(name string) metrics.TransformedMetric {\n\t\tif name == \"incoming-byte-rate\" {\n\t\t\treturn metrics.TransformedMetric{Drop: true}\n\t\t}\n\t\treturn metrics.TransformedMetric{\n\t\t\tName:       \"kafka.\" + name,\n\t\t\tAttributes: attribute.NewSet(),\n\t\t}\n\t},\n\tErrorHandler: metrics.LoggingErrorHandler(logger),\n})\nif err != nil {\n\treturn fmt.Errorf(\"create kafka metrics registry: %w\", err)\n}"
+        "scenario": "Add a new mutating Repository method following the existing pattern",
+        "code": "import (\n\t\"context\"\n\n\ttaxcodedb \"github.com/openmeterio/openmeter/openmeter/ent/db/taxcode\"\n\t\"github.com/openmeterio/openmeter/openmeter/taxcode\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\nfunc (a *adapter) ArchiveTaxCode(ctx context.Context, input taxcode.ArchiveTaxCodeInput) (taxcode.TaxCode, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn taxcode.TaxCode{}, err\n\t}\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {\n\t\t// ... Ent mutation ...\n\t})\n}"
       }
     ]
+  },
+  "openmeter/taxcode/service": {
+    "purpose": "Business-logic layer for tax codes implementing taxcode.Service. Enforces system-managed protection, get-or-create conflict retry, and wraps all adapter calls in transaction.Run to guarantee atomicity.",
+    "patterns": [
+      {
+        "name": "transaction.Run wraps every adapter call",
+        "description": "Every service method wraps adapter delegation in transaction.Run (or RunWithNoValue for void) so multi-step operations (guard read + write) are atomic.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) { return s.adapter.CreateTaxCode(ctx, input) })"
+      },
+      {
+        "name": "IsManagedBySystem guard before mutations",
+        "description": "UpdateTaxCode and DeleteTaxCode fetch the existing record inside the transaction and return NewGenericConflictError(ErrTaxCodeManagedBySystem) if IsManagedBySystem() and !input.AllowAnnotations.",
+        "example": "if existing.IsManagedBySystem() && !input.AllowAnnotations { return taxcode.TaxCode{}, models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem) }"
+      },
+      {
+        "name": "GetOrCreate with conflict retry",
+        "description": "GetOrCreateByAppMapping handles a create->conflict race by catching models.IsGenericConflictError and retrying with GetTaxCodeByAppMapping \u2014 idempotent under concurrency.",
+        "example": "if models.IsGenericConflictError(err) { return s.adapter.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput(input)) }"
+      },
+      {
+        "name": "input.Validate() at service entry",
+        "description": "Every exported method validates input before any adapter call, returning early on error.",
+        "example": "if err := input.Validate(); err != nil { return taxcode.TaxCode{}, err }"
+      },
+      {
+        "name": "Key derivation convention for auto-created tax codes",
+        "description": "GetOrCreateByAppMapping derives the key as '<AppType>_<TaxCode>' when auto-creating from an app mapping.",
+        "example": "key := fmt.Sprintf(\"%s_%s\", input.AppType, input.TaxCode)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service struct constructor and Config validation. Holds the taxcode.Repository adapter dependency.",
+        "watch_for": "Service depends only on taxcode.Repository \u2014 never import Ent directly here."
+      },
+      {
+        "file": "taxcode.go",
+        "role": "All TaxCode CRUD plus GetOrCreateByAppMapping; get-then-mutate inside transaction.Run for atomicity.",
+        "watch_for": "The get-then-mutate pattern is safe only because the adapter's TransactingRepo rebinds to the same transaction. Breaking that rebinding makes the IsManagedBySystem guard non-atomic."
+      },
+      {
+        "file": "organizationdefaulttaxcodes.go",
+        "role": "GetOrganizationDefaultTaxCodes and UpsertOrganizationDefaultTaxCodes; validates both referenced tax code IDs share a namespace before upsert.",
+        "watch_for": "Cross-namespace check is done via s.GetTaxCode (not the adapter directly) so namespace scoping is enforced."
+      },
+      {
+        "file": "taxcode_test.go",
+        "role": "Integration tests for system-managed protection and user-managed CRUD via taxcodetestutils.NewTestEnv.",
+        "watch_for": "Tests use t.Context() \u2014 never context.Background(). env.DBSchemaMigrate(t) must be called before first DB access."
+      },
+      {
+        "file": "organizationdefaulttaxcodes_test.go",
+        "role": "Integration tests for upsert idempotency, cross-namespace rejection, expand behavior.",
+        "watch_for": "Same t.Context() and DBSchemaMigrate requirements as taxcode_test.go."
+      }
+    ],
+    "anti_patterns": [
+      "Calling adapter methods outside transaction.Run \u2014 loses atomicity for get-then-mutate flows",
+      "Skipping the IsManagedBySystem check in new mutating methods \u2014 allows external callers to overwrite system-synced records",
+      "Using context.Background() instead of t.Context() in tests",
+      "Implementing key derivation or conflict retry logic inside the adapter \u2014 business logic belongs in the service layer",
+      "Adding adapter dependencies beyond taxcode.Repository \u2014 the service must stay decoupled from Ent"
+    ],
+    "decisions": [
+      {
+        "decision": "transaction.Run at the service layer in addition to entutils.TransactingRepo in the adapter",
+        "rationale": "Multi-step flows (guard read + write) must be atomic; starting the transaction at the service layer ensures both the IsManagedBySystem read and the write share the same transaction."
+      },
+      {
+        "decision": "AllowAnnotations flag on UpdateTaxCodeInput/DeleteTaxCodeInput to bypass system-managed protection",
+        "rationale": "The LLM cost sync job needs to update system-managed records; a flag is safer than removing the guard or exposing a separate internal method."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new mutating service method with system-managed guard and transaction wrapping",
+        "code": "func (s *Service) PatchTaxCode(ctx context.Context, input taxcode.PatchTaxCodeInput) (taxcode.TaxCode, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn taxcode.TaxCode{}, err\n\t}\n\treturn transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) {\n\t\texisting, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})\n\t\tif err != nil {\n\t\t\treturn taxcode.TaxCode{}, err\n\t\t}\n\t\tif existing.IsManagedBySystem() && !input.AllowAnnotations {\n\t\t\treturn taxcode.TaxCode{}, models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem)\n\t\t}\n\t\treturn s.adapter.PatchTaxCode(ctx, input)\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/taxcode/testutils": {
+    "purpose": "Self-contained test environment for taxcode integration tests. Wires a real Postgres DB, Ent client, adapter, and service from primitives without importing app/common, preventing import cycles.",
+    "patterns": [
+      {
+        "name": "Full stack from primitives without app/common",
+        "description": "NewTestEnv builds testutils.TestDB -> entdb.Client -> taxcodeadapter -> taxcodeservice.New directly, avoiding the Wire DI graph and circular imports.",
+        "example": "adapter, _ := taxcodeadapter.New(taxcodeadapter.Config{Client: client, Logger: logger}); svc, _ := taxcodeservice.New(taxcodeservice.Config{Adapter: adapter, Logger: logger})"
+      },
+      {
+        "name": "sync.Once for safe Close",
+        "description": "TestEnv.Close uses sync.Once to prevent double-close when t.Cleanup and explicit calls race.",
+        "example": "e.close.Do(func() { e.Client.Close(); e.db.EntDriver.Close(); e.db.PGDriver.Close() })"
+      },
+      {
+        "name": "DBSchemaMigrate called explicitly per test",
+        "description": "Tests call env.DBSchemaMigrate(t) before first DB access; it runs client.Schema.Create(t.Context()) on the isolated pgtestdb database.",
+        "example": "env.DBSchemaMigrate(t)"
+      },
+      {
+        "name": "Close order: EntClient then EntDriver then PGDriver",
+        "description": "Close must close the Ent client first, then EntDriver, then PGDriver to avoid leaking the pgtestdb template database.",
+        "example": "e.Client.Close(); e.db.EntDriver.Close(); e.db.PGDriver.Close()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "env.go",
+        "role": "Sole file. Exports NewTestEnv and TestEnv with Logger, Service, Client fields for _test packages.",
+        "watch_for": "Both EntDriver and PGDriver must be closed in Close(); omitting PGDriver leaks the pgtestdb template database."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common in testutils \u2014 creates import cycles and couples test setup to the full DI graph",
+      "Calling env.Close before env.DBSchemaMigrate \u2014 the schema won't exist for the test",
+      "Using context.Background() instead of t.Context() in DBSchemaMigrate or service calls",
+      "Skipping t.Cleanup registration for Close \u2014 leaks DB connections if tests fail mid-setup"
+    ],
+    "decisions": [
+      {
+        "decision": "Build adapter and service directly from constructors rather than via Wire",
+        "rationale": "Keeps test helpers independent from app/common so unrelated wiring changes do not create test-only import cycles."
+      }
+    ],
+    "code_examples": []
   }
 }

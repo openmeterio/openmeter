@@ -1,61 +1,85 @@
 {
-  "openmeter/debug/httpdriver": {
-    "purpose": "HTTP handler layer for the debug domain. Bridges debug.DebugConnector to HTTP using the httptransport pipeline. Single current endpoint: GetMetrics, returning plain-text ClickHouse metrics resolved from the namespace context.",
+  "openmeter/customer/service/hooks": {
+    "purpose": "Lifecycle hook implementations for the customer domain \u2014 entitlement validation pre-delete guard (entitlementvalidator.go) and subject-to-customer auto-provisioning (subjectcustomer.go). Hooks integrate with the models.ServiceHook[T] registry so the customer package never couples to its callers.",
     "patterns": [
       {
-        "name": "Handler interface + private struct",
-        "description": "Expose a DebugHandler interface with method GetMetrics(); back it with a private debugHandler struct. Consumers depend on the interface.",
-        "example": "type DebugHandler interface { GetMetrics() GetMetricsHandler }"
+        "name": "ServiceHook type-alias pair + concrete struct embeds Noop",
+        "description": "Each hook file declares a public ServiceHook[T] alias and a Noop alias; the concrete struct embeds the Noop so only overridden lifecycle methods need implementing.",
+        "example": "type EntitlementValidatorHook = models.ServiceHook[customer.Customer]; type NoopEntitlementValidatorHook = models.NoopServiceHook[customer.Customer]"
       },
       {
-        "name": "httptransport.NewHandlerWithArgs for every endpoint",
-        "description": "Each endpoint is returned as an httptransport.HandlerWithArgs[Request, Response, Params] value \u2014 decode, operation, encode wired inline. Never implement http.Handler directly.",
-        "example": "return httptransport.NewHandlerWithArgs[GetMetricsHandlerRequest, string, GetMetricsHandlerParams](decodeFn, opFn, commonhttp.PlainTextResponseEncoder[string], opts...)"
+        "name": "Config struct + Validate() + constructor",
+        "description": "Every hook is built via a Config with a Validate() (mandatory nil-dependency checks); the constructor calls Validate() first and wraps the error.",
+        "example": "func NewEntitlementValidatorHook(config EntitlementValidatorHookConfig) (EntitlementValidatorHook, error) { if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid entitlement validator hook config: %w\", err) }; ... }"
       },
       {
-        "name": "Namespace from NamespaceDecoder only",
-        "description": "Namespace is always resolved via h.namespaceDecoder.GetNamespace(ctx). Never read from URL params or headers. Missing namespace returns 500.",
-        "example": "ns, ok := h.namespaceDecoder.GetNamespace(ctx); if !ok { return \"\", commonhttp.NewHTTPError(http.StatusInternalServerError, ...) }"
+        "name": "Compile-time interface assertion",
+        "description": "Every concrete hook declares a package-level var _ assertion to verify interface satisfaction at compile time.",
+        "example": "var _ models.ServiceHook[customer.Customer] = (*entitlementValidatorHook)(nil)"
       },
       {
-        "name": "Per-handler error encoder via AppendOptions",
-        "description": "Domain-specific error mapping is added per-handler by appending httptransport.WithErrorEncoder to shared options. Never replace h.options wholesale.",
-        "example": "httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(func(...) bool { ... }))"
+        "name": "OTel tracing in non-trivial hook methods",
+        "description": "Non-trivial methods start a span via the Config-injected tracer, record errors / add events, and defer span.End.",
+        "example": "ctx, span := s.tracer.Start(ctx, \"subject_customer_hook.post_create\"); defer span.End()"
       },
       {
-        "name": "Constructor accepts variadic HandlerOptions",
-        "description": "NewDebugHandler takes ...httptransport.HandlerOption and stores them on the struct so all handlers inherit shared options (auth, tracing) from the router layer.",
-        "example": "func NewDebugHandler(dec namespacedriver.NamespaceDecoder, conn debug.DebugConnector, options ...httptransport.HandlerOption) DebugHandler"
+        "name": "Loop-prevention via context key",
+        "description": "When a hook calls back into customer.Service (Update/Create), it wraps ctx with subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx) to break re-entrant hook cycles.",
+        "example": "cus, err = p.customer.UpdateCustomer(subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx), customer.UpdateCustomerInput{...})"
+      },
+      {
+        "name": "models.Generic* error types for domain errors",
+        "description": "Domain failures return models.NewGenericValidationError / NotFoundError / ConflictError / PreConditionFailedError \u2014 never raw errors, since HTTP encoders map by type.",
+        "example": "return models.NewGenericValidationError(fmt.Errorf(\"customer has entitlements, please remove them before deleting the customer\"))"
+      },
+      {
+        "name": "Tests built from package constructors (no app/common)",
+        "description": "Tests wire adapters and services directly (customeradapter.New, customerservice.New, subjectadapter.New) with testutils.InitPostgresDB and eventbus.NewMock; never import app/common.",
+        "example": "db := testutils.InitPostgresDB(t); customerService, _ := customerservice.New(customerservice.Config{Adapter: customerAdapter, Publisher: publisher})"
       }
     ],
     "key_file_guides": [
       {
-        "file": "metrics.go",
-        "role": "Sole file. Defines DebugHandler interface, private struct, constructor, request/response/params types, and the GetMetrics handler factory.",
-        "watch_for": "GetMetricsHandlerResponse is a type alias for string \u2014 uses PlainTextResponseEncoder, not JSON. New endpoints must follow the same HandlerWithArgs shape; do not return raw http.HandlerFunc."
+        "file": "entitlementvalidator.go",
+        "role": "PreDelete hook for customer.Customer \u2014 blocks deletion when active entitlements exist; overrides only PreDelete, rest fall through to the embedded Noop.",
+        "watch_for": "Uses clock.Now() for the entitlement snapshot; always pass the caller's ctx, never context.Background()."
+      },
+      {
+        "file": "subjectcustomer.go",
+        "role": "PostCreate/PostUpdate/PostDelete hook for subject.Subject auto-provisioning a matching Customer; houses CustomerProvisioner (reusable create/update logic) and EnsureStripeCustomer.",
+        "watch_for": "getCustomerForSubject tries both usage-attribution and key lookup; EnsureCustomer handles key conflicts by omitting the key on create; CmpSubjectCustomer decides whether an update is needed \u2014 extend carefully to avoid spurious updates."
+      },
+      {
+        "file": "subjectcustomer_test.go",
+        "role": "Integration tests for CustomerProvisioner against a real Postgres via testutils.InitPostgresDB (create/update/conflict scenarios).",
+        "watch_for": "TestEnv is local and independent of app/common; call env.DBSchemaMigrate(t) before using the DB; use t.Context(), not context.Background()."
       }
     ],
     "anti_patterns": [
-      "Implementing http.Handler directly instead of using httptransport.NewHandlerWithArgs",
-      "Reading namespace from URL path or query params instead of namespacedriver.NamespaceDecoder",
-      "Replacing h.options instead of appending with httptransport.AppendOptions when adding error encoders",
-      "Putting business logic (metrics computation) inside decode or encode functions \u2014 delegate to debugConnector",
-      "Returning JSON from a plain-text endpoint by swapping the encoder without updating Content-Type handling"
+      "Calling customer.Service from a hook without subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx) \u2014 causes infinite re-entrant hook invocations.",
+      "Returning raw fmt.Errorf for domain conditions \u2014 callers and HTTP encoders depend on models.Generic* error types.",
+      "Importing app/common in test files \u2014 breaks isolation and can introduce import cycles.",
+      "Embedding a non-Noop base struct \u2014 hooks must embed the Noop alias so future interface method additions don't break compilation.",
+      "Using context.Background()/context.TODO() inside hook methods \u2014 always propagate the caller's ctx."
     ],
     "decisions": [
       {
-        "decision": "Handlers return httptransport.HandlerWithArgs, not http.Handler",
-        "rationale": "httptransport provides a uniform decode/encode/error pipeline with OTel and error-encoder chaining consistent with all other domain httpdriver packages."
+        "decision": "Hooks embed models.NoopServiceHook[T] rather than implementing all methods",
+        "rationale": "The ServiceHook interface grows as new lifecycle events are added; embedding Noop provides safe defaults so existing hooks don't break on interface expansion."
       },
       {
-        "decision": "Namespace resolved from context via NamespaceDecoder, not from request",
-        "rationale": "Static namespace injection (self-hosted) is handled at the router middleware layer; re-parsing in the handler would bypass that and break multi-tenant isolation."
+        "decision": "CustomerProvisioner is a separate struct from the hook",
+        "rationale": "EnsureCustomer/EnsureStripeCustomer are reused outside the hook (e.g. app/stripe provisioning), so extracting them avoids duplication without tying logic to the subject lifecycle."
+      },
+      {
+        "decision": "IgnoreErrors flag on subjectCustomerHook",
+        "rationale": "Subject create/update should not fail when customer provisioning is non-critical in some deployment modes; the flag lets callers warn-and-continue."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Adding a second debug endpoint (e.g. GetStatus)",
-        "code": "type GetStatusHandler httptransport.HandlerWithArgs[GetStatusRequest, GetStatusResponse, GetStatusParams]\n\nfunc (h *debugHandler) GetStatus() GetStatusHandler {\n    return httptransport.NewHandlerWithArgs[GetStatusRequest, GetStatusResponse, GetStatusParams](\n        func(ctx context.Context, r *http.Request, _ GetStatusParams) (GetStatusRequest, error) {\n            ns, err := h.resolveNamespace(ctx)\n            if err != nil { return GetStatusRequest{}, err }\n            return GetStatusRequest{Namespace: ns}, nil\n        },\n        func(ctx context.Context, req GetStatusRequest) (GetStatusResponse, error) {\n            return h.debugConnector.GetStatus(ctx, req.Namespace)\n        },\n        commonhttp.JSONResponseEncoder[GetStatusResponse],\n        httptransport.AppendOptions(h.options,\n            httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter, _ *http.Request) bool {\n                if models.IsGenericNotFoundError(err) {\n                    commonhttp.NewHTTPError(http.StatusNotFound, err).EncodeError(ctx, w)\n                    return true\n                }\n                return false\n            }),\n        )...,\n    )\n}"
+        "scenario": "Adding a new PreDelete hook for the customer lifecycle",
+        "code": "package hooks\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n\t\"github.com/openmeterio/openmeter/openmeter/customer\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\ntype (\n\tBillingValidatorHook     = models.ServiceHook[customer.Customer]\n\tNoopBillingValidatorHook = models.NoopServiceHook[customer.Customer]\n)\n\nvar _ models.ServiceHook[customer.Customer] = (*billingValidatorHook)(nil)\n\ntype billingValidatorHook struct {\n\tNoopBillingValidatorHook\n\tbilling billing.Service\n}\n\nfunc (h *billingValidatorHook) PreDelete(ctx context.Context, c *customer.Customer) error {\n\t// block delete on open invoices, returning models.NewGenericValidationError\n\treturn nil\n}"
       }
     ]
   }

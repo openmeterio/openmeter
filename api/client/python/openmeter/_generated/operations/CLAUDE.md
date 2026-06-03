@@ -2,28 +2,21 @@
 
 <!-- archie:ai-start -->
 
-> Auto-generated operation classes that implement every OpenMeter API endpoint as typed Python methods grouped by resource (CustomersOperations, InvoicesOperations, BillingProfilesOperations, etc.). Each class uses the corehttp pipeline to build, send, and deserialize HTTP requests. Do not edit _operations.py — only _patch.py is safe to modify.
+> Auto-generated operation classes implementing every OpenMeter API endpoint as typed Python methods grouped by resource (CustomersOperations, InvoicesOperations, BillingProfilesOperations, etc.). Each class uses the corehttp pipeline to build, send, and deserialize HTTP requests. Do not edit _operations.py — only _patch.py is safe to modify.
 
 ## Patterns
 
-**build_*_request free functions for request construction** — Every operation is preceded by a build_<resource>_<verb>_request(...) free function that constructs the HttpRequest (URL path formatting, query params, headers) using the module-level _SERIALIZER singleton. The operation method calls this builder then sends via self._client.send_request. Never build HttpRequest objects manually outside this pattern. (`def build_customers_list_request(*, page=None, page_size=None, **kwargs) -> HttpRequest:
-    _params['page'] = _SERIALIZER.query('page', page, 'int')
-    return HttpRequest(method='GET', url='/api/v1/customers', params=_params, headers=_headers)`)
-**ClsType optional callback for result interception** — Every operation method accepts an optional cls: ClsType kwarg — a callback(pipeline_response, deserialized, headers) that can intercept or transform the result. Pass None (the default) for standard use. Never remove this parameter from generated signatures. (`ClsType = Optional[Callable[[PipelineResponse[HttpRequest, HttpResponse], T, dict[str, Any]], Any]]`)
-**map_error for typed HTTP error mapping before deserialization** — Operations call map_error(status_code=response.status_code, response=response, error_map={404: ResourceNotFoundError, 409: ResourceExistsError, ...}) before deserializing success responses. Never catch HttpResponseError without calling map_error first. (`error_map = {404: ResourceNotFoundError, 409: ResourceExistsError}
-map_error(status_code=response.status_code, response=response, error_map=error_map)`)
-**Module-level _SERIALIZER singleton — do not reinstantiate** — _SERIALIZER = Serializer() is a module-level singleton with client_side_validation=False. Never create per-call Serializer() instances. All query/header/URL serialization goes through _SERIALIZER.query(), _SERIALIZER.header(), _SERIALIZER.url(). (`_SERIALIZER = Serializer()
-_SERIALIZER.client_side_validation = False
-# Usage: _SERIALIZER.query('page', page, 'int')`)
-**ItemPaged for paginated list operations** — List operations that return paginated collections return ItemPaged[T] from corehttp.paging. Callers iterate the result directly; the pager handles next-page fetching transparently. (`result: ItemPaged[Customer] = ops.list(page=1, page_size=20)
-for customer in result:
-    print(customer.name)`)
+**build_*_request free functions for request construction** — Every operation is preceded by a build_<resource>_<verb>_request(...) free function that constructs the HttpRequest (URL path formatting, query params, headers) using the module-level _SERIALIZER singleton. The method calls this builder then sends via self._client.send_request. Never build HttpRequest objects manually outside this pattern. (`def build_customers_list_request(*, page=None, page_size=None, **kwargs) -> HttpRequest: _params['page'] = _SERIALIZER.query('page', page, 'int'); return HttpRequest(method='GET', url='/api/v1/customers', params=_params, headers=_headers)`)
+**ClsType optional callback for result interception** — Every operation method accepts an optional cls: ClsType kwarg — a callback(pipeline_response, deserialized, headers) that can intercept or transform the result. Pass None (the default) for standard use. Never remove this parameter. (`ClsType = Optional[Callable[[PipelineResponse[HttpRequest, HttpResponse], T, dict[str, Any]], Any]]`)
+**map_error for typed HTTP error mapping before deserialization** — Operations call map_error(status_code=..., response=..., error_map={404: ResourceNotFoundError, 409: ResourceExistsError, ...}) before deserializing success responses. Never catch HttpResponseError without calling map_error first. (`error_map = {404: ResourceNotFoundError, 409: ResourceExistsError}; map_error(status_code=response.status_code, response=response, error_map=error_map)`)
+**Module-level _SERIALIZER singleton — do not reinstantiate** — _SERIALIZER = Serializer() is a module-level singleton with client_side_validation=False. Never create per-call Serializer() instances. All query/header/URL serialization goes through _SERIALIZER. (`_SERIALIZER = Serializer(); _SERIALIZER.client_side_validation = False; # Usage: _SERIALIZER.query('page', page, 'int')`)
+**ItemPaged for paginated list operations** — List operations that return paginated collections return ItemPaged[T] from corehttp.paging. Callers iterate the result directly; the pager handles next-page fetching transparently. (`result: ItemPaged[Customer] = ops.list(page=1, page_size=20); for customer in result: print(customer.name)`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `_operations.py` | All ~30 generated operation classes. Each is initialized with a PipelineClient and OpenMeterClientConfiguration. Contains all build_*_request helpers and the send+deserialize logic. | DO NOT EDIT — regenerated by make gen-api. _SERIALIZER is module-level; do not create per-request instances. |
+| `_operations.py` | All ~30 generated operation classes, each initialized with a PipelineClient and OpenMeterClientConfiguration. Contains all build_*_request helpers and the send+deserialize logic. | DO NOT EDIT — regenerated by make gen-api. _SERIALIZER is module-level; do not create per-request instances. |
 | `__init__.py` | Re-exports all Operations classes and applies _patch.py via _patch_sdk(). The __all__ list is authoritative. | DO NOT EDIT — regenerated. Any symbols added in _patch.py must appear in _patch.__all__ to be included in __all__. |
 | `_patch.py` | The only file safe to hand-edit. Override or extend generated operation class methods here. | patch_sdk() must remain callable. Methods added here must not conflict with generated signatures. |
 
@@ -37,8 +30,8 @@ for customer in result:
 
 ## Decisions
 
-- **Request construction is split into build_*_request free functions separate from the send+deserialize logic in Operations class methods** — Enables unit-testing request construction (URL, headers, params) without an HTTP client, and keeps the send path uniform across all operations.
-- **Operations classes are grouped by resource (CustomersOperations, InvoicesOperations, etc.) rather than by HTTP method** — Resource-grouped classes match the TypeSpec interface groupings and make it easy to find all operations for a given domain without scanning the entire file.
+- **Request construction split into build_*_request free functions separate from send+deserialize logic in Operations methods** — Enables unit-testing request construction (URL, headers, params) without an HTTP client, and keeps the send path uniform across all operations.
+- **Operations classes grouped by resource (CustomersOperations, InvoicesOperations, etc.) rather than by HTTP method** — Resource-grouped classes match the TypeSpec interface groupings and make it easy to find all operations for a domain without scanning the entire file.
 
 ## Example: Invoke a paginated list operation and a single-resource get through the operations classes
 
@@ -46,11 +39,9 @@ for customer in result:
 from openmeter._generated.operations import CustomersOperations, InvoicesOperations
 
 # ops is injected by the top-level OpenMeterClient; not constructed directly
-# Paginated list — iterate ItemPaged[Customer]
 for customer in ops.customers.list(page=1, page_size=20):
     print(customer.name)
 
-# Single resource get
 invoice = ops.invoices.get(invoice_id='01HXYZ...')
 ```
 

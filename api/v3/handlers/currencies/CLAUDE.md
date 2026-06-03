@@ -2,32 +2,33 @@
 
 <!-- archie:ai-start -->
 
-> HTTP handlers for listing custom currencies and cost bases in the v3 API; uses namespacedriver.NamespaceDecoder (not a resolveNamespace closure) for namespace resolution and delegates to currencies.CurrencyService.
+> v3 HTTP handlers for listing/creating custom currencies and cost bases; resolves namespace via namespacedriver.NamespaceDecoder and delegates to currencies.CurrencyService.
 
 ## Patterns
 
-**NamespaceDecoder instead of resolveNamespace closure** — Unlike most handler packages that accept a resolveNamespace func(ctx) (string, error), this handler holds a namespacedriver.NamespaceDecoder and calls h.namespaceDecoder.GetNamespace(ctx) returning (string, bool). (`ns, ok := h.namespaceDecoder.GetNamespace(ctx); if !ok { return ..., apierrors.NewInternalError(ctx, fmt.Errorf("failed to resolve namespace")) }`)
-**Page defaults differ by operation** — ListCurrencies uses default page size 100 (not 20 like other handlers), reflecting expected currency catalog size. (`page := pagination.NewPage(1, 100)`)
-**Handler interface groups both resource sub-types** — The Handler interface includes both currency (ListCurrencies, CreateCurrency) and cost basis (CreateCostBasis, ListCostBases) endpoints in a single handler struct backed by currencies.CurrencyService. (`type Handler interface { ListCurrencies() ...; CreateCurrency() ...; CreateCostBasis() ...; ListCostBases() ... }`)
-**BillingCurrency discriminated union via generic helper** — convert.go uses NewBillingCurrencyFrom[T] generic to construct the BillingCurrency union for both custom and fiat types, calling From* discriminator methods. (`func NewBillingCurrencyFrom[T v3.BillingCurrencyCustom | v3.BillingCurrencyFiat](v T) (v3.BillingCurrency, error)`)
+**NamespaceDecoder instead of resolveNamespace closure** — This package holds a namespacedriver.NamespaceDecoder and calls h.namespaceDecoder.GetNamespace(ctx) returning (string, bool) — not a func(ctx)(string,error). A false ok returns apierrors.NewInternalError. (`ns, ok := h.namespaceDecoder.GetNamespace(ctx); if !ok { return CreateCurrencyRequest{}, apierrors.NewInternalError(ctx, fmt.Errorf("failed to resolve namespace")) }`)
+**Page default size differs by operation** — ListCurrencies defaults to page size 100 (currency catalog) while ListCostBases defaults to 20. (`page := pagination.NewPage(1, 100)`)
+**BillingCurrency union via generic constructor** — convert.go builds the v3.BillingCurrency discriminated union with NewBillingCurrencyFrom[T] calling the generated FromBillingCurrencyCustom/FromBillingCurrencyFiat methods. (`func NewBillingCurrencyFrom[T v3.BillingCurrencyCustom | v3.BillingCurrencyFiat](v T) (v3.BillingCurrency, error)`)
+**Custom-vs-fiat routing by empty ID** — ToAPIBillingCurrency treats any currency with c.ID == "" as fiat and otherwise custom. (`if c.ID != "" { return NewBillingCurrencyFrom(v3.BillingCurrencyCustom{...}) }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `handler.go` | Handler interface + handler struct holding namespaceDecoder, currencyService currencies.CurrencyService, and options. New() constructor. | This handler uses namespacedriver.NamespaceDecoder not a func; new operations must call GetNamespace (returns bool, not error) not resolveNamespace. |
-| `list.go` | ListCurrencies with optional filter[type] query param mapped through FromAPIBillingCurrencyType and page-pagination with default size 100. | Filter is optional; nil check required before dereferencing params.Filter. |
-| `convert.go` | ToAPIBillingCurrency distinguishes custom (has ID) from fiat (no ID) to route to the correct union branch; ToAPIBillingCostBasis converts the rate Decimal to string. | The custom vs fiat branch is determined by c.ID != '' — any currency with an empty ID is treated as fiat. |
+| `handler.go` | Handler interface (ListCurrencies, CreateCurrency, CreateCostBasis, ListCostBases) + handler struct holding namespaceDecoder, currencies.CurrencyService, options. | Uses namespacedriver.NamespaceDecoder, not a closure; new ops must call GetNamespace (returns bool, not error). |
+| `list.go` | ListCurrencies with optional filter[type] and filter[code], sort parsing via request.ParseSortBy, page default 100. | params.Filter is optional — nil-check before dereferencing Type/Code. |
+| `convert.go` | FromAPIBillingCurrencyType, NewBillingCurrencyFrom[T], ToAPIBillingCurrency, ToAPIBillingCostBasis (Rate Decimal -> string). | Custom vs fiat is decided solely by c.ID != ""; an empty ID is always treated as fiat. |
+| `get_cost_bases.go` | ListCostBases with a custom ListCostBasesArgs (CurrencyID + Params) and optional filter[fiat_code]. | Default page size here is 20 (not 100); FilterFiatCode is built only when Params.Filter.FiatCode is non-nil. |
 
 ## Anti-Patterns
 
-- Using resolveNamespace pattern instead of namespaceDecoder.GetNamespace
-- Defaulting page size to 20 (use 100 for currency catalog lists)
-- Mixing currency and cost-basis conversion logic into operation files rather than a convert.go
-- Forgetting the ok bool from GetNamespace and assuming it always returns a valid namespace
+- Using the resolveNamespace closure pattern instead of namespaceDecoder.GetNamespace
+- Defaulting ListCurrencies page size to 20 (use 100 for the currency catalog)
+- Mixing currency/cost-basis conversion logic into operation files instead of convert.go
+- Ignoring the ok bool from GetNamespace and assuming a valid namespace
 
 ## Decisions
 
-- **namespacedriver.NamespaceDecoder is injected instead of a resolveNamespace closure because currencies was wired before the closure pattern was standardized.** — Both patterns resolve namespace from context; the decoder pattern is older and specific to certain handler packages that predate the closure convention.
+- **namespacedriver.NamespaceDecoder is injected instead of a resolveNamespace closure** — currencies was wired before the closure pattern was standardized; both resolve namespace from context, the decoder pattern is the older convention.
 
 <!-- archie:ai-end -->

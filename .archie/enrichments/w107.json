@@ -1,104 +1,365 @@
 {
-  "openmeter/notification/webhook/noop": {
-    "purpose": "No-op implementation of webhook.Handler used when Svix is unconfigured. Every method logs the attempted call and returns webhook.ErrNotImplemented, giving callers a defined error instead of a nil panic.",
+  "openmeter/notification/adapter": {
+    "purpose": "Ent/PostgreSQL persistence layer for the notification domain, implementing notification.Repository against four Ent entities (NotificationChannel, NotificationRule, NotificationEvent, NotificationEventDeliveryStatus). Every method body is wrapped in entutils.TransactingRepo / TransactingRepoWithNoValue so the ctx-carried Ent transaction is honored.",
     "patterns": [
       {
-        "name": "Compile-time interface assertion",
-        "description": "File opens with `var _ webhook.Handler = (*Handler)(nil)` to catch missing methods at compile time. If webhook.Handler gains a new method, this file must implement it or the build fails.",
-        "example": "var _ webhook.Handler = (*Handler)(nil)"
+        "name": "TransactingRepo wrapper on every method",
+        "description": "Every adapter method defines an inner fn closure and passes it to entutils.TransactingRepo (value returns) or TransactingRepoWithNoValue (error-only). Never call a.db outside a fn wrapper.",
+        "example": "fn := func(ctx context.Context, a *adapter) (*notification.Channel, error) { ... }; return entutils.TransactingRepo(ctx, a, fn)"
       },
       {
-        "name": "Log-then-return-ErrNotImplemented",
-        "description": "Every method calls h.logger.InfoContext with operation name and params, then returns webhook.ErrNotImplemented (or nil, ErrNotImplemented for pointer returns). Never return nil error \u2014 callers must distinguish noop from success.",
-        "example": "h.logger.InfoContext(ctx, \"sending message\", \"params\", params)\nreturn nil, webhook.ErrNotImplemented"
+        "name": "Soft-delete via SetDisabled + SetDeletedAt",
+        "description": "Channels and rules are soft-deleted: SetDisabled(true) + SetDeletedAt(clock.Now()). All list queries filter with Or(DeletedAtIsNil(), DeletedAtGT(clock.Now())).",
+        "example": "a.db.NotificationChannel.UpdateOneID(params.ID).SetDisabled(true).SetDeletedAt(clock.Now()).Save(ctx)"
       },
       {
-        "name": "Structured logger tagging in constructor",
-        "description": "New(logger *slog.Logger) tags the logger with slog.String(\"webhook_handler\", \"noop\") so all log lines are attributable to this handler without additional fields at each call site.",
-        "example": "logger.With(slog.String(\"webhook_handler\", \"noop\"))"
+        "name": "EagerLoadActiveChannels / EagerLoadRulesWithActiveChannels",
+        "description": "Shared query-modifier functions (rule.go, event.go) filter channels to non-disabled and non-deleted at a given time. Use these whenever loading rule/event channel edges.",
+        "example": "query.WithChannels(EagerLoadActiveChannels(clock.Now()))"
+      },
+      {
+        "name": "EntityMapping functions in entitymapping.go",
+        "description": "All DB-to-domain conversions go through pure functions: ChannelFromDBEntity, RuleFromDBEntity, EventFromDBEntity, EventDeliveryStatusFromDBEntity. Never map inline in CRUD methods.",
+        "example": "return ChannelFromDBEntity(*channel), nil"
+      },
+      {
+        "name": "entdb.IsNotFound -> notification.NotFoundError",
+        "description": "After any query, check entdb.IsNotFound(err) and return notification.NotFoundError{NamespacedID:...}; never surface raw Ent errors.",
+        "example": "if entdb.IsNotFound(err) { return nil, notification.NotFoundError{NamespacedID: models.NamespacedID{Namespace: params.Namespace, ID: params.ID}} }"
+      },
+      {
+        "name": "Bulk delivery-status creation inside CreateEvent transaction",
+        "description": "CreateEvent saves the event, re-queries the rule with EagerLoadActiveChannels, then CreateBulk inserts one NotificationEventDeliveryStatus per active channel \u2014 all in one TransactingRepo fn.",
+        "example": "a.db.NotificationEventDeliveryStatus.CreateBulk(statusBulkQuery...).Save(ctx)"
+      },
+      {
+        "name": "Payload serialized as JSON string column",
+        "description": "NotificationEvent.Payload is a string. CreateEvent json.Marshal(params.Payload) before SetPayload; EventFromDBEntity calls eventPayloadFromJSON which validates EventPayloadMeta.Version for invoice events.",
+        "example": "payloadJSON, _ := json.Marshal(params.Payload); query.SetPayload(string(payloadJSON))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "noop.go",
-        "role": "Complete no-op implementation of webhook.Handler; single file, no other files in this package.",
-        "watch_for": "If webhook.Handler gains a new method, add it here or the compile-time assertion at the top will fail the build."
+        "file": "adapter.go",
+        "role": "Config (Client, Logger), New() constructor, adapter struct with Tx/WithTx/Self for entutils transaction plumbing.",
+        "watch_for": "WithTx creates a txClient via entdb.NewTxClientFromRawConfig \u2014 must stay in sync with entutils.TxDriver contract. Self() is required by the TransactingRepo generic constraint."
+      },
+      {
+        "file": "entitymapping.go",
+        "role": "Pure DB-to-domain mappers; eventPayloadFromJSON does version check for invoice events.",
+        "watch_for": "A new EventType must be handled in the eventPayloadFromJSON switch or it silently deserializes without version check. entitymapping_test.go guards JSON shape."
+      },
+      {
+        "file": "event.go",
+        "role": "ListEvents and CreateEvent; CreateEvent saves event, fetches rule+channels, bulk-creates delivery statuses in one TransactingRepo.",
+        "watch_for": "New event types must handle nil channel edges in CreateEvent. EagerLoadRulesWithActiveChannels is exported for reuse."
+      },
+      {
+        "file": "rule.go",
+        "role": "NotificationRule CRUD; UpdateRule ClearChannels().AddChannelIDs() replaces channel set atomically. Defines EagerLoadActiveChannels.",
+        "watch_for": "CreateRule and UpdateRule re-query channels after Save \u2014 Ent Save does not return edge data."
+      },
+      {
+        "file": "channel.go",
+        "role": "NotificationChannel CRUD with orderBy switch and pagination.",
+        "watch_for": "IncludeDisabled=false adds Disabled(false) filter; omitting leaks disabled channels."
+      },
+      {
+        "file": "deliverystatus.go",
+        "role": "ListEventsDeliveryStatus, GetEventDeliveryStatus, UpdateEventDeliveryStatus \u2014 all in TransactingRepo.",
+        "watch_for": "UpdateEventDeliveryStatus uses SetOrClearNextAttemptAt for nullable NextAttemptAt \u2014 SetNextAttemptAt would panic on nil."
       }
     ],
     "anti_patterns": [
-      "Returning nil error from any method \u2014 callers (notification.Service) must know the noop is not functional",
-      "Omitting the compile-time interface assertion `var _ webhook.Handler = (*Handler)(nil)`",
-      "Adding real business logic or state \u2014 this is intentionally a stub with no side-effects beyond logging",
-      "Panicking instead of returning ErrNotImplemented \u2014 the noop must be safe to use in production when Svix is unconfigured"
+      "Calling a.db directly outside a TransactingRepo/TransactingRepoWithNoValue fn closure \u2014 bypasses ctx transaction",
+      "Returning raw entdb errors instead of notification.NotFoundError for not-found cases",
+      "Mapping DB rows inline in CRUD methods instead of using entitymapping.go helpers",
+      "Loading rule channels without EagerLoadActiveChannels \u2014 includes disabled or deleted channels",
+      "Editing eventPayloadFromJSON to skip version validation for new invoice event types"
     ],
     "decisions": [
       {
-        "decision": "Return webhook.ErrNotImplemented instead of nil",
-        "rationale": "Callers (notification.Service) distinguish noop from real failures; a nil error would silently swallow webhook operations when Svix is not configured, causing invisible data loss."
+        "decision": "Soft-delete instead of hard-delete for channels and rules",
+        "rationale": "In-flight events reference rule and channel IDs; hard deletion breaks FK integrity and orphans delivery status records."
       },
       {
-        "decision": "Single-file package with no sub-packages",
-        "rationale": "The noop handler has no state or dependencies beyond slog; splitting it would add navigation overhead with no benefit."
+        "decision": "Bulk delivery-status insert inside CreateEvent transaction",
+        "rationale": "Atomicity: an event with no delivery statuses would never dispatch; same-TX creation prevents a window where the event exists with no pending deliveries."
+      },
+      {
+        "decision": "Version check only for invoice event types in eventPayloadFromJSON",
+        "rationale": "Invoice payload schema changed; version 0 (missing field) must be rejected to avoid deserializing stale JSONB into the new InvoicePayload shape."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Add a new method to satisfy an updated webhook.Handler interface",
-        "code": "func (h Handler) NewMethod(ctx context.Context, params webhook.NewMethodInput) (*webhook.Result, error) {\n\th.logger.InfoContext(ctx, \"new method called\", \"params\", params)\n\treturn nil, webhook.ErrNotImplemented\n}"
+        "scenario": "Add an adapter method returning a domain value inside a transaction",
+        "code": "func (a *adapter) GetChannel(ctx context.Context, params notification.GetChannelInput) (*notification.Channel, error) {\n\tfn := func(ctx context.Context, a *adapter) (*notification.Channel, error) {\n\t\trow, err := a.db.NotificationChannel.Query().Where(channeldb.ID(params.ID), channeldb.Namespace(params.Namespace)).First(ctx)\n\t\tif err != nil {\n\t\t\tif entdb.IsNotFound(err) {\n\t\t\t\treturn nil, notification.NotFoundError{NamespacedID: models.NamespacedID{Namespace: params.Namespace, ID: params.ID}}\n\t\t\t}\n\t\t\treturn nil, fmt.Errorf(\"failed to fetch notification channel: %w\", err)\n\t\t}\n\t\treturn ChannelFromDBEntity(*row), nil\n\t}\n\treturn entutils.TransactingRepo(ctx, a, fn)\n}"
       }
     ]
   },
-  "openmeter/notification/webhook/secret": {
-    "purpose": "Pure-function utility package for generating and validating Svix-compatible HMAC signing secrets with the 'whsec_' prefix. No state, no interfaces \u2014 used exclusively when creating notification webhook channels.",
+  "openmeter/notification/consumer": {
+    "purpose": "Watermill-based Kafka consumer for the notification service, routing system-topic events (entitlement snapshots, billing invoice created/updated) to typed handlers that call notification.Service.CreateEvent. Each new event type requires a new grouphandler registration in consumer.go.",
     "patterns": [
       {
-        "name": "whsec_ prefix convention",
-        "description": "Generated secrets are always prefixed with SigningSecretPrefix ('whsec_') followed by base64-encoded random bytes. ValidateSigningSecret strips the prefix before checking length (32\u2013100 chars) and base64 validity \u2014 these bounds are Svix API constraints.",
-        "example": "return \"whsec_\" + base64.StdEncoding.EncodeToString(b), nil"
+        "name": "grouphandler.NewNoPublishingHandler with typed GroupEventHandlers",
+        "description": "consumer.go wires all event types in a single NewNoPublishingHandler call, each wrapped in grouphandler.NewGroupEventHandler[T]. Unknown event types are silently dropped.",
+        "example": "grouphandler.NewNoPublishingHandler(opts.Marshaler, opts.Router.MetricMeter, grouphandler.NewGroupEventHandler(func(ctx context.Context, event *snapshot.SnapshotEvent) error { return consumer.entitlementSnapshotHandler.Handle(ctx, *event) }), ...)"
       },
       {
-        "name": "Validation returns models.NewNillableGenericValidationError",
-        "description": "ValidateSigningSecret collects errors with errors.Join and wraps with models.NewNillableGenericValidationError, returning nil when valid and a typed GenericValidationError (HTTP 400) when invalid.",
-        "example": "return models.NewNillableGenericValidationError(errors.Join(errs...))"
+        "name": "EntitlementSnapshotHandler dispatches both threshold and reset",
+        "description": "entitlementsnapshot.go routes to handleAsSnapshotEvent (balance threshold) and handleAsEntitlementResetEvent (reset) based on predicates; both call notification.Service.CreateEvent.",
+        "example": "if b.isBalanceThresholdEvent(event) { ... }; if b.isEntitlementResetEvent(event) { ... }"
       },
       {
-        "name": "Exported size constant for testability",
-        "description": "DefaultSigningSecretSize = 32 is exported so tests and callers reference the canonical size without magic numbers.",
-        "example": "const DefaultSigningSecretSize = 32"
+        "name": "Dual V1+V2 dedup hash query for balance threshold events",
+        "description": "Balance threshold events dedup by querying ListEvents with DeduplicationHashes containing both V1 (sha256) and V2 (xxh3 with ThresholdKind prefix). New events created only when no matching hash exists in the current usage period.",
+        "example": "dedupHash, _ := NewBalanceEventDedupHash(balSnapshot, rule.ID, *threshold); b.Notification.ListEvents(ctx, notification.ListEventsInput{DeduplicationHashes: []string{dedupHash.V1(), dedupHash.V2()}})"
       },
       {
-        "name": "crypto/rand for secret generation",
-        "description": "NewSigningSecret uses crypto/rand.Read \u2014 signing secrets are cryptographic HMAC material and must be unpredictable.",
-        "example": "_, err := rand.Read(b)"
+        "name": "EventPayloadVersionCurrent required for invoice payloads",
+        "description": "Invoice EventPayload must include EventPayloadMeta{Type: eventType, Version: notification.EventPayloadVersionCurrent}. Missing Version causes adapter deserialization to reject the payload.",
+        "example": "payload := notification.EventPayload{EventPayloadMeta: notification.EventPayloadMeta{Type: eventType, Version: notification.EventPayloadVersionCurrent}, Invoice: &notification.InvoicePayload{Invoice: apiInvoice}}"
+      },
+      {
+        "name": "Annotation-based event metadata",
+        "description": "Created events carry annotations (AnnotationEventSubjectKey, AnnotationEventFeatureKey, AnnotationEventCustomerID, AnnotationBalanceEventDedupeHash) set from the snapshot/invoice before CreateEvent.",
+        "example": "annotations := models.Annotations{notification.AnnotationEventSubjectKey: in.Snapshot.Subject.Key, notification.AnnotationBalanceEventDedupeHash: in.DedupeHash}"
+      },
+      {
+        "name": "Invoice handler skips gathering invoices",
+        "description": "InvoiceEventHandler.Handle returns nil early when event.Invoice.Status == billing.StandardInvoiceStatusGathering \u2014 gathering invoices produce no notification events.",
+        "example": "if event.Invoice.Status == billing.StandardInvoiceStatusGathering { return nil }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "secret.go",
-        "role": "All secret generation and validation logic; single file, no other files in this package.",
-        "watch_for": "Length bounds in ValidateSigningSecret (32\u2013100 chars after stripping prefix) are Svix API constraints \u2014 changing them without verifying against Svix docs will break webhook channel creation."
+        "file": "consumer.go",
+        "role": "Wires the Watermill router, instantiates handler structs, registers all event handlers. Run(ctx) starts the router; Close() stops it.",
+        "watch_for": "Adding a new event type requires a new grouphandler.NewGroupEventHandler here; forgetting it means the event is silently ignored."
+      },
+      {
+        "file": "entitlementsnapshot.go",
+        "role": "Dispatcher calling handleAsSnapshotEvent (threshold) and handleAsEntitlementResetEvent (reset); both can fire on the same SnapshotEvent.",
+        "watch_for": "isBalanceThresholdEvent gates processing \u2014 non-metered entitlements and deletes are skipped; event.Value must not be nil."
+      },
+      {
+        "file": "entitlementbalancethreshold.go",
+        "role": "Core balance threshold logic: rule filtering, dedup hash V1/V2, last-event comparison, event creation. Contains BalanceEventDedupHash, getActiveThresholdsWithHighestPriority.",
+        "watch_for": "Percentage thresholds require TotalAvailableGrantAmount > 0 (else ErrNoBalanceAvailable). ThresholdKind is part of V2 hash \u2014 changing the mapping is a breaking dedup change."
+      },
+      {
+        "file": "entitlementreset.go",
+        "role": "Handles reset events: lists rules of type EventTypeEntitlementReset, dedups by existing event in current period, creates EntitlementReset payloads.",
+        "watch_for": "Dedup checks for any event in the current usage period \u2014 simpler than threshold dedup but still period-scoped."
+      },
+      {
+        "file": "invoice.go",
+        "role": "Handles StandardInvoiceCreatedEvent/UpdatedEvent; maps via billinghttp.MapEventInvoiceToAPI, creates one event per active rule.",
+        "watch_for": "Gathering invoices skipped explicitly; rules with Disabled=true skipped with a warning log."
       }
     ],
     "anti_patterns": [
-      "Returning a raw error instead of models.NewNillableGenericValidationError \u2014 breaks HTTP 400 mapping in GenericErrorEncoder",
-      "Using encoding/hex or non-standard base64 variants \u2014 Svix expects standard base64 (StdEncoding)",
-      "Using math/rand instead of crypto/rand \u2014 produces predictable secrets exploitable for HMAC forgery",
-      "Storing secrets in this package \u2014 it only generates/validates; persistence is the caller's responsibility"
+      "Adding a new event type handler without registering it in consumer.go's NewNoPublishingHandler \u2014 event is silently dropped",
+      "Setting Version to anything other than notification.EventPayloadVersionCurrent in invoice EventPayloadMeta",
+      "Changing BalanceEventDedupHash field composition without migrating V1/V2 hash constants \u2014 breaks dedup",
+      "Calling notification.Service methods without propagating msg.Context()",
+      "Triggering notification events for gathering invoices (Status == StandardInvoiceStatusGathering)"
     ],
     "decisions": [
       {
-        "decision": "Wrap validation errors with models.NewNillableGenericValidationError",
-        "rationale": "Keeps error typing consistent with the rest of the notification domain so commonhttp.GenericErrorEncoder maps validation failures to HTTP 400 without special-casing this package."
+        "decision": "Dual V1+V2 dedup hash query for balance threshold events",
+        "rationale": "V2 adds ThresholdKind to prevent usage and balance threshold events from aliasing; V1 is queried alongside for backward compatibility with pre-V2 events."
       },
       {
-        "decision": "Prefix all secrets with 'whsec_'",
-        "rationale": "Svix interprets this prefix to select HMAC-SHA256 signing; secrets without the prefix use a different (weaker) algorithm."
+        "decision": "activeThresholds struct separates Usage and Balance thresholds",
+        "rationale": "Usage (value/percent) and balance thresholds are independent; the highest active of each kind is selected separately so both can fire concurrently."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Generate and validate a signing secret for a new webhook channel",
-        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/notification/webhook/secret\"\n)\n\nsec, err := secret.NewSigningSecretWithDefaultSize()\nif err != nil {\n\treturn fmt.Errorf(\"generate signing secret: %w\", err)\n}\nif err := secret.ValidateSigningSecret(sec); err != nil {\n\treturn err // GenericValidationError -> HTTP 400\n}"
+        "scenario": "Add a new system-event handler to the consumer",
+        "code": "// In consumer.go, inside grouphandler.NewNoPublishingHandler(...):\ngrouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.SomeNewEvent) error {\n\tif event == nil {\n\t\treturn nil\n\t}\n\treturn consumer.someNewHandler.Handle(ctx, *event)\n}),\n// Then add SomeNewHandler in a new file and call notification.Service.CreateEvent inside it."
+      }
+    ]
+  },
+  "openmeter/notification/httpdriver": {
+    "purpose": "HTTP handler layer for the notification v1 API (channels, rules, events, delivery status), implementing httptransport.Handler[Req,Resp] and HandlerWithArgs. Delegates all business logic to notification.Service; only decodes requests, encodes responses, and maps errors.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandler / NewHandlerWithArgs for every endpoint",
+        "description": "Each CRUD operation returns a typed Handler. Decoder extracts namespace via h.resolveNamespace(ctx) and maps API params to service Input; operation calls h.service.<Method>; encoder uses commonhttp.JSONResponseEncoderWithStatus.",
+        "example": "return httptransport.NewHandlerWithArgs(decoderFn, operationFn, commonhttp.JSONResponseEncoderWithStatus[ListChannelsResponse](http.StatusOK), httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listNotificationChannels\"), httptransport.WithErrorEncoder(errorEncoder()))...)"
+      },
+      {
+        "name": "Type alias pattern for Request/Response/Params per endpoint",
+        "description": "Each handler file declares type aliases: <Verb><Noun>Request = notification.<Verb><Noun>Input, Response = api.<ResponseType>, Handler = httptransport.Handler[...].",
+        "example": "type (ListChannelsRequest = notification.ListChannelsInput; ListChannelsResponse = api.NotificationChannelPaginatedResponse; ListChannelsHandler httptransport.HandlerWithArgs[...])"
+      },
+      {
+        "name": "Custom errorEncoder() in errors.go",
+        "description": "All handlers pass httptransport.WithErrorEncoder(errorEncoder()); the encoder maps notification domain errors (NotFoundError) to correct HTTP status codes.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(errorEncoder()))"
+      },
+      {
+        "name": "FromChannel / FromRule / FromEvent mapping functions in mapping.go",
+        "description": "All domain-to-API conversions live in mapping.go. Never inline domain-to-API conversion in handler files.",
+        "example": "item, err = FromChannel(channel); item, err = FromRule(rule)"
+      },
+      {
+        "name": "namespace resolution via h.resolveNamespace(ctx)",
+        "description": "Every decoder calls h.resolveNamespace(ctx) to get the tenant namespace \u2014 never read namespace from request body or path parameters.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ListChannelsRequest{}, fmt.Errorf(\"failed to resolve namespace: %w\", err) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines Handler interface (all endpoint methods), handler struct (service, options, resolveNamespace), New() constructor.",
+        "watch_for": "New endpoints must be added to the Handler interface before implementing the method."
+      },
+      {
+        "file": "errors.go",
+        "role": "errorEncoder mapping notification domain errors to HTTP status codes.",
+        "watch_for": "notification.NotFoundError must map to 404; missing an error type falls through to 500."
+      },
+      {
+        "file": "mapping.go",
+        "role": "Domain-to-API converters (FromChannel, FromRule, FromEvent) and API-to-domain helpers (AsChannelWebhookCreateRequest, AsRuleBalanceThresholdCreateRequest).",
+        "watch_for": "FromRule dispatches on rule.Type \u2014 add a case for every new EventType. mapping_test.go covers payload shape; new payload types need test cases."
+      },
+      {
+        "file": "rule.go",
+        "role": "Rule CRUD handlers plus TestRule (generates a synthetic event via internal.TestEventGenerator and calls CreateEvent).",
+        "watch_for": "TestRule accesses h.testEventGenerator \u2014 ensure it is injected in New() when wiring."
+      }
+    ],
+    "anti_patterns": [
+      "Putting business logic in decoder/encoder functions instead of delegating to notification.Service",
+      "Inlining domain-to-API mapping in handler files instead of using mapping.go functions",
+      "Reading namespace from request body instead of h.resolveNamespace(ctx)",
+      "Omitting httptransport.WithErrorEncoder(errorEncoder()) from handler options",
+      "Returning non-API types from handler operations \u2014 encoder expects api.* response types"
+    ],
+    "decisions": [
+      {
+        "decision": "Type aliases for Request/Response/Handler types per endpoint",
+        "rationale": "Makes handler signatures self-documenting and lets the router reference concrete handler types without importing service input types directly."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new list endpoint following the established handler pattern",
+        "code": "type (\n\tListFooRequest  = notification.ListFooInput\n\tListFooResponse = api.NotificationFooPaginatedResponse\n\tListFooParams   = api.ListNotificationFooParams\n\tListFooHandler  httptransport.HandlerWithArgs[ListFooRequest, ListFooResponse, ListFooParams]\n)\n\nfunc (h *handler) ListFoo() ListFooHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, params ListFooParams) (ListFooRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return ListFooRequest{}, fmt.Errorf(\"failed to resolve namespace: %w\", err) }\n\t\t\treturn ListFooRequest{Namespaces: []string{ns}}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request ListFooRequest) (ListFooResponse, error) { /* ... */ },\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ListFooResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(errorEncoder()))...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/notification/internal": {
+    "purpose": "Internal test-helper package that generates synthetic notification event payloads (balance threshold, entitlement reset, invoice) for notification rule tests and test event dispatch \u2014 never imported from production code paths.",
+    "patterns": [
+      {
+        "name": "TestEventGenerator struct with injected billing.Service",
+        "description": "The sole exported type wraps billing.Service to generate realistic invoice payloads via billing.SimulateInvoice; entitlement payloads are built from hardcoded fixtures.",
+        "example": "func NewTestEventGenerator(billingService billing.Service) *TestEventGenerator { return &TestEventGenerator{billingService: billingService} }"
+      },
+      {
+        "name": "EventGeneratorInput.Validate() before switching on EventType",
+        "description": "Generate() validates the input before branching, surfacing empty namespace or event type errors early.",
+        "example": "if err := in.Validate(); err != nil { return notification.EventPayload{}, err }; switch in.EventType { ... }"
+      },
+      {
+        "name": "Invoice payloads via billing.SimulateInvoice + billinghttp.MapEventInvoiceToAPI",
+        "description": "newTestInvoicePayload calls the real billing simulation path and maps through the HTTP driver converter, keeping fixtures aligned with production serialization.",
+        "example": "invoice, _ := t.billingService.SimulateInvoice(ctx, billing.SimulateInvoiceInput{...}); eventInvoice, _ := billing.NewEventStandardInvoice(invoice); apiInvoice, _ := billinghttp.MapEventInvoiceToAPI(eventInvoice)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "rule.go",
+        "role": "Entire package. Defines TestEventGenerator, EventGeneratorInput, and three private payload builders (balance threshold, entitlement reset, invoice).",
+        "watch_for": "Entitlement/balance payloads use hardcoded ULID strings and timestamps \u2014 update fixture literals if payload schemas change. New event types in Generate() must set EventPayloadMeta.Type correctly or callers misroute."
+      }
+    ],
+    "anti_patterns": [
+      "Importing this package from production code \u2014 it pulls in billing HTTP driver types that have no place in live dispatch",
+      "Extending Generate() for a new event type without setting EventPayloadMeta.Type inside the returned payload",
+      "Replacing billing.SimulateInvoice with hand-crafted invoice structs \u2014 the simulation path keeps the payload structurally valid"
+    ],
+    "decisions": [
+      {
+        "decision": "Use billing.SimulateInvoice for invoice test payloads instead of static fixtures",
+        "rationale": "Invoice API shape is complex and changes often; the real simulation + HTTP mapping keeps the test payload always valid and aligned with production serialization."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/notification/service": {
+    "purpose": "Concrete implementation of notification.Service, orchestrating channel and rule lifecycle against both notification.Repository (Ent/PostgreSQL) and webhook.Handler (Svix). All multi-step mutations use transaction.Run / RunWithNoValue; Svix webhook operations run inside the same transaction scope as adapter writes.",
+    "patterns": [
+      {
+        "name": "transaction.Run wraps all multi-step mutations",
+        "description": "CreateChannel, DeleteChannel, UpdateChannel, CreateRule, DeleteRule, UpdateRule wrap their bodies in transaction.Run(ctx, s.adapter, fn) so adapter and webhook calls share a transaction.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*notification.Channel, error) { channel, _ := s.adapter.CreateChannel(ctx, params); _, _ = s.webhook.CreateWebhook(ctx, ...); return channel, nil })"
+      },
+      {
+        "name": "params.Validate() before every mutation",
+        "description": "Every Service method calls params.Validate() (or ValidateWith) before any adapter/webhook call, wrapping the error without touching the DB.",
+        "example": "if err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid params: %w\", err) }"
+      },
+      {
+        "name": "Webhook adapter kept in sync with channel/rule lifecycle",
+        "description": "CreateChannel calls webhook.CreateWebhook then adapter.UpdateChannel (store SigningSecret). DeleteChannel calls webhook.DeleteWebhook before adapter.DeleteChannel. CreateRule/DeleteRule call UpdateWebhookChannels per channel.",
+        "example": "wb, _ := s.webhook.CreateWebhook(ctx, webhook.CreateWebhookInput{...}); updateIn.Config.WebHook.SigningSecret = wb.Secret; channel, _ = s.adapter.UpdateChannel(ctx, updateIn)"
+      },
+      {
+        "name": "ValidateRuleChannels generic constraint",
+        "description": "ValidateRuleChannels[T] used in CreateRule/UpdateRule calls s.adapter.ListChannels to verify referenced channels exist in the namespace before saving.",
+        "example": "err = params.ValidateWith(ValidateRuleChannels[notification.CreateRuleInput](ctx, s))"
+      },
+      {
+        "name": "ChannelIDsDifference for minimal webhook updates on UpdateRule",
+        "description": "UpdateRule computes notification.NewChannelIDsDifference(params.Channels, oldChannelIDs) and only calls UpdateWebhookChannels for Additions or Removals.",
+        "example": "channelIDsDiff := notification.NewChannelIDsDifference(params.Channels, oldChannelIDs); if !channelIDsDiff.HasChanged() { return s.adapter.UpdateRule(ctx, params) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines Service struct (adapter, webhook, feature, logger), Config, New(), ListFeature delegating to feature.FeatureConnector.",
+        "watch_for": "New dependencies must be added to Config and validated in New(). Compile-time assertion var _ notification.Service = (*Service)(nil)."
+      },
+      {
+        "file": "channel.go",
+        "role": "ChannelService methods. CreateChannel stores the channel first, then creates the Svix webhook and updates SigningSecret back into the DB.",
+        "watch_for": "DeleteChannel blocks deletion if the channel is assigned to any rule (returns NewGenericValidationError with rule IDs). UpdateChannel forbids type change."
+      },
+      {
+        "file": "rule.go",
+        "role": "RuleService methods. UpdateRule computes channel diffs and calls UpdateWebhookChannels only for changed assignments.",
+        "watch_for": "webhook.IsMaxChannelsPerWebhookExceededError must be checked after UpdateWebhookChannels; if hit, return NewGenericValidationError (not a 500)."
+      }
+    ],
+    "anti_patterns": [
+      "Calling adapter methods for multi-step mutations outside transaction.Run \u2014 partial writes if a webhook call fails mid-transaction",
+      "Skipping params.Validate() before adapter calls \u2014 invalid inputs reach the DB",
+      "Calling webhook.DeleteWebhook after adapter.DeleteChannel \u2014 leaves a dangling Svix webhook if DB delete succeeds but webhook delete fails",
+      "Deleting a channel without checking for assigned rules first \u2014 leaves rules referencing a deleted channel",
+      "Calling UpdateWebhookChannels for all channels on UpdateRule instead of only the diff \u2014 causes spurious Svix API calls"
+    ],
+    "decisions": [
+      {
+        "decision": "Webhook operations performed inside the same transaction.Run as adapter writes",
+        "rationale": "Channel/rule lifecycle must stay consistent with Svix; same-transaction scope means a webhook API failure rolls back the DB change rather than leaving them out of sync."
+      },
+      {
+        "decision": "ChannelIDsDifference for minimal Svix calls on UpdateRule",
+        "rationale": "Svix enforces MaxChannelsPerWebhook; calling UpdateWebhookChannels for every channel on every update would hit the limit and cause spurious validation errors."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Create a rule with webhook channel sync inside a transaction",
+        "code": "func (s Service) CreateRule(ctx context.Context, params notification.CreateRuleInput) (*notification.Rule, error) {\n\tif err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid params: %w\", err) }\n\tfn := func(ctx context.Context) (*notification.Rule, error) {\n\t\tif err := params.ValidateWith(ValidateRuleChannels[notification.CreateRuleInput](ctx, s)); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid channels: %w\", err)\n\t\t}\n\t\trule, err := s.adapter.CreateRule(ctx, params)\n\t\tif err != nil { return nil, fmt.Errorf(\"failed to create rule: %w\", err) }\n\t\tfor _, channel := range rule.Channels {\n\t\t\t_, err = s.webhook.UpdateWebhookChannels(ctx, webhook.UpdateWebhookChannelsInput{Namespace: params.Namespace, ID: channel.ID, AddChannels: []string{rule.ID}})\n\t\t\tif err != nil {\n\t\t\t\tif webhook.IsMaxChannelsPerWebhookExceededError(err) {\n\t\t\t\t\treturn nil, models.NewGenericValidationError(fmt.Errorf(\"max rules per webhook exceeded\"))\n\t\t\t\t}\n\t\t\t\treturn nil, err\n\t\t\t}\n\t\t}\n\t\treturn rule, nil\n\t}\n\treturn transaction.Run(ctx, s.adapter, fn)\n}"
       }
     ]
   }

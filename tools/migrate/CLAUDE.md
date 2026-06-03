@@ -2,42 +2,43 @@
 
 <!-- archie:ai-start -->
 
-> Migration toolchain for the OpenMeter database: embeds Atlas-generated SQL files (tools/migrate/migrations/), wraps golang-migrate for startup-time application, and hosts the viewgen sub-tool that generates ClickHouse view DDL separately from Atlas. Primary constraint: SQL files and atlas.sum are Atlas-owned and must never be hand-edited.
+> Migration toolchain for the OpenMeter database: embeds Atlas-generated SQL files (migrations/), wraps golang-migrate for startup-time application via migrate.go, and hosts the viewgen sub-tool that generates Postgres view DDL separately from Atlas. Primary constraint: migrations/ SQL files and atlas.sum are Atlas-owned and must never be hand-edited.
 
 ## Patterns
 
-**SourceWrapper for migration:ignore filtering** — All migration file access goes through SourceWrapper (fs.go), which skips files containing '-- migration:ignore' on any line. This is the only supported way to exclude a migration file from the chain. (`fs := migrate.NewSourceWrapper(options.Migrations.FS); sourceDriver, _ := iofs.New(fs, path)`)
-**OMMigrationsConfig as canonical config** — migrate.OMMigrationsConfig is the single pre-built MigrationsConfig for the embedded migrations/ directory with StateTableName = 'schema_om'. All callers (app/common, cmd/jobs, tests) use this constant; never construct ad-hoc MigrationsConfig pointing at the same embed. (`migrator, err := migrate.New(migrate.MigrateOptions{Migrations: migrate.OMMigrationsConfig, ...})`)
-**Migration stop tests via runner / stops pattern** — Data-migration tests use the runner{stops: stops{...}}.Test(t) harness (migrate_test.go). Each stop specifies a version, direction (directionUp / directionDown), and an action func(t, *sql.DB). The harness runs stops in version order, calls migrator.Migrate(version), then runs action with the raw *sql.DB — never through an ORM. (`runner{stops: stops{{version: 20250926145930, direction: directionUp, action: func(t *testing.T, db *sql.DB){...}}}}.Test(t)`)
-**purgeDB between up and down passes** — runner.Test truncates all non-schema_om tables between the up-stop sequence and the down-stop sequence using TRUNCATE ... CASCADE. Required because data migration tests may leave rows whose schema is incompatible with the down path. (`// inside runner.Test: r.purgeDB(t, testDB) is called after all up stops and before down stops`)
-**View parity enforced by TestViewDefinitionsMatchGeneratedSchemaSQL** — view_parity_test.go runs the full migration suite on two databases — one applying migrations as-is (including view DDL), one stripping all CREATE/DROP VIEW statements and re-applying views from viewgen.GenerateSQL. Both resulting view definitions must match exactly. Any view changed in openmeter/ent/schema must be re-generated with 'make generate-view-sql'. (`sql, _ := viewgen.GenerateSQL("../../openmeter/ent/schema"); applyGeneratedViews(t, db)`)
-**WaitForMigrationJob for deferred migration startup** — Migrate.WaitForMigrationJob polls until db version >= LatestVersion() from the source driver. Used by binaries that do not run migrations themselves but must wait for a migration job to finish before starting. (`if err := migrator.WaitForMigrationJob(migrate.WithMaxRetries(60)); err != nil { return err }`)
+**OMMigrationsConfig as the canonical embedded config** — migrate.OMMigrationsConfig is the single pre-built MigrationsConfig (FS=//go:embed migrations, FSPath="migrations", StateTableName=MigrationsTable="schema_om"). All callers (app/common, cmd/jobs, tests) use this constant; never construct an ad-hoc MigrationsConfig over the same embed. (`migrator, err := migrate.New(migrate.MigrateOptions{ConnectionString: testDB.URL, Migrations: migrate.OMMigrationsConfig, Logger: testutils.NewLogger(t)})`)
+**SourceWrapper for migration:ignore filtering** — All migration file access goes through SourceWrapper (fs.go). ReadDir skips any file whose any line begins with IgnoreMarker ("-- migration:ignore", strings.HasPrefix). This is the only supported way to exclude a file from the chain without deleting it. (`fs := migrate.NewSourceWrapper(omMigrations); sourceDriver, _ := iofs.New(fs, "migrations")`)
+**filterErrNoChange swallows migrate.ErrNoChange** — Up/Down/Migrate all wrap the underlying goMigrate call in filterErrNoChange, which logs and returns nil on migrate.ErrNoChange. Callers must not re-check for that sentinel — a no-op migration is a success, not an error. (`func (m *Migrate) Up() error { return m.filterErrNoChange(m.goMigrate.Up()) }`)
+**runner/stops harness for data-migration tests** — Data-migration tests use runner{stops: stops{...}}.Test(t) (migrate_test.go). Each stop has version, direction (directionUp/directionDown), and action func(t, *sql.DB). The harness runs ups ascending, purges, then runs downs descending; actions use raw *sql.DB, never Ent. (`runner{stops: stops{{version: 20260320171954, direction: directionUp, action: func(t *testing.T, db *sql.DB){ db.QueryRow(`SELECT meter_id FROM features WHERE id=$1`, id).Scan(&v) }}}}.Test(t)`)
+**View parity enforced against viewgen.GenerateSQL** — view_parity_test.go migrates two databases — one applying migrations as-is, one stripping CREATE/DROP VIEW statements and re-applying views from viewgen.GenerateSQL — then asserts pg_get_viewdef and column lists match. Any view changed in openmeter/ent/schema must be re-generated via 'make generate-view-sql'. (`sql, _ := viewgen.GenerateSQL("../../openmeter/ent/schema"); applyGeneratedViews(t, generatedDB.PGDriver.DB())`)
+**WaitForMigrationJob for deferred-migration binaries** — Binaries that do not run migrations themselves poll Migrate.WaitForMigrationJob until the DB version reaches LatestVersion() (computed from sourceDriver.First/Next). Use it instead of racing the migration job at startup. (`if err := migrator.WaitForMigrationJob(migrate.WithMaxRetries(60)); err != nil { return err }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `tools/migrate/migrate.go` | Core migration library: embeds migrations/ via //go:embed, builds golang-migrate instance from MigrateOptions, wraps ErrNoChange into no-op (not an error), exposes Up/Down/Migrate/WaitForMigrationJob/LatestVersion. | filterErrNoChange swallows migrate.ErrNoChange — callers must not re-check for that sentinel. StateTableName is injected as x-migrations-table URL query param; changing MigrationsTable constant breaks all deployed databases. |
-| `tools/migrate/fs.go` | SourceWrapper filters out migration files containing '-- migration:ignore' from directory listings, enabling selective exclusion without deleting files from the embed. | IgnoreMarker must appear at the start of a line (strings.HasPrefix). SourceWrapper.ReadDir recurses into sub-directories and flattens them — the embedded migrations/ directory must remain flat. |
-| `tools/migrate/migrate_test.go` | Defines the runner/stops harness used by all migration stop tests. TestUpDownUp is the baseline that runs the full migration chain up, then down, then up again. | stops.ups() sorts ascending by version; stops.downs() sorts descending. purgeDB skips the schema_om table. Any new migration test file must be in package migrate_test and use the runner pattern. |
-| `tools/migrate/view_parity_test.go` | Validates that view DDL in migration files matches what viewgen.GenerateSQL produces from openmeter/ent/schema. Runs two parallel migrated databases to compare pg_get_viewdef output. | stripViewStatements splits on semicolons — view SQL embedded in migrations must end with semicolons. buildMigrationsWithoutViews excludes entire migration files whose only content is view statements. |
-| `tools/migrate/views.sql` | Generated output of viewgen; contains CREATE VIEW DDL for all ent.View schemas. Header '-- Code generated by viewgen, DO NOT EDIT.' enforces no manual edits. | Regenerate with 'make generate-view-sql'. Adding a new ent.View schema requires re-running viewgen. |
+| `migrate.go` | Core migration library: //go:embed migrations, builds the golang-migrate instance from MigrateOptions, defines MigrationsConfig + OMMigrationsConfig, and exposes Up/Down/Migrate/LatestVersion via filterErrNoChange. | MigrationsTable constant ("schema_om") is injected as the x-migrations-table URL param — changing it breaks every deployed database. filterErrNoChange means callers must not test for migrate.ErrNoChange themselves. |
+| `fs.go` | SourceWrapper implements the FS interface and filters out files containing IgnoreMarker on a line. NewSourceWrapper wraps the embedded FS before it is handed to iofs.New. | IgnoreMarker must be at the start of a line (strings.HasPrefix). ReadDir recurses into sub-dirs and flattens them, so the embedded migrations/ directory must stay flat. |
+| `migrate_test.go` | Defines the runner/stops harness used by all migration stop tests; TestUpDownUp runs the full chain up, down, then up again. | stops.ups() sorts ascending, stops.downs() descending; purgeDB (TRUNCATE ... CASCADE) runs between up and down passes and skips schema_om. New stop tests must be in package migrate_test using this harness. |
+| `view_parity_test.go` | Asserts view DDL embedded in migrations matches viewgen.GenerateSQL output by comparing column lists and normalized pg_get_viewdef across two migrated databases. | stripViewStatements splits on semicolons — view SQL in migrations must end with a semicolon. buildMigrationsWithoutViews drops whole files that are only view statements. |
+| `views.sql` | Generated viewgen output: CREATE VIEW DDL for all ent.View schemas (e.g. charges_search_v1s). Header '-- Code generated by viewgen, DO NOT EDIT.'. | Never hand-edit; regenerate with 'make generate-view-sql'. Adding a new ent.View schema requires re-running viewgen, not an Atlas diff. |
+| `generate-sqlc-testdata.sh` | Dev helper: spins up Postgres, migrates a scratch DB to a given VERSION, pg_dumps the schema and runs sqlc generate into testdata/sqlcgen/<VERSION>. | Requires the nix dev shell (docker, migrate, pg_dump, psql, sqlc). Uses x-migrations-table=schema_om in the DB URL to stay consistent with OMMigrationsConfig. |
 
 ## Anti-Patterns
 
-- Hand-editing any file in tools/migrate/migrations/ — Atlas owns the chain and atlas.sum will fail CI validation
-- Calling atlas migrate diff expecting it to pick up a new ent.View schema — Atlas does not diff views; use viewgen instead
-- Using an ORM (Ent, GORM) inside migration stop test actions — raw *sql.DB is required because the ORM only understands the current schema version
-- Adding a new migration stop test outside the runner/stops pattern — it will not run the purgeDB/down/up cycle and may leave the database dirty for subsequent tests
-- Importing app/common or any openmeter/ domain package from tools/migrate/cmd/viewgen/main.go — the binary only needs ent schema paths
+- Hand-editing any file in tools/migrate/migrations/ — Atlas owns the chain and atlas.sum fails CI validation
+- Calling 'atlas migrate diff' expecting it to pick up a new ent.View schema — Atlas does not diff views; use viewgen instead
+- Using an ORM (Ent, GORM) inside migration stop-test actions — raw *sql.DB is required because the ORM only understands the current schema version
+- Adding a migration stop test outside the runner/stops pattern — it skips the purgeDB/down/up cycle and can leave the DB dirty for other tests
+- Hand-editing tools/migrate/views.sql — it is generated; run 'make generate-view-sql'
 
 ## Decisions
 
-- **golang-migrate wraps Atlas-generated SQL rather than using Atlas at runtime** — Atlas CLI is a dev/CI tool; golang-migrate provides a lightweight embedded runner with a stable Go API, ErrNoChange handling, and the x-migrations-table parameter that isolates OpenMeter's schema_om table from other users of the same Postgres instance.
-- **viewgen is a separate tool from Atlas migration generation** — Atlas does not include ent.View schemas in its diff output, so view DDL would silently disappear from migrations. viewgen reads EntSQL annotations directly from the schema loader and renders CREATE VIEW statements that can be applied alongside migration files.
-- **Migration stop tests use raw *sql.DB, not Ent, and call purgeDB between up and down passes** — Data-migration tests assert schema shape at intermediate versions where Ent's generated types are incompatible. purgeDB is necessary because historical migrations may not have correct inverse data transforms for rows inserted by earlier stops.
+- **golang-migrate wraps Atlas-generated SQL rather than using Atlas at runtime** — Atlas CLI is a dev/CI tool; golang-migrate gives a lightweight embedded runner with a stable Go API, ErrNoChange handling, and the x-migrations-table param that isolates OpenMeter's schema_om table from other users of the same Postgres instance.
+- **viewgen is a separate tool from Atlas migration generation** — Atlas does not include ent.View schemas in its diff output, so view DDL would silently disappear from migrations; viewgen reads the EntSQL view annotations directly and renders CREATE VIEW statements, with view_parity_test.go guarding drift.
+- **Migration stop tests use raw *sql.DB and purgeDB between up and down passes** — Tests assert schema shape at intermediate versions where Ent's generated types are incompatible; purgeDB is needed because historical migrations may lack correct inverse data transforms for rows inserted by earlier stops.
 
-## Example: Write a migration stop test for a new data migration
+## Example: Write a migration stop test verifying a data backfill up and rollback down
 
 ```
 package migrate_test
@@ -50,11 +51,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMyDataMigration(t *testing.T) {
-	rowID := ulid.Make().String()
-
-	runner{
-		stops: stops{
+func TestMyBackfill(t *testing.T) {
+	id := ulid.Make().String()
+	runner{stops: stops{
+		{version: 20260320084936, direction: directionUp, action: func(t *testing.T, db *sql.DB) {
+			_, err := db.Exec(`INSERT INTO features (namespace,id,created_at,updated_at,name,key) VALUES ('default',$1,NOW(),NOW(),'n','k')`, id)
 // ...
 ```
 

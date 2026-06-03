@@ -1,75 +1,75 @@
 {
-  "openmeter/subscription/hooks/annotations": {
-    "purpose": "Implements a SubscriptionCommandHook that repairs annotation-based chain links (previous/superseding subscription IDs) when a subscription is deleted, maintaining doubly-linked list integrity across the subscription chain without orphaned pointers.",
+  "openmeter/subject/service/hooks": {
+    "purpose": "Implements the CustomerSubjectHook that bridges customer.Service lifecycle events to subject.Service provisioning, ensuring every UsageAttribution.SubjectKey has a corresponding Subject row without creating circular imports between the subject and customer domains.",
     "patterns": [
       {
-        "name": "Embed NoOpSubscriptionCommandHook",
-        "description": "Every hook struct must embed subscription.NoOpSubscriptionCommandHook so only overridden methods need implementation; unimplemented methods compile as no-ops.",
-        "example": "type AnnotationCleanupHook struct { subscription.NoOpSubscriptionCommandHook; subscriptionQueryService subscription.QueryService; ... }"
+        "name": "Embed NoopServiceHook for partial overrides",
+        "description": "Hook structs embed NoopCustomerSubjectHook = models.NoopServiceHook[customer.Customer] and override only the needed methods (PostCreate, PostUpdate); other lifecycle methods default to no-ops.",
+        "example": "type customerSubjectHook struct { NoopCustomerSubjectHook; provisioner *SubjectProvisioner; tracer trace.Tracer }"
       },
       {
-        "name": "Constructor validates all deps",
-        "description": "NewAnnotationCleanupHook returns (*T, error) and nil-checks every injected dependency before constructing the struct.",
-        "example": "if subscriptionQueryService == nil { return nil, fmt.Errorf(\"subscription query service is required\") }"
+        "name": "Context-key skip flag prevents re-entrant loops",
+        "description": "NewContextWithSkipSubjectCustomer sets a typed private context key; any call back into subject.Service inside a hook must carry it to prevent infinite recursion when a reverse hook is also registered.",
+        "example": "sub, err = p.subject.Create(NewContextWithSkipSubjectCustomer(ctx), subject.CreateInput{...})"
       },
       {
-        "name": "Use AnnotationParser for all annotation access",
-        "description": "All reads and writes of annotation keys must go through subscription.AnnotationParser methods \u2014 never read/write annotation map keys by string literal directly.",
-        "example": "supersedingID := subscription.AnnotationParser.GetSupersedingSubscriptionID(view.Subscription.Annotations)"
+        "name": "Config struct with Validate() for constructor injection",
+        "description": "Dependencies (Subject service, Logger, Tracer) are bundled in SubjectProvisionerConfig (implements models.Validator); constructors call config.Validate() before allocation.",
+        "example": "func NewCustomerSubjectHook(config CustomerSubjectHookConfig) (CustomerSubjectHook, error) { if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid subject hook config: %w\", err) } ... }"
       },
       {
-        "name": "Clone before mutating annotations",
-        "description": "Always call maps.Clone on the annotation map before any modification to avoid mutating the original view's annotations in-place.",
-        "example": "supersedingAnnotations = maps.Clone(supersedingAnnotations)"
+        "name": "OTel span per operation with deferred err capture",
+        "description": "Every exported method opens a tracer span at entry and defers span.End() with status-setting in a closure capturing the named error; RecordError only on non-nil err.",
+        "example": "ctx, span := p.tracer.Start(ctx, \"subject_provisioner.ensure_subjects\"); defer func() { if err != nil { span.SetStatus(otelcodes.Error, err.Error()); span.RecordError(err) }; span.End() }()"
       },
       {
-        "name": "Soft-skip NotFound, hard-error on all others",
-        "description": "When fetching a linked subscription, check subscription.IsSubscriptionNotFoundError; log-and-continue on not-found, return error for all other failures.",
-        "example": "if subscription.IsSubscriptionNotFoundError(err) { h.logger.Error(\"...\"); return nil }"
+        "name": "models.IsGenericNotFoundError for idempotent upsert",
+        "description": "EnsureSubject calls GetByIdOrKey and treats IsGenericNotFoundError (or a deleted subject) as the signal to create; all other errors propagate. Never match by string comparison.",
+        "example": "if models.IsGenericNotFoundError(err) || sub.IsDeleted() { sub, err = p.subject.Create(NewContextWithSkipSubjectCustomer(ctx), ...) }"
       },
       {
-        "name": "Nil-out empty annotation maps after deletion",
-        "description": "After deleting keys, if len(annotations) == 0 set the map to nil before persisting to avoid storing empty maps.",
-        "example": "if len(supersedingAnnotations) == 0 { supersedingAnnotations = nil }"
-      },
-      {
-        "name": "Persist via SubscriptionRepository.UpdateAnnotations",
-        "description": "All annotation writes use subscriptionRepo.UpdateAnnotations(ctx, namespacedID, annotations) \u2014 never route through the full Service to avoid re-triggering hooks.",
-        "example": "h.subscriptionRepo.UpdateAnnotations(ctx, supersedingView.Subscription.NamespacedID, supersedingAnnotations)"
+        "name": "Delegate logic to SubjectProvisioner, not hook methods",
+        "description": "Hook lifecycle methods are thin delegators calling provisioner.EnsureSubjects and handling span status; all provisioning logic lives in SubjectProvisioner so it can be reused outside the hook interface.",
+        "example": "func (s customerSubjectHook) PostCreate(ctx context.Context, cus *customer.Customer) error { ...; return s.provisioner.EnsureSubjects(ctx, cus) }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "hook.go",
-        "role": "Sole file; defines AnnotationCleanupHook with BeforeDelete that repairs both the superseding and previous subscription annotation pointers when a subscription is deleted.",
-        "watch_for": "BeforeDelete aborts the delete if it returns an error. Both updateSupersedingSubscriptionAnnotations and updatePreviousSubscriptionAnnotations must succeed. The two helpers are symmetric: each reads the opposite link ID and re-points it, or clears it when there is nothing to point to."
+        "file": "customersubject.go",
+        "role": "Sole production file: customerSubjectHook (models.ServiceHook[customer.Customer]), SubjectProvisioner, and config structs. Type alias CustomerSubjectHookConfig = SubjectProvisionerConfig keeps the public API minimal.",
+        "watch_for": "Any new lifecycle method must pass NewContextWithSkipSubjectCustomer(ctx) when calling back into subject.Service. Never skip config.Validate() in constructors. Preserve the EnsureSubjects nil-guard on cus."
+      },
+      {
+        "file": "customersubject_test.go",
+        "role": "Integration tests wiring concrete adapters (subjectadapter, customeradapter, customerservice, subjectservice) without app/common. Covers WithExistingSubject, WithoutExistingSubject, and mutual Conflict scenarios.",
+        "watch_for": "Tests use t.Context(). testutils.InitPostgresDB + DBSchemaMigrate must run before any DB interaction. NoopCustomerOverrideService stubs billing deps without importing billing wiring."
       }
     ],
     "anti_patterns": [
-      "Reading or writing annotation map keys by string literal instead of using subscription.AnnotationParser",
-      "Mutating view.Subscription.Annotations in-place without maps.Clone first",
-      "Returning an error on subscription.IsSubscriptionNotFoundError \u2014 these are expected races and must be logged and skipped",
-      "Implementing hook interface methods without embedding NoOpSubscriptionCommandHook, forcing all unrelated methods to be explicitly stubbed",
-      "Storing an empty (len==0) annotations map instead of nil when all keys are removed"
+      "Calling subject.Service inside a hook without NewContextWithSkipSubjectCustomer when a reverse hook is registered \u2014 causes infinite recursion.",
+      "Importing app/common in tests \u2014 breaks isolation; build test deps from concrete constructors directly.",
+      "Using context.Background() instead of propagating the caller ctx through hook methods.",
+      "Catching subject.Service errors by string comparison instead of models.IsGenericNotFoundError.",
+      "Adding business logic in hook lifecycle methods instead of delegating to SubjectProvisioner."
     ],
     "decisions": [
       {
-        "decision": "Hook lives in a dedicated sub-package (hooks/annotations) rather than inline in the subscription service",
-        "rationale": "Keeps annotation-chain repair logic isolated from core subscription lifecycle code and avoids circular imports between the service and the hook."
+        "decision": "SubjectProvisioner is separate from customerSubjectHook.",
+        "rationale": "The provisioner can be reused for non-hook paths (e.g. batch backfills) without the models.ServiceHook interface overhead."
       },
       {
-        "decision": "Only BeforeDelete is overridden",
-        "rationale": "Annotation chain links only need repair at deletion time; create/update paths set annotations through normal AnnotationParser flows elsewhere."
+        "decision": "Skip flag lives in context rather than as a boolean field on the hook.",
+        "rationale": "A context key is scoped to one call stack, preventing skip state from leaking across concurrent requests sharing the same hook instance."
       },
       {
-        "decision": "Uses subscription.SubscriptionRepository directly for annotation writes, not subscription.Service",
-        "rationale": "UpdateAnnotations is a low-level repository operation; routing through the full service would re-trigger hooks and risk re-entrancy."
+        "decision": "Type alias CustomerSubjectHookConfig = SubjectProvisionerConfig.",
+        "rationale": "Avoids duplicating config fields while letting callers use the hook-specific name; a single Validate() covers both entry points."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Wiring the hook during application startup in app/common",
-        "code": "import annotationhook \"github.com/openmeterio/openmeter/openmeter/subscription/hooks/annotations\"\n\nhook, err := annotationhook.NewAnnotationCleanupHook(subscriptionQuerySvc, subscriptionRepo, logger)\nif err != nil {\n    return fmt.Errorf(\"create annotation cleanup hook: %w\", err)\n}\nsubscriptionSvc.RegisterHook(hook)"
+        "scenario": "Adding a PostDelete lifecycle that prevents reverse-hook loops",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/customer\"\n\tsubjectservicehooks \"github.com/openmeterio/openmeter/openmeter/subject/service/hooks\"\n)\n\nfunc (s customerSubjectHook) PostDelete(ctx context.Context, cus *customer.Customer) error {\n\tctx, span := s.tracer.Start(ctx, \"customer_subject_hook.post_delete\")\n\tdefer span.End()\n\tctx = subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx)\n\treturn s.provisioner.RemoveSubjects(ctx, cus)\n}"
       }
     ]
   }

@@ -1,0 +1,145 @@
+{
+  "api/client/javascript/src/portal": {
+    "purpose": "Restricted portal-scoped JavaScript client for end-customer access. Exposes a single OpenMeter class authenticated via a required portalToken that provides only the portal meter-query endpoint \u2014 intentionally a much smaller surface than the full admin client.",
+    "patterns": [
+      {
+        "name": "Reuse utilities from the parent client",
+        "description": "All shared logic (RequestOptions, paths/operations types, transformResponse, encodeDates) is imported from ../client/common.js, ../client/schemas.js, and ../client/utils.js. This file adds only portal-specific wiring.",
+        "example": "import type { operations, paths } from '../client/schemas.js'\nimport { encodeDates, transformResponse } from '../client/utils.js'"
+      },
+      {
+        "name": "portalToken replaces apiKey and is required",
+        "description": "Config requires portalToken: string (not optional). The Authorization header is always `Bearer ${config.portalToken}`. The querySerializer (array form/explode, object deepObject/explode) must stay in sync with the main client.",
+        "example": "headers: { ...config.headers, Authorization: `Bearer ${config.portalToken}` }"
+      },
+      {
+        "name": "Explicit Accept: application/json on the meter query",
+        "description": "The portal meter-query endpoint returns CSV when no Accept header is set. Always pass Accept: application/json and cast the result to the exact operations response type.",
+        "example": "const resp = await this.client.GET('/api/v1/portal/meters/{meterSlug}/query', { headers: { Accept: 'application/json' }, ... }); return transformResponse(resp) as operations['queryPortalMeter']['responses']['200']['content']['application/json']"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "index.ts",
+        "role": "The entire portal SDK: creates an openapi-fetch client, wires Bearer portalToken and the querySerializer, exposes a single query() method for /api/v1/portal/meters/{meterSlug}/query.",
+        "watch_for": "Must pass Accept: application/json explicitly or the endpoint returns CSV. querySerializer shape must stay in sync with the main client's index.ts."
+      }
+    ],
+    "anti_patterns": [
+      "Adding admin-level endpoints to the portal client \u2014 it is intentionally restricted to portal-scoped access.",
+      "Redefining transformResponse or encodeDates instead of importing from ../client/utils.js.",
+      "Making portalToken optional in Config \u2014 portal requests always require authentication.",
+      "Omitting Accept: application/json on the meter query \u2014 the endpoint falls back to CSV."
+    ],
+    "decisions": [
+      {
+        "decision": "The portal client is a separate minimal class, not a subset configuration of the main OpenMeter client.",
+        "rationale": "Prevents accidentally exposing admin endpoints to end-customer portal tokens and makes the restricted surface explicit at the type level."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Querying a portal meter with the required Accept header",
+        "code": "const resp = await this.client.GET('/api/v1/portal/meters/{meterSlug}/query', {\n  headers: { Accept: 'application/json' },\n  params: { path: { meterSlug }, query },\n  ...options,\n})\nreturn transformResponse(resp) as operations['queryPortalMeter']['responses']['200']['content']['application/json']"
+      }
+    ]
+  },
+  "api/client/javascript/src/react": {
+    "purpose": "Thin React integration providing a context/provider/hook trio (OpenMeterContext, OpenMeterProvider, useOpenMeter) so React apps can inject and consume a portal OpenMeter client anywhere in the tree. Single file; all SDK logic lives in ../portal/.",
+    "patterns": [
+      {
+        "name": "Re-export the portal surface wholesale",
+        "description": "context.tsx does `export * from '../portal/index.js'` so all portal SDK types/functions are available from the react import path. New exports should come via re-export, not local definitions.",
+        "example": "export * from '../portal/index.js'"
+      },
+      {
+        "name": "Null-initialized context with undefined-throws hook",
+        "description": "OpenMeterContext defaults to null (unauthenticated). useOpenMeter throws only when the context is undefined (used outside a provider); callers handle null themselves.",
+        "example": "const ctx = createContext<OpenMeter | null>(null)\nif (typeof context === 'undefined') { throw new Error('useOpenMeter must be used within a OpenMeterProvider') }"
+      },
+      {
+        "name": "'use client' directive at top",
+        "description": "The file is marked 'use client' for Next.js App Router compatibility. Any change must preserve this directive as the very first line.",
+        "example": "'use client'"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "context.tsx",
+        "role": "Entire folder. Exports OpenMeterContext, OpenMeterProvider, useOpenMeter and re-exports all portal SDK symbols.",
+        "watch_for": "No business logic or API methods here \u2014 all SDK behaviour belongs in ../portal/. New exports via re-export, not local definitions. Do not remove 'use client'."
+      }
+    ],
+    "anti_patterns": [
+      "Defining SDK methods or API call logic in context.tsx instead of delegating to ../portal/.",
+      "Removing the 'use client' directive \u2014 breaks Next.js App Router.",
+      "Creating a second context/provider for different concerns \u2014 extend the OpenMeter type in portal/ instead.",
+      "Throwing inside useOpenMeter when the value is null \u2014 null is a valid unauthenticated state, only undefined should throw."
+    ],
+    "decisions": [
+      {
+        "decision": "Context default is null, not a noop object.",
+        "rationale": "Forces callers to handle the unauthenticated state explicitly rather than silently calling noop methods that appear to work."
+      },
+      {
+        "decision": "All portal exports are re-exported from this entry point.",
+        "rationale": "Consumers importing from the react path get the full portal SDK without a second import, while ../portal/ remains the single source of truth."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wrap the app with the provider and consume the client",
+        "code": "'use client'\nimport { OpenMeterProvider, useOpenMeter } from '@openmeter/sdk/react'\nimport { OpenMeter } from '@openmeter/sdk/portal'\n\nconst client = new OpenMeter({ baseUrl: 'https://openmeter.cloud', portalToken: 'tok_...' })\nfunction App() { return (<OpenMeterProvider value={client}><Dashboard /></OpenMeterProvider>) }"
+      }
+    ]
+  },
+  "api/client/javascript/src/zod": {
+    "purpose": "Auto-generated Zod validation schemas for all OpenMeter API query parameters and request bodies, produced by orval from the OpenAPI spec. Exports typed Zod objects plus per-operation constant defaults/regex patterns \u2014 never hand-edit.",
+    "patterns": [
+      {
+        "name": "Generated by orval \u2014 do not edit",
+        "description": "index.ts carries the 'Generated by orval v8.7.0 / Do not edit manually.' header. All schemas are regenerated from the OpenAPI spec; manual edits are overwritten on the next make gen-api.",
+        "example": "/** Generated by orval v8.7.0 \ud83c\udf7a Do not edit manually. */"
+      },
+      {
+        "name": "Constants exported before each schema",
+        "description": "Each operation exports named constants for defaults, min/max, and RegExp patterns before its zod.object() (e.g. listAddonsQueryPageDefault = 1, listAddonsQueryKeyItemRegExp), referenced inside the schema.",
+        "example": "export const listAddonsQueryPageSizeMax = 1000\nexport const ListAddonsQueryParams = zod.object({ pageSize: zod.coerce.number().min(1).max(listAddonsQueryPageSizeMax)... })"
+      },
+      {
+        "name": "zod.coerce for all scalar fields",
+        "description": "Query parameters use zod.coerce.string()/number()/boolean() to handle URL string coercion, matching how form-encoded query strings arrive.",
+        "example": "includeDeleted: zod.coerce.boolean().default(listAddonsQueryIncludeDeletedDefault)"
+      },
+      {
+        "name": "Naming convention per operation",
+        "description": "Schema objects are named <OperationPascalCase>QueryParams or <OperationPascalCase>Body (e.g. ListAddonsQueryParams, CreateAddonBody).",
+        "example": "export const ListAddonsQueryParams = zod.object({ ... }); export const CreateAddonBody = zod.object({ ... })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "index.ts",
+        "role": "Single generated file exporting all Zod schemas for query-param and body validation, plus the per-operation constants (defaults, regexps, min/max).",
+        "watch_for": "DO NOT EDIT \u2014 regenerated by orval on make gen-api. Import these schemas for server-side validation of incoming params."
+      }
+    ],
+    "anti_patterns": [
+      "Manually editing index.ts \u2014 it is regenerated by orval from the OpenAPI spec on make gen-api.",
+      "Redefining Zod schemas locally when the generated schemas already cover the operation.",
+      "Using the raw generated constants (defaults/regexps) in application logic \u2014 they are schema implementation details subject to regeneration."
+    ],
+    "decisions": [
+      {
+        "decision": "Zod schemas are generated by orval from the same OpenAPI spec that generates the TypeScript types.",
+        "rationale": "Keeps runtime validation (Zod) and compile-time types (TypeScript) in sync with the TypeSpec source of truth \u2014 a single make gen-api updates both."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Using a generated query-param schema for server-side validation",
+        "code": "import { ListAddonsQueryParams } from '@openmeter/sdk/zod'\nconst parsed = ListAddonsQueryParams.parse(req.query)"
+      }
+    ]
+  }
+}

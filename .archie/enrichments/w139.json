@@ -1,71 +1,224 @@
 {
-  "pkg/treex": {
-    "purpose": "Generic typed tree data structure (Node[T], Tree[T]) providing DFS traversal, cycle detection, shallow/deep clone, and child-swap operations. Used by subscription and product-catalog domains to model hierarchical rate-card and field-descriptor trees where immutable-style node updates via pointer-identity swapping are required.",
+  "pkg/hasher": {
+    "purpose": "Minimal hashing utility: defines Hash (uint64 type alias) and Hasher interface, backed by a single xxhash implementation. Used for fast, non-cryptographic content hashing \u2014 primarily lock key derivation in pkg/framework/lockr.",
     "patterns": [
       {
-        "name": "Non-nil pointer values only",
-        "description": "NewNode[T](v T) panics at runtime if v is not a non-nil pointer. T must be a pointer type. This enforces the pointer-identity semantics used by SwapChild/RemoveChild comparisons.",
-        "example": "node := treex.NewNode(&myStruct{id: 1})  // T is *myStruct"
+        "name": "Hash = uint64 type alias",
+        "description": "Hash is a type alias (= uint64), not a named type \u2014 interchangeable with uint64 at call sites. Consumers needing nominal typing must define their own wrapper.",
+        "example": "var h hasher.Hash = hasher.NewHash([]byte(\"key\"))"
       },
       {
-        "name": "Seal the graph with NewTree after building",
-        "description": "Build the full node graph using AddChild, then call NewTree(root) once to validate acyclicity. NewTree returns ErrGraphHasCycle for cycles and ErrNodeGraphInvalid for nil children. Do not call NewTree incrementally.",
-        "example": "tr, err := treex.NewTree(rootNode); if errors.Is(err, treex.ErrGraphHasCycle) { ... }"
-      },
-      {
-        "name": "ShallowClone for immutable-style node replacement",
-        "description": "ShallowClone copies the node struct and first-level children slice, reattaching existing children (updating child.parent) to the clone. Use to 'rename' or 'update' a node value without rebuilding the subtree; then call SwapChild or SwapNode on the parent.",
-        "example": "updated := &wrapper{name: \"new\"}; updated.node = old.node.ShallowClone(); updated.node.SetValue(updated); root.node.SwapChild(old.node, updated.node)"
-      },
-      {
-        "name": "Self-referential node embedding",
-        "description": "Domain structs embed *Node[*Self] and set it in their constructor. The node's value points back to the owning struct, enabling tree traversal to recover the domain object via n.Value().",
-        "example": "type FieldDescriptor struct { name string; node *treex.Node[*FieldDescriptor] }\nfunc newFD(name string) *FieldDescriptor { fd := &FieldDescriptor{name: name}; fd.node = treex.NewNode(fd); return fd }"
-      },
-      {
-        "name": "DFS stop=true prunes subtree only",
-        "description": "Returning (true, nil) from the DFS callback halts descent into that node's children but sibling subtrees continue walking. Returning a non-nil error aborts the entire walk immediately.",
-        "example": "tr.DFS(func(n *treex.Node[*T]) (bool, error) { if skip(n) { return true, nil }; return false, process(n) })"
+        "name": "Hasher interface for injectable hashing",
+        "description": "Structs that hash themselves implement Hasher by returning a Hash from Hash(). Inject via the interface, not via direct xxhash calls.",
+        "example": "func (k myKey) Hash() hasher.Hash { return hasher.NewHash([]byte(k.id)) }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "node.go",
-        "role": "Node[T] struct with parent/children management; AddChild, RemoveChild, SwapChild, ShallowClone, DeepClone.",
-        "watch_for": "SwapChild and RemoveChild use pointer equality (c == child), not value equality \u2014 always pass the exact *Node pointer. ShallowClone reattaches first-level children to the clone, mutating child.parent on those immediate children."
+        "file": "hasher.go",
+        "role": "Defines Hash type alias and Hasher interface. Source of truth for the contract.",
+        "watch_for": "Changing Hash from a type alias to a named type would be a breaking change for all callers assigning uint64 literals."
       },
       {
-        "file": "tree.go",
-        "role": "Tree[T] wrapper: NewTree validates acyclicity via DFS with visited+onStack maps; exposes DFS, Leafs, SwapNode.",
-        "watch_for": "SwapNode on the root replaces t.root directly without re-validation \u2014 caller is responsible for the new node being non-nil. Mid-DFS SwapNode requires returning stop=true immediately to avoid following the detached subtree."
-      },
-      {
-        "file": "errors.go",
-        "role": "Sentinel error vars: ErrRootNodeIsNil, ErrGraphHasCycle, ErrNodeHasNoParentButNotRoot, ErrNodeGraphInvalid.",
-        "watch_for": "Use errors.Is for matching \u2014 all four are package-level var values, not typed error structs."
+        "file": "xxhash.go",
+        "role": "NewHash([]byte) Hash \u2014 the only concrete hash function, using cespare/xxhash v2.",
+        "watch_for": "xxhash is non-cryptographic \u2014 never use for security-sensitive hashing (passwords, signatures); use crypto/sha256 instead."
       }
     ],
     "anti_patterns": [
-      "Passing value types (non-pointers) to NewNode \u2014 panics immediately at construction",
-      "Modifying node.children slice directly instead of using AddChild/RemoveChild/SwapChild \u2014 bypasses parent-pointer bookkeeping, corrupts tree invariants",
-      "Continuing DFS traversal after SwapNode inside the callback without returning stop=true \u2014 the callback will follow the now-detached old subtree",
-      "Calling NewTree repeatedly as nodes are added rather than building the full graph first \u2014 unnecessary O(n) validation on each call"
+      "Using hasher.NewHash for cryptographic purposes (authentication, signatures) \u2014 use crypto/sha256 or similar",
+      "Importing cespare/xxhash directly in domain packages instead of going through hasher.NewHash",
+      "Treating Hash as a named type in type assertions \u2014 it is a type alias for uint64"
     ],
     "decisions": [
       {
-        "decision": "Node values are constrained to pointer types, enforced at runtime via reflect.ValueOf().Kind()",
-        "rationale": "Tree mutations (SwapChild, RemoveChild) rely on pointer identity comparison (c == child); value types would make sibling lookup ambiguous and break the self-referential embedding pattern."
+        "decision": "Hash is a type alias rather than a named type",
+        "rationale": "Allows callers (particularly lockr) to pass the result directly as uint64 to pg_advisory_xact_lock without an explicit conversion, reducing boilerplate."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/idempotency": {
+    "purpose": "Single-purpose package that generates UUIDv7 idempotency keys for external API calls (e.g., Stripe). UUIDv7 provides monotonic, time-ordered keys safe to use as idempotency tokens without a shared counter.",
+    "patterns": [
+      {
+        "name": "Key() in production, MustKey() in tests/init only",
+        "description": "Key() returns (string, error) and must be used in all application paths. MustKey() panics on failure and is only appropriate in test setup or package-level init.",
+        "example": "key, err := idempotency.Key(); if err != nil { return fmt.Errorf(\"idempotency key: %w\", err) }"
       },
       {
-        "decision": "Cycle detection runs at NewTree construction time, not incrementally on AddChild",
-        "rationale": "Allows building node graphs freely and attaching subtrees in arbitrary order before sealing them into a validated Tree; the O(n) DFS validation is paid only once."
+        "name": "One key per request \u2014 never reuse",
+        "description": "Each external API call requiring idempotency must call Key() for a fresh UUIDv7. Reusing a key causes the remote API to deduplicate distinct operations.",
+        "example": "key, err := idempotency.Key() // pass key to stripe.ChargeCreate or similar"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "key.go",
+        "role": "Entire package \u2014 exports Key() and MustKey(). uuid.NewV7() is the sole dependency.",
+        "watch_for": "uuid.NewV7() can fail with broken entropy sources \u2014 always handle the error in production. MustKey() panics; never call it inside request handlers."
+      }
+    ],
+    "anti_patterns": [
+      "Using MustKey() in request-handling code paths \u2014 prefer Key() and propagate errors",
+      "Reusing the same key across multiple requests \u2014 each call to Key() must produce a fresh key",
+      "Hand-rolling UUID generation instead of using this package \u2014 breaks the centralized key strategy"
+    ],
+    "decisions": [
+      {
+        "decision": "UUIDv7 instead of UUIDv4 for idempotency keys",
+        "rationale": "UUIDv7 is time-ordered, making keys sortable and cache-friendly in database indexes while still globally unique \u2014 important for Stripe and similar APIs storing idempotency keys in indexed tables."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Self-referential embedding + immutable update via ShallowClone + SwapChild",
-        "code": "import \"github.com/openmeterio/openmeter/pkg/treex\"\n\ntype RateCard struct {\n\tname string\n\tnode *treex.Node[*RateCard]\n}\n\nfunc newRateCard(name string) *RateCard {\n\trc := &RateCard{name: name}\n\trc.node = treex.NewNode(rc) // T must be *RateCard\n\treturn rc\n}\n\n// Rename a node without rebuilding its subtree:\nfunc renameCard(root *RateCard, old *RateCard, newName string) error {\n\tupdated := &RateCard{name: newName}\n\tupdated.node = old.node.ShallowClone()   // copies children, reattaches their parents\n\tupdated.node.SetValue(updated)            // point node back at new wrapper\n\n\ttr, err := treex.NewTree(root.node)\n\tif err != nil {\n\t\treturn err\n\t}\n\treturn tr.SwapNode(old.node, updated.node)\n}"
+        "scenario": "Generate a fresh idempotency key before a Stripe charge call",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/idempotency\"\n\nkey, err := idempotency.Key()\nif err != nil {\n\treturn fmt.Errorf(\"idempotency key: %w\", err)\n}\n// use key as stripe.ChargeCreateParams.IdempotencyKey"
       }
     ]
+  },
+  "pkg/log": {
+    "purpose": "Provides two orthogonal logging utilities: a testify-based mock for slog.Handler used in unit tests, and a PanicLogger recover-and-log helper for goroutine entry points. This is infrastructure glue, not a logger factory \u2014 callers must use slog.Default() for actual logging.",
+    "patterns": [
+      {
+        "name": "PanicLogger via defer with explicit propagation strategy",
+        "description": "Always invoke PanicLogger as a deferred call at the top of a goroutine or main, passing exactly one propagation option. The zero value (no option) re-panics \u2014 pass WithExit or WithContinue explicitly for servers and workers.",
+        "example": "defer log.PanicLogger(log.WithExit)   // server main\ndefer log.PanicLogger(log.WithContinue) // worker loop iteration"
+      },
+      {
+        "name": "OTelCodeStackTrace constant for stack trace attribute key",
+        "description": "Stack traces must be logged under the OTelCodeStackTrace constant (\"code.stacktrace\") per OpenTelemetry semantic conventions. Never use a raw string.",
+        "example": "slog.Error(description, log.OTelCodeStackTrace, string(debug.Stack()))"
+      },
+      {
+        "name": "Compile-time slog.Handler interface assertion for MockHandler",
+        "description": "var _ slog.Handler = &MockHandler{} enforces interface compliance at compile time; any new mock must include the same assertion.",
+        "example": "var _ slog.Handler = &MockHandler{}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "panic.go",
+        "role": "Recover-and-log wrapper; exposes PanicLogger and three propagation strategies (WithRePanic, WithExit, WithContinue).",
+        "watch_for": "Default strategy (zero value) is RePanic \u2014 omitting any option re-panics, which is rarely correct for worker goroutines. Always pass WithExit or WithContinue explicitly."
+      },
+      {
+        "file": "mock.go",
+        "role": "testify mock for slog.Handler; use only in tests.",
+        "watch_for": "MockHandler.WithAttrs and WithGroup return values via type assertion on mock.Called \u2014 if the expectation is not set up, the assertion panics at test runtime."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a custom logger constructor here \u2014 callers should use slog.Default() or inject slog.Logger externally",
+      "Using a raw string instead of OTelCodeStackTrace for stack trace attribute keys",
+      "Invoking PanicLogger without defer \u2014 it must run inside a recover() scope",
+      "Calling PanicLogger with no options in a worker loop \u2014 the default re-panic strategy terminates the worker"
+    ],
+    "decisions": [
+      {
+        "decision": "Three named propagation strategies instead of a boolean re-panic flag",
+        "rationale": "Workers (WithContinue), long-running servers (WithExit), and test helpers (WithRePanic) have fundamentally different needs; a single boolean would conflate exit-process vs continue-loop semantics."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/lrux": {
+    "purpose": "Generic LRU cache with per-item TTL and a synchronous Fetcher callback, wrapping hashicorp/golang-lru/v2. All time comparisons use pkg/clock (not time.Now) so tests can freeze time deterministically.",
+    "patterns": [
+      {
+        "name": "Use clock.Now() never time.Now()",
+        "description": "All TTL comparisons use clock.Now() so tests can freeze time with clock.FreezeTime / clock.SetTime. Any new code here must follow this.",
+        "example": "if ok && (item.ExpiresAt.IsZero() || item.ExpiresAt.After(clock.Now())) {"
+      },
+      {
+        "name": "Functional options via cacheOptionsFunc",
+        "description": "Constructor accepts variadic cacheOptionsFunc. New options must define a func(*cacheOptions) and expose a With* factory like WithTTL.",
+        "example": "func WithTTL(ttl time.Duration) cacheOptionsFunc { return func(o *cacheOptions) { o.ttl = ttl } }"
+      },
+      {
+        "name": "Zero TTL means never-expire via zero time.Time",
+        "description": "When ttl == 0, ExpiresAt is the zero time.Time{}. item.ExpiresAt.IsZero() short-circuits to cache-hit, so ttl=0 is a never-expire signal, not zero-second expiry.",
+        "example": "// ttl=0 => ExpiresAt stays zero => item never expires"
+      },
+      {
+        "name": "Fetcher must not be nil \u2014 validate at construction",
+        "description": "Constructor returns an error if fetcher is nil; the package does no lazy validation.",
+        "example": "if fetcher == nil { return nil, fmt.Errorf(\"fetcher is required\") }"
+      },
+      {
+        "name": "t.Context() in tests, defer clock.UnFreeze()",
+        "description": "All tests use t.Context() and defer clock.UnFreeze() immediately after clock.FreezeTime to prevent time leakage across parallel tests.",
+        "example": "clock.FreezeTime(baseTime); defer clock.UnFreeze(); item, err := cache.Get(t.Context(), \"key\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "lruitemttl.go",
+        "role": "Entire package \u2014 CacheWithItemTTL struct, Fetcher type, NewCacheWithItemTTL, Get, Refresh, fetchItem.",
+        "watch_for": "No mutex around fetch+store: concurrent Gets on an expired key issue multiple simultaneous fetcher calls. Intentional for simplicity but consider when the fetcher is expensive or has side effects."
+      },
+      {
+        "file": "lruitemttl_test.go",
+        "role": "Unit tests validating TTL boundary behavior, cache hit/miss transitions, and error propagation from the fetcher.",
+        "watch_for": "Tests use clock.FreezeTime with baseTime parsed from RFC3339 \u2014 use the same approach for new TTL boundary tests to keep them deterministic."
+      }
+    ],
+    "anti_patterns": [
+      "Using time.Now() inside a Fetcher or anywhere in this package \u2014 always use clock.Now()",
+      "Adding a mutex around Get without profiling \u2014 stampede tolerance is an intentional design choice",
+      "Constructing with a nil fetcher \u2014 the constructor rejects it but upstream callers should validate early",
+      "Using context.Background() in tests when t.Context() is available"
+    ],
+    "decisions": [
+      {
+        "decision": "Wrap hashicorp/golang-lru with CacheItemWithTTL instead of using lru's built-in expiry",
+        "rationale": "lru's native eviction does not integrate with pkg/clock, making TTL boundary tests non-deterministic. Storing ExpiresAt on the item and checking via clock.Now() gives full test control."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Create a cache that fetches string values by string key with a 10-second TTL",
+        "code": "import (\n\t\"context\"\n\t\"time\"\n\t\"github.com/openmeterio/openmeter/pkg/lrux\"\n)\n\ncache, err := lrux.NewCacheWithItemTTL(100, func(ctx context.Context, key string) (string, error) {\n\treturn fetchFromDB(ctx, key)\n}, lrux.WithTTL(10*time.Second))\nif err != nil { /* handle */ }\nval, err := cache.Get(ctx, \"mykey\")"
+      }
+    ]
+  },
+  "pkg/otelx": {
+    "purpose": "Minimal OpenTelemetry span-context serialization helpers for cross-process propagation over non-HTTP transports (e.g. Kafka message headers). Serializes trace.SpanContext to/from base64-encoded JSON using the OTelSpanContextKey constant.",
+    "patterns": [
+      {
+        "name": "OTelSpanContextKey constant as the canonical header/attribute name",
+        "description": "Always use the OTelSpanContextKey constant (\"otel.span.context\") when storing or reading the serialized span context. Never hardcode the string.",
+        "example": "headers[otelx.OTelSpanContextKey] = serialized"
+      },
+      {
+        "name": "Base64-over-JSON encoding for transport-agnostic propagation",
+        "description": "SpanContext is marshalled to JSON via trace.SpanContext.MarshalJSON() then base64-encoded. Reversal uses base64.DecodeString then json.Unmarshal into trace.SpanContextConfig then trace.NewSpanContext.",
+        "example": "b, _ := c.MarshalJSON(); s := base64.StdEncoding.EncodeToString(b)"
+      },
+      {
+        "name": "Nil-check DeserializeSpanContext return value",
+        "description": "DeserializeSpanContext returns *trace.SpanContext. Callers must nil-check before dereferencing even when err == nil.",
+        "example": "sc, err := otelx.DeserializeSpanContext(headerVal); if err != nil || sc == nil { return }; span := sc.TraceID()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "spancontext.go",
+        "role": "Only file; exports SerializeSpanContext, DeserializeSpanContext, and OTelSpanContextKey constant.",
+        "watch_for": "DeserializeSpanContext returns *trace.SpanContext \u2014 callers must nil-check. It does not validate the resulting SpanContext (IsValid()); add that check at the call site if needed."
+      }
+    ],
+    "anti_patterns": [
+      "Storing the serialized span context under any key other than OTelSpanContextKey",
+      "Using W3C TraceContext or B3 propagators here \u2014 this package uses its own JSON/base64 scheme for non-HTTP transports",
+      "Dereferencing the *trace.SpanContext return from DeserializeSpanContext without a nil check"
+    ],
+    "decisions": [
+      {
+        "decision": "Custom base64+JSON serialization instead of standard W3C propagator",
+        "rationale": "Kafka message headers carry opaque byte slices; the W3C propagator expects an HTTP carrier interface. Base64-over-JSON is self-contained, transport-agnostic, and avoids pulling the full otel propagation API into Kafka message handling."
+      }
+    ],
+    "code_examples": []
   }
 }

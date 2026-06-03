@@ -1,0 +1,168 @@
+{
+  "api/v3/response": {
+    "purpose": "Reusable response envelope types for the v3 API: cursor-based and page-based pagination wrappers. Every list endpoint must wrap its items in one of these two structs to guarantee a consistent JSON shape.",
+    "patterns": [
+      {
+        "name": "Generic pagination wrappers via constructors",
+        "description": "CursorPaginationResponse[T] and PagePaginationResponse[T] are generic over item type T. Handlers call NewCursorPaginationResponse / NewPagePaginationResponse instead of building the struct manually.",
+        "example": "return response.NewCursorPaginationResponse(items, pageSize)"
+      },
+      {
+        "name": "Cursor derived from the Item interface",
+        "description": "NewCursorPaginationResponse requires T to implement pagination.Item (from pkg/pagination/v2, exposes Cursor()). First/Last are set from items[0] and items[len-1].",
+        "example": "func NewCursorPaginationResponse[T pagination.Item](items []T, pageSize int) CursorPaginationResponse[T]"
+      },
+      {
+        "name": "nullable.Nullable for next/previous links",
+        "description": "CursorMetaPage.Next and Previous are nullable.Nullable[string] (not *string) so they serialize as explicit JSON null when absent rather than being omitted.",
+        "example": "Next: nullable.NewNullNullable[string]()  // produces JSON null, not omitted"
+      },
+      {
+        "name": "Next cursor gated on a full page",
+        "description": "Next is only populated when len(items) == pageSize; a partial page signals the last page. Do not set Next manually from caller code.",
+        "example": "if len(items) == pageSize { result.Meta.Page.Next = nullable.NewNullableWithValue(lastItem.Cursor().Encode()) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "cursorpagination.go",
+        "role": "Cursor-based pagination envelope (CursorPaginationResponse, CursorMeta, CursorMetaPage); T must implement pagination.Item from pkg/pagination/v2.",
+        "watch_for": "Next is only populated when len(items) == pageSize; a partial page signals last page. Do not set Next manually."
+      },
+      {
+        "file": "pagepagination.go",
+        "role": "Offset/page-number pagination envelope (PagePaginationResponse, PageMeta, PageMetaPage); PageMetaPage.Total is optional (*int) for when total count is expensive.",
+        "watch_for": "Caller must populate PageMetaPage fully (Size, Number, Total) before NewPagePaginationResponse \u2014 no defaults are inferred."
+      }
+    ],
+    "anti_patterns": [
+      "Returning a raw []T from a list endpoint instead of wrapping in CursorPaginationResponse or PagePaginationResponse",
+      "Setting CursorMetaPage.Next to a non-null value when fewer items than pageSize were returned",
+      "Using *string for Next/Previous \u2014 must use nullable.Nullable[string] to produce explicit JSON null",
+      "Building CursorPaginationResponse struct manually instead of calling NewCursorPaginationResponse"
+    ],
+    "decisions": [
+      {
+        "decision": "Cursor encoded directly from the last item in the page rather than stored separately",
+        "rationale": "Avoids out-of-sync cursor state; the item itself is the canonical source of its own cursor position."
+      },
+      {
+        "decision": "nullable.Nullable[string] for Next/Previous instead of *string",
+        "rationale": "Produces explicit JSON null when absent rather than omitting the field, as required by AIP pagination contracts for consistent client handling."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "List handler wraps domain items in cursor pagination response",
+        "code": "import \"github.com/openmeterio/openmeter/api/v3/response\"\n// T must implement pagination.Item (has Cursor() method)\nreturn response.NewCursorPaginationResponse(items, pageSize), nil"
+      }
+    ]
+  },
+  "api/v3/server": {
+    "purpose": "The sole assembly point for the v3 API surface: validates Config, constructs all domain handler structs, registers OAS request-validation middleware on a Chi router, and delegates every generated ServerInterface method to a typed handler. Credits feature flag is enforced both at constructor time (noop wiring) and at route dispatch.",
+    "patterns": [
+      {
+        "name": "Config.Validate() before NewServer",
+        "description": "Config.Validate() runs at the top of NewServer and returns a wrapped error listing all missing required services. Never skip it.",
+        "example": "if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid v3 server config: %w\", err) }"
+      },
+      {
+        "name": "credits.enabled gated at route AND constructor level",
+        "description": "Credits routes in routes.go check both s.Credits.Enabled and handler != nil before dispatching; in NewServer, disabled credits replace real services with noops. Both guards are required.",
+        "example": "if !s.Credits.Enabled || s.customersCreditsHandler == nil { unimplemented.GetCustomerCreditBalance(w, r, ...); return }"
+      },
+      {
+        "name": "Handler delegation via .With(params).ServeHTTP(w, r)",
+        "description": "Each ServerInterface method calls the typed handler method, optionally passes path/query params via .With(...), and calls ServeHTTP. No business logic in routes.go.",
+        "example": "s.metersHandler.GetMeter().With(meterId).ServeHTTP(w, r)"
+      },
+      {
+        "name": "resolveNamespace closure injected into every handler",
+        "description": "Namespace is not a URL path segment; a resolveNamespace func(ctx) (string, error) closure is built once in NewServer and injected into all handler constructors.",
+        "example": "resolveNamespace := func(ctx context.Context) (string, error) { ns, ok := config.NamespaceDecoder.GetNamespace(ctx); ... }"
+      },
+      {
+        "name": "Optional handlers guarded by nil checks",
+        "description": "Handlers for optional services (ChargeService, LLMCostService, CostService) are constructed only when the service is non-nil; the field stays nil otherwise. Routes nil-check or delegate to api.Unimplemented{}.",
+        "example": "var chargesH chargeshandler.Handler\nif config.ChargeService != nil { chargesH = chargeshandler.New(...) }"
+      },
+      {
+        "name": "Content negotiation at route level",
+        "description": "QueryMeter inspects the Accept header via commonhttp.GetMediaType; text/csv routes to the CSV handler, all others to JSON. Negotiation happens in routes.go, not in the handler.",
+        "example": "if mediaType, _ := commonhttp.GetMediaType(r); mediaType == \"text/csv\" { s.metersHandler.QueryMeterCSV()... }"
+      },
+      {
+        "name": "var _ api.ServerInterface compile-time assertion",
+        "description": "A blank-identifier assertion ensures Server implements the generated ServerInterface; removing it hides missing route implementations.",
+        "example": "var _ api.ServerInterface = (*Server)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "server.go",
+        "role": "Config struct + Config.Validate, Server struct with all handler fields, NewServer constructor, RegisterRoutes with OAS validation middleware.",
+        "watch_for": "Adding a domain service requires: field in Config, nil-check in Validate (if required), handler construction in NewServer, handler field in Server struct. Missing any step causes a panic or silent noop."
+      },
+      {
+        "file": "routes.go",
+        "role": "One method per generated ServerInterface operation; pure delegation to handlers; contains all credits feature-flag guards.",
+        "watch_for": "Credits endpoints must check both s.Credits.Enabled and handler != nil. Multi-param routes pack args into a local struct before .With(...). Never add business logic here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic or error handling inside routes.go \u2014 it must be pure delegation",
+      "Forgetting credits.Enabled guard on new credit-related routes (both route and constructor levels required)",
+      "Passing a nil handler to ServeHTTP \u2014 always guard optional handlers with nil checks or delegate to api.Unimplemented{}",
+      "Adding a service to Config without adding it to Config.Validate() \u2014 silently accepts broken wiring",
+      "Removing the var _ api.ServerInterface compile-time assertion"
+    ],
+    "decisions": [
+      {
+        "decision": "credits.enabled enforced at both NewServer (noop wiring) and route dispatch (explicit guard)",
+        "rationale": "Credits is cross-cutting; a single guard point is insufficient. The route-level check is a safety net for when noop wiring is bypassed."
+      },
+      {
+        "decision": "resolveNamespace is a closure injected into handlers, not middleware",
+        "rationale": "Namespace decoding is not a URL path parameter in v3; injecting a closure keeps the transport layer clean without Chi context injection."
+      },
+      {
+        "decision": "Handler fields are unexported; Config services are exported",
+        "rationale": "Handlers are implementation details assembled in NewServer; Config is the public dependency surface that app/common populates via Wire."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new domain handler to the v3 server",
+        "code": "// 1. server.go Config: FooService foo.Service\n// 2. Config.Validate(): if c.FooService == nil { errs = append(errs, errors.New(\"foo service is required\")) }\n// 3. Server struct: fooHandler foohandler.Handler\n// 4. NewServer: fooH := foohandler.New(resolveNamespace, config.FooService, httptransport.WithErrorHandler(config.ErrorHandler)); return &Server{ ..., fooHandler: fooH }, nil\n// 5. routes.go: func (s *Server) ListFoos(w http.ResponseWriter, r *http.Request, params api.ListFoosParams) { s.fooHandler.ListFoos().With(params).ServeHTTP(w, r) }"
+      }
+    ]
+  },
+  "api/v3/templates": {
+    "purpose": "A patch file that customises the oapi-codegen Chi middleware template so deepObject 'filter' query parameters route through the custom filters.Parse parser instead of the default runtime binder, ensuring union filter types parse correctly in generated code.",
+    "patterns": [
+      {
+        "name": "Patch targets ParamName=filter + Style=deepObject exclusively",
+        "description": "The patch adds a conditional branch: only parameters named 'filter' with style 'deepObject' use filters.Parse; all other parameters keep the standard oapi-codegen runtime binder.",
+        "example": "{{- if and (eq .ParamName \"filter\") (eq .Style \"deepObject\") }}\nerr = filters.Parse(r.URL.Query(), &params.{{.GoName}})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "chi-middleware.tmpl.patch",
+        "role": "Applied during make gen-api to override oapi-codegen's Chi middleware template for filter parameter handling.",
+        "watch_for": "Re-apply after any oapi-codegen version upgrade. If filter params regress to standard binding, union filter types silently break. Ensure the filters.Parse import is present in the generated middleware."
+      }
+    ],
+    "anti_patterns": [
+      "Editing the generated chi-middleware output directly instead of maintaining this patch",
+      "Widening the patch condition beyond ParamName=filter \u2014 standard deepObject params must use runtime.BindQueryParameterWithOptions"
+    ],
+    "decisions": [
+      {
+        "decision": "Custom parser injected via template patch rather than post-generation sed",
+        "rationale": "Template patches survive oapi-codegen regeneration as long as the template structure is stable; post-generation edits are wiped on every make gen-api run."
+      }
+    ],
+    "code_examples": []
+  }
+}

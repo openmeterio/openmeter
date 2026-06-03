@@ -1,0 +1,180 @@
+{
+  "api/client": {
+    "purpose": "Public SDK surface for OpenMeter \u2014 wires generated and thin hand-authored client code into stable, externally-importable packages for Go (api/client/go), the @openmeter/sdk npm package (api/client/javascript), and Python (api/client/python). All API types and operations originate from generated artefacts produced by make gen-api off the TypeSpec source; this folder only adds ergonomic wrappers and auth helpers. api/client/node and api/client/web are deprecated tombstones.",
+    "patterns": [
+      {
+        "name": "Generated-first, wrapper-second",
+        "description": "Every API type, request/response struct, and operation method lives in a generated file (client.gen.go, src/client/schemas.ts, openmeter/_generated/). Hand-authored files add only ergonomic wrappers and auth helpers \u2014 never new types.",
+        "example": "client.go adds WithAPIKey() and ergonomic List* helpers atop the generated ClientWithResponses; never adds new types."
+      },
+      {
+        "name": "Regeneration via make gen-api only",
+        "description": "client.gen.go, src/client/schemas.ts, src/zod/index.ts, and openmeter/_generated/ are overwritten on every make gen-api run; manual edits do not survive. Each language has its own codegen entry: codegen.yaml (oapi-codegen, Go), scripts/generate.ts (openapi-typescript + orval, JS), @typespec/http-client-python (Python).",
+        "example": "make gen-api -> oapi-codegen (Go) + openapi-typescript/orval (JS) + http-client-python (Python)"
+      },
+      {
+        "name": "Auth injected via RequestEditorFn / ClientOption, not embedded",
+        "description": "Bearer tokens and credentials are injected through the option chain (Go RequestEditorFn/ClientOption; Python _patch_sdk() subclass) \u2014 never hardcoded inside generated operation methods.",
+        "example": "func WithAPIKey(token string) ClientOption // wraps the generated client with a bearer RequestEditorFn"
+      },
+      {
+        "name": "Externally importable \u2014 no app-internal imports",
+        "description": "Go and Python SDKs must remain importable without the full monorepo; do not import app-internal packages beyond those already referenced. Tests must use httptest.NewServer mocks, never live HTTP.",
+        "example": "client_test.go spins httptest.NewServer; client.go imports only public/generated packages."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "api/client/go/client.gen.go",
+        "role": "Generated Go SDK (oapi-codegen output from api/openapi.cloud.yaml). Never edit.",
+        "watch_for": "Enum types carry Valid(); the always-prefix-enum-values codegen option is set in codegen.yaml \u2014 overwritten every make gen-api."
+      },
+      {
+        "file": "api/client/go/client.go",
+        "role": "Hand-authored ergonomic wrappers and auth helpers atop client.gen.go.",
+        "watch_for": "Must not import app-internal monorepo packages and must stay externally importable; add wrappers here, never new API types."
+      },
+      {
+        "file": "api/client/javascript/package.json",
+        "role": "Declares the four named sub-package exports (default, /portal, /react, /zod) and the dual ESM/CJS duel build.",
+        "watch_for": "New resource classes must also be registered as public fields on the root OpenMeter class in src/client/index.ts; portal export is intentionally scoped to portal-token operations."
+      },
+      {
+        "file": "api/client/javascript/patches/openapi-typescript.patch",
+        "role": "Single consolidated patch applied to openapi-typescript dist/ at install time.",
+        "watch_for": "pnpm patchedDependencies expects exactly one patch file per package; adding a second breaks install; patch dist/ not src/."
+      },
+      {
+        "file": "api/client/python/openmeter/_client.py",
+        "role": "Hand-authored Python Client subclassing generated OpenMeterClient; _patch_sdk() called at module end.",
+        "watch_for": "All operations must come from openmeter/_generated/; never define new operation methods here; never commit _version.py/_commit.py (written transiently by release.sh)."
+      },
+      {
+        "file": "api/client/node/README.md",
+        "role": "Tombstone \u2014 Node SDK deprecated in favour of api/client/javascript.",
+        "watch_for": "Do not add code here."
+      },
+      {
+        "file": "api/client/web/README.md",
+        "role": "Tombstone \u2014 Web SDK deprecated in favour of api/client/javascript.",
+        "watch_for": "Do not add code here."
+      }
+    ],
+    "anti_patterns": [
+      "Manually editing any *.gen.go, src/client/schemas.ts, src/zod/index.ts, or openmeter/_generated/ file \u2014 overwritten by make gen-api.",
+      "Adding new API types or request/response structs to hand-authored wrapper files instead of to the TypeSpec source under api/spec/.",
+      "Importing app-internal monorepo packages into the Go or Python SDK \u2014 they must remain externally importable.",
+      "Adding new SDK code to api/client/node or api/client/web \u2014 both are deprecated tombstones pointing to api/client/javascript.",
+      "Writing Go tests that make live HTTP calls instead of httptest.NewServer, or running scripts/generate.ts from outside the JS package root."
+    ],
+    "decisions": [
+      {
+        "decision": "Go SDK is generated from api/openapi.cloud.yaml, not api/openapi.yaml.",
+        "rationale": "The cloud spec includes cloud-specific auth and endpoint variants; SDK consumers target the hosted service."
+      },
+      {
+        "decision": "Python Client subclasses the generated OpenMeterClient rather than wrapping it.",
+        "rationale": "Lets _patch_sdk() augment generated methods while keeping the public surface identical to the generated class."
+      },
+      {
+        "decision": "Four named JS sub-package exports (default, /portal, /react, /zod) instead of a single entry point.",
+        "rationale": "Enables tree-shaking and keeps the portal client scoped strictly to portal-token operations."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/spec": {
+    "purpose": "Single source of truth for every OpenMeter HTTP API, authored in TypeSpec and split into two independently compiled packages: packages/aip (v3 AIP-style -> api/v3/openapi.yaml + Konnect variant) and packages/legacy (v1/v2 + Cloud -> api/openapi.yaml, api/openapi.cloud.yaml). All OpenAPI YAMLs and the Go/JS/Python SDKs are downstream artefacts regenerated exclusively by make gen-api; vendored patches/ fix upstream TypeSpec compiler/emitter bugs at install time.",
+    "patterns": [
+      {
+        "name": "Two-package version split: aip vs legacy",
+        "description": "packages/aip owns the v3 AIP spec (its tspconfig compiles to api/v3/openapi.yaml); packages/legacy owns v1/v2 and Cloud (compiles to api/openapi.yaml and api/openapi.cloud.yaml). Never mix v3 content into legacy/ or v1 content into aip/ \u2014 they compile to separate targets.",
+        "example": "New v3 endpoint: add .tsp under packages/aip/src/ and import it in the root openmeter.tsp."
+      },
+      {
+        "name": "Route/tag binding only at root namespace files",
+        "description": "Domain sub-folder .tsp files declare models and operations; @route and @tag decorators are bound only in the root namespace files (aip/src/openmeter.tsp, konnect.tsp; legacy/src/main.tsp, cloud/main.tsp).",
+        "example": "packages/aip/src/openmeter.tsp imports sub-domain files and applies @route at the top-level interface."
+      },
+      {
+        "name": "make gen-api is the only regeneration path",
+        "description": "The api/spec Makefile runs pnpm generate, then a yq filter-schema $ref loop, openapi bundle, flatten-allof post-processing, and cp into api/. Direct tsc/tsp calls skip these steps and desync the artefacts.",
+        "example": "Makefile generate: pnpm --filter @openmeter/api-spec-aip run compile -> openapi bundle -> ../../../v3/openapi.yaml"
+      },
+      {
+        "name": "Legacy sub-domain files must register in both main.tsp and cloud/main.tsp",
+        "description": "packages/legacy/src/main.tsp and packages/legacy/src/cloud/main.tsp are the two compilation entry points; a new legacy .tsp not imported in both is silently ignored.",
+        "example": "Adding packages/legacy/src/myfeature.tsp: add `import './myfeature.tsp';` to both main.tsp files."
+      },
+      {
+        "name": "Vendored patches applied via pnpm patchedDependencies",
+        "description": "TypeSpec compiler/emitter bugs are fixed via single-concern unified diffs in patches/, mapped in package.json pnpm.patchedDependencies and applied at install; each patch targets compiled dist/ not TypeScript src/ and is version-coupled to the pinned package.",
+        "example": "package.json maps @typespec/compiler -> patches/@typespec__compiler.patch"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "api/spec/packages/aip/src/openmeter.tsp",
+        "role": "Root namespace file for the v3 spec; all @route/@tag bindings live here.",
+        "watch_for": "Declaring @route inside sub-domain files breaks the routing contract."
+      },
+      {
+        "file": "api/spec/packages/aip/scripts/flatten-allof.mjs",
+        "role": "Post-processing step that flattens allOf in the AIP output YAML after tsp compile.",
+        "watch_for": "May become a no-op if upstream fixes allOf generation, but must not be deleted without verifying."
+      },
+      {
+        "file": "api/spec/packages/legacy/src/main.tsp",
+        "role": "Entry point for v1/v2 compilation.",
+        "watch_for": "New sub-domain files must be imported here AND in cloud/main.tsp or they are silently dropped."
+      },
+      {
+        "file": "api/spec/packages/legacy/src/types.tsp",
+        "role": "Shared primitive types (ULID, DateTime, Key, Resource) for the v1 spec.",
+        "watch_for": "Never re-declare these primitives in sub-domain files."
+      },
+      {
+        "file": "api/spec/Makefile",
+        "role": "Canonical generate/lint/format targets called by root make gen-api.",
+        "watch_for": "The yq filter-schema loop replaces inline filter definitions with $ref to common/definitions/aip_filters.yaml \u2014 filter schema names must match expected (SortQuery, *FieldFilter, etc.)."
+      },
+      {
+        "file": "api/spec/package.json",
+        "role": "Workspace root; pins TypeSpec version (1.11.0) and declares patchedDependencies and named exports.",
+        "watch_for": "Bumping a patched package requires updating its patch and re-running the full make gen-api pipeline."
+      },
+      {
+        "file": "api/spec/patches/",
+        "role": "Vendored patch-package diffs applied to TypeSpec compiler/emitter at install time.",
+        "watch_for": "Patch compiled dist/ not TypeScript src/ (node_modules ships dist only); one concern per patch; remove stale patches once upstream ships the fix."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing api/openapi.yaml, api/openapi.cloud.yaml, or api/v3/openapi.yaml \u2014 always regenerate via make gen-api.",
+      "Declaring @route or @tag inside a domain sub-folder operations.tsp instead of the root namespace files.",
+      "Adding v3 content into packages/legacy/ or v1/v2 content into packages/aip/ \u2014 they compile to separate targets and mix-ins break both.",
+      "Adding a new legacy sub-domain file without registering it in both main.tsp and cloud/main.tsp.",
+      "Patching TypeScript src/**/*.ts in patches/ \u2014 node_modules ships dist/ only, so source patches are silently ignored."
+    ],
+    "decisions": [
+      {
+        "decision": "Two separate packages (aip/ and legacy/) with independent tspconfig files and entry points.",
+        "rationale": "v3 AIP and v1 legacy have different emitter configs, versioning strategies, and output targets; a single package would require complex conditional compilation."
+      },
+      {
+        "decision": "Post-processing via flatten-allof.mjs in aip/ rather than altering TypeSpec source.",
+        "rationale": "Upstream allOf generation cannot be changed without forking; a post-process script keeps the TypeSpec source clean."
+      },
+      {
+        "decision": "Vendored patches on dist/ of TypeSpec packages instead of forking them.",
+        "rationale": "Forking would block upstream upgrades; minimal reviewable dist/ patches can be dropped when upstream fixes land."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new v3 resource endpoint in the AIP package",
+        "code": "// packages/aip/src/resources/myresource.tsp\nimport \"@typespec/http\";\nimport \"@typespec/rest\";\nusing TypeSpec.Http;\nusing TypeSpec.Rest;\n\nmodel MyResource { id: string; name: string; }\n\n// Register in packages/aip/src/openmeter.tsp:\n// import \"./resources/myresource.tsp\";\n// @route(\"/api/v1/myresources\") interface MyResourceRoutes { ... }"
+      }
+    ]
+  }
+}

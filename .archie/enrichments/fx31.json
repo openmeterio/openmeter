@@ -1,0 +1,192 @@
+{
+  "cmd/jobs/quickstart": {
+    "purpose": "Cobra sub-command group for docker-compose quickstart helpers; its 'cron' command schedules billing-lifecycle polling loops via gocron. Explicitly NOT for production \u2014 billing-worker drives these flows via Kafka/Watermill instead.",
+    "patterns": [
+      {
+        "name": "gocron polling loops for billing lifecycle",
+        "description": "cronjobs.go uses gocron.NewScheduler to schedule BillingSubscriptionReconciler.All (hourly), BillingCollector.All and BillingAutoAdvancer.All (per-minute) on internal.App; jobs run via gocron.DurationJob + gocron.NewTask passing cmd.Context().",
+        "example": "s.NewJob(gocron.DurationJob(time.Minute), gocron.NewTask(func() { internal.App.BillingCollector.All(cmd.Context(), namespaces, nil, batchSize) }))"
+      },
+      {
+        "name": "Nil-guard optional internal.App services",
+        "description": "ChargesAutoAdvancer may be nil when charges/credits are disabled; always nil-check before scheduling its job.",
+        "example": "if internal.App.ChargesAutoAdvancer != nil { s.NewJob(gocron.DurationJob(time.Minute), gocron.NewTask(func() { internal.App.ChargesAutoAdvancer.All(cmd.Context(), namespaces) })) }"
+      },
+      {
+        "name": "Block on context cancel then shutdown scheduler",
+        "description": "Cron RunE calls s.Start(), blocks on <-cmd.Context().Done(), then s.Shutdown() for graceful stop.",
+        "example": "<-cmd.Context().Done(); if err := s.Shutdown(); err != nil { return err }"
+      },
+      {
+        "name": "Meta-group composition via init()",
+        "description": "quickstart.go aggregates sub-commands from other job packages (subscriptionsync) and cronjobs.go adds Cron, all through Cmd.AddCommand in init().",
+        "example": "func init() { Cmd.AddCommand(subscriptionsync.Cmd) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "quickstart.go",
+        "role": "Defines the 'quickstart' parent command and composes sub-commands (subscriptionsync) via init().",
+        "watch_for": "Documented as not for production \u2014 do not add production-critical logic here."
+      },
+      {
+        "file": "cronjobs.go",
+        "role": "Implements the 'cron' sub-command using gocron for billing-lifecycle automation in quickstart environments.",
+        "watch_for": "Hardcodes namespace 'default' and batchSize=10 (unsuitable for multi-tenant production). New cron jobs must nil-guard optional internal.App services. Job task errors are logged, not returned."
+      }
+    ],
+    "anti_patterns": [
+      "Using these gocron patterns in production workers \u2014 billing-worker uses Kafka/Watermill",
+      "Hardcoding namespaces for production deployments",
+      "Not nil-checking optional internal.App services (e.g. ChargesAutoAdvancer) before scheduling",
+      "Adding production-critical billing logic to quickstart commands"
+    ],
+    "decisions": [
+      {
+        "decision": "Quickstart cron uses gocron instead of Watermill/Kafka",
+        "rationale": "The quickstart docker-compose environment may lack a full Kafka topology; gocron provides polling-based advancement without Kafka dependencies, keeping quickstart self-contained."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a nil-guarded scheduled billing job",
+        "code": "import (\n  \"time\"\n  \"github.com/go-co-op/gocron/v2\"\n  \"github.com/openmeterio/openmeter/cmd/jobs/internal\"\n)\nif internal.App.ChargesAutoAdvancer != nil {\n  _, err = s.NewJob(gocron.DurationJob(time.Minute), gocron.NewTask(func() {\n    if err := internal.App.ChargesAutoAdvancer.All(cmd.Context(), namespaces); err != nil {\n      slog.Error(\"Error advancing charges\", \"error\", err)\n    }\n  }))\n  if err != nil { return err }\n}"
+      }
+    ]
+  },
+  "cmd/notification-service": {
+    "purpose": "Binary entrypoint for the notification-service: Wire assembles domain services, then main.go manually constructs the Watermill Kafka subscriber and notification consumer and runs them in an oklog/run.Group. Unlike other workers, subscriber + consumer.New live in main.go, not a common.Runner.",
+    "patterns": [
+      {
+        "name": "Manual run.Group assembly in main.go",
+        "description": "main.go builds its own run.Group (telemetry server + notificationConsumer.Run + SignalHandler) rather than using common.Runner; group.Run uses run.WithReverseShutdownOrder().",
+        "example": "group.Add(func() error { return notificationConsumer.Run(ctx) }, func(err error) { _ = notificationConsumer.Close() })"
+      },
+      {
+        "name": "Subscriber constructed in main.go, not Wire",
+        "description": "watermillkafka.NewSubscriber is called in main.go with app.BrokerOptions and conf.Notification.Consumer.ConsumerGroupName; it is not part of the Wire graph.",
+        "example": "wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{Broker: app.BrokerOptions, ConsumerGroupName: conf.Notification.Consumer.ConsumerGroupName})"
+      },
+      {
+        "name": "consumer.Options aggregates app fields",
+        "description": "consumer.Options assembles SystemEventsTopic, Router (router.Options with subscriber/publisher/logger/meter/tracer), Marshaler, and Notification from app fields.",
+        "example": "consumer.Options{SystemEventsTopic: conf.Events.SystemEvents.Topic, Router: router.Options{Subscriber: wmSubscriber, Publisher: app.MessagePublisher, ...}, Marshaler: app.EventPublisher.Marshaler(), Notification: app.Notification}"
+      },
+      {
+        "name": "Application exposes raw primitives",
+        "description": "The Application struct exposes BrokerOptions, MessagePublisher, metric.Meter, trace.Tracer, EventPublisher, and TelemetryServer directly so main.go can assemble consumer.Options manually.",
+        "example": "type Application struct { ... BrokerOptions watermillkafka.BrokerOptions; MessagePublisher message.Publisher; Meter metric.Meter; Tracer trace.Tracer; TelemetryServer common.TelemetryServer }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.go",
+        "role": "Parses config, Wire-inits app, Migrate, builds Kafka subscriber, constructs consumer.Options, instantiates consumer.New, runs the run.Group (telemetry server + consumer + signal handler).",
+        "watch_for": "consumer.Options.Marshaler must be app.EventPublisher.Marshaler() \u2014 a mismatched marshaler breaks message deserialization. ctx is context.Background() at the root (legitimate)."
+      },
+      {
+        "file": "wire.go",
+        "role": "Hand-written wire.Build (//go:build wireinject) listing provider sets; Application exposes more raw primitives than other workers for manual consumer construction.",
+        "watch_for": "common.NotificationServiceProvisionTopics must be listed for correct Kafka topic provisioning. Uses common.Watermill (full publisher)."
+      },
+      {
+        "file": "wire_gen.go",
+        "role": "Generated by Wire \u2014 DO NOT EDIT. TelemetryServer is an Application field (managed in this binary's run.Group), not on common.Runner.",
+        "watch_for": "StreamingConnector is wired as a transitive dependency even though notification-service does not query usage."
+      },
+      {
+        "file": "version.go",
+        "role": "ldflags-provisioned version plus vcs.revision/vcs.time read from debug.ReadBuildInfo in init().",
+        "watch_for": "Defaults to 'unknown' when build info is unavailable."
+      }
+    ],
+    "anti_patterns": [
+      "Moving Kafka subscriber construction into Wire \u2014 it stays in main.go so the consumer group name comes from config at startup",
+      "Using app.MessagePublisher as the marshaler source instead of app.EventPublisher.Marshaler()",
+      "Adding business notification logic to main.go \u2014 it belongs in openmeter/notification/consumer",
+      "Manually editing wire_gen.go"
+    ],
+    "decisions": [
+      {
+        "decision": "Watermill subscriber constructed in main.go rather than Wire",
+        "rationale": "The consumer group name is a runtime config value tied to deployment identity; keeping subscriber construction in main.go makes the config-to-subscriber mapping explicit and avoids parameterising Wire with runtime strings."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Assemble the notification consumer in main.go after Wire init",
+        "code": "wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{\n    Broker:            app.BrokerOptions,\n    ConsumerGroupName: conf.Notification.Consumer.ConsumerGroupName,\n})\nconsumerOptions := consumer.Options{\n    SystemEventsTopic: conf.Events.SystemEvents.Topic,\n    Router: router.Options{\n        Subscriber:  wmSubscriber,\n        Publisher:   app.MessagePublisher,\n        Logger:      logger,\n        MetricMeter: app.Meter,\n        Tracer:      app.Tracer,\n        Config:      conf.Notification.Consumer,\n    },\n    Marshaler:    app.EventPublisher.Marshaler(),\n    Notification: app.Notification,\n    Logger:       logger,\n}\nnotificationConsumer, err := consumer.New(consumerOptions)"
+      }
+    ]
+  },
+  "cmd/server": {
+    "purpose": "Binary entrypoint for the main HTTP API server: Wire-assembles all ~40 domain services, runs migrations, registers namespace handlers in strict order before initNamespace, provisions sandbox app and default billing profile, builds router.Config with every service, and runs an oklog/run.Group (API server, telemetry server, Kafka producer, notification event handler, termination checker).",
+    "patterns": [
+      {
+        "name": "Namespace handler registration before initNamespace",
+        "description": "LedgerNamespaceHandler, KafkaIngestNamespaceHandler, and TaxCodeNamespaceHandler MUST be registered on app.NamespaceManager before initNamespace, or the default namespace is provisioned without them.",
+        "example": "app.NamespaceManager.RegisterHandler(app.LedgerNamespaceHandler)\napp.NamespaceManager.RegisterHandler(app.KafkaIngestNamespaceHandler)\ninitNamespace(app.NamespaceManager, logger)"
+      },
+      {
+        "name": "router.Config aggregates all domain services",
+        "description": "server.NewServer receives a router.Config struct with every domain service as a named field. A new endpoint requires adding the service to router.Config (main.go) and to the Application struct in wire.go.",
+        "example": "router.Config{ Billing: app.BillingRegistry.Billing, Customer: app.Customer, ChargeService: app.BillingRegistry.ChargesServiceOrNil(), ... }"
+      },
+      {
+        "name": "Post-migration provisioning before server start",
+        "description": "After Migrate: register namespace handlers -> initNamespace -> SandboxProvisioner -> ProvisionDefaultBillingProfile -> MeterConfigInitializer; each must succeed (os.Exit(1) on error) before server.NewServer and run.Group.",
+        "example": "app.BillingRegistry.Billing.ProvisionDefaultBillingProfile(ctx, ns)\napp.MeterConfigInitializer(ctx)"
+      },
+      {
+        "name": "Five-component run.Group with graceful shutdown",
+        "description": "main.go assembles a run.Group: telemetry server, Kafka producer group, API HTTP server, notification event handler, termination checker, plus signal handler \u2014 each with a paired interrupt/shutdown func.",
+        "example": "group.Add(apiServerRun, apiServerShutdown)\ngroup.Add(eventHandlerStart, eventHandleStop)"
+      },
+      {
+        "name": "ChargesServiceOrNil for credits-gated charge service",
+        "description": "router.Config.ChargeService uses app.BillingRegistry.ChargesServiceOrNil() so it is nil-safe when credits.enabled=false.",
+        "example": "ChargeService: app.BillingRegistry.ChargesServiceOrNil()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.go",
+        "role": "Orchestrates startup: config parse -> Wire init -> SetGlobals -> Migrate -> namespace handler registration -> initNamespace -> provisioning -> server.NewServer (with full router.Config) -> run.Group.",
+        "watch_for": "Any new namespace.Handler must register BEFORE initNamespace(); any new post-migration provisioning step before run.Group.Run(). Errors during startup os.Exit(1)."
+      },
+      {
+        "file": "wire.go",
+        "role": "Largest hand-written wire.Build listing ~30 provider sets (common.App, common.Billing, common.LedgerStack, common.Kafka, common.KafkaIngest, common.Server, ...). Add new service dependencies here and to the Application struct.",
+        "watch_for": "common.LedgerStack is the credits-aware ledger provider \u2014 do not construct ledger services outside it. Use common.WatermillNoPublisher (server publishes but does not subscribe), not common.Watermill."
+      },
+      {
+        "file": "wire_gen.go",
+        "role": "Generated by Wire \u2014 DO NOT EDIT. Longest generated file (~600 lines); reference for dependency order.",
+        "watch_for": "Credits-guarded ledger construction appears here \u2014 verify noop vs real implementation when debugging credits.enabled=false paths."
+      }
+    ],
+    "anti_patterns": [
+      "Registering a namespace.Handler after initNamespace \u2014 the default namespace misses that handler's provisioning",
+      "Adding domain service calls in the startup sequence without error handling + os.Exit(1)",
+      "Manually editing wire_gen.go",
+      "Adding an HTTP endpoint without adding its service to router.Config and the wire.go Application struct",
+      "Using common.Watermill instead of common.WatermillNoPublisher (server does not consume Kafka topics)"
+    ],
+    "decisions": [
+      {
+        "decision": "cmd/server is the only binary registering namespace handlers",
+        "rationale": "Namespace provisioning (ClickHouse table creation, Kafka topic creation, ledger account setup) must happen exactly once via the server startup path; other workers do not register these handlers."
+      },
+      {
+        "decision": "NotificationEventHandler runs as a goroutine in cmd/server's run.Group",
+        "rationale": "It is lightweight and co-locating it with the API server simplifies deployment; the standalone notification-service binary remains available for horizontal scaling."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new domain service and wire it to an HTTP handler",
+        "code": "// 1. Add to Application in wire.go:\nMyService myservice.Service\n// 2. Add provider set to wire.Build:\ncommon.MyService,\n// 3. Add to router.Config in main.go:\nMyService: app.MyService,\n// 4. Run: make generate"
+      }
+    ]
+  }
+}

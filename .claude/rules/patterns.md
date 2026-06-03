@@ -1,258 +1,203 @@
 ## Communication Patterns
 
-### Layered Domain Service / Adapter / HTTP (three-layer per domain)
-- **Scope:** `openmeter/billing`, `openmeter/customer`, `openmeter/entitlement`, `openmeter/subscription`, `openmeter/notification`, `openmeter/meter`, `openmeter/ledger`, `openmeter/productcatalog`, `openmeter/app`, `openmeter/llmcost`, `openmeter/subject`, `openmeter/credit`
-- **When:** All business-logic domains under openmeter/<domain>/. Applied whenever persistence must be separated from orchestration and HTTP translation.
-- **How:** Each domain exposes a Go interface (e.g. billing.Service, customer.Service) defined at the package root in service.go. A concrete service struct in <domain>/service/ holds business logic and calls an Adapter interface for all DB access. The Adapter interface is defined alongside Service and implemented by Ent-backed structs in <domain>/adapter/ sub-packages. HTTP handlers live in <domain>/httpdriver/ or httphandler/ sub-packages. Service interfaces compose fine-grained sub-interfaces (e.g. ProfileService, InvoiceService) so callers depend on the smallest surface.
-- **Applicable when:** Adapters implementing TxCreator (Tx via HijackTx + NewTxDriver) and TxUser[T] (WithTx + Self) — every method body must use entutils.TransactingRepo so the ctx-bound Ent transaction is honored; verified at openmeter/billing/adapter/adapter.go:51-72 where Tx(), WithTx(), and Self() are all implemented.
-- **Do NOT apply when:**
-  - Adapter method bodies that use the raw *entdb.Client directly without TransactingRepo wrapping — the raw client ignores any Ent transaction carried in ctx, confirmed at pkg/framework/entutils/transaction.go:199-221 where TransactingRepo reads the TxDriver from context
-  - Placing business logic inside cmd/*/main.go — cmd/* must only wire and start; logic belongs under openmeter/
+### Layered Domain Service / Adapter / HTTP
+- **Scope:** `openmeter/billing`, `openmeter/billing/service`, `openmeter/billing/adapter`, `openmeter/customer`, `openmeter/entitlement`, `openmeter/subscription`, `openmeter/notification`, `openmeter/meter`, `openmeter/ledger`, `openmeter/productcatalog`, `openmeter/app`, `openmeter/llmcost`
+- **When:** Adding any business-logic capability to a domain under openmeter/<domain>/, separating orchestration from persistence and HTTP translation
+- **How:** Each domain declares a Service interface and an Adapter interface at the package root (service.go / adapter.go). The concrete service lives in <domain>/service/, the Ent-backed adapter in <domain>/adapter/, and HTTP handlers in <domain>/httpdriver/ (v1) or api/v3/handlers/<resource>/ (v3). Service calls only the Adapter interface; the adapter is the single DB boundary. Composite service interfaces are assembled from fine-grained sub-interfaces so callers depend on the narrowest slice.
 
-### Google Wire Dependency Injection
-- **Scope:** `app/common`, `cmd/server`, `cmd/billing-worker`, `cmd/balance-worker`, `cmd/sink-worker`, `cmd/notification-service`, `cmd/jobs`
-- **When:** Assembling runtime components for each binary. Each cmd/<binary>/wire.go declares a wire.Build; provider sets live in app/common/.
-- **How:** Google Wire generates cmd/<binary>/wire_gen.go at build time. Reusable provider sets (e.g. common.BillingWorker, common.LedgerStack) are declared as wire.NewSet() in app/common/ and compose individual factory functions. Wire resolves the dependency graph at compile time. Hook and validator registration is done as side-effects inside provider functions in app/common to avoid circular imports.
-- **Applicable when:** Binary entrypoints that must compose ~40 domain services compile-time safely — Wire provider sets in app/common are verified at wire.Build compile time, as seen in cmd/billing-worker/wire.go:35-58; missing providers cause compile errors not runtime panics.
-- **Do NOT apply when:**
-  - Domain packages importing app/common — the import direction is one-way outward (app/common imports domain packages); reversing creates import cycles
-  - Provider functions containing business logic (validation, computation, state mutation beyond hook/validator registration)
+### entutils.TransactingRepo context-propagated Ent transactions
+- **Scope:** `openmeter/billing/adapter`, `openmeter/billing/charges/adapter`, `openmeter/customer/adapter`, `openmeter/notification/adapter`, `openmeter/ledger`, `openmeter/entitlement`, `openmeter/subscription`
+- **When:** Every adapter method body that reads or writes via Ent and must compose with a caller-supplied transaction or start its own
+- **How:** TransactingRepo(ctx, a, func(ctx, tx *adapter)(T,error)) reads the *TxDriver from ctx; if present it rebinds a.db to the caller's transaction via WithTx(), otherwise it runs on Self(). The adapter must implement the Tx/WithTx/Self triad. lockr.LockForTX queries entutils.GetDriverFromContext to find the tx driver — so any lock or nested adapter call inherits the same transaction.
 
-### Registry Structs for Multi-Service Domains
-- **Scope:** `app/common`, `api/v3/server`
-- **When:** When a domain exposes multiple related services that callers must access together, reducing Wire graph complexity.
-- **How:** A <Domain>Registry struct groups logically cohesive services (e.g. BillingRegistry, ChargesRegistry). Callers depend on the registry rather than individual services. Nil-safe accessor methods (e.g. BillingRegistry.ChargesServiceOrNil()) encapsulate optional sub-registries when features are disabled.
-- **Applicable when:** Multi-service domains where one service may be conditionally nil at runtime — ChargesRegistry is nil when credits.enabled=false, so ChargesServiceOrNil() at app/common/billing.go:48 provides the nil-safe accessor; direct BillingRegistry.Charges field access would panic.
+### Per-customer advisory lock via lockr inside an Ent transaction
+- **Scope:** `openmeter/billing`, `openmeter/billing/service`, `openmeter/billing/adapter`, `openmeter/billing/charges`, `openmeter/entitlement`
+- **When:** Serializing concurrent invoice/charge mutations for the same customer so concurrent billing-worker goroutines and API requests cannot race on invoice or line creation
+- **How:** billing.Service.WithLock wraps transaction.RunWithNoValue and transactionForInvoiceManipulation: it UpsertCustomerLock (idempotent insert with OnConflict DoNothing) then LockCustomerForUpdate, which inside the ctx-bound transaction issues a SELECT ... FOR UPDATE on the single BillingCustomerLock row keyed (namespace, customer_id). lockr.Locker.LockForTX (pg_advisory_xact_lock) is the generic equivalent for per-charge locks; getTxClient verifies transaction_timestamp() != statement_timestamp() so it errors outside a real transaction. The lock auto-releases on commit/rollback.
+- **Applicable when:** openmeter/ent/schema/billing.go:1356 declares a UNIQUE index on (namespace, customer_id) for BillingCustomerLock — the (namespace, customerID) tuple maps to at most one row, so the SELECT FOR UPDATE / advisory lock serializes exactly that customer and nothing else. BillingCustomerOverride mirrors this with UNIQUE (namespace, customer_id) at openmeter/ent/schema/billing.go:258.
 - **Do NOT apply when:**
-  - Accessing BillingRegistry.Charges directly without ChargesServiceOrNil() — confirmed at app/common/billing.go:48 that Charges is nil when credits disabled
+  - Lock-key columns lack a UNIQUE index on the locked entity — pkg/framework/lockr/key.go hashes scopes to a uint64, so charges.NewLockKeyForCharge(openmeter/billing/charges/lock.go:15) keys on (namespace, charge, id) which is the charge primary key; reusing this shape for a non-unique key (e.g. a status or type column) would silently serialize unrelated rows under one hash
+  - Caller is outside an active Postgres transaction — pkg/framework/lockr/locker.go:134 returns 'lockr only works in a postgres transaction' when statement_timestamp()==transaction_timestamp(), so LockForTX from an autocommit connection acquires nothing
+  - Acquisition is wrapped in context.WithTimeout — pkg/framework/lockr/locker.go:91-92 documents that pgx cancels the connection on ctx cancel, corrupting the tx; use pgdriver.WithLockTimeout instead
 
-### Noop Implementations for Optional Features
-- **Scope:** `app/common`, `openmeter/ledger`, `openmeter/notification/webhook`
-- **When:** When a feature is disabled at runtime (credits.enabled=false, Svix not configured) to avoid nil-pointer checks scattered through business logic.
-- **How:** app/common provider functions check config flags and return noop structs instead of real implementations. All noop types implement the relevant interface. Callers receive a real interface and never branch on nil. Credits feature flag must be honored at four independent layers: (1) ledger services in app/common/ledger.go, (2) customer ledger hooks in app/common/customer.go, (3) ChargesRegistry skipped in app/common/billing.go, (4) credit handlers in api/v3/server.
-- **Applicable when:** Any provider that wires ledger-backed features when credits.enabled=false — app/common/ledger.go and app/common/customer.go independently guard with creditsConfig.Enabled; a single centralized guard is insufficient because credits cross-cuts multiple independent call graphs.
+### Kafka + Watermill pub/sub with three prefix-routed topics
+- **Scope:** `openmeter/watermill`, `openmeter/watermill/eventbus`, `openmeter/billing/worker`, `openmeter/entitlement/balanceworker`, `openmeter/notification`, `openmeter/sink`, `openmeter/ingest`
+- **When:** Any async domain-event delivery between the seven binaries (subscription lifecycle, invoice advance, ingest flush, balance recalculation)
+- **How:** eventbus.New wraps cqrs.NewEventBusWithConfig; GeneratePublishTopic does strings.HasPrefix on the EventName against ingestevents.EventVersionSubsystem+'.' and balanceworkerevents.EventVersionSubsystem+'.' and routes to IngestEventsTopic / BalanceWorkerEventsTopic respectively, defaulting all other prefixes to SystemEventsTopic with no error. Producers call Publisher.Publish or WithContext(ctx).PublishIfNoError. Consumers build routers via router.NewDefaultRouter and dispatch through grouphandler.NoPublishingHandler.
+- **Applicable when:** openmeter/watermill/eventbus/eventbus.go:141-142 has a default switch case that returns SystemEventsTopic for any unrecognized EventName prefix — so the routing invariant holds ONLY for event families whose EventName() begins with a registered EventVersionSubsystem constant (ingest or balance-worker); everything else is silently treated as a system event.
 - **Do NOT apply when:**
-  - Features that are always required — use real implementations directly without an enabled flag
-  - Returning nil instead of a noop struct — callers receive the interface and will panic if nil is assigned
+  - Event family intended for the ingest or balance-worker topic whose EventName() lacks the matching EventVersionSubsystem prefix — openmeter/watermill/eventbus/eventbus.go:141 silently routes it to SystemEventsTopic, bypassing topic isolation
+  - Producer in a binary other than balance-worker emitting balanceworkerevents.* — the BalanceWorkerEventsTopic is a dedicated recalculation queue consumed only by the balance-worker
 
-### Watermill Kafka-backed Pub/Sub (three fixed topics, prefix routing)
-- **Scope:** `openmeter/watermill`, `openmeter/billing/worker`, `openmeter/entitlement/balanceworker`, `openmeter/notification/consumer`, `openmeter/sink`
-- **When:** Async domain-event delivery between separate binaries. Used for subscription lifecycle events, billing invoice advance events, ingest flush notifications, and balance-worker recalculation events.
-- **How:** openmeter/watermill/eventbus/eventbus.go wraps Watermill's cqrs.EventBus with TopicMapping (IngestEventsTopic, SystemEventsTopic, BalanceWorkerEventsTopic). GeneratePublishTopic routes by EventName() prefix: events starting with ingestevents.EventVersionSubsystem go to IngestEventsTopic; balanceworkerevents.EventVersionSubsystem go to BalanceWorkerEventsTopic; default falls through to SystemEventsTopic. Workers subscribe via openmeter/watermill/router.NewDefaultRouter with fixed middleware stack (PoisonQueue, DLQ, CorrelationID, Recoverer, Retry, ProcessingTimeout, HandlerMetrics). Consumers dispatch to typed handlers registered in grouphandler.NoPublishingHandler keyed on CloudEvents ce_type. Unknown types are silently dropped (returned nil in grouphandler.go:49).
-- **Applicable when:** Domain event producers that must route to one of three isolated Kafka topics — EventName() must begin with a recognized EventVersionSubsystem prefix; otherwise GeneratePublishTopic at eventbus.go:135-143 silently routes to SystemEventsTopic.
+### NoPublishingHandler silent-drop dispatch by CloudEvents ce_type
+- **Scope:** `openmeter/watermill/grouphandler`, `openmeter/billing/worker`, `openmeter/entitlement/balanceworker`, `openmeter/notification/consumer`
+- **When:** Consumer-side dispatch of a Kafka message to typed handlers in a worker router
+- **How:** NoPublishingHandler.Handle reads the ce_type via marshaler.NameFromMessage, looks it up in typeHandlerMap; if no handler is registered it increments an 'ignored' metric and returns nil (ACK, silent drop). For a matched type it unmarshals once and fans out to all registered handlers via errors.Join(lo.Map(...)) so any handler failure surfaces and triggers Watermill retry. Handlers must use msg.Context().
+- **Applicable when:** openmeter/watermill/grouphandler/grouphandler.go:48-54 returns nil for any ce_type not in typeHandlerMap — the silent-drop contract is correct ONLY for consumers that must tolerate producer/consumer version skew during rolling deploys; it cannot distinguish 'unknown event type' from 'known type, payload version the consumer cannot decode'.
 - **Do NOT apply when:**
-  - Publishing directly to a Kafka topic string — always use eventbus.Publisher which encapsulates routing
-  - Returning errors for unknown event types in consumer handlers — grouphandler.go:49 silently returns nil to support rolling deploys; returning errors causes Watermill retries and DLQ poisoning
-  - Substituting context.Background() inside a handler instead of msg.Context()
+  - Multiple handlers registered for the same ce_type that mutate the shared event pointer — grouphandler.go:57-66 unmarshals one instance and passes the same pointer to every handler via errors.Join, so concurrent mutation races
+  - Handler that needs unknown/undecodable versions surfaced for DLQ — grouphandler.go:54 ACKs and drops; returning an error here instead would poison the DLQ for valid messages of other families on the same topic
 
-### entutils.TransactingRepo (Context-propagated Ent Transactions)
-- **Scope:** `openmeter/billing/adapter`, `openmeter/billing/charges/adapter`, `openmeter/customer/adapter`, `openmeter/entitlement`, `openmeter/subscription`, `openmeter/notification/adapter`, `openmeter/ledger`
-- **When:** All DB adapter methods that must run inside a caller-supplied transaction or start their own.
-- **How:** pkg/framework/entutils/transaction.go defines TransactingRepo[R,T] and TransactingRepoWithNoValue[T]. They read the *TxDriver from context via GetDriverFromContext(). If found, the adapter's WithTx(ctx, tx) creates a txClient from raw Ent config. If none is found, the adapter runs on Self() and operates without a transaction. Savepoints are created for nested calls: TxDriver.SavePoint() increments a counter; first call skips the savepoint to allow the outer transaction to close normally.
-- **Applicable when:** Adapter methods called both standalone and inside multi-step transactions — TransactingRepo at pkg/framework/entutils/transaction.go:199 reads *TxDriver from ctx and rebinds to the caller's transaction if present, or uses Self() to run independently; this prevents partial writes when called within AdvanceCharges or similar multi-step flows.
-- **Do NOT apply when:**
-  - Adapter methods that directly call a.db.Foo() without the TransactingRepo wrapper — they ignore the ctx-bound Ent transaction and produce partial writes under concurrency
-
-### pg_advisory_xact_lock via lockr.Locker
-- **Scope:** `openmeter/billing`, `openmeter/billing/charges`, `openmeter/entitlement`
-- **When:** Distributed mutual exclusion for per-customer billing operations to prevent concurrent invoice generation races.
-- **How:** pkg/framework/lockr/locker.go calls pg_advisory_xact_lock($1) with a CRC64-based hash of the lock key (confirmed at locker.go:66). Requires an active Postgres transaction in context: getTxClient() calls entutils.GetDriverFromContext() and additionally queries 'SELECT transaction_timestamp() != statement_timestamp()' to verify (locker.go:100-137). Lock is released automatically on tx commit/rollback.
-- **Applicable when:** Per-customer billing mutations where concurrent goroutines can race on invoice creation or charge advancement — LockForTX at lockr/locker.go:45 requires an active Postgres transaction in ctx; calling outside a transaction causes the 'lockr only works in a postgres transaction' error at locker.go:135.
-- **Do NOT apply when:**
-  - Calling LockForTX outside an active Postgres transaction — locker.go:135 returns an error if statement_timestamp() == transaction_timestamp()
-  - Using context.WithTimeout for lock acquisition — pgx cancels the connection on ctx cancel; code comment at locker.go:91-93 explicitly warns against this
-
-### httptransport.Handler Decode/Operate/Encode Pipeline
-- **Scope:** `openmeter/billing/httpdriver`, `openmeter/customer/httpdriver`, `openmeter/meter/httphandler`, `api/v3/handlers`
-- **When:** HTTP endpoint handlers in domain packages that separate request decoding, business logic, and response encoding.
-- **How:** pkg/framework/transport/httptransport/handler.go defines generic Handler[Request, Response] interface. NewHandler() accepts a RequestDecoder, an operation.Operation, a ResponseEncoder, and optional HandlerOptions. defaultHandlerOptions appends GenericErrorEncoder as the last error encoder. Decode failure or operation failure triggers encodeError which iterates the error encoder chain; first matching encoder short-circuits. SelfEncodingError interface allows errors to encode themselves. Chain() wraps the operation with middleware.
-- **Applicable when:** HTTP endpoints that must map domain errors to RFC 7807 problem+json responses — the GenericErrorEncoder at handler.go:17 is always appended as defaultHandlerOption; custom encoders passed before it take precedence.
-- **Do NOT apply when:**
-  - Implementing ServeHTTP directly in a handler struct — this bypasses defaultHandlerOptions (GenericErrorEncoder), OTel instrumentation, and the chain pattern
-
-### ServiceHook Registry (cross-domain lifecycle callbacks)
-- **Scope:** `openmeter/customer`, `openmeter/subscription`, `openmeter/app`, `app/common`
-- **When:** Cross-domain lifecycle callbacks without circular imports. Used by customer.Service, subscription.Service, and app marketplace.
-- **How:** pkg/models/servicehook.go defines generic ServiceHook[T] interface (PreUpdate, PreDelete, PostCreate, PostUpdate, PostDelete) and thread-safe ServiceHookRegistry[T] that fans out to all registered hooks using RWMutex. Loop prevention: a per-registry context key (pointer-identity string via fmt.Sprintf('%p', r)) prevents re-entrant invocations — confirmed at servicehook.go:46-65 where ctx is checked for the loop key. Domain services embed *ServiceHookRegistry and expose RegisterHooks() externally. Registration happens as side-effects in app/common provider functions.
-- **Applicable when:** Cross-domain lifecycle reactions where direct package imports would create circular dependencies — billing hooking into customer lifecycle must go through ServiceHookRegistry registered in app/common.
-- **Do NOT apply when:**
-  - Domain packages calling RegisterHooks on another domain's service inside their own constructors — this creates circular imports; always register in app/common provider functions
-
-### Customer RequestValidator Registry (pre-mutation validation guards)
-- **Scope:** `openmeter/customer`, `app/common`
-- **When:** Pre-mutation validation for customer operations where billing, subscription, or entitlement constraints must be checked before the customer is modified or deleted.
-- **How:** openmeter/customer/requestvalidator.go defines RequestValidator interface (ValidateDeleteCustomer, ValidateCreateCustomer, ValidateUpdateCustomer) and thread-safe requestValidatorRegistry that fans out to all registered validators using errors.Join (no short-circuit on first failure). Validators are registered via customerService.RegisterRequestValidator() in app/common provider functions.
-- **Applicable when:** Pre-mutation guards from billing or entitlement domains that must block customer operations before any DB write — the registry fans out to all registered validators via errors.Join before any adapter write.
-- **Do NOT apply when:**
-  - Post-mutation reactions — these belong in ServiceHooks (PostCreate, PostUpdate, PostDelete), not in RequestValidatorRegistry which is exclusively for pre-mutation blocking validation
-
-### Invoice State Machine (stateless library, sync.Pool backed)
-- **Scope:** `openmeter/billing`, `openmeter/billing/service`
-- **When:** Driving the StandardInvoice lifecycle transitions.
-- **How:** openmeter/billing/service/stdinvoicestate.go builds a *stateless.StateMachine via stateless.NewStateMachineWithExternalStorage. External storage reads/writes Invoice.Status directly on the InvoiceStateMachine struct. StateMachines are pooled in invoiceStateMachineCache (sync.Pool) to reduce GC pressure. Transitions are configured with Permit/OnActive on each state. FireAndActivate fires a trigger and persists; AdvanceUntilStateStable walks TriggerNext transitions.
-- **Applicable when:** Invoice lifecycle operations that must enforce valid transition sequences — the stateless.StateMachine prevents invalid transitions at runtime; direct Invoice.Status field mutation bypasses these guards and leaves invoices in inconsistent state.
-- **Do NOT apply when:**
-  - Directly mutating Invoice.Status fields without going through FireAndActivate — the state machine enforces valid transitions and fires post-transition actions (DB save, event publish)
-
-### Generic Charge State Machine (Machine[CHARGE,BASE,STATUS])
-- **Scope:** `openmeter/billing/charges`
-- **When:** Driving charge lifecycle (flatfee, usagebased, creditpurchase) with shared mechanics.
-- **How:** openmeter/billing/charges/statemachine/machine.go defines generic Machine[CHARGE ChargeLike[CHARGE,BASE,STATUS], BASE any, STATUS Status]. ExternalStorage reads GetStatus() from CHARGE and writes via WithStatus() — both must return new value copies (value semantics, not pointer mutation). FireAndActivate fires a trigger and persists BASE via Persistence.UpdateBase; after persistence, Refetch retrieves the updated CHARGE from the database.
-- **Applicable when:** Charge types implementing ChargeLike[CHARGE,BASE,STATUS] — WithStatus and WithBase must return new value copies; pointer-mutating implementations break the external storage pattern at statemachine/machine.go:58 where Machine.Charge is updated by assignment.
-- **Do NOT apply when:**
-  - Implementing WithStatus or WithBase as pointer receivers that mutate in place — they must return new value copies because Machine.Charge is updated by assignment
-
-### Sink Worker Three-Phase Flush (Kafka to ClickHouse batch)
+### Sink worker three-phase flush (ClickHouse -> Kafka offset -> Redis dedupe)
 - **Scope:** `openmeter/sink`, `cmd/sink-worker`
-- **When:** High-throughput ingestion path: raw CloudEvents buffered from Kafka, deduplicated, and batch-inserted into ClickHouse.
-- **How:** openmeter/sink/sink.go: flush() acquires a mutex, pauses Kafka partitions, dequeues buffer, runs in-batch dedup, then (1) calls persistToStorage (ClickHouse BatchInsert), (2) calls Consumer.StoreMessage for each Kafka offset, (3) calls dedupeSet (Redis SETNX with exponential retry). After all three phases, FlushEventHandler.OnFlushSuccess is called in a goroutine with FlushSuccessTimeout-bounded context to decouple it from the hot path (sink.go:371-378).
-- **Applicable when:** Exactly-once usage event ingestion where ClickHouse must be written before Kafka offset commit — reversing the three-phase flush order breaks the exactly-once guarantee on consumer restart.
+- **When:** High-throughput batch ingestion of raw CloudEvents from Kafka into ClickHouse with exactly-once semantics
+- **How:** Sink.flush dedupes in-batch, then executes strictly: (1) persistToStorage -> Storage.BatchInsert into ClickHouse, (2) Consumer.StoreMessage for each Kafka offset (sorted so the largest offset is stored last), (3) dedupeSet (Redis SETNX with retry) only when a Deduplicator is configured. After all three phases FlushEventHandler.OnFlushSuccess is invoked in a goroutine bounded by FlushSuccessTimeout so the post-flush balance-recalculation notification never blocks the consumer loop.
+- **Applicable when:** openmeter/sink/sink.go:327-372 orders persistToStorage (phase 1) strictly before Consumer.StoreMessage (phase 2) and dedupeSet (phase 3); the exactly-once guarantee holds ONLY while ClickHouse is written before the Kafka offset is committed — on consumer restart an uncommitted offset re-delivers messages not yet in ClickHouse.
 - **Do NOT apply when:**
-  - Calling FlushEventHandler.OnFlushSuccess synchronously inside flush() — this blocks the main sink loop and causes Kafka partition backpressure (confirmed at sink.go:371-378 where it is always in a goroutine)
+  - Reordering so Redis dedupe is set before the Kafka offset commit — openmeter/sink/sink.go:350-372 sets dedupe last; a crash after dedupe but before offset commit would mark events processed while ClickHouse re-reads from the uncommitted offset, dropping them
+  - Calling FlushEventHandler.OnFlushSuccess synchronously — openmeter/sink/sink.go:391-399 always wraps it in a goroutine with FlushSuccessTimeout; a synchronous call blocks the main sink loop and causes Kafka partition backpressure
 
-### Namespace Manager Fan-out (multi-tenancy provisioning)
+### Namespace Manager fan-out (multi-tenancy provisioning)
 - **Scope:** `openmeter/namespace`, `cmd/server`
-- **When:** Provisioning and deprovisioning tenants across all subsystems (ClickHouse, Kafka ingest, Ledger).
-- **How:** openmeter/namespace/namespace.go: Manager holds a slice of Handler implementations. createNamespace() fans out to all registered handlers using errors.Join (no short-circuit on partial failure), confirmed at namespace.go:105-119. RegisterHandler() appends dynamically with RWMutex. CreateDefaultNamespace() calls createNamespace with the default name. The default namespace is protected from deletion by DeleteNamespace() at namespace.go:64-70.
-- **Applicable when:** Subsystems that must provision resources per namespace — Handler implementations must be registered via RegisterHandler before CreateDefaultNamespace is called at startup to receive the default namespace creation event.
+- **When:** Provisioning/deprovisioning a tenant across all subsystems (ClickHouse streaming, Kafka ingest, Ledger)
+- **How:** namespace.Manager holds a slice of registered Handler implementations. createNamespace and DeleteNamespace iterate every handler and aggregate failures with errors.Join (no short-circuit). RegisterHandler appends handlers; CreateDefaultNamespace calls createNamespace with the default name. The default namespace is protected from deletion.
+- **Applicable when:** openmeter/namespace/namespace.go:92 CreateDefaultNamespace fans out only over handlers already present in the slice — so a Handler is provisioned for the default namespace ONLY if RegisterHandler was called before CreateDefaultNamespace at startup; handlers registered afterward miss default-namespace provisioning.
 - **Do NOT apply when:**
-  - Registering a Handler after CreateDefaultNamespace has been called — it will miss default namespace provisioning
+  - Registering a namespace.Handler after CreateDefaultNamespace has already run — openmeter/namespace/namespace.go:92-103 iterates only the handlers present at call time, so a late handler's subsystem is never initialized for the default tenant
 
-### RFC 7807 Problem Details HTTP Error Response
-- **When:** All error responses from the REST API.
-- **How:** pkg/models/problem.go defines StatusProblem struct serialized as application/problem+json (ProblemContentType). NewStatusProblem() reads request-id from Chi middleware context via middleware.GetReqID(), maps 'context canceled' substring to 408, suppresses detail on 500. pkg/framework/commonhttp/errors.go provides HandleErrorIfTypeMatches[T] which uses errors.As to check type and produces the correct HTTP status. HandleIssueIfHTTPStatusKnown extracts ValidationIssue nodes with httpStatusCodeErrorAttribute attached by WithHTTPStatusCodeAttribute.
-- **Applicable when:** Any HTTP error response in the API — models.NewStatusProblem plus the GenericErrorEncoder chain in httptransport ensures all domain errors render as application/problem+json with correct status codes.
-
-### ValidationIssue Immutable Builder
-- **Scope:** `openmeter/billing`, `openmeter/billing/charges`, `openmeter/customer`, `openmeter/notification`, `openmeter/subscription`
-- **When:** Domain-level validation errors that must carry field paths, severity, component names, and arbitrary attributes through service layer boundaries.
-- **How:** pkg/models/validationissue.go defines ValidationIssue as an immutable value type (all fields private). Clone() returns a new copy with wraps set to the original. With() accepts ValidationIssueOption functions that modify the clone. WithHTTPStatusCodeAttribute() in commonhttp/errors.go attaches an integer status code as an attribute key 'openmeter.http.status_code'. HandleIssueIfHTTPStatusKnown() reads this attribute at the HTTP boundary.
-- **Applicable when:** Field-level validation errors that must survive wrapping through multiple service layers and emerge at the HTTP boundary with correct status codes — WithHTTPStatusCodeAttribute at commonhttp/errors.go:82 attaches the status as an attribute on the ValidationIssue; HandleIssueIfHTTPStatusKnown reads it at the HTTP boundary.
+### ServiceHook Registry for cross-domain lifecycle callbacks
+- **Scope:** `openmeter/customer`, `openmeter/subscription`, `openmeter/app`, `app/common`
+- **When:** Reacting to another domain's entity lifecycle (billing reacting to subscription/customer events, ledger reacting to customer creation) without importing that domain's service
+- **How:** pkg/models.ServiceHookRegistry[T] fans out PreCreate/PostCreate/PreUpdate/PostUpdate/PreDelete/PostDelete to all registered hooks under an RWMutex. Re-entrancy is prevented by a per-registry loop key derived from pointer identity (fmt.Sprintf('service-hook-registry-%p', r)) stored in ctx. Domain services embed the registry and expose RegisterHooks; registration happens as a side-effect inside app/common provider functions.
+- **Applicable when:** pkg/models/servicehook.go:42 derives the loop-prevention key from the registry's own pointer (fmt.Sprintf('...%p', r)) — so the re-entrancy guard is correct ONLY while the registry is shared by pointer; copying the registry value produces a different %p and defeats loop prevention.
 - **Do NOT apply when:**
-  - Mutating a ValidationIssue in place — all With* methods return new copies; direct struct field assignment is impossible (all fields are unexported)
+  - Registering a hook inside a domain package's own constructor instead of an app/common provider — Wire models types not side-effects, so omitting the provider from a binary's wire.Build silently drops the hook (no compile error)
+  - Pre-mutation blocking validation — that belongs in the customer RequestValidator registry (openmeter/customer/requestvalidator.go), not in post-lifecycle ServiceHooks
 
-### App Factory / Registry (External Billing App Protocol)
+### httptransport decode/operate/encode pipeline with GenericErrorEncoder chain
+- **Scope:** `openmeter/billing/httpdriver`, `openmeter/customer/httpdriver`, `openmeter/meter/httphandler`, `api/v3/handlers`
+- **When:** Every v1 (httpdriver) and v3 (api/v3/handlers) HTTP endpoint
+- **How:** httptransport.NewHandler composes a RequestDecoder, an operation.Operation, and a ResponseEncoder, and appends commonhttp.GenericErrorEncoder as the last error encoder. Encoders return bool (first match wins, short-circuiting double-writes). Domain errors are models.Generic* sentinels matched by type; ValidationIssue HTTP status is carried as an attribute read by HandleIssueIfHTTPStatusKnown.
+
+### Google Wire DI with app/common provider sets and noop-for-disabled-features
+- **Scope:** `app/common`, `cmd/server`, `cmd/billing-worker`, `cmd/balance-worker`, `cmd/sink-worker`, `cmd/notification-service`, `cmd/jobs`
+- **When:** Composing the dependency graph for each of the seven binaries
+- **How:** Each cmd/<binary>/wire.go declares wire.Build over composite provider sets defined in app/common/ (per-domain files plus openmeter_<binary>.go). Domain packages expose plain constructors and never import app/common. Optional features (credits.enabled=false, Svix unconfigured) are gated by returning noop interface implementations rather than nil. Credits is guarded independently at four wiring layers.
+
+### Tagged-union domain models with constructor-only construction (Charge, ChargeIntent, InvoiceLine)
+- **Scope:** `openmeter/billing`, `openmeter/billing/charges`
+- **When:** Modeling billing entities that have several mutually exclusive sub-types requiring exhaustive dispatch
+- **How:** Charge/ChargeIntent carry a private meta.ChargeType discriminator set only by NewCharge[T]/NewChargeIntent[T]; InvoiceLine carries a private InvoiceLineType set only by NewStandardInvoiceLine/NewGatheringInvoiceLine. Typed accessors (AsFlatFeeCharge / AsUsageBasedCharge / AsCreditPurchaseCharge / AsStandardLine / AsGatheringLine) return an error on type mismatch. A struct literal leaves the discriminator zero-valued and all accessors error.
+
+### Invoice / Charge state machine (stateless library, sync.Pool backed)
+- **Scope:** `openmeter/billing`, `openmeter/billing/service`, `openmeter/billing/charges`
+- **When:** Driving StandardInvoice or charge lifecycle transitions
+- **How:** billing/service/stdinvoicestate.go builds a *stateless.StateMachine bound to Invoice.Status via external storage, pooled in invoiceStateMachineCache (sync.Pool). FireAndActivate fires a trigger and persists; advancementStrategy switches between inline AdvanceUntilStateStable and publishing AdvanceStandardInvoiceEvent for the billing-worker. The generic charges Machine[CHARGE,BASE,STATUS] uses value-copy WithStatus/WithBase semantics.
+
+### App Factory / Marketplace Registry (InvoicingApp protocol)
 - **Scope:** `openmeter/app`, `openmeter/billing`
-- **When:** Plugging Stripe, Sandbox, and CustomInvoicing billing apps into the billing state machine without hardcoding them.
-- **How:** openmeter/app/service.go defines AppService interface with RegisterMarketplaceListing. Each concrete app type (Stripe, Sandbox, CustomInvoicing) implements app.App interface and optionally billing.InvoicingApp. Self-registration happens in each app's New() or factory constructor. The App interface requires GetCustomerData, UpsertCustomerData, DeleteCustomerData for customer-data lifecycle.
-- **Applicable when:** Billing backends that implement billing.InvoicingApp (ValidateStandardInvoice, UpsertStandardInvoice, FinalizeStandardInvoice, DeleteStandardInvoice) — new backends must implement InvoicingApp and register via the factory, not add conditional branches in the core service.
-- **Do NOT apply when:**
-  - Adding provider-specific logic directly inside billing.Service — new billing backends must implement InvoicingApp and register via the factory
+- **When:** Plugging a billing backend (Stripe, Sandbox, CustomInvoicing) into the invoice state machine without hardcoding it
+- **How:** app.Service exposes RegisterMarketplaceListing; each concrete app self-registers a factory in its constructor and implements billing.InvoicingApp (ValidateStandardInvoice, UpsertStandardInvoice, FinalizeStandardInvoice, DeleteStandardInvoice). Invoices passed to app callbacks are read-only snapshots; external IDs are returned via the UpsertResults/FinalizeStandardInvoiceResult builder whose MergeIntoInvoice is applied under billing-service control.
 
-### LineEngine Plugin Registry
-- **Scope:** `openmeter/billing`, `app/common`
-- **When:** Dispatching billing line calculation to the correct engine based on LineEngineType discriminator.
-- **How:** billing.Service exposes RegisterLineEngine / DeregisterLineEngine / GetRegisteredLineEngines via LineEngineService interface (billing/service.go:63-67). Each charge type implements its own LineEngine and registers at startup in app/common/charges.go. The service implementation stores engines in a map under RWMutex.
-- **Applicable when:** Charge types that need to register their own line engine — engines must be registered before the first invoice advance, as codified in app/common via Wire side-effects.
-- **Do NOT apply when:**
-  - Registering line engines from domain packages instead of app/common — this would create circular imports
+### TypeSpec single-source API generation (v1 + v3 + three SDKs)
+- **Scope:** `api/spec`, `openmeter/server/router`, `api/v3/server`, `api/v3/handlers`
+- **When:** Adding or changing any HTTP endpoint, request/response type, or SDK contract
+- **How:** Endpoints are authored in TypeSpec under api/spec/packages/legacy (v1) or api/spec/packages/aip (v3), with route/tag bindings only in the root openmeter.tsp. make gen-api compiles to api/openapi.yaml + api/v3/openapi.yaml then oapi-codegen produces api/api.gen.go, api/v3/api.gen.go, and the Go/JS/Python SDKs; make generate then propagates to Ent/Wire/Goverter/Goderive. Both regen steps are mandatory.
 
 ## Integrations
 
 | Service | Purpose | Integration point |
 |---------|---------|-------------------|
-| PostgreSQL | Primary relational store for all domain entities: billing profiles, invoices, customers, subscriptions, entitlements, notification channels, ledger accounts, meters, subjects, secrets, charges. | `openmeter/ent/schema/ (source of truth); generated code in openmeter/ent/db/; Atlas migrations in tools/migrate/migrations/. Accessed via *entdb.Client injected through Wire. Transactions managed by pkg/framework/entutils.TransactingRepo.` |
-| ClickHouse | Append-only analytics store for raw usage events; queried for meter aggregations (count, sum, max, unique_count) via SQL builders. | `openmeter/streaming/clickhouse/ for batch inserts and meter queries. openmeter/sink/storage.go (Storage interface BatchInsert). openmeter/sink/sink.go:308-314 calls persistToStorage which calls BatchInsert.` |
-| Kafka (confluent-kafka-go + Watermill-Kafka) | Durable event bus for domain events (subscription lifecycle, invoice advance, ingest flush notifications, balance recalculation) and raw usage event ingestion. | `openmeter/watermill/driver/kafka/ — Publisher and Subscriber wrappers. openmeter/watermill/eventbus/eventbus.go — topic routing by prefix. confluent-kafka-go used directly in openmeter/sink/sink.go for high-throughput ingest consumer.` |
-| Redis | Optional deduplication store for ingest events (preventing double-counting on retry). | `openmeter/dedupe/redisdedupe/ — Redis-backed Deduplicator. In-memory LRU fallback in openmeter/dedupe/memorydedupe/. Used in openmeter/sink/sink.go:333-358 (dedupeSet phase).` |
-| Svix | Outbound webhook delivery for notification events (entitlement balance thresholds, invoice events). | `openmeter/notification/webhook/svix/svix.go — Svix API client wrapper. NullChannel sentinel at svix.go:20-26 prevents unfiltered delivery. Handler interface in openmeter/notification/webhook/handler.go with noop fallback when Svix is unconfigured.` |
-| Stripe | Invoice syncing (upsert draft, finalize, collect payment) and customer sync for billing-enabled namespaces. | `openmeter/app/stripe/app.go implements billing.InvoicingApp (UpsertStandardInvoice, FinalizeStandardInvoice, DeleteStandardInvoice). Stripe REST client in openmeter/app/stripe/client/.` |
-| Sandbox Invoicing App | No-op invoicing app used in development/testing to drive invoice state machine without external dependencies. | `openmeter/app/sandbox/app.go implements billing.InvoicingApp + billing.InvoicingAppPostAdvanceHook (confirmed at sandbox/app.go:26-27).` |
-| CustomInvoicing App | Webhook-driven invoicing app allowing external systems to receive invoice payloads and async-confirm sync completion. | `openmeter/app/custominvoicing/ — App implements InvoicingApp + InvoicingAppAsyncSyncer.` |
-| GOBL | Currency and numeric type library for currency-safe arithmetic and ISO 4217 currency code validation throughout billing and subscription. | `Imported as github.com/invopop/gobl/currency and github.com/invopop/gobl/num in productcatalog, subscription, billing, cost, and currencies packages.` |
-| OpenTelemetry | Distributed tracing and metrics across all services. | `trace.Tracer injected via Wire into service constructors. OTel metric.Meter used in grouphandler (grouphandler.go:120-139) and sink worker. app/common/telemetry.go bootstraps OTLP exporters.` |
-| TypeSpec compiler | Single source of truth for HTTP API definitions, compiling to OpenAPI YAML and downstream Go server stubs and SDKs. | `api/spec/packages/ — TypeSpec source. make gen-api runs tsp compile to produce api/openapi.yaml, api/v3/openapi.yaml, then oapi-codegen produces api/api.gen.go, api/v3/api.gen.go, api/client/go/client.gen.go.` |
-| App Marketplace Registry (extension protocol) | Runtime-pluggable billing backend mechanism allowing Stripe, Sandbox, and CustomInvoicing to register themselves without hardcoded references in billing domain. | `openmeter/app/service.go — Service.RegisterMarketplaceListing; each app's New() or factory self-registers via this call.` |
-| LineEngine Registry (extension protocol) | Runtime-pluggable billing line calculation dispatch by LineEngineType. | `openmeter/billing/service.go — LineEngineService.RegisterLineEngine / DeregisterLineEngine; app/common registers all charge type engines at Wire startup.` |
-| ServiceHook Registries (extension protocol) | Cross-domain lifecycle callbacks without circular imports — billing hooks customer lifecycle, ledger hooks customer creation. | `pkg/models/servicehook.go — ServiceHookRegistry[T]; hooks registered in app/common/customer.go as side-effects of Wire provider functions.` |
-| Customer RequestValidator Registry (extension protocol) | Pre-mutation validation guards for customer operations from billing and entitlement domains. | `openmeter/customer/requestvalidator.go — requestValidatorRegistry; billing validator registered via customerService.RegisterRequestValidator() in app/common/billing.go:207.` |
+| PostgreSQL | Primary relational store for all billing/customer/entitlement/subscription/notification/ledger/meter/secret entities via Ent ORM | `openmeter/ent/schema/ (source of truth), generated openmeter/ent/db/, Atlas migrations in tools/migrate/migrations/; accessed via *entdb.Client through entutils.TransactingRepo` |
+| ClickHouse | Append-only analytics store for raw usage events; queried for meter aggregations and batch-inserted by the sink worker | `openmeter/streaming/clickhouse/ (queries); openmeter/sink/storage.go Storage.BatchInsert called from openmeter/sink/sink.go:330 persistToStorage` |
+| Kafka (confluent-kafka-go + Watermill) | Durable event bus for domain events and raw usage ingestion, isolated into three named topics | `openmeter/watermill/eventbus/eventbus.go (prefix routing); openmeter/watermill/router/router.go; confluent-kafka-go used directly in openmeter/sink/sink.go for the ingest consumer` |
+| Redis | Optional deduplication store for ingest events to prevent double-counting on retry | `openmeter/dedupe/redisdedupe/ (in-memory LRU fallback in openmeter/dedupe/memorydedupe/); used in openmeter/sink/sink.go:354 dedupeSet phase` |
+| Svix | Outbound webhook delivery for notification events (balance thresholds, invoice events) | `openmeter/notification/webhook/svix/svix.go; noop webhook.Handler fallback when Svix is unconfigured` |
+| Stripe | Invoice syncing (upsert draft, finalize, collect payment) and customer sync for billing-enabled namespaces | `openmeter/app/stripe/ implements billing.InvoicingApp; Stripe REST client under openmeter/app/stripe/client/` |
+| Sandbox Invoicing App | No-op invoicing app to drive the invoice state machine in dev/test without external dependencies | `openmeter/app/sandbox/ implements billing.InvoicingApp (and InvoicingAppPostAdvanceHook)` |
+| CustomInvoicing App | Webhook-driven invoicing allowing external systems to receive invoice payloads and async-confirm sync | `openmeter/app/custominvoicing/ implements InvoicingApp + InvoicingAppAsyncSyncer` |
+| GOBL | Currency-safe numeric arithmetic and ISO 4217 currency validation in billing and subscription | `github.com/invopop/gobl imported across productcatalog, subscription, billing, currencies` |
+| OpenTelemetry | Distributed tracing and metrics across all binaries | `trace.Tracer injected via Wire; pkg/framework/tracex span helpers; metric.Meter in grouphandler and sink; app/common/telemetry.go bootstraps exporters` |
+| TypeSpec compiler | Single source of truth for HTTP API definitions compiling to OpenAPI and Go/JS/Python SDKs | `api/spec/packages/; make gen-api runs tsp compile then oapi-codegen` |
+| App Marketplace Registry (extension protocol) | Runtime-pluggable billing backends self-registering without hardcoded references in billing | `openmeter/app/service.go Service.RegisterMarketplaceListing; each app self-registers in its constructor` |
+| LineEngine Registry (extension protocol) | Runtime-pluggable billing line calculation dispatch by LineEngineType | `billing.Service.RegisterLineEngine (LineEngineService); registered in app/common/charges.go at Wire startup` |
+| ServiceHook & RequestValidator Registries (extension protocol) | Cross-domain lifecycle callbacks and pre-mutation guards without circular imports | `pkg/models/servicehook.go ServiceHookRegistry[T]; openmeter/customer/requestvalidator.go; registered as side-effects in app/common provider functions` |
+| namespace.Handler fan-out (extension protocol) | Per-namespace resource provisioning across ClickHouse, Kafka ingest, and Ledger | `openmeter/namespace/namespace.go Manager.RegisterHandler; handlers must register before CreateDefaultNamespace` |
 
 ## Pattern Selection Guide
 
 | Scenario | Pattern | Rationale |
 |----------|---------|-----------|
-| Adding a new domain capability (e.g. a new billing sub-feature) | Layered Domain Service/Adapter/HTTP in openmeter/<domain>/ | Define a new sub-interface in <domain>/service.go, implement in <domain>/service/, add adapter methods to <domain>/adapter.go, implement in <domain>/adapter/. Wire together in app/common/<domain>.go. Keeps business logic, persistence, and HTTP separate and independently testable. |
-| Triggering side-effects on domain lifecycle (e.g. sync billing on subscription update) | ServiceHook Registry (models.ServiceHooks[T]) | Avoids circular imports. Billing registers a hook into subscription.Service.RegisterHook() during wiring in app/common. The per-registry context key (pointer-identity fmt.Sprintf('%p', r)) prevents re-entrant invocations. |
-| Pre-validating a customer mutation from another domain | Customer RequestValidator Registry | billing/validators/customer implements RequestValidator and registers via customerService.RegisterRequestValidator() in app/common/customer.go, keeping billing constraints out of the customer package and preventing import cycles. |
-| Processing async domain events between binaries | Watermill Message Bus (NoPublishingHandler + GroupEventHandler) | Events published to Kafka via eventbus.Publisher are consumed by worker processes registering typed closures. Unknown event types are silently dropped, making workers tolerant of schema evolution. Topic isolation matches worker topology. |
-| Invoice or charge lifecycle transitions | Invoice State Machine (stateless library) or generic Machine[CHARGE,BASE,STATUS] | The state machine enforces valid transitions and fires actions (DB save, event publish, external app calls) atomically. sync.Pool reduces GC pressure on the hot billing-worker path. |
-| New billing backend (payment processor or invoicing system) | App Factory / Registry + InvoicingApp interface | New backends implement billing.InvoicingApp and self-register a factory via app.Service.RegisterMarketplaceListing in their New() constructor. No billing service code changes needed. |
-| Disabling a subsystem (credits off, no Svix) | Noop implementations for optional features | Wire provider functions check config flags and return noops. The rest of the DI graph is unaffected, avoiding nil checks scattered through business logic. Compile-time assertions keep noops in sync with interfaces. Credits requires four independent guards: ledger services, customer hooks, ChargesRegistry, v3 HTTP handlers. |
-| Per-customer serialization for billing operations | Locker (pg_advisory_xact_lock) inside TransactingRepo | Advisory locks are transactional and released automatically on commit/rollback. Requires an active Postgres transaction in context — call inside entutils.TransactingRepo. Confirmed at lockr/locker.go:100-137. |
-| HTTP error response to client | RFC 7807 Problem Details + GenericErrorEncoder chain | Domain errors (GenericNotFoundError → 404, GenericValidationError → 400, etc.) are matched by type in GenericErrorEncoder via HandleErrorIfTypeMatches. ValidationIssues with explicit HTTP status attributes are handled by HandleIssueIfHTTPStatusKnown. All errors render as application/problem+json. |
-| Batch usage event ingestion from Kafka | Sink Worker (Kafka to ClickHouse three-phase batch flush) | High-throughput events flow Kafka -> SinkBuffer -> ClickHouse in micro-batches. Strict three-phase flush ordering (ClickHouse -> offset commit -> Redis dedupe at sink.go:307-358) ensures exactly-once semantics. FlushEventHandler always called in goroutine. |
-| Outbound webhook notifications | Svix integration via webhook.Handler interface | Svix handles fan-out, retry, signature verification, and delivery status. NullChannel sentinel at svix/svix.go:20-26 prevents unfiltered delivery. Noop implementation runs in tests or when Svix is unconfigured. |
-| Cross-domain DB operations in transactions | entutils.TransactingRepo / TransactingRepoWithNoValue | Ent transactions propagate implicitly via context. TransactingRepo reads *TxDriver from ctx — if found rebinds to existing transaction; if not found runs on Self(). Savepoints enable safe nesting via TxDriver.SavePoint() confirmed at transaction.go:148-173. |
-| HTTP endpoint handler | httptransport.NewHandler with RequestDecoder + Operation + ResponseEncoder | Consistent request validation, error encoding, and OTel tracing across all endpoints without duplicating boilerplate. GenericErrorEncoder always appended as defaultHandlerOptions at handler.go:17-19. |
-| New binary that needs all domain services | Google Wire DI with app/common provider sets | Wire generates compile-time-verified dependency graphs. Adding a new binary requires a matching app/common/openmeter_<binary>.go provider set file and a wire.go in cmd/<binary>/. Confirmed at cmd/billing-worker/wire.go:35-58. |
-| New charge type engine for billing line computation | LineEngine Plugin Registry + RegisterLineEngine in app/common | Each charge type implements LineEngine and registers via billing.Service.RegisterLineEngine in app/common. No billing service core changes needed. Confirmed at billing/service.go:63-67. |
+| Adding a new domain capability (a new billing sub-feature) | Layered Domain Service/Adapter/HTTP | Define the sub-interface in <domain>/service.go, implement in <domain>/service/, add adapter methods in <domain>/adapter/, wire in app/common/<domain>.go; keeps business logic, persistence, and HTTP independently testable |
+| Any adapter DB read/write that may run inside a multi-step transaction | entutils.TransactingRepo / TransactingRepoWithNoValue | Rebinds to the ctx-bound Ent transaction if present (or Self() otherwise), preventing partial writes during AdvanceCharges or invoice-mutation flows |
+| Serializing per-customer invoice or charge mutation | billing.Service.WithLock -> lockr / SELECT FOR UPDATE on BillingCustomerLock | Advisory/row lock keyed on the UNIQUE (namespace, customer_id) row auto-releases on commit/rollback and serializes exactly one customer |
+| Delivering a domain event to another binary | eventbus.Publisher (prefix-routed to one of three topics) | Topic isolation matches worker topology; producers stay decoupled from consumer topology by routing on the EventVersionSubsystem prefix |
+| Consuming events in a worker | router.NewDefaultRouter + grouphandler.NoPublishingHandler | Inherits the fixed DLQ/retry/OTel middleware stack and silently drops unknown ce_types for rolling-deploy tolerance |
+| Batch ingesting usage events from Kafka into ClickHouse | Sink three-phase flush | ClickHouse insert -> Kafka offset commit -> Redis dedupe ordering preserves exactly-once on consumer restart; FlushEventHandler runs in a goroutine |
+| Reacting to another domain's entity lifecycle without import cycles | ServiceHookRegistry[T] registered in app/common | Avoids circular imports between billing/customer/subscription/ledger; pointer-identity loop key prevents re-entrancy |
+| Blocking a customer mutation based on another domain's constraints | Customer RequestValidator registry | Pre-mutation guards fan out via errors.Join before any DB write, keeping billing/entitlement constraints out of the customer package |
+| Invoice or charge lifecycle transition | stateless InvoiceStateMachine or generic Machine[CHARGE,BASE,STATUS] | Enforces valid transition sequences and fires post-transition actions atomically; sync.Pool reduces GC pressure on the hot path |
+| Adding a new billing backend (payment processor/invoicing system) | Implement billing.InvoicingApp + self-register via RegisterMarketplaceListing | No core billing.Service changes; the read-only invoice snapshot plus UpsertResults builder limit the app's writable surface |
+| Disabling an optional subsystem (credits off, no Svix) | Return a noop implementation from the Wire provider | Keeps the DI graph uniform with no nil-checks; credits requires four independent guards (ledger services, customer hooks, ChargesRegistry, v3 handlers) |
+| Returning an error to an HTTP client | models.Generic* sentinel + GenericErrorEncoder chain | Type-matched mapping to RFC 7807 problem+json; plain fmt.Errorf falls through to 500 |
+| Adding or changing an HTTP endpoint | Author TypeSpec then make gen-api && make generate | Single source of truth makes drift between v1/v3 stubs and three SDKs structurally impossible |
 
 ## Quick Pattern Lookup
 
 - **new domain feature** -> Layered Domain Service/Adapter/HTTP in openmeter/<domain>/  *(scope: openmeter/billing, openmeter/customer, openmeter/entitlement, openmeter/subscription)*
-- **lifecycle side-effects** -> ServiceHookRegistry (models.ServiceHooks[T]) or SubscriptionCommandHook  *(scope: openmeter/customer, openmeter/subscription, app/common)*
-- **pre-mutation validation across domains** -> Customer RequestValidator Registry  *(scope: openmeter/customer, app/common)*
-- **async domain events between binaries** -> Watermill NoPublishingHandler + GroupEventHandler on SystemEventsTopic  *(scope: openmeter/watermill, openmeter/billing/worker, openmeter/entitlement/balanceworker)*
-- **invoice/charge state transitions** -> stateless-backed InvoiceStateMachine or generic Machine[CHARGE,BASE,STATUS]  *(scope: openmeter/billing, openmeter/billing/charges)*
+- **adapter DB access in a transaction** -> entutils.TransactingRepo / TransactingRepoWithNoValue  *(scope: openmeter/billing/adapter, openmeter/billing/charges/adapter, openmeter/customer/adapter)*
+- **per-customer serialization** -> billing.Service.WithLock -> lockr.LockForTX (pg advisory lock in tx)  *(scope: openmeter/billing, openmeter/billing/charges, openmeter/entitlement)*
+- **async domain events between binaries** -> eventbus.Publisher prefix-routed to ingest/system/balance-worker topics  *(scope: openmeter/watermill, openmeter/billing/worker, openmeter/entitlement/balanceworker)*
+- **consuming worker events** -> router.NewDefaultRouter + grouphandler.NoPublishingHandler (silent drop)  *(scope: openmeter/watermill/grouphandler, openmeter/billing/worker, openmeter/notification/consumer)*
+- **batch usage ingestion** -> Sink three-phase flush (ClickHouse -> offset -> Redis dedupe)  *(scope: openmeter/sink, cmd/sink-worker)*
+- **lifecycle side-effects across domains** -> ServiceHookRegistry[T] registered in app/common  *(scope: openmeter/customer, openmeter/subscription, app/common)*
+- **pre-mutation validation across domains** -> Customer RequestValidator registry  *(scope: openmeter/customer, app/common)*
+- **invoice/charge state transitions** -> stateless InvoiceStateMachine or Machine[CHARGE,BASE,STATUS]  *(scope: openmeter/billing, openmeter/billing/charges)*
 - **new billing backend** -> Implement billing.InvoicingApp + AppFactory self-registration  *(scope: openmeter/app, openmeter/billing)*
-- **optional feature disabled** -> Return noop implementation in Wire provider function when config flag is false (four-layer guard for credits)  *(scope: app/common)*
-- **per-customer serialization** -> billing.Service.WithLock -> lockr.Locker.LockForTX (pg advisory lock in tx)  *(scope: openmeter/billing, openmeter/billing/charges)*
-- **DB operations in transactions** -> entutils.TransactingRepo / TransactingRepoWithNoValue  *(scope: openmeter/billing/adapter, openmeter/billing/charges/adapter, openmeter/customer/adapter)*
-- **HTTP handler** -> httptransport.NewHandler with RequestDecoder + Operation + ResponseEncoder  *(scope: openmeter/billing/httpdriver, api/v3/handlers)*
-- **batch usage ingestion** -> confluent-kafka-go consumer in Sink worker, ClickHouseStorage.BatchInsert (three-phase flush)  *(scope: openmeter/sink, cmd/sink-worker)*
-- **outbound webhooks** -> notification.EventHandler -> webhook.Handler (Svix or noop)  *(scope: openmeter/notification, cmd/notification-service)*
-- **DI wiring** -> Google Wire: wire.NewSet in app/common/, wire.Build in cmd/<binary>/wire.go  *(scope: app/common, cmd/server, cmd/billing-worker)*
-- **structured validation errors** -> models.ValidationIssue with WithPathString + commonhttp.WithHTTPStatusCodeAttribute  *(scope: openmeter/billing, openmeter/billing/charges)*
-- **domain error HTTP mapping** -> models.GenericXxxError wrapped in service/adapter, matched by commonhttp.GenericErrorEncoder
-- **multi-language SDK contract** -> TypeSpec in api/spec/ -> make gen-api -> OpenAPI -> oapi-codegen + JS/Python generators  *(scope: api/spec)*
+- **optional feature disabled** -> Return noop implementation in Wire provider (four-layer guard for credits)  *(scope: app/common)*
+- **HTTP handler** -> httptransport.NewHandler decode/operate/encode + GenericErrorEncoder  *(scope: openmeter/billing/httpdriver, api/v3/handlers)*
+- **domain error HTTP mapping** -> models.Generic* sentinel matched by GenericErrorEncoder
+- **multi-tenant provisioning** -> namespace.Manager fan-out; register Handlers before CreateDefaultNamespace  *(scope: openmeter/namespace, cmd/server)*
+- **DI wiring a binary** -> wire.NewSet in app/common/, wire.Build in cmd/<binary>/wire.go  *(scope: app/common, cmd/server, cmd/billing-worker)*
+- **API contract change** -> TypeSpec in api/spec/ -> make gen-api -> make generate  *(scope: api/spec)*
 
 ## Decision Chain
 
-**Root constraint:** Operate a high-volume per-tenant usage-metering platform that feeds strict financial billing correctness, while shipping stable SDKs in three languages — under a single small team that cannot maintain separate repos or hand-synchronized contracts.
+**Root constraint:** Operate a high-volume per-tenant usage-metering platform feeding strict financial billing correctness, while shipping stable SDKs in three languages — under a small team that cannot maintain separate repos or hand-synchronized contracts.
 
-- **Split the runtime into seven independently deployable binaries (cmd/server + five workers + jobs CLI + benthos-collector) that share one domain-package tree under openmeter/.**: Ingest throughput, balance recalculation, billing advancement, and webhook dispatch have incompatible scaling and failure profiles, but billing correctness needs one typed domain model — so split the processes, share the types.
+- **Multi-binary modular monolith: one shared Go domain tree, seven independently deployable binaries, Kafka as the sole inter-binary channel**: Ingest throughput, balance recalculation, billing advancement, and webhook dispatch have incompatible scaling/failure profiles, but billing correctness needs one typed domain model — so split the processes, share the openmeter/ types.
   - *Violation keyword:* `business logic in cmd/*/main.go`
   - *Violation keyword:* `goroutine spawned outside run.Group`
   - *Violation keyword:* `new cmd/* binary without app/common/openmeter_<binary>.go`
   - *Violation keyword:* `domain package importing app/common`
   - *Violation keyword:* `shared in-memory state between binaries`
-  - **Compose each binary with Google Wire provider sets concentrated in app/common/, keeping domain packages as import-cycle-free leaves.**: ~40 services per binary make hand-wiring error-prone; Wire gives compile-time graph verification, and keeping providers out of domain packages prevents import cycles.
+  - *Violation keyword:* `HTTP call between binaries`
+  - **Google Wire DI with all provider sets in app/common and cross-domain hooks registered as construction side-effects**: ~40 services per binary make hand-wiring error-prone; Wire gives compile-time graph verification, and keeping providers out of domain packages prevents import cycles.
     - *Violation keyword:* `wire.Build calling domain constructors directly`
     - *Violation keyword:* `provider function with validation/computation/panic/os.Exit`
     - *Violation keyword:* `domain package importing app/common`
     - *Violation keyword:* `viper.SetDefault in cmd/*`
-    - **Register cross-domain ServiceHooks and RequestValidators as side-effects inside app/common provider functions.**: Billing must react to customer lifecycle and ledger must react to customer creation without billing/customer/ledger importing each other; app/common is the only place that can see all of them.
-      - *Violation keyword:* `RegisterHooks called inside a domain constructor`
-      - *Violation keyword:* `domain package importing another domain for a callback`
-      - *Violation keyword:* `wire.Build omitting a hook provider`
-      - *Violation keyword:* `RegisterRequestValidator outside app/common`
-    - **Gate the credits.enabled feature flag at four independent wiring layers, each returning noop implementations.**: Credits writes fan out from HTTP handlers, customer hooks, namespace provisioning, and charge creation — there is no single choke point, so each wiring layer must guard independently.
+    - **credits.enabled feature flag enforced at four independent wiring layers via noop implementations**: Credits writes fan out from HTTP handlers, customer hooks, namespace provisioning, and charge creation — no single choke point — so each wiring layer must guard independently and return a noop, not nil.
       - *Violation keyword:* `ledger-touching Wire provider without creditsConfig.Enabled branch`
       - *Violation keyword:* `BillingRegistry.Charges accessed without ChargesServiceOrNil()`
       - *Violation keyword:* `nil returned instead of a noop struct`
       - *Violation keyword:* `v3 credit handler registered without s.Credits.Enabled check`
-  - **Use Kafka via Watermill as the sole inter-binary channel, with three name-prefix-routed topics (ingest, system, balance-worker).**: Independently deployable workers need durable, replayable, backpressure-aware async delivery and topic isolation so ingest bursts cannot starve billing consumers.
-    - *Violation keyword:* `kafka.NewProducer / confluent ProduceChannel / sarama SendMessage in domain code`
+  - **Kafka + Watermill async backbone with three name-prefix-routed topics**: Independently deployable workers need durable, replayable, backpressure-aware async delivery and topic isolation so ingest bursts cannot starve billing consumers.
+    - *Violation keyword:* `kafka.NewProducer in domain code`
+    - *Violation keyword:* `confluent ProduceChannel`
+    - *Violation keyword:* `sarama SendMessage`
     - *Violation keyword:* `publishing to a topic by string literal`
     - *Violation keyword:* `EventName() without an EventVersionSubsystem prefix`
     - *Violation keyword:* `context.Background() inside a Watermill handler instead of msg.Context()`
-    - *Violation keyword:* `returning an error for an unknown ce_type`
-    - **Build all consumer routers via openmeter/watermill/router.NewDefaultRouter and dispatch via grouphandler.NoPublishingHandler that silently drops unknown ce_types.**: Rolling deploys mean producer and consumer event-type sets differ transiently; silent drop avoids DLQ poisoning, and the fixed middleware stack gives uniform retry/DLQ/OTel behaviour.
-      - *Violation keyword:* `bare Watermill router without NewDefaultRouter`
-      - *Violation keyword:* `returning error for unknown event type in NoPublishingHandler`
-      - *Violation keyword:* `MaxRetries:0 assumed to mean no DLQ`
-- **Author the entire HTTP surface once in TypeSpec (api/spec/) and generate both v1 and v3 OpenAPI specs, Go server stubs, and Go/JS/Python SDKs.**: Three SDK languages and two API versions cannot be hand-synchronized; a single upstream contract makes drift structurally impossible.
-  - *Violation keyword:* `hand-edited api/openapi.yaml or api/v3/openapi.yaml`
+    - *Violation keyword:* `fourth Kafka topic without updating TopicMapping`
+    - **Sink worker exactly-once via strict three-phase flush; ingest dedup upstream of an un-deduplicated ClickHouse MergeTree**: Exactly-once ingestion needs ClickHouse written before the Kafka offset commits, and because the MergeTree does not deduplicate, Redis dedupe must be the last phase.
+      - *Violation keyword:* `Redis dedupe set before Kafka offset commit`
+      - *Violation keyword:* `Kafka offset committed before ClickHouse BatchInsert`
+      - *Violation keyword:* `OnFlushSuccess called synchronously`
+      - *Violation keyword:* `ReplacingMergeTree dedup in ClickHouse write path`
+- **TypeSpec as the single source of truth for both v1 and v3 HTTP APIs and all three SDKs**: Three SDK languages and two API versions cannot be hand-synchronized; a single upstream TypeSpec contract makes drift structurally impossible.
+  - *Violation keyword:* `hand-edited api/openapi.yaml`
+  - *Violation keyword:* `hand-edited api/v3/openapi.yaml`
   - *Violation keyword:* `endpoint added only in a Go handler package`
   - *Violation keyword:* `hand-edited *.gen.go`
   - *Violation keyword:* `@route in a domain sub-folder tsp instead of root openmeter.tsp`
   - *Violation keyword:* `TypeSpec edit without make gen-api && make generate`
-  - **Run two HTTP validation surfaces — kin-openapi OapiRequestValidatorWithOptions for v1 and oasmiddleware.ValidateRequest for v3 — and route every handler through pkg/framework/transport/httptransport.Handler.**: Dual API versions need dual validation middleware; the generic decode/operate/encode pipeline keeps RFC 7807 error mapping and OTel instrumentation uniform across both.
+  - **httptransport decode/operate/encode pipeline with dual request validation and GenericErrorEncoder chain**: Dual API versions need dual validation middleware (kin-openapi for v1, oasmiddleware for v3); the generic pipeline keeps RFC 7807 error mapping and OTel uniform across both.
     - *Violation keyword:* `handler implementing ServeHTTP directly`
-    - *Violation keyword:* `writing http status codes in handler logic instead of models.Generic* sentinels`
+    - *Violation keyword:* `http status codes written in handler logic instead of models.Generic* sentinels`
     - *Violation keyword:* `chi.NewRouter without a request validator`
     - *Violation keyword:* `v3 handler placed in openmeter/*/httpdriver`
-- **Persist to PostgreSQL via Ent ORM with Atlas-managed migrations, accessed through context-propagated transactions (entutils.TransactingRepo) and per-customer pg_advisory_xact_lock via lockr.**: Billing correctness needs compile-time-checked relations across ~60 entities, deterministic reviewable migrations, atomic multi-step charge/invoice mutation, and per-customer serialization against concurrent workers.
+- **Ent ORM + Atlas migrations with context-propagated transactions (entutils.TransactingRepo) and per-customer pg locks (lockr)**: Billing correctness needs compile-time-checked relations across ~35 entities, deterministic reviewable migrations, atomic multi-step mutation, and per-customer serialization against concurrent workers.
   - *Violation keyword:* `edits inside openmeter/ent/db/`
   - *Violation keyword:* `hand-written SQL alongside Ent queries`
   - *Violation keyword:* `*entdb.Tx as a struct field`
@@ -260,7 +205,7 @@
   - *Violation keyword:* `LockForTX outside an active transaction`
   - *Violation keyword:* `manual edits to tools/migrate/migrations/ or atlas.sum`
   - *Violation keyword:* `context.WithTimeout around LockForTX`
-  - **Model billing domain objects as tagged unions (Charge, InvoiceLine) with private discriminators, constructor-only construction, and a generic state machine + LineEngine registry.**: Multi-step charge advancement mixing reads, realization, locks, and ledger writes needs exhaustive unambiguous type dispatch and impossible partial construction.
+  - **Tagged-union billing models (Charge, ChargeIntent, InvoiceLine) with private discriminators, constructor-only construction, and a generic state machine + LineEngine registry**: Multi-step charge advancement mixing reads, realization, locks, and ledger writes needs exhaustive unambiguous type dispatch and impossible partial construction.
     - *Violation keyword:* `charges.Charge{} struct literal`
     - *Violation keyword:* `charges.ChargeIntent{} struct literal`
     - *Violation keyword:* `billing.InvoiceLine{} struct literal`
@@ -270,92 +215,96 @@
 ## Key Decisions
 
 ### TypeSpec as the single source of truth for both v1 and v3 HTTP APIs and all three SDKs
-**Chosen:** Author the HTTP surface in TypeSpec under api/spec/packages/legacy (v1) and api/spec/packages/aip (v3); `make gen-api` compiles to api/openapi.yaml + api/v3/openapi.yaml then oapi-codegen produces api/api.gen.go, api/v3/api.gen.go, api/client/go/client.gen.go, the JavaScript SDK and Python SDK; `make generate` then propagates Go-side changes through Ent, Wire, Goverter, and Goderive.
-**Rationale:** Drift between Go server stubs, three SDKs, and two API versions is structurally impossible as long as both regen steps run. The generated v1 stubs are consumed by openmeter/server/router and v3 stubs by api/v3/handlers, so a TypeSpec change forces handler-side compile errors. Route and tag bindings are centralized in the root openmeter.tsp files.
-**Rejected:** Hand-written OpenAPI YAML, Code-first OpenAPI from Go handlers, Single API version skipping v3 AIP, gRPC/Protobuf
+**Chosen:** Endpoints are authored only in TypeSpec under api/spec/packages/legacy (v1) and api/spec/packages/aip (v3), with route/tag bindings confined to the root openmeter.tsp. `make gen-api` compiles to api/openapi.yaml + api/v3/openapi.yaml then oapi-codegen emits api/api.gen.go, api/v3/api.gen.go, api/client/go/client.gen.go, plus the JS and Python SDKs; `make generate` then propagates to Ent/Wire/Goverter/Goderive. Handlers implement the generated ServerInterface in openmeter/<domain>/httpdriver (v1) or api/v3/handlers/<resource> (v3).
+**Rationale:** Three SDK languages and two API versions cannot be hand-synchronized. The blueprint's TypeSpec single-source pattern (api/spec/packages/aip/src/openmeter.tsp, api/spec/packages/legacy/src/main.tsp) makes drift structurally impossible as long as both regen steps run — a TypeSpec change forces handler-side compile errors in api/v3/handlers and openmeter/server/router. oapi-codegen v2.6.1 (pinned pseudo-version), kin-openapi v0.139.0 (v1 validation) and oasmiddleware v1.1.2 (v3 validation) all validate against the same generated spec.
+**Rejected:** Hand-written OpenAPI YAML — rejected; the YAML files carry generated headers and are overwritten by make gen-api., Code-first OpenAPI from Go handlers — rejected; would not produce the JS/Python SDKs from one source., Skipping v3 / single API version — rejected; the AIP-style v3 surface coexists with legacy v1 and both regenerate from the same compiler.
 **Forced by:** Multi-language SDK requirement (Go/JS/Python) plus dual API versions plus runtime request validation against the same artifact.
-**Enables:** Cross-language SDK contracts that cannot drift; breaking-change detection at TypeSpec compile time; kin-openapi (v1) + oasmiddleware (v3) request validation against the same spec; parallel SDK evolution.
+**Enables:** Cross-language SDK contracts that cannot drift; kin-openapi (v1) + oasmiddleware (v3) request validation against the same spec; breaking-change detection at TypeSpec compile time.
 
 ### Google Wire DI with all provider sets in app/common and cross-domain hooks registered as construction side-effects
-**Chosen:** Each cmd/<binary>/wire.go declares a wire.Build over composite provider sets (common.BillingWorker, common.LedgerStack, etc.) defined in app/common/. Domain packages expose plain constructors and never import app/common. Cross-domain ServiceHooks and RequestValidators are registered inside app/common provider functions as side-effects of construction (e.g. app/common/customer.go NewCustomerLedgerServiceHook calls customerService.RegisterHooks(h); app/common/billing.go NewBillingRegistry calls customerService.RegisterRequestValidator and subscriptionServices.Service.RegisterHook).
-**Rationale:** Wire produces a compile-time-checked dependency graph per binary so missing providers are build errors. Concentrating provider sets in app/common keeps the ~38 domain packages as leaf nodes with no DI-layer dependency, avoiding import cycles. Hook registration as side-effects lets billing react to customer lifecycle without billing and customer importing each other.
-**Rejected:** Manual constructor calls in each cmd/main.go, Reflection-based runtime DI, Domain packages registering their own hooks, Provider functions containing business logic
-**Forced by:** ~40 domain services per binary, very different per-binary provider graphs, and the need for cross-domain hooks without circular imports.
-**Enables:** Compile-time proof of binary completeness; clean leaf-node domain packages; independent per-binary composition; cross-domain lifecycle reactions.
-
-### Kafka + Watermill async backbone with three name-prefix-routed topics
-**Chosen:** openmeter/watermill/eventbus wraps Watermill's cqrs.EventBus with a TopicMapping of IngestEventsTopic, SystemEventsTopic, BalanceWorkerEventsTopic. GeneratePublishTopic (eventbus.go:135-143) routes by EventName() prefix: ingestevents.EventVersionSubsystem prefix to ingest, balanceworkerevents.EventVersionSubsystem prefix to balance-worker, everything else defaults to system. Consumers build routers via openmeter/watermill/router.NewDefaultRouter (PoisonQueue, DLQ, CorrelationID, Recoverer, Retry, ProcessingTimeout, HandlerMetrics) and dispatch via grouphandler.NoPublishingHandler keyed on CloudEvents ce_type; unknown ce_types are silently dropped (grouphandler.go:54 returns nil).
-**Rationale:** Topic isolation matches worker topology: ingest bursts must not starve billing system-event consumers. Prefix routing hides topology from producers. Silent drop of unknown event types enables rolling deploys where producer and consumer versions differ.
-**Rejected:** Per-event explicit topic names, NATS or Redis Streams (weaker replay/durability), Postgres LISTEN/NOTIFY, Raw confluent-kafka-go without Watermill (loses uniform middleware), Erroring on unknown event types (poisons DLQ during rolling deploys)
-**Forced by:** Ingest bursts plus cross-worker side-effects plus the need to deploy producers and consumers independently.
-**Enables:** Replay, backpressure, decoupled producer/consumer evolution; rolling-deploy safety; per-topic consumer scaling and DLQ semantics; uniform OTel + correlation-id middleware.
-
-### Ent ORM + Atlas migrations with context-propagated transactions via entutils.TransactingRepo
-**Chosen:** openmeter/ent/schema holds Go-defined entity schemas; `make generate` regenerates openmeter/ent/db/; `atlas migrate --env local diff` produces timestamped .up.sql/.down.sql plus an atlas.sum hash chain. Every domain adapter implements the TxCreator + TxUser triad (Tx via HijackTx + NewTxDriver, WithTx via NewTxClientFromRawConfig, Self) and wraps every method body in entutils.TransactingRepo / TransactingRepoWithNoValue, which reads the *TxDriver from ctx (transaction.go:199-221) and rebinds to the caller's transaction or falls back to Self().
-**Rationale:** Atlas diffs the Ent schema against migration history to produce deterministic reviewable SQL; Ent gives compile-time-checked relations across ~60 entities. TransactingRepo lets adapter helpers participate in caller-supplied transactions without threading *entdb.Tx through every signature, and supports savepoint-based nesting for multi-step flows like charge advancement and invoice mutation.
-**Rejected:** Raw golang-migrate only (no typed entities), GORM (weaker typing, no native schema diff), sqlc (schema still hand-rolled), Explicit *entdb.Tx threaded through every call site, Global transaction middleware
-**Forced by:** Billing correctness plus multi-tenant schema invariants requiring compile-time-checked relations across ~60 entities, plus ctx-propagated transaction reuse.
-**Enables:** Deterministic reviewable SQL migrations with atlas.sum integrity; typed relations across all entities; ctx-propagated transactions with savepoint nesting; atomic charge advancement and invoice mutation.
+**Chosen:** Each cmd/<binary>/wire.go declares a wire.Build over composite provider sets (per-domain files plus openmeter_<binary>.go) defined in app/common/. Domain packages under openmeter/ expose plain constructors and never import app/common. Cross-domain ServiceHooks and customer RequestValidators are registered inside app/common provider functions as side-effects of construction (e.g. customerService.RegisterHooks and customerService.RegisterRequestValidator), invisible to Wire's type graph.
+**Rationale:** Wire produces a compile-time-checked dependency graph per binary so missing providers are build errors, not runtime panics (cmd/billing-worker/wire.go). Concentrating providers in app/common keeps the ~38 domain packages as leaf nodes with no DI-layer dependency, avoiding import cycles. Registering hooks as side-effects in app/common (pkg/models/servicehook.go ServiceHookRegistry, openmeter/customer/requestvalidator.go) lets billing react to customer lifecycle without billing and customer importing each other.
+**Rejected:** Manual constructor calls in each cmd/main.go — rejected; ~40 services per binary make hand-wiring error-prone and unverifiable., Reflection-based runtime DI — rejected; loses Wire's compile-time graph verification., Domain packages registering their own hooks — rejected; creates circular imports between billing, customer, subscription, ledger., Provider functions containing business logic — rejected; providers only construct and wire (the wire-002 enforcement rule blocks panic/log.Fatal/os.Exit in app/common).
+**Forced by:** ~40 domain services per binary with very different per-binary provider graphs, plus the need for cross-domain hooks without circular imports.
+**Enables:** Compile-time proof of binary completeness; import-cycle-free leaf domain packages; cross-domain lifecycle reactions; per-binary composition.
 
 ### credits.enabled feature flag enforced at four independent wiring layers via noop implementations
-**Chosen:** When config.Credits.Enabled is false: app/common/ledger.go returns ledgernoop.* implementations from each provider; app/common/customer.go NewCustomerLedgerServiceHook returns NoopCustomerLedgerHook; app/common/billing.go NewBillingRegistry skips newChargesRegistry entirely (BillingRegistry.Charges stays nil, accessed via ChargesServiceOrNil()); api/v3/server credit handlers skip registration. NewLedgerNamespaceHandler additionally type-asserts against ledgernoop.AccountResolver.
-**Rationale:** Credits cross-cut ledger writes, customer lifecycle hooks, namespace default-account provisioning, charge creation in billing/charges, and v3 HTTP handlers. There is no single choke point — a customer creation in api/v3 fans out through independent code paths — so each wiring layer guards independently and returns a noop interface rather than nil to avoid scattered nil-checks.
-**Rejected:** Single global runtime flag check inside ledger.Ledger, Top-level HTTP middleware blocking credits endpoints, Compile-time build tag, Returning nil instead of a noop struct
+**Chosen:** When config.Credits.Enabled is false: app/common/ledger.go returns ledgernoop.* implementations from each provider; app/common/customer.go NewCustomerLedgerServiceHook returns a NoopCustomerLedgerHook; app/common/billing.go NewBillingRegistry skips the ChargesRegistry entirely (BillingRegistry.Charges stays nil, accessed only via ChargesServiceOrNil()); and api/v3/server credit/ledger handlers skip registration. NewLedgerNamespaceHandler additionally type-asserts against the noop AccountResolver.
+**Rationale:** Credits cross-cut ledger writes, customer lifecycle hooks, namespace default-account provisioning, charge creation in billing/charges, and v3 HTTP handlers — there is no single choke point (a customer creation in api/v3 fans out through independent call graphs). The blueprint's noop-for-disabled-features pattern requires each wiring layer to guard independently and return a noop interface rather than nil so callers never branch on nil. AGENTS.md codifies this: 'credits.enabled needs explicit guarding at multiple layers ... wired separately'.
+**Rejected:** Single global runtime flag check inside ledger.Ledger — rejected; ledger writes are initiated from three independent call graphs, so one check cannot gate all paths., Top-level HTTP middleware blocking credits endpoints — rejected; does not stop ledger writes triggered by customer hooks or namespace provisioning., Returning nil instead of a noop struct — rejected; callers receive the interface and would panic on nil (the di-001 enforcement rule).
 **Forced by:** The cross-cutting nature of credit accounting and the customer/billing/ledger hook fan-out across unrelated call graphs.
 **Enables:** Credits-disabled tenants produce zero ledger_accounts/ledger_customer_accounts rows; per-deployment enabling without rebuild; compile-time interface satisfaction for noop implementations.
 
-### Tagged-union domain models (Charge, InvoiceLine) with private discriminators and constructor-only construction
-**Chosen:** openmeter/billing/charges owns the Charge / ChargeIntent tagged-union discriminated by a private meta.ChargeType field, constructed only via NewCharge[T] / NewChargeIntent[T] and accessed via AsFlatFeeCharge / AsUsageBasedCharge / AsCreditPurchaseCharge. openmeter/billing owns the InvoiceLine tagged-union with a private discriminator, constructed via NewStandardInvoiceLine / NewGatheringInvoiceLine and accessed via AsStandardLine / AsGatheringLine / AsGenericLine. Each charge type plugs into a generic Machine[CHARGE,BASE,STATUS] state machine and registers a LineEngine with billing.Service.RegisterLineEngine in app/common/charges.go.
-**Rationale:** Exhaustive type-dispatch across charge types and invoice line types must be enforced, and partial construction must be impossible. A struct-literal Charge{} leaves the discriminator zero-valued and accessors error; the constructor-only contract makes the discriminator always correct. The generic state machine shares fire/activate/persist/refetch mechanics across all three charge types.
-**Rejected:** Charge as a Go interface (loses exhaustive compile-time dispatch), Public discriminator field (allows partial/inconsistent construction), Hardcoding charge-type branches in billing.Service
-**Forced by:** Multi-step charge advancement that mixes reads, realization runs, advisory locks, and ledger-bound writes, requiring exhaustive and unambiguous charge-type dispatch.
-**Enables:** Deterministic atomic charge advancement; exhaustive charge-type and invoice-line-type dispatch; runtime-pluggable charge engines via the LineEngine registry; per-charge advisory locking via charges.NewLockKeyForCharge.
+### Ent ORM + Atlas migrations with context-propagated transactions (entutils.TransactingRepo) and per-customer pg locks (lockr)
+**Chosen:** openmeter/ent/schema holds ~35 Go-defined entity schemas (each with IDMixin + NamespaceMixin + TimeMixin); `make generate` regenerates openmeter/ent/db/; `atlas migrate --env local diff` produces timestamped .up.sql/.down.sql plus an atlas.sum hash chain. Every domain adapter implements the Tx/WithTx/Self triad and wraps every method body in entutils.TransactingRepo / TransactingRepoWithNoValue (pkg/framework/entutils/transaction.go), which rebinds to any ctx-bound transaction or runs on Self(). Per-customer serialization uses a SELECT FOR UPDATE on the BillingCustomerLock row (UNIQUE (namespace, customer_id)) plus generic pg_advisory_xact_lock via pkg/framework/lockr.
+**Rationale:** Billing correctness needs compile-time-checked relations across ~35 entities, deterministic reviewable migrations, atomic multi-step charge/invoice mutation, and per-customer serialization against concurrent workers. TransactingRepo reads the *TxDriver from ctx and rebinds (transaction.go), supporting savepoint nesting for multi-step flows like AdvanceCharges. The lock invariant is grounded: openmeter/ent/schema/billing.go declares UNIQUE (namespace, customer_id) on BillingCustomerLock, so the lock serializes exactly one customer.
+**Rejected:** Raw golang-migrate only (no typed entities) — rejected; loses compile-checked relations across ~35 entities., GORM — rejected; weaker typing and no native Atlas-style schema diff., Explicit *entdb.Tx threaded through every signature — rejected; ctx-propagation via TransactingRepo avoids signature churn and supports savepoint nesting., Hand-written SQL alongside Ent — rejected; breaks Atlas's single-schema-source diffing (the ent-001 enforcement rule).
+**Forced by:** Billing correctness plus multi-tenant schema invariants requiring compile-time-checked relations and ctx-propagated transaction reuse with savepoints.
+**Enables:** Deterministic reviewable SQL migrations with atlas.sum integrity; typed relations across all entities; atomic charge advancement and invoice mutation; per-customer advisory locking.
+
+### Tagged-union billing models (Charge, ChargeIntent, InvoiceLine) with private discriminators, constructor-only construction, and a generic state machine + LineEngine registry
+**Chosen:** openmeter/billing/charges/charge.go declares Charge/ChargeIntent with a private meta.ChargeType discriminator set only by NewCharge[T]/NewChargeIntent[T] and accessed via AsFlatFeeCharge/AsUsageBasedCharge/AsCreditPurchaseCharge; openmeter/billing/invoiceline.go declares InvoiceLine with a private discriminator set only by NewStandardInvoiceLine/NewGatheringInvoiceLine. Each charge type plugs into a generic Machine[CHARGE,BASE,STATUS] (value-copy WithStatus/WithBase) and registers a LineEngine with billing.Service.RegisterLineEngine in app/common/charges.go. StandardInvoice lifecycle runs through a stateless.StateMachine pooled in sync.Pool (openmeter/billing/service/stdinvoicestate.go).
+**Rationale:** Multi-step charge advancement mixes reads, realization runs, advisory locks, and ledger-bound writes, so it needs exhaustive unambiguous charge-type dispatch and impossible partial construction — a struct literal leaves the discriminator zero-valued and accessors error. The blueprint's tagged-union and state-machine patterns confirm this: qmuntal/stateless v1.8.0 drives the lifecycle, and the LineEngine registry (registered in app/common, never from domain packages) lets new charge types plug in without editing billing core.
+**Rejected:** Charge as a Go interface — rejected; loses exhaustive compile-time dispatch., Public discriminator field — rejected; allows partial/inconsistent construction via struct literals., Hardcoding charge-type branches in billing.Service — rejected; the LineEngine registry plus App Factory keep the core decoupled., Mutating Invoice.Status directly — rejected; the stateless state machine enforces valid transitions and fires post-transition actions atomically.
+**Forced by:** Multi-step charge advancement requiring exhaustive, unambiguous charge-type dispatch and atomic state transitions.
+**Enables:** Deterministic atomic charge advancement; exhaustive charge-type and invoice-line-type dispatch; runtime-pluggable charge engines via RegisterLineEngine; per-charge advisory locking via charges.NewLockKeyForCharge.
+
+### Sink worker exactly-once via strict three-phase flush; ingest dedup upstream of an un-deduplicated ClickHouse MergeTree
+**Chosen:** openmeter/sink/sink.go flush() executes strictly: (1) Storage.BatchInsert into the shared ClickHouse MergeTree events table, (2) Consumer.StoreMessage per Kafka offset (largest stored last), (3) Redis SET NX dedupe (only when a Deduplicator is configured), then fires FlushEventHandler.OnFlushSuccess in a goroutine bounded by FlushSuccessTimeout. The ClickHouse RawEvent table is ENGINE=MergeTree with no engine-level dedup — deduplication is entirely upstream in Redis (openmeter/dedupe/redisdedupe) keyed namespace-source-id with TTL.
+**Rationale:** Exactly-once usage ingestion requires ClickHouse to be written before the Kafka offset commits — on consumer restart an uncommitted offset re-delivers messages not yet in ClickHouse (openmeter/sink/sink.go ordering). Because the MergeTree does not deduplicate (RawEvent guarantees: 'not deduplicated by the engine — dedup is upstream in Redis'), Redis dedupe being phase 3 (strictly after offset commit) is load-bearing; reversing it would mark events processed while ClickHouse re-reads from the uncommitted offset, dropping them.
+**Rejected:** ReplacingMergeTree / engine-level dedup in ClickHouse — rejected; dedup is pushed to the ingest edge (Redis SET NX) so the hot analytics path stays append-only., Committing Kafka offset before the ClickHouse insert — rejected; would lose events on crash between commit and insert., Setting Redis dedupe before the offset commit — rejected; the dedupe-001 enforcement rule and sink.go ordering forbid it (breaks exactly-once on restart)., Calling OnFlushSuccess synchronously — rejected; it always runs in a goroutine so post-flush balance-recalc notification never blocks the consumer loop.
+**Forced by:** High-throughput usage ingestion needing exactly-once semantics on top of an append-only analytics store that does not deduplicate.
+**Enables:** Exactly-once event delivery to ClickHouse across consumer restarts; append-only hot path; decoupled post-flush balance-recalculation via Kafka.
 
 ## Trade-offs Accepted
 
-- **Accepted:** Ent-generated query friction: a large openmeter/ent/db/ generated tree, slower compile times, and the boilerplate Tx/WithTx/Self triad plus a TransactingRepo wrapper on every adapter method body.
-  - *Benefit:* Compile-time-checked relations across ~60 entities, automatic Atlas schema diffing, no runtime schema surprises, and ctx-propagated transactions with savepoint nesting.
-  - *Caused by:* Ent ORM + Atlas migration pipeline + entutils.TransactingRepo discipline.
-  - *Violation signal:* Hand-written db.Exec/db.QueryContext SQL added alongside Ent queries in an adapter
-  - *Violation signal:* Direct edits inside openmeter/ent/db/
-  - *Violation signal:* A new table created without a corresponding openmeter/ent/schema/*.go file
-  - *Violation signal:* An adapter struct storing *entdb.Tx as a field instead of using TransactingRepo
-  - *Violation signal:* A helper accepting *entdb.Client that skips TransactingRepoWithNoValue
-- **Accepted:** Multi-binary orchestration cost: seven Docker image variants, Helm values complexity, and a separate Wire graph per binary that must each be kept complete.
+- **Accepted:** Ent-generated query friction: a large generated openmeter/ent/db/ tree, slower compile times, and the boilerplate Tx/WithTx/Self triad plus a TransactingRepo wrapper on every adapter method body.
+  - *Benefit:* Compile-time-checked relations across ~35 entities, automatic Atlas schema diffing into reviewable SQL, and ctx-propagated transactions with savepoint nesting for atomic multi-step charge/invoice flows.
+  - *Caused by:* Ent ORM + Atlas migrations with context-propagated transactions (entutils.TransactingRepo) and per-customer pg locks (lockr)
+  - *Violation signal:* db.ExecContext / db.QueryContext raw SQL added alongside Ent queries in an adapter
+  - *Violation signal:* direct edits inside openmeter/ent/db/
+  - *Violation signal:* a new table without a corresponding openmeter/ent/schema/*.go file
+  - *Violation signal:* an adapter storing *entdb.Tx as a struct field instead of using TransactingRepo
+  - *Violation signal:* an adapter method body calling a.db.Foo() without entutils.TransactingRepo / TransactingRepoWithNoValue
+- **Accepted:** Multi-binary orchestration cost: seven Docker image variants, Helm values complexity, and a separate Wire graph per binary that must each stay complete.
   - *Benefit:* Independent horizontal scaling of sink-worker / balance-worker / billing-worker, fault isolation per binary, and isolated deploy cadence.
-  - *Caused by:* Multi-binary deployment of cmd/server, cmd/billing-worker, cmd/balance-worker, cmd/sink-worker, cmd/notification-service.
-  - *Violation signal:* Business logic added inside cmd/*/main.go beyond startup orchestration
-  - *Violation signal:* A new worker binary added without a matching app/common/openmeter_<binary>.go Wire set
-  - *Violation signal:* Cross-binary dependencies introduced through shared in-memory state or HTTP calls instead of a Kafka topic
-  - *Violation signal:* A goroutine spawned outside the oklog/run.Group
-- **Accepted:** Two-step regeneration cadence: TypeSpec changes require both `make gen-api` AND `make generate`, and five independent generators (oapi-codegen, Ent, Wire, Goverter, Goderive) write different artifacts that must all stay in sync.
-  - *Benefit:* Cross-language SDK contracts cannot drift — Go server stubs, Go SDK, JS SDK, Python SDK all originate from a single TypeSpec source.
-  - *Caused by:* TypeSpec -> OpenAPI -> oapi-codegen + Wire/Ent/Goverter/Goderive generator stack.
-  - *Violation signal:* Hand-edits inside *.gen.go, wire_gen.go, api/api.gen.go, or api/v3/api.gen.go
+  - *Caused by:* Multi-binary modular monolith: one shared Go domain tree, seven independently deployable binaries, Kafka as the sole inter-binary channel
+  - *Violation signal:* business logic added inside cmd/*/main.go beyond startup orchestration
+  - *Violation signal:* a new cmd/* worker binary without a matching app/common/openmeter_<binary>.go Wire set
+  - *Violation signal:* cross-binary dependencies introduced via shared in-memory state or HTTP calls instead of a Kafka topic
+  - *Violation signal:* a goroutine spawned outside the oklog/run.Group
+  - *Violation signal:* kafka.NewProducer / confluent ProduceChannel / sarama SendMessage in domain code instead of eventbus.Publisher
+- **Accepted:** Two-step regeneration cadence: TypeSpec changes require both `make gen-api` AND `make generate`, and five generators (oapi-codegen, Ent, Wire, Goverter, Goderive) write different artifacts that must all stay in sync.
+  - *Benefit:* Cross-language SDK contracts cannot drift — Go server stubs, Go SDK, JS SDK, Python SDK all originate from one TypeSpec source.
+  - *Caused by:* TypeSpec as the single source of truth for both v1 and v3 HTTP APIs and all three SDKs
+  - *Violation signal:* hand-edits inside *.gen.go, wire_gen.go, api/api.gen.go, or api/v3/api.gen.go
   - *Violation signal:* PRs touching api/spec/ without regenerated api/openapi.yaml
-  - *Violation signal:* Client SDKs under api/client/** drifting from api/spec/
-  - *Violation signal:* TypeSpec edits without rerunning make generate
-  - *Violation signal:* A new endpoint added only in a Go handler package without a TypeSpec source change
-- **Accepted:** Cross-domain wiring is invisible to the compiler: hook/validator registration and credits guards are side-effects scattered across app/common provider functions, and Kafka topic routing depends on event-name string prefixes.
+  - *Violation signal:* a new endpoint added only in a Go handler package without a TypeSpec source change
+  - *Violation signal:* @route declared in a domain sub-folder tsp instead of the root openmeter.tsp
+  - *Violation signal:* hand-edited api/openapi.yaml or api/v3/openapi.yaml
+- **Accepted:** Cross-domain wiring and event routing are invisible to the compiler: hook/validator registration and credits guards are side-effects scattered across app/common, and Kafka topic routing depends on event-name string prefixes that default to SystemEventsTopic.
   - *Benefit:* Domain packages stay import-cycle-free leaves; optional features are gated without nil-checks in business logic; the three-topic topology is hidden from producers.
-  - *Caused by:* ServiceHookRegistry / RequestValidator registries + the credits.enabled four-layer guard + EventName-prefix topic routing in eventbus.GeneratePublishTopic.
-  - *Violation signal:* A binary's wire.Build omitting a hook provider so the hook silently never registers
-  - *Violation signal:* A new ledger-touching Wire provider added without a creditsConfig.Enabled branch
-  - *Violation signal:* Direct access to BillingRegistry.Charges without ChargesServiceOrNil()
-  - *Violation signal:* A new event family whose EventName() lacks a recognized EventVersionSubsystem prefix, silently routing to SystemEventsTopic
-- **Accepted:** Sequential timestamped Atlas migration filenames plus an atlas.sum linear hash chain that, by construction, produces merge conflicts on any two branches that both append migrations.
-  - *Benefit:* Deterministic, reviewable, linearly-ordered SQL migration history with cryptographic chain integrity verified by CI's `make migrate-check`.
-  - *Caused by:* atlas migrate --env local diff filename convention + atlas.sum chain hashing.
-  - *Violation signal:* Two branches producing same-timestamp migration files
+  - *Caused by:* Google Wire DI with all provider sets in app/common and cross-domain hooks registered as construction side-effects
+  - *Violation signal:* a binary's wire.Build omitting a hook provider so the hook silently never registers
+  - *Violation signal:* a new ledger-touching Wire provider added without a creditsConfig.Enabled branch
+  - *Violation signal:* direct access to BillingRegistry.Charges without ChargesServiceOrNil()
+  - *Violation signal:* a new event family whose EventName() lacks a recognized EventVersionSubsystem prefix (silently routes to SystemEventsTopic)
+  - *Violation signal:* a fourth Kafka topic added without updating GeneratePublishTopic in eventbus.go
+- **Accepted:** Sequential timestamped Atlas migration filenames plus a linear atlas.sum hash chain that, by construction, produces merge conflicts between any two branches that both append migrations.
+  - *Benefit:* Deterministic, reviewable, linearly-ordered SQL migration history with cryptographic chain integrity verified by CI (`make migrate-check`).
+  - *Caused by:* Ent ORM + Atlas migrations with context-propagated transactions (entutils.TransactingRepo) and per-customer pg locks (lockr)
+  - *Violation signal:* two branches producing same-timestamp migration files
   - *Violation signal:* atlas.sum merge conflicts on a long-running branch
-  - *Violation signal:* Manual edits to an already-landed migration file
-  - *Violation signal:* Commits touching tools/migrate/migrations/ without an accompanying atlas.sum update
+  - *Violation signal:* manual edits to an already-landed migration file in tools/migrate/migrations/
+  - *Violation signal:* committing .up.sql/.down.sql without an updated atlas.sum
 
 ## Out of Scope
 
-- Frontend UI — no React/Vue application in the repo; React appears only inside the generated JavaScript SDK under api/client/javascript/. Forced out of scope by the API-as-product / SDK-generation decision.
-- Tenant-level identity and auth provider — portal tokens scope end-customers via HS256 JWTs, but tenant identity is delegated to the deployment. Forced out by the self-hosted single-namespace deployment model.
-- Managed hosting control plane — config.cloud.yaml and api/openapi.cloud.yaml expose hooks but cloud orchestration logic lives separately.
-- Real-time streaming queries from clients — ClickHouse is reached only via streaming.Connector inside the server process; there is no client-facing streaming surface.
-- Multi-region active/active replication — a single PostgreSQL primary is assumed; ClickHouse cluster topology is deployment-defined. Forced out by the Ent + single-primary persistence decision.
-- Synchronous cross-binary RPC — all inter-binary communication goes through the three Kafka topics; there is no service mesh or gRPC surface between binaries.
+- Frontend UI — no React/Vue application in the repo; React appears only as an optional context export inside the generated JavaScript SDK (api/client/javascript). Out of scope by the API-as-product / SDK-generation decision.
+- Tenant-level identity and auth provider — portal tokens scope end-customers via JWTs (openmeter/portal, golang-jwt v5), but tenant identity is delegated to the deployment. Out of scope by the self-hosted single-namespace deployment model.
+- Managed hosting control plane — config.cloud.yaml and api/openapi.cloud.yaml expose cloud hooks, but cloud orchestration logic lives separately.
+- Real-time client-facing streaming queries — ClickHouse is reached only via streaming.Connector inside server-side processes; there is no client-facing streaming surface.
+- Multi-region active/active replication — a single PostgreSQL primary is assumed; ClickHouse cluster topology is deployment-defined. Out of scope by the single-primary Ent persistence decision.
+- Synchronous cross-binary RPC / service mesh — all inter-binary communication goes through the three Kafka topics; there is no gRPC surface between binaries.
+- LLM inference — openmeter/llmcost only persists/syncs model price tables; there is no OpenAI/Anthropic inference SDK.
+- Infrastructure provisioning as code — Helm charts only (deploy/charts/); no Terraform/CloudFormation/Pulumi.

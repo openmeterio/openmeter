@@ -6,23 +6,23 @@
 
 ## Patterns
 
-**Use OrderDefault for unspecified sort direction** — When a caller does not supply a sort direction, default to sortx.OrderDefault (= OrderAsc). Never use the empty string literal directly. (`order := sortx.OrderDefault`)
-**IsDefaultValue detects absence, not ascending direction** — Order.IsDefaultValue() returns true only when Order == OrderNone (empty string), not when Order == OrderAsc. Use it solely to detect 'no order specified'. (`if order.IsDefaultValue() { order = sortx.OrderDefault }`)
+**Use OrderDefault for unspecified direction** — When a caller does not supply a sort direction, default to sortx.OrderDefault (= OrderAsc). Never use the empty string literal directly. (`order := sortx.OrderDefault`)
+**IsDefaultValue detects absence, not ascending** — Order.IsDefaultValue() returns true only when Order == OrderNone (empty string), not OrderAsc. Use solely to detect 'no order specified'. (`if order.IsDefaultValue() { order = sortx.OrderDefault }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `order.go` | Defines Order type and four constants: OrderAsc ('ASC'), OrderDesc ('DESC'), OrderDefault (= OrderAsc), OrderNone (empty string). | IsDefaultValue() checks for OrderNone, not OrderAsc — the name is acknowledged as misleading in a TODO comment. Do not use it to check 'is ascending'. |
+| `order.go` | Defines Order type and four constants: OrderAsc ('ASC'), OrderDesc ('DESC'), OrderDefault (= OrderAsc), OrderNone (empty string). | IsDefaultValue() checks for OrderNone, not OrderAsc — the name is misleading (TODO acknowledged). Do not use it to check 'is ascending'. |
 
 ## Anti-Patterns
 
-- Adding sort-field definitions or multi-column sort structs here — this package is intentionally a single primitive
-- Comparing Order to string literals 'ASC'/'DESC' directly — use the exported constants
-- Using IsDefaultValue() as a semantic check for 'is ascending' — it only detects the unset (empty) state
+- Adding sort-field definitions or multi-column sort structs here — this package is intentionally a single primitive.
+- Comparing Order to string literals 'ASC'/'DESC' directly — use the exported constants.
+- Using IsDefaultValue() as a check for 'is ascending' — it only detects the unset (empty) state.
 
 ## Decisions
 
-- **Single file, single type, no sub-packages** — Sort direction is a leaf primitive shared by many list inputs; keeping it minimal prevents coupling and circular imports.
+- **Single file, single type, no sub-packages.** — Sort direction is a leaf primitive shared by many list inputs; minimalism prevents coupling and circular imports.
 
 <!-- archie:ai-end -->

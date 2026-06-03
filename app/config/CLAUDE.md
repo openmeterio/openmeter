@@ -2,40 +2,40 @@
 
 <!-- archie:ai-start -->
 
-> Defines the single shared config.Configuration struct (Viper-based) used by all seven binaries, with one file per concern. Provides Configure* functions that set Viper defaults and pflag bindings, plus Validate() methods on every sub-struct that accumulate all errors via errors.Join.
+> Defines the single shared Viper-based config.Configuration struct used by all seven binaries, one file per concern. Each file pairs a typed struct, a Validate() that accumulates errors via errors.Join, and a Configure*(v) that sets Viper defaults / pflag bindings.
 
 ## Patterns
 
-**One config struct + Validate() + Configure*() per concern file** — Each domain concern has its own file with a typed struct, a Validate() error method accumulating errors via errors.Join, and a Configure*(v *viper.Viper) function setting all defaults. No global state, no side-effects. (`type BillingConfiguration struct { AdvancementStrategy billing.AdvancementStrategy; Worker BillingWorkerConfiguration }; func (c BillingConfiguration) Validate() error { var errs []error; ...; return errors.Join(errs...) }`)
-**SetViperDefaults as the single registration point** — config.go's SetViperDefaults calls every Configure* function in order. New config concerns must add a Configure* call here before they will be loaded. Duplicate calls for Credits are a known bug (called twice). (`func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) { ...; ConfigureBilling(v, flags); ConfigureProductCatalog(v); ConfigureApps(v, flags); ... }`)
-**Sub-config helper methods for derived values** — Config structs expose helper methods (AsURL(), GetClientOptions(), AsConsumerConfig(), AsConfigMap()) that transform raw fields into types expected by third-party clients, keeping translation out of app/common. (`func (c ClickHouseAggregationConfiguration) GetClientOptions() *clickhouse.Options { return &clickhouse.Options{Addr: []string{c.Address}, Auth: clickhouse.Auth{Database: c.Database, ...}} }`)
-**Validate() accumulates all errors with errors.Join** — All Validate() methods use var errs []error + errs = append(errs, ...) + return errors.Join(errs...) to surface all failures at once. Sub-struct errors are prefixed with errorsx.WithPrefix for context. (`func (c BalanceWorkerConfiguration) Validate() error { var errs []error; if err := c.ConsumerConfiguration.Validate(); err != nil { errs = append(errs, errorsx.WithPrefix(err, "consumer")) }; return errors.Join(errs...) }`)
-**Consumer config squash embedding for Kafka worker configs** — Binary-specific worker configs (BalanceWorkerConfiguration, BillingWorkerConfiguration) embed ConsumerConfiguration with mapstructure:",squash" to inherit Kafka consumer settings without field duplication. (`type BalanceWorkerConfiguration struct { ConsumerConfiguration `mapstructure:",squash"`; StateStorage BalanceWorkerStateStorageConfiguration }`)
+**One struct + Validate() + Configure*() per concern file** — Each concern has a typed struct, a Validate() error accumulating via errors.Join, and a Configure*(v *viper.Viper) setting defaults. No global state, no side-effects beyond viper defaults. (`type BillingConfiguration struct { AdvancementStrategy billing.AdvancementStrategy; Worker BillingWorkerConfiguration }; func (c BillingConfiguration) Validate() error { var errs []error; /* ... */ return errors.Join(errs...) }`)
+**SetViperDefaults as the single registration point** — config.go SetViperDefaults calls every Configure* function in order; a new concern must add its Configure* call here before it is loaded. ConfigureCredits is currently called twice (known duplication). (`func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) { ConfigureBilling(v, flags); ConfigureProductCatalog(v); ConfigureApps(v, flags); /* ... */ ConfigureCredits(v, "credits") }`)
+**Helper methods for derived client types** — Config structs expose helpers (AsURL(), GetClientOptions(), AsConsumerConfig(), AsConfigMap()) that translate raw fields into third-party client types, keeping translation out of app/common. (`func (c ClickHouseAggregationConfiguration) GetClientOptions() *clickhouse.Options { return &clickhouse.Options{Addr: []string{c.Address}, Auth: clickhouse.Auth{Database: c.Database, Username: c.Username, Password: c.Password}, ...} }`)
+**Validate() accumulates all errors with errors.Join** — Validate() methods build var errs []error, append each failure (sub-struct errors prefixed with errorsx.WithPrefix or fmt.Errorf), and return errors.Join(errs...) so all misconfigs surface at once. (`if err := c.ConsumerConfiguration.Validate(); err != nil { errs = append(errs, errorsx.WithPrefix(err, "consumer")) }`)
+**Consumer config squash embedding for Kafka worker configs** — Worker configs embed ConsumerConfiguration with mapstructure:",squash" to inherit Kafka consumer settings without field duplication. (`type BalanceWorkerConfiguration struct { ConsumerConfiguration `mapstructure:",squash"`; StateStorage BalanceWorkerStateStorageConfiguration }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `app/config/config.go` | Root Configuration struct aggregating all sub-configs. SetViperDefaults registers all defaults. Validate() fans out to all sub-config validators and also validates meter definitions. | Credits is validated twice (both 'credits' and 'credit' prefix) — known duplication. New sub-configs must be added to both the struct and Validate(). New Configure* functions must be added to SetViperDefaults. |
-| `app/config/billing.go` | BillingConfiguration and BillingFeatureSwitchesConfiguration. FeatureSwitches.NamespaceLockdown is a []string allowlist gating billing operations per namespace. | AdvancementStrategy references openmeter/billing domain type directly — this config file imports the billing domain package, which is an intentional exception to the usual dependency direction. |
-| `app/config/aggregation.go` | ClickHouse connection config including TLS, retry, pool metrics. GetClientOptions() produces *clickhouse.Options for the ClickHouse client. | All numeric fields default to >0 and Validate() rejects 0-valued fields — always set positive defaults in ConfigureAggregation or tests will fail on zero-value configs. |
-| `app/config/kafka.go` | KafkaConfiguration and KafkaIngestConfiguration with AsConfigMap()/CreateKafkaConfig() helpers. ConsumerConfig produced here is consumed by common.kafka.go. | KafkaIngestConfiguration.TopicProvisioner is decomposed via wire.FieldsOf in app/common/config.go — changing field names requires updating the FieldsOf binding. |
-| `app/config/credits.go` | CreditsConfiguration with Enabled bool and EnableCreditThenInvoice bool. Injected into every provider that must be credits-guarded. | This struct is the type-safe flag checked in four independent wiring layers — do not add default-true fields without updating all ledger-guarded providers. |
+| `config.go` | Root Configuration struct aggregating all sub-configs; SetViperDefaults registers all defaults; Validate() fans out to every sub-validator and validates meter definitions (setting ManagedResource per meter). | Credits is validated twice (prefixes 'credits' and 'credit') and ConfigureCredits(v, "credits") is called twice in SetViperDefaults — known duplication. New sub-configs must be added to the struct, Validate(), and a Configure* call. |
+| `billing.go` | BillingConfiguration + BillingFeatureSwitchesConfiguration; FeatureSwitches.NamespaceLockdown is a []string allowlist gating billing operations per namespace. | AdvancementStrategy references the openmeter/billing domain type directly — this is the intentional exception where a config file imports a domain package. |
+| `aggregation.go` | ClickHouse connection config (TLS, retry, pool metrics); GetClientOptions() builds *clickhouse.Options for the ClickHouse client. | Numeric fields (dialTimeout, maxOpenConns, maxIdleConns, connMaxLifetime, blockBufferSize) must be > 0 — Validate() rejects zero values, so always set positive defaults in ConfigureAggregation or zero-value configs fail. |
+| `kafka.go` | KafkaConfiguration / KafkaIngestConfiguration with AsConfigMap()/CreateKafkaConfig() helpers; the ConsumerConfig produced here is consumed by app/common/kafka.go. | KafkaIngestConfiguration.TopicProvisioner is decomposed via wire.FieldsOf in app/common/config.go — renaming a field requires updating the FieldsOf binding. |
+| `credits.go` | CreditsConfiguration with Enabled and EnableCreditThenInvoice flags; injected into every provider that must be credits-guarded. | This is the type-safe flag checked in four independent wiring layers — do not add default-true fields without updating all ledger-guarded providers in app/common. |
 
 ## Anti-Patterns
 
-- Adding business logic or state to config structs — they are pure data containers with validation only.
-- Calling viper.SetDefault directly from cmd/* binaries instead of adding a Configure* function in this package.
-- Adding config fields without a corresponding Validate() check and Configure* default — silent zero-value misconfigurations result.
-- Importing openmeter/* domain packages beyond openmeter/meter and openmeter/billing — this package should have minimal domain imports.
+- Adding business logic or mutable state to config structs — they are pure data containers with validation only
+- Calling viper.SetDefault directly from cmd/* binaries instead of adding a Configure* function here
+- Adding a config field without a corresponding Validate() check and Configure* default, producing silent zero-value misconfiguration
+- Importing openmeter/* domain packages beyond openmeter/meter and openmeter/billing — keep domain imports minimal
 
 ## Decisions
 
-- **Single shared config.Configuration type for all binaries** — Wire FieldsOf in app/common/config.go decomposes it into typed sub-structs per domain; each binary injects only what it needs, but all binaries load the same config file shape, preventing config drift between binaries.
-- **Configure* functions set Viper defaults, not init() or package-level vars** — Explicit function calls in SetViperDefaults make the default registration order visible, allow per-test selective invocation, and avoid global state races between parallel test processes.
-- **errors.Join accumulation in Validate() rather than fail-fast** — Surfacing all config errors at startup is more actionable for operators than stopping at the first invalid field, especially when multiple misconfigurations stem from a single environment variable change.
+- **Single shared config.Configuration type for all binaries** — wire.FieldsOf in app/common decomposes it into typed sub-structs per domain so each binary injects only what it needs, while all binaries load the same config shape — preventing config drift across binaries.
+- **Configure* functions set Viper defaults instead of init()/package-level vars** — Explicit calls in SetViperDefaults make registration order visible, allow per-test selective invocation, and avoid global-state races between parallel test processes.
+- **errors.Join accumulation in Validate() rather than fail-fast** — Surfacing all config errors at startup is more actionable for operators, especially when one env-var change produces several invalid fields.
 
-## Example: Adding a new config concern for a hypothetical domain
+## Example: Add a new config concern for a hypothetical domain
 
 ```
 // app/config/newdomain.go

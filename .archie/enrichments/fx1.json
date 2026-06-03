@@ -1,0 +1,210 @@
+{
+  "api/client/javascript/patches": {
+    "purpose": "Holds a single unified patch file (openapi-typescript.patch) applied to the installed openapi-typescript npm package before JS SDK code generation. Carries local bug fixes and feature backports not yet in the upstream release so the SDK generates correct TypeScript.",
+    "patterns": [
+      {
+        "name": "Single consolidated diff file",
+        "description": "All upstream fixes live in exactly one file applied as a whole. Never split into multiple patch files per fix.",
+        "example": "openapi-typescript.patch \u2014 one unified diff touching bin/cli.js, dist/index.d.{c,m,}ts, dist/transform/schema-object.{c,}js"
+      },
+      {
+        "name": "Patch targets compiled dist/ artifacts",
+        "description": "The patch modifies pre-built dist/ files of openapi-typescript (.cjs and .mjs) and .d.ts type declarations, not TypeSpec or TypeScript source.",
+        "example": "dist/index.d.cts, dist/index.d.mts, dist/index.d.ts all receive the same additionalProperties type addition"
+      },
+      {
+        "name": "BOOLEAN_FLAGS list kept in sync across patch",
+        "description": "The extracted BOOLEAN_FLAGS array in bin/cli.js must contain every flag from the original boolean: [] list. Adding a new CLI flag means updating BOOLEAN_FLAGS.",
+        "example": "BOOLEAN_FLAGS = ['additionalProperties', 'alphabetize', ... 'rootTypesNoSchemaPrefix']"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "openapi-typescript.patch",
+        "role": "Unified diff applied to the installed openapi-typescript package. Fixes BOOLEAN_FLAGS extraction, additionalProperties schema type addition, enum + additionalProperties interaction, and generateSchema config spreading.",
+        "watch_for": "Regenerate and re-validate the patch whenever openapi-typescript is upgraded \u2014 the base commit hash in the diff header will no longer match and the patch fails to apply silently."
+      }
+    ],
+    "anti_patterns": [
+      "Creating separate patch files for each fix \u2014 the tooling expects a single patch file",
+      "Patching TypeSpec source files or the generated openapi.yaml instead of the openapi-typescript dist artifacts",
+      "Editing dist/ files directly in the repo without encoding the change as a patch",
+      "Forgetting to update the patch after upgrading openapi-typescript (stale base hash causes apply failure)"
+    ],
+    "decisions": [
+      {
+        "decision": "Patch dist/ artifacts rather than waiting for upstream releases",
+        "rationale": "The JS SDK generation pipeline requires fixes (additionalProperties schema type, BOOLEAN_FLAGS refactor, enum+additionalProperties interaction) not yet in the published npm package; patching the installed artifact unblocks generation without forking the package."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/client/javascript/scripts": {
+    "purpose": "Two post-generation Node.js scripts (generate.ts, add-as-const.ts) that clean up or transform generated JS SDK output after orval and openapi-typescript run; invoked as part of the 'make gen-api' pipeline, never imported by application code.",
+    "patterns": [
+      {
+        "name": "Scripts read and write back to generated src/ files",
+        "description": "Each script opens an already-generated file under src/, transforms it in memory, and writes it back. They must be idempotent \u2014 running twice produces the same output.",
+        "example": "add-as-const.ts: readFileSync('../src/zod/index.ts') -> regex replace -> writeFileSync back to same path"
+      },
+      {
+        "name": "Type overrides applied via openapiTS transform hook, not post-hoc regex",
+        "description": "Custom type mappings (date-time -> Date, Event string fields -> optional string) are applied via the transform(schemaObject, metadata) callback passed to openapiTS, enabling context-aware overrides based on parameter location.",
+        "example": "if (schemaObject.format === 'date-time') { return allowString ? tsUnion([DATE, STRING]) : DATE }"
+      },
+      {
+        "name": "Schema source resolved relative to script location",
+        "description": "generate.ts resolves the schema as new URL('../../../openapi.cloud.yaml', import.meta.url); scripts must run from their scripts/ directory. Changing the output path requires updating the hardcoded writeFileSync target.",
+        "example": "const schema = new URL('../../../openapi.cloud.yaml', import.meta.url); fs.writeFileSync('./src/client/schemas.ts', contents)"
+      },
+      {
+        "name": "add-as-const.ts is a temporary orval workaround",
+        "description": "Appends 'as const' to exported object-literal defaults in zod/index.ts to fix orval issue #3244. Remove it and its invocation once the upstream fix lands.",
+        "example": "src.replace(/(^export const \\w+Default =\\s*\\{[^{}]*\\})/gm, '$1 as const')"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "generate.ts",
+        "role": "Generates src/client/schemas.ts from api/openapi.cloud.yaml using openapi-typescript with custom transform hooks for date-time and Event schema overrides.",
+        "watch_for": "The Event schema transform checks schemaObject.example against a hardcoded exclusion list ['customer-id', 'com.example.someevent'] \u2014 new Event string fields with different example values are silently made optional; update the list when the Event schema changes."
+      },
+      {
+        "file": "add-as-const.ts",
+        "role": "Post-processes src/zod/index.ts to add 'as const' to single-level object-literal defaults. Temporary fix for orval#3244.",
+        "watch_for": "The regex only matches single-level object literals (no nested braces); complex nested defaults are not fixed. Remove once orval#3244 is resolved upstream."
+      }
+    ],
+    "anti_patterns": [
+      "Importing these scripts from application SDK code \u2014 they are build-time tools only",
+      "Using regex transforms in generate.ts instead of the openapiTS transform hook for type overrides",
+      "Hardcoding new type overrides in add-as-const.ts instead of the transform hook in generate.ts",
+      "Running generate.ts from a directory other than scripts/ \u2014 the relative URL resolution for openapi.cloud.yaml breaks"
+    ],
+    "decisions": [
+      {
+        "decision": "Type overrides (date-time -> Date) applied via openapiTS transform hook rather than post-hoc regex",
+        "rationale": "The transform hook has typed access to schemaObject and metadata (including parameter location), enabling context-aware overrides like allowing string|Date in query parameters while enforcing Date only elsewhere."
+      },
+      {
+        "decision": "add-as-const.ts exists as a clearly-labelled throwaway script",
+        "rationale": "The orval bug (missing 'as const' on object-literal defaults) is tracked upstream as issue #3244; a named script with an issue reference signals exactly when it can be deleted and minimises tech debt."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new date-time field that must also accept string in query params",
+        "code": "// In generate.ts transform callback \u2014 already handled generically:\nif (schemaObject.format === 'date-time') {\n  const allowString =\n    (metadata.schema && 'in' in metadata.schema && metadata.schema.in === 'query') ||\n    metadata.path?.includes('/parameters/query')\n  return allowString\n    ? factory.createUnionTypeNode([DATE, NULL, STRING])\n    : DATE\n}"
+      }
+    ]
+  },
+  "api/client/javascript/src/client": {
+    "purpose": "Generated TypeScript SDK client implementing the full OpenMeter admin API surface. Each domain resource is a class wrapping an openapi-fetch Client<paths> with typed routes, sub-resource composition, and uniform error/date handling via transformResponse.",
+    "patterns": [
+      {
+        "name": "Resource class wrapping openapi-fetch",
+        "description": "Every domain file exports one or more classes taking Client<paths, `${string}/${string}`> in the constructor, exposing async methods that call this.client.GET/POST/PUT/DELETE/PATCH with typed path literals, then return transformResponse(resp). Never access resp.data directly.",
+        "example": "const resp = await this.client.POST('/api/v1/addons', { body: addon, ...options }); return transformResponse(resp)"
+      },
+      {
+        "name": "Nested sub-resource classes as public fields",
+        "description": "Compound domains (Billing, Apps, Customers, Notifications, Plans, Entitlements) expose sub-resources as public class fields initialized in the constructor with the same client reference.",
+        "example": "this.profiles = new BillingProfiles(this.client); this.invoices = new BillingInvoices(this.client)"
+      },
+      {
+        "name": "Types always from schemas.ts via operations/paths",
+        "description": "All domain types come from './schemas.js' \u2014 named types or operations['op']['parameters']['path'|'query'] and requestBody['content']['application/json']. Never invent local type shapes.",
+        "example": "id: operations['updateAddon']['parameters']['path']['id'], addon: operations['updateAddon']['requestBody']['content']['application/json']"
+      },
+      {
+        "name": "RequestOptions on every public method",
+        "description": "Every public method accepts options?: RequestOptions as its last parameter and spreads it into the fetch call with ...options. RequestOptions = Pick<RequestInit, 'signal'> from common.ts.",
+        "example": "public async get(id: string, options?: RequestOptions) { const resp = await this.client.GET('/api/v1/addons/{addonId}', { params: { path: { addonId: id } }, ...options }) }"
+      },
+      {
+        "name": "OpenMeter root class registers every resource",
+        "description": "index.ts creates the openapi-fetch client with date-encoding querySerializer and optional Bearer auth, then instantiates every resource class as a public field. Adding a resource requires a new domain file, import, public field declaration, and constructor instantiation.",
+        "example": "this.client = createClient<paths>({ ...config, querySerializer: ... }); this.addons = new Addons(this.client)"
+      },
+      {
+        "name": "Events ingest uses application/cloudevents-batch+json",
+        "description": "events.ts special-cases ingest: normalizes single/array input to array, applies setDefaultsForEvent (id, source, specversion, time), and sends Content-Type: application/cloudevents-batch+json. The list method uses standard application/json.",
+        "example": "const resp = await this.client.POST('/api/v1/events', { body, headers: { 'Content-Type': 'application/cloudevents-batch+json' }, ...options })"
+      },
+      {
+        "name": "Explicit return type casts for typed responses",
+        "description": "When the generic transformResponse return type is too broad, methods cast to the exact operations response type (see meters.ts query/queryPost).",
+        "example": "return transformResponse(resp) as operations['queryMeter']['responses']['200']['content']['application/json']"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "index.ts",
+        "role": "Root OpenMeter class and Config type. Creates the openapi-fetch client with date-encoding querySerializer, optional Bearer token, and instantiates all resource classes as public fields.",
+        "watch_for": "Adding a resource class file without registering it as a public field AND calling new in the constructor \u2014 the instance is unreachable. Config requires apiKey only when baseUrl is 'https://openmeter.cloud'."
+      },
+      {
+        "file": "utils.ts",
+        "role": "transformResponse (throws HTTPError on 4xx/5xx, recursively decodes ISO date strings to Date), decodeDates, encodeDates (recursive Date->ISO string used in query serializer).",
+        "watch_for": "Never skip transformResponse; direct resp.data access misses date decoding and error handling entirely."
+      },
+      {
+        "file": "common.ts",
+        "role": "Defines RequestOptions (Pick<RequestInit, 'signal'>), HTTPError class with fromResponse factory, and isHTTPError type guard.",
+        "watch_for": "HTTPError.fromResponse checks Content-Type: application/problem+json to extract problem.detail as the error message. Use isHTTPError to distinguish API errors from network failures."
+      },
+      {
+        "file": "schemas.ts",
+        "role": "Generated file exporting paths, operations, and all domain types. Source of truth for all type shapes.",
+        "watch_for": "DO NOT EDIT \u2014 regenerate via make gen-api. Any manual edit is overwritten."
+      },
+      {
+        "file": "billing.ts",
+        "role": "Most complex resource: Billing with three sub-classes (BillingProfiles, BillingInvoices, BillingCustomers). BillingInvoices exposes state-machine actions: advance, approve, retry, void, recalculateTax, snapshotQuantities, simulate, createLineItems, invoicePendingLines.",
+        "watch_for": "Most invoice actions take only path params, but void requires body: VoidInvoiceActionInput and simulate/createLineItems/invoicePendingLines require body. Don't omit required bodies."
+      },
+      {
+        "file": "customers.ts",
+        "role": "Customers with four sub-classes: CustomerApps, CustomerEntitlements (v1 /api/v1), CustomerEntitlementsV2 (/api/v2), CustomerStripe.",
+        "watch_for": "customers.entitlementsV1 hits /api/v1 paths; customers.entitlements hits /api/v2 paths \u2014 different API versions, do not mix when adding methods."
+      },
+      {
+        "file": "events.ts",
+        "role": "Events.ingest normalizes input, sets CloudEvent defaults (id via node:crypto or fallback UUID, source='@openmeter/sdk', specversion='1.0', time=now), sends as cloudevents-batch+json.",
+        "watch_for": "Must use Content-Type: application/cloudevents-batch+json for POST /api/v1/events. UUID generation tries node:crypto first and falls back to Math.random-based UUID for browser compatibility."
+      },
+      {
+        "file": "events.spec.ts",
+        "role": "Vitest tests using @fetch-mock/vitest. Shows correct test pattern: fetchMock.mockReset() in beforeEach, route assertions with fetchMock.callHistory.done().",
+        "watch_for": "Date params must be serialized to ISO strings in mock route query matchers \u2014 the SDK encodes dates before sending."
+      }
+    ],
+    "anti_patterns": [
+      "Defining domain type shapes locally instead of importing from './schemas.js'",
+      "Accessing resp.data directly without calling transformResponse \u2014 loses date decoding and HTTPError throwing on 4xx/5xx",
+      "Adding a resource class but not registering it as a public field AND constructor instantiation in OpenMeter (index.ts)",
+      "Manually editing schemas.ts \u2014 it is code-generated and overwritten by make gen-api",
+      "Omitting options?: RequestOptions or not spreading ...options into the fetch call \u2014 prevents AbortSignal propagation"
+    ],
+    "decisions": [
+      {
+        "decision": "openapi-fetch with typed paths/operations from generated schemas.ts",
+        "rationale": "Compile-time type-checking of route paths, path/query params, and request/response bodies. Any API change in TypeSpec is caught at TypeScript compile time after regeneration, preventing SDK drift."
+      },
+      {
+        "decision": "Date values encoded (Date->ISO string) in query serializer and decoded (ISO->Date) in transformResponse",
+        "rationale": "OpenAPI dates are strings; SDK callers expect JS Date objects. Centralizing encode/decode in utils.ts ensures consistent Date handling across all endpoints without per-method boilerplate."
+      },
+      {
+        "decision": "Each domain has its own file; index.ts is the only file importing all of them",
+        "rationale": "Tree-shaking friendly \u2014 consumers importing individual classes only pull in their file. index.ts provides the convenience-bundled OpenMeter class for callers wanting the full client."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new resource class for a new domain 'widgets' with list and create methods",
+        "code": "// widgets.ts\nimport type { Client } from 'openapi-fetch'\nimport type { RequestOptions } from './common.js'\nimport type { WidgetCreate, operations, paths } from './schemas.js'\nimport { transformResponse } from './utils.js'\n\nexport class Widgets {\n  constructor(private client: Client<paths, `${string}/${string}`>) {}\n\n  public async create(widget: WidgetCreate, options?: RequestOptions) {\n    const resp = await this.client.POST('/api/v1/widgets', { body: widget, ...options })\n    return transformResponse(resp)\n  }\n}"
+      }
+    ]
+  }
+}

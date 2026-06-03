@@ -1,0 +1,96 @@
+{
+  "tools/migrate": {
+    "purpose": "Migration toolchain for the OpenMeter database: embeds Atlas-generated SQL files (migrations/), wraps golang-migrate for startup-time application via migrate.go, and hosts the viewgen sub-tool that generates Postgres view DDL separately from Atlas. Primary constraint: migrations/ SQL files and atlas.sum are Atlas-owned and must never be hand-edited.",
+    "patterns": [
+      {
+        "name": "OMMigrationsConfig as the canonical embedded config",
+        "description": "migrate.OMMigrationsConfig is the single pre-built MigrationsConfig (FS=//go:embed migrations, FSPath=\"migrations\", StateTableName=MigrationsTable=\"schema_om\"). All callers (app/common, cmd/jobs, tests) use this constant; never construct an ad-hoc MigrationsConfig over the same embed.",
+        "example": "migrator, err := migrate.New(migrate.MigrateOptions{ConnectionString: testDB.URL, Migrations: migrate.OMMigrationsConfig, Logger: testutils.NewLogger(t)})"
+      },
+      {
+        "name": "SourceWrapper for migration:ignore filtering",
+        "description": "All migration file access goes through SourceWrapper (fs.go). ReadDir skips any file whose any line begins with IgnoreMarker (\"-- migration:ignore\", strings.HasPrefix). This is the only supported way to exclude a file from the chain without deleting it.",
+        "example": "fs := migrate.NewSourceWrapper(omMigrations); sourceDriver, _ := iofs.New(fs, \"migrations\")"
+      },
+      {
+        "name": "filterErrNoChange swallows migrate.ErrNoChange",
+        "description": "Up/Down/Migrate all wrap the underlying goMigrate call in filterErrNoChange, which logs and returns nil on migrate.ErrNoChange. Callers must not re-check for that sentinel \u2014 a no-op migration is a success, not an error.",
+        "example": "func (m *Migrate) Up() error { return m.filterErrNoChange(m.goMigrate.Up()) }"
+      },
+      {
+        "name": "runner/stops harness for data-migration tests",
+        "description": "Data-migration tests use runner{stops: stops{...}}.Test(t) (migrate_test.go). Each stop has version, direction (directionUp/directionDown), and action func(t, *sql.DB). The harness runs ups ascending, purges, then runs downs descending; actions use raw *sql.DB, never Ent.",
+        "example": "runner{stops: stops{{version: 20260320171954, direction: directionUp, action: func(t *testing.T, db *sql.DB){ db.QueryRow(`SELECT meter_id FROM features WHERE id=$1`, id).Scan(&v) }}}}.Test(t)"
+      },
+      {
+        "name": "View parity enforced against viewgen.GenerateSQL",
+        "description": "view_parity_test.go migrates two databases \u2014 one applying migrations as-is, one stripping CREATE/DROP VIEW statements and re-applying views from viewgen.GenerateSQL \u2014 then asserts pg_get_viewdef and column lists match. Any view changed in openmeter/ent/schema must be re-generated via 'make generate-view-sql'.",
+        "example": "sql, _ := viewgen.GenerateSQL(\"../../openmeter/ent/schema\"); applyGeneratedViews(t, generatedDB.PGDriver.DB())"
+      },
+      {
+        "name": "WaitForMigrationJob for deferred-migration binaries",
+        "description": "Binaries that do not run migrations themselves poll Migrate.WaitForMigrationJob until the DB version reaches LatestVersion() (computed from sourceDriver.First/Next). Use it instead of racing the migration job at startup.",
+        "example": "if err := migrator.WaitForMigrationJob(migrate.WithMaxRetries(60)); err != nil { return err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "migrate.go",
+        "role": "Core migration library: //go:embed migrations, builds the golang-migrate instance from MigrateOptions, defines MigrationsConfig + OMMigrationsConfig, and exposes Up/Down/Migrate/LatestVersion via filterErrNoChange.",
+        "watch_for": "MigrationsTable constant (\"schema_om\") is injected as the x-migrations-table URL param \u2014 changing it breaks every deployed database. filterErrNoChange means callers must not test for migrate.ErrNoChange themselves."
+      },
+      {
+        "file": "fs.go",
+        "role": "SourceWrapper implements the FS interface and filters out files containing IgnoreMarker on a line. NewSourceWrapper wraps the embedded FS before it is handed to iofs.New.",
+        "watch_for": "IgnoreMarker must be at the start of a line (strings.HasPrefix). ReadDir recurses into sub-dirs and flattens them, so the embedded migrations/ directory must stay flat."
+      },
+      {
+        "file": "migrate_test.go",
+        "role": "Defines the runner/stops harness used by all migration stop tests; TestUpDownUp runs the full chain up, down, then up again.",
+        "watch_for": "stops.ups() sorts ascending, stops.downs() descending; purgeDB (TRUNCATE ... CASCADE) runs between up and down passes and skips schema_om. New stop tests must be in package migrate_test using this harness."
+      },
+      {
+        "file": "view_parity_test.go",
+        "role": "Asserts view DDL embedded in migrations matches viewgen.GenerateSQL output by comparing column lists and normalized pg_get_viewdef across two migrated databases.",
+        "watch_for": "stripViewStatements splits on semicolons \u2014 view SQL in migrations must end with a semicolon. buildMigrationsWithoutViews drops whole files that are only view statements."
+      },
+      {
+        "file": "views.sql",
+        "role": "Generated viewgen output: CREATE VIEW DDL for all ent.View schemas (e.g. charges_search_v1s). Header '-- Code generated by viewgen, DO NOT EDIT.'.",
+        "watch_for": "Never hand-edit; regenerate with 'make generate-view-sql'. Adding a new ent.View schema requires re-running viewgen, not an Atlas diff."
+      },
+      {
+        "file": "generate-sqlc-testdata.sh",
+        "role": "Dev helper: spins up Postgres, migrates a scratch DB to a given VERSION, pg_dumps the schema and runs sqlc generate into testdata/sqlcgen/<VERSION>.",
+        "watch_for": "Requires the nix dev shell (docker, migrate, pg_dump, psql, sqlc). Uses x-migrations-table=schema_om in the DB URL to stay consistent with OMMigrationsConfig."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing any file in tools/migrate/migrations/ \u2014 Atlas owns the chain and atlas.sum fails CI validation",
+      "Calling 'atlas migrate diff' expecting it to pick up a new ent.View schema \u2014 Atlas does not diff views; use viewgen instead",
+      "Using an ORM (Ent, GORM) inside migration stop-test actions \u2014 raw *sql.DB is required because the ORM only understands the current schema version",
+      "Adding a migration stop test outside the runner/stops pattern \u2014 it skips the purgeDB/down/up cycle and can leave the DB dirty for other tests",
+      "Hand-editing tools/migrate/views.sql \u2014 it is generated; run 'make generate-view-sql'"
+    ],
+    "decisions": [
+      {
+        "decision": "golang-migrate wraps Atlas-generated SQL rather than using Atlas at runtime",
+        "rationale": "Atlas CLI is a dev/CI tool; golang-migrate gives a lightweight embedded runner with a stable Go API, ErrNoChange handling, and the x-migrations-table param that isolates OpenMeter's schema_om table from other users of the same Postgres instance."
+      },
+      {
+        "decision": "viewgen is a separate tool from Atlas migration generation",
+        "rationale": "Atlas does not include ent.View schemas in its diff output, so view DDL would silently disappear from migrations; viewgen reads the EntSQL view annotations directly and renders CREATE VIEW statements, with view_parity_test.go guarding drift."
+      },
+      {
+        "decision": "Migration stop tests use raw *sql.DB and purgeDB between up and down passes",
+        "rationale": "Tests assert schema shape at intermediate versions where Ent's generated types are incompatible; purgeDB is needed because historical migrations may lack correct inverse data transforms for rows inserted by earlier stops."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Write a migration stop test verifying a data backfill up and rollback down",
+        "code": "package migrate_test\n\nimport (\n\t\"database/sql\"\n\t\"testing\"\n\n\t\"github.com/oklog/ulid/v2\"\n\t\"github.com/stretchr/testify/require\"\n)\n\nfunc TestMyBackfill(t *testing.T) {\n\tid := ulid.Make().String()\n\trunner{stops: stops{\n\t\t{version: 20260320084936, direction: directionUp, action: func(t *testing.T, db *sql.DB) {\n\t\t\t_, err := db.Exec(`INSERT INTO features (namespace,id,created_at,updated_at,name,key) VALUES ('default',$1,NOW(),NOW(),'n','k')`, id)\n\t\t\trequire.NoError(t, err)\n\t\t}},\n\t\t{version: 20260320171954, direction: directionUp, action: func(t *testing.T, db *sql.DB) {\n\t\t\tvar v sql.NullString\n\t\t\trequire.NoError(t, db.QueryRow(`SELECT meter_id FROM features WHERE id=$1`, id).Scan(&v))\n\t\t}},\n\t}}.Test(t)\n}"
+      }
+    ]
+  }
+}

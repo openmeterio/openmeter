@@ -1,285 +1,206 @@
 {
-  "openmeter/subscription/addon/diff": {
-    "purpose": "Pure in-memory spec mutation library that converts a SubscriptionAddon into a bidirectional Apply/Restore transform on SubscriptionSpec. Its sole constraint is invertibility: Apply followed by Restore must yield the original spec with no DB or service calls.",
+  "openmeter/subject/adapter": {
+    "purpose": "Ent/PostgreSQL adapter implementing subject.Adapter \u2014 sole persistence layer for subjects with soft-delete semantics, ctx-propagated transaction support via entutils.TransactingRepo, and mapped domain errors. Every method must honor the ctx-carried Ent transaction.",
     "patterns": [
       {
-        "name": "Diffable interface as the unit of work",
-        "description": "Every spec mutation is expressed as a Diffable{GetApplies() AppliesToSpec, GetRestores() AppliesToSpec}. Both methods return an AppliesToSpec passed to spec.Apply(). Never call any repo or domain service inside Diffable implementations.",
-        "example": "diffable, err := addondiff.GetDiffableFromAddon(subView, subsAdd)\nif diffable == nil { return nil } // no instances\nspec.Apply(diffable.GetApplies(), subscription.ApplyContext{CurrentTime: now})"
+        "name": "TransactingRepo wrapping on every method",
+        "description": "Every public method wraps Ent queries in entutils.TransactingRepo (value) or TransactingRepoWithNoValue (no value). Never call tx.db.* directly outside this wrapper.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) { return mapEntity(tx.db.Subject.Query()...First(ctx)) })"
       },
       {
-        "name": "Gap-based item insertion in apply.go",
-        "description": "apply.go tracks coverage gaps ([]timeutil.OpenPeriod) starting from the full addon cadence, subtracts each existing item's intersection, then creates new SubscriptionItemSpec for remaining gaps. Existing items that overlap are split into difference + intersection fragments.",
-        "example": "gaps := []timeutil.OpenPeriod{*addInPhase}\nfor _, item := range items {\n    nGaps = append(nGaps, g.Difference(itemPer)...)\n    // split item into diff + intersection\n}"
+        "name": "TxUser[*adapter] triad in adapter.go",
+        "description": "adapter implements entutils.TxUser[*adapter] via Tx (HijackTx+NewTxDriver), WithTx (NewTxClientFromRawConfig), and Self(). These live only in adapter.go.",
+        "example": "var _ entutils.TxUser[*adapter] = (*adapter)(nil)"
       },
       {
-        "name": "Quantity application asymmetry",
-        "description": "For existing items within the addon cadence, rc.Apply is called Quantity times. For gap-created items (which start from the RateCard base), rc.Apply is called Quantity-1 times because the RateCard already represents one application.",
-        "example": "// existing item in addon cadence:\nfor range d.addon.Quantity { rc.Apply(inst.RateCard, inst.Annotations) }\n// new gap item:\nfor range d.addon.Quantity - 1 { rc.Apply(inst.RateCard, inst.Annotations) }"
+        "name": "Soft-delete via DeletedAt filter",
+        "description": "Delete sets DeletedAt=now. List/GetByKey queries filter with Or(DeletedAtIsNil(), DeletedAtGTE(now)). GetById intentionally skips this filter.",
+        "example": "subjectdb.Or(subjectdb.DeletedAtIsNil(), subjectdb.DeletedAtGTE(now))"
       },
       {
-        "name": "Relative cadence via ISODuration offsets",
-        "description": "setItemRelativeCadence converts absolute timestamps to ISO 8601 durations relative to phase start using datetime.ISODurationBetween, stored as ActiveFromOverrideRelativeToPhaseStart / ActiveToOverrideRelativeToPhaseStart. Never store absolute times in item cadence overrides.",
-        "example": "diff := datetime.ISODurationBetween(phaseCadence.ActiveFrom, *target.From)\nitem.ActiveFromOverrideRelativeToPhaseStart = &diff"
+        "name": "Ent error mapping to models.Generic*Error",
+        "description": "db.IsNotFound -> NewGenericNotFoundError; db.IsConstraintError -> NewGenericConflictError; validation -> NewGenericValidationError. Never return raw Ent errors.",
+        "example": "if db.IsNotFound(err) { return subject.Subject{}, models.NewGenericNotFoundError(fmt.Errorf(\"subject not found [namespace=%s id=%s]\", ...)) }"
       },
       {
-        "name": "Restore merges adjacent equal items",
-        "description": "restore.go undoes addon effects per-item via AddonRateCard.Restore, deletes items whose zeroRateCardCheck.CanDelete() returns true, then merges consecutive items with equal RateCard + Annotations + BillingBehaviorOverride whose cadences are adjacent.",
-        "example": "canMerge := targetItem.RateCard.Equal(testItem.RateCard) &&\n    reflect.DeepEqual(targetItem.Annotations, testItem.Annotations) &&\n    targetCadence.ActiveTo.Equal(testCadence.ActiveFrom)"
+        "name": "Input validation before DB access",
+        "description": "Every write method calls input.Validate() (or key/id.Validate()) and wraps failures in NewGenericValidationError before entering the TransactingRepo closure.",
+        "example": "if err := input.Validate(); err != nil { return subject.Subject{}, fmt.Errorf(\"invalid input: %w\", models.NewGenericValidationError(err)) }"
       },
       {
-        "name": "Zero rate-card deletion guard",
-        "description": "zeroRateCardCheck in zeroratecard.go determines if a restored item can be deleted by inspecting FlatPrice amount and EntitlementTemplate type/value and OwnerSubSystem annotations. Only if all checks pass is the item safe to remove.",
-        "example": "chk := zeroRateCardCheck{itemAnnotations: item.Annotations, rc: target}\nif chk.CanDelete() { rmIdxs = append(rmIdxs, idx) }"
+        "name": "OptionalNullable[T] patch pattern in Update",
+        "description": "subject.OptionalNullable[T]{IsSet, Value} distinguishes JSON field absent vs null. IsSet && Value==nil -> ClearField(); IsSet && Value!=nil -> SetField(*Value); skip when !IsSet.",
+        "example": "if input.DisplayName.IsSet { if input.DisplayName.Value != nil { query.SetDisplayName(*input.DisplayName.Value) } else { query.ClearDisplayName() } }"
+      },
+      {
+        "name": "mapEntity as the sole domain mapper",
+        "description": "All *db.Subject -> subject.Subject conversions go through package-private mapEntity. Nil metadata is normalised to an empty map inside mapEntity.",
+        "example": "return pagination.MapResult(result, mapEntity), nil"
       }
     ],
     "key_file_guides": [
       {
-        "file": "diff.go",
-        "role": "Defines the Diffable interface and someDiffable concrete helper. The two-method contract (GetApplies/GetRestores) is the only public API shape this package exports.",
-        "watch_for": "Never add I/O here; Diffable is a pure value type with no side-effects."
+        "file": "adapter.go",
+        "role": "adapter struct, New constructor (nil-db guard), and the three TxUser methods (Tx, WithTx, Self).",
+        "watch_for": "Do not add Ent query code here; keep queries in subject.go. Never skip the nil-db guard in New."
       },
       {
-        "file": "addon.go",
-        "role": "GetDiffableFromAddon converts a SubscriptionAddon into a Diffable by mapping instances to per-instance diffables aggregated via NewAggregateAppliesToSpec.",
-        "watch_for": "Returns nil, nil when addon has no instances \u2014 callers must check for nil Diffable before calling spec.Apply."
-      },
-      {
-        "file": "apply.go",
-        "role": "Core apply algorithm: iterates phases in addon cadence range, manages gaps, splits items, applies rc.Apply() the correct number of times.",
-        "watch_for": "Quantity application count differs for existing items (Quantity) vs gap-created items (Quantity-1). Mixing these breaks quantity correctness."
-      },
-      {
-        "file": "restore.go",
-        "role": "Inverse of apply: calls AddonRateCard.Restore per item, removes zero items, merges adjacent equal fragments.",
-        "watch_for": "Merge logic uses reflect.DeepEqual on Annotations and BillingBehaviorOverride \u2014 pointer fields must be comparable via DeepEqual."
-      },
-      {
-        "file": "zeroratecard.go",
-        "role": "Predicate for whether a restored RateCard is effectively empty and safe to delete. Only inspects Price and EntitlementTemplate fields.",
-        "watch_for": "Only measures fields that AddonRateCard.Apply/Restore touches \u2014 adding checks for other fields here risks false positives."
-      },
-      {
-        "file": "affected.go",
-        "role": "GetAffectedItemIDs computes a map[rateCardKey][]itemID used by the HTTP layer to populate AffectedSubscriptionItemIds in API responses.",
-        "watch_for": "Has a FIXME noting it belongs elsewhere; do not add business logic here."
+        "file": "subject.go",
+        "role": "Implements all subject.Adapter methods: Create, Update, GetByKey, GetById, GetByIdOrKey, List, Delete, and mapEntity.",
+        "watch_for": "Update calls GetById at the end to return the refreshed entity \u2014 never return the stale pre-update row. Delete is idempotent (returns nil if already deleted). GetById omits the soft-delete filter intentionally."
       }
     ],
     "anti_patterns": [
-      "Adding database or service calls inside Diffable.GetApplies / GetRestores \u2014 this package is a pure in-memory transform layer",
-      "Calling spec.Apply with a nil Diffable (GetDiffableFromAddon returns nil when no instances exist)",
-      "Using absolute timestamps in SubscriptionItemSpec cadence fields instead of ISODuration offsets relative to phase start",
-      "Modifying phase.ItemsByKey in-place without rebuilding the slice \u2014 restore.go always rebuilds filteredItems and mergedItems slices",
-      "Assuming Apply then Restore is a no-op for all items \u2014 only items fully within the addon cadence with zero restored value are deleted"
+      "Calling tx.db.* directly outside a TransactingRepo/TransactingRepoWithNoValue closure",
+      "Returning raw Ent errors instead of mapping to models.Generic*Error types",
+      "Adding business logic or event publishing inside adapter methods",
+      "Querying without the soft-delete filter (DeletedAtIsNil / DeletedAtGTE) in list/get-by-key operations",
+      "Editing openmeter/ent/db/ generated files instead of openmeter/ent/schema/"
     ],
     "decisions": [
       {
-        "decision": "Pure in-memory spec mutation with no I/O",
-        "rationale": "The diff/restore operations must be composable and testable without DB; callers (workflow service) own the persistence boundary."
+        "decision": "OptionalNullable[T] instead of pointer-pointer for nullable patch fields",
+        "rationale": "Ent cannot distinguish a JSON field being absent vs explicitly null from a *T alone; the IsSet flag makes the distinction explicit without a second raw-body parse at the adapter layer."
       },
       {
-        "decision": "Gap-based insertion rather than full spec rebuild",
-        "rationale": "Preserves existing item splits from prior edits and only touches the time range covered by the addon cadence."
+        "decision": "Soft-delete (SetDeletedAt) rather than hard-delete",
+        "rationale": "Subjects are referenced by usage events in ClickHouse; hard-deleting would break historical query attribution. Soft-delete preserves the row while hiding it from active queries."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Apply addon to spec and later restore it",
-        "code": "import (\n\taddondiff \"github.com/openmeterio/openmeter/openmeter/subscription/addon/diff\"\n\t\"github.com/openmeterio/openmeter/openmeter/subscription\"\n)\n\ndiffable, err := addondiff.GetDiffableFromAddon(subView, subsAdd)\nif err != nil { return err }\nif diffable == nil { return nil } // no instances\n\nspec := subView.Spec\nif err := spec.Apply(diffable.GetApplies(), subscription.ApplyContext{CurrentTime: now}); err != nil {\n\treturn err\n}\n// later, to undo:\nif err := spec.Apply(diffable.GetRestores(), subscription.ApplyContext{CurrentTime: now}); err != nil {\n\treturn err\n}"
+        "scenario": "Adding a new write method to the subject adapter",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\tsubjectdb \"github.com/openmeterio/openmeter/openmeter/ent/db/subject\"\n\t\"github.com/openmeterio/openmeter/openmeter/subject\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (a *adapter) Deactivate(ctx context.Context, id models.NamespacedID) (subject.Subject, error) {\n\tif err := id.Validate(); err != nil {\n\t\treturn subject.Subject{}, fmt.Errorf(\"invalid id: %w\", models.NewGenericValidationError(err))\n\t}\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) {\n\t\t// ... mutate then return refreshed entity via GetById ...\n\t})\n}"
       }
     ]
   },
-  "openmeter/subscription/addon/http": {
-    "purpose": "HTTP handler layer for subscription addon CRUD, bridging the v1 API to subscriptionaddon.Service and subscriptionworkflow.Service using the standard httptransport.HandlerWithArgs[Request,Response,Params] pipeline.",
+  "openmeter/subject/httphandler": {
+    "purpose": "v1 HTTP handler layer for the subject domain, translating Chi HTTP requests into subject.Service calls and encoding domain types to api.Subject responses. Package name is httpdriver despite the directory being named httphandler.",
     "patterns": [
       {
-        "name": "HandlerWithArgs three-stage pipeline",
-        "description": "Each operation uses httptransport.NewHandlerWithArgs(decoder, operation, encoder, ...options). The decoder resolves namespace and decodes body, the operation calls domain services, the encoder writes JSON with a fixed status code.",
-        "example": "httptransport.NewHandlerWithArgs(\n\tfunc(ctx context.Context, r *http.Request, params P) (Req, error) { ... },\n\tfunc(ctx context.Context, req Req) (Resp, error) { ... },\n\tcommonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusOK),\n\thttptransport.AppendOptions(h.Options, httptransport.WithOperationName(\"op\"))...,\n)"
+        "name": "httptransport.NewHandler / NewHandlerWithArgs per endpoint",
+        "description": "Every endpoint is a method returning a typed handler alias. Use NewHandler for path-param-free endpoints, NewHandlerWithArgs when a path param is needed. Never implement http.Handler directly.",
+        "example": "func (h *handler) GetSubject() GetSubjectHandler { return httptransport.NewHandlerWithArgs(decoder, operation, encoder, opts...) }"
       },
       {
-        "name": "Upsert-on-create convenience",
-        "description": "CreateSubscriptionAddon checks if the addon is already attached to the subscription and routes to ChangeAddonQuantity instead of AddAddon, providing idempotent create semantics. Both paths return HTTP 200.",
-        "example": "if sAdd, ok := lo.Find(subsAdds.Items, func(s subscriptionaddon.SubscriptionAddon) bool {\n\treturn s.Addon.ID == req.AddonInput.AddonID\n}); ok {\n\tview, add, err = h.WorkflowService.ChangeAddonQuantity(ctx, ...)\n} else {\n\tview, add, err = h.WorkflowService.AddAddon(ctx, ...)\n}"
+        "name": "Per-endpoint type block with Request/Params/Response/Handler aliases",
+        "description": "Each endpoint defines its own *Request struct and a type() block declaring *Params, *Response, and *Handler aliases above the method.",
+        "example": "type (GetSubjectParams = string; GetSubjectResponse = api.Subject; GetSubjectHandler httptransport.HandlerWithArgs[GetSubjectRequest, GetSubjectResponse, GetSubjectParams])"
       },
       {
-        "name": "Namespace resolved via NamespaceDecoder",
-        "description": "All decoders call h.resolveNamespace(ctx) which delegates to h.NamespaceDecoder.GetNamespace(ctx). Missing namespace returns HTTP 500 via commonhttp.NewHTTPError.",
-        "example": "ns, err := h.resolveNamespace(ctx)\nif err != nil { return ..., err }"
+        "name": "Namespace resolution as first step in every decoder",
+        "description": "All decoders call h.resolveNamespace(ctx) first; on failure returns HTTP 500. Never skip or hardcode namespace.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return GetSubjectRequest{}, err }"
       },
       {
-        "name": "Response always requires SubscriptionView",
-        "description": "MapSubscriptionAddonToResponse needs both the SubscriptionAddon and its parent SubscriptionView to compute AffectedSubscriptionItemIds via addondiff.GetAffectedItemIDs. Every Get/List endpoint fetches the view separately.",
-        "example": "view, err := h.SubscriptionService.GetView(ctx, req.SubscriptionID)\nif err != nil { return ..., err }\nreturn MapSubscriptionAddonToResponse(view, *res)"
+        "name": "httptransport.AppendOptions with WithOperationName",
+        "description": "Every handler passes AppendOptions(h.options, WithOperationName(\"camelCaseName\")) to enable OTel span naming and middleware chaining.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"getSubject\"))..."
+      },
+      {
+        "name": "Domain-to-API mapping via FromSubject in mapping.go",
+        "description": "All subject.Subject -> api.Subject conversions go through FromSubject in mapping.go. Never inline field mappings inside operation closures.",
+        "example": "return FromSubject(sub), nil"
+      },
+      {
+        "name": "Double-body-read for optional nullable fields in UpsertSubject",
+        "description": "UpsertSubject reads the body twice: into []api.SubjectUpsert and into []map[string]interface{} to detect absent vs null fields, because oapi-codegen cannot distinguish them.",
+        "example": "bodyBytes, _ := io.ReadAll(r.Body); r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)); json.Unmarshal(bodyBytes, &rawPayloads)"
       }
     ],
     "key_file_guides": [
       {
         "file": "handler.go",
-        "role": "Defines Handler interface, HandlerConfig (three services + NamespaceDecoder + Logger), NewHandler constructor, and resolveNamespace helper.",
-        "watch_for": "HandlerConfig embeds all three services (SubscriptionAddonService, SubscriptionWorkflowService, SubscriptionService) \u2014 all are required; missing any causes panics at call time."
+        "role": "Handler and SubjectHandler interfaces, handler struct (namespaceDecoder, subjectService, entitlementConnector, logger, options), New, resolveNamespace.",
+        "watch_for": "New dependencies must be added to both the handler struct and the New signature. entitlementConnector is used only in delete flows \u2014 verify before removing."
+      },
+      {
+        "file": "subject.go",
+        "role": "All four endpoints: GetSubject, ListSubjects, UpsertSubject, DeleteSubject; upsert create-or-update logic.",
+        "watch_for": "Upsert does N individual Create/Update calls in a loop \u2014 not batched at DB level. DeleteSubject resolves the subject by key first, then deletes by ID."
       },
       {
         "file": "mapping.go",
-        "role": "MapSubscriptionAddonToResponse builds api.SubscriptionAddon including AffectedSubscriptionItemIds. MapCreateSubscriptionAddonRequestToInput translates API body to workflow input.",
-        "watch_for": "Returns error if addon has no instances (empty union of periods). Calls addondiff.GetAffectedItemIDs which needs the full SubscriptionView."
-      },
-      {
-        "file": "create.go",
-        "role": "Upsert-on-create: if addon already attached, calls ChangeAddonQuantity; otherwise AddAddon. Both paths return HTTP 200.",
-        "watch_for": "No 201 distinction between create and update paths \u2014 intentional for idempotency."
-      },
-      {
-        "file": "update.go",
-        "role": "PATCH-style quantity update. Requires both Timing and Quantity fields; returns 400 validation error otherwise.",
-        "watch_for": "Timing and Quantity nil-checks are manual in the decoder, not via model.Validate \u2014 keep them in sync with the API schema."
+        "role": "Single FromSubject function mapping domain to API type.",
+        "watch_for": "Metadata is always copied into a new map to avoid sharing a reference with the domain model."
       }
     ],
     "anti_patterns": [
-      "Adding business logic to decoder functions \u2014 decoders only parse and validate shape, not semantics",
-      "Forgetting to fetch SubscriptionView before calling MapSubscriptionAddonToResponse \u2014 the function requires it to compute AffectedSubscriptionItemIds",
-      "Using httptransport.NewHandler instead of NewHandlerWithArgs when URL path params (SubscriptionID, SubscriptionAddonID) are needed",
-      "Returning nil SubscriptionView to MapSubscriptionAddonToResponse \u2014 it will error on instance union computation"
+      "Implementing http.Handler directly instead of using httptransport.NewHandler/NewHandlerWithArgs",
+      "Calling subject.Service methods outside the operation closure (second argument to NewHandler)",
+      "Inlining domain-to-API field mapping instead of using FromSubject in mapping.go",
+      "Skipping httptransport.WithOperationName \u2014 breaks OTel tracing and middleware",
+      "Adding business logic (create-or-update decisions) outside the operation closure"
     ],
     "decisions": [
       {
-        "decision": "Upsert semantics on POST create",
-        "rationale": "API consumers often want idempotent addon attachment; routing to ChangeAddonQuantity when the addon is already present avoids a 409 conflict and simplifies client logic."
+        "decision": "Package named httpdriver despite directory being named httphandler",
+        "rationale": "Follows the openmeter convention that HTTP handler packages are named httpdriver; the directory name is a legacy inconsistency."
+      },
+      {
+        "decision": "entitlementConnector injected into handler at construction",
+        "rationale": "DeleteSubject may need to validate or clean up entitlements; injecting at construction avoids circular imports and keeps the handler self-contained."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Standard handler wiring with URL params and namespace resolution",
-        "code": "func (h *handler) GetSubscriptionAddon() GetSubscriptionAddonHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, params GetSubscriptionAddonParams) (GetSubscriptionAddonRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return GetSubscriptionAddonRequest{}, err }\n\t\t\treturn GetSubscriptionAddonRequest{\n\t\t\t\tSubscriptionID:      models.NamespacedID{Namespace: ns, ID: params.SubscriptionID},\n\t\t\t\tSubscriptionAddonID: models.NamespacedID{Namespace: ns, ID: params.SubscriptionAddonID},\n\t\t\t}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req GetSubscriptionAddonRequest) (GetSubscriptionAddonResponse, error) {\n\t\t\tres, err := h.SubscriptionAddonService.Get(ctx, req.SubscriptionAddonID)\n\t\t\tif err != nil { return GetSubscriptionAddonResponse{}, err }\n\t\t\tview, err := h.SubscriptionService.GetView(ctx, req.SubscriptionID)\n\t\t\tif err != nil { return GetSubscriptionAddonResponse{}, err }\n\t\t\treturn MapSubscriptionAddonToResponse(view, *res)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[GetSubscriptionAddonResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.Options, httptransport.WithOperationName(\"getSubscriptionAddon\"))...,\n\t)\n}"
+        "scenario": "Adding a new endpoint following the existing pattern",
+        "code": "type (\n\tBulkDeleteSubjectsResponse = interface{}\n\tBulkDeleteSubjectsHandler  httptransport.Handler[BulkDeleteSubjectsRequest, BulkDeleteSubjectsResponse]\n)\n\ntype BulkDeleteSubjectsRequest struct {\n\tnamespace string\n\tids       []string\n}\n\nfunc (h *handler) BulkDeleteSubjects() BulkDeleteSubjectsHandler {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (BulkDeleteSubjectsRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return BulkDeleteSubjectsRequest{}, err }\n\t\t\treturn BulkDeleteSubjectsRequest{namespace: ns}, nil\n\t\t},\n\t\t// operation + encoder ...\n\t)\n}"
       }
     ]
   },
-  "openmeter/subscription/addon/repo": {
-    "purpose": "Ent-backed PostgreSQL repository for subscription addons and their quantity timeline, implementing entutils.TransactingRepo so all mutations participate in caller-supplied transactions. Quantities are append-only.",
+  "openmeter/subject/testutils": {
+    "purpose": "Test environment factory for the subject domain \u2014 wires subject, customer, entitlement, and feature services directly from package constructors (no app/common) so test suites have a fully functional dependency graph without import cycles.",
     "patterns": [
       {
-        "name": "TransactingRepo wrapping all mutations",
-        "description": "Every method body is wrapped in entutils.TransactingRepo(ctx, r, func(ctx, repo) ...) so the repo rebinds to the transaction already in ctx, or starts its own via Self(). Never call repo.db directly inside a method body.",
-        "example": "func (r *subscriptionAddonRepo) Create(ctx context.Context, ns string, input ...) (*models.NamespacedID, error) {\n\treturn entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionAddonRepo) (*models.NamespacedID, error) {\n\t\tentity, err := repo.db.SubscriptionAddon.Create()...Save(ctx)\n\t\treturn &models.NamespacedID{ID: entity.ID, Namespace: entity.Namespace}, err\n\t})\n}"
+        "name": "NewTestEnv constructs the full graph from package constructors",
+        "description": "Each service is built by calling its own adapter/service constructor (subjectadapter.New, subjectservice.New) rather than importing app/common.",
+        "example": "subjectAdapter, _ := subjectadapter.New(client); subjectService, _ := subjectservice.New(subjectAdapter)"
       },
       {
-        "name": "Tx/Self/WithTx transaction trinity",
-        "description": "Each repo struct implements Tx() (hijack via HijackTx + NewTxDriver), Self() (identity), and WithTx() (rebind to tx client via NewTxClientFromRawConfig). Both subscriptionAddonRepo and subscriptionAddonQuantityRepo have their own block in transaction.go.",
-        "example": "func (r *subscriptionAddonRepo) WithTx(ctx context.Context, tx *entutils.TxDriver) *subscriptionAddonRepo {\n\ttxClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())\n\treturn NewSubscriptionAddonRepo(txClient.Client())\n}"
+        "name": "eventbus.NewMock as event publisher",
+        "description": "Tests use eventbus.NewMock(t) instead of a real Kafka publisher; all services accepting a Publisher receive this mock.",
+        "example": "publisher := eventbus.NewMock(t)"
       },
       {
-        "name": "Eager-load via querySubscriptionAddon helper",
-        "description": "All Get/List queries go through querySubscriptionAddon() which loads WithAddon (including Ratecards->Features, Ratecards->TaxCode) and WithQuantities ordered by ActiveFrom asc, CreatedAt asc. Never add a bare db.SubscriptionAddon.Query() without the helper.",
-        "example": "query.WithAddon(func(aq *db.AddonQuery) {\n\taq.WithRatecards(func(arq *db.AddonRateCardQuery) { arq.WithFeatures(); arq.WithTaxCode() })\n}).WithQuantities(func(saqq *db.SubscriptionAddonQuantityQuery) {\n\tsaqq.Order(db.Asc(dbsubscriptionaddonquantity.FieldActiveFrom), db.Asc(dbsubscriptionaddonquantity.FieldCreatedAt))\n})"
+        "name": "testutils.InitPostgresDB for real DB access",
+        "description": "Tests spin up a real Postgres via openmeter/testutils.InitPostgresDB(t). Call env.DBSchemaMigrate(t) before the first DB operation.",
+        "example": "db := testutils.InitPostgresDB(t); client := db.EntDriver.Client()"
       },
       {
-        "name": "Paginate-or-return-all for List",
-        "description": "List returns all results without pagination when filter.Page.IsZero(); otherwise uses Ent's Paginate helper and entutils.MapPagedWithErr.",
-        "example": "if filter.Page.IsZero() {\n\tentities, _ := query.All(ctx)\n\t// wrap and return\n} else {\n\tpaged, _ := query.Paginate(ctx, filter.Page)\n\treturn entutils.MapPagedWithErr(paged, MapSubscriptionAddon)\n}"
+        "name": "sync.Once in Close to prevent double-close panics",
+        "description": "TestEnv.Close wraps driver cleanup in sync.Once. Always call t.Cleanup(func() { env.Close(t) }) at test start.",
+        "example": "e.close.Do(func() { e.db.EntDriver.Close(); e.db.PGDriver.Close() })"
       },
       {
-        "name": "Quantities are append-only",
-        "description": "SubscriptionAddonQuantityRepository has only Create \u2014 no Update or Delete. The quantity timeline is an audit-safe ledger; changes are new records with a later ActiveFrom.",
-        "example": "// Only Create is defined \u2014 no Update/Delete methods exist on subscriptionAddonQuantityRepo"
+        "name": "NewTestULID / NewTestNamespace for collision-free identifiers",
+        "description": "Generate collision-free namespace and ID strings using NewTestULID(t); NewTestNamespace is an alias.",
+        "example": "ns := testutils.NewTestNamespace(t)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "subscriptionaddon.go",
-        "role": "Create, Get, List for SubscriptionAddon. Get wraps db.IsNotFound in models.NewGenericNotFoundError.",
-        "watch_for": "All queries must use querySubscriptionAddon() \u2014 bare queries miss eager-loaded RateCard/Quantity edges."
-      },
-      {
-        "file": "subscriptionaddonquantity.go",
-        "role": "Append-only Create for SubscriptionAddonQuantity. Namespace comes from parent subscriptionAddonID.Namespace.",
-        "watch_for": "No Update or Delete methods exist by design \u2014 do not add them."
-      },
-      {
-        "file": "mapping.go",
-        "role": "MapSubscriptionAddon and MapSubscriptionAddons convert db rows to domain types, delegating RateCard mapping to addonrepo.FromAddonRateCardRow.",
-        "watch_for": "MapSubscriptionAddon returns error if Edges.Addon is nil for rate card mapping \u2014 the edge must always be loaded via querySubscriptionAddon."
-      },
-      {
-        "file": "transaction.go",
-        "role": "Tx/Self/WithTx implementations for both subscriptionAddonRepo and subscriptionAddonQuantityRepo.",
-        "watch_for": "Both repos use db.HijackTx independently \u2014 if a third repo type is added here, it needs its own Tx/Self/WithTx block."
+        "file": "env.go",
+        "role": "TestEnv struct and NewTestEnv factory; exports SubjectService, CustomerService, EntitlementAdapter, FeatureService, Client.",
+        "watch_for": "meteradapter.New(nil) creates a mock meter adapter with no backing store \u2014 do not use for tests needing real meter queries. DBSchemaMigrate before any DB writes. Each test should create its own TestEnv to avoid cross-test state."
       }
     ],
     "anti_patterns": [
-      "Calling repo.db methods directly inside Create/Get/List without TransactingRepo wrapping \u2014 bypasses ctx-bound transaction",
-      "Fetching SubscriptionAddon without querySubscriptionAddon() helper \u2014 misses eager-loaded RateCard/Quantity edges",
-      "Updating or deleting SubscriptionAddonQuantity rows \u2014 quantities are immutable append-only records",
-      "Using a raw db.Client in WithTx instead of db.NewTxClientFromRawConfig"
+      "Importing app/common inside testutils \u2014 creates circular imports and couples tests to binary wiring",
+      "Using context.Background() instead of t.Context() in test helper functions",
+      "Skipping env.Close(t) \u2014 leaves DB connections open across test runs",
+      "Sharing a single TestEnv across parallel tests without isolation"
     ],
     "decisions": [
       {
-        "decision": "Quantities are append-only, never updated",
-        "rationale": "The quantity timeline is an audit-safe ledger; changes are represented by new quantity records with a later ActiveFrom rather than modifying existing rows."
+        "decision": "Wire all dependencies from package constructors rather than app/common DI",
+        "rationale": "Keeps testutils independent of the application wiring layer; unrelated changes to app/common cannot break domain tests and import cycles are impossible."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Create subscription addon inside a transaction",
-        "code": "import (\n\tsubscriptionaddonrepo \"github.com/openmeterio/openmeter/openmeter/subscription/addon/repo\"\n)\n\nrepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(dbClient)\nid, err := repo.Create(ctx, ns, subscriptionaddon.CreateSubscriptionAddonRepositoryInput{\n\tAddonID:        addonID,\n\tSubscriptionID: subID,\n})\n// ctx carries the tx \u2014 repo.Create rebinds automatically via TransactingRepo"
-      }
-    ]
-  },
-  "openmeter/subscription/addon/service": {
-    "purpose": "Business logic service for subscription addons: validates plan compatibility, instance-type constraints, and MaxQuantity limits before persisting via SubscriptionAddonRepository and publishing Watermill events. Implements subscriptionaddon.Service.",
-    "patterns": [
-      {
-        "name": "Config struct with Validate() and fail-fast construction",
-        "description": "Constructor NewService accepts a Config struct and calls cfg.Validate() before returning \u2014 fail-fast at wiring time rather than runtime nil-pointer panics.",
-        "example": "func NewService(cfg Config) (subscriptionaddon.Service, error) {\n\tif err := cfg.Validate(); err != nil { return nil, err }\n\treturn &service{cfg: cfg}, nil\n}"
-      },
-      {
-        "name": "Pre-persist validation chain",
-        "description": "Create and ChangeQuantity both: (1) call input.Validate(), (2) fetch the addon to check InstanceType, (3) fetch the subscription view to check PlanRef and current phase, (4) fetch PlanAddon for FromPlanPhase and MaxQuantity. Only then enter transaction.Run.",
-        "example": "if err := input.Validate(); err != nil { return nil, err }\nadd, err := s.cfg.AddonService.GetAddon(ctx, ...)\nif add.InstanceType == productcatalog.AddonInstanceTypeSingle && input.InitialQuantity.Quantity != 1 {\n\treturn nil, models.NewGenericValidationError(...)\n}"
-      },
-      {
-        "name": "transaction.Run for multi-step writes",
-        "description": "All writes use transaction.Run(ctx, s.cfg.TxManager, func) which coordinates the repo Tx/Self/WithTx chain. Repo calls inside the transaction func use the tx-bound ctx.",
-        "example": "return transaction.Run(ctx, s.cfg.TxManager, func(ctx context.Context) (*subscriptionaddon.SubscriptionAddon, error) {\n\trepo.Create(ctx, ns, ...)\n\tqtyRepo.Create(ctx, id, ...)\n\tadd, _ := repo.Get(ctx, id)\n\ts.cfg.Publisher.Publish(ctx, subscriptionaddon.NewCreatedEvent(...))\n\treturn add, nil\n})"
-      },
-      {
-        "name": "Event publish inside transaction",
-        "description": "After persisting, Publisher.Publish is called inside the transaction.Run func so the event is tied to the same unit of work. NewCreatedEvent / NewChangeQuantityEvent are factory functions in the subscriptionaddon package.",
-        "example": "s.cfg.Publisher.Publish(ctx, subscriptionaddon.NewCreatedEvent(ctx, sView.Customer, *subscriptionAddon))"
-      },
-      {
-        "name": "Phase-ordered compatibility check",
-        "description": "To verify an addon can be added at a given time, the service iterates sView.Phases in order and checks whether compatibility.FromPlanPhase is reached before the phase containing the addon start time.",
-        "example": "for _, phase := range sView.Phases {\n\tif phase.Key == compatibility.FromPlanPhase { break }\n\tif phase.Key == phaseAtAddonStart.PhaseKey {\n\t\treturn nil, models.NewGenericValidationError(...)\n\t}\n}"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "service.go",
-        "role": "Full implementation of subscriptionaddon.Service: Create, Get, List, ChangeQuantity with all validation and transaction coordination.",
-        "watch_for": "Create and ChangeQuantity duplicate several validation steps (InstanceType, FromPlanPhase, MaxQuantity) \u2014 keep them in sync if validation rules change. Addons cannot be added to custom subscriptions (no PlanRef)."
-      }
-    ],
-    "anti_patterns": [
-      "Calling SubAddRepo or SubAddQtyRepo outside of transaction.Run for writes \u2014 partial writes will occur on failure",
-      "Bypassing cfg.Validate() by constructing the service struct directly instead of via NewService",
-      "Publishing events outside the transaction.Run func \u2014 event and DB write will be inconsistent on rollback",
-      "Adding addons to subscriptions without a PlanRef \u2014 the service explicitly rejects custom subscriptions"
-    ],
-    "decisions": [
-      {
-        "decision": "Service validates plan compatibility before any DB write",
-        "rationale": "Addon purchase must respect plan-level constraints (FromPlanPhase, MaxQuantity, InstanceType) that live in the product catalog, not in the subscription tables."
-      },
-      {
-        "decision": "Separate SubscriptionAddonQuantityRepository for quantity records",
-        "rationale": "Quantity timeline is append-only and models a different entity; a dedicated repo keeps quantity writes isolated and avoids loading all quantities on every addon mutation."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Create a subscription addon with validation and transactional persistence",
-        "code": "// From service.go \u2014 transaction.Run coordinates repo writes and event publish\nreturn transaction.Run(ctx, s.cfg.TxManager, func(ctx context.Context) (*subscriptionaddon.SubscriptionAddon, error) {\n\tsubAddID, err := s.cfg.SubAddRepo.Create(ctx, namespace, subscriptionaddon.CreateSubscriptionAddonRepositoryInput{\n\t\tAddonID: input.AddonID, SubscriptionID: input.SubscriptionID,\n\t})\n\tif err != nil { return nil, err }\n\t_, err = s.cfg.SubAddQtyRepo.Create(ctx, *subAddID, subscriptionaddon.CreateSubscriptionAddonQuantityRepositoryInput{\n\t\tActiveFrom: input.InitialQuantity.ActiveFrom,\n\t\tQuantity:   input.InitialQuantity.Quantity,\n\t})\n\tif err != nil { return nil, err }\n\tsubAdd, err := s.cfg.SubAddRepo.Get(ctx, *subAddID)\n\tif err != nil { return nil, err }\n\ts.cfg.Publisher.Publish(ctx, subscriptionaddon.NewCreatedEvent(ctx, sView.Customer, *subAdd))\n\treturn subAdd, nil\n})"
+        "scenario": "Standard test setup using TestEnv",
+        "code": "func TestSubjectCreate(t *testing.T) {\n\tenv := testutils.NewTestEnv(t)\n\tt.Cleanup(func() { env.Close(t) })\n\tenv.DBSchemaMigrate(t)\n\n\tns := testutils.NewTestNamespace(t)\n\tsub, err := env.SubjectService.Create(t.Context(), subject.CreateInput{Namespace: ns, Key: \"test-subject\"})\n\trequire.NoError(t, err)\n\trequire.Equal(t, \"test-subject\", sub.Key)\n}"
       }
     ]
   }

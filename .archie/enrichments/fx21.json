@@ -1,0 +1,233 @@
+{
+  "api/v3/handlers/events": {
+    "purpose": "v3 HTTP handlers for listing (cursor-paginated) and ingesting CloudEvents, with rich filter support (id, source, subject, type, time, ingested_at, stored_at, customer_id) and sort, backed by unit-tested filter/sort parsing helpers.",
+    "patterns": [
+      {
+        "name": "Package-private, unit-tested filter/sort helpers",
+        "description": "fromAPICustomerIDFilter, fromAPIEventSort, and applyFilters are unexported helpers in list.go/convert.go with dedicated tests in list_test.go covering supported and rejected variants.",
+        "example": "func fromAPICustomerIDFilter(ctx context.Context, f *api.ULIDFieldFilter) (*filter.FilterString, error)"
+      },
+      {
+        "name": "apierrors.NewBadRequestError with exact field path",
+        "description": "Every filter/sort error returns apierrors.NewBadRequestError with the exact bracket query-param path as InvalidParameter.Field and Source: apierrors.InvalidParamSourceQuery.",
+        "example": "apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{Field: \"filter[customer_id]\", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery}})"
+      },
+      {
+        "name": "Sort defaults to desc with no suffix",
+        "description": "fromAPIEventSort parses SortQuery; a single bare field (no asc/desc) defaults to sortx.OrderDesc so sort=time means most-recent-first. Only time, ingested_at, stored_at are accepted.",
+        "example": "sort := api.SortQuery(\"time\") // -> EventSortFieldTime, sortx.OrderDesc"
+      },
+      {
+        "name": "customer_id filter supports only eq/oeq",
+        "description": "fromAPICustomerIDFilter rejects Neq (others fall through) and forwards eq/oeq as a concrete IN set because ListEventsV2Params requires it.",
+        "example": "if f.Neq != nil { /* return BadRequest 'only eq and oeq operators are supported' */ }"
+      },
+      {
+        "name": "Content-type dispatch on ingest",
+        "description": "IngestEvents parses Content-Type via mime.ParseMediaType and dispatches: application/json (single AsEvent or batch AsIngestEventsBody1), application/cloudevents+json, application/cloudevents-batch+json; empty event set is a 400.",
+        "example": "switch contentType { case \"application/json\": ...; case \"application/cloudevents+json\": ... }"
+      },
+      {
+        "name": "Forward-only cursor pagination",
+        "description": "List rejects page[before] (backward pagination unsupported), decodes page[after] via pagination/v2.DecodeCursor, and enforces 1 <= page[size] <= meterevent.MaximumLimit.",
+        "example": "cursor, err := pagination.DecodeCursor(*params.Page.After)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "list.go",
+        "role": "ListMeteringEvents handler + applyFilters wiring each filter field through filters.FromAPIFilterString/DateTime and fromAPICustomerIDFilter; builds response.NewCursorPaginationResponse.",
+        "watch_for": "Adding a filter field requires both an applyFilters branch and a list_test.go case. page[before] is rejected; page[size] bounded by meterevent.MaximumLimit."
+      },
+      {
+        "file": "convert.go",
+        "role": "toAPIMeteringIngestedEvent (meterevent.Event -> wire), fromAPICustomerIDFilter, fromAPIEventSort. Sets CloudEvents specversion=1.0.",
+        "watch_for": "e.Data is a raw JSON string \u2014 unmarshal to map[string]any before assigning to the nullable Data field, and set Datacontenttype=application/json."
+      },
+      {
+        "file": "ingest.go",
+        "role": "IngestEvents handler routing CloudEvent payloads to ingest.Service.IngestEvents; returns 202 Accepted with empty body.",
+        "watch_for": "Ingest path is separate from list path \u2014 do not mix streaming connector calls with the ingest collector. Imports the v1 api package (not api/v3) for the body types."
+      },
+      {
+        "file": "list_test.go",
+        "role": "Unit tests for fromAPICustomerIDFilter and fromAPIEventSort; assertBadRequestField asserts the exact InvalidParameter.Field via errors.As(*apierrors.BaseAPIError).",
+        "watch_for": "Tests use t.Context(), never context.Background()."
+      }
+    ],
+    "anti_patterns": [
+      "Supporting customer_id operators beyond eq/oeq without explicit rejection tests",
+      "Parsing filter defaults in the operation func instead of dedicated unexported helpers",
+      "Returning raw filter-parse errors instead of apierrors.NewBadRequestError with exact field path",
+      "Using context.Background() in list_test.go instead of t.Context()",
+      "Supporting page[before] backward pagination on the list endpoint"
+    ],
+    "decisions": [
+      {
+        "decision": "Filter/sort helpers are unexported and unit-tested rather than integration-tested",
+        "rationale": "Parser logic is deterministic and needs no running service; unit tests give fast feedback on edge cases like malformed sort strings."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new filter field to the events list handler",
+        "code": "// In list.go applyFilters \u2014 add a parsing branch:\nsubject, err := filters.FromAPIFilterString(f.Subject)\nif err != nil {\n    return apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{\n        {Field: \"filter[subject]\", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},\n    })\n}\nreq.Subject = subject"
+      }
+    ]
+  },
+  "api/v3/handlers/featurecost": {
+    "purpose": "Single-operation v3 HTTP handler that queries feature cost by resolving a feature, validating its meter association, building streaming query params via the shared meters query builder, and delegating to cost.Service. Body is optional.",
+    "patterns": [
+      {
+        "name": "HandlerWithArgs for path-param endpoint",
+        "description": "Uses httptransport.NewHandlerWithArgs with featureID as the third (path-param) type argument; plain NewHandler is only for body-only endpoints.",
+        "example": "QueryFeatureCostHandler httptransport.HandlerWithArgs[QueryFeatureCostRequest, QueryFeatureCostResponse, QueryFeatureCostParams]"
+      },
+      {
+        "name": "Shared query param construction",
+        "description": "Reuses query.BuildQueryParams from api/v3/handlers/meters/query for streaming param construction, passing query.NewCustomerResolver(h.customerService); never duplicate that logic.",
+        "example": "params, err := query.BuildQueryParams(ctx, m, req.Body, query.NewCustomerResolver(h.customerService))"
+      },
+      {
+        "name": "Domain validation before service call",
+        "description": "Validate domain preconditions (feature must have a meter) in the operation func with models.NewGenericValidationError before invoking the cost service.",
+        "example": "if feat.MeterID == nil { return QueryFeatureCostResponse{}, models.NewGenericValidationError(fmt.Errorf(\"feature %s has no meter associated\", feat.Key)) }"
+      },
+      {
+        "name": "ParseOptionalBody for query endpoint",
+        "description": "Use request.ParseOptionalBody (not ParseBody) because the request body is optional; ParseBody would break bodyless requests.",
+        "example": "if err := request.ParseOptionalBody(r, &body); err != nil { return QueryFeatureCostRequest{}, err }"
+      },
+      {
+        "name": "Nil-safe conversion with empty-slice fallback",
+        "description": "ToAPIFeatureCostQueryResult returns an empty Data slice (not nil) when the result is nil to avoid JSON null, and uses nullable.NewNullNullable[api.Numeric]() for absent cost vs NewNullableWithValue when present.",
+        "example": "if row.Cost != nil { apiRow.Cost = nullable.NewNullableWithValue(row.Cost.String()) } else { apiRow.Cost = nullable.NewNullNullable[api.Numeric]() }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface (single QueryFeatureCost method) + handler struct holding resolveNamespace, costService, featureConnector, meterService, customerService.",
+        "watch_for": "All injected services must be present in New(); a missing one is a Wire compile failure."
+      },
+      {
+        "file": "query.go",
+        "role": "QueryFeatureCost operation: resolve namespace, parse optional body, look up feature, validate meter association, build query params, call cost service.",
+        "watch_for": "ParseOptionalBody (not ParseBody); feature lookup uses feature.IncludeArchivedFeatureFalse."
+      },
+      {
+        "file": "convert.go",
+        "role": "Converts cost.CostQueryResult to api.FeatureCostQueryResult with nullable cost field.",
+        "watch_for": "nullable.NewNullNullable vs NewNullableWithValue must match presence/absence or JSON nullability is silently wrong; nil result -> empty Data slice."
+      }
+    ],
+    "anti_patterns": [
+      "Duplicating query.BuildQueryParams inline instead of calling the shared meters/query function",
+      "Returning nil instead of an empty slice for Data when result is nil (causes JSON null)",
+      "Using context.Background() instead of propagating the request ctx",
+      "Calling request.ParseBody instead of request.ParseOptionalBody for this query endpoint"
+    ],
+    "decisions": [
+      {
+        "decision": "Cost querying reuses the meter query param builder",
+        "rationale": "Feature cost uses the same streaming query structure as meter queries; sharing query.BuildQueryParams avoids drift between the two filter/window handling paths."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Query operation with optional body and path param",
+        "code": "func (h *handler) QueryFeatureCost() QueryFeatureCostHandler {\n  return httptransport.NewHandlerWithArgs(\n    func(ctx context.Context, r *http.Request, featureID QueryFeatureCostParams) (QueryFeatureCostRequest, error) {\n      ns, err := h.resolveNamespace(ctx)\n      if err != nil { return QueryFeatureCostRequest{}, err }\n      var body api.MeterQueryRequest\n      if err := request.ParseOptionalBody(r, &body); err != nil { return QueryFeatureCostRequest{}, err }\n      return QueryFeatureCostRequest{Namespace: ns, FeatureID: featureID, Body: body}, nil\n    },\n    func(ctx context.Context, req QueryFeatureCostRequest) (QueryFeatureCostResponse, error) {\n      feat, err := h.featureConnector.GetFeature(ctx, req.Namespace, req.FeatureID, feature.IncludeArchivedFeatureFalse)\n      if err != nil { return QueryFeatureCostResponse{}, err }\n      if feat.MeterID == nil {\n        return QueryFeatureCostResponse{}, models.NewGenericValidationError(fmt.Errorf(\"feature %s has no meter associated\", feat.Key))\n      }\n      // ... build params via query.BuildQueryParams and call h.costService ...\n      return QueryFeatureCostResponse{}, nil\n    },\n    commonhttp.JSONResponseEncoder[QueryFeatureCostResponse],\n    httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"query-feature-cost\"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))...,\n  )\n}"
+      }
+    ]
+  },
+  "api/v3/handlers/features": {
+    "purpose": "Full-CRUD v3 HTTP handler package for product-catalog features (list, get, create, update, delete/archive), with best-effort LLM pricing enrichment on read responses and feature-domain-specific HTTP status mapping via a local errorEncoder.",
+    "patterns": [
+      {
+        "name": "Per-operation file split",
+        "description": "Each verb has its own file (create.go, get.go, list.go, update.go, delete.go). handler.go declares the Handler interface + New(); convert.go holds all conversions; error_encoder.go holds domain-error mapping.",
+        "example": "func (h *handler) CreateFeature() CreateFeatureHandler { return httptransport.NewHandler(...) }"
+      },
+      {
+        "name": "Hand-written conversions with unit tests",
+        "description": "convert.go is hand-coded (no goverter) and covered by convert_test.go; conversion functions return (T, error) to propagate parse failures.",
+        "example": "func convertFeatureToAPI(f feature.Feature) (api.Feature, error)"
+      },
+      {
+        "name": "Local errorEncoder chained after GenericErrorEncoder",
+        "description": "AppendOptions includes WithErrorEncoder(apierrors.GenericErrorEncoder()) then WithErrorEncoder(errorEncoder()); errorEncoder maps feature errors (FeatureInvalidFiltersError->400, ForbiddenError->403, FeatureWithNameAlreadyExistsError->409) via commonhttp.HandleErrorIfTypeMatches.",
+        "example": "httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()), httptransport.WithErrorEncoder(errorEncoder())"
+      },
+      {
+        "name": "Best-effort LLM pricing enrichment on reads",
+        "description": "After converting, if UnitCost.Type == UnitCostTypeLLM and h.llmcostService != nil, call resolveLLMPricing and enrichFeatureResponseWithPricing. Pricing errors are silently swallowed (resolveLLMPricing returns nil). Applied in get.go and update.go.",
+        "example": "if feat.UnitCost != nil && feat.UnitCost.Type == feature.UnitCostTypeLLM && h.llmcostService != nil { if p := resolveLLMPricing(ctx, h.llmcostService, feat); p != nil { enrichFeatureResponseWithPricing(&resp, p) } }"
+      },
+      {
+        "name": "Meter validation at decode time",
+        "description": "Meter ID resolution and GroupBy filter-key validation happen in the request decoder (first NewHandler func) using models.NewGenericValidationError, not in the operation func.",
+        "example": "for k := range filters { if _, ok := m.GroupBy[k]; !ok { return models.NewGenericValidationError(...) } }"
+      },
+      {
+        "name": "nullable.Nullable tri-state for PATCH fields",
+        "description": "Update inputs use nullable.Nullable[T]: IsNull() clears, IsSpecified()+Get() sets, neither leaves unchanged. All three branches are tested in convert_test.go.",
+        "example": "if body.UnitCost.IsNull() { input.UnitCost = nullable.NewNullNullable[feature.UnitCost]() } else if body.UnitCost.IsSpecified() { ... }"
+      },
+      {
+        "name": "UnitCost discriminated union via switch with error default",
+        "description": "convertUnitCostToAPI/FromAPI switch on UnitCostType / Discriminator(); the default case returns an error to catch unhandled future types.",
+        "example": "switch u.Type { case feature.UnitCostTypeManual: ...; case feature.UnitCostTypeLLM: ...; default: return out, fmt.Errorf(\"unknown unit cost type: %s\", u.Type) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface (5 methods) + handler struct: resolveNamespace, connector (feature.FeatureConnector), meterService, llmcostService, options.",
+        "watch_for": "llmcostService is optional and may be nil (e.g. credits disabled); guard with != nil before use in get.go/update.go."
+      },
+      {
+        "file": "convert.go",
+        "role": "All domain<->API conversions plus resolveLLMPricing/enrichFeatureResponseWithPricing and feature/filter conversions (convertFiltersTo/FromAPI).",
+        "watch_for": "UnitCost discriminator switch must cover all UnitCostType values; resolveLLMPricing silently returns nil on error \u2014 callers must not treat nil as a hard failure. Use FromBillingFeatureManualUnitCost/FromBillingFeatureLLMUnitCost setters, never struct literals."
+      },
+      {
+        "file": "error_encoder.go",
+        "role": "Maps feature-domain typed errors to HTTP status codes via commonhttp.HandleErrorIfTypeMatches.",
+        "watch_for": "Add new feature-domain errors here; unhandled types fall through to 500."
+      },
+      {
+        "file": "list.go",
+        "role": "List with pagination (default page 1/size 20), filter[meter_id]/[key]/[name], and sort; invalid params -> apierrors.NewBadRequestError.",
+        "watch_for": "page.Validate() must run after construction or page=0 slips through."
+      },
+      {
+        "file": "create.go",
+        "role": "Validates meter reference exists and filter keys match meter GroupBy dimensions (in the decoder) before CreateFeature.",
+        "watch_for": "validateMeterFilters checks key existence only; operator validity is validated downstream by MeterGroupByFilters.Validate."
+      }
+    ],
+    "anti_patterns": [
+      "Calling h.connector directly from handler.go instead of delegating to per-operation files",
+      "Skipping errorEncoder() in AppendOptions \u2014 feature domain errors become 500",
+      "Returning pricing enrichment errors instead of silently skipping (enrichment is best-effort)",
+      "Accepting llmcostService as a required (non-nil) dependency",
+      "Constructing api.BillingFeatureUnitCost{} literally instead of using the From* setters"
+    ],
+    "decisions": [
+      {
+        "decision": "Hand-written conversions instead of goverter",
+        "rationale": "UnitCost is a manual/llm discriminated union needing switch-based dispatch goverter cannot generate cleanly; hand-written code is explicit and covered by convert_test.go."
+      },
+      {
+        "decision": "LLM pricing resolved at read time, not stored",
+        "rationale": "Pricing changes independently of feature config; resolving from llmcost.Service at read time keeps freshness without coupling the feature write path to pricing."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new CRUD operation following the per-operation file pattern",
+        "code": "// archive.go\npackage features\nimport (\n  \"context\"; \"net/http\"\n  \"github.com/openmeterio/openmeter/api/v3/apierrors\"\n  \"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n  \"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n  \"github.com/openmeterio/openmeter/pkg/models\"\n)\ntype (\n  ArchiveFeatureRequest = models.NamespacedID\n  ArchiveFeatureResponse = any\n  ArchiveFeatureHandler  httptransport.HandlerWithArgs[ArchiveFeatureRequest, ArchiveFeatureResponse, string]\n)\nfunc (h *handler) ArchiveFeature() ArchiveFeatureHandler {\n  return httptransport.NewHandlerWithArgs(\n    func(ctx context.Context, r *http.Request, id string) (ArchiveFeatureRequest, error) {\n      ns, err := h.resolveNamespace(ctx)\n      if err != nil { return ArchiveFeatureRequest{}, err }\n      return models.NamespacedID{Namespace: ns, ID: id}, nil\n    },\n    func(ctx context.Context, req ArchiveFeatureRequest) (ArchiveFeatureResponse, error) {\n      return nil, h.connector.ArchiveFeature(ctx, req)\n    },\n    commonhttp.EmptyResponseEncoder[ArchiveFeatureResponse](http.StatusNoContent),\n    httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"archive-feature\"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()), httptransport.WithErrorEncoder(errorEncoder()))...,\n  )\n}"
+      }
+    ]
+  }
+}

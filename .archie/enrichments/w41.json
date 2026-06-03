@@ -1,153 +1,146 @@
 {
-  "collector/benthos/internal/logging": {
-    "purpose": "Single-file bridge package that adapts Benthos' service.Logger to logr.LogSink, enabling controller-runtime and klog to route through the same Benthos logger instance. No business logic \u2014 purely a logging adapter.",
+  "test/app": {
+    "purpose": "Integration test root for app marketplace integrations \u2014 wires all services from raw package constructors against a real pgtestdb Postgres DB and validates app lifecycle, marketplace listings, and invoice sync without importing app/common or Wire provider sets. Its custominvoicing/ and stripe/ children own the per-provider invoice-sync and lifecycle suites.",
     "patterns": [
       {
-        "name": "Benthos-to-logr bridge via CtrlLogger",
-        "description": "CtrlLogger implements logr.LogSink by wrapping *service.Logger. Level 0 maps to Infof; any other level maps to Debugf. Error always calls Errorf. Construct via logr.New(&CtrlLogger{logger: logger}).",
-        "example": "logr.New(&CtrlLogger{logger: svc.Logger()})"
+        "name": "TestEnv interface + testEnv struct",
+        "description": "testenv.go defines a TestEnv interface (Adapter(), App(), Close()) with a compile-time assertion and a concrete testEnv. NewTestEnv wires every service via direct package constructors.",
+        "example": "type TestEnv interface { Adapter() app.Adapter; App() app.Service; Close() error }; var _ TestEnv = (*testEnv)(nil)"
       },
       {
-        "name": "SetupKlog called once at startup",
-        "description": "SetupKlog sets the global klog logger via klog.SetLogger with a logr.Logger carrying component=kubernetes key. Must be called exactly once \u2014 klog global state is not re-entrant.",
-        "example": "logging.SetupKlog(svc.Logger())"
+        "name": "migrate.Up() before service construction",
+        "description": "Each environment provisions Postgres via testutils.InitPostgresDB(t), runs migrator.Up() with migrate.OMMigrationsConfig, and defers migrator.CloseOrLogError() immediately.",
+        "example": "migrator, _ := migrate.New(migrate.MigrateOptions{ConnectionString: driver.URL, Migrations: migrate.OMMigrationsConfig}); if err := migrator.Up(); err != nil { t.Fatalf(...) }; defer migrator.CloseOrLogError()"
       },
       {
-        "name": "WithValues and WithName are intentional no-ops",
-        "description": "Both methods return the same receiver unchanged. Benthos uses format strings \u2014 structured kv pairs from controller-runtime are silently dropped by design.",
-        "example": "func (l *CtrlLogger) WithValues(keysAndValues ...any) logr.LogSink { return l }"
+        "name": "InitBillingService shared helper",
+        "description": "Billing construction is extracted into InitBillingService(t, ctx, InitBillingServiceInput) (validated via Input.Validate()) so app_test.go and stripe/invoice_test.go reuse the same wiring chain; it builds the entitlement registry, meter mockadapter, taxcode, lockr, and billingservice.New with ForegroundAdvancementStrategy.",
+        "example": "billingService, err := InitBillingService(t, ctx, InitBillingServiceInput{DBClient: entClient, CustomerService: customerService, AppService: appService})"
+      },
+      {
+        "name": "eventbus.NewMock(t) for the publisher",
+        "description": "All environments use eventbus.NewMock(t) instead of a real Kafka publisher \u2014 the only sanctioned publisher mock here.",
+        "example": "publisher := eventbus.NewMock(t)"
+      },
+      {
+        "name": "closerFunc closes entClient AND driver.EntDriver",
+        "description": "The testEnv closerFunc must close both entClient and driver.EntDriver, joining errors with errors.Join; missing either leaks a DB connection.",
+        "example": "closerFunc := func() error { var errs error; if err = entClient.Close(); err != nil { errs = errors.Join(errs, err) }; if err = driver.EntDriver.Close(); err != nil { errs = errors.Join(errs, err) }; return errs }"
+      },
+      {
+        "name": "setupNamespace(t) per test method",
+        "description": "AppHandlerTestSuite.setupNamespace(t) assigns a fresh ULID namespace at the top of every test method for full isolation; not-found assertions use models.IsGenericNotFoundError.",
+        "example": "func (s *AppHandlerTestSuite) TestGetMarketplaceListing(ctx context.Context, t *testing.T) { s.setupNamespace(t); service := s.Env.App(); ... }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "logging.go",
-        "role": "Entire package: CtrlLogger struct, NewLogrLogger factory, SetupKlog global initializer.",
-        "watch_for": "WithValues/WithName are no-ops \u2014 structured kv pairs from controller-runtime are silently dropped; do not add state to them."
+        "file": "testenv.go",
+        "role": "Constructs the full app service graph; defines TestEnv, testEnv, NewTestEnv, and the InitBillingService helper + InitBillingServiceInput.Validate().",
+        "watch_for": "Never import app/common; always defer migrator.CloseOrLogError(); closerFunc must close both entClient and driver.EntDriver; validate InitBillingServiceInput before constructing."
+      },
+      {
+        "file": "marketplace.go",
+        "role": "AppHandlerTestSuite with TestGetMarketplaceListing / TestListMarketplaceListings methods.",
+        "watch_for": "Call setupNamespace(t) first in each method; use models.IsGenericNotFoundError for not-found, not string matching."
+      },
+      {
+        "file": "app_test.go",
+        "role": "Entry point: creates TestEnv, defers Close(), runs AppHandlerTestSuite sub-tests.",
+        "watch_for": "Defer ctx cancel; report env.Close() errors via t.Errorf (not require.NoError) so cleanup completes."
+      },
+      {
+        "file": "custominvoicing/",
+        "role": "Child: async invoice-sync protocol tests (draft\u2192issuing\u2192payment) embedding billingtest.BaseSuite.",
+        "watch_for": "Drive the state machine through BillingService/CustomInvoicingService only; defer MockStreamingConnector.Reset()."
+      },
+      {
+        "file": "stripe/",
+        "role": "Child: Stripe install/CRUD + invoice-sync tests using mock Stripe clients (TestEnv interface and billingtest.BaseSuite architectures coexist).",
+        "watch_for": "defer stripeClient.Restore()/stripeAppClient.Restore(); stable-sort invoice lines before setting AddInvoiceLines expectations."
       }
     ],
     "anti_patterns": [
-      "Adding a second logger abstraction \u2014 this package is purely a bridge, not a logging framework",
-      "Implementing WithValues/WithName with real state \u2014 Benthos logger is format-string based and cannot carry structured fields",
-      "Calling SetupKlog more than once \u2014 klog global state is not re-entrant"
+      "Importing app/common or Wire provider sets in testenv.go \u2014 wire from raw constructors (appadapter.New, appservice.New, etc.)",
+      "Sharing a namespace string across AppHandlerTestSuite methods \u2014 call setupNamespace(t) per method",
+      "Calling Stripe client methods directly instead of through app.Service or appstripe.Service",
+      "Forgetting defer stripeClient.Restore()/stripeAppClient.Restore() in stripe sub-tests \u2014 leftover expectations poison later tests",
+      "Adding invoice-line assertions without stable-sorting lines before setting mock expectations"
     ],
     "decisions": [
       {
-        "decision": "Map logr level 0 to Info, all other levels to Debug",
-        "rationale": "controller-runtime uses level 0 for normal operational messages; higher levels are verbose debug output that should not appear at Info in production"
+        "decision": "InitBillingService is a shared helper, not inline construction",
+        "rationale": "app_test.go and stripe/invoice_test.go both need a billing.Service; extracting it avoids duplication and keeps testenv.go focused on app wiring."
       },
       {
-        "decision": "Prefix klog entries with component=kubernetes",
-        "rationale": "Distinguishes Kubernetes controller-runtime log lines from Benthos pipeline logs in aggregated log streams"
+        "decision": "Two parallel test architectures: TestEnv interface vs billingtest.BaseSuite embedding",
+        "rationale": "Simple marketplace tests need only App()/Adapter(); invoice-sync tests need the full billing suite machinery \u2014 both coexist."
+      },
+      {
+        "decision": "Raw package constructors only, no app/common imports",
+        "rationale": "app/common imports all domain packages; importing it from tests creates cycles and forces every domain to compile for a single test."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Wire Benthos logger into controller-runtime and klog",
-        "code": "import \"github.com/openmeterio/openmeter/collector/benthos/internal/logging\"\n\nlogging.SetupKlog(svc.Logger())\nlogrLogger := logging.NewLogrLogger(svc.Logger())"
+        "scenario": "Minimal TestEnv from raw constructors",
+        "code": "import (\n\tappadapter \"github.com/openmeterio/openmeter/openmeter/app/adapter\"\n\tappservice \"github.com/openmeterio/openmeter/openmeter/app/service\"\n\t\"github.com/openmeterio/openmeter/openmeter/watermill/eventbus\"\n\t\"github.com/openmeterio/openmeter/openmeter/testutils\"\n\t\"github.com/openmeterio/openmeter/tools/migrate\"\n)\nfunc NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {\n\tpublisher := eventbus.NewMock(t)\n\tdriver := testutils.InitPostgresDB(t)\n\tentClient := driver.EntDriver.Client()\n\tmigrator, _ := migrate.New(migrate.MigrateOptions{ConnectionString: driver.URL, Migrations: migrate.OMMigrationsConfig})\n\tif err := migrator.Up(); err != nil { t.Fatalf(\"%v\", err) }\n\tdefer migrator.CloseOrLogError()\n\t// ... appadapter.New / appservice.New ...\n}"
       }
     ]
   },
-  "collector/benthos/internal/message": {
-    "purpose": "Provides the Batch type alias (= service.MessageBatch) and the Transaction primitive that associates a batch with its acknowledgement mechanism, enabling delivery guarantees as batches flow through pipeline stages.",
+  "test/entitlement": {
+    "purpose": "Structural parent for entitlement integration and regression test packages \u2014 owns the test/entitlement/regression sub-package that guards grant burn-down, expiry, voiding, and reset edge cases against real Postgres using raw package constructors and MockStreamingConnector. The directory itself holds only a CLAUDE.md.",
     "patterns": [
       {
-        "name": "Batch is a type alias, not a newtype",
-        "description": "type Batch = service.MessageBatch \u2014 all Benthos MessageBatch methods are available directly. Do not add methods to Batch; it is purely a transparent alias.",
-        "example": "type Batch = service.MessageBatch"
+        "name": "No source files at parent level",
+        "description": "All test code lives in sub-packages (regression/); never add .go files directly to test/entitlement.",
+        "example": "// All code in: test/entitlement/regression/*.go"
       },
       {
-        "name": "Transaction pairs Payload with ack mechanism",
-        "description": "Transaction holds a Batch and either a responseChan chan<-error or a responseFunc. Use NewTransaction for chan-based ack, NewTransactionFunc for func-based ack. Call Ack(ctx, nil) for success, Ack(ctx, err) to trigger retry upstream.",
-        "example": "tx := message.NewTransactionFunc(batch, func(ctx context.Context, err error) error { return err })\nreturn tx.Ack(context.Background(), nil)"
+        "name": "setupDependencies for self-contained bootstrap",
+        "description": "Each regression test file wires its own dependency graph via setupDependencies using raw package constructors plus MockStreamingConnector \u2014 never app/common.",
+        "example": "deps := setupDependencies(t) // real Ent adapters + MockStreamingConnector"
       },
       {
-        "name": "WithContext for cancellation propagation",
-        "description": "WithContext returns a shallow copy of the Transaction with the new ctx. Receivers should honor t.Context() cancellation but must still call Ack even when canceled, passing t.Context().Err().",
-        "example": "tx = tx.WithContext(ctx)"
+        "name": "Controlled clock with defer reset",
+        "description": "Time-based grant burn-down tests advance the global clock via clock.SetTime() and must defer clock.ResetTime() to avoid leaking state into parallel tests.",
+        "example": "clock.SetTime(now); defer clock.ResetTime()"
+      },
+      {
+        "name": "Scenario tests named after the bug they guard",
+        "description": "Regression functions in scenario_test.go are named after the specific production bug/edge case for immediate root-cause traceability.",
+        "example": "func TestGrantExpiryBeforeReset(t *testing.T) { ... }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "batch.go",
-        "role": "Single type alias for service.MessageBatch.",
-        "watch_for": "This is an alias (=), not a defined type \u2014 do not add methods to Batch directly."
+        "file": "regression/framework_test.go",
+        "role": "Defines setupDependencies and createCustomerAndSubject helpers plus shared test wiring.",
+        "watch_for": "Pre-existing context.Background() uses are not a model \u2014 new code uses t.Context(). Never import app/common."
       },
       {
-        "file": "transaction.go",
-        "role": "Transaction struct with NewTransaction (chan-based) and NewTransactionFunc (func-based) constructors plus Ack and WithContext.",
-        "watch_for": "Exactly one of responseChan or responseFunc is non-nil; Ack branches on responseFunc != nil first. Calling Ack multiple times is not idempotent."
+        "file": "regression/scenario_test.go",
+        "role": "Individual regression tests, one per production bug; each calls setupDependencies independently (fresh pgtestdb DB).",
+        "watch_for": "Never reuse subject keys or feature keys across test functions."
       }
     ],
     "anti_patterns": [
-      "Not calling Ack after processing \u2014 the upstream source will stall waiting for acknowledgement",
-      "Calling Ack multiple times on the same Transaction \u2014 chan send and responseFunc are not idempotent",
-      "Ignoring t.Context() cancellation in a long reconnect loop \u2014 can block shutdown",
-      "Adding methods to Batch \u2014 it is a type alias and must remain a transparent pass-through"
+      "Adding .go source files directly in test/entitlement \u2014 all code belongs in regression/",
+      "Importing app/common or any Wire provider set \u2014 causes import cycles",
+      "Using context.Background() in new test code where t.Context() is available",
+      "Reusing subject or feature keys across tests without isolated setupDependencies calls",
+      "Skipping defer clock.ResetTime() \u2014 leaves global clock state dirty for parallel tests"
     ],
     "decisions": [
       {
-        "decision": "Two ack paths: chan<-error vs func(context.Context, error) error",
-        "rationale": "Chan-based ack is simpler for single-consumer paths; func-based ack supports async/contextual delivery confirmation needed by more complex output brokers"
+        "decision": "Regression tests isolated here rather than co-located with openmeter/entitlement/",
+        "rationale": "Keeps the regression harness separate from production code so test-only imports (pgtestdb, MockStreamingConnector) don't pollute the production package graph."
       },
       {
-        "decision": "Transaction is its own concept rather than embedding service.Message",
-        "rationale": "Batch expansion (splitting one batch into derived batches) breaks direct message-level ack; Transaction decouples ack from batch contents so derivative transactions can be tracked independently"
+        "decision": "MockStreamingConnector instead of real ClickHouse",
+        "rationale": "ClickHouse is unavailable in standard CI; the mock gives deterministic usage responses without external dependencies."
       }
     ],
-    "code_examples": [
-      {
-        "scenario": "Create and acknowledge a function-based transaction",
-        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/collector/benthos/internal/message\"\n)\n\nfunc process(batch message.Batch) error {\n\ttx := message.NewTransactionFunc(batch, func(ctx context.Context, err error) error {\n\t\treturn err\n\t})\n\t// ... pipeline stages ...\n\treturn tx.Ack(context.Background(), nil)\n}"
-      }
-    ]
-  },
-  "collector/benthos/internal/shutdown": {
-    "purpose": "Provides the Signaller primitive for two-tier graceful shutdown (at-leisure then now) plus a HasClosed signal. Components own a Signaller; orchestrators call CloseAtLeisure/CloseNow; components call ShutdownComplete when done.",
-    "patterns": [
-      {
-        "name": "Two-tier shutdown: CloseAtLeisure then CloseNow",
-        "description": "CloseAtLeisure closes closeAtLeisureChan (finish current work, start no new work). CloseNow calls CloseAtLeisure first then closes closeNowChan (stop immediately). Each is guarded by sync.Once so concurrent calls are safe.",
-        "example": "sig.CloseAtLeisure() // soft stop\nsig.CloseNow()       // hard stop \u2014 always calls CloseAtLeisure first"
-      },
-      {
-        "name": "Chan-based and ctx-based wait helpers per tier",
-        "description": "Each tier exposes *Chan() returning a read-only channel for select, and *Ctx() wrapping it in a context. Use *Ctx() when combining shutdown with other cancellation sources.",
-        "example": "ctx, cancel := sig.CloseNowCtx(parentCtx)\ndefer cancel()"
-      },
-      {
-        "name": "ShutdownComplete signals component termination",
-        "description": "The component calls sig.ShutdownComplete() once its goroutines have exited. Orchestrators wait on HasClosedChan() or HasClosedCtx() to confirm safe teardown. Forgetting this call blocks the orchestrator forever.",
-        "example": "defer sig.ShutdownComplete()"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "signaler.go",
-        "role": "Entire package: Signaller struct with CloseAtLeisure, CloseNow, ShutdownComplete and their *Chan/*Ctx/ShouldClose* accessors.",
-        "watch_for": "CloseNow always calls CloseAtLeisure first \u2014 ShouldCloseAtLeisure is true whenever ShouldCloseNow is true; checking only the Now tier misses the leisure signal."
-      }
-    ],
-    "anti_patterns": [
-      "Forgetting to call ShutdownComplete \u2014 orchestrators block forever waiting on HasClosedChan",
-      "Adding a third shutdown tier \u2014 the two-tier model (leisure / now) is the intentional contract",
-      "Using CloseAtLeisureCtx when CloseNowCtx is needed \u2014 leisure ctx fires on either tier; now ctx fires only on the urgent tier",
-      "Closing shutdown channels directly \u2014 always call CloseAtLeisure/CloseNow; direct close panics on repeat calls"
-    ],
-    "decisions": [
-      {
-        "decision": "sync.Once guards each close channel",
-        "rationale": "Closing a closed channel panics; Once makes CloseAtLeisure and CloseNow safe to call multiple times from concurrent goroutines"
-      },
-      {
-        "decision": "Separate Signaller per component rather than a global shutdown signal",
-        "rationale": "Allows fine-grained teardown sequencing \u2014 orchestrator can drain outputs before closing inputs by shutting down Signallers in dependency order"
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Component using Signaller for graceful shutdown",
-        "code": "import \"github.com/openmeterio/openmeter/collector/benthos/internal/shutdown\"\n\nsig := shutdown.NewSignaller()\ngo func() {\n\tdefer sig.ShutdownComplete()\n\tfor {\n\t\tselect {\n\t\tcase <-sig.CloseAtLeisureChan():\n\t\t\t// finish in-flight work, then return\n\t\t\treturn\n\t\t}\n\t}\n}()\n// orchestrator triggers and waits\nsig.CloseNow()\n<-sig.HasClosedChan()"
-      }
-    ]
+    "code_examples": []
   }
 }

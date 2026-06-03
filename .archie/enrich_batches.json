@@ -1,6 +1,18 @@
 {
   "version": 2,
+  "run_id": "2f0e75fca293",
+  "project_slug": "openmeter",
   "folders": {
+    ".codex/agents": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 484
+    },
+    ".codex/rules": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 12351
+    },
     "api": {
       "children": [
         "api/client",
@@ -9,7 +21,7 @@
         "api/v3"
       ],
       "depth": 1,
-      "size_chars": 35702
+      "size_chars": 37722
     },
     "api/client": {
       "children": [
@@ -20,12 +32,12 @@
         "api/client/web"
       ],
       "depth": 2,
-      "size_chars": 3905
+      "size_chars": 4029
     },
     "api/client/go": {
       "children": [],
       "depth": 3,
-      "size_chars": 19883
+      "size_chars": 20046
     },
     "api/client/javascript": {
       "children": [
@@ -34,17 +46,17 @@
         "api/client/javascript/src"
       ],
       "depth": 3,
-      "size_chars": 44041
+      "size_chars": 45179
     },
     "api/client/javascript/patches": {
       "children": [],
       "depth": 4,
-      "size_chars": 17603
+      "size_chars": 17604
     },
     "api/client/javascript/scripts": {
       "children": [],
       "depth": 4,
-      "size_chars": 6433
+      "size_chars": 6405
     },
     "api/client/javascript/src": {
       "children": [
@@ -54,27 +66,27 @@
         "api/client/javascript/src/zod"
       ],
       "depth": 4,
-      "size_chars": 4826
+      "size_chars": 5480
     },
     "api/client/javascript/src/client": {
       "children": [],
       "depth": 5,
-      "size_chars": 132137
+      "size_chars": 132897
     },
     "api/client/javascript/src/portal": {
       "children": [],
       "depth": 5,
-      "size_chars": 5487
+      "size_chars": 5741
     },
     "api/client/javascript/src/react": {
       "children": [],
       "depth": 5,
-      "size_chars": 3491
+      "size_chars": 3834
     },
     "api/client/javascript/src/zod": {
       "children": [],
       "depth": 5,
-      "size_chars": 15000
+      "size_chars": 17671
     },
     "api/client/node": {
       "children": [],
@@ -88,7 +100,7 @@
         "api/client/python/scripts"
       ],
       "depth": 3,
-      "size_chars": 21877
+      "size_chars": 22198
     },
     "api/client/python/examples": {
       "children": [
@@ -96,17 +108,17 @@
         "api/client/python/examples/sync"
       ],
       "depth": 4,
-      "size_chars": 4804
+      "size_chars": 5733
     },
     "api/client/python/examples/async": {
       "children": [],
       "depth": 5,
-      "size_chars": 16490
+      "size_chars": 16817
     },
     "api/client/python/examples/sync": {
       "children": [],
       "depth": 5,
-      "size_chars": 14844
+      "size_chars": 15510
     },
     "api/client/python/openmeter": {
       "children": [
@@ -116,7 +128,7 @@
         "api/client/python/openmeter/operations"
       ],
       "depth": 4,
-      "size_chars": 11599
+      "size_chars": 11695
     },
     "api/client/python/openmeter/_generated": {
       "children": [
@@ -126,61 +138,61 @@
         "api/client/python/openmeter/_generated/operations"
       ],
       "depth": 5,
-      "size_chars": 25637
+      "size_chars": 26535
     },
     "api/client/python/openmeter/_generated/_utils": {
       "children": [],
       "depth": 6,
-      "size_chars": 33226
+      "size_chars": 34800
     },
     "api/client/python/openmeter/_generated/aio": {
       "children": [
         "api/client/python/openmeter/_generated/aio/operations"
       ],
       "depth": 6,
-      "size_chars": 21342
+      "size_chars": 21470
     },
     "api/client/python/openmeter/_generated/aio/operations": {
       "children": [],
       "depth": 7,
-      "size_chars": 24698
+      "size_chars": 24833
     },
     "api/client/python/openmeter/_generated/models": {
       "children": [],
       "depth": 6,
-      "size_chars": 49150
+      "size_chars": 50346
     },
     "api/client/python/openmeter/_generated/operations": {
       "children": [],
       "depth": 6,
-      "size_chars": 22564
+      "size_chars": 24649
     },
     "api/client/python/openmeter/aio": {
       "children": [
         "api/client/python/openmeter/aio/operations"
       ],
       "depth": 5,
-      "size_chars": 6023
+      "size_chars": 6039
     },
     "api/client/python/openmeter/aio/operations": {
       "children": [],
       "depth": 6,
-      "size_chars": 3854
+      "size_chars": 4908
     },
     "api/client/python/openmeter/models": {
       "children": [],
       "depth": 5,
-      "size_chars": 3250
+      "size_chars": 4054
     },
     "api/client/python/openmeter/operations": {
       "children": [],
       "depth": 5,
-      "size_chars": 2911
+      "size_chars": 3943
     },
     "api/client/python/scripts": {
       "children": [],
       "depth": 4,
-      "size_chars": 5358
+      "size_chars": 5530
     },
     "api/client/web": {
       "children": [],
@@ -193,7 +205,7 @@
         "api/spec/patches"
       ],
       "depth": 2,
-      "size_chars": 26355
+      "size_chars": 25480
     },
     "api/spec/packages": {
       "children": [
@@ -201,7 +213,7 @@
         "api/spec/packages/legacy"
       ],
       "depth": 3,
-      "size_chars": 5841
+      "size_chars": 5067
     },
     "api/spec/packages/aip": {
       "children": [
@@ -211,36 +223,36 @@
         "api/spec/packages/aip/src"
       ],
       "depth": 4,
-      "size_chars": 8018
+      "size_chars": 8793
     },
     "api/spec/packages/aip/common": {
       "children": [
         "api/spec/packages/aip/common/definitions"
       ],
       "depth": 5,
-      "size_chars": 655
+      "size_chars": 1408
     },
     "api/spec/packages/aip/common/definitions": {
       "children": [],
       "depth": 6,
-      "size_chars": 50532
+      "size_chars": 48481
     },
     "api/spec/packages/aip/lib": {
       "children": [
         "api/spec/packages/aip/lib/rules"
       ],
       "depth": 5,
-      "size_chars": 9554
+      "size_chars": 7397
     },
     "api/spec/packages/aip/lib/rules": {
       "children": [],
       "depth": 6,
-      "size_chars": 28443
+      "size_chars": 28139
     },
     "api/spec/packages/aip/scripts": {
       "children": [],
       "depth": 5,
-      "size_chars": 12392
+      "size_chars": 14595
     },
     "api/spec/packages/aip/src": {
       "children": [
@@ -263,34 +275,34 @@
         "api/spec/packages/aip/src/tax"
       ],
       "depth": 5,
-      "size_chars": 23547
+      "size_chars": 23451
     },
     "api/spec/packages/aip/src/apps": {
       "children": [],
       "depth": 6,
-      "size_chars": 28819
+      "size_chars": 27821
     },
     "api/spec/packages/aip/src/billing": {
       "children": [],
       "depth": 6,
-      "size_chars": 21456
+      "size_chars": 20884
     },
     "api/spec/packages/aip/src/common": {
       "children": [],
       "depth": 6,
-      "size_chars": 19056
+      "size_chars": 18032
     },
     "api/spec/packages/aip/src/currencies": {
       "children": [
         "api/spec/packages/aip/src/currencies/cost-bases"
       ],
       "depth": 6,
-      "size_chars": 11113
+      "size_chars": 10654
     },
     "api/spec/packages/aip/src/currencies/cost-bases": {
       "children": [],
       "depth": 7,
-      "size_chars": 8063
+      "size_chars": 7350
     },
     "api/spec/packages/aip/src/customers": {
       "children": [
@@ -298,77 +310,77 @@
         "api/spec/packages/aip/src/customers/credits"
       ],
       "depth": 6,
-      "size_chars": 17182
+      "size_chars": 16698
     },
     "api/spec/packages/aip/src/customers/charges": {
       "children": [],
       "depth": 7,
-      "size_chars": 14474
+      "size_chars": 14415
     },
     "api/spec/packages/aip/src/customers/credits": {
       "children": [],
       "depth": 7,
-      "size_chars": 27901
+      "size_chars": 28185
     },
     "api/spec/packages/aip/src/defaults": {
       "children": [],
       "depth": 6,
-      "size_chars": 1931
+      "size_chars": 4481
     },
     "api/spec/packages/aip/src/entitlements": {
       "children": [],
       "depth": 6,
-      "size_chars": 5624
+      "size_chars": 5156
     },
     "api/spec/packages/aip/src/events": {
       "children": [],
       "depth": 6,
-      "size_chars": 11502
+      "size_chars": 11631
     },
     "api/spec/packages/aip/src/features": {
       "children": [],
       "depth": 6,
-      "size_chars": 17616
+      "size_chars": 16209
     },
     "api/spec/packages/aip/src/governance": {
       "children": [],
       "depth": 6,
-      "size_chars": 7284
+      "size_chars": 11784
     },
     "api/spec/packages/aip/src/invoices": {
       "children": [],
       "depth": 6,
-      "size_chars": 6331
+      "size_chars": 6616
     },
     "api/spec/packages/aip/src/llmcost": {
       "children": [],
       "depth": 6,
-      "size_chars": 10860
+      "size_chars": 11987
     },
     "api/spec/packages/aip/src/meters": {
       "children": [],
       "depth": 6,
-      "size_chars": 15273
+      "size_chars": 16535
     },
     "api/spec/packages/aip/src/productcatalog": {
       "children": [],
       "depth": 6,
-      "size_chars": 40615
+      "size_chars": 39869
     },
     "api/spec/packages/aip/src/shared": {
       "children": [],
       "depth": 6,
-      "size_chars": 29825
+      "size_chars": 28966
     },
     "api/spec/packages/aip/src/subscriptions": {
       "children": [],
       "depth": 6,
-      "size_chars": 17730
+      "size_chars": 17960
     },
     "api/spec/packages/aip/src/tax": {
       "children": [],
       "depth": 6,
-      "size_chars": 7711
+      "size_chars": 7385
     },
     "api/spec/packages/legacy": {
       "children": [
@@ -376,19 +388,19 @@
         "api/spec/packages/legacy/src"
       ],
       "depth": 4,
-      "size_chars": 11730
+      "size_chars": 11566
     },
     "api/spec/packages/legacy/lib": {
       "children": [
         "api/spec/packages/legacy/lib/rules"
       ],
       "depth": 5,
-      "size_chars": 8840
+      "size_chars": 7486
     },
     "api/spec/packages/legacy/lib/rules": {
       "children": [],
       "depth": 6,
-      "size_chars": 16282
+      "size_chars": 14928
     },
     "api/spec/packages/legacy/src": {
       "children": [
@@ -402,71 +414,71 @@
         "api/spec/packages/legacy/src/productcatalog"
       ],
       "depth": 5,
-      "size_chars": 72996
+      "size_chars": 71012
     },
     "api/spec/packages/legacy/src/app": {
       "children": [],
       "depth": 6,
-      "size_chars": 44381
+      "size_chars": 43016
     },
     "api/spec/packages/legacy/src/billing": {
       "children": [
         "api/spec/packages/legacy/src/billing/invoices"
       ],
       "depth": 6,
-      "size_chars": 46485
+      "size_chars": 44678
     },
     "api/spec/packages/legacy/src/billing/invoices": {
       "children": [],
       "depth": 7,
-      "size_chars": 39065
+      "size_chars": 38576
     },
     "api/spec/packages/legacy/src/cloud": {
       "children": [],
       "depth": 6,
-      "size_chars": 14754
+      "size_chars": 13851
     },
     "api/spec/packages/legacy/src/customer": {
       "children": [],
       "depth": 6,
-      "size_chars": 17078
+      "size_chars": 16167
     },
     "api/spec/packages/legacy/src/entitlements": {
       "children": [
         "api/spec/packages/legacy/src/entitlements/v2"
       ],
       "depth": 6,
-      "size_chars": 44797
+      "size_chars": 43380
     },
     "api/spec/packages/legacy/src/entitlements/v2": {
       "children": [],
       "depth": 7,
-      "size_chars": 29259
+      "size_chars": 27894
     },
     "api/spec/packages/legacy/src/info": {
       "children": [],
       "depth": 6,
-      "size_chars": 4036
+      "size_chars": 3529
     },
     "api/spec/packages/legacy/src/notification": {
       "children": [],
       "depth": 6,
-      "size_chars": 39674
+      "size_chars": 38450
     },
     "api/spec/packages/legacy/src/productcatalog": {
       "children": [],
       "depth": 6,
-      "size_chars": 80325
+      "size_chars": 80137
     },
     "api/spec/patches": {
       "children": [],
       "depth": 3,
-      "size_chars": 80909
+      "size_chars": 80449
     },
     "api/types": {
       "children": [],
       "depth": 2,
-      "size_chars": 1441
+      "size_chars": 2305
     },
     "api/v3": {
       "children": [
@@ -483,17 +495,17 @@
         "api/v3/test"
       ],
       "depth": 2,
-      "size_chars": 21390
+      "size_chars": 21216
     },
     "api/v3/apierrors": {
       "children": [],
       "depth": 3,
-      "size_chars": 28357
+      "size_chars": 28421
     },
     "api/v3/filters": {
       "children": [],
       "depth": 3,
-      "size_chars": 59404
+      "size_chars": 59827
     },
     "api/v3/handlers": {
       "children": [
@@ -512,27 +524,27 @@
         "api/v3/handlers/taxcodes"
       ],
       "depth": 3,
-      "size_chars": 7033
+      "size_chars": 7398
     },
     "api/v3/handlers/addons": {
       "children": [],
       "depth": 4,
-      "size_chars": 35647
+      "size_chars": 35879
     },
     "api/v3/handlers/apps": {
       "children": [],
       "depth": 4,
-      "size_chars": 13938
+      "size_chars": 14532
     },
     "api/v3/handlers/billingprofiles": {
       "children": [],
       "depth": 4,
-      "size_chars": 30281
+      "size_chars": 31115
     },
     "api/v3/handlers/currencies": {
       "children": [],
       "depth": 4,
-      "size_chars": 15093
+      "size_chars": 15866
     },
     "api/v3/handlers/customers": {
       "children": [
@@ -542,128 +554,128 @@
         "api/v3/handlers/customers/entitlementaccess"
       ],
       "depth": 4,
-      "size_chars": 24212
+      "size_chars": 24110
     },
     "api/v3/handlers/customers/billing": {
       "children": [],
       "depth": 5,
-      "size_chars": 37187
+      "size_chars": 37097
     },
     "api/v3/handlers/customers/charges": {
       "children": [],
       "depth": 5,
-      "size_chars": 28217
+      "size_chars": 29120
     },
     "api/v3/handlers/customers/credits": {
       "children": [],
       "depth": 5,
-      "size_chars": 46916
+      "size_chars": 48871
     },
     "api/v3/handlers/customers/entitlementaccess": {
       "children": [],
       "depth": 5,
-      "size_chars": 11509
+      "size_chars": 11865
     },
     "api/v3/handlers/events": {
       "children": [],
       "depth": 4,
-      "size_chars": 20818
+      "size_chars": 22268
     },
     "api/v3/handlers/featurecost": {
       "children": [],
       "depth": 4,
-      "size_chars": 9158
+      "size_chars": 11019
     },
     "api/v3/handlers/features": {
       "children": [],
       "depth": 4,
-      "size_chars": 45912
+      "size_chars": 46841
     },
     "api/v3/handlers/llmcost": {
       "children": [],
       "depth": 4,
-      "size_chars": 23739
+      "size_chars": 25279
     },
     "api/v3/handlers/meters": {
       "children": [
         "api/v3/handlers/meters/query"
       ],
       "depth": 4,
-      "size_chars": 33118
+      "size_chars": 33102
     },
     "api/v3/handlers/meters/query": {
       "children": [],
       "depth": 5,
-      "size_chars": 30497
+      "size_chars": 30495
     },
     "api/v3/handlers/plans": {
       "children": [
         "api/v3/handlers/plans/planaddons"
       ],
       "depth": 4,
-      "size_chars": 52531
+      "size_chars": 52068
     },
     "api/v3/handlers/plans/planaddons": {
       "children": [],
       "depth": 5,
-      "size_chars": 19535
+      "size_chars": 19808
     },
     "api/v3/handlers/subscriptions": {
       "children": [
         "api/v3/handlers/subscriptions/subscriptionaddons"
       ],
       "depth": 4,
-      "size_chars": 30388
+      "size_chars": 32734
     },
     "api/v3/handlers/subscriptions/subscriptionaddons": {
       "children": [],
       "depth": 5,
-      "size_chars": 6480
+      "size_chars": 13982
     },
     "api/v3/handlers/taxcodes": {
       "children": [],
       "depth": 4,
-      "size_chars": 23180
+      "size_chars": 24636
     },
     "api/v3/labels": {
       "children": [],
       "depth": 3,
-      "size_chars": 17866
+      "size_chars": 17871
     },
     "api/v3/oasmiddleware": {
       "children": [],
       "depth": 3,
-      "size_chars": 25170
+      "size_chars": 24938
     },
     "api/v3/render": {
       "children": [],
       "depth": 3,
-      "size_chars": 3712
+      "size_chars": 3717
     },
     "api/v3/request": {
       "children": [],
       "depth": 3,
-      "size_chars": 11078
+      "size_chars": 11605
     },
     "api/v3/response": {
       "children": [],
       "depth": 3,
-      "size_chars": 4740
+      "size_chars": 5687
     },
     "api/v3/server": {
       "children": [],
       "depth": 3,
-      "size_chars": 35321
+      "size_chars": 35454
     },
     "api/v3/templates": {
       "children": [],
       "depth": 3,
-      "size_chars": 2722
+      "size_chars": 2748
     },
     "api/v3/test": {
       "children": [],
       "depth": 3,
-      "size_chars": 25341
+      "size_chars": 28576
     },
     "app": {
       "children": [
@@ -671,22 +683,21 @@
         "app/config"
       ],
       "depth": 1,
-      "size_chars": 2864
+      "size_chars": 6442
     },
     "app/common": {
       "children": [],
       "depth": 2,
-      "size_chars": 139553
+      "size_chars": 143567
     },
     "app/config": {
       "children": [],
       "depth": 2,
-      "size_chars": 97833
+      "size_chars": 107903
     },
     "cmd": {
       "children": [
         "cmd/balance-worker",
-        "cmd/benthos-collector",
         "cmd/billing-worker",
         "cmd/jobs",
         "cmd/notification-service",
@@ -694,22 +705,17 @@
         "cmd/sink-worker"
       ],
       "depth": 1,
-      "size_chars": 4978
+      "size_chars": 5570
     },
     "cmd/balance-worker": {
       "children": [],
       "depth": 2,
-      "size_chars": 7625
-    },
-    "cmd/benthos-collector": {
-      "children": [],
-      "depth": 2,
-      "size_chars": 3194
+      "size_chars": 7619
     },
     "cmd/billing-worker": {
       "children": [],
       "depth": 2,
-      "size_chars": 8853
+      "size_chars": 8795
     },
     "cmd/jobs": {
       "children": [
@@ -722,7 +728,7 @@
         "cmd/jobs/quickstart"
       ],
       "depth": 2,
-      "size_chars": 8010
+      "size_chars": 8644
     },
     "cmd/jobs/billing": {
       "children": [
@@ -732,37 +738,37 @@
         "cmd/jobs/billing/subscriptionsync"
       ],
       "depth": 3,
-      "size_chars": 4700
+      "size_chars": 5706
     },
     "cmd/jobs/billing/advance": {
       "children": [],
       "depth": 4,
-      "size_chars": 5318
+      "size_chars": 5652
     },
     "cmd/jobs/billing/advancecharges": {
       "children": [],
       "depth": 4,
-      "size_chars": 4365
+      "size_chars": 5515
     },
     "cmd/jobs/billing/collect": {
       "children": [],
       "depth": 4,
-      "size_chars": 5202
+      "size_chars": 6190
     },
     "cmd/jobs/billing/subscriptionsync": {
       "children": [],
       "depth": 4,
-      "size_chars": 5171
+      "size_chars": 6502
     },
     "cmd/jobs/entitlement": {
       "children": [],
       "depth": 3,
-      "size_chars": 4164
+      "size_chars": 4342
     },
     "cmd/jobs/internal": {
       "children": [],
       "depth": 3,
-      "size_chars": 10430
+      "size_chars": 10897
     },
     "cmd/jobs/ledger": {
       "children": [
@@ -770,55 +776,56 @@
         "cmd/jobs/ledger/service"
       ],
       "depth": 3,
-      "size_chars": 5428
+      "size_chars": 5687
     },
     "cmd/jobs/ledger/backfillaccounts": {
       "children": [],
       "depth": 4,
-      "size_chars": 6907
+      "size_chars": 8664
     },
     "cmd/jobs/ledger/service": {
       "children": [],
       "depth": 4,
-      "size_chars": 23942
+      "size_chars": 24716
     },
     "cmd/jobs/llmcost": {
       "children": [],
       "depth": 3,
-      "size_chars": 1873
+      "size_chars": 2005
     },
     "cmd/jobs/migrate": {
       "children": [],
       "depth": 3,
-      "size_chars": 2854
+      "size_chars": 3174
     },
     "cmd/jobs/quickstart": {
       "children": [],
       "depth": 3,
-      "size_chars": 5640
+      "size_chars": 5837
     },
     "cmd/notification-service": {
       "children": [],
       "depth": 2,
-      "size_chars": 11043
+      "size_chars": 11016
     },
     "cmd/server": {
       "children": [],
       "depth": 2,
-      "size_chars": 22665
+      "size_chars": 23015
     },
     "cmd/sink-worker": {
       "children": [],
       "depth": 2,
-      "size_chars": 11260
+      "size_chars": 12060
     },
     "collector": {
       "children": [
         "collector/benthos",
+        "collector/cmd",
         "collector/quickstart"
       ],
       "depth": 1,
-      "size_chars": 8337
+      "size_chars": 23383
     },
     "collector/benthos": {
       "children": [
@@ -829,24 +836,24 @@
         "collector/benthos/services"
       ],
       "depth": 2,
-      "size_chars": 5478
+      "size_chars": 6396
     },
     "collector/benthos/bloblang": {
       "children": [],
       "depth": 3,
-      "size_chars": 4812
+      "size_chars": 5277
     },
     "collector/benthos/input": {
       "children": [
         "collector/benthos/input/runai"
       ],
       "depth": 3,
-      "size_chars": 50486
+      "size_chars": 51089
     },
     "collector/benthos/input/runai": {
       "children": [],
       "depth": 4,
-      "size_chars": 29339
+      "size_chars": 30033
     },
     "collector/benthos/internal": {
       "children": [
@@ -855,22 +862,22 @@
         "collector/benthos/internal/shutdown"
       ],
       "depth": 3,
-      "size_chars": 4734
+      "size_chars": 4670
     },
     "collector/benthos/internal/logging": {
       "children": [],
       "depth": 4,
-      "size_chars": 3389
+      "size_chars": 3811
     },
     "collector/benthos/internal/message": {
       "children": [],
       "depth": 4,
-      "size_chars": 6593
+      "size_chars": 6869
     },
     "collector/benthos/internal/shutdown": {
       "children": [],
       "depth": 4,
-      "size_chars": 7140
+      "size_chars": 7771
     },
     "collector/benthos/presets": {
       "children": [
@@ -878,29 +885,34 @@
         "collector/benthos/presets/kubernetes-pod-exec-time"
       ],
       "depth": 3,
-      "size_chars": 3202
+      "size_chars": 3468
     },
     "collector/benthos/presets/http-server": {
       "children": [],
       "depth": 4,
-      "size_chars": 6740
+      "size_chars": 7737
     },
     "collector/benthos/presets/kubernetes-pod-exec-time": {
       "children": [],
       "depth": 4,
-      "size_chars": 8134
+      "size_chars": 8791
     },
     "collector/benthos/services": {
       "children": [
         "collector/benthos/services/leaderelection"
       ],
       "depth": 3,
-      "size_chars": 3463
+      "size_chars": 3469
     },
     "collector/benthos/services/leaderelection": {
       "children": [],
       "depth": 4,
-      "size_chars": 13557
+      "size_chars": 13664
+    },
+    "collector/cmd": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 1009
     },
     "collector/quickstart": {
       "children": [
@@ -908,7 +920,7 @@
         "collector/quickstart/seeder"
       ],
       "depth": 2,
-      "size_chars": 5193
+      "size_chars": 5805
     },
     "collector/quickstart/collector": {
       "children": [
@@ -916,29 +928,29 @@
         "collector/quickstart/collector/streams"
       ],
       "depth": 3,
-      "size_chars": 3856
+      "size_chars": 4780
     },
     "collector/quickstart/collector/resources": {
       "children": [],
       "depth": 4,
-      "size_chars": 1528
+      "size_chars": 1567
     },
     "collector/quickstart/collector/streams": {
       "children": [],
       "depth": 4,
-      "size_chars": 6626
+      "size_chars": 7459
     },
     "collector/quickstart/seeder": {
       "children": [],
       "depth": 3,
-      "size_chars": 4884
+      "size_chars": 5468
     },
     "deploy": {
       "children": [
         "deploy/charts"
       ],
       "depth": 1,
-      "size_chars": 3472
+      "size_chars": 4266
     },
     "deploy/charts": {
       "children": [
@@ -946,31 +958,31 @@
         "deploy/charts/openmeter"
       ],
       "depth": 2,
-      "size_chars": 4791
+      "size_chars": 7637
     },
     "deploy/charts/benthos-collector": {
       "children": [
         "deploy/charts/benthos-collector/templates"
       ],
       "depth": 3,
-      "size_chars": 19644
+      "size_chars": 19728
     },
     "deploy/charts/benthos-collector/templates": {
       "children": [],
       "depth": 4,
-      "size_chars": 19819
+      "size_chars": 19718
     },
     "deploy/charts/openmeter": {
       "children": [
         "deploy/charts/openmeter/templates"
       ],
       "depth": 3,
-      "size_chars": 34800
+      "size_chars": 35223
     },
     "deploy/charts/openmeter/templates": {
       "children": [],
       "depth": 4,
-      "size_chars": 50243
+      "size_chars": 50913
     },
     "docs": {
       "children": [
@@ -978,22 +990,22 @@
         "docs/migration-guides"
       ],
       "depth": 1,
-      "size_chars": 14091
+      "size_chars": 15180
     },
     "docs/decisions": {
       "children": [],
       "depth": 2,
-      "size_chars": 11711
+      "size_chars": 12089
     },
     "docs/migration-guides": {
       "children": [],
       "depth": 2,
-      "size_chars": 15715
+      "size_chars": 15878
     },
     "e2e": {
       "children": [],
       "depth": 1,
-      "size_chars": 162659
+      "size_chars": 163381
     },
     "etc": {
       "children": [
@@ -1008,17 +1020,17 @@
         "etc/seed/streams"
       ],
       "depth": 2,
-      "size_chars": 7086
+      "size_chars": 7208
     },
     "etc/seed/streams": {
       "children": [],
       "depth": 3,
-      "size_chars": 9392
+      "size_chars": 9363
     },
     "etc/wiretap": {
       "children": [],
       "depth": 2,
-      "size_chars": 1925
+      "size_chars": 2355
     },
     "openmeter": {
       "children": [
@@ -1059,12 +1071,12 @@
         "openmeter/watermill"
       ],
       "depth": 1,
-      "size_chars": 6397
+      "size_chars": 7431
     },
     "openmeter/apiconverter": {
       "children": [],
       "depth": 2,
-      "size_chars": 6406
+      "size_chars": 7238
     },
     "openmeter/app": {
       "children": [
@@ -1077,12 +1089,12 @@
         "openmeter/app/testutils"
       ],
       "depth": 2,
-      "size_chars": 42405
+      "size_chars": 41113
     },
     "openmeter/app/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 24831
+      "size_chars": 24406
     },
     "openmeter/app/custominvoicing": {
       "children": [
@@ -1091,37 +1103,37 @@
         "openmeter/app/custominvoicing/service"
       ],
       "depth": 3,
-      "size_chars": 20127
+      "size_chars": 20424
     },
     "openmeter/app/custominvoicing/adapter": {
       "children": [],
       "depth": 4,
-      "size_chars": 11241
+      "size_chars": 11472
     },
     "openmeter/app/custominvoicing/httpdriver": {
       "children": [],
       "depth": 4,
-      "size_chars": 16451
+      "size_chars": 16346
     },
     "openmeter/app/custominvoicing/service": {
       "children": [],
       "depth": 4,
-      "size_chars": 14071
+      "size_chars": 14226
     },
     "openmeter/app/httpdriver": {
       "children": [],
       "depth": 3,
-      "size_chars": 47998
+      "size_chars": 47685
     },
     "openmeter/app/sandbox": {
       "children": [],
       "depth": 3,
-      "size_chars": 23517
+      "size_chars": 23326
     },
     "openmeter/app/service": {
       "children": [],
       "depth": 3,
-      "size_chars": 22182
+      "size_chars": 21503
     },
     "openmeter/app/stripe": {
       "children": [
@@ -1131,32 +1143,32 @@
         "openmeter/app/stripe/service"
       ],
       "depth": 3,
-      "size_chars": 61728
+      "size_chars": 61759
     },
     "openmeter/app/stripe/adapter": {
       "children": [],
       "depth": 4,
-      "size_chars": 32669
+      "size_chars": 33442
     },
     "openmeter/app/stripe/client": {
       "children": [],
       "depth": 4,
-      "size_chars": 56008
+      "size_chars": 56554
     },
     "openmeter/app/stripe/httpdriver": {
       "children": [],
       "depth": 4,
-      "size_chars": 41637
+      "size_chars": 42045
     },
     "openmeter/app/stripe/service": {
       "children": [],
       "depth": 4,
-      "size_chars": 28165
+      "size_chars": 29141
     },
     "openmeter/app/testutils": {
       "children": [],
       "depth": 3,
-      "size_chars": 6422
+      "size_chars": 9862
     },
     "openmeter/billing": {
       "children": [
@@ -1173,12 +1185,12 @@
         "openmeter/billing/worker"
       ],
       "depth": 2,
-      "size_chars": 225113
+      "size_chars": 234457
     },
     "openmeter/billing/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 161632
+      "size_chars": 159287
     },
     "openmeter/billing/charges": {
       "children": [
@@ -1196,12 +1208,12 @@
         "openmeter/billing/charges/worker"
       ],
       "depth": 3,
-      "size_chars": 32832
+      "size_chars": 35501
     },
     "openmeter/billing/charges/adapter": {
       "children": [],
       "depth": 4,
-      "size_chars": 21848
+      "size_chars": 21884
     },
     "openmeter/billing/charges/creditpurchase": {
       "children": [
@@ -1210,22 +1222,22 @@
         "openmeter/billing/charges/creditpurchase/service"
       ],
       "depth": 4,
-      "size_chars": 33065
+      "size_chars": 35273
     },
     "openmeter/billing/charges/creditpurchase/adapter": {
       "children": [],
       "depth": 5,
-      "size_chars": 36672
+      "size_chars": 38613
     },
     "openmeter/billing/charges/creditpurchase/lineengine": {
       "children": [],
       "depth": 5,
-      "size_chars": 6736
+      "size_chars": 8497
     },
     "openmeter/billing/charges/creditpurchase/service": {
       "children": [],
       "depth": 5,
-      "size_chars": 25852
+      "size_chars": 42028
     },
     "openmeter/billing/charges/flatfee": {
       "children": [
@@ -1233,29 +1245,29 @@
         "openmeter/billing/charges/flatfee/service"
       ],
       "depth": 4,
-      "size_chars": 46559
+      "size_chars": 49193
     },
     "openmeter/billing/charges/flatfee/adapter": {
       "children": [],
       "depth": 5,
-      "size_chars": 55298
+      "size_chars": 56078
     },
     "openmeter/billing/charges/flatfee/service": {
       "children": [
         "openmeter/billing/charges/flatfee/service/realizations"
       ],
       "depth": 5,
-      "size_chars": 67178
+      "size_chars": 71951
     },
     "openmeter/billing/charges/flatfee/service/realizations": {
       "children": [],
       "depth": 6,
-      "size_chars": 23523
+      "size_chars": 43616
     },
     "openmeter/billing/charges/invoiceupdater": {
       "children": [],
       "depth": 4,
-      "size_chars": 21599
+      "size_chars": 27080
     },
     "openmeter/billing/charges/lineage": {
       "children": [
@@ -1263,29 +1275,29 @@
         "openmeter/billing/charges/lineage/service"
       ],
       "depth": 4,
-      "size_chars": 15252
+      "size_chars": 16125
     },
     "openmeter/billing/charges/lineage/adapter": {
       "children": [],
       "depth": 5,
-      "size_chars": 16882
+      "size_chars": 16722
     },
     "openmeter/billing/charges/lineage/service": {
       "children": [],
       "depth": 5,
-      "size_chars": 13227
+      "size_chars": 13486
     },
     "openmeter/billing/charges/meta": {
       "children": [
         "openmeter/billing/charges/meta/adapter"
       ],
       "depth": 4,
-      "size_chars": 36137
+      "size_chars": 36991
     },
     "openmeter/billing/charges/meta/adapter": {
       "children": [],
       "depth": 5,
-      "size_chars": 8875
+      "size_chars": 9147
     },
     "openmeter/billing/charges/models": {
       "children": [
@@ -1296,47 +1308,47 @@
         "openmeter/billing/charges/models/payment"
       ],
       "depth": 4,
-      "size_chars": 4720
+      "size_chars": 4835
     },
     "openmeter/billing/charges/models/chargemeta": {
       "children": [],
       "depth": 5,
-      "size_chars": 14500
+      "size_chars": 14741
     },
     "openmeter/billing/charges/models/creditrealization": {
       "children": [],
       "depth": 5,
-      "size_chars": 48629
+      "size_chars": 48434
     },
     "openmeter/billing/charges/models/invoicedusage": {
       "children": [],
       "depth": 5,
-      "size_chars": 6740
+      "size_chars": 7062
     },
     "openmeter/billing/charges/models/ledgertransaction": {
       "children": [],
       "depth": 5,
-      "size_chars": 2941
+      "size_chars": 3482
     },
     "openmeter/billing/charges/models/payment": {
       "children": [],
       "depth": 5,
-      "size_chars": 19435
+      "size_chars": 19680
     },
     "openmeter/billing/charges/service": {
       "children": [],
       "depth": 4,
-      "size_chars": 169864
+      "size_chars": 174645
     },
     "openmeter/billing/charges/statemachine": {
       "children": [],
       "depth": 4,
-      "size_chars": 21352
+      "size_chars": 21677
     },
     "openmeter/billing/charges/testutils": {
       "children": [],
       "depth": 4,
-      "size_chars": 16861
+      "size_chars": 18375
     },
     "openmeter/billing/charges/usagebased": {
       "children": [
@@ -1344,12 +1356,12 @@
         "openmeter/billing/charges/usagebased/service"
       ],
       "depth": 4,
-      "size_chars": 65516
+      "size_chars": 68122
     },
     "openmeter/billing/charges/usagebased/adapter": {
       "children": [],
       "depth": 5,
-      "size_chars": 52317
+      "size_chars": 53706
     },
     "openmeter/billing/charges/usagebased/service": {
       "children": [
@@ -1357,7 +1369,7 @@
         "openmeter/billing/charges/usagebased/service/run"
       ],
       "depth": 5,
-      "size_chars": 111069
+      "size_chars": 111202
     },
     "openmeter/billing/charges/usagebased/service/rating": {
       "children": [
@@ -1367,32 +1379,32 @@
         "openmeter/billing/charges/usagebased/service/rating/testutils"
       ],
       "depth": 6,
-      "size_chars": 39771
+      "size_chars": 41645
     },
     "openmeter/billing/charges/usagebased/service/rating/delta": {
       "children": [],
       "depth": 7,
-      "size_chars": 90135
+      "size_chars": 97663
     },
     "openmeter/billing/charges/usagebased/service/rating/periodpreserving": {
       "children": [],
       "depth": 7,
-      "size_chars": 36336
+      "size_chars": 42761
     },
     "openmeter/billing/charges/usagebased/service/rating/subtract": {
       "children": [],
       "depth": 7,
-      "size_chars": 29332
+      "size_chars": 35742
     },
     "openmeter/billing/charges/usagebased/service/rating/testutils": {
       "children": [],
       "depth": 7,
-      "size_chars": 3721
+      "size_chars": 7553
     },
     "openmeter/billing/charges/usagebased/service/run": {
       "children": [],
       "depth": 6,
-      "size_chars": 44442
+      "size_chars": 49676
     },
     "openmeter/billing/charges/worker": {
       "children": [
@@ -1400,39 +1412,39 @@
         "openmeter/billing/charges/worker/asyncadvance"
       ],
       "depth": 4,
-      "size_chars": 5146
+      "size_chars": 4997
     },
     "openmeter/billing/charges/worker/advance": {
       "children": [],
       "depth": 5,
-      "size_chars": 6412
+      "size_chars": 7246
     },
     "openmeter/billing/charges/worker/asyncadvance": {
       "children": [],
       "depth": 5,
-      "size_chars": 4126
+      "size_chars": 4823
     },
     "openmeter/billing/creditgrant": {
       "children": [
         "openmeter/billing/creditgrant/service"
       ],
       "depth": 3,
-      "size_chars": 10070
+      "size_chars": 10559
     },
     "openmeter/billing/creditgrant/service": {
       "children": [],
       "depth": 4,
-      "size_chars": 13718
+      "size_chars": 14534
     },
     "openmeter/billing/httpdriver": {
       "children": [],
       "depth": 3,
-      "size_chars": 85402
+      "size_chars": 86241
     },
     "openmeter/billing/lineengine": {
       "children": [],
       "depth": 3,
-      "size_chars": 15697
+      "size_chars": 17241
     },
     "openmeter/billing/models": {
       "children": [
@@ -1442,34 +1454,34 @@
         "openmeter/billing/models/totals"
       ],
       "depth": 3,
-      "size_chars": 3847
+      "size_chars": 4059
     },
     "openmeter/billing/models/creditsapplied": {
       "children": [],
       "depth": 4,
-      "size_chars": 3508
+      "size_chars": 3970
     },
     "openmeter/billing/models/externalid": {
       "children": [],
       "depth": 4,
-      "size_chars": 5852
+      "size_chars": 6671
     },
     "openmeter/billing/models/stddetailedline": {
       "children": [],
       "depth": 4,
-      "size_chars": 17159
+      "size_chars": 17360
     },
     "openmeter/billing/models/totals": {
       "children": [],
       "depth": 4,
-      "size_chars": 14385
+      "size_chars": 15222
     },
     "openmeter/billing/rating": {
       "children": [
         "openmeter/billing/rating/service"
       ],
       "depth": 3,
-      "size_chars": 20932
+      "size_chars": 21820
     },
     "openmeter/billing/rating/service": {
       "children": [
@@ -1478,39 +1490,39 @@
         "openmeter/billing/rating/service/testutil"
       ],
       "depth": 4,
-      "size_chars": 24083
+      "size_chars": 25362
     },
     "openmeter/billing/rating/service/mutator": {
       "children": [],
       "depth": 5,
-      "size_chars": 35409
+      "size_chars": 35314
     },
     "openmeter/billing/rating/service/rate": {
       "children": [],
       "depth": 5,
-      "size_chars": 97518
+      "size_chars": 97345
     },
     "openmeter/billing/rating/service/testutil": {
       "children": [],
       "depth": 5,
-      "size_chars": 7010
+      "size_chars": 7241
     },
     "openmeter/billing/service": {
       "children": [
         "openmeter/billing/service/invoicecalc"
       ],
       "depth": 3,
-      "size_chars": 144347
+      "size_chars": 144133
     },
     "openmeter/billing/service/invoicecalc": {
       "children": [],
       "depth": 4,
-      "size_chars": 55971
+      "size_chars": 55842
     },
     "openmeter/billing/testutils": {
       "children": [],
       "depth": 3,
-      "size_chars": 2301
+      "size_chars": 5082
     },
     "openmeter/billing/validators": {
       "children": [
@@ -1518,17 +1530,17 @@
         "openmeter/billing/validators/subscription"
       ],
       "depth": 3,
-      "size_chars": 5901
+      "size_chars": 5490
     },
     "openmeter/billing/validators/customer": {
       "children": [],
       "depth": 4,
-      "size_chars": 6874
+      "size_chars": 7081
     },
     "openmeter/billing/validators/subscription": {
       "children": [],
       "depth": 4,
-      "size_chars": 6674
+      "size_chars": 7061
     },
     "openmeter/billing/worker": {
       "children": [
@@ -1538,22 +1550,22 @@
         "openmeter/billing/worker/subscriptionsync"
       ],
       "depth": 3,
-      "size_chars": 11433
+      "size_chars": 12022
     },
     "openmeter/billing/worker/advance": {
       "children": [],
       "depth": 4,
-      "size_chars": 9388
+      "size_chars": 9879
     },
     "openmeter/billing/worker/asyncadvance": {
       "children": [],
       "depth": 4,
-      "size_chars": 3718
+      "size_chars": 4702
     },
     "openmeter/billing/worker/collect": {
       "children": [],
       "depth": 4,
-      "size_chars": 10678
+      "size_chars": 11309
     },
     "openmeter/billing/worker/subscriptionsync": {
       "children": [
@@ -1562,17 +1574,17 @@
         "openmeter/billing/worker/subscriptionsync/service"
       ],
       "depth": 4,
-      "size_chars": 7543
+      "size_chars": 9244
     },
     "openmeter/billing/worker/subscriptionsync/adapter": {
       "children": [],
       "depth": 5,
-      "size_chars": 8851
+      "size_chars": 8810
     },
     "openmeter/billing/worker/subscriptionsync/reconciler": {
       "children": [],
       "depth": 5,
-      "size_chars": 10203
+      "size_chars": 11319
     },
     "openmeter/billing/worker/subscriptionsync/service": {
       "children": [
@@ -1581,29 +1593,29 @@
         "openmeter/billing/worker/subscriptionsync/service/targetstate"
       ],
       "depth": 5,
-      "size_chars": 84214
+      "size_chars": 116003
     },
     "openmeter/billing/worker/subscriptionsync/service/persistedstate": {
       "children": [],
       "depth": 6,
-      "size_chars": 28064
+      "size_chars": 28416
     },
     "openmeter/billing/worker/subscriptionsync/service/reconciler": {
       "children": [
         "openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
       ],
       "depth": 6,
-      "size_chars": 78386
+      "size_chars": 82216
     },
     "openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater": {
       "children": [],
       "depth": 7,
-      "size_chars": 28570
+      "size_chars": 29076
     },
     "openmeter/billing/worker/subscriptionsync/service/targetstate": {
       "children": [],
       "depth": 6,
-      "size_chars": 51654
+      "size_chars": 52432
     },
     "openmeter/cost": {
       "children": [
@@ -1611,17 +1623,17 @@
         "openmeter/cost/service"
       ],
       "depth": 2,
-      "size_chars": 6762
+      "size_chars": 6759
     },
     "openmeter/cost/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 40012
+      "size_chars": 39848
     },
     "openmeter/cost/service": {
       "children": [],
       "depth": 3,
-      "size_chars": 2592
+      "size_chars": 2773
     },
     "openmeter/credit": {
       "children": [
@@ -1633,37 +1645,37 @@
         "openmeter/credit/hook"
       ],
       "depth": 2,
-      "size_chars": 40647
+      "size_chars": 40747
     },
     "openmeter/credit/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 17992
+      "size_chars": 18073
     },
     "openmeter/credit/balance": {
       "children": [],
       "depth": 3,
-      "size_chars": 20961
+      "size_chars": 21980
     },
     "openmeter/credit/driver": {
       "children": [],
       "depth": 3,
-      "size_chars": 14419
+      "size_chars": 15456
     },
     "openmeter/credit/engine": {
       "children": [],
       "depth": 3,
-      "size_chars": 90308
+      "size_chars": 90417
     },
     "openmeter/credit/grant": {
       "children": [],
       "depth": 3,
-      "size_chars": 28007
+      "size_chars": 30053
     },
     "openmeter/credit/hook": {
       "children": [],
       "depth": 3,
-      "size_chars": 5026
+      "size_chars": 4837
     },
     "openmeter/currencies": {
       "children": [
@@ -1671,17 +1683,17 @@
         "openmeter/currencies/service"
       ],
       "depth": 2,
-      "size_chars": 11016
+      "size_chars": 11162
     },
     "openmeter/currencies/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 11362
+      "size_chars": 11950
     },
     "openmeter/currencies/service": {
       "children": [],
       "depth": 3,
-      "size_chars": 16369
+      "size_chars": 17820
     },
     "openmeter/customer": {
       "children": [
@@ -1692,51 +1704,51 @@
         "openmeter/customer/testutils"
       ],
       "depth": 2,
-      "size_chars": 31722
+      "size_chars": 31600
     },
     "openmeter/customer/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 40467
+      "size_chars": 40614
     },
     "openmeter/customer/app": {
       "children": [],
       "depth": 3,
-      "size_chars": 2302
+      "size_chars": 2354
     },
     "openmeter/customer/httpdriver": {
       "children": [],
       "depth": 3,
-      "size_chars": 29162
+      "size_chars": 29507
     },
     "openmeter/customer/service": {
       "children": [
         "openmeter/customer/service/hooks"
       ],
       "depth": 3,
-      "size_chars": 26086
+      "size_chars": 26548
     },
     "openmeter/customer/service/hooks": {
       "children": [],
       "depth": 4,
-      "size_chars": 35970
+      "size_chars": 35676
     },
     "openmeter/customer/testutils": {
       "children": [],
       "depth": 3,
-      "size_chars": 6169
+      "size_chars": 6334
     },
     "openmeter/debug": {
       "children": [
         "openmeter/debug/httpdriver"
       ],
       "depth": 2,
-      "size_chars": 4868
+      "size_chars": 4976
     },
     "openmeter/debug/httpdriver": {
       "children": [],
       "depth": 3,
-      "size_chars": 7063
+      "size_chars": 6982
     },
     "openmeter/dedupe": {
       "children": [
@@ -1744,17 +1756,17 @@
         "openmeter/dedupe/redisdedupe"
       ],
       "depth": 2,
-      "size_chars": 4712
+      "size_chars": 5045
     },
     "openmeter/dedupe/memorydedupe": {
       "children": [],
       "depth": 3,
-      "size_chars": 6326
+      "size_chars": 6995
     },
     "openmeter/dedupe/redisdedupe": {
       "children": [],
       "depth": 3,
-      "size_chars": 10078
+      "size_chars": 11311
     },
     "openmeter/ent": {
       "children": [
@@ -1762,17 +1774,17 @@
         "openmeter/ent/tx"
       ],
       "depth": 2,
-      "size_chars": 4770
+      "size_chars": 4827
     },
     "openmeter/ent/schema": {
       "children": [],
       "depth": 3,
-      "size_chars": 136174
+      "size_chars": 139892
     },
     "openmeter/ent/tx": {
       "children": [],
       "depth": 3,
-      "size_chars": 2731
+      "size_chars": 2742
     },
     "openmeter/entitlement": {
       "children": [
@@ -1787,12 +1799,12 @@
         "openmeter/entitlement/validators"
       ],
       "depth": 2,
-      "size_chars": 68143
+      "size_chars": 71574
     },
     "openmeter/entitlement/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 37339
+      "size_chars": 38219
     },
     "openmeter/entitlement/balanceworker": {
       "children": [
@@ -1800,73 +1812,73 @@
         "openmeter/entitlement/balanceworker/filters"
       ],
       "depth": 3,
-      "size_chars": 61240
+      "size_chars": 62147
     },
     "openmeter/entitlement/balanceworker/events": {
       "children": [],
       "depth": 4,
-      "size_chars": 5939
+      "size_chars": 6777
     },
     "openmeter/entitlement/balanceworker/filters": {
       "children": [],
       "depth": 4,
-      "size_chars": 12600
+      "size_chars": 13463
     },
     "openmeter/entitlement/boolean": {
       "children": [],
       "depth": 3,
-      "size_chars": 5370
+      "size_chars": 5619
     },
     "openmeter/entitlement/driver": {
       "children": [
         "openmeter/entitlement/driver/v2"
       ],
       "depth": 3,
-      "size_chars": 51957
+      "size_chars": 52191
     },
     "openmeter/entitlement/driver/v2": {
       "children": [],
       "depth": 4,
-      "size_chars": 61172
+      "size_chars": 61292
     },
     "openmeter/entitlement/hooks": {
       "children": [
         "openmeter/entitlement/hooks/subscription"
       ],
       "depth": 3,
-      "size_chars": 2134
+      "size_chars": 4514
     },
     "openmeter/entitlement/hooks/subscription": {
       "children": [],
       "depth": 4,
-      "size_chars": 5949
+      "size_chars": 6028
     },
     "openmeter/entitlement/metered": {
       "children": [],
       "depth": 3,
-      "size_chars": 125386
+      "size_chars": 125502
     },
     "openmeter/entitlement/service": {
       "children": [],
       "depth": 3,
-      "size_chars": 60792
+      "size_chars": 61387
     },
     "openmeter/entitlement/snapshot": {
       "children": [],
       "depth": 3,
-      "size_chars": 8238
+      "size_chars": 8406
     },
     "openmeter/entitlement/validators": {
       "children": [
         "openmeter/entitlement/validators/customer"
       ],
       "depth": 3,
-      "size_chars": 2315
+      "size_chars": 4394
     },
     "openmeter/entitlement/validators/customer": {
       "children": [],
       "depth": 4,
-      "size_chars": 5621
+      "size_chars": 5866
     },
     "openmeter/event": {
       "children": [
@@ -1879,19 +1891,19 @@
     "openmeter/event/metadata": {
       "children": [],
       "depth": 3,
-      "size_chars": 5691
+      "size_chars": 7025
     },
     "openmeter/event/models": {
       "children": [],
       "depth": 3,
-      "size_chars": 2226
+      "size_chars": 3013
     },
     "openmeter/info": {
       "children": [
         "openmeter/info/httpdriver"
       ],
       "depth": 2,
-      "size_chars": 2852
+      "size_chars": 2837
     },
     "openmeter/info/httpdriver": {
       "children": [],
@@ -1905,17 +1917,17 @@
         "openmeter/ingest/kafkaingest"
       ],
       "depth": 2,
-      "size_chars": 9758
+      "size_chars": 10421
     },
     "openmeter/ingest/httpdriver": {
       "children": [],
       "depth": 3,
-      "size_chars": 14019
+      "size_chars": 14005
     },
     "openmeter/ingest/ingestadapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 5207
+      "size_chars": 6097
     },
     "openmeter/ingest/kafkaingest": {
       "children": [
@@ -1923,21 +1935,22 @@
         "openmeter/ingest/kafkaingest/topicresolver"
       ],
       "depth": 3,
-      "size_chars": 15904
+      "size_chars": 17382
     },
     "openmeter/ingest/kafkaingest/serializer": {
       "children": [],
       "depth": 4,
-      "size_chars": 12901
+      "size_chars": 12861
     },
     "openmeter/ingest/kafkaingest/topicresolver": {
       "children": [],
       "depth": 4,
-      "size_chars": 3803
+      "size_chars": 3715
     },
     "openmeter/ledger": {
       "children": [
         "openmeter/ledger/account",
+        "openmeter/ledger/breakage",
         "openmeter/ledger/chargeadapter",
         "openmeter/ledger/collector",
         "openmeter/ledger/customerbalance",
@@ -1950,7 +1963,7 @@
         "openmeter/ledger/transactions"
       ],
       "depth": 2,
-      "size_chars": 60305
+      "size_chars": 84907
     },
     "openmeter/ledger/account": {
       "children": [
@@ -1958,88 +1971,100 @@
         "openmeter/ledger/account/service"
       ],
       "depth": 3,
-      "size_chars": 16964
+      "size_chars": 17537
     },
     "openmeter/ledger/account/adapter": {
       "children": [],
       "depth": 4,
-      "size_chars": 29846
+      "size_chars": 30137
     },
     "openmeter/ledger/account/service": {
       "children": [],
       "depth": 4,
-      "size_chars": 8486
+      "size_chars": 9058
+    },
+    "openmeter/ledger/breakage": {
+      "children": [
+        "openmeter/ledger/breakage/adapter"
+      ],
+      "depth": 3,
+      "size_chars": 38389
+    },
+    "openmeter/ledger/breakage/adapter": {
+      "children": [],
+      "depth": 4,
+      "size_chars": 10585
     },
     "openmeter/ledger/chargeadapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 86451
+      "size_chars": 90204
     },
     "openmeter/ledger/collector": {
       "children": [],
       "depth": 3,
-      "size_chars": 36665
+      "size_chars": 58952
     },
     "openmeter/ledger/customerbalance": {
       "children": [],
       "depth": 3,
-      "size_chars": 73666
+      "size_chars": 102211
     },
     "openmeter/ledger/historical": {
       "children": [
         "openmeter/ledger/historical/adapter"
       ],
       "depth": 3,
-      "size_chars": 18755
+      "size_chars": 19788
     },
     "openmeter/ledger/historical/adapter": {
       "children": [],
       "depth": 4,
-      "size_chars": 43154
+      "size_chars": 44990
     },
     "openmeter/ledger/noop": {
       "children": [],
       "depth": 3,
-      "size_chars": 12482
+      "size_chars": 13353
     },
     "openmeter/ledger/recognizer": {
       "children": [],
       "depth": 3,
-      "size_chars": 17992
+      "size_chars": 23202
     },
     "openmeter/ledger/resolvers": {
       "children": [
         "openmeter/ledger/resolvers/adapter"
       ],
       "depth": 3,
-      "size_chars": 25872
+      "size_chars": 26333
     },
     "openmeter/ledger/resolvers/adapter": {
       "children": [],
       "depth": 4,
-      "size_chars": 7434
+      "size_chars": 7453
     },
     "openmeter/ledger/routingrules": {
       "children": [],
       "depth": 3,
-      "size_chars": 35401
+      "size_chars": 42378
     },
     "openmeter/ledger/testutils": {
       "children": [],
       "depth": 3,
-      "size_chars": 12728
+      "size_chars": 14212
     },
     "openmeter/ledger/transactions": {
       "children": [
         "openmeter/ledger/transactions/testutils"
       ],
       "depth": 3,
-      "size_chars": 110517
+      "size_chars": 121707
     },
     "openmeter/ledger/transactions/testutils": {
       "children": [],
       "depth": 4,
-      "size_chars": 5718
+      "size_chars": 6221
     },
     "openmeter/llmcost": {
       "children": [
@@ -2048,22 +2073,22 @@
         "openmeter/llmcost/sync"
       ],
       "depth": 2,
-      "size_chars": 37801
+      "size_chars": 37811
     },
     "openmeter/llmcost/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 19084
+      "size_chars": 19563
     },
     "openmeter/llmcost/service": {
       "children": [],
       "depth": 3,
-      "size_chars": 15991
+      "size_chars": 16335
     },
     "openmeter/llmcost/sync": {
       "children": [],
       "depth": 3,
-      "size_chars": 55359
+      "size_chars": 55618
     },
     "openmeter/meter": {
       "children": [
@@ -2073,27 +2098,27 @@
         "openmeter/meter/service"
       ],
       "depth": 2,
-      "size_chars": 52323
+      "size_chars": 52308
     },
     "openmeter/meter/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 22513
+      "size_chars": 22881
     },
     "openmeter/meter/httphandler": {
       "children": [],
       "depth": 3,
-      "size_chars": 42682
+      "size_chars": 42624
     },
     "openmeter/meter/mockadapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 12065
+      "size_chars": 12131
     },
     "openmeter/meter/service": {
       "children": [],
       "depth": 3,
-      "size_chars": 11202
+      "size_chars": 12414
     },
     "openmeter/meterevent": {
       "children": [
@@ -2101,41 +2126,41 @@
         "openmeter/meterevent/httphandler"
       ],
       "depth": 2,
-      "size_chars": 13610
+      "size_chars": 14896
     },
     "openmeter/meterevent/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 15456
+      "size_chars": 15519
     },
     "openmeter/meterevent/httphandler": {
       "children": [],
       "depth": 3,
-      "size_chars": 12987
+      "size_chars": 13169
     },
     "openmeter/meterexport": {
       "children": [
         "openmeter/meterexport/service"
       ],
       "depth": 2,
-      "size_chars": 12776
+      "size_chars": 14667
     },
     "openmeter/meterexport/service": {
       "children": [],
       "depth": 3,
-      "size_chars": 33046
+      "size_chars": 34448
     },
     "openmeter/namespace": {
       "children": [
         "openmeter/namespace/namespacedriver"
       ],
       "depth": 2,
-      "size_chars": 9285
+      "size_chars": 10809
     },
     "openmeter/namespace/namespacedriver": {
       "children": [],
       "depth": 3,
-      "size_chars": 2141
+      "size_chars": 3791
     },
     "openmeter/notification": {
       "children": [
@@ -2148,44 +2173,44 @@
         "openmeter/notification/webhook"
       ],
       "depth": 2,
-      "size_chars": 55023
+      "size_chars": 54894
     },
     "openmeter/notification/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 41040
+      "size_chars": 41457
     },
     "openmeter/notification/consumer": {
       "children": [],
       "depth": 3,
-      "size_chars": 48849
+      "size_chars": 48932
     },
     "openmeter/notification/eventhandler": {
       "children": [
         "openmeter/notification/eventhandler/noop"
       ],
       "depth": 3,
-      "size_chars": 32995
+      "size_chars": 33975
     },
     "openmeter/notification/eventhandler/noop": {
       "children": [],
       "depth": 4,
-      "size_chars": 2981
+      "size_chars": 3108
     },
     "openmeter/notification/httpdriver": {
       "children": [],
       "depth": 3,
-      "size_chars": 48961
+      "size_chars": 50378
     },
     "openmeter/notification/internal": {
       "children": [],
       "depth": 3,
-      "size_chars": 10565
+      "size_chars": 10626
     },
     "openmeter/notification/service": {
       "children": [],
       "depth": 3,
-      "size_chars": 28912
+      "size_chars": 29773
     },
     "openmeter/notification/webhook": {
       "children": [
@@ -2194,29 +2219,29 @@
         "openmeter/notification/webhook/svix"
       ],
       "depth": 3,
-      "size_chars": 18334
+      "size_chars": 18218
     },
     "openmeter/notification/webhook/noop": {
       "children": [],
       "depth": 4,
-      "size_chars": 4484
+      "size_chars": 5327
     },
     "openmeter/notification/webhook/secret": {
       "children": [],
       "depth": 4,
-      "size_chars": 3223
+      "size_chars": 4049
     },
     "openmeter/notification/webhook/svix": {
       "children": [
         "openmeter/notification/webhook/svix/internal"
       ],
       "depth": 4,
-      "size_chars": 40711
+      "size_chars": 40758
     },
     "openmeter/notification/webhook/svix/internal": {
       "children": [],
       "depth": 5,
-      "size_chars": 6130
+      "size_chars": 6424
     },
     "openmeter/portal": {
       "children": [
@@ -2225,22 +2250,22 @@
         "openmeter/portal/httphandler"
       ],
       "depth": 2,
-      "size_chars": 6875
+      "size_chars": 9068
     },
     "openmeter/portal/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 9336
+      "size_chars": 9545
     },
     "openmeter/portal/authenticator": {
       "children": [],
       "depth": 3,
-      "size_chars": 7914
+      "size_chars": 8006
     },
     "openmeter/portal/httphandler": {
       "children": [],
       "depth": 3,
-      "size_chars": 12503
+      "size_chars": 12664
     },
     "openmeter/productcatalog": {
       "children": [
@@ -2248,6 +2273,7 @@
         "openmeter/productcatalog/addon",
         "openmeter/productcatalog/driver",
         "openmeter/productcatalog/feature",
+        "openmeter/productcatalog/featureresolver",
         "openmeter/productcatalog/http",
         "openmeter/productcatalog/plan",
         "openmeter/productcatalog/planaddon",
@@ -2255,12 +2281,12 @@
         "openmeter/productcatalog/testutils"
       ],
       "depth": 2,
-      "size_chars": 185913
+      "size_chars": 183562
     },
     "openmeter/productcatalog/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 34136
+      "size_chars": 34910
     },
     "openmeter/productcatalog/addon": {
       "children": [
@@ -2269,37 +2295,42 @@
         "openmeter/productcatalog/addon/service"
       ],
       "depth": 3,
-      "size_chars": 50081
+      "size_chars": 50637
     },
     "openmeter/productcatalog/addon/adapter": {
       "children": [],
       "depth": 4,
-      "size_chars": 46021
+      "size_chars": 46411
     },
     "openmeter/productcatalog/addon/httpdriver": {
       "children": [],
       "depth": 4,
-      "size_chars": 22944
+      "size_chars": 22550
     },
     "openmeter/productcatalog/addon/service": {
       "children": [],
       "depth": 4,
-      "size_chars": 51709
+      "size_chars": 52264
     },
     "openmeter/productcatalog/driver": {
       "children": [],
       "depth": 3,
-      "size_chars": 21295
+      "size_chars": 23428
     },
     "openmeter/productcatalog/feature": {
       "children": [],
       "depth": 3,
-      "size_chars": 45597
+      "size_chars": 46091
+    },
+    "openmeter/productcatalog/featureresolver": {
+      "children": [],
+      "depth": 3,
+      "size_chars": 21371
     },
     "openmeter/productcatalog/http": {
       "children": [],
       "depth": 3,
-      "size_chars": 19114
+      "size_chars": 19568
     },
     "openmeter/productcatalog/plan": {
       "children": [
@@ -2308,22 +2339,22 @@
         "openmeter/productcatalog/plan/service"
       ],
       "depth": 3,
-      "size_chars": 68432
+      "size_chars": 68492
     },
     "openmeter/productcatalog/plan/adapter": {
       "children": [],
       "depth": 4,
-      "size_chars": 52312
+      "size_chars": 53074
     },
     "openmeter/productcatalog/plan/httpdriver": {
       "children": [],
       "depth": 4,
-      "size_chars": 26425
+      "size_chars": 28179
     },
     "openmeter/productcatalog/plan/service": {
       "children": [],
       "depth": 4,
-      "size_chars": 51523
+      "size_chars": 52450
     },
     "openmeter/productcatalog/planaddon": {
       "children": [
@@ -2332,22 +2363,22 @@
         "openmeter/productcatalog/planaddon/service"
       ],
       "depth": 3,
-      "size_chars": 21870
+      "size_chars": 23105
     },
     "openmeter/productcatalog/planaddon/adapter": {
       "children": [],
       "depth": 4,
-      "size_chars": 37082
+      "size_chars": 37309
     },
     "openmeter/productcatalog/planaddon/httpdriver": {
       "children": [],
       "depth": 4,
-      "size_chars": 18724
+      "size_chars": 19012
     },
     "openmeter/productcatalog/planaddon/service": {
       "children": [],
       "depth": 4,
-      "size_chars": 34607
+      "size_chars": 34981
     },
     "openmeter/productcatalog/subscription": {
       "children": [
@@ -2356,27 +2387,27 @@
         "openmeter/productcatalog/subscription/testutils"
       ],
       "depth": 3,
-      "size_chars": 8433
+      "size_chars": 9882
     },
     "openmeter/productcatalog/subscription/http": {
       "children": [],
       "depth": 4,
-      "size_chars": 56575
+      "size_chars": 58035
     },
     "openmeter/productcatalog/subscription/service": {
       "children": [],
       "depth": 4,
-      "size_chars": 46613
+      "size_chars": 47946
     },
     "openmeter/productcatalog/subscription/testutils": {
       "children": [],
       "depth": 4,
-      "size_chars": 3949
+      "size_chars": 4583
     },
     "openmeter/productcatalog/testutils": {
       "children": [],
       "depth": 3,
-      "size_chars": 15928
+      "size_chars": 16994
     },
     "openmeter/progressmanager": {
       "children": [
@@ -2385,34 +2416,34 @@
         "openmeter/progressmanager/httpdriver"
       ],
       "depth": 2,
-      "size_chars": 4291
+      "size_chars": 5891
     },
     "openmeter/progressmanager/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 9993
+      "size_chars": 10113
     },
     "openmeter/progressmanager/entity": {
       "children": [],
       "depth": 3,
-      "size_chars": 4583
+      "size_chars": 4670
     },
     "openmeter/progressmanager/httpdriver": {
       "children": [],
       "depth": 3,
-      "size_chars": 7298
+      "size_chars": 7342
     },
     "openmeter/registry": {
       "children": [
         "openmeter/registry/builder"
       ],
       "depth": 2,
-      "size_chars": 3803
+      "size_chars": 4171
     },
     "openmeter/registry/builder": {
       "children": [],
       "depth": 3,
-      "size_chars": 10194
+      "size_chars": 10551
     },
     "openmeter/secret": {
       "children": [
@@ -2421,39 +2452,39 @@
         "openmeter/secret/service"
       ],
       "depth": 2,
-      "size_chars": 5503
+      "size_chars": 5501
     },
     "openmeter/secret/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 4202
+      "size_chars": 5863
     },
     "openmeter/secret/entity": {
       "children": [],
       "depth": 3,
-      "size_chars": 6315
+      "size_chars": 7442
     },
     "openmeter/secret/service": {
       "children": [],
       "depth": 3,
-      "size_chars": 4922
+      "size_chars": 6013
     },
     "openmeter/server": {
       "children": [
         "openmeter/server/router"
       ],
       "depth": 2,
-      "size_chars": 34943
+      "size_chars": 35005
     },
     "openmeter/server/router": {
       "children": [],
       "depth": 3,
-      "size_chars": 73303
+      "size_chars": 74460
     },
     "openmeter/session": {
       "children": [],
       "depth": 2,
-      "size_chars": 4849
+      "size_chars": 5080
     },
     "openmeter/sink": {
       "children": [
@@ -2461,31 +2492,31 @@
         "openmeter/sink/models"
       ],
       "depth": 2,
-      "size_chars": 30752
+      "size_chars": 31321
     },
     "openmeter/sink/flushhandler": {
       "children": [
         "openmeter/sink/flushhandler/ingestnotification"
       ],
       "depth": 3,
-      "size_chars": 15339
+      "size_chars": 16172
     },
     "openmeter/sink/flushhandler/ingestnotification": {
       "children": [
         "openmeter/sink/flushhandler/ingestnotification/events"
       ],
       "depth": 4,
-      "size_chars": 10144
+      "size_chars": 10400
     },
     "openmeter/sink/flushhandler/ingestnotification/events": {
       "children": [],
       "depth": 5,
-      "size_chars": 5988
+      "size_chars": 7080
     },
     "openmeter/sink/models": {
       "children": [],
       "depth": 3,
-      "size_chars": 3953
+      "size_chars": 4885
     },
     "openmeter/streaming": {
       "children": [
@@ -2494,22 +2525,22 @@
         "openmeter/streaming/testutils"
       ],
       "depth": 2,
-      "size_chars": 31567
+      "size_chars": 31566
     },
     "openmeter/streaming/clickhouse": {
       "children": [],
       "depth": 3,
-      "size_chars": 118611
+      "size_chars": 118790
     },
     "openmeter/streaming/retry": {
       "children": [],
       "depth": 3,
-      "size_chars": 14905
+      "size_chars": 16227
     },
     "openmeter/streaming/testutils": {
       "children": [],
       "depth": 3,
-      "size_chars": 27605
+      "size_chars": 28504
     },
     "openmeter/subject": {
       "children": [
@@ -2519,34 +2550,34 @@
         "openmeter/subject/testutils"
       ],
       "depth": 2,
-      "size_chars": 8004
+      "size_chars": 9510
     },
     "openmeter/subject/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 15734
+      "size_chars": 15867
     },
     "openmeter/subject/httphandler": {
       "children": [],
       "depth": 3,
-      "size_chars": 17402
+      "size_chars": 16768
     },
     "openmeter/subject/service": {
       "children": [
         "openmeter/subject/service/hooks"
       ],
       "depth": 3,
-      "size_chars": 18379
+      "size_chars": 18836
     },
     "openmeter/subject/service/hooks": {
       "children": [],
       "depth": 4,
-      "size_chars": 22713
+      "size_chars": 23320
     },
     "openmeter/subject/testutils": {
       "children": [],
       "depth": 3,
-      "size_chars": 7273
+      "size_chars": 7749
     },
     "openmeter/subscription": {
       "children": [
@@ -2561,7 +2592,7 @@
         "openmeter/subscription/workflow"
       ],
       "depth": 2,
-      "size_chars": 153784
+      "size_chars": 155659
     },
     "openmeter/subscription/addon": {
       "children": [
@@ -2571,64 +2602,64 @@
         "openmeter/subscription/addon/service"
       ],
       "depth": 3,
-      "size_chars": 52450
+      "size_chars": 52776
     },
     "openmeter/subscription/addon/diff": {
       "children": [],
       "depth": 4,
-      "size_chars": 54997
+      "size_chars": 55768
     },
     "openmeter/subscription/addon/http": {
       "children": [],
       "depth": 4,
-      "size_chars": 19562
+      "size_chars": 21180
     },
     "openmeter/subscription/addon/repo": {
       "children": [],
       "depth": 4,
-      "size_chars": 17009
+      "size_chars": 17611
     },
     "openmeter/subscription/addon/service": {
       "children": [],
       "depth": 4,
-      "size_chars": 45857
+      "size_chars": 47523
     },
     "openmeter/subscription/entitlement": {
       "children": [],
       "depth": 3,
-      "size_chars": 8221
+      "size_chars": 8726
     },
     "openmeter/subscription/hooks": {
       "children": [
         "openmeter/subscription/hooks/annotations"
       ],
       "depth": 3,
-      "size_chars": 2260
+      "size_chars": 2317
     },
     "openmeter/subscription/hooks/annotations": {
       "children": [],
       "depth": 4,
-      "size_chars": 11149
+      "size_chars": 11253
     },
     "openmeter/subscription/patch": {
       "children": [],
       "depth": 3,
-      "size_chars": 62991
+      "size_chars": 62900
     },
     "openmeter/subscription/repo": {
       "children": [],
       "depth": 3,
-      "size_chars": 33765
+      "size_chars": 33800
     },
     "openmeter/subscription/service": {
       "children": [],
       "depth": 3,
-      "size_chars": 73517
+      "size_chars": 76868
     },
     "openmeter/subscription/testutils": {
       "children": [],
       "depth": 3,
-      "size_chars": 68949
+      "size_chars": 68948
     },
     "openmeter/subscription/validators": {
       "children": [
@@ -2636,29 +2667,29 @@
         "openmeter/subscription/validators/subscription"
       ],
       "depth": 3,
-      "size_chars": 3234
+      "size_chars": 4098
     },
     "openmeter/subscription/validators/customer": {
       "children": [],
       "depth": 4,
-      "size_chars": 7087
+      "size_chars": 7347
     },
     "openmeter/subscription/validators/subscription": {
       "children": [],
       "depth": 4,
-      "size_chars": 13993
+      "size_chars": 14413
     },
     "openmeter/subscription/workflow": {
       "children": [
         "openmeter/subscription/workflow/service"
       ],
       "depth": 3,
-      "size_chars": 7110
+      "size_chars": 8165
     },
     "openmeter/subscription/workflow/service": {
       "children": [],
       "depth": 4,
-      "size_chars": 61129
+      "size_chars": 61393
     },
     "openmeter/taxcode": {
       "children": [
@@ -2667,27 +2698,27 @@
         "openmeter/taxcode/testutils"
       ],
       "depth": 2,
-      "size_chars": 21667
+      "size_chars": 37664
     },
     "openmeter/taxcode/adapter": {
       "children": [],
       "depth": 3,
-      "size_chars": 17496
+      "size_chars": 18824
     },
     "openmeter/taxcode/service": {
       "children": [],
       "depth": 3,
-      "size_chars": 25726
+      "size_chars": 31121
     },
     "openmeter/taxcode/testutils": {
       "children": [],
       "depth": 3,
-      "size_chars": 3710
+      "size_chars": 5760
     },
     "openmeter/testutils": {
       "children": [],
       "depth": 2,
-      "size_chars": 11245
+      "size_chars": 11396
     },
     "openmeter/watermill": {
       "children": [
@@ -2699,7 +2730,7 @@
         "openmeter/watermill/router"
       ],
       "depth": 2,
-      "size_chars": 6351
+      "size_chars": 7252
     },
     "openmeter/watermill/driver": {
       "children": [
@@ -2707,49 +2738,49 @@
         "openmeter/watermill/driver/noop"
       ],
       "depth": 3,
-      "size_chars": 1227
+      "size_chars": 2876
     },
     "openmeter/watermill/driver/kafka": {
       "children": [
         "openmeter/watermill/driver/kafka/metrics"
       ],
       "depth": 4,
-      "size_chars": 15835
+      "size_chars": 16097
     },
     "openmeter/watermill/driver/kafka/metrics": {
       "children": [],
       "depth": 5,
-      "size_chars": 11591
+      "size_chars": 11794
     },
     "openmeter/watermill/driver/noop": {
       "children": [],
       "depth": 4,
-      "size_chars": 1926
+      "size_chars": 3035
     },
     "openmeter/watermill/eventbus": {
       "children": [],
       "depth": 3,
-      "size_chars": 8285
+      "size_chars": 8647
     },
     "openmeter/watermill/grouphandler": {
       "children": [],
       "depth": 3,
-      "size_chars": 7577
+      "size_chars": 7769
     },
     "openmeter/watermill/marshaler": {
       "children": [],
       "depth": 3,
-      "size_chars": 10055
+      "size_chars": 10398
     },
     "openmeter/watermill/nopublisher": {
       "children": [],
       "depth": 3,
-      "size_chars": 2188
+      "size_chars": 2302
     },
     "openmeter/watermill/router": {
       "children": [],
       "depth": 3,
-      "size_chars": 25819
+      "size_chars": 25926
     },
     "pkg": {
       "children": [
@@ -2764,6 +2795,7 @@
         "pkg/equal",
         "pkg/errorsx",
         "pkg/expand",
+        "pkg/featuregate",
         "pkg/ffx",
         "pkg/filter",
         "pkg/framework",
@@ -2790,72 +2822,77 @@
         "pkg/treex"
       ],
       "depth": 1,
-      "size_chars": 6322
+      "size_chars": 8382
     },
     "pkg/clock": {
       "children": [],
       "depth": 2,
-      "size_chars": 3113
+      "size_chars": 3253
     },
     "pkg/cmpx": {
       "children": [],
       "depth": 2,
-      "size_chars": 260
+      "size_chars": 1249
     },
     "pkg/contextx": {
       "children": [],
       "depth": 2,
-      "size_chars": 3149
+      "size_chars": 3382
     },
     "pkg/convert": {
       "children": [],
       "depth": 2,
-      "size_chars": 3739
+      "size_chars": 3975
     },
     "pkg/currencyx": {
       "children": [],
       "depth": 2,
-      "size_chars": 3943
+      "size_chars": 24653
     },
     "pkg/datetime": {
       "children": [],
       "depth": 2,
-      "size_chars": 49808
+      "size_chars": 50280
     },
     "pkg/defaultx": {
       "children": [],
       "depth": 2,
-      "size_chars": 1726
+      "size_chars": 1746
     },
     "pkg/entitydiff": {
       "children": [],
       "depth": 2,
-      "size_chars": 11575
+      "size_chars": 11538
     },
     "pkg/equal": {
       "children": [],
       "depth": 2,
-      "size_chars": 2531
+      "size_chars": 2528
     },
     "pkg/errorsx": {
       "children": [],
       "depth": 2,
-      "size_chars": 6302
+      "size_chars": 8932
     },
     "pkg/expand": {
       "children": [],
       "depth": 2,
-      "size_chars": 4184
+      "size_chars": 4370
+    },
+    "pkg/featuregate": {
+      "children": [],
+      "depth": 2,
+      "size_chars": 262
     },
     "pkg/ffx": {
       "children": [],
       "depth": 2,
-      "size_chars": 5702
+      "size_chars": 5788
     },
     "pkg/filter": {
       "children": [],
       "depth": 2,
-      "size_chars": 34136
+      "size_chars": 34285
     },
     "pkg/framework": {
       "children": [
@@ -2870,17 +2907,17 @@
         "pkg/framework/transport"
       ],
       "depth": 2,
-      "size_chars": 9316
+      "size_chars": 10453
     },
     "pkg/framework/clickhouseotel": {
       "children": [],
       "depth": 3,
-      "size_chars": 11795
+      "size_chars": 12858
     },
     "pkg/framework/commonhttp": {
       "children": [],
       "depth": 3,
-      "size_chars": 19216
+      "size_chars": 19966
     },
     "pkg/framework/entutils": {
       "children": [
@@ -2893,37 +2930,37 @@
         "pkg/framework/entutils/testutils"
       ],
       "depth": 3,
-      "size_chars": 47081
+      "size_chars": 48378
     },
     "pkg/framework/entutils/entcursor": {
       "children": [],
       "depth": 4,
-      "size_chars": 9654
+      "size_chars": 9761
     },
     "pkg/framework/entutils/entdriver": {
       "children": [],
       "depth": 4,
-      "size_chars": 3515
+      "size_chars": 3600
     },
     "pkg/framework/entutils/entexpose": {
       "children": [],
       "depth": 4,
-      "size_chars": 6720
+      "size_chars": 6779
     },
     "pkg/framework/entutils/entmixinaccessor": {
       "children": [],
       "depth": 4,
-      "size_chars": 4021
+      "size_chars": 4034
     },
     "pkg/framework/entutils/entpaginate": {
       "children": [],
       "depth": 4,
-      "size_chars": 10184
+      "size_chars": 10242
     },
     "pkg/framework/entutils/entsetorclear": {
       "children": [],
       "depth": 4,
-      "size_chars": 4924
+      "size_chars": 5839
     },
     "pkg/framework/entutils/testutils": {
       "children": [
@@ -2931,14 +2968,14 @@
         "pkg/framework/entutils/testutils/ent2"
       ],
       "depth": 4,
-      "size_chars": 6505
+      "size_chars": 6352
     },
     "pkg/framework/entutils/testutils/ent1": {
       "children": [
         "pkg/framework/entutils/testutils/ent1/schema"
       ],
       "depth": 5,
-      "size_chars": 3535
+      "size_chars": 4416
     },
     "pkg/framework/entutils/testutils/ent1/schema": {
       "children": [],
@@ -2950,78 +2987,78 @@
         "pkg/framework/entutils/testutils/ent2/schema"
       ],
       "depth": 5,
-      "size_chars": 2842
+      "size_chars": 3835
     },
     "pkg/framework/entutils/testutils/ent2/schema": {
       "children": [],
       "depth": 6,
-      "size_chars": 3075
+      "size_chars": 3507
     },
     "pkg/framework/lockr": {
       "children": [],
       "depth": 3,
-      "size_chars": 35959
+      "size_chars": 36869
     },
     "pkg/framework/operation": {
       "children": [],
       "depth": 3,
-      "size_chars": 6925
+      "size_chars": 8148
     },
     "pkg/framework/pgdriver": {
       "children": [],
       "depth": 3,
-      "size_chars": 4525
+      "size_chars": 5973
     },
     "pkg/framework/tracex": {
       "children": [],
       "depth": 3,
-      "size_chars": 4741
+      "size_chars": 5584
     },
     "pkg/framework/transaction": {
       "children": [],
       "depth": 3,
-      "size_chars": 8319
+      "size_chars": 8075
     },
     "pkg/framework/transport": {
       "children": [
         "pkg/framework/transport/httptransport"
       ],
       "depth": 3,
-      "size_chars": 1239
+      "size_chars": 3229
     },
     "pkg/framework/transport/httptransport": {
       "children": [
         "pkg/framework/transport/httptransport/encoder"
       ],
       "depth": 4,
-      "size_chars": 14190
+      "size_chars": 13869
     },
     "pkg/framework/transport/httptransport/encoder": {
       "children": [],
       "depth": 5,
-      "size_chars": 3687
+      "size_chars": 3873
     },
     "pkg/gosundheit": {
       "children": [],
       "depth": 2,
-      "size_chars": 2428
+      "size_chars": 2963
     },
     "pkg/hasher": {
       "children": [],
       "depth": 2,
-      "size_chars": 1736
+      "size_chars": 2113
     },
     "pkg/idempotency": {
       "children": [],
       "depth": 2,
-      "size_chars": 1758
+      "size_chars": 2660
     },
     "pkg/kafka": {
       "children": [
         "pkg/kafka/metrics"
       ],
       "depth": 2,
-      "size_chars": 48739
+      "size_chars": 49522
     },
     "pkg/kafka/metrics": {
       "children": [
@@ -3029,121 +3066,121 @@
         "pkg/kafka/metrics/stats"
       ],
       "depth": 3,
-      "size_chars": 16414
+      "size_chars": 16532
     },
     "pkg/kafka/metrics/internal": {
       "children": [],
       "depth": 4,
-      "size_chars": 50862
+      "size_chars": 51792
     },
     "pkg/kafka/metrics/stats": {
       "children": [],
       "depth": 4,
-      "size_chars": 27014
+      "size_chars": 28490
     },
     "pkg/log": {
       "children": [],
       "depth": 2,
-      "size_chars": 5052
+      "size_chars": 5467
     },
     "pkg/lrux": {
       "children": [],
       "depth": 2,
-      "size_chars": 7305
+      "size_chars": 8079
     },
     "pkg/models": {
       "children": [
         "pkg/models/http"
       ],
       "depth": 2,
-      "size_chars": 97020
+      "size_chars": 96315
     },
     "pkg/models/http": {
       "children": [],
       "depth": 3,
-      "size_chars": 4033
+      "size_chars": 4486
     },
     "pkg/otelx": {
       "children": [],
       "depth": 2,
-      "size_chars": 2282
+      "size_chars": 3051
     },
     "pkg/pagination": {
       "children": [
         "pkg/pagination/v2"
       ],
       "depth": 2,
-      "size_chars": 11179
+      "size_chars": 13544
     },
     "pkg/pagination/v2": {
       "children": [],
       "depth": 3,
-      "size_chars": 21285
+      "size_chars": 21250
     },
     "pkg/pglockx": {
       "children": [],
       "depth": 2,
-      "size_chars": 1170
+      "size_chars": 4557
     },
     "pkg/pgxpoolobserver": {
       "children": [],
       "depth": 2,
-      "size_chars": 8121
+      "size_chars": 8851
     },
     "pkg/redis": {
       "children": [],
       "depth": 2,
-      "size_chars": 6789
+      "size_chars": 7910
     },
     "pkg/ref": {
       "children": [],
       "depth": 2,
-      "size_chars": 2176
+      "size_chars": 2385
     },
     "pkg/server": {
       "children": [],
       "depth": 2,
-      "size_chars": 6213
+      "size_chars": 6676
     },
     "pkg/set": {
       "children": [],
       "depth": 2,
-      "size_chars": 5484
+      "size_chars": 6041
     },
     "pkg/slicesx": {
       "children": [],
       "depth": 2,
-      "size_chars": 9765
+      "size_chars": 10691
     },
     "pkg/sortx": {
       "children": [],
       "depth": 2,
-      "size_chars": 1957
+      "size_chars": 2047
     },
     "pkg/statelessx": {
       "children": [],
       "depth": 2,
-      "size_chars": 4120
+      "size_chars": 4857
     },
     "pkg/strcase": {
       "children": [],
       "depth": 2,
-      "size_chars": 4090
+      "size_chars": 4202
     },
     "pkg/timeutil": {
       "children": [],
       "depth": 2,
-      "size_chars": 70436
+      "size_chars": 71206
     },
     "pkg/treex": {
       "children": [],
       "depth": 2,
-      "size_chars": 22550
+      "size_chars": 23554
     },
     "quickstart": {
       "children": [],
       "depth": 1,
-      "size_chars": 21992
+      "size_chars": 24012
     },
     "test": {
       "children": [
@@ -3156,7 +3193,7 @@
         "test/subscription"
       ],
       "depth": 1,
-      "size_chars": 5489
+      "size_chars": 5394
     },
     "test/app": {
       "children": [
@@ -3164,61 +3201,61 @@
         "test/app/stripe"
       ],
       "depth": 2,
-      "size_chars": 16558
+      "size_chars": 18028
     },
     "test/app/custominvoicing": {
       "children": [],
       "depth": 3,
-      "size_chars": 19979
+      "size_chars": 20429
     },
     "test/app/stripe": {
       "children": [],
       "depth": 3,
-      "size_chars": 71520
+      "size_chars": 72350
     },
     "test/billing": {
       "children": [],
       "depth": 2,
-      "size_chars": 201442
+      "size_chars": 200952
     },
     "test/credits": {
       "children": [],
       "depth": 2,
-      "size_chars": 84124
+      "size_chars": 86150
     },
     "test/customer": {
       "children": [],
       "depth": 2,
-      "size_chars": 52361
+      "size_chars": 52899
     },
     "test/entitlement": {
       "children": [
         "test/entitlement/regression"
       ],
       "depth": 2,
-      "size_chars": 788
+      "size_chars": 3153
     },
     "test/entitlement/regression": {
       "children": [],
       "depth": 3,
-      "size_chars": 29122
+      "size_chars": 30310
     },
     "test/notification": {
       "children": [],
       "depth": 2,
-      "size_chars": 77155
+      "size_chars": 78585
     },
     "test/subscription": {
       "children": [],
       "depth": 2,
-      "size_chars": 50145
+      "size_chars": 49960
     },
     "tools": {
       "children": [
         "tools/migrate"
       ],
       "depth": 1,
-      "size_chars": 3503
+      "size_chars": 6621
     },
     "tools/migrate": {
       "children": [
@@ -3226,27 +3263,38 @@
         "tools/migrate/viewgen"
       ],
       "depth": 2,
-      "size_chars": 77539
+      "size_chars": 80499
     },
     "tools/migrate/cmd": {
       "children": [
         "tools/migrate/cmd/viewgen"
       ],
       "depth": 3,
-      "size_chars": 2477
+      "size_chars": 2610
     },
     "tools/migrate/cmd/viewgen": {
       "children": [],
       "depth": 4,
-      "size_chars": 2064
+      "size_chars": 2889
     },
     "tools/migrate/viewgen": {
       "children": [],
       "depth": 3,
-      "size_chars": 6407
+      "size_chars": 5565
+    },
+    ".codex": {
+      "children": [
+        ".codex/agents",
+        ".codex/rules"
+      ],
+      "depth": 1,
+      "size_chars": 0,
+      "structural": true
     }
   },
   "leaves": [
+    ".codex/agents",
+    ".codex/rules",
     "api/client/go",
     "api/client/javascript/patches",
     "api/client/javascript/scripts",
@@ -3327,7 +3375,6 @@
     "app/common",
     "app/config",
     "cmd/balance-worker",
-    "cmd/benthos-collector",
     "cmd/billing-worker",
     "cmd/jobs/billing/advance",
     "cmd/jobs/billing/advancecharges",
@@ -3351,6 +3398,7 @@
     "collector/benthos/presets/http-server",
     "collector/benthos/presets/kubernetes-pod-exec-time",
     "collector/benthos/services/leaderelection",
+    "collector/cmd",
     "collector/quickstart/collector/resources",
     "collector/quickstart/collector/streams",
     "collector/quickstart/seeder",
@@ -3462,6 +3510,7 @@
     "openmeter/ingest/kafkaingest/topicresolver",
     "openmeter/ledger/account/adapter",
     "openmeter/ledger/account/service",
+    "openmeter/ledger/breakage/adapter",
     "openmeter/ledger/chargeadapter",
     "openmeter/ledger/collector",
     "openmeter/ledger/customerbalance",
@@ -3501,6 +3550,7 @@
     "openmeter/productcatalog/addon/service",
     "openmeter/productcatalog/driver",
     "openmeter/productcatalog/feature",
+    "openmeter/productcatalog/featureresolver",
     "openmeter/productcatalog/http",
     "openmeter/productcatalog/plan/adapter",
     "openmeter/productcatalog/plan/httpdriver",
@@ -3565,6 +3615,7 @@
     "pkg/equal",
     "pkg/errorsx",
     "pkg/expand",
+    "pkg/featuregate",
     "pkg/ffx",
     "pkg/filter",
     "pkg/framework/clickhouseotel",
@@ -3618,6 +3669,7 @@
     "tools/migrate/viewgen"
   ],
   "roots": [
+    ".codex",
     "api",
     "app",
     "cmd",

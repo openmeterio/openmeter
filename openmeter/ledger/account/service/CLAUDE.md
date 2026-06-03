@@ -6,46 +6,40 @@
 
 ## Patterns
 
-**Self-wiring of SubAccountService in New()** — New() constructs the service, sets live.SubAccountService = svc before storing live in the struct, so Account domain objects receive a real SubAccountService reference. Never construct the service and set SubAccountService externally. (`svc := &service{repo: repo, locker: locker}; svc.live = account.AccountLiveServices{SubAccountService: svc}; return svc`)
-**Validate input before repo calls** — CreateAccount and EnsureSubAccount call input.Validate() and return immediately on error before any repo interaction. All mutating methods must validate first. (`if err := input.Validate(); err != nil { return nil, err }`)
-**transaction.Run for multi-step mutations** — EnsureSubAccount wraps the repo call in transaction.Run(ctx, s.repo, ...) to ensure atomicity. Use transaction.Run whenever a method calls both a write and a subsequent read on the repo. (`return transaction.Run(ctx, s.repo, func(ctx context.Context) (ledger.SubAccount, error) { subAccountData, _ := s.repo.EnsureSubAccount(ctx, input); return account.NewSubAccountFromData(*subAccountData) })`)
-**Domain object construction via NewAccountFromData / NewSubAccountFromData** — Service methods must never return raw *AccountData or *SubAccountData. Always wrap via account.NewAccountFromData(data, s.live) or account.NewSubAccountFromData(data) to attach live runtime services. (`return account.NewAccountFromData(*accData, s.live)`)
-**Sorted deterministic lock ordering in LockAccountsForPosting** — LockAccountsForPosting deduplicates by NamespacedID, sorts IDs lexicographically (namespace then ID), and acquires advisory locks in order to prevent deadlocks between concurrent callers locking overlapping account sets. (`sort.Slice(ids, func(i, j int) bool { if ids[i].Namespace == ids[j].Namespace { return ids[i].ID < ids[j].ID }; return ids[i].Namespace < ids[j].Namespace })`)
+**Self-wiring of SubAccountService in New()** — New() builds the service, sets live.SubAccountService = svc before storing live, so Account domain objects receive a real SubAccountService. Never set it externally. (`svc := &service{repo: repo, locker: locker}; svc.live = account.AccountLiveServices{SubAccountService: svc}; return svc`)
+**Validate input before repo calls** — CreateAccount and EnsureSubAccount call input.Validate() and return immediately on error before any repo interaction. (`if err := input.Validate(); err != nil { return nil, err }`)
+**transaction.Run for multi-step mutations** — Wrap a write-then-read sequence in transaction.Run(ctx, s.repo, ...) for atomicity (e.g. EnsureSubAccount). (`return transaction.Run(ctx, s.repo, func(ctx context.Context) (ledger.SubAccount, error) { d, _ := s.repo.EnsureSubAccount(ctx, input); return account.NewSubAccountFromData(*d) })`)
+**Domain object construction via NewAccountFromData / NewSubAccountFromData** — Never return raw *AccountData/*SubAccountData; always wrap via account.NewAccountFromData(data, s.live) to attach live services. (`return account.NewAccountFromData(*accData, s.live)`)
+**Sorted deterministic lock ordering in LockAccountsForPosting** — LockAccountsForPosting dedups by NamespacedID, sorts lexicographically (namespace then ID), and acquires advisory locks in order to prevent deadlocks across concurrent callers. (`sort.Slice(ids, func(i, j int) bool { if ids[i].Namespace == ids[j].Namespace { return ids[i].ID < ids[j].ID }; return ids[i].Namespace < ids[j].Namespace })`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `service.go` | Entire service implementation. Exposes New() and satisfies account.Service via var _ account.Service = (*service)(nil). | The self-wiring of live.SubAccountService in New() is load-bearing — if SubAccountService is nil, Account.SubAccount() calls will panic at runtime. LockAccountsForPosting only locks FBO and Receivable account types; adding new account types that need locking requires updating the switch case. |
+| `service.go` | Entire service implementation; exposes New() and satisfies account.Service via var _ account.Service = (*service)(nil). | The self-wiring of live.SubAccountService is load-bearing — a nil SubAccountService panics on Account.SubAccount(). LockAccountsForPosting only locks FBO and Receivable types; new lockable types need a switch update. |
 
 ## Anti-Patterns
 
-- Returning *AccountData or *SubAccountData directly from service methods — callers expect domain objects with live services attached
-- Calling s.repo.EnsureSubAccount outside a transaction.Run when the method also calls s.GetAccountByID — creates a TOCTOU window
-- Constructing service and setting live.SubAccountService externally instead of via New() — self-wiring is intentional and load-bearing
-- Introducing context.Background() or context.TODO() — always propagate the caller's ctx
+- Returning *AccountData or *SubAccountData directly — callers expect domain objects with live services attached.
+- Calling s.repo.EnsureSubAccount outside transaction.Run when the method also reads — creates a TOCTOU window.
+- Constructing the service and setting live.SubAccountService externally — self-wiring is intentional and load-bearing.
+- Introducing context.Background()/context.TODO() — always propagate the caller's ctx.
 
 ## Decisions
 
-- **AccountLiveServices.SubAccountService is self-wired inside New() rather than injected as a separate dependency.** — Account domain objects need SubAccountService to load sub-accounts lazily; the single service implements both operations, so self-wiring resolves the circular dependency without an external intermediary.
-- **LockAccountsForPosting acquires advisory locks in sorted NamespacedID order.** — Consistent lock acquisition order across concurrent callers prevents deadlocks when two goroutines lock overlapping sets of customer accounts for ledger postings.
+- **AccountLiveServices.SubAccountService is self-wired inside New()** — Account domain objects need SubAccountService to load sub-accounts lazily; the same service implements both operations, resolving the circular dependency without an external intermediary.
+- **LockAccountsForPosting acquires advisory locks in sorted NamespacedID order** — Consistent lock-acquisition order across concurrent callers prevents deadlocks when goroutines lock overlapping customer account sets.
 
-## Example: Add a new mutating service method with validation and domain object wrapping
+## Example: Add a mutating service method with validation and domain wrapping
 
 ```
 func (s *service) ArchiveAccount(ctx context.Context, id models.NamespacedID) (ledger.Account, error) {
-	// validate inputs before touching the repo
-	if id.ID == "" || id.Namespace == "" {
-		return nil, models.NewGenericValidationError("account id and namespace are required")
-	}
-	return transaction.Run(ctx, s.repo, func(ctx context.Context) (ledger.Account, error) {
-		accData, err := s.repo.ArchiveAccount(ctx, id)
-		if err != nil {
-			return nil, fmt.Errorf("archive account: %w", err)
-		}
-		// always wrap raw data in domain object
-		return account.NewAccountFromData(*accData, s.live)
-	})
+    if id.ID == "" || id.Namespace == "" { return nil, models.NewGenericValidationError("account id and namespace are required") }
+    return transaction.Run(ctx, s.repo, func(ctx context.Context) (ledger.Account, error) {
+        accData, err := s.repo.ArchiveAccount(ctx, id)
+        if err != nil { return nil, fmt.Errorf("archive account: %w", err) }
+        return account.NewAccountFromData(*accData, s.live)
+    })
 }
 ```
 

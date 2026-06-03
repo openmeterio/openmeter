@@ -1,0 +1,81 @@
+{
+  "test/entitlement/regression": {
+    "purpose": "Integration regression test suite for the entitlement + credit engine, wiring real Ent/Postgres adapters against a MockStreamingConnector to reproduce and guard specific grant burn-down, expiry, voiding, and reset edge cases identified in production bugs.",
+    "patterns": [
+      {
+        "name": "Self-contained bootstrap via setupDependencies",
+        "description": "Each test calls setupDependencies(t), which constructs every adapter and service from underlying package constructors (no app/common) and returns a Dependencies struct. Tests must defer deps.Close() to release DBClient, EntDriver, and PGDriver.",
+        "example": "deps := setupDependencies(t); defer deps.Close()"
+      },
+      {
+        "name": "Controlled clock with defer reset",
+        "description": "Every test calls defer clock.ResetTime() at the top, then drives time forward with clock.SetTime(testutils.GetRFC3339Time(t, \"...\")) before each operation. Skipping the defer leaks global clock state into parallel tests.",
+        "example": "defer clock.ResetTime(); clock.SetTime(testutils.GetRFC3339Time(t, \"2024-06-28T14:30:21Z\"))"
+      },
+      {
+        "name": "MockStreamingConnector for usage events",
+        "description": "deps.Streaming (streamingtestutils.MockStreamingConnector) injects synthetic usage via AddSimpleEvent; never real ClickHouse. Future-dated events are deliberate to avoid 'event in future' connector errors.",
+        "example": "deps.Streaming.AddSimpleEvent(\"meter-1\", 10, testutils.GetRFC3339Time(t, \"2024-07-09T13:09:00Z\"))"
+      },
+      {
+        "name": "No app/common imports in test wiring",
+        "description": "All adapters and services are built directly from their own constructors (customeradapter.New, customerservice.New, entitlementservice.NewEntitlementService, etc.) to keep helpers independent of the DI layer and avoid import cycles.",
+        "example": "customerAdapter, err := customeradapter.New(customeradapter.Config{Client: dbClient, Logger: log})"
+      },
+      {
+        "name": "createCustomerAndSubject helper",
+        "description": "Tests create a subject and matching customer together via createCustomerAndSubject(...) before creating entitlements; the helper creates the subject first, then a customer with matching SubjectKeys.",
+        "example": "cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, \"namespace-1\", \"subject-1\", \"Subject 1\")"
+      },
+      {
+        "name": "Hooks registered after construction",
+        "description": "entitlementsubscriptionhook and credithook are registered on connectors via RegisterHooks after construction, mirroring the production wiring order in app/common.",
+        "example": "entitlementConnector.RegisterHooks(entitlementsubscriptionhook.NewEntitlementSubscriptionHook(...), credithook.NewEntitlementHook(grantRepo))"
+      },
+      {
+        "name": "Scenario tests named after the bug",
+        "description": "Test function names describe the exact production edge case (e.g. TestGrantExpiringAtReset, TestBalanceCalculationsAfterVoiding) and inline comments document the originally faulty behaviour and expected output.",
+        "example": "assert.Equal(0.0, currentBalance.Balance) // previously faulty: grant2 has expired by this point"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "framework_test.go",
+        "role": "Defines the Dependencies struct, setupDependencies(t) (the single wiring function using real Postgres via testutils.InitPostgresDB + mock streaming), and createCustomerAndSubject. deps.Close() releases DBClient, EntDriver, PGDriver.",
+        "watch_for": "dbClient.Schema.Create uses context.Background() (pre-existing \u2014 not a model to copy). Adding a dependency requires extending both the struct fields and the return literal."
+      },
+      {
+        "file": "scenario_test.go",
+        "role": "All scenario-named regression tests. Each reproduces a production bug timeline with exact RFC3339 timestamps, sequential clock.SetTime calls, and deterministic streaming events.",
+        "watch_for": "Do not normalise or truncate the exact timestamps; future-timestamped streaming events are deliberate connector-error workarounds, not mistakes."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common or any Wire provider set \u2014 test wiring must stay independent to avoid import cycles",
+      "Using context.Background() in new test code where t.Context() is available",
+      "Reusing the same subject/feature key across tests without isolated setupDependencies calls",
+      "Adding business logic or helpers beyond test scaffolding \u2014 this is purely a regression harness",
+      "Skipping defer clock.ResetTime() \u2014 leaves global clock state dirty for parallel tests"
+    ],
+    "decisions": [
+      {
+        "decision": "Wire from package constructors, not app/common",
+        "rationale": "Keeps test helpers isolated from application DI so unrelated wiring changes cannot introduce import cycles or break this package."
+      },
+      {
+        "decision": "MockStreamingConnector instead of real ClickHouse",
+        "rationale": "Regression tests need deterministic usage values at exact timestamps without ClickHouse infrastructure and without timing flakiness."
+      },
+      {
+        "decision": "Scenario tests named after the bug they reproduce",
+        "rationale": "Makes the guarded production edge case obvious; the inline comment documents the original faulty behaviour so the regression intent survives refactors."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Minimal new regression test structure",
+        "code": "func TestMyRegressionCase(t *testing.T) {\n\tdefer clock.ResetTime()\n\tdeps := setupDependencies(t)\n\tdefer deps.Close()\n\tctx := t.Context()\n\tassert := assert.New(t)\n\n\tclock.SetTime(testutils.GetRFC3339Time(t, \"2024-07-01T00:00:00Z\"))\n\tcust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, \"namespace-1\", \"subject-1\", \"Subject 1\")\n\t// create feature, entitlement, grants, add streaming events, assert balance\n\t_ = cust\n\t_ = assert\n}"
+      }
+    ]
+  }
+}

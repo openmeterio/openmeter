@@ -1,0 +1,264 @@
+{
+  "api/spec/packages/aip/common/definitions": {
+    "purpose": "Shared OpenAPI YAML component library for the v3 AIP spec: reusable filter schemas, RFC 7807 error responses, cursor pagination metadata, security schemes, and primitive property types referenced via $ref by all AIP routes. These are raw OpenAPI YAML fragments consumed by the TypeSpec build pipeline, not TypeSpec files.",
+    "patterns": [
+      {
+        "name": "RFC 7807 error hierarchy via allOf BaseError",
+        "description": "Every error schema extends BaseError (status, title, instance, detail required) via allOf; BadRequestError adds invalid_parameters, others add example values only. Never add a top-level error schema without extending BaseError.",
+        "example": "BadRequestError: allOf: [$ref: BaseError, {required: [invalid_parameters], properties: {invalid_parameters: {$ref: InvalidParameters}}}]"
+      },
+      {
+        "name": "Filter composition via oneOf over named atomic sub-types",
+        "description": "Composite filters (StringFieldFilter, NumericFieldFilter, DateTimeFieldFilter) are oneOf over named sub-types each with additionalProperties:false. New variants must be a named sub-type first, then listed in the parent oneOf \u2014 never inline anonymous objects.",
+        "example": "NumericFieldFilter: oneOf: [{type: number}, {$ref: NumericFieldEqualsFilter}, {$ref: NumericFieldLTFilter}, ...]"
+      },
+      {
+        "name": "x-examples required on every filter schema",
+        "description": "Every filter schema carries x-examples covering all variant forms; missing them produce incomplete SDK examples.",
+        "example": "StringFieldFilter: x-examples: {example-1: 'value', example-2: {eq: 'value'}, example-3: {contains: 'value'}}"
+      },
+      {
+        "name": "Cursor pagination via CursorMeta family",
+        "description": "Paginated responses reference CursorMeta, CursorMetaWithTotal, or CursorMetaWithEstimatedTotal from metadatas.yaml; never inline page metadata. CursorMetaPage requires size, next, previous (nullable strings).",
+        "example": "meta: {$ref: '#/components/schemas/CursorMeta'}  # wraps CursorMetaPage with first/last/next/previous/size"
+      },
+      {
+        "name": "readOnly:true on server-generated fields; UUID_RW for writable IDs",
+        "description": "UUID, CreatedAt, UpdatedAt and all error fields are readOnly:true; UUID_RW is the writable ID variant. New response-only fields must carry readOnly:true.",
+        "example": "UUID: {format: uuid, readOnly: true}  vs  UUID_RW: {format: uuid}  # no readOnly"
+      },
+      {
+        "name": "x-flatten-allOf:true on specialised ID types",
+        "description": "ID types composed via allOf (UserId, TeamId, OrganizationId, NullableTimestamp) include x-flatten-allOf:true to collapse the allOf wrapper in SDK output.",
+        "example": "UserId: {x-flatten-allOf: true, allOf: [{$ref: '#/.../UUID'}, {description: '...'}]}"
+      },
+      {
+        "name": "Security schemes only in security.yaml",
+        "description": "All bearer/cookie security schemes live in security.yaml; internal ones carry x-internal:true. Never inline a securityScheme in a route file.",
+        "example": "clientToken: {x-internal: true, type: http, scheme: bearer, bearerFormat: Token}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "aip_filters.yaml",
+        "role": "All reusable query-filter schemas: String/Numeric/DateTime/Uuid/Boolean FieldFilter, SortQuery, Labels/PublicLabels/AttributesFieldFilter, and atomic sub-types.",
+        "watch_for": "UuidFieldFilter reuses StringFieldEquals/OEQ/NEQ sub-types \u2014 do not duplicate. Adding a variant without x-examples gives incomplete SDK docs."
+      },
+      {
+        "file": "errors.yaml",
+        "role": "Full error tree: ErrorResponse status-discriminated union, per-status responses, BaseError, and InvalidParameter variants (Standard/Min/Max/Choice/Dependent).",
+        "watch_for": "Adding an HTTP error code requires updating both the oneOf list and discriminator.mapping. KonnectCPLegacy* is a parallel plain-JSON family \u2014 do not cross-reference with BaseError descendants."
+      },
+      {
+        "file": "metadatas.yaml",
+        "role": "Cursor pagination schemas (CursorMetaPage, CursorMeta, CursorMetaWithTotal/EstimatedTotal/SizeAndTotal) and page query params (CursorPageQuery, PageBefore/After/Size/Number).",
+        "watch_for": "CursorMetaWithSizeAndTotal differs from CursorMetaWithTotal (total may be null on non-first pages). Do not remove x-speakeasy-terraform-ignore on PageNumber/PageSize/PaginatedMeta."
+      },
+      {
+        "file": "properties.yaml",
+        "role": "Primitive property schemas (UUID, UUID_RW, CreatedAt, UpdatedAt, ExpiresAt, NullableTimestamp) and allOf+x-flatten-allOf ID types (UserId, PrincipalId, TeamId, OrganizationId).",
+        "watch_for": "UUID is readOnly; use UUID_RW for user-settable IDs. ID types need x-flatten-allOf:true."
+      },
+      {
+        "file": "konnect_properties.yaml",
+        "role": "Konnect-specific schemas: NullableUUID, Labels/LabelsUpdate, PublicLabels/PublicLabelsUpdate, EntityType, path params (AuditLogDestinationId, Workspace).",
+        "watch_for": "LabelsUpdate/PublicLabelsUpdate are writeOnly nullable variants \u2014 do not collapse read and write forms into one schema."
+      },
+      {
+        "file": "security.yaml",
+        "role": "Central registry of all securitySchemes (personalAccessToken, systemAccountAccessToken, konnectAccessToken, portalAccessToken, serviceAccessToken, clientToken).",
+        "watch_for": "clientToken carries x-internal:true \u2014 keep it to prevent public SDK exposure. Defining a scheme here is not enough; it must be referenced by routes."
+      }
+    ],
+    "anti_patterns": [
+      "Inline anonymous filter objects inside a oneOf instead of a named sub-type with additionalProperties:false",
+      "Error schemas not extending BaseError via allOf \u2014 breaks RFC 7807 and the ErrorResponse discriminator",
+      "Omitting x-examples on new filter schemas",
+      "Adding security schemes in route files instead of security.yaml",
+      "Mixing KonnectCPLegacy* schemas with standard BaseError descendants"
+    ],
+    "decisions": [
+      {
+        "decision": "Filter types use oneOf over named atomic sub-types",
+        "rationale": "Named sub-types let SDK generators produce distinct type names (e.g. NumericFieldLTFilter) and enable $ref reuse without duplication."
+      },
+      {
+        "decision": "Pagination split into CursorMeta vs WithTotal vs WithEstimatedTotal",
+        "rationale": "Endpoints have different cost profiles for exact vs estimated counts; one schema would over-compute or mislead clients about accuracy."
+      },
+      {
+        "decision": "KonnectCPLegacy* schemas coexist with RFC 7807 BaseError",
+        "rationale": "Legacy Kong gateway endpoints return plain {message} JSON while AIP endpoints return application/problem+json; both must be expressible without polluting each other."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/spec/packages/aip/lib/rules": {
+    "purpose": "Custom TypeSpec linter rules enforcing AIP naming conventions and structural constraints for the v3 API spec. Rules run during make gen-api (tsp compile) and block (error) or warn before any OpenAPI/SDK artifact is generated.",
+    "patterns": [
+      {
+        "name": "createRule factory for every rule",
+        "description": "Every rule is exported via createRule from @typespec/compiler returning a visitor-callback object; never raw functions or classes.",
+        "example": "export const myRule = createRule({ name: 'my-rule', severity: 'warning', messages: { default: paramMessage`...` }, create: (context) => ({ model: (node) => { ... } }) })"
+      },
+      {
+        "name": "Two-tier severity: error blocks, warning informs",
+        "description": "Rules whose violations corrupt wire format or SDK method names (enum values snake_case, @friendlyName presence) use severity:'error'; style/doc rules use 'warning'.",
+        "example": "casingErrorsRule (enum member values) -> 'error'; docDecoratorRule (missing @doc) -> 'warning'"
+      },
+      {
+        "name": "Casing contracts by node type",
+        "description": "Model names PascalCase; non-path properties snake_case; $path params camelCase; enum names/members PascalCase; enum member values snake_case; @operationId kebab-case. The $path decorator is checked before choosing camelCase vs snake_case.",
+        "example": "property.decorators.find(d => d.decorator.name === '$path') ? camelCase : snake_case"
+      },
+      {
+        "name": "@friendlyName required, inverted for *Endpoints/*Operations",
+        "description": "All named models/enums/unions/interfaces require @friendlyName EXCEPT interfaces ending in Endpoints or Operations, which must NOT have it. Violation severity is 'error'.",
+        "example": "isEndpointsOrOperations && hasFriendlyName -> report 'avoid'; !isEndpointsOrOperations && !hasFriendlyName -> report 'default'"
+      },
+      {
+        "name": "Casing helpers live only in utils.js",
+        "description": "isPascalCaseNoAcronyms/isCamelCaseNoAcronyms/isSnakeCase/isKebabCase are exported from utils.js with a PascalCase exceptions list (OAuth2, URL, API, UI, ID). Rule files import them; never inline regexes.",
+        "example": "import { isPascalCaseNoAcronyms, isSnakeCase } from './utils.js'"
+      },
+      {
+        "name": "field-prefix EXCLUDED_PREFIXES governs exemptions",
+        "description": "When 2+ fields share an underscore prefix a grouping warning fires; AIP-standard boolean prefixes (is, enable, disable, allow, etc.) are exempt via the EXCLUDED_PREFIXES array.",
+        "example": "EXCLUDED_PREFIXES in field-prefix.js \u2014 add new globally-exempt prefixes here"
+      },
+      {
+        "name": "Composition over inheritance",
+        "description": "extends without @discriminator on the base triggers a warning; composition-over-inheritance.js uses isTemplateInstance() to give a different message for template-based vs plain extension.",
+        "example": "model Foo { ...BaseFields; } // OK   vs   model Foo extends Base {} // warning unless @discriminator on Base"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "utils.js",
+        "role": "Single source for casing helpers and doc-comment string helpers (extractMarkdownFromDocComment, wrapMarkdownAsDocComment, detectNewline, getIndentBefore); holds the PascalCase exceptions list.",
+        "watch_for": "Add new acronyms (e.g. that the regex wrongly flags) to the exceptions list here; never inline regexes in rule files."
+      },
+      {
+        "file": "casing.js",
+        "role": "Two rules: casing (warning) for name casing; casing-aip-errors (error) for enum member values being snake_case. The modelProperty visitor checks $path before camelCase vs snake_case.",
+        "watch_for": "Forgetting the $path check produces false positives on path params."
+      },
+      {
+        "file": "friendly-name.js",
+        "role": "Error-severity rule requiring @friendlyName on named types; INVERTED for *Endpoints/*Operations interfaces.",
+        "watch_for": "Getting the inversion wrong (flagging Endpoints interfaces for missing @friendlyName) is the most common mistake."
+      },
+      {
+        "file": "docs.js",
+        "role": "doc-decorator (warning on missing @doc) and doc-format (async Prettier formatting of doc bodies). Models ending in Response are exempt from property @doc; properties named _ or contentType always exempt.",
+        "watch_for": "doc-format is async (Prettier 3.x), declares async:true and batch-processes DocNodes in an exit() hook \u2014 do not make it sync."
+      },
+      {
+        "file": "field-prefix.js",
+        "role": "Warns when 2+ fields share an underscore prefix; EXCLUDED_PREFIXES exempts AIP boolean-flag prefixes.",
+        "watch_for": "Globally-exempt prefixes must go in EXCLUDED_PREFIXES or they warn on all uses."
+      },
+      {
+        "file": "no-nullable.js",
+        "role": "Warns against `field: T | null`; prefer `field?: T`. Only fires on non-optional union properties including null.",
+        "watch_for": "Checks !property.node?.optional \u2014 optional `| null` properties are intentionally not flagged."
+      },
+      {
+        "file": "composition-over-inheritance.js",
+        "role": "Warns on extends without @discriminator; isTemplateInstance() distinguishes template vs plain bases (messageId 'instance' vs 'default').",
+        "watch_for": "Keep both message variants in sync."
+      }
+    ],
+    "anti_patterns": [
+      "Defining rules as raw functions instead of createRule",
+      "Using `| null` on properties instead of the optional `?` modifier",
+      "Adding a field-prefix exemption inline instead of in EXCLUDED_PREFIXES",
+      "Using extends for composition without @discriminator on the base",
+      "Omitting @friendlyName/@doc/@summary on new named types/operations"
+    ],
+    "decisions": [
+      {
+        "decision": "Error severity for wire-format/SDK-name constraints; warning for stylistic",
+        "rationale": "Enum values must be snake_case (JSON wire) and @operationId kebab-case (SDK method names) \u2014 violations corrupt artifacts; doc/composition rules are warnings to allow incremental adoption."
+      },
+      {
+        "decision": "PascalCase exceptions list (OAuth2, URL, API, UI, ID) in utils.js",
+        "rationale": "AIP acknowledges common industry acronyms; without the list, names like APIKey would be wrongly flagged."
+      },
+      {
+        "decision": "field-prefix exempts AIP boolean-flag prefixes via EXCLUDED_PREFIXES",
+        "rationale": "AIP defines standard boolean prefixes (is_active, enable_x) that intentionally repeat; grouping them would violate AIP guidance."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/spec/packages/aip/scripts": {
+    "purpose": "Post-processing Node.js ESM scripts that fix TypeSpec-generated OpenAPI YAML before SDK generators and runtime validators consume it. Each is a standalone CLI tool invoked by make gen-api after tsp compile.",
+    "patterns": [
+      {
+        "name": "YAML round-trip with fixed formatting",
+        "description": "Each script reads with YAML.parse, mutates in place, then writes with YAML.stringify(doc, { indent: 2, lineWidth: 0 }). lineWidth:0 is mandatory to avoid spurious line-wrap diffs.",
+        "example": "const parsed = await readYamlFile(filePath); if (flattenAllOf(parsed)) await writeYamlFile(filePath, parsed)"
+      },
+      {
+        "name": "Idempotency marker x-flatten-allOf",
+        "description": "flatten-allof.mjs stamps x-flatten-allOf:true on processed nodes to prevent double-processing on re-runs; the x- prefix is ignored by OpenAPI tooling. Check the marker before mutating.",
+        "example": "if (node[FLATTEN_MARKER] !== true) { node[FLATTEN_MARKER] = true; return true; } return false"
+      },
+      {
+        "name": "Recursive walk returning changed boolean",
+        "description": "Transform functions recurse the YAML tree and return a boolean; main() skips the write when changed === false to avoid no-op file touches.",
+        "example": "for (const value of Object.values(node)) changed = flattenAllOf(value) || changed"
+      },
+      {
+        "name": "additionalProperties:{not:{}} -> false rewrite",
+        "description": "seal-object-schemas.mjs rewrites the TypeSpec seal-object-schemas form `{ not: {} }` to `false` because kin-openapi's deepObject query decoder cannot handle the not:{} form.",
+        "example": "if (isNotEmptyObject(node.additionalProperties)) { node.additionalProperties = false; changed = true }"
+      },
+      {
+        "name": "apply-doc-fixes uses the TypeSpec compiler API",
+        "description": "apply-doc-fixes.mjs calls compile() and applyCodeFixes() directly (not the CLI), deriving the entry point from package.json#exports['.'].typespec and ruleset from package.json#name so renaming the package stays correct.",
+        "example": "const program = await compile(NodeHost, entry, { noEmit: true, linterRuleSet: { extends: [RULESET] } }); await applyCodeFixes(NodeHost, fixes)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "flatten-allof.mjs",
+        "role": "Moves sibling properties on allOf-with-$ref schemas into a new allOf branch for well-formed SDK output. Invoked as `node flatten-allof.mjs api/v3/openapi.yaml`.",
+        "watch_for": "Only processes nodes whose allOf contains a $ref; x-* keys are never moved; removing the marker check causes infinite loops on re-run."
+      },
+      {
+        "file": "seal-object-schemas.mjs",
+        "role": "Rewrites additionalProperties:{not:{}} to false across one or more YAML files (supports globs, dedups via a Set).",
+        "watch_for": "isNotEmptyObject is precise: exactly one key `not` whose value is an empty plain object."
+      },
+      {
+        "file": "apply-doc-fixes.mjs",
+        "role": "Applies the TypeSpec format-doc-comment codefix in place via the compiler API.",
+        "watch_for": "Exits 0 (not 1) when there are no fixes \u2014 callers must not treat exit 0 as failure. Only applies fixes whose id === 'format-doc-comment', skipping the auto-attached suppress codefix."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic or spec-authoring code here \u2014 this is strictly a post-processing layer",
+      "Changing YAML_OPTIONS.lineWidth from 0 \u2014 produces spurious line-wrap diffs",
+      "Removing the x-flatten-allOf idempotency marker check \u2014 causes infinite loops on re-run",
+      "Introducing a build/transpilation step \u2014 scripts run directly as ESM .mjs",
+      "Mutating TypeSpec source files in api/spec/packages/ \u2014 these scripts only post-process generated YAML"
+    ],
+    "decisions": [
+      {
+        "decision": "Scripts are standalone ESM .mjs with no build step",
+        "rationale": "Keeps the toolchain simple \u2014 make gen-api invokes them as plain `node script.mjs`, no bundler or transpilation."
+      },
+      {
+        "decision": "The idempotency marker uses the x- vendor extension prefix",
+        "rationale": "OpenAPI tooling ignores x- keys, so the marker survives downstream validation without unknown-field errors."
+      },
+      {
+        "decision": "additionalProperties:{not:{}} is rewritten to false, not removed",
+        "rationale": "Preserves the closed-schema semantics TypeSpec intended; `false` is semantically equivalent and accepted by kin-openapi's deepObject decoder."
+      }
+    ],
+    "code_examples": []
+  }
+}

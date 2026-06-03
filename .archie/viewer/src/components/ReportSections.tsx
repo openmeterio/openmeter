@@ -8,7 +8,7 @@ import { Badge } from './ui/badge'
 import { Progress } from './ui/progress'
 import { lazy, Suspense, useContext, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronRight, FileText, Database, Activity, Shield, Zap, Server, HelpCircle, AlertTriangle, Rocket, Info, Terminal, Layers, Search, BarChart3, ChevronDown, CheckCircle2 } from 'lucide-react'
+import { ChevronRight, FileText, Database, Activity, Shield, Zap, Server, HelpCircle, AlertTriangle, Rocket, Info, Terminal, Layers, Search, BarChart3, ChevronDown, CheckCircle2, AlertCircle } from 'lucide-react'
 // @ts-ignore
 import ReactMarkdown from 'react-markdown'
 // @ts-ignore
@@ -805,7 +805,7 @@ export function DuplicationCard({
         </div>
         <div className="text-[11px] text-ink/50 leading-snug">
           {semanticCount === null ? (
-            'Not yet analyzed — run /archie-scan to detect near-twin functions.'
+            'Not yet analyzed — run /archie-deep-scan to detect near-twin functions.'
           ) : semanticCount === 0 ? (
             'No near-twin functions detected by AI analysis.'
           ) : (
@@ -941,6 +941,424 @@ export function ComponentsSection({ components }: { components: any[] }) {
   )
 }
 
+// Backward-compat normalizers — accept both the v2 data agent shape and the
+// legacy v1 shape so old blueprints still render usefully without re-scanning.
+
+const STORE_ROLE_PRIORITY: Record<string, number> = {
+  primary: 0, search: 1, queue: 2, cache: 3, local: 4, analytics: 5, object_storage: 6,
+}
+
+function modelImportance(m: any): [number, number] {
+  const consumers = Array.isArray(m?.consumers)
+    ? m.consumers.length
+    : Array.isArray(m?.lifecycle?.related_business_logic)
+      ? m.lifecycle.related_business_logic.length
+      : 0
+  const fields = Array.isArray(m?.fields) && m.fields.length > 0
+    ? m.fields.length
+    : Array.isArray(m?.key_fields) ? m.key_fields.length : 0
+  return [-consumers, -fields]
+}
+
+function sortDataModels(models: any[]): any[] {
+  return [...models]
+    .filter((m) => m && typeof m === 'object')
+    .sort((a, b) => {
+      const [ac, af] = modelImportance(a)
+      const [bc, bf] = modelImportance(b)
+      if (ac !== bc) return ac - bc
+      if (af !== bf) return af - bf
+      return String(a?.name ?? '').localeCompare(String(b?.name ?? ''))
+    })
+}
+
+function storeImportance(s: any): [number, number] {
+  const owned = Array.isArray(s?.owned_models) ? s.owned_models.length : 0
+  const role = String(s?.role ?? '').toLowerCase()
+  const roleRank = STORE_ROLE_PRIORITY[role] ?? 99
+  return [-owned, roleRank]
+}
+
+function sortPersistenceStores(stores: any[]): any[] {
+  return [...stores]
+    .filter((s) => s && typeof s === 'object')
+    .sort((a, b) => {
+      const [ao, ar] = storeImportance(a)
+      const [bo, br] = storeImportance(b)
+      if (ao !== bo) return ao - bo
+      if (ar !== br) return ar - br
+      return String(a?.name ?? '').localeCompare(String(b?.name ?? ''))
+    })
+}
+
+// Resolve a Wave 1 `owned_by_component` slug to a known component name.
+// Mirrors the algorithm in archie/standalone/diagram.py::_resolve_to_component
+// so client-side rendering stays consistent with server-side derivation if
+// we add caching later.
+function resolveOwnerToComponent(
+  ownerSlug: string,
+  components: any[],
+  componentNames: Set<string>,
+): string {
+  const raw = (ownerSlug || '').trim()
+  if (!raw) return ''
+  if (componentNames.has(raw)) return raw
+  const stripped = raw.split('(')[0].trim().replace(/,$/, '').trim()
+  if (stripped && stripped !== raw && componentNames.has(stripped)) return stripped
+  const candidate = (stripped || raw).replace(/^\.\//, '').replace(/\/$/, '')
+  if (!candidate) return ''
+
+  const matchSlug = (slug: string): string => {
+    for (const c of components) {
+      const loc = String(c?.location ?? '').replace(/\/$/, '')
+      if (loc.endsWith('/' + slug) || loc === slug) {
+        return String(c?.name ?? '')
+      }
+    }
+    return ''
+  }
+
+  // 1. Exact slug suffix match
+  const direct = matchSlug(candidate)
+  if (direct) return direct
+
+  // 2. Ancestor walk — `common/domain/repository/settings` → `common/domain/repository` → ...
+  const parts = candidate.split('/')
+  for (let i = parts.length - 1; i > 0; i--) {
+    const parent = parts.slice(0, i).join('/')
+    if (!parent) continue
+    const hit = matchSlug(parent)
+    if (hit) return hit
+  }
+  return ''
+}
+
+function deriveWritersByStore(
+  models: any[],
+  components: any[],
+): Record<string, string[]> {
+  const componentNames = new Set<string>(
+    components.map((c: any) => String(c?.name ?? '')).filter(Boolean),
+  )
+  const writersByStore: Record<string, Set<string>> = {}
+  for (const m of models) {
+    const owner = String(m?.owned_by_component ?? '').trim()
+    const store = String(m?.store ?? '').trim()
+    if (!owner || !store) continue
+    const resolved = resolveOwnerToComponent(owner, components, componentNames)
+    if (!resolved) continue
+    if (!writersByStore[store]) writersByStore[store] = new Set()
+    writersByStore[store].add(resolved)
+  }
+  // Sort writers alphabetically for stable rendering across runs.
+  const out: Record<string, string[]> = {}
+  for (const [store, writers] of Object.entries(writersByStore)) {
+    out[store] = Array.from(writers).sort()
+  }
+  return out
+}
+
+function normalizeFields(m: any): { name: string; type: string; description: string }[] {
+  if (Array.isArray(m?.fields) && m.fields.length > 0) {
+    return m.fields.map((f: any) =>
+      typeof f === 'string'
+        ? { name: f, type: '', description: '' }
+        : { name: String(f?.name ?? ''), type: String(f?.type ?? ''), description: String(f?.description ?? '') }
+    )
+  }
+  if (Array.isArray(m?.key_fields)) {
+    return m.key_fields.map((k: any) => ({ name: String(k ?? ''), type: '', description: '' }))
+  }
+  return []
+}
+
+function normalizeGuarantees(m: any): string[] {
+  if (Array.isArray(m?.guarantees)) return m.guarantees.map((g: any) => String(g))
+  if (Array.isArray(m?.invariants)) return m.invariants.map((g: any) => String(g))
+  return []
+}
+
+function normalizeConsumers(m: any): { object: string; file: string; role: string }[] {
+  if (Array.isArray(m?.consumers) && m.consumers.length > 0) {
+    return m.consumers.map((c: any) =>
+      typeof c === 'string'
+        ? { object: '', file: c, role: '' }
+        : { object: String(c?.object ?? ''), file: String(c?.file ?? ''), role: String(c?.role ?? '') }
+    )
+  }
+  const legacy = m?.lifecycle?.related_business_logic
+  if (Array.isArray(legacy)) {
+    return legacy.map((p: any) => ({ object: '', file: String(p ?? ''), role: '' }))
+  }
+  return []
+}
+
+function normalizeLifecycleStep(raw: any): { prose: string; example: string } {
+  if (raw && typeof raw === 'object') {
+    return { prose: String(raw.prose ?? ''), example: String(raw.example ?? '') }
+  }
+  if (typeof raw === 'string') return { prose: raw, example: '' }
+  return { prose: '', example: '' }
+}
+
+function LifecycleStep({ label, prose, example }: { label: string; prose: string; example: string }) {
+  if (!prose && !example) return null
+  return (
+    <div className="space-y-2">
+      <div className="text-sm">
+        <span className="text-[10px] font-black text-ink/40 uppercase tracking-[0.15em] mr-2">{label}:</span>
+        {prose && <span className="text-ink/70"><AutoCode text={prose} /></span>}
+      </div>
+      {example && (
+        <pre className="bg-ink/5 rounded-lg p-3 overflow-x-auto text-[11px] font-mono leading-snug text-ink/80 whitespace-pre">
+          <code>{example}</code>
+        </pre>
+      )}
+    </div>
+  )
+}
+
+const DATA_MODELS_SECTION_INTRO =
+  "Domain entities, DTOs, and value objects this codebase reads and writes."
+
+export function DataModelsSection({
+  models,
+  stores,
+  dataOverview,
+  components,
+}: {
+  models: any[]
+  stores: any[]
+  dataOverview?: string
+  components?: any[]
+}) {
+  // Models first (what an editor agent reaches for); stores after (reference
+  // material). Both sorted by importance: models by consumer count, stores
+  // by owned-model count.
+  const sortedModels = sortDataModels(models)
+  const sortedStores = sortPersistenceStores(stores)
+  const writersByStore = deriveWritersByStore(models || [], components || [])
+  return (
+    <section className="space-y-4" id="data-models">
+      <SectionHeader title="Data Models" icon={Database} />
+
+      {dataOverview && dataOverview.trim().length > 0 && (
+        <div className="text-sm text-ink/80 italic">
+          <Prose value={dataOverview.trim()} />
+        </div>
+      )}
+
+      {sortedModels.length > 0 && (
+        <div className="space-y-3">
+          <div className="text-[10px] font-black text-ink/30 uppercase tracking-[0.15em]">Models</div>
+          <div className="text-xs text-ink/50 italic">{DATA_MODELS_SECTION_INTRO}</div>
+          <div className="grid gap-4">
+            {sortedModels.map((m: any, i: number) => {
+              const fields = normalizeFields(m)
+              const guarantees = normalizeGuarantees(m)
+              const consumers = normalizeConsumers(m)
+              const howAdd = normalizeLifecycleStep(m?.lifecycle?.how_to_add)
+              const howMod = normalizeLifecycleStep(m?.lifecycle?.how_to_modify)
+              const howRead = normalizeLifecycleStep(m?.lifecycle?.how_to_read)
+              const backup = String(m?.lifecycle?.backup_strategy ?? '')
+              const tests = Array.isArray(m?.lifecycle?.tests) ? m.lifecycle.tests : []
+              const hasLifecycle =
+                howAdd.prose || howAdd.example ||
+                howMod.prose || howMod.example ||
+                howRead.prose || howRead.example ||
+                backup || tests.length > 0
+              return (
+                <div key={i} className={cn("rounded-3xl border overflow-hidden transition-all group hover:shadow-xl hover:-translate-y-0.5", theme.surface.panel)}>
+                  <details className="group/details">
+                    <summary className="list-none cursor-pointer p-6">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="p-3 rounded-2xl bg-white border border-papaya-400 shadow-sm group-hover:border-teal/30 transition-colors">
+                            <Database className="w-5 h-5 text-teal" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-bold text-lg text-ink truncate">{m.name}</h3>
+                              {m.kind && (
+                                <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider">{m.kind}</Badge>
+                              )}
+                              {m.store && (
+                                <Badge className="text-[10px] uppercase font-bold tracking-wider bg-teal/10 border-teal/20 text-teal">{m.store}</Badge>
+                              )}
+                            </div>
+                            {m.location && (
+                              <div className="mt-1 block truncate">
+                                <PathChip path={m.location} className="text-[10px]" />
+                              </div>
+                            )}
+                            {m.description && String(m.description).trim().length > 0 && (
+                              <div className="mt-2 text-sm text-ink/70 leading-relaxed">
+                                <Prose value={String(m.description).trim()} />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-ink/20 group-open/details:rotate-90 transition-transform shrink-0" />
+                      </div>
+                    </summary>
+                    <div className="px-6 pb-6 pt-2 border-t border-papaya-400/30 bg-white/30 backdrop-blur-sm space-y-6">
+                      {m.owned_by_component && (
+                        <div className="text-sm">
+                          <span className="text-[10px] font-black text-ink/30 uppercase tracking-[0.15em] mr-2">Owner:</span>
+                          <code className={codeInlineClassName}>{m.owned_by_component}</code>
+                        </div>
+                      )}
+
+                      {fields.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-[10px] font-black text-ink/30 uppercase tracking-[0.15em]">Fields</div>
+                          <div className="rounded-xl border border-papaya-400/30 overflow-hidden">
+                            <table className="w-full text-sm">
+                              <thead className="bg-ink/5">
+                                <tr>
+                                  <th className="text-left px-3 py-2 font-bold text-[10px] uppercase tracking-[0.15em] text-ink/50">Field</th>
+                                  <th className="text-left px-3 py-2 font-bold text-[10px] uppercase tracking-[0.15em] text-ink/50">Type</th>
+                                  <th className="text-left px-3 py-2 font-bold text-[10px] uppercase tracking-[0.15em] text-ink/50">Description</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {fields.map((f, idx) => (
+                                  <tr key={idx} className="border-t border-papaya-400/20 align-top">
+                                    <td className="px-3 py-2"><code className="font-mono text-[11px]">{f.name}</code></td>
+                                    <td className="px-3 py-2 text-ink/60 font-mono text-[11px]">{f.type || '—'}</td>
+                                    <td className="px-3 py-2 text-ink/70">{f.description || ''}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {guarantees.length > 0 && (
+                        <FieldList label="Data Guarantees" items={guarantees} mono />
+                      )}
+
+                      {consumers.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-[10px] font-black text-ink/30 uppercase tracking-[0.15em]">Consumers</div>
+                          <ul className="space-y-2">
+                            {consumers.map((c, idx) => (
+                              <li key={idx} className="text-sm">
+                                <div className="flex items-baseline gap-2 flex-wrap">
+                                  {c.object && (
+                                    <code className="font-mono text-[12px] font-semibold text-ink">{c.object}</code>
+                                  )}
+                                  {c.file && (
+                                    <PathChip path={c.file} className="text-[10px]" />
+                                  )}
+                                </div>
+                                {c.role && (
+                                  <div className="text-ink/70 italic mt-0.5">{c.role}</div>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {hasLifecycle && (
+                        <div className="space-y-3">
+                          <div className="text-[10px] font-black text-ink/30 uppercase tracking-[0.15em]">Lifecycle</div>
+                          <LifecycleStep label="How to add" prose={howAdd.prose} example={howAdd.example} />
+                          <LifecycleStep label="How to modify" prose={howMod.prose} example={howMod.example} />
+                          <LifecycleStep label="How to read" prose={howRead.prose} example={howRead.example} />
+                          {backup && (
+                            <div className="text-sm">
+                              <span className="text-[10px] font-black text-ink/40 uppercase tracking-[0.15em] mr-2">Backup:</span>
+                              <span className="text-ink/70 italic">{backup}</span>
+                            </div>
+                          )}
+                          {tests.length > 0 && (
+                            <FieldList label="Tests" items={tests} mono />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {sortedStores.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-baseline gap-3">
+            <div className="text-[10px] font-black text-ink/30 uppercase tracking-[0.15em]">Persistence Stores</div>
+            <span className="text-xs text-ink/40 italic">— where state lives and who writes it</span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {sortedStores.map((s: any, i: number) => {
+              const writers = writersByStore[s.name] || []
+              return (
+                <div key={i} className={cn("p-4 rounded-2xl border", theme.surface.panel)}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-bold text-ink truncate">{s.name}</h3>
+                    {s.role && (
+                      <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider">{s.role}</Badge>
+                    )}
+                  </div>
+                  {s.engine && (
+                    <div className="text-sm text-ink/70 mb-1">{s.engine}</div>
+                  )}
+                  {s.description && String(s.description).trim().length > 0 && (
+                    <div className="text-sm text-ink/70 italic leading-relaxed mt-2">
+                      <Prose value={String(s.description).trim()} />
+                    </div>
+                  )}
+
+                  {Array.isArray(s.owned_models) && s.owned_models.length > 0 && (
+                    <div className="mt-4">
+                      <div className="text-[10px] font-black text-ink/40 uppercase tracking-[0.15em] mb-1.5">Lives here</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {s.owned_models.map((m: string, j: number) => (
+                          <Badge key={j} variant="outline" className="text-[10px]">{m}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {writers.length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-[10px] font-black text-ink/40 uppercase tracking-[0.15em] mb-1.5">Written by</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {writers.map((w, j) => (
+                          <Badge key={j} className="text-[10px] bg-teal/10 border-teal/20 text-teal border">{w}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(s.migrations_dir || s.backup_strategy) && (
+                    <div className="mt-3 pt-3 border-t border-papaya-400/20 space-y-1.5">
+                      {s.migrations_dir && (
+                        <div className="flex items-baseline gap-2 text-xs">
+                          <span className="text-[10px] font-black text-ink/30 uppercase tracking-[0.15em]">Migrations:</span>
+                          <PathChip path={s.migrations_dir} className="text-[10px]" />
+                        </div>
+                      )}
+                      {s.backup_strategy && (
+                        <div className="text-xs text-ink/60 italic"><Prose value={s.backup_strategy} /></div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
 export function TradeOffsSection({ tradeoffs }: { tradeoffs: any[] }) {
   return (
     <section className="space-y-4">
@@ -978,6 +1396,111 @@ export function TradeOffsSection({ tradeoffs }: { tradeoffs: any[] }) {
     </section>
   )
 }
+
+// Color the HTTP status badge by class: 2xx teal, 4xx tangerine, 5xx brandy.
+// Anything else (3xx, unknown) stays neutral so a malformed code never reads
+// as a hard error.
+function statusTone(code: number): string {
+  if (code >= 500) return 'text-brandy border-brandy/30 bg-brandy/5'
+  if (code >= 400) return 'text-tangerine-800 border-tangerine/30 bg-tangerine/5'
+  if (code >= 200 && code < 300) return 'text-teal border-teal/30 bg-teal/5'
+  return 'text-ink/60 border-ink/10 bg-white'
+}
+
+// Standalone Errors section — quick_reference.error_mapping. The domain
+// error → HTTP status contract. (pattern_selection is NOT here: it's folded
+// into Communications as a scenario index, since each entry just points at a
+// communication pattern that already carries the full explanation.)
+export function ErrorsSection({ errorMapping }: { errorMapping: any[] }) {
+  const errors = Array.isArray(errorMapping)
+    ? errorMapping.filter((e) => e && (e.error || e.status_code != null || e.status != null))
+    : []
+  if (errors.length === 0) return null
+  return (
+    <section className="space-y-4">
+      <SectionHeader
+        title="Errors"
+        icon={AlertCircle}
+        hint="The domain error → HTTP status contract: which error types map to which response codes."
+      />
+      <div className={cn('rounded-3xl border overflow-hidden', theme.surface.panel)}>
+        <div className="px-5 py-3 bg-ink/[0.02] border-b border-papaya-400/20">
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-ink/40">Error → HTTP status</span>
+        </div>
+        <table className="w-full text-sm">
+          <tbody className="divide-y divide-papaya-400/20">
+            {errors.map((e, i) => {
+              const code = e.status_code ?? e.status
+              return (
+                <tr key={i} className="align-top hover:bg-white/40 transition-colors">
+                  <td className="px-5 py-3 whitespace-nowrap">
+                    <code className={cn(codeInlineClassName, 'text-[11px]')}>{e.error}</code>
+                  </td>
+                  <td className="px-3 py-3 w-px">
+                    {code != null && (
+                      <Badge
+                        variant="outline"
+                        className={cn('text-[11px] font-bold tabular-nums', statusTone(Number(code)))}
+                      >
+                        {code}
+                      </Badge>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-ink/70 leading-relaxed">
+                    {e.description && <AutoCode text={e.description} />}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+// --- pattern_selection → Communications scenario index ---------------------
+const PS_STOP = new Set(
+  'the a an of for and or to in on with per under at as is are be by from into via using use new each any'.split(' '),
+)
+function psToks(s: string): Set<string> {
+  return new Set((s || '').toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length > 2 && !PS_STOP.has(t)))
+}
+// Stable per-card anchor derived from the pattern name.
+export function commSlug(name: string): string {
+  return 'comm-' + (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60)
+}
+// Best-effort join of a pattern_selection entry to a communication pattern, by
+// token overlap on the pattern body plus shared scope dirs. Returns the
+// matching index or -1. Low-harm: used only to turn the scenario label into a
+// jump link — an uncertain match renders as plain text instead of guessing.
+// (The robust path is an explicit pattern_ref emitted by the scan; when that
+// lands this heuristic becomes the fallback for older blueprints.)
+function matchScenarioToComm(entry: any, communications: any[]): number {
+  const q = new Set<string>([...psToks(entry?.pattern), ...psToks(entry?.scenario)])
+  const escope: string[] = Array.isArray(entry?.scope) ? entry.scope : []
+  let best = -1
+  let bestScore = 0
+  communications.forEach((c, i) => {
+    const bt = psToks([c?.type, c?.how_it_works, c?.when_to_use].filter(Boolean).join(' '))
+    if (q.size === 0 || bt.size === 0) return
+    let inter = 0
+    q.forEach((t) => { if (bt.has(t)) inter++ })
+    const overlap = inter / q.size
+    const cscope: string[] = Array.isArray(c?.scope) ? c.scope : []
+    const scov = escope.filter((s) => cscope.includes(s)).length
+    const score = overlap + 0.15 * scov
+    const confident = inter >= 3 || scov >= 2 || score >= 0.6
+    if (confident && score > bestScore) {
+      bestScore = score
+      best = i
+    }
+  })
+  return best
+}
+
+// (Scenario rows are folded onto the matching Communications cards below as
+// "Reach for this when" triggers — see CommunicationsSection.)
 
 export function PitfallsSection({
   pitfalls,
@@ -1415,6 +1938,23 @@ export function ImplementationGuidelinesSection({ items }: { items: any[] }) {
 // still render correctly.
 // ---------------------------------------------------------------------------
 
+// Plain-text explanations shown on hover over a rule's kind badge. Kept in
+// sync with archie/standalone/rule_kinds.py::KIND_DESCRIPTIONS. Native `title`
+// is used (not a positioned popover) because the rule card is overflow-hidden,
+// which would clip an absolutely-positioned tooltip.
+const KIND_DESCRIPTIONS: Record<string, string> = {
+  decision: 'Clarifies an invariant rooted in a key architectural decision; violating it breaks the constraint chain that justified the decision.',
+  pitfall: 'Guards against a documented causal trap; walking into it produces a known failure mode.',
+  tradeoff: 'Formalizes a violation signal from an explicit tradeoff; firing means the agent is undermining the property the tradeoff bought.',
+  layering: 'Enforces a dependency direction or layer boundary; typically expressible as forbidden imports between modules or layers.',
+  semantic_pattern: 'Captures a project-specific code shape from components.patterns or implementation_guidelines; divergence is structural, not catastrophic.',
+  file_placement: 'Specifies which directory a class of files must live under; derived from architecture_rules.file_placement_rules.',
+  naming_convention: 'Specifies a file or identifier naming pattern; typically expressible as a basename regex.',
+  infrastructure: 'Build, CI, deploy, secrets, dependency-registry, signing conventions; lives in azure-pipelines.yml, .github/, Dockerfile, package.json, pyproject.toml, etc.',
+  data_contract: 'Structural rule about a data model — FK/unique/NOT-NULL invariant, repository-only-read discipline, idempotency requirement, or migration procedure; derived from data_models / persistence_stores.',
+  coding_practice: 'General project-specific guidance the agent should remember at edit time; catch-all when no narrower kind fits.',
+}
+
 function severityFromClass(sc: string | undefined): 'error' | 'warn' | 'info' | null {
   if (sc === 'decision_violation' || sc === 'pitfall_triggered' || sc === 'mechanical_violation') return 'error'
   if (sc === 'tradeoff_undermined') return 'warn'
@@ -1427,6 +1967,7 @@ function EnforcementRuleCard({ rule, dim = false, ruleState = 'active' }: { rule
 
   const sevClass: string = rule?.severity_class || ''
   const sev: string = rule?.severity || severityFromClass(sevClass) || 'warn'
+  const kind: string = rule?.kind || ''
   const id: string = rule?.id || '?'
   const desc: string = rule?.description || ''
   const why: string = rule?.why || rule?.rationale || ''
@@ -1462,9 +2003,13 @@ function EnforcementRuleCard({ rule, dim = false, ruleState = 'active' }: { rule
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
             <code className={cn(codeInlineClassName, 'text-[10px] font-bold text-ink/40')}>{id}</code>
-            {sevClass && (
-              <Badge variant="outline" className="text-[9px] font-mono uppercase tracking-wide text-ink/40 border-papaya-400/40">
-                {sevClass}
+            {kind && (
+              <Badge
+                variant="outline"
+                title={KIND_DESCRIPTIONS[kind] || kind}
+                className="text-[9px] font-mono uppercase tracking-wide text-teal/70 border-teal/30 bg-teal/5 cursor-help"
+              >
+                {kind}
               </Badge>
             )}
             {ruleState === 'active' && (
@@ -1599,6 +2144,90 @@ function RulesStats({ adopted, proposed, ignored }: { adopted: any[]; proposed: 
   )
 }
 
+// Stable color per kind for the distribution donut + legend.
+const KIND_COLORS: Record<string, string> = {
+  decision: '#0d9488',
+  pitfall: '#dc2626',
+  tradeoff: '#f59e0b',
+  layering: '#2563eb',
+  semantic_pattern: '#7c3aed',
+  file_placement: '#0891b2',
+  naming_convention: '#db2777',
+  infrastructure: '#65a30d',
+  data_contract: '#ea580c',
+  coding_practice: '#64748b',
+}
+const KIND_FALLBACK_COLOR = '#94a3b8'
+
+function KindDistribution({ rules, label }: { rules: any[]; label: string }) {
+  const counts: Record<string, number> = {}
+  for (const r of rules) {
+    const k = (r && r.kind) || 'unspecified'
+    counts[k] = (counts[k] || 0) + 1
+  }
+  const total = rules.length
+  if (total === 0) return null
+
+  const segments = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([kind, count]) => ({
+      kind,
+      count,
+      pct: (count / total) * 100,
+      color: KIND_COLORS[kind] || KIND_FALLBACK_COLOR,
+    }))
+
+  const R = 42
+  const C = 2 * Math.PI * R
+  let acc = 0
+
+  return (
+    <div className={cn('p-5 rounded-2xl border mb-8', theme.surface.panel)}>
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 className={cn('w-3.5 h-3.5', theme.active.iconColor)} />
+        <span className="text-[10px] font-black text-ink/30 uppercase tracking-widest leading-none">{label} by kind</span>
+      </div>
+      <div className="flex flex-col sm:flex-row items-center gap-6">
+        <svg viewBox="0 0 100 100" className="w-32 h-32 shrink-0">
+          <g transform="rotate(-90 50 50)">
+            {segments.map((s) => {
+              const dash = (s.pct / 100) * C
+              const seg = (
+                <circle
+                  key={s.kind}
+                  cx={50}
+                  cy={50}
+                  r={R}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={14}
+                  strokeDasharray={`${dash} ${C - dash}`}
+                  strokeDashoffset={-acc}
+                />
+              )
+              acc += dash
+              return seg
+            })}
+          </g>
+          <text x={50} y={50} textAnchor="middle" dominantBaseline="central" style={{ fontSize: '16px', fontWeight: 700, fill: '#1a1a2e' }}>
+            {total}
+          </text>
+        </svg>
+        <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+          {segments.map((s) => (
+            <div key={s.kind} className="flex items-center gap-2 text-[11px]">
+              <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: s.color }} />
+              <span className="font-mono text-ink/70 truncate">{s.kind}</span>
+              <span className="ml-auto tabular-nums text-ink/40">{s.count}</span>
+              <span className="tabular-nums font-bold text-ink/70 w-9 text-right">{Math.round(s.pct)}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function RulesSection({ adopted, proposed, ignored = [] }: { adopted: any[]; proposed: any[]; ignored?: any[] }) {
   const [tab, setTab] = useState<'active' | 'proposed' | 'ignored'>('active')
   const [search, setSearch] = useState('')
@@ -1625,6 +2254,11 @@ export function RulesSection({ adopted, proposed, ignored = [] }: { adopted: any
       />
 
       <RulesStats adopted={adopted} proposed={proposed} ignored={ignored} />
+
+      <KindDistribution
+        rules={adopted.length > 0 ? adopted : proposed}
+        label={adopted.length > 0 ? 'Active rules' : 'Proposed rules'}
+      />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div className="bg-ink/[0.03] p-1 rounded-xl flex items-center border border-ink/5 shadow-inner self-start">
@@ -1751,13 +2385,30 @@ export function InfrastructureRulesSection({ rules }: { rules: any[] }) {
     </section>
   )
 }
-export function CommunicationsSection({ communications }: { communications: any[] }) {
+export function CommunicationsSection({ communications, patternSelection = [] }: { communications: any[]; patternSelection?: any[] }) {
+  // Fold quick_reference.pattern_selection onto the card it matches: each card
+  // gains the task-trigger phrasing ("reach for this when…") instead of a
+  // separate, redundant index table. Entries with no confident match fall to
+  // `orphans` and render as a small footnote so the data isn't silently lost.
+  const scenariosByCard: Record<number, any[]> = {}
+  const orphans: any[] = []
+  ;(Array.isArray(patternSelection) ? patternSelection : []).forEach((e) => {
+    if (!e || !(e.scenario || e.pattern)) return
+    const mi = matchScenarioToComm(e, communications)
+    if (mi < 0) {
+      orphans.push(e)
+      return
+    }
+    ;(scenariosByCard[mi] = scenariosByCard[mi] || []).push(e)
+  })
   return (
     <section className="space-y-4">
       <SectionHeader title="Communications" icon={Activity} />
       <div className="grid gap-4 md:grid-cols-2">
-        {communications.map((c: any, i: number) => (
-          <div key={i} className={cn("p-6 rounded-3xl border flex flex-col transition-all hover:shadow-lg min-w-0 overflow-hidden", theme.surface.panel)}>
+        {communications.map((c: any, i: number) => {
+          const scenarios = scenariosByCard[i] || []
+          return (
+          <div key={i} id={commSlug(c.type)} className={cn("scroll-mt-24 p-6 rounded-3xl border flex flex-col transition-all hover:shadow-lg min-w-0 overflow-hidden", theme.surface.panel)}>
             <div className="flex items-center gap-2 mb-4">
                <div className="p-2 rounded-xl bg-ink/5">
                  <Zap className="w-4 h-4 text-tangerine" />
@@ -1771,6 +2422,18 @@ export function CommunicationsSection({ communications }: { communications: any[
             </div>
             
             <div className="space-y-4">
+              {scenarios.length > 0 && (
+                <div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-teal block mb-2">Reach for this when</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {scenarios.map((s: any, j: number) => (
+                      <Badge key={j} variant="outline" className="text-[10px] font-medium text-ink/70 border-teal/20 bg-teal/5">
+                        {s.scenario || s.pattern}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
               {c.how_it_works && <Prose value={c.how_it_works} className="text-sm text-ink/70 leading-relaxed" />}
 
               {c.when_to_use && (
@@ -1851,8 +2514,19 @@ export function CommunicationsSection({ communications }: { communications: any[
               )}
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
+      {orphans.length > 0 && (
+        <div className="text-xs text-ink/45 leading-relaxed px-1 pt-1">
+          <span className="font-black uppercase tracking-widest text-[9px] text-ink/35 mr-2">Other scenarios</span>
+          {orphans.map((e: any, j: number) => (
+            <span key={j} className="mr-3 inline-block">
+              <AutoCode text={e.scenario || ''} /> → <AutoCode text={e.pattern || ''} />
+            </span>
+          ))}
+        </div>
+      )}
     </section>
   )
 }

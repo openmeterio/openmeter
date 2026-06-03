@@ -2,43 +2,36 @@
 
 <!-- archie:ai-start -->
 
-> Offset-based pagination primitives (Page, Result[T], Paginator[T], CollectAll) used by all domain service List methods, plus a cursor-based v2 sub-package for time+ID keyset pagination. The primary constraint is that all list queries must use these types — never compute SQL OFFSET or LIMIT directly in handlers.
+> Offset-based pagination primitives (Page, Result[T], Paginator[T], CollectAll) used by every domain List method, with a cursor-based v2 sub-package for time+ID keyset pagination. Constraint: list code must use these types — never compute SQL OFFSET/LIMIT in handlers, and never mix offset and cursor contracts on one endpoint.
 
 ## Patterns
 
-**Page/Result contract for all list services** — All domain List methods accept pagination.Page (PageSize + PageNumber, 1-based) embedded in their ListInput struct and return pagination.Result[T] with Items, TotalCount, and echoed Page. Use MapResult[Out, In] or MapResultErr[Out, In] to transform items. Never construct Result manually — use MapResult to get Page and TotalCount correct. (`func (s *service) List(ctx context.Context, params ListParams) (pagination.Result[Entity], error) {
-    rows, total, err := s.adapter.List(ctx, params)
-    if err != nil { return pagination.Result[Entity]{}, err }
-    return pagination.MapResult(pagination.Result[dbEntity]{Items: rows, TotalCount: total, Page: params.Page}, toDomain), nil
-}`)
-**NewPaginator wraps list functions for CollectAll** — Wrap any list function as Paginator[T] via NewPaginator[T](fn). Use CollectAll[T](ctx, paginator, pageSize) to accumulate all pages up to MAX_SAFE_ITER (10,000). CollectAll returns (nil, err) on any page error — never partial results. Termination: Items count < pageSize signals last page. (`p := pagination.NewPaginator[Customer](func(ctx context.Context, page pagination.Page) (pagination.Result[Customer], error) {
-    return svc.List(ctx, ListParams{Page: page})
-})
-all, err := pagination.CollectAll[Customer](ctx, p, 100)`)
-**Page.Offset() and Page.Limit() for SQL queries** — Adapters compute SQL OFFSET and LIMIT via page.Offset() (= PageSize*(PageNumber-1)) and page.Limit() (= PageSize). Validate with page.Validate() before use — returns InvalidError if PageSize < 0 or PageNumber < 1. IsZero() is true when both fields are 0 (uninitialised). (`rows, err := db.Entity.Query().Offset(params.Page.Offset()).Limit(params.Page.Limit()).All(ctx)`)
-**Result.MarshalJSON flattens Page fields** — Result[T].MarshalJSON() promotes PageSize and PageNumber into the top-level JSON object — not nested under 'page'. The Page field in Result has json:"-". Do not override with a custom marshaler; this flattening is load-bearing for API wire format compatibility with all SDK clients. (`// Output: {"pageSize":10,"page":1,"totalCount":25,"items":[...]}`)
+**Page/Result contract for List methods** — List methods embed pagination.Page (1-based PageNumber + PageSize) in their input and return pagination.Result[T] {Items, TotalCount, Page}. Transform items with MapResult/MapResultErr — never build Result manually, so the echoed Page and TotalCount stay correct. (`return pagination.MapResult(pagination.Result[dbEntity]{Items: rows, TotalCount: total, Page: params.Page}, toDomain), nil`)
+**Page.Offset()/Limit() in adapters** — Adapters compute SQL paging via page.Offset() (=PageSize*(PageNumber-1)) and page.Limit() (=PageSize). Validate with page.Validate() (InvalidError if PageSize<0 or PageNumber<1); IsZero() is true only when both fields are 0. (`rows, err := q.Offset(params.Page.Offset()).Limit(params.Page.Limit()).All(ctx)`)
+**NewPaginator + CollectAll for full scans** — Wrap a list function as Paginator[T] via NewPaginator[T](fn), then CollectAll[T](ctx, paginator, pageSize) accumulates all pages until Items count < pageSize, capped at MAX_SAFE_ITER (10,000). On any page error it returns (nil, err) — never partial results. (`all, err := pagination.CollectAll[Customer](ctx, p, 100)`)
+**Result.MarshalJSON flattens Page** — Result[T].MarshalJSON() promotes PageSize and PageNumber to the top-level JSON object (Page has json:"-"). This flattening is load-bearing for SDK wire compatibility — do not override it. (`// {"pageSize":10,"page":1,"totalCount":25,"items":[...]}`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `pkg/pagination/page.go` | Page value type with Offset() and Limit() helpers, Validate(), and IsZero(). Offset() uses 1-based PageNumber: (PageNumber-1)*PageSize. | PageNumber must be >= 1 for valid pages. IsZero() returns true only when both PageSize and PageNumber are 0 — zero-value struct is considered uninitialised, not page 1. |
-| `pkg/pagination/result.go` | Result[T] generic type with MapResult and MapResultErr helpers. MarshalJSON custom implementation flattens Page into JSON root — do not change. | MapResultErr returns (Result[Out]{}, err) on first mapping error — no partial results. Use MapResult when mapping is infallible. |
-| `pkg/pagination/collect.go` | CollectAll iterates pages until Items count < pageSize; MAX_SAFE_ITER=10,000 caps infinite loops from misbehaving paginators. | Returns (nil, err) on error — never partial results. Uses 1-based page numbering starting at PageNumber=1. |
-| `pkg/pagination/pagination.go` | Paginator[T] interface and NewPaginator[T](fn) constructor. The unexported paginator[T] struct is the only implementation. | Never implement Paginator[T] directly in domain code — always use NewPaginator with a closure to keep the interface stable. |
+| `page.go` | Page value type; Offset()/Limit()/Validate()/IsZero(); NewPage and NewPageFromRef (pointer query params). | PageNumber must be >=1 for valid pages; IsZero() (both 0) means uninitialised, not page 1. |
+| `result.go` | Result[T] with MapResult and MapResultErr; custom MarshalJSON flattens Page into the JSON root. | MapResultErr returns (Result{}, err) on the first mapping failure — no partial results. |
+| `collect.go` | CollectAll iterating pages until a short page; MAX_SAFE_ITER=10,000 caps runaway paginators. | Returns (nil, err) on error — checking only len(items) silently drops the error. |
+| `pagination.go` | Paginator[T] interface and NewPaginator[T](fn); unexported paginator[T] is the only implementation. | Never implement Paginator[T] in domain code — always wrap a closure via NewPaginator. |
 
 ## Anti-Patterns
 
-- Computing SQL OFFSET or LIMIT directly in handlers or service code — always use Page.Offset() and Page.Limit() to maintain consistent contract.
-- Constructing pagination.Result manually instead of using MapResult/MapResultErr — the Page field echo and TotalCount assignment are easy to get wrong.
-- Ignoring the error return from CollectAll — it returns nil items on error, so checking only len(items) silently loses data.
-- Implementing a custom Paginator[T] type instead of using NewPaginator — the unexported paginator struct is the only implementation; wrap your list function via NewPaginator.
-- Using cursor-based v2 logic in contexts expecting offset Page/Result — offset and cursor contracts are incompatible; choose one per endpoint.
+- Computing SQL OFFSET/LIMIT directly in handler or service code instead of Page.Offset()/Limit().
+- Constructing pagination.Result manually instead of MapResult/MapResultErr.
+- Ignoring the error from CollectAll — it returns nil items on error.
+- Implementing a custom Paginator[T] type rather than using NewPaginator.
+- Mixing v2 cursor logic with offset Page/Result on the same endpoint — the contracts are incompatible.
 
 ## Decisions
 
-- **Result[T] flattens Page into the JSON root rather than nesting it under a 'page' key.** — API wire format requires pageSize and page at the top level for SDK compatibility; the embedded Page struct is the internal type but must not appear nested in serialized responses.
-- **CollectAll caps at MAX_SAFE_ITER = 10,000 pages and returns (nil, error) rather than partial results on any page error.** — Prevents infinite loops from misbehaving paginators and makes error handling unambiguous — callers either get all items or nil, never a partial slice that could be mistaken for the complete set.
+- **Result[T] flattens Page into the JSON root rather than nesting under a 'page' key.** — The API wire format requires pageSize and page at the top level for SDK compatibility; the embedded Page is internal-only.
+- **CollectAll caps at MAX_SAFE_ITER=10,000 and returns (nil, error) on any page error.** — Prevents infinite loops from misbehaving paginators and makes error handling unambiguous — callers get all items or nil, never a deceptive partial slice.
 
 ## Example: Adapter list method using Page.Offset/Limit and returning pagination.Result
 

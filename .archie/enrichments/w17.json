@@ -1,403 +1,347 @@
 {
-  "api/spec/packages/aip/src/meters": {
-    "purpose": "TypeSpec definitions for the Meters v3 API domain: Meter model (aggregation config, event_type, JSONPath dimensions), query request/result types, and CRUD+query operations. Primary constraint: query types live in query.tsp (not meter.tsp) for cross-namespace reuse.",
+  "openmeter/meterevent": {
+    "purpose": "Public API surface for listing metered usage events from ClickHouse; owns the Service interface, the Event domain type, ListEventsParams/ListEventsV2Params with hard constraints (32-day lookback, 100-event limit) and cursor-based pagination. The adapter/ and httphandler/ sub-packages implement and expose the service without touching Postgres/Ent.",
     "patterns": [
       {
-        "name": "union over enum for open enumerations",
-        "description": "MeterAggregation and MeterQueryGranularity use `union` with string literals \u2014 not `enum` \u2014 so generated SDKs treat them as open string unions, preserving forward-compatibility when new aggregation types are added.",
-        "example": "union MeterAggregation { sum: \"sum\", count: \"count\", unique_count: \"unique_count\", avg: \"avg\", min: \"min\", max: \"max\", latest: \"latest\" }"
+        "name": "Params.Validate() before delegation",
+        "description": "Both ListEventsParams and ListEventsV2Params expose Validate() via errors.Join; callers (adapter, httphandler) must call Validate() before delegating to streaming.Connector \u2014 limits and filter constraints are enforced here, not at the adapter.",
+        "example": "if err := params.Validate(); err != nil { return nil, err }"
       },
       {
-        "name": "@sharedRoute for content-negotiated variants",
-        "description": "The meter query endpoint has two operations (JSON and CSV) sharing the same POST URL via @sharedRoute. Content type is discriminated by @header contentType in the response. The CSV variant (queryCsv) intentionally omits @body on the request to avoid anyOf in generated OpenAPI.",
-        "example": "@post @operationId(\"query-meter\") @sharedRoute query(@path meterId: Shared.ULID, @body request: MeterQueryRequest): { @header contentType: \"application/json\"; @body _: MeterQueryResult; } | ..."
+        "name": "SortBy-aware Cursor emission",
+        "description": "Event.Cursor() switches on SortBy (Time/IngestedAt/StoredAt) to pick the pagination timestamp; StoreRowID is always the tiebreak.",
+        "example": "case streaming.EventSortFieldIngestedAt: return pagination.NewCursor(e.IngestedAt, e.StoreRowID)"
       },
       {
-        "name": "@example decorator on complex models",
-        "description": "Models with complex structure (Meter, MeterQueryRequest, MeterQueryRow, MeterQueryResult) include @example(#{ ... }) decorators to provide concrete OpenAPI examples in the generated spec.",
-        "example": "@example(#{ id: \"01G65Z755AFWAKHE12NY0CQ9FH\", key: \"tokens_total\", aggregation: \"sum\", event_type: \"prompt\", value_property: \"$.tokens\" }) model Meter { ... }"
+        "name": "ValidationErrors as a per-event field",
+        "description": "Individual event validation failures are attached to Event.ValidationErrors []error; the method still returns the result slice so callers inspect per-event errors without a blanket failure.",
+        "example": "event.ValidationErrors = append(event.ValidationErrors, validationErr)"
       },
       {
-        "name": "query.tsp isolation for reusable query types",
-        "description": "MeterQueryRequest, MeterQueryResult, MeterQueryRow, MeterQueryFilters, and MeterQueryGranularity are isolated in query.tsp so they can be imported by other namespaces (e.g. features/cost.tsp imports query.tsp to reuse MeterQueryRequest).",
-        "example": "// query.tsp imported by features/cost.tsp:\nimport \"../meters/query.tsp\";\n// then uses Meters.MeterQueryRequest as cost query body"
+        "name": "CustomerID filter: only $in supported",
+        "description": "ListEventsV2Params.Validate() rejects a non-empty CustomerID filter that does not use .In \u2014 enforced in Validate(), not the adapter or handler.",
+        "example": "if !p.CustomerID.IsEmpty() && p.CustomerID.In == nil { errs = append(errs, errors.New(\"customer id filter supports only in\")) }"
       },
       {
-        "name": "@visibility for immutable vs. updatable fields",
-        "description": "Meter fields aggregation, event_type, and value_property carry only Lifecycle.Read + Lifecycle.Create (immutable after creation). The dimensions field uniquely adds Lifecycle.Update \u2014 it is the only mutable Meter field.",
-        "example": "@visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update) dimensions?: Record<string>; // vs. @visibility(Lifecycle.Read, Lifecycle.Create) aggregation: MeterAggregation;"
+        "name": "NextCursor emitted only on a full page",
+        "description": "The adapter omits NextCursor when the result page is smaller than effectiveLimit, avoiding a redundant empty-result follow-up request.",
+        "example": "if len(events) == effectiveLimit { result.NextCursor = &lastCursor }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "operations.tsp",
-        "role": "Declares MetersOperations (CRUD) and MetersQueryOperations (query + queryCsv). Both query methods share operationId 'query-meter' via @sharedRoute.",
-        "watch_for": "queryCsv intentionally omits @body on the request. Do not add a request body back \u2014 it would produce anyOf in the generated OpenAPI spec."
+        "file": "service.go",
+        "role": "Service interface, Event domain type (Cursor() + SortBy), ListEventsParams, ListEventsV2Params, MaximumFromDuration (32d), MaximumLimit (100). Source of truth for all validation.",
+        "watch_for": "Adding a filter field needs a ValidateWithComplexity clause; adding a sort field needs both a SortBy constant and a Cursor() case \u2014 omitting either lets invalid input reach ClickHouse."
       },
       {
-        "file": "meter.tsp",
-        "role": "Core Meter model with aggregation type, event_type, optional value_property, and dimensions map.",
-        "watch_for": "aggregation and event_type are Create+Read only (immutable after creation). value_property is optional only for count aggregation."
+        "file": "adapter/adapter.go",
+        "role": "Single service implementation: delegates to streaming.Connector, enriches with customer IDs (per-call cache), attaches ValidationErrors per event.",
+        "watch_for": "Must not import openmeter/ent/db. Must not emit NextCursor on a partial page. Subject\u2192customerID cache is per-call, not process-wide."
       },
       {
-        "file": "query.tsp",
-        "role": "All meter query I/O types. MeterQueryFilters.dimensions uses Record<Shared.QueryFilterStringMapItem> for dimension filtering. MeterQueryRow.dimensions is Record<string> (output only).",
-        "watch_for": "group_by_dimensions has @maxItems(100). Do not confuse input filter map (QueryFilterStringMapItem) with output dimensions map (plain Record<string>)."
+        "file": "httphandler/mapping.go",
+        "role": "All API\u2194domain conversions for v1 and v2 handlers, centralised.",
+        "watch_for": "Inlining conversions in event.go/event_v2.go violates the mapping.go convention and makes future API changes harder to audit."
       },
       {
-        "file": "index.tsp",
-        "role": "Barrel \u2014 imports meter.tsp then operations.tsp. Note: query.tsp is NOT imported here; it is imported directly by operations.tsp and by external namespaces that need only query types.",
-        "watch_for": "If adding a new .tsp file to this folder, import it in index.tsp or it will be invisible to consumers using the barrel import."
+        "file": "httphandler/handler.go",
+        "role": "Composite Handler interface embedding per-endpoint sub-interfaces; wires sub-handlers for server registration.",
+        "watch_for": "New endpoints need a sub-interface here AND registration in openmeter/server/router."
       }
     ],
     "anti_patterns": [
-      "Using `enum` instead of `union` for MeterAggregation or MeterQueryGranularity \u2014 breaks forward-compatibility of generated SDKs",
-      "Adding a request body to the queryCsv operation \u2014 intentionally omitted to prevent anyOf in OpenAPI output",
-      "Putting query types (MeterQueryRequest, MeterQueryResult, etc.) in meter.tsp \u2014 they belong in query.tsp for cross-namespace reuse by features/cost.tsp",
-      "Setting dimensions field visibility to Read+Create only \u2014 dimensions is the one updatable Meter field and must keep Lifecycle.Update"
+      "Importing openmeter/ent/db in the adapter \u2014 this is a streaming-only (ClickHouse) package with no Postgres access",
+      "Returning a top-level error for individual event validation failures instead of attaching to Event.ValidationErrors",
+      "Emitting NextCursor when the result page is smaller than effectiveLimit",
+      "Skipping params.Validate() before delegating to streaming.Connector \u2014 hard limits bypass",
+      "Inlining API\u2194domain conversions in event.go or event_v2.go instead of mapping.go"
     ],
     "decisions": [
       {
-        "decision": "CSV export as @sharedRoute variant of the same POST endpoint rather than a separate GET endpoint",
-        "rationale": "Content negotiation (Accept: text/csv) on a single URL is idiomatic REST; sharedRoute avoids duplicating route+operationId while allowing separate TypeSpec response type shapes for JSON vs. CSV."
+        "decision": "ValidationErrors are per-event fields, not top-level errors",
+        "rationale": "Allows partial results with inline error annotations rather than failing the entire listing for one bad event."
       },
       {
-        "decision": "Query types isolated in query.tsp separate from meter.tsp",
-        "rationale": "features/cost.tsp needs to import Meters.MeterQueryRequest without pulling in the full Meter model and its CRUD operations; isolation enables targeted cross-namespace imports."
+        "decision": "Hard time-window and count limits (32 days, 100 events) enforced in Validate()",
+        "rationale": "Centralising limits in the domain params type makes them enforceable regardless of caller and unit-testable without adapters."
       }
     ],
-    "code_examples": [
-      {
-        "scenario": "Adding a new meter operation (e.g. bulk-delete) following existing patterns",
-        "code": "// operations.tsp \u2014 inside interface MetersOperations:\n@post\n@operationId(\"bulk-delete-meters\")\n@summary(\"Bulk delete meters\")\n@route(\"/bulk-delete\")\n@extension(Shared.UnstableExtension, true)\nbulkDelete(\n  @body request: BulkDeleteMetersRequest,\n): Shared.DeleteResponse | Common.ErrorResponses;\n\n// meter.tsp:\n@friendlyName(\"BulkDeleteMetersRequest\")\nmodel BulkDeleteMetersRequest {\n  @minItems(1) @maxItems(100)\n  ids: Shared.ULID[];\n}"
-      }
-    ]
+    "code_examples": []
   },
-  "api/spec/packages/aip/src/productcatalog": {
-    "purpose": "TypeSpec definitions for the ProductCatalog v3 API domain: Plan (versioned phases + rate cards), Addon, PlanAddon associations, Price polymorphism (free/flat/unit/graduated/volume), UnitConfig conversions, and CRUD+lifecycle operations. Primary constraint: Plan/Addon version and lifecycle status fields are server-managed Read-only \u2014 never set by clients.",
+  "openmeter/meterexport": {
+    "purpose": "Streaming export of pre-aggregated synthetic meter events from ClickHouse; converts SUM/COUNT meter rows into RawEvents suitable for re-ingestion. The root package owns the Service interface, DataExportConfig, DataExportParams, and TargetMeterDescriptor; the service/ sub-package holds the dual-channel streaming implementation.",
     "patterns": [
       {
-        "name": "Versioned resources with server-computed status lifecycle",
-        "description": "Plan and Addon carry version (@visibility(Lifecycle.Read), @minValue(1)), effective_from/effective_to (Read-only), and status enum (draft/active/archived/scheduled). Status is never settable by clients \u2014 it is derived from effective dates on the server.",
-        "example": "@visibility(Lifecycle.Read) status: PlanStatus;\n@visibility(Lifecycle.Read) effective_from?: Shared.DateTime;\n@visibility(Lifecycle.Read) version: integer = 1;"
+        "name": "Config/Params Validate() before delegation",
+        "description": "DataExportConfig and DataExportParams expose Validate() via errors.Join; the service calls Validate() at the start of every public method before touching ClickHouse.",
+        "example": "if err := params.Validate(); err != nil { return err }"
       },
       {
-        "name": "Lifecycle action sub-routes as @post operations on same interface",
-        "description": "State transitions (publish, archive) are modeled as POST sub-routes (/{id}/publish, /{id}/archive) on the same interface, returning Shared.UpdateResponse<T>. Not nested interfaces or PATCH fields.",
-        "example": "@post @route(\"/{planId}/publish\") @operationId(\"publish-plan\")\npublishPlan(@path planId: Shared.ULID): Shared.UpdateResponse<Plan> | Common.ErrorResponses | Common.NotFound;"
+        "name": "Dual-channel streaming result",
+        "description": "ExportSyntheticMeterData writes events to result chan<- streaming.RawEvent and errors to err chan<- error; channels are created by the caller and closed via defer only in the producing goroutine.",
+        "example": "func (s *svc) ExportSyntheticMeterData(ctx, params DataExportParams, result chan<- streaming.RawEvent, err chan<- error) error"
       },
       {
-        "name": "Discriminated union for Price polymorphism",
-        "description": "Price and PriceUsageBased are @discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" }) unions. Every variant model carries a `type` field matching the PriceType enum. PriceUsageBased is a sub-union (unit/graduated/volume only) for rate cards requiring usage-based pricing.",
-        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })\nunion Price { free: PriceFree, flat: PriceFlat, unit: PriceUnit, graduated: PriceGraduated, volume: PriceVolume }"
+        "name": "iter.Seq2 wrapper as the preferred caller API",
+        "description": "ExportSyntheticMeterDataIter wraps the dual-channel method in iter.Seq2[streaming.RawEvent, error]; early break from the range loop cancels the producer context.",
+        "example": "for event, err := range seq { if err != nil { handle(err) }; process(event) }"
       },
       {
-        "name": "validation_errors as Read-only list on all catalog resources",
-        "description": "Plan, Addon, and PlanAddon all carry @visibility(Lifecycle.Read) validation_errors?: ProductCatalogValidationError[] to surface draft-state validation issues through the API. Any new catalog resource must include this field.",
-        "example": "@visibility(Lifecycle.Read)\n@summary(\"Validation errors\")\nvalidation_errors?: ProductCatalogValidationError[];"
+        "name": "Custom JSON marshal/unmarshal for time.Location",
+        "description": "DataExportConfig marshals ExportWindowTimeZone as an IANA name string; nil marshals to empty string and unmarshals back to nil.",
+        "example": "func (c DataExportConfig) MarshalJSON() ([]byte, error) { tzName := \"\"; if c.ExportWindowTimeZone != nil { tzName = c.ExportWindowTimeZone.String() }; ... }"
       },
       {
-        "name": "UpsertRequest/UpsertResponse for PUT operations on versioned resources",
-        "description": "PUT operations (update-plan, update-addon, update-plan-addon) use Shared.UpsertRequest<T> body and Shared.UpsertResponse<T> return type \u2014 not CreateRequest/UpdateResponse. Responses also include Common.Gone for archived resources.",
-        "example": "@put updatePlan(@path planId: Shared.ULID, @body plan: Shared.UpsertRequest<Plan>):\n  | Shared.UpsertResponse<Plan> | Common.ErrorResponses | Common.Gone | Common.NotFound;"
-      },
-      {
-        "name": "PickProperties spread for partial resource base models",
-        "description": "PlanPhase and RateCard use PickProperties<Shared.ResourceWithKey, \"key\" | \"name\" | \"description\" | \"labels\"> instead of the full ResourceWithKey spread, excluding id and timestamps because phases/rate cards are sub-resources without independent lifecycle.",
-        "example": "model PlanPhase {\n  ...PickProperties<Shared.ResourceWithKey, \"key\" | \"name\" | \"description\" | \"labels\">;\n  duration?: Shared.ISO8601Duration;\n  rate_cards: RateCard[];\n}"
+        "name": "Aggregation whitelist in validateAndGetMeter",
+        "description": "Only SUM and COUNT are supported; validateAndGetMeter rejects all others before any export query, and must stay in sync with createEventFromMeterRow.",
+        "example": "switch meter.Aggregation { case meter.MeterAggregationSum, meter.MeterAggregationCount: /* ok */; default: return error }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "price.tsp",
-        "role": "Price discriminated union and all variant models. PriceUsageBased is a sub-union (unit/graduated/volume) used when a usage-based-only price type is needed on a rate card.",
-        "watch_for": "PriceTier requires at least one of flat_price or unit_price (documented semantics, not TypeSpec-enforced). PriceFlat embedded inside PriceTier does not carry a payment_term."
+        "file": "service.go",
+        "role": "Service interface (GetTargetMeterDescriptor, ExportSyntheticMeterData, ExportSyntheticMeterDataIter), DataExportConfig, DataExportParams, TargetMeterDescriptor and their Validate()/JSON methods.",
+        "watch_for": "Adding an aggregation type here requires whitelisting it in service/syntheticdata.go validateAndGetMeter AND createEventFromMeterRow \u2014 missing either causes runtime rejection after successful validation."
       },
       {
-        "file": "ratecard.tsp",
-        "role": "RateCard model: key, feature reference, billing_cadence (null = one-time), price union, payment_term, commitments, discounts, tax_config.",
-        "watch_for": "billing_cadence nullable means one-time charge (only valid with flat prices). SettlementMode enum is defined here but verify usage before referencing."
+        "file": "service/funnel.go",
+        "role": "Windowed pagination loop driving the ClickHouse query and feeding the result channel.",
+        "watch_for": "Never close resultCh/errCh outside funnel \u2014 channel ownership is exclusive via defer close; double-close panics."
       },
       {
-        "file": "unitconfig.tsp",
-        "role": "UnitConfig model for raw-to-billing-unit conversion (divide/multiply + rounding) and InvoiceUsageQuantityDetail for audit trail on invoices.",
-        "watch_for": "rounding defaults to None; precision is only meaningful when rounding != none. applied_unit_config on InvoiceUsageQuantityDetail is a Read-only snapshot for historical correctness."
+        "file": "service/syntheticdata_iter.go",
+        "role": "iter.Seq2 wrapper \u2014 the idiomatic range-based caller API.",
+        "watch_for": "Early break must cancel the producer context to stop the funnel goroutine; otherwise the goroutine leaks on partial iteration."
       },
       {
-        "file": "plan.tsp",
-        "role": "Plan and PlanPhase models, PlanStatus enum, ProductCatalogValidationError model reused across all catalog entities.",
-        "watch_for": "phases has @minItems(1) \u2014 at least one phase required. billing_cadence on Plan is Create+Read only (immutable after creation)."
-      },
-      {
-        "file": "operations.tsp",
-        "role": "PlanOperations, AddonOperations, PlanAddonOperations interfaces. PlanAddon routes nest under /{planId}/addons/ and require both planId and planAddonId path params.",
-        "watch_for": "All operations carry UnstableExtension + InternalExtension. PlanAddon upsert uses both path params."
-      },
-      {
-        "file": "addon.tsp",
-        "role": "Addon model mirroring Plan structure: key, version, instance_type (single/multiple), currency, effective dates, rate_cards, validation_errors.",
-        "watch_for": "AddonInstanceType affects max_quantity validation on PlanAddon \u2014 single instance addons must omit max_quantity."
+        "file": "service/syntheticdata.go",
+        "role": "validateAndGetMeter rejects unsupported aggregations; createEventFromMeterRow constructs RawEvents from ClickHouse rows.",
+        "watch_for": "The whitelist must stay in sync with createEventFromMeterRow \u2014 divergence causes silent data loss."
       }
     ],
     "anti_patterns": [
-      "Setting status, effective_from, or effective_to in Create/Update requests \u2014 they are server-computed Read-only fields",
-      "Using Shared.CreateRequest/UpdateResponse for PUT plan/addon operations \u2014 must use UpsertRequest/UpsertResponse",
-      "Omitting validation_errors from a new catalog resource model \u2014 required for draft-state UX across all catalog entities",
-      "Using RateCard.price with PriceFree for usage-based rate cards \u2014 use PriceUsageBased union (unit/graduated/volume only)",
-      "Adding a full ...Shared.Resource spread to PlanPhase or RateCard \u2014 these are sub-resources; use PickProperties to select only key/name/description/labels"
+      "Adding a new aggregation type to createEventFromMeterRow without whitelisting it in validateAndGetMeter",
+      "Closing resultCh or errCh outside the producing funnel goroutine \u2014 causes a double-close panic",
+      "Calling ExportSyntheticMeterData synchronously without draining both channels concurrently \u2014 deadlocks when buffers fill",
+      "Adding Ent/DB dependencies \u2014 depends only on streaming.Connector and meter.Service interfaces",
+      "Skipping the sync.Once guard for context-cancellation errors in errCh \u2014 causes duplicate ctx.Err() entries"
     ],
     "decisions": [
       {
-        "decision": "UnitConfig is a separate model on RateCard rather than embedded in price types",
-        "rationale": "The same feature can be billed in different converted units across plans (bytes\u2192GB, seconds\u2192hours); keeping unit conversion at the rate card level decouples it from the pricing model and allows reuse."
+        "decision": "Dual-channel streaming rather than returning a slice",
+        "rationale": "Exports can span many ClickHouse window pages; buffering all results would OOM for large ranges. Channels allow backpressure and early cancellation."
       },
       {
-        "decision": "Plan/Addon versioning is server-managed (version field Read-only, incremented on update)",
-        "rationale": "Prevents clients from accidentally creating version conflicts; the server controls the version chain ensuring subscription compatibility checks remain valid."
-      },
-      {
-        "decision": "Lifecycle actions (publish, archive) as POST sub-routes, not PATCH status fields",
-        "rationale": "State transitions have server-side preconditions (e.g. publish requires no validation_errors); explicit action endpoints make the transition semantics discoverable and allow returning rich error responses."
+        "decision": "Only SUM and COUNT aggregations supported",
+        "rationale": "Pre-aggregated synthetic events are only reversible for additive (SUM) and countable (COUNT) functions; MAX/UNIQUE_COUNT lose information when windowed."
       }
     ],
-    "code_examples": [
-      {
-        "scenario": "Adding a new lifecycle action (e.g. suspend) to PlanOperations",
-        "code": "// operations.tsp \u2014 inside interface PlanOperations:\n@post\n@route(\"/{planId}/suspend\")\n@operationId(\"suspend-plan\")\n@summary(\"Suspend a plan version.\")\n@extension(Shared.UnstableExtension, true)\n@extension(Shared.InternalExtension, true)\nsuspendPlan(\n  @path planId: Shared.ULID,\n): Shared.UpdateResponse<Plan> | Common.ErrorResponses | Common.NotFound;"
-      }
-    ]
+    "code_examples": []
   },
-  "api/spec/packages/aip/src/shared": {
-    "purpose": "Shared TypeSpec primitives (scalars, models, generics) reused across all aip/ domain namespaces \u2014 the type system foundation for the v3 API. Every resource base, filter type, pagination envelope, and response wrapper for v3 is built here; changes propagate across all domains.",
+  "openmeter/namespace": {
+    "purpose": "Multi-tenancy infrastructure: Manager fans out CreateNamespace/DeleteNamespace to all registered Handler implementations (ClickHouse streaming, Kafka ingest, Ledger). Handlers are registered dynamically before startup completes; the namespacedriver/ sub-package provides the NamespaceDecoder abstraction for HTTP-layer namespace resolution.",
     "patterns": [
       {
-        "name": "Scalar with validation constraints",
-        "description": "New primitive types are TypeSpec scalars (not models) with @pattern, @minLength/@maxLength, @encode, @example, and @friendlyName decorators. ULID, ResourceKey, CurrencyCode, DateTime, ISO8601Duration, and Numeric all follow this pattern.",
-        "example": "@pattern(\"^[A-Z]{3}$\") @friendlyName(\"CurrencyCode\") @minLength(3) @maxLength(3) @example(\"USD\") scalar CurrencyCode extends string;"
+        "name": "Handler registration before CreateDefaultNamespace",
+        "description": "All Handler implementations must be registered via RegisterHandler before CreateDefaultNamespace; handlers registered later miss default-namespace provisioning.",
+        "example": "manager.RegisterHandler(streamingConnector); manager.RegisterHandler(kafkaCollector); manager.CreateDefaultNamespace(ctx)"
       },
       {
-        "name": "@visibility lifecycle decorators on all model fields",
-        "description": "Every field in every model uses @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update) to control which operations expose or accept the field. Read-only fields (id, created_at, updated_at, deleted_at) carry only Lifecycle.Read.",
-        "example": "@visibility(Lifecycle.Read) id: ULID;\n@visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update) name: string;"
+        "name": "Fan-out with errors.Join (no short-circuit)",
+        "description": "createNamespace/deleteNamespace iterate all handlers and accumulate errors with errors.Join; a failure in one handler does not stop others and there is no rollback.",
+        "example": "for _, handler := range m.config.Handlers { if err := handler.CreateNamespace(ctx, name); err != nil { errs = append(errs, err) } }; return errors.Join(errs...)"
       },
       {
-        "name": "Generic request/response envelopes via templates",
-        "description": "CreateRequest<T>, UpdateRequest<T>, UpsertRequest<T>, GetResponse<T>, CreateResponse<T>, CursorPaginatedResponse<T>, and PagePaginatedResponse<T> are parameterized generics. Domain models spread into these instead of redeclaring HTTP status codes or pagination plumbing.",
-        "example": "// Domain uses CreateRequest envelope:\nmodel SubscriptionCreate { ...Shared.CreateRequest<OmitProperties<Subscription, \"...\">>; }"
+        "name": "Default namespace protected from deletion",
+        "description": "DeleteNamespace rejects deletion of the default namespace before any handler call.",
+        "example": "if name == m.config.DefaultNamespace { return errors.New(\"cannot delete default namespace\") }"
       },
       {
-        "name": "Resource base models spread into domain models",
-        "description": "Resource (id, name, description, labels, timestamps), ResourceWithKey (adds key), ResourceImmutable (strips updated_at/deleted_at) are the only base models. Domain models spread one of these instead of redeclaring any of those fields inline.",
-        "example": "model TaxCode { ...Shared.ResourceWithKey; ... }"
+        "name": "RWMutex-guarded handler slice",
+        "description": "RegisterHandler takes a write lock; createNamespace/deleteNamespace take a read lock, allowing registration to race safely with in-flight operations during startup.",
+        "example": "m.mu.Lock(); defer m.mu.Unlock(); m.config.Handlers = append(m.config.Handlers, handler)"
       },
       {
-        "name": "Filter models with self-referential AND/OR recursion",
-        "description": "All query filter models (QueryFilterString, QueryFilterInteger, QueryFilterNumeric, QueryFilterDateTime, QueryFilterBoolean) include and?/or? arrays of themselves bounded by @minItems(1) @maxItems(10). New filter types must follow this shape.",
-        "example": "model QueryFilterString { eq?: string; in?: string[]; @maxItems(10) and?: QueryFilterString[]; @maxItems(10) or?: QueryFilterString[]; }"
-      },
-      {
-        "name": "index.tsp barrel \u2014 single import entry point",
-        "description": "All sibling .tsp files are imported by index.tsp. Consumers import only ../shared/index.tsp \u2014 never individual files. New files added to shared/ must be added to index.tsp.",
-        "example": "// In consumer domain:\nimport \"../shared/index.tsp\";\n// NOT: import \"../shared/filters.tsp\";"
-      },
-      {
-        "name": "Extension constants in consts.tsp",
-        "description": "API group names, descriptions, and extension keys (UnstableExtension, InternalExtension, PrivateExtension) are declared as `const` in consts.tsp. Operations reference these via @extension(Shared.UnstableExtension, true) \u2014 never inline the string.",
-        "example": "const UnstableExtension = \"x-unstable\";\n// In operations:\n@extension(Shared.UnstableExtension, true)"
+        "name": "StaticNamespaceDecoder as a named string type",
+        "description": "namespacedriver.StaticNamespaceDecoder is a named string type \u2014 cast a string literal, no struct init. Used in self-hosted single-tenant deployments.",
+        "example": "var decoder namespacedriver.NamespaceDecoder = namespacedriver.StaticNamespaceDecoder(\"default\")"
       }
     ],
     "key_file_guides": [
       {
-        "file": "properties.tsp",
-        "role": "All shared scalar types (ULID, ResourceKey, DateTime, CurrencyCode, Numeric, ISO8601Duration) and value-object models (RecurringPeriod, ClosedPeriod, CurrencyAmount).",
-        "watch_for": "Numeric is a string scalar (arbitrary-precision) \u2014 do not substitute float64 or integer for monetary/quantity values. DateTime uses @encode(rfc3339) \u2014 not a plain string."
+        "file": "namespace.go",
+        "role": "Full Manager: RWMutex-guarded handler slice, RegisterHandler, Create/Delete/CreateDefaultNamespace, GetDefaultNamespace, IsManagementDisabled.",
+        "watch_for": "No rollback on partial handler failure (TODO documented) \u2014 do not assume atomicity. NewManager and RegisterHandler reject nil handlers; callers must check the error."
       },
       {
-        "file": "resource.tsp",
-        "role": "Resource, ResourceWithKey, ResourceImmutable base models and ResourceReference<T> for cross-domain references.",
-        "watch_for": "Spreading Resource brings all lifecycle timestamps automatically. Do not add domain-specific fields to these base models. ResourceReference<T> contains only id: ULID."
-      },
-      {
-        "file": "request.tsp",
-        "role": "Generic Create/Update/Upsert request wrappers with @withVisibility filtering. CreateRequestNested handles models with nested visibility decorators.",
-        "watch_for": "Use CreateRequestNested instead of CreateRequest when the model has nested structs with Lifecycle decorators \u2014 plain CreateRequest misses nested visibility filtering."
-      },
-      {
-        "file": "responses.tsp",
-        "role": "HTTP response envelopes with hardcoded status codes (GetResponse=200, CreateResponse=201, UpsertResponse=200, DeleteResponse=204). CursorPaginatedResponse and PagePaginatedResponse include @pageItems data array and meta.",
-        "watch_for": "Status codes are baked into the generics \u2014 do not create ad-hoc response models with @statusCode; always use these generics."
-      },
-      {
-        "file": "filters.tsp",
-        "role": "Reusable query filter models for string, integer, float, numeric, boolean, datetime attributes. QueryFilterStringMapItem extends QueryFilterString with an exists? field for map entries.",
-        "watch_for": "in/nin arrays: @maxItems(100). and/or arrays: @maxItems(10). All filters are self-referentially nested for logical composition."
-      },
-      {
-        "file": "consts.tsp",
-        "role": "String constants for all API tags, descriptions (MetersTag, BillingTag, etc.) and extension keys (UnstableExtension, InternalExtension, PrivateExtension).",
-        "watch_for": "Add new tag/description pairs here; do not inline strings in operations files."
+        "file": "namespacedriver/decoder.go",
+        "role": "NamespaceDecoder interface (GetNamespace(r) (string, bool)) and StaticNamespaceDecoder named string type; dependency-free.",
+        "watch_for": "Returning (\"\", true) silently scopes queries to an empty namespace; (\"\", false) signals the caller to reject the request. No domain imports."
       }
     ],
     "anti_patterns": [
-      "Redeclaring id/name/created_at/updated_at/deleted_at on a domain model \u2014 spread ...Shared.Resource or ...Shared.ResourceWithKey instead",
-      "Using float64 or integer for monetary/quantity values \u2014 use Shared.Numeric (arbitrary-precision string scalar)",
-      "Creating a filter model without and?/or? self-references when logical composition is needed",
-      "Defining HTTP status codes inline with @statusCode on domain-specific response models \u2014 use the generic envelopes in responses.tsp",
-      "Adding a new .tsp file to shared/ without importing it in index.tsp"
+      "Registering a Handler after CreateDefaultNamespace is called \u2014 it will miss default namespace provisioning",
+      "Returning (true, \"\") from NamespaceDecoder.GetNamespace \u2014 callers treat an empty namespace as valid and misscope queries",
+      "Importing domain packages (billing, customer, entitlement) in namespacedriver \u2014 must stay infrastructure-only",
+      "Assuming createNamespace is atomic \u2014 failures in one handler do not roll back others",
+      "Adding multi-tenant dynamic namespace resolution to StaticNamespaceDecoder \u2014 dynamic lookup belongs in a separate decoder"
     ],
     "decisions": [
       {
-        "decision": "Scalars with inline validation constraints over Go-side validation in handlers",
-        "rationale": "TypeSpec scalars emit JSON Schema constraints directly into the OpenAPI spec, so all SDKs and the kin-openapi middleware validate automatically without duplicating rules in Go."
+        "decision": "Manager holds a RWMutex-guarded handler slice rather than a fixed constructor-time set",
+        "rationale": "Handlers are registered dynamically at startup to support optional subsystems like Ledger that depend on credits.enabled; a fixed set would force all handlers to be wired unconditionally."
       },
       {
-        "decision": "Generic request/response templates instead of per-resource envelope models",
-        "rationale": "Eliminates drift between CRUD operations across 15+ domain namespaces; visibility filtering is applied once in the template and propagates everywhere."
+        "decision": "StaticNamespaceDecoder is a named string type, not a struct",
+        "rationale": "Self-hosted single-tenant deployments always route to one namespace; a plain named string avoids initialisation ceremony."
       }
     ],
-    "code_examples": [
-      {
-        "scenario": "Defining a new domain resource extending shared base types with CRUD envelopes",
-        "code": "import \"../shared/index.tsp\";\n\nnamespace MyDomain;\n\n@friendlyName(\"MyResource\")\nmodel MyResource {\n  ...Shared.ResourceWithKey;\n\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)\n  @summary(\"Status\")\n  status: MyStatus;\n}\n\ninterface MyResourceOperations {\n  @post @operationId(\"create-my-resource\")\n  create(@body res: Shared.CreateRequest<MyResource>): Shared.CreateResponse<MyResource> | Common.ErrorResponses;\n\n  @get @route(\"/{id}\") @operationId(\"get-my-resource\")\n  get(@path id: Shared.ULID): Shared.GetResponse<MyResource> | Common.NotFound | Common.ErrorResponses;\n}"
-      }
-    ]
+    "code_examples": []
   },
-  "api/spec/packages/aip/src/subscriptions": {
-    "purpose": "TypeSpec definitions for the Subscriptions v3 API domain: subscription lifecycle model, CRUD+action operations (create, list, get, cancel, unschedule-cancelation, change), subscription addon model, and cross-domain SubscriptionReference type. All model and enum @friendlyName values are prefixed 'Billing' to avoid SDK type collisions.",
+  "openmeter/portal": {
+    "purpose": "Issues and validates short-lived HS256 JWT portal tokens scoped to namespace, subject, and an optional meter slug allowlist; ListTokens/InvalidateToken are intentionally unimplemented stubs. The root package owns the Service interface and all input/output types with Validate(); adapter/, authenticator/, and httphandler/ provide the JWT implementation, Chi middleware, and HTTP handlers.",
     "patterns": [
       {
-        "name": "BillingXxx friendlyName prefix on all models and enums",
-        "description": "Every model, enum, and union carries @friendlyName(\"BillingXxx\") \u2014 required to avoid SDK type name collisions with identically-named types in other namespaces (billing, productcatalog). Any new type added here must follow this prefix.",
-        "example": "@friendlyName(\"BillingSubscription\") model Subscription { ... }\n@friendlyName(\"BillingSubscriptionStatus\") enum SubscriptionStatus { ... }"
+        "name": "Input Validate() before service call",
+        "description": "CreateTokenInput, ListTokensInput, InvalidateTokenInput each expose Validate() with errors.Join; adapters and httphandlers call Validate() before delegating to portal.Service.",
+        "example": "if err := input.Validate(); err != nil { return nil, models.NewGenericValidationError(err) }"
       },
       {
-        "name": "Action operations as @route-decorated methods on the same interface",
-        "description": "Non-CRUD actions (cancel, unschedule-cancelation, change) are declared as methods on SubscriptionsOperations with an explicit @route(\"/{subscriptionId}/action-name\") decorator, not as nested interfaces or separate interface extensions.",
-        "example": "@post @route(\"/{subscriptionId}/cancel\") @operationId(\"cancel-subscription\")\ncancel(@path subscriptionId: Shared.ULID, @body body: SubscriptionCancel): Shared.UpdateResponse<Subscription> | ..."
+        "name": "Token field set only in the CreateToken response path",
+        "description": "PortalToken.Token is *string and nil in all read paths; the JWT string is assigned only after token creation, never inside the shared toAPIPortalToken mapping.",
+        "example": "token, err := adapter.CreateToken(ctx, input); // then: token.Token = &jwtString"
       },
       {
-        "name": "OmitProperties<> to derive create/change shapes from the read model",
-        "description": "Request bodies are derived from the read model by omitting server-assigned fields (billing_anchor, status) with OmitProperties<Subscription, ...>, then adding explicit Create-only fields (customer, plan references) inline in the request model.",
-        "example": "model SubscriptionCreate {\n  ...Shared.CreateRequest<OmitProperties<Subscription, \"customer_id\" | \"plan_id\" | \"billing_anchor\">>;\n  customer: { id?: Shared.ULID; key?: Shared.ExternalResourceKey; };\n}"
+        "name": "ListTokens/InvalidateToken return GenericNotImplementedError",
+        "description": "These are intentionally unimplemented on the stateless JWT adapter (and the noop), returning NotImplementedError.",
+        "example": "return pagination.Result[*PortalToken]{}, models.NewGenericNotImplementedError(\"list portal tokens\")"
       },
       {
-        "name": "@oneOf union for flexible timing parameters",
-        "description": "SubscriptionEditTiming is a @oneOf union of an enum (immediate/next_billing_cycle) and a raw DateTime, allowing callers to use convenient shorthand or an explicit timestamp without a separate discriminator field.",
-        "example": "@oneOf @friendlyName(\"BillingSubscriptionEditTiming\")\nunion SubscriptionEditTiming { Enum: SubscriptionEditTimingEnum, Custom: Shared.DateTime, }"
+        "name": "Meter slug allowlist validation in httphandler, not portal.Service",
+        "description": "CreateToken httphandler validates AllowedMeterSlugs against meter.Service before calling portal.Service; portal.Service has no dependency on meter.Service.",
+        "example": "for _, slug := range slugs { _, err := meterSvc.GetMeterByIDOrSlug(ctx, ns, slug) }"
       },
       {
-        "name": "Dual-subscription response for change operation",
-        "description": "The change operation returns SubscriptionChangeResponse with both `current` and `next` Subscription fields \u2014 not wrapped in Shared.UpdateResponse<T> \u2014 because it has a two-subscription payload.",
-        "example": "@friendlyName(\"BillingSubscriptionChangeResponse\")\nmodel SubscriptionChangeResponse { current: Subscription; next: Subscription; }"
+        "name": "AllowedMeterSlugs nil vs empty semantics",
+        "description": "AllowedMeterSlugs *[]string: nil means all slugs allowed; non-nil empty means none allowed. Callers and the authenticator must distinguish these.",
+        "example": "if input.AllowedMeterSlugs != nil { for _, slug := range *input.AllowedMeterSlugs { if slug == \"\" { errs = append(errs, ...) } } }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "subscription.tsp",
-        "role": "Core domain model: Subscription (read model), SubscriptionCreate, SubscriptionStatus enum, SubscriptionEditTiming union, SubscriptionEditTimingEnum enum.",
-        "watch_for": "Subscription spreads ...OmitProperties<Shared.Resource, \"name\" | \"description\"> \u2014 name and description are intentionally absent. Do not add them back."
+        "file": "service.go",
+        "role": "Service (= PortalTokenService), PortalToken, PortalTokenClaims, CreateTokenInput, ListTokensInput, InvalidateTokenInput, and all Validate() methods.",
+        "watch_for": "AllowedMeterSlugs is *[]string \u2014 nil unrestricted, non-nil empty fully restricted; callers must not conflate the two cases."
       },
       {
-        "file": "operations.tsp",
-        "role": "SubscriptionsOperations interface with all HTTP operations including action routes. SubscriptionCancel and SubscriptionChange request models are declared inline in this file.",
-        "watch_for": "The change operation returns raw SubscriptionChangeResponse (not wrapped in Shared.UpdateResponse) \u2014 do not wrap it. The response has its own @Http.statusCode baked in."
+        "file": "adapter/adapter.go",
+        "role": "JWT-backed stateless adapter; Config.SharedSecret must be non-empty; strict JWT parse options (WithExpirationRequired, WithStrictDecoding, WithValidMethods, WithIssuer).",
+        "watch_for": "Never store token state in a DB here \u2014 stateless by design; a DB-backed impl would be a separate adapter type."
       },
       {
-        "file": "reference.tsp",
-        "role": "SubscriptionReference cross-domain reference type for when billing line items need to point to a specific subscription phase+item.",
-        "watch_for": "Reference type is deeply nested (subscription \u2192 phase \u2192 item) using anonymous inline structs, not named types. Do not extract the inner structs into separate named models."
+        "file": "authenticator/authenticator.go",
+        "role": "Chi middleware dispatching per OpenAPI security scheme; injects validated PortalTokenClaims subject into context via a typed key.",
+        "watch_for": "Auth failures must always be 401 via models.NewStatusProblem \u2014 never 200 or 500; the AllowedMeterSlugs check must happen even when the meterSlug route param is absent."
       },
       {
-        "file": "subscriptionaddon.tsp",
-        "role": "SubscriptionAddon model: addon reference, quantity, quantity_at, active_from/active_to lifecycle times.",
-        "watch_for": "quantity_at is Read-only (server resolves it). active_from/active_to are Read-only temporal fields."
+        "file": "httphandler/mapping.go",
+        "role": "API\u2194domain conversions; toAPIPortalToken must not set the Token field \u2014 that is set only in the CreateToken operation.",
+        "watch_for": "Token field leaking into non-create responses exposes JWT strings incorrectly."
       }
     ],
     "anti_patterns": [
-      "Omitting @friendlyName(\"BillingXxx\") from a new model or enum \u2014 generated SDK types would collide with same-named types in other namespaces",
-      "Wrapping the change operation response in Shared.UpdateResponse<T> \u2014 its two-subscription payload is intentional and incompatible with the single-body envelope",
-      "Adding name or description fields to the Subscription model \u2014 explicitly omitted via OmitProperties",
-      "Defining a new action endpoint as a separate interface instead of a @route-decorated method on SubscriptionsOperations"
+      "Relaxing JWT validation options (removing WithExpirationRequired, WithStrictDecoding, WithValidMethods) in the adapter",
+      "Setting PortalToken.Token inside toAPIPortalToken \u2014 assign only in the CreateToken response path",
+      "Adding DB persistence to the JWT adapter \u2014 stateless by design; a DB-backed impl is a separate adapter",
+      "Skipping AllowedMeterSlugs validation in httphandler when the meterSlug param is absent from the route",
+      "Returning 500 for auth failures in the authenticator middleware \u2014 must always be 401"
     ],
     "decisions": [
       {
-        "decision": "Billing-prefixed @friendlyName on all types",
-        "rationale": "Multiple aip/ namespaces (subscriptions, billing, productcatalog) expose similarly-named types; the Billing prefix makes generated Go and JS SDK types unambiguous without requiring Go package-qualified names."
+        "decision": "Stateless JWT tokens with no DB persistence for ListTokens/InvalidateToken",
+        "rationale": "Portal tokens are short-lived and scoped; avoiding a DB table removes a write-path dependency and keeps issuance fast."
       },
       {
-        "decision": "@oneOf union for SubscriptionEditTiming instead of separate fields",
-        "rationale": "Allows callers to use the convenient enum values (immediate, next_billing_cycle) or an explicit timestamp without an extra discriminator field or separate endpoint variants."
+        "decision": "Meter slug allowlist validation in httphandler, not portal.Service",
+        "rationale": "portal.Service has no import dependency on meter.Service; cross-domain meter existence validation is a transport-boundary concern, preserving clean domain separation."
       }
     ],
-    "code_examples": [
-      {
-        "scenario": "Adding a new action endpoint (e.g. pause) following existing patterns",
-        "code": "// In operations.tsp, inside interface SubscriptionsOperations:\n@post\n@operationId(\"pause-subscription\")\n@summary(\"Pause subscription\")\n@route(\"/{subscriptionId}/pause\")\npause(\n  @path subscriptionId: Shared.ULID,\n  @body body: SubscriptionPause,\n):\n  | Shared.UpdateResponse<Subscription>\n  | Common.NotFound\n  | Common.Conflict\n  | Common.ErrorResponses;\n\n// In subscription.tsp:\n@friendlyName(\"BillingSubscriptionPause\")\nmodel SubscriptionPause {\n  timing?: SubscriptionEditTiming = SubscriptionEditTimingEnum.Immediate;\n}"
-      }
-    ]
+    "code_examples": []
   },
-  "api/spec/packages/aip/src/tax": {
-    "purpose": "TypeSpec definitions for the Tax Codes v3 API domain: full CRUD for TaxCode resources that map OpenMeter app types (Stripe, Sandbox, etc.) to provider-specific tax codes. This is an internal/private API surface \u2014 all endpoints carry PrivateExtension, UnstableExtension, and InternalExtension.",
+  "openmeter/progressmanager": {
+    "purpose": "Tracks progress of long-running async operations (e.g. ClickHouse export jobs) via a Redis-backed key-value store with TTL. Root package defines mirrored Service and Adapter interfaces; entity/ owns pure domain types; adapter/ provides Redis, noop, and mock implementations; httpdriver/ exposes a single GetProgress endpoint.",
     "patterns": [
       {
-        "name": "Triple private/unstable/internal extension on all operations",
-        "description": "Every operation in TaxCodesOperations carries all three extensions: @extension(Shared.PrivateExtension, true), @extension(Shared.UnstableExtension, true), @extension(Shared.InternalExtension, true). Any new operation added here must carry all three \u2014 this is a non-public internal API.",
-        "example": "@post @operationId(\"create-tax-code\")\n@extension(Shared.InternalExtension, true)\n@extension(Shared.UnstableExtension, true)\ncreate(@body tax_code: Shared.CreateRequest<TaxCode>): Shared.CreateResponse<TaxCode> | Common.ErrorResponses;"
+        "name": "Validate() on every input and entity type",
+        "description": "GetProgressInput, UpsertProgressInput, and Progress implement Validate() via errors.Join; the adapter calls Validate() before any Redis operation.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }"
       },
       {
-        "name": "Upsert (@put) over separate create+update for sync-friendly resources",
-        "description": "Tax codes use @put upsert (Shared.UpsertRequest<T> body, Shared.UpsertResponse<T> + Common.Gone response) rather than separate create/update endpoints, because tax codes are synced idempotently from external provider catalogs.",
-        "example": "@put @operationId(\"upsert-tax-code\")\nupsert(@path taxCodeId: Shared.ULID, @body tax_code: Shared.UpsertRequest<TaxCode>):\n  | Shared.UpsertResponse<TaxCode> | Common.Gone | Common.NotFound | Common.ErrorResponses;"
+        "name": "Namespaced Redis key format",
+        "description": "Redis keys include namespace and operation ID to prevent multi-tenant collisions; the format lives in adapter/progress.go getKey() \u2014 do not change without a migration plan.",
+        "example": "func getKey(input entity.GetProgressInput) string { return fmt.Sprintf(\"progress:%s:%s\", input.Namespace, input.ID) }"
       },
       {
-        "name": "Cross-namespace import of specific .tsp file (not index)",
-        "description": "codes.tsp imports only ../apps/app.tsp (not ../apps/index.tsp) to reference Apps.AppType. When a domain needs one type from another namespace, import the specific .tsp file to minimize transitive dependencies.",
-        "example": "import \"../apps/app.tsp\";\nnamespace Tax;\nmodel TaxCodeAppMapping { app_type: Apps.AppType; tax_code: string; }"
+        "name": "redis.Nil mapped to GenericNotFoundError",
+        "description": "Key-not-found from Redis is mapped to models.GenericNotFoundError so GenericErrorEncoder produces HTTP 404.",
+        "example": "if errors.Is(err, redis.Nil) { return nil, models.NewGenericNotFoundError(\"progress\", input.ID) }"
       },
       {
-        "name": "ResourceWithKey for key-addressable resources",
-        "description": "TaxCode spreads ...Shared.ResourceWithKey (not plain Resource) because tax codes are addressable by human-readable key in addition to ULID. Use ResourceWithKey whenever the resource has a user-controlled lookup key.",
-        "example": "model TaxCode { ...Shared.ResourceWithKey; app_mappings: TaxCodeAppMapping[]; }"
+        "name": "Noop UpsertProgress is a safe silent no-op",
+        "description": "adapterNoop.UpsertProgress always returns nil; callers rely on this for test/disabled-feature wiring.",
+        "example": "func (a *adapterNoop) UpsertProgress(_ context.Context, _ entity.UpsertProgressInput) error { return nil }"
+      },
+      {
+        "name": "Service and Adapter interfaces mirror each other",
+        "description": "Service embeds ProgressManagerService; Adapter embeds ProgressManagerAdapter \u2014 identical signatures so the Wire provider can inject Adapter as Service.",
+        "example": "type Service interface { ProgressManagerService }; type Adapter interface { ProgressManagerAdapter }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "codes.tsp",
-        "role": "TaxCode resource model and TaxCodeAppMapping value-object. TaxCodeReference is a named extension of Shared.ResourceReference<TaxCode>.",
-        "watch_for": "app_mappings carries @visibility(Lifecycle.Read, Lifecycle.Update, Lifecycle.Create) \u2014 it is required on both create and update. Do not make it optional without backward-compatibility analysis."
+        "file": "service.go",
+        "role": "Outward-facing Service interface (GetProgress, UpsertProgress); must stay identical to Adapter signatures.",
+        "watch_for": "Adding a method to Service without adding it to Adapter (and vice versa) breaks the compile-time interface chain."
       },
       {
-        "file": "operations.tsp",
-        "role": "TaxCodesOperations interface: create, get, list (with include_deleted query param), upsert, delete.",
-        "watch_for": "List includes @query include_deleted?: boolean (soft-delete pattern). Upsert can return Common.Gone (410) if the resource was hard-deleted \u2014 Go handler must handle this case."
+        "file": "adapter.go",
+        "role": "Adapter interface (storage contract), deliberately mirroring Service.",
+        "watch_for": "Diverging Service/Adapter signatures makes the Wire provider that injects Adapter as Service fail to compile."
       },
       {
-        "file": "index.tsp",
-        "role": "Barrel: imports codes.tsp then operations.tsp in dependency order.",
-        "watch_for": "codes.tsp must be imported before operations.tsp since operations references TaxCode."
+        "file": "entity/progressmanager.go",
+        "role": "All domain value types (ProgressID, Progress, GetProgressInput, UpsertProgressInput) and their Validate(). Pure types only.",
+        "watch_for": "Adding persistence logic or external imports here breaks entity/adapter separation and creates import cycles."
+      },
+      {
+        "file": "adapter/adapter.go",
+        "role": "Redis implementation, adapterNoop, and MockProgressManager (testify mock for Service); key format, TTL, and redis.Nil mapping live here.",
+        "watch_for": "Changing getKey() orphans all in-flight progress records; making adapterNoop.UpsertProgress return an error breaks callers relying on safe noop writes."
+      },
+      {
+        "file": "httpdriver/progress.go",
+        "role": "Single GetProgress endpoint via httptransport.NewHandlerWithArgs; namespace resolved via namespacedriver.NamespaceDecoder.",
+        "watch_for": "Do not call the domain service from the decoder \u2014 decode maps request fields only; the operation func calls the service. Convert responses via progressToAPI()."
       }
     ],
     "anti_patterns": [
-      "Adding a new endpoint without all three extensions (PrivateExtension, UnstableExtension, InternalExtension) \u2014 this is a private internal API not exposed to customers",
-      "Using Shared.Resource instead of Shared.ResourceWithKey \u2014 tax codes are key-addressable",
-      "Splitting upsert into separate create+update endpoints \u2014 idempotent upsert is required for the sync job pattern",
-      "Importing ../apps/index.tsp instead of ../apps/app.tsp \u2014 import only the specific file containing the needed type"
+      "Storing progress keys without a namespace prefix \u2014 breaks multi-tenant isolation",
+      "Returning raw redis errors instead of models.GenericNotFoundError for redis.Nil \u2014 breaks HTTP 404 mapping",
+      "Changing the Redis key format in getKey() without a migration plan \u2014 orphans all in-flight progress records",
+      "Adding persistence, Redis, or HTTP logic to entity/ types \u2014 must be pure domain types only",
+      "Making adapterNoop.UpsertProgress return an error \u2014 callers rely on noop writes being safe no-ops"
     ],
     "decisions": [
       {
-        "decision": "Upsert (@put) instead of separate create/update for tax codes",
-        "rationale": "Tax codes are synced from external provider catalogs; idempotent upsert avoids 409 conflicts on repeated sync runs and simplifies the sync job implementation."
+        "decision": "Redis (not PostgreSQL/Ent) as the backing store",
+        "rationale": "Progress records are ephemeral, TTL-scoped, and high-write; a Redis hash with TTL avoids Postgres table bloat and a cleanup job."
       },
       {
-        "decision": "All endpoints marked private+unstable+internal",
-        "rationale": "Tax code management is an operator-level function not exposed in the public SDK; the extensions exclude these endpoints from customer-facing SDK generation and documentation."
+        "decision": "Entity types in a separate entity/ sub-package",
+        "rationale": "Keeps the root package as a thin interface layer; entity types can be imported by adapter/ without a circular import."
       }
     ],
-    "code_examples": [
-      {
-        "scenario": "Adding a new TaxCode field (e.g. description) following existing visibility patterns",
-        "code": "// In codes.tsp:\nmodel TaxCode {\n  ...Shared.ResourceWithKey;\n\n  // description comes from Shared.Resource via ResourceWithKey \u2014 already present\n  // For a new domain field:\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)\n  @summary(\"Category\")\n  category?: string;\n\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)\n  @summary(\"App type to tax code mappings\")\n  app_mappings: TaxCodeAppMapping[];\n}"
-      }
-    ]
+    "code_examples": []
   }
 }

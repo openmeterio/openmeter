@@ -1,0 +1,195 @@
+{
+  "api/spec/packages/aip/src/defaults": {
+    "purpose": "v3 (AIP) TypeSpec for the organization-level defaults subsystem: the OrganizationDefaultTaxCodes singleton model plus get/update operations. Marked internal+unstable \u2014 this is not yet a public API surface.",
+    "patterns": [
+      {
+        "name": "Internal+Unstable extensions on every operation",
+        "description": "Each operation carries both @extension(Shared.UnstableExtension, true) and @extension(Shared.InternalExtension, true) to mark it internal/unstable in the generated OpenAPI.",
+        "example": "@get @extension(Shared.UnstableExtension, true) @extension(Shared.InternalExtension, true) get(): Shared.GetResponse<OrganizationDefaultTaxCodes> | Common.NotFound | Common.ErrorResponses;"
+      },
+      {
+        "name": "Shared.ResourceReference for typed links",
+        "description": "TaxCode references use Shared.ResourceReference<Tax.TaxCode> rather than raw ULID fields to preserve typed linkage.",
+        "example": "invoicing_tax_code: Shared.ResourceReference<Tax.TaxCode>;"
+      },
+      {
+        "name": "@put with Shared.UpdateRequest for update",
+        "description": "The update operation uses @put with Shared.UpdateRequest (not @patch), consistent with the billing-profile update pattern, returning Shared.UpsertResponse.",
+        "example": "@put update(@body body: Shared.UpdateRequest<OrganizationDefaultTaxCodes>): Shared.UpsertResponse<OrganizationDefaultTaxCodes> | Common.NotFound | Common.ErrorResponses;"
+      },
+      {
+        "name": "Read-only timestamps without Shared.Resource spread",
+        "description": "created_at/updated_at are declared directly with @visibility(Lifecycle.Read); the model intentionally omits the Shared.Resource (id) spread because it is a singleton.",
+        "example": "@visibility(Lifecycle.Read) created_at: Shared.DateTime;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "taxcodes.tsp",
+        "role": "OrganizationDefaultTaxCodes model with invoicing_tax_code, credit_grant_tax_code, and read-only created_at/updated_at.",
+        "watch_for": "Model lacks the Shared.Resource spread (no id) \u2014 it is a per-org singleton accessed by org context, not by ULID."
+      },
+      {
+        "file": "operations.tsp",
+        "role": "OrganizationDefaultTaxCodesOperations interface with get and update only, both internal+unstable.",
+        "watch_for": "Do not remove UnstableExtension/InternalExtension annotations \u2014 this API is not yet public. namespace Defaults."
+      },
+      {
+        "file": "index.tsp",
+        "role": "Barrel import re-exporting taxcodes.tsp and operations.tsp.",
+        "watch_for": "Every new .tsp file in this folder must be imported here."
+      }
+    ],
+    "anti_patterns": [
+      "Removing the UnstableExtension or InternalExtension annotations \u2014 this is not a public API",
+      "Adding a create or delete operation \u2014 the resource is a singleton provisioned automatically at org creation",
+      "Using the Shared.Resource spread \u2014 this singleton has no id and is not identified by ULID"
+    ],
+    "decisions": [
+      {
+        "decision": "Singleton resource pattern without the Shared.Resource spread",
+        "rationale": "OrganizationDefaultTaxCodes is a per-org singleton provisioned at org creation; it has no id and is not individually addressable, so it skips the id/created_at/updated_at Resource spread."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Singleton get operation marked internal+unstable",
+        "code": "@get\n@operationId(\"get-organization-default-tax-codes\")\n@summary(\"Get organization default tax codes\")\n@extension(Shared.UnstableExtension, true)\n@extension(Shared.InternalExtension, true)\nget(): Shared.GetResponse<OrganizationDefaultTaxCodes> | Common.NotFound | Common.ErrorResponses;"
+      }
+    ]
+  },
+  "api/spec/packages/aip/src/entitlements": {
+    "purpose": "v3 (AIP) TypeSpec for the customer entitlement access query API: EntitlementType enum, EntitlementAccessResult model, and a single GET list operation scoped to a customerId path param. Read-only \u2014 entitlement management lives in the v1 spec.",
+    "patterns": [
+      {
+        "name": "Named wrapper model for non-paginated arrays",
+        "description": "ListCustomerEntitlementAccessResponse wraps a data: EntitlementAccessResult[] field in a named model (...ResponseData) rather than returning a bare array, for SDK consistency.",
+        "example": "model ListCustomerEntitlementAccessResponseData { data: EntitlementAccessResult[]; }"
+      },
+      {
+        "name": "All result fields are @visibility(Lifecycle.Read)",
+        "description": "EntitlementAccessResult is a pure read model; every field carries @visibility(Lifecycle.Read), with no create/update visibility.",
+        "example": "@visibility(Lifecycle.Read) has_access: boolean;"
+      },
+      {
+        "name": "Customer-scoped operation without pagination",
+        "description": "The list operation takes only @path customerId: Shared.ULID \u2014 no namespace param, no Common.PagePaginationQuery; all features are returned in one call.",
+        "example": "list(@path customerId: Shared.ULID): ListCustomerEntitlementAccessResponse | Common.NotFound | Common.ErrorResponses;"
+      },
+      {
+        "name": "BillingEntitlement* friendlyName prefix",
+        "description": "Generated type names use the Billing* prefix via @friendlyName (BillingEntitlementType, BillingEntitlementAccessResult).",
+        "example": "@friendlyName(\"BillingEntitlementType\") enum EntitlementType { Metered: \"metered\", ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entitlements.tsp",
+        "role": "EntitlementType enum (Metered, Static, Boolean).",
+        "watch_for": "@friendlyName uses the 'BillingEntitlementType' prefix \u2014 keep the Billing* prefix convention for this spec."
+      },
+      {
+        "file": "operations.tsp",
+        "role": "ListCustomerEntitlementAccessResponse/...Data wrapper models + CustomerEntitlementsOperations interface with a single customer-scoped list operation.",
+        "watch_for": "Operation is @path customerId-scoped \u2014 it does NOT use namespace or pagination params."
+      },
+      {
+        "file": "access.tsp",
+        "role": "EntitlementAccessResult model (type, feature_key, has_access, optional config).",
+        "watch_for": "config is only populated for static entitlements; has_access is always true for boolean/static \u2014 document this invariant in JSDoc for any new type."
+      }
+    ],
+    "anti_patterns": [
+      "Adding write operations (create/update/delete) \u2014 management is in the v1 spec; this folder is read-only access query",
+      "Adding pagination to the list operation \u2014 the response intentionally returns all feature access in one call",
+      "Returning a bare array instead of the wrapper model with a 'data' key"
+    ],
+    "decisions": [
+      {
+        "decision": "Flat response list without pagination",
+        "rationale": "The number of features per customer is bounded and small; pagination overhead would complicate client-side feature-gate checks."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Customer-scoped read-only list operation",
+        "code": "interface CustomerEntitlementsOperations {\n  @get\n  @operationId(\"list-customer-entitlement-access\")\n  @summary(\"List customer entitlement access\")\n  list(@path customerId: Shared.ULID): ListCustomerEntitlementAccessResponse | Common.NotFound | Common.ErrorResponses;\n}"
+      }
+    ]
+  },
+  "api/spec/packages/aip/src/events": {
+    "purpose": "v3 (AIP) TypeSpec for the metering event ingest and query API: CloudEvents-based MeteringEvent/IngestedEvent models, a filter model, cursor-paginated listing, and batch ingest. Ingest is fire-and-forget (202) with three @sharedRoute overloads per content-type.",
+    "patterns": [
+      {
+        "name": "@sharedRoute content-type overloads",
+        "description": "The ingest endpoint has three operation declarations (single CloudEvent, batch CloudEvent, JSON) all with the same @operationId and @sharedRoute, compiling to one OpenAPI operation with multiple requestBody content types.",
+        "example": "@post @operationId(\"ingest-metering-events\") @sharedRoute ingestEvent(@header contentType: \"application/cloudevents+json\", @body body: MeteringEvent): IngestEventsResponse | Common.ErrorResponses;"
+      },
+      {
+        "name": "Cursor pagination for event listing",
+        "description": "list uses ...Common.CursorPaginationQuery (not PagePaginationQuery) and returns Shared.CursorPaginatedResponse<IngestedEvent>; filter and sort are separate named query params.",
+        "example": "list(...Common.CursorPaginationQuery, @query filter?: ListEventsParamsFilter, @query sort?: Common.SortQuery): Shared.CursorPaginatedResponse<IngestedEvent> | Common.ErrorResponses;"
+      },
+      {
+        "name": "Filter model uses Common.*FieldFilter types",
+        "description": "ListEventsParamsFilter fields reference Common.StringFieldFilter, Common.ULIDFieldFilter, Common.DateTimeFieldFilter \u2014 never inline filter operators.",
+        "example": "model ListEventsParamsFilter { id?: Common.StringFieldFilter; customer_id?: Common.ULIDFieldFilter; time?: Common.DateTimeFieldFilter; }"
+      },
+      {
+        "name": "deepObject filter param with explode",
+        "description": "The filter query param uses @query(#{ style: \"deepObject\", explode: true }) so filter[field][op]=value query strings deserialize correctly server-side.",
+        "example": "@query(#{ style: \"deepObject\", explode: true }) filter?: ListEventsParamsFilter,"
+      },
+      {
+        "name": "202 ingest response with empty body",
+        "description": "IngestEventsResponse declares @statusCode _: 202 and no @body, reflecting async fire-and-forget processing.",
+        "example": "model IngestEventsResponse { @statusCode _: 202; }"
+      },
+      {
+        "name": "CloudEvents field constraints",
+        "description": "MeteringEvent follows the CloudEvents spec: id/source/type/subject have @minLength(1); specversion defaults to '1.0'; data is Record<unknown>; source has @format(\"uri-reference\").",
+        "example": "@minLength(1) @format(\"uri-reference\") source: string;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "event.tsp",
+        "role": "MeteringEvent (CloudEvents schema), IngestedEvent (with ingested_at/stored_at/validation_errors), and IngestedEventValidationError (code+message+attributes).",
+        "watch_for": "New validation error codes added in the Go layer need corresponding documentation here; IngestedEvent.customer is a Shared.ResourceReference<Customers.Customer>."
+      },
+      {
+        "file": "operations.tsp",
+        "role": "EventsOperations interface with cursor-paginated list (marked UnstableExtension) and three @sharedRoute POST ingest overloads, plus ListEventsParamsFilter and IngestEventsResponse models.",
+        "watch_for": "All three ingest overloads share the same @operationId; a fourth content-type overload must also use @sharedRoute and the same operationId. sort defaults to time desc; bare field defaults to desc."
+      },
+      {
+        "file": "index.tsp",
+        "role": "Barrel import re-exporting event.tsp and operations.tsp.",
+        "watch_for": "Every new .tsp file added here must be imported in index.tsp."
+      }
+    ],
+    "anti_patterns": [
+      "Adding pagination to the ingest endpoint \u2014 ingest is fire-and-forget 202",
+      "Using PagePaginationQuery for event listing \u2014 events use cursor (after/before) pagination",
+      "Defining filter operators inline instead of using Common.*FieldFilter types",
+      "Removing @sharedRoute from any ingest overload \u2014 collapses three content-type variants into one",
+      "Adding response body fields to IngestEventsResponse \u2014 the ingest acknowledgment is intentionally empty"
+    ],
+    "decisions": [
+      {
+        "decision": "Three @sharedRoute ingest overloads instead of a single union body",
+        "rationale": "OpenAPI requires distinct requestBody entries per content-type for correct SDK generation; @sharedRoute expresses this without duplicating the operation ID."
+      },
+      {
+        "decision": "Cursor pagination for events",
+        "rationale": "Event streams grow continuously and page-number pagination is unstable on append-only data; cursor-based (after/before) pagination gives stable traversal."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new filter field to event listing",
+        "code": "// In operations.tsp, add to ListEventsParamsFilter:\nmodel ListEventsParamsFilter {\n  // ... existing fields ...\n\n  /** Filter events by validation error code. */\n  validation_error_code?: Common.StringFieldFilterExact;\n}"
+      }
+    ]
+  }
+}

@@ -2,79 +2,60 @@
 
 <!-- archie:ai-start -->
 
-> Domain contract layer for the notification subsystem: defines all types (Channel, Rule, Event, EventPayload union, delivery status), composite Service interface, and EventHandler lifecycle interface. Sub-packages (adapter, service, httpdriver, consumer, eventhandler, webhook) import this root for shared vocabulary — no implementation lives here.
+> Notification domain root: defines all shared vocabulary (Channel, Rule, Event, EventPayload/RuleConfig/ChannelConfig union types, EventDeliveryStatus) plus the composite Service and EventHandler interfaces. Implementation is split across sub-packages — only types, interfaces, and constants live in the root, so any concrete code here would create import cycles between adapter, service, consumer, and eventhandler.
 
 ## Patterns
 
-**Compile-time interface assertions on every Input type** — Every Input type declares `var _ models.Validator = (*XInput)(nil)` and `var _ models.CustomValidator[XInput] = (*XInput)(nil)` to guarantee Validate() and ValidateWith() are implemented. (`var (
-    _ models.Validator                           = (*CreateChannelInput)(nil)
-    _ models.CustomValidator[CreateChannelInput] = (*CreateChannelInput)(nil)
-)`)
-**models.NewNillableGenericValidationError wrapping errors.Join** — All Validate() methods accumulate errors into a []error slice and return models.NewNillableGenericValidationError(errors.Join(errs...)) — never return raw errors or construct error types directly. (`func (i CreateChannelInput) Validate() error {
-    var errs []error
-    if i.Namespace == "" { errs = append(errs, errors.New("namespace is required")) }
-    return models.NewNillableGenericValidationError(errors.Join(errs...))
-}`)
-**Union config/payload types with type-discriminated Validate()** — ChannelConfig, RuleConfig, and EventPayload are union structs with a *Meta type field; Validate() switches on the discriminator and delegates to the sub-type validator. Adding a new event/channel type requires updating both the union struct and its Validate() switch. (`func (c RuleConfig) Validate() error {
-    switch c.Type {
-    case EventTypeBalanceThreshold: return c.BalanceThreshold.Validate()
-    // add new type here
-    }
-}`)
-**eventTypes slice as the single registry for valid EventType values** — EventType.Validate() uses lo.Contains(eventTypes, t). Adding a new EventType requires appending to the eventTypes package-level var in event.go — not just adding a const. (`// event.go
-var eventTypes = []EventType{
-    EventTypeBalanceThreshold,
-    EventTypeEntitlementReset,
-    EventTypeInvoiceCreated,
-    EventTypeInvoiceUpdated,
-    EventTypeMyNew, // add here too
-}`)
-**EventPayloadVersionCurrent = 1 on all new event payloads** — EventPayloadMeta.Version must be set to EventPayloadVersionCurrent (1) when constructing payloads for new events. The adapter reads this version to apply migration logic for older payloads. (`EventPayloadMeta{Type: EventTypeInvoiceCreated, Version: EventPayloadVersionCurrent}`)
-**MaxChannelsPerRule constant enforced in Input.Validate()** — CreateRuleInput and UpdateRuleInput check len(Channels) <= MaxChannelsPerRule (5) inside Validate() — never inline the constant. (`if len(i.Channels) > MaxChannelsPerRule { errs = append(errs, fmt.Errorf(...)) }`)
+**Root is types+interfaces only; subtrees implement** — service.go/event.go/channel.go/rule.go/eventpayload.go/repository.go define contracts; adapter/ (Ent), service/ (orchestration), httpdriver/ (v1 HTTP), consumer/ (Kafka), eventhandler/ (dispatch+reconcile), webhook/ (Svix/noop) each import the root for shared types. Never import a sub-package from the root. (`type Service interface { FeatureService; ChannelService; RuleService; EventService }`)
+**Every Input declares compile-time Validator assertions** — Each *Input type carries `var _ models.Validator` and `var _ models.CustomValidator[T]` and accumulates errors via models.NewNillableGenericValidationError(errors.Join(errs...)) — never raw errors. (`func (i CreateRuleInput) Validate() error { /* errs ... */ return models.NewNillableGenericValidationError(errors.Join(errs...)) }`)
+**Type-discriminated union Validate()** — ChannelConfig, RuleConfig, EventPayload switch on a *Meta.Type discriminator (EventType) and delegate. Adding a new event/channel type requires updating the union struct, its Validate() switch, AND the eventTypes registry in event.go. (`switch c.Type { case EventTypeBalanceThreshold: return c.BalanceThreshold.Validate(); ... }`)
+**eventTypes slice is the single EventType registry** — EventType.Validate() uses lo.Contains(eventTypes, t). A new EventType const must be appended to eventTypes in event.go, not just declared. (`var eventTypes = []EventType{EventTypeBalanceThreshold, EventTypeEntitlementReset, EventTypeInvoiceCreated, EventTypeInvoiceUpdated}`)
+**EventPayloadVersionCurrent on all new payloads** — EventPayloadMeta.Version = EventPayloadVersionCurrent (1) on construction; the adapter branches on version to migrate older invoice payloads. (`EventPayloadMeta{Type: EventTypeInvoiceCreated, Version: EventPayloadVersionCurrent}`)
+**Cross-cutting limits enforced via named constants** — MaxChannelsPerRule (5) is checked inside Create/UpdateRuleInput.Validate(); webhook/ enforces MaxChannelsPerWebhook. Never inline the numeric limit. (`if len(i.Channels) > MaxChannelsPerRule { errs = append(errs, fmt.Errorf(...)) }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `service.go` | Service interface as composition of ChannelService, RuleService, EventService, and FeatureService. All HTTP handlers and consumers depend on notification.Service. | Adding methods directly to Service instead of a sub-interface breaks the smallest-surface dependency principle. |
-| `eventpayload.go` | EventPayload union type + EventPayloadVersionCurrent constant. eventPayload.Validate() is the entry-point for payload correctness checks. | New event type added to EventPayload struct without updating Validate() switch — payload passes validation silently. |
-| `eventhandler.go` | EventHandler interface (EventDispatcher + EventReconciler + Start/Close). Defines DefaultReconcileInterval, DefaultDispatchTimeout, and default timeout constants. | Dispatch is a fire-and-forget contract — implementations must not block inside Dispatch. |
-| `event.go` | eventTypes registry, EventType, Event struct, all *EventInput types. Contains the canonical list of valid event types. | New EventType const without appending to eventTypes slice — EventType.Validate() will reject it. |
-| `channel.go` | Channel and ChannelConfig union type with discriminated Validate(). WebHookChannelConfig validated separately. | Adding a new channel type without handling it in ChannelConfig.Validate() switch causes silent validation bypass. |
-| `repository.go` | Repository interface (ChannelRepository + RuleRepository + EventRepository + entutils.TxCreator) — the persistence contract implemented by the adapter sub-package. | Never import the adapter sub-package from this root package — causes import cycles. |
+| `service.go` | Composite Service = FeatureService + ChannelService + RuleService + EventService; the dependency surface for all handlers and consumers. | Adding methods directly to Service instead of a sub-interface breaks smallest-surface dependency. |
+| `event.go` | eventTypes registry, EventType, Event struct, *EventInput types. | New EventType const without appending to eventTypes — Validate() rejects it. |
+| `eventpayload.go` | EventPayload union + EventPayloadVersionCurrent; Validate() is the payload-correctness entry point. | New payload variant without updating the Validate() switch silently bypasses validation. |
+| `eventhandler.go` | EventHandler = EventDispatcher + EventReconciler + Start/Close; default reconcile/dispatch timeouts. | Dispatch is fire-and-forget — implementations must not block. |
+| `repository.go` | Persistence contract (Channel/Rule/EventRepository + entutils.TxCreator) implemented only by adapter/. | Importing the adapter sub-package here causes an import cycle. |
+| `channel.go / rule.go` | Channel/Rule + their *Config union types with discriminated Validate() and ListChannelsInput/ListRulesInput. | New channel/rule type not handled in the Config.Validate() switch silently passes. |
 
 ## Anti-Patterns
 
-- Adding business logic (Svix calls, DB queries) to this root package — it is a types+interfaces-only package.
-- Defining a new EventType const without adding it to the eventTypes slice in event.go — breaks EventType.Validate().
-- Returning raw errors from Validate() instead of models.NewNillableGenericValidationError(errors.Join(...)) — breaks HTTP 400 mapping.
-- Adding a new payload variant to EventPayload struct without updating EventPayload.Validate() switch — new payloads silently bypass validation.
-- Importing openmeter/notification/adapter, /service, or /webhook/svix from this package — creates import cycles.
+- Adding business logic (Svix calls, Ent queries) to the root package — it is types+interfaces only.
+- Declaring a new EventType const without appending it to the eventTypes slice in event.go.
+- Returning raw errors from Validate() instead of models.NewNillableGenericValidationError(errors.Join(...)) — breaks HTTP 400 mapping via GenericErrorEncoder.
+- Extending an EventPayload/RuleConfig/ChannelConfig union without updating its Validate() switch.
+- Importing openmeter/notification/adapter, /service, /consumer, or /webhook/svix from the root — creates import cycles.
 
 ## Decisions
 
-- **Root package contains only types, interfaces, and constants — no implementations.** — All sub-packages import this root for shared types; any implementation here would create import cycles between adapter, service, and consumer sub-packages.
-- **EventPayloadVersionCurrent is a single int constant rather than per-event versioning.** — Simplifies migration logic in the adapter — it only needs to branch on version for event types whose schema changed (currently invoice).
-- **EventHandler is composed of EventDispatcher and EventReconciler sub-interfaces.** — Allows callers that only need to dispatch (not reconcile) to depend on the smaller EventDispatcher interface.
+- **Root holds only types, interfaces, and constants.** — All sub-packages import the root for shared vocabulary; any implementation here would create cycles between adapter, service, consumer, and eventhandler.
+- **Single EventPayloadVersionCurrent int rather than per-event versioning.** — Keeps adapter migration logic simple — it branches on version only for event families whose schema changed (currently invoice).
+- **EventHandler split into EventDispatcher and EventReconciler.** — Lets the Watermill consumer depend on the smaller EventDispatcher while the standalone service drives the full reconcile loop.
 
-## Example: Adding a new event type: extend eventTypes registry and union payload type
+## Example: Adding a new event type: extend the registry and union payload
 
 ```
-// event.go — append to registry
-var eventTypes = []EventType{
-    EventTypeBalanceThreshold,
-    EventTypeEntitlementReset,
-    EventTypeInvoiceCreated,
-    EventTypeInvoiceUpdated,
-    EventTypeMyNew, // add here
-}
+// event.go
+var eventTypes = []EventType{EventTypeBalanceThreshold, EventTypeEntitlementReset, EventTypeInvoiceCreated, EventTypeInvoiceUpdated, EventTypeMyNew}
 
-// eventpayload.go — extend union
+// eventpayload.go
 type EventPayload struct {
     EventPayloadMeta
     BalanceThreshold *BalanceThresholdPayload `json:"balanceThreshold,omitempty"`
     MyNew            *MyNewPayload            `json:"myNew,omitempty"`
 }
+func (p EventPayload) Validate() error {
+    switch p.Type {
+    case EventTypeMyNew:
+        if p.MyNew == nil { return models.NewGenericValidationError(errors.New("missing myNew payload")) }
+        return p.MyNew.Validate()
+    }
 // ...
 ```
 

@@ -2,60 +2,54 @@
 
 <!-- archie:ai-start -->
 
-> Stateless usage-rating orchestrator: snapshots metered quantity from ClickHouse (via streaming.Connector) and dispatches to the delta or period-preserving sub-engine to produce DetailedLines or totals. No DB writes — all persistence is owned by callers in the run package.
+> Stateless usage-rating orchestrator for usage-based charges: snapshots metered quantity from ClickHouse (via streaming.Connector) at a stored-at cutoff and dispatches to a sub-engine (delta production engine / periodpreserving experimental engine, both built on the subtract primitive) to produce DetailedLines or totals. No DB writes — persistence is owned by callers in the run package.
 
 ## Patterns
 
-**Config-struct constructor with Validate()** — New(Config) validates all required fields before constructing the service. Every exported input type also implements Validate() and is called at the top of the method body. (`func New(config Config) (Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }`)
+**Config-struct constructor with Validate()** — New(Config) validates required fields before constructing the service, and every exported input type implements Validate() called at the top of the method body. (`func New(config Config) (Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }`)
 **StoredAtLT cutoff in every ClickHouse query** — snapshotQuantity always sets FilterStoredAt.Lt = &in.StoredAtLT in the QueryMeter call so usage is bounded to a deterministic point in time, enabling idempotent re-rating. (`FilterStoredAt: &filter.FilterTimeUnix{FilterTime: filter.FilterTime{Lt: &in.StoredAtLT}}`)
-**Rating-engine dispatch via charge.State.RatingEngine** — GetDetailedRatingForUsage switches on charge.State.RatingEngine (RatingEngineDelta or RatingEnginePeriodPreserving) to call deltaRater.Rate or periodPreservingRater.Rate. A default case returns an error — no silent fallback. (`switch charge.State.RatingEngine { case usagebased.RatingEngineDelta: ... case usagebased.RatingEnginePeriodPreserving: ... default: return ..., fmt.Errorf("unsupported rating engine: %s", ...) }`)
-**Voided-realization exclusion before subtraction** — eligibleRealizations filters out runs where run.IsVoidedBillingHistory() before passing AlreadyBilledDetailedLines to the delta engine. Voided runs must also be skipped in ensureDetailedLinesLoadedForRating. (`lo.Filter(charge.Realizations, func(run usagebased.RealizationRun, _ int) bool { if run.IsVoidedBillingHistory() { return false } return run.ServicePeriodTo.Before(in.ServicePeriodTo) })`)
-**Lazy detailed-line loading via DetailedLinesFetcher** — ensureDetailedLinesLoadedForRating checks whether all prior eligible runs have DetailedLines.IsPresent() before calling detailedLinesFetcher.FetchDetailedLines — avoiding unnecessary fetches when lines are already loaded. (`if !lo.EveryBy(charge.Realizations, func(run ...) bool { ... return run.DetailedLines.IsPresent() }) { expandedCharge, err := s.detailedLinesFetcher.FetchDetailedLines(ctx, charge) }`)
-**WithCreditsMutatorDisabled() always set on rating calls** — Both GetTotalsForUsage and GetDetailedRatingForUsage pass billingrating.WithCreditsMutatorDisabled() to ratingService.GenerateDetailedLines so that credit allocation is not applied during rating (callers apply credits separately). (`opts := []billingrating.GenerateDetailedLinesOption{billingrating.WithCreditsMutatorDisabled()}`)
-**Prefer GetTotalsForUsage over GetDetailedRatingForUsage when only totals are needed** — GetTotalsForUsage skips detailed-line construction and only calls ratingResult.Totals — materially faster for pre-advance checks. (`totals, err := svc.GetTotalsForUsage(ctx, GetTotalsForUsageInput{Charge: charge, StoredAtLT: storedAt, ...})`)
+**Engine dispatch via charge.State.RatingEngine** — GetDetailedRatingForUsage switches on charge.State.RatingEngine (RatingEngineDelta or RatingEnginePeriodPreserving) with a default error case — no silent fallback. (`switch charge.State.RatingEngine { case usagebased.RatingEngineDelta: ... default: return ..., fmt.Errorf("unsupported rating engine: %s", ...) }`)
+**Voided + current-run exclusion before subtraction** — eligibleRealizations filters out IsVoidedBillingHistory() runs and keeps only runs with ServicePeriodTo strictly before the current ServicePeriodTo, so the current run is never subtracted from itself. (`lo.Filter(charge.Realizations, func(run usagebased.RealizationRun, _ int) bool { if run.IsVoidedBillingHistory() { return false }; return run.ServicePeriodTo.Before(in.ServicePeriodTo) })`)
+**Lazy DetailedLines loading via fetcher interface** — ensureDetailedLinesLoadedForRating only calls detailedLinesFetcher.FetchDetailedLines when some prior eligible run lacks DetailedLines.IsPresent(); rating refuses to proceed with incomplete prior runs. (`if !lo.EveryBy(charge.Realizations, func(run ...) bool { ... return run.DetailedLines.IsPresent() }) { s.detailedLinesFetcher.FetchDetailedLines(ctx, charge) }`)
+**WithCreditsMutatorDisabled() on all rating calls** — Both GetTotalsForUsage and GetDetailedRatingForUsage pass billingrating.WithCreditsMutatorDisabled() so credit allocation is deferred to run creation, not applied during raw rating. (`opts := []billingrating.GenerateDetailedLinesOption{billingrating.WithCreditsMutatorDisabled()}`)
+**Totals-only fast path** — GetTotalsForUsage skips detailed-line construction and returns ratingResult.Totals — preferred for pre-advance checks where only totals are needed. (`totals, err := svc.GetTotalsForUsage(ctx, GetTotalsForUsageInput{Charge: charge, StoredAtLT: storedAt})`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `service.go` | Defines the Service interface (GetTotalsForUsage, GetDetailedRatingForUsage, GetPreferredRatingEngineFor), Config struct with Validate(), and New constructor that builds deltaRater and periodPreservingRater. | Pure computation — no Ent/DB dependency. DetailedLinesFetcher is an interface injected via Config; never inject an adapter directly. |
-| `details.go` | Implements GetDetailedRatingForUsage: calls ensureDetailedLinesLoadedForRating, snapshotQuantity, currentBillingPeriod, then dispatches to deltaRater or ratePeriodPreservingDetails. | The current run (ServicePeriodTo == run.ServicePeriodTo) is excluded from eligibleRealizations — never include it as a prior run or subtraction will zero out the current bill. |
-| `totals.go` | Implements GetTotalsForUsage: snapshots quantity, calls ratingService.GenerateDetailedLines with DisableCreditsMutator+optional IgnoreMinimumCommitment, and returns only ratingResult.Totals. | Does NOT suffix ChildUniqueReferenceIDs — do not add that logic here; it belongs in the delta/period-preserving engines. |
-| `quantitysnapshot.go` | Private snapshotQuantity helper: builds QueryMeter params with FilterStoredAt and MeterGroupByFilters, calls streaming.Connector, sums rows via summarizeMeterQueryRow. | Validation errors wrapped as billing.ValidationError{Err: err} — use the same wrapper for any new validations added here. |
+| `service.go` | Service interface (GetTotalsForUsage, GetDetailedRatingForUsage, GetPreferredRatingEngineFor), Config + Validate, and New constructor building deltaRater and periodPreservingRater. | Pure computation — no Ent/DB dependency. DetailedLinesFetcher is an injected interface; never inject an adapter directly. |
+| `details.go` | GetDetailedRatingForUsage: ensureDetailedLinesLoadedForRating, snapshotQuantity, then dispatch to deltaRater or ratePeriodPreservingDetails. | The current run (ServicePeriodTo == run.ServicePeriodTo) is excluded from eligibleRealizations — never include it as a prior run. |
+| `totals.go` | GetTotalsForUsage: snapshots quantity, calls GenerateDetailedLines with credits-mutator-disabled + optional ignore-minimum-commitment, returns ratingResult.Totals only. | Does NOT suffix ChildUniqueReferenceIDs — that belongs in the delta/periodpreserving engines. |
+| `quantitysnapshot.go` | Private snapshotQuantity helper building QueryMeter params with FilterStoredAt + group-by filters and summing rows. | Validation errors are wrapped as billing.ValidationError{Err: err}; reuse that wrapper for new validations. |
 
 ## Anti-Patterns
 
 - Adding Ent/DB adapter calls inside this package — persistence is exclusively the caller's responsibility.
-- Calling snapshotQuantity without a non-zero StoredAtLT — every ClickHouse query must be bounded by the stored-at cutoff for idempotent re-rating.
-- Including the current run (ServicePeriodTo == in.ServicePeriodTo) in eligibleRealizations — it will be subtracted from itself and produce a zero bill.
-- Passing voided realizations to deltaRater.Rate as AlreadyBilledDetailedLines — IsVoidedBillingHistory() runs must be filtered out before subtraction.
-- Omitting WithCreditsMutatorDisabled() when calling ratingService.GenerateDetailedLines — credit allocation must be deferred to run creation, not applied during raw rating.
+- Calling snapshotQuantity without a non-zero StoredAtLT — every ClickHouse query must be stored-at bounded for idempotent re-rating.
+- Including the current run in eligibleRealizations — it will be subtracted from itself and produce a zero bill.
+- Passing voided realizations as AlreadyBilledDetailedLines — IsVoidedBillingHistory() runs must be filtered out before subtraction.
+- Omitting WithCreditsMutatorDisabled() when calling GenerateDetailedLines — credit allocation must be deferred to run creation.
 
 ## Decisions
 
-- **Stateless package with no DB dependency** — Rating is a pure computation (snapshot usage + apply rate card). Keeping it DB-free makes it trivially testable with MockStreamingConnector and reusable from multiple callers without transaction concerns.
-- **Rating-engine selection at dispatch time via charge.State.RatingEngine** — Delta and period-preserving engines have different correctness trade-offs (delta is production-safe; period-preserving is experimental). Dispatching at service level lets the charge carry its own engine preference without the caller knowing internal engine details.
-- **Lazy DetailedLines loading via interface rather than pre-loading in callers** — Prior runs usually have DetailedLines already expanded by the time rating is called; the fetcher interface avoids redundant DB round-trips while providing a safe fallback for cases where they are missing.
+- **Stateless package with no DB dependency.** — Rating is pure computation (snapshot usage + apply rate card), making it trivially testable with MockStreamingConnector and reusable across callers without transaction concerns.
+- **Engine selection at dispatch time via charge.State.RatingEngine.** — Delta is production-safe while period-preserving is experimental; the charge carries its own engine preference without the caller knowing engine internals.
+- **Lazy DetailedLines loading via a fetcher interface rather than caller pre-loading.** — Prior runs are usually already expanded; the fetcher avoids redundant DB round-trips while providing a safe fallback when lines are missing.
 
 ## Example: Rate a usage-based charge and retrieve detailed lines with the stored-at cutoff
 
 ```
-import (
-    usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
-    billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
-)
-
 svc, err := usagebasedrating.New(usagebasedrating.Config{
     StreamingConnector:   streamingConnector,
     RatingService:        billingratingservice.New(),
     DetailedLinesFetcher: detailedLinesFetcher,
 })
 if err != nil { return err }
-
 result, err := svc.GetDetailedRatingForUsage(ctx, usagebasedrating.GetDetailedRatingForUsageInput{
     Charge:          charge,          // must have State.RatingEngine set
-    ServicePeriodTo: currentPeriodTo, // must be within Charge.Intent.ServicePeriod
-// ...
+    ServicePeriodTo: currentPeriodTo, // within Charge.Intent.ServicePeriod
+})
 ```
 
 <!-- archie:ai-end -->

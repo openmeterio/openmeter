@@ -1,61 +1,279 @@
 {
-  "pkg/framework/entutils/testutils/ent2/schema": {
-    "purpose": "Test-only Ent schema fixture providing a second distinct database schema (ent2) for entutils multi-database transaction isolation tests. Contains no production logic \u2014 exists solely to give the test harness two independent Ent schemas.",
+  "pkg/framework/entutils/entcursor": {
+    "purpose": "Ent code-generation extension that attaches a Cursor(ctx, *pagination.Cursor) method to every Ent query type whose schema has a created_at field, enabling stable cursor pagination ordered by (created_at ASC, id ASC). Registered in openmeter/ent/entc.go; takes effect only after make generate.",
     "patterns": [
       {
-        "name": "Embed ent.Schema as first field",
-        "description": "Every schema struct must embed ent.Schema as its first field so Ent code generation recognises it as an entity.",
-        "example": "type Example2 struct { ent.Schema }"
+        "name": "Ent Extension + embedded template",
+        "description": "The Extension embeds entc.DefaultExtension, implements Templates() returning a gen.MustParse'd template loaded via //go:embed cursor.tpl, and exposes New(). This is the only supported way to add generated methods here.",
+        "example": "func (Extension) Templates() []*gen.Template { return []*gen.Template{gen.MustParse(gen.NewTemplate(\"entcursor\").Parse(tmplfile))} }"
       },
       {
-        "name": "Include entutils.TimeMixin in Mixin()",
-        "description": "All schema structs must return entutils.TimeMixin{} from Mixin() to get created_at/updated_at fields, consistent with production schema conventions.",
-        "example": "func (Example2) Mixin() []ent.Mixin { return []ent.Mixin{entutils.TimeMixin{}} }"
+        "name": "created_at gate in template",
+        "description": "The template only emits Cursor(...) for nodes that have a field named created_at; schemas without it get no method.",
+        "example": "{{ if $hasCreatedAt }} ... {{ end }}"
       },
       {
-        "name": "Immutable string primary key named 'id'",
-        "description": "The primary key is always a string field named 'id', marked Unique() and Immutable(), matching the project-wide ID convention.",
-        "example": "field.String(\"id\").Unique().Immutable()"
+        "name": "Deterministic ordering created_at ASC, id ASC",
+        "description": "The generated method always appends ORDER BY created_at ASC, id ASC; callers must not add conflicting order clauses before calling .Cursor().",
+        "example": "s.OrderBy(sql.Asc(s.C(\"created_at\")), sql.Asc(s.C(\"id\")))"
       },
       {
-        "name": "Return empty slices for unused schema hooks",
-        "description": "Indexes() and Edges() must return empty slices (not nil) when unused.",
-        "example": "func (Example2) Indexes() []ent.Index { return []ent.Index{} }"
+        "name": "CAST(id AS TEXT) for cursor comparison",
+        "description": "The cursor WHERE clause casts id to TEXT for string comparison so it works with ULID/UUID IDs. Integer-ID schemas break this assumption (lexicographic, not numeric).",
+        "example": "b.WriteString(\"CAST(\"); b.WriteString(s.C(\"id\")); b.WriteString(\" AS TEXT) > \"); b.Args(cursor.ID)"
       },
       {
-        "name": "Minimal schema \u2014 no relations or complex fields",
-        "description": "Test fixture schemas must stay as small as possible: only an id and one or two value fields. No edges, no foreign keys, no domain logic.",
-        "example": "field.String(\"example_value_2\")"
+        "name": "Non-nil Items on empty result",
+        "description": "Generated code initialises items to an empty slice when nil so JSON serialises as [] not null.",
+        "example": "if items == nil { items = make([]*{{ $n.Name }}, 0) }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "example2.go",
-        "role": "Defines the Example2 Ent schema entity \u2014 the second fixture schema used in entutils multi-db transaction isolation tests.",
-        "watch_for": "Do not add real business logic, edges, or complex fields. Any schema change regenerates the test DB and can break entutils tests."
+        "file": "cursor.tpl",
+        "role": "Go template generating the Cursor method on every qualifying Ent query type at go generate time.",
+        "watch_for": "Rendered once per $.Nodes entry \u2014 changes affect ALL entities with created_at. The CAST assumes string IDs; numeric-ID schemas produce wrong results silently."
+      },
+      {
+        "file": "cursor.go",
+        "role": "Registers the template as an Ent extension via entc.Extension. Must be referenced in openmeter/ent/entc.go to take effect.",
+        "watch_for": "If not listed in the entc.Generate call, no cursor methods are generated despite this code existing."
+      },
+      {
+        "file": "cursor_test.go",
+        "role": "Integration test using testutils.InitPostgresDB; validates first-page, next-page, empty-result, and invalid-cursor paths.",
+        "watch_for": "Requires POSTGRES_HOST=127.0.0.1 and -tags=dynamic; uses the ent1 test schema, not production."
       }
     ],
     "anti_patterns": [
-      "Adding production domain fields or edges to test fixture schemas",
-      "Omitting entutils.TimeMixin from Mixin() \u2014 breaks consistency with production schema conventions",
-      "Using a non-string or mutable ID field \u2014 violates the project-wide ULID/string ID convention",
-      "Importing domain packages (openmeter/billing, openmeter/customer, etc.) into this test schema",
-      "Returning nil instead of empty slice from Indexes() or Edges()"
+      "Adding ORDER BY before calling .Cursor() \u2014 the template appends its own order, making combined ordering undefined",
+      "Using this extension on a schema with an integer ID \u2014 CAST-to-TEXT gives lexicographic, not numeric, ordering",
+      "Editing cursor.tpl without running make generate \u2014 generated methods in openmeter/ent/db/ go stale",
+      "Calling .Cursor() with a zero-value pagination.Cursor{} \u2014 cursor.Validate() returns an error"
     ],
     "decisions": [
       {
-        "decision": "Separate ent2 schema from ent1 schema in testutils",
-        "rationale": "entutils transaction helpers must be tested against two independent Ent databases to verify cross-db transaction isolation; a distinct schema package avoids collision with the ent1 fixture."
+        "decision": "Composite (created_at, id) cursor key instead of offset pagination",
+        "rationale": "Offset pagination drifts under concurrent inserts; a (time, id) tuple is stable and avoids COUNT(*) on large tables."
       },
       {
-        "decision": "Minimal schema with only id and one value field",
-        "rationale": "Keeping fixtures small makes generated test DB migrations fast and decouples entutils tests from domain schema evolution."
+        "decision": "Gate generation on created_at presence rather than an annotation",
+        "rationale": "All domain entities use the TimeMixin that adds created_at, so the gate is a zero-config convention."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Define a new test entity in this schema package",
-        "code": "package schema\n\nimport (\n\t\"entgo.io/ent\"\n\t\"entgo.io/ent/schema/field\"\n\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\ntype Example2 struct {\n\tent.Schema\n}\n\nfunc (Example2) Mixin() []ent.Mixin {\n\treturn []ent.Mixin{\n\t\tentutils.TimeMixin{},\n\t}\n}\n\nfunc (Example2) Fields() []ent.Field {\n\treturn []ent.Field{\n\t\tfield.String(\"id\").Unique().Immutable(),\n\t\tfield.String(\"example_value_2\"),\n\t}\n}\n\nfunc (Example2) Indexes() []ent.Index { return []ent.Index{} }\nfunc (Example2) Edges() []ent.Edge   { return []ent.Edge{} }"
+        "scenario": "Using the generated Cursor method to paginate an Ent query",
+        "code": "import (\n\tpaginationv2 \"github.com/openmeterio/openmeter/pkg/pagination/v2\"\n)\n\nfunc listPage(ctx context.Context, client *db.Client, cur *paginationv2.Cursor) (paginationv2.Result[*db.MyEntity], error) {\n\treturn client.MyEntity.Query().\n\t\tWhere(myentity.NamespaceEQ(ns)).\n\t\tLimit(50).\n\t\tCursor(ctx, cur) // cur == nil returns first page\n}"
+      }
+    ]
+  },
+  "pkg/framework/entutils/entdriver": {
+    "purpose": "Thin wrapper pairing an entDialectSQL.Driver with an entdb.Client into a single EntPostgresDriver struct \u2014 the canonical way to construct and close Ent + Postgres connections in all binaries and tests. Clone() yields isolated clients sharing one connection (used in tests).",
+    "patterns": [
+      {
+        "name": "NewEntPostgresDriver from *sql.DB",
+        "description": "Always construct via NewEntPostgresDriver(db *sql.DB) \u2014 never instantiate EntPostgresDriver directly \u2014 so entDialectSQL.OpenDB(dialect.Postgres, db) wrapping is applied consistently.",
+        "example": "driver := entdriver.NewEntPostgresDriver(sqlDB)"
+      },
+      {
+        "name": "Clone for isolated clients sharing one connection",
+        "description": "Clone() creates a second EntPostgresDriver sharing the underlying *sql.DB but with its own entdb.Client; used in tests to give each test an isolated client.",
+        "example": "isolated := mainDriver.Clone()"
+      },
+      {
+        "name": "Symmetric Close: client first, driver second",
+        "description": "Close() closes the entdb.Client before the entDialectSQL.Driver. Reversing or skipping the client close leaks Ent connection state.",
+        "example": "d.client.Close(); d.driver.Close()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "driver.go",
+        "role": "Sole file \u2014 defines EntPostgresDriver and NewEntPostgresDriver. Imported by app/common for wiring and openmeter/testutils for test DB setup.",
+        "watch_for": "Client() returns the raw *entdb.Client; never call Close() on it separately after handing it to Wire \u2014 EntPostgresDriver.Close() owns the lifecycle."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing entdb.NewClient directly in domain or app code instead of going through EntPostgresDriver",
+      "Calling driver.Client().Close() independently \u2014 EntPostgresDriver.Close() already does this; double-closing errors",
+      "Passing *entdb.Client across binary boundaries \u2014 the client is not serialisable; use Kafka or HTTP"
+    ],
+    "decisions": [
+      {
+        "decision": "Bundle driver and client into one struct",
+        "rationale": "Ent requires both to be closed in the right order; bundling prevents callers from forgetting one half."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/framework/entutils/entexpose": {
+    "purpose": "Ent code-generation extension that injects GetConfig(), HijackTx(), and NewTxClientFromRawConfig() into each generated db package, enabling the shared cross-client transaction mechanism used by entutils.TransactingRepo \u2014 the foundation of the ctx-propagated transaction pattern across all domain adapters.",
+    "patterns": [
+      {
+        "name": "Ent Extension + embedded template",
+        "description": "entexpose.go implements entc.Extension with Templates() returning a gen.MustParse'd template from expose.tpl. Must be registered in openmeter/ent/entc.go.",
+        "example": "func New() *Extension { return &Extension{} }"
+      },
+      {
+        "name": "HijackTx for cross-client transaction sharing",
+        "description": "HijackTx(ctx, opts) starts a SQL transaction on the client's driver and returns (ctx, *RawEntConfig, *ExposedTxDriver, error). The RawEntConfig is passed to NewTxClientFromRawConfig in a second client to bind it to the same transaction.",
+        "example": "ctx, cfg, txDriver, err := client.HijackTx(ctx, &sql.TxOptions{})"
+      },
+      {
+        "name": "ExposedTxDriver implements Transactable with savepoints",
+        "description": "ExposedTxDriver exposes Rollback, Commit, SavePoint, RollbackTo, Release \u2014 all SAVEPOINT SQL issued via ExecContext on the txDriver. This lets entutils.TransactingRepo nest transactions.",
+        "example": "var _ entutils.Transactable = (*ExposedTxDriver)(nil)"
+      },
+      {
+        "name": "NewTxClientFromRawConfig reconstructs a Tx with empty hooks/inters",
+        "description": "Deliberately creates a Tx with empty hooks and inters structs \u2014 meaning Ent on-rollback/on-commit hooks are ignored for shared transactions (per the template TODO).",
+        "example": "config := config{driver: cfg.Driver, debug: cfg.Debug, log: cfg.Log, hooks: &hooks{}, inters: &inters{}}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "expose.tpl",
+        "role": "Core template generating GetConfig, HijackTx, NewTxClientFromRawConfig, and ExposedTxDriver into the db package. Changes affect ALL generated Ent packages.",
+        "watch_for": "Tx.onRollback and Tx.onCommit hooks are silently dropped in shared transactions \u2014 do not rely on Ent commit/rollback hooks in shared-tx flows."
+      },
+      {
+        "file": "entexpose.go",
+        "role": "Extension registration \u2014 consumed by entc.Generate in openmeter/ent/entc.go.",
+        "watch_for": "Must stay in sync with pkg/framework/entutils types (RawEntConfig, Transactable) \u2014 the template references them by name."
+      }
+    ],
+    "anti_patterns": [
+      "Starting a transaction with HijackTx on a client that already has a txDriver \u2014 the template returns an error for nested HijackTx",
+      "Relying on Ent commit/rollback hooks in shared-transaction paths \u2014 NewTxClientFromRawConfig initialises empty hooks",
+      "Editing expose.tpl without regenerating openmeter/ent/db/ via make generate"
+    ],
+    "decisions": [
+      {
+        "decision": "Expose raw txDriver internals via code generation rather than a public Ent API",
+        "rationale": "Ent has no first-class API for sharing a transaction across multiple Client instances; hijacking the internal txDriver is the only way without forking Ent."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/framework/entutils/entmixinaccessor": {
+    "purpose": "Ent code-generation extension generating typed GetXxx() getters for every field (including ID) added to an entity schema via a mixin, enabling interface-based access to mixin fields (namespace, timestamps, ID) without reflection or direct struct access.",
+    "patterns": [
+      {
+        "name": "Ent Extension + embedded template",
+        "description": "entmixinaccessor.go registers mixinaccessor.tpl via entc.DefaultExtension + Templates(). Register in openmeter/ent/entc.go.",
+        "example": "func New() *Extension { return &Extension{} }"
+      },
+      {
+        "name": "MixedIn position gate",
+        "description": "Getters are generated only for fields where $f.Position.MixedIn is true (contributed by a mixin); fields defined directly on the schema get none.",
+        "example": "{{- if and $f.Position $f.Position.MixedIn }}"
+      },
+      {
+        "name": "Nillable fields get pointer return type",
+        "description": "If a mixin field is Nillable, the getter returns *<Type> matching the struct field's actual type.",
+        "example": "func (e *{{ $n.Name }}) Get{{ $f.StructField }}() {{ if $f.Nillable }}*{{ end }}{{ $f.Type }} { return e.{{ $f.StructField }} }"
+      },
+      {
+        "name": "ID getter templated separately",
+        "description": "The ID field is not in $n.Fields; it is accessed via $n.ID and gets GetID() only when $n.ID.Position.MixedIn is true.",
+        "example": "{{- if and $n.ID $n.ID.Position $n.ID.Position.MixedIn }} func (e *{{ $n.Name }}) GetID() {{ $n.ID.Type }} { return e.ID } {{- end }}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "mixinaccessor.tpl",
+        "role": "Generates typed getters for mixin-injected fields on every entity, enabling adapters to access e.g. entity.GetNamespace() via a shared interface without type-asserting.",
+        "watch_for": "Only mixin fields get getters. A field added directly to a schema needs a manual getter or must be moved to a mixin for interface compliance."
+      },
+      {
+        "file": "entmixinaccessor.go",
+        "role": "Extension registration \u2014 mounts the template into Ent codegen.",
+        "watch_for": "Must be included in the entc.Generate extension list to have any effect."
+      }
+    ],
+    "anti_patterns": [
+      "Accessing mixin fields like namespace via direct struct access in interface-based adapter code \u2014 use the generated GetNamespace() getter",
+      "Defining a field directly on a schema when it should be a mixin contribution \u2014 direct fields get no getters"
+    ],
+    "decisions": [
+      {
+        "decision": "Generate getters only for mixin fields, not all fields",
+        "rationale": "Mixin fields (namespace, timestamps, ID) are shared across entities for generic adapter interfaces; getters for every field would bloat generated code."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/framework/entutils/entpaginate": {
+    "purpose": "Ent code-generation extension attaching a Paginate(ctx, pagination.Page) method to every Ent query type \u2014 offset-based pagination with automatic COUNT(*) and a guaranteed non-nil Items slice. Generated for ALL entity types unconditionally (unlike entcursor, which gates on created_at).",
+    "patterns": [
+      {
+        "name": "Ent Extension + embedded template",
+        "description": "paginate.go registers paginate.tpl following the same pattern as all entutils extensions.",
+        "example": "func New() *Extension { return &Extension{} }"
+      },
+      {
+        "name": "Paginate generated for ALL nodes (no gate)",
+        "description": "Unlike entcursor, the template generates Paginate(...) for every entity regardless of fields present.",
+        "example": "{{ range $n := $.Nodes }} ... Paginate ... {{ end }}"
+      },
+      {
+        "name": "Clone for COUNT, original for data",
+        "description": "The template clones the query for COUNT(*) (clearing fields and order) then runs the data query on the original. Callers must not mutate the query after passing it to Paginate.",
+        "example": "countQuery := {{ $receiver }}.Clone(); countQuery.ctx.Fields = []string{}; countQuery.order = nil"
+      },
+      {
+        "name": "Zero-value Page returns all items",
+        "description": "If page.IsZero(), limit=totalCount and offset=0 \u2014 every item is returned with TotalCount populated.",
+        "example": "if page.IsZero() { offset = 0; limit = count }"
+      },
+      {
+        "name": "Non-nil Items on empty result",
+        "description": "Returns make([]*Node, 0) when count==0 so JSON serialises as [] not null.",
+        "example": "pagedResponse.Items = make([]*{{ $n.Name }}, 0)"
+      },
+      {
+        "name": "Static Paginator interface type-check",
+        "description": "Each generated Paginate is validated against pagination.Paginator[*Node] via a compile-time var _ = assertion.",
+        "example": "var _ pagination.Paginator[*{{ $n.Name }}] = (*{{ $n.QueryName }})(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "paginate.tpl",
+        "role": "Generates Paginate(ctx, pagination.Page) on every Ent query type. The two-query pattern (COUNT + data) means 2 DB round trips per call.",
+        "watch_for": "Ordering applied before .Paginate() is preserved for the data query but stripped for COUNT. Apply ordering before calling Paginate, not after."
+      },
+      {
+        "file": "paginate.go",
+        "role": "Extension registration only.",
+        "watch_for": "Must be registered in openmeter/ent/entc.go alongside the other entutils extensions."
+      },
+      {
+        "file": "paginate_test.go",
+        "role": "Integration tests covering first page, ordering, filtering, multi-page, empty page, and zero-page (return all) against real Postgres.",
+        "watch_for": "Uses testutils.InitPostgresDB \u2014 requires POSTGRES_HOST=127.0.0.1 and -tags=dynamic."
+      }
+    ],
+    "anti_patterns": [
+      "Applying .Limit() or .Offset() before .Paginate() \u2014 the template resets both to 0 on entry, discarding caller values",
+      "Using Paginate for large unbounded exports \u2014 the zero-page path fetches ALL rows into memory; use entcursor instead",
+      "Relying on COUNT accuracy under high concurrency \u2014 the two-query pattern has a TOCTOU gap"
+    ],
+    "decisions": [
+      {
+        "decision": "Two-query approach (COUNT + data) rather than a SQL window function",
+        "rationale": "Ent's query builder exposes no window-function API; clone-and-count is the simplest correct approach with the existing abstraction."
+      },
+      {
+        "decision": "Generate for all nodes unconditionally",
+        "rationale": "Offset pagination requires no specific schema field (unlike cursor's created_at), so there is no meaningful gate."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Offset-paginated list of entities with ordering and filtering",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/pkg/pagination\"\n\t\"entgo.io/ent/dialect/sql\"\n)\n\nfunc listPage(ctx context.Context, client *db.Client, ns string, page pagination.Page) (pagination.Result[*db.MyEntity], error) {\n\treturn client.MyEntity.Query().\n\t\tWhere(myentity.NamespaceEQ(ns)).\n\t\tOrder(myentity.ByCreatedAt(sql.OrderDesc())).\n\t\tPaginate(ctx, page)\n}"
       }
     ]
   }

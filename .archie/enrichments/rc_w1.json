@@ -1,0 +1,71 @@
+{
+  "api/spec/packages": {
+    "purpose": "Organisational root for the TypeSpec source that is the single source of truth for the entire OpenMeter HTTP surface, split into two independently compiled packages: aip/ owns the v3 (AIP-style) API (-> api/v3/openapi.yaml + Konnect variant) and legacy/ owns the v1/v2 + Cloud API (-> api/openapi.yaml, api/openapi.cloud.yaml). All OpenAPI YAMLs and Go/JS/Python SDKs are downstream artefacts regenerated exclusively by make gen-api \u2014 never edited directly.",
+    "patterns": [
+      {
+        "name": "Two-package version split (aip vs legacy)",
+        "description": "v3/AIP changes live in aip/; v1/v2 + Cloud changes live in legacy/. The two compile to separate output files with different structural rules, so content must never cross between them.",
+        "example": "aip/src/openmeter.tsp (v3 routes); legacy/src/main.tsp (v1 entry point)"
+      },
+      {
+        "name": "make gen-api is the only regeneration path",
+        "description": "Both packages are consumed by make gen-api (tsp compile + post-processing); partial runs or manual edits to the emitted YAMLs cause silent drift between spec, stubs, and SDKs.",
+        "example": "make gen-api  # regenerates all OpenAPI YAMLs + SDKs from both packages"
+      },
+      {
+        "name": "Route and tag binding only at root namespace files",
+        "description": "@route and @tag are bound only in each package's root composition files (aip: openmeter.tsp/konnect.tsp; legacy: src/main.tsp or cloud/main.tsp). Domain sub-folder .tsp files declare operations without routing.",
+        "example": "aip/src/openmeter.tsp: interface BillingRoutes extends billing.Routes {}"
+      },
+      {
+        "name": "Per-package custom linters registered in lib/index.js",
+        "description": "Each package ships createRule-based linter rules (e.g. pascalCase, friendlyName, operationId) that block gen-api on violation; a rule not exported from lib/index.js has zero runtime effect.",
+        "example": "aip/lib/index.js: export { pascalCaseRule, friendlyNameRule }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "CLAUDE.md",
+        "role": "The only direct file at this level; documents the aip-vs-legacy split, gen-api regeneration contract, and root-only routing convention.",
+        "watch_for": "Treating this as live config \u2014 it is descriptive intent context, not a compiled artefact."
+      },
+      {
+        "file": "aip/",
+        "role": "v3 (AIP) package: domain index.tsp barrels imported into root openmeter.tsp/konnect.tsp, two-step compile with flatten-allof.mjs / seal-object-schemas.mjs post-processing.",
+        "watch_for": "omit-unreachable-types: true silently drops schemas not reachable from a declared operation; new domain import needs a matching @tagMetadata."
+      },
+      {
+        "file": "legacy/",
+        "role": "v1/v2 + Cloud package with dual entry points (src/main.tsp for Python SDK, src/cloud/main.tsp for Cloud OpenAPI) and shared primitives in src/types.tsp.",
+        "watch_for": "A new sub-domain file must be registered in BOTH src/main.tsp and src/cloud/main.tsp or it is excluded from the cloud variant."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing api/openapi.yaml, api/openapi.cloud.yaml, or api/v3/openapi.yaml \u2014 always regenerate via make gen-api",
+      "Declaring @route or @tag inside a domain sub-folder operations.tsp instead of the root namespace files",
+      "Adding v3 content into legacy/ or v1/v2 content into aip/ \u2014 they compile to separate targets and mix-ins break both",
+      "Adding a legacy/ sub-domain file without registering it in both src/main.tsp and src/cloud/main.tsp",
+      "Re-declaring primitive types (ULID, DateTime, Key, Resource) in sub-domain files \u2014 they live in legacy/src/types.tsp"
+    ],
+    "decisions": [
+      {
+        "decision": "Two separate packages (aip/ and legacy/) with independent tspconfig files and entry points",
+        "rationale": "v1 and v3 follow different structural rules (REST-CRUD vs AIP), emit to different output files, and use different SDK generators; one package would force conditional compilation and cross-version coupling."
+      },
+      {
+        "decision": "Post-processing (flatten-allof.mjs) in aip/ rather than altering TypeSpec source",
+        "rationale": "TypeSpec's allOf output is correct but incompatible with some SDK generators; post-processing keeps the source idiomatic while producing generator-friendly YAML."
+      },
+      {
+        "decision": "Custom per-package linters instead of relying solely on the upstream TypeSpec linter",
+        "rationale": "Project conventions (PascalCase acronym exceptions, @friendlyName, @operationId enforcement) cannot be expressed upstream; custom error-severity rules block gen-api on violations."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Binding a domain's operations to a route at the v3 root (only valid place for @route)",
+        "code": "// aip/src/openmeter.tsp\nimport \"./billing\";  // barrel: billing/index.tsp\n\n@tagMetadata(\"Billing\", { description: \"Billing operations\" })\n@route(\"/api/v3/billing\")\ninterface BillingRoutes extends billing.Routes {}"
+      }
+    ]
+  }
+}

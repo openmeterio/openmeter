@@ -2,36 +2,36 @@
 
 <!-- archie:ai-start -->
 
-> Domain types and service layer for credit balance snapshots: defines the in-memory Map (per-grant float64 balances), Snapshot struct, SnapshotRepo interface, and SnapshotService that transparently fills missing usage data from streaming when a stored snapshot has zero usage.
+> Domain types and service layer for credit balance snapshots: the in-memory Map (per-grant float64 balances), Snapshot struct, SnapshotRepo interface, and SnapshotService that transparently back-fills missing usage from streaming when a stored snapshot has zero usage.
 
 ## Patterns
 
-**SnapshotService wraps SnapshotRepo and adds usage back-fill** — SnapshotService.GetLatestValidAt delegates to Repo.GetLatestValidAt and, if the returned Snapshot.Usage.IsZero(), queries streaming via UsageQuerier to compute the actual period usage. New code must not call Repo directly if usage completeness matters. (`service.GetLatestValidAt(ctx, owner, at) // automatically fills usage if zero; do not call Repo.GetLatestValidAt directly`)
-**service() sentinel prevents Repo from satisfying SnapshotService** — SnapshotService declares an unexported service() method. This is an explicit guard to prevent callers from accidentally substituting the raw SnapshotRepo as a SnapshotService. (`func (s *service) service() {}`)
-**UNIQUE_COUNT aggregation requires double streaming query with alpacadecimal subtraction** — For MeterAggregationUniqueCount, QueryUsage performs two streaming queries (period-start→to and period-start→from) and subtracts using alpacadecimal. All other aggregations use a single from→to query. (`case meter.MeterAggregationUniqueCount: /* query to=period.To, then query to=period.From, subtract with alpacadecimal */`)
-**NoSavedBalanceForOwnerError for missing snapshots** — When no snapshot exists before the requested time, SnapshotRepo.GetLatestValidAt returns NoSavedBalanceForOwnerError (not a generic not-found). Callers must type-assert this error to distinguish 'no history' from 'DB error'. (`_, isNoSavedBalanceErr := err.(balance.NoSavedBalanceForOwnerError)`)
-**Clone balance.Map before mutating** — balance.Map is a plain map[string]float64 (reference type). Always Clone() before mutating in the engine to avoid aliasing bugs that corrupt shared state. (`rolledOver := snap.Balances.Clone() // never mutate snap.Balances directly`)
+**SnapshotService wraps SnapshotRepo + usage back-fill** — SnapshotService.GetLatestValidAt delegates to Repo then, if Snapshot.Usage.IsZero(), queries streaming via UsageQuerier to compute period usage. Use the service, not the raw Repo, when usage completeness matters. (`snapshot, err := svc.GetLatestValidAt(ctx, owner, at) // fills usage if zero`)
+**service() sentinel guard** — SnapshotService declares an unexported service() method so the raw SnapshotRepo cannot accidentally satisfy SnapshotService. (`func (s *service) service() {}`)
+**UNIQUE_COUNT needs a double streaming query** — For MeterAggregationUniqueCount, QueryUsage queries (periodStart→to) and (periodStart→from) and subtracts via alpacadecimal; all other aggregations use a single from→to query. (`vTo.Sub(vFrom).InexactFloat64()`)
+**NoSavedBalanceForOwnerError for missing snapshots** — GetLatestValidAt returns NoSavedBalanceForOwnerError (not generic not-found) when no snapshot precedes the requested time; callers type-assert it. (`_, isNoSavedBalanceErr := err.(balance.NoSavedBalanceForOwnerError)`)
+**Clone balance.Map before mutating** — Map is a plain map[string]float64 (reference type). Clone() before mutating to avoid aliasing shared state. (`rolledOver := snap.Balances.Clone()`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `balance.go` | Core value types: Map (grant-ID→float64), Snapshot (Map + Overage + At + SnapshottedUsage). Map.Burn/Set/Clone/Balance are the canonical mutation helpers. | Map is a plain map — Clone before mutating in the engine to avoid aliasing bugs. |
-| `repository.go` | SnapshotRepo interface definition + NoSavedBalanceForOwnerError domain error type. | GetLatestValidAt comment notes the returned Snapshot may lack usage data — the service layer fills it, do not call repo directly for complete usage. |
-| `service.go` | SnapshotService interface + concrete service constructor. SnapshotServiceConfig wires OwnerConnector, StreamingConnector, and Repo together. UsageQuerier is built inside NewSnapshotService. | Do not pass UsageQuerier externally — it is always constructed internally from the config to ensure the correct closure bindings. |
-| `usage.go` | UsageQuerier interface and implementation. Dispatches to streaming.Connector.QueryMeter with aggregation-specific logic. | alpacadecimal is used for UNIQUE_COUNT subtraction to avoid float rounding. Do not switch to plain float64 arithmetic for this case. |
+| `balance.go` | Value types: Map (grantID→float64) with Burn/Set/Clone/Balance/ExactlyForGrants, Snapshot (Map + Overage + At + SnapshottedUsage), NewStartingMap. | Map is a reference type — Clone before mutating. SnapshottedUsage.IsZero() drives the service back-fill path. |
+| `repository.go` | SnapshotRepo interface + NoSavedBalanceForOwnerError domain error. | GetLatestValidAt comment notes the returned Snapshot may lack usage; the service layer fills it — don't call repo directly for complete usage. |
+| `service.go` | SnapshotService interface + concrete service; SnapshotServiceConfig wires OwnerConnector, StreamingConnector, Repo; UsageQuerier built inside NewSnapshotService. | Do not pass UsageQuerier externally — it is constructed internally from config to bind the right closures. |
+| `usage.go` | UsageQuerier interface + impl dispatching to streaming.Connector.QueryMeter with aggregation-specific logic. | alpacadecimal used for UNIQUE_COUNT subtraction; getValueFromRows errors if >1 row. Don't switch to plain float64 for the unique-count case. |
 
 ## Anti-Patterns
 
-- Calling SnapshotRepo.GetLatestValidAt directly when you need complete usage data — always go through SnapshotService.
-- Mutating a balance.Map without cloning it first — Map is a reference type and aliasing causes hard-to-track bugs in the engine.
-- Using float64 arithmetic for UNIQUE_COUNT subtraction — use alpacadecimal as usage.go does.
-- Returning a generic error instead of NoSavedBalanceForOwnerError when no snapshot is found — callers depend on type-assertion.
-- Implementing a new aggregation case without checking whether it requires a double query like UNIQUE_COUNT.
+- Calling SnapshotRepo.GetLatestValidAt directly when complete usage is needed — go through SnapshotService.
+- Mutating a balance.Map without cloning first — aliasing corrupts shared engine state.
+- Using float64 arithmetic for UNIQUE_COUNT subtraction instead of alpacadecimal.
+- Returning a generic error instead of NoSavedBalanceForOwnerError when no snapshot exists.
+- Adding a new aggregation case without checking whether it needs a double query like UNIQUE_COUNT.
 
 ## Decisions
 
-- **SnapshotService adds a back-fill path for snapshots stored without usage data.** — Earlier snapshots may have been persisted without usage fields. The service transparently queries streaming to compute missing usage rather than requiring a data migration.
+- **SnapshotService transparently back-fills usage for snapshots persisted without usage data.** — Earlier snapshots may lack usage fields; querying streaming at read time avoids a data migration.
 
 ## Example: Constructing a SnapshotService with all required dependencies
 
@@ -41,8 +41,7 @@ svc := balance.NewSnapshotService(balance.SnapshotServiceConfig{
 	StreamingConnector: streamingConnector,
 	Repo:               repo,
 })
-// Always use svc.GetLatestValidAt — not repo.GetLatestValidAt — for complete usage data
-snapshot, err := svc.GetLatestValidAt(ctx, owner, at)
+snapshot, err := svc.GetLatestValidAt(ctx, owner, at) // not repo.GetLatestValidAt
 ```
 
 <!-- archie:ai-end -->

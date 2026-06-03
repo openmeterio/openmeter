@@ -2,59 +2,59 @@
 
 <!-- archie:ai-start -->
 
-> Full CRUD v3 HTTP handler package for product-catalog features (list, get, create, update, delete/archive). Includes LLM pricing enrichment on get/update responses and domain-error-specific HTTP status mapping via a local errorEncoder.
+> Full-CRUD v3 HTTP handler package for product-catalog features (list, get, create, update, delete/archive), with best-effort LLM pricing enrichment on read responses and feature-domain-specific HTTP status mapping via a local errorEncoder.
 
 ## Patterns
 
-**Per-operation file split** — Each CRUD verb lives in its own file (create.go, get.go, list.go, update.go, delete.go). handler.go declares the Handler interface and New() constructor. convert.go holds all domain<->API type conversions. error_encoder.go holds domain-error HTTP status mapping. (`func (h *handler) CreateFeature() CreateFeatureHandler { return httptransport.NewHandler(...) }`)
-**Goverter-free manual conversion with unit tests** — This package uses hand-written convert.go functions (not Goverter) and covers them with convert_test.go. All convert functions return (T, error) to propagate parse failures. (`func convertFeatureToAPI(f feature.Feature) (api.Feature, error)`)
-**Domain-specific errorEncoder chained after GenericErrorEncoder** — Append httptransport.WithErrorEncoder(errorEncoder()) after apierrors.GenericErrorEncoder() in AppendOptions. errorEncoder handles feature-domain typed errors (FeatureInvalidFiltersError -> 400, ForbiddenError -> 403, FeatureWithNameAlreadyExistsError -> 409). (`httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()), httptransport.WithErrorEncoder(errorEncoder())`)
-**Conditional LLM pricing enrichment on read responses** — After converting a feature to API, check UnitCost.Type == UnitCostTypeLLM and h.llmcostService != nil before calling resolveLLMPricing. Pricing errors are silently swallowed — enrichment is best-effort. Done in both get.go and update.go. (`if feat.UnitCost != nil && feat.UnitCost.Type == feature.UnitCostTypeLLM && h.llmcostService != nil { pricing := resolveLLMPricing(ctx, h.llmcostService, feat); if pricing != nil { enrichFeatureResponseWithPricing(&resp, pricing) } }`)
-**Meter validation at decode time** — Meter ID resolution and filter key validation happen in the request decoder (first func of NewHandler), not in the operation func. Use models.NewGenericValidationError for filter key mismatches. (`func validateMeterFilters(filters map[string]api.QueryFilterStringMapItem, m meter.Meter) error { for k := range filters { if _, ok := m.GroupBy[k]; !ok { return models.NewGenericValidationError(...) } } }`)
-**nullable.Nullable for optional-null PATCH fields** — Update inputs use nullable.Nullable[T]; check IsNull() to clear, IsSpecified()+Get() to set, neither to leave unchanged. Test all three branches in convert_test.go. (`if body.UnitCost.IsNull() { input.UnitCost = nullable.NewNullNullable[feature.UnitCost]() } else if body.UnitCost.IsSpecified() { ... }`)
-**UnitCost discriminated union via switch** — convertUnitCostToAPI and convertUnitCostFromAPI use switch statements on UnitCostType/discriminator string. The default case must return an error for unknown types to catch future additions. (`switch u.Type { case feature.UnitCostTypeManual: ... case feature.UnitCostTypeLLM: ... default: return out, fmt.Errorf("unknown unit cost type: %s", u.Type) }`)
+**Per-operation file split** — Each verb has its own file (create.go, get.go, list.go, update.go, delete.go). handler.go declares the Handler interface + New(); convert.go holds all conversions; error_encoder.go holds domain-error mapping. (`func (h *handler) CreateFeature() CreateFeatureHandler { return httptransport.NewHandler(...) }`)
+**Hand-written conversions with unit tests** — convert.go is hand-coded (no goverter) and covered by convert_test.go; conversion functions return (T, error) to propagate parse failures. (`func convertFeatureToAPI(f feature.Feature) (api.Feature, error)`)
+**Local errorEncoder chained after GenericErrorEncoder** — AppendOptions includes WithErrorEncoder(apierrors.GenericErrorEncoder()) then WithErrorEncoder(errorEncoder()); errorEncoder maps feature errors (FeatureInvalidFiltersError->400, ForbiddenError->403, FeatureWithNameAlreadyExistsError->409) via commonhttp.HandleErrorIfTypeMatches. (`httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()), httptransport.WithErrorEncoder(errorEncoder())`)
+**Best-effort LLM pricing enrichment on reads** — After converting, if UnitCost.Type == UnitCostTypeLLM and h.llmcostService != nil, call resolveLLMPricing and enrichFeatureResponseWithPricing. Pricing errors are silently swallowed (resolveLLMPricing returns nil). Applied in get.go and update.go. (`if feat.UnitCost != nil && feat.UnitCost.Type == feature.UnitCostTypeLLM && h.llmcostService != nil { if p := resolveLLMPricing(ctx, h.llmcostService, feat); p != nil { enrichFeatureResponseWithPricing(&resp, p) } }`)
+**Meter validation at decode time** — Meter ID resolution and GroupBy filter-key validation happen in the request decoder (first NewHandler func) using models.NewGenericValidationError, not in the operation func. (`for k := range filters { if _, ok := m.GroupBy[k]; !ok { return models.NewGenericValidationError(...) } }`)
+**nullable.Nullable tri-state for PATCH fields** — Update inputs use nullable.Nullable[T]: IsNull() clears, IsSpecified()+Get() sets, neither leaves unchanged. All three branches are tested in convert_test.go. (`if body.UnitCost.IsNull() { input.UnitCost = nullable.NewNullNullable[feature.UnitCost]() } else if body.UnitCost.IsSpecified() { ... }`)
+**UnitCost discriminated union via switch with error default** — convertUnitCostToAPI/FromAPI switch on UnitCostType / Discriminator(); the default case returns an error to catch unhandled future types. (`switch u.Type { case feature.UnitCostTypeManual: ...; case feature.UnitCostTypeLLM: ...; default: return out, fmt.Errorf("unknown unit cost type: %s", u.Type) }`)
 
 ## Key Files
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `handler.go` | Handler interface with 5 methods; handler struct holds resolveNamespace, connector (feature.FeatureConnector), meterService, llmcostService, options. | llmcostService may be nil (optional dependency); guard with != nil before calling in get.go and update.go. |
-| `convert.go` | All domain<->API conversions: convertFeatureToAPI, convertCreateRequestToDomain, convertUpdateRequestToDomain, convertUnitCostToAPI/FromAPI, enrichFeatureResponseWithPricing, resolveLLMPricing, filter conversions. | UnitCost discriminator switch must cover all UnitCostType values; unknown type returns error. resolveLLMPricing silently returns nil on error — callers must not treat nil as a hard failure. |
-| `error_encoder.go` | Maps feature-domain typed errors to HTTP status codes using commonhttp.HandleErrorIfTypeMatches. | Add new feature-domain errors here; do not let them fall through to 500 via unhandled types. |
-| `list.go` | List with pagination (default page 1/size 20), filter[meter_id], filter[key], filter[name], sort. Uses apierrors.NewBadRequestError for invalid filter/sort params. | page.Validate() must be called after construction; missing it allows page=0 through. |
-| `create.go` | Validates meter reference exists and filter keys match meter GroupBy dimensions before calling CreateFeature. Meter lookup and filter validation happen in the decoder. | validateMeterFilters only checks key existence, not operator validity; operator validation is done downstream in MeterGroupByFilters.Validate. |
+| `handler.go` | Handler interface (5 methods) + handler struct: resolveNamespace, connector (feature.FeatureConnector), meterService, llmcostService, options. | llmcostService is optional and may be nil (e.g. credits disabled); guard with != nil before use in get.go/update.go. |
+| `convert.go` | All domain<->API conversions plus resolveLLMPricing/enrichFeatureResponseWithPricing and feature/filter conversions (convertFiltersTo/FromAPI). | UnitCost discriminator switch must cover all UnitCostType values; resolveLLMPricing silently returns nil on error — callers must not treat nil as a hard failure. Use FromBillingFeatureManualUnitCost/FromBillingFeatureLLMUnitCost setters, never struct literals. |
+| `error_encoder.go` | Maps feature-domain typed errors to HTTP status codes via commonhttp.HandleErrorIfTypeMatches. | Add new feature-domain errors here; unhandled types fall through to 500. |
+| `list.go` | List with pagination (default page 1/size 20), filter[meter_id]/[key]/[name], and sort; invalid params -> apierrors.NewBadRequestError. | page.Validate() must run after construction or page=0 slips through. |
+| `create.go` | Validates meter reference exists and filter keys match meter GroupBy dimensions (in the decoder) before CreateFeature. | validateMeterFilters checks key existence only; operator validity is validated downstream by MeterGroupByFilters.Validate. |
 
 ## Anti-Patterns
 
-- Calling h.connector directly from handler.go methods instead of delegating to per-operation files
-- Skipping errorEncoder() in AppendOptions — feature domain errors (FeatureInvalidFiltersError, ForbiddenError, FeatureWithNameAlreadyExistsError) will become 500
-- Returning pricing enrichment errors instead of silently skipping — pricing resolution is best-effort
-- Accepting llmcostService as a required parameter when it can be nil in some wirings (e.g., credits disabled)
-- Constructing BillingFeatureUnitCost{} struct literal instead of using FromBillingFeatureManualUnitCost/FromBillingFeatureLLMUnitCost setters
+- Calling h.connector directly from handler.go instead of delegating to per-operation files
+- Skipping errorEncoder() in AppendOptions — feature domain errors become 500
+- Returning pricing enrichment errors instead of silently skipping (enrichment is best-effort)
+- Accepting llmcostService as a required (non-nil) dependency
+- Constructing api.BillingFeatureUnitCost{} literally instead of using the From* setters
 
 ## Decisions
 
-- **Hand-written conversions instead of Goverter** — UnitCost is a discriminated union (manual/llm) requiring switch-based dispatch that Goverter cannot generate cleanly; hand-written code with tests is more explicit and caught by convert_test.go.
-- **LLM pricing resolved at read time, not stored** — Pricing data changes independently of feature configuration; resolving at read time from llmcost.Service ensures freshness without coupling the feature write path to pricing.
+- **Hand-written conversions instead of goverter** — UnitCost is a manual/llm discriminated union needing switch-based dispatch goverter cannot generate cleanly; hand-written code is explicit and covered by convert_test.go.
+- **LLM pricing resolved at read time, not stored** — Pricing changes independently of feature config; resolving from llmcost.Service at read time keeps freshness without coupling the feature write path to pricing.
 
-## Example: Adding a new CRUD operation (e.g. ArchiveFeature) following the per-operation file pattern
+## Example: Add a new CRUD operation following the per-operation file pattern
 
 ```
 // archive.go
 package features
-
 import (
-  "context"
-  "net/http"
-
+  "context"; "net/http"
   "github.com/openmeterio/openmeter/api/v3/apierrors"
   "github.com/openmeterio/openmeter/pkg/framework/commonhttp"
   "github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
   "github.com/openmeterio/openmeter/pkg/models"
 )
-
 type (
   ArchiveFeatureRequest = models.NamespacedID
+  ArchiveFeatureResponse = any
+  ArchiveFeatureHandler  httptransport.HandlerWithArgs[ArchiveFeatureRequest, ArchiveFeatureResponse, string]
+)
+func (h *handler) ArchiveFeature() ArchiveFeatureHandler {
 // ...
 ```
 

@@ -1,238 +1,274 @@
 {
-  "pkg/pgxpoolobserver": {
-    "purpose": "Single-function OTel metrics registration for pgxpool.Pool, exposing 13 pool statistics as observable gauges/counters via a single RegisterCallback call. Call ObservePoolMetrics once per pool at startup; the registered callback polls pool.Stat() on each OTel collection cycle.",
+  "pkg/datetime": {
+    "purpose": "Billing-safe datetime and ISO 8601 duration library. DateTime wraps time.Time with RFC 9557 timezone-annotated formatting/parsing; ISODuration wraps rickb777/period with no-overflow month/year arithmetic and DivisibleBy for subscription cadence validation.",
     "patterns": [
       {
-        "name": "Single RegisterCallback for all metrics",
-        "description": "Collect all metric.Observable instances into allMetrics and pass them to meter.RegisterCallback in one call. Never register separate callbacks per metric \u2014 OTel requires all observables used inside a callback to be declared in the same RegisterCallback call.",
-        "example": "_, err = meter.RegisterCallback(func(_ context.Context, o metric.Observer) error { ... }, allMetrics...)"
+        "name": "datetime.Parse for all datetime inputs",
+        "description": "Use datetime.Parse(s) to accept RFC3339/ISO8601/RFC9557 (tz-annotated) strings; never time.Parse directly for user-supplied timestamps.",
+        "example": "dt, err := datetime.Parse(\"2024-06-30T15:39:00Z\")"
       },
       {
-        "name": "Append-then-register pattern",
-        "description": "Each metric is created with meter.Int64ObservableCounter/Gauge, error-checked immediately (return on error), then appended to allMetrics before RegisterCallback. New metrics must follow this exact sequence.",
-        "example": "m, err := meter.Int64ObservableGauge(\"pgxpool.idle_conns\", ...)\nif err != nil { return err }\nallMetrics = append(allMetrics, m)"
+        "name": "ISODurationString.Parse() for duration inputs",
+        "description": "Accept durations as ISODurationString and call .Parse(); use ParsePtrOrNil for optional fields.",
+        "example": "d, err := datetime.ISODurationString(\"P1M\").Parse()"
       },
       {
-        "name": "additionalAttributes variadic for label injection",
-        "description": "Callers pass extra attribute.KeyValue pairs via the variadic additionalAttributes parameter; every ObserveInt64 call appends them via metric.WithAttributes(additionalAttributes...).",
-        "example": "o.ObserveInt64(idleConnsMetric, int64(stat.IdleConns()), metric.WithAttributes(additionalAttributes...))"
+        "name": "DateTime.Add(ISODuration) for calendar arithmetic",
+        "description": "Use DateTime.Add / ISODuration.AddTo \u2014 they handle month-end clamping (Jan 31 + 1M = Feb 28) and DST. Never time.Time.Add fixed durations for calendar periods.",
+        "example": "end := startDT.Add(duration)"
       },
       {
-        "name": "Guard derived metrics against division by zero",
-        "description": "avgAcquiredDurationMetric is only observed when acquireCount > 0. Replicate this guard for any future ratio or average metrics.",
-        "example": "if acquireCount > 0 { o.ObserveInt64(avgAcquiredDurationMetric, acquireDurationMS/acquireCount, ...) }"
+        "name": "ISODuration.DivisibleBy for cadence validation",
+        "description": "Validate that a billing period is an integer multiple of a rate-card cadence; tests multiple days-in-month/hours-in-day to be correct under DST.",
+        "example": "ok, err := billingPeriod.DivisibleBy(ratecardCadence)"
+      },
+      {
+        "name": "Pre-defined DurationXxx vars",
+        "description": "Use package-level constants (DurationDay/Month/Year, etc.) from interval.go instead of constructing ISODuration from scratch.",
+        "example": "datetime.DurationMonth"
+      },
+      {
+        "name": "RFC9557Layout for timezone-preserving output",
+        "description": "Use dt.Format(RFC9557Layout) for tz-annotated output; falls back to ISO8601Layout when no named timezone is set.",
+        "example": "dt.Format(datetime.RFC9557Layout)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "observer.go",
-        "role": "Entire package. Exposes only ObservePoolMetrics(meter, pool, ...attributes). 13 metrics registered in a single function.",
-        "watch_for": "Each of the 13 meter.Int64Observable* calls is checked for error and returns immediately on failure. Adding a new metric requires: create \u2192 check error \u2192 append to allMetrics \u2192 observe inside callback."
+        "file": "datetime.go",
+        "role": "DateTime struct, Add/AddYearsNoOverflow/AddMonthsNoOverflow/AddWeeks/AddDays, shiftClockTo.",
+        "watch_for": "shiftClockTo computes wallTimeDiff then d.Time.Add to avoid monotonic clock issues; don't bypass with time.AddDate for month/year."
+      },
+      {
+        "file": "duration.go",
+        "role": "ISODuration wrapping period.Period: DivisibleBy, Mul, Add, Subtract, AddTo (delegates to DateTime.Add).",
+        "watch_for": "DivisibleBy calls Simplify(true) and tests four daysInMonth x three hoursInDay combos; a false negative means the divisor is ambiguous under calendar variation."
+      },
+      {
+        "file": "parse.go",
+        "role": "Parse tries multiple layouts; RFC9557 [tz] suffix stripped and location loaded via time.LoadLocation.",
+        "watch_for": "Relies on strings.LastIndexByte + HasSuffix \u2014 multiple bracket pairs or brackets not at end error out."
+      },
+      {
+        "file": "format.go",
+        "role": "DateTime.Format replaces layoutTZName placeholder with Location().String().",
+        "watch_for": "Unnamed Location falls back to ISO8601; don't assume RFC9557 output for UTC-offset-only times."
+      },
+      {
+        "file": "durationstring.go",
+        "role": "ISODurationString typed string, Parse() and ParsePtrOrNil().",
+        "watch_for": "Parse wraps period.Parse errors in NewDurationParseError."
+      },
+      {
+        "file": "interval.go",
+        "role": "Package-level ISODuration constants: DurationSecond..DurationYear.",
+        "watch_for": "These are vars, not consts \u2014 never assign to them."
+      },
+      {
+        "file": "testutils.go",
+        "role": "MustParseDateTime/Duration/LoadLocation/ParseTimeInLocation test helpers, in package datetime.",
+        "watch_for": "Lives in package datetime (not datetime_test) \u2014 accessible from internal tests without import."
       }
     ],
     "anti_patterns": [
-      "Calling ObservePoolMetrics more than once for the same pool/meter pair \u2014 duplicate metric registration will error.",
-      "Adding a new metric without appending it to allMetrics \u2014 it will never be observed in the callback.",
-      "Omitting the division-by-zero guard on derived ratio metrics \u2014 produces NaN or panic in the callback."
+      "Using time.Time.Add(30*24*time.Hour) for 'one month' \u2014 use DateTime.Add(DurationMonth).",
+      "Calling time.Parse directly for user-supplied timestamps \u2014 go through datetime.Parse.",
+      "Comparing ISODuration with == \u2014 use ISODuration.Equal which normalises string form.",
+      "Constructing period.Period directly instead of ISODuration \u2014 bypasses no-overflow arithmetic.",
+      "Calling DateTime.Format without RFC9557Layout when Location is named \u2014 drops the IANA zone annotation."
     ],
     "decisions": [
       {
-        "decision": "Observable push model (RegisterCallback) instead of explicit Record calls",
-        "rationale": "Pool stats are instantaneous gauge values; polling them only when the OTel collector pulls avoids background goroutines and unnecessary polling when no collector is active."
-      }
-    ],
-    "code_examples": []
-  },
-  "pkg/redis": {
-    "purpose": "Thin factory layer for go-redis/v9 client construction from a Viper-backed Config struct, with built-in OTel tracing and metrics instrumentation via redisotel. Supports standalone and Sentinel topologies; always enforces TLS 1.3 minimum when TLS is enabled.",
-    "patterns": [
-      {
-        "name": "Validate before NewClient",
-        "description": "Config.Validate() uses errors.Join to accumulate field errors. Always call Validate() before constructing the client in Wire wiring or application startup.",
-        "example": "if err := cfg.Validate(); err != nil { return nil, err }"
+        "decision": "Custom shiftClockTo for date arithmetic instead of time.AddDate",
+        "rationale": "time.AddDate can shift the wall clock in ways that break DST transitions; shiftClockTo preserves the monotonic/wall relationship."
       },
       {
-        "name": "Functional options for OTel providers",
-        "description": "TracerProvider and MeterProvider are injected via Option funcs (WithTracingProvider, WithMeterProvider). Nil providers are silently ignored; options are layered on top of the base Options struct.",
-        "example": "client, err := redis.NewClient(redis.Options{Config: cfg}, redis.WithTracingProvider(tp), redis.WithMeterProvider(mp))"
-      },
-      {
-        "name": "Configure sets Viper defaults with prefix",
-        "description": "Call Configure(v, prefix) to register all Redis defaults under a namespaced Viper prefix. Never call viper.SetDefault inline in app config for Redis settings.",
-        "example": "redis.Configure(v, \"dedupe.redis\")"
-      },
-      {
-        "name": "OTel instrumentation is always attempted",
-        "description": "redisotel.InstrumentTracing and InstrumentMetrics are called unconditionally; when no provider is set the opts slice is empty and the calls are effectively no-ops. Do not short-circuit these calls.",
-        "example": "if err := redisotel.InstrumentTracing(client, tracingOpts...); err != nil { return nil, err }"
-      },
-      {
-        "name": "TLS minimum version is TLS 1.3",
-        "description": "When TLS.Enabled is true, MinVersion is always set to tls.VersionTLS13. Do not override or relax this in callers.",
-        "example": "tlsConfig = &tls.Config{InsecureSkipVerify: o.TLS.InsecureSkipVerify, MinVersion: tls.VersionTLS13}"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "client.go",
-        "role": "NewClient factory. Applies functional options, builds TLS config, constructs standalone or Sentinel client, instruments tracing and metrics.",
-        "watch_for": "redisotel.InstrumentTracing and InstrumentMetrics are called even when providers are nil (empty opts slice). Do not add nil-guard short-circuits \u2014 the unconditional call is intentional."
-      },
-      {
-        "file": "config.go",
-        "role": "Config struct, Validate, Configure (Viper defaults), and Config.NewClient convenience method.",
-        "watch_for": "Config.NewClient() does not accept OTel options. Use NewClient(Options{Config: c}, WithTracingProvider(...)) directly when telemetry is needed."
-      }
-    ],
-    "anti_patterns": [
-      "Constructing go-redis client directly in application code \u2014 OTel instrumentation would be missing.",
-      "Calling Configure with an empty prefix \u2014 all keys would collide at the root Viper namespace.",
-      "Ignoring Config.Validate() \u2014 an empty Address produces a client that fails at first use, not at construction.",
-      "Relaxing TLS MinVersion below tls.VersionTLS13 \u2014 this is a deliberate security invariant."
-    ],
-    "decisions": [
-      {
-        "decision": "OTel instrumentation is always attempted, not gated on provider presence",
-        "rationale": "redisotel calls are no-ops when no provider is passed, so always calling them ensures new callers automatically get observability when they wire providers, without conditional branching."
+        "decision": "DivisibleBy tests multiple calendar scenarios rather than exact arithmetic",
+        "rationale": "ISO calendar divisions are ambiguous; testing across [28,29,30,31] days/month and [23,24,25] hours/day gives a conservative correct answer."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Constructing a Redis client with OTel in Wire wiring",
-        "code": "import (\n    pkgredis \"github.com/openmeterio/openmeter/pkg/redis\"\n    \"go.opentelemetry.io/otel/metric\"\n    \"go.opentelemetry.io/otel/trace\"\n)\n\nfunc NewRedisClient(cfg pkgredis.Config, tp trace.TracerProvider, mp metric.MeterProvider) (*redis.Client, error) {\n    if err := cfg.Validate(); err != nil {\n        return nil, err\n    }\n    return pkgredis.NewClient(\n        pkgredis.Options{Config: cfg},\n        pkgredis.WithTracingProvider(tp),\n        pkgredis.WithMeterProvider(mp),\n    )\n}"
+        "scenario": "Parse, advance by ISO duration, format with timezone",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/datetime\"\n\nstart, err := datetime.Parse(\"2025-01-31T00:00:00Z\")\nif err != nil { return err }\nend := start.Add(datetime.DurationMonth) // 2025-02-28T00:00:00Z\nformatted := end.Format(datetime.RFC9557Layout)"
       }
     ]
   },
-  "pkg/ref": {
-    "purpose": "Single-file utility providing IDOrKey \u2014 a discriminated union type that holds either a ULID-format ID or an arbitrary string key, used wherever domain lookups must accept both identifiers interchangeably without ambiguity.",
+  "pkg/defaultx": {
+    "purpose": "Tiny generic utility package providing nil-safe pointer dereferencing (WithDefault) and zero-value fallback (IfZero). Used across domain packages to reduce nil-guard boilerplate when handling optional/pointer fields.",
     "patterns": [
       {
-        "name": "ULID-based discrimination via ParseIDOrKey",
-        "description": "ParseIDOrKey uses ulid.Parse to decide which field to populate: successful parse \u2192 ID set, parse error \u2192 Key set. Never set both fields manually.",
-        "example": "r := ref.ParseIDOrKey(rawParam) // r.ID set if ULID, r.Key set otherwise"
+        "name": "WithDefault for pointer optionals",
+        "description": "Use WithDefault[T](ptr, fallback) whenever a *T may be nil and a non-pointer fallback is needed; never dereference pointers without this guard.",
+        "example": "timeout := defaultx.WithDefault(cfg.Timeout, 30*time.Second)"
       },
       {
-        "name": "Validate before service call",
-        "description": "Always call Validate() before passing an IDOrKey into a service layer. It returns an error if both fields are empty (the all-zero case).",
-        "example": "if err := r.Validate(); err != nil { return err }"
+        "name": "IfZero for zero-value replacement",
+        "description": "Use IfZero[T](val, fallback) for comparable types where the zero value signals 'unset'. Not for pointers \u2014 use WithDefault.",
+        "example": "name := defaultx.IfZero(input.Name, \"default\")"
       }
     ],
     "key_file_guides": [
       {
-        "file": "ref.go",
-        "role": "Defines IDOrKey struct with GetIDs, GetKeys, Validate, and ParseIDOrKey. The entire package surface.",
-        "watch_for": "Validate only guards the all-empty case, not the both-set case. Callers must not set both ID and Key simultaneously \u2014 semantics are undefined and there is no runtime check."
+        "file": "default.go",
+        "role": "Defines both exported functions; the entire package API.",
+        "watch_for": "IfZero uses the comparable constraint \u2014 cannot be used with slices, maps, or non-comparable structs."
       }
     ],
     "anti_patterns": [
-      "Setting both ID and Key on an IDOrKey struct \u2014 undefined semantics, no runtime guard.",
-      "Skipping Validate() before service calls \u2014 silently passes empty identifiers into domain logic.",
-      "Adding new identifier union types here \u2014 define domain-specific discriminated unions in the relevant domain package instead."
+      "Adding non-default-related utilities here \u2014 keep the package focused on nil/zero fallbacks.",
+      "Using IfZero with pointer types (zero value of a pointer is nil) \u2014 use WithDefault instead."
     ],
     "decisions": [
       {
-        "decision": "Use ulid.Parse as the discriminator rather than a regex or length check",
-        "rationale": "ULID has a canonical 26-char Crockford Base32 format; parse error cleanly distinguishes it from freeform key strings without false positives from length heuristics."
+        "decision": "Separate WithDefault (pointer) and IfZero (zero-value comparable)",
+        "rationale": "Pointer nil-check and zero-value check are distinct semantics; conflating them would require type assertions or reflection."
       }
     ],
     "code_examples": []
   },
-  "pkg/server": {
-    "purpose": "Shared HTTP server primitives \u2014 request attribute extraction, structured logging middleware, powered-by header middleware, and a MiddlewareFunc type alias \u2014 reused by both the v1 (openmeter/server) and v3 (api/v3/server) API servers with no business logic.",
+  "pkg/entitydiff": {
+    "purpose": "Generic diffing library for entity collections needing create/update/delete reconciliation between expected and persisted DB state. Used by billing subscription sync to reconcile invoice lines and subscription phases against their DB representation.",
     "patterns": [
       {
-        "name": "OTel semconv attribute keys",
-        "description": "Use go.opentelemetry.io/otel/semconv/v1.27.0 key constants for all HTTP attribute names. Never hardcode string keys.",
-        "example": "string(semconv.HTTPRequestMethodKey): r.Method"
+        "name": "Entity interface constraint",
+        "description": "Diffable types implement Entity (GetID() string, IsDeleted() bool). ID-less non-deleted items are always treated as creates.",
+        "example": "func (l InvoiceLine) GetID() string { return l.ID }\nfunc (l InvoiceLine) IsDeleted() bool { return l.DeletedAt != nil }"
       },
       {
-        "name": "Chi middleware.LogFormatter / LogEntry interfaces",
-        "description": "RequestLogger implements middleware.LogFormatter and RequestLoggerEntry implements middleware.LogEntry. Pass RequestLogger to middleware.RequestLogger() to integrate with Chi's request logging chain.",
-        "example": "middleware.RequestLogger(&RequestLogger{Logger: handler})"
+        "name": "DiffByIDEqualer for leaf entities",
+        "description": "Use DiffByIDEqualer when the entity has no children and implements equal.Equaler[T]; it skips updates where PersistedState.Equal(ExpectedState) is true.",
+        "example": "diff := entitydiff.DiffByIDEqualer(expectedLines, dbLines)"
       },
       {
-        "name": "Middleware factory pattern",
-        "description": "Every middleware is exposed as a NewXxxMiddleware() function returning func(http.Handler) http.Handler, matching Chi's middleware signature.",
-        "example": "func NewPoweredByMiddleware() func(next http.Handler) http.Handler { ... }"
+        "name": "DiffByID with callbacks for parent entities",
+        "description": "Use DiffByID with HandleCreate/Update/Delete callbacks when children need their own nested diffing inside the update handler.",
+        "example": "entitydiff.DiffByID(entitydiff.DiffByIDInput[Phase]{DBState: db, ExpectedState: exp, HandleUpdate: func(u DiffUpdate[Phase]) error { return diffChildren(u) }})"
       },
       {
-        "name": "req_id depends on upstream RequestID middleware",
-        "description": "GetRequestAttributes populates the req_id field only when middleware.RequestID is in the middleware chain upstream. Absent middleware \u2192 absent attribute with no error.",
-        "example": "if reqID := middleware.GetReqID(ctx); reqID != \"\" { attrs[\"req_id\"] = reqID }"
+        "name": "NestedEntity wrapper for parent context",
+        "description": "Wrap children in NestedEntity[T,P] / EqualerNestedEntity[T,P] when the diff handler needs the parent alongside the child.",
+        "example": "wrapped := entitydiff.NewEqualersWithParent(phase.Lines, phase)"
+      },
+      {
+        "name": "Diff.Append and Union for combining diffs",
+        "description": "Merge diffs from multiple sub-trees via Diff.Append or Union[T] before applying; never apply partial diffs then re-diff mutated state.",
+        "example": "combined := entitydiff.Union(diff1, diff2, diff3)"
       }
     ],
     "key_file_guides": [
       {
-        "file": "attributes.go",
-        "role": "Returns OTel-keyed attribute map for a request. Requires middleware.RequestID upstream for req_id field.",
-        "watch_for": "req_id is silently absent if RequestID middleware is missing; this is not an error."
+        "file": "diff.go",
+        "role": "Core diff: diffByID (internal), DiffByID (callback), DiffByIDEqualer (equality), Diff[T] with NeedsUpdate/Create/Delete/Append/IsEmpty/Union.",
+        "watch_for": "Items absent from expectedState are treated as deletes \u2014 pass the full expected slice, not a filtered subset."
       },
       {
-        "file": "logger.go",
-        "role": "Structured slog-based request logger satisfying Chi's middleware.LogFormatter interface.",
-        "watch_for": "Normal requests log at slog.LevelDebug; panics log at slog.LevelError. Do not raise normal requests to LevelInfo without considering log volume."
-      },
-      {
-        "file": "middleware.go",
-        "role": "Defines shared MiddlewareFunc type alias used across v1 and v3 server wiring.",
-        "watch_for": "Must stay in sync with Chi's func(http.Handler) http.Handler signature. Never wrap in a struct."
-      },
-      {
-        "file": "poweredby.go",
-        "role": "Injects X-Powered-By header on every response.",
-        "watch_for": "Header value 'OpenMeter by Kong, Inc.' is asserted in poweredby_test.go \u2014 changing it is a breaking change for clients that parse this header."
+        "file": "parent.go",
+        "role": "NestedEntity / EqualerNestedEntity wrappers carrying parent context; NewEqualersWithParent helper.",
+        "watch_for": "EqualerNestedEntity.Equal delegates only to Entity.Equal \u2014 parent fields are not compared, only used for context."
       }
     ],
     "anti_patterns": [
-      "Adding business logic or domain package imports \u2014 this package must remain a pure infrastructure utility.",
-      "Hardcoding OTel attribute key strings instead of using semconv constants.",
-      "Returning errors from middleware constructors \u2014 they should panic on bad config or return a no-op handler.",
-      "Registering GetRequestAttributes usage without middleware.RequestID in the chain \u2014 req_id will silently be missing."
+      "Implementing GetID() to return a non-stable (e.g. index-based) ID \u2014 IDs must be stable DB identifiers or empty for new items.",
+      "Using DiffByID for leaf entities without children \u2014 use DiffByIDEqualer to skip no-op updates.",
+      "Mutating DB state inside a diff callback then re-diffing the same collection \u2014 diffs are computed once against the original snapshot.",
+      "Passing a filtered expectedState to diffByID \u2014 absent items are unconditionally deleted."
     ],
     "decisions": [
       {
-        "decision": "Log at DEBUG for normal requests, ERROR for panics",
-        "rationale": "High-volume request logs would flood INFO level in production; DEBUG keeps them filterable without losing panic diagnostics."
+        "decision": "Split diffByID (returns candidates) from DiffByIDEqualer (filters via Equal)",
+        "rationale": "Entities with children cannot use equality because child state is not embedded; callers with children need all update candidates to recurse."
+      },
+      {
+        "decision": "IsDeleted() drives deletion, not absence from the expected list",
+        "rationale": "Subscription sync must represent soft-delete intent explicitly so the deleted expected state carries the full target row to persist before deleting."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Diff leaf invoice lines (with equality) and apply changes",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/entitydiff\"\n\ndiff := entitydiff.DiffByIDEqualer(expectedLines, dbLines)\nfor _, c := range diff.Create { _ = adapter.CreateLine(ctx, c) }\nfor _, u := range diff.Update { _ = adapter.UpdateLine(ctx, u.ExpectedState) }\nfor _, d := range diff.Delete { _ = adapter.DeleteLine(ctx, d) }"
+      }
+    ]
+  },
+  "pkg/equal": {
+    "purpose": "Minimal interface and helpers for structural equality comparison between domain types. Exists as a separate package to break circular dependencies when entitydiff and models both need the Equaler contract.",
+    "patterns": [
+      {
+        "name": "Equaler[T] interface",
+        "description": "Implement Equal(other T) bool on value types participating in entitydiff reconciliation or needing pointer-safe equality; don't add it to types that already have a goderive-generated Equal.",
+        "example": "func (l InvoiceLine) Equal(other InvoiceLine) bool { return l.ID == other.ID && l.Amount.Equal(other.Amount) }"
+      },
+      {
+        "name": "PtrEqual for nullable Equaler fields",
+        "description": "Use PtrEqual[T] to compare two *T where both nil means equal, avoiding manual nil guards.",
+        "example": "equal.PtrEqual(a.TaxCode, b.TaxCode)"
+      },
+      {
+        "name": "HasherPtrEqual for hash-comparable types",
+        "description": "Use HasherPtrEqual[T] for types implementing hasher.Hasher to compare by hash digest rather than field-by-field.",
+        "example": "equal.HasherPtrEqual(a.Metadata, b.Metadata)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "equal.go",
+        "role": "Defines Equaler[T] and PtrEqual/HasherPtrEqual; the entire package API.",
+        "watch_for": "HasherPtrEqual requires the type to implement pkg/hasher.Hasher \u2014 that dependency, not just equal.Equaler."
+      }
+    ],
+    "anti_patterns": [
+      "Duplicating the Equaler interface in another package instead of importing pkg/equal \u2014 breaks the entitydiff type constraint.",
+      "Implementing Equal with reflect.DeepEqual \u2014 unsafe for pointer fields and billing amount types."
+    ],
+    "decisions": [
+      {
+        "decision": "Equaler[T] lives in pkg/equal, not pkg/models",
+        "rationale": "entitydiff imports equal; models imports entitydiff in some domains; a separate shared equal package cuts the import cycle."
       }
     ],
     "code_examples": []
   },
-  "pkg/set": {
-    "purpose": "Thread-safe generic set backed by map[T]struct{} with RWMutex; provides Add, Remove, AsSlice, IsEmpty, Subtract, and Union for any domain package needing concurrent set semantics over comparable types.",
+  "pkg/errorsx": {
+    "purpose": "Error utility package: prefix propagation through joined error trees, a warn-severity error wrapper, and the Handler/SlogHandler/NopHandler trio implementing httptransport.ErrorHandler for consistent error logging across HTTP transports.",
     "patterns": [
       {
-        "name": "Construct via New[T](items...)",
-        "description": "Always use New[T]() or New(item1, item2). Never construct Set{} directly \u2014 the content map will be nil and any write will panic.",
-        "example": "s := set.New(\"a\", \"b\")"
+        "name": "WithPrefix for structured error wrapping",
+        "description": "Use WithPrefix(err, prefix) instead of fmt.Errorf(\"%s: %w\") when the error may be joined \u2014 it recursively prefixes each leaf rather than wrapping the join.",
+        "example": "return errorsx.WithPrefix(err, \"reconcile subscription\")"
       },
       {
-        "name": "RWMutex for read/write separation",
-        "description": "Mutating methods (Add, Remove) acquire write locks; read methods (AsSlice, IsEmpty) acquire read locks. Subtract and Union acquire read locks on all input sets before building the result.",
-        "example": "s.mu.Lock(); defer s.mu.Unlock() // writes\ns.mu.RLock(); defer s.mu.RUnlock() // reads"
+        "name": "NewWarnError for non-fatal errors",
+        "description": "Wrap errors that should log as warnings (not errors) with NewWarnError; SlogHandler detects *warnError and downgrades the level.",
+        "example": "return errorsx.NewWarnError(fmt.Errorf(\"skipping stale event: %w\", err))"
       },
       {
-        "name": "Package-level Subtract and Union functions",
-        "description": "Subtract and Union are package-level functions, not methods, to support multi-set operations. Subtract(a, b) removes items in b from a \u2014 argument order matches lo.Difference(base, toRemove).",
-        "example": "result := set.Subtract(set.New(1,2,3), set.New(2,3)) // result: {1}"
+        "name": "SlogHandler as default HTTP error handler",
+        "description": "Inject SlogHandler (not NopHandler) via WithErrorHandler \u2014 it maps context.Canceled and *warnError to Warn automatically.",
+        "example": "httptransport.NewHandler(op, dec, enc, httptransport.WithErrorHandler(errorsx.NewSlogHandler(logger)))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "set.go",
-        "role": "Full set implementation. All operations are in this single file.",
-        "watch_for": "AsSlice returns items in random map-iteration order \u2014 never assume stability. The slice is a snapshot; future mutations are not reflected. Subtract(a, b) argument order: a is the base set, b items are removed from it."
+        "file": "errorsx.go",
+        "role": "WithPrefix recursive join-aware prefixer; warnError type and NewWarnError constructor.",
+        "watch_for": "WithPrefix only recurses through the Unwrap() []error interface \u2014 errors wrapped with fmt.Errorf(\"%w\", joinedErr) lose recursive prefixing on inner errors."
+      },
+      {
+        "file": "handler.go",
+        "role": "Handler interface (mirrors httptransport.ErrorHandler), SlogHandler, NopHandler.",
+        "watch_for": "Handle and HandleContext differ only in context-aware logging \u2014 prefer HandleContext when a ctx is available."
       }
     ],
     "anti_patterns": [
-      "Constructing Set{} directly \u2014 nil content map panics on first write.",
-      "Assuming stable ordering from AsSlice \u2014 map iteration is random.",
-      "Holding the AsSlice result and expecting it to reflect future Add/Remove calls \u2014 it is a copy.",
-      "Using this package for large sets under high contention \u2014 RWMutex is optimized for small sets; sync.Map may be preferable for high-read-concurrency large sets."
+      "Using fmt.Errorf(\"%s: %w\", prefix, joinedErr) instead of WithPrefix \u2014 loses per-leaf prefix propagation.",
+      "Returning *warnError directly \u2014 use NewWarnError which is nil-safe.",
+      "Using NopHandler in production HTTP handlers \u2014 silently swallows transport errors."
     ],
     "decisions": [
       {
-        "decision": "Use RWMutex with a plain map over sync.Map",
-        "rationale": "RWMutex with map[T]struct{} is simpler and lower-overhead for the small sets typical in domain use; sync.Map optimizes for high-concurrency read-heavy workloads with minimal write contention."
+        "decision": "WithPrefix recurses through Unwrap() []error but stops at single-Unwrap wrappers",
+        "rationale": "Only top-level joins should be expanded; wrapping a join with fmt.Errorf is an intentional barrier."
       }
     ],
     "code_examples": []

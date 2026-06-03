@@ -1,254 +1,174 @@
 {
-  "test/billing": {
-    "purpose": "Integration test suite for the billing domain \u2014 exercises invoice lifecycle, adapter persistence, collection flows, discounts, tax handling, schema migrations, and subscription sync against a real PostgreSQL database provisioned via pgtestdb and Atlas migrations.",
+  "pkg/kafka/metrics/internal": {
+    "purpose": "OTel metric instrument registry for librdkafka statistics: each domain struct (BrokerMetrics, TopicMetrics, PartitionMetrics, ConsumerGroupMetrics) owns one metric.Int64Gauge per stat field and records point-in-time values from the stats sub-structs with context-propagated OTel attributes. All gauges reflect librdkafka's rolling-window snapshot semantics.",
     "patterns": [
       {
-        "name": "BaseSuite embedding",
-        "description": "Every test suite embeds BaseSuite (suite.go) which boots the full billing stack from raw package constructors \u2014 never from app/common. All shared service fields (BillingService, BillingAdapter, CustomerService, FeatureService, MeterAdapter, MockStreamingConnector, etc.) are initialised in BaseSuite.setupSuite.",
-        "example": "type InvoicingTestSuite struct { BaseSuite }\nfunc TestInvoicing(t *testing.T) { suite.Run(t, new(InvoicingTestSuite)) }"
+        "name": "Metric struct per stats domain with optional sub-structs",
+        "description": "Each Kafka stats domain gets a *Metrics struct with one metric.Int64Gauge per stat. Sub-categories (latency, throttle, message, offset, batch) are private pointer fields built only when extended=true and nil-guarded in Add. TopicMetrics always builds PartitionMetrics \u2014 only batchMetrics is extended-gated.",
+        "example": "type BrokerMetrics struct { latencyMetrics *BrokerLatencyMetrics; throttleMetrics *BrokerThrottleMetrics; Source metric.Int64Gauge }"
       },
       {
-        "name": "SubscriptionMixin for subscription-dependent tests",
-        "description": "Test suites that require plan/subscription/addon/entitlement/credit services embed SubscriptionMixin alongside BaseSuite and call SubscriptionMixin.SetupSuite(t, s.GetSubscriptionMixInDependencies()) in their own SetupSuite override.",
-        "example": "type SubscriptionTestSuite struct { BaseSuite; SubscriptionMixin; SubscriptionSyncService subscriptionsync.Service }"
+        "name": "NewXxxMetrics factory with fail-fast error returns",
+        "description": "Constructors call meter.Int64Gauge per field sequentially, wrapping each error with fmt.Errorf(\"failed to create metric: <name>: %w\", err) and returning on first failure. Extended sub-metrics are built first inside the extended branch.",
+        "example": "m.Source, err = meter.Int64Gauge(\"kafka.broker.source\", ...); if err != nil { return nil, fmt.Errorf(\"failed to create metric: kafka.broker.source: %w\", err) }"
       },
       {
-        "name": "Unique namespace per test",
-        "description": "Every test method uses a unique namespace string \u2014 either a hard-coded constant prefixed with 'ns-' unique per method, or s.GetUniqueNamespace(prefix) \u2014 to prevent cross-test FK violations on the shared database.",
-        "example": "namespace := s.GetUniqueNamespace(\"ns-schema-migration\")"
+        "name": "Add: nil guard, inject attrs, Record, delegate to sub-metrics",
+        "description": "Each Add starts with 'if stats == nil { return }', appends domain attrs to the caller's attrs slice (node_name/node_id, partition, topic), records each gauge, then nil-guards sub-metric Add calls with the augmented attrs.",
+        "example": "func (m *BrokerMetrics) Add(ctx context.Context, stats *stats.BrokerStats, attrs ...attribute.KeyValue) { if stats == nil { return }; attrs = append(attrs, attribute.String(\"node_name\", stats.NodeName)); m.Source.Record(ctx, stats.Source.Int64(), metric.WithAttributes(attrs...)) }"
       },
       {
-        "name": "clock.SetTime / clock.ResetTime for deterministic time",
-        "description": "Tests that depend on invoice_at / collection_at / period calculations freeze or advance pkg/clock globally. BaseSuite.TearDownTest always calls clock.UnFreeze() and clock.ResetTime(); individual tests must still defer clock.ResetTime() if they call clock.SetTime inline.",
-        "example": "clock.SetTime(periodStart); defer clock.ResetTime()"
+        "name": "Metric naming kafka.<domain>.<stat> with OTel units",
+        "description": "Names are dot-separated kafka.<domain>.<stat>; units use OTel brace notation: {microsecond}, {byte}, {message}, {partition}, {broker}.",
+        "example": "meter.Int64Gauge(\"kafka.broker.latency_p99\", metric.WithUnit(\"{microsecond}\"))"
       },
       {
-        "name": "MockStreamingConnector for usage events",
-        "description": "Usage events are injected via s.MockStreamingConnector.AddSimpleEvent(meterSlug, quantity, ts) or SetSimpleEvents. Always defer s.MockStreamingConnector.Reset() after injecting events to prevent bleed into subsequent sub-tests.",
-        "example": "s.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(time.Minute))\ndefer s.MockStreamingConnector.Reset()"
+        "name": "Extended flag gates sub-metrics, not core counters",
+        "description": "New{Broker,Partition,Topic}Metrics take 'extended bool'; latency/throttle and message/offset sub-structs only build/run when extended=true. NewTopicMetrics always builds PartitionMetrics but gates batchMetrics.",
+        "example": "if extended { m.latencyMetrics, err = NewBrokerLatencyMetrics(meter) }"
       },
       {
-        "name": "Atlas migrations by default; TEST_DISABLE_ATLAS skips them",
-        "description": "setupSuite runs full golang-migrate Atlas migrations unless TEST_DISABLE_ATLAS env var is set. SchemaMigrationTestSuite forces Atlas by passing SetupSuiteOptions{ForceAtlas: true} explicitly to test schema-level migration correctness.",
-        "example": "func (s *SchemaMigrationTestSuite) SetupSuite() { s.BaseSuite.setupSuite(SetupSuiteOptions{ForceAtlas: true}) }"
+        "name": "Internal partition skip in TopicMetrics.Add",
+        "description": "TopicMetrics.Add skips partitions where Partition < 0 (librdkafka UA/UnAssigned internal partition); the guard lives here, not in PartitionMetrics.Add.",
+        "example": "for _, partition := range stats.Partitions { if partition.Partition < 0 { continue }; m.partitionMetrics.Add(ctx, &partition, attrs...) }"
       },
       {
-        "name": "t.Context() preferred in new test code",
-        "description": "New tests use ctx := s.T().Context() to tie context lifetime to the test harness. Legacy tests still use context.Background() \u2014 keep consistency within each file.",
-        "example": "ctx := s.T().Context()"
+        "name": "attrs slice mutated in Add \u2014 don't reuse after the call",
+        "description": "Each Add appends domain attrs via append (may reallocate); callers iterating collections and reusing the original attrs slice after an Add will see corrupted attribute sets.",
+        "example": "attrs = append(attrs, attribute.String(\"node_name\", stats.NodeName), attribute.Int64(\"node_id\", stats.NodeID))"
       }
     ],
     "key_file_guides": [
       {
-        "file": "suite.go",
-        "role": "BaseSuite definition: wires billing, customer, feature, meter, app, taxcode, subject, sandbox, and custom-invoicing services from raw constructors. Provides test helpers: InstallSandboxApp, CreateTestCustomer, ProvisionBillingProfile, CreateDraftInvoice, DebugDumpInvoice.",
-        "watch_for": "Never import app/common \u2014 test-only import cycles. All cross-domain hooks (subject/customer, entitlement validator) must be registered here, not in individual test suites."
+        "file": "broker.go",
+        "role": "BrokerLatencyMetrics (11 latency percentile gauges), BrokerThrottleMetrics (11 throttle gauges), BrokerMetrics (19 core gauges + optional sub-structs built only when extended).",
+        "watch_for": "Pre-existing bug: m.Source's error message duplicates m.State's text \u2014 do not copy; use the actual metric name in error strings."
       },
       {
-        "file": "subscription_suite.go",
-        "role": "SubscriptionMixin: builds plan/subscription/addon/entitlement/credit dependency graph from raw adapters. Exposes SetupEntitlements for the full credit/entitlement connector stack.",
-        "watch_for": "Requires SubscriptionMixInDependencies.Validate() to pass \u2014 all six fields must be non-nil. Uses eventbus.NewMock(t), not a real Kafka publisher."
+        "file": "partition.go",
+        "role": "PartitionMessageMetrics (8 queue/inflight gauges), PartitionOffsetMetrics (9 offset gauges), PartitionMetrics (8 core gauges + optional sub-structs, extended-gated).",
+        "watch_for": "Both PartitionMessageMetrics.Add and PartitionOffsetMetrics.Add independently append the partition attr, so the caller's attrs accumulates partition twice if both run."
       },
       {
-        "file": "schemamigration_test.go",
-        "role": "Tests schema-level migration paths (e.g., schema level 1 \u2192 current). Uses s.BillingAdapter.SetInvoiceDefaultSchemaLevel and raw Ent queries to force legacy schema state, then validates migration read behaviour.",
-        "watch_for": "Do not use BillingService for setup here \u2014 the test must place rows that BillingService would normally reject."
+        "file": "topic.go",
+        "role": "TopicBatchMetrics (22 batch percentile gauges), TopicMetrics (2 core gauges + unconditional PartitionMetrics + extended-gated batchMetrics); holds the Partition<0 skip guard.",
+        "watch_for": "TopicMetrics always constructs PartitionMetrics regardless of extended \u2014 do not move it inside the extended block."
       },
       {
-        "file": "collection_test.go",
-        "role": "End-to-end tests for progressive billing collection: collection_at calculation, late-event windows, anchored alignment, flat-fee-only skipping collection.",
-        "watch_for": "Relies heavily on clock.SetTime at specific points and MockStreamingConnector events at specific StoredAt timestamps \u2014 event order and time advancement must match invoice state machine transitions."
-      },
-      {
-        "file": "discount_test.go",
-        "role": "Tests discount correlation ID stability across invoice splits and unit-discount progressive billing across multiple invoice periods.",
-        "watch_for": "Calls s.MeterAdapter.ReplaceMeters and defers cleanup \u2014 meters must be replaced before features are created and cleaned up in defer to avoid test pollution."
-      },
-      {
-        "file": "profile.go",
-        "role": "Shared profile fixture builder: minimalCreateProfileInputTemplate(appID) returns a sane default CreateProfileInput with AutoAdvance=true, DraftPeriod=P1D, CollectionInterval=PT0S.",
-        "watch_for": "CollectionInterval is set to PT0S (immediate) by default so general tests do not block on collection windows \u2014 tests that validate collection timing must override this."
+        "file": "consumergroup.go",
+        "role": "ConsumerGroupMetrics for 6 rebalance/state gauges; no sub-structs, no extended flag.",
+        "watch_for": "Add injects no domain attrs \u2014 it records with caller-supplied attrs only; callers own group-id attribution."
       }
     ],
     "anti_patterns": [
-      "Importing app/common in test files \u2014 causes import cycles; construct services from raw adapters as BaseSuite does.",
-      "Using context.Background() when s.T().Context() is available \u2014 breaks test-scoped cancellation.",
-      "Calling s.MockStreamingConnector.AddSimpleEvent without defer Reset() \u2014 events bleed into subsequent sub-tests.",
-      "Hard-coding the same namespace constant across multiple test methods in a file \u2014 causes FK constraint violations on the shared database.",
-      "Accessing BillingAdapter directly in tests when BillingService covers the same operation \u2014 bypasses state machine and validation logic."
+      "Using Int64Counter or Float64Histogram \u2014 librdkafka stats are rolling-window snapshots; only Int64Gauge represents them without accumulation.",
+      "Accessing stats fields in Add without the 'if stats == nil { return }' guard \u2014 librdkafka JSON can omit whole sections.",
+      "Adding business logic, aggregation, or branching inside Add \u2014 it must only translate stats fields to metric.Record calls.",
+      "Constructing latency/throttle/message/offset/batch sub-metric structs outside the extended=true branch.",
+      "Reusing or capturing the attrs slice passed into Add after it returns \u2014 append may have mutated the backing array."
     ],
     "decisions": [
       {
-        "decision": "Construct all services from raw package constructors, not app/common Wire providers.",
-        "rationale": "Avoids import cycles (app/common depends on openmeter packages; test/ packages are peers) and lets each test suite compose only the services it actually needs."
+        "decision": "Int64Gauge for all metrics, not counters or histograms.",
+        "rationale": "librdkafka exposes rolling-window snapshots; gauges represent instantaneous values and avoid double-counting when the stats callback fires repeatedly."
       },
       {
-        "decision": "Run Atlas migrations by default (not ent.Schema.Create) in BaseSuite.",
-        "rationale": "Ensures tests exercise the same migration path as production, catching column/constraint drift that ent.Schema.Create would silently fix."
+        "decision": "Extended flag separates core from verbose metrics.",
+        "rationale": "Latency/throttle percentile distributions and detailed offset/message metrics are costly to register/record; extended=false skips dozens of unused instruments without losing critical gauges."
       },
       {
-        "decision": "Use pkg/clock globally for deterministic time in tests.",
-        "rationale": "Invoice lifecycle depends on clock.Now() for collection_at, quantity_snapshoted_at, and invoice_at comparisons; freezing clock eliminates race conditions in time-sensitive assertions."
+        "decision": "Domain attributes appended inside Add, not by callers.",
+        "rationale": "Callers iterate collections and shouldn't know the per-entity attribute schema; centralizing node_name/node_id/topic/partition injection simplifies loops and prevents schema drift."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Typical test method: install sandbox app, provision billing profile, create customer, inject streaming events, advance clock, invoice pending lines.",
-        "code": "namespace := \"ns-my-feature\"\nctx := s.T().Context()\nsandboxApp := s.InstallSandboxApp(s.T(), namespace)\ns.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())\ncust := s.CreateTestCustomer(namespace, \"test-subject\")\ns.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(time.Minute))\ndefer s.MockStreamingConnector.Reset()\nclock.SetTime(periodEnd.Add(time.Hour))\ndefer clock.ResetTime()\ninvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{Customer: cust.GetID()})\ns.NoError(err)"
+        "scenario": "Add a new Int64Gauge to BrokerMetrics and record it in Add",
+        "code": "import (\n    \"context\"\n    \"fmt\"\n    \"go.opentelemetry.io/otel/attribute\"\n    \"go.opentelemetry.io/otel/metric\"\n    \"github.com/openmeterio/openmeter/pkg/kafka/metrics/stats\"\n)\n// 1. Add field:\ntype BrokerMetrics struct { /* ... */ NewGauge metric.Int64Gauge }\n// 2. Register in NewBrokerMetrics after core gauges:\nm.NewGauge, err = meter.Int64Gauge(\"kafka.broker.new_gauge\", metric.WithUnit(\"{byte}\"))\nif err != nil { return nil, fmt.Errorf(\"failed to create metric: kafka.broker.new_gauge: %w\", err) }\n// 3. Record in Add (after nil guard + attrs append):\nm.NewGauge.Record(ctx, stats.NewStat, metric.WithAttributes(attrs...))"
       }
     ]
   },
-  "test/credits": {
-    "purpose": "Integration tests for the credits/charges domain: credit grant lifecycle (invoice-funded, promotional, external), flat-fee/usage-based/credit-purchase charge advancement against a real ledger stack, and billing/charges rating logic. Extends test/billing.BaseSuite with ledger and charges service wiring.",
+  "pkg/kafka/metrics/stats": {
+    "purpose": "Typed Go representations of librdkafka's JSON statistics payload, providing JSON unmarshalling only \u2014 no OTel dependency. String-enum fields implement custom UnmarshalJSON + Int64() so the internal metrics layer records them as numeric gauges without parsing at record time.",
     "patterns": [
       {
-        "name": "Extend BaseSuite with ledger + charges stack",
-        "description": "CreditsTestSuite embeds billingtest.BaseSuite and adds Charges, Ledger, LedgerAccountService, LedgerResolver, and RevenueRecognizer. SetupSuite calls s.BaseSuite.SetupSuite() first, then initialises the ledger via ledgertestutils.InitDeps and assembles the charges stack via chargestestutils.NewServices.",
-        "example": "type BaseSuite struct {\n\tbillingtest.BaseSuite\n\tCharges charges.Service\n\tLedger ledger.Ledger\n\tLedgerAccountService ledgeraccount.Service\n\tLedgerResolver *ledgerresolvers.AccountResolver\n}"
+        "name": "String enum type with UnmarshalJSON + Int64()",
+        "description": "Each librdkafka string-enum field is a named string type with: a const block of variants plus an Unknown sentinel, *T.UnmarshalJSON that lower-cases/trims and switches (defaulting to Unknown), and T.Int64() returning a numeric index with Unknown mapped to -1.",
+        "example": "func (s BrokerState) Int64() int64 { switch s { case BrokerStateUp: return 6; default: return -1 } }"
       },
       {
-        "name": "CreateLedgerBackedCustomer for ledger-dependent tests",
-        "description": "Tests that require a customer with ledger accounts (FBO, receivable, etc.) call s.CreateLedgerBackedCustomer(ns, subjectKey) rather than BaseSuite.CreateTestCustomer. The helper calls LedgerResolver.EnsureBusinessAccounts then CreateCustomerAccounts.",
-        "example": "cust := s.CreateLedgerBackedCustomer(ns, \"test-subject\")"
+        "name": "Struct fields tagged with exact librdkafka JSON keys",
+        "description": "Fields use json tags matching exact librdkafka snake_case names; Go names are idiomatic PascalCase. A wrong tag silently yields zero values.",
+        "example": "type BrokerStats struct { RequestsAwaitingTransmission int64 `json:\"outbuf_cnt\"`; StateAge int64 `json:\"stateage\"` }"
       },
       {
-        "name": "chargestestutils.NewServices for charge stack construction",
-        "description": "The charges stack (usagebased, flatfee, creditpurchase handlers wired to ledgerchargeadapter) is always assembled via chargestestutils.NewServices, not ad-hoc inline. FlatFeeHandler, CreditPurchaseHandler, and UsageBasedHandler are injected from ledgerchargeadapter constructors.",
-        "example": "stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{\n\tClient: s.DBClient, BillingService: s.BillingService,\n\tFlatFeeHandler: ledgerchargeadapter.NewFlatFeeHandler(...),\n})"
+        "name": "WindowStats embedded by value",
+        "description": "WindowStats (min/max/avg/sum/count/stddev/p50..p9999) is reused by value across BrokerStats (rtt, throttle) and TopicStats (batch_size, batch_count). P9999 maps to json tag 'p99_99'.",
+        "example": "type WindowStats struct { P9999 int64 `json:\"p99_99\"` } // tag is p99_99 not p9999"
       },
       {
-        "name": "Drive charge lifecycle via charges.Service, not adapters",
-        "description": "Tests call s.Charges.Create / AdvanceCharges / ApplyPatches rather than calling lower-level adapter methods directly, mirroring production billing-worker behaviour. CreateMockChargeIntent is the shared helper for building ChargeIntent values without struct literals.",
-        "example": "intent := s.CreateMockChargeIntent(CreateMockChargeIntentInput{Customer: cust.GetID(), Price: flatPrice, ...})\ngrants, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.ChargeIntents{intent}})"
+        "name": "Partitions as map[string]Partition with numeric Partition field",
+        "description": "TopicStats.Partitions is map[string]Partition (string partition ID key); Partition has a numeric Partition int64. Negative values mark the internal UA partition that internal-package callers skip.",
+        "example": "type Partition struct { Partition int64 `json:\"partition\"` } // negative = internal UA partition"
       },
       {
-        "name": "TearDownTest resets clock and streaming connector",
-        "description": "BaseSuite.TearDownTest calls s.MockStreamingConnector.Reset(), clock.UnFreeze(), and clock.ResetTime() automatically after each test. Individual test methods still need defer clock.ResetTime() if they call clock.SetTime after starting sub-tests.",
-        "example": "func (s *BaseSuite) TearDownTest() {\n\ts.MockStreamingConnector.Reset()\n\tclock.UnFreeze()\n\tclock.ResetTime()\n}"
+        "name": "Test via embedded testdata/stats.json fixture",
+        "description": "stats_test.go //go:embed testdata/stats.json, unmarshals into Stats, and asserts known field values (ClientID, MessageCount, StoredOffset=-1001). New fields should add assertions.",
+        "example": "//go:embed testdata/stats.json\nvar statsJSON []byte\nfunc TestStats(t *testing.T) { var s Stats; json.Unmarshal(statsJSON, &s); assert.Equal(t, \"rdkafka\", s.ClientID) }"
       }
     ],
     "key_file_guides": [
       {
-        "file": "base.go",
-        "role": "BaseSuite for the credits package: embeds billingtest.BaseSuite, initialises ledger deps via ledgertestutils.InitDeps, builds revenue recognizer, collector service, and the full charges stack via chargestestutils.NewServices. Exposes CreateLedgerBackedCustomer and CreateMockChargeIntent helpers.",
-        "watch_for": "SetupSuite order is critical: billingtest.BaseSuite.SetupSuite() must run before ledgertestutils.InitDeps to ensure DBClient is available."
+        "file": "stats.go",
+        "role": "Root Stats struct and shared WindowStats; Stats.Brokers/Topics are maps keyed by broker/topic name; ConsumerGroup embedded by value.",
+        "watch_for": "WindowStats.P9999 uses json tag 'p99_99' (librdkafka's name), not 'p9999' \u2014 common copy-paste mistake."
       },
       {
-        "file": "sanity_test.go / sanity_lifecycle_test.go",
-        "role": "Core charges lifecycle tests: AdvanceCharges, ApplyPatches, external payment settlement state transitions for flatfee, usagebased, and creditpurchase charge types.",
-        "watch_for": "Custom-invoicing app used (not sandbox) to verify async sync flows. Relies on clock.SetTime to control advancement windows."
+        "file": "broker.go",
+        "role": "BrokerStats plus BrokerSource and BrokerState string enums (full UnmarshalJSON/Int64) and BrokerTopicPartition; Latency='rtt', Throttle='throttle' WindowStats by value.",
+        "watch_for": "TopicPartitions keys are '<topic>-<partition>'. BrokerStats.Wakeups exists but is intentionally not recorded by the internal layer."
       },
       {
-        "file": "creditgrant_test.go",
-        "role": "Tests creditgrant.Service.Create for invoice-funded, promotional, and external settlement grants. Validates that invoice-funded grants produce standard invoices, promotional grants are immediately final, and external grants follow authorized\u2192settled transitions.",
-        "watch_for": "Must use s.CreateLedgerBackedCustomer \u2014 plain CreateTestCustomer customers lack ledger accounts and cause resolver errors."
+        "file": "topic.go",
+        "role": "TopicStats and Partition; Partition holds both consumer-side (CommittedOffset, ConsumerLag) and producer-side (MessagesSent) fields in one unified object.",
+        "watch_for": "StoredOffset=-1001 means 'no stored offset' and ConsumerLag=-1 means 'no committed offset' \u2014 these are valid sentinels, not errors."
       },
       {
-        "file": "rating_test.go",
-        "role": "Pure unit tests for charges billing calculator: verifies period resolution and billing period splitting without DB interaction. RatingTestSuite does not embed BaseSuite.",
-        "watch_for": "These tests are fast and DB-independent \u2014 do not pull in BaseSuite setup overhead."
+        "file": "consumergroup.go",
+        "role": "ConsumerGroupStats; ConsumerGroupState (7 states, 0-6) and ConsumerGroupJoinState (9 states, 0-8) enums with UnmarshalJSON/Int64; Unknown returns -1.",
+        "watch_for": "JoinState has 9 variants vs State's 7 \u2014 do not assume shared cardinality when adding variants."
+      },
+      {
+        "file": "stats_test.go",
+        "role": "White-box test unmarshalling testdata/stats.json, asserting key values including StoredOffset=-1001 and ConsumerLag=-1 sentinels.",
+        "watch_for": "Keep testdata/stats.json in sync with the librdkafka version in go.mod; a wrong tag silently passes with zero values \u2014 verify new fields produce non-zero assertions."
       }
     ],
     "anti_patterns": [
-      "Calling lower-level charge adapter methods directly instead of going through charges.Service.Create / AdvanceCharges / ApplyPatches.",
-      "Using BaseSuite.CreateTestCustomer for tests that require ledger accounts \u2014 use s.CreateLedgerBackedCustomer instead.",
-      "Constructing charges.ChargeIntent{} struct literals instead of charges.NewChargeIntent(flatfee.Intent{...}) \u2014 private discriminator stays zero-valued.",
-      "Instantiating ledger adapters inline in test methods \u2014 always delegate to ledgertestutils.InitDeps.",
-      "Using context.Background() instead of s.T().Context() in new tests."
+      "Int64() returning 0 for Unknown instead of -1 \u2014 the internal layer uses -1 to distinguish unknown from valid index 0.",
+      "Embedding WindowStats by pointer \u2014 it is always present; value embedding avoids nil dereference in the internal layer.",
+      "Changing json tags without updating testdata/stats.json assertions \u2014 the test silently passes with zero values.",
+      "Treating Partition.Partition < 0 as an unmarshal error \u2014 negative IDs are valid internal librdkafka sentinels callers skip.",
+      "Adding OTel imports or metric registration here \u2014 stats is a pure data/unmarshalling package; instrumentation lives in pkg/kafka/metrics/internal."
     ],
     "decisions": [
       {
-        "decision": "Wire ledger and charges stack on top of existing billingtest.BaseSuite rather than creating a separate test environment.",
-        "rationale": "Reuses the billing, customer, feature, and streaming infrastructure already initialised in BaseSuite (~150-line setup chain), avoiding duplication and keeping charge tests co-located with billing tests."
+        "decision": "String-typed enums with custom UnmarshalJSON rather than iota int enums.",
+        "rationale": "librdkafka serializes enums as human-readable strings; typed string constants preserve debuggability while Int64() provides the numeric form for OTel without re-parsing."
       },
       {
-        "decision": "Use chargestestutils.NewServices as the canonical charges stack builder in tests.",
-        "rationale": "Mirrors the production wiring in app/common/charges.go, ensuring tests exercise the same handler-to-ledger-adapter wiring that production code uses, including ledgerchargeadapter.NewFlatFeeHandler and related constructors."
+        "decision": "Unknown enum sentinel returns -1 from Int64().",
+        "rationale": "-1 cleanly signals 'unrecognized state' in dashboards without colliding with valid indices (which start at 0), letting alerts distinguish missing data from known states."
+      },
+      {
+        "decision": "Separate stats and internal packages with no stats\u2192internal dependency.",
+        "rationale": "stats holds pure stdlib data types; keeping OTel out lets the data model be tested/inspected independently and prevents OTel leaking into callers who only inspect field values."
       }
     ],
     "code_examples": [
       {
-        "scenario": "Create a ledger-backed customer, build a flatfee charge intent, advance charges, and assert FBO balance.",
-        "code": "cust := s.CreateLedgerBackedCustomer(ns, \"test-subject\")\nintent := s.CreateMockChargeIntent(CreateMockChargeIntentInput{\n\tCustomer: cust.GetID(), Currency: USD,\n\tPrice: productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: alpacadecimal.NewFromFloat(100)}),\n\tServicePeriod: period,\n})\ngrants, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.ChargeIntents{intent}})\ns.NoError(err)\nclock.SetTime(period.To.Add(time.Hour))\n_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Namespace: ns})\ns.NoError(err)\nbalance := s.MustCustomerFBOBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]())\ns.Equal(alpacadecimal.NewFromFloat(100), balance)"
-      }
-    ]
-  },
-  "test/customer": {
-    "purpose": "Integration tests for customer, subject, subscription, entitlement, plan, and billing domains wired together \u2014 validates cross-domain lifecycle correctness (usage attributions, subject hooks, subscription constraints, invoice generation) against real PostgreSQL.",
-    "patterns": [
-      {
-        "name": "TestEnv interface with all cross-domain services",
-        "description": "TestEnv exposes Customer(), Subscription(), SubscriptionWorkflow(), Entitlement(), Feature(), Subject(), Plan(), Billing(), App(), and Meter() methods so test methods can exercise multi-domain flows without constructing services inline.",
-        "example": "type TestEnv interface { Customer() customer.Service; Subject() subject.Service; SubscriptionWorkflow() subscriptionworkflow.Service; Billing() billing.Service; ... }"
-      },
-      {
-        "name": "Hooks registered after service construction in NewTestEnv",
-        "description": "After building customerService and subjectService from raw constructors, cross-domain hooks are wired manually: customerService.RegisterRequestValidator(entValidator), subjectService.RegisterHooks(subjectCustomerHook), customerService.RegisterHooks(customerSubjectHook), customerService.RegisterRequestValidator(subsCustValidator). Order matters.",
-        "example": "customerService.RegisterRequestValidator(entcustomervalidator.NewValidator(entitlementRegistry.EntitlementRepo))\nsubjectService.RegisterHooks(subjectCustomerHook)\ncustomerService.RegisterHooks(customerSubjectHook)"
-      },
-      {
-        "name": "subscriptiontestutils.SetupDBDeps for DB bootstrapping",
-        "description": "NewTestEnv calls subscriptiontestutils.SetupDBDeps(t) instead of calling testutils.InitPostgresDB directly. This handles schema migration and returns a DBClient ready for all adapters in one call.",
-        "example": "dbDeps := subscriptiontestutils.SetupDBDeps(t)"
-      },
-      {
-        "name": "Unique ULID namespace per test method via setupNamespace",
-        "description": "Every test method in CustomerHandlerTestSuite begins with s.setupNamespace(t), which assigns a new ulid.Make().String() to s.namespace, providing full test isolation on the shared database.",
-        "example": "func (s *CustomerHandlerTestSuite) setupNamespace(t *testing.T) {\n\ts.namespace = ulid.Make().String()\n}"
-      },
-      {
-        "name": "clock.SetTime + t.Cleanup(clock.ResetTime) for time-sensitive tests",
-        "description": "Tests that need to advance time call clock.SetTime(future) and always register t.Cleanup(clock.ResetTime) to prevent global clock state from leaking between tests.",
-        "example": "clock.SetTime(future)\nt.Cleanup(clock.ResetTime)"
-      }
-    ],
-    "key_file_guides": [
-      {
-        "file": "testenv.go",
-        "role": "Constructs the full multi-domain service graph from raw package constructors. Wires meter, customer, entitlement, subject, plan, app, subscription, workflow, and billing. Registers all hooks post-construction. Exposes TestEnv interface.",
-        "watch_for": "Hook registration order matters: entValidator before subjectHook before subscriptionValidator. Never import app/common. noopCustomerOverrideService is an inline noop for billing.CustomerOverrideService \u2014 do not replace with a real implementation."
-      },
-      {
-        "file": "customer.go",
-        "role": "CustomerHandlerTestSuite with CRUD tests for customer lifecycle, key conflict detection, and subscription-present update constraints.",
-        "watch_for": "UsageAttribution is nil (not empty slice) when no subjects are attached \u2014 assertions must check Nil not Empty. TestKey is reused across test methods only because setupNamespace provides namespace isolation."
-      },
-      {
-        "file": "subject.go",
-        "role": "Tests subject deletion edge cases (dangling subjects, subjects still attached to customers, subjects with active entitlements) and TestMultiSubjectIntegrationFlow \u2014 a full plan+subscription+invoice end-to-end.",
-        "watch_for": "TestMultiSubjectIntegrationFlow installs a sandbox app and creates a billing profile \u2014 both must succeed or the test panics. clock.ResetTime must be deferred immediately after clock.SetTime."
-      },
-      {
-        "file": "customer_test.go",
-        "role": "Entry point: creates TestEnv, defers Close(), runs Customer and Subject sub-test groups via CustomerHandlerTestSuite and SubjectHandlerTestSuite.",
-        "watch_for": "t.Errorf used for Close errors (not t.Fatal) to ensure deferred Close always runs even if sub-tests fail."
-      }
-    ],
-    "anti_patterns": [
-      "Importing app/common or Wire provider sets \u2014 all wiring must use raw package constructors to avoid import cycles.",
-      "Using context.Background() in new test code where t.Context() is available.",
-      "Reusing the same subject key or customer key across test functions without setupNamespace \u2014 causes unique-constraint violations.",
-      "Forgetting to defer clock.ResetTime() after clock.SetTime() \u2014 leaves global clock dirty for subsequent tests.",
-      "Asserting UsageAttribution as empty slice instead of nil \u2014 service returns nil when there are no subject keys."
-    ],
-    "decisions": [
-      {
-        "decision": "TestEnv exposes all cross-domain services (10 methods) rather than just customer.",
-        "rationale": "Subject deletion, subscription constraints, and multi-subject billing flows require real instances of subscription, entitlement, billing, and plan \u2014 a minimal customer-only env cannot exercise these paths."
-      },
-      {
-        "decision": "Hooks wired manually in NewTestEnv rather than discovered via DI.",
-        "rationale": "Tests must stay independent from app/common. Manual hook registration ensures the exact hook set matches production wiring without importing Wire providers or creating import cycles."
-      },
-      {
-        "decision": "subscriptiontestutils.SetupDBDeps used for DB bootstrap.",
-        "rationale": "Centralises pgtestdb provisioning and schema migration so multiple test packages share the same proven setup path, reducing per-package boilerplate."
-      }
-    ],
-    "code_examples": [
-      {
-        "scenario": "Multi-domain integration test: generate unique namespace, create customer with subject, subscribe to a plan, assert subscription is active.",
-        "code": "s.setupNamespace(t)\nctx := context.Background()\napp := s.installSandboxApp(t, s.namespace)\n_ = s.createDefaultProfile(t, app, s.namespace)\ncust, err := s.Env.Customer().CreateCustomer(ctx, customer.CreateCustomerInput{\n\tNamespace: s.namespace,\n\tCustomerMutate: customer.CustomerMutate{\n\t\tName: \"Test\",\n\t\tUsageAttribution: &customer.CustomerUsageAttribution{SubjectKeys: []string{\"subj-1\"}},\n\t},\n})\nrequire.NoError(t, err)\nsub, err := s.Env.SubscriptionWorkflow().CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{\n\tNamespace: s.namespace, CustomerID: cust.ID,\n})\nrequire.NoError(t, err)\nrequire.NotNil(t, sub)"
+        "scenario": "Add a new string enum field to a stats struct",
+        "code": "const (\n    MyEnumUnknown MyEnum = \"unknown\"\n    MyEnumFoo     MyEnum = \"foo\"\n)\ntype MyEnum string\nfunc (s *MyEnum) UnmarshalJSON(data []byte) error {\n    var value string\n    if err := json.Unmarshal(data, &value); err != nil { return fmt.Errorf(\"failed to unmarshal value: %s\", data) }\n    switch strings.ToLower(strings.TrimSpace(value)) {\n    case \"foo\": *s = MyEnumFoo\n    default: *s = MyEnumUnknown\n    }\n    return nil\n}\nfunc (s MyEnum) Int64() int64 { switch s { case MyEnumFoo: return 0; default: return -1 } }"
       }
     ]
   }

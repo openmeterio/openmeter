@@ -1,0 +1,221 @@
+{
+  "api/v3/handlers/customers/charges": {
+    "purpose": "v3 HTTP handler for listing a customer's billing charges (flat-fee and usage-based). Primary constraint: credit-purchase charges are intentionally excluded at the query layer and must never appear on this API surface.",
+    "patterns": [
+      {
+        "name": "HandlerWithArgs with inline pagination validation",
+        "description": "ListCustomerCharges decoder builds a pagination.Page (default 1,20) from query params and calls page.Validate(), returning apierrors.NewBadRequestError on failure.",
+        "example": "page := pagination.NewPage(1, 20); if err := page.Validate(); err != nil { return ..., apierrors.NewBadRequestError(ctx, err, ...) }"
+      },
+      {
+        "name": "Credit-purchase exclusion via ChargeTypes filter",
+        "description": "The request always sets ChargeTypes to {ChargeTypeFlatFee, ChargeTypeUsageBased}; convertChargeToAPI returns an explicit error if ChargeTypeCreditPurchase ever reaches it as defense in depth.",
+        "example": "req := ListCustomerChargesRequest{..., ChargeTypes: []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased}}"
+      },
+      {
+        "name": "Realizations always expanded for booked totals",
+        "description": "expands always includes meta.ExpandRealizations (booked totals need realization-run data); RealtimeUsage is added only when the caller requests it.",
+        "example": "expands := meta.Expands{meta.ExpandRealizations}; if slices.Contains(*args.Params.Expand, api.BillingChargesExpandRealTimeUsage) { expands = expands.With(meta.ExpandRealtimeUsage) }"
+      },
+      {
+        "name": "Sort field whitelist validation",
+        "description": "validChargesSortField only accepts id, created_at, service_period.from, billing_period.from; anything else returns a 400 listing the allowed values.",
+        "example": "if !validChargesSortField(sort.Field) { return ..., apierrors.NewBadRequestError(ctx, fmt.Errorf(\"unsupported sort field: %s\"), ...) }"
+      },
+      {
+        "name": "Union-type dispatch in convertChargeToAPI",
+        "description": "Switch on charge.Type(), call AsFlatFeeCharge/AsUsageBasedCharge, map to the API struct, then out.FromBillingFlatFeeCharge/FromBillingUsageBasedCharge \u2014 both steps' errors must be checked.",
+        "example": "if err := out.FromBillingFlatFeeCharge(apiFF); err != nil { return out, fmt.Errorf(\"setting flat fee charge union: %w\", err) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines Handler interface and struct; New() takes resolveNamespace + billingcharges.ChargeService (no full billing.Service dependency).",
+        "watch_for": "Methods needing billing.Service require extending the struct and constructor."
+      },
+      {
+        "file": "list.go",
+        "role": "Only handler: decodes pagination, sort, status filter, expand; calls service.ListCharges; maps via convertChargeToAPI.",
+        "watch_for": "Status filter parsing uses a switch in parseChargeStatusFilterSlice \u2014 add new meta.ChargeStatus variants there."
+      },
+      {
+        "file": "convert.go",
+        "role": "All domain-to-API mappers; many exported (ConvertClosedPeriodToAPI, ConvertCurrencyCodeToAPI, ConvertChargeStatusToAPI...) and reused by sibling packages like customerscredits.",
+        "watch_for": "Exported converters are shared \u2014 signature changes break siblings. DynamicPrice/PackagePrice are unsupported in toAPIBillingPrice and return an error."
+      }
+    ],
+    "anti_patterns": [
+      "Including meta.ChargeTypeCreditPurchase in the ChargeTypes filter (credit purchases belong to the credits API)",
+      "Omitting meta.ExpandRealizations from expands (breaks booked totals)",
+      "Using a generic string sort field without validating against validChargesSortField",
+      "Calling out.FromBillingFlatFeeCharge without checking the returned error"
+    ],
+    "decisions": [
+      {
+        "decision": "Credit-purchase charges are excluded here and served by the credits API",
+        "rationale": "Credit purchases have a distinct lifecycle (settlement, ledger funding) belonging to the credits domain; mixing them would conflate two billing concepts."
+      },
+      {
+        "decision": "Realization runs are always fetched even when not requested",
+        "rationale": "Booked totals are computed from persisted realization runs; returning a charge without them yields incorrect zero totals."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Convert a domain Charge to the API union type with error handling",
+        "code": "func convertChargeToAPI(charge billingcharges.Charge) (api.BillingCharge, error) {\n    var out api.BillingCharge\n    switch charge.Type() {\n    case meta.ChargeTypeFlatFee:\n        ff, err := charge.AsFlatFeeCharge()\n        if err != nil { return out, fmt.Errorf(\"converting flat fee charge: %w\", err) }\n        apiFF, err := convertFlatFeeChargeToAPI(ff)\n        if err != nil { return out, err }\n        if err := out.FromBillingFlatFeeCharge(apiFF); err != nil { return out, fmt.Errorf(\"setting flat fee charge union: %w\", err) }\n    case meta.ChargeTypeCreditPurchase:\n        return out, fmt.Errorf(\"credit purchase charges are not supported in the charges API\")\n    default:\n        return out, fmt.Errorf(\"unsupported charge type: %s\", charge.Type())\n    }\n    return out, nil\n}"
+      }
+    ]
+  },
+  "api/v3/handlers/customers/credits": {
+    "purpose": "v3 HTTP handlers for the customer credit-grant lifecycle and balance queries: create/get/list grants, update external settlement status, get credit balance, and list ledger transactions. Primary constraint: gated by credits.enabled \u2014 wired to noop ledger/balance services when credits are off.",
+    "patterns": [
+      {
+        "name": "Local customerBalanceFacade interface",
+        "description": "handler.go defines a narrow customerBalanceFacade (GetBalance, GetBalances, ListCreditTransactions) instead of importing the full customerbalance service, keeping the dependency surface explicit and mockable.",
+        "example": "type customerBalanceFacade interface { GetBalance(ctx, customerbalance.GetBalanceInput) (alpacadecimal.Decimal, error); ... }"
+      },
+      {
+        "name": "Settlement-type dispatch for purchase block",
+        "description": "toAPICreditGrantPurchase switches on settlement.Type() (invoice, external, promotional); promotional returns nil purchase, unknown types error, and the caller handles the nil case.",
+        "example": "switch settlement.Type() { case creditpurchase.SettlementTypePromotional: return nil, nil; ... default: return nil, fmt.Errorf(\"invalid settlement type\") }"
+      },
+      {
+        "name": "Base64-JSON cursor for transaction pagination",
+        "description": "encode/decodeBillingCreditTransactionCursor marshal a {booked_at, created_at, id} struct to JSON then base64; decoded cursors are validated via ledgerCursor.Validate().",
+        "example": "raw, _ := json.Marshal(payload); return base64.StdEncoding.EncodeToString(raw), nil"
+      },
+      {
+        "name": "ValidationIssue for domain errors without a local errorEncoder",
+        "description": "errors.go uses models.NewValidationIssue with a typed ErrorCode, WithCriticalSeverity, commonhttp.WithHTTPStatusCodeAttribute(400), WithFieldString so apierrors.GenericErrorEncoder maps it \u2014 no package-local encoder.",
+        "example": "models.NewValidationIssue(errCode, msg, models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest), models.WithFieldString(\"status\"))"
+      },
+      {
+        "name": "Customer existence validation before balance query",
+        "description": "get_balance.go calls customerService.GetCustomer first so unknown customers return 404 before any balance lookup.",
+        "example": "_, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{CustomerID: &request.CustomerID}); if err != nil { return ..., err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface (6 methods) and struct holding ledger, accountResolver, balanceFacade, creditGrantService; New() wires them.",
+        "watch_for": "ledger and accountResolver are noops when credits.enabled=false \u2014 handlers must not assume real implementations."
+      },
+      {
+        "file": "convert.go",
+        "role": "Domain<->API mapping; toAPIBillingCreditGrant is the primary domain-to-API, fromAPICreateCreditGrantRequest the primary API-to-domain.",
+        "watch_for": "fromAPICreateCreditGrantRequest errors on feature filters (not yet supported) \u2014 keep the TODO, do not silently ignore."
+      },
+      {
+        "file": "errors.go",
+        "role": "newCreditGrantExternalSettlementStatusInvalid via models.NewValidationIssue + HTTP status attribute; intentionally no local errorEncoder().",
+        "watch_for": "Do not add an errorEncoder() \u2014 the ValidationIssue + WithHTTPStatusCodeAttribute pattern is the intended mechanism."
+      },
+      {
+        "file": "externalsettlement.go",
+        "role": "PATCH external settlement status transitions; only authorized and settled are valid targets, pending is rejected in fromAPIBillingCreditPurchasePaymentSettlementStatus.",
+        "watch_for": "'pending' must stay rejected \u2014 a grant cannot be downgraded to pending once advanced."
+      }
+    ],
+    "anti_patterns": [
+      "Assuming ledger or accountResolver are real implementations \u2014 they may be noops when credits.enabled=false",
+      "Adding a package-local errorEncoder() instead of relying on ValidationIssue + WithHTTPStatusCodeAttribute",
+      "Allowing the 'pending' settlement status to succeed in fromAPIBillingCreditPurchasePaymentSettlementStatus",
+      "Returning a non-nil purchase block for SettlementTypePromotional grants",
+      "Silently ignoring the feature filter in fromAPICreateCreditGrantRequest instead of returning an error"
+    ],
+    "decisions": [
+      {
+        "decision": "customerBalanceFacade is a local interface, not the full customerbalance.Service",
+        "rationale": "Narrows the dependency surface to the three needed methods, eases mocking, and prevents accidental use of write operations."
+      },
+      {
+        "decision": "ValidationIssue + WithHTTPStatusCodeAttribute replaces a custom errorEncoder",
+        "rationale": "apierrors.GenericErrorEncoder already inspects the HTTP status attribute on ValidationIssues; a second encoder would be redundant and risk double-handling."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A domain validation error usable by GenericErrorEncoder without a custom encoder",
+        "code": "import (\n    \"net/http\"\n    \"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n    \"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nconst errCodeExample models.ErrorCode = \"example_error_code\"\n\nfunc newExampleError(value string) error {\n    return models.NewValidationIssue(\n        errCodeExample,\n        fmt.Sprintf(\"unsupported value: %s\", value),\n        models.WithCriticalSeverity(),\n        commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),\n        models.WithFieldString(\"field_name\"),\n    )\n}"
+      }
+    ]
+  },
+  "api/v3/handlers/customers/entitlementaccess": {
+    "purpose": "v3 HTTP handler for listing a customer's entitlement access across all entitlement types (metered, boolean, static), translating entitlement.EntitlementValue domain types to api.BillingEntitlementAccessResult at the v3 boundary.",
+    "patterns": [
+      {
+        "name": "HandlerWithArgs constructor pattern",
+        "description": "Each operation returns a typed httptransport.HandlerWithArgs alias and builds it inline via NewHandlerWithArgs with decoder/operation/encoder closures.",
+        "example": "type ListCustomerEntitlementAccessHandler httptransport.HandlerWithArgs[ListCustomerEntitlementAccessRequest, ListCustomerEntitlementAccessResponse, CustomerID]"
+      },
+      {
+        "name": "Namespace resolution via injected resolver",
+        "description": "Every decoder calls h.resolveNamespace(ctx) first; never read namespace from path/query params.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ..., err }"
+      },
+      {
+        "name": "apierrors.GenericErrorEncoder in options",
+        "description": "Each NewHandlerWithArgs appends httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) via AppendOptions so domain errors map to correct HTTP status codes.",
+        "example": "httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"list-customer-entitlement-access\"), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))..."
+      },
+      {
+        "name": "Type-switch mapping isolated in mapping.go",
+        "description": "Domain-to-API translation lives only in mapping.go (type switch on entitlement.EntitlementValue); list.go operation closures call mappers and never convert inline.",
+        "example": "switch ent := entitlementValue.(type) { case *meteredentitlement.MeteredEntitlementValue: ...; case *booleanentitlement.BooleanEntitlementValue: ... }"
+      },
+      {
+        "name": "Deleted-customer guard before service call",
+        "description": "After fetching the customer, check cus.IsDeleted() and return apierrors.NewPreconditionFailedError before invoking entitlement services.",
+        "example": "if cus != nil && cus.IsDeleted() { return ..., apierrors.NewPreconditionFailedError(ctx, fmt.Sprintf(...)) }"
+      },
+      {
+        "name": "Deterministic sort after map iteration",
+        "description": "entitlement.GetAccess returns a map; sort results by FeatureKey before encoding for stable, client-visible ordering.",
+        "example": "sort.Slice(items, func(i, j int) bool { return items[i].FeatureKey < items[j].FeatureKey })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Declares Handler interface and private struct with New(); holds resolveNamespace, customerService, entitlementService, shared options.",
+        "watch_for": "All deps via constructor \u2014 no package-level vars or init(). Options are threaded to each operation via AppendOptions."
+      },
+      {
+        "file": "list.go",
+        "role": "ListCustomerEntitlementAccess: resolves namespace+customerID, fetches customer, checks deletion, calls GetAccess, maps via mapEntitlementValueToAPI, sorts by feature key.",
+        "watch_for": "NoAccessValue entries are skipped (found=false); unknown entitlement types error. Result is sorted before encoding."
+      },
+      {
+        "file": "mapping.go",
+        "role": "mapEntitlementValueToAPI: pure type-switch converting domain EntitlementValue subtypes to api.BillingEntitlementAccessResult, returning (found bool, result, error).",
+        "watch_for": "New subtypes must be added to the switch (default errors). NoAccessValue returns (false, zero, nil) \u2014 caller must check the bool."
+      }
+    ],
+    "anti_patterns": [
+      "Inline domain-to-API conversion in list.go instead of delegating to mapping.go",
+      "Calling entitlementService.GetAccess without first fetching and deletion-checking the customer",
+      "Omitting apierrors.GenericErrorEncoder from handler options",
+      "Reading namespace from request params instead of h.resolveNamespace(ctx)",
+      "Treating NoAccessValue as an error instead of returning found=false and skipping"
+    ],
+    "decisions": [
+      {
+        "decision": "bool return from mapEntitlementValueToAPI instead of filtering at the service layer",
+        "rationale": "GetAccess can return NoAccessValue (inactive) entries; filtering at the mapping boundary keeps the domain service contract clean and avoids leaking HTTP concerns."
+      },
+      {
+        "decision": "Deterministic sort by FeatureKey after collecting results",
+        "rationale": "GetAccess returns a map with non-deterministic iteration; client-visible ordering must be stable."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new operation following the HandlerWithArgs pattern",
+        "code": "// handler.go \u2014 add to Handler interface:\nGetCustomerEntitlementFoo() GetCustomerEntitlementFooHandler\n\n// foo.go:\ntype GetCustomerEntitlementFooHandler httptransport.HandlerWithArgs[GetCustomerEntitlementFooRequest, GetCustomerEntitlementFooResponse, CustomerID]\n\nfunc (h *handler) GetCustomerEntitlementFoo() GetCustomerEntitlementFooHandler {\n    return httptransport.NewHandlerWithArgs(\n        func(ctx context.Context, r *http.Request, customerID CustomerID) (GetCustomerEntitlementFooRequest, error) {\n            ns, err := h.resolveNamespace(ctx)\n            if err != nil { return GetCustomerEntitlementFooRequest{}, err }\n            return GetCustomerEntitlementFooRequest{CustomerID: customer.CustomerID{Namespace: ns, ID: customerID}}, nil\n        },\n        // ... operation, encoder, options\n    )\n}"
+      }
+    ]
+  }
+}

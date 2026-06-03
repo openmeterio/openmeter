@@ -6,8 +6,8 @@
 
 ## Patterns
 
-**Implement marshaler.Event with compile-time assertion** — Every event struct must implement marshaler.Event (EventName() string, EventMetadata() metadata.EventMetadata). Enforce with var _ marshaler.Event = RecalculateEvent{}. (`var _ marshaler.Event = RecalculateEvent{}`)
-**Versioned EventType via metadata.EventType struct** — Event type is declared as metadata.EventType{Subsystem, Name, Version}; the event name string is derived via metadata.GetEventName(). Bump Version on breaking schema changes — never rename the Go type instead. (`recalculateEventType = metadata.EventType{Subsystem: EventSubsystem, Name: RecalculateEventName, Version: "v2"}`)
+**Implement marshaler.Event with compile-time assertion** — Every event struct implements marshaler.Event (EventName() string, EventMetadata() metadata.EventMetadata). Enforce with var _ marshaler.Event = RecalculateEvent{}. (`var _ marshaler.Event = RecalculateEvent{}`)
+**Versioned EventType via metadata.EventType struct** — Event type is declared as metadata.EventType{Subsystem, Name, Version}; the name string is derived via metadata.GetEventName(). Bump Version on breaking schema changes — never rename the Go type instead. (`recalculateEventType = metadata.EventType{Subsystem: EventSubsystem, Name: RecalculateEventName, Version: "v2"}`)
 **OperationType enum with Values() + Validate()** — New operation kinds must be added to both the const block and the Values() slice. Validate() uses slices.Contains(o.Values(), o) — omitting an entry from Values() makes it always invalid. (`func (o OperationType) Validate() error { if !slices.Contains(o.Values(), o) { return fmt.Errorf(...) } return nil }`)
 **EventMetadata.Subject via ComposeResourcePath** — Subject must always be built with metadata.ComposeResourcePath(namespace, entityKind, id) — never raw string concatenation. (`Subject: metadata.ComposeResourcePath(e.Entitlement.Namespace, metadata.EntityEntitlement, e.Entitlement.ID)`)
 
@@ -15,7 +15,7 @@
 
 | File | Role | Watch For |
 |------|------|-----------|
-| `recalculate.go` | Single source of truth for the recalculate event schema: struct fields, OperationType enum, and all marshaler.Event plumbing. | Adding fields is a wire-format change — consumers must be updated simultaneously. Version string in recalculateEventType must be bumped on breaking changes. EventVersionSubsystem is exported from this file and used by eventbus routing — do not rename. |
+| `recalculate.go` | Single source of truth for the recalculate event schema: struct fields, OperationType enum, and all marshaler.Event plumbing. | Adding fields is a wire-format change — consumers must be updated simultaneously. Bump the Version string in recalculateEventType on breaking changes. EventVersionSubsystem is exported and used by eventbus routing — do not rename. |
 
 ## Anti-Patterns
 
@@ -35,9 +35,7 @@
 ```
 // 1. Add to const block and Values() in recalculate.go:
 const OperationTypeMyNew OperationType = "my_new"
-func (o OperationType) Values() []OperationType {
-    return []OperationType{..., OperationTypeMyNew}
-}
+func (o OperationType) Values() []OperationType { return []OperationType{..., OperationTypeMyNew} }
 
 // 2. Construct and validate before publish:
 evt := events.RecalculateEvent{
@@ -46,9 +44,7 @@ evt := events.RecalculateEvent{
     OriginalEventSource: "my-producer",
     SourceOperation:     events.OperationTypeMyNew,
 }
-if err := evt.Validate(); err != nil {
-    return fmt.Errorf("invalid event: %w", err)
-// ...
+if err := evt.Validate(); err != nil { return fmt.Errorf("invalid event: %w", err) }
 ```
 
 <!-- archie:ai-end -->
