@@ -93,39 +93,54 @@ func (t *TaxCode) Equal(v *TaxCode) bool {
 	if t == nil && v == nil {
 		return true
 	}
+
 	if t == nil || v == nil {
 		return false
 	}
+
 	if t.ID != v.ID || t.Namespace != v.Namespace {
 		return false
 	}
+
 	if t.Key != v.Key || t.Name != v.Name {
 		return false
 	}
+
 	if (t.Description == nil) != (v.Description == nil) {
 		return false
 	}
+
 	if t.Description != nil && *t.Description != *v.Description {
 		return false
 	}
+
 	if len(t.AppMappings) != len(v.AppMappings) {
 		return false
 	}
-	for i := range t.AppMappings {
-		if t.AppMappings[i] != v.AppMappings[i] {
+
+	left := lo.SliceToMap(t.AppMappings, func(m TaxCodeAppMapping) (app.AppType, string) {
+		return m.AppType, m.TaxCode
+	})
+
+	for _, m := range v.AppMappings {
+		code, ok := left[m.AppType]
+		if !ok || code != m.TaxCode {
 			return false
 		}
 	}
+
 	return true
 }
 
 // IsManagedBySystem returns true when this tax code was auto-created by the system.
 func (t TaxCode) IsManagedBySystem() bool {
 	v, ok := t.Annotations[AnnotationKeyManagedBy]
+
 	if !ok {
 		return false
 	}
 	s, ok := v.(string)
+
 	return ok && s == AnnotationValueManagedBySystem
 }
 
