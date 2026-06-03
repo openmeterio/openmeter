@@ -146,3 +146,13 @@ func IsTaxCodeIsOrganizationDefaultError(err error) bool {
 	var vi models.ValidationIssue
 	return errors.As(err, &vi) && vi.Code() == ErrCodeTaxCodeIsOrganizationDefault
 }
+
+// ErrTaxCodeOrphanedKey is returned by GetOrCreateByAppMapping when a key derived from
+// the Stripe code already exists but no longer carries that app mapping (the mapping was
+// changed after the key was auto-created). The typed error prevents a raw constraint error from
+// poisoning the pg transaction (25P02).
+var ErrTaxCodeOrphanedKey = errors.New("tax code key exists but app mapping is orphaned")
+
+func IsTaxCodeOrphanedKeyError(err error) bool {
+	return errors.Is(err, ErrTaxCodeOrphanedKey)
+}

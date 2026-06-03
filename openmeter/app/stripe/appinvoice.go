@@ -571,7 +571,7 @@ func getCreditStripeAddInvoiceItemParams(calculator StripeCalculator, line billi
 	return params
 }
 
-func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, taxConfig *productcatalog.TaxConfig) *stripe.InvoiceItemParams {
+func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, taxConfig *billing.TaxConfig) *stripe.InvoiceItemParams {
 	if taxConfig != nil && !lo.IsEmpty(taxConfig) {
 		if taxConfig.Behavior != nil {
 			add.TaxBehavior = getStripeTaxBehavior(taxConfig.Behavior)

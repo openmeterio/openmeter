@@ -17321,7 +17321,7 @@ type BillingInvoiceLineMutation struct {
 	name                                           *string
 	description                                    *string
 	currency                                       *currencyx.Code
-	tax_config                                     *productcatalog.TaxConfig
+	tax_config                                     *billing.TaxConfig
 	tax_behavior                                   *productcatalog.TaxBehavior
 	amount                                         *alpacadecimal.Decimal
 	taxes_total                                    *alpacadecimal.Decimal
@@ -17877,12 +17877,12 @@ func (m *BillingInvoiceLineMutation) ResetCurrency() {
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (m *BillingInvoiceLineMutation) SetTaxConfig(pc productcatalog.TaxConfig) {
-	m.tax_config = &pc
+func (m *BillingInvoiceLineMutation) SetTaxConfig(bc billing.TaxConfig) {
+	m.tax_config = &bc
 }
 
 // TaxConfig returns the value of the "tax_config" field in the mutation.
-func (m *BillingInvoiceLineMutation) TaxConfig() (r productcatalog.TaxConfig, exists bool) {
+func (m *BillingInvoiceLineMutation) TaxConfig() (r billing.TaxConfig, exists bool) {
 	v := m.tax_config
 	if v == nil {
 		return
@@ -17893,7 +17893,7 @@ func (m *BillingInvoiceLineMutation) TaxConfig() (r productcatalog.TaxConfig, ex
 // OldTaxConfig returns the old "tax_config" field's value of the BillingInvoiceLine entity.
 // If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineMutation) OldTaxConfig(ctx context.Context) (v productcatalog.TaxConfig, err error) {
+func (m *BillingInvoiceLineMutation) OldTaxConfig(ctx context.Context) (v billing.TaxConfig, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
 	}
@@ -20493,7 +20493,7 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		m.SetCurrency(v)
 		return nil
 	case billinginvoiceline.FieldTaxConfig:
-		v, ok := value.(productcatalog.TaxConfig)
+		v, ok := value.(billing.TaxConfig)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

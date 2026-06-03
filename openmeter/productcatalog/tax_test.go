@@ -406,7 +406,11 @@ func TestMergeTaxConfigs(t *testing.T) {
 			},
 		},
 		{
-			Name: "Right overrides left partially - TaxCodeID",
+			// The override supplies a new TaxCodeID but no Stripe code. Because Stripe and
+			// TaxCodeID are an atomic pair, the merge must take the override's pair (new
+			// TaxCodeID, nil Stripe) rather than leaking the base's Stripe through. The
+			// base's Stripe references a different tax entity and must not appear in the result.
+			Name: "Right overrides left partially - TaxCodeID only clears base Stripe (atomic pair)",
 			Left: &TaxConfig{
 				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
 				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
@@ -421,9 +425,27 @@ func TestMergeTaxConfigs(t *testing.T) {
 			Expected: &TaxConfig{
 				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
 				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV4"),
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				Stripe:    nil, // base Stripe must NOT leak through
+			},
+		},
+		{
+			// Regression guard: base has both Stripe and TaxCodeID (pointing at the same entity);
+			// override has ONLY a new Stripe code (no TaxCodeID). The merged result must carry the
+			// override's Stripe and must NOT inherit the base's TaxCodeID (which references a
+			// different entity). Leaking the base TaxCodeID alongside the override Stripe would
+			// produce an inconsistent pair that breaks snapshot readback.
+			Name: "Right overrides left partially - Stripe only does not leak base TaxCodeID",
+			Left: &TaxConfig{
+				Stripe:    &StripeTaxConfig{Code: "txcd_10000000"},
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+			},
+			Right: &TaxConfig{
+				Stripe: &StripeTaxConfig{Code: "txcd_20000000"},
+				// TaxCodeID intentionally nil — override owns a different code entity.
+			},
+			Expected: &TaxConfig{
+				Stripe:    &StripeTaxConfig{Code: "txcd_20000000"},
+				TaxCodeID: nil, // base TaxCodeID must NOT leak through
 			},
 		},
 		{
@@ -447,21 +469,6 @@ func TestMergeTaxConfigs(t *testing.T) {
 				Stripe: &StripeTaxConfig{
 					Code: "txcd_99999998",
 				},
-			},
-		},
-		{
-			Name: "TaxCode resolved entity is dropped — merge is intent-level only",
-			Left: &TaxConfig{
-				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
-				TaxCode:   &taxcode.TaxCode{NamespacedID: models.NamespacedID{ID: "01AN4Z07BY79KA1307SR9X4MV3"}},
-			},
-			Right: &TaxConfig{
-				Behavior: lo.ToPtr(ExclusiveTaxBehavior),
-			},
-			Expected: &TaxConfig{
-				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
-				Behavior:  lo.ToPtr(ExclusiveTaxBehavior),
-				// TaxCode intentionally omitted from merge result
 			},
 		},
 	}
@@ -513,40 +520,6 @@ func TestTaxConfigClone(t *testing.T) {
 
 	// Values must now differ
 	assert.False(t, original.Equal(&cloned))
-}
-
-func TestTaxConfigCloneWithTaxCode(t *testing.T) {
-	desc := "Software - SaaS"
-	original := TaxConfig{
-		Stripe: &StripeTaxConfig{Code: "txcd_10000000"},
-		TaxCode: &taxcode.TaxCode{
-			NamespacedID: models.NamespacedID{Namespace: "ns", ID: "tc-1"},
-			Description:  &desc,
-			AppMappings: taxcode.TaxCodeAppMappings{
-				{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
-			},
-		},
-	}
-
-	cloned := original.Clone()
-
-	// TaxCode pointer must not be shared
-	assert.NotSame(t, original.TaxCode, cloned.TaxCode)
-
-	// Mutating clone's AppMappings must not affect original
-	cloned.TaxCode.AppMappings = append(cloned.TaxCode.AppMappings, taxcode.TaxCodeAppMapping{
-		AppType: app.AppTypeStripe, TaxCode: "txcd_99999999",
-	})
-	assert.Len(t, original.TaxCode.AppMappings, 1, "original AppMappings slice must not grow")
-
-	// Mutating clone's Description must not affect original
-	*cloned.TaxCode.Description = "mutated"
-	assert.Equal(t, "Software - SaaS", *original.TaxCode.Description)
-
-	// Clone of config with nil TaxCode must have nil TaxCode
-	nilTCConfig := TaxConfig{Stripe: &StripeTaxConfig{Code: "txcd_10000000"}}
-	clonedNil := nilTCConfig.Clone()
-	assert.Nil(t, clonedNil.TaxCode)
 }
 
 func TestBackfillTaxConfig(t *testing.T) {

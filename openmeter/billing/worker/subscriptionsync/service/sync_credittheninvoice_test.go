@@ -7358,7 +7358,7 @@ func (s *CreditThenInvoiceTestSuite) assertStandardLineTaxConfigs(lines []*billi
 	s.Require().NotEmpty(lines)
 	for _, line := range lines {
 		s.Require().NotNil(line.TaxConfig)
-		s.True(expected.Equal(line.TaxConfig), "line %s tax config: expected %+v, got %+v", line.ID, expected, line.TaxConfig)
+		s.True(expected.Equal(line.TaxConfig.ToProductCatalog()), "line %s tax config: expected %+v, got %+v", line.ID, expected, line.TaxConfig)
 	}
 }
 

@@ -45,9 +45,9 @@ type StandardLineBase struct {
 
 	ChildUniqueReferenceID *string `json:"childUniqueReferenceID,omitempty"`
 
-	TaxConfig         *productcatalog.TaxConfig `json:"taxOverrides,omitempty"`
-	RateCardDiscounts Discounts                 `json:"rateCardDiscounts,omitempty"`
-	CreditsApplied    CreditsApplied            `json:"creditsApplied,omitempty"`
+	TaxConfig         *TaxConfig     `json:"taxOverrides,omitempty"`
+	RateCardDiscounts Discounts      `json:"rateCardDiscounts,omitempty"`
+	CreditsApplied    CreditsApplied `json:"creditsApplied,omitempty"`
 
 	ExternalIDs  externalid.LineExternalIDs `json:"externalIDs,omitempty"`
 	Subscription *SubscriptionReference     `json:"subscription,omitempty"`
@@ -406,7 +406,7 @@ func (i StandardLine) ToGatheringLineBase() (GatheringLineBase, error) {
 		InvoiceAt:              i.InvoiceAt,
 		Price:                  lo.FromPtr(i.UsageBased.Price),
 		FeatureKey:             i.UsageBased.FeatureKey,
-		TaxConfig:              i.TaxConfig,
+		TaxConfig:              i.TaxConfig.ToProductCatalog(),
 		RateCardDiscounts:      i.RateCardDiscounts,
 		ChildUniqueReferenceID: i.ChildUniqueReferenceID,
 		Subscription:           i.Subscription,
