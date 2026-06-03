@@ -183,31 +183,46 @@ func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAc
 
 // resolveAccess resolves entitlement access for each customer on the current page and maps it
 // to feature access. UpdatedAt is stamped once for the whole page.
+//
+// When no feature filter is given, the org-wide feature list is namespace-scoped, so it is
+// fetched once for the whole page rather than per customer.
 func (s *service) resolveAccess(ctx context.Context, input governance.QueryAccessInput, customers []*resolvedCustomer) ([]governance.CustomerAccess, error) {
+	allOrgFeatures := len(input.FeatureKeys) == 0
+
 	ctx, span := s.tracer.Start(ctx, "governance.resolveAccess", trace.WithAttributes(
 		attribute.Int("customer_count", len(customers)),
 		attribute.Int("feature_filter_count", len(input.FeatureKeys)),
-		attribute.Bool("all_org_features", len(input.FeatureKeys) == 0),
+		attribute.Bool("all_org_features", allOrgFeatures),
 	))
 	defer span.End()
 
-	var featureKeys []string
-	if len(input.FeatureKeys) > 0 {
-		featureKeys = input.FeatureKeys
+	// On the all-org path, fetch the namespace-wide feature list once for the whole page.
+	var orgFeatures []feature.Feature
+	if allOrgFeatures && len(customers) > 0 {
+		var err error
+		orgFeatures, err = s.listOrgFeatures(ctx, input.Namespace)
+		if err != nil {
+			return nil, recordSpanError(span, err)
+		}
+		span.SetAttributes(attribute.Int("org_feature_count", len(orgFeatures)))
 	}
 
 	now := clock.Now()
 	results := make([]governance.CustomerAccess, 0, len(customers))
+	absentFeatureLookups := 0
+	featureAccessTotal := 0
 	for _, rc := range customers {
 		access, err := s.entitlementService.GetAccess(ctx, input.Namespace, rc.Customer.ID)
 		if err != nil {
 			return nil, recordSpanError(span, fmt.Errorf("get access for customer %s: %w", rc.Customer.ID, err))
 		}
 
-		featureAccess, err := s.buildFeatureAccess(ctx, input.Namespace, featureKeys, access)
+		featureAccess, absentLookups, err := s.buildFeatureAccess(ctx, input.Namespace, input.FeatureKeys, orgFeatures, access)
 		if err != nil {
 			return nil, recordSpanError(span, fmt.Errorf("build feature access for customer %s: %w", rc.Customer.ID, err))
 		}
+		absentFeatureLookups += absentLookups
+		featureAccessTotal += len(featureAccess)
 
 		results = append(results, governance.CustomerAccess{
 			Customer:  rc.Customer,
@@ -216,6 +231,11 @@ func (s *service) resolveAccess(ctx context.Context, input governance.QueryAcces
 			UpdatedAt: now,
 		})
 	}
+
+	span.SetAttributes(
+		attribute.Int("absent_feature_lookups", absentFeatureLookups),
+		attribute.Int("feature_access_total", featureAccessTotal),
+	)
 
 	return results, nil
 }
@@ -291,18 +311,17 @@ func paginate(customers []*resolvedCustomer, input governance.QueryAccessInput) 
 	return page, hasPrev, hasNext
 }
 
-// buildFeatureAccess returns the feature access map for a single customer.
-// If featureKeys is non-empty, only those keys are evaluated.
-// If featureKeys is empty, all non-archived features in the namespace are returned;
-// features the customer has no entitlement for are marked feature-unavailable.
-func (s *service) buildFeatureAccess(ctx context.Context, ns string, featureKeys []string, access entitlement.Access) (map[string]governance.FeatureAccess, error) {
+// buildFeatureAccess returns the feature access map for a single customer, along with the
+// number of absent-feature lookups it performed (per-feature GetFeature calls), for span
+// attribution.
+//
+// If featureKeys is non-empty, only those keys are evaluated. If featureKeys is empty, the
+// pre-fetched orgFeatures slice (namespace-wide, resolved once by the caller) is used; features
+// the customer has no entitlement for are marked feature-unavailable.
+func (s *service) buildFeatureAccess(ctx context.Context, ns string, featureKeys []string, orgFeatures []feature.Feature, access entitlement.Access) (map[string]governance.FeatureAccess, int, error) {
 	result := make(map[string]governance.FeatureAccess)
 
 	if len(featureKeys) == 0 {
-		orgFeatures, err := s.listAllOrgFeatures(ctx, ns)
-		if err != nil {
-			return nil, err
-		}
 		for _, f := range orgFeatures {
 			if ev, ok := access.Entitlements[f.Key]; ok {
 				result[f.Key] = mapEntitlementToAccess(ev.Value)
@@ -310,15 +329,17 @@ func (s *service) buildFeatureAccess(ctx context.Context, ns string, featureKeys
 				result[f.Key] = featureUnavailable(f.Key)
 			}
 		}
-		return result, nil
+		return result, 0, nil
 	}
 
+	absentLookups := 0
 	for _, key := range featureKeys {
 		ev, ok := access.Entitlements[key]
 		if !ok {
+			absentLookups++
 			fa, err := s.resolveAbsentFeature(ctx, ns, key)
 			if err != nil {
-				return nil, err
+				return nil, absentLookups, err
 			}
 			result[key] = fa
 			continue
@@ -326,19 +347,26 @@ func (s *service) buildFeatureAccess(ctx context.Context, ns string, featureKeys
 		result[key] = mapEntitlementToAccess(ev.Value)
 	}
 
-	return result, nil
+	return result, absentLookups, nil
 }
 
-// listAllOrgFeatures fetches all non-archived features in the namespace in one shot.
-func (s *service) listAllOrgFeatures(ctx context.Context, ns string) ([]feature.Feature, error) {
+// listOrgFeatures fetches all non-archived features in the namespace in one shot.
+func (s *service) listOrgFeatures(ctx context.Context, ns string) ([]feature.Feature, error) {
+	ctx, span := s.tracer.Start(ctx, "governance.listOrgFeatures", trace.WithAttributes(
+		attribute.Int("limit", featureFetchLimit),
+	))
+	defer span.End()
+
 	res, err := s.featureConnector.ListFeatures(ctx, feature.ListFeaturesParams{
 		Namespace:       ns,
 		IncludeArchived: false,
 		Limit:           featureFetchLimit,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("list org features: %w", err)
+		return nil, recordSpanError(span, fmt.Errorf("list org features: %w", err))
 	}
+
+	span.SetAttributes(attribute.Int("feature_count", len(res.Items)))
 	return res.Items, nil
 }
 
