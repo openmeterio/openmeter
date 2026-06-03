@@ -135,6 +135,7 @@ func newTestService(t *testing.T, deps *testDeps) governance.Service {
 		CustomerService:    deps.customerService,
 		EntitlementService: deps.registry.Entitlement,
 		FeatureConnector:   deps.registry.Feature,
+		Tracer:             noop.NewTracerProvider().Tracer("test"),
 	})
 	require.NoError(t, err)
 	return svc

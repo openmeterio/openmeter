@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -27,6 +30,7 @@ type Config struct {
 	CustomerService    customer.Service
 	EntitlementService entitlement.Service
 	FeatureConnector   feature.FeatureConnector
+	Tracer             trace.Tracer
 }
 
 func (c Config) Validate() error {
@@ -44,6 +48,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("feature connector is required"))
 	}
 
+	if c.Tracer == nil {
+		errs = append(errs, errors.New("tracer is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -56,6 +64,7 @@ func New(config Config) (governance.Service, error) {
 		customerService:    config.CustomerService,
 		entitlementService: config.EntitlementService,
 		featureConnector:   config.FeatureConnector,
+		tracer:             config.Tracer,
 	}, nil
 }
 
@@ -63,6 +72,7 @@ type service struct {
 	customerService    customer.Service
 	entitlementService entitlement.Service
 	featureConnector   feature.FeatureConnector
+	tracer             trace.Tracer
 }
 
 var _ governance.Service = (*service)(nil)
@@ -74,11 +84,65 @@ type resolvedCustomer struct {
 }
 
 func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessInput) (governance.QueryResult, error) {
+	ctx, span := s.tracer.Start(ctx, "governance.QueryAccess", trace.WithAttributes(
+		attribute.String("namespace", input.Namespace),
+		attribute.Int("customer_key_count", len(input.CustomerKeys)),
+		attribute.Int("feature_key_count", len(input.FeatureKeys)),
+		attribute.Int("page.size", input.PageSize),
+		attribute.String("direction", paginationDirection(input)),
+	))
+	defer span.End()
+
 	if err := input.Validate(); err != nil {
-		return governance.QueryResult{}, err
+		return governance.QueryResult{}, recordSpanError(span, err)
 	}
 
-	// Resolve each input key to a customer; deduplicate by customer ID.
+	customerMap, queryErrors, err := s.resolveCustomers(ctx, input)
+	if err != nil {
+		return governance.QueryResult{}, recordSpanError(span, err)
+	}
+
+	// Sort by (CreatedAt, ID) for stable cursor pagination.
+	customers := lo.Values(customerMap)
+	sort.Slice(customers, func(i, j int) bool {
+		ti := customers[i].Customer.CreatedAt
+		tj := customers[j].Customer.CreatedAt
+		if !ti.Equal(tj) {
+			return ti.Before(tj)
+		}
+		return customers[i].Customer.ID < customers[j].Customer.ID
+	})
+
+	customers, hasPrev, hasNext := paginate(customers, input)
+
+	results, err := s.resolveAccess(ctx, input, customers)
+	if err != nil {
+		return governance.QueryResult{}, recordSpanError(span, err)
+	}
+
+	out := governance.QueryResult{
+		Customers: results,
+		Errors:    queryErrors,
+		HasPrev:   hasPrev,
+		HasNext:   hasNext,
+	}
+	if len(customers) > 0 {
+		out.First = lo.ToPtr(cursorFor(customers[0]))
+		out.Last = lo.ToPtr(cursorFor(customers[len(customers)-1]))
+	}
+
+	return out, nil
+}
+
+// resolveCustomers resolves each input key to a customer, deduplicating by customer ID.
+// Keys that resolve to no customer are collected as customer-not-found query errors rather
+// than failing the whole request.
+func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAccessInput) (map[string]*resolvedCustomer, []governance.QueryError, error) {
+	ctx, span := s.tracer.Start(ctx, "governance.resolveCustomers", trace.WithAttributes(
+		attribute.Int("requested", len(input.CustomerKeys)),
+	))
+	defer span.End()
+
 	customerMap := make(map[string]*resolvedCustomer)
 	var queryErrors []governance.QueryError
 
@@ -96,7 +160,7 @@ func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessI
 				})
 				continue
 			}
-			return governance.QueryResult{}, fmt.Errorf("resolve customer key %q: %w", key, err)
+			return nil, nil, recordSpanError(span, fmt.Errorf("resolve customer key %q: %w", key, err))
 		}
 
 		if rc, ok := customerMap[cus.ID]; ok {
@@ -109,18 +173,23 @@ func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessI
 		}
 	}
 
-	// Sort by (CreatedAt, ID) for stable cursor pagination.
-	customers := lo.Values(customerMap)
-	sort.Slice(customers, func(i, j int) bool {
-		ti := customers[i].Customer.CreatedAt
-		tj := customers[j].Customer.CreatedAt
-		if !ti.Equal(tj) {
-			return ti.Before(tj)
-		}
-		return customers[i].Customer.ID < customers[j].Customer.ID
-	})
+	span.SetAttributes(
+		attribute.Int("resolved", len(customerMap)),
+		attribute.Int("not_found", len(queryErrors)),
+	)
 
-	customers, hasPrev, hasNext := paginate(customers, input)
+	return customerMap, queryErrors, nil
+}
+
+// resolveAccess resolves entitlement access for each customer on the current page and maps it
+// to feature access. UpdatedAt is stamped once for the whole page.
+func (s *service) resolveAccess(ctx context.Context, input governance.QueryAccessInput, customers []*resolvedCustomer) ([]governance.CustomerAccess, error) {
+	ctx, span := s.tracer.Start(ctx, "governance.resolveAccess", trace.WithAttributes(
+		attribute.Int("customer_count", len(customers)),
+		attribute.Int("feature_filter_count", len(input.FeatureKeys)),
+		attribute.Bool("all_org_features", len(input.FeatureKeys) == 0),
+	))
+	defer span.End()
 
 	var featureKeys []string
 	if len(input.FeatureKeys) > 0 {
@@ -132,12 +201,12 @@ func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessI
 	for _, rc := range customers {
 		access, err := s.entitlementService.GetAccess(ctx, input.Namespace, rc.Customer.ID)
 		if err != nil {
-			return governance.QueryResult{}, fmt.Errorf("get access for customer %s: %w", rc.Customer.ID, err)
+			return nil, recordSpanError(span, fmt.Errorf("get access for customer %s: %w", rc.Customer.ID, err))
 		}
 
 		featureAccess, err := s.buildFeatureAccess(ctx, input.Namespace, featureKeys, access)
 		if err != nil {
-			return governance.QueryResult{}, fmt.Errorf("build feature access for customer %s: %w", rc.Customer.ID, err)
+			return nil, recordSpanError(span, fmt.Errorf("build feature access for customer %s: %w", rc.Customer.ID, err))
 		}
 
 		results = append(results, governance.CustomerAccess{
@@ -148,18 +217,27 @@ func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessI
 		})
 	}
 
-	out := governance.QueryResult{
-		Customers: results,
-		Errors:    queryErrors,
-		HasPrev:   hasPrev,
-		HasNext:   hasNext,
-	}
-	if len(customers) > 0 {
-		out.First = lo.ToPtr(cursorFor(customers[0]))
-		out.Last = lo.ToPtr(cursorFor(customers[len(customers)-1]))
-	}
+	return results, nil
+}
 
-	return out, nil
+// recordSpanError marks the span failed and returns the error unchanged for convenient
+// `return recordSpanError(span, err)` call sites.
+func recordSpanError(span trace.Span, err error) error {
+	span.RecordError(err)
+	span.SetStatus(codes.Error, err.Error())
+	return err
+}
+
+// paginationDirection reports the pagination mode for span attribution.
+func paginationDirection(input governance.QueryAccessInput) string {
+	switch {
+	case input.Before != nil:
+		return "before"
+	case input.After != nil:
+		return "after"
+	default:
+		return "first"
+	}
 }
 
 // cursorFor builds the pagination cursor for a resolved customer. CreatedAt is truncated

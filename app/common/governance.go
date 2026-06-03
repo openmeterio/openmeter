@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/google/wire"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/governance"
@@ -16,10 +17,12 @@ var Governance = wire.NewSet(
 func NewGovernanceService(
 	customerService customer.Service,
 	entitlementRegistry *registry.Entitlement,
+	tracer trace.Tracer,
 ) (governance.Service, error) {
 	return governanceservice.New(governanceservice.Config{
 		CustomerService:    customerService,
 		EntitlementService: entitlementRegistry.Entitlement,
 		FeatureConnector:   entitlementRegistry.Feature,
+		Tracer:             tracer,
 	})
 }
