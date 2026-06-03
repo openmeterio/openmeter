@@ -1,0 +1,23 @@
+{
+  "name": "@openmeter/e2e-playwright",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Playwright API-testing smoke tests for the @openmeter/sdk v3 compatibility shim against a live OpenMeter server",
+  "type": "module",
+  "scripts": {
+    "build:sdk": "pnpm -C ../../api/client/javascript install --frozen-lockfile && pnpm -C ../../api/client/javascript build",
+    "typecheck": "tsc --noEmit",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "@openmeter/sdk": "file:../../api/client/javascript"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
