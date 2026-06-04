@@ -89,7 +89,9 @@ func TestPatchCollectionRouterResolveDefaultCollection(t *testing.T) {
 				invoices:                 persistedstate.Invoices{},
 				creditThenInvoiceEnabled: tt.enableCreditThenInvoice,
 				creditsEnabled:           tt.enableCredits,
-				featureGate:              featuregate.NewFeatureGateChecker(featuregate.NewNoop(), make(featuregate.Flags)),
+				featureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+					"om_ff_credits_enabled": "om_ff_credits_enabled",
+				}),
 			})
 			require.NoError(t, err)
 
@@ -131,7 +133,9 @@ func TestIsCreditEnabled(t *testing.T) {
 			invoices:                 persistedstate.Invoices{},
 			creditThenInvoiceEnabled: false,
 			creditsEnabled:           true,
-			featureGate:              featuregate.NewFeatureGateChecker(featuregate.NewNoop(), make(featuregate.Flags)),
+			featureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+				"om_ff_credits_enabled": "om_ff_credits_enabled",
+			}),
 		})
 		require.NoError(t, err)
 
@@ -146,7 +150,9 @@ func TestIsCreditEnabled(t *testing.T) {
 			invoices:                 persistedstate.Invoices{},
 			creditThenInvoiceEnabled: false,
 			creditsEnabled:           true,
-			featureGate:              featuregate.NewFeatureGateChecker(nil, make(featuregate.Flags)),
+			featureGate: featuregate.NewFeatureGateChecker(nil, featuregate.Flags{
+				"om_ff_credits_enabled": "om_ff_credits_enabled",
+			}),
 		})
 		require.Error(t, err)
 	})
@@ -157,7 +163,9 @@ func TestIsCreditEnabled(t *testing.T) {
 			invoices:                 persistedstate.Invoices{},
 			creditThenInvoiceEnabled: false,
 			creditsEnabled:           false,
-			featureGate:              featuregate.NewFeatureGateChecker(featuregate.NewNoop(), make(featuregate.Flags)),
+			featureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+				"om_ff_credits_enabled": "om_ff_credits_enabled",
+			}),
 		})
 		require.NoError(t, err)
 

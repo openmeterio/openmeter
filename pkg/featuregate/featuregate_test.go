@@ -16,8 +16,8 @@ import (
 
 // stubGate is a controllable Gate implementation for testing.
 type stubGate struct {
-	result   bool
-	err      error
+	result    bool
+	err       error
 	callCount int
 }
 

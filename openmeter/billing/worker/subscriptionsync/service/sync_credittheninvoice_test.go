@@ -137,7 +137,9 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 		FeatureFlags: FeatureFlags{
 			EnableCreditThenInvoice: true,
 		},
-		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), make(featuregate.Flags)),
+		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+			"om_ff_credits_enabled": "om_ff_credits_enabled",
+		}),
 	})
 	s.NoError(err)
 
