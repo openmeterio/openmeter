@@ -144,7 +144,7 @@ type Config struct {
 
 func (c Config) Validate() error {
 	if c.NamespaceDecoder == nil {
-		return errors.New("namespace manager is required")
+		return errors.New("namespace decoder is required")
 	}
 
 	if c.ErrorHandler == nil {
