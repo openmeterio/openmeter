@@ -5373,6 +5373,20 @@ components:
             The plan phases define the pricing ramp for a subscription. A phase switch
             occurs only at the end of a billing period. At least one phase is required.
           title: Plan phases
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: |-
+            Settlement mode for plan.
+
+            Values:
+
+            - `credit_then_invoice`: Credits are applied first, then any remainder is
+            invoiced.
+            - `credit_only`: Usage is settled exclusively against credits.
+          title: Settlement Mode
+          default: credit_then_invoice
+          readOnly: true
         validation_errors:
           type: array
           items:
@@ -5933,6 +5947,19 @@ components:
           description: The status of the subscription.
           title: Status
           readOnly: true
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: |-
+            Settlement mode for billing.
+
+            Values:
+
+            - `credit_then_invoice`: Credits are applied first, then any remainder is
+            invoiced.
+            - `credit_only`: Usage is settled exclusively against credits.
+          title: Settlement Mode
+          default: credit_then_invoice
       additionalProperties: false
       description: Subscription.
     BillingSubscriptionCancel:
@@ -5954,6 +5981,19 @@ components:
       properties:
         labels:
           $ref: '#/components/schemas/Labels'
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: |-
+            Settlement mode for billing.
+
+            Values:
+
+            - `credit_then_invoice`: Credits are applied first, then any remainder is
+            invoiced.
+            - `credit_only`: Usage is settled exclusively against credits.
+          title: Settlement Mode
+          default: credit_then_invoice
         customer:
           type: object
           properties:
@@ -6022,18 +6062,6 @@ components:
             If not provided, the subscription will be created with the subscription's
             creation time as the billing anchor.
           title: Billing anchor
-        settlement_mode:
-          allOf:
-            - $ref: '#/components/schemas/BillingSettlementMode'
-          description: |-
-            Settlement mode for billing.
-
-            Values:
-
-            - `credit_then_invoice`: Credits are applied first, then any remainder is
-            invoiced.
-            - `credit_only`: Usage is settled exclusively against credits.
-          title: Settlement Mode
         timing:
           allOf:
             - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
@@ -6067,6 +6095,19 @@ components:
       properties:
         labels:
           $ref: '#/components/schemas/Labels'
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: |-
+            Settlement mode for billing.
+
+            Values:
+
+            - `credit_then_invoice`: Credits are applied first, then any remainder is
+            invoiced.
+            - `credit_only`: Usage is settled exclusively against credits.
+          title: Settlement Mode
+          default: credit_then_invoice
         customer:
           type: object
           properties:
@@ -6135,18 +6176,6 @@ components:
             If not provided, the subscription will be created with the subscription's
             creation time as the billing anchor.
           title: Billing anchor
-        settlement_mode:
-          allOf:
-            - $ref: '#/components/schemas/BillingSettlementMode'
-          description: |-
-            Settlement mode for billing.
-
-            Values:
-
-            - `credit_then_invoice`: Credits are applied first, then any remainder is
-            invoiced.
-            - `credit_only`: Usage is settled exclusively against credits.
-          title: Settlement Mode
       additionalProperties: false
       description: Subscription create request.
     BillingSubscriptionEditTiming:

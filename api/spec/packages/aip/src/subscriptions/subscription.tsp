@@ -125,19 +125,6 @@ model SubscriptionCreate {
   @visibility(Lifecycle.Create)
   @summary("Billing anchor")
   billing_anchor?: Shared.DateTime;
-
-  /**
-   * Settlement mode for billing.
-   *
-   * Values:
-   *
-   * - `credit_then_invoice`: Credits are applied first, then any remainder is
-   *   invoiced.
-   * - `credit_only`: Usage is settled exclusively against credits.
-   */
-  @visibility(Lifecycle.Create)
-  @summary("Settlement Mode")
-  settlement_mode?: ProductCatalog.SettlementMode;
 }
 
 /**
@@ -180,4 +167,17 @@ model Subscription {
   @visibility(Lifecycle.Read)
   @summary("Status")
   status: SubscriptionStatus;
+
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   *   invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @summary("Settlement Mode")
+  settlement_mode?: ProductCatalog.SettlementMode = ProductCatalog.SettlementMode.CreditThenInvoice;
 }
