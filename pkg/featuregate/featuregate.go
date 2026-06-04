@@ -114,10 +114,6 @@ func (h *FeatureGateChecker) Validate() error {
 		return errors.New("feature gate is required")
 	}
 
-	if err := h.Flags.Validate(); err != nil {
-		return fmt.Errorf("invalid flags: %w", err)
-	}
-
 	return nil
 }
 

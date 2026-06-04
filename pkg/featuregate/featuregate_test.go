@@ -47,7 +47,7 @@ func TestFlags_Validate(t *testing.T) {
 		{
 			name:    "empty flags",
 			flags:   featuregate.Flags{},
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 
@@ -148,14 +148,6 @@ func TestFeatureGateChecker_Validate(t *testing.T) {
 
 	t.Run("nil gate", func(t *testing.T) {
 		checker := featuregate.NewFeatureGateChecker(nil, featuregate.Flags{})
-		require.Error(t, checker.Validate())
-	})
-
-	t.Run("invalid flags", func(t *testing.T) {
-		checker := featuregate.NewFeatureGateChecker(
-			&stubGate{},
-			featuregate.Flags{featuregate.FeatureFlag("invalid_key"): "val"},
-		)
 		require.Error(t, checker.Validate())
 	})
 

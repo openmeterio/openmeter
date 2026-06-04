@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 
@@ -28,7 +29,7 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 
 		creditEnabled, featureGateEnabled := featuregate.ContextResolver().Credits(ctx)
 		if featureGateEnabled && !creditEnabled && plan.ToCreateSubscriptionPlanInput().SettlementMode == productcatalog.CreditOnlySettlementMode {
-			return def, fmt.Errorf("cannot create subscription with credit-only settlement mode when credits are disabled")
+			return def, models.NewGenericValidationError(errors.New("credits are not enabled on this deployment of OpenMeter"))
 		}
 
 		if err := s.lockCustomer(ctx, inp.CustomerID); err != nil {
@@ -197,7 +198,7 @@ func (s *service) ChangeToPlan(ctx context.Context, subscriptionID models.Namesp
 	r, err := transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (res, error) {
 		creditEnabled, featureGateEnabled := featuregate.ContextResolver().Credits(ctx)
 		if featureGateEnabled && !creditEnabled && plan.ToCreateSubscriptionPlanInput().SettlementMode == productcatalog.CreditOnlySettlementMode {
-			return res{}, fmt.Errorf("cannot change subscription with credit-only settlement mode when credits are disabled")
+			return res{}, models.NewGenericValidationError(errors.New("credits are not enabled on this deployment of OpenMeter"))
 		}
 
 		// Second, let's try to cancel the current subscription

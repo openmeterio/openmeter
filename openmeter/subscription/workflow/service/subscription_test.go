@@ -2158,7 +2158,7 @@ func TestSettlementMode(t *testing.T) {
 			CustomerID: cust.ID,
 			Namespace:  subscriptiontestutils.ExampleNamespace,
 		}, p)
-		require.ErrorContains(t, err, "cannot create subscription with credit-only settlement mode when credits are disabled")
+		require.ErrorContains(t, err, "validation error: credits are not enabled on this deployment of OpenMeter")
 	})
 
 	t.Run("CreateFromPlan with CreditOnly plan succeeds when credits are enabled in feature gate", func(t *testing.T) {
@@ -2233,6 +2233,6 @@ func TestSettlementMode(t *testing.T) {
 			},
 			Name: "Change to CreditOnly",
 		}, creditOnlyPlan)
-		require.ErrorContains(t, err, "cannot change subscription with credit-only settlement mode when credits are disabled")
+		require.ErrorContains(t, err, "validation error: credits are not enabled on this deployment of OpenMeter")
 	})
 }
