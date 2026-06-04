@@ -17,6 +17,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/api"
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
@@ -749,6 +750,7 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 		CustomerService:    customerService,
 		EntitlementService: &NoopEntitlementConnector{},
 		FeatureConnector:   featureService,
+		Tracer:             noop.NewTracerProvider().Tracer("test"),
 	})
 	assert.NoError(t, err, "failed to create governance service")
 
