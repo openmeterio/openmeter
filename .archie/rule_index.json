@@ -11,7 +11,8 @@
       "dep-001",
       "wm-001",
       "lock-002",
-      "name-input-suffix-validator"
+      "name-input-suffix-validator",
+      "deps-001-prefer-stdlib-samberlo"
     ],
     "openmeter/billing/**/*.go": [
       "lock-003-key-construction",
@@ -36,10 +37,12 @@
       "customer-001-requestvalidator-pre-mutation-only"
     ],
     "openmeter/subscription/**/*.go": [
-      "subscription-001-spec-patch"
+      "subscription-001-spec-patch",
+      "subscription-002-workflow-orchestration"
     ],
     "openmeter/ledger/**/*.go": [
-      "ledger-001-resolve-transactions"
+      "ledger-001-resolve-transactions",
+      "data-ledgertransaction-balanced"
     ],
     "cmd/billing-worker/main.go": [
       "billing-006-billing-worker-startup-order",
@@ -55,7 +58,8 @@
     ],
     "api/v3/handlers/**/*.go": [
       "goverter-001-convert-file-naming",
-      "api-001"
+      "api-001",
+      "api-v3-002-nullable-apierrors"
     ],
     "openmeter/notification/**/*.go": [
       "notification-002-null-channel-sentinel",
@@ -271,6 +275,18 @@
     ],
     "openmeter/ent/schema/balance_snapshot.go": [
       "data-balancesnapshot-no-idmixin"
+    ],
+    "pkg/**/*.go": [
+      "deps-001-prefer-stdlib-samberlo"
+    ],
+    "collector/**/*.go": [
+      "infra-008-collector-separate-module"
+    ],
+    "openmeter/ent/schema/customer.go": [
+      "data-customersubjects-fkless"
+    ],
+    "openmeter/app/**/*.go": [
+      "app-001-invoicing-app-readonly-snapshot"
     ]
   },
   "by_code_shape": [
@@ -985,6 +1001,42 @@
           "openmeter_"
         ]
       }
+    },
+    {
+      "rule_id": "api-v3-002-nullable-apierrors",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "http\\.Error\\(|w\\.WriteHeader\\("
+        ],
+        "must_not_match": [
+          "apierrors\\."
+        ]
+      }
+    },
+    {
+      "rule_id": "deps-001-prefer-stdlib-samberlo",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "func\\s+(ptr|loPtr|toPtr|must|loMust)\\["
+        ],
+        "must_not_match": [
+          "_test\\.go"
+        ]
+      }
+    },
+    {
+      "rule_id": "data-ledgertransaction-balanced",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "LedgerTransaction\\{|\\.LedgerTransaction\\.Create\\("
+        ],
+        "must_not_match": [
+          "ResolveTransactions"
+        ]
+      }
     }
   ],
   "for_classifier": [
@@ -1101,6 +1153,20 @@
     "persist-clickhouse-no-inline-sql",
     "data-balancesnapshot-no-idmixin",
     "pf-006-wire-hook-audit",
+    "api-v3-002-nullable-apierrors",
+    "deps-001-prefer-stdlib-samberlo",
+    "infra-006-nvmrc-node-sync",
+    "infra-007-golangci-config",
+    "infra-008-collector-separate-module",
+    "infra-009-conventional-commits",
+    "infra-010-python-sdk-publish",
+    "data-customersubjects-fkless",
+    "data-ledgertransaction-balanced",
+    "persist-postgres-via-ent-atlas",
+    "persist-redis-dedupe-cache-only",
+    "persist-kafka-sole-cross-binary",
+    "app-001-invoicing-app-readonly-snapshot",
+    "subscription-002-workflow-orchestration",
     "android-layer-viewmodel-context",
     "android-layer-fragment-network",
     "android-layer-fragment-db",

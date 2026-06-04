@@ -1,4 +1,4 @@
-# Enforcement: dependencies (7 rules)
+# Enforcement: dependencies (13 rules)
 
 Topic file. Loaded on demand when an agent works on something in the `dependencies` area. The pre-edit hook reads `.archie/rules.json` directly — this file is for browsing/context only.
 
@@ -134,3 +134,68 @@ func NewFlatFeeChargesService(billingService billing.Service, ...) flatfee.Servi
     return svc
 }
 ```
+
+### `deps-001-prefer-stdlib-samberlo` — Prefer stdlib and samber/lo helpers over local ptr/must/clone wrappers
+
+*source: `deep_scan`*
+
+**Why:** The project already depends on samber/lo v1.53.0 and modern stdlib; always prefer slices.Clone for defensive copies, lo.ToPtr for pointer literals, and other samber/lo helpers instead of introducing local ptr/loPtr/must/loMust wrapper functions. lo.Must is acceptable only in test setup, never in production code paths.
+
+**Example:**
+
+```
+ptr := lo.ToPtr(value)
+clone := slices.Clone(in)
+```
+
+**Path glob:** `openmeter/**/*.go`, `pkg/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "func\\s+(ptr|loPtr|toPtr|must|loMust)\\["
+    ],
+    "must_not_match": [
+      "_test\\.go"
+    ]
+  }
+]
+```
+
+</details>
+
+### `infra-006-nvmrc-node-sync` — Keep .nvmrc in sync with the Nix .#ci shell node version
+
+*source: `deep_scan`*
+
+**Why:** flake.nix enterShell writes 'node -v > .nvmrc', and CI's 'Validate Node version file' step fails if .nvmrc differs from 'nix develop --impure .#ci -c node -v'. Hand-editing .nvmrc to a node version not pinned by the Nix shell breaks CI and produces non-reproducible TypeSpec/JS SDK builds.
+
+### `infra-007-golangci-config` — Lint Go with the project golangci-lint v2 config, not an ad-hoc linter setup
+
+*source: `deep_scan`*
+
+**Why:** Go linting uses golangci-lint v2 with .golangci.yaml (errcheck/govet/staticcheck/sloglint/bodyclose/misspell/ineffassign/nolintlint/unconvert/whitespace) and formatters gci/gofumpt/goimports with prefix github.com/openmeterio/openmeter; collector/benthos/internal and examples are excluded. Running a different linter or ignoring these formatters produces import-ordering and formatting diffs that fail CI.
+
+### `infra-008-collector-separate-module` — Keep the collector as a separate Go module with its own go.mod
+
+*source: `deep_scan`*
+
+**Why:** The Benthos collector is a separate Go module (collector/go.mod) that uses a replace directive pointing openmeter back at the parent module, and is built into its own benthos-collector Docker image with CGO_ENABLED=0. Adding collector code to the root module or removing the replace directive breaks the independent collector build and 'go mod tidy -C collector'.
+
+**Path glob:** `collector/**/*.go`
+
+### `infra-009-conventional-commits` — Write commitizen-conventional commit messages
+
+*source: `deep_scan`*
+
+**Why:** flake.nix git-hooks run commitizen/commitizen-branch via prek, and CI runs 'prek run -a' and 'prek run --stage manual' to validate commit messages. A commit message that is not commitizen-conventional (e.g. missing a type prefix like feat:/fix:/chore:) fails the local hook and the CI commit-message validation step.
+
+### `infra-010-python-sdk-publish` — Publish the Python SDK via its dedicated make target, not Poetry directly
+
+*source: `deep_scan`*
+
+**Why:** The generated Python SDK under api/client/python is published via 'make -C api/client/python publish-python-sdk'; release.sh overwrites pyproject.toml version at publish time. Invoking poetry publish directly bypasses the version-stamping step and ships a mis-versioned package.

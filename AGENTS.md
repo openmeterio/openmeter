@@ -1,75 +1,72 @@
 # AGENTS.md
 
 > Architecture guidance for **Unknown Repository**
-> Style: Multi-binary Go modulith: a single Go module with ~35 independent domain packages under openmeter/, each organized as a strict layered service/adapter/httpdriver split (Service interface + Adapter interface defined at the package root, concrete service logic in service/, Ent/PostgreSQL persistence in adapter/, HTTP translation in httpdriver/ or httphandler/). Six runnable binaries (server + four workers + jobs CLI, plus a separate benthos-collector module) each compose ~40 domain services through Google Wire provider sets concentrated in app/common/. Cross-binary communication is exclusively asynchronous via three name-prefix-routed Kafka topics through a Watermill eventbus facade. Cross-domain coupling is inverted via ServiceHook and RequestValidator registries registered as Wire provider side-effects in app/common to keep domain packages import-cycle-free leaves. The HTTP API surface (v1 + v3) is generated from TypeSpec into Go server stubs and Go/JS/Python SDKs.
-> Generated: 2026-06-02T19:33:42.296587+00:00
+> Style: Multi-binary Go modulith: a single Go module whose business logic lives entirely in ~35 domain packages under openmeter/, each following a strict layered split (Service/Adapter interfaces defined at the package root, concrete logic in service/, Ent/PostgreSQL persistence in adapter/, HTTP translation in httpdriver/ or httphandler/ for v1 and api/v3/handlers/<resource>/ for v3). Six runnable Go binaries under cmd/ (server, billing-worker, balance-worker, sink-worker, notification-service, jobs) plus a separate benthos-collector Go module each compose a different subset of the domain tree through Google Wire provider sets concentrated in app/common/. The binaries never call each other in-process or over HTTP; cross-binary communication is exclusively asynchronous through three name-prefix-routed Kafka topics behind a Watermill eventbus facade. Cross-domain coupling is inverted via ServiceHook and RequestValidator registries registered as Wire-provider side-effects in app/common to keep domain packages import-cycle-free leaves. The v1+v3 HTTP API and Go/JS/Python SDKs are generated from a single TypeSpec source. Persistence is one PostgreSQL database (Ent + Atlas migrations) plus a single shared append-only ClickHouse MergeTree events table and optional Redis dedupe.
+> Generated: 2026-06-04T08:36:31.802341+00:00
 
 ## Overview
 
-OpenMeter is a multi-tenant usage-metering and billing platform that ingests CloudEvents, aggregates them into meters in ClickHouse, and drives entitlement balances and financial billing on top of that usage data. It is a single Go module organized as a layered service/adapter/httpdriver modulith of ~35 domain packages under openmeter/, compiled into six runnable binaries (HTTP API server, sink/balance/billing workers, notification-service, and a jobs CLI) composed via Google Wire provider sets in app/common. Synchronous request handling flows through a TypeSpec-generated v1+v3 HTTP API into domain services that persist to PostgreSQL via Ent and entutils.TransactingRepo, while all cross-binary communication is asynchronous over three prefix-routed Kafka topics through a Watermill eventbus facade. The usage path streams events from the benthos collector through the ingest Collector into Kafka, where the sink-worker performs a strict three-phase flush (ClickHouse insert, Kafka offset commit, Redis dedupe) and the balance-worker recalculates entitlement grant burn-down. Billing correctness is enforced through tagged-union domain models, stateless-library invoice/charge state machines, per-customer pg_advisory_xact_lock serialization, and a double-entry ledger, with Stripe and Svix as the primary external billing and webhook integrations.
+OpenMeter is a multi-tenant usage-metering and billing platform that ingests CloudEvents usage data, aggregates it in ClickHouse, and drives entitlements, credit grants, a double-entry ledger, and invoice/charge billing through a versioned v1+v3 REST API. It is built as a single-Go-module modulith: ~35 layered domain packages under openmeter/ (each splitting Service/Adapter interfaces, Ent/PostgreSQL persistence, and HTTP drivers) composed by Google Wire into six runnable binaries (server, sink-worker, billing-worker, balance-worker, notification-service, jobs) plus a separate Benthos collector module. Binaries never call each other in-process; all cross-binary communication is asynchronous over three name-prefix-routed Kafka topics behind a Watermill eventbus facade, and cross-domain coupling is inverted through ServiceHook/RequestValidator registries wired as app/common provider side-effects. Persistence is one PostgreSQL database managed by Ent schemas plus Atlas migrations, a single shared append-only ClickHouse MergeTree events table written by the sink worker's strict three-phase flush, and optional Redis ingest deduplication. The entire v1+v3 API surface and the Go, JavaScript, and Python SDKs are generated from a single TypeSpec source, with billing using tagged-union charge/invoice-line models and stateless-backed state machines.
 
 ## Architecture
 
-**Style:** All business logic lives in a single shared package tree under openmeter/ (23 components: billing, customer, entitlement, subscription, ledger, credit, notification, meter+ingest+sink+streaming, etc.), each following a Service/Adapter/HTTP layering. Seven thin binaries under cmd/ (server, billing-worker, balance-worker, sink-worker, notification-service, jobs, benthos-collector) each compose a different subset of that tree via Google Wire provider sets concentrated in app/common/. The binaries never call each other in-process or over HTTP; they communicate exclusively through three name-prefix-routed Kafka topics via the openmeter/watermill eventbus. Persistence is one PostgreSQL database (Ent + Atlas) plus a shared append-only ClickHouse events table and optional Redis dedupe.
+**Style:** All business logic lives in ~35 layered domain packages under openmeter/ (Service/Adapter interfaces at the package root, concrete logic in service/, Ent persistence in adapter/, HTTP translation in httpdriver/httphandler for v1 and api/v3/handlers/<resource>/ for v3). Six runnable binaries under cmd/ (server, billing-worker, balance-worker, sink-worker, notification-service, jobs) plus a separate benthos-collector Go module each compose a different subset of the domain tree through Google Wire provider sets concentrated in app/common/. Binaries never call each other in-process or over HTTP; cross-binary communication is exclusively asynchronous through three name-prefix-routed Kafka topics behind the Watermill eventbus facade. Cross-domain coupling is inverted via ServiceHook and RequestValidator registries registered as Wire-provider side-effects in app/common, keeping domain packages import-cycle-free leaves. The v1+v3 HTTP API and Go/JS/Python SDKs are generated from a single TypeSpec source. Persistence is one PostgreSQL database (Ent + Atlas migrations) plus a single shared append-only ClickHouse MergeTree events table and optional Redis dedupe.
 **Structure:** modular
 
-Ingest throughput (openmeter/sink consuming raw CloudEvents via confluent-kafka-go), entitlement balance recalculation (openmeter/entitlement/balanceworker), billing advancement (openmeter/billing/worker), and webhook dispatch (openmeter/notification/consumer + Svix) have incompatible scaling and failure profiles, so they are split into separate binaries that scale independently. But billing correctness demands one typed domain model shared across them — hence a shared package tree, not separate services with duplicated types. The blueprint shows this directly: every cmd/<binary>/wire.go (cmd/billing-worker/wire.go) pulls composite provider sets from app/common, and domain packages expose plain constructors and never import app/common (the leaf-node import rule). Kafka topic isolation (openmeter/watermill/eventbus/eventbus.go GeneratePublishTopic routing ingest/system/balance-worker by EventName prefix) is what lets an ingest burst not starve billing system-event consumers.
+The product is a high-volume per-tenant usage-metering platform feeding strict financial billing, with three SDK languages and two API versions to keep in sync, run by a small team that cannot maintain separate repos or hand-synchronized contracts. Ingest throughput (openmeter/sink, openmeter/ingest), balance recalculation (openmeter/entitlement/balanceworker), billing advancement (openmeter/billing/worker), and webhook dispatch (openmeter/notification/consumer) have incompatible scaling and failure profiles, which forces process separation — but billing correctness demands one typed domain model, so the openmeter/ types are shared and only the cmd/ entrypoints differ. Google Wire (app/common/openmeter_<binary>.go composite sets) gives compile-time graph verification for the ~40 services each binary wires. The three prefix-routed Kafka topics in openmeter/watermill/eventbus/eventbus.go provide topic isolation so ingest bursts cannot starve billing consumers. TypeSpec (api/spec/) as the single API source makes drift between api/api.gen.go, api/v3/api.gen.go and the three SDKs structurally impossible.
 
 **Root constraint:** Operate a high-volume per-tenant usage-metering platform feeding strict financial billing correctness, while shipping stable SDKs in three languages — under a small team that cannot maintain separate repos or hand-synchronized contracts.
-- → Multi-binary modular monolith: one shared Go domain tree, seven independently deployable binaries, Kafka as the sole inter-binary channel
+- → Multi-binary Go modulith: one shared domain tree, six Wire-composed binaries, Kafka-only inter-binary coupling, single TypeSpec API source
 - → TypeSpec as the single source of truth for both v1 and v3 HTTP APIs and all three SDKs
-- → Ent ORM + Atlas migrations with context-propagated transactions (entutils.TransactingRepo) and per-customer pg locks (lockr)
+- → Ent ORM + Atlas migrations with context-propagated transactions (entutils.TransactingRepo) and per-customer pg locks
 
 **Key trade-offs:**
 - Ent-generated query friction: a large generated openmeter/ent/db/ tree, slower compile times, and the boilerplate Tx/WithTx/Self triad plus a TransactingRepo wrapper on every adapter method body. → Compile-time-checked relations across ~35 entities, automatic Atlas schema diffing into reviewable SQL, and ctx-propagated transactions with savepoint nesting for atomic multi-step charge/invoice flows.
-- Multi-binary orchestration cost: seven Docker image variants, Helm values complexity, and a separate Wire graph per binary that must each stay complete. → Independent horizontal scaling of sink-worker / balance-worker / billing-worker, fault isolation per binary, and isolated deploy cadence.
-- Two-step regeneration cadence: TypeSpec changes require both `make gen-api` AND `make generate`, and five generators (oapi-codegen, Ent, Wire, Goverter, Goderive) write different artifacts that must all stay in sync. → Cross-language SDK contracts cannot drift — Go server stubs, Go SDK, JS SDK, Python SDK all originate from one TypeSpec source.
+- Multi-binary orchestration cost: six Docker image variants, Helm values complexity, and a separate Wire graph per binary that must each stay complete. → Independent horizontal scaling of sink-worker / balance-worker / billing-worker, fault isolation per binary, and isolated deploy cadence.
+- Two-step regeneration cadence: TypeSpec changes require both make gen-api AND make generate, and five generators (oapi-codegen, Ent, Wire, Goverter, Goderive) write different artifacts that must all stay in sync. → Cross-language SDK contracts cannot drift — Go server stubs, Go SDK, JS SDK, Python SDK all originate from one TypeSpec source.
 
-**Runs on:** self-hosted
-**Compute:** Docker containers (six OpenMeter binaries + separate benthos-collector image), Kubernetes via Helm charts (deploy/charts/openmeter, deploy/charts/benthos-collector)
-**CI/CD:** GitHub Actions (.github/workflows/ci.yaml: build/test/lint/migrations/generators/e2e/quickstart on Depot runners via Nix .#ci shell), artifacts.yaml + untrusted-artifacts.yaml (Depot depot-build-push-action, multi-platform images), release.yaml (Helm + npm release), npm-release.yaml (OIDC trusted publishing), sdk-python-dev-release.yaml (Python alpha), codeql.yml + codeql-go.yaml, analysis-scorecard.yaml, security.yaml (Trufflehog), pr-checks.yaml, require-all-reviewers.yml, FOSSA scan
+**Runs on:** self-hosted (Kubernetes via Helm); container images on GHCR
+**Compute:** Kubernetes Deployments/StatefulSets via Helm chart (deploy/charts/openmeter), Depot remote build runners (depot-ubuntu-latest-*) for CI/CD, Six runtime binaries: server, sink-worker, balance-worker, billing-worker, notification-service, jobs, benthos-collector StatefulSet (deploy/charts/benthos-collector)
+**CI/CD:** GitHub Actions (.github/workflows/): ci.yaml, artifacts.yaml, untrusted-artifacts.yaml, release.yaml, npm-release.yaml, sdk-python-dev-release.yaml, pr-checks.yaml, security.yaml, codeql.yml, codeql-go.yaml, analysis-scorecard.yaml, require-all-reviewers.yml, workflow-result.yaml, Depot build-push-action for multi-arch (linux/amd64+arm64) container images, Nix .#ci shell (nix develop --impure .#ci -c) pins all CI toolchain versions
 
 ## Data Models
 
-OpenMeter persists all domain state (billing invoices/lines, charges, customers, subscriptions, entitlements, credit grants, double-entry ledger, meters, features/plans, notifications, LLM cost prices) in a single PostgreSQL database via ~35 Ent schema structs that Atlas diffs into golang-migrate SQL files; raw usage events live append-only in a single shared ClickHouse MergeTree events table (queried by streaming.Connector), and Redis provides TTL-based ingest deduplication. Kafka (Watermill) is the cross-binary event bus. Every domain has a service/adapter pair; all writes go through entutils.TransactingRepo for ctx-bound transactions.
+OpenMeter persists all domain state (billing invoices/lines, charges, customers, subscriptions, entitlements, credit grants, double-entry ledger, meters, features, notifications, LLM cost prices) in one PostgreSQL database via ~35 hand-written Ent schema structs in openmeter/ent/schema that Atlas diffs into golang-migrate SQL files under tools/migrate/migrations; raw usage CloudEvents live append-only in a single shared ClickHouse MergeTree events table created by the connector at startup (openmeter/streaming/clickhouse/event_query.go), Redis provides TTL+SET-NX ingest deduplication (openmeter/dedupe), and Kafka (Watermill) is the cross-binary event bus. Every domain has a Service/Adapter pair and all writes go through entutils.TransactingRepo for ctx-bound transactions.
 
 **Models** (full lifecycle in [`.claude/rules/data-models.md`](.claude/rules/data-models.md)):
 - `BillingInvoice` (table) — `openmeter/ent/schema/billing.go`
-- `BillingInvoiceLine` (table) — `openmeter/ent/schema/billing.go`
 - `Entitlement` (table) — `openmeter/ent/schema/entitlement.go`
+- `BillingInvoiceLine` (table) — `openmeter/ent/schema/billing.go`
 - `Grant` (table) — `openmeter/ent/schema/grant.go`
+- `RawEvent` (entity) — `openmeter/streaming/connector.go`
 - `Subscription` (table) — `openmeter/ent/schema/subscription.go`
 - `Meter` (table) — `openmeter/ent/schema/meter.go`
-- `Customer` (table) — `openmeter/ent/schema/customer.go`
-- `RawEvent` (entity) — `openmeter/streaming/connector.go`
-- _… 9 more in [`.claude/rules/data-models.md`](.claude/rules/data-models.md)_
+- `NotificationEvent` (table) — `openmeter/ent/schema/notification.go`
+- _… 14 more in [`.claude/rules/data-models.md`](.claude/rules/data-models.md)_
 
 **Stores:**
-- `primary_postgres` (PostgreSQL 14.20-alpine (dev compose; docs reference 15), role: primary) — owns: BillingInvoice, BillingInvoiceLine, Charge, Customer, Subscription, Entitlement, Grant, BalanceSnapshot, LedgerEntry, LedgerAccount, LedgerCustomerAccount, Meter, Feature, NotificationEvent, LLMCostPrice
-- `redis_dedupe` (Redis 7.4.7, role: cache) — owns: dedupe.Item
-- `clickhouse_events` (ClickHouse 25.12.3-alpine, role: analytics) — owns: RawEvent
-- `kafka_topics` (Kafka (confluentinc/cp-kafka 8.0.3, confluent-kafka-go v2.14.1), role: queue)
+- `primary_postgres` (PostgreSQL (atlas.hcl dev db docker://postgres/15; docker-compose base uses 14.20-alpine), role: primary) — owns: BillingInvoice, BillingInvoiceLine, Charge, Customer, CustomerSubjects, Subscription, SubscriptionItem, Entitlement, Grant, BalanceSnapshot, LedgerEntry, LedgerTransaction, LedgerAccount, LedgerSubAccountRoute, LedgerCustomerAccount, Meter, Feature, NotificationChannel, NotificationEvent, LLMCostPrice
+- `redis_dedupe` (Redis (go-redis/v9), role: cache) — owns: dedupe.Item
+- `clickhouse_events` (ClickHouse (clickhouse-go/v2), role: analytics) — owns: RawEvent
+- `kafka_topics` (Kafka (confluent-kafka-go v2 + Watermill), role: queue)
 
 ## Architecture Diagram
 
 ```mermaid
 graph TD
-  Client[API Clients / SDKs] -->|HTTP v1+v3| Server[openmeter/server + api/v3<br/>HTTP API binary]
-  Collector[collector<br/>benthos ingest] -->|CloudEvents| Ingest[openmeter/ingest<br/>Collector + dedupe]
-  Server -->|domain calls| Domains[Domain services<br/>billing / customer / entitlement<br/>subscription / productcatalog / ledger]
-  Domains -->|Ent + TransactingRepo| Postgres[(PostgreSQL<br/>via openmeter/ent)]
-  Server -->|ingest event| Ingest
-  Ingest -->|produce| Kafka{{Watermill eventbus<br/>3 Kafka topics:<br/>ingest / system / balance-worker}}
-  Domains -->|publish domain events| Kafka
-  Kafka -->|ingest topic| Sink[cmd/sink-worker<br/>3-phase flush]
-  Sink -->|BatchInsert| ClickHouse[(ClickHouse<br/>usage events)]
-  Sink -->|flush notification| Kafka
-  Kafka -->|balance-worker topic| Balance[cmd/balance-worker<br/>entitlement recalc]
-  Balance -->|query usage| ClickHouse
-  Kafka -->|system topic| Billing[cmd/billing-worker<br/>invoice + charge advance]
-  Billing -->|ledger postings| Postgres
-  Kafka -->|system topic| Notif[cmd/notification-service<br/>webhook dispatch]
-  Notif -->|webhooks| Svix[Svix]
+  Client["API clients / SDKs (Go/JS/Python)"] --> Server["cmd/server: Chi v1+v3 HTTP API"]
+  Server --> Domains["openmeter/* domain services (billing, customer, subscription, entitlement, credit, ledger)"]
+  Domains --> Ent["Ent adapters + entutils.TransactingRepo"]
+  Ent --> Postgres[("PostgreSQL (Ent + Atlas)")]
+  Domains --> EventBus["Watermill eventbus.Publisher"]
+  EventBus --> Kafka[("Kafka: ingest / system / balance-worker topics")]
+  Client -->|usage events| Ingest["ingest.Collector (Redis dedupe)"]
+  Ingest --> Kafka
+  Kafka --> Sink["cmd/sink-worker: 3-phase flush"]
+  Sink --> ClickHouse[("ClickHouse events MergeTree")]
+  Kafka --> Workers["billing-worker / balance-worker / notification-service"]
+  Workers --> Domains
+  ClickHouse --> Domains
 ```
 
 ## Commands
@@ -80,20 +77,20 @@ docker compose up -d
 # fmt
 golangci-lint run --fix
 # test
-POSTGRES_HOST=127.0.0.1 go test -p 128 -parallel 16 -tags=dynamic ./... (make test; checks Postgres is running first)
+make test => PGPASSWORD=postgres psql healthcheck then POSTGRES_HOST=127.0.0.1 go test -p 128 -parallel 16 -tags=dynamic ./...
 # lint
-make lint-go lint-api-spec lint-openapi lint-helm
+make lint => lint-go lint-api-spec lint-openapi lint-helm
 # build
-make build (go build -o build/ -tags=dynamic across cmd/server, sink-worker, balance-worker, billing-worker, notification-service, jobs, plus benthos-collector)
+make build (builds server, sink-worker, benthos-collector, balance-worker, billing-worker, notification-service, jobs with -tags=dynamic)
 # server
-air -c ./cmd/server/.air.toml
+air -c ./cmd/server/.air.toml (make server)
 # lint-go
 golangci-lint run -v ./...
 # test-all
-docker compose up -d postgres svix redis && SVIX_HOST=localhost SVIX_JWT_SECRET=DUMMY_JWT_SECRET go test -p 128 -parallel 16 -tags=dynamic -count=1 ./...
+docker compose up -d postgres svix redis; SVIX_HOST=localhost SVIX_JWT_SECRET=DUMMY_JWT_SECRET go test -p 128 -parallel 16 -tags=dynamic -count=1 ./...
 ```
 
-_Full catalog (37 commands) in [`.claude/rules/technology.md`](.claude/rules/technology.md)._
+_Full catalog (41 commands) in [`.claude/rules/technology.md`](.claude/rules/technology.md)._
 
 ## Architectural Rules
 
@@ -108,6 +105,7 @@ Detailed rules live as topic files under `.claude/rules/`. Read the relevant one
 - [`.claude/rules/dev-rules.md`](.claude/rules/dev-rules.md) — Coding-time imperatives (patterns, anti-patterns, boundaries, wiring)
 - [`.claude/rules/infrastructure.md`](.claude/rules/infrastructure.md) — CI / signing / distribution / secrets / env setup / registry auth
 - [`.claude/rules/enforcement/index.md`](.claude/rules/enforcement/index.md) — Every rule the pre-edit hook + plan/commit classifier consults, grouped by severity
+- [`.claude/rules/frontend.md`](.claude/rules/frontend.md) — UI architecture, state, routing (when applicable)
 
 ## Enforcement Rules
 
@@ -121,80 +119,95 @@ Every meaningful folder has its own `CLAUDE.md` (Archie's intent layer). Claude 
 *Auto-generated from structured architecture analysis. Place in project root.*
 
 <!-- archie:generated:start -->
-<!-- Regenerated by Archie on 2026-06-03T07:29Z. Edits between the archie:generated markers will be overwritten; edit outside them to keep changes. -->
+<!-- Regenerated by Archie on 2026-06-04T08:42Z. Edits between the archie:generated markers will be overwritten; edit outside them to keep changes. -->
 
 # AGENTS.md
 
 > Architecture guidance for **Unknown Repository**
-> Style: Multi-binary Go modulith: a single Go module with ~35 independent domain packages under openmeter/, each organized as a strict layered service/adapter/httpdriver split (Service interface + Adapter interface defined at the package root, concrete service logic in service/, Ent/PostgreSQL persistence in adapter/, HTTP translation in httpdriver/ or httphandler/). Six runnable binaries (server + four workers + jobs CLI, plus a separate benthos-collector module) each compose ~40 domain services through Google Wire provider sets concentrated in app/common/. Cross-binary communication is exclusively asynchronous via three name-prefix-routed Kafka topics through a Watermill eventbus facade. Cross-domain coupling is inverted via ServiceHook and RequestValidator registries registered as Wire provider side-effects in app/common to keep domain packages import-cycle-free leaves. The HTTP API surface (v1 + v3) is generated from TypeSpec into Go server stubs and Go/JS/Python SDKs.
-> Generated: 2026-06-03T07:29:55.661964+00:00
+> Style: Multi-binary Go modulith: a single Go module whose business logic lives entirely in ~35 domain packages under openmeter/, each following a strict layered split (Service/Adapter interfaces defined at the package root, concrete logic in service/, Ent/PostgreSQL persistence in adapter/, HTTP translation in httpdriver/ or httphandler/ for v1 and api/v3/handlers/<resource>/ for v3). Six runnable Go binaries under cmd/ (server, billing-worker, balance-worker, sink-worker, notification-service, jobs) plus a separate benthos-collector Go module each compose a different subset of the domain tree through Google Wire provider sets concentrated in app/common/. The binaries never call each other in-process or over HTTP; cross-binary communication is exclusively asynchronous through three name-prefix-routed Kafka topics behind a Watermill eventbus facade. Cross-domain coupling is inverted via ServiceHook and RequestValidator registries registered as Wire-provider side-effects in app/common to keep domain packages import-cycle-free leaves. The v1+v3 HTTP API and Go/JS/Python SDKs are generated from a single TypeSpec source. Persistence is one PostgreSQL database (Ent + Atlas migrations) plus a single shared append-only ClickHouse MergeTree events table and optional Redis dedupe.
+> Generated: 2026-06-04T08:42:39.226146+00:00
 
 ## Overview
 
-OpenMeter is a multi-tenant usage-metering and billing platform that ingests CloudEvents, aggregates them into meters in ClickHouse, and drives entitlement balances and financial billing on top of that usage data. It is a single Go module organized as a layered service/adapter/httpdriver modulith of ~35 domain packages under openmeter/, compiled into six runnable binaries (HTTP API server, sink/balance/billing workers, notification-service, and a jobs CLI) composed via Google Wire provider sets in app/common. Synchronous request handling flows through a TypeSpec-generated v1+v3 HTTP API into domain services that persist to PostgreSQL via Ent and entutils.TransactingRepo, while all cross-binary communication is asynchronous over three prefix-routed Kafka topics through a Watermill eventbus facade. The usage path streams events from the benthos collector through the ingest Collector into Kafka, where the sink-worker performs a strict three-phase flush (ClickHouse insert, Kafka offset commit, Redis dedupe) and the balance-worker recalculates entitlement grant burn-down. Billing correctness is enforced through tagged-union domain models, stateless-library invoice/charge state machines, per-customer pg_advisory_xact_lock serialization, and a double-entry ledger, with Stripe and Svix as the primary external billing and webhook integrations.
+OpenMeter is a multi-tenant usage-metering and billing platform that ingests CloudEvents usage data, aggregates it in ClickHouse, and drives entitlements, credit grants, a double-entry ledger, and invoice/charge billing through a versioned v1+v3 REST API. It is built as a single-Go-module modulith: ~35 layered domain packages under openmeter/ (each splitting Service/Adapter interfaces, Ent/PostgreSQL persistence, and HTTP drivers) composed by Google Wire into six runnable binaries (server, sink-worker, billing-worker, balance-worker, notification-service, jobs) plus a separate Benthos collector module. Binaries never call each other in-process; all cross-binary communication is asynchronous over three name-prefix-routed Kafka topics behind a Watermill eventbus facade, and cross-domain coupling is inverted through ServiceHook/RequestValidator registries wired as app/common provider side-effects. Persistence is one PostgreSQL database managed by Ent schemas plus Atlas migrations, a single shared append-only ClickHouse MergeTree events table written by the sink worker's strict three-phase flush, and optional Redis ingest deduplication. The entire v1+v3 API surface and the Go, JavaScript, and Python SDKs are generated from a single TypeSpec source, with billing using tagged-union charge/invoice-line models and stateless-backed state machines.
 
 ## Architecture
 
-**Style:** All business logic lives in a single shared package tree under openmeter/ (23 components: billing, customer, entitlement, subscription, ledger, credit, notification, meter+ingest+sink+streaming, etc.), each following a Service/Adapter/HTTP layering. Seven thin binaries under cmd/ (server, billing-worker, balance-worker, sink-worker, notification-service, jobs, benthos-collector) each compose a different subset of that tree via Google Wire provider sets concentrated in app/common/. The binaries never call each other in-process or over HTTP; they communicate exclusively through three name-prefix-routed Kafka topics via the openmeter/watermill eventbus. Persistence is one PostgreSQL database (Ent + Atlas) plus a shared append-only ClickHouse events table and optional Redis dedupe.
+**Style:** All business logic lives in ~35 layered domain packages under openmeter/ (Service/Adapter interfaces at the package root, concrete logic in service/, Ent persistence in adapter/, HTTP translation in httpdriver/httphandler for v1 and api/v3/handlers/<resource>/ for v3). Six runnable binaries under cmd/ (server, billing-worker, balance-worker, sink-worker, notification-service, jobs) plus a separate benthos-collector Go module each compose a different subset of the domain tree through Google Wire provider sets concentrated in app/common/. Binaries never call each other in-process or over HTTP; cross-binary communication is exclusively asynchronous through three name-prefix-routed Kafka topics behind the Watermill eventbus facade. Cross-domain coupling is inverted via ServiceHook and RequestValidator registries registered as Wire-provider side-effects in app/common, keeping domain packages import-cycle-free leaves. The v1+v3 HTTP API and Go/JS/Python SDKs are generated from a single TypeSpec source. Persistence is one PostgreSQL database (Ent + Atlas migrations) plus a single shared append-only ClickHouse MergeTree events table and optional Redis dedupe.
 **Structure:** modular
 
-Ingest throughput (openmeter/sink consuming raw CloudEvents via confluent-kafka-go), entitlement balance recalculation (openmeter/entitlement/balanceworker), billing advancement (openmeter/billing/worker), and webhook dispatch (openmeter/notification/consumer + Svix) have incompatible scaling and failure profiles, so they are split into separate binaries that scale independently. But billing correctness demands one typed domain model shared across them — hence a shared package tree, not separate services with duplicated types. The blueprint shows this directly: every cmd/<binary>/wire.go (cmd/billing-worker/wire.go) pulls composite provider sets from app/common, and domain packages expose plain constructors and never import app/common (the leaf-node import rule). Kafka topic isolation (openmeter/watermill/eventbus/eventbus.go GeneratePublishTopic routing ingest/system/balance-worker by EventName prefix) is what lets an ingest burst not starve billing system-event consumers.
+The product is a high-volume per-tenant usage-metering platform feeding strict financial billing, with three SDK languages and two API versions to keep in sync, run by a small team that cannot maintain separate repos or hand-synchronized contracts. Ingest throughput (openmeter/sink, openmeter/ingest), balance recalculation (openmeter/entitlement/balanceworker), billing advancement (openmeter/billing/worker), and webhook dispatch (openmeter/notification/consumer) have incompatible scaling and failure profiles, which forces process separation — but billing correctness demands one typed domain model, so the openmeter/ types are shared and only the cmd/ entrypoints differ. Google Wire (app/common/openmeter_<binary>.go composite sets) gives compile-time graph verification for the ~40 services each binary wires. The three prefix-routed Kafka topics in openmeter/watermill/eventbus/eventbus.go provide topic isolation so ingest bursts cannot starve billing consumers. TypeSpec (api/spec/) as the single API source makes drift between api/api.gen.go, api/v3/api.gen.go and the three SDKs structurally impossible.
 
 **Root constraint:** Operate a high-volume per-tenant usage-metering platform feeding strict financial billing correctness, while shipping stable SDKs in three languages — under a small team that cannot maintain separate repos or hand-synchronized contracts.
-- → Multi-binary modular monolith: one shared Go domain tree, seven independently deployable binaries, Kafka as the sole inter-binary channel
+- → Multi-binary Go modulith: one shared domain tree, six Wire-composed binaries, Kafka-only inter-binary coupling, single TypeSpec API source
 - → TypeSpec as the single source of truth for both v1 and v3 HTTP APIs and all three SDKs
-- → Ent ORM + Atlas migrations with context-propagated transactions (entutils.TransactingRepo) and per-customer pg locks (lockr)
+- → Ent ORM + Atlas migrations with context-propagated transactions (entutils.TransactingRepo) and per-customer pg locks
 
 **Key trade-offs:**
 - Ent-generated query friction: a large generated openmeter/ent/db/ tree, slower compile times, and the boilerplate Tx/WithTx/Self triad plus a TransactingRepo wrapper on every adapter method body. → Compile-time-checked relations across ~35 entities, automatic Atlas schema diffing into reviewable SQL, and ctx-propagated transactions with savepoint nesting for atomic multi-step charge/invoice flows.
-- Multi-binary orchestration cost: seven Docker image variants, Helm values complexity, and a separate Wire graph per binary that must each stay complete. → Independent horizontal scaling of sink-worker / balance-worker / billing-worker, fault isolation per binary, and isolated deploy cadence.
-- Two-step regeneration cadence: TypeSpec changes require both `make gen-api` AND `make generate`, and five generators (oapi-codegen, Ent, Wire, Goverter, Goderive) write different artifacts that must all stay in sync. → Cross-language SDK contracts cannot drift — Go server stubs, Go SDK, JS SDK, Python SDK all originate from one TypeSpec source.
+- Multi-binary orchestration cost: six Docker image variants, Helm values complexity, and a separate Wire graph per binary that must each stay complete. → Independent horizontal scaling of sink-worker / balance-worker / billing-worker, fault isolation per binary, and isolated deploy cadence.
+- Two-step regeneration cadence: TypeSpec changes require both make gen-api AND make generate, and five generators (oapi-codegen, Ent, Wire, Goverter, Goderive) write different artifacts that must all stay in sync. → Cross-language SDK contracts cannot drift — Go server stubs, Go SDK, JS SDK, Python SDK all originate from one TypeSpec source.
+- Cross-domain wiring and event routing are invisible to the compiler: hook/validator registration and credits guards are side-effects scattered across app/common, and Kafka topic routing depends on event-name string prefixes that default to SystemEventsTopic. → Domain packages stay import-cycle-free leaves; optional features are gated without nil-checks in business logic; the three-topic topology is hidden from producers.
+- Sequential timestamped Atlas migration filenames plus a linear atlas.sum hash chain that, by construction, produces merge conflicts between any two branches that both append migrations. → Deterministic, reviewable, linearly-ordered SQL migration history with cryptographic chain integrity verified by CI (make migrate-check).
+- Exactly-once ingestion depends on a hand-ordered three-phase flush and an upstream Redis dedupe rather than engine-level deduplication, so any reordering or skipped dedupe phase silently drops or double-counts events. → An append-only ClickHouse MergeTree hot path (no ReplacingMergeTree merge cost) with exactly-once delivery preserved across consumer restarts and a non-blocking post-flush notification path.
+- FK-less cross-aggregate links (LedgerCustomerAccount.account_id/customer_id, LedgerSubAccountRoute denormalized routing columns, ClickHouse RawEvent struct vs DDL) push referential integrity and column/struct alignment onto application code with no database-level guard. → Import-cycle-free ledger package, join-free routing resolution on the posting hot path, and a migration-less create-if-not-exists ClickHouse table that needs no Atlas pipeline.
 
-**Runs on:** self-hosted
-**Compute:** Docker containers (six OpenMeter binaries + separate benthos-collector image), Kubernetes via Helm charts (deploy/charts/openmeter, deploy/charts/benthos-collector)
-**CI/CD:** GitHub Actions (.github/workflows/ci.yaml: build/test/lint/migrations/generators/e2e/quickstart on Depot runners via Nix .#ci shell), artifacts.yaml + untrusted-artifacts.yaml (Depot depot-build-push-action, multi-platform images), release.yaml (Helm + npm release), npm-release.yaml (OIDC trusted publishing), sdk-python-dev-release.yaml (Python alpha), codeql.yml + codeql-go.yaml, analysis-scorecard.yaml, security.yaml (Trufflehog), pr-checks.yaml, require-all-reviewers.yml, FOSSA scan
+**Runs on:** self-hosted (Kubernetes via Helm); container images on GHCR
+**Compute:** Kubernetes Deployments/StatefulSets via Helm chart (deploy/charts/openmeter), Depot remote build runners (depot-ubuntu-latest-*) for CI/CD, Six runtime binaries: server, sink-worker, balance-worker, billing-worker, notification-service, jobs, benthos-collector StatefulSet (deploy/charts/benthos-collector)
+**CI/CD:** GitHub Actions (.github/workflows/): ci.yaml, artifacts.yaml, untrusted-artifacts.yaml, release.yaml, npm-release.yaml, sdk-python-dev-release.yaml, pr-checks.yaml, security.yaml, codeql.yml, codeql-go.yaml, analysis-scorecard.yaml, require-all-reviewers.yml, workflow-result.yaml, Depot build-push-action for multi-arch (linux/amd64+arm64) container images, Nix .#ci shell (nix develop --impure .#ci -c) pins all CI toolchain versions
 
 ## Data Models
 
-OpenMeter persists all domain state (billing invoices/lines, charges, customers, subscriptions, entitlements, credit grants, double-entry ledger, meters, features/plans, notifications, LLM cost prices) in a single PostgreSQL database via ~35 Ent schema structs that Atlas diffs into golang-migrate SQL files; raw usage events live append-only in a single shared ClickHouse MergeTree events table (queried by streaming.Connector), and Redis provides TTL-based ingest deduplication. Kafka (Watermill) is the cross-binary event bus. Every domain has a service/adapter pair; all writes go through entutils.TransactingRepo for ctx-bound transactions.
+OpenMeter persists all domain state (billing invoices/lines, charges, customers, subscriptions, entitlements, credit grants, double-entry ledger, meters, features, notifications, LLM cost prices) in one PostgreSQL database via ~35 hand-written Ent schema structs in openmeter/ent/schema that Atlas diffs into golang-migrate SQL files under tools/migrate/migrations; raw usage CloudEvents live append-only in a single shared ClickHouse MergeTree events table created by the connector at startup (openmeter/streaming/clickhouse/event_query.go), Redis provides TTL+SET-NX ingest deduplication (openmeter/dedupe), and Kafka (Watermill) is the cross-binary event bus. Every domain has a Service/Adapter pair and all writes go through entutils.TransactingRepo for ctx-bound transactions.
 
 **Models** (full lifecycle in [`.claude/rules/data-models.md`](.claude/rules/data-models.md)):
 - `BillingInvoice` (table) — `openmeter/ent/schema/billing.go`
-- `BillingInvoiceLine` (table) — `openmeter/ent/schema/billing.go`
 - `Entitlement` (table) — `openmeter/ent/schema/entitlement.go`
+- `BillingInvoiceLine` (table) — `openmeter/ent/schema/billing.go`
 - `Grant` (table) — `openmeter/ent/schema/grant.go`
+- `RawEvent` (entity) — `openmeter/streaming/connector.go`
 - `Subscription` (table) — `openmeter/ent/schema/subscription.go`
 - `Meter` (table) — `openmeter/ent/schema/meter.go`
+- `NotificationEvent` (table) — `openmeter/ent/schema/notification.go`
 - `Customer` (table) — `openmeter/ent/schema/customer.go`
-- `RawEvent` (entity) — `openmeter/streaming/connector.go`
-- _… 9 more in [`.claude/rules/data-models.md`](.claude/rules/data-models.md)_
+- `dedupe.Item` (key_value) — `openmeter/dedupe/dedupe.go`
+- `Feature` (table) — `openmeter/ent/schema/feature.go`
+- `SubscriptionItem` (table) — `openmeter/ent/schema/subscription.go`
+- `LLMCostPrice` (table) — `openmeter/ent/schema/llmcostprice.go`
+- `LedgerSubAccountRoute` (table) — `openmeter/ent/schema/ledger_account.go`
+- `Charge` (table) — `openmeter/ent/schema/charges.go`
+- `BalanceSnapshot` (table) — `openmeter/ent/schema/balance_snapshot.go`
+- `CustomerSubjects` (table) — `openmeter/ent/schema/customer.go`
+- `LedgerEntry` (table) — `openmeter/ent/schema/ledger_entry.go`
+- `NotificationChannel` (table) — `openmeter/ent/schema/notification.go`
+- `LedgerCustomerAccount` (table) — `openmeter/ent/schema/ledger_customer_account.go`
+- `LedgerTransaction` (table) — `openmeter/ent/schema/ledger_transaction.go`
+- `LedgerAccount` (table) — `openmeter/ent/schema/ledger_account.go`
+- _… 14 more in [`.claude/rules/data-models.md`](.claude/rules/data-models.md)_
 
 **Stores:**
-- `primary_postgres` (PostgreSQL 14.20-alpine (dev compose; docs reference 15), role: primary) — owns: BillingInvoice, BillingInvoiceLine, Charge, Customer, Subscription, Entitlement, Grant, BalanceSnapshot, LedgerEntry, LedgerAccount, LedgerCustomerAccount, Meter, Feature, NotificationEvent, LLMCostPrice
-- `redis_dedupe` (Redis 7.4.7, role: cache) — owns: dedupe.Item
-- `clickhouse_events` (ClickHouse 25.12.3-alpine, role: analytics) — owns: RawEvent
-- `kafka_topics` (Kafka (confluentinc/cp-kafka 8.0.3, confluent-kafka-go v2.14.1), role: queue)
+- `primary_postgres` (PostgreSQL (atlas.hcl dev db docker://postgres/15; docker-compose base uses 14.20-alpine), role: primary) — owns: BillingInvoice, BillingInvoiceLine, Charge, Customer, CustomerSubjects, Subscription, SubscriptionItem, Entitlement, Grant, BalanceSnapshot, LedgerEntry, LedgerTransaction, LedgerAccount, LedgerSubAccountRoute, LedgerCustomerAccount, Meter, Feature, NotificationChannel, NotificationEvent, LLMCostPrice
+- `redis_dedupe` (Redis (go-redis/v9), role: cache) — owns: dedupe.Item
+- `clickhouse_events` (ClickHouse (clickhouse-go/v2), role: analytics) — owns: RawEvent
+- `kafka_topics` (Kafka (confluent-kafka-go v2 + Watermill), role: queue)
 
 ## Architecture Diagram
 
 ```mermaid
 graph TD
-  Client[API Clients / SDKs] -->|HTTP v1+v3| Server[openmeter/server + api/v3<br/>HTTP API binary]
-  Collector[collector<br/>benthos ingest] -->|CloudEvents| Ingest[openmeter/ingest<br/>Collector + dedupe]
-  Server -->|domain calls| Domains[Domain services<br/>billing / customer / entitlement<br/>subscription / productcatalog / ledger]
-  Domains -->|Ent + TransactingRepo| Postgres[(PostgreSQL<br/>via openmeter/ent)]
-  Server -->|ingest event| Ingest
-  Ingest -->|produce| Kafka{{Watermill eventbus<br/>3 Kafka topics:<br/>ingest / system / balance-worker}}
-  Domains -->|publish domain events| Kafka
-  Kafka -->|ingest topic| Sink[cmd/sink-worker<br/>3-phase flush]
-  Sink -->|BatchInsert| ClickHouse[(ClickHouse<br/>usage events)]
-  Sink -->|flush notification| Kafka
-  Kafka -->|balance-worker topic| Balance[cmd/balance-worker<br/>entitlement recalc]
-  Balance -->|query usage| ClickHouse
-  Kafka -->|system topic| Billing[cmd/billing-worker<br/>invoice + charge advance]
-  Billing -->|ledger postings| Postgres
-  Kafka -->|system topic| Notif[cmd/notification-service<br/>webhook dispatch]
-  Notif -->|webhooks| Svix[Svix]
+  Client["API clients / SDKs (Go/JS/Python)"] --> Server["cmd/server: Chi v1+v3 HTTP API"]
+  Server --> Domains["openmeter/* domain services (billing, customer, subscription, entitlement, credit, ledger)"]
+  Domains --> Ent["Ent adapters + entutils.TransactingRepo"]
+  Ent --> Postgres[("PostgreSQL (Ent + Atlas)")]
+  Domains --> EventBus["Watermill eventbus.Publisher"]
+  EventBus --> Kafka[("Kafka: ingest / system / balance-worker topics")]
+  Client -->|usage events| Ingest["ingest.Collector (Redis dedupe)"]
+  Ingest --> Kafka
+  Kafka --> Sink["cmd/sink-worker: 3-phase flush"]
+  Sink --> ClickHouse[("ClickHouse events MergeTree")]
+  Kafka --> Workers["billing-worker / balance-worker / notification-service"]
+  Workers --> Domains
+  ClickHouse --> Domains
 ```
 
 ## Commands
@@ -205,20 +218,20 @@ docker compose up -d
 # fmt
 golangci-lint run --fix
 # test
-POSTGRES_HOST=127.0.0.1 go test -p 128 -parallel 16 -tags=dynamic ./... (make test; checks Postgres is running first)
+make test => PGPASSWORD=postgres psql healthcheck then POSTGRES_HOST=127.0.0.1 go test -p 128 -parallel 16 -tags=dynamic ./...
 # lint
-make lint-go lint-api-spec lint-openapi lint-helm
+make lint => lint-go lint-api-spec lint-openapi lint-helm
 # build
-make build (go build -o build/ -tags=dynamic across cmd/server, sink-worker, balance-worker, billing-worker, notification-service, jobs, plus benthos-collector)
+make build (builds server, sink-worker, benthos-collector, balance-worker, billing-worker, notification-service, jobs with -tags=dynamic)
 # server
-air -c ./cmd/server/.air.toml
+air -c ./cmd/server/.air.toml (make server)
 # lint-go
 golangci-lint run -v ./...
 # test-all
-docker compose up -d postgres svix redis && SVIX_HOST=localhost SVIX_JWT_SECRET=DUMMY_JWT_SECRET go test -p 128 -parallel 16 -tags=dynamic -count=1 ./...
+docker compose up -d postgres svix redis; SVIX_HOST=localhost SVIX_JWT_SECRET=DUMMY_JWT_SECRET go test -p 128 -parallel 16 -tags=dynamic -count=1 ./...
 ```
 
-_Full catalog (37 commands) in [`.claude/rules/technology.md`](.claude/rules/technology.md)._
+_Full catalog (41 commands) in [`.claude/rules/technology.md`](.claude/rules/technology.md)._
 
 ## Architectural Rules
 
@@ -233,6 +246,7 @@ Detailed rules live as topic files under `.claude/rules/`. Read the relevant one
 - [`.claude/rules/dev-rules.md`](.claude/rules/dev-rules.md) — Coding-time imperatives (patterns, anti-patterns, boundaries, wiring)
 - [`.claude/rules/infrastructure.md`](.claude/rules/infrastructure.md) — CI / signing / distribution / secrets / env setup / registry auth
 - [`.claude/rules/enforcement/index.md`](.claude/rules/enforcement/index.md) — Every rule the pre-edit hook + plan/commit classifier consults, grouped by severity
+- [`.claude/rules/frontend.md`](.claude/rules/frontend.md) — UI architecture, state, routing (when applicable)
 
 ## Enforcement Rules
 

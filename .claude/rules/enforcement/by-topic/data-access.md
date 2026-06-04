@@ -1,4 +1,4 @@
-# Enforcement: data-access (8 rules)
+# Enforcement: data-access (11 rules)
 
 Topic file. Loaded on demand when an agent works on something in the `data-access` area. The pre-edit hook reads `.archie/rules.json` directly — this file is for browsing/context only.
 
@@ -240,3 +240,48 @@ rows, err := connector.ListEventsV2(ctx, namespace, params) // query built via c
 ```
 
 </details>
+
+### `api-v3-002-nullable-apierrors` — Use nullable.Nullable[T] for optional v3 JSON fields and the apierrors package for v3 error responses
+
+*source: `deep_scan`*
+
+**Why:** v3 codegen is configured with nullable-type:true and always-prefix-enum-values:true in api/v3/codegen.yaml, so optional JSON fields are generated as nullable.Nullable[T] (not *T) and enum constants are fully prefixed with a Valid() method. v3 handlers must return errors through the apierrors package, not http.Error/w.WriteHeader, so problem+json shapes stay consistent with the generated contract.
+
+**Example:**
+
+```
+field := nullable.NewWithValue(name)
+if !status.Valid() { return apierrors.NewBadRequest("invalid status") }
+```
+
+**Path glob:** `api/v3/handlers/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "http\\.Error\\(|w\\.WriteHeader\\("
+    ],
+    "must_not_match": [
+      "apierrors\\."
+    ]
+  }
+]
+```
+
+</details>
+
+### `persist-postgres-via-ent-atlas` — Persist all relational state through Ent schemas applied by golang-migrate over Atlas-generated SQL
+
+*source: `deep_scan`*
+
+**Why:** primary_postgres is the authoritative relational store for all ~35 Ent entities; the schema is defined in openmeter/ent/schema/*.go and applied at startup via golang-migrate over Atlas-generated SQL (tools/migrate/migrate.go). Any new table or column must originate from an Ent schema edit + 'atlas migrate --env local diff', never from ad-hoc DDL, so the single-schema-source and Atlas hash chain stay intact.
+
+### `persist-redis-dedupe-cache-only` — Treat redis_dedupe strictly as a TTL ingest-dedup cache, never as a source of truth
+
+*source: `deep_scan`*
+
+**Why:** redis_dedupe is a TTL-based ingest deduplication store using SET NX on namespace-source-id keys, updated as the third (last) phase of the sink flush, strictly after the Kafka offset commit (openmeter/dedupe/redisdedupe/redisdedupe.go:82). It holds only key presence with an expiration and must not be read as durable application state; correctness of exactly-once ingestion depends on it being written after, never before, the offset commit.

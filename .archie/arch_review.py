@@ -22,6 +22,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from _common import _load_json, safe_read_text  # noqa: E402
 
+# Comprehensive depth lifts content-comprehensiveness render slices. Set from
+# __main__ when "--comprehensive" is present in argv. Render functions read this
+# module global via _cap().
+_COMPREHENSIVE = False
+
+
+def _cap(seq, n):
+    """Cap seq to n items unless comprehensive depth is active."""
+    return seq if _COMPREHENSIVE else seq[:n]
+
 
 def _get_blueprint_context(root: Path) -> str:
     """Extract key architectural constraints from blueprint."""
@@ -36,7 +46,7 @@ def _get_blueprint_context(root: Path) -> str:
     key_decs = decisions.get("key_decisions", [])
     if key_decs:
         parts.append("## Key Architectural Decisions")
-        for d in key_decs[:8]:
+        for d in _cap(key_decs, 8):
             if isinstance(d, dict):
                 title = d.get("title", "")
                 chosen = d.get("chosen", "")
@@ -51,12 +61,12 @@ def _get_blueprint_context(root: Path) -> str:
     trade_offs = decisions.get("trade_offs", [])
     if trade_offs:
         parts.append("\n## Trade-offs (violation signals)")
-        for t in trade_offs[:5]:
+        for t in _cap(trade_offs, 5):
             if isinstance(t, dict):
                 accept = t.get("accept", "")
                 signals = t.get("violation_signals", [])
                 if signals:
-                    parts.append(f"- {accept} — signals: {', '.join(signals[:5])}")
+                    parts.append(f"- {accept} — signals: {', '.join(_cap(signals, 5))}")
             elif isinstance(t, str):
                 parts.append(f"- {t}")
             else:
@@ -74,7 +84,7 @@ def _get_blueprint_context(root: Path) -> str:
     dev_rules = bp.get("development_rules", [])
     if dev_rules:
         parts.append("\n## Development Rules")
-        for r in dev_rules[:10]:
+        for r in _cap(dev_rules, 10):
             if isinstance(r, dict):
                 parts.append(f"- {r.get('rule', '')}")
             elif isinstance(r, str):
@@ -88,7 +98,7 @@ def _get_blueprint_context(root: Path) -> str:
     comp_list = comps.get("components", []) if isinstance(comps, dict) else []
     if comp_list:
         parts.append("\n## Component Boundaries")
-        for c in comp_list[:10]:
+        for c in _cap(comp_list, 10):
             if isinstance(c, dict):
                 name = c.get("name", "")
                 loc = c.get("location", "")
@@ -284,6 +294,10 @@ if __name__ == "__main__":
         print("  python3 arch_review.py plan <project_root>", file=sys.stderr)
         print("  python3 arch_review.py diff <project_root>", file=sys.stderr)
         sys.exit(1)
+
+    # Module-level: assign directly (no `global` needed at module scope).
+    # Render functions read this module global via _cap().
+    _COMPREHENSIVE = "--comprehensive" in sys.argv
 
     subcmd = sys.argv[1]
     root = Path(sys.argv[2]).resolve()

@@ -1,0 +1,122 @@
+{
+  "command": "deep-scan",
+  "cli": "claude",
+  "meta": {
+    "depth": "comprehensive"
+  },
+  "started_at": "2026-06-04T08:17:04Z",
+  "completed_at": "2026-06-04T08:56:55Z",
+  "total_seconds": 2114,
+  "project": {
+    "source_files": 0,
+    "total_loc": 0,
+    "directories": 0
+  },
+  "steps": [
+    {
+      "step": 1,
+      "key": "scan",
+      "name": "Scanner",
+      "seconds": 12
+    },
+    {
+      "step": 2,
+      "key": "read",
+      "name": "Read prior knowledge",
+      "seconds": 31
+    },
+    {
+      "step": 3,
+      "key": "wave1",
+      "name": "Wave 1 \u2014 fact agents",
+      "seconds": 602,
+      "model": "gpt-5",
+      "data_models_count": 22,
+      "persistence_stores_count": 4,
+      "sub_agents": [
+        {
+          "key": "data",
+          "name": "Data",
+          "seconds": 318
+        },
+        {
+          "key": "patterns",
+          "name": "Patterns",
+          "seconds": 348
+        },
+        {
+          "key": "structure",
+          "name": "Structure",
+          "seconds": 485
+        },
+        {
+          "key": "technology",
+          "name": "Technology",
+          "seconds": 263
+        },
+        {
+          "key": "ui",
+          "name": "UI Layer",
+          "seconds": 64
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "key": "merge",
+      "name": "Wave 1 merge",
+      "seconds": 6
+    },
+    {
+      "step": 5,
+      "key": "wave2_synthesis",
+      "name": "Wave 2 \u2014 reasoning",
+      "seconds": 389,
+      "model": "gpt-5",
+      "sub_agents": [
+        {
+          "key": "design",
+          "name": "Design",
+          "seconds": 389
+        },
+        {
+          "key": "overview",
+          "name": "Overview",
+          "seconds": 47
+        },
+        {
+          "key": "risk",
+          "name": "Risk",
+          "seconds": 342
+        }
+      ]
+    },
+    {
+      "step": 6,
+      "key": "rule_synthesis",
+      "name": "Rule synthesis",
+      "seconds": 268,
+      "model": "gpt-5"
+    },
+    {
+      "step": 7,
+      "key": "intent_layer",
+      "name": "Intent Layer",
+      "seconds": 0,
+      "model": "gpt-5",
+      "skipped": true
+    },
+    {
+      "step": 8,
+      "key": "cleanup",
+      "name": "Cleanup",
+      "seconds": 0
+    },
+    {
+      "step": 9,
+      "key": "drift",
+      "name": "Drift & assessment",
+      "seconds": 806
+    }
+  ]
+}

@@ -12,11 +12,12 @@
   ],
   "last_completed": 9,
   "status": "completed",
-  "started_at": "2026-06-02T19:14:41.723504+00:00",
+  "started_at": "2026-06-04T08:15:52.534504+00:00",
   "run_context": {
-    "scope": "whole",
-    "intent_layer": "yes",
     "scan_mode": "full",
+    "depth": "comprehensive",
+    "scope": "whole",
+    "intent_layer": "no",
     "monorepo_type": "none",
     "start_step": 1,
     "workspaces": [

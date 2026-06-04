@@ -32,7 +32,7 @@
       "depth": "canonical",
       "pitfall_id": "pf_0001",
       "first_seen": "2026-04-24",
-      "confirmed_in_scan": 5,
+      "confirmed_in_scan": 6,
       "status": "demoted",
       "verdict_history": [
         "demote",
@@ -76,7 +76,7 @@
       "depth": "canonical",
       "pitfall_id": "pf_0002",
       "first_seen": "2026-04-24",
-      "confirmed_in_scan": 5,
+      "confirmed_in_scan": 6,
       "status": "demoted",
       "verdict_history": [
         "demote"
@@ -115,14 +115,15 @@
       "depth": "canonical",
       "pitfall_id": "pf_0007",
       "first_seen": "2026-04-24",
-      "confirmed_in_scan": 5,
+      "confirmed_in_scan": 6,
       "status": "active",
       "verdict_history": [
         "keep",
+        "keep",
         "keep"
       ],
-      "last_verdict_reason": "The quoted code at grouphandler.go:48-54 returns nil (success) for any unknown ce_type, which silently drops known-event-unknown-version mismatches indistinguishably from intentional rolling-deploy ignoring; this is a real failure mode where payload version bumps in producers are invisible to consumers, making notification delivery silently fail without surfacing as DLQ or error.",
-      "last_verdict_confidence": 0.92
+      "last_verdict_reason": "The quoted code at grouphandler.go:48-54 definitely exists and silently returns nil when a ce_type is not found in typeHandlerMap. The enforcement rule notification-001 confirms payload versioning is a design concern and requires migration paths, which implies version constants exist alongside event definitions. If notification event ce_types encode payload versions, the silent drop behavior here would silently lose events during producer/consumer version mismatches, violating visibility requirements\u2014a valid architectural risk even if I cannot confirm ce_types actually encode versions from the provided code excerpt.",
+      "last_verdict_confidence": 0.75
     },
     {
       "id": "f_0004",
@@ -152,7 +153,7 @@
       "depth": "canonical",
       "pitfall_id": "pf_0004",
       "first_seen": "2026-04-24",
-      "confirmed_in_scan": 5,
+      "confirmed_in_scan": 6,
       "status": "demoted",
       "verdict_history": [
         "demote",
@@ -192,14 +193,15 @@
       "depth": "canonical",
       "pitfall_id": "pf_0008",
       "first_seen": "2026-04-24",
-      "confirmed_in_scan": 5,
+      "confirmed_in_scan": 6,
       "status": "active",
       "verdict_history": [
         "keep",
+        "keep",
         "keep"
       ],
-      "last_verdict_reason": "The quoted code exists at openmeter/server/server.go line 212-214 and does violate the context propagation rule by passing context.Background() to models.NewStatusProblem in an error handler. The failure mode is real: v1 validation-error RFC 7807 responses lose request-id and OTel span context. While this is due to kin-openapi's ErrorHandler callback signature omitting *http.Request, it remains a valid rule violation in application code that should be tracked, though fixing it may require wrapping or rewriting the v1 validation middleware.",
-      "last_verdict_confidence": 0.75
+      "last_verdict_reason": "The quoted code exists at openmeter/server/server.go:214 (off by one line from the citation); it does call context.Background() inside the kin-openapi ErrorHandler callback which lacks access to the request context due to library API constraints, severing request-scoped context from validation error responses and violating the project's ctx-003 context propagation rule. The violation is real despite the engineer's acknowledged comment about library limitations.",
+      "last_verdict_confidence": 0.95
     },
     {
       "id": "f_0006",
@@ -231,14 +233,15 @@
       "depth": "canonical",
       "pitfall_id": "pf_0006a",
       "first_seen": "2026-04-28",
-      "confirmed_in_scan": 4,
+      "confirmed_in_scan": 5,
       "status": "active",
       "verdict_history": [
         "keep",
+        "keep",
         "keep"
       ],
-      "last_verdict_reason": "The quoted call site exists in cmd/billing-worker/main.go:86 and the architectural pattern is confirmed: cmd/server is the sole binary registering namespace handlers (Ledger, KafkaIngest, TaxCode) before initNamespace(), while cmd/billing-worker assumes the default namespace is already provisioned when it calls EnsureBusinessAccounts(). No Kubernetes or deployment ordering enforces cmd/server startup before cmd/billing-worker, creating a real cross-binary boot-order dependency that is undocumented in infrastructure.",
-      "last_verdict_confidence": 0.75
+      "last_verdict_reason": "The quoted code at cmd/billing-worker/main.go:86 calls app.NamespaceManager.GetDefaultNamespace() and passes the result to EnsureBusinessAccounts without verifying the namespace was actually provisioned by namespace.Manager handlers (which are registered only in cmd/server and called before initNamespace); if billing-worker starts before server, the namespace string exists but backend resources (ClickHouse table, Kafka topics, ledger accounts) may not, causing runtime failures with no compile-time guard.",
+      "last_verdict_confidence": 0.95
     },
     {
       "id": "f_0007",
@@ -271,14 +274,15 @@
       "depth": "canonical",
       "pitfall_id": "pf_0006",
       "first_seen": "2026-04-28",
-      "confirmed_in_scan": 4,
+      "confirmed_in_scan": 5,
       "status": "active",
       "verdict_history": [
         "keep",
+        "keep",
         "keep"
       ],
-      "last_verdict_reason": "The quoted code exists and accurately describes a real architectural pattern: hook registration via side-effects inside Wire provider functions (NewCustomerLedgerServiceHook, NewCustomerSubjectServiceHook, NewCustomerEntitlementValidatorServiceHook all call RegisterHooks/RegisterRequestValidator). The enforcement rules explicitly codify this as pitfall pf-006-wire-hook-audit, confirming that omitting these providers from a binary's wire.Build silently drops hooks with no compile error. The pattern is documented as a known vulnerability in the codebase.",
-      "last_verdict_confidence": 0.85
+      "last_verdict_reason": "The cited call site `customerService.RegisterHooks(h)` at app/common/customer.go:73 exists within NewCustomerLedgerServiceHook. The three hook providers (NewCustomerLedgerServiceHook, NewCustomerSubjectServiceHook, NewCustomerEntitlementValidatorServiceHook) are defined in customer.go but are not included in any wire.NewSet\u2014the Customer set contains only NewCustomerService, and Wire has no type dependency on these hook providers' return types, so Wire will not call them and their side-effect registrations will silently not run, matching the pf_0006 failure mode exactly.",
+      "last_verdict_confidence": 0.92
     },
     {
       "id": "f_0008",
@@ -306,15 +310,15 @@
       "depth": "canonical",
       "pitfall_id": "pf_0005",
       "first_seen": "2026-04-28",
-      "confirmed_in_scan": 4,
+      "confirmed_in_scan": 5,
       "status": "active",
       "verdict_history": [
+        "keep",
         "demote",
         "keep"
       ],
-      "last_verdict_reason": "The quoted default case (eventbus.go:141) exists and the failure mode is real, but it is an intentionally-designed trade-off for rolling-deploy safety that is already documented as pitfall pf-007 in enforcement/by-topic/misc.md with explicit code-review guards. The risk should be tracked via the existing enforcement rule, not as a separate findings.json entry.",
-      "last_verdict_confidence": 0.9,
-      "pending_demotion": true
+      "last_verdict_reason": "The cited default case exists at lines 141-142 in eventbus.go and returns SystemEventsTopic unconditionally without validating that EventName matches a registered subsystem prefix. While the pattern is documented in pf_0007 and enforcement rules warn against it, the code itself has no validation to prevent misnamed event families from silently routing to the wrong topic, making this a real structural vulnerability.",
+      "last_verdict_confidence": 0.92
     },
     {
       "id": "f_0009",
@@ -343,14 +347,15 @@
       "depth": "canonical",
       "pitfall_id": "pf_0008",
       "first_seen": "2026-05-14T1935",
-      "confirmed_in_scan": 2,
+      "confirmed_in_scan": 3,
       "status": "active",
       "verdict_history": [
         "keep",
+        "keep",
         "keep"
       ],
-      "last_verdict_reason": "The quoted code at appclient.go:240 exists and definitively calls c.appService.UpdateAppStatus(context.Background(), ...) from providerError, which is invoked from context-carrying methods (DeleteWebhook, GetAccount, GetPaymentMethod) but receives no ctx parameter to thread through; this violates AGENTS.md's explicit rule against context.Background() in application code and breaks OTel span propagation and Ent transaction context for a database write reachable on every Stripe 401.",
-      "last_verdict_confidence": 0.92
+      "last_verdict_reason": "The cited call site exists verbatim at appclient.go:240 inside the http.StatusUnauthorized branch of providerError, which takes no context.Context parameter; all seven callers of providerError (DeleteWebhook, GetAccount, GetPaymentMethod, GetInvoice, CreateInvoice, UpdateInvoice, DeleteInvoice, etc.) receive ctx as a parameter but cannot thread it through, forcing UpdateAppStatus to execute outside the request context with context.Background() and severing OTel spans and transaction semantics, violating the documented pf-008 and ctx-propagation rules.",
+      "last_verdict_confidence": 0.95
     },
     {
       "id": "f_0010",
@@ -382,14 +387,15 @@
       "depth": "canonical",
       "pitfall_id": "pf_0006a",
       "first_seen": "2026-05-14T1935",
-      "confirmed_in_scan": 2,
+      "confirmed_in_scan": 3,
       "status": "active",
       "verdict_history": [
         "keep",
+        "keep",
         "keep"
       ],
-      "last_verdict_reason": "The quoted code exists at cmd/billing-worker/main.go and the failure mode is real: billing-worker calls EnsureBusinessAccounts without ever registering namespace.Handler implementations, creating an undocumented boot-order dependency on cmd/server to register handlers and call CreateDefaultNamespace first; if billing-worker boots against a fresh database before cmd/server, subsystem provisioning (Kafka topics, ledger namespace setup) never fires.",
-      "last_verdict_confidence": 0.85
+      "last_verdict_reason": "The quoted call site exists at cmd/billing-worker/main.go:86. The failure mode is real: cmd/billing-worker calls EnsureBusinessAccounts without first registering namespace handlers or asserting the default namespace exists, violating the documented pattern (pf-006a) that worker binaries must fail-fast verify default namespace provisioning before namespace-scoped operations. If billing-worker starts before cmd/server, the ledger and Kafka ingest handlers never register, leaving the default namespace incompletely provisioned when EnsureBusinessAccounts attempts to write business accounts.",
+      "last_verdict_confidence": 0.92
     },
     {
       "id": "f_0011",
@@ -423,15 +429,92 @@
       "depth": "canonical",
       "pitfall_id": "pf_0009",
       "first_seen": "2026-06-02T2125",
+      "confirmed_in_scan": 2,
+      "status": "active",
+      "verdict_history": [
+        "keep",
+        "keep"
+      ],
+      "last_verdict_reason": "The quoted call site exists at customer.go:59-61 applying filter.ApplyToQuery to name/primary_email/key fields; these filters generate leading-wildcard ILIKE patterns (per filter.go evidence and enforcement rule pf-009), the schema only declares btree indexes on these columns, and the v3 endpoint exposes the filters without a pg_trgm GIN migration prerequisite, causing sequential scans on every filtered list call.",
+      "last_verdict_confidence": 0.85
+    },
+    {
+      "id": "f_0012",
+      "problem_statement": "The BillingInvoice adapter actively dual-writes invoice data under a schema_level discriminator (written from a temporary BillingInvoiceWriteSchemaLevel single-row table) while deprecated columns remain live, so the in-flight invoice-line migration creates coupled cleanup debt that must be removed in lockstep across the Ent schema and the billing adapter.",
+      "evidence": [
+        "openmeter/ent/schema/billing.go:1171 field.Int(\"schema_level\").Default(1) on BillingInvoice; billing.go:1363 declares a temporary single-row BillingInvoiceWriteSchemaLevel table that tracks the active write schema level.",
+        "openmeter/billing/adapter/gatheringinvoice.go:43 reads tx.GetInvoiceDefaultSchemaLevel(ctx) and gatheringinvoice.go:58 calls .SetSchemaLevel(currentSchemaLevel) on each created invoice - the adapter writes the discriminator on every gathering-invoice create.",
+        "openmeter/billing/adapter/gatheringinvoice.go:424 and invoicelinesplitgroup.go:254 branch the read mapping on invoice.SchemaLevel via mapGatheringInvoiceLinesFromDB(invoice.SchemaLevel, ...) / mapGatheringInvoiceLineFromDB(...SchemaLevel...), so old and new line shapes are both decodable.",
+        "openmeter/ent/schema/billing.go:417,631,793 still declare Deprecated() columns (line_ids; split-line-group tax_config/tax_code_id/tax_behavior; discount type/quantity/pre_line_period_quantity) that coexist with the new line_discounts shape.",
+        "openmeter/billing/adapter/lock.go:55 calls tx.migrateCustomerInvoices(ctx, input, migrationStatus.minSchemaLevel) - a per-customer in-place migration step driven by the same discriminator."
+      ],
+      "triggering_call_site": "openmeter/billing/adapter/gatheringinvoice.go:58\n\t\t\tSetSchemaLevel(currentSchemaLevel).",
+      "root_cause": "Stems from the Ent-schema-as-source-of-truth persistence decision under an incremental invoice-line migration (rather than a single breaking cutover): the schema carries deprecated columns plus a schema_level discriminator encoded in two places (the per-row BillingInvoice.schema_level column and the standalone BillingInvoiceWriteSchemaLevel table), and the adapter reads GetInvoiceDefaultSchemaLevel then SetSchemaLevel and branches mapGatheringInvoiceLinesFromDB on the level to write/read both shapes during the transition. Because the discriminator lives in two artifacts and the dual-write branches live in the adapter, the cleanup is a multi-artifact schema-plus-adapter operation that can be left half-done if the migration stalls - the in-flight instance of the schema-migration cleanup-debt class pf_0011.",
+      "fix_direction": [
+        "Track the invoice-line migration to completion with an explicit checklist enumerating the deprecated columns (line_ids, split-line-group tax_config/tax_code_id/tax_behavior, discount type/quantity/pre_line_period_quantity) and the schema_level artifacts (BillingInvoice.schema_level field + BillingInvoiceWriteSchemaLevel table).",
+        "When GetInvoiceDefaultSchemaLevel reports a single level everywhere (minSchemaLevel == max), remove the schema_level field, drop the BillingInvoiceWriteSchemaLevel table, and delete the mapGatheringInvoiceLinesFromDB / mapGatheringInvoiceLineFromDB dual-shape branches and lock.go migrateCustomerInvoices in one migration.",
+        "Generate the Atlas down-migration for the column drops and verify it before landing, given the atlas.sum linear-chain constraint (see pf_0004).",
+        "Add a test asserting no live billing_invoice row references a deprecated column and no row has schema_level < the target after cutover."
+      ],
+      "severity": "info",
+      "confidence": 0.8,
+      "applies_to": [
+        "openmeter/ent/schema/billing.go",
+        "openmeter/billing/adapter",
+        "openmeter/billing/adapter/gatheringinvoice.go",
+        "openmeter/billing/adapter/schemalevel.go",
+        "openmeter/billing/adapter/lock.go"
+      ],
+      "source": "deep:synthesis",
+      "depth": "canonical",
+      "pitfall_id": "pf_0011",
+      "first_seen": "2026-06-04T1200",
       "confirmed_in_scan": 1,
       "status": "active",
       "verdict_history": [
         "keep"
       ],
-      "last_verdict_reason": "The quoted call site at openmeter/customer/adapter/customer.go:59 exists and correctly applies case-insensitive ILIKE filters (via filter.ApplyToQuery with sql.FieldContainsFold) to the name column, which has only a plain btree index; this DOES trigger sequential scans as described. The issue is documented as a known architectural pitfall (pf_0009) in CLAUDE.md but remains a real performance problem. The v3 API exposes contains operators that compile to leading-wildcard ILIKE, and the customer schema lacks the pg_trgm GIN indexes required to serve this query pattern efficiently.",
-      "last_verdict_confidence": 0.9
+      "last_verdict_reason": "The triggering call site exists and is confirmed to be part of the schema_level dual-write mechanism; GetInvoiceDefaultSchemaLevel \u2192 SetSchemaLevel creates coupled cleanup debt across the BillingInvoice schema and adapter that must be removed in lockstep, mirroring the documented pitfall pf-011.",
+      "last_verdict_confidence": 0.8
+    },
+    {
+      "id": "f_0013",
+      "problem_statement": "The shared ClickHouse events table is created with CREATE TABLE IF NOT EXISTS at connector startup outside the Atlas/golang-migrate pipeline, and its column list is maintained by hand in three places, so adding a ch:-tagged field to streaming.RawEvent does not propagate to already-provisioned tables and silently drifts the struct from the live DDL/INSERT column list.",
+      "evidence": [
+        "openmeter/streaming/clickhouse/event_query.go:25 createEventsTable.toSQL() calls sb.IfNotExists() - on an existing deployment the table is never altered, so a new column never materialises.",
+        "openmeter/streaming/clickhouse/connector.go:78-79 only calls createTable when !config.SkipCreateTables, and createTable is the sole DDL path - there is no migration/ALTER reconcile step.",
+        "openmeter/streaming/connector.go:24-35 RawEvent has ch:-tagged columns (namespace,id,type,source,subject,time,data,ingested_at,stored_at,store_row_id,customer_id) that must be kept in sync by hand with the DDL builder and the INSERT list.",
+        "openmeter/streaming/clickhouse/event_query.go:26-36 createEventsTable.toSQL() Define(...) list and event_query.go:207 InsertEventsQuery.ToSQL() query.Cols(...) are two independent hand-maintained column lists; a struct change that misses either, or runs against a pre-existing table, drifts silently.",
+        "data model RawEvent lifecycle (data-models): 'createEventsTable uses CREATE TABLE IF NOT EXISTS so new columns on existing deployments need an explicit ALTER TABLE migration path.'"
+      ],
+      "triggering_call_site": "openmeter/streaming/clickhouse/event_query.go:25\n\tsb.IfNotExists()",
+      "root_cause": "Stems from the multi-store decision (Postgres via Ent+Atlas for domain state; ClickHouse via connector create-if-not-exists for usage) that leaves ClickHouse outside the migration pipeline: createEventsTable.toSQL() (event_query.go:25) emits CREATE TABLE IF NOT EXISTS with no diff/ALTER path, and the RawEvent struct, the DDL Define() list, and the INSERT query.Cols() list are three hand-synchronised sources of truth. So a new ch: field added to RawEvent (connector.go:24-35) compiles, but neither alters an already-provisioned events table nor is guarded by any schema-diff check, surfacing only as a runtime insert/read mismatch. This is the ClickHouse instance of the FK-less/migration-less integrity class pf_0010.",
+      "fix_direction": [
+        "Introduce a ClickHouse migration or ALTER-on-startup reconcile that compares the live events-table columns against the RawEvent struct and applies ADD COLUMN for any new ch: field on existing deployments.",
+        "Add a contract test asserting the set of RawEvent ch:-tagged fields equals the createEventsTable Define() column set AND the InsertEventsQuery query.Cols() column list, in matching order.",
+        "Centralise the column list in one Go slice consumed by the struct mapper, the DDL builder, and the INSERT builder so the three lists cannot diverge.",
+        "Document the migration-less invariant in openmeter/streaming/clickhouse/CLAUDE.md so future ch: field additions trigger the ALTER path."
+      ],
+      "severity": "warn",
+      "confidence": 0.8,
+      "applies_to": [
+        "openmeter/streaming/connector.go",
+        "openmeter/streaming/clickhouse/event_query.go",
+        "openmeter/streaming/clickhouse/connector.go"
+      ],
+      "source": "deep:synthesis",
+      "depth": "canonical",
+      "pitfall_id": "pf_0010",
+      "first_seen": "2026-06-04T1200",
+      "confirmed_in_scan": 1,
+      "status": "active",
+      "verdict_history": [
+        "keep"
+      ],
+      "last_verdict_reason": "Code at event_query.go:25 confirms sb.IfNotExists() pattern; the three hand-maintained column lists (RawEvent struct ch:-tags, createEventsTable.toSQL() Define() calls lines 26-36, InsertEventsQuery.ToSQL() Cols() line 207) are verified in the provided code; CLAUDE.md data-rawevent-clickhouse-column-sync rule and pf-010 pitfall explicitly document this exact problem, confirming it is a known architectural risk in the codebase.",
+      "last_verdict_confidence": 0.92
     }
   ],
-  "scanned_at": "2026-06-02T1933",
-  "verdicts_applied_at": "2026-06-02T1934"
+  "scanned_at": "2026-06-04T0836",
+  "verdicts_applied_at": "2026-06-04T0837"
 }

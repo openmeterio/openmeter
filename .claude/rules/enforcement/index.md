@@ -1,22 +1,22 @@
 # Enforcement Rules — Index
 
-This project has 162 rules across 12 project topics. Load only the topic file(s) relevant to your task. Universal Archie anti-patterns live in `universal.md` and apply to every project.
+This project has 176 rules across 12 project topics. Load only the topic file(s) relevant to your task. Universal Archie anti-patterns live in `universal.md` and apply to every project.
 
 ## By topic
 
 | Topic | File | Rules |
 |-------|------|-------|
-| billing | by-topic/billing.md | 3 |
+| billing | by-topic/billing.md | 5 |
 | concurrency | by-topic/concurrency.md | 2 |
-| data-access | by-topic/data-access.md | 8 |
-| data-modeling | by-topic/data-modeling.md | 6 |
-| dependencies | by-topic/dependencies.md | 7 |
+| data-access | by-topic/data-access.md | 11 |
+| data-modeling | by-topic/data-modeling.md | 8 |
+| dependencies | by-topic/dependencies.md | 13 |
 | layering | by-topic/layering.md | 11 |
 | misc | by-topic/misc.md | 90 |
 | schema-evolution | by-topic/schema-evolution.md | 1 |
 | security | by-topic/security.md | 1 |
 | services | by-topic/services.md | 1 |
-| state-management | by-topic/state-management.md | 1 |
+| state-management | by-topic/state-management.md | 2 |
 | testing | by-topic/testing.md | 1 |
 | Universal | universal.md | 30 |
 
@@ -32,7 +32,7 @@ When editing a file matching one of these globs, load the listed topics first.
 | `api/openapi.yaml` | misc |
 | `api/spec/packages/aip/src/**/*.tsp` | misc |
 | `api/spec/packages/legacy/src/**/*.tsp` | misc |
-| `api/v3/handlers/**/*.go` | misc |
+| `api/v3/handlers/**/*.go` | data-access, misc |
 | `api/v3/openapi.yaml` | misc |
 | `api/v3/server/**/*.go` | misc |
 | `app/common/*.go` | misc |
@@ -43,6 +43,7 @@ When editing a file matching one of these globs, load the listed topics first.
 | `cmd/billing-worker/main.go` | misc, services |
 | `cmd/server/**/*.go` | misc |
 | `cmd/sink-worker/main.go` | services |
+| `collector/**/*.go` | dependencies |
 | `deploy/charts/benthos-collector/Chart.yaml` | misc |
 | `deploy/charts/openmeter/Chart.yaml` | misc |
 | `openmeter/**/*.go` | dependencies, layering, misc |
@@ -50,6 +51,7 @@ When editing a file matching one of these globs, load the listed topics first.
 | `openmeter/**/httpdriver/**/*.go` | misc |
 | `openmeter/**/service.go` | layering |
 | `openmeter/**/service/*.go` | data-access, misc |
+| `openmeter/app/**/*.go` | billing |
 | `openmeter/app/stripe/**/*.go` | concurrency |
 | `openmeter/billing/**/*.go` | billing, misc |
 | `openmeter/billing/**/*_test.go` | misc |
@@ -67,6 +69,7 @@ When editing a file matching one of these globs, load the listed topics first.
 | `openmeter/ent/schema/chargemeta.go` | data-modeling |
 | `openmeter/ent/schema/charges*.go` | data-modeling |
 | `openmeter/ent/schema/charges.go` | data-modeling |
+| `openmeter/ent/schema/customer.go` | data-modeling |
 | `openmeter/ent/schema/ledger_account.go` | data-modeling |
 | `openmeter/ent/schema/ledger_customer_account.go` | data-modeling |
 | `openmeter/ent/schema/notification.go` | data-modeling |
@@ -74,7 +77,7 @@ When editing a file matching one of these globs, load the listed topics first.
 | `openmeter/entitlement/**/*.go` | billing |
 | `openmeter/entitlement/balanceworker/**/*.go` | state-management |
 | `openmeter/ingest/**/*.go` | data-access |
-| `openmeter/ledger/**/*.go` | misc |
+| `openmeter/ledger/**/*.go` | data-modeling, misc |
 | `openmeter/notification/**/*.go` | misc |
 | `openmeter/portal/**/*.go` | security |
 | `openmeter/productcatalog/feature/**/*.go` | data-modeling |
@@ -82,6 +85,7 @@ When editing a file matching one of these globs, load the listed topics first.
 | `openmeter/sink/**/*.go` | data-access, misc |
 | `openmeter/streaming/**/*.go` | data-access |
 | `openmeter/streaming/clickhouse/**/*.go` | data-access |
-| `openmeter/subscription/**/*.go` | misc |
+| `openmeter/subscription/**/*.go` | billing, misc |
 | `openmeter/watermill/**/*.go` | misc |
 | `openmeter/watermill/eventbus/**/*.go` | misc |
+| `pkg/**/*.go` | dependencies |

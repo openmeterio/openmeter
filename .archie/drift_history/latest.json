@@ -1976,119 +1976,362 @@
   "dependency_violations": [
     {
       "type": "dependency_violation",
-      "from_component": "cmd (binary entrypoints)",
-      "to_component": "openmeter/ledger (double-entry ledger)",
-      "file": "cmd/billing-worker/wire.go",
-      "import": "openmeter/ledger",
-      "message": "cmd (binary entrypoints) imports from openmeter/ledger (double-entry ledger) but does not declare it as a dependency",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/billing (billing domain)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/billing/creditgrant",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/billing (billing domain) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
-      "from_component": "cmd (binary entrypoints)",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/cost (feature cost queries)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/cost",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/cost (feature cost queries) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/customer (customer domain)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/customer",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/customer (customer domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/ent (persistence schema + generated code)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/ent/db",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/ledger (double-entry ledger)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/ledger",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/ledger (double-entry ledger) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/llmcost (LLM cost prices)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/llmcost",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/llmcost (LLM cost prices) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/meter",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/meterevent (raw event listing)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/meterevent",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/meterevent (raw event listing) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/notification (notification domain)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/notification",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/notification (notification domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/portal (portal tokens)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/portal",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/portal (portal tokens) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/productcatalog (catalog domain)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/productcatalog/addon",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/productcatalog (catalog domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/secret (secret store)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/secret",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/secret (secret store) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/subject (subject directory)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/subject",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/subject (subject directory) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/server (HTTP API binary)",
+      "to_component": "openmeter/watermill (event bus)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/watermill/eventbus",
+      "message": "cmd/server (HTTP API binary) imports from openmeter/watermill (event bus) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/sink-worker",
+      "to_component": "openmeter/watermill (event bus)",
+      "file": "cmd/sink-worker/wire_gen.go",
+      "import": "openmeter/watermill/driver/kafka",
+      "message": "cmd/sink-worker imports from openmeter/watermill (event bus) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/billing-worker",
+      "to_component": "app/config (Viper configuration)",
+      "file": "cmd/billing-worker/main.go",
+      "import": "app/config",
+      "message": "cmd/billing-worker imports from app/config (Viper configuration) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/billing-worker",
       "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
       "file": "cmd/billing-worker/wire.go",
       "import": "openmeter/meter",
-      "message": "cmd (binary entrypoints) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
+      "message": "cmd/billing-worker imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
-      "from_component": "cmd (binary entrypoints)",
+      "from_component": "cmd/billing-worker",
+      "to_component": "openmeter/namespace (multi-tenancy)",
+      "file": "cmd/billing-worker/wire.go",
+      "import": "openmeter/namespace",
+      "message": "cmd/billing-worker imports from openmeter/namespace (multi-tenancy) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/billing-worker",
+      "to_component": "openmeter/productcatalog (catalog domain)",
+      "file": "cmd/billing-worker/wire_gen.go",
+      "import": "openmeter/productcatalog/featureresolver",
+      "message": "cmd/billing-worker imports from openmeter/productcatalog (catalog domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/billing-worker",
+      "to_component": "openmeter/watermill (event bus)",
+      "file": "cmd/billing-worker/wire_gen.go",
+      "import": "openmeter/watermill/driver/kafka",
+      "message": "cmd/billing-worker imports from openmeter/watermill (event bus) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/balance-worker",
+      "to_component": "app/config (Viper configuration)",
+      "file": "cmd/balance-worker/main.go",
+      "import": "app/config",
+      "message": "cmd/balance-worker imports from app/config (Viper configuration) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/balance-worker",
+      "to_component": "openmeter/watermill (event bus)",
+      "file": "cmd/balance-worker/wire_gen.go",
+      "import": "openmeter/watermill/driver/kafka",
+      "message": "cmd/balance-worker imports from openmeter/watermill (event bus) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/notification-service",
+      "to_component": "app/config (Viper configuration)",
+      "file": "cmd/notification-service/main.go",
+      "import": "app/config",
+      "message": "cmd/notification-service imports from app/config (Viper configuration) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/notification-service",
+      "to_component": "openmeter/ent (persistence schema + generated code)",
+      "file": "cmd/notification-service/wire.go",
+      "import": "openmeter/ent/db",
+      "message": "cmd/notification-service imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/notification-service",
+      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
+      "file": "cmd/notification-service/wire.go",
+      "import": "openmeter/meter",
+      "message": "cmd/notification-service imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/notification-service",
+      "to_component": "openmeter/productcatalog (catalog domain)",
+      "file": "cmd/notification-service/wire.go",
+      "import": "openmeter/productcatalog/feature",
+      "message": "cmd/notification-service imports from openmeter/productcatalog (catalog domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/jobs (admin CLI)",
       "to_component": "openmeter/customer (customer domain)",
       "file": "cmd/jobs/billing/advancecharges/advancecharges.go",
       "import": "openmeter/customer",
-      "message": "cmd (binary entrypoints) imports from openmeter/customer (customer domain) but does not declare it as a dependency",
+      "message": "cmd/jobs (admin CLI) imports from openmeter/customer (customer domain) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
-      "from_component": "cmd (binary entrypoints)",
-      "to_component": "openmeter/entitlement (entitlement domain)",
-      "file": "cmd/jobs/entitlement/recalculatesnapshots.go",
-      "import": "openmeter/entitlement/balanceworker",
-      "message": "cmd (binary entrypoints) imports from openmeter/entitlement (entitlement domain) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "cmd (binary entrypoints)",
+      "from_component": "cmd/jobs (admin CLI)",
       "to_component": "openmeter/ent (persistence schema + generated code)",
       "file": "cmd/jobs/entitlement/recalculatesnapshots.go",
       "import": "openmeter/entitlement/balanceworker",
-      "message": "cmd (binary entrypoints) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
+      "message": "cmd/jobs (admin CLI) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
-      "from_component": "cmd (binary entrypoints)",
+      "from_component": "cmd/jobs (admin CLI)",
+      "to_component": "app/config (Viper configuration)",
+      "file": "cmd/jobs/internal/config.go",
+      "import": "app/config",
+      "message": "cmd/jobs (admin CLI) imports from app/config (Viper configuration) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/jobs (admin CLI)",
       "to_component": "openmeter/app (marketplace apps)",
       "file": "cmd/jobs/internal/wire.go",
       "import": "openmeter/app",
-      "message": "cmd (binary entrypoints) imports from openmeter/app (marketplace apps) but does not declare it as a dependency",
+      "message": "cmd/jobs (admin CLI) imports from openmeter/app (marketplace apps) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
-      "from_component": "cmd (binary entrypoints)",
+      "from_component": "cmd/jobs (admin CLI)",
+      "to_component": "openmeter/billing/charges (charges sub-domain)",
+      "file": "cmd/jobs/internal/wire.go",
+      "import": "openmeter/billing/charges/worker/advance",
+      "message": "cmd/jobs (admin CLI) imports from openmeter/billing/charges (charges sub-domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/jobs (admin CLI)",
+      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
+      "file": "cmd/jobs/internal/wire.go",
+      "import": "openmeter/meter",
+      "message": "cmd/jobs (admin CLI) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/jobs (admin CLI)",
+      "to_component": "openmeter/namespace (multi-tenancy)",
+      "file": "cmd/jobs/internal/wire.go",
+      "import": "openmeter/namespace",
+      "message": "cmd/jobs (admin CLI) imports from openmeter/namespace (multi-tenancy) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/jobs (admin CLI)",
       "to_component": "openmeter/notification (notification domain)",
       "file": "cmd/jobs/internal/wire.go",
       "import": "openmeter/notification",
-      "message": "cmd (binary entrypoints) imports from openmeter/notification (notification domain) but does not declare it as a dependency",
+      "message": "cmd/jobs (admin CLI) imports from openmeter/notification (notification domain) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
-      "from_component": "cmd (binary entrypoints)",
+      "from_component": "cmd/jobs (admin CLI)",
       "to_component": "openmeter/productcatalog (catalog domain)",
       "file": "cmd/jobs/internal/wire.go",
       "import": "openmeter/productcatalog/feature",
-      "message": "cmd (binary entrypoints) imports from openmeter/productcatalog (catalog domain) but does not declare it as a dependency",
+      "message": "cmd/jobs (admin CLI) imports from openmeter/productcatalog (catalog domain) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
-      "from_component": "cmd (binary entrypoints)",
+      "from_component": "cmd/jobs (admin CLI)",
+      "to_component": "openmeter/secret (secret store)",
+      "file": "cmd/jobs/internal/wire.go",
+      "import": "openmeter/secret",
+      "message": "cmd/jobs (admin CLI) imports from openmeter/secret (secret store) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/jobs (admin CLI)",
+      "to_component": "openmeter/subject (subject directory)",
+      "file": "cmd/jobs/internal/wire.go",
+      "import": "openmeter/subject",
+      "message": "cmd/jobs (admin CLI) imports from openmeter/subject (subject directory) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "cmd/jobs (admin CLI)",
       "to_component": "openmeter/watermill (event bus)",
       "file": "cmd/jobs/internal/wire.go",
       "import": "openmeter/watermill/eventbus",
-      "message": "cmd (binary entrypoints) imports from openmeter/watermill (event bus) but does not declare it as a dependency",
+      "message": "cmd/jobs (admin CLI) imports from openmeter/watermill (event bus) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
-      "from_component": "cmd (binary entrypoints)",
+      "from_component": "cmd/jobs (admin CLI)",
       "to_component": "pkg/framework (shared infrastructure)",
       "file": "cmd/jobs/ledger/backfillaccounts/backfillaccounts.go",
       "import": "pkg/framework/lockr",
-      "message": "cmd (binary entrypoints) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
+      "message": "cmd/jobs (admin CLI) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
-      "from_component": "cmd (binary entrypoints)",
+      "from_component": "cmd/jobs (admin CLI)",
       "to_component": "pkg/models (domain primitives)",
       "file": "cmd/jobs/ledger/service/service.go",
       "import": "pkg/models",
-      "message": "cmd (binary entrypoints) imports from pkg/models (domain primitives) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "app/common (Wire DI layer)",
-      "to_component": "openmeter/app (marketplace apps)",
-      "file": "app/common/app.go",
-      "import": "openmeter/app",
-      "message": "app/common (Wire DI layer) imports from openmeter/app (marketplace apps) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "app/common (Wire DI layer)",
-      "to_component": "openmeter/customer (customer domain)",
-      "file": "app/common/app.go",
-      "import": "openmeter/customer",
-      "message": "app/common (Wire DI layer) imports from openmeter/customer (customer domain) but does not declare it as a dependency",
+      "message": "cmd/jobs (admin CLI) imports from pkg/models (domain primitives) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2112,6 +2355,15 @@
     {
       "type": "dependency_violation",
       "from_component": "app/common (Wire DI layer)",
+      "to_component": "openmeter/secret (secret store)",
+      "file": "app/common/app.go",
+      "import": "openmeter/secret",
+      "message": "app/common (Wire DI layer) imports from openmeter/secret (secret store) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "app/common (Wire DI layer)",
       "to_component": "openmeter/watermill (event bus)",
       "file": "app/common/app.go",
       "import": "openmeter/watermill/eventbus",
@@ -2121,28 +2373,10 @@
     {
       "type": "dependency_violation",
       "from_component": "app/common (Wire DI layer)",
-      "to_component": "openmeter/billing (billing domain)",
+      "to_component": "openmeter/billing/charges (charges sub-domain)",
       "file": "app/common/billing.go",
-      "import": "openmeter/billing",
-      "message": "app/common (Wire DI layer) imports from openmeter/billing (billing domain) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "app/common (Wire DI layer)",
-      "to_component": "openmeter/ledger (double-entry ledger)",
-      "file": "app/common/billing.go",
-      "import": "openmeter/ledger",
-      "message": "app/common (Wire DI layer) imports from openmeter/ledger (double-entry ledger) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "app/common (Wire DI layer)",
-      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
-      "file": "app/common/billing.go",
-      "import": "openmeter/meter",
-      "message": "app/common (Wire DI layer) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
+      "import": "openmeter/billing/charges",
+      "message": "app/common (Wire DI layer) imports from openmeter/billing/charges (charges sub-domain) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2157,19 +2391,19 @@
     {
       "type": "dependency_violation",
       "from_component": "app/common (Wire DI layer)",
-      "to_component": "pkg/framework (shared infrastructure)",
-      "file": "app/common/billing.go",
-      "import": "pkg/framework/lockr",
-      "message": "app/common (Wire DI layer) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
+      "to_component": "collector (benthos collector module)",
+      "file": "app/common/charges.go",
+      "import": "openmeter/ledger/collector",
+      "message": "app/common (Wire DI layer) imports from collector (benthos collector module) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
       "from_component": "app/common (Wire DI layer)",
-      "to_component": "collector (benthos collector module)",
-      "file": "app/common/charges.go",
-      "import": "openmeter/ledger/collector",
-      "message": "app/common (Wire DI layer) imports from collector (benthos collector module) but does not declare it as a dependency",
+      "to_component": "openmeter/subject (subject directory)",
+      "file": "app/common/customer.go",
+      "import": "openmeter/subject",
+      "message": "app/common (Wire DI layer) imports from openmeter/subject (subject directory) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2184,28 +2418,55 @@
     {
       "type": "dependency_violation",
       "from_component": "app/common (Wire DI layer)",
-      "to_component": "openmeter/entitlement (entitlement domain)",
-      "file": "app/common/entitlement.go",
-      "import": "openmeter/entitlement/validators/customer",
-      "message": "app/common (Wire DI layer) imports from openmeter/entitlement (entitlement domain) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "app/common (Wire DI layer)",
-      "to_component": "openmeter/subscription (subscription domain)",
+      "to_component": "api (generated v1 stubs + converters)",
       "file": "app/common/ffx.go",
-      "import": "openmeter/subscription",
-      "message": "app/common (Wire DI layer) imports from openmeter/subscription (subscription domain) but does not declare it as a dependency",
+      "import": "api",
+      "message": "app/common (Wire DI layer) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
       "from_component": "app/common (Wire DI layer)",
-      "to_component": "openmeter/notification (notification domain)",
-      "file": "app/common/notification.go",
-      "import": "openmeter/notification",
-      "message": "app/common (Wire DI layer) imports from openmeter/notification (notification domain) but does not declare it as a dependency",
+      "to_component": "openmeter/llmcost (LLM cost prices)",
+      "file": "app/common/llmcost.go",
+      "import": "openmeter/llmcost",
+      "message": "app/common (Wire DI layer) imports from openmeter/llmcost (LLM cost prices) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "app/common (Wire DI layer)",
+      "to_component": "openmeter/meterevent (raw event listing)",
+      "file": "app/common/meterevent.go",
+      "import": "openmeter/meterevent",
+      "message": "app/common (Wire DI layer) imports from openmeter/meterevent (raw event listing) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "app/common (Wire DI layer)",
+      "to_component": "openmeter/dedupe (ingest dedup)",
+      "file": "app/common/openmeter_sinkworker.go",
+      "import": "openmeter/dedupe",
+      "message": "app/common (Wire DI layer) imports from openmeter/dedupe (ingest dedup) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "app/common (Wire DI layer)",
+      "to_component": "openmeter/portal (portal tokens)",
+      "file": "app/common/portal.go",
+      "import": "openmeter/portal",
+      "message": "app/common (Wire DI layer) imports from openmeter/portal (portal tokens) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "app/common (Wire DI layer)",
+      "to_component": "openmeter/cost (feature cost queries)",
+      "file": "app/common/productcatalog.go",
+      "import": "openmeter/cost",
+      "message": "app/common (Wire DI layer) imports from openmeter/cost (feature cost queries) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2229,6 +2490,15 @@
     {
       "type": "dependency_violation",
       "from_component": "app/config (Viper configuration)",
+      "to_component": "openmeter/dedupe (ingest dedup)",
+      "file": "app/config/config_test.go",
+      "import": "openmeter/dedupe/redisdedupe",
+      "message": "app/config (Viper configuration) imports from openmeter/dedupe (ingest dedup) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "app/config (Viper configuration)",
       "to_component": "openmeter/notification (notification domain)",
       "file": "app/config/config_test.go",
       "import": "openmeter/notification/webhook",
@@ -2247,19 +2517,19 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/billing (billing domain)",
-      "to_component": "pkg/framework (shared infrastructure)",
-      "file": "openmeter/billing/adapter.go",
-      "import": "pkg/framework/entutils",
-      "message": "openmeter/billing (billing domain) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
+      "to_component": "openmeter/ent (persistence schema + generated code)",
+      "file": "openmeter/billing/adapter/adapter.go",
+      "import": "openmeter/ent/db",
+      "message": "openmeter/billing (billing domain) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
       "from_component": "openmeter/billing (billing domain)",
-      "to_component": "openmeter/ent (persistence schema + generated code)",
-      "file": "openmeter/billing/adapter/adapter.go",
-      "import": "openmeter/ent/db",
-      "message": "openmeter/billing (billing domain) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "openmeter/billing/adapter/gatheringinvoice.go",
+      "import": "api",
+      "message": "openmeter/billing (billing domain) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2274,19 +2544,19 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/billing (billing domain)",
-      "to_component": "tools/migrate (Atlas migrations)",
-      "file": "openmeter/billing/charges/adapter/search_test.go",
-      "import": "tools/migrate",
-      "message": "openmeter/billing (billing domain) imports from tools/migrate (Atlas migrations) but does not declare it as a dependency",
+      "to_component": "openmeter/billing/charges (charges sub-domain)",
+      "file": "openmeter/billing/charges/adapter.go",
+      "import": "openmeter/billing/charges/meta",
+      "message": "openmeter/billing (billing domain) imports from openmeter/billing/charges (charges sub-domain) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
       "from_component": "openmeter/billing (billing domain)",
-      "to_component": "openmeter/ledger (double-entry ledger)",
-      "file": "openmeter/billing/charges/service/base_test.go",
-      "import": "openmeter/ledger/recognizer",
-      "message": "openmeter/billing (billing domain) imports from openmeter/ledger (double-entry ledger) but does not declare it as a dependency",
+      "to_component": "tools/migrate (Atlas migrations)",
+      "file": "openmeter/billing/charges/adapter/search_test.go",
+      "import": "tools/migrate",
+      "message": "openmeter/billing (billing domain) imports from tools/migrate (Atlas migrations) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2305,15 +2575,6 @@
       "file": "openmeter/billing/httpdriver/handler.go",
       "import": "openmeter/namespace/namespacedriver",
       "message": "openmeter/billing (billing domain) imports from openmeter/namespace (multi-tenancy) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/billing (billing domain)",
-      "to_component": "openmeter/watermill (event bus)",
-      "file": "openmeter/billing/service/service.go",
-      "import": "openmeter/watermill/eventbus",
-      "message": "openmeter/billing (billing domain) imports from openmeter/watermill (event bus) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2345,20 +2606,65 @@
     },
     {
       "type": "dependency_violation",
-      "from_component": "openmeter/customer (customer domain)",
-      "to_component": "pkg/framework (shared infrastructure)",
-      "file": "openmeter/customer/adapter.go",
-      "import": "pkg/framework/entutils",
-      "message": "openmeter/customer (customer domain) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
+      "from_component": "openmeter/billing/charges (charges sub-domain)",
+      "to_component": "openmeter/customer (customer domain)",
+      "file": "openmeter/billing/charges/adapter.go",
+      "import": "openmeter/customer",
+      "message": "openmeter/billing/charges (charges sub-domain) imports from openmeter/customer (customer domain) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
-      "from_component": "openmeter/customer (customer domain)",
+      "from_component": "openmeter/billing/charges (charges sub-domain)",
+      "to_component": "pkg/models (domain primitives)",
+      "file": "openmeter/billing/charges/adapter.go",
+      "import": "pkg/models",
+      "message": "openmeter/billing/charges (charges sub-domain) imports from pkg/models (domain primitives) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/billing/charges (charges sub-domain)",
       "to_component": "openmeter/ent (persistence schema + generated code)",
-      "file": "openmeter/customer/adapter/adapter.go",
+      "file": "openmeter/billing/charges/adapter/adapter.go",
       "import": "openmeter/ent/db",
-      "message": "openmeter/customer (customer domain) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
+      "message": "openmeter/billing/charges (charges sub-domain) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/billing/charges (charges sub-domain)",
+      "to_component": "openmeter/productcatalog (catalog domain)",
+      "file": "openmeter/billing/charges/adapter/search_test.go",
+      "import": "openmeter/productcatalog",
+      "message": "openmeter/billing/charges (charges sub-domain) imports from openmeter/productcatalog (catalog domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/billing/charges (charges sub-domain)",
+      "to_component": "tools/migrate (Atlas migrations)",
+      "file": "openmeter/billing/charges/adapter/search_test.go",
+      "import": "tools/migrate",
+      "message": "openmeter/billing/charges (charges sub-domain) imports from tools/migrate (Atlas migrations) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/billing/charges (charges sub-domain)",
+      "to_component": "openmeter/app (marketplace apps)",
+      "file": "openmeter/billing/charges/service/creditpurchase_test.go",
+      "import": "openmeter/app/custominvoicing",
+      "message": "openmeter/billing/charges (charges sub-domain) imports from openmeter/app (marketplace apps) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/billing/charges (charges sub-domain)",
+      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
+      "file": "openmeter/billing/charges/service/featureid_test.go",
+      "import": "openmeter/meter",
+      "message": "openmeter/billing/charges (charges sub-domain) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2368,6 +2674,15 @@
       "file": "openmeter/customer/adapter/customer_test.go",
       "import": "openmeter/app",
       "message": "openmeter/customer (customer domain) imports from openmeter/app (marketplace apps) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/customer (customer domain)",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "openmeter/customer/httpdriver/apimapping.go",
+      "import": "api",
+      "message": "openmeter/customer (customer domain) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2418,19 +2733,10 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/customer (customer domain)",
-      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
-      "file": "openmeter/customer/service/hooks/subjectcustomer_test.go",
-      "import": "openmeter/meter/mockadapter",
-      "message": "openmeter/customer (customer domain) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/customer (customer domain)",
-      "to_component": "openmeter/watermill (event bus)",
-      "file": "openmeter/customer/service/hooks/subjectcustomer_test.go",
-      "import": "openmeter/watermill/eventbus",
-      "message": "openmeter/customer (customer domain) imports from openmeter/watermill (event bus) but does not declare it as a dependency",
+      "to_component": "openmeter/subject (subject directory)",
+      "file": "openmeter/customer/service/hooks/subjectcustomer.go",
+      "import": "openmeter/subject",
+      "message": "openmeter/customer (customer domain) imports from openmeter/subject (subject directory) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2445,24 +2751,6 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/entitlement (entitlement domain)",
-      "to_component": "openmeter/ent (persistence schema + generated code)",
-      "file": "openmeter/entitlement/adapter/entitlement.go",
-      "import": "openmeter/ent/db",
-      "message": "openmeter/entitlement (entitlement domain) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/entitlement (entitlement domain)",
-      "to_component": "pkg/framework (shared infrastructure)",
-      "file": "openmeter/entitlement/adapter/entitlement.go",
-      "import": "pkg/framework/entutils",
-      "message": "openmeter/entitlement (entitlement domain) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/entitlement (entitlement domain)",
       "to_component": "pkg/models (domain primitives)",
       "file": "openmeter/entitlement/adapter/entitlement.go",
       "import": "pkg/models",
@@ -2472,28 +2760,10 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/entitlement (entitlement domain)",
-      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
+      "to_component": "openmeter/subject (subject directory)",
       "file": "openmeter/entitlement/adapter/entitlement_test.go",
-      "import": "openmeter/meter",
-      "message": "openmeter/entitlement (entitlement domain) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/entitlement (entitlement domain)",
-      "to_component": "openmeter/productcatalog (catalog domain)",
-      "file": "openmeter/entitlement/adapter/entitlement_test.go",
-      "import": "openmeter/productcatalog/adapter",
-      "message": "openmeter/entitlement (entitlement domain) imports from openmeter/productcatalog (catalog domain) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/entitlement (entitlement domain)",
-      "to_component": "openmeter/watermill (event bus)",
-      "file": "openmeter/entitlement/balanceworker/entitlementhandler.go",
-      "import": "openmeter/watermill/marshaler",
-      "message": "openmeter/entitlement (entitlement domain) imports from openmeter/watermill (event bus) but does not declare it as a dependency",
+      "import": "openmeter/subject",
+      "message": "openmeter/entitlement (entitlement domain) imports from openmeter/subject (subject directory) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2503,6 +2773,15 @@
       "file": "openmeter/entitlement/balanceworker/filters.go",
       "import": "openmeter/notification",
       "message": "openmeter/entitlement (entitlement domain) imports from openmeter/notification (notification domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/entitlement (entitlement domain)",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "openmeter/entitlement/driver/entitlement.go",
+      "import": "api",
+      "message": "openmeter/entitlement (entitlement domain) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2553,28 +2832,10 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/subscription (subscription domain)",
-      "to_component": "openmeter/ent (persistence schema + generated code)",
-      "file": "openmeter/subscription/addon/diff/zeroratecard.go",
-      "import": "openmeter/entitlement",
-      "message": "openmeter/subscription (subscription domain) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/subscription (subscription domain)",
-      "to_component": "openmeter/watermill (event bus)",
-      "file": "openmeter/subscription/addon/events.go",
-      "import": "openmeter/watermill/marshaler",
-      "message": "openmeter/subscription (subscription domain) imports from openmeter/watermill (event bus) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/subscription (subscription domain)",
-      "to_component": "pkg/framework (shared infrastructure)",
+      "to_component": "api (generated v1 stubs + converters)",
       "file": "openmeter/subscription/addon/http/create.go",
-      "import": "pkg/framework/commonhttp",
-      "message": "openmeter/subscription (subscription domain) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
+      "import": "api",
+      "message": "openmeter/subscription (subscription domain) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2593,6 +2854,15 @@
       "file": "openmeter/subscription/testutils/billing.go",
       "import": "openmeter/billing",
       "message": "openmeter/subscription (subscription domain) imports from openmeter/billing (billing domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/subscription (subscription domain)",
+      "to_component": "openmeter/subject (subject directory)",
+      "file": "openmeter/subscription/testutils/customer.go",
+      "import": "openmeter/subject",
+      "message": "openmeter/subscription (subscription domain) imports from openmeter/subject (subject directory) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2625,15 +2895,6 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/productcatalog (catalog domain)",
-      "to_component": "openmeter/ent (persistence schema + generated code)",
-      "file": "openmeter/productcatalog/adapter/feature.go",
-      "import": "openmeter/ent/db",
-      "message": "openmeter/productcatalog (catalog domain) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/productcatalog (catalog domain)",
       "to_component": "openmeter/subscription (subscription domain)",
       "file": "openmeter/productcatalog/adapter/feature.go",
       "import": "openmeter/subscription/repo",
@@ -2647,6 +2908,15 @@
       "file": "openmeter/productcatalog/adapter/feature.go",
       "import": "pkg/framework/entutils",
       "message": "openmeter/productcatalog (catalog domain) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/productcatalog (catalog domain)",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "openmeter/productcatalog/addon/httpdriver/addon.go",
+      "import": "api",
+      "message": "openmeter/productcatalog (catalog domain) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2674,6 +2944,15 @@
       "file": "openmeter/productcatalog/addon/service/service_test.go",
       "import": "openmeter/app",
       "message": "openmeter/productcatalog (catalog domain) imports from openmeter/app (marketplace apps) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/productcatalog (catalog domain)",
+      "to_component": "openmeter/llmcost (LLM cost prices)",
+      "file": "openmeter/productcatalog/driver/feature.go",
+      "import": "openmeter/llmcost",
+      "message": "openmeter/productcatalog (catalog domain) imports from openmeter/llmcost (LLM cost prices) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2715,24 +2994,6 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/ledger (double-entry ledger)",
-      "to_component": "openmeter/ent (persistence schema + generated code)",
-      "file": "openmeter/ledger/account/adapter/account.go",
-      "import": "openmeter/ent/db",
-      "message": "openmeter/ledger (double-entry ledger) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/ledger (double-entry ledger)",
-      "to_component": "pkg/framework (shared infrastructure)",
-      "file": "openmeter/ledger/account/adapter/account.go",
-      "import": "pkg/framework/entutils",
-      "message": "openmeter/ledger (double-entry ledger) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/ledger (double-entry ledger)",
       "to_component": "tools/migrate (Atlas migrations)",
       "file": "openmeter/ledger/account/adapter/repo_test.go",
       "import": "tools/migrate",
@@ -2746,6 +3007,15 @@
       "file": "openmeter/ledger/chargeadapter/annotations.go",
       "import": "openmeter/billing/charges/creditpurchase",
       "message": "openmeter/ledger (double-entry ledger) imports from openmeter/billing (billing domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/ledger (double-entry ledger)",
+      "to_component": "openmeter/billing/charges (charges sub-domain)",
+      "file": "openmeter/ledger/chargeadapter/annotations.go",
+      "import": "openmeter/billing/charges/creditpurchase",
+      "message": "openmeter/ledger (double-entry ledger) imports from openmeter/billing/charges (charges sub-domain) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2805,15 +3075,6 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/credit (credit grants)",
-      "to_component": "openmeter/ent (persistence schema + generated code)",
-      "file": "openmeter/credit/adapter/balance_snapshot.go",
-      "import": "openmeter/ent/db",
-      "message": "openmeter/credit (credit grants) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/credit (credit grants)",
       "to_component": "pkg/framework (shared infrastructure)",
       "file": "openmeter/credit/adapter/balance_snapshot.go",
       "import": "pkg/framework/entutils",
@@ -2832,19 +3093,10 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/credit (credit grants)",
-      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
-      "file": "openmeter/credit/balance/service_test.go",
-      "import": "openmeter/meter",
-      "message": "openmeter/credit (credit grants) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/credit (credit grants)",
-      "to_component": "openmeter/watermill (event bus)",
-      "file": "openmeter/credit/connector.go",
-      "import": "openmeter/watermill/eventbus",
-      "message": "openmeter/credit (credit grants) imports from openmeter/watermill (event bus) but does not declare it as a dependency",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "openmeter/credit/driver/grant.go",
+      "import": "api",
+      "message": "openmeter/credit (credit grants) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2876,20 +3128,20 @@
     },
     {
       "type": "dependency_violation",
-      "from_component": "openmeter/app (marketplace apps)",
-      "to_component": "pkg/framework (shared infrastructure)",
-      "file": "openmeter/app/adapter.go",
-      "import": "pkg/framework/entutils",
-      "message": "openmeter/app (marketplace apps) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
+      "from_component": "openmeter/credit (credit grants)",
+      "to_component": "openmeter/subject (subject directory)",
+      "file": "openmeter/credit/grant/events.go",
+      "import": "openmeter/subject",
+      "message": "openmeter/credit (credit grants) imports from openmeter/subject (subject directory) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
       "from_component": "openmeter/app (marketplace apps)",
-      "to_component": "openmeter/ent (persistence schema + generated code)",
-      "file": "openmeter/app/adapter/adapter.go",
-      "import": "openmeter/ent/db",
-      "message": "openmeter/app (marketplace apps) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
+      "to_component": "pkg/framework (shared infrastructure)",
+      "file": "openmeter/app/adapter.go",
+      "import": "pkg/framework/entutils",
+      "message": "openmeter/app (marketplace apps) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2904,10 +3156,10 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/app (marketplace apps)",
-      "to_component": "openmeter/watermill (event bus)",
-      "file": "openmeter/app/customerpayment_event.go",
-      "import": "openmeter/watermill/marshaler",
-      "message": "openmeter/app (marketplace apps) imports from openmeter/watermill (event bus) but does not declare it as a dependency",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "openmeter/app/custominvoicing/httpdriver/custominvoicing.go",
+      "import": "api",
+      "message": "openmeter/app (marketplace apps) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2931,15 +3183,6 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/notification (notification domain)",
-      "to_component": "openmeter/ent (persistence schema + generated code)",
-      "file": "openmeter/notification/adapter/adapter.go",
-      "import": "openmeter/ent/db",
-      "message": "openmeter/notification (notification domain) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/notification (notification domain)",
       "to_component": "pkg/framework (shared infrastructure)",
       "file": "openmeter/notification/adapter/adapter.go",
       "import": "pkg/framework/entutils",
@@ -2958,6 +3201,15 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/notification (notification domain)",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "openmeter/notification/adapter/entitymapping_test.go",
+      "import": "api",
+      "message": "openmeter/notification (notification domain) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/notification (notification domain)",
       "to_component": "openmeter/customer (customer domain)",
       "file": "openmeter/notification/consumer/entitlementbalancethreshold.go",
       "import": "openmeter/customer/httpdriver",
@@ -2967,10 +3219,10 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/notification (notification domain)",
-      "to_component": "openmeter/productcatalog (catalog domain)",
+      "to_component": "openmeter/subject (subject directory)",
       "file": "openmeter/notification/consumer/entitlementbalancethreshold.go",
-      "import": "openmeter/productcatalog/driver",
-      "message": "openmeter/notification (notification domain) imports from openmeter/productcatalog (catalog domain) but does not declare it as a dependency",
+      "import": "openmeter/subject/httphandler",
+      "message": "openmeter/notification (notification domain) imports from openmeter/subject (subject directory) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -2980,15 +3232,6 @@
       "file": "openmeter/notification/httpdriver/handler.go",
       "import": "openmeter/namespace/namespacedriver",
       "message": "openmeter/notification (notification domain) imports from openmeter/namespace (multi-tenancy) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
-      "to_component": "openmeter/ent (persistence schema + generated code)",
-      "file": "openmeter/meter/adapter/adapter.go",
-      "import": "openmeter/ent/db",
-      "message": "openmeter/meter + ingest + sink + streaming (usage pipeline) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -3030,10 +3273,19 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
-      "to_component": "openmeter/watermill (event bus)",
-      "file": "openmeter/meter/service/manage.go",
-      "import": "openmeter/watermill/eventbus",
-      "message": "openmeter/meter + ingest + sink + streaming (usage pipeline) imports from openmeter/watermill (event bus) but does not declare it as a dependency",
+      "to_component": "openmeter/subject (subject directory)",
+      "file": "openmeter/meter/httphandler/handler.go",
+      "import": "openmeter/subject",
+      "message": "openmeter/meter + ingest + sink + streaming (usage pipeline) imports from openmeter/subject (subject directory) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "openmeter/meter/httphandler/mapping.go",
+      "import": "api",
+      "message": "openmeter/meter + ingest + sink + streaming (usage pipeline) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -3075,10 +3327,91 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/ent (persistence schema + generated code)",
-      "to_component": "pkg/framework (shared infrastructure)",
-      "file": "openmeter/ent/entc.go",
-      "import": "pkg/framework/entutils/entcursor",
-      "message": "openmeter/ent (persistence schema + generated code) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
+      "to_component": "openmeter/productcatalog (catalog domain)",
+      "file": "openmeter/ent/db/addon.go",
+      "import": "openmeter/productcatalog",
+      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/productcatalog (catalog domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/ent (persistence schema + generated code)",
+      "to_component": "pkg/models (domain primitives)",
+      "file": "openmeter/ent/db/addon.go",
+      "import": "pkg/models",
+      "message": "openmeter/ent (persistence schema + generated code) imports from pkg/models (domain primitives) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/ent (persistence schema + generated code)",
+      "to_component": "openmeter/app (marketplace apps)",
+      "file": "openmeter/ent/db/app.go",
+      "import": "openmeter/app",
+      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/app (marketplace apps) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/ent (persistence schema + generated code)",
+      "to_component": "openmeter/credit (credit grants)",
+      "file": "openmeter/ent/db/balancesnapshot.go",
+      "import": "openmeter/credit/balance",
+      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/credit (credit grants) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/ent (persistence schema + generated code)",
+      "to_component": "openmeter/billing (billing domain)",
+      "file": "openmeter/ent/db/billingcustomeroverride.go",
+      "import": "openmeter/billing",
+      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/billing (billing domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/ent (persistence schema + generated code)",
+      "to_component": "openmeter/billing/charges (charges sub-domain)",
+      "file": "openmeter/ent/db/charge.go",
+      "import": "openmeter/billing/charges/meta",
+      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/billing/charges (charges sub-domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/ent (persistence schema + generated code)",
+      "to_component": "openmeter/ledger (double-entry ledger)",
+      "file": "openmeter/ent/db/ledgeraccount.go",
+      "import": "openmeter/ledger",
+      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/ledger (double-entry ledger) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/ent (persistence schema + generated code)",
+      "to_component": "openmeter/llmcost (LLM cost prices)",
+      "file": "openmeter/ent/db/llmcostprice.go",
+      "import": "openmeter/llmcost",
+      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/llmcost (LLM cost prices) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/ent (persistence schema + generated code)",
+      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
+      "file": "openmeter/ent/db/meter.go",
+      "import": "openmeter/meter",
+      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/ent (persistence schema + generated code)",
+      "to_component": "openmeter/notification (notification domain)",
+      "file": "openmeter/ent/db/mutation.go",
+      "import": "openmeter/notification",
+      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/notification (notification domain) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -3093,51 +3426,6 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/ent (persistence schema + generated code)",
-      "to_component": "openmeter/productcatalog (catalog domain)",
-      "file": "openmeter/ent/schema/addon.go",
-      "import": "openmeter/productcatalog",
-      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/productcatalog (catalog domain) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/ent (persistence schema + generated code)",
-      "to_component": "pkg/models (domain primitives)",
-      "file": "openmeter/ent/schema/addon.go",
-      "import": "pkg/models",
-      "message": "openmeter/ent (persistence schema + generated code) imports from pkg/models (domain primitives) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/ent (persistence schema + generated code)",
-      "to_component": "openmeter/app (marketplace apps)",
-      "file": "openmeter/ent/schema/app.go",
-      "import": "openmeter/app",
-      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/app (marketplace apps) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/ent (persistence schema + generated code)",
-      "to_component": "openmeter/credit (credit grants)",
-      "file": "openmeter/ent/schema/balance_snapshot.go",
-      "import": "openmeter/credit/balance",
-      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/credit (credit grants) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/ent (persistence schema + generated code)",
-      "to_component": "openmeter/billing (billing domain)",
-      "file": "openmeter/ent/schema/billing.go",
-      "import": "openmeter/billing",
-      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/billing (billing domain) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/ent (persistence schema + generated code)",
       "to_component": "openmeter/entitlement (entitlement domain)",
       "file": "openmeter/ent/schema/entitlement.go",
       "import": "openmeter/entitlement",
@@ -3146,38 +3434,11 @@
     },
     {
       "type": "dependency_violation",
-      "from_component": "openmeter/ent (persistence schema + generated code)",
-      "to_component": "openmeter/ledger (double-entry ledger)",
-      "file": "openmeter/ent/schema/ledger_account.go",
-      "import": "openmeter/ledger",
-      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/ledger (double-entry ledger) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/ent (persistence schema + generated code)",
-      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
-      "file": "openmeter/ent/schema/meter.go",
-      "import": "openmeter/meter",
-      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/ent (persistence schema + generated code)",
-      "to_component": "openmeter/notification (notification domain)",
-      "file": "openmeter/ent/schema/notification.go",
-      "import": "openmeter/notification",
-      "message": "openmeter/ent (persistence schema + generated code) imports from openmeter/notification (notification domain) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
       "from_component": "openmeter/server (HTTP server + v1 router)",
-      "to_component": "pkg/framework (shared infrastructure)",
-      "file": "openmeter/server/framework_test.go",
-      "import": "pkg/framework/commonhttp",
-      "message": "openmeter/server (HTTP server + v1 router) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "openmeter/server/router/addon.go",
+      "import": "api",
+      "message": "openmeter/server (HTTP server + v1 router) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -3201,28 +3462,10 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/server (HTTP server + v1 router)",
-      "to_component": "openmeter/billing (billing domain)",
-      "file": "openmeter/server/router/billing.go",
-      "import": "openmeter/billing/httpdriver",
-      "message": "openmeter/server (HTTP server + v1 router) imports from openmeter/billing (billing domain) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/server (HTTP server + v1 router)",
       "to_component": "openmeter/credit (credit grants)",
       "file": "openmeter/server/router/credit.go",
       "import": "openmeter/credit/driver",
       "message": "openmeter/server (HTTP server + v1 router) imports from openmeter/credit (credit grants) but does not declare it as a dependency",
-      "severity": "warn"
-    },
-    {
-      "type": "dependency_violation",
-      "from_component": "openmeter/server (HTTP server + v1 router)",
-      "to_component": "openmeter/customer (customer domain)",
-      "file": "openmeter/server/router/customer.go",
-      "import": "openmeter/customer/httpdriver",
-      "message": "openmeter/server (HTTP server + v1 router) imports from openmeter/customer (customer domain) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -3246,19 +3489,28 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/server (HTTP server + v1 router)",
-      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
-      "file": "openmeter/server/router/meter.go",
-      "import": "openmeter/meter/httphandler",
-      "message": "openmeter/server (HTTP server + v1 router) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
+      "to_component": "openmeter/portal (portal tokens)",
+      "file": "openmeter/server/router/portal.go",
+      "import": "openmeter/portal/authenticator",
+      "message": "openmeter/server (HTTP server + v1 router) imports from openmeter/portal (portal tokens) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
       "type": "dependency_violation",
       "from_component": "openmeter/server (HTTP server + v1 router)",
-      "to_component": "api/v3 (v3 HTTP API)",
+      "to_component": "openmeter/billing/charges (charges sub-domain)",
       "file": "openmeter/server/router/router.go",
-      "import": "api/v3/handlers/currencies",
-      "message": "openmeter/server (HTTP server + v1 router) imports from api/v3 (v3 HTTP API) but does not declare it as a dependency",
+      "import": "openmeter/billing/charges",
+      "message": "openmeter/server (HTTP server + v1 router) imports from openmeter/billing/charges (charges sub-domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/server (HTTP server + v1 router)",
+      "to_component": "openmeter/cost (feature cost queries)",
+      "file": "openmeter/server/router/router.go",
+      "import": "openmeter/cost",
+      "message": "openmeter/server (HTTP server + v1 router) imports from openmeter/cost (feature cost queries) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -3268,6 +3520,24 @@
       "file": "openmeter/server/router/router.go",
       "import": "openmeter/ledger",
       "message": "openmeter/server (HTTP server + v1 router) imports from openmeter/ledger (double-entry ledger) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/server (HTTP server + v1 router)",
+      "to_component": "openmeter/llmcost (LLM cost prices)",
+      "file": "openmeter/server/router/router.go",
+      "import": "openmeter/llmcost",
+      "message": "openmeter/server (HTTP server + v1 router) imports from openmeter/llmcost (LLM cost prices) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/server (HTTP server + v1 router)",
+      "to_component": "openmeter/meterevent (raw event listing)",
+      "file": "openmeter/server/router/router.go",
+      "import": "openmeter/meterevent",
+      "message": "openmeter/server (HTTP server + v1 router) imports from openmeter/meterevent (raw event listing) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -3291,10 +3561,28 @@
     {
       "type": "dependency_violation",
       "from_component": "openmeter/server (HTTP server + v1 router)",
+      "to_component": "openmeter/subject (subject directory)",
+      "file": "openmeter/server/router/router.go",
+      "import": "openmeter/subject",
+      "message": "openmeter/server (HTTP server + v1 router) imports from openmeter/subject (subject directory) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/server (HTTP server + v1 router)",
       "to_component": "openmeter/subscription (subscription domain)",
       "file": "openmeter/server/router/router.go",
       "import": "openmeter/subscription",
       "message": "openmeter/server (HTTP server + v1 router) imports from openmeter/subscription (subscription domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/server (HTTP server + v1 router)",
+      "to_component": "openmeter/secret (secret store)",
+      "file": "openmeter/server/server_test.go",
+      "import": "openmeter/secret/entity",
+      "message": "openmeter/server (HTTP server + v1 router) imports from openmeter/secret (secret store) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -3309,10 +3597,10 @@
     {
       "type": "dependency_violation",
       "from_component": "api/v3 (v3 HTTP API)",
-      "to_component": "pkg/framework (shared infrastructure)",
-      "file": "api/v3/apierrors/encoder.go",
-      "import": "pkg/framework/commonhttp",
-      "message": "api/v3 (v3 HTTP API) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "api/v3/api.gen.go",
+      "import": "api/v3/filters",
+      "message": "api/v3 (v3 HTTP API) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -3336,6 +3624,15 @@
     {
       "type": "dependency_violation",
       "from_component": "api/v3 (v3 HTTP API)",
+      "to_component": "openmeter/billing/charges (charges sub-domain)",
+      "file": "api/v3/handlers/customers/charges/convert.go",
+      "import": "openmeter/billing/charges",
+      "message": "api/v3 (v3 HTTP API) imports from openmeter/billing/charges (charges sub-domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api/v3 (v3 HTTP API)",
       "to_component": "openmeter/entitlement (entitlement domain)",
       "file": "api/v3/handlers/customers/entitlementaccess/handler.go",
       "import": "openmeter/entitlement",
@@ -3354,10 +3651,190 @@
     {
       "type": "dependency_violation",
       "from_component": "api/v3 (v3 HTTP API)",
+      "to_component": "openmeter/meterevent (raw event listing)",
+      "file": "api/v3/handlers/events/convert.go",
+      "import": "openmeter/meterevent",
+      "message": "api/v3 (v3 HTTP API) imports from openmeter/meterevent (raw event listing) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api/v3 (v3 HTTP API)",
+      "to_component": "openmeter/cost (feature cost queries)",
+      "file": "api/v3/handlers/featurecost/convert.go",
+      "import": "openmeter/cost",
+      "message": "api/v3 (v3 HTTP API) imports from openmeter/cost (feature cost queries) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api/v3 (v3 HTTP API)",
       "to_component": "app/config (Viper configuration)",
       "file": "api/v3/server/server.go",
       "import": "app/config",
       "message": "api/v3 (v3 HTTP API) imports from app/config (Viper configuration) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "pkg/models (domain primitives)",
+      "file": "api/api.gen.go",
+      "import": "pkg/models",
+      "message": "api (generated v1 stubs + converters) imports from pkg/models (domain primitives) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
+      "file": "api/client/go/client_test.go",
+      "import": "openmeter/meter",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "api/v3 (v3 HTTP API)",
+      "file": "api/v3/api.gen.go",
+      "import": "api/v3/filters",
+      "message": "api (generated v1 stubs + converters) imports from api/v3 (v3 HTTP API) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/productcatalog (catalog domain)",
+      "file": "api/v3/apierrors/encoder.go",
+      "import": "openmeter/productcatalog/feature",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/productcatalog (catalog domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "pkg/framework (shared infrastructure)",
+      "file": "api/v3/apierrors/encoder.go",
+      "import": "pkg/framework/commonhttp",
+      "message": "api (generated v1 stubs + converters) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/app (marketplace apps)",
+      "file": "api/v3/handlers/apps/convert.gen.go",
+      "import": "openmeter/app",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/app (marketplace apps) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/billing (billing domain)",
+      "file": "api/v3/handlers/billingprofiles/convert.gen.go",
+      "import": "openmeter/billing",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/billing (billing domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/namespace (multi-tenancy)",
+      "file": "api/v3/handlers/currencies/handler.go",
+      "import": "openmeter/namespace/namespacedriver",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/namespace (multi-tenancy) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/customer (customer domain)",
+      "file": "api/v3/handlers/customers/billing/convert.go",
+      "import": "openmeter/customer",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/customer (customer domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/billing/charges (charges sub-domain)",
+      "file": "api/v3/handlers/customers/charges/convert.go",
+      "import": "openmeter/billing/charges",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/billing/charges (charges sub-domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/ledger (double-entry ledger)",
+      "file": "api/v3/handlers/customers/credits/convert.go",
+      "import": "openmeter/ledger",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/ledger (double-entry ledger) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/entitlement (entitlement domain)",
+      "file": "api/v3/handlers/customers/entitlementaccess/handler.go",
+      "import": "openmeter/entitlement",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/entitlement (entitlement domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/ent (persistence schema + generated code)",
+      "file": "api/v3/handlers/customers/entitlementaccess/handler.go",
+      "import": "openmeter/entitlement",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/ent (persistence schema + generated code) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/meterevent (raw event listing)",
+      "file": "api/v3/handlers/events/convert.go",
+      "import": "openmeter/meterevent",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/meterevent (raw event listing) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/cost (feature cost queries)",
+      "file": "api/v3/handlers/featurecost/convert.go",
+      "import": "openmeter/cost",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/cost (feature cost queries) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/llmcost (LLM cost prices)",
+      "file": "api/v3/handlers/features/convert.go",
+      "import": "openmeter/llmcost",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/llmcost (LLM cost prices) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "openmeter/subscription (subscription domain)",
+      "file": "api/v3/handlers/subscriptions/cancel.go",
+      "import": "openmeter/subscription",
+      "message": "api (generated v1 stubs + converters) imports from openmeter/subscription (subscription domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "api (generated v1 stubs + converters)",
+      "to_component": "app/config (Viper configuration)",
+      "file": "api/v3/server/server.go",
+      "import": "app/config",
+      "message": "api (generated v1 stubs + converters) imports from app/config (Viper configuration) but does not declare it as a dependency",
       "severity": "warn"
     },
     {
@@ -3371,11 +3848,236 @@
     },
     {
       "type": "dependency_violation",
+      "from_component": "pkg/models (domain primitives)",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "pkg/models/http/annotation.go",
+      "import": "api",
+      "message": "pkg/models (domain primitives) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/secret (secret store)",
+      "to_component": "pkg/models (domain primitives)",
+      "file": "openmeter/secret/entity/errors.go",
+      "import": "pkg/models",
+      "message": "openmeter/secret (secret store) imports from pkg/models (domain primitives) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/secret (secret store)",
+      "to_component": "openmeter/app (marketplace apps)",
+      "file": "openmeter/secret/entity/input.go",
+      "import": "openmeter/app",
+      "message": "openmeter/secret (secret store) imports from openmeter/app (marketplace apps) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/portal (portal tokens)",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "openmeter/portal/authenticator/authenticator.go",
+      "import": "api",
+      "message": "openmeter/portal (portal tokens) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/portal (portal tokens)",
+      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
+      "file": "openmeter/portal/httphandler/handler.go",
+      "import": "openmeter/meter",
+      "message": "openmeter/portal (portal tokens) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/portal (portal tokens)",
+      "to_component": "openmeter/namespace (multi-tenancy)",
+      "file": "openmeter/portal/httphandler/handler.go",
+      "import": "openmeter/namespace/namespacedriver",
+      "message": "openmeter/portal (portal tokens) imports from openmeter/namespace (multi-tenancy) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/subject (subject directory)",
+      "to_component": "pkg/framework (shared infrastructure)",
+      "file": "openmeter/subject/adapter.go",
+      "import": "pkg/framework/entutils",
+      "message": "openmeter/subject (subject directory) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/subject (subject directory)",
+      "to_component": "openmeter/entitlement (entitlement domain)",
+      "file": "openmeter/subject/httphandler/handler.go",
+      "import": "openmeter/entitlement",
+      "message": "openmeter/subject (subject directory) imports from openmeter/entitlement (entitlement domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/subject (subject directory)",
+      "to_component": "openmeter/namespace (multi-tenancy)",
+      "file": "openmeter/subject/httphandler/handler.go",
+      "import": "openmeter/namespace/namespacedriver",
+      "message": "openmeter/subject (subject directory) imports from openmeter/namespace (multi-tenancy) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/subject (subject directory)",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "openmeter/subject/httphandler/mapping.go",
+      "import": "api",
+      "message": "openmeter/subject (subject directory) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/subject (subject directory)",
+      "to_component": "openmeter/customer (customer domain)",
+      "file": "openmeter/subject/service/hooks/customersubject.go",
+      "import": "openmeter/customer",
+      "message": "openmeter/subject (subject directory) imports from openmeter/customer (customer domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/subject (subject directory)",
+      "to_component": "openmeter/app (marketplace apps)",
+      "file": "openmeter/subject/service/hooks/customersubject_test.go",
+      "import": "openmeter/app",
+      "message": "openmeter/subject (subject directory) imports from openmeter/app (marketplace apps) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/subject (subject directory)",
+      "to_component": "openmeter/billing (billing domain)",
+      "file": "openmeter/subject/service/hooks/customersubject_test.go",
+      "import": "openmeter/billing",
+      "message": "openmeter/subject (subject directory) imports from openmeter/billing (billing domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/subject (subject directory)",
+      "to_component": "openmeter/meter + ingest + sink + streaming (usage pipeline)",
+      "file": "openmeter/subject/service/hooks/customersubject_test.go",
+      "import": "openmeter/meter/mockadapter",
+      "message": "openmeter/subject (subject directory) imports from openmeter/meter + ingest + sink + streaming (usage pipeline) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/subject (subject directory)",
+      "to_component": "openmeter/watermill (event bus)",
+      "file": "openmeter/subject/service/hooks/customersubject_test.go",
+      "import": "openmeter/watermill/eventbus",
+      "message": "openmeter/subject (subject directory) imports from openmeter/watermill (event bus) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/subject (subject directory)",
+      "to_component": "openmeter/productcatalog (catalog domain)",
+      "file": "openmeter/subject/service/service_test.go",
+      "import": "openmeter/productcatalog/feature",
+      "message": "openmeter/subject (subject directory) imports from openmeter/productcatalog (catalog domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/llmcost (LLM cost prices)",
+      "to_component": "pkg/models (domain primitives)",
+      "file": "openmeter/llmcost/adapter/adapter.go",
+      "import": "pkg/models",
+      "message": "openmeter/llmcost (LLM cost prices) imports from pkg/models (domain primitives) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/cost (feature cost queries)",
+      "to_component": "pkg/models (domain primitives)",
+      "file": "openmeter/cost/adapter/adapter.go",
+      "import": "pkg/models",
+      "message": "openmeter/cost (feature cost queries) imports from pkg/models (domain primitives) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/meterevent (raw event listing)",
+      "to_component": "openmeter/customer (customer domain)",
+      "file": "openmeter/meterevent/adapter/adapter.go",
+      "import": "openmeter/customer",
+      "message": "openmeter/meterevent (raw event listing) imports from openmeter/customer (customer domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/meterevent (raw event listing)",
+      "to_component": "pkg/models (domain primitives)",
+      "file": "openmeter/meterevent/adapter/event.go",
+      "import": "pkg/models",
+      "message": "openmeter/meterevent (raw event listing) imports from pkg/models (domain primitives) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/meterevent (raw event listing)",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "openmeter/meterevent/httphandler/event.go",
+      "import": "api",
+      "message": "openmeter/meterevent (raw event listing) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/meterevent (raw event listing)",
+      "to_component": "pkg/framework (shared infrastructure)",
+      "file": "openmeter/meterevent/httphandler/event.go",
+      "import": "pkg/framework/commonhttp",
+      "message": "openmeter/meterevent (raw event listing) imports from pkg/framework (shared infrastructure) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/meterevent (raw event listing)",
+      "to_component": "openmeter/namespace (multi-tenancy)",
+      "file": "openmeter/meterevent/httphandler/handler.go",
+      "import": "openmeter/namespace/namespacedriver",
+      "message": "openmeter/meterevent (raw event listing) imports from openmeter/namespace (multi-tenancy) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "openmeter/meterexport (synthetic meter export)",
+      "to_component": "pkg/models (domain primitives)",
+      "file": "openmeter/meterexport/service.go",
+      "import": "pkg/models",
+      "message": "openmeter/meterexport (synthetic meter export) imports from pkg/models (domain primitives) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
       "from_component": "tools/migrate (Atlas migrations)",
       "to_component": "openmeter/productcatalog (catalog domain)",
       "file": "tools/migrate/productcatalog_test.go",
       "import": "openmeter/productcatalog",
       "message": "tools/migrate (Atlas migrations) imports from openmeter/productcatalog (catalog domain) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "collector (benthos collector module)",
+      "to_component": "api (generated v1 stubs + converters)",
+      "file": "collector/benthos/output/openmeter.go",
+      "import": "api/client/go",
+      "message": "collector (benthos collector module) imports from api (generated v1 stubs + converters) but does not declare it as a dependency",
       "severity": "warn"
     }
   ],
@@ -3461,8 +4163,8 @@
   ],
   "antipattern_clusters": [],
   "summary": {
-    "total_findings": 250,
-    "warnings": 237,
+    "total_findings": 328,
+    "warnings": 315,
     "informational": 13,
     "checks_run": [
       "pattern_divergences",
@@ -3471,6 +4173,6 @@
       "structural_outliers",
       "antipattern_clusters"
     ],
-    "timestamp": "2026-06-02T20:42:26.875217+00:00"
+    "timestamp": "2026-06-04T08:43:37.926826+00:00"
   }
 }

@@ -1,4 +1,4 @@
-# Enforcement: data-modeling (6 rules)
+# Enforcement: data-modeling (8 rules)
 
 Topic file. Loaded on demand when an agent works on something in the `data-modeling` area. The pre-edit hook reads `.archie/rules.json` directly — this file is for browsing/context only.
 
@@ -184,6 +184,48 @@ case ChannelTypeWebhookV2:
     "kind": "regex_in_content",
     "must_match": [
       "IDMixin"
+    ]
+  }
+]
+```
+
+</details>
+
+### `data-customersubjects-fkless` — Validate CustomerSubjects subject_key links in application code, not via a DB foreign key
+
+*source: `deep_scan`*
+
+**Why:** CustomerSubjects is a link table mapping a customer to one or more subject keys; the FK constraint to Subject.subject_key is intentionally absent because Ent cannot enforce FKs on non-ID fields (see openmeter/ent/schema/customer.go:147). Referential integrity between a customer's subject keys and the Subject table is therefore guarded only by application code, never assumed from the schema.
+
+**Path glob:** `openmeter/ent/schema/customer.go`
+
+### `data-ledgertransaction-balanced` — Create LedgerTransaction rows only via transactions.ResolveTransactions so entries stay balanced
+
+*source: `deep_scan`*
+
+**Why:** A LedgerTransaction groups balanced double-entry ledger entries within a transaction group and records when it was booked (see openmeter/ent/schema/ledger_transaction.go:26). The debit=credit invariant is enforced only by constructing inputs through transactions.ResolveTransactions with typed templates; hand-building LedgerTransaction or LedgerEntry rows can persist an unbalanced transaction that no schema constraint rejects.
+
+**Example:**
+
+```
+entries, err := transactions.ResolveTransactions(ctx, /* typed templates */)
+if err != nil { return err }
+return ledger.CommitGroup(ctx, entries)
+```
+
+**Path glob:** `openmeter/ledger/**/*.go`
+
+<details><summary>Code-shape trigger</summary>
+
+```json
+[
+  {
+    "kind": "regex_in_content",
+    "must_match": [
+      "LedgerTransaction\\{|\\.LedgerTransaction\\.Create\\("
+    ],
+    "must_not_match": [
+      "ResolveTransactions"
     ]
   }
 ]

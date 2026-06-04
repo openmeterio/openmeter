@@ -1,4 +1,4 @@
-OpenMeter persists all domain state (billing invoices/lines, charges, customers, subscriptions, entitlements, credit grants, double-entry ledger, meters, features/plans, notifications, LLM cost prices) in a single PostgreSQL database via ~35 Ent schema structs that Atlas diffs into golang-migrate SQL files; raw usage events live append-only in a single shared ClickHouse MergeTree events table (queried by streaming.Connector), and Redis provides TTL-based ingest deduplication. Kafka (Watermill) is the cross-binary event bus. Every domain has a service/adapter pair; all writes go through entutils.TransactingRepo for ctx-bound transactions.
+OpenMeter persists all domain state (billing invoices/lines, charges, customers, subscriptions, entitlements, credit grants, double-entry ledger, meters, features, notifications, LLM cost prices) in one PostgreSQL database via ~35 hand-written Ent schema structs in openmeter/ent/schema that Atlas diffs into golang-migrate SQL files under tools/migrate/migrations; raw usage CloudEvents live append-only in a single shared ClickHouse MergeTree events table created by the connector at startup (openmeter/streaming/clickhouse/event_query.go), Redis provides TTL+SET-NX ingest deduplication (openmeter/dedupe), and Kafka (Watermill) is the cross-binary event bus. Every domain has a Service/Adapter pair and all writes go through entutils.TransactingRepo for ctx-bound transactions.
 
 ## Models
 
@@ -6,7 +6,7 @@ _Domain entities, DTOs, and value objects this codebase reads and writes._
 
 ### `BillingInvoice` *(table)*
 
-An invoice that progresses through a stateless state machine; status='gathering' is the single pending-line collector per customer+currency, while standard invoices carry cloned profile/app settings and snapshot timestamps (see openmeter/ent/schema/billing.go:1190).
+An invoice progressing through a stateless state machine; status='gathering' is the single pending-line collector per customer+currency, while standard invoices clone profile/app settings and snapshot timestamps (see openmeter/ent/schema/billing.go:1170).
 
 - **Location:** `openmeter/ent/schema/billing.go`
 - **Store:** `primary_postgres`
@@ -19,18 +19,8 @@ An invoice that progresses through a stateless state machine; status='gathering'
 | `id` | char(26) |  |
 | `namespace` | String |  |
 | `metadata` | jsonb |  |
-| `supplier_name` | String |  |
-| `supplier_tax_code` | String |  |
-| `customer_key` | String |  |
-| `customer_name` | String |  |
-| `customer_usage_attribution` | jsonb |  |
-| `number` | String |  |
-| `type` | Enum (InvoiceType) |  |
-| `description` | String |  |
-| `customer_id` | char(26) |  |
-| `source_billing_profile_id` | char(26) |  |
 | `voided_at` | Time |  |
-| `issued_at` | Time | May be set in the future for pre-issued invoices (see openmeter/ent/schema/billing.go:1087). |
+| `issued_at` | Time | May be set in the future for pre-issued invoices (see openmeter/ent/schema/billing.go:1082). |
 | `sent_to_customer_at` | Time |  |
 | `draft_until` | Time |  |
 | `quantity_snapshoted_at` | Time |  |
@@ -44,27 +34,22 @@ An invoice that progresses through a stateless state machine; status='gathering'
 | `payment_app_id` | char(26) |  |
 | `period_start` | Time |  |
 | `period_end` | Time |  |
-| `collection_at` | Time | On gathering invoices marks when pending lines are collected into a new draft; on standard invoices marks the post-creation metered-line collection/snapshot cutoff (see openmeter/ent/schema/billing.go:1154). |
-| `payment_processing_entered_at` | Time | Timestamp the invoice first entered payment-processing state; used for staleness/fraud guards (see openmeter/ent/schema/billing.go:1164). |
-| `schema_level` | Int | Schema level used when writing invoice data during the in-progress invoice-line migration (see openmeter/ent/schema/billing.go:1170). |
-| `created_at` | Time |  |
-| `updated_at` | Time |  |
-| `deleted_at` | Time |  |
+| `collection_at` | Time | On gathering invoices marks when pending lines are collected into a new draft; on standard invoices marks the post-creation metered-line collection/snapshot cutoff (see openmeter/ent/schema/billing.go:1148). |
+| `payment_processing_entered_at` | Time | Timestamp the invoice first entered payment-processing state; used for staleness/fraud guards (see openmeter/ent/schema/billing.go:1160). |
+| `schema_level` | Int | Schema level used when writing invoice data during the in-progress invoice-line migration (see openmeter/ent/schema/billing.go:1163). |
 
 **Data Guarantees:**
-- PK id
-- soft_delete (deleted_at)
-- audit (created_at, updated_at)
-- UNIQUE(namespace, customer_id, currency) WHERE deleted_at IS NULL AND status='gathering' — one gathering invoice per customer per currency (openmeter/ent/schema/billing.go:1193)
-- INDEX(namespace, customer_id)
-- INDEX(namespace, status)
-- GIN INDEX(status_details_cache)
-- FK source_billing_profile_id → billing_profiles (immutable)
-- FK customer_id → customers (immutable)
+- PK id (IDMixin)
+- soft_delete (deleted_at, TimeMixin)
+- audit (created_at, updated_at, TimeMixin)
+- UNIQUE(namespace, customer_id, currency) WHERE deleted_at IS NULL AND status='gathering' — one gathering invoice per customer per currency (openmeter/ent/schema/billing.go:1192)
+- INDEX(namespace, customer_id) (openmeter/ent/schema/billing.go:1175)
+- INDEX(namespace, status) (openmeter/ent/schema/billing.go:1176)
+- GIN INDEX(status_details_cache) (openmeter/ent/schema/billing.go:1182)
 
 **Consumers:**
 - `billing adapter (invoice.go)` — `openmeter/billing/adapter/invoice.go`: Ent read/write of invoices via TransactingRepo
-- `billing service state machine` — `openmeter/billing/service/stdinvoicestate.go`: sole writer of status via the stateless state machine (FireAndActivate); direct status mutation forbidden
+- `billing service state machine` — `openmeter/billing/service/stdinvoicestate.go`: sole writer of status via the stateless state machine; direct status mutation forbidden
 
 **Lifecycle:**
 - *How to add:* Add a field to BillingInvoice.Fields() in openmeter/ent/schema/billing.go, run make generate to regenerate openmeter/ent/db/, then atlas migrate --env local diff <name> to emit the .up.sql/.down.sql pair and update atlas.sum. Commit schema + generated code + migration + atlas.sum together.
@@ -74,13 +59,7 @@ An invoice that progresses through a stateless state machine; status='gathering'
   field.Int("schema_level").Default(1),
   ```
 
-- *How to modify:* Never edit a landed migration file or atlas.sum by hand. Change the Ent schema, regenerate, and produce a new timestamped migration via atlas migrate --env local diff. Field renames go through additive migrations.
-
-  ```
-  -- tools/migrate/migrations/20260520130500_add_ledger_tax_behavior.up.sql
-  ALTER TABLE "ledger_sub_account_routes" ADD COLUMN "tax_behavior" character varying NULL;
-  ```
-
+- *How to modify:* Never edit a landed migration file or atlas.sum by hand. Change the Ent schema, regenerate, and produce a new timestamped migration via atlas migrate --env local diff. The invoice-line migration is mid-flight, so deprecated columns and the schema_level discriminator coexist and must be removed in lockstep.
 - *How to read:* Always through billing.Service (composite interface) backed by the Ent adapter wrapped in entutils.TransactingRepo; never query openmeter/ent/db directly from a service.
 
   ```
@@ -89,90 +68,9 @@ An invoice that progresses through a stateless state machine; status='gathering'
 
 - *Tests:* `openmeter/billing/adapter/invoice.go`
 
-### `BillingInvoiceLine` *(table)*
-
-A tagged-union invoice line (flat-fee, usage-based, or detailed) for either a gathering or standard invoice; eventually intended to become the unified usage-based-pricing table, linking to charges, subscriptions, and split-line groups (see openmeter/ent/schema/billing.go:397).
-
-- **Location:** `openmeter/ent/schema/billing.go`
-- **Store:** `primary_postgres`
-- **Owner:** `openmeter/billing`
-
-**Fields:**
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | char(26) |  |
-| `namespace` | String |  |
-| `name` | String |  |
-| `description` | String |  |
-| `metadata` | jsonb |  |
-| `annotations` | jsonb |  |
-| `currency` | varchar(3) |  |
-| `tax_config` | jsonb |  |
-| `period_start` | Time |  |
-| `period_end` | Time |  |
-| `invoice_id` | char(26) |  |
-| `managed_by` | Enum (InvoiceLineManagedBy) |  |
-| `parent_line_id` | char(26) |  |
-| `invoice_at` | Time |  |
-| `override_collection_period_end` | Time |  |
-| `type` | Enum (InvoiceLineAdapterType) |  |
-| `status` | Enum (InvoiceLineStatus) |  |
-| `quantity` | numeric | Optional for usage-based lines; only persisted when the invoice is issued (see openmeter/ent/schema/billing.go:352). |
-| `ratecard_discounts` | jsonb |  |
-| `child_unique_reference_id` | String | Unique per parent line; used for upserting and matching lines created for the same reason (e.g. a price tier) across invoices (see openmeter/ent/schema/billing.go:370). |
-| `subscription_id` | String |  |
-| `subscription_phase_id` | String |  |
-| `subscription_item_id` | String |  |
-| `subscription_billing_period_from` | Time |  |
-| `subscription_billing_period_to` | Time |  |
-| `split_line_group_id` | char(26) |  |
-| `charge_id` | char(26) |  |
-| `engine` | Enum (LineEngineType) |  |
-| `line_ids` | char(26) | Deprecated; invoice discounts are now in line_discounts (see openmeter/ent/schema/billing.go:416). |
-| `credits_applied` | jsonb |  |
-| `created_at` | Time |  |
-| `updated_at` | Time |  |
-| `deleted_at` | Time |  |
-
-**Data Guarantees:**
-- PK id
-- soft_delete (deleted_at)
-- audit (created_at, updated_at)
-- UNIQUE(namespace, parent_line_id, child_unique_reference_id) WHERE child_unique_reference_id IS NOT NULL AND deleted_at IS NULL (openmeter/ent/schema/billing.go:440)
-- INDEX(namespace, invoice_id)
-- INDEX(namespace, subscription_id, subscription_phase_id, subscription_item_id)
-- FK invoice_id → billing_invoices (required)
-- FK charge_id → charges
-- cascade-delete of flat_fee_line / usage_based_line / detailed_lines / discounts
-
-**Consumers:**
-- `billing adapter (invoice.go, invoicelinesplitgroup.go)` — `openmeter/billing/adapter/invoice.go`: diff-based upsert of line hierarchies via TransactingRepo
-- `subscriptionsync service` — `openmeter/billing/worker/subscriptionsync`: reconciles subscription views into invoice lines (SynchronizeSubscription)
-
-**Lifecycle:**
-- *How to add:* Add the field in BillingInvoiceLine.Fields() in openmeter/ent/schema/billing.go (it already has >30 fields), regenerate with make generate, then atlas migrate --env local diff <name>. Update the billing adapter line mapping for the new column.
-
-  ```
-  field.String("charge_id").SchemaType(map[string]string{dialect.Postgres: "char(26)"}).Optional().Nillable(),
-  ```
-
-- *How to modify:* Mark removed columns Deprecated(...) rather than dropping immediately (see line_ids, several discount columns); generate a new migration for each change. Never hand-edit migrations.
-
-  ```
-  field.String("line_ids").Optional().Nillable().Deprecated("invoice discounts are deprecated, use line_discounts instead"),
-  ```
-
-- *How to read:* Through billing.Service; never construct billing.InvoiceLine{} literally — use NewStandardInvoiceLine/NewGatheringInvoiceLine so the private discriminator is set.
-
-  ```
-  line := billing.NewStandardInvoiceLine(billing.StandardInvoiceLineInput{...})
-  ```
-
-
 ### `Entitlement` *(table)*
 
-A feature entitlement of one of three sub-types (metered/boolean/static); feature_key is validated to reject ULIDs, and usage_period_anchor now keeps the original anchor while the effective anchor is derived from the last reset (see openmeter/ent/schema/entitlement.go:62).
+A feature entitlement of one of three sub-types (metered/boolean/static); feature_key is validated to reject ULIDs, and usage_period_anchor keeps the original anchor while the effective anchor is derived from the last reset (see openmeter/ent/schema/entitlement.go:62).
 
 - **Location:** `openmeter/ent/schema/entitlement.go`
 - **Store:** `primary_postgres`
@@ -182,9 +80,6 @@ A feature entitlement of one of three sub-types (metered/boolean/static); featur
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | char(26) |  |
-| `namespace` | String |  |
-| `metadata` | jsonb |  |
 | `entitlement_type` | Enum |  |
 | `feature_id` | char(26) |  |
 | `active_from` | Time |  |
@@ -202,20 +97,15 @@ A feature entitlement of one of three sub-types (metered/boolean/static); featur
 | `current_usage_period_start` | Time |  |
 | `current_usage_period_end` | Time |  |
 | `annotations` | jsonb |  |
-| `created_at` | Time |  |
-| `updated_at` | Time |  |
-| `deleted_at` | Time |  |
 
 **Data Guarantees:**
-- PK id
-- soft_delete (deleted_at)
-- audit (created_at, updated_at)
-- INDEX(namespace, customer_id)
-- INDEX(current_usage_period_end, deleted_at) — collects entitlements with due resets
-- UNIQUE(created_at, id)
-- FK feature_id → features (required, immutable)
-- FK customer_id → customers (required, immutable)
-- cascade-delete of usage_reset, grant, balance_snapshot
+- PK id (IDMixin), namespace (NamespaceMixin), metadata (MetadataMixin), soft_delete + audit (TimeMixin)
+- INDEX(namespace, customer_id) (openmeter/ent/schema/entitlement.go:79)
+- INDEX(current_usage_period_end, deleted_at) — collects entitlements with due resets (openmeter/ent/schema/entitlement.go:84)
+- UNIQUE(created_at, id) (openmeter/ent/schema/entitlement.go:85)
+- FK feature_id → features (required, immutable) (openmeter/ent/schema/entitlement.go:101)
+- FK customer_id → customers (required, immutable) (openmeter/ent/schema/entitlement.go:107)
+- cascade-delete of usage_reset, grant, balance_snapshot (openmeter/ent/schema/entitlement.go:91)
 
 **Consumers:**
 - `entitlement adapter` — `openmeter/entitlement/adapter/entitlement.go`: Ent read/write; acquires pg_advisory_lock per customer for multi-row mutations
@@ -237,9 +127,69 @@ A feature entitlement of one of three sub-types (metered/boolean/static); featur
 
 - *Tests:* `openmeter/entitlement/adapter/entitlement_test.go`
 
+### `BillingInvoiceLine` *(table)*
+
+A tagged-union invoice line (flat-fee, usage-based, or detailed) for a gathering or standard invoice; eventually intended to become the unified usage-based-pricing table, linking to charges, subscriptions, and split-line groups (see openmeter/ent/schema/billing.go:397).
+
+- **Location:** `openmeter/ent/schema/billing.go`
+- **Store:** `primary_postgres`
+- **Owner:** `openmeter/billing`
+
+**Fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | char(26) |  |
+| `namespace` | String |  |
+| `subscription_id` | String |  |
+| `subscription_phase_id` | String |  |
+| `subscription_item_id` | String |  |
+| `subscription_billing_period_from` | Time |  |
+| `subscription_billing_period_to` | Time |  |
+| `split_line_group_id` | char(26) | Only valid for usage-based lines; this table is intended to eventually become the ubp table (see openmeter/ent/schema/billing.go:397). |
+| `charge_id` | char(26) |  |
+| `engine` | Enum (LineEngineType) |  |
+| `line_ids` | char(26) | Deprecated; invoice discounts are now in line_discounts (see openmeter/ent/schema/billing.go:416). |
+| `credits_applied` | jsonb |  |
+
+**Data Guarantees:**
+- PK id (IDMixin)
+- soft_delete (deleted_at)
+- audit (created_at, updated_at)
+- UNIQUE(namespace, parent_line_id, child_unique_reference_id) WHERE child_unique_reference_id IS NOT NULL AND deleted_at IS NULL (openmeter/ent/schema/billing.go:441)
+- INDEX(namespace, invoice_id) (openmeter/ent/schema/billing.go:436)
+- INDEX(namespace, parent_line_id) (openmeter/ent/schema/billing.go:437)
+- INDEX(namespace, subscription_id, subscription_phase_id, subscription_item_id) (openmeter/ent/schema/billing.go:443)
+- FK invoice_id → billing_invoices (required) (openmeter/ent/schema/billing.go:448)
+
+**Consumers:**
+- `billing adapter (invoice.go)` — `openmeter/billing/adapter/invoice.go`: diff-based upsert of line hierarchies via TransactingRepo
+- `subscriptionsync service` — `openmeter/billing/worker/subscriptionsync`: reconciles subscription views into invoice lines (SynchronizeSubscription)
+
+**Lifecycle:**
+- *How to add:* Add the field in BillingInvoiceLine.Fields() in openmeter/ent/schema/billing.go (it already has >30 fields), regenerate with make generate, then atlas migrate --env local diff <name>. Update the billing adapter line mapping for the new column.
+
+  ```
+  field.String("charge_id").SchemaType(map[string]string{dialect.Postgres: "char(26)"}).Optional().Nillable(),
+  ```
+
+- *How to modify:* Mark removed columns Deprecated(...) rather than dropping immediately (see line_ids), generate a new migration for each change, never hand-edit migrations.
+
+  ```
+  field.String("line_ids").Optional().Nillable().Deprecated("invoice discounts are deprecated, use line_discounts instead"),
+  ```
+
+- *How to read:* Through billing.Service; never construct billing.InvoiceLine{} literally — use NewStandardInvoiceLine/NewGatheringInvoiceLine so the private discriminator is set.
+
+  ```
+  line := billing.NewStandardInvoiceLine(billing.StandardInvoiceLineInput{...})
+  ```
+
+- *Tests:* `openmeter/billing/adapter/invoice.go`
+
 ### `Grant` *(table)*
 
-A credit grant burned down for a metered entitlement; amount/rollover are numeric and recurrence is an ISO duration with anchor (see openmeter/ent/schema/grant.go:28).
+A credit grant burned down for a metered entitlement; amount/rollover are numeric (immutable) and recurrence is an ISO duration with anchor (see openmeter/ent/schema/grant.go:38).
 
 - **Location:** `openmeter/ent/schema/grant.go`
 - **Store:** `primary_postgres`
@@ -249,12 +199,9 @@ A credit grant burned down for a metered entitlement; amount/rollover are numeri
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | char(26) |  |
-| `namespace` | String |  |
-| `annotations` | jsonb |  |
 | `metadata` | jsonb |  |
-| `owner_id` | char(26) | Entitlement that owns the grant (FK to entitlements.id) (see openmeter/ent/schema/grant.go:68). |
-| `amount` | numeric |  |
+| `owner_id` | char(26) | Entitlement that owns the grant (FK to entitlements.id) (see openmeter/ent/schema/grant.go:35). |
+| `amount` | numeric | Immutable grant amount; the credit engine assumes minute-boundary effective times for burn-down (see openmeter/ent/schema/grant.go:38). |
 | `priority` | Uint8 |  |
 | `effective_at` | Time |  |
 | `expiration` | jsonb |  |
@@ -264,17 +211,12 @@ A credit grant burned down for a metered entitlement; amount/rollover are numeri
 | `reset_min_rollover` | numeric |  |
 | `recurrence_period` | ISODurationString |  |
 | `recurrence_anchor` | Time |  |
-| `created_at` | Time |  |
-| `updated_at` | Time |  |
-| `deleted_at` | Time |  |
 
 **Data Guarantees:**
-- PK id
-- soft_delete (deleted_at)
-- audit (created_at, updated_at)
-- INDEX(namespace, owner_id)
-- INDEX(effective_at, expires_at)
-- FK owner_id → entitlements (required, immutable)
+- PK id (IDMixin), namespace (NamespaceMixin), annotations (AnnotationsMixin), soft_delete + audit (TimeMixin)
+- INDEX(namespace, owner_id) (openmeter/ent/schema/grant.go:61)
+- INDEX(effective_at, expires_at) (openmeter/ent/schema/grant.go:62)
+- FK owner_id → entitlements (required, immutable) (openmeter/ent/schema/grant.go:68)
 
 **Consumers:**
 - `credit engine` — `openmeter/credit/engine`: computes grant burn-down without I/O; all effective times truncated to time.Minute
@@ -287,7 +229,7 @@ A credit grant burned down for a metered entitlement; amount/rollover are numeri
   field.Float("amount").Immutable().SchemaType(map[string]string{dialect.Postgres: "numeric"}),
   ```
 
-- *How to modify:* Standard Ent + atlas diff. Always truncate grant effective times to time.Minute before storing/computing.
+- *How to modify:* Standard Ent + atlas diff. Always truncate grant effective times to time.Minute (Granularity) before storing/computing.
 
   ```
   effectiveAt := time.Now().Truncate(time.Minute)
@@ -299,6 +241,62 @@ A credit grant burned down for a metered entitlement; amount/rollover are numeri
   creditConnector.CreateGrant(ctx, credit.CreateGrantInput{EffectiveAt: effectiveAt})
   ```
 
+
+### `RawEvent` *(entity)*
+
+A raw CloudEvent usage row in the single shared ClickHouse MergeTree events table; written append-only by the sink worker, queried by meter aggregations; store_row_id (ULID) is the v2-pagination tie-breaker for same-second events (see openmeter/streaming/connector.go:34).
+
+- **Location:** `openmeter/streaming/connector.go`
+- **Store:** `clickhouse_events`
+- **Owner:** `openmeter/streaming`
+
+**Fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `namespace` | String |  |
+| `id` | String |  |
+| `type` | LowCardinality(String) |  |
+| `source` | String |  |
+| `subject` | String |  |
+| `time` | DateTime |  |
+| `data` | String |  |
+| `ingested_at` | DateTime |  |
+| `stored_at` | DateTime | Set when the sink writes the row; used for stored-at cutoff filtering in metered billing finalization (see openmeter/streaming/clickhouse/event_query.go:34). |
+| `store_row_id` | String | Per-row ULID; cursor tie-breaker in v2 listing since DateTime is second-precision (see openmeter/streaming/connector.go:34). |
+| `customer_id` | String (Nullable, query-time WITH map) |  |
+
+**Data Guarantees:**
+- ENGINE = MergeTree (no PK; not deduplicated by the engine — dedup is upstream in Redis) (openmeter/streaming/clickhouse/event_query.go:37)
+- PARTITION BY toYYYYMM(time) (openmeter/streaming/clickhouse/event_query.go:38)
+- ORDER BY (namespace, type, subject, toStartOfHour(time)) (openmeter/streaming/clickhouse/event_query.go:45)
+- INDEX <table>_stored_at stored_at TYPE minmax GRANULARITY 4 (openmeter/streaming/clickhouse/event_query.go:35)
+- CREATE TABLE IF NOT EXISTS — created by connector at startup, not Atlas (openmeter/streaming/clickhouse/event_query.go:25)
+- append-only (no UPDATE/DELETE in the write path)
+
+**Consumers:**
+- `ClickHouseStorage.BatchInsert` — `openmeter/sink/storage.go`: sole writer; maps SinkMessage → RawEvent and batch-inserts via streaming.Connector
+- `clickhouse meter_query / event_query` — `openmeter/streaming/clickhouse/meter_query.go`: reads via toSQL() query structs for aggregation and event listing
+
+**Lifecycle:**
+- *How to add:* Add a `ch:` tagged field to streaming.RawEvent in openmeter/streaming/connector.go, then add the column to the DDL in createEventsTable.toSQL() and to the INSERT column list in openmeter/streaming/clickhouse/event_query.go (column order must match the table exactly). CREATE TABLE IF NOT EXISTS means new columns on existing deployments need an explicit ALTER TABLE migration path.
+
+  ```
+  // event_query.go createEventsTable.toSQL()
+  sb.Define("stored_at", "DateTime")
+  sb.Define("store_row_id", "String")
+  sb.SQL("ENGINE = MergeTree")
+  sb.SQL("ORDER BY (namespace, type, subject, toStartOfHour(time))")
+  ```
+
+- *How to modify:* ClickHouse schema is created by the connector at startup (createTable), not by Atlas/golang-migrate. Changing column types requires coordinating the DDL builder and the INSERT/SELECT column lists; there is a single shared table across all namespaces.
+- *How to read:* Always through streaming.Connector (QueryMeter/ListEvents/ListEventsV2); query logic lives in clickhouse/ query-structs with toSQL(), never inline SQL in connector method bodies.
+
+  ```
+  rows, err := connector.QueryMeter(ctx, namespace, meter, params)
+  ```
+
+- *Tests:* `openmeter/streaming/clickhouse/event_query_test.go`, `openmeter/streaming/clickhouse/event_query_v2_test.go`, `openmeter/streaming/clickhouse/meter_query_test.go`
 
 ### `Subscription` *(table)*
 
@@ -312,41 +310,34 @@ A customer subscription against a versioned plan, with default billing cadence/a
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | char(26) |  |
-| `namespace` | String |  |
-| `annotations` | jsonb |  |
-| `metadata` | jsonb |  |
 | `name` | String |  |
 | `description` | String |  |
 | `plan_id` | String |  |
 | `customer_id` | String |  |
 | `currency` | varchar(3) |  |
 | `billing_anchor` | Time |  |
-| `billing_cadence` | ISODurationString |  |
-| `pro_rating_config` | jsonb |  |
+| `billing_cadence` | ISODurationString | Default billing cadence for the subscription (see openmeter/ent/schema/subscription.go:42). |
+| `pro_rating_config` | jsonb | Default pro-rating configuration; defaults to ProratePrices+enabled (see openmeter/ent/schema/subscription.go:44). |
 | `settlement_mode` | Enum (SettlementMode) | Immutable; defaults to credit-then-invoice (see openmeter/ent/schema/subscription.go:57). |
 | `active_from` | Time (CadencedMixin) |  |
 | `active_to` | Time (CadencedMixin) |  |
-| `created_at` | Time |  |
-| `updated_at` | Time |  |
-| `deleted_at` | Time |  |
 
 **Data Guarantees:**
-- PK id
-- soft_delete (deleted_at)
-- audit (created_at, updated_at)
-- cadenced (active_from, active_to)
-- INDEX(namespace, customer_id)
-- FK customer_id → customers (required, immutable)
-- FK plan_id → plans
-- cascade-delete of phases, addons, billing_sync_state
+- PK id (IDMixin)
+- namespace (NamespaceMixin), annotations (AnnotationsMixin), metadata (MetadataMixin)
+- soft_delete (deleted_at), audit (created_at, updated_at) (TimeMixin)
+- cadenced (active_from, active_to) (CadencedMixin, openmeter/ent/schema/subscription.go:29)
+- INDEX(namespace, customer_id) (openmeter/ent/schema/subscription.go:67)
+- FK customer_id → customers (required, immutable) (openmeter/ent/schema/subscription.go:74)
+- FK plan_id → plans (openmeter/ent/schema/subscription.go:73)
+- cascade-delete of phases, addons, billing_sync_state (openmeter/ent/schema/subscription.go:75,83,87)
 
 **Consumers:**
 - `subscription service` — `openmeter/subscription/service`: manages lifecycle via SubscriptionSpec + AppliesToSpec patches
 - `SubscriptionBillingSyncState` — `openmeter/ent/schema/subscriptionbillingsync.go`: tracks billing sync reconciliation per subscription
 
 **Lifecycle:**
-- *How to add:* Add field in Subscription.Fields() (openmeter/ent/schema/subscription.go); SubscriptionItem deliberately duplicates RateCard fields for snapshot immutability, so RateCard changes must be mirrored manually. Regenerate + atlas diff.
+- *How to add:* Add field in Subscription.Fields() (openmeter/ent/schema/subscription.go). SubscriptionItem deliberately duplicates RateCard fields for snapshot immutability, so RateCard changes must be mirrored manually. Regenerate + atlas diff.
 
   ```
   field.Enum("settlement_mode").GoType(productcatalog.SettlementMode("")).Default(string(productcatalog.CreditThenInvoiceSettlementMode)).Immutable(),
@@ -362,7 +353,7 @@ A customer subscription against a versioned plan, with default billing cadence/a
 
 ### `Meter` *(table)*
 
-An event-aggregation rule: event_type + aggregation function (COUNT/SUM/MAX/UNIQUE_COUNT) over an optional value_property and group_by JSON paths; event_from optionally bounds the included event window (see openmeter/ent/schema/meter.go:30).
+An event-aggregation rule: event_type + aggregation function (COUNT/SUM/MAX/UNIQUE_COUNT) over an optional value_property and group_by JSON paths; event_from optionally bounds the included event window (see openmeter/ent/schema/meter.go:36).
 
 - **Location:** `openmeter/ent/schema/meter.go`
 - **Store:** `primary_postgres`
@@ -372,28 +363,17 @@ An event-aggregation rule: event_type + aggregation function (COUNT/SUM/MAX/UNIQ
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | char(26) |  |
-| `namespace` | String |  |
-| `key` | String |  |
-| `name` | String |  |
-| `description` | String |  |
-| `metadata` | jsonb |  |
-| `annotations` | jsonb |  |
 | `event_type` | String |  |
-| `value_property` | String | JSON path to the numeric value; optional for COUNT aggregation (see openmeter/ent/schema/meter.go:31). |
+| `value_property` | String | JSON path to the numeric value; optional for COUNT aggregation (see openmeter/ent/schema/meter.go:32). |
 | `group_by` | jsonb |  |
 | `aggregation` | Enum (MeterAggregation) |  |
-| `event_from` | Time | If set, only events since this time are included (see openmeter/ent/schema/meter.go:35). |
-| `created_at` | Time |  |
-| `updated_at` | Time |  |
-| `deleted_at` | Time |  |
+| `event_from` | Time | If set, only events since this time are included (see openmeter/ent/schema/meter.go:36). |
 
 **Data Guarantees:**
-- PK id
-- soft_delete (deleted_at)
-- audit (created_at, updated_at)
+- PK id + namespace + key + name + metadata + soft_delete + audit via UniqueResourceMixin (openmeter/ent/schema/meter.go:21)
+- annotations via AnnotationsMixin (openmeter/ent/schema/meter.go:23)
 - UNIQUE(namespace, key) WHERE deleted_at IS NULL (openmeter/ent/schema/meter.go:43)
-- INDEX(namespace, event_type)
+- INDEX(namespace, event_type) (openmeter/ent/schema/meter.go:48)
 
 **Consumers:**
 - `meter adapter` — `openmeter/meter/adapter/meter.go`: Ent CRUD of meter definitions
@@ -415,6 +395,47 @@ An event-aggregation rule: event_type + aggregation function (COUNT/SUM/MAX/UNIQ
 
 - *Tests:* `openmeter/meter/adapter/adapter_test.go`
 
+### `NotificationEvent` *(table)*
+
+A notification event instance carrying a versioned jsonb payload for a rule; delivery is tracked separately via NotificationEventDeliveryStatus (see openmeter/ent/schema/notification.go:143).
+
+- **Location:** `openmeter/ent/schema/notification.go`
+- **Store:** `primary_postgres`
+- **Owner:** `openmeter/notification`
+
+**Fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `created_at` | Time |  |
+| `type` | Enum (EventType) |  |
+| `rule_id` | char(26) |  |
+| `payload` | jsonb | Version-pinned event payload; payload version is an API contract for webhook consumers (see openmeter/ent/schema/notification.go:143). |
+
+**Data Guarantees:**
+- PK id (IDMixin), namespace (NamespaceMixin), annotations (AnnotationsMixin)
+- NO TimeMixin — only created_at is declared; no updated_at/deleted_at (openmeter/ent/schema/notification.go:122)
+- FK rule_id → notification_rules (required, immutable) (openmeter/ent/schema/notification.go:154)
+
+**Consumers:**
+- `notification consumer` — `openmeter/notification/consumer`: builds payload and dispatches to webhook.Handler (Svix) via the system events topic
+- `notification eventhandler` — `openmeter/notification/eventhandler`: runs Dispatch + Reconcile loops; Reconcile owns retry
+
+**Lifecycle:**
+- *How to add:* Add field in NotificationEvent.Fields() (openmeter/ent/schema/notification.go), regenerate, atlas diff. Channel/Rule config polymorphism uses ChannelConfigValueScanner/RuleConfigValueScanner type-switch serializers in the same file.
+
+  ```
+  field.String("payload").SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
+  ```
+
+- *How to modify:* Pin a new payload version per event family rather than changing struct shape in place; standard Ent + atlas diff.
+- *How to read:* Through notification.Service (ListEvents/GetEvent/ResendEvent) and notification.EventHandler.Dispatch.
+
+  ```
+  notification.Service.GetEvent(ctx, id)
+  ```
+
+
 ### `Customer` *(table)*
 
 A billable customer; key is stored as empty string (not NULL) when unset so a partial unique index can enforce per-namespace key uniqueness (see openmeter/ent/schema/customer.go:33).
@@ -427,33 +448,28 @@ A billable customer; key is stored as empty string (not NULL) when unset so a pa
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | char(26) |  |
-| `namespace` | String |  |
-| `name` | String |  |
-| `metadata` | jsonb |  |
-| `annotations` | jsonb |  |
-| `key` | String |  |
+| `key` | String | Stored as empty string (not NULL) when unset because unique indexes can only be added on non-nullable fields (see openmeter/ent/schema/customer.go:33). |
 | `primary_email` | String |  |
 | `currency` | varchar(3) |  |
-| `created_at` | Time |  |
-| `updated_at` | Time |  |
-| `deleted_at` | Time |  |
 
 **Data Guarantees:**
-- PK id
-- soft_delete (deleted_at)
-- audit (created_at, updated_at)
-- UNIQUE(namespace, key) WHERE deleted_at IS NULL (openmeter/ent/schema/customer.go:57)
-- INDEX(name)
-- INDEX(primary_email)
-- cascade-delete of apps, subjects, billing_customer_override
+- PK id + namespace + name + metadata via ResourceMixin (openmeter/ent/schema/customer.go:23)
+- billing-prefixed address fields via CustomerAddressMixin (openmeter/ent/schema/customer.go:24)
+- annotations via AnnotationsMixin (openmeter/ent/schema/customer.go:27)
+- soft_delete (deleted_at), audit (created_at, updated_at) via ResourceMixin
+- UNIQUE(namespace, key) WHERE deleted_at IS NULL (openmeter/ent/schema/customer.go:58)
+- INDEX(namespace, key, deleted_at) (openmeter/ent/schema/customer.go:63)
+- INDEX(name) (openmeter/ent/schema/customer.go:64)
+- INDEX(primary_email) (openmeter/ent/schema/customer.go:65)
+- INDEX(created_at) (openmeter/ent/schema/customer.go:67)
+- cascade-delete of apps, subjects, billing_customer_override (openmeter/ent/schema/customer.go:73)
 
 **Consumers:**
 - `customer adapter` — `openmeter/customer/adapter/customer.go`: Ent read/write of customers with soft-delete semantics
 - `RequestValidatorRegistry` — `openmeter/customer/requestvalidator.go`: pre-mutation cross-domain guards (billing/entitlement) run before any write
 
 **Lifecycle:**
-- *How to add:* Add field in Customer.Fields() in openmeter/ent/schema/customer.go, regenerate, then atlas migrate diff. Note the schema comment: v3 ILIKE filters on name/primary_email/key need pg_trgm GIN indexes via a custom SQL migration before exposing the list handler (see openmeter/ent/schema/customer.go:41).
+- *How to add:* Add field in Customer.Fields() in openmeter/ent/schema/customer.go, regenerate, then atlas migrate diff. Note the schema comment: v3 ILIKE filters on name/primary_email/key need pg_trgm GIN indexes via a custom SQL migration before exposing the list handler (see openmeter/ent/schema/customer.go:42-55).
 
   ```
   field.String("primary_email").Optional().Nillable(),
@@ -468,109 +484,9 @@ A billable customer; key is stored as empty string (not NULL) when unset so a pa
 
 - *Tests:* `openmeter/customer/adapter/customer_test.go`
 
-### `RawEvent` *(entity)*
-
-A raw CloudEvent usage row in the single shared ClickHouse MergeTree events table; written append-only by the sink worker, queried by meter aggregations; store_row_id (ULID) is the v2-pagination tie-breaker for same-second events (see openmeter/streaming/connector.go:24, openmeter/streaming/clickhouse/event_query.go:36).
-
-- **Location:** `openmeter/streaming/connector.go`
-- **Store:** `clickhouse_events`
-- **Owner:** `openmeter/streaming`
-
-**Fields:**
-
-| Field | Type | Description |
-|---|---|---|
-| `namespace` | String |  |
-| `id` | String |  |
-| `type` | LowCardinality(String) |  |
-| `source` | String |  |
-| `subject` | String |  |
-| `time` | DateTime |  |
-| `data` | String |  |
-| `ingested_at` | DateTime |  |
-| `stored_at` | DateTime | Set when the sink writes the row; used for stored-at cutoff filtering in metered billing finalization (see openmeter/streaming/clickhouse/event_query.go:34). |
-| `store_row_id` | String | Per-row ULID generated at insert; cursor tie-breaker in v2 listing since DateTime is second-precision (see openmeter/sink/storage.go:63). |
-| `customer_id` | String (Nullable, query-time WITH map) |  |
-
-**Data Guarantees:**
-- ENGINE = MergeTree (no PK; not deduplicated by the engine — dedup is upstream in Redis)
-- PARTITION BY toYYYYMM(time) (openmeter/streaming/clickhouse/event_query.go:38)
-- ORDER BY (namespace, type, subject, toStartOfHour(time)) (openmeter/streaming/clickhouse/event_query.go:45)
-- INDEX stored_at minmax GRANULARITY 4
-- append-only (no UPDATE/DELETE in the write path)
-
-**Consumers:**
-- `ClickHouseStorage.BatchInsert` — `openmeter/sink/storage.go`: sole writer; maps SinkMessage → RawEvent and batch-inserts via streaming.Connector
-- `clickhouse meter_query / event_query` — `openmeter/streaming/clickhouse/meter_query.go`: reads via toSQL() query structs for aggregation and event listing
-
-**Lifecycle:**
-- *How to add:* Add a `ch:` tagged field to streaming.RawEvent in openmeter/streaming/connector.go, then add the column to the DDL in createEventsTable.toSQL() and to the INSERT column list in openmeter/streaming/clickhouse/event_query.go (column order must match the table exactly). createEventsTable uses CREATE TABLE IF NOT EXISTS so new columns on existing deployments need an explicit ALTER TABLE migration path.
-
-  ```
-  // event_query.go createEventsTable.toSQL()
-  sb.Define("stored_at", "DateTime")
-  sb.Define("store_row_id", "String")
-  sb.SQL("ENGINE = MergeTree")
-  sb.SQL("PARTITION BY toYYYYMM(time)")
-  sb.SQL("ORDER BY (namespace, type, subject, toStartOfHour(time))")
-  ```
-
-- *How to modify:* ClickHouse schema is created by the connector at startup (createTable), not by Atlas/golang-migrate. Changing column types requires coordinating the DDL builder and the INSERT/SELECT column lists; there is a single shared table across all namespaces.
-- *How to read:* Always through streaming.Connector (QueryMeter/ListEvents/ListEventsV2); query logic lives in clickhouse/ query-structs with toSQL(), never inline SQL in connector method bodies.
-
-  ```
-  rows, err := connector.QueryMeter(ctx, namespace, meter, params)
-  ```
-
-- *Tests:* `openmeter/streaming/clickhouse/event_query_test.go`, `openmeter/streaming/clickhouse/event_query_v2_test.go`, `openmeter/streaming/clickhouse/meter_query_test.go`
-
-### `NotificationEvent` *(table)*
-
-A notification event instance carrying a versioned jsonb payload for a rule; delivery is tracked separately via NotificationEventDeliveryStatus (see openmeter/ent/schema/notification.go:130).
-
-- **Location:** `openmeter/ent/schema/notification.go`
-- **Store:** `primary_postgres`
-- **Owner:** `openmeter/notification`
-
-**Fields:**
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | char(26) |  |
-| `namespace` | String |  |
-| `annotations` | jsonb |  |
-| `created_at` | Time |  |
-| `type` | Enum (EventType) |  |
-| `rule_id` | char(26) |  |
-| `payload` | jsonb | Version-pinned event payload; payload version is an API contract for webhook consumers (see openmeter/ent/schema/notification.go:143). |
-
-**Data Guarantees:**
-- PK id
-- INDEX(namespace, type)
-- FK rule_id → notification_rules (required, immutable)
-
-**Consumers:**
-- `notification consumer` — `openmeter/notification/consumer`: builds payload and dispatches to webhook.Handler (Svix) via the system events topic
-- `notification eventhandler` — `openmeter/notification/eventhandler`: runs Dispatch + Reconcile loops; Reconcile owns retry
-
-**Lifecycle:**
-- *How to add:* Add field in NotificationEvent.Fields() (openmeter/ent/schema/notification.go), regenerate, atlas diff. Channel/Rule config polymorphism uses ChannelConfigValueScanner/RuleConfigValueScanner type-switch serializers in the same file — a new ChannelType/EventType requires updating both the V (marshal) and S (unmarshal) switches.
-
-  ```
-  field.String("payload").SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
-  ```
-
-- *How to modify:* Pin a new payload version per event family rather than changing struct shape in place; standard Ent + atlas diff.
-- *How to read:* Through notification.Service (ListEvents/GetEvent/ResendEvent) and notification.EventHandler.Dispatch.
-
-  ```
-  notification.Service.GetEvent(ctx, id)
-  ```
-
-
 ### `dedupe.Item` *(key_value)*
 
-Composite ingest-dedup key (namespace-source-id) written to Redis with NX+TTL to suppress double-counting of retried CloudEvents; hashed to a compact xxh3 key in keyhash mode (see openmeter/dedupe/redisdedupe/redisdedupe.go:45).
+Composite ingest-dedup key (namespace-source-id) written to Redis with SET NX + TTL to suppress double-counting of retried CloudEvents; in keyhash mode hashed to a compact xxh3 key (see openmeter/dedupe/dedupe.go:39).
 
 - **Location:** `openmeter/dedupe/dedupe.go`
 - **Store:** `redis_dedupe`
@@ -585,10 +501,10 @@ Composite ingest-dedup key (namespace-source-id) written to Redis with NX+TTL to
 | `Source` | string |  |
 
 **Data Guarantees:**
-- key = namespace-source-id (Item.Key())
-- TTL d.Expiration (config-driven)
-- SET NX (set-if-not-absent) — pre-existing key signals duplicate (openmeter/dedupe/redisdedupe/redisdedupe.go:82)
-- value is empty/nil (only key presence matters)
+- key = namespace-source-id (Item.Key()) (openmeter/dedupe/dedupe.go:40)
+- TTL = d.Expiration (config-driven) (openmeter/dedupe/redisdedupe/redisdedupe.go:84)
+- SET NX (set-if-not-absent) — pre-existing key signals duplicate (openmeter/dedupe/redisdedupe/redisdedupe.go:83, Mode:"NX" at :142)
+- value is empty string (only key presence matters) (openmeter/dedupe/redisdedupe/redisdedupe.go:83)
 
 **Consumers:**
 - `redisdedupe.Deduplicator` — `openmeter/dedupe/redisdedupe/redisdedupe.go`: IsUnique/CheckUniqueBatch/Set — third phase of the sink flush, updated AFTER Kafka offset commit
@@ -615,7 +531,7 @@ Composite ingest-dedup key (namespace-source-id) written to Redis with NX+TTL to
 
 ### `Feature` *(table)*
 
-A meter-backed usage feature with optional unit-cost configuration (manual amount or LLM provider/model/token-type properties, enforced mutually-exclusive by CHECK constraints); archived_at provides archive instead of hard delete (see openmeter/ent/schema/feature.go:53).
+A meter-backed usage feature with optional unit-cost configuration (manual amount or LLM provider/model/token-type properties, enforced mutually-exclusive by CHECK constraints); archived_at provides archive instead of hard delete (see openmeter/ent/schema/feature.go:49).
 
 - **Location:** `openmeter/ent/schema/feature.go`
 - **Store:** `primary_postgres`
@@ -625,13 +541,11 @@ A meter-backed usage feature with optional unit-cost configuration (manual amoun
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | char(26) |  |
 | `namespace` | String |  |
-| `metadata` | jsonb |  |
 | `name` | String |  |
 | `description` | String |  |
 | `key` | String |  |
-| `meter_slug` | String | Deprecated; use meter_id (see openmeter/ent/schema/feature.go:35). |
+| `meter_slug` | String | Deprecated; use meter_id, will be removed in Phase 2 (see openmeter/ent/schema/feature.go:35). |
 | `meter_id` | String |  |
 | `meter_group_by_filters` | jsonb |  |
 | `advanced_meter_group_by_filters` | jsonb |  |
@@ -643,16 +557,14 @@ A meter-backed usage feature with optional unit-cost configuration (manual amoun
 | `unit_cost_llm_model` | String |  |
 | `unit_cost_llm_token_type_property` | String |  |
 | `unit_cost_llm_token_type` | String |  |
-| `archived_at` | Time |  |
-| `created_at` | Time |  |
-| `updated_at` | Time |  |
+| `archived_at` | Time | Archival timestamp; features are archived (not soft-deleted via deleted_at) to preserve billing references (see openmeter/ent/schema/feature.go:49). |
 
 **Data Guarantees:**
-- PK id
-- audit (created_at, updated_at)
+- PK id (IDMixin), audit (created_at, updated_at) via TimeMixin, metadata via MetadataMixin
+- NO deleted_at — Feature has no soft-delete; uses archived_at instead
 - UNIQUE(namespace, key) WHERE archived_at IS NULL (openmeter/ent/schema/feature.go:66)
 - CHECK unit_cost_llm_{provider,model,token_type}_mutual_exclusive (property xor literal) (openmeter/ent/schema/feature.go:55)
-- FK meter_id → meters
+- FK meter_id → meters (openmeter/ent/schema/feature.go:90)
 
 **Consumers:**
 - `feature.FeatureConnector` — `openmeter/productcatalog/feature`: CreateFeature/ArchiveFeature/ResolveFeatureMeters
@@ -665,55 +577,118 @@ A meter-backed usage feature with optional unit-cost configuration (manual amoun
   ```
 
 - *How to modify:* Standard Ent + atlas diff; features are archived (archived_at), not soft-deleted via deleted_at.
-- *How to read:* Through feature.FeatureConnector (ListFeatures/GetFeature).
+- *How to read:* Through feature.FeatureConnector (ListFeatures/GetFeature); use ArchiveFeature, never SetDeletedAt.
 
-### `BalanceSnapshot` *(table)*
+  ```
+  featureConnector.ArchiveFeature(ctx, feature.ArchiveFeatureInput{ID: id})
+  ```
 
-A point-in-time snapshot of grant balances/usage/overage for an entitlement owner, used to avoid recomputing burn-down from the beginning (see openmeter/ent/schema/balance_snapshot.go:31).
 
-- **Location:** `openmeter/ent/schema/balance_snapshot.go`
+### `SubscriptionItem` *(table)*
+
+Lowest level of the subscription hierarchy: a snapshot of a plan RateCard (name, price, discounts, entitlement template, tax config) bound to a phase; deliberately duplicates RateCard fields for snapshot immutability (see openmeter/ent/schema/subscription.go:177).
+
+- **Location:** `openmeter/ent/schema/subscription.go`
 - **Store:** `primary_postgres`
-- **Owner:** `openmeter/credit`
+- **Owner:** `openmeter/subscription`
 
 **Fields:**
 
 | Field | Type | Description |
 |---|---|---|
-| `namespace` | String |  |
-| `owner_id` | char(26) |  |
-| `grant_balances` | jsonb |  |
-| `usage` | jsonb |  |
-| `balance` | numeric |  |
-| `overage` | numeric |  |
-| `at` | Time |  |
-| `created_at` | Time |  |
-| `updated_at` | Time |  |
-| `deleted_at` | Time |  |
+| `annotations` | jsonb |  |
+| `active_from` | Time | Mutable cadence (not CadencedMixin) because items can be re-cadenced by edits (see openmeter/ent/schema/subscription.go:164). |
+| `active_to` | Time |  |
+| `phase_id` | String |  |
+| `key` | String |  |
+| `entitlement_id` | String |  |
+| `restarts_billing_period` | Bool |  |
+| `active_from_override_relative_to_phase_start` | ISODurationString | Stores the intended cadence relative to phase start so it survives cancels/edits (see openmeter/ent/schema/subscription.go:171). |
+| `active_to_override_relative_to_phase_start` | ISODurationString |  |
+| `name` | String |  |
+| `feature_key` | String |  |
+| `entitlement_template` | jsonb |  |
+| `tax_config` | jsonb |  |
+| `billing_cadence` | ISODurationString |  |
+| `price` | jsonb |  |
+| `discounts` | jsonb |  |
 
 **Data Guarantees:**
-- soft_delete (deleted_at)
-- audit (created_at, updated_at)
-- INDEX(namespace, owner_id, at) WHERE deleted_at IS NULL
-- FK owner_id → entitlements (required, immutable)
+- PK id (IDMixin), namespace, audit, soft_delete (TimeMixin), metadata, TaxMixin (tax_code_id + tax_behavior)
+- INDEX(namespace, phase_id, key) (openmeter/ent/schema/subscription.go:223)
+- FK phase_id → subscription_phases (required, immutable) (openmeter/ent/schema/subscription.go:229)
+- FK entitlement_id → entitlements with cascade (openmeter/ent/schema/subscription.go:230)
 
 **Consumers:**
-- `credit balance connector` — `openmeter/credit/balance`: reads/writes balance snapshots to bound burn-down recomputation
+- `subscription service` — `openmeter/subscription/service`: writes item snapshots when materializing a SubscriptionSpec
 
 **Lifecycle:**
-- *How to add:* Add field in BalanceSnapshot.Fields() (openmeter/ent/schema/balance_snapshot.go), regenerate, atlas diff. Note this entity omits IDMixin (no surrogate PK).
+- *How to add:* Add field in SubscriptionItem.Fields() (openmeter/ent/schema/subscription.go). Because it snapshots productcatalog RateCard fields, mirror RateCard schema changes here and in the adapter. Regenerate + atlas diff.
 
   ```
-  field.Float("overage").Immutable().SchemaType(map[string]string{dialect.Postgres: "numeric"}),
+  field.String("price").GoType(&productcatalog.Price{}).ValueScanner(PriceValueScanner).SchemaType(map[string]string{dialect.Postgres: "jsonb"}).Optional().Nillable(),
+  ```
+
+- *How to modify:* Standard Ent + atlas diff; never collapse the RateCard duplication into a live FK (would retroactively change historical billing).
+- *How to read:* Through subscription.Service views (GetView expands phases and items).
+
+### `LLMCostPrice` *(table)*
+
+Canonical LLM per-token pricing: a global synced price (namespace NULL) or a per-namespace override, effective over a [effective_from, effective_to) window; model IDs must be normalized via llmcost.NormalizeModelID before store/resolve (see openmeter/ent/schema/llmcostprice.go:32).
+
+- **Location:** `openmeter/ent/schema/llmcostprice.go`
+- **Store:** `primary_postgres`
+- **Owner:** `openmeter/llmcost`
+
+**Fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `namespace` | String | Nil for global prices, set for namespace overrides (see openmeter/ent/schema/llmcostprice.go:33). |
+| `provider` | String |  |
+| `model_id` | String |  |
+| `model_name` | String |  |
+| `input_per_token` | numeric |  |
+| `output_per_token` | numeric |  |
+| `cache_read_per_token` | numeric |  |
+| `reasoning_per_token` | numeric |  |
+| `cache_write_per_token` | numeric |  |
+| `currency` | String |  |
+| `source` | String |  |
+| `source_prices` | jsonb |  |
+| `effective_from` | Time |  |
+| `effective_to` | Time |  |
+
+**Data Guarantees:**
+- PK id (IDMixin), metadata (MetadataMixin), audit + soft_delete (TimeMixin)
+- NO NamespaceMixin — namespace is a nullable field so global prices (NULL) and overrides coexist (openmeter/ent/schema/llmcostprice.go:30)
+- UNIQUE(provider, model_id, namespace, effective_from) WHERE deleted_at IS NULL (openmeter/ent/schema/llmcostprice.go:85)
+- INDEX(namespace, provider, model_id) WHERE deleted_at IS NULL (openmeter/ent/schema/llmcostprice.go:89)
+- INDEX(provider, model_id) WHERE deleted_at IS NULL AND namespace IS NULL — global price lookup (openmeter/ent/schema/llmcostprice.go:92)
+
+**Consumers:**
+- `llmcost.Service` — `openmeter/llmcost`: ResolvePrice with namespace-override precedence; CreateOverride/DeleteOverride
+
+**Lifecycle:**
+- *How to add:* Add field in LLMCostPrice.Fields() (openmeter/ent/schema/llmcostprice.go), regenerate, atlas diff. namespace is a nullable field (not NamespaceMixin) to support global vs override rows.
+
+  ```
+  field.Other("cache_write_per_token", alpacadecimal.Decimal{}).SchemaType(map[string]string{dialect.Postgres: "numeric"}).Default(alpacadecimal.Decimal{}),
   ```
 
 - *How to modify:* Standard Ent + atlas diff.
-- *How to read:* Through credit.CreditConnector balance APIs.
+- *How to read:* Through llmcost.Service; always NormalizeModelID before resolving/storing.
 
-### `LedgerEntry` *(table)*
+  ```
+  price, err := svc.ResolvePrice(ctx, llmcost.ResolvePriceInput{ModelID: llmcost.NormalizeModelID(raw)})
+  ```
 
-A single signed amount posting against a ledger sub-account within a transaction; (transaction_id, sub_account_id, identity_key) is unique to make postings idempotent (see openmeter/ent/schema/ledger_entry.go:67).
 
-- **Location:** `openmeter/ent/schema/ledger_entry.go`
+### `LedgerSubAccountRoute` *(table)*
+
+Routes a ledger account to sub-accounts by a versioned routing key, denormalizing routing dimensions (currency, tax_code, tax_behavior, features, cost_basis, credit_priority, authorization status) as plain columns for query filtering — not FKs (see openmeter/ent/schema/ledger_account.go:116).
+
+- **Location:** `openmeter/ent/schema/ledger_account.go`
 - **Store:** `primary_postgres`
 - **Owner:** `openmeter/ledger`
 
@@ -721,43 +696,41 @@ A single signed amount posting against a ledger sub-account within a transaction
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | char(26) |  |
-| `namespace` | String |  |
-| `annotations` | jsonb |  |
-| `sub_account_id` | char(26) |  |
-| `identity_key` | String | Dedup key making a posting idempotent within (transaction_id, sub_account_id) (see openmeter/ent/schema/ledger_entry.go:67). |
-| `amount` | numeric |  |
-| `transaction_id` | char(26) |  |
-| `created_at` | Time |  |
-| `updated_at` | Time |  |
-| `deleted_at` | Time |  |
+| `account_id` | char(26) |  |
+| `routing_key_version` | Enum (ledger.RoutingKeyVersion) |  |
+| `routing_key` | String |  |
+| `currency` | String | Denormalized routing dimension, not a FK (see openmeter/ent/schema/ledger_account.go:116). |
+| `tax_code` | String | Stores the TaxCode.Key string used as a routing dimension, not a FK to the tax_codes table (see openmeter/ent/schema/ledger_account.go:119). |
+| `tax_behavior` | Enum (ledger.TaxBehavior) |  |
+| `features` | Strings |  |
+| `cost_basis` | numeric |  |
+| `credit_priority` | Int |  |
+| `transaction_authorization_status` | Enum (ledger.TransactionAuthorizationStatus) |  |
 
 **Data Guarantees:**
-- PK id
-- soft_delete (deleted_at)
-- audit (created_at, updated_at)
-- UNIQUE(namespace, id)
-- UNIQUE(transaction_id, sub_account_id, identity_key) (openmeter/ent/schema/ledger_entry.go:67)
-- FK transaction_id → ledger_transactions (required, immutable)
-- FK sub_account_id → ledger_sub_accounts (required, immutable)
+- PK id (IDMixin), namespace, audit + soft_delete (TimeMixin)
+- UNIQUE(namespace, account_id, routing_key_version, routing_key) (openmeter/ent/schema/ledger_account.go:136)
+- FK account_id → ledger_accounts (required, immutable) (openmeter/ent/schema/ledger_account.go:142)
+- all fields immutable
 
 **Consumers:**
-- `ledger transactions resolver` — `openmeter/ledger/transactions`: ResolveTransactions builds entries from typed templates; never hand-construct entries
+- `ledger resolvers/transactions` — `openmeter/ledger/transactions`: resolves sub-account routing for entry construction
 
 **Lifecycle:**
-- *How to add:* Add field in LedgerEntry.Fields() (openmeter/ent/schema/ledger_entry.go), regenerate, atlas diff. Ledger tables are only written when credits.enabled=true.
+- *How to add:* Add field in LedgerSubAccountRoute.Fields() (openmeter/ent/schema/ledger_account.go), regenerate, atlas diff. The most recent migration (20260520130500_add_ledger_tax_behavior) added the tax_behavior column this way.
 
   ```
-  field.Other("amount", alpacadecimal.Decimal{}).Immutable().SchemaType(map[string]string{dialect.Postgres: "numeric"}),
+  field.String("tax_behavior").GoType(ledger.TaxBehavior("")).Optional().Nillable().Immutable(),
   ```
 
-- *How to modify:* Standard Ent + atlas diff.
-- *How to read:* Through ledger.Ledger (CommitGroup/QueryBalance); transaction inputs constructed only via transactions.ResolveTransactions with typed templates.
+- *How to modify:* Standard Ent + atlas diff. Routing dimensions are denormalized literals, kept in sync with the routing_key by application code, not DB FKs.
 
   ```
-  entries, err := transactions.ResolveTransactions(ctx, ...); ledger.CommitGroup(ctx, entries)
+  -- tools/migrate/migrations/20260520130500_add_ledger_tax_behavior.up.sql
+  ALTER TABLE "ledger_sub_account_routes" ADD COLUMN "tax_behavior" character varying NULL;
   ```
 
+- *How to read:* Through ledger resolver adapters; written only when credits.enabled=true.
 
 ### `Charge` *(table)*
 
@@ -782,10 +755,11 @@ Pivot entity holding one row per charge regardless of type, with an FK to exactl
 | `charge_usage_based_id` | String |  |
 
 **Data Guarantees:**
-- PK id
+- PK id (IDMixin)
 - soft_delete (deleted_at)
 - UNIQUE(namespace, unique_reference_id) WHERE unique_reference_id IS NOT NULL AND deleted_at IS NULL (openmeter/ent/schema/charges.go:167)
-- FK to exactly one of charge_flat_fee / charge_credit_purchase / charge_usage_based (immutable)
+- FK to exactly one of charge_flat_fee / charge_credit_purchase / charge_usage_based (immutable edges, openmeter/ent/schema/charges.go:141)
+- NOTE: ChargesSearchV1 union view (ent.View) over the three sub-tables; chargesSearchV1Columns must list every column present in each charge sub-table (openmeter/ent/schema/charges.go:19)
 
 **Consumers:**
 - `charges adapter (search.go)` — `openmeter/billing/charges/adapter/search.go`: reads charges via the ChargesSearchV1 union view; helpers must wrap a.db in TransactingRepo
@@ -798,7 +772,7 @@ Pivot entity holding one row per charge regardless of type, with an FK to exactl
   var chargesSearchV1Columns = []string{"id", "namespace", ... , "tax_behavior"}
   ```
 
-- *How to modify:* ChargesSearchV1 is an ent.View; Atlas does not diff views, so view DDL changes require make generate-view-sql + an explicit SQL migration (see AGENTS.md ent.View caveat).
+- *How to modify:* ChargesSearchV1 is an ent.View; Atlas does not diff views, so view DDL changes require make generate-view-sql + an explicit SQL migration.
 - *How to read:* Drive charge lifecycle exclusively through charges.Service (Create/AdvanceCharges/ApplyPatches); never construct charges.Charge{} literally and never call the adapter directly from outside the domain.
 
   ```
@@ -807,9 +781,155 @@ Pivot entity holding one row per charge regardless of type, with an FK to exactl
 
 - *Tests:* `openmeter/billing/charges/adapter/search_test.go`
 
+### `BalanceSnapshot` *(table)*
+
+A point-in-time snapshot of grant balances/usage/overage for an entitlement owner, used to avoid recomputing burn-down from the beginning; intentionally omits IDMixin (no surrogate PK) (see openmeter/ent/schema/balance_snapshot.go:19).
+
+- **Location:** `openmeter/ent/schema/balance_snapshot.go`
+- **Store:** `primary_postgres`
+- **Owner:** `openmeter/credit`
+
+**Fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `owner_id` | char(26) |  |
+| `grant_balances` | jsonb |  |
+| `usage` | jsonb |  |
+| `balance` | numeric |  |
+| `overage` | numeric |  |
+| `at` | Time |  |
+
+**Data Guarantees:**
+- NO IDMixin — keyed by natural (owner, at) tuple, deliberate exception to the standard mixin triad (openmeter/ent/schema/balance_snapshot.go:19)
+- namespace (NamespaceMixin), soft_delete + audit (TimeMixin)
+- INDEX(namespace, owner_id, at) WHERE deleted_at IS NULL (openmeter/ent/schema/balance_snapshot.go:49)
+- FK owner_id → entitlements (required, immutable) (openmeter/ent/schema/balance_snapshot.go:57)
+- all value fields immutable (openmeter/ent/schema/balance_snapshot.go:31)
+
+**Consumers:**
+- `credit balance connector` — `openmeter/credit/balance`: reads/writes balance snapshots to bound burn-down recomputation
+
+**Lifecycle:**
+- *How to add:* Add field in BalanceSnapshot.Fields() (openmeter/ent/schema/balance_snapshot.go), regenerate, atlas diff. Note this entity omits IDMixin (no surrogate PK).
+
+  ```
+  field.Float("overage").Immutable().SchemaType(map[string]string{dialect.Postgres: "numeric"}),
+  ```
+
+- *How to modify:* Standard Ent + atlas diff; do not add IDMixin expecting the standard triad.
+- *How to read:* Through credit.CreditConnector balance APIs.
+
+### `CustomerSubjects` *(table)*
+
+Link table mapping a customer to one or more subject keys; FK constraint to Subject.subject_key is intentionally absent because Ent cannot enforce FKs on non-ID fields (see openmeter/ent/schema/customer.go:147).
+
+- **Location:** `openmeter/ent/schema/customer.go`
+- **Store:** `primary_postgres`
+- **Owner:** `openmeter/customer`
+
+**Fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `customer_id` | char(26) |  |
+| `subject_key` | String |  |
+| `created_at` | Time |  |
+| `deleted_at` | Time |  |
+
+**Data Guarantees:**
+- namespace via NamespaceMixin (openmeter/ent/schema/customer.go:96)
+- UNIQUE(namespace, subject_key) WHERE deleted_at IS NULL — one active mapping per subject (openmeter/ent/schema/customer.go:123)
+- INDEX(namespace, customer_id, deleted_at) (openmeter/ent/schema/customer.go:122)
+- FK customer_id → customers (required, immutable) (openmeter/ent/schema/customer.go:141)
+- no FK on subject_key (Ent limitation on non-ID FK fields, openmeter/ent/schema/customer.go:147)
+
+**Consumers:**
+- `customer adapter` — `openmeter/customer/adapter/customer.go`: writes subject-key mappings on customer create/update
+
+**Lifecycle:**
+- *How to add:* Add field in CustomerSubjects.Fields() in openmeter/ent/schema/customer.go, regenerate, atlas diff.
+- *How to modify:* Standard Ent + atlas diff.
+- *How to read:* Through customer.Service usage-attribution APIs and ent .WithSubjects() edges.
+- *Tests:* `openmeter/customer/adapter/customer_test.go`
+
+### `LedgerEntry` *(table)*
+
+A single signed amount posting against a ledger sub-account within a transaction; (transaction_id, sub_account_id, identity_key) is unique to make postings idempotent (see openmeter/ent/schema/ledger_entry.go:67).
+
+- **Location:** `openmeter/ent/schema/ledger_entry.go`
+- **Store:** `primary_postgres`
+- **Owner:** `openmeter/ledger`
+
+**Fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `sub_account_id` | char(26) |  |
+| `identity_key` | String | Dedup key making a posting idempotent within (transaction_id, sub_account_id) (see openmeter/ent/schema/ledger_entry.go:33). |
+| `amount` | numeric |  |
+| `transaction_id` | char(26) |  |
+
+**Data Guarantees:**
+- PK id (IDMixin), namespace (NamespaceMixin), annotations (AnnotationsMixin), soft_delete + audit (TimeMixin)
+- UNIQUE(namespace, id) (openmeter/ent/schema/ledger_entry.go:64)
+- UNIQUE(transaction_id, sub_account_id, identity_key) (openmeter/ent/schema/ledger_entry.go:67)
+- INDEX(created_at, id) WHERE deleted_at IS NULL (openmeter/ent/schema/ledger_entry.go:68)
+- FK transaction_id → ledger_transactions (required, immutable) (openmeter/ent/schema/ledger_entry.go:47)
+- FK sub_account_id → ledger_sub_accounts (required, immutable) (openmeter/ent/schema/ledger_entry.go:53)
+- all fields immutable (append-only postings)
+
+**Consumers:**
+- `ledger transactions resolver` — `openmeter/ledger/transactions`: ResolveTransactions builds entries from typed templates; never hand-construct entries
+
+**Lifecycle:**
+- *How to add:* Add field in LedgerEntry.Fields() (openmeter/ent/schema/ledger_entry.go), regenerate, atlas diff. Ledger tables are only written when credits.enabled=true.
+
+  ```
+  field.Other("amount", alpacadecimal.Decimal{}).Immutable().SchemaType(map[string]string{dialect.Postgres: "numeric"}),
+  ```
+
+- *How to modify:* Standard Ent + atlas diff.
+- *How to read:* Through ledger.Ledger (CommitGroup/QueryBalance); transaction inputs constructed only via transactions.ResolveTransactions with typed templates.
+
+  ```
+  entries, err := transactions.ResolveTransactions(ctx, ...); ledger.CommitGroup(ctx, entries)
+  ```
+
+
+### `NotificationChannel` *(table)*
+
+A delivery channel (e.g. webhook) carrying a polymorphic jsonb config serialized by a type-switching ChannelConfigValueScanner; a new ChannelType requires updating both the marshal and unmarshal switches (see openmeter/ent/schema/notification.go:47).
+
+- **Location:** `openmeter/ent/schema/notification.go`
+- **Store:** `primary_postgres`
+- **Owner:** `openmeter/notification`
+
+**Fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | Enum (ChannelType) |  |
+| `name` | String |  |
+| `disabled` | Bool |  |
+| `config` | jsonb | Polymorphic channel config serialized by ChannelConfigValueScanner type-switch; missing a case errors at runtime, not compile time (see openmeter/ent/schema/notification.go:47). |
+
+**Data Guarantees:**
+- PK id (IDMixin), namespace, audit + soft_delete (TimeMixin), annotations, metadata
+- INDEX(namespace, id) (openmeter/ent/schema/notification.go:62)
+- INDEX(namespace, type) (openmeter/ent/schema/notification.go:63)
+
+**Consumers:**
+- `notification adapter` — `openmeter/notification/adapter`: Ent read/write; serializes channel config via the value scanner
+
+**Lifecycle:**
+- *How to add:* Add field in NotificationChannel.Fields() (openmeter/ent/schema/notification.go), regenerate, atlas diff. A new ChannelType needs both V (marshal) and S (unmarshal) cases in ChannelConfigValueScanner.
+- *How to modify:* Standard Ent + atlas diff.
+- *How to read:* Through notification.Service (ChannelService).
+
 ### `LedgerCustomerAccount` *(table)*
 
-Private linking table mapping a customer to their ledger accounts (one FBO and one Receivable per customer per namespace); intentionally has no edges/FKs to LedgerAccount to avoid import cycles (see openmeter/ent/schema/ledger_customer_account.go:12).
+Private linking table mapping a customer to their ledger accounts (one FBO and one Receivable per customer per namespace); intentionally has no edges/FKs to LedgerAccount to avoid import cycles (see openmeter/ent/schema/ledger_customer_account.go:43).
 
 - **Location:** `openmeter/ent/schema/ledger_customer_account.go`
 - **Store:** `primary_postgres`
@@ -819,30 +939,53 @@ Private linking table mapping a customer to their ledger accounts (one FBO and o
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | char(26) |  |
-| `namespace` | String |  |
 | `customer_id` | String |  |
 | `account_type` | Enum (ledger.AccountType) |  |
 | `account_id` | String |  |
-| `created_at` | Time |  |
-| `updated_at` | Time |  |
-| `deleted_at` | Time |  |
 
 **Data Guarantees:**
-- PK id
-- soft_delete (deleted_at)
-- audit (created_at, updated_at)
-- UNIQUE(namespace, id)
+- PK id (IDMixin), namespace, soft_delete + audit (TimeMixin)
+- UNIQUE(namespace, id) (openmeter/ent/schema/ledger_customer_account.go:36)
 - UNIQUE(namespace, customer_id, account_type) — one FBO and one Receivable per customer per namespace (openmeter/ent/schema/ledger_customer_account.go:38)
-- no edges (deliberate, to avoid import cycles)
+- no edges (Edges() returns nil) — deliberate, to avoid import cycles; referential integrity enforced only by application code (openmeter/ent/schema/ledger_customer_account.go:43)
 
 **Consumers:**
 - `ledger resolvers adapter` — `openmeter/ledger/resolvers/adapter/repo.go`: links customers to FBO/Receivable accounts
 
 **Lifecycle:**
 - *How to add:* Add field in LedgerCustomerAccount.Fields(), regenerate, atlas diff.
+- *How to modify:* Standard Ent + atlas diff. account_id/customer_id are FK-less Strings; deleting an account leaves dangling rows undetected until a runtime read fails — add application-level integrity checks.
+- *How to read:* Through ledger resolver adapters; rows only written when credits.enabled=true (otherwise concrete adapters must be constructed directly).
+
+### `LedgerTransaction` *(table)*
+
+A double-entry transaction grouping balanced ledger entries; belongs to a transaction group and records when it was booked (see openmeter/ent/schema/ledger_transaction.go:26).
+
+- **Location:** `openmeter/ent/schema/ledger_transaction.go`
+- **Store:** `primary_postgres`
+- **Owner:** `openmeter/ledger`
+
+**Fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `group_id` | char(26) |  |
+| `booked_at` | Time |  |
+
+**Data Guarantees:**
+- PK id (IDMixin), namespace, annotations, soft_delete + audit
+- UNIQUE(namespace, id) (openmeter/ent/schema/ledger_transaction.go:49)
+- INDEX(namespace, group_id) (openmeter/ent/schema/ledger_transaction.go:50)
+- INDEX(namespace, booked_at) (openmeter/ent/schema/ledger_transaction.go:51)
+- FK group_id → ledger_transaction_groups (required, immutable) (openmeter/ent/schema/ledger_transaction.go:37)
+
+**Consumers:**
+- `ledger transactions resolver` — `openmeter/ledger/transactions`: groups entries into a balanced transaction via ResolveTransactions/CommitGroup
+
+**Lifecycle:**
+- *How to add:* Add field in LedgerTransaction.Fields() (openmeter/ent/schema/ledger_transaction.go), regenerate, atlas diff.
 - *How to modify:* Standard Ent + atlas diff.
-- *How to read:* Through ledger resolver adapters; rows only written when credits.enabled=true (otherwise concrete adapters must be constructed directly per AGENTS.md).
+- *How to read:* Through ledger.Ledger; never construct transaction inputs outside transactions.ResolveTransactions templates.
 
 ### `LedgerAccount` *(table)*
 
@@ -856,19 +999,12 @@ A double-entry ledger account of a typed kind (FBO/Receivable/Accrued for custom
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | char(26) |  |
-| `namespace` | String |  |
-| `annotations` | jsonb |  |
 | `account_type` | Enum (ledger.AccountType) |  |
-| `created_at` | Time |  |
-| `updated_at` | Time |  |
-| `deleted_at` | Time |  |
 
 **Data Guarantees:**
-- PK id
-- soft_delete (deleted_at)
-- audit (created_at, updated_at)
-- UNIQUE(namespace, id)
+- PK id (IDMixin), namespace, annotations, soft_delete + audit
+- UNIQUE(namespace, id) (openmeter/ent/schema/ledger_account.go:36)
+- account_type immutable (openmeter/ent/schema/ledger_account.go:30)
 
 **Consumers:**
 - `ledger AccountResolver` — `openmeter/ledger`: EnsureCustomerAccounts/EnsureBusinessAccounts provision typed accounts
@@ -883,31 +1019,6 @@ A double-entry ledger account of a typed kind (FBO/Receivable/Accrued for custom
 - *How to modify:* Standard Ent + atlas diff.
 - *How to read:* Through ledger.AccountResolver / ledger.Ledger; noop implementations are wired when credits.enabled=false.
 
-### `LLMCostPrice` *(table)*
-
-Persisted LLM model price: a global synced price or a per-namespace override; model IDs must be normalized via llmcost.NormalizeModelID before store/resolve (see .claude/rules/architecture.md openmeter/llmcost).
-
-- **Location:** `openmeter/ent/schema/llmcostprice.go`
-- **Store:** `primary_postgres`
-- **Owner:** `openmeter/llmcost`
-**Data Guarantees:**
-- PK id (IDMixin)
-- namespace-scoped (NamespaceMixin)
-- audit (created_at, updated_at) (TimeMixin)
-
-**Consumers:**
-- `llmcost.Service` — `openmeter/llmcost`: ResolvePrice with namespace-override precedence; CreateOverride/DeleteOverride
-
-**Lifecycle:**
-- *How to add:* Add field in LLMCostPrice.Fields() (openmeter/ent/schema/llmcostprice.go), regenerate, atlas diff. (Field list not enumerated here — fields are in the schema file.)
-- *How to modify:* Standard Ent + atlas diff.
-- *How to read:* Through llmcost.Service; always NormalizeModelID before resolving/storing.
-
-  ```
-  price, err := svc.ResolvePrice(ctx, llmcost.ResolvePriceInput{ModelID: llmcost.NormalizeModelID(raw)})
-  ```
-
-
 ## Persistence Stores
 
 _Where data lives across process or session boundaries — databases, caches, queues, mobile local storage._
@@ -916,31 +1027,32 @@ _Where data lives across process or session boundaries — databases, caches, qu
 
 Authoritative relational store for all ~35 Ent entities; schema is defined in openmeter/ent/schema/*.go and applied at startup via golang-migrate over Atlas-generated SQL (see tools/migrate/migrate.go).
 
-- **Engine:** PostgreSQL 14.20-alpine (dev compose; docs reference 15)
+- **Engine:** PostgreSQL (atlas.hcl dev db docker://postgres/15; docker-compose base uses 14.20-alpine)
 - **Role:** primary
 - **Migrations dir:** `tools/migrate/migrations`
-- **Lives here:** BillingInvoice, BillingInvoiceLine, Charge, Customer, Subscription, Entitlement, Grant, BalanceSnapshot, LedgerEntry, LedgerAccount, LedgerCustomerAccount, Meter, Feature, NotificationEvent, LLMCostPrice
-- **Written by:** openmeter/billing (billing domain), openmeter/credit (credit grants), openmeter/customer (customer domain), openmeter/entitlement (entitlement domain), openmeter/ledger (double-entry ledger), openmeter/meter + ingest + sink + streaming (usage pipeline), openmeter/notification (notification domain), openmeter/productcatalog (catalog domain), openmeter/subscription (subscription domain)
+- **Lives here:** BillingInvoice, BillingInvoiceLine, Charge, Customer, CustomerSubjects, Subscription, SubscriptionItem, Entitlement, Grant, BalanceSnapshot, LedgerEntry, LedgerTransaction, LedgerAccount, LedgerSubAccountRoute, LedgerCustomerAccount, Meter, Feature, NotificationChannel, NotificationEvent, LLMCostPrice
+- **Written by:** openmeter/billing (billing domain), openmeter/billing/charges (charges sub-domain), openmeter/credit (credit grants), openmeter/customer (customer domain), openmeter/entitlement (entitlement domain), openmeter/ledger (double-entry ledger), openmeter/llmcost (LLM cost prices), openmeter/meter + ingest + sink + streaming (usage pipeline), openmeter/notification (notification domain), openmeter/productcatalog (catalog domain), openmeter/subscription (subscription domain)
 
 ### `redis_dedupe`
 
-TTL-based ingest deduplication store using SET NX on namespace-source-id keys; updated as the third (last) phase of the sink flush, strictly after Kafka offset commit (see openmeter/dedupe/redisdedupe/redisdedupe.go:82).
+TTL-based ingest deduplication store using SET NX on namespace-source-id keys; updated as the third (last) phase of the sink flush, strictly after Kafka offset commit (see openmeter/dedupe/redisdedupe/redisdedupe.go:83).
 
-- **Engine:** Redis 7.4.7
+- **Engine:** Redis (go-redis/v9)
 - **Role:** cache
 - **Lives here:** dedupe.Item
+- **Written by:** openmeter/dedupe (ingest dedup)
 
 ### `clickhouse_events`
 
-Single shared append-only MergeTree events table across all namespaces (namespace is the leading ORDER BY column); table DDL is created by the connector at startup, not by Atlas (see openmeter/streaming/clickhouse/event_query.go:20).
+Single shared append-only MergeTree events table across all namespaces (namespace is the leading ORDER BY column); table DDL is created by the connector at startup, not by Atlas (see openmeter/streaming/clickhouse/event_query.go:25).
 
-- **Engine:** ClickHouse 25.12.3-alpine
+- **Engine:** ClickHouse (clickhouse-go/v2)
 - **Role:** analytics
 - **Lives here:** RawEvent
 
 ### `kafka_topics`
 
-Durable cross-binary event bus with three name-prefix-routed topics (ingest, system, balance-worker) via Watermill; sole inter-binary channel, also carries raw ingest CloudEvents consumed by the sink worker (see .claude/rules/architecture.md openmeter/watermill).
+Durable cross-binary event bus with three name-prefix-routed topics (ingest, system, balance-worker) via Watermill; sole inter-binary channel, also carries raw ingest CloudEvents consumed by the sink worker (see openmeter/watermill/eventbus/eventbus.go).
 
-- **Engine:** Kafka (confluentinc/cp-kafka 8.0.3, confluent-kafka-go v2.14.1)
+- **Engine:** Kafka (confluent-kafka-go v2 + Watermill)
 - **Role:** queue

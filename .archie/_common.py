@@ -236,6 +236,12 @@ class IgnoreMatcher:
         For directories, checks as a directory. For files, checks as a file.
         If the path exists under root and is a directory, it's treated as a dir.
         Otherwise treated as a file.
+
+        Gitignore semantics: a path is also ignored when any ANCESTOR directory
+        matches a dir pattern (``vendor/`` ignores ``vendor/b.py``). os.walk
+        callers get this for free via directory pruning; full-path callers
+        (e.g. drift's git-log list, where the file may no longer exist on disk)
+        rely on this ancestor walk.
         """
         rel_path = rel_path.replace(os.sep, "/")
         parts = rel_path.rsplit("/", 1)
@@ -248,7 +254,16 @@ class IgnoreMatcher:
         full = self._root / rel_path
         is_dir = full.is_dir()
 
-        return self._check(name, parent, is_dir=is_dir)
+        if self._check(name, parent, is_dir=is_dir):
+            return True
+
+        # Walk ancestor directories — an ignored parent dir hides everything
+        # beneath it, regardless of whether the leaf itself matches.
+        segments = rel_path.split("/")
+        for i in range(len(segments) - 1):
+            if self._check(segments[i], "/".join(segments[:i]), is_dir=True):
+                return True
+        return False
 
 
 # ── BulkMatcher — classify files as bulk-content (visible but not read) ──

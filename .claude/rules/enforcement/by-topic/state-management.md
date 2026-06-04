@@ -1,4 +1,4 @@
-# Enforcement: state-management (1 rule)
+# Enforcement: state-management (2 rules)
 
 Topic file. Loaded on demand when an agent works on something in the `state-management` area. The pre-edit hook reads `.archie/rules.json` directly — this file is for browsing/context only.
 
@@ -39,3 +39,9 @@ if w.highWatermark.HasPassedFor(entitlementID, eventTime) {
 ```
 
 </details>
+
+### `persist-kafka-sole-cross-binary` — Use the three Kafka topics as the only cross-binary channel — no shared memory or HTTP between binaries
+
+*source: `deep_scan`*
+
+**Why:** kafka_topics is the durable cross-binary event bus with three name-prefix-routed topics (ingest, system, balance-worker) via Watermill; it is the sole inter-binary channel and also carries raw ingest CloudEvents consumed by the sink worker. Introducing direct HTTP calls or shared in-memory state between the seven binaries couples their failure domains and defeats the independent-scaling decision.

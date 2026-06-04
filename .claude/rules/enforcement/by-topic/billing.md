@@ -1,4 +1,4 @@
-# Enforcement: billing (3 rules)
+# Enforcement: billing (5 rules)
 
 Topic file. Loaded on demand when an agent works on something in the `billing` area. The pre-edit hook reads `.archie/rules.json` directly — this file is for browsing/context only.
 
@@ -110,3 +110,33 @@ return creditConnector.CreateGrant(ctx, credit.CreateGrantInput{EffectiveAt: tim
 ```
 
 </details>
+
+### `app-001-invoicing-app-readonly-snapshot` — Treat the invoice passed to InvoicingApp callbacks as a read-only snapshot and return external IDs via the results builder
+
+*source: `deep_scan`*
+
+**Why:** Invoices passed to app callbacks (ValidateStandardInvoice, UpsertStandardInvoice, FinalizeStandardInvoice, DeleteStandardInvoice) are read-only snapshots; external IDs and metadata are returned via the UpsertResults/FinalizeStandardInvoiceResult builder whose MergeIntoInvoice is applied under billing-service control. Mutating the snapshot directly inside an app callback has no effect and bypasses the state machine that owns invoice writes.
+
+**Example:**
+
+```
+func (a *App) UpsertStandardInvoice(ctx context.Context, inv billing.Invoice) (*billing.UpsertResults, error) {
+    return billing.NewUpsertResults().SetExternalID(extID), nil
+}
+```
+
+**Path glob:** `openmeter/app/**/*.go`
+
+### `subscription-002-workflow-orchestration` — Drive higher-level subscription operations through subscriptionworkflow.Service, not raw subscription.Service
+
+*source: `deep_scan`*
+
+**Why:** A workflow service orchestrates higher-level subscription operations (CreateFromPlan, EditRunning, ChangeToPlan, Restore, AddAddon, ChangeAddonQuantity) on top of subscription.Service, applying SubscriptionSpec patches via the AppliesToSpec ApplyTo interface and coordinating entitlements/addons. Calling subscription.Service primitives directly for these flows skips the workflow's plan-phase-ratecard orchestration and spec-invariant enforcement.
+
+**Example:**
+
+```
+view, err := workflow.CreateFromPlan(ctx, subscriptionworkflow.CreateFromPlanInput{ /* ... */ })
+```
+
+**Path glob:** `openmeter/subscription/**/*.go`
