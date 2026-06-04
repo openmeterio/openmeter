@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brianvoe/gofakeit/v6"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1228,12 +1229,16 @@ func TestSettlementMode(t *testing.T) {
 	})
 
 	t.Run("Should reject a custom subscription with credit_only settlement mode when credit is disabled", func(t *testing.T) {
-		// The credit check fires before getCustomer, so a valid-format but non-existent
-		// customer ID is fine here. The ID must still match the ULID pattern or request
-		// validation rejects it before the handler runs.
+		customer, err := client.CreateCustomerWithResponse(ctx, api.CustomerCreate{
+			Key:          lo.ToPtr(gofakeit.Numerify("customer_####")),
+			Name:         gofakeit.Name(),
+			Currency:     lo.ToPtr(api.CurrencyCode("USD")),
+			PrimaryEmail: lo.ToPtr("testcustomer@example.com"),
+		})
+
 		create := api.SubscriptionCreate{}
-		err := create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
-			CustomerId: lo.ToPtr("01G65Z755AFWAKHE12NY0CQ9FH"),
+		err = create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
+			CustomerId: lo.ToPtr(customer.JSON201.Id),
 			CustomPlan: api.CustomPlanInput{
 				Name:           "Credit Only Custom Plan",
 				Currency:       "USD",
@@ -1242,19 +1247,42 @@ func TestSettlementMode(t *testing.T) {
 				Phases:         []api.PlanPhase{defaultPhase},
 			},
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := client.CreateSubscriptionWithResponse(ctx, create)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
 	})
 
 	t.Run("Should reject a custom subscription change with credit_only settlement mode when credit is disabled", func(t *testing.T) {
+		customer, err := client.CreateCustomerWithResponse(ctx, api.CustomerCreate{
+			Key:          lo.ToPtr(gofakeit.Numerify("customer_####")),
+			Name:         gofakeit.Name(),
+			Currency:     lo.ToPtr(api.CurrencyCode("USD")),
+			PrimaryEmail: lo.ToPtr("testcustomer@example.com"),
+		})
+
+		create := api.SubscriptionCreate{}
+		require.NoError(t, create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
+			CustomerId: lo.ToPtr(customer.JSON201.Id),
+			CustomPlan: api.CustomPlanInput{
+				Name:           "Credit Only Custom Plan",
+				Currency:       "USD",
+				BillingCadence: "P1M",
+				SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditThenInvoice),
+				Phases:         []api.PlanPhase{defaultPhase},
+			},
+		}))
+
+		subscription, err := client.CreateSubscriptionWithResponse(ctx, create)
+		require.NoError(t, err)
+		require.Equal(t, 201, subscription.StatusCode(), "received the following body: %s", subscription.Body)
+
 		ct := &api.SubscriptionTiming{}
 		require.NoError(t, ct.FromSubscriptionTimingEnum(api.SubscriptionTimingEnumImmediate))
 
 		req := api.SubscriptionChange{}
-		err := req.FromCustomSubscriptionChange(api.CustomSubscriptionChange{
+		err = req.FromCustomSubscriptionChange(api.CustomSubscriptionChange{
 			Timing: *ct,
 			CustomPlan: api.CustomPlanInput{
 				Name:           "Credit Only Custom Plan",
@@ -1266,10 +1294,7 @@ func TestSettlementMode(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		// The credit check fires before the subscription lookup, so a valid-format but
-		// non-existent subscription ID is fine here. The ID must still match the ULID
-		// pattern or path validation rejects it before the handler runs.
-		res, err := client.ChangeSubscriptionWithResponse(ctx, "01G65Z755AFWAKHE12NY0CQ9FH", req)
+		res, err := client.ChangeSubscriptionWithResponse(ctx, subscription.JSON201.Id, req)
 		require.Nil(t, err)
 		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
 	})
@@ -1327,16 +1352,20 @@ func TestSettlementMode(t *testing.T) {
 	})
 
 	t.Run("Should reject a plan-based subscription with credit_only settlement mode when credit is disabled", func(t *testing.T) {
+		customer, err := client.CreateCustomerWithResponse(ctx, api.CustomerCreate{
+			Key:          lo.ToPtr(gofakeit.Numerify("customer_####")),
+			Name:         gofakeit.Name(),
+			Currency:     lo.ToPtr(api.CurrencyCode("USD")),
+			PrimaryEmail: lo.ToPtr("testcustomer@example.com"),
+		})
+
 		ct := &api.SubscriptionTiming{}
 		require.NoError(t, ct.FromSubscriptionTimingEnum(api.SubscriptionTimingEnumImmediate))
 
-		// The credit check fires before the customer lookup and plan resolution, so a
-		// valid-format but non-existent customer ID is fine here. The ID must still match
-		// the ULID pattern or request validation rejects it before the handler runs.
 		create := api.SubscriptionCreate{}
-		err := create.FromPlanSubscriptionCreate(api.PlanSubscriptionCreate{
+		err = create.FromPlanSubscriptionCreate(api.PlanSubscriptionCreate{
 			Timing:         ct,
-			CustomerId:     lo.ToPtr("01G65Z755AFWAKHE12NY0CQ9FH"),
+			CustomerId:     lo.ToPtr(customer.JSON201.Id),
 			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
 			Plan: api.PlanReferenceInput{
 				Key:     "test_plan_settlement_plan_ref",
@@ -1352,11 +1381,34 @@ func TestSettlementMode(t *testing.T) {
 	})
 
 	t.Run("Should reject a plan-based subscription change with credit_only settlement mode when credit is disabled", func(t *testing.T) {
+		customer, err := client.CreateCustomerWithResponse(ctx, api.CustomerCreate{
+			Key:          lo.ToPtr(gofakeit.Numerify("customer_####")),
+			Name:         gofakeit.Name(),
+			Currency:     lo.ToPtr(api.CurrencyCode("USD")),
+			PrimaryEmail: lo.ToPtr("testcustomer@example.com"),
+		})
+
+		create := api.SubscriptionCreate{}
+		require.NoError(t, create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
+			CustomerId: lo.ToPtr(customer.JSON201.Id),
+			CustomPlan: api.CustomPlanInput{
+				Name:           "Credit Only Custom Plan",
+				Currency:       "USD",
+				BillingCadence: "P1M",
+				SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditThenInvoice),
+				Phases:         []api.PlanPhase{defaultPhase},
+			},
+		}))
+
+		subscription, err := client.CreateSubscriptionWithResponse(ctx, create)
+		require.NoError(t, err)
+		require.Equal(t, 201, subscription.StatusCode(), "received the following body: %s", subscription.Body)
+
 		ct := &api.SubscriptionTiming{}
 		require.NoError(t, ct.FromSubscriptionTimingEnum(api.SubscriptionTimingEnumImmediate))
 
 		req := api.SubscriptionChange{}
-		err := req.FromPlanSubscriptionChange(api.PlanSubscriptionChange{
+		err = req.FromPlanSubscriptionChange(api.PlanSubscriptionChange{
 			Timing:         *ct,
 			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
 			Plan: api.PlanReferenceInput{
@@ -1369,7 +1421,7 @@ func TestSettlementMode(t *testing.T) {
 		// The credit check fires before the subscription lookup, so a valid-format but
 		// non-existent subscription ID is fine here. The ID must still match the ULID
 		// pattern or path validation rejects it before the handler runs.
-		res, err := client.ChangeSubscriptionWithResponse(ctx, "01G65Z755AFWAKHE12NY0CQ9FH", req)
+		res, err := client.ChangeSubscriptionWithResponse(ctx, subscription.JSON201.Id, req)
 		require.Nil(t, err)
 		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
 		assert.Contains(t, string(res.Body), "credits are not enabled on this deployment of OpenMeter")
