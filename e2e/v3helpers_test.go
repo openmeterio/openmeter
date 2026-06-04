@@ -36,13 +36,13 @@ const v3RequestTimeout = 30 * time.Second
 // collide, and subtests are written to be independent rather than rely on
 // ordering.
 type v3Client struct {
-	t       *testing.T
+	t       testing.TB
 	baseURL string
 }
 
 // newV3Client returns a client pointed at $OPENMETER_ADDRESS. Skips the test
 // when the variable is unset.
-func newV3Client(t *testing.T) *v3Client {
+func newV3Client(t testing.TB) *v3Client {
 	t.Helper()
 
 	address := os.Getenv("OPENMETER_ADDRESS")
@@ -174,6 +174,15 @@ func (c *v3Client) CreateMeter(body apiv3.CreateMeterRequest) (int, *apiv3.Meter
 func (c *v3Client) CreateFeature(body apiv3.CreateFeatureRequest) (int, *apiv3.Feature, *v3Problem) {
 	status, raw, problem := c.do(http.MethodPost, "/features", body)
 	return decodeTyped[apiv3.Feature](c, status, raw, problem, http.StatusCreated)
+}
+
+// --- Governance ---
+
+// QueryGovernance posts a governance access query. Page size defaults server-side
+// to the max (100), so callers querying <=100 customers receive a single page.
+func (c *v3Client) QueryGovernance(body apiv3.GovernanceQueryRequest) (int, *apiv3.GovernanceQueryResponse, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPost, "/governance/query", body)
+	return decodeTyped[apiv3.GovernanceQueryResponse](c, status, raw, problem, http.StatusOK)
 }
 
 // --- Plans ---
