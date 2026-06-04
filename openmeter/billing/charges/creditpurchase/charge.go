@@ -125,6 +125,8 @@ type Intent struct {
 	ExpiresAt   *time.Time `json:"expiresAt"`
 	Priority    *int       `json:"priority"`
 
+	FeatureFilters FeatureFilters `json:"featureFilters,omitempty"`
+
 	// Settlement intent
 	Settlement Settlement `json:"settlement"`
 }
@@ -133,6 +135,7 @@ func (i Intent) Normalized() Intent {
 	i.Intent = i.Intent.Normalized()
 	i.EffectiveAt = meta.NormalizeOptionalTimestamp(i.EffectiveAt)
 	i.ExpiresAt = meta.NormalizeOptionalTimestamp(i.ExpiresAt)
+	i.FeatureFilters = i.FeatureFilters.Normalize()
 
 	calc, err := i.Currency.Calculator()
 	if err == nil {
@@ -159,6 +162,10 @@ func (i Intent) Validate() error {
 
 	if err := i.Settlement.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("settlement: %w", err))
+	}
+
+	if err := i.FeatureFilters.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("feature filters: %w", err))
 	}
 
 	switch i.Settlement.Type() {

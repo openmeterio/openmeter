@@ -25,6 +25,7 @@ func (s *Service) createRunCreditRealizations(ctx context.Context, charge usageb
 		ChargeID:     charge.ID,
 		CustomerID:   charge.Intent.CustomerID,
 		Currency:     charge.Intent.Currency,
+		Features:     featuresForLineage(charge.Intent.FeatureKey),
 		Realizations: realizations,
 	}); err != nil {
 		return nil, fmt.Errorf("create initial credit realization lineages: %w", err)
@@ -38,6 +39,14 @@ func (s *Service) createRunCreditRealizations(ctx context.Context, charge usageb
 	}
 
 	return realizations, nil
+}
+
+func featuresForLineage(featureKey string) []string {
+	if featureKey == "" {
+		return nil
+	}
+
+	return []string{featureKey}
 }
 
 type allocateCreditRealizationsInput struct {

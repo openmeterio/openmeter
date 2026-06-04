@@ -92,6 +92,8 @@ type ChargeCreditPurchase struct {
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 	// Priority holds the value of the "priority" field.
 	Priority *int `json:"priority,omitempty"`
+	// FeatureFilters holds the value of the "feature_filters" field.
+	FeatureFilters []string `json:"feature_filters,omitempty"`
 	// Settlement holds the value of the "settlement" field.
 	Settlement creditpurchase.Settlement `json:"settlement,omitempty"`
 	// StatusDetailed holds the value of the "status_detailed" field.
@@ -231,7 +233,7 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargecreditpurchase.FieldAnnotations, chargecreditpurchase.FieldMetadata:
+		case chargecreditpurchase.FieldAnnotations, chargecreditpurchase.FieldMetadata, chargecreditpurchase.FieldFeatureFilters:
 			values[i] = new([]byte)
 		case chargecreditpurchase.FieldCreditAmount:
 			values[i] = new(alpacadecimal.Decimal)
@@ -454,6 +456,14 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 				_m.Priority = new(int)
 				*_m.Priority = int(value.Int64)
 			}
+		case chargecreditpurchase.FieldFeatureFilters:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field feature_filters", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.FeatureFilters); err != nil {
+					return fmt.Errorf("unmarshal field feature_filters: %w", err)
+				}
+			}
 		case chargecreditpurchase.FieldSettlement:
 			if value, err := chargecreditpurchase.ValueScanner.Settlement.FromValue(values[i]); err != nil {
 				return err
@@ -657,6 +667,9 @@ func (_m *ChargeCreditPurchase) String() string {
 		builder.WriteString("priority=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("feature_filters=")
+	builder.WriteString(fmt.Sprintf("%v", _m.FeatureFilters))
 	builder.WriteString(", ")
 	builder.WriteString("settlement=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Settlement))

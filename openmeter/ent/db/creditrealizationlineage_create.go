@@ -63,6 +63,12 @@ func (_c *CreditRealizationLineageCreate) SetOriginKind(v creditrealization.Line
 	return _c
 }
 
+// SetAdvanceFeatures sets the "advance_features" field.
+func (_c *CreditRealizationLineageCreate) SetAdvanceFeatures(v []string) *CreditRealizationLineageCreate {
+	_c.mutation.SetAdvanceFeatures(v)
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *CreditRealizationLineageCreate) SetCreatedAt(v time.Time) *CreditRealizationLineageCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -268,6 +274,10 @@ func (_c *CreditRealizationLineageCreate) createSpec() (*CreditRealizationLineag
 		_spec.SetField(creditrealizationlineage.FieldOriginKind, field.TypeEnum, value)
 		_node.OriginKind = value
 	}
+	if value, ok := _c.mutation.AdvanceFeatures(); ok {
+		_spec.SetField(creditrealizationlineage.FieldAdvanceFeatures, field.TypeJSON, value)
+		_node.AdvanceFeatures = value
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(creditrealizationlineage.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -391,6 +401,9 @@ func (u *CreditRealizationLineageUpsertOne) UpdateNewValues() *CreditRealization
 		}
 		if _, exists := u.create.mutation.OriginKind(); exists {
 			s.SetIgnore(creditrealizationlineage.FieldOriginKind)
+		}
+		if _, exists := u.create.mutation.AdvanceFeatures(); exists {
+			s.SetIgnore(creditrealizationlineage.FieldAdvanceFeatures)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(creditrealizationlineage.FieldCreatedAt)
@@ -626,6 +639,9 @@ func (u *CreditRealizationLineageUpsertBulk) UpdateNewValues() *CreditRealizatio
 			}
 			if _, exists := b.mutation.OriginKind(); exists {
 				s.SetIgnore(creditrealizationlineage.FieldOriginKind)
+			}
+			if _, exists := b.mutation.AdvanceFeatures(); exists {
+				s.SetIgnore(creditrealizationlineage.FieldAdvanceFeatures)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(creditrealizationlineage.FieldCreatedAt)

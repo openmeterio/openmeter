@@ -34,6 +34,7 @@ func (s *service) PostInvoiceDraftCreated(ctx context.Context, charge creditpurc
 				Currency:                  charge.Intent.Currency,
 				Amount:                    charge.Intent.CreditAmount,
 				BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+				FeatureFilters:            charge.Intent.FeatureFilters.Strings(),
 			}); err != nil {
 				return err
 			}

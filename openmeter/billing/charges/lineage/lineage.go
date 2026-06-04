@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 )
@@ -41,6 +42,30 @@ func MinDecimal(a, b alpacadecimal.Decimal) alpacadecimal.Decimal {
 	}
 
 	return a
+}
+
+func FilterAdvanceLineagesForBackfill(lineages []Lineage, featureFilters []string) []Lineage {
+	return lo.Filter(lineages, func(entry Lineage, _ int) bool {
+		return FeatureFiltersMatchAdvance(featureFilters, entry.AdvanceFeatures)
+	})
+}
+
+func FeatureFiltersMatchAdvance(featureFilters []string, advanceFeatures []string) bool {
+	if len(featureFilters) == 0 {
+		return true
+	}
+
+	if len(advanceFeatures) == 0 {
+		return false
+	}
+
+	for _, feature := range advanceFeatures {
+		if lo.Contains(featureFilters, feature) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s Segment) Validate() error {

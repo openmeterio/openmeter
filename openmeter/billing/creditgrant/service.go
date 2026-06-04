@@ -125,6 +125,12 @@ func (i CreateInput) Validate() error {
 		}
 	}
 
+	if i.Filters != nil {
+		if err := creditpurchase.FeatureFilters(i.Filters.Features).Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("filters.features: %w", err))
+		}
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

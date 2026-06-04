@@ -325,6 +325,12 @@ func (_c *ChargeCreditPurchaseCreate) SetNillablePriority(v *int) *ChargeCreditP
 	return _c
 }
 
+// SetFeatureFilters sets the "feature_filters" field.
+func (_c *ChargeCreditPurchaseCreate) SetFeatureFilters(v []string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetFeatureFilters(v)
+	return _c
+}
+
 // SetSettlement sets the "settlement" field.
 func (_c *ChargeCreditPurchaseCreate) SetSettlement(v creditpurchase.Settlement) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetSettlement(v)
@@ -731,6 +737,10 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 	if value, ok := _c.mutation.Priority(); ok {
 		_spec.SetField(chargecreditpurchase.FieldPriority, field.TypeInt, value)
 		_node.Priority = &value
+	}
+	if value, ok := _c.mutation.FeatureFilters(); ok {
+		_spec.SetField(chargecreditpurchase.FieldFeatureFilters, field.TypeJSON, value)
+		_node.FeatureFilters = value
 	}
 	if value, ok := _c.mutation.Settlement(); ok {
 		vv, err := chargecreditpurchase.ValueScanner.Settlement.Value(value)
@@ -1291,6 +1301,9 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		}
 		if _, exists := u.create.mutation.Priority(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldPriority)
+		}
+		if _, exists := u.create.mutation.FeatureFilters(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldFeatureFilters)
 		}
 	}))
 	return u
@@ -1888,6 +1901,9 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			}
 			if _, exists := b.mutation.Priority(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldPriority)
+			}
+			if _, exists := b.mutation.FeatureFilters(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldFeatureFilters)
 			}
 		}
 	}))

@@ -28,6 +28,8 @@ const (
 	FieldCurrency = "currency"
 	// FieldOriginKind holds the string denoting the origin_kind field in the database.
 	FieldOriginKind = "origin_kind"
+	// FieldAdvanceFeatures holds the string denoting the advance_features field in the database.
+	FieldAdvanceFeatures = "advance_features"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
@@ -61,6 +63,7 @@ var Columns = []string{
 	FieldCustomerID,
 	FieldCurrency,
 	FieldOriginKind,
+	FieldAdvanceFeatures,
 	FieldCreatedAt,
 }
 

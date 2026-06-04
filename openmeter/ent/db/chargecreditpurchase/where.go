@@ -1651,6 +1651,16 @@ func PriorityNotNil() predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldPriority))
 }
 
+// FeatureFiltersIsNil applies the IsNil predicate on the "feature_filters" field.
+func FeatureFiltersIsNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldFeatureFilters))
+}
+
+// FeatureFiltersNotNil applies the NotNil predicate on the "feature_filters" field.
+func FeatureFiltersNotNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldFeatureFilters))
+}
+
 // StatusDetailedEQ applies the EQ predicate on the "status_detailed" field.
 func StatusDetailedEQ(v creditpurchase.Status) predicate.ChargeCreditPurchase {
 	vc := v

@@ -6,6 +6,7 @@ var DefaultValidator = Validator{
 	Rules: []RoutingRule{
 		RequireUniqueSubAccountsRule{},
 		RequireTaxDimensionScopeRule{},
+		RequireFeatureDimensionScopeRule{},
 		AllowedAccountSetsRule{
 			Sets: [][]ledger.AccountType{
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable},

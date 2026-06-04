@@ -247,6 +247,7 @@ type TransferCustomerFBOAdvanceToAccruedTemplate struct {
 	TaxCode        *string
 	TaxBehavior    *ledger.TaxBehavior
 	CostBasis      *alpacadecimal.Decimal
+	Features       []string
 	CreditPriority *int
 }
 
@@ -347,6 +348,7 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       t.Currency,
 		CostBasis:      t.CostBasis,
+		Features:       t.Features,
 		CreditPriority: priority,
 	})
 	if err != nil {

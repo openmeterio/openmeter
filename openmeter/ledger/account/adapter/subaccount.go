@@ -172,11 +172,18 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				routePredicates = append(routePredicates, dbledgersubaccountroute.TaxCodeIsNil())
 			}
 		}
-		if len(normalizedRoute.Features) > 0 {
-			// DB stores features as a sorted jsonb array; filter value is also sorted for canonical comparison.
-			routePredicates = append(routePredicates, func(s *sql.Selector) {
-				s.Where(sqljson.ValueEQ(dbledgersubaccountroute.FieldFeatures, normalizedRoute.Features))
-			})
+		if normalizedRoute.Features.IsPresent() {
+			features, _ := normalizedRoute.Features.Get()
+			if len(features) == 0 {
+				routePredicates = append(routePredicates, func(s *sql.Selector) {
+					s.Where(sqljson.ValueIsNull(dbledgersubaccountroute.FieldFeatures))
+				})
+			} else {
+				// DB stores features as a sorted jsonb array; filter value is also sorted for canonical comparison.
+				routePredicates = append(routePredicates, func(s *sql.Selector) {
+					s.Where(sqljson.ValueEQ(dbledgersubaccountroute.FieldFeatures, features))
+				})
+			}
 		}
 		if normalizedRoute.CostBasis.IsPresent() {
 			costBasis, _ := normalizedRoute.CostBasis.Get()

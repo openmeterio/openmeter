@@ -61,6 +61,9 @@ func (CreditRealizationLineage) Fields() []ent.Field {
 		field.Enum("origin_kind").
 			GoType(creditrealization.LineageOriginKind("")).
 			Immutable(),
+		field.Strings("advance_features").
+			Optional().
+			Immutable(),
 		field.Time("created_at").
 			Default(creditRealizationLineageNow).
 			Immutable(),

@@ -177,6 +177,27 @@ func TestOnAllocateCreditsCreditOnly(t *testing.T) {
 		require.NoError(t, err)
 		require.Nil(t, realizations)
 	})
+
+	t.Run("credit_only filters credits by flat fee feature key", func(t *testing.T) {
+		env := newFlatFeeHandlerTestEnv(t)
+
+		featureKey := "api_requests"
+		restricted := env.fundPriorityWithFeatures(t, 1, 4, []string{featureKey})
+		general := env.fundPriorityWithFeatures(t, 2, 6, nil)
+		charge := env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(7))
+		charge.Intent.FeatureKey = featureKey
+
+		realizations, err := env.handler.OnAllocateCredits(t.Context(), env.newAllocateCreditsInputForCharge(
+			charge,
+			alpacadecimal.NewFromInt(7),
+		))
+		require.NoError(t, err)
+		require.Len(t, realizations, 2)
+		require.True(t, realizations.Sum().Equal(alpacadecimal.NewFromInt(7)))
+		require.True(t, env.sumBalance(t, restricted).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, general).Equal(alpacadecimal.NewFromInt(3)))
+		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(7)))
+	})
 }
 
 func TestOnCorrectCreditAllocations(t *testing.T) {
@@ -778,11 +799,18 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.
 func (e *flatFeeHandlerTestEnv) fundPriority(t *testing.T, priority int, amount int64) ledger.SubAccount {
 	t.Helper()
 
+	return e.fundPriorityWithFeatures(t, priority, amount, nil)
+}
+
+func (e *flatFeeHandlerTestEnv) fundPriorityWithFeatures(t *testing.T, priority int, amount int64, features []string) ledger.SubAccount {
+	t.Helper()
+
 	costBasis := alpacadecimal.Zero
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
 		Currency:       e.Currency,
 		CostBasis:      &costBasis,
 		CreditPriority: priority,
+		Features:       features,
 	})
 	require.NoError(t, err)
 
@@ -803,18 +831,21 @@ func (e *flatFeeHandlerTestEnv) fundPriority(t *testing.T, priority int, amount 
 			Currency:       e.Currency,
 			CostBasis:      &costBasis,
 			CreditPriority: &priority,
+			Features:       features,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,
 			CostBasis: &costBasis,
+			Features:  features,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  e.Currency,
 			CostBasis: &costBasis,
+			Features:  features,
 		},
 	)
 	require.NoError(t, err)

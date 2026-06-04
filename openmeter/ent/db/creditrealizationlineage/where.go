@@ -472,6 +472,16 @@ func OriginKindNotIn(vs ...creditrealization.LineageOriginKind) predicate.Credit
 	return predicate.CreditRealizationLineage(sql.FieldNotIn(FieldOriginKind, v...))
 }
 
+// AdvanceFeaturesIsNil applies the IsNil predicate on the "advance_features" field.
+func AdvanceFeaturesIsNil() predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldIsNull(FieldAdvanceFeatures))
+}
+
+// AdvanceFeaturesNotNil applies the NotNil predicate on the "advance_features" field.
+func AdvanceFeaturesNotNil() predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldNotNull(FieldAdvanceFeatures))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.CreditRealizationLineage {
 	return predicate.CreditRealizationLineage(sql.FieldEQ(FieldCreatedAt, v))

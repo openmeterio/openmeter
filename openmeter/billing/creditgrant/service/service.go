@@ -235,6 +235,10 @@ func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {
 		Settlement:   toSettlement(input),
 	}
 
+	if input.Filters != nil {
+		intent.FeatureFilters = creditpurchase.FeatureFilters(input.Filters.Features).Normalize()
+	}
+
 	if input.Priority != nil {
 		p := int(*input.Priority)
 		intent.Priority = &p

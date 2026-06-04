@@ -46,6 +46,9 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Immutable(),
+		field.Strings("feature_filters").
+			Optional().
+			Immutable(),
 
 		field.String("settlement").
 			GoType(creditpurchase.Settlement{}).

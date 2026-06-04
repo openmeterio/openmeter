@@ -36921,6 +36921,8 @@ type ChargeCreditPurchaseMutation struct {
 	expires_at                *time.Time
 	priority                  *int
 	addpriority               *int
+	feature_filters           *[]string
+	appendfeature_filters     []string
 	settlement                *creditpurchase.Settlement
 	status_detailed           *creditpurchase.Status
 	clearedFields             map[string]struct{}
@@ -38298,6 +38300,71 @@ func (m *ChargeCreditPurchaseMutation) ResetPriority() {
 	delete(m.clearedFields, chargecreditpurchase.FieldPriority)
 }
 
+// SetFeatureFilters sets the "feature_filters" field.
+func (m *ChargeCreditPurchaseMutation) SetFeatureFilters(s []string) {
+	m.feature_filters = &s
+	m.appendfeature_filters = nil
+}
+
+// FeatureFilters returns the value of the "feature_filters" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) FeatureFilters() (r []string, exists bool) {
+	v := m.feature_filters
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatureFilters returns the old "feature_filters" field's value of the ChargeCreditPurchase entity.
+// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseMutation) OldFeatureFilters(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatureFilters is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatureFilters requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatureFilters: %w", err)
+	}
+	return oldValue.FeatureFilters, nil
+}
+
+// AppendFeatureFilters adds s to the "feature_filters" field.
+func (m *ChargeCreditPurchaseMutation) AppendFeatureFilters(s []string) {
+	m.appendfeature_filters = append(m.appendfeature_filters, s...)
+}
+
+// AppendedFeatureFilters returns the list of values that were appended to the "feature_filters" field in this mutation.
+func (m *ChargeCreditPurchaseMutation) AppendedFeatureFilters() ([]string, bool) {
+	if len(m.appendfeature_filters) == 0 {
+		return nil, false
+	}
+	return m.appendfeature_filters, true
+}
+
+// ClearFeatureFilters clears the value of the "feature_filters" field.
+func (m *ChargeCreditPurchaseMutation) ClearFeatureFilters() {
+	m.feature_filters = nil
+	m.appendfeature_filters = nil
+	m.clearedFields[chargecreditpurchase.FieldFeatureFilters] = struct{}{}
+}
+
+// FeatureFiltersCleared returns if the "feature_filters" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) FeatureFiltersCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldFeatureFilters]
+	return ok
+}
+
+// ResetFeatureFilters resets all changes to the "feature_filters" field.
+func (m *ChargeCreditPurchaseMutation) ResetFeatureFilters() {
+	m.feature_filters = nil
+	m.appendfeature_filters = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldFeatureFilters)
+}
+
 // SetSettlement sets the "settlement" field.
 func (m *ChargeCreditPurchaseMutation) SetSettlement(c creditpurchase.Settlement) {
 	m.settlement = &c
@@ -38695,7 +38762,7 @@ func (m *ChargeCreditPurchaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeCreditPurchaseMutation) Fields() []string {
-	fields := make([]string, 0, 31)
+	fields := make([]string, 0, 32)
 	if m.customer != nil {
 		fields = append(fields, chargecreditpurchase.FieldCustomerID)
 	}
@@ -38783,6 +38850,9 @@ func (m *ChargeCreditPurchaseMutation) Fields() []string {
 	if m.priority != nil {
 		fields = append(fields, chargecreditpurchase.FieldPriority)
 	}
+	if m.feature_filters != nil {
+		fields = append(fields, chargecreditpurchase.FieldFeatureFilters)
+	}
 	if m.settlement != nil {
 		fields = append(fields, chargecreditpurchase.FieldSettlement)
 	}
@@ -38855,6 +38925,8 @@ func (m *ChargeCreditPurchaseMutation) Field(name string) (ent.Value, bool) {
 		return m.ExpiresAt()
 	case chargecreditpurchase.FieldPriority:
 		return m.Priority()
+	case chargecreditpurchase.FieldFeatureFilters:
+		return m.FeatureFilters()
 	case chargecreditpurchase.FieldSettlement:
 		return m.Settlement()
 	case chargecreditpurchase.FieldStatusDetailed:
@@ -38926,6 +38998,8 @@ func (m *ChargeCreditPurchaseMutation) OldField(ctx context.Context, name string
 		return m.OldExpiresAt(ctx)
 	case chargecreditpurchase.FieldPriority:
 		return m.OldPriority(ctx)
+	case chargecreditpurchase.FieldFeatureFilters:
+		return m.OldFeatureFilters(ctx)
 	case chargecreditpurchase.FieldSettlement:
 		return m.OldSettlement(ctx)
 	case chargecreditpurchase.FieldStatusDetailed:
@@ -39142,6 +39216,13 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetPriority(v)
 		return nil
+	case chargecreditpurchase.FieldFeatureFilters:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatureFilters(v)
+		return nil
 	case chargecreditpurchase.FieldSettlement:
 		v, ok := value.(creditpurchase.Settlement)
 		if !ok {
@@ -39243,6 +39324,9 @@ func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
 	if m.FieldCleared(chargecreditpurchase.FieldPriority) {
 		fields = append(fields, chargecreditpurchase.FieldPriority)
 	}
+	if m.FieldCleared(chargecreditpurchase.FieldFeatureFilters) {
+		fields = append(fields, chargecreditpurchase.FieldFeatureFilters)
+	}
 	return fields
 }
 
@@ -39298,6 +39382,9 @@ func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldPriority:
 		m.ClearPriority()
+		return nil
+	case chargecreditpurchase.FieldFeatureFilters:
+		m.ClearFeatureFilters()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase nullable field %s", name)
@@ -39393,6 +39480,9 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldPriority:
 		m.ResetPriority()
+		return nil
+	case chargecreditpurchase.FieldFeatureFilters:
+		m.ResetFeatureFilters()
 		return nil
 	case chargecreditpurchase.FieldSettlement:
 		m.ResetSettlement()
@@ -66030,24 +66120,26 @@ func (m *ChargeUsageBasedRunsMutation) ResetEdge(name string) error {
 // CreditRealizationLineageMutation represents an operation that mutates the CreditRealizationLineage nodes in the graph.
 type CreditRealizationLineageMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *string
-	namespace           *string
-	root_realization_id *string
-	customer_id         *string
-	currency            *currencyx.Code
-	origin_kind         *creditrealization.LineageOriginKind
-	created_at          *time.Time
-	clearedFields       map[string]struct{}
-	charge              *string
-	clearedcharge       bool
-	segments            map[string]struct{}
-	removedsegments     map[string]struct{}
-	clearedsegments     bool
-	done                bool
-	oldValue            func(context.Context) (*CreditRealizationLineage, error)
-	predicates          []predicate.CreditRealizationLineage
+	op                     Op
+	typ                    string
+	id                     *string
+	namespace              *string
+	root_realization_id    *string
+	customer_id            *string
+	currency               *currencyx.Code
+	origin_kind            *creditrealization.LineageOriginKind
+	advance_features       *[]string
+	appendadvance_features []string
+	created_at             *time.Time
+	clearedFields          map[string]struct{}
+	charge                 *string
+	clearedcharge          bool
+	segments               map[string]struct{}
+	removedsegments        map[string]struct{}
+	clearedsegments        bool
+	done                   bool
+	oldValue               func(context.Context) (*CreditRealizationLineage, error)
+	predicates             []predicate.CreditRealizationLineage
 }
 
 var _ ent.Mutation = (*CreditRealizationLineageMutation)(nil)
@@ -66370,6 +66462,71 @@ func (m *CreditRealizationLineageMutation) ResetOriginKind() {
 	m.origin_kind = nil
 }
 
+// SetAdvanceFeatures sets the "advance_features" field.
+func (m *CreditRealizationLineageMutation) SetAdvanceFeatures(s []string) {
+	m.advance_features = &s
+	m.appendadvance_features = nil
+}
+
+// AdvanceFeatures returns the value of the "advance_features" field in the mutation.
+func (m *CreditRealizationLineageMutation) AdvanceFeatures() (r []string, exists bool) {
+	v := m.advance_features
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAdvanceFeatures returns the old "advance_features" field's value of the CreditRealizationLineage entity.
+// If the CreditRealizationLineage object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageMutation) OldAdvanceFeatures(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAdvanceFeatures is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAdvanceFeatures requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAdvanceFeatures: %w", err)
+	}
+	return oldValue.AdvanceFeatures, nil
+}
+
+// AppendAdvanceFeatures adds s to the "advance_features" field.
+func (m *CreditRealizationLineageMutation) AppendAdvanceFeatures(s []string) {
+	m.appendadvance_features = append(m.appendadvance_features, s...)
+}
+
+// AppendedAdvanceFeatures returns the list of values that were appended to the "advance_features" field in this mutation.
+func (m *CreditRealizationLineageMutation) AppendedAdvanceFeatures() ([]string, bool) {
+	if len(m.appendadvance_features) == 0 {
+		return nil, false
+	}
+	return m.appendadvance_features, true
+}
+
+// ClearAdvanceFeatures clears the value of the "advance_features" field.
+func (m *CreditRealizationLineageMutation) ClearAdvanceFeatures() {
+	m.advance_features = nil
+	m.appendadvance_features = nil
+	m.clearedFields[creditrealizationlineage.FieldAdvanceFeatures] = struct{}{}
+}
+
+// AdvanceFeaturesCleared returns if the "advance_features" field was cleared in this mutation.
+func (m *CreditRealizationLineageMutation) AdvanceFeaturesCleared() bool {
+	_, ok := m.clearedFields[creditrealizationlineage.FieldAdvanceFeatures]
+	return ok
+}
+
+// ResetAdvanceFeatures resets all changes to the "advance_features" field.
+func (m *CreditRealizationLineageMutation) ResetAdvanceFeatures() {
+	m.advance_features = nil
+	m.appendadvance_features = nil
+	delete(m.clearedFields, creditrealizationlineage.FieldAdvanceFeatures)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *CreditRealizationLineageMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -66521,7 +66678,7 @@ func (m *CreditRealizationLineageMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CreditRealizationLineageMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.namespace != nil {
 		fields = append(fields, creditrealizationlineage.FieldNamespace)
 	}
@@ -66539,6 +66696,9 @@ func (m *CreditRealizationLineageMutation) Fields() []string {
 	}
 	if m.origin_kind != nil {
 		fields = append(fields, creditrealizationlineage.FieldOriginKind)
+	}
+	if m.advance_features != nil {
+		fields = append(fields, creditrealizationlineage.FieldAdvanceFeatures)
 	}
 	if m.created_at != nil {
 		fields = append(fields, creditrealizationlineage.FieldCreatedAt)
@@ -66563,6 +66723,8 @@ func (m *CreditRealizationLineageMutation) Field(name string) (ent.Value, bool) 
 		return m.Currency()
 	case creditrealizationlineage.FieldOriginKind:
 		return m.OriginKind()
+	case creditrealizationlineage.FieldAdvanceFeatures:
+		return m.AdvanceFeatures()
 	case creditrealizationlineage.FieldCreatedAt:
 		return m.CreatedAt()
 	}
@@ -66586,6 +66748,8 @@ func (m *CreditRealizationLineageMutation) OldField(ctx context.Context, name st
 		return m.OldCurrency(ctx)
 	case creditrealizationlineage.FieldOriginKind:
 		return m.OldOriginKind(ctx)
+	case creditrealizationlineage.FieldAdvanceFeatures:
+		return m.OldAdvanceFeatures(ctx)
 	case creditrealizationlineage.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	}
@@ -66639,6 +66803,13 @@ func (m *CreditRealizationLineageMutation) SetField(name string, value ent.Value
 		}
 		m.SetOriginKind(v)
 		return nil
+	case creditrealizationlineage.FieldAdvanceFeatures:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAdvanceFeatures(v)
+		return nil
 	case creditrealizationlineage.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -66675,7 +66846,11 @@ func (m *CreditRealizationLineageMutation) AddField(name string, value ent.Value
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *CreditRealizationLineageMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(creditrealizationlineage.FieldAdvanceFeatures) {
+		fields = append(fields, creditrealizationlineage.FieldAdvanceFeatures)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -66688,6 +66863,11 @@ func (m *CreditRealizationLineageMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *CreditRealizationLineageMutation) ClearField(name string) error {
+	switch name {
+	case creditrealizationlineage.FieldAdvanceFeatures:
+		m.ClearAdvanceFeatures()
+		return nil
+	}
 	return fmt.Errorf("unknown CreditRealizationLineage nullable field %s", name)
 }
 
@@ -66712,6 +66892,9 @@ func (m *CreditRealizationLineageMutation) ResetField(name string) error {
 		return nil
 	case creditrealizationlineage.FieldOriginKind:
 		m.ResetOriginKind()
+		return nil
+	case creditrealizationlineage.FieldAdvanceFeatures:
+		m.ResetAdvanceFeatures()
 		return nil
 	case creditrealizationlineage.FieldCreatedAt:
 		m.ResetCreatedAt()

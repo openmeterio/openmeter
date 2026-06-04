@@ -63,6 +63,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 			SetNillableEffectiveAt(meta.NormalizeOptionalTimestamp(in.Intent.EffectiveAt)).
 			SetNillableExpiresAt(meta.NormalizeOptionalTimestamp(in.Intent.ExpiresAt)).
 			SetNillablePriority(in.Intent.Priority).
+			SetFeatureFilters(in.Intent.FeatureFilters.Strings()).
 			SetSettlement(in.Intent.Settlement).
 			SetStatusDetailed(creditpurchase.StatusCreated)
 

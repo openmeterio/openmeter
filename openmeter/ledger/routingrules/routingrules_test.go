@@ -324,6 +324,33 @@ func TestDefaultValidator_RejectsFBOCostBasisTranslationWithMismatchedTaxBehavio
 	require.ErrorContains(t, err, "ledger routing rule violated")
 }
 
+func TestDefaultValidator_AllowsReceivableCostBasisAttributionAcrossFeatures(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	openStatus := ledger.TransactionAuthorizationStatusOpen
+	costBasis := alpacadecimal.NewFromFloat(0.5)
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-advance", ledger.Route{
+				Currency:                       currencyx.Code("USD"),
+				Features:                       []string{"api-calls"},
+				TransactionAuthorizationStatus: &openStatus,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(20),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-attributed", ledger.Route{
+				Currency:                       currencyx.Code("USD"),
+				CostBasis:                      &costBasis,
+				TransactionAuthorizationStatus: &openStatus,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-20),
+		},
+	})
+
+	require.NoError(t, err)
+}
+
 func TestDefaultValidator_AllowsReceivableAuthorizationTransition(t *testing.T) {
 	validator := routingrules.DefaultValidator
 	openStatus := ledger.TransactionAuthorizationStatusOpen
@@ -443,6 +470,23 @@ func TestDefaultValidator_RejectsTaxCodeOnReceivable(t *testing.T) {
 				Currency:    currencyx.Code("USD"),
 				TaxCode:     &taxA,
 				TaxBehavior: &taxBehavior,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "ledger routing rule violated")
+}
+
+func TestDefaultValidator_RejectsFeaturesOnAccrued(t *testing.T) {
+	validator := routingrules.DefaultValidator
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-feature", ledger.Route{
+				Currency: currencyx.Code("USD"),
+				Features: []string{"api-calls"},
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},

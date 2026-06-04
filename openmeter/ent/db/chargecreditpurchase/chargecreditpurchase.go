@@ -78,6 +78,8 @@ const (
 	FieldExpiresAt = "expires_at"
 	// FieldPriority holds the string denoting the priority field in the database.
 	FieldPriority = "priority"
+	// FieldFeatureFilters holds the string denoting the feature_filters field in the database.
+	FieldFeatureFilters = "feature_filters"
 	// FieldSettlement holds the string denoting the settlement field in the database.
 	FieldSettlement = "settlement"
 	// FieldStatusDetailed holds the string denoting the status_detailed field in the database.
@@ -199,6 +201,7 @@ var Columns = []string{
 	FieldEffectiveAt,
 	FieldExpiresAt,
 	FieldPriority,
+	FieldFeatureFilters,
 	FieldSettlement,
 	FieldStatusDetailed,
 }
