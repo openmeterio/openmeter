@@ -129,6 +129,11 @@ func (i CreateInput) Validate() error {
 		if err := creditpurchase.FeatureFilters(i.Filters.Features).Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("filters.features: %w", err))
 		}
+
+		// Temporary restriction until customer balance semantics are defined for feature-filtered credits.
+		if len(i.Filters.Features) > 0 {
+			errs = append(errs, newCreditGrantFeatureFiltersUnsupportedError(len(i.Filters.Features)))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
