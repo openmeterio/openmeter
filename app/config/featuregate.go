@@ -11,6 +11,13 @@ type FeatureGateConfiguration struct {
 	Flags   featuregate.Flags `yaml:"flags"`
 }
 
+func (c FeatureGateConfiguration) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+	return c.Flags.Validate()
+}
+
 func ConfigureFeatureGate(v *viper.Viper, prefixes ...string) {
 	prefixer := NewViperKeyPrefixer(prefixes...)
 

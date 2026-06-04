@@ -54,14 +54,17 @@ func (r contextResolver) Credits(ctx context.Context) (bool, bool) {
 
 type Flags map[FeatureFlag]string
 
-func (f Flags) Keys() []FeatureFlag {
+func (f *Flags) Keys() []FeatureFlag {
 	return []FeatureFlag{credits}
 }
 
-func (f Flags) Validate() error {
+func (f *Flags) Validate() error {
+	if f == nil || len(*f) == 0 {
+		return errors.New("featuregate is enabled but missing flags setup")
+	}
 	keys := f.Keys()
 
-	for k := range f {
+	for k := range *f {
 		if !slices.Contains(keys, k) {
 			return fmt.Errorf("invalid key: %s", k)
 		}
@@ -70,8 +73,11 @@ func (f Flags) Validate() error {
 	return nil
 }
 
-func (f Flags) Credits() string {
-	value, ok := f[credits]
+func (f *Flags) Credits() string {
+	if f == nil {
+		return ""
+	}
+	value, ok := (*f)[credits]
 	if !ok {
 		return ""
 	}
