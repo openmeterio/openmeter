@@ -29,12 +29,14 @@ interface InvoicesEndpoints {
   invoicePendingLinesAction(
     @body
     request: InvoicePendingLinesActionInput,
-  ): {
-    @statusCode _: 201;
+  ):
+    | {
+        @statusCode _: 201;
 
-    @body
-    body: Invoice[];
-  } | CommonErrors;
+        @body
+        body: Invoice[];
+      }
+    | CommonErrors;
 
   /**
    * List invoices based on the specified filters.
@@ -93,9 +95,12 @@ interface InvoiceEndpoints {
   deleteInvoice(
     @path
     invoiceId: ULID,
-  ): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonErrors;
+  ):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Update an invoice
@@ -256,10 +261,12 @@ interface CustomerInvoiceEndpoints {
 
     @body
     request: InvoicePendingLineCreateInput,
-  ): {
-    @statusCode _: 201;
-    @body body: InvoicePendingLineCreateResponse;
-  } | CommonErrors;
+  ):
+    | {
+        @statusCode _: 201;
+        @body body: InvoicePendingLineCreateResponse;
+      }
+    | CommonErrors;
 }
 
 /**

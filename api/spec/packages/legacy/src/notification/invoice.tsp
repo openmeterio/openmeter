@@ -11,7 +11,9 @@ namespace OpenMeter;
  * Payload for notification event with `invoice.*` type.
  */
 @friendlyName("NotificationEventInvoicePayload")
-model NotificationEventInvoicePayload<T extends NotificationEventType.invoiceCreated | NotificationEventType.invoiceUpdated> {
+model NotificationEventInvoicePayload<T extends
+  | NotificationEventType.invoiceCreated
+  | NotificationEventType.invoiceUpdated> {
   /**
    * A unique identifier for the notification event the payload belongs to.
    */

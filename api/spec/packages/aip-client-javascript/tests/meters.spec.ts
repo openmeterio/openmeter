@@ -1,0 +1,92 @@
+import fetchMock from '@fetch-mock/vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { Client, funcs } from '../src/index.js'
+
+const meter = {
+  id: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+  name: 'API calls',
+  key: 'api_calls',
+  aggregation: 'count',
+  event_type: 'api-request',
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
+}
+
+beforeEach(() => {
+  fetchMock.mockReset()
+})
+
+function client() {
+  return new Client({
+    baseUrl: 'https://eu.api.konghq.com/v3',
+    apiKey: 'k',
+    fetch: fetchMock.fetchHandler,
+  })
+}
+
+function mockList() {
+  fetchMock.route('*', {
+    body: { data: [meter], meta: { page: { number: 1, size: 10, total: 1 } } },
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+function lastQuery(): URLSearchParams {
+  return new URL(fetchMock.callHistory.lastCall()!.url).searchParams
+}
+
+describe('listMeters query serialization', () => {
+  it('encodes page as a deep object', async () => {
+    mockList()
+    await funcs.listMeters(client(), { page: { size: 10, number: 2 } })
+    const q = lastQuery()
+    expect(q.get('page[size]')).toBe('10')
+    expect(q.get('page[number]')).toBe('2')
+  })
+
+  it('encodes a scalar filter', async () => {
+    mockList()
+    await funcs.listMeters(client(), { filter: { key: 'm' } })
+    expect(lastQuery().get('filter[key]')).toBe('m')
+  })
+
+  it('encodes a nested filter operand as a deep object', async () => {
+    mockList()
+    await funcs.listMeters(client(), { filter: { key: { eq: 'foo' } } })
+    expect(lastQuery().get('filter[key][eq]')).toBe('foo')
+  })
+
+  it('comma-joins array operands into a single parameter', async () => {
+    mockList()
+    await funcs.listMeters(client(), { filter: { key: { oeq: ['a', 'b', 'c'] } } })
+    const q = lastQuery()
+    expect(q.getAll('filter[key][oeq]')).toHaveLength(1)
+    expect(q.get('filter[key][oeq]')).toBe('a,b,c')
+  })
+
+  it('serializes sort as a plain string', async () => {
+    mockList()
+    await funcs.listMeters(client(), { sort: { by: 'created_at', order: 'desc' } })
+    const q = lastQuery()
+    expect(q.get('sort')).toBe('created_at desc')
+    expect(q.get('sort[by]')).toBeNull()
+  })
+
+  it('omits sort order when ascending is implied', async () => {
+    mockList()
+    await funcs.listMeters(client(), { sort: { by: 'name' } })
+    expect(lastQuery().get('sort')).toBe('name')
+  })
+})
+
+describe('responses are not validated', () => {
+  it('passes through additive response fields untouched', async () => {
+    fetchMock.route('*', {
+      body: { ...meter, brand_new_field: 'kept' },
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const result = await funcs.getMeter(client(), { meterId: 'm' })
+    expect(result.ok).toBe(true)
+    expect(result.value).toMatchObject({ id: meter.id, brand_new_field: 'kept' })
+  })
+})

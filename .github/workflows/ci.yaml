@@ -699,6 +699,20 @@ jobs:
         run: |
           nix develop --impure .#ci -c go test -v -count=1 ./quickstart/
 
+      - name: Run TypeScript SDK example
+        env:
+          OPENMETER_URL: http://localhost:48888/api/v3
+        working-directory: api/spec
+        run: |
+          # Build dist/ from src/, then run the quickstart example against it.
+          nix develop --impure ../../.#ci -c bash -c '
+            set -euo pipefail
+            corepack enable >/dev/null 2>&1 || true
+            pnpm install --frozen-lockfile 2>&1 | tail -5
+            pnpm --filter @openmeter/sdk run build
+            node --experimental-strip-types packages/aip-client-javascript/examples/quickstart/main.ts
+          '
+
       - name: Cleanup Docker Compose
         run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml down -v
         working-directory: quickstart

@@ -1,0 +1,17 @@
+# package.json "files": ["dist"] is the active publish allowlist and takes
+# precedence, so these patterns only take effect if that allowlist is removed.
+# They keep dev files and compile-time-only artifacts out of the published
+# package in that case.
+
+# Generated conformance guards — compile-time only, no runtime value.
+*.assert.*
+
+# Sources and dev tooling
+src/
+tests/
+tsconfig.json
+tsconfig.tsbuildinfo
+.gitignore
+
+# Source maps
+*.map

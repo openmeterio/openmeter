@@ -17,12 +17,14 @@ interface TokensEndpoints {
   @post
   @operationId("createPortalToken")
   @summary("Create consumer portal token")
-  create(@body token: Token): {
-    // TODO: Should be 201
-    @statusCode _: 200;
+  create(@body token: Token):
+    | {
+        // TODO: Should be 201
+        @statusCode _: 200;
 
-    @body body: Token;
-  } | CommonErrors;
+        @body body: Token;
+      }
+    | CommonErrors;
 
   /**
    * List tokens.
@@ -112,10 +114,13 @@ interface MetersEndpoints {
   @operationId("queryPortalMeter")
   @summary("Query meter")
   @sharedRoute
-  queryJson(@path meterSlug: Key, ...OmitProperties<MeterQuery, "subject">): {
-    @header contentType: "application/json";
-    @body _: MeterQueryResult;
-  } | NotFoundError | CommonErrors;
+  queryJson(@path meterSlug: Key, ...OmitProperties<MeterQuery, "subject">):
+    | {
+        @header contentType: "application/json";
+        @body _: MeterQueryResult;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Query meter for consumer portal. This endpoint is publicly exposable to consumers.
@@ -125,16 +130,19 @@ interface MetersEndpoints {
   @operationId("queryPortalMeter")
   @summary("Query meter")
   @sharedRoute
-  queryCsv(@path meterSlug: Key, ...OmitProperties<MeterQuery, "subject">): {
-    @header contentType: "text/csv";
+  queryCsv(@path meterSlug: Key, ...OmitProperties<MeterQuery, "subject">):
+    | {
+        @header contentType: "text/csv";
 
-    @body
-    @example("""
-      window_start,window_end,subject,model,type,value
-      2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,customer_1,gpt-4-turbo,input,12
-      2023-01-01T00:01:00Z,2023-01-02T00:02:00Z,customer_1,gpt-4-turbo,input,20
-      2023-01-01T00:02:00Z,2023-01-02T00:03:00Z,customer_2,gpt-4-turbo,output,4
-      """)
-    _: string;
-  } | NotFoundError | CommonErrors;
+        @body
+        @example("""
+          window_start,window_end,subject,model,type,value
+          2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,customer_1,gpt-4-turbo,input,12
+          2023-01-01T00:01:00Z,2023-01-02T00:02:00Z,customer_1,gpt-4-turbo,input,20
+          2023-01-01T00:02:00Z,2023-01-02T00:03:00Z,customer_2,gpt-4-turbo,output,4
+          """)
+        _: string;
+      }
+    | NotFoundError
+    | CommonErrors;
 }

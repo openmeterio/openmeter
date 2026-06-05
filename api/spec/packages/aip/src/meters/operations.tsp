@@ -161,6 +161,7 @@ interface MetersQueryOperations {
     },
     #{ title: "Grouped by customer and dimensions" }
   )
+  @friendlyName("queryMeterCsv")
   @post
   @operationId("query-meter")
   @sharedRoute

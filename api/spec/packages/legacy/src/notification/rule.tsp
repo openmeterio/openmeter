@@ -177,10 +177,12 @@ interface NotificationRulesEndpoints {
   @post
   @operationId("createNotificationRule")
   @summary("Create a notification rule")
-  create(@body request: NotificationRuleCreateRequest): {
-    @statusCode _: 201;
-    @body body: NotificationRule;
-  } | CommonErrors;
+  create(@body request: NotificationRuleCreateRequest):
+    | {
+        @statusCode _: 201;
+        @body body: NotificationRule;
+      }
+    | CommonErrors;
 
   /**
    * Update notification rule.
@@ -188,10 +190,13 @@ interface NotificationRulesEndpoints {
   @put
   @operationId("updateNotificationRule")
   @summary("Update a notification rule")
-  update(@path ruleId: ULID, @body request: NotificationRuleCreateRequest): {
-    @statusCode _: 200;
-    @body body: NotificationRule;
-  } | NotFoundError | CommonErrors;
+  update(@path ruleId: ULID, @body request: NotificationRuleCreateRequest):
+    | {
+        @statusCode _: 200;
+        @body body: NotificationRule;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Get a notification rule by id.
@@ -209,9 +214,12 @@ interface NotificationRulesEndpoints {
   @delete
   @operationId("deleteNotificationRule")
   @summary("Delete a notification rule")
-  delete(@path ruleId: ULID): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonErrors;
+  delete(@path ruleId: ULID):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Test a notification rule by sending a test event with random data.
@@ -220,8 +228,11 @@ interface NotificationRulesEndpoints {
   @route("/{ruleId}/test")
   @operationId("testNotificationRule")
   @summary("Test notification rule")
-  test(@path ruleId: ULID): {
-    @statusCode _: 201;
-    @body body: NotificationEvent;
-  } | NotFoundError | CommonErrors;
+  test(@path ruleId: ULID):
+    | {
+        @statusCode _: 201;
+        @body body: NotificationEvent;
+      }
+    | NotFoundError
+    | CommonErrors;
 }
