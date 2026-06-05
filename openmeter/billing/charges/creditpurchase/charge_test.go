@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFeatureFiltersStrings(t *testing.T) {
-	require.Equal(t, []string{"api-calls", "storage"}, FeatureFilters([]string{"storage", "api-calls", "storage"}).Strings())
+func TestFeatureFiltersNormalize(t *testing.T) {
+	require.Equal(t, FeatureFilters{"api-calls", "storage"}, FeatureFilters([]string{"storage", "api-calls", "storage"}).Normalize())
 }
 
 func TestFeatureFiltersValidate(t *testing.T) {

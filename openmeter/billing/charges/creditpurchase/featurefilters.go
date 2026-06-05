@@ -19,7 +19,7 @@ func (f FeatureFilters) Validate() error {
 		}
 	}
 
-	if len(f.Strings()) != len(f) {
+	if len(f.Normalize()) != len(f) {
 		errs = append(errs, errors.New("duplicate feature key"))
 	}
 
@@ -28,8 +28,4 @@ func (f FeatureFilters) Validate() error {
 
 func (f FeatureFilters) Normalize() FeatureFilters {
 	return FeatureFilters(slicesx.Normalize([]string(f)))
-}
-
-func (f FeatureFilters) Strings() []string {
-	return []string(f.Normalize())
 }

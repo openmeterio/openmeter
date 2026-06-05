@@ -38,7 +38,7 @@ func (s *service) grantPromotionalCredit(ctx context.Context, charge creditpurch
 			Currency:                  charge.Intent.Currency,
 			Amount:                    charge.Intent.CreditAmount,
 			BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
-			FeatureFilters:            charge.Intent.FeatureFilters.Strings(),
+			FeatureFilters:            charge.Intent.FeatureFilters.Normalize(),
 		}); err != nil {
 			return creditpurchase.Charge{}, err
 		}

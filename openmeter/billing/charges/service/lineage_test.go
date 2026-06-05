@@ -221,7 +221,7 @@ func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCr
 	s.Require().Len(lineages, 1)
 
 	s.assertInitialLineage(lineages[currentRun.CreditsAllocated[0].ID], usageCharge.ID, currentRun.CreditsAllocated[0].Amount, creditrealization.LineageOriginKindAdvance, creditrealization.LineageSegmentStateAdvanceUncovered)
-	s.Equal([]string{meterSlug}, lineages[currentRun.CreditsAllocated[0].ID].AdvanceFeatures)
+	s.Equal([]string{meterSlug}, []string(lineages[currentRun.CreditsAllocated[0].ID].AdvanceFeatures))
 }
 
 func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFiltersByAdvanceFeatures() {

@@ -83,7 +83,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 		ID:        charge.Intent.CustomerID,
 	}
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
-	featureFilters := charge.Intent.FeatureFilters.Strings()
+	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -140,7 +140,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 		ID:        charge.Intent.CustomerID,
 	}
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
-	featureFilters := charge.Intent.FeatureFilters.Strings()
+	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -209,7 +209,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		ID:        charge.Intent.CustomerID,
 	}
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
-	featureFilters := charge.Intent.FeatureFilters.Strings()
+	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
 	advanceAttributions, err := h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount, featureFilters)
 	if err != nil {

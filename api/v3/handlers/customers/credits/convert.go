@@ -193,7 +193,7 @@ func toAPIBillingCreditGrantFilters(filters creditpurchase.FeatureFilters) *api.
 		return nil
 	}
 
-	apiFeatures := lo.Map(filters.Strings(), func(key string, _ int) api.ResourceKey {
+	apiFeatures := lo.Map(filters.Normalize(), func(key string, _ int) api.ResourceKey {
 		return key
 	})
 
@@ -255,7 +255,7 @@ func fromAPIBillingCreditGrantFilters(filters *api.CreateCreditGrantFilters) (*c
 	}
 
 	return &creditgrant.GrantFilters{
-		Features: featureFilters.Strings(),
+		Features: featureFilters.Normalize(),
 	}, nil
 }
 

@@ -94,8 +94,8 @@ func TestOnCreditPurchaseInitiated_BackfillsOnlyMatchingFeatureAdvances(t *testi
 	require.True(t, env.sumBalance(t, env.unknownReceivableSubAccountWithFeatures(t, []string{"storage"})).Equal(alpacadecimal.NewFromInt(-30)))
 	require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
 	require.True(t, env.sumBalance(t, env.accruedSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(40)))
-	require.True(t, env.sumBalance(t, env.fboSubAccountWithFeatures(t, costBasis, featureFilters.Strings())).Equal(alpacadecimal.NewFromInt(60)))
-	require.True(t, env.sumBalance(t, env.receivableSubAccountWithFeatures(t, costBasis, featureFilters.Strings())).Equal(alpacadecimal.NewFromInt(-100)))
+	require.True(t, env.sumBalance(t, env.fboSubAccountWithFeatures(t, costBasis, featureFilters.Normalize())).Equal(alpacadecimal.NewFromInt(60)))
+	require.True(t, env.sumBalance(t, env.receivableSubAccountWithFeatures(t, costBasis, featureFilters.Normalize())).Equal(alpacadecimal.NewFromInt(-100)))
 }
 
 func TestOnCreditPurchaseInitiated_RestrictedCreditDoesNotBackfillFeaturelessAdvance(t *testing.T) {
@@ -116,8 +116,8 @@ func TestOnCreditPurchaseInitiated_RestrictedCreditDoesNotBackfillFeaturelessAdv
 
 	require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-40)))
 	require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(40)))
-	require.True(t, env.sumBalance(t, env.fboSubAccountWithFeatures(t, costBasis, featureFilters.Strings())).Equal(alpacadecimal.NewFromInt(100)))
-	require.True(t, env.sumBalance(t, env.receivableSubAccountWithFeatures(t, costBasis, featureFilters.Strings())).Equal(alpacadecimal.NewFromInt(-100)))
+	require.True(t, env.sumBalance(t, env.fboSubAccountWithFeatures(t, costBasis, featureFilters.Normalize())).Equal(alpacadecimal.NewFromInt(100)))
+	require.True(t, env.sumBalance(t, env.receivableSubAccountWithFeatures(t, costBasis, featureFilters.Normalize())).Equal(alpacadecimal.NewFromInt(-100)))
 }
 
 func TestOnCreditPurchaseInitiated(t *testing.T) {
@@ -148,7 +148,7 @@ func TestOnCreditPurchaseInitiated_UsesFeatureRestrictedFBO(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
 
-	require.True(t, env.sumBalance(t, env.fboSubAccountWithFeatures(t, costBasis, featureFilters.Strings())).Equal(alpacadecimal.NewFromInt(100)))
+	require.True(t, env.sumBalance(t, env.fboSubAccountWithFeatures(t, costBasis, featureFilters.Normalize())).Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
 }
 
